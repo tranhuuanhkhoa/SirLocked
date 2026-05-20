@@ -1,0 +1,60 @@
+﻿<!-- SCREEN 5: OPTIONS -->
+<div class="screen" id="s-options">
+  <div class="options-wrap">
+    <div class="page-title-wrap options-title-wrap">
+      <div class="page-title options-title">CÀI ĐẶT</div>
+      <div class="ornate-divider"><span>⚙</span></div>
+    </div>
+
+    <div class="options-grid">
+      <!-- Sound -->
+      <div>
+        <div class="options-section-label">Âm thanh</div>
+        <div class="slider-row">
+          <span class="slider-label">Nhạc nền</span>
+          <input class="slider-input" type="range" min="0" max="100" value="70" oninput="document.getElementById('v1').textContent=this.value+'%'">
+          <span class="slider-val" id="v1">70%</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Hiệu ứng âm thanh</span>
+          <input class="slider-input" type="range" min="0" max="100" value="85" oninput="document.getElementById('v2').textContent=this.value+'%'">
+          <span class="slider-val" id="v2">85%</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Lồng tiếng nhân vật</span>
+          <input class="slider-input" type="range" min="0" max="100" value="60" oninput="document.getElementById('v3').textContent=this.value+'%'">
+          <span class="slider-val" id="v3">60%</span>
+        </div>
+      </div>
+
+      <!-- Quality & Lang -->
+      <div>
+        <div class="options-section-label">Chất lượng hình ảnh</div>
+        <div class="quality-row quality-row--spaced">
+          <button class="quality-btn" onclick="setQuality(this)">THẤP</button>
+          <button class="quality-btn active" onclick="setQuality(this)">TRUNG BÌNH</button>
+          <button class="quality-btn" onclick="setQuality(this)">CAO</button>
+        </div>
+
+        <div class="options-section-label">Ngôn ngữ</div>
+        <div class="lang-row">
+          <button class="lang-btn active" onclick="setLang(this)">
+            <span class="lang-flag">🇻🇳</span>
+            <span>TIẾNG VIỆT</span>
+          </button>
+          <button class="lang-btn" onclick="setLang(this)">
+            <span class="lang-flag">🇬🇧</span>
+            <span>ENGLISH</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="options-divider"></div>
+
+    <div class="options-btns">
+      <button class="btn-primary save-settings-btn">LƯU CÀI ĐẶT</button>
+      <button class="reset-link">Đặt lại mặc định</button>
+    </div>
+  </div>
+</div>

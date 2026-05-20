@@ -1,0 +1,135 @@
+﻿/* ===== HAMBURGER MENU ===== */
+  .nav-hamburger {
+    display: none; flex-direction: column; gap: 5px;
+    background: none; border: none; cursor: pointer; padding: 4px;
+  }
+  .nav-hamburger span {
+    display: block; width: 22px; height: 2px;
+    background: var(--gold); transition: all 0.3s;
+  }
+  .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+  .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .nav-mobile-menu {
+    display: none; position: fixed; top: 56px; left: 0; right: 0; z-index: 99;
+    background: rgba(8,15,28,0.98);
+    border-bottom: 1px solid var(--gold-dim);
+    flex-direction: column; padding: 8px 0;
+  }
+  .nav-mobile-menu.open { display: flex; }
+  .nav-mobile-menu .nav-tab {
+    width: 100%; text-align: left; padding: 14px 24px;
+    border-radius: 0; font-size: 12px; letter-spacing: 2px;
+    border-bottom: 0.5px solid rgba(201,168,76,0.08);
+  }
+  .nav-mobile-menu .nav-tab.active {
+    background: rgba(201,168,76,0.08); border: none;
+    border-left: 3px solid var(--gold);
+  }
+
+  /* ===== TABLET: ≤ 900px ===== */
+  @media (max-width: 900px) {
+    /* Nav */
+    .nav-tabs { display: none; }
+    .nav-hamburger { display: flex; }
+    .nav { padding: 0 20px; }
+
+    /* Auth - stack vertically */
+    #s-auth { flex-direction: column; }
+    .auth-left {
+      width: 100%; height: 260px; min-height: unset;
+      flex-shrink: 0;
+    }
+    .auth-left-overlay {
+      background: linear-gradient(to bottom, transparent 40%, rgba(10,22,40,0.9) 100%);
+    }
+    .auth-right {
+      width: 100%; border-left: none;
+      border-top: 1px solid var(--gold-dim);
+      padding: 32px 24px 40px;
+    }
+    .auth-form-wrap { max-width: 100%; }
+    .auth-logo h1 { font-size: 22px; letter-spacing: 4px; }
+
+    /* How to play */
+    #s-play { padding: 72px 20px 48px; }
+    .how-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .page-title { font-size: 24px; letter-spacing: 4px; }
+    .evidence-board { padding: 20px; }
+    .board-items { gap: 10px; }
+
+    /* Create room */
+    #s-create { padding: 72px 20px 48px; }
+    .room-card { padding: 28px 24px; }
+
+    /* Options */
+    #s-options { padding: 72px 24px 48px; }
+    #s-options > div > div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+    .slider-label { min-width: 130px; font-size: 14px; }
+  }
+
+  /* ===== MOBILE: ≤ 600px ===== */
+  @media (max-width: 600px) {
+    /* Nav */
+    .nav-logo { font-size: 14px; letter-spacing: 2px; }
+    .nav-logo svg { width: 18px; height: 18px; }
+
+    /* Auth */
+    .auth-left { height: 220px; }
+    .auth-right { padding: 24px 16px 36px; }
+    .auth-logo h1 { font-size: 20px; letter-spacing: 3px; }
+    .auth-logo p { font-size: 12px; }
+    .field-input { font-size: 14px; padding: 10px 12px; }
+    .tab-row { margin-bottom: 18px; }
+
+    /* How to play */
+    #s-play { padding: 68px 14px 40px; }
+    .how-grid { grid-template-columns: 1fr; gap: 14px; }
+    .how-card-illo { height: 120px; }
+    .how-card-body { padding: 14px; }
+    .how-card-title { font-size: 15px; }
+    .page-title { font-size: 20px; letter-spacing: 3px; }
+    .page-subtitle { font-size: 14px; }
+    .evidence-board { padding: 16px; }
+    .board-pin { font-size: 12px; padding: 8px 10px; }
+
+    /* Create room */
+    #s-create { padding: 68px 14px 40px; }
+    .room-card { padding: 24px 16px; }
+    .card-title { font-size: 16px; letter-spacing: 2px; }
+    .room-code-value { font-size: 28px; letter-spacing: 7px; }
+    .diff-btn { font-size: 10px; padding: 8px 4px; letter-spacing: 0.5px; }
+
+    /* Join room */
+    #s-join { padding: 68px 14px 40px; }
+    .join-title { font-size: 20px; letter-spacing: 2px; }
+    .code-input { font-size: 24px; letter-spacing: 8px; padding: 14px; }
+    .code-input::placeholder { font-size: 22px; }
+
+    /* Options */
+    #s-options { padding: 68px 14px 40px; }
+    .slider-row { flex-wrap: wrap; gap: 8px; }
+    .slider-label { min-width: unset; width: 100%; font-size: 14px; }
+    .slider-row input[type=range] { flex: 1; }
+    .quality-btn { font-size: 10px; letter-spacing: 0.5px; padding: 9px 4px; }
+    .lang-btn { padding: 12px 8px; font-size: 12px; }
+    .lang-flag { font-size: 20px; }
+    .options-section-label { font-size: 10px; }
+
+    /* Global buttons on mobile */
+    .btn-primary { font-size: 11px; letter-spacing: 2px; padding: 12px; }
+    .btn-secondary { font-size: 10px; }
+  }
+
+  /* ===== SMALL MOBILE: ≤ 380px ===== */
+  @media (max-width: 380px) {
+    .auth-left { height: 180px; }
+    .auth-logo h1 { font-size: 18px; letter-spacing: 2px; }
+    .room-code-value { font-size: 24px; letter-spacing: 5px; }
+    .code-input { font-size: 20px; letter-spacing: 6px; }
+    .join-title { font-size: 18px; }
+    .how-grid { gap: 10px; }
+  }

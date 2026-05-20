@@ -1,0 +1,33 @@
+﻿<!-- SCREEN 4: JOIN ROOM -->
+<div class="screen" id="s-join">
+  <!-- <svg class="skyline" viewBox="0 0 1200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 120 L0 80 L30 80 L30 60 L50 60 L50 80 L80 80 L80 40 L110 40 L110 20 L130 20 L130 40 L160 40 L160 80 L200 80 L200 50 L220 50 L220 30 L240 30 L240 50 L270 50 L270 80 L310 80 L310 55 L330 55 L330 35 L350 35 L350 55 L380 55 L380 80 L420 80 L420 45 L450 45 L450 80 L490 80 L490 60 L510 60 L510 40 L530 40 L530 60 L560 60 L560 80 L600 80 L600 50 L630 50 L630 30 L650 30 L650 50 L680 50 L680 80 L720 80 L720 55 L750 55 L750 80 L790 80 L790 40 L820 40 L820 60 L850 60 L850 80 L900 80 L900 45 L930 45 L930 25 L950 25 L950 45 L980 45 L980 80 L1020 80 L1020 60 L1040 60 L1040 80 L1080 80 L1080 50 L1110 50 L1110 80 L1200 80 L1200 120Z" fill="#c9a84c"/>
+  </svg> -->
+
+  <div class="join-content">
+    <div class="keyhole-icon">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <circle cx="28" cy="22" r="14" stroke="#c9a84c" stroke-width="2"/>
+        <circle cx="28" cy="22" r="8" fill="rgba(201,168,76,0.1)" stroke="rgba(201,168,76,0.4)" stroke-width="1"/>
+        <path d="M22 34 L34 34 L31 52 L25 52Z" fill="rgba(201,168,76,0.15)" stroke="#c9a84c" stroke-width="1.5"/>
+        <circle cx="28" cy="22" r="4" fill="#c9a84c" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="join-title">THAM GIA PHÒNG</div>
+    <div class="join-subtitle">Nhập mã phòng từ đồng đội</div>
+
+    <div class="code-input-wrap">
+      <input class="code-input" type="text" maxlength="6" placeholder="••••••" id="join-code" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div class="code-hint">Mã gồm 6 ký tự</div>
+
+    <button class="btn-primary" onclick="showScreen('play', document.querySelectorAll('.nav-tab')[1])">VÀO PHÒNG</button>
+
+    <div class="or-divider">
+      <div class="or-circle">hoặc</div>
+    </div>
+
+    <button class="text-link" onclick="showScreen('create', document.querySelectorAll('.nav-tab')[2])">Tạo phòng mới →</button>
+    <button class="back-link" onclick="showScreen('auth', document.querySelectorAll('.nav-tab')[0])">← Quay lại</button>
+  </div>
+</div>

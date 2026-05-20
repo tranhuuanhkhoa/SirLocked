@@ -1,0 +1,19 @@
+﻿<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="1.5">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    SIR LOCKED
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showScreen('auth', this)">Đăng nhập</button>
+    <button class="nav-tab" onclick="showScreen('play', this)">Hướng dẫn</button>
+    <button class="nav-tab" onclick="showScreen('create', this)">Tạo phòng</button>
+    <button class="nav-tab" onclick="showScreen('join', this)">Join phòng</button>
+    <button class="nav-tab" onclick="showScreen('options', this)">Cài đặt</button>
+  </div>
+  <button class="nav-hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>

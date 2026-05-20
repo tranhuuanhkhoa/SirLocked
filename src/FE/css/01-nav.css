@@ -1,0 +1,29 @@
+﻿/* NAV */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(8,15,28,0.97);
+    border-bottom: 1px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 56px;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 18px; letter-spacing: 3px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-logo svg { width: 22px; height: 22px; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    background: transparent; border: none; cursor: pointer;
+    font-family: 'Playfair Display', serif; font-size: 11px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--beige-muted); padding: 8px 14px; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .nav-tab:hover { color: var(--gold); }
+  .nav-tab.active {
+    color: var(--gold); background: rgba(201,168,76,0.1);
+    border: 0.5px solid rgba(201,168,76,0.3);
+  }
+
+  

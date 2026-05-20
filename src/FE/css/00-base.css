@@ -1,0 +1,26 @@
+﻿  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0a1628;
+    --navy2: #0d1e35;
+    --charcoal: #162840;
+    --charcoal2: #1c3048;
+    --gold: #c9a84c;
+    --gold-light: #e2c06e;
+    --gold-dim: #8a6e2e;
+    --beige: #e8dcc8;
+    --beige-muted: #9e9080;
+    --purple: #3b2d6e;
+    --purple2: #4e3d8a;
+    --white: #f0ebe2;
+    --fog: rgba(10,22,40,0.85);
+  }
+
+  body {
+    background: var(--navy);
+    font-family: 'Crimson Text', Georgia, serif;
+    color: var(--beige);
+    min-height: 100vh;
+  }
+
+  

@@ -1,0 +1,68 @@
+﻿/* ===== SCREEN 3: CREATE ROOM ===== */
+  #s-create {
+    flex-direction: column; align-items: center; justify-content: center;
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(59,45,110,0.2) 0%, transparent 50%),
+      var(--navy);
+    padding: 80px 32px 60px;
+  }
+  .room-card {
+    background: var(--charcoal2);
+    border: 0.5px solid rgba(201,168,76,0.25);
+    width: 100%; max-width: 480px;
+    padding: 36px 40px;
+    position: relative;
+  }
+  .room-card::before, .room-card::after,
+  .room-card .corner-tl, .room-card .corner-br {
+    content: ''; position: absolute; width: 16px; height: 16px;
+    border-color: var(--gold);
+  }
+  .room-card::before { top: 8px; left: 8px; border-top: 1px solid; border-left: 1px solid; }
+  .room-card::after { top: 8px; right: 8px; border-top: 1px solid; border-right: 1px solid; }
+  .corner-tl { bottom: 8px; left: 8px; border-bottom: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+  .corner-br { bottom: 8px; right: 8px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 20px; letter-spacing: 3px;
+    text-align: center; margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .diff-row { display: flex; gap: 8px; }
+  .diff-btn {
+    flex: 1; padding: 9px; background: var(--navy);
+    border: 0.5px solid rgba(201,168,76,0.3);
+    color: var(--beige-muted); font-family: 'Playfair Display', serif;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .diff-btn.active {
+    background: var(--purple); border-color: var(--gold);
+    color: var(--white);
+  }
+  .diff-btn:hover:not(.active) { border-color: var(--gold-dim); color: var(--beige); }
+  .room-code-box {
+    margin: 24px 0;
+    border: 1.5px dashed rgba(201,168,76,0.4); padding: 20px;
+    text-align: center; background: var(--navy);
+  }
+  .room-code-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold-dim); font-family: 'Playfair Display', serif; margin-bottom: 8px;
+  }
+  .room-code-value {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 36px; letter-spacing: 10px;
+    text-shadow: 0 0 20px rgba(201,168,76,0.3);
+  }
+  .share-hint { font-size: 12px; color: var(--beige-muted); margin-top: 8px; font-style: italic; }
+  .btn-secondary {
+    width: 100%; padding: 11px;
+    background: transparent; border: 0.5px solid rgba(201,168,76,0.2);
+    color: var(--beige-muted); font-family: 'Playfair Display', serif;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s; margin-top: 10px;
+  }
+  .btn-secondary:hover { border-color: var(--gold-dim); color: var(--beige); }
+
+  

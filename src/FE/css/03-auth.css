@@ -1,0 +1,202 @@
+﻿/* ===== SCREEN 1: AUTH ===== */
+  #s-auth {
+    flex-direction: row;
+  }
+  .auth-left {
+    width: 55%; position: relative; overflow: hidden;
+    background: var(--navy);
+    display: flex; align-items: stretch; justify-content: center;
+  }
+  .auth-left-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: center center;
+  }
+  .auth-left-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to right, transparent 55%, rgba(10,22,40,0.85) 100%),
+                linear-gradient(to top, rgba(10,22,40,0.4) 0%, transparent 30%);
+  }
+  .auth-ready-wrap {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    padding: 0 0 40px;
+    align-self: flex-end;
+    width: 100%;
+  }
+  .auth-ready-badge {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(201,168,76,0.6);
+    background: rgba(10,15,25,0.5);
+    display: inline-block;
+    padding: 6px 20px;
+    border: 0.5px solid rgba(201,168,76,0.3);
+  }
+  .auth-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(59,45,110,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%),
+      linear-gradient(to bottom, #060e1a 0%, #0d1e35 100%);
+  }
+  .auth-scene {
+    position: relative; z-index: 2; width: 100%; padding: 0 32px 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .door-frame {
+    width: 280px; margin: 0 auto;
+    background: linear-gradient(to bottom, #1a0e06, #0d0804);
+    border: 3px solid #2a1a0a;
+    border-radius: 4px 4px 0 0;
+    padding: 0;
+    position: relative;
+    box-shadow: 0 0 60px rgba(201,168,76,0.15), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  .door-arch {
+    background: #0d0804;
+    border-radius: 50% 50% 0 0 / 60px 60px 0 0;
+    height: 20px; margin-bottom: -2px;
+    border: 3px solid #2a1a0a; border-bottom: none;
+  }
+  .door-number {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 11px; letter-spacing: 2px;
+    background: rgba(0,0,0,0.6); padding: 2px 8px;
+    border: 0.5px solid var(--gold-dim);
+  }
+  .door-panel {
+    width: 100%; height: 360px;
+    background: linear-gradient(135deg, #1a0e06 0%, #0d0804 50%, #140a04 100%);
+    position: relative; overflow: hidden;
+  }
+  .door-panel::before {
+    content: '221B';
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 18px; letter-spacing: 4px;
+    text-shadow: 0 0 12px rgba(201,168,76,0.5);
+  }
+  .characters-row {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: center; align-items: flex-end; gap: 8px;
+  }
+  .char-svg { position: relative; }
+
+  /* Detective SVG character */
+  .detective-figure {
+    width: 90px; height: 200px; position: relative;
+  }
+  .doctor-figure {
+    width: 80px; height: 185px; position: relative;
+  }
+
+  .lamp-glow {
+    position: absolute; top: 20px; right: 24px;
+    width: 8px; height: 8px; background: var(--gold-light);
+    border-radius: 50%;
+    box-shadow: 0 0 20px 12px rgba(201,168,76,0.3), 0 0 40px 20px rgba(201,168,76,0.1);
+  }
+  .stone-wall {
+    position: absolute; inset: 0; z-index: 0;
+    background-image: repeating-linear-gradient(
+      0deg, transparent, transparent 28px, rgba(201,168,76,0.04) 28px, rgba(201,168,76,0.04) 29px
+    ), repeating-linear-gradient(
+      90deg, transparent, transparent 48px, rgba(201,168,76,0.03) 48px, rgba(201,168,76,0.03) 49px
+    );
+  }
+  .fog-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+    background: linear-gradient(to top, rgba(10,15,25,0.7) 0%, transparent 100%);
+    z-index: 1;
+  }
+  .auth-game-title {
+    text-align: center; padding: 24px 0 16px;
+    position: relative; z-index: 3;
+  }
+  .auth-game-title h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 22px; letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(201,168,76,0.3);
+  }
+  .auth-game-title p {
+    font-style: italic; color: var(--beige-muted); font-size: 14px; margin-top: 4px;
+  }
+
+  .auth-right {
+    width: 45%; background: var(--charcoal);
+    border-left: 1px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px;
+  }
+  .auth-form-wrap {
+    width: 100%; max-width: 340px;
+  }
+  .auth-logo {
+    text-align: center; margin-bottom: 28px;
+  }
+  .auth-logo h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 28px; letter-spacing: 5px;
+  }
+  .auth-logo p {
+    font-style: italic; color: var(--beige-muted); font-size: 13px; margin-top: 4px;
+  }
+  .gold-divider {
+    width: 100%; height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+    margin: 20px 0;
+  }
+  .tab-row {
+    display: flex; border: 0.5px solid var(--gold-dim); border-radius: 4px; overflow: hidden; margin-bottom: 24px;
+  }
+  .form-tab {
+    flex: 1; padding: 10px; background: transparent; border: none;
+    font-family: 'Playfair Display', serif; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    color: var(--beige-muted); transition: all 0.2s;
+  }
+  .form-tab.active {
+    background: rgba(201,168,76,0.12); color: var(--gold);
+    border-bottom: 2px solid var(--gold);
+  }
+  .form-panel[hidden] { display: none; }
+  .field-group { margin-bottom: 16px; }
+  .field-label {
+    display: block; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold-dim); margin-bottom: 6px;
+    font-family: 'Playfair Display', serif;
+  }
+  .field-input {
+    width: 100%; padding: 10px 14px;
+    background: var(--navy2);
+    border: 0.5px solid rgba(201,168,76,0.3);
+    border-left: 2px solid var(--gold-dim);
+    color: var(--beige); font-family: 'Crimson Text', serif; font-size: 15px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .field-input:focus { border-left-color: var(--gold); border-color: rgba(201,168,76,0.5); }
+  .field-input::placeholder { color: var(--beige-muted); font-style: italic; }
+  .btn-primary {
+    width: 100%; padding: 13px;
+    background: var(--navy); border: 1.5px solid var(--gold);
+    color: var(--gold); font-family: 'Playfair Display', serif;
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s; margin-top: 8px;
+  }
+  .btn-primary:hover {
+    background: rgba(201,168,76,0.15); color: var(--gold-light);
+    box-shadow: 0 0 20px rgba(201,168,76,0.2);
+  }
+  .auth-link {
+    text-align: center; margin-top: 16px;
+    font-size: 13px; color: var(--beige-muted);
+  }
+  .auth-link a { color: var(--gold); text-decoration: none; }
+  .forgot { text-align: center; margin-top: 10px; }
+  .forgot a { font-size: 12px; color: var(--beige-muted); font-style: italic; text-decoration: none; }
+
+  
