@@ -4,11 +4,11 @@
 
 | Item | Description |
 |---|---|
-| Course |  |
-| Class |  |
+| Course |PRN232  |
+| Class |SE18D07  |
 | Semester | SU26 |
-| Group |  |
-| Topic |  |
+| Group |01  |
+| Topic |Web Detective Game  |
 | Repository |  |
 
 ---
@@ -17,11 +17,11 @@
 
 | No | Student ID | Full Name | GitHub Username | Role | Main Responsibility |
 |---:|---|---|---|---|---|
-| 1 |  |  |  | Leader |  |
-| 2 |  |  |  | Member |  |
-| 3 |  |  |  | Member |  |
-| 4 |  |  |  | Member |  |
-| 5 |  |  |  | Member |  |
+| 1 |DE180738  |Trần Hữu Anh Khoa  |cadilurk  | Leader |Dev  |
+| 2 |DE180736  |Nguyễn Văn Cầu  |volamdp95  | Member |Dev  |
+| 3 |DE190601  |Lê Minh Nhật  |lmnvx2005 | Member |Dev  |
+| 4 |DE180727 |Dương Tuấn Kiệt  |Binni1001  | Member |Dev  |
+| 5 |DE  |Đặng Công Vũ Hoàng  |CIZOANGF  | Member |Dev  |
 
 ---
 
