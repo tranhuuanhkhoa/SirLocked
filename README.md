@@ -21,7 +21,7 @@
 | 2 |DE180736  |Nguyễn Văn Cầu  |volamdp95  | Member |Dev  |
 | 3 |DE190601  |Lê Minh Nhật  |lmnvx2005 | Member |Dev  |
 | 4 |DE180727 |Dương Tuấn Kiệt  |Binni1001  | Member |Dev  |
-| 5 |DE  |Đặng Công Vũ Hoàng  |CIZOANGF  | Member |Dev  |
+| 5 |DE180658  |Đặng Công Vũ Hoàng  |CIZOANGF  | Member |Dev  |
 
 ---
 
