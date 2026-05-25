@@ -1,0 +1,10 @@
+bin/
+obj/
+**/bin/
+**/obj/
+node_modules/
+dist/
+.vite/
+.env
+.env.local
+appsettings.Local.json
