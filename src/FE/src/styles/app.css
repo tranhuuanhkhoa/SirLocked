@@ -93,11 +93,16 @@ button:disabled {
   align-items: center;
 }
 
-.hero h1,
+.hero h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2rem, 8vw, 5rem);
+  letter-spacing: 0;
+}
+
 .panel h1,
 .auth-form h1 {
   margin: 0 0 16px;
-  font-size: clamp(2rem, 8vw, 5rem);
+  font-size: 2.2rem;
   letter-spacing: 0;
 }
 
@@ -166,6 +171,21 @@ select {
   background: rgba(140, 25, 25, 0.24);
 }
 
+.notice {
+  margin: 12px 0;
+  border: 1px solid rgba(94, 214, 148, 0.4);
+  border-radius: 6px;
+  padding: 12px;
+  color: #d8ffe8;
+  background: rgba(46, 125, 76, 0.24);
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -184,9 +204,20 @@ select {
   margin: 0 0 8px;
 }
 
+pre.card {
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+code {
+  color: #f0d28a;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
+  margin-top: 24px;
 }
 
 table {

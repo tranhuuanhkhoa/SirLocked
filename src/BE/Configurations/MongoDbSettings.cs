@@ -7,8 +7,10 @@ public sealed class MongoDbSettings
     public string ConnectionString { get; init; } = string.Empty;
     public string DatabaseName { get; init; } = string.Empty;
     public string UsersCollectionName { get; init; } = "users";
+    public string RefreshTokensCollectionName { get; init; } = "refreshTokens";
     public string CasesCollectionName { get; init; } = "cases";
     public string RoomsCollectionName { get; init; } = "rooms";
+    public string RoomChatMessagesCollectionName { get; init; } = "roomChatMessages";
     public string GameActionLogsCollectionName { get; init; } = "gameActionLogs";
     public string GameResultsCollectionName { get; init; } = "gameResults";
     public string AiCaseDraftsCollectionName { get; init; } = "aiCaseDrafts";

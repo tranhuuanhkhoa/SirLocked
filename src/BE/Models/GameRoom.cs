@@ -36,6 +36,10 @@ public sealed class RoomProgress
     public string CurrentSceneId { get; set; } = string.Empty;
     public List<string> FoundItemIds { get; set; } = [];
     public List<string> FoundClueIds { get; set; } = [];
+    public List<string> AskedDialogueIds { get; set; } = [];
+    public List<string> PresentedEvidenceIds { get; set; } = [];
+    public List<string> CompletedSceneIds { get; set; } = [];
+    public List<string> CompletedStageIds { get; set; } = [];
 }
 
 public sealed class RoomChatMessage

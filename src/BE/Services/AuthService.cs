@@ -27,13 +27,12 @@ public sealed class AuthService : IAuthService
             throw new InvalidOperationException("Email is already registered.");
         }
 
-        var role = UserRoles.All.Contains(request.Role) ? request.Role : UserRoles.Player;
         var user = new User
         {
             FullName = request.FullName.Trim(),
             Email = email,
             PasswordHash = _passwordHasher.Hash(request.Password),
-            Role = role,
+            Role = UserRoles.Player,
             Status = UserStatuses.Active,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

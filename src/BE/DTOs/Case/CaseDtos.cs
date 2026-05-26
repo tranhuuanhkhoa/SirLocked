@@ -27,3 +27,9 @@ public sealed class CaseValidationResult
     public bool IsValid => Errors.Count == 0;
     public List<string> Errors { get; init; } = [];
 }
+
+public sealed class CaseStatusResponse
+{
+    public string CaseId { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+}

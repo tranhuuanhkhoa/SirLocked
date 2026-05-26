@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import RoleRoute from '../components/RoleRoute';
+import AdminCaseDetailPage from '../pages/AdminCaseDetailPage';
 import AiCaseCreatorPage from '../pages/AiCaseCreatorPage';
 import AdminDashboardPage from '../pages/AdminDashboardPage';
+import AdminRoomHistoryPage from '../pages/AdminRoomHistoryPage';
 import AdminUsersPage from '../pages/AdminUsersPage';
+import CaseDetailPage from '../pages/CaseDetailPage';
 import CaseListPage from '../pages/CaseListPage';
 import CreateRoomPage from '../pages/CreateRoomPage';
 import DashboardPage from '../pages/DashboardPage';
 import GamePage from '../pages/GamePage';
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
+import ProfilePage from '../pages/ProfilePage';
 import RegisterPage from '../pages/RegisterPage';
 import RoomLobbyPage from '../pages/RoomLobbyPage';
 
@@ -44,10 +48,26 @@ export default function AppRoutes() {
     );
   }
 
+  if (pathname === '/profile') {
+    return (
+      <ProtectedRoute>
+        <ProfilePage />
+      </ProtectedRoute>
+    );
+  }
+
   if (pathname === '/cases') {
     return (
       <ProtectedRoute>
         <CaseListPage />
+      </ProtectedRoute>
+    );
+  }
+
+  if (pathname === '/cases/detail') {
+    return (
+      <ProtectedRoute>
+        <CaseDetailPage />
       </ProtectedRoute>
     );
   }
@@ -88,6 +108,22 @@ export default function AppRoutes() {
     return (
       <RoleRoute roles={['ADMIN']}>
         <AdminUsersPage />
+      </RoleRoute>
+    );
+  }
+
+  if (pathname === '/admin/rooms') {
+    return (
+      <RoleRoute roles={['ADMIN']}>
+        <AdminRoomHistoryPage />
+      </RoleRoute>
+    );
+  }
+
+  if (pathname === '/admin/cases/detail') {
+    return (
+      <RoleRoute roles={['ADMIN']}>
+        <AdminCaseDetailPage />
       </RoleRoute>
     );
   }

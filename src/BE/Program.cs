@@ -43,7 +43,8 @@ builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
-builder.Services.AddScoped<IDeepseekService, DeepseekService>();
+builder.Services.AddScoped<DatabaseBootstrapService>();
+builder.Services.AddHttpClient<IDeepseekService, DeepseekService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IChatGptImageService, ChatGptImageService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
@@ -105,12 +106,24 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+try
+{
+    using var scope = app.Services.CreateScope();
+    var bootstrap = scope.ServiceProvider.GetRequiredService<DatabaseBootstrapService>();
+    await bootstrap.InitializeAsync();
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "MongoDB bootstrap did not complete. The API will continue starting.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseMiddleware<UserStatusMiddleware>();

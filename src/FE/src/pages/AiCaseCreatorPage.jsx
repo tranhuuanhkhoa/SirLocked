@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { createAiCaseDraft } from '../api/aiCaseApi';
+import { importCaseJson } from '../api/caseApi';
 
 export default function AiCaseCreatorPage() {
   const [prompt, setPrompt] = useState('');
   const [draft, setDraft] = useState(null);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const submit = async (event) => {
     event.preventDefault();
@@ -12,6 +14,18 @@ export default function AiCaseCreatorPage() {
       setError('');
       const response = await createAiCaseDraft({ prompt });
       setDraft(response.data);
+      setMessage('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const importDraft = async () => {
+    try {
+      setError('');
+      const gameCase = JSON.parse(draft.generatedJson);
+      const response = await importCaseJson(gameCase);
+      setMessage(`Imported ${response.data.case.title}. Publish it from Admin Dashboard.`);
     } catch (err) {
       setError(err.message);
     }
@@ -21,7 +35,7 @@ export default function AiCaseCreatorPage() {
     <section className="panel">
       <p className="eyebrow">Member 5</p>
       <h1>AI Case Creator</h1>
-      <p>Week 1 placeholder. Deepseek, Gemini, ChatGPT, and Cloudinary are configured later.</p>
+      <p>Week 2 uses a deterministic mock provider that produces a valid case JSON draft for review and import.</p>
       <form onSubmit={submit}>
         <label>
           Case idea
@@ -30,7 +44,17 @@ export default function AiCaseCreatorPage() {
         <button>Create draft</button>
       </form>
       {error && <div className="error">{error}</div>}
-      {draft && <pre className="card">{JSON.stringify(draft, null, 2)}</pre>}
+      {message && <div className="notice">{message}</div>}
+      {draft && (
+        <div className="stack">
+          <div className="card">
+            <h3>{draft.status}</h3>
+            <p>{draft.prompt}</p>
+            <button onClick={importDraft}>Import draft as case</button>
+          </div>
+          <pre className="card">{draft.generatedJson}</pre>
+        </div>
+      )}
     </section>
   );
 }

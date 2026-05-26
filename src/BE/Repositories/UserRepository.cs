@@ -44,4 +44,9 @@ public sealed class UserRepository : IUserRepository
         user.UpdatedAt = DateTime.UtcNow;
         await _users.ReplaceOneAsync(existing => existing.Id == user.Id, user, cancellationToken: cancellationToken);
     }
+
+    public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _users.CountDocumentsAsync(_ => true, cancellationToken: cancellationToken);
+    }
 }

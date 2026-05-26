@@ -7,7 +7,7 @@ export default function DashboardPage() {
     <section className="panel">
       <p className="eyebrow">Player area</p>
       <h1>Dashboard</h1>
-      <p>Welcome, {user?.fullName}. Week 1 auth is connected to the .NET API.</p>
+      <p>Welcome, {user?.fullName}. Week 2 game rooms and case runtime are connected to the .NET API.</p>
       <div className="grid">
         <div className="card">
           <h3>Role</h3>

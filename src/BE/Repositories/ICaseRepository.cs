@@ -9,4 +9,6 @@ public interface ICaseRepository
     Task<GameCase?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
     Task CreateAsync(GameCase gameCase, CancellationToken cancellationToken = default);
     Task UpdateAsync(GameCase gameCase, CancellationToken cancellationToken = default);
+    Task<long> CountAsync(CancellationToken cancellationToken = default);
+    Task<bool> ExistsByCaseIdAsync(string caseId, CancellationToken cancellationToken = default);
 }

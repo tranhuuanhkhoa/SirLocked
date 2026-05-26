@@ -9,4 +9,8 @@ public interface ICaseService
     Task<CaseDetailResponse?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
     Task<CaseValidationResult> ValidateAsync(ImportCaseRequest request, CancellationToken cancellationToken = default);
     Task<CaseDetailResponse> ImportAsync(ImportCaseRequest request, CancellationToken cancellationToken = default);
+    Task<CaseStatusResponse?> PublishAsync(string id, CancellationToken cancellationToken = default);
+    Task<CaseStatusResponse?> UnpublishAsync(string id, CancellationToken cancellationToken = default);
+    Task<CaseDetailResponse> SeedSampleAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CaseDetailResponse>> SeedDemoCasesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using SirLocked.API.Configurations;
 using SirLocked.API.Models;
@@ -27,7 +28,12 @@ public sealed class CaseRepository : ICaseRepository
 
     public async Task<GameCase?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        return await _cases.Find(gameCase => gameCase.Id == id || gameCase.CaseId == id).FirstOrDefaultAsync(cancellationToken);
+        if (ObjectId.TryParse(id, out _))
+        {
+            return await _cases.Find(gameCase => gameCase.Id == id || gameCase.CaseId == id).FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return await _cases.Find(gameCase => gameCase.CaseId == id).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task CreateAsync(GameCase gameCase, CancellationToken cancellationToken = default)
@@ -39,5 +45,16 @@ public sealed class CaseRepository : ICaseRepository
     {
         gameCase.UpdatedAt = DateTime.UtcNow;
         await _cases.ReplaceOneAsync(existing => existing.Id == gameCase.Id, gameCase, cancellationToken: cancellationToken);
+    }
+
+    public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _cases.CountDocumentsAsync(_ => true, cancellationToken: cancellationToken);
+    }
+
+    public async Task<bool> ExistsByCaseIdAsync(string caseId, CancellationToken cancellationToken = default)
+    {
+        var normalized = caseId.Trim();
+        return await _cases.Find(gameCase => gameCase.CaseId == normalized).AnyAsync(cancellationToken);
     }
 }

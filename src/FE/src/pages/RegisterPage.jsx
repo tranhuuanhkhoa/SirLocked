@@ -4,7 +4,7 @@ import { navigate } from '../hooks/useNavigate';
 
 export default function RegisterPage() {
   const { register } = useAuth();
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'PLAYER' });
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -18,7 +18,7 @@ export default function RegisterPage() {
       setSubmitting(true);
       setError('');
       const user = await register(form);
-      navigate(user.role === 'ADMIN' ? '/admin/users' : '/dashboard');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,14 +41,6 @@ export default function RegisterPage() {
         <label>
           Password
           <input name="password" type="password" value={form.password} onChange={update} minLength={6} required />
-        </label>
-        <label>
-          Role
-          <select name="role" value={form.role} onChange={update}>
-            <option value="PLAYER">Player</option>
-            <option value="HOST">Host</option>
-            <option value="ADMIN">Admin</option>
-          </select>
         </label>
         {error && <div className="error">{error}</div>}
         <button disabled={submitting}>{submitting ? 'Creating...' : 'Create account'}</button>

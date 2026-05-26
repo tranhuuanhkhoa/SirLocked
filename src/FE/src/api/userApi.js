@@ -10,3 +10,7 @@ export function updateProfile(data) {
     body: JSON.stringify(data),
   });
 }
+
+export function getMyResults() {
+  return apiRequest('/users/me/results');
+}

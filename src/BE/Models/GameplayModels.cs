@@ -24,6 +24,7 @@ public sealed class GameResult
 
     public string RoomId { get; set; } = string.Empty;
     public string CaseId { get; set; } = string.Empty;
+    public string SubmittedByUserId { get; set; } = string.Empty;
     public bool Success { get; set; }
     public FinalAccusation Accusation { get; set; } = new();
     public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
