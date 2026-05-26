@@ -16,7 +16,13 @@ export default function AppLayout({ children }) {
         <nav>
           <button onClick={() => navigate('/')}>Home</button>
           {isAuthenticated && <button onClick={() => navigate('/dashboard')}>Dashboard</button>}
-          {user?.role === 'ADMIN' && <button onClick={() => navigate('/admin/users')}>Admin Users</button>}
+          {isAuthenticated && <button onClick={() => navigate('/cases')}>Cases</button>}
+          {isAuthenticated && <button onClick={() => navigate('/rooms/create')}>Create Room</button>}
+          {isAuthenticated && <button onClick={() => navigate('/rooms/lobby')}>Lobby</button>}
+          {isAuthenticated && <button onClick={() => navigate('/game')}>Game</button>}
+          {user?.role === 'ADMIN' && <button onClick={() => navigate('/admin/dashboard')}>Admin</button>}
+          {user?.role === 'ADMIN' && <button onClick={() => navigate('/admin/users')}>Users</button>}
+          {user?.role === 'ADMIN' && <button onClick={() => navigate('/admin/ai-cases')}>AI Cases</button>}
         </nav>
         <div className="topbar-actions">
           {isAuthenticated ? (
