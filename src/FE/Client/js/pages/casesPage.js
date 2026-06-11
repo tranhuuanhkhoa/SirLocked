@@ -41,7 +41,10 @@ export async function renderCasesPage(app) {
   <div class="page">
     <div class="page-head">
       <h2>Published Cases</h2>
-      <a class="btn btn-ghost" href="#/join">Have a room code?</a>
+      <div class="case-actions">
+        <a class="btn btn-primary" href="#/create-room">Create room</a>
+        <a class="btn btn-ghost" href="#/join">Have a room code?</a>
+      </div>
     </div>
     ${cases.length === 0
       ? '<div class="empty-state">No cases are published yet. Ask an admin to seed and publish the sample case.</div>'

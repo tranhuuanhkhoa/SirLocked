@@ -1,0 +1,12 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: sirlocked-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - sirlocked-mongo-data:/data/db
+
+volumes:
+  sirlocked-mongo-data:

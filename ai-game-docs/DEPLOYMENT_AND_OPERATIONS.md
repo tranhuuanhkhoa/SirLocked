@@ -5,7 +5,7 @@
 Required tools:
 
 - .NET SDK compatible with the backend target framework.
-- Node.js and npm for the React frontend.
+- Node.js and npm for the Vite frontend and Phaser gameplay renderer.
 - Docker Desktop or a local/cloud MongoDB instance.
 
 Recommended local flow:
@@ -45,7 +45,7 @@ If optional AI/image settings are missing, the app must still run and use mock/p
 Minimum CI or pre-demo checks:
 
 - Backend restore/build.
-- Frontend install/build.
+- Frontend install, TypeScript check, and build.
 - Parse `ai-game-docs/samples/sample-case.json`.
 - Backend case validator accepts the sample case.
 - Backend case validator rejects duplicate IDs and missing references.
@@ -55,7 +55,7 @@ Recommended later checks:
 
 - Backend unit tests for case validation and gameplay state transitions.
 - Integration tests for auth, room flow, gameplay APIs, and final accusation.
-- Frontend lint/build.
+- Frontend lint/typecheck/build.
 - Manual or Playwright two-browser smoke test for lobby/gameplay sync.
 
 ## Production Notes

@@ -23,6 +23,12 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 }
 
+public class SetUserRoleRequest
+{
+    [Required]
+    public string Role { get; set; } = string.Empty;
+}
+
 public class UserResponse
 {
     public string UserId { get; set; } = string.Empty;

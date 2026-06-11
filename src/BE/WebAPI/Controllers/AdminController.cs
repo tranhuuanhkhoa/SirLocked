@@ -30,4 +30,8 @@ public class AdminController : BaseApiController
     [HttpPatch("users/{userId}/unlock")]
     public async Task<ActionResult<ApiResponse<UserResponse>>> Unlock(string userId) =>
         Ok(await _adminService.SetUserStatusAsync(userId, UserStatus.Active), "User unlocked.");
+
+    [HttpPatch("users/{userId}/role")]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> SetRole(string userId, [FromBody] SetUserRoleRequest request) =>
+        Ok(await _adminService.SetUserRoleAsync(userId, request.Role), "User role updated.");
 }

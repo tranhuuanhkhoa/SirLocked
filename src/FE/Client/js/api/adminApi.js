@@ -5,6 +5,7 @@ export const adminApi = {
   users: () => get('/api/admin/users'),
   lockUser: (userId) => patch(`/api/admin/users/${userId}/lock`),
   unlockUser: (userId) => patch(`/api/admin/users/${userId}/unlock`),
+  setUserRole: (userId, role) => patch(`/api/admin/users/${userId}/role`, { role }),
 
   cases: () => get('/api/admin/cases'),
   caseDetail: (caseId) => get(`/api/admin/cases/${encodeURIComponent(caseId)}`),

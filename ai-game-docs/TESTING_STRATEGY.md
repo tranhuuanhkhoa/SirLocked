@@ -74,13 +74,14 @@ Required manual checks:
 
 Minimum:
 
+- `npm run typecheck` succeeds.
 - Build succeeds.
 - Login/register forms handle success and failure.
 - Case list renders published cases from API.
 - Lobby renders players, roles, ready state, and start button correctly.
-- Game page renders from API data, not hard-coded sample IDs.
+- Phaser game page renders from API data, not hard-coded sample IDs.
 - Game page can show the case intro before the first scene.
-- Hotspots scale with scene image.
+- Hotspots scale with the Phaser scene canvas and background.
 - Role-specific UI disables item inspection for non-investigators and dialogue actions for non-interrogators.
 - Investigation notebook groups evidence, critical clues, and red herrings without revealing final required evidence.
 - Investigation map shows current/visited/unlocked locations without acting like a raw stage select screen.

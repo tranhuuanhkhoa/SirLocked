@@ -27,12 +27,17 @@ export async function renderAdminDashboardPage(app) {
     <tr>
       <td>${escapeHtml(u.fullName)}</td>
       <td class="muted">${escapeHtml(u.email)}</td>
-      <td><span class="chip ${u.role === 'ADMIN' ? 'chip-gold' : ''}">${u.role}</span></td>
+      <td><span class="chip ${u.role === 'ADMIN' || u.role === 'VIP' ? 'chip-gold' : ''}">${u.role}</span></td>
       <td><span class="chip ${u.status === 'ACTIVE' ? 'chip-ok' : 'chip-bad'}">${u.status}</span></td>
       <td>
-        ${u.role === 'ADMIN' ? '' : u.status === 'ACTIVE'
-          ? `<button class="btn btn-ghost btn-sm" data-lock="${u.userId}">Lock</button>`
-          : `<button class="btn btn-ghost btn-sm" data-unlock="${u.userId}">Unlock</button>`}
+        ${u.role === 'ADMIN' ? '' : `
+          ${u.role === 'VIP'
+            ? `<button class="btn btn-ghost btn-sm" data-role-user="${u.userId}" data-role="PLAYER">Make player</button>`
+            : `<button class="btn btn-ghost btn-sm" data-role-user="${u.userId}" data-role="VIP">Make VIP</button>`}
+          ${u.status === 'ACTIVE'
+            ? `<button class="btn btn-ghost btn-sm" data-lock="${u.userId}">Lock</button>`
+            : `<button class="btn btn-ghost btn-sm" data-unlock="${u.userId}">Unlock</button>`}
+        `}
       </td>
     </tr>`).join('');
 
@@ -89,4 +94,13 @@ export async function renderAdminDashboardPage(app) {
       }));
   rebind('[data-lock]', adminApi.lockUser);
   rebind('[data-unlock]', adminApi.unlockUser);
+  app.querySelectorAll('[data-role-user]').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      try {
+        await adminApi.setUserRole(btn.dataset.roleUser, btn.dataset.role);
+        renderAdminDashboardPage(app);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }));
 }

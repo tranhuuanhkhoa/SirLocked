@@ -3,9 +3,10 @@ import { escapeHtml, render } from './utils/dom.js';
 import { renderLoginPage } from './pages/loginPage.js';
 import { renderCasesPage } from './pages/casesPage.js';
 import { renderCaseDetailPage } from './pages/caseDetailPage.js';
+import { renderCreateRoomPage } from './pages/createRoomPage.js';
 import { renderJoinRoomPage } from './pages/joinRoomPage.js';
 import { renderLobbyPage } from './pages/lobbyPage.js';
-import { renderGamePage } from './pages/gamePage.js';
+import { renderGamePage } from './pages/gamePage.ts';
 import { renderResultPage } from './pages/resultPage.js';
 import { renderAdminDashboardPage } from './pages/adminDashboardPage.js';
 import { renderAdminCasesPage } from './pages/adminCasesPage.js';
@@ -17,6 +18,7 @@ const routes = [
   { pattern: /^#\/login$/, page: renderLoginPage, anonymous: true },
   { pattern: /^#\/cases$/, page: renderCasesPage },
   { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
+  { pattern: /^#\/create-room$/, page: renderCreateRoomPage },
   { pattern: /^#\/join$/, page: renderJoinRoomPage },
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage },
   { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage },
@@ -25,7 +27,7 @@ const routes = [
   { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
   { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
-  { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, admin: true },
+  { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
 ];
 
 let cleanup = null;
@@ -39,19 +41,28 @@ function renderNav() {
   }
   const adminLinks = session.isAdmin()
     ? `<a href="#/admin" class="nav-link">Dashboard</a>
-       <a href="#/admin/cases" class="nav-link">Manage Cases</a>
-       <a href="#/admin/ai" class="nav-link">AI Creator</a>`
+       <a href="#/admin/cases" class="nav-link">Manage Cases</a>`
     : '';
+  const aiLinks = session.canGenerateAi()
+    ? '<a href="#/admin/ai" class="nav-link">AI Creator</a>'
+    : '';
+  const roleChip = session.isAdmin()
+    ? ' <span class="chip chip-gold">ADMIN</span>'
+    : session.isVip()
+      ? ' <span class="chip chip-gold">VIP</span>'
+      : '';
   render(navRoot, `
     <nav class="app-nav">
       <a class="nav-brand" href="#/cases">SIR<span>LOCKED</span></a>
       <div class="nav-links">
         <a href="#/cases" class="nav-link">Cases</a>
+        <a href="#/create-room" class="nav-link">Create Room</a>
         <a href="#/join" class="nav-link">Join Room</a>
         ${adminLinks}
+        ${aiLinks}
       </div>
       <div class="nav-user">
-        <span class="nav-username">${escapeHtml(user.fullName)}${session.isAdmin() ? ' <span class="chip chip-gold">ADMIN</span>' : ''}</span>
+        <span class="nav-username">${escapeHtml(user.fullName)}${roleChip}</span>
         <button class="btn btn-ghost btn-sm" id="nav-logout">Log out</button>
       </div>
     </nav>`);
@@ -74,7 +85,9 @@ async function route() {
 
   let hash = window.location.hash || '#/';
   if (hash === '#/' || hash === '#') {
-    hash = session.isLoggedIn() ? (session.isAdmin() ? '#/admin' : '#/cases') : '#/login';
+    hash = session.isLoggedIn()
+      ? (session.isAdmin() ? '#/admin' : session.isVip() ? '#/admin/ai' : '#/cases')
+      : '#/login';
     window.location.hash = hash;
     return;
   }
@@ -91,6 +104,10 @@ async function route() {
     return;
   }
   if (r.admin && !session.isAdmin()) {
+    window.location.hash = '#/cases';
+    return;
+  }
+  if (r.aiAccess && !session.canGenerateAi()) {
     window.location.hash = '#/cases';
     return;
   }

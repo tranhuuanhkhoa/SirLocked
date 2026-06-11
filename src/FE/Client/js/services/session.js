@@ -26,4 +26,11 @@ export const session = {
   isAdmin() {
     return this.user()?.role === 'ADMIN';
   },
+  isVip() {
+    return this.user()?.role === 'VIP';
+  },
+  canGenerateAi() {
+    const role = this.user()?.role;
+    return role === 'ADMIN' || role === 'VIP';
+  },
 };

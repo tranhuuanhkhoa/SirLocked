@@ -1,4 +1,5 @@
 import { aiCaseApi } from '../api/aiCaseApi.js';
+import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 
@@ -6,8 +7,9 @@ export async function renderAdminAiPage(app) {
   render(app, '<div class="page"><p class="muted">Loading AI case creator…</p></div>');
 
   let drafts = [];
+  const canManageDrafts = session.isAdmin();
   try {
-    drafts = await aiCaseApi.drafts();
+    if (canManageDrafts) drafts = await aiCaseApi.drafts();
   } catch {
     /* drafts list is non-critical */
   }
@@ -22,10 +24,10 @@ export async function renderAdminAiPage(app) {
       <td><span class="chip">${escapeHtml(d.provider)}</span></td>
       <td><span class="chip ${valid ? 'chip-ok' : 'chip-bad'}">${escapeHtml(d.status)}</span></td>
       <td>
-        <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">View</button>
-        ${d.status === 'IMPORTED'
+        ${canManageDrafts ? `<button class="btn btn-ghost btn-sm" data-view="${d.draftId}">View</button>` : ''}
+        ${canManageDrafts && d.status === 'IMPORTED'
           ? `<a class="btn btn-ghost btn-sm" href="#/admin/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">Case</a>`
-          : valid
+          : canManageDrafts && valid
             ? `<button class="btn btn-primary btn-sm" data-publish-draft="${d.draftId}">Import + publish</button>`
             : ''}
       </td>
@@ -37,6 +39,7 @@ export async function renderAdminAiPage(app) {
     <div class="page">
       <h2>AI Case Creator</h2>
       <p class="muted">Describe a mystery and generate a full playable case draft. With a Deepseek key configured the story is written by AI; without one a deterministic mock case is generated, so this always works.</p>
+      ${canManageDrafts ? '' : '<p class="notice">VIP access can generate a draft. Admin review, import, and publish remain admin-only.</p>'}
 
       <form id="ai-form" class="ai-form">
         <textarea class="json-input" name="prompt" rows="3" required minlength="8"
@@ -61,8 +64,10 @@ export async function renderAdminAiPage(app) {
 
       <div id="ai-output">${activeDraft ? draftDetail(activeDraft) : ''}</div>
 
-      <h3 class="section-title">Recent drafts</h3>
-      ${drafts.length === 0
+      ${canManageDrafts ? '<h3 class="section-title">Recent drafts</h3>' : ''}
+      ${!canManageDrafts
+        ? ''
+        : drafts.length === 0
         ? '<div class="empty-state small">No drafts yet.</div>'
         : `<table class="admin-table">
             <thead><tr><th>Draft</th><th>Provider</th><th>Status</th><th></th></tr></thead>
@@ -81,7 +86,7 @@ export async function renderAdminAiPage(app) {
       ${d.validationErrors?.length
         ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
         : ''}
-      ${valid && d.status !== 'IMPORTED'
+      ${canManageDrafts && valid && d.status !== 'IMPORTED'
         ? `<div class="case-actions">
             <button class="btn btn-ghost btn-sm" data-import-draft="${d.draftId}">Import as draft case</button>
             <button class="btn btn-primary btn-sm" data-publish-draft="${d.draftId}">Import + publish</button>
@@ -100,7 +105,7 @@ export async function renderAdminAiPage(app) {
       try {
         const draft = await aiCaseApi.generate(
           data.get('prompt'), Number(data.get('stageCount')), data.get('difficulty'), data.get('visualStyle'));
-        drafts = await aiCaseApi.drafts().catch(() => drafts);
+        if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
         draw(draft);
         toast(draft.validationErrors?.length ? 'Generated, but the case failed validation.' : 'Case draft generated.', draft.validationErrors?.length ? 'error' : 'success');
       } catch (err) {
@@ -126,7 +131,7 @@ export async function renderAdminAiPage(app) {
           try {
             const summary = await action(btn.dataset.importDraft || btn.dataset.publishDraft);
             toast(`"${summary.title}" ${label}.`, 'success');
-            drafts = await aiCaseApi.drafts().catch(() => drafts);
+            if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
             draw();
           } catch (err) {
             toast(err.message, 'error');

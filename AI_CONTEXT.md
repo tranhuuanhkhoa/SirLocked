@@ -3,7 +3,7 @@
 ## Project
 
 - Backend: ASP.NET Core Web API, MongoDB, SignalR, JWT auth.
-- Frontend: React-free Vite JavaScript SPA using existing JS/CSS patterns.
+- Frontend: React-free Vite JavaScript SPA using existing JS/CSS patterns, with the gameplay renderer implemented in Phaser 4 + TypeScript.
 - Branch: `develop`.
 - Latest local commit: `08c4bc0 Implement SirLocked MVP`.
 
@@ -11,7 +11,7 @@
 
 - Full SirLocked MVP source has been implemented locally.
 - Backend includes auth, admin seed/import/validate/publish, cases, rooms, SignalR hub, gameplay runtime, final accusation, and AI case generation with Deepseek/mock fallback.
-- Frontend includes login/register, published cases, room lobby, role selection, ready/start flow, gameplay scene renderer, hotspots, dialogue, progression, result, and admin case/AI pages.
+- Frontend includes login/register, published cases, room lobby, role selection, ready/start flow, Phaser gameplay scene renderer, hotspots, dialogue overlays, progression, result, and admin case/AI pages.
 - Sample case exists in `ai-game-docs/samples/sample-case.json` and is copied to `src/BE/SeedData/sample-case.json`.
 - Local verification previously passed for backend build/tests, API smoke script, and frontend build.
 
@@ -23,6 +23,7 @@
 - Smoke test: `scripts/e2e_smoke.py`
 - Frontend entry: `src/FE/Client/js/main.js`
 - Frontend routes/pages: `src/FE/Client/js/pages/`
+- Gameplay renderer: `src/FE/Client/js/pages/gamePage.ts`
 - Frontend API wrappers: `src/FE/Client/js/api/`
 - Styles: `src/FE/css/09-app.css`
 - Seed case: `src/BE/SeedData/sample-case.json`
@@ -45,6 +46,7 @@ dotnet restore SirLocked.sln
 dotnet test SirLocked.sln
 cd src/FE
 npm install
+npm run typecheck
 npm run build
 ```
 
@@ -58,7 +60,7 @@ npm run dev
 
 ## Do Not
 
-- Do not migrate frontend JS/JSX to TypeScript.
+- Do not migrate the whole frontend to TypeScript without a clear reason. TypeScript is currently used only for the Phaser gameplay renderer.
 - Do not rewrite frameworks.
 - Do not hard-code case, scene, clue, item, character, or dialogue IDs in frontend logic.
 - Do not add VIP/payment/analytics/leaderboard/replay/rating features.

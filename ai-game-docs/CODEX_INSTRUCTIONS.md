@@ -2,7 +2,7 @@
 
 You are a senior full-stack coding agent working inside an existing repository.
 
-This is a coding task, not an architecture discussion. Implement a runnable MVP in the current repo. Do not rewrite the whole project. Do not migrate frameworks. Inspect the existing code first, preserve working behavior, and extend the current patterns.
+This is a coding task, not an architecture discussion. Implement a runnable MVP in the current repo. Do not rewrite the whole project. Do not migrate frameworks broadly. Inspect the existing code first, preserve working behavior, and extend the current patterns.
 
 ## Repository Context
 
@@ -27,13 +27,13 @@ src/FE
 Current stack:
 
 - Backend: ASP.NET Core Web API, C#, MongoDB, SignalR, JWT.
-- Frontend: React + Vite using JavaScript/JSX.
+- Frontend: React-free Vite JavaScript SPA, with Phaser 4 + TypeScript for the gameplay renderer.
 - Database: MongoDB.
 - Realtime: SignalR.
 - AI: Deepseek for case JSON generation.
 - Image/storage providers may exist as placeholders. Real image generation and Cloudinary are optional for MVP.
 
-Do not migrate the frontend to TypeScript unless explicitly requested.
+Do not migrate the whole frontend to TypeScript unless explicitly requested. TypeScript is currently used only for the Phaser gameplay renderer.
 
 ## Before Coding
 
@@ -64,11 +64,11 @@ src/BE/Controllers
 src/BE/Services
 src/BE/Repositories
 src/BE/Hubs
-src/FE/src/routes
-src/FE/src/pages
-src/FE/src/api
-src/FE/src/components
-src/FE/src/styles
+src/FE/Client/js/main.js
+src/FE/Client/js/pages
+src/FE/Client/js/api
+src/FE/Client/js/services
+src/FE/css/09-app.css
 ```
 
 The project already has parts of auth, case management, room flow, gameplay, SignalR, AI draft generation, and generated JSON export. Extend those pieces. Do not create duplicate controllers/routes when an existing one can be completed.
@@ -139,7 +139,7 @@ Do not block MVP on:
 - Cloudinary upload
 - multi-step AI pipeline
 - AI validator using another LLM
-- TypeScript migration
+- whole-frontend TypeScript migration
 - complex animations
 - full production-grade admin portal
 - refresh token rotation unless already implemented
@@ -360,7 +360,7 @@ Reconnect:
 
 ## Frontend Requirements
 
-Use existing React + Vite JS/JSX.
+Use the existing Vite JavaScript module app for app screens. Use Phaser 4 + TypeScript for the gameplay renderer.
 
 Required pages or equivalent existing pages:
 
@@ -379,12 +379,12 @@ Required pages or equivalent existing pages:
 
 Game page must render:
 
-- scene background
-- hotspots overlaid by percent coordinates
+- scene background on the Phaser canvas
+- hotspots rendered by percent coordinates on the Phaser canvas
 - clickable item hotspots
-- character panel or scene character sprites/cards
-- dialogue panel
-- item inspection modal/panel
+- character interactables or fallback canvas figures
+- dialogue HTML overlay
+- item inspection HTML overlay
 - clue inventory/evidence board
 - current objective/hint panel
 - stage/scene progress
@@ -397,9 +397,9 @@ Recommended gameplay layout:
 
 ```txt
 Top: case title, progress, room code, players
-Center-left: scene background with hotspot overlay
-Right: clue board and action log
-Bottom: investigation text, dialogue, choices, item inspection
+Center: Phaser scene canvas with background, hotspots, characters, and scene navigation
+Right/bottom overlays: case file, map, log, dialogue, item inspection
+Bottom: inventory bar
 Modal: final accusation
 ```
 

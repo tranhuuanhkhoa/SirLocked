@@ -5,7 +5,7 @@ import { toast } from '../utils/toast.js';
 
 export async function renderLoginPage(app) {
   if (session.isLoggedIn()) {
-    window.location.hash = session.isAdmin() ? '#/admin' : '#/cases';
+    window.location.hash = session.isAdmin() ? '#/admin' : session.isVip() ? '#/admin/ai' : '#/cases';
     return;
   }
 
@@ -45,7 +45,7 @@ export async function renderLoginPage(app) {
         <button class="btn btn-primary btn-block" type="submit">Create account</button>
       </form>
 
-      <p class="auth-hint">Two detectives, one case. Register two accounts to play co-op.</p>
+      <p class="auth-hint">Two detectives. One locked case.</p>
     </div>
   </div>`);
 
@@ -65,7 +65,7 @@ export async function renderLoginPage(app) {
       const auth = await action(data);
       session.save(auth);
       toast(`Welcome, ${auth.user.fullName}.`, 'success');
-      window.location.hash = auth.user.role === 'ADMIN' ? '#/admin' : '#/cases';
+      window.location.hash = auth.user.role === 'ADMIN' ? '#/admin' : auth.user.role === 'VIP' ? '#/admin/ai' : '#/cases';
     } catch (err) {
       toast(err.message, 'error');
     } finally {

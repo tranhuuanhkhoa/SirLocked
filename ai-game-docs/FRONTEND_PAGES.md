@@ -1,6 +1,6 @@
 # Frontend Pages
 
-Use the existing React + Vite JavaScript/JSX structure. Do not migrate to TypeScript for MVP.
+Use the existing React-free Vite JavaScript module structure for app screens. The gameplay page is implemented with Phaser 4 + TypeScript in `src/FE/Client/js/pages/gamePage.ts`.
 
 ## Public/Auth Pages
 
@@ -45,16 +45,16 @@ Use the existing React + Vite JavaScript/JSX structure. Do not migrate to TypeSc
 
 - `GamePage`
   - case intro/briefing before the first playable scene if the room has just started
-  - main playable scene renderer
-  - background
-  - hotspots
+  - main playable scene renderer powered by Phaser
+  - scene background rendered on the Phaser canvas
+  - hotspots rendered from percent coordinates on the Phaser canvas
   - enforce role-specific UI affordances: investigator item actions, interrogator dialogue actions
-  - characters
-  - item inspection
-  - dialogue
-  - investigation notebook / clue board
+  - characters rendered as scene interactables or fallback canvas figures
+  - item inspection through HTML overlay panels
+  - dialogue through HTML overlay panels
+  - case file / clue board
   - investigation map for current, visited, and unlocked scenes
-  - current objective/hint panel
+  - current objective/hint panel in the HUD
   - player-facing investigation progress, not prominent raw stage labels
   - final accusation with review/confirm step
   - persistent action log for unlocks, errors, and realtime partner actions
@@ -99,26 +99,16 @@ Use the existing React + Vite JavaScript/JSX structure. Do not migrate to TypeSc
   - show saved file paths
   - import generated case
 
-## Game Components
+## Game Renderer Structure
 
-Place reusable game components under `src/FE/src/components/game` if feasible:
+The current frontend does not use React components. Keep reusable gameplay code near the current page/module structure unless the app is intentionally migrated later:
 
-- `GameScene`
-- `SceneBackground`
-- `HotspotLayer`
-- `CharacterPanel`
-- `DialoguePanel`
-- `ItemInspectPanel`
-- `InvestigationNotebook`
-- `ClueBoard`
-- `EvidenceBoard`
-- `CharacterNotebook`
-- `InvestigationMap`
-- `ObjectiveHintPanel`
-- `StageProgress`
-- `FinalAccusationModal`
-- `AccusationReview`
-- `GameLogPanel`
+- `src/FE/Client/js/pages/gamePage.ts`: Phaser game scene, room state binding, gameplay overlays.
+- `src/FE/Client/js/api/gameApi.js`: gameplay HTTP actions.
+- `src/FE/Client/js/services/signalrClient.js`: room SignalR connection and reconnect handling.
+- `src/FE/css/09-app.css`: shared app styles plus Phaser canvas host and gameplay overlays.
+
+If the renderer grows, split `gamePage.ts` into focused TypeScript modules such as `PhaserGameScene`, `gameOverlayTemplates`, and `gameTypes`.
 
 ## Gameplay UX Rules
 
@@ -161,7 +151,7 @@ JWT must be attached by the shared API client.
 
 ## State Management
 
-Use a shared gameplay state store if the component tree becomes non-trivial. React Context is enough for MVP; Zustand is acceptable if already added. The store should keep:
+Use module-local state while the gameplay page remains a single Phaser/HTML hybrid page. If the renderer becomes non-trivial, introduce a small TypeScript gameplay store before adding a new framework. The store should keep:
 
 - latest `GameStateResponse`
 - current `version`

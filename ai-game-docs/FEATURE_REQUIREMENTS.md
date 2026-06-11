@@ -31,6 +31,12 @@ Admin:
 - Seed sample/demo case.
 - Generate AI case draft.
 - Import/publish generated AI case.
+- Promote/demote non-admin users between `PLAYER` and `VIP`.
+
+VIP:
+
+- Generate AI case draft.
+- Admin review/import/publish remains required before a generated draft becomes playable.
 
 ## Gameplay
 
@@ -77,7 +83,7 @@ Use SignalR to synchronize:
 
 MVP:
 
-- Admin submits a prompt.
+- Admin or VIP submits a prompt.
 - Backend calls Deepseek if configured.
 - If Deepseek key is missing, use validated mock fallback.
 - Generated JSON must parse into `GameCase`.
@@ -92,7 +98,7 @@ Optional future:
 - AI validator using another model
 - real image generation
 - Cloudinary upload
-- VIP generation flow
+- richer VIP generation history and quotas
 
 ## Admin Dashboard
 

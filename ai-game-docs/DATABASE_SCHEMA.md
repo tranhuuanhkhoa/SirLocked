@@ -41,6 +41,7 @@ Index notes:
 Roles:
 
 - `PLAYER`
+- `VIP`
 - `ADMIN`
 
 Statuses:

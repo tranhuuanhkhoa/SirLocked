@@ -213,6 +213,7 @@ Gameplay edge-case responses:
 | GET | `/api/admin/users` | List users |
 | PATCH | `/api/admin/users/{userId}/lock` | Lock user |
 | PATCH | `/api/admin/users/{userId}/unlock` | Unlock user |
+| PATCH | `/api/admin/users/{userId}/role` | Set non-admin user role to `PLAYER` or `VIP` |
 
 ## AI Case Generator
 
@@ -220,16 +221,16 @@ Required MVP:
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/api/admin/ai-cases` | Generate valid AI/mock case draft |
+| POST | `/api/admin/ai-cases` | Generate valid AI/mock case draft (`ADMIN` or `VIP`) |
 
 If feasible:
 
 | Method | Route | Description |
 | --- | --- | --- |
-| GET | `/api/admin/ai-cases` | List AI drafts |
-| GET | `/api/admin/ai-cases/{draftId}` | Get AI draft detail |
-| POST | `/api/admin/ai-cases/{draftId}/import` | Import draft as case |
-| POST | `/api/admin/ai-cases/{draftId}/publish` | Import and publish draft |
+| GET | `/api/admin/ai-cases` | List AI drafts (`ADMIN`) |
+| GET | `/api/admin/ai-cases/{draftId}` | Get AI draft detail (`ADMIN`) |
+| POST | `/api/admin/ai-cases/{draftId}/import` | Import draft as case (`ADMIN`) |
+| POST | `/api/admin/ai-cases/{draftId}/publish` | Import and publish draft (`ADMIN`) |
 
 ## SignalR
 

@@ -4,7 +4,7 @@ These requirements keep the MVP implementable while making the project clear eno
 
 ## Architecture
 
-- Use the existing monolith-style ASP.NET Core Web API backend and React + Vite frontend.
+- Use the existing monolith-style ASP.NET Core Web API backend and Vite frontend. App screens remain JavaScript modules; gameplay rendering uses Phaser 4 + TypeScript.
 - Keep the backend as the authority for auth, room membership, role permissions, clue unlocks, scene completion, and accusation results.
 - Keep MongoDB as the primary database for MVP because the case schema is document-oriented.
 - Use SignalR only for realtime synchronization; HTTP APIs remain the source of truth after reconnect or refresh.

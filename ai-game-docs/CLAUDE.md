@@ -49,12 +49,12 @@ src/FE
 Current stack:
 
 - Backend: ASP.NET Core Web API, C#, MongoDB, SignalR, JWT.
-- Frontend: React + Vite using JavaScript/JSX.
+- Frontend: React-free Vite JavaScript SPA, with Phaser 4 + TypeScript for the gameplay renderer.
 - Database: MongoDB.
 - Realtime: SignalR.
 - AI: Deepseek for case JSON generation, with mock fallback.
 
-Do not migrate the frontend to TypeScript unless explicitly requested.
+Do not migrate the whole frontend to TypeScript unless explicitly requested. TypeScript is currently used only for the Phaser gameplay renderer.
 
 ## Main MVP Goal
 
@@ -85,7 +85,7 @@ Work in this order unless the existing code strongly suggests a safer path:
 4. Complete room create/join/select-role/ready/start.
 5. Complete runtime gameplay APIs: state, inspect item, ask dialogue, complete scene/stage, accuse.
 6. Add SignalR lobby/gameplay sync and reconnect behavior.
-7. Build frontend gameplay renderer from backend data without hard-coded sample IDs.
+7. Build/extend the Phaser gameplay renderer from backend data without hard-coded sample IDs.
 8. Complete admin case tools.
 9. Complete AI case generator with Deepseek if configured and mock fallback if not.
 10. Update README and run available verification commands.

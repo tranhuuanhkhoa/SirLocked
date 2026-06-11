@@ -97,13 +97,13 @@ Optional future role:
 ## Current Repository Stack
 
 - Backend: ASP.NET Core Web API, C#, MongoDB, JWT, SignalR.
-- Frontend: React + Vite using JavaScript/JSX.
+- Frontend: Vite JavaScript SPA for app screens, with Phaser 4 + TypeScript for the gameplay renderer.
 - Database: MongoDB.
 - Realtime: SignalR.
 - AI case generation: Deepseek for JSON.
 - Image generation and Cloudinary: optional for MVP; use placeholders when keys are missing.
 
-Do not migrate the frontend to TypeScript for MVP.
+TypeScript is intentionally limited to the Phaser gameplay renderer for MVP. Do not migrate the whole frontend unless the scope explicitly changes.
 
 ## MVP Principle
 

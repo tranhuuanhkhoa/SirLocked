@@ -78,4 +78,37 @@ public class AdminService : IAdminService
             CreatedAt = user.CreatedAt
         };
     }
+
+    public async Task<UserResponse> SetUserRoleAsync(string userId, string role)
+    {
+        role = role.Trim().ToUpperInvariant();
+        if (role is not UserRole.Player and not UserRole.Vip)
+        {
+            throw ApiException.BadRequest($"Role must be {UserRole.Player} or {UserRole.Vip}.");
+        }
+
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("User not found.");
+
+        if (user.Role == UserRole.Admin)
+        {
+            throw ApiException.BadRequest("Admin account roles cannot be changed.");
+        }
+
+        var update = Builders<Models.User>.Update
+            .Set(u => u.Role, role)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+
+        user.Role = role;
+        return new UserResponse
+        {
+            UserId = user.Id,
+            FullName = user.FullName,
+            Email = user.Email,
+            Role = user.Role,
+            Status = user.Status,
+            CreatedAt = user.CreatedAt
+        };
+    }
 }
