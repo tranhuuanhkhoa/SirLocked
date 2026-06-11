@@ -4,6 +4,8 @@ Last synced with code: 2026-06-12.
 
 Current implementation lives in `AiCaseService`, `MockCaseFactory`, `CaseAutoRepair`, and `CaseValidationService`.
 
+Current AI generation produces playable clue/dialogue case JSON. The next 2D co-op direction should extend generation to include optional scene runtime layout data described in `SCENE_RUNTIME_SCHEMA.md`.
+
 ## Access Control
 
 - `POST /api/admin/ai-cases`: `ADMIN` or `VIP`.
@@ -52,6 +54,8 @@ Deepseek is instructed to output exactly one JSON object using the current `Game
 - `dialogues`
 - `finalLogic`
 
+For the current implementation, runtime movement layout is not required. For the next movement-aware case format, scenes should also include optional `runtime` metadata for spawn points, walk bounds, interactables, character placements, and transition zones.
+
 Important constraints:
 
 - IDs use type prefixes such as `case-`, `stage-`, `scene-`, `char-`, `item-`, `clue-`, `dlg-`, `hotspot-`.
@@ -94,6 +98,21 @@ Valid drafts write:
 - `validation-report.json`
 
 `asset-prompts.json` contains prompt text for future cover/background/character/item image generation. No image generation or upload is performed in current code.
+
+## Future Movement-Aware Generation
+
+When the 2D movement direction becomes implementation scope, the AI prompt should require each scene to include:
+
+- logical `width` and `height`,
+- `floorY`,
+- `walkBounds`,
+- role-based `spawnPoints`,
+- item `interactables` aligned with existing `itemIds`,
+- character placements aligned with existing `characterIds`,
+- transition zones aligned with backend scene progression,
+- optional UI safe areas for dialogue/clue panels.
+
+The generated movement metadata must not create a second source of truth. It only tells the renderer where things are. Existing backend rules still decide whether an item/dialogue/scene transition is allowed.
 
 ## Import And Publish
 

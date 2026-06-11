@@ -54,6 +54,16 @@ Important paths:
 - Final accusation requires last scene and all required evidence clues unlocked.
 - Wrong accusation completes the room with a failed result.
 
+## 2D Movement Direction
+
+If implementing Sherlock/Watson-style movement, read these docs first:
+
+- `PLAYER_MOVEMENT_SYSTEM.md`
+- `REALTIME_CHARACTER_SYNC.md`
+- `SCENE_RUNTIME_SCHEMA.md`
+
+Movement must be layered on top of existing backend gameplay commands. Do not move clue unlock/progression authority into the client. Pose sync is visual/transient unless a later change explicitly persists and validates player positions server-side.
+
 ## AI Rules
 
 - Deepseek is optional.
@@ -79,6 +89,7 @@ When code logic changes, update at least:
 - `API_SPEC.md` for routes, DTOs, SignalR events.
 - `DATABASE_SCHEMA.md` for model/collection/index changes.
 - `GAMEPLAY_FLOW.md` for gameplay rule changes.
+- `PLAYER_MOVEMENT_SYSTEM.md`, `REALTIME_CHARACTER_SYNC.md`, and `SCENE_RUNTIME_SCHEMA.md` for 2D movement/runtime changes.
 - `FRONTEND_PAGES.md` for route/page/client changes.
 - `TESTING_STRATEGY.md` when verification changes.
 

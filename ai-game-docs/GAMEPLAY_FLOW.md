@@ -2,6 +2,8 @@
 
 Last synced with code: 2026-06-12.
 
+This file describes the current authoritative backend flow. For the next 2D co-op direction, layer the movement/runtime rules from `PLAYER_MOVEMENT_SYSTEM.md`, `REALTIME_CHARACTER_SYNC.md`, and `SCENE_RUNTIME_SCHEMA.md` on top of these commands.
+
 ## Lobby Flow
 
 1. Player A logs in and creates a room from a published case.
@@ -50,9 +52,29 @@ Both players:
 - can present evidence,
 - can submit the final accusation.
 
+## 2D Co-op Movement Layer
+
+Current code already supports transient player pose broadcasting through SignalR. The target gameplay direction is that Sherlock/Watson-style characters move independently inside the same 2D scene.
+
+Movement does not replace backend commands. It changes how players reach those commands:
+
+- Investigator walks near an item and interacts, then frontend calls `inspect-item`.
+- Interrogator walks near a character and interacts, then frontend calls `ask-dialogue`.
+- Both players can stand in different positions in the same scene.
+- Remote player position is rendered from SignalR `PlayerPoseUpdated`.
+- `GameStateUpdated` remains the source of truth for puzzle state.
+
+Implementation details live in:
+
+- `PLAYER_MOVEMENT_SYSTEM.md`
+- `REALTIME_CHARACTER_SYNC.md`
+- `SCENE_RUNTIME_SCHEMA.md`
+
 ## Inspect Item
 
 Endpoint: `POST /api/game/rooms/{roomId}/inspect-item`.
+
+In the current UI, this can be triggered from a hotspot/list. In the 2D movement direction, the same endpoint should be triggered only after the investigator is close to the item's interaction zone.
 
 Backend checks:
 
@@ -77,6 +99,8 @@ Repeated inspection is idempotent and does not duplicate logs or clues.
 ## Ask Dialogue
 
 Endpoint: `POST /api/game/rooms/{roomId}/ask-dialogue`.
+
+In the current UI, this can be triggered from a dialogue panel. In the 2D movement direction, the same endpoint should be triggered after the interrogator is close to the relevant character.
 
 Backend checks:
 
@@ -180,6 +204,14 @@ Both correct and wrong accusations complete the room. Correct accusation sets `g
 The SignalR client connects to `/hubs/game`, invokes `JoinRoom(roomId)`, and refetches API state after reconnect.
 
 `GameStateUpdated` is the authoritative realtime event. Detail events such as `ItemFound`, `ClueUnlocked`, and `DialogueAnswered` are useful for UI feedback but should not replace the state snapshot.
+
+Player pose events are visual-only:
+
+- `UpdatePlayerPose`
+- `PlayerPoseUpdated`
+- `PlayerPoseLeft`
+
+They should not unlock clues or advance scenes.
 
 ## Backend Authority
 

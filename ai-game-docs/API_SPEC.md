@@ -237,6 +237,8 @@ Client methods:
 - `LeaveRoom(roomId)`
 - `UpdatePlayerPose(roomId, { sceneId, x, y, direction, moving })`
 
+`UpdatePlayerPose` is for transient 2D character presentation. It is not persisted to `gameplayState` and must not be used as proof that a gameplay interaction is allowed unless server-side proximity validation is added later.
+
 Server events currently emitted:
 
 - `PlayerJoined`
@@ -258,6 +260,8 @@ Server events currently emitted:
 - `PlayerPoseLeft`
 
 Reconnect rule: after reconnect, call `JoinRoom(roomId)` again and refetch `GET /api/game/rooms/{roomId}/state`.
+
+Movement/sync design details are documented in `PLAYER_MOVEMENT_SYSTEM.md` and `REALTIME_CHARACTER_SYNC.md`.
 
 ## Status Codes
 

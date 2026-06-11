@@ -49,6 +49,8 @@ Statuses:
 
 Canonical sample: `ai-game-docs/samples/sample-case.json`.
 
+Current required schema is the clue/dialogue case model below. The next 2D movement direction adds optional scene runtime metadata documented in `SCENE_RUNTIME_SCHEMA.md`; do not require that metadata for legacy/current cases until validation and renderer support are implemented.
+
 ```json
 {
   "_id": "ObjectId",
