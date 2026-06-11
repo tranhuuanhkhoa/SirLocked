@@ -1,112 +1,98 @@
 # Testing Strategy
 
-## Test Priority
+Last synced with code: 2026-06-12.
 
-Test the shortest path that proves SirLocked is a playable game:
+## Test Layers
 
-1. Auth works.
-2. Sample case validates.
-3. Room/lobby works for two players.
-4. Gameplay actions mutate server state correctly.
-5. SignalR keeps both clients synchronized.
-6. Final accusation returns correct win/fail result.
-7. AI generation creates or falls back to a valid draft.
+| Layer | Current coverage |
+| --- | --- |
+| Backend unit tests | xUnit tests for complete condition and case validation |
+| Backend integration/smoke | `scripts/e2e_smoke.py` exercises auth, admin seed/publish, room flow, gameplay, accusation, AI mock |
+| Frontend static checks | `npm run typecheck`, `npm run build` |
+| Manual browser QA | Required for Phaser scene rendering and realtime interaction |
+
+## Commands
+
+From repository root:
+
+```powershell
+dotnet test SirLocked.sln
+```
+
+From frontend folder:
+
+```powershell
+cd src/FE
+npm run typecheck
+npm run build
+```
+
+With backend running at `http://localhost:5215`:
+
+```powershell
+python scripts/e2e_smoke.py --base http://localhost:5215
+```
 
 ## Backend Unit Tests
 
-Case validation:
+`CompleteConditionTests` verifies:
 
-- Accepts `ai-game-docs/samples/sample-case.json`.
-- Rejects duplicate IDs.
-- Rejects missing item/character/clue/dialogue references.
-- Rejects final evidence that is not a clue ID.
-- Rejects final evidence clues without `isEvidence: true`.
-- Rejects invalid hotspot target IDs.
-- Rejects invalid `completeCondition` IDs.
-- Rejects unlock chains that make required progress unreachable.
+- `AND` requires every listed item, clue, and dialogue.
+- `OR` accepts one fully satisfied non-empty group.
+- empty `OR` is never satisfied.
+- empty `AND` is satisfied.
 
-Gameplay service:
+`CaseValidationServiceTests` verifies:
 
-- Starts at first stage and first scene.
-- `INVESTIGATOR` can inspect item.
-- Non-investigator cannot inspect item in normal co-op mode.
-- Inspecting the same item twice is idempotent.
-- Item inspection unlocks clue IDs once.
-- `INTERROGATOR` can ask unlocked dialogue.
-- Non-interrogator cannot ask dialogue in normal co-op mode.
-- Locked dialogue returns missing required clue IDs.
-- Dialogue unlocks clue IDs once.
-- Incomplete scene returns missing requirements.
-- Complete scene advances to the next scene or stage.
-- Accusation succeeds only with correct culprit and all required clue evidence IDs.
-- Wrong accusation completes with fail result, not server error.
+- sample case is valid,
+- sample shape stays within expected demo ranges,
+- duplicate IDs are rejected,
+- missing scene item references are rejected,
+- final evidence cannot use item IDs,
+- final evidence clues must set `isEvidence`,
+- unreachable unlock cycles are rejected,
+- undiscoverable final evidence is rejected,
+- invalid complete condition logic is rejected,
+- `MockCaseFactory` produces valid cases for multiple stage counts.
 
-## Backend Integration Tests
+## Smoke Test Coverage
 
-- Register/login/me.
-- Locked/deleted user cannot access protected endpoints.
-- Admin seed sample case.
-- Admin publish/unpublish case.
-- Player list published cases.
-- Create/join room by code.
-- Reject third player in a two-player room.
-- Reject duplicate game role.
-- Ready/start requires two ready players with different roles.
-- `GET /api/game/rooms/{roomId}/state` returns authoritative state.
-- Reconnect flow can fetch current state after gameplay mutation.
+The Python smoke test:
 
-## SignalR Tests
+- logs in as seeded admin,
+- seeds and publishes sample case,
+- validates a broken case,
+- registers two players,
+- creates and joins a room,
+- verifies duplicate roles fail,
+- starts a game,
+- verifies role enforcement,
+- plays through scenes by inspecting/asking/completing,
+- verifies accusation availability,
+- submits correct accusation,
+- retrieves result from partner account,
+- verifies wrong accusation creates a fail result in a second room,
+- generates and publishes an AI/mock draft.
 
-Manual MVP test is acceptable if automated SignalR tests are too costly.
+## Manual QA Checklist
 
-Required manual checks:
+- Login/register form errors render clearly.
+- Admin can seed and publish cases.
+- Two separate browser sessions can join the same room.
+- Lobby updates after role and ready changes.
+- Start button is host-only.
+- Game screen renders background, hotspots, dialogue, clue board, action log, and players.
+- Investigator cannot ask dialogue.
+- Interrogator cannot inspect items.
+- Locked hotspots/dialogues show an understandable disabled state.
+- Scene progression opens the next location.
+- Reconnect refetches state.
+- Final accusation shows win and fail endings.
 
-- Player join updates the other client.
-- Role/ready changes update both clients.
-- Game start navigates both players to gameplay.
-- Item inspection updates clue board on both clients.
-- Dialogue answer updates both clients.
-- Scene/stage change updates both clients.
-- Browser refresh/reconnect refetches current state.
-- Final game completion updates both clients.
+## Gaps
 
-## Frontend Tests
-
-Minimum:
-
-- `npm run typecheck` succeeds.
-- Build succeeds.
-- Login/register forms handle success and failure.
-- Case list renders published cases from API.
-- Lobby renders players, roles, ready state, and start button correctly.
-- Phaser game page renders from API data, not hard-coded sample IDs.
-- Game page can show the case intro before the first scene.
-- Hotspots scale with the Phaser scene canvas and background.
-- Role-specific UI disables item inspection for non-investigators and dialogue actions for non-interrogators.
-- Investigation notebook groups evidence, critical clues, and red herrings without revealing final required evidence.
-- Investigation map shows current/visited/unlocked locations without acting like a raw stage select screen.
-- Objective/hint panel reflects missing requirements.
-- Final accusation includes a review/confirm step and only submits clue evidence IDs.
-
-## Manual End-To-End Demo
-
-1. Start MongoDB, backend, and frontend.
-2. Login as admin.
-3. Seed and publish sample case.
-4. Login as Player A and create room.
-5. Login as Player B in another browser/profile and join by room code.
-6. Select `INVESTIGATOR` and `INTERROGATOR`.
-7. Ready both players and start.
-8. Investigator inspects an item and sees a clue unlock.
-9. Interrogator asks a dialogue gated by clue progress.
-10. Complete enough investigation objectives to unlock final accusation.
-11. Submit a correct accusation and confirm win ending.
-12. Start another run or submit wrong evidence and confirm fail ending.
-
-## AI Generation Tests
-
-- Missing Deepseek key returns validated mock fallback.
-- Invalid AI JSON is saved to `_invalid-ai`.
-- Generated case status is forced to `DRAFT`.
-- Generated case validates before import/publish.
-- Generated bundle includes case, stages, scenes, characters, items, clues, dialogues, final logic, asset prompts, and validation report.
+- No automated browser tests.
+- No automated SignalR reconnect test.
+- No MongoDB integration test fixture.
+- No load/performance test.
+- No visual regression testing for Phaser/canvas.

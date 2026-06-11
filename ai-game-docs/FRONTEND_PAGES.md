@@ -1,143 +1,61 @@
 # Frontend Pages
 
-Use the existing React-free Vite JavaScript module structure for app screens. The gameplay page is implemented with Phaser 4 + TypeScript in `src/FE/Client/js/pages/gamePage.ts`.
+Last synced with code: 2026-06-12.
 
-## Public/Auth Pages
+Frontend stack: Vite SPA, JavaScript modules, hash routing, SignalR client, Phaser/TypeScript gameplay renderer.
 
-- `LoginPage`
-  - email/password form
-  - login API call
-  - redirect by role
+## Routes
 
-- `RegisterPage`
-  - full name/email/password form
-  - creates `PLAYER`
+Routes are defined in `src/FE/Client/js/main.js`.
 
-## Player Pages
+| Hash route | Page module | Access |
+| --- | --- | --- |
+| `#/login` | `loginPage.js` | Anonymous |
+| `#/cases` | `casesPage.js` | Logged-in user |
+| `#/cases/{caseId}` | `caseDetailPage.js` | Logged-in user |
+| `#/create-room` | `createRoomPage.js` | Logged-in user |
+| `#/join` | `joinRoomPage.js` | Logged-in user |
+| `#/lobby/{roomId}` | `lobbyPage.js` | Room member |
+| `#/game/{roomId}` | `gamePage.ts` | Room member |
+| `#/result/{roomId}` | `resultPage.js` | Room member |
+| `#/admin` | `adminDashboardPage.js` | `ADMIN` |
+| `#/admin/cases` | `adminCasesPage.js` | `ADMIN` |
+| `#/admin/cases/{caseId}` | `adminCaseDetailPage.js` | `ADMIN` |
+| `#/admin/import` | `adminImportPage.js` | `ADMIN` |
+| `#/admin/ai` | `adminAiPage.js` | `ADMIN` or `VIP` |
 
-- `CaseListPage`
-  - shows published cases
-  - title, summary, estimated minutes, cover image fallback
+Default redirect:
 
-- `CaseDetailPage`
-  - case overview
-  - create room button
-  - join room option/link
+- Anonymous user: `#/login`
+- `ADMIN`: `#/admin`
+- `VIP`: `#/admin/ai`
+- `PLAYER`: `#/cases`
 
-- `CreateRoomPage`
-  - select case or use case from detail
-  - creates room
-  - redirects to lobby
+## Navigation
 
-- `JoinRoomPage`
-  - room code input
-  - joins room
+Logged-in users see:
 
-- `RoomLobbyPage`
-  - room code
-  - copy code
-  - player list
-  - role selection
-  - ready button
-  - host start button
-  - chat or messages, optional after MVP core flow
-  - SignalR updates
+- brand link to `#/cases`,
+- Cases,
+- Create Room,
+- Join Room,
+- logout.
 
-- `GamePage`
-  - case intro/briefing before the first playable scene if the room has just started
-  - main playable scene renderer powered by Phaser
-  - scene background rendered on the Phaser canvas
-  - hotspots rendered from percent coordinates on the Phaser canvas
-  - enforce role-specific UI affordances: investigator item actions, interrogator dialogue actions
-  - characters rendered as scene interactables or fallback canvas figures
-  - item inspection through HTML overlay panels
-  - dialogue through HTML overlay panels
-  - case file / clue board
-  - investigation map for current, visited, and unlocked scenes
-  - current objective/hint panel in the HUD
-  - player-facing investigation progress, not prominent raw stage labels
-  - final accusation with review/confirm step
-  - persistent action log for unlocks, errors, and realtime partner actions
-  - realtime updates
-  - refetch state after SignalR reconnect
+`ADMIN` also sees Dashboard and Manage Cases.
 
-- `ResultPage`
-  - win/fail result
-  - culprit
-  - selected evidence
-  - ending text
-  - optional case truth summary, clue counts, and replay/back actions
+`ADMIN` and `VIP` see AI Creator.
 
-## Admin Pages
+## API Client
 
-- `AdminDashboardPage`
-  - total users/cases/rooms/results
-  - quick actions
+`src/FE/Client/js/api/http.js`:
 
-- `AdminCaseListPage`
-  - all cases
-  - status
-  - publish/unpublish
-  - detail link
+- adds `Content-Type: application/json`,
+- adds JWT bearer token when present,
+- unwraps backend `{ success, message, data, errors }`,
+- redirects to `#/login` on `401` if a session exists,
+- throws `{ status, message, errors }` on failure.
 
-- `AdminCaseDetailPage`
-  - full JSON-ish case view
-  - validation errors
-  - publish/unpublish
-
-- `ImportCaseJsonPage`
-  - paste/upload JSON
-  - validate
-  - import
-
-- `AiCaseCreatorPage`
-  - prompt input
-  - stage count/visual style if easy
-  - create draft
-  - show status
-  - show generated JSON
-  - show saved file paths
-  - import generated case
-
-## Game Renderer Structure
-
-The current frontend does not use React components. Keep reusable gameplay code near the current page/module structure unless the app is intentionally migrated later:
-
-- `src/FE/Client/js/pages/gamePage.ts`: Phaser game scene, room state binding, gameplay overlays.
-- `src/FE/Client/js/api/gameApi.js`: gameplay HTTP actions.
-- `src/FE/Client/js/services/signalrClient.js`: room SignalR connection and reconnect handling.
-- `src/FE/css/09-app.css`: shared app styles plus Phaser canvas host and gameplay overlays.
-
-If the renderer grows, split `gamePage.ts` into focused TypeScript modules such as `PhaserGameScene`, `gameOverlayTemplates`, and `gameTypes`.
-
-## Gameplay UX Rules
-
-- Treat backend stage/scene data as implementation state. Player-facing UI should describe the current investigation objective and open locations instead of emphasizing `Stage 1`, `Stage 2`, or `Next Stage`.
-- Use the investigation map instead of a stage-select screen. If free scene travel is not implemented, render it as a read-only overview until `go-to-scene` is safe.
-- Character UI can use cards/panels for MVP. Do not require scene sprite placement unless the schema later adds character coordinates.
-- Role-disabled actions should remain understandable: investigators can inspect items; interrogators can ask dialogue; both can view shared state and final evidence.
-- Evidence selected for accusation must be clue IDs where `isEvidence: true`; never submit item IDs as final evidence.
-- Every meaningful unlock should be reflected both as a toast/notice and as a persistent log entry.
-- The final accusation must include a review/confirm step because a wrong accusation can finish the room with a fail result.
-
-## Required UI States
-
-Gameplay components should handle:
-
-- loading state
-- empty state
-- missing image fallback
-- locked hotspot/dialogue
-- wrong-role action
-- already inspected item
-- already asked dialogue
-- API error
-- SignalR reconnecting/refetching
-- completed room/result state
-
-## API Clients
-
-Use or extend:
+API wrappers:
 
 - `authApi.js`
 - `caseApi.js`
@@ -145,22 +63,77 @@ Use or extend:
 - `gameApi.js`
 - `adminApi.js`
 - `aiCaseApi.js`
-- `signalrClient.js`
 
-JWT must be attached by the shared API client.
+## Realtime Client
 
-## State Management
+`src/FE/Client/js/services/signalrClient.js`:
 
-Use module-local state while the gameplay page remains a single Phaser/HTML hybrid page. If the renderer becomes non-trivial, introduce a small TypeScript gameplay store before adding a new framework. The store should keep:
+- connects to `/hubs/game`,
+- sends JWT through `accessTokenFactory`,
+- uses reconnect delays `[0, 1000, 3000, 5000, 10000]`,
+- invokes `JoinRoom(roomId)` after connect and reconnect,
+- leaves state recovery to the page by refetching API state.
 
-- latest `GameStateResponse`
-- current `version`
-- connection status
-- transient toast/log messages
-- selected final evidence clue IDs
-- whether the case intro has been dismissed for this room/session
-- selected notebook tab
-- selected/current character or item panel
-- final accusation draft before review/submit
+## Required Page Behavior
 
-SignalR detail events should update toasts/logs. `GameStateUpdated` or `GET /api/game/rooms/{roomId}/state` should replace canonical gameplay state.
+### Login
+
+- Register/login through `/api/auth`.
+- Store token and user in session.
+- Redirect based on role.
+
+### Cases
+
+- Call `GET /api/cases/published`.
+- Show case title, summary, cover, counts, and estimated minutes.
+- Allow opening detail or creating a room from a case.
+
+### Create Room
+
+- Select a published case.
+- Call `POST /api/rooms`.
+- Navigate to `#/lobby/{roomId}`.
+
+### Join Room
+
+- Accept room code.
+- Call `POST /api/rooms/join`.
+- Navigate to lobby.
+
+### Lobby
+
+- Fetch room by `GET /api/rooms/{roomId}`.
+- Connect SignalR and join room group.
+- Render players, roles, ready state, host actions.
+- Call select-role, ready, start, and leave endpoints.
+- Move to game route after game starts.
+
+### Game
+
+- Fetch `GET /api/game/rooms/{roomId}/state` on load and reconnect.
+- Render visible scene background, hotspots, characters, dialogues, clue board, objective, scene map, players, action log.
+- Investigator item clicks call `inspect-item`.
+- Interrogator dialogue clicks call `ask-dialogue`.
+- Complete action calls `complete-scene`.
+- Scene map calls `go-to-scene` only for visited scenes.
+- Final accusation uses `accuse` when `availableForAccusation` is true.
+
+### Result
+
+- Fetch `GET /api/game/rooms/{roomId}/result`.
+- Show win/fail ending, selected culprit, correct culprit, method, motive, and required evidence.
+
+### Admin
+
+- Dashboard calls `/api/admin/dashboard`.
+- Users list supports lock/unlock and role changes.
+- Cases pages support list/detail/publish/unpublish.
+- Import page validates/imports JSON.
+- AI page generates draft JSON and, for admin, lists/imports/publishes drafts.
+
+## Current Limitations
+
+- Frontend route protection is client-side convenience; backend still enforces authorization.
+- Persistent chat UI is not implemented.
+- Image upload/generation UI is not implemented.
+- Public case detail intentionally hides full puzzle logic.

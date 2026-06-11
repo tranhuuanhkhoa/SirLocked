@@ -1,29 +1,23 @@
 # Deployment And Operations
 
-## Local Development
+Last synced with code: 2026-06-12.
 
-Required tools:
+## Local Requirements
 
-- .NET SDK compatible with the backend target framework.
-- Node.js and npm for the Vite frontend and Phaser gameplay renderer.
-- Docker Desktop or a local/cloud MongoDB instance.
+- .NET SDK 9.
+- Node.js 20+.
+- Docker Desktop or local MongoDB.
+- PowerShell on Windows.
 
-Recommended local flow:
+## Environment
 
-1. Start MongoDB with `docker compose up -d`.
-2. Configure backend secrets with ASP.NET Core user secrets or environment variables.
-3. Run backend from `src/BE`.
-4. Run frontend from `src/FE`.
-5. Seed/publish the sample case from admin tooling.
-6. Test the two-player flow in two browsers or browser profiles.
+Create `.env` at repository root using `ai-game-docs/.env.example`.
 
-## Configuration
-
-Required:
+Required for backend startup:
 
 - `MongoDb__ConnectionString`
 - `MongoDb__DatabaseName`
-- `Jwt__Secret`
+- `Jwt__Secret` with at least 32 characters
 - `Jwt__Issuer`
 - `Jwt__Audience`
 
@@ -31,60 +25,100 @@ Optional:
 
 - `AI__DeepseekApiKey`
 - `AI__DeepseekModel`
+- `AI__DeepseekBaseUrl`
 - `AI__DeepseekTimeoutSeconds`
-- `AI__GeminiApiKey`
-- `AI__ChatGptApiKey`
-- `Cloudinary__CloudName`
-- `Cloudinary__ApiKey`
-- `Cloudinary__ApiSecret`
+- Cloudinary settings, currently unused by code.
 
-If optional AI/image settings are missing, the app must still run and use mock/placeholder behavior.
+The backend loads repo-root `.env` through `EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory())`.
 
-## CI Checks
+## Run MongoDB
 
-Minimum CI or pre-demo checks:
+```powershell
+docker compose up -d
+```
 
-- Backend restore/build.
-- Frontend install, TypeScript check, and build.
-- Parse `ai-game-docs/samples/sample-case.json`.
-- Backend case validator accepts the sample case.
-- Backend case validator rejects duplicate IDs and missing references.
-- No real secrets in committed config files.
+The compose file starts `mongo:7` on port `27017` with volume `sirlocked-mongo-data`.
 
-Recommended later checks:
+## Run Backend
 
-- Backend unit tests for case validation and gameplay state transitions.
-- Integration tests for auth, room flow, gameplay APIs, and final accusation.
-- Frontend lint/typecheck/build.
-- Manual or Playwright two-browser smoke test for lobby/gameplay sync.
+```powershell
+cd src/BE
+dotnet run
+```
+
+Default launch URL:
+
+```txt
+http://localhost:5215
+```
+
+Swagger:
+
+```txt
+http://localhost:5215/swagger
+```
+
+Health:
+
+```txt
+http://localhost:5215/health
+```
+
+## Backend Startup Tasks
+
+On startup the API:
+
+- validates JWT secret length,
+- configures MongoDB, JWT, AI, and Cloudinary options,
+- registers services,
+- enables CORS for `http://localhost:5173`, `http://127.0.0.1:5173`, and `http://localhost:4173`,
+- maps controllers and `/hubs/game`,
+- pings MongoDB,
+- creates indexes,
+- seeds default admin if no admin exists.
+
+MongoDB startup task failures are logged but do not stop the host.
+
+## Run Frontend
+
+```powershell
+cd src/FE
+npm install
+npm run dev
+```
+
+Default Vite URL:
+
+```txt
+http://localhost:5173
+```
+
+## Demo Setup
+
+1. Start MongoDB.
+2. Start backend.
+3. Login as `admin@sirlocked.local` / `Admin123!`.
+4. Seed sample or demo cases from admin UI or API.
+5. Publish a case.
+6. Start frontend.
+7. Use two browser sessions/accounts to create and join a room.
+
+## Generated Files
+
+AI draft exports are written under:
+
+```txt
+src/BE/GeneratedCaseJson/
+```
+
+This folder is excluded from API compilation and should remain ignored by git.
 
 ## Production Notes
 
-MVP production can run as a single backend app plus static frontend hosting, backed by MongoDB.
-
-Before public deployment:
-
-- Enforce HTTPS.
-- Rotate JWT secrets and provider keys.
-- Lock CORS to known frontend origins.
-- Move generated assets/files out of local repository folders.
-- Add backups for MongoDB.
-- Add structured logging and error monitoring.
-- Add rate limits for auth and AI generation endpoints.
-- Add SignalR backplane/Azure SignalR if multiple backend instances are used.
-
-## Backup And Recovery
-
-- Back up MongoDB collections: users, gameCases, gameRooms, gameResults, aiCaseDrafts.
-- Treat published cases as important content; keep exported case JSON bundles for recovery.
-- Invalid AI outputs can be kept for debugging but may be pruned after review.
-
-## Demo Acceptance
-
-A deployment/demo is acceptable when:
-
-- Backend and frontend start from documented commands.
-- Admin can seed and publish the sample case.
-- Two players can join one room, select different roles, ready up, and start.
-- Gameplay state survives browser refresh by refetching state.
-- Final accusation produces a visible win/fail result.
+- Replace default admin password immediately after first deployment.
+- Use a strong JWT secret from a secret manager.
+- Restrict CORS origins to production frontend URLs.
+- Use managed MongoDB or persistent backups.
+- Do not expose `.env`.
+- Configure HTTPS termination.
+- Keep Swagger disabled or protected if deploying publicly.

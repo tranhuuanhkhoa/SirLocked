@@ -1,125 +1,94 @@
 # Feature Requirements
 
+Last synced with code: 2026-06-12.
+
 ## Authentication
 
-- Register with full name, email, password.
-- Public registration always creates `PLAYER`.
-- Login returns JWT.
-- `GET /api/auth/me` returns current user profile.
-- Password minimum length for MVP: 6 characters.
-- No email verification for MVP.
-- Locked or deleted users cannot access protected APIs.
-- Seed admin account if none exists:
-  - Email: `admin@sirlocked.local`
-  - Password: `Admin123!`
-  - Role: `ADMIN`
+- Public users can register with `fullName`, `email`, and `password`.
+- Email is normalized to lowercase before storage.
+- Public registration always creates an active `PLAYER`.
+- Login returns a JWT and user profile.
+- Locked or deleted users cannot log in.
+- Logout is stateless; the client discards the JWT.
+- Backend startup seeds one default `ADMIN` when no admin exists.
 
-## Case Management
+## Case Browsing
 
-Player:
+- Authenticated users can list `PUBLISHED` cases.
+- Authenticated users can open public case detail including characters and summary counts.
+- Full case JSON is only exposed through admin case detail.
 
-- View published cases.
-- View case detail.
-- Create room from a published case.
+## Admin User Management
 
-Admin:
+- `ADMIN` can view dashboard counts.
+- `ADMIN` can list users.
+- `ADMIN` can lock/unlock users.
+- `ADMIN` can set non-admin roles to `PLAYER` or `VIP`.
 
-- View all cases.
-- Import case JSON.
-- Validate case JSON.
-- Publish/unpublish case.
-- Seed sample/demo case.
-- Generate AI case draft.
-- Import/publish generated AI case.
-- Promote/demote non-admin users between `PLAYER` and `VIP`.
+## Admin Case Management
 
-VIP:
+- `ADMIN` can list all cases.
+- `ADMIN` can view full case documents.
+- `ADMIN` can validate a case JSON without importing it.
+- `ADMIN` can import a valid case JSON as draft.
+- `ADMIN` can publish/unpublish cases.
+- `ADMIN` can seed the canonical sample case and demo cases.
 
-- Generate AI case draft.
-- Admin review/import/publish remains required before a generated draft becomes playable.
+## Room Requirements
 
-## Gameplay
+- Rooms are created only from published cases.
+- A room has exactly one host and a maximum of two players.
+- Room code is a random six-character code using `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
+- Joining is idempotent for an existing member.
+- Joining an in-progress, completed, or full room fails.
+- Players cannot leave a room after the game starts.
+- If the host leaves a waiting room, host ownership moves to the remaining player.
 
-The game must render a continuous scene-based investigation flow.
+## Lobby Requirements
 
-Required gameplay:
+- Players select one of two roles:
+  - `INVESTIGATOR`
+  - `INTERROGATOR`
+- Duplicate role selection is rejected.
+- Changing role resets that player's ready state.
+- A player cannot ready up without a role.
+- Room status becomes `READY` only when two players are present and both are ready.
+- Only the host can start.
+- Start requires two players, two different roles, and both ready.
 
-- Load first stage and first scene when game starts.
-- Render scene background.
-- Render clickable hotspots by percent coordinates.
-- `INVESTIGATOR` inspects item in current scene.
-- Unlock clues from inspected items.
-- `INTERROGATOR` talks to characters in current scene.
-- Dialogue can require clues.
-- Dialogue can unlock clues.
-- Scene completes only when its completion condition is satisfied.
-- Stage progresses in order.
-- MVP scene progression is linear by `stage.order` and scene array order; free scene travel is deferred unless explicitly implemented.
-- Final accusation checks culprit and required evidence.
-- Final accusation is available only in the last scene of the last stage after all `finalLogic.requiredEvidenceIds` have been unlocked.
-- Final required evidence IDs are clue IDs only.
-- Correct accusation returns win ending.
-- Wrong accusation returns fail ending.
-- Current objective/hints show missing progress categories to reduce deadlocks.
+## Gameplay Requirements
 
-## Realtime
+- Starting initializes `gameplayState` with version `1`, first ordered stage, and first scene.
+- `INVESTIGATOR` can inspect items in the current scene.
+- `INTERROGATOR` can ask dialogue for characters in the current scene.
+- Item and dialogue actions are idempotent if repeated.
+- Hotspots and dialogues may be locked by `requiredClueIds`.
+- Inspecting an item can add inspected/collected item IDs and unlock clues.
+- Asking dialogue can add asked dialogue IDs and unlock clues.
+- Presenting evidence logs and broadcasts the action but does not mutate core state.
+- Completing a scene checks `completeCondition`.
+- Successful scene completion advances to the next scene, next stage, or final accusation readiness.
+- `complete-stage` is an idempotent confirmation endpoint.
+- `go-to-scene` only allows revisiting already visited scenes.
+- Gameplay mutations use optimistic concurrency through `gameplayState.version`.
 
-Use SignalR to synchronize:
+## Final Accusation Requirements
 
-- player joined/left
-- role selection
-- ready status
-- game started
-- current scene/stage
-- item inspected
-- clue unlocked
-- dialogue answered
-- game completed
-- room chat or action log, optional after core gameplay sync is stable
-- reconnect by refetching `GET /api/game/rooms/{roomId}/state`
-- state version/timestamp to avoid stale client state
+- Final accusation is allowed only when:
+  - room status is `IN_PROGRESS`,
+  - `gameStatus` is `IN_PROGRESS`,
+  - current scene is the last scene of the last ordered stage,
+  - all `finalLogic.requiredEvidenceIds` are unlocked clues.
+- Unknown culprit IDs are rejected.
+- Evidence IDs must be unlocked clues.
+- Success requires correct culprit and every required evidence clue.
+- Wrong culprit or missing evidence completes the room with a failed result.
 
-## AI Case Generation
+## AI Case Requirements
 
-MVP:
-
-- Admin or VIP submits a prompt.
-- Backend calls Deepseek if configured.
-- If Deepseek key is missing, use validated mock fallback.
-- Generated JSON must parse into `GameCase`.
-- Generated case status must be `DRAFT`.
-- Validate before import or publish.
-- Export JSON bundle to `src/BE/GeneratedCaseJson`.
-- Store AI draft in MongoDB.
-
-Optional future:
-
-- multi-step AI pipeline
-- AI validator using another model
-- real image generation
-- Cloudinary upload
-- richer VIP generation history and quotas
-
-## Admin Dashboard
-
-MVP dashboard should show:
-
-- total users
-- total cases
-- total rooms
-- total results or completed games
-- quick actions:
-  - seed sample case
-  - view cases
-  - create AI case
-
-## Quality Requirements
-
-- Do not rewrite the project.
-- Extend existing backend services/controllers/repositories.
-- Keep controllers thin.
-- Put business logic in services.
-- Validate all gameplay actions server-side.
-- Frontend must not hard-code sample case logic.
-- Use placeholders for missing images.
-- Update README with run/demo instructions.
+- `ADMIN` and `VIP` can generate drafts.
+- Only `ADMIN` can list, inspect, import, or publish drafts.
+- Missing Deepseek key uses `MockCaseFactory`.
+- Deepseek generation is parsed, mechanically repaired, validated, retried once on validation failure, then falls back to mock if still invalid.
+- Valid drafts are exported under `src/BE/GeneratedCaseJson/`.
+- Generated cases are saved as draft until imported/published by admin.

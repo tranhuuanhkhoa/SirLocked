@@ -1,27 +1,22 @@
 # Database Schema
 
-Use MongoDB. Preserve existing collection names/settings where they already exist in `src/BE/Configurations/MongoDbSettings.cs`.
+Last synced with code: 2026-06-12.
 
-## Collection Summary And Indexes
+MongoDB documents use camelCase element names through the global MongoDB convention pack in `MongoDbContext`.
 
-| Collection | Purpose | Required indexes |
-| --- | --- | --- |
-| `users` | Auth accounts and admin/player status | unique `email`, `status` |
-| `gameCases` | Published/draft case documents and full case JSON | unique `caseId`, `status`, `updatedAt` |
-| `gameRooms` | Lobby, players, room status, embedded gameplay state | unique `roomCode`, `caseId`, `hostUserId`, `status`, `updatedAt` |
-| `gameResults` | Completed game outcomes and final accusations | `roomId`, `caseId`, `players`, `createdAt` |
-| `gameActionLogs` | Optional audit/action feed | `roomId`, `createdAt`, `userId` |
-| `roomChatMessages` | Optional room chat | `roomId`, `createdAt` |
-| `aiCaseDrafts` | AI/mock generated case drafts | `status`, `createdAt`, `prompt` text search optional |
-| `aiGenerationLogs` | AI provider request/response diagnostics | `draftId`, `provider`, `status`, `createdAt` |
-| `generatedAssets` | Optional generated image metadata | `draftId`, `assetType`, `status` |
+## Collections
 
-Index notes:
+| Collection | Code property | Purpose | Indexes created at startup |
+| --- | --- | --- | --- |
+| `users` | `Users` | Auth accounts | unique `email`, `status` |
+| `gameCases` | `Cases` | Full case JSON documents | unique `caseId`, `status`, descending `updatedAt` |
+| `gameRooms` | `Rooms` | Lobby plus embedded gameplay state | unique `roomCode`, `caseId`, `hostUserId`, `status` |
+| `gameResults` | `GameResults` | Final accusation outcomes | `roomId`, `caseId`, descending `createdAt` |
+| `gameActionLogs` | `ActionLogs` | Gameplay audit/action feed | compound `roomId`, descending `createdAt` |
+| `aiCaseDrafts` | `AiCaseDrafts` | AI/mock generated drafts | `status`, descending `createdAt` |
+| `aiGenerationLogs` | `AiGenerationLogs` | Provider diagnostics | compound `draftId`, descending `createdAt` |
 
-- Create unique indexes before allowing writes that depend on uniqueness, especially `users.email`, `gameCases.caseId`, and `gameRooms.roomCode`.
-- Use case-insensitive normalization for emails and IDs at service level before insert.
-- Do not index every nested case field for MVP. Validate nested references when importing/publishing cases instead.
-- If querying nested case content becomes necessary later, consider denormalized summary fields rather than indexing deep arrays.
+`roomChatMessages` and `generatedAssets` exist as configuration names but are not used by current services.
 
 ## users
 
@@ -30,11 +25,11 @@ Index notes:
   "_id": "ObjectId",
   "fullName": "Ada Player",
   "email": "ada@example.com",
-  "passwordHash": "...",
+  "passwordHash": "bcrypt",
   "role": "PLAYER",
   "status": "ACTIVE",
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-01T00:00:00Z"
+  "createdAt": "2026-06-12T00:00:00Z",
+  "updatedAt": "2026-06-12T00:00:00Z"
 }
 ```
 
@@ -52,19 +47,15 @@ Statuses:
 
 ## gameCases
 
-Complete playable reference:
-
-- Full example file: `ai-game-docs/samples/sample-case.json`
-- This sample should be treated as the canonical MVP shape for the JSON engine.
-- AI generation, backend validation, and frontend rendering should all stay compatible with that file.
+Canonical sample: `ai-game-docs/samples/sample-case.json`.
 
 ```json
 {
   "_id": "ObjectId",
   "caseId": "case-week2-manor",
   "title": "The Locked Manor Ledger",
-  "summary": "A financier is found dead after a private dinner.",
-  "status": "PUBLISHED",
+  "summary": "A financier dies inside a locked study.",
+  "status": "DRAFT",
   "estimatedMinutes": 35,
   "coverImageUrl": "/assets/cases/locked-manor.jpg",
   "stages": [],
@@ -73,111 +64,168 @@ Complete playable reference:
   "clues": [],
   "dialogues": [],
   "finalLogic": {},
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-01T00:00:00Z"
+  "createdAt": "2026-06-12T00:00:00Z",
+  "updatedAt": "2026-06-12T00:00:00Z"
 }
 ```
 
-Important nested gameplay fields:
-
-```json
-{
-  "scene": {
-    "sceneId": "scene-study",
-    "title": "Victim's Study",
-    "backgroundUrl": "/assets/scenes/study.jpg",
-    "description": "Scene description shown to players.",
-    "itemIds": ["item-bitter-glass"],
-    "characterIds": ["char-edgar"],
-    "hotspots": [
-      {
-        "hotspotId": "hotspot-bitter-glass",
-        "type": "ITEM",
-        "targetId": "item-bitter-glass",
-        "x": 46,
-        "y": 61,
-        "width": 8,
-        "height": 10,
-        "zIndex": 1,
-        "label": "Crystal glass",
-        "requiredClueIds": []
-      }
-    ],
-    "completeCondition": {
-      "logic": "AND",
-      "requiredItemIds": ["item-bitter-glass"],
-      "requiredClueIds": ["clue-poisoned-drink"],
-      "requiredDialogueIds": ["dlg-edgar-alibi"]
-    }
-  },
-  "item": {
-    "itemId": "item-bitter-glass",
-    "name": "Bitter Crystal Glass",
-    "description": "Short visible description.",
-    "inspectText": "Text shown after inspection.",
-    "imageUrl": "/assets/items/bitter-glass.png",
-    "unlockClueIds": ["clue-poisoned-drink"],
-    "isCollectible": true
-  },
-  "clue": {
-    "clueId": "clue-poisoned-drink",
-    "title": "Poisoned Drink",
-    "content": "The victim was poisoned before the study was locked.",
-    "isCritical": true,
-    "isEvidence": true,
-    "isRedHerring": false,
-    "source": "item-bitter-glass",
-    "sourceType": "item"
-  },
-  "finalLogic": {
-    "culpritId": "char-edgar",
-    "motive": "Hidden debt and fear of financial ruin.",
-    "method": "Poisoned drink staged as locked-room death.",
-    "requiredEvidenceIds": ["clue-poisoned-drink"],
-    "winEnding": "Correct ending text.",
-    "failEnding": "Failure ending text."
-  }
-}
-```
-
-Schema rules:
-
-- `completeCondition.logic` defaults to `AND`. `AND` requires all listed item, clue, and dialogue IDs. `OR` is allowed only when at least one non-empty requirement group is satisfied.
-- `hotspots` use percentage coordinates and may include `zIndex` to resolve overlap.
-- `clue.isCritical` means important for reasoning. `clue.isEvidence` means selectable for final accusation. `clue.isRedHerring` means intentionally misleading but explainable.
-- `clue.sourceType` must be `item` or `dialogue`; `source` must reference the matching `itemId` or `dialogueId`.
-- `finalLogic.requiredEvidenceIds` must reference clue IDs only. Do not mix item IDs and clue IDs.
-- Case validators must check duplicate IDs, missing references, unlock reachability, and cycles in clue/dialogue requirements.
-
-Statuses:
+Case statuses:
 
 - `DRAFT`
 - `PUBLISHED`
 - `ARCHIVED`
+
+Nested shape required by the engine:
+
+```json
+{
+  "stages": [
+    {
+      "stageId": "stage-locked-study",
+      "title": "Death in the Locked Study",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-study",
+          "title": "Victim's Study",
+          "backgroundUrl": "/assets/scenes/study.jpg",
+          "description": "Scene text.",
+          "itemIds": ["item-bitter-glass"],
+          "characterIds": ["char-edgar"],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-bitter-glass",
+              "type": "ITEM",
+              "targetId": "item-bitter-glass",
+              "x": 46,
+              "y": 61,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Crystal glass",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": ["item-bitter-glass"],
+            "requiredClueIds": ["clue-poisoned-drink"],
+            "requiredDialogueIds": ["dlg-edgar-alibi"]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-edgar",
+      "name": "Edgar Voss",
+      "role": "Business partner",
+      "imageUrl": "/assets/characters/edgar-voss.png",
+      "description": "Suspect description."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-bitter-glass",
+      "name": "Bitter Crystal Glass",
+      "description": "Visible item description.",
+      "inspectText": "Text returned after inspection.",
+      "imageUrl": "/assets/items/bitter-glass.png",
+      "unlockClueIds": ["clue-poisoned-drink"],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-poisoned-drink",
+      "title": "Poisoned Drink",
+      "content": "The victim was poisoned.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-bitter-glass",
+      "sourceType": "item"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-edgar-alibi",
+      "characterId": "char-edgar",
+      "question": "Where were you?",
+      "answer": "I was elsewhere.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-edgar",
+    "motive": "Hidden debt.",
+    "method": "Poisoned drink.",
+    "requiredEvidenceIds": ["clue-poisoned-drink"],
+    "winEnding": "Correct ending.",
+    "failEnding": "Failure ending."
+  }
+}
+```
+
+Validation rules implemented in `CaseValidationService`:
+
+- Required `caseId`, `title`, and at least one stage.
+- Each stage needs `stageId` and at least one scene.
+- Stage `order` values must be unique.
+- Scene `completeCondition.logic` must be `AND` or `OR`.
+- `OR` conditions require at least one non-empty requirement group.
+- Duplicate stage, scene, character, item, clue, dialogue, and hotspot IDs are rejected.
+- Scene item/character references must exist.
+- Hotspot type must be `ITEM` or `CHARACTER`.
+- Item hotspots must target an item in the same scene.
+- Hotspot percent coordinates must be valid.
+- Item/dialogue unlock and requirement clue IDs must exist.
+- Clue `sourceType` must be `item` or `dialogue`; `source` must exist.
+- Final culprit must be a character.
+- Final evidence must use clue IDs, not item IDs.
+- Final evidence clues must set `isEvidence: true`.
+- A greedy linear playthrough must be able to complete every scene.
+- Final evidence must be discoverable.
+- Orphan clues not unlocked by any item/dialogue are rejected.
 
 ## gameRooms
 
 ```json
 {
   "_id": "ObjectId",
-  "roomId": "room-id",
   "roomCode": "ABC123",
   "caseId": "case-week2-manor",
-  "hostUserId": "user-id",
+  "hostUserId": "user-host",
   "players": [
     {
-      "userId": "user-id",
+      "userId": "user-host",
       "username": "Ada Player",
       "role": "INVESTIGATOR",
       "isReady": true
     }
   ],
   "status": "IN_PROGRESS",
-  "currentStageId": "stage-locked-study",
-  "currentSceneId": "scene-study",
-  "gameplayState": {},
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-01T00:00:00Z"
+  "gameplayState": {
+    "currentStageId": "stage-locked-study",
+    "currentSceneId": "scene-study",
+    "version": 1,
+    "visitedSceneIds": ["scene-study"],
+    "inspectedItemIds": [],
+    "collectedItemIds": [],
+    "unlockedClueIds": [],
+    "askedDialogueIds": [],
+    "completedSceneIds": [],
+    "completedStageIds": [],
+    "selectedEvidenceIds": [],
+    "gameStatus": "IN_PROGRESS",
+    "startedAt": "2026-06-12T00:00:00Z",
+    "updatedAt": "2026-06-12T00:00:00Z",
+    "completedAt": null
+  },
+  "createdAt": "2026-06-12T00:00:00Z",
+  "updatedAt": "2026-06-12T00:00:00Z"
 }
 ```
 
@@ -188,67 +236,18 @@ Room statuses:
 - `IN_PROGRESS`
 - `COMPLETED`
 
-Player game roles:
+Player roles:
 
 - `INVESTIGATOR`
 - `INTERROGATOR`
 
-## gameplayState
+Game statuses:
 
-For MVP, embed gameplay state in `gameRooms.Progress`/`gameplayState` so room reads and writes stay simple. Do not create or use a separate `gameplayStates` collection for MVP. Split it into a separate collection only if state becomes large, needs independent version history, or requires separate retention, and only after the storage model is explicitly changed in these docs.
+- `IN_PROGRESS`
+- `WON`
+- `FAILED`
 
-```json
-{
-  "roomId": "room-id",
-  "caseId": "case-week2-manor",
-  "currentStageId": "stage-locked-study",
-  "currentSceneId": "scene-study",
-  "version": 7,
-  "visitedSceneIds": ["scene-study"],
-  "inspectedItemIds": ["item-bitter-glass"],
-  "collectedItemIds": ["item-bitter-glass"],
-  "unlockedClueIds": ["clue-poisoned-drink"],
-  "askedDialogueIds": ["dlg-edgar-alibi"],
-  "completedSceneIds": [],
-  "completedStageIds": [],
-  "selectedEvidenceIds": [],
-  "gameStatus": "IN_PROGRESS",
-  "startedAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-01T00:10:00Z",
-  "completedAt": null
-}
-```
-
-Update rules:
-
-- Increment `version` on every successful gameplay state mutation.
-- Realtime events should include the new version when practical.
-- Clients must call `GET /api/game/rooms/{roomId}/state` after reconnect and whenever event order is uncertain.
-- Mutating gameplay actions should be idempotent where possible.
-
-Concurrency rules:
-
-- Treat `gameRooms.gameplayState.version` as optimistic concurrency metadata.
-- For every gameplay mutation, read current room, validate action against current state, apply mutation, increment version, update `updatedAt`, then broadcast.
-- If using MongoDB atomic update filters, include the previous `version` in the update condition so concurrent writes cannot silently overwrite each other.
-- If a concurrent update conflict occurs, refetch room state and retry once for idempotent actions such as inspecting an already inspected item.
-- Never let the client submit a replacement full state object; clients submit only action commands.
-
-Canonical state mapping:
-
-| Runtime field | Source or meaning |
-| --- | --- |
-| `currentStageId` | Current playable stage from ordered case stages |
-| `currentSceneId` | Current playable scene within stage |
-| `visitedSceneIds` | Scenes the room has entered; used for backtracking/review |
-| `inspectedItemIds` | Item IDs inspected by investigator |
-| `collectedItemIds` | Item IDs that count as inventory/evidence objects |
-| `unlockedClueIds` | Clue IDs discovered through item/dialogue unlocks |
-| `askedDialogueIds` | Dialogue IDs already asked by interrogator |
-| `completedSceneIds` | Scenes whose `completeCondition` is satisfied |
-| `completedStageIds` | Stages completed in order |
-| `selectedEvidenceIds` | Clue IDs selected for final accusation draft/submission |
-| `version` | Incrementing state version for reconnect and stale-event detection |
+Concurrency rule: gameplay mutations update the whole `GameRoom` document only when the stored `gameplayState.version` equals the version that was read. Successful mutations increment the version by one.
 
 ## gameResults
 
@@ -257,18 +256,16 @@ Canonical state mapping:
   "_id": "ObjectId",
   "roomId": "room-id",
   "caseId": "case-week2-manor",
-  "players": ["user-id-1", "user-id-2"],
+  "players": ["user-1", "user-2"],
   "selectedCulpritId": "char-edgar",
-  "selectedEvidenceIds": ["clue-poisoned-drink"],
+  "selectedEvidenceIds": ["clue-hidden-debt"],
   "success": true,
-  "ending": "The accusation exposes the staged locked room.",
-  "createdAt": "2026-01-01T00:00:00Z"
+  "ending": "Ending text.",
+  "createdAt": "2026-06-12T00:00:00Z"
 }
 ```
 
 ## gameActionLogs
-
-Optional for MVP. Keep action logs only if they support debugging or the visible action feed; otherwise defer detailed logging until after the playable loop is stable.
 
 ```json
 {
@@ -277,43 +274,44 @@ Optional for MVP. Keep action logs only if they support debugging or the visible
   "userId": "user-id",
   "actionType": "INSPECT_ITEM",
   "payloadJson": "{\"itemId\":\"item-bitter-glass\"}",
-  "createdAt": "2026-01-01T00:00:00Z"
+  "message": "Ada inspected Bitter Crystal Glass.",
+  "createdAt": "2026-06-12T00:00:00Z"
 }
 ```
 
-## roomChatMessages
-
-Optional for MVP. Chat is useful but not required for the core investigation loop.
-
-```json
-{
-  "_id": "ObjectId",
-  "roomId": "room-id",
-  "userId": "user-id",
-  "message": "Check the glass first.",
-  "createdAt": "2026-01-01T00:00:00Z"
-}
-```
+Only the latest 40 entries are returned in `GameStateResponse.actionLog`.
 
 ## aiCaseDrafts
 
 ```json
 {
   "_id": "ObjectId",
-  "prompt": "Locked-room manor mystery",
+  "prompt": "Locked-room mystery",
   "settings": {
     "stageCount": 4,
     "difficulty": "medium",
     "visualStyle": "cinematic detective"
   },
-  "status": "DEEPSEEK_GENERATED_VALID",
+  "status": "MOCK_GENERATED_VALID",
+  "provider": "mock",
   "generatedJson": "{...}",
+  "caseId": "case-ai-20260612000000",
+  "caseTitle": "Generated Case",
   "jsonFilePath": "src/BE/GeneratedCaseJson/.../case.json",
   "jsonFolderPath": "src/BE/GeneratedCaseJson/...",
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-01T00:00:00Z"
+  "validationErrors": [],
+  "importedCaseId": null,
+  "createdAt": "2026-06-12T00:00:00Z",
+  "updatedAt": "2026-06-12T00:00:00Z"
 }
 ```
+
+AI draft statuses:
+
+- `GENERATED_INVALID`
+- `MOCK_GENERATED_VALID`
+- `DEEPSEEK_GENERATED_VALID`
+- `IMPORTED`
 
 ## aiGenerationLogs
 
@@ -324,26 +322,9 @@ Optional for MVP. Chat is useful but not required for the core investigation loo
   "provider": "Deepseek",
   "step": "GenerateCaseJson",
   "status": "SUCCESS",
-  "prompt": "...",
-  "response": "...",
+  "prompt": "Prompt text truncated to 4000 chars",
+  "response": "Response text truncated to 8000 chars",
   "error": null,
-  "createdAt": "2026-01-01T00:00:00Z"
-}
-```
-
-## generatedAssets
-
-Optional for MVP.
-
-```json
-{
-  "_id": "ObjectId",
-  "draftId": "draft-id",
-  "assetType": "background",
-  "prompt": "Detective mystery game background...",
-  "url": "/assets/scenes/placeholder.png",
-  "provider": "mock",
-  "status": "PENDING",
-  "createdAt": "2026-01-01T00:00:00Z"
+  "createdAt": "2026-06-12T00:00:00Z"
 }
 ```
