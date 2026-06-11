@@ -1,0 +1,35 @@
+{
+  "scene_prompt_template": {
+    "style_profile_ref": "detective_visual_novel_2d_001",
+    "purpose": "Generate consistent image prompts for scene backgrounds, dialogue CGs, and UI-integrated scene images.",
+    "required_inputs": [
+      "caseTitle",
+      "stageTitle",
+      "sceneId",
+      "sceneTitle",
+      "sceneObjective",
+      "location",
+      "characters",
+      "items",
+      "clues",
+      "layoutJson",
+      "visualFocus"
+    ],
+    "prompt_sections": {
+      "base_style": "{base_prompt_template}",
+      "case_context": "Case: {caseTitle}. Stage: {stageTitle}. Scene: {sceneTitle}. Objective: {sceneObjective}.",
+      "composition": "Use a front-facing, UI-friendly visual novel composition with clear character and item readability. Preserve layout zones from {layoutJson}.",
+      "story_focus": "Visual focus: {visualFocus}. Important clues: {clues}. Important items: {items}. Characters present: {characters}.",
+      "quality": "Highly detailed, sharp focus, no blur, readable silhouettes, consistent lighting and muted vintage palette."
+    },
+    "negative_prompt_ref": "style_profile.negative_prompt",
+    "output_fields": [
+      "sceneId",
+      "prompt",
+      "negativePrompt",
+      "layoutRef",
+      "styleProfileRef",
+      "expectedAssetType"
+    ]
+  }
+}

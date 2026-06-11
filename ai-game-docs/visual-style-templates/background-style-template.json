@@ -1,0 +1,38 @@
+{
+  "background_style_template": {
+    "style_profile_ref": "detective_visual_novel_2d_001",
+    "asset_type": "background",
+    "required_inputs": [
+      "backgroundId",
+      "sceneId",
+      "sceneTitle",
+      "location",
+      "timeOfDay",
+      "mood",
+      "importantClueAreas",
+      "layoutJson"
+    ],
+    "visual_requirements": {
+      "composition": "front-facing, UI-friendly scene composition",
+      "camera_angle": "medium-wide environmental shot",
+      "depth": "slight depth separation between foreground interactables and background",
+      "detail_level": "moderately detailed, readable, atmospheric",
+      "interactive_readability": "leave clear areas for character placement, item positions, and hotspots",
+      "ui_safe_area": "bottom area should remain readable for dialogue UI",
+      "lighting": "soft cinematic lighting with clue areas subtly highlighted"
+    },
+    "prompt_template": "{base_prompt_template} Create a background illustration for scene {sceneTitle} at {location}. Mood: {mood}. Time of day: {timeOfDay}. Use the provided layout JSON to preserve item zones, character zones, hotspots, and UI safe areas. Important clue areas: {importantClueAreas}. No text, no UI labels, no characters unless explicitly required.",
+    "negative_prompt_ref": "style_profile.negative_prompt",
+    "output_fields": [
+      "backgroundId",
+      "sceneId",
+      "layoutRef",
+      "environmentDescription",
+      "lightingPlan",
+      "hotspotVisualNotes",
+      "prompt",
+      "negativePrompt",
+      "imageUrl"
+    ]
+  }
+}

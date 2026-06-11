@@ -1,0 +1,37 @@
+{
+  "character_style_template": {
+    "style_profile_ref": "detective_visual_novel_2d_001",
+    "asset_type": "character",
+    "required_inputs": [
+      "characterId",
+      "name",
+      "role",
+      "personality",
+      "storyFunction",
+      "sceneIds"
+    ],
+    "visual_requirements": {
+      "shot_type": "upper body or medium shot",
+      "anatomy": "semi-realistic proportions",
+      "face_style": "expressive, cleanly drawn, slightly stylized",
+      "pose_style": "confident, readable, story-relevant",
+      "costume_style": "classic detective-era British fashion with distinctive silhouettes",
+      "silhouette": "clear at gameplay scale",
+      "background": "simple or lightly contextual",
+      "lighting": "soft cinematic lighting with readable face"
+    },
+    "prompt_template": "{base_prompt_template} Create a character portrait for {name}, {role}. Personality: {personality}. Story function: {storyFunction}. The design must be readable as a visual novel detective game character, with expressive face, distinctive silhouette, classic mystery-era clothing, and consistent lighting.",
+    "negative_prompt_ref": "style_profile.negative_prompt",
+    "output_fields": [
+      "characterId",
+      "visualId",
+      "appearance",
+      "costume",
+      "pose",
+      "expression",
+      "prompt",
+      "negativePrompt",
+      "imageUrl"
+    ]
+  }
+}

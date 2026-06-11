@@ -1,0 +1,103 @@
+import { session } from './services/session.js';
+import { escapeHtml, render } from './utils/dom.js';
+import { renderLoginPage } from './pages/loginPage.js';
+import { renderCasesPage } from './pages/casesPage.js';
+import { renderCaseDetailPage } from './pages/caseDetailPage.js';
+import { renderJoinRoomPage } from './pages/joinRoomPage.js';
+import { renderLobbyPage } from './pages/lobbyPage.js';
+import { renderGamePage } from './pages/gamePage.js';
+import { renderResultPage } from './pages/resultPage.js';
+import { renderAdminDashboardPage } from './pages/adminDashboardPage.js';
+import { renderAdminCasesPage } from './pages/adminCasesPage.js';
+import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
+import { renderAdminImportPage } from './pages/adminImportPage.js';
+import { renderAdminAiPage } from './pages/adminAiPage.js';
+
+const routes = [
+  { pattern: /^#\/login$/, page: renderLoginPage, anonymous: true },
+  { pattern: /^#\/cases$/, page: renderCasesPage },
+  { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
+  { pattern: /^#\/join$/, page: renderJoinRoomPage },
+  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage },
+  { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage },
+  { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
+  { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
+  { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
+  { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
+  { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
+  { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, admin: true },
+];
+
+let cleanup = null;
+
+function renderNav() {
+  const navRoot = document.getElementById('nav-root');
+  const user = session.user();
+  if (!user) {
+    render(navRoot, '');
+    return;
+  }
+  const adminLinks = session.isAdmin()
+    ? `<a href="#/admin" class="nav-link">Dashboard</a>
+       <a href="#/admin/cases" class="nav-link">Manage Cases</a>
+       <a href="#/admin/ai" class="nav-link">AI Creator</a>`
+    : '';
+  render(navRoot, `
+    <nav class="app-nav">
+      <a class="nav-brand" href="#/cases">SIR<span>LOCKED</span></a>
+      <div class="nav-links">
+        <a href="#/cases" class="nav-link">Cases</a>
+        <a href="#/join" class="nav-link">Join Room</a>
+        ${adminLinks}
+      </div>
+      <div class="nav-user">
+        <span class="nav-username">${escapeHtml(user.fullName)}${session.isAdmin() ? ' <span class="chip chip-gold">ADMIN</span>' : ''}</span>
+        <button class="btn btn-ghost btn-sm" id="nav-logout">Log out</button>
+      </div>
+    </nav>`);
+  navRoot.querySelector('#nav-logout').addEventListener('click', () => {
+    session.clear();
+    window.location.hash = '#/login';
+  });
+}
+
+async function route() {
+  const app = document.getElementById('app');
+  if (typeof cleanup === 'function') {
+    try {
+      await cleanup();
+    } catch {
+      /* page cleanup is best effort */
+    }
+    cleanup = null;
+  }
+
+  let hash = window.location.hash || '#/';
+  if (hash === '#/' || hash === '#') {
+    hash = session.isLoggedIn() ? (session.isAdmin() ? '#/admin' : '#/cases') : '#/login';
+    window.location.hash = hash;
+    return;
+  }
+
+  const match = routes.map((r) => ({ r, m: hash.match(r.pattern) })).find((x) => x.m);
+  if (!match) {
+    window.location.hash = '#/';
+    return;
+  }
+
+  const { r, m } = match;
+  if (!r.anonymous && !session.isLoggedIn()) {
+    window.location.hash = '#/login';
+    return;
+  }
+  if (r.admin && !session.isAdmin()) {
+    window.location.hash = '#/cases';
+    return;
+  }
+
+  renderNav();
+  cleanup = await r.page(app, ...m.slice(1));
+}
+
+window.addEventListener('hashchange', route);
+window.addEventListener('DOMContentLoaded', route);

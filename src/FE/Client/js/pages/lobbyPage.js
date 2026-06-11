@@ -1,0 +1,154 @@
+import { roomApi } from '../api/roomApi.js';
+import { session } from '../services/session.js';
+import { createRoomConnection } from '../services/signalrClient.js';
+import { escapeHtml, render, qs } from '../utils/dom.js';
+import { toast } from '../utils/toast.js';
+
+const ROLES = [
+  { id: 'INVESTIGATOR', title: 'Investigator', blurb: 'Examines the scene: inspects items and gathers physical evidence.' },
+  { id: 'INTERROGATOR', title: 'Interrogator', blurb: 'Questions suspects: asks dialogue and exposes contradictions.' },
+];
+
+export async function renderLobbyPage(app, roomId) {
+  render(app, '<div class="page"><p class="muted">Loading lobby…</p></div>');
+
+  let room;
+  let leaving = false;
+  const me = session.user();
+
+  const refresh = async () => {
+    room = await roomApi.get(roomId);
+    if (room.status === 'IN_PROGRESS') {
+      window.location.hash = `#/game/${roomId}`;
+      return;
+    }
+    draw();
+  };
+
+  const hub = createRoomConnection(roomId, {
+    PlayerJoined: ({ room: r }) => { room = r; draw(); toast('Your partner joined the room.', 'info'); },
+    PlayerLeft: ({ room: r }) => { room = r; draw(); toast('A player left the room.', 'info'); },
+    RolesUpdated: ({ room: r }) => { room = r; draw(); },
+    ReadyUpdated: ({ room: r }) => { room = r; draw(); },
+    GameStarted: () => { window.location.hash = `#/game/${roomId}`; },
+    RoomError: ({ message }) => toast(message, 'error'),
+  }, { onReconnected: () => refresh().catch(() => {}) });
+
+  try {
+    await refresh();
+    if (!room) return undefined;
+    await hub.start();
+  } catch (err) {
+    render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
+    return () => hub.stop();
+  }
+
+  function draw() {
+    if (!room || leaving) return;
+    const my = room.players.find((p) => p.userId === me.userId);
+    const isHost = room.hostUserId === me.userId;
+    const bothReady = room.players.length === 2 && room.players.every((p) => p.isReady && p.role);
+
+    const playerRows = room.players.map((p) => `
+      <div class="lobby-player ${p.isReady ? 'is-ready' : ''}">
+        <span class="lobby-player-name">${escapeHtml(p.username)}
+          ${p.userId === room.hostUserId ? '<span class="chip chip-gold">HOST</span>' : ''}
+          ${p.userId === me.userId ? '<span class="chip">YOU</span>' : ''}
+        </span>
+        <span class="chip ${p.role ? 'chip-role' : ''}">${p.role ?? 'choosing role…'}</span>
+        <span class="ready-dot" title="${p.isReady ? 'Ready' : 'Not ready'}">${p.isReady ? 'READY' : 'WAITING'}</span>
+      </div>`).join('');
+
+    const roleCards = ROLES.map((role) => {
+      const takenBy = room.players.find((p) => p.role === role.id);
+      const mine = my?.role === role.id;
+      const blocked = takenBy && takenBy.userId !== me.userId;
+      return `
+      <button class="role-card ${mine ? 'is-mine' : ''} ${blocked ? 'is-taken' : ''}"
+              data-role="${role.id}" ${blocked ? 'disabled' : ''}>
+        <strong>${role.title}</strong>
+        <p>${role.blurb}</p>
+        ${blocked ? `<span class="muted small">Taken by ${escapeHtml(takenBy.username)}</span>` : ''}
+        ${mine ? '<span class="chip chip-gold">YOUR ROLE</span>' : ''}
+      </button>`;
+    }).join('');
+
+    render(app, `
+    <div class="page page-narrow">
+      <div class="lobby-head">
+        <h2>Room Lobby</h2>
+        <div class="room-code-box">
+          <span class="muted small">ROOM CODE</span>
+          <strong class="room-code">${escapeHtml(room.roomCode)}</strong>
+          <button class="btn btn-ghost btn-sm" id="copy-code">Copy</button>
+        </div>
+      </div>
+      <p class="muted">Case: <strong>${escapeHtml(room.caseTitle)}</strong> — waiting for two ready detectives.</p>
+
+      <h3 class="section-title">Detectives (${room.players.length}/2)</h3>
+      <div class="lobby-players">${playerRows}</div>
+
+      <h3 class="section-title">Pick your role</h3>
+      <div class="role-grid">${roleCards}</div>
+
+      <div class="lobby-actions">
+        <button class="btn ${my?.isReady ? 'btn-ghost' : 'btn-primary'}" id="ready-btn" ${my?.role ? '' : 'disabled title="Pick a role first"'}>
+          ${my?.isReady ? 'Cancel ready' : 'Ready up'}
+        </button>
+        ${isHost ? `<button class="btn btn-gold" id="start-btn" ${bothReady ? '' : 'disabled title="Both players must pick different roles and ready up"'}>Start investigation</button>` : '<span class="muted small">The host starts the game when everyone is ready.</span>'}
+        <button class="btn btn-ghost" id="leave-btn">Leave room</button>
+      </div>
+    </div>`);
+
+    qs('#copy-code', app)?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(room.roomCode);
+        toast('Room code copied.', 'success');
+      } catch {
+        toast(`Room code: ${room.roomCode}`, 'info');
+      }
+    });
+
+    app.querySelectorAll('[data-role]').forEach((card) =>
+      card.addEventListener('click', async () => {
+        try {
+          room = await roomApi.selectRole(roomId, card.dataset.role);
+          draw();
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      }));
+
+    qs('#ready-btn', app)?.addEventListener('click', async () => {
+      try {
+        room = await roomApi.ready(roomId, !my?.isReady);
+        draw();
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+
+    qs('#start-btn', app)?.addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      try {
+        await roomApi.start(roomId);
+        window.location.hash = `#/game/${roomId}`;
+      } catch (err) {
+        toast(err.message, 'error');
+        draw();
+      }
+    });
+
+    qs('#leave-btn', app)?.addEventListener('click', async () => {
+      leaving = true;
+      try {
+        await roomApi.leave(roomId);
+      } catch {
+        /* leaving anyway */
+      }
+      window.location.hash = '#/cases';
+    });
+  }
+
+  return () => hub.stop();
+}

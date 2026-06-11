@@ -1,0 +1,36 @@
+{
+  "item_evidence_style_template": {
+    "style_profile_ref": "detective_visual_novel_2d_001",
+    "asset_type": "item_or_evidence",
+    "required_inputs": [
+      "itemId",
+      "name",
+      "description",
+      "inspectDescription",
+      "hiddenMeaning",
+      "relatedClueIds",
+      "evidenceImportance"
+    ],
+    "visual_requirements": {
+      "focus": "clean presentation of evidence or tool",
+      "background": "minimal or subtle textured backdrop",
+      "readability": "object silhouette and important details must be clear",
+      "lighting": "soft cinematic highlight on meaningful detail",
+      "scale": "usable as inventory icon and inspect image",
+      "style": "same 2D comic visual novel rendering as the global style profile"
+    },
+    "prompt_template": "{base_prompt_template} Create an evidence item illustration for {name}. Description: {description}. Inspect detail: {inspectDescription}. Hidden meaning: {hiddenMeaning}. The item must be readable, centered, sharp, and suitable for a detective game inventory or inspection screen.",
+    "negative_prompt_ref": "style_profile.negative_prompt",
+    "output_fields": [
+      "itemId",
+      "visualId",
+      "category",
+      "material",
+      "condition",
+      "importantVisualDetail",
+      "prompt",
+      "negativePrompt",
+      "imageUrl"
+    ]
+  }
+}

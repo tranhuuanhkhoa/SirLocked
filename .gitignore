@@ -1,0 +1,42 @@
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+src/BE/appsettings.Development.json
+src/BE/appsettings.Production.json
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.nupkg
+*.snupkg
+TestResults/
+publish/
+
+# Node / React
+node_modules/
+dist/
+.vite/
+*.local
+
+# Generated case JSON (may contain AI output)
+src/BE/GeneratedCaseJson/
+
+# Local tooling (portable MongoDB etc.)
+.tools/
+
+# MongoDB / DB dumps
+*.dump
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/

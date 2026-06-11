@@ -1,0 +1,11 @@
+{
+  "roomId": "room-demo-001",
+  "culpritId": "char-edgar",
+  "selectedEvidenceIds": [
+    "clue-hidden-debt",
+    "clue-poison-source",
+    "clue-drink-prepared-before-lock",
+    "clue-balcony-entry",
+    "clue-edgar-cufflink"
+  ]
+}
