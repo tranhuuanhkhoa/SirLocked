@@ -417,8 +417,8 @@ code { font-family: 'Source Code Pro', monospace; color: var(--gold-light); font
 }
 .dialogue-overlay { place-items: end center; }
 .dialogue-box {
-  width: min(980px, calc(100vw - 36px));
-  display: grid; grid-template-columns: 180px 1fr; gap: 18px;
+  width: min(1040px, calc(100vw - 36px));
+  display: grid; grid-template-columns: 320px 1fr; gap: 18px;
   margin-bottom: 24px;
   padding: 20px;
   background: rgba(10,22,40,0.95);
@@ -426,14 +426,19 @@ code { font-family: 'Source Code Pro', monospace; color: var(--gold-light); font
   border-radius: 12px;
 }
 .dialogue-portrait {
-  position: relative; min-height: 260px; border-radius: 12px; overflow: hidden;
+  position: relative; min-height: 320px; border-radius: 12px; overflow: hidden;
   display: grid; place-items: center;
   border: 1px solid rgba(201,168,76,0.35);
   color: var(--gold-light);
   font-size: 2rem;
   font-weight: 700;
 }
-.dialogue-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.dialogue-portrait img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  image-rendering: pixelated;
+}
+.inspect-art img, .char-avatar img, .inventory-icon img { image-rendering: pixelated; }
+.inspect-art img { object-fit: contain !important; }
 .dialogue-copy h2 { margin-top: 0; }
 .dialogue-portrait img + span,
 .char-avatar img + span {

@@ -5,31 +5,14 @@ import { createRoomConnection } from '../services/signalrClient.js';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 
-const GENERATED_ASSETS = {
-  bakerStreet: new URL('../../../assets/images/221b-baker-street.jpg', import.meta.url).href,
-  observatoryMainHall: new URL('../../../assets/generated/observatory-main-hall.png', import.meta.url).href,
-  drVega: new URL('../../../assets/generated/dr-vega.png', import.meta.url).href,
-  janitorMiller: new URL('../../../assets/generated/janitor-miller.png', import.meta.url).href,
+// Real assets live under src/FE/public/assets/... and are served at /assets/...
+// Case JSON URLs point straight at them; no placeholder redirection anymore.
+const PLAYER_SHEETS: Record<string, { key: string; url: string }> = {
+  INTERROGATOR: { key: 'player-holmes', url: '/assets/players/holmes-sheet.png' },
+  INVESTIGATOR: { key: 'player-watson', url: '/assets/players/watson-sheet.png' },
 };
-
-function isProjectPlaceholderAsset(value: string | undefined, folder: string) {
-  return String(value ?? '').trim().toLowerCase().startsWith(`/assets/${folder}/`);
-}
-
-function defaultSceneBackgroundUrl(scene: VisibleScene) {
-  const text = `${scene.sceneId} ${scene.title}`.toLowerCase();
-  if (text.includes('observatory') || text.includes('main hall')) {
-    return GENERATED_ASSETS.observatoryMainHall;
-  }
-  return GENERATED_ASSETS.bakerStreet;
-}
-
-function defaultCharacterPortraitUrl(character: SceneCharacter) {
-  const text = `${character.characterId} ${character.name}`.toLowerCase();
-  if (text.includes('vega')) return GENERATED_ASSETS.drVega;
-  if (text.includes('miller') || text.includes('janitor')) return GENERATED_ASSETS.janitorMiller;
-  return '';
-}
+// Sheets are 1024x192: 8 frames of 128x192 (frames 0-1 idle, 2-7 walk cycle).
+const PLAYER_FRAME = { width: 128, height: 192 };
 
 function playableAssetUrl(value: string | undefined) {
   const url = String(value ?? '').trim();
@@ -38,15 +21,19 @@ function playableAssetUrl(value: string | undefined) {
 }
 
 function sceneBackgroundUrl(scene: VisibleScene) {
-  const fallback = defaultSceneBackgroundUrl(scene);
-  if (isProjectPlaceholderAsset(scene.backgroundUrl, 'scenes')) return fallback;
-  return playableAssetUrl(scene.backgroundUrl) || fallback;
+  return playableAssetUrl(scene.backgroundUrl);
 }
 
 function characterPortraitUrl(character: SceneCharacter) {
-  const fallback = defaultCharacterPortraitUrl(character);
-  if (isProjectPlaceholderAsset(character.imageUrl, 'characters')) return fallback;
-  return playableAssetUrl(character.imageUrl) || fallback;
+  return playableAssetUrl(character.imageUrl);
+}
+
+// In-scene chibi sprite sits next to the dialogue portrait by naming convention:
+// /assets/characters/mona-portrait.png -> /assets/characters/mona-sprite.png
+function characterSpriteUrl(character: SceneCharacter) {
+  const portrait = playableAssetUrl(character.imageUrl);
+  if (!portrait || !portrait.includes('-portrait')) return '';
+  return portrait.replace('-portrait', '-sprite');
 }
 
 type RoomPlayer = {
@@ -200,6 +187,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private selectedInventoryItemId: string | null = null;
   private ready = false;
   private loadingTextureKeys = new Set<string>();
+  private pendingTextures = new Map<string, string>();
+  private failedTextureKeys = new Set<string>();
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private localPose: PlayerPose | null = null;
@@ -215,16 +204,33 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.callbacks = callbacks;
   }
 
+  preload() {
+    for (const sheet of Object.values(PLAYER_SHEETS)) {
+      if (!this.textures.exists(sheet.key)) {
+        this.load.spritesheet(sheet.key, sheet.url, {
+          frameWidth: PLAYER_FRAME.width,
+          frameHeight: PLAYER_FRAME.height,
+        });
+      }
+    }
+  }
+
   create() {
     this.ready = true;
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.keys = (this.input.keyboard?.addKeys('W,A,S,D,E') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
+    // Remember 404s so a missing asset doesn't trigger an endless reload loop.
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
+      if (file?.key) this.failedTextureKeys.add(file.key);
+    });
     this.scale.on('resize', () => this.draw());
     this.draw();
   }
 
   update(time: number, delta: number) {
-    if (!this.ready || !this.state || !this.localPose || !this.localPlayer) return;
+    if (!this.ready) return;
+    this.animatePlayers(time);
+    if (!this.state || !this.localPose || !this.localPlayer) return;
 
     const axis = this.inputAxis();
     const moving = axis.x !== 0 || axis.y !== 0;
@@ -299,6 +305,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.drawSceneNavigation(width, height);
     this.drawInventoryHint(width, height);
     this.drawControlHint(width, height);
+    this.flushTextures();
   }
 
   private drawBackground(scene: VisibleScene, width: number, height: number) {
@@ -343,11 +350,29 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const w = Math.max((hotspot.width / 100) * width, 36);
       const h = Math.max((hotspot.height / 100) * height, 30);
       const inspected = type === 'ITEM' && this.state?.inspectedItemIds.includes(hotspot.targetId);
+      const collected = type === 'ITEM' && this.state?.collectedItemIds.includes(hotspot.targetId);
+
+      // Overlay item layer: composite the item sprite into its reserved slot.
+      // Collected items leave the scene (they live in the inventory bar).
+      const sceneItem = this.state?.visibleScene.items.find((i) => i.itemId === hotspot.targetId);
+      const itemUrl = playableAssetUrl(sceneItem?.imageUrl);
+      const itemKey = itemUrl ? `item:${hotspot.targetId}:${itemUrl}` : '';
+      let itemShown = false;
+      if (itemKey && !collected) {
+        if (this.textures.exists(itemKey)) {
+          this.add.image(x + w / 2, y + h / 2, itemKey).setDisplaySize(w, h).setDepth(5);
+          itemShown = true;
+        } else {
+          this.queueTexture(itemKey, itemUrl);
+        }
+      }
+
       const color = hotspot.isLocked ? 0x9da2aa : inspected ? 0x65b975 : 0xc9a84c;
-      const alpha = hotspot.isLocked ? 0.12 : inspected ? 0.11 : 0.16;
+      const alpha = itemShown ? 0.03 : hotspot.isLocked ? 0.12 : inspected ? 0.11 : 0.16;
 
       const rect = this.add.rectangle(x + w / 2, y + h / 2, w, h, color, alpha)
-        .setStrokeStyle(2, color, hotspot.isLocked ? 0.68 : 0.92)
+        .setStrokeStyle(itemShown ? 1 : 2, color, itemShown ? 0.25 : hotspot.isLocked ? 0.68 : 0.92)
+        .setDepth(6)
         .setInteractive({ useHandCursor: true });
       rect.setData('label', hotspot.label);
 
@@ -380,71 +405,71 @@ class SirLockedPhaserScene extends Phaser.Scene {
         .map((hotspot) => hotspot.targetId),
     );
 
+    // CHARACTER hotspots are the NPC standing gaps: feet at the rect bottom-center.
     const positioned = scene.hotspots.filter((hotspot) => hotspot.type.toUpperCase() === 'CHARACTER');
     for (const hotspot of positioned) {
       const character = scene.characters.find((ch) => ch.characterId === hotspot.targetId);
       if (!character) continue;
-      this.drawCharacterButton(character, (hotspot.x / 100) * width, (hotspot.y / 100) * height, width, height);
+      const feetX = ((hotspot.x + hotspot.width / 2) / 100) * width;
+      const feetY = ((hotspot.y + hotspot.height) / 100) * height;
+      this.drawCharacterButton(character, feetX, feetY, height);
     }
 
     const implicit = scene.characters.filter((ch) => !hotspotCharacterIds.has(ch.characterId));
     const count = Math.max(implicit.length, 1);
     implicit.forEach((character, index) => {
       const x = width * (0.58 + (index * 0.3 / count));
-      const y = height * (0.42 + (index % 2) * 0.05);
-      this.drawCharacterButton(character, x, y, width, height);
+      const y = height * 0.8;
+      this.drawCharacterButton(character, x, y, height);
     });
   }
 
-  private drawCharacterButton(character: SceneCharacter, x: number, y: number, width: number, height: number) {
-    const group = this.add.container(x, y);
-    const bodyW = Phaser.Math.Clamp(width * 0.1, 88, 138);
-    const bodyH = Phaser.Math.Clamp(height * 0.28, 150, 250);
+  // x,y = feet position of the NPC.
+  private drawCharacterButton(character: SceneCharacter, x: number, y: number, height: number) {
+    const group = this.add.container(x, y).setDepth(Math.round(y));
+    const npcH = Phaser.Math.Clamp(height * 0.3, 140, 260);
     const fresh = this.state?.visibleScene.availableDialogues
       .filter((dialogue) => dialogue.characterId === character.characterId && !dialogue.isAsked && !dialogue.isLocked).length ?? 0;
 
-    const portraitUrl = characterPortraitUrl(character);
-    const portraitKey = portraitUrl ? `portrait:${character.characterId}:${portraitUrl}` : '';
+    const spriteUrl = characterSpriteUrl(character);
+    const spriteKey = spriteUrl ? `npc:${character.characterId}:${spriteUrl}` : '';
+    const shadow = this.add.ellipse(0, -2, npcH * 0.4, npcH * 0.08, 0x000000, 0.32);
 
-    const body = this.add.rectangle(0, bodyH / 2, bodyW, bodyH, 0x251c36, 0.64)
-      .setStrokeStyle(1, 0xc9a84c, 0.32)
-      .setInteractive({ useHandCursor: true });
-    const portrait = this.add.circle(0, 32, 34, this.colorFromId(character.characterId, 0x3a2a55), 1)
-      .setStrokeStyle(2, 0xc9a84c, 0.62)
-      .setInteractive({ useHandCursor: true });
-
-    let portraitImage: Phaser.GameObjects.Image | null = null;
-    if (portraitKey && this.textures.exists(portraitKey)) {
-      portraitImage = this.add.image(0, 32, portraitKey)
-        .setDisplaySize(68, 68)
+    let body: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      body = this.add.image(0, 0, spriteKey)
+        .setOrigin(0.5, 1)
         .setInteractive({ useHandCursor: true });
-    } else if (portraitKey && portraitUrl) {
-      this.queueTexture(portraitKey, portraitUrl);
+      (body as Phaser.GameObjects.Image).setDisplaySize(npcH * (256 / 384), npcH);
+    } else {
+      if (spriteKey && spriteUrl) this.queueTexture(spriteKey, spriteUrl);
+      body = this.add.rectangle(0, 0, npcH * 0.42, npcH, this.colorFromId(character.characterId, 0x3a2a55), 0.6)
+        .setOrigin(0.5, 1)
+        .setStrokeStyle(1, 0xc9a84c, 0.4)
+        .setInteractive({ useHandCursor: true });
     }
 
-    const initialText = this.add.text(0, 32, initials(character.name), {
+    const initialText = this.add.text(0, -npcH / 2, initials(character.name), {
       fontFamily: 'Playfair Display, Georgia, serif',
       fontSize: '22px',
       color: '#f4dc8f',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setVisible(!portraitImage);
+    }).setOrigin(0.5).setVisible(body instanceof Phaser.GameObjects.Rectangle);
 
-    const name = this.add.text(0, bodyH + 14, fresh ? `${character.name} (${fresh})` : character.name, {
+    const name = this.add.text(0, 8, fresh ? `${character.name} (${fresh})` : character.name, {
       fontFamily: 'Crimson Text, serif',
       fontSize: '16px',
-      color: '#f7efd7',
+      color: fresh ? '#f4dc8f' : '#f7efd7',
       backgroundColor: 'rgba(10,22,40,0.88)',
       padding: { x: 8, y: 4 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 0);
 
     const open = () => this.callbacks.onCharacter(character.characterId);
     body.on('pointerdown', open);
-    portrait.on('pointerdown', open);
-    portraitImage?.on('pointerdown', open);
-    body.on('pointerover', () => body.setStrokeStyle(2, 0xc9a84c, 0.86));
-    body.on('pointerout', () => body.setStrokeStyle(1, 0xc9a84c, 0.32));
+    body.on('pointerover', () => { if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
+    body.on('pointerout', () => { if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
 
-    group.add([body, portrait, ...(portraitImage ? [portraitImage] : []), initialText, name]);
+    group.add([shadow, body, initialText, name]);
   }
 
   private drawPlayers() {
@@ -467,37 +492,67 @@ class SirLockedPhaserScene extends Phaser.Scene {
       });
   }
 
+  // pose.x/pose.y is the FEET position of the character on the walkway.
   private createPlayer(pose: PlayerPose, isLocal: boolean) {
-    const color = this.playerColor(pose.role, isLocal);
-    const label = this.playerLabel(pose);
     const container = this.add.container(pose.x, pose.y).setDepth(isLocal ? 80 : 70);
-    const shadow = this.add.ellipse(0, 28, 54, 14, 0x000000, 0.38);
-    const coat = this.add.rectangle(0, -10, 34, 58, color, isLocal ? 0.96 : 0.78)
-      .setStrokeStyle(isLocal ? 2 : 1, isLocal ? 0xf4dc8f : 0x9da2aa, isLocal ? 0.9 : 0.55);
-    const head = this.add.circle(0, -50, 16, 0xd7b98f, 1)
-      .setStrokeStyle(1, 0x1d1624, 0.8);
-    const hat = this.add.rectangle(0, -69, 42, 8, 0x17131c, 1);
-    const brim = this.add.rectangle(0, -63, 54, 6, 0x17131c, 1);
-    const name = this.add.text(0, 42, label, {
+    const spriteH = Phaser.Math.Clamp(this.scale.height * 0.26, 120, 230);
+    const shadow = this.add.ellipse(0, -2, spriteH * 0.42, spriteH * 0.09, 0x000000, 0.35);
+
+    const sheet = pose.role ? PLAYER_SHEETS[pose.role] : undefined;
+    const sheetKey = sheet && this.textures.exists(sheet.key) ? sheet.key : '';
+    // Phaser 4.1 fails to render Sprite objects in this setup, so player
+    // characters are Images and the walk/idle cycle flips frames manually.
+    let body: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+    if (sheetKey) {
+      const image = this.add.image(0, 0, sheetKey, 0).setOrigin(0.5, 1);
+      image.setDisplaySize(spriteH * (PLAYER_FRAME.width / PLAYER_FRAME.height), spriteH);
+      body = image;
+    } else {
+      body = this.add.rectangle(0, 0, spriteH * 0.4, spriteH, this.playerColor(pose.role, isLocal), 0.9)
+        .setOrigin(0.5, 1)
+        .setStrokeStyle(isLocal ? 2 : 1, isLocal ? 0xf4dc8f : 0x9da2aa, isLocal ? 0.9 : 0.55);
+    }
+
+    const name = this.add.text(0, 8, this.playerLabel(pose), {
       fontFamily: 'Crimson Text, serif',
       fontSize: '14px',
       color: isLocal ? '#f4dc8f' : '#d9d4c4',
       backgroundColor: 'rgba(10,22,40,0.82)',
       padding: { x: 7, y: 3 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 0);
 
-    container.add([shadow, coat, head, hat, brim, name]);
+    container.add([shadow, body, name]);
+    container.setData('body', body);
+    container.setData('sheetKey', sheetKey);
     return container;
   }
 
   private placePlayer(container: Phaser.GameObjects.Container, pose: PlayerPose) {
     container.setPosition(pose.x, pose.y);
-    container.setScale(pose.direction === 'left' ? -1 : 1, 1);
     container.setDepth(Math.round(pose.y) + (pose.userId === this.callbacks.localUserId ? 100 : 80));
-    const name = container.list[5] as Phaser.GameObjects.Text | undefined;
-    name?.setScale(pose.direction === 'left' ? -1 : 1, 1);
-    const coat = container.list[1] as Phaser.GameObjects.Rectangle | undefined;
-    coat?.setRotation(pose.moving ? Math.sin(this.time.now / 90) * 0.035 : 0);
+    container.setData('moving', pose.moving);
+    const body = container.getData('body');
+    const sheetKey = container.getData('sheetKey') as string;
+    if (sheetKey && body instanceof Phaser.GameObjects.Image) {
+      body.setFlipX(pose.direction === 'left');
+    } else if (body instanceof Phaser.GameObjects.Rectangle) {
+      body.setRotation(pose.moving ? Math.sin(this.time.now / 90) * 0.035 : 0);
+    }
+  }
+
+  // Manual frame animation: frames 0-1 idle breathing, frames 2-7 walk cycle.
+  private animatePlayers(time: number) {
+    const idleFrame = Math.floor(time / 450) % 2;
+    const walkFrame = 2 + (Math.floor(time / 110) % 6);
+    const apply = (container: Phaser.GameObjects.Container | null) => {
+      if (!container) return;
+      const body = container.getData('body');
+      if (!(body instanceof Phaser.GameObjects.Image) || !container.getData('sheetKey')) return;
+      const frame = container.getData('moving') ? walkFrame : idleFrame;
+      if (body.frame.name !== String(frame)) body.setFrame(frame);
+    };
+    apply(this.localPlayer);
+    for (const remote of this.remotePlayers.values()) apply(remote);
   }
 
   private drawControlHint(width: number, height: number) {
@@ -706,17 +761,30 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private queueTexture(key: string, url: string) {
-    if (this.loadingTextureKeys.has(key) || this.textures.exists(key)) return;
-    this.loadingTextureKeys.add(key);
-    this.load.image(key, url);
+    if (
+      this.loadingTextureKeys.has(key) ||
+      this.failedTextureKeys.has(key) ||
+      this.pendingTextures.has(key) ||
+      this.textures.exists(key)
+    ) return;
+    this.pendingTextures.set(key, url);
+  }
+
+  // The loader ignores files added while a load is already in flight, so
+  // requested textures are buffered and loaded batch by batch instead.
+  private flushTextures() {
+    if (this.load.isLoading() || this.pendingTextures.size === 0) return;
+    for (const [key, url] of this.pendingTextures) {
+      this.loadingTextureKeys.add(key);
+      this.load.image(key, url);
+    }
+    this.pendingTextures.clear();
     this.load.once(Phaser.Loader.Events.COMPLETE, () => {
-      this.loadingTextureKeys.delete(key);
+      this.loadingTextureKeys.clear();
       this.draw();
+      this.flushTextures();
     });
-    this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, () => {
-      this.loadingTextureKeys.delete(key);
-    });
-    if (!this.load.isLoading()) this.load.start();
+    this.load.start();
   }
 
 }
@@ -907,12 +975,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       },
       scene: phaserScene,
       render: {
-        antialias: true,
-        pixelArt: false,
+        antialias: false,
+        pixelArt: true,
+        preserveDrawingBuffer: true,
       },
     });
 
     phaserScene.updateGameState(state, selectedInventoryItemId);
+    // Debug handle for QA tooling (canvas snapshots, state inspection).
+    (window as unknown as Record<string, unknown>).__sirlockedGame = phaserGame;
   }
 
   function playersHtml() {
