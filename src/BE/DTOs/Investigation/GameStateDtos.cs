@@ -194,6 +194,8 @@ public class GameStateResponse
     public bool AvailableForAccusation { get; set; }
     public string CurrentObjective { get; set; } = string.Empty;
     public VisibleSceneDto VisibleScene { get; set; } = new();
+    /// <summary>Full metadata for collected items, including items picked up in other scenes.</summary>
+    public List<SceneItemDto> CollectedItems { get; set; } = new();
     public List<SceneMapEntryDto> SceneMap { get; set; } = new();
     public List<ClueDto> UnlockedClues { get; set; } = new();
     public List<ClueDto> EvidenceClues { get; set; } = new();

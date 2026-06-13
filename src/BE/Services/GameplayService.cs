@@ -615,6 +615,11 @@ public class GameplayService : IGameplayService
             VisitedSceneIds = state.VisitedSceneIds,
             InspectedItemIds = state.InspectedItemIds,
             CollectedItemIds = state.CollectedItemIds,
+            CollectedItems = state.CollectedItemIds
+                .Select(id => gameCase.Items.FirstOrDefault(i => i.ItemId == id))
+                .Where(i => i is not null)
+                .Select(i => SceneItemDto.From(i!, state.InspectedItemIds.Contains(i!.ItemId)))
+                .ToList(),
             UnlockedClueIds = state.UnlockedClueIds,
             AskedDialogueIds = state.AskedDialogueIds,
             CompletedSceneIds = state.CompletedSceneIds,

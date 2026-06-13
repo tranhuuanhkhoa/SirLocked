@@ -78,6 +78,7 @@ type SceneDialogue = {
   answer: string;
   isAsked: boolean;
   isLocked: boolean;
+  missingClueIds?: string[];
 };
 
 type VisibleScene = {
@@ -127,6 +128,7 @@ type GameState = {
   visibleScene: VisibleScene;
   inspectedItemIds: string[];
   collectedItemIds: string[];
+  collectedItems: SceneItem[];
   unlockedClues: Clue[];
   evidenceClues: Clue[];
   suspects: SceneCharacter[];
@@ -144,6 +146,7 @@ type Overlay =
   | { type: 'log' }
   | { type: 'dialogue'; characterId: string }
   | { type: 'inspect'; itemId: string; detail: string; unlockedClueIds: string[] }
+  | { type: 'inventory'; itemId: string }
   | { type: 'puzzle'; label: string; message: string };
 
 type Accusation = null | {
@@ -360,7 +363,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
       let itemShown = false;
       if (itemKey && !collected) {
         if (this.textures.exists(itemKey)) {
-          this.add.image(x + w / 2, y + h / 2, itemKey).setDisplaySize(w, h).setDepth(5);
+          // Preserve the artwork's aspect ratio (contain within the hotspot box)
+          // and rest it on the bottom edge of the box so items sit on surfaces
+          // instead of floating distorted in the middle of the slot.
+          const image = this.add.image(x + w / 2, y + h, itemKey).setOrigin(0.5, 1).setDepth(5);
+          image.setScale(Math.min(w / image.width, h / image.height));
           itemShown = true;
         } else {
           this.queueTexture(itemKey, itemUrl);
@@ -427,7 +434,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
   // x,y = feet position of the NPC.
   private drawCharacterButton(character: SceneCharacter, x: number, y: number, height: number) {
     const group = this.add.container(x, y).setDepth(Math.round(y));
-    const npcH = Phaser.Math.Clamp(height * 0.3, 140, 260);
+    // Keep NPCs roughly in scale with the player chibis (height * 0.26 -> ~230px)
+    // so they read as people standing in the room, not looming over it.
+    const npcH = Phaser.Math.Clamp(height * 0.27, 140, 235);
     const fresh = this.state?.visibleScene.availableDialogues
       .filter((dialogue) => dialogue.characterId === character.characterId && !dialogue.isAsked && !dialogue.isLocked).length ?? 0;
 
@@ -917,7 +926,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
           <button class="round-tool" id="map-btn" title="Locations">Map</button>
           <button class="round-tool" id="log-btn" title="Action log">Log</button>
-          <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'} title="Final accusation">Accuse</button>
+          <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
+                  title="${state.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}">Accuse</button>
         </div>
       </main>
 
@@ -969,9 +979,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       parent: host,
       backgroundColor: '#050812',
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        width: host.clientWidth || 1280,
-        height: host.clientHeight || 640,
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1600,
+        height: 900,
       },
       scene: phaserScene,
       render: {
@@ -994,7 +1005,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function inventoryBar() {
+    // collectedItems carries metadata for items picked up in any scene;
+    // visibleScene.items only covers the current scene, so it is just a fallback.
     const itemsById = new Map(state!.visibleScene.items.map((i) => [i.itemId, i]));
+    for (const item of state!.collectedItems ?? []) itemsById.set(item.itemId, item);
     const collected = state!.collectedItemIds.map((id) => itemsById.get(id) ?? { itemId: id, name: prettyId(id), imageUrl: '' });
     return `
     <footer class="inventory-bar">
@@ -1003,15 +1017,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         ${collected.length === 0
           ? '<span class="muted small">Collected items appear here.</span>'
           : collected.map((item) => `
-            <button class="inventory-item ${selectedInventoryItemId === item.itemId ? 'is-selected' : ''}"
+            <button class="inventory-item ${overlay?.type === 'inventory' && overlay.itemId === item.itemId ? 'is-selected' : ''}"
                     data-inventory="${escapeHtml(item.itemId)}" title="${escapeHtml(item.name)}">
               <span class="inventory-icon" style="${placeholderStyle(item.itemId)}">
-                <img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">
+                ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
               </span>
               <span>${escapeHtml(item.name)}</span>
             </button>`).join('')}
       </div>
-      <span class="muted small">${selectedInventoryItemId ? `Using: ${prettyId(selectedInventoryItemId)}` : 'Select an item, then click the scene.'}</span>
+      <span class="muted small">Click an item to review what you found.</span>
     </footer>`;
   }
 
@@ -1037,6 +1051,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (overlay.type === 'log') return logOverlay();
     if (overlay.type === 'dialogue') return dialogueOverlay(overlay.characterId);
     if (overlay.type === 'inspect') return inspectOverlay(overlay.itemId, overlay.detail, overlay.unlockedClueIds ?? []);
+    if (overlay.type === 'inventory') return inventoryDetailOverlay(overlay.itemId);
     if (overlay.type === 'puzzle') return puzzleOverlay(overlay.label, overlay.message);
     return '';
   }
@@ -1121,17 +1136,42 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     </div>`;
   }
 
+  // Detail view for an item already collected into the inventory. Pulls the
+  // full metadata (and the clue it produced) from the collected-items list so
+  // the player can review what they found at any time, in any scene.
+  function inventoryDetailOverlay(itemId: string) {
+    const byId = new Map(state!.visibleScene.items.map((i) => [i.itemId, i]));
+    for (const i of state!.collectedItems ?? []) byId.set(i.itemId, i);
+    const item = byId.get(itemId) ?? { itemId, name: prettyId(itemId), imageUrl: '', description: '', inspectText: '' };
+    const finding = item.inspectText || item.description || 'You collected this item during the investigation.';
+    const clue = state!.unlockedClues.find((c) => c.source === itemId);
+    return `
+    <div class="overlay">
+      <div class="modal modal-wide inspect-modal">
+        <div class="inspect-art" style="${placeholderStyle(item.itemId)}">
+          ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
+          <span>${escapeHtml(item.name)}</span>
+        </div>
+        <div class="inspect-copy">
+          <h2>${escapeHtml(item.name)}</h2>
+          ${item.description ? `<p class="muted">${escapeHtml(item.description)}</p>` : ''}
+          <p>${escapeHtml(finding)}</p>
+          ${clue
+            ? `<p class="clue-flash">Evidence logged: ${escapeHtml(clue.title)}</p>`
+            : ''}
+          <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   function puzzleOverlay(label: string, message: string) {
     return `
     <div class="overlay">
       <div class="modal">
         <h2>${escapeHtml(label || 'Locked object')}</h2>
-        <p>${escapeHtml(message || 'This needs another clue or item before it can be opened.')}</p>
-        <div class="puzzle-pad">
-          <button class="puzzle-key" disabled>1</button><button class="puzzle-key" disabled>2</button><button class="puzzle-key" disabled>3</button>
-          <button class="puzzle-key" disabled>4</button><button class="puzzle-key" disabled>5</button><button class="puzzle-key" disabled>6</button>
-        </div>
-        <p class="muted small">Puzzle interactions can be backed by future hotspot JSON. For now this hotspot is gated by case conditions.</p>
+        <p>${escapeHtml(message || 'This needs another clue before it can be opened.')}</p>
+        <p class="muted small">Missing clues usually hide in unexamined objects or unasked questions. Compare notes with your partner - the Investigator searches, the Interrogator questions.</p>
         <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
       </div>
     </div>`;
@@ -1161,8 +1201,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               ? '<p class="muted small">There is nothing useful to ask right now.</p>'
               : dialogues.map((d) => `
                 <button class="dialogue-row ${d.isAsked ? 'is-asked' : ''} ${d.isLocked ? 'is-locked' : ''}"
-                        data-dialogue="${escapeHtml(d.dialogueId)}" ${d.isLocked ? 'disabled' : ''}>
-                  <span>${d.isLocked ? 'Locked' : d.isAsked ? 'Asked' : 'Ask'}</span>
+                        data-dialogue="${escapeHtml(d.dialogueId)}" ${d.isLocked ? 'disabled' : ''}
+                        ${d.isLocked ? `title="Needs ${d.missingClueIds?.length || 'more'} more clue(s) before this can be asked"` : ''}>
+                  <span>${d.isLocked ? `Locked${d.missingClueIds?.length ? ` (${d.missingClueIds.length} clue${d.missingClueIds.length > 1 ? 's' : ''} missing)` : ''}` : d.isAsked ? 'Asked' : 'Ask'}</span>
                   <span>${escapeHtml(d.question)}</span>
                 </button>
                 ${d.isAsked && d.answer ? `<div class="dialogue-answer">"${escapeHtml(d.answer)}"</div>` : ''}`).join('')}
@@ -1232,8 +1273,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     app.querySelectorAll('[data-inventory]').forEach((button) =>
       button.addEventListener('click', () => {
-        const element = button as HTMLElement;
-        selectedInventoryItemId = selectedInventoryItemId === element.dataset.inventory ? null : element.dataset.inventory ?? null;
+        const itemId = (button as HTMLElement).dataset.inventory;
+        if (!itemId) return;
+        // Toggle the detail view: clicking the open item (or its overlay) closes it.
+        overlay = overlay?.type === 'inventory' && overlay.itemId === itemId ? null : { type: 'inventory', itemId };
         draw();
       }));
 
@@ -1293,10 +1336,20 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   async function onHotspot({ type, target, locked, label }: HotspotClick) {
     if (selectedInventoryItemId) {
-      toast(`Tried using ${prettyId(selectedInventoryItemId)} on ${label || prettyId(target)}. No reaction yet.`, 'info');
+      // Using an item never blocks the normal interaction: locks are driven by
+      // missing clues on the backend, so explain that and continue as a plain click.
+      const usedItem = selectedInventoryItemId;
       selectedInventoryItemId = null;
-      draw();
-      return;
+      if (locked === 'true') {
+        overlay = {
+          type: 'puzzle',
+          label,
+          message: `${prettyId(usedItem)} has no effect here. This is sealed by a missing clue - keep investigating.`,
+        };
+        draw();
+        return;
+      }
+      toast(`You put ${prettyId(usedItem)} away and take a closer look.`, 'info');
     }
 
     if (type === 'CHARACTER') {
@@ -1319,6 +1372,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     if (myRole() !== 'INVESTIGATOR') {
       toast('Only the Investigator can inspect objects. Tell your partner to check it.', 'info');
+      draw();
       return;
     }
 
