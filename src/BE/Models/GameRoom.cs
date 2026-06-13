@@ -39,6 +39,7 @@ public class GameplayState
 {
     public string CurrentStageId { get; set; } = string.Empty;
     public string CurrentSceneId { get; set; } = string.Empty;
+    public Dictionary<string, string> PlayerSceneIds { get; set; } = new();
     /// <summary>Optimistic-concurrency version, incremented on every successful mutation.</summary>
     public long Version { get; set; }
     public List<string> VisitedSceneIds { get; set; } = new();

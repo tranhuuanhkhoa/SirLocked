@@ -112,6 +112,7 @@ async function route() {
     return;
   }
 
+  document.body.classList.toggle('game-page-active', r.page === renderGamePage);
   renderNav();
   cleanup = await r.page(app, ...m.slice(1));
 }

@@ -1008,6 +1008,190 @@ select.field-input:focus,
   border-color: rgba(79,154,154,0.58);
 }
 
+.point-game-phaser {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+  background: #02050c;
+}
+.point-game-phaser .scene-canvas {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.point-game-phaser .phaser-game-host,
+.point-game-phaser .phaser-game-host canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+.game-hud-overlay {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 12px;
+  min-height: 0;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(220px, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  background: rgba(5,12,22,0.72);
+  border: 1px solid rgba(239,212,134,0.2);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  z-index: 35;
+}
+.game-hud-overlay .game-objective {
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+.game-hud-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.game-hud-actions .round-tool {
+  min-width: 0;
+  height: 34px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.point-game-phaser .scene-title-card {
+  top: 78px;
+  left: 16px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 10px 12px;
+  background: rgba(5,12,22,0.54);
+}
+.point-game-phaser .scene-title-card p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.86rem;
+}
+.point-game-phaser .inventory-bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  min-height: 54px;
+  padding: 8px 10px;
+  border: 1px solid rgba(239,212,134,0.18);
+  border-radius: 8px;
+  background: rgba(5,12,22,0.72);
+  backdrop-filter: blur(12px);
+  z-index: 35;
+}
+.point-game-phaser .inventory-title {
+  font-size: 0.98rem;
+}
+.point-game-phaser .inventory-items {
+  min-height: 38px;
+}
+.point-game-phaser .inventory-item {
+  height: 38px;
+  padding: 4px 8px;
+}
+.point-game-phaser .inventory-icon {
+  width: 28px;
+  height: 28px;
+}
+
+body.game-page-active {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+body.game-page-active #app {
+  width: 100%;
+  height: calc(100dvh - 64px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-height: 700px) and (min-width: 721px) {
+  .point-game-phaser .scene-title-card {
+    display: none;
+  }
+}
+
+@media (max-width: 1080px) {
+  .game-hud-overlay {
+    grid-template-columns: minmax(170px, 240px) 1fr;
+  }
+  .game-hud-actions {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  body.game-page-active .app-nav {
+    display: none;
+  }
+  body.game-page-active #app {
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .point-game-phaser {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+  .game-hud-overlay {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    grid-template-columns: 1fr;
+  }
+  .game-hud-overlay > div:first-child,
+  .game-hud-overlay .game-players,
+  .game-hud-overlay .game-hud-actions {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .game-hud-overlay .game-players,
+  .game-hud-overlay .game-hud-actions {
+    overflow-x: auto;
+  }
+  .game-hud-overlay .game-objective {
+    font-size: 0.84rem;
+  }
+  .game-hud-actions .round-tool {
+    height: 32px;
+    padding: 5px 8px;
+    font-size: 0.86rem;
+  }
+  .point-game-phaser .scene-title-card {
+    display: none;
+  }
+  .point-game-phaser .inventory-bar {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    min-width: 0;
+    flex-wrap: nowrap;
+  }
+  .point-game-phaser .inventory-title {
+    display: none;
+  }
+  .point-game-phaser .inventory-items {
+    min-width: 0;
+  }
+  .point-game-phaser .inventory-bar > .muted {
+    display: none;
+  }
+}
+
 .modal,
 .dialogue-box {
   background: linear-gradient(180deg, rgba(13,30,53,0.98), rgba(7,17,31,0.98));
@@ -1017,6 +1201,14 @@ select.field-input:focus,
 .overlay {
   background: rgba(5,10,18,0.82);
   backdrop-filter: blur(4px);
+}
+.overlay.is-closing-shield {
+  background: transparent;
+  backdrop-filter: none;
+  cursor: default;
+}
+.overlay.is-closing-shield > * {
+  visibility: hidden;
 }
 .clue-card,
 .map-entry,

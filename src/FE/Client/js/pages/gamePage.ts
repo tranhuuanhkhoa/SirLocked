@@ -8,11 +8,12 @@ import { toast } from '../utils/toast.js';
 // Real assets live under src/FE/public/assets/... and are served at /assets/...
 // Case JSON URLs point straight at them; no placeholder redirection anymore.
 const PLAYER_SHEETS: Record<string, { key: string; url: string }> = {
-  INTERROGATOR: { key: 'player-holmes', url: '/assets/players/holmes-sheet.png' },
-  INVESTIGATOR: { key: 'player-watson', url: '/assets/players/watson-sheet.png' },
+  INVESTIGATOR: { key: 'player-holmes', url: '/assets/players/holmes-sheet.png' },
+  INTERROGATOR: { key: 'player-watson', url: '/assets/players/watson-sheet.png' },
 };
-// Sheets are 1024x192: 8 frames of 128x192 (frames 0-1 idle, 2-7 walk cycle).
-const PLAYER_FRAME = { width: 128, height: 192 };
+// Sheets are 1024x192 with 128px transparent padding on both sides.
+// The eight usable frames occupy the middle 768px at 96x192 each.
+const PLAYER_FRAME = { width: 96, height: 192, sourceX: 128 };
 
 function playableAssetUrl(value: string | undefined) {
   const url = String(value ?? '').trim();
@@ -116,6 +117,12 @@ type ActionLogEntry = {
   createdAt: string;
 };
 
+type MissingRequirements = {
+  requiredItemIds: string[];
+  requiredClueIds: string[];
+  requiredDialogueIds: string[];
+};
+
 type GameState = {
   roomId: string;
   roomCode: string;
@@ -135,6 +142,8 @@ type GameState = {
   sceneMap: SceneMapEntry[];
   completedSceneIds: string[];
   availableForAccusation: boolean;
+  currentSceneCanComplete: boolean;
+  currentSceneMissingRequirements: MissingRequirements;
   currentObjective: string;
   actionLog: ActionLogEntry[];
 };
@@ -172,6 +181,8 @@ type PlayerPose = {
   direction: 'left' | 'right';
   moving: boolean;
   updatedAt?: string;
+  viewportWidth?: number;
+  viewportHeight?: number;
 };
 
 type PhaserCallbacks = {
@@ -184,15 +195,22 @@ type PhaserCallbacks = {
   onPose: (pose: PlayerPose) => void;
 };
 
+type SceneFrame = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 class SirLockedPhaserScene extends Phaser.Scene {
   private callbacks: PhaserCallbacks;
   private state: GameState | null = null;
   private selectedInventoryItemId: string | null = null;
   private ready = false;
   private loadingTextureKeys = new Set<string>();
+  private attemptedTextureKeys = new Set<string>();
   private pendingTextures = new Map<string, string>();
   private failedTextureKeys = new Set<string>();
-  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private localPose: PlayerPose | null = null;
   private localPlayer: Phaser.GameObjects.Container | null = null;
@@ -201,6 +219,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private nearestHotspot: Hotspot | null = null;
   private lastPoseSentAt = 0;
   private lastSentPoseKey = '';
+  private sceneInteractionEnabled = true;
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -210,18 +229,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
   preload() {
     for (const sheet of Object.values(PLAYER_SHEETS)) {
       if (!this.textures.exists(sheet.key)) {
-        this.load.spritesheet(sheet.key, sheet.url, {
-          frameWidth: PLAYER_FRAME.width,
-          frameHeight: PLAYER_FRAME.height,
-        });
+        this.load.image(sheet.key, sheet.url);
       }
     }
   }
 
   create() {
     this.ready = true;
-    this.cursors = this.input.keyboard?.createCursorKeys();
-    this.keys = (this.input.keyboard?.addKeys('W,A,S,D,E') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
+    this.definePlayerFrames();
+    this.keys = (this.input.keyboard?.addKeys('A,D,E') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
     // Remember 404s so a missing asset doesn't trigger an endless reload loop.
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
       if (file?.key) this.failedTextureKeys.add(file.key);
@@ -230,23 +246,50 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.draw();
   }
 
+  private definePlayerFrames() {
+    for (const sheet of Object.values(PLAYER_SHEETS)) {
+      const texture = this.textures.get(sheet.key);
+      for (let frame = 0; frame < 8; frame++) {
+        const frameName = `player-frame-${frame}`;
+        if (!texture.has(frameName)) {
+          texture.add(
+            frameName,
+            0,
+            PLAYER_FRAME.sourceX + frame * PLAYER_FRAME.width,
+            0,
+            PLAYER_FRAME.width,
+            PLAYER_FRAME.height,
+          );
+        }
+      }
+    }
+  }
+
   update(time: number, delta: number) {
     if (!this.ready) return;
     this.animatePlayers(time);
     if (!this.state || !this.localPose || !this.localPlayer) return;
 
+    if (!this.sceneInteractionEnabled) {
+      this.localPose.moving = false;
+      this.localPlayer.setData('moving', false);
+      this.nearestHotspot = null;
+      this.updateInteractionPrompt();
+      return;
+    }
+
     const axis = this.inputAxis();
-    const moving = axis.x !== 0 || axis.y !== 0;
+    const moving = axis.x !== 0;
     const speed = 225;
     const seconds = delta / 1000;
     const bounds = this.walkBounds();
 
     if (moving) {
       this.localPose.x = Phaser.Math.Clamp(this.localPose.x + axis.x * speed * seconds, bounds.left, bounds.right);
-      this.localPose.y = Phaser.Math.Clamp(this.localPose.y + axis.y * speed * seconds, bounds.top, bounds.bottom);
       if (axis.x < 0) this.localPose.direction = 'left';
       if (axis.x > 0) this.localPose.direction = 'right';
     }
+    this.localPose.y = bounds.bottom;
 
     this.localPose.moving = moving;
     this.localPose.sceneId = this.state.currentSceneId;
@@ -267,18 +310,35 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (this.ready) this.draw();
   }
 
+  setSceneInteractionEnabled(enabled: boolean) {
+    this.sceneInteractionEnabled = enabled;
+    if (this.input) {
+      this.input.enabled = enabled;
+      this.input.resetPointers();
+    }
+    if (this.game?.input) {
+      this.game.input.enabled = enabled;
+    }
+  }
+
   updateRemotePose(pose: PlayerPose) {
     this.callbacks.playerPoses.set(pose.userId, pose);
-    if (!this.ready || !this.state || pose.userId === this.callbacks.localUserId) return;
-    if (pose.sceneId !== this.state.currentSceneId) {
-      this.remotePlayers.get(pose.userId)?.destroy(true);
+    const existing = this.remotePlayers.get(pose.userId);
+    if (!this.state || pose.sceneId !== this.state.currentSceneId) {
+      existing?.destroy(true);
       this.remotePlayers.delete(pose.userId);
       return;
     }
 
-    const container = this.remotePlayers.get(pose.userId) ?? this.createPlayer(pose, false);
-    this.remotePlayers.set(pose.userId, container);
-    this.placePlayer(container, pose);
+    const displayPose = this.remoteDisplayPose(pose);
+    if (existing) {
+      this.placePlayer(existing, displayPose);
+      return;
+    }
+
+    const remote = this.createPlayer(displayPose, false);
+    this.placePlayer(remote, displayPose);
+    this.remotePlayers.set(pose.userId, remote);
   }
 
   removeRemotePose(userId: string) {
@@ -311,12 +371,52 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.flushTextures();
   }
 
+  private sceneFrame(scene = this.state?.visibleScene): SceneFrame {
+    const width = this.scale.width;
+    const height = this.scale.height;
+    let assetWidth = 1600;
+    let assetHeight = 900;
+
+    if (scene) {
+      const bgUrl = sceneBackgroundUrl(scene);
+      const bgKey = `bg:${scene.sceneId}:${bgUrl}`;
+      if (bgUrl && this.textures.exists(bgKey)) {
+        const source = this.textures.get(bgKey).getSourceImage() as { width?: number; height?: number };
+        assetWidth = source.width || assetWidth;
+        assetHeight = source.height || assetHeight;
+      }
+    }
+
+    const scale = Math.max(width / assetWidth, height / assetHeight);
+    const frameWidth = assetWidth * scale;
+    const frameHeight = assetHeight * scale;
+    return {
+      x: (width - frameWidth) / 2,
+      y: (height - frameHeight) / 2,
+      width: frameWidth,
+      height: frameHeight,
+    };
+  }
+
+  private hotspotRect(hotspot: Hotspot) {
+    const frame = this.sceneFrame();
+    return {
+      x: frame.x + (hotspot.x / 100) * frame.width,
+      y: frame.y + (hotspot.y / 100) * frame.height,
+      w: Math.max((hotspot.width / 100) * frame.width, 36),
+      h: Math.max((hotspot.height / 100) * frame.height, 30),
+    };
+  }
+
   private drawBackground(scene: VisibleScene, width: number, height: number) {
     const bgUrl = sceneBackgroundUrl(scene);
     const bgKey = `bg:${scene.sceneId}:${bgUrl}`;
 
     if (bgUrl && this.textures.exists(bgKey)) {
-      this.add.image(width / 2, height / 2, bgKey).setDisplaySize(width, height);
+      const frame = this.sceneFrame(scene);
+      this.add.image(frame.x, frame.y, bgKey)
+        .setOrigin(0, 0)
+        .setDisplaySize(frame.width, frame.height);
       return;
     }
 
@@ -348,10 +448,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const type = hotspot.type.toUpperCase();
       if (type === 'CHARACTER') continue;
 
-      const x = (hotspot.x / 100) * width;
-      const y = (hotspot.y / 100) * height;
-      const w = Math.max((hotspot.width / 100) * width, 36);
-      const h = Math.max((hotspot.height / 100) * height, 30);
+      const { x, y, w, h } = this.hotspotRect(hotspot);
       const inspected = type === 'ITEM' && this.state?.inspectedItemIds.includes(hotspot.targetId);
       const collected = type === 'ITEM' && this.state?.collectedItemIds.includes(hotspot.targetId);
 
@@ -360,28 +457,21 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const sceneItem = this.state?.visibleScene.items.find((i) => i.itemId === hotspot.targetId);
       const itemUrl = playableAssetUrl(sceneItem?.imageUrl);
       const itemKey = itemUrl ? `item:${hotspot.targetId}:${itemUrl}` : '';
-      let itemShown = false;
+      let itemImage: Phaser.GameObjects.Image | null = null;
       if (itemKey && !collected) {
         if (this.textures.exists(itemKey)) {
-          // Preserve the artwork's aspect ratio (contain within the hotspot box)
-          // and rest it on the bottom edge of the box so items sit on surfaces
-          // instead of floating distorted in the middle of the slot.
-          const image = this.add.image(x + w / 2, y + h, itemKey).setOrigin(0.5, 1).setDepth(5);
+          const image = this.add.image(x + w / 2, y + h / 2, itemKey).setOrigin(0.5).setDepth(5);
           image.setScale(Math.min(w / image.width, h / image.height));
-          itemShown = true;
+          itemImage = image;
         } else {
           this.queueTexture(itemKey, itemUrl);
         }
       }
 
-      const color = hotspot.isLocked ? 0x9da2aa : inspected ? 0x65b975 : 0xc9a84c;
-      const alpha = itemShown ? 0.03 : hotspot.isLocked ? 0.12 : inspected ? 0.11 : 0.16;
-
-      const rect = this.add.rectangle(x + w / 2, y + h / 2, w, h, color, alpha)
-        .setStrokeStyle(itemShown ? 1 : 2, color, itemShown ? 0.25 : hotspot.isLocked ? 0.68 : 0.92)
-        .setDepth(6)
+      const hitbox = this.add.zone(x + w / 2, y + h / 2, w, h)
+        .setDepth(20)
         .setInteractive({ useHandCursor: true });
-      rect.setData('label', hotspot.label);
+      hitbox.setData('label', hotspot.label);
 
       const label = this.add.text(x + w / 2, y - 8, hotspot.isLocked ? 'Locked' : inspected ? 'Found' : hotspot.label, {
         fontFamily: 'Crimson Text, serif',
@@ -389,17 +479,17 @@ class SirLockedPhaserScene extends Phaser.Scene {
         color: '#f4dc8f',
         backgroundColor: 'rgba(10,22,40,0.88)',
         padding: { x: 8, y: 4 },
-      }).setOrigin(0.5, 1).setVisible(false);
+      }).setOrigin(0.5, 1).setDepth(28).setVisible(false);
 
-      rect.on('pointerover', () => {
-        rect.setFillStyle(color, alpha + 0.1);
+      hitbox.on('pointerover', () => {
+        itemImage?.setTint(0xffe9b0);
         label.setVisible(true);
       });
-      rect.on('pointerout', () => {
-        rect.setFillStyle(color, alpha);
+      hitbox.on('pointerout', () => {
+        itemImage?.clearTint();
         label.setVisible(false);
       });
-      rect.on('pointerdown', () => {
+      hitbox.on('pointerdown', () => {
         this.triggerHotspot(hotspot);
       });
     }
@@ -417,16 +507,18 @@ class SirLockedPhaserScene extends Phaser.Scene {
     for (const hotspot of positioned) {
       const character = scene.characters.find((ch) => ch.characterId === hotspot.targetId);
       if (!character) continue;
-      const feetX = ((hotspot.x + hotspot.width / 2) / 100) * width;
-      const feetY = ((hotspot.y + hotspot.height) / 100) * height;
+      const { x, y, w, h } = this.hotspotRect(hotspot);
+      const feetX = x + w / 2;
+      const feetY = Math.min(y + h, height - 112);
       this.drawCharacterButton(character, feetX, feetY, height);
     }
 
     const implicit = scene.characters.filter((ch) => !hotspotCharacterIds.has(ch.characterId));
     const count = Math.max(implicit.length, 1);
+    const frame = this.sceneFrame(scene);
     implicit.forEach((character, index) => {
-      const x = width * (0.58 + (index * 0.3 / count));
-      const y = height * 0.8;
+      const x = frame.x + frame.width * (0.58 + (index * 0.3 / count));
+      const y = Math.min(frame.y + frame.height * 0.8, height - 112);
       this.drawCharacterButton(character, x, y, height);
     });
   }
@@ -484,21 +576,40 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private drawPlayers() {
     if (!this.state) return;
     const localPlayerInfo = this.state.players.find((p) => p.userId === this.callbacks.localUserId);
-    this.localPose = this.callbacks.playerPoses.get(this.callbacks.localUserId) ?? this.spawnPose(localPlayerInfo, 0);
+    const existingPose = this.callbacks.playerPoses.get(this.callbacks.localUserId);
+    this.localPose = existingPose?.sceneId === this.state.currentSceneId
+      ? existingPose
+      : this.spawnPose(localPlayerInfo, 0);
     this.localPose.sceneId = this.state.currentSceneId;
     this.localPlayer = this.createPlayer(this.localPose, true);
     this.placePlayer(this.localPlayer, this.localPose);
     this.callbacks.playerPoses.set(this.localPose.userId, { ...this.localPose });
 
-    this.state.players
-      .filter((player) => player.userId !== this.callbacks.localUserId)
-      .forEach((player, index) => {
-        const pose = this.callbacks.playerPoses.get(player.userId) ?? this.spawnPose(player, index + 1);
-        if (pose.sceneId !== this.state!.currentSceneId) return;
-        const container = this.createPlayer({ ...pose, username: player.username, role: player.role }, false);
-        this.remotePlayers.set(player.userId, container);
-        this.placePlayer(container, pose);
+    for (const player of this.state.players) {
+      if (player.userId === this.callbacks.localUserId) continue;
+      const pose = this.callbacks.playerPoses.get(player.userId);
+      if (!pose || pose.sceneId !== this.state.currentSceneId) continue;
+      const displayPose = this.remoteDisplayPose({
+        ...pose,
+        username: pose.username ?? player.username,
+        role: pose.role ?? player.role,
       });
+      const remote = this.createPlayer(displayPose, false);
+      this.placePlayer(remote, displayPose);
+      this.remotePlayers.set(player.userId, remote);
+    }
+  }
+
+  private remoteDisplayPose(pose: PlayerPose): PlayerPose {
+    const bounds = this.walkBounds();
+    const sourceWidth = pose.viewportWidth && pose.viewportWidth > 0
+      ? pose.viewportWidth
+      : this.scale.width;
+    return {
+      ...pose,
+      x: Phaser.Math.Clamp((pose.x / sourceWidth) * this.scale.width, bounds.left, bounds.right),
+      y: bounds.bottom,
+    };
   }
 
   // pose.x/pose.y is the FEET position of the character on the walkway.
@@ -513,7 +624,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     // characters are Images and the walk/idle cycle flips frames manually.
     let body: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
     if (sheetKey) {
-      const image = this.add.image(0, 0, sheetKey, 0).setOrigin(0.5, 1);
+      const image = this.add.image(0, 0, sheetKey, 'player-frame-0').setOrigin(0.5, 1);
       image.setDisplaySize(spriteH * (PLAYER_FRAME.width / PLAYER_FRAME.height), spriteH);
       body = image;
     } else {
@@ -533,6 +644,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     container.add([shadow, body, name]);
     container.setData('body', body);
     container.setData('sheetKey', sheetKey);
+    container.setData('frameIndex', 0);
     return container;
   }
 
@@ -558,14 +670,17 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const body = container.getData('body');
       if (!(body instanceof Phaser.GameObjects.Image) || !container.getData('sheetKey')) return;
       const frame = container.getData('moving') ? walkFrame : idleFrame;
-      if (body.frame.name !== String(frame)) body.setFrame(frame);
+      if (container.getData('frameIndex') !== frame) {
+        body.setFrame(`player-frame-${frame}`);
+        container.setData('frameIndex', frame);
+      }
     };
     apply(this.localPlayer);
     for (const remote of this.remotePlayers.values()) apply(remote);
   }
 
   private drawControlHint(width: number, height: number) {
-    this.add.text(18, height - 38, 'Move: WASD / Arrows    Interact: E or click', {
+    this.add.text(18, height - 104, 'Move: A / D    Interact: E or click', {
       fontFamily: 'Crimson Text, serif',
       fontSize: '15px',
       color: '#d9d4c4',
@@ -573,7 +688,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       padding: { x: 9, y: 5 },
     }).setDepth(120);
 
-    this.promptText = this.add.text(width / 2, height - 126, '', {
+    this.promptText = this.add.text(width / 2, height - 166, '', {
       fontFamily: 'Crimson Text, serif',
       fontSize: '17px',
       color: '#f4dc8f',
@@ -589,6 +704,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const currentIndex = this.state.sceneMap.findIndex((entry) => entry.isCurrent);
     const next = this.state.sceneMap[currentIndex + 1];
     const completedCurrent = this.state.completedSceneIds.includes(this.state.currentSceneId);
+    const canProceed = Boolean(this.state.currentSceneCanComplete);
 
     visited.slice(-2).forEach((entry, index) => {
       const x = index === 0 ? 92 : width - 92;
@@ -596,13 +712,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.drawButton(x, y, this.shorten(entry.title, 18), () => this.callbacks.onScene(entry.sceneId), 148);
     });
 
-    const forwardLabel = completedCurrent && next ? `Go to ${this.shorten(next.title, 22)}` : 'Continue investigation';
-    this.drawButton(width / 2, height - 54, forwardLabel, () => this.callbacks.onProceed(), 230, true);
+    const forwardLabel = !canProceed
+      ? 'Keep searching'
+      : completedCurrent && next
+        ? `Go to ${this.shorten(next.title, 22)}`
+        : 'Continue investigation';
+    if (canProceed) {
+      this.drawButton(width / 2, height - 112, forwardLabel, () => this.callbacks.onProceed(), 230, true);
+    }
   }
 
   private drawInventoryHint(width: number, height: number) {
     if (!this.selectedInventoryItemId) return;
-    this.add.text(width / 2, height - 102, `Using: ${this.prettyId(this.selectedInventoryItemId)}`, {
+    this.add.text(width / 2, height - 158, `Using: ${this.prettyId(this.selectedInventoryItemId)}`, {
       fontFamily: 'Crimson Text, serif',
       fontSize: '17px',
       color: '#f4dc8f',
@@ -618,46 +740,44 @@ class SirLockedPhaserScene extends Phaser.Scene {
     onClick: () => void,
     buttonWidth = 160,
     isPrimary = false,
+    enabled = true,
   ) {
     const button = this.add.rectangle(x, y, buttonWidth, 38, 0x0a1628, 0.86)
       .setStrokeStyle(1, 0xc9a84c, isPrimary ? 0.86 : 0.42)
-      .setInteractive({ useHandCursor: true });
+      .setAlpha(enabled ? 1 : 0.52);
+    if (enabled) button.setInteractive({ useHandCursor: true });
     const text = this.add.text(x, y, label, {
       fontFamily: 'Crimson Text, serif',
       fontSize: '16px',
-      color: '#f4dc8f',
+      color: enabled ? '#f4dc8f' : '#b7ad92',
       align: 'center',
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setAlpha(enabled ? 1 : 0.78);
 
-    button.on('pointerover', () => button.setFillStyle(0x2a2240, 0.9));
-    button.on('pointerout', () => button.setFillStyle(0x0a1628, 0.86));
-    button.on('pointerdown', onClick);
+    if (enabled) {
+      button.on('pointerover', () => button.setFillStyle(0x2a2240, 0.9));
+      button.on('pointerout', () => button.setFillStyle(0x0a1628, 0.86));
+      button.on('pointerdown', onClick);
+    }
 
     return { button, text };
   }
 
   private inputAxis() {
-    const left = this.cursors?.left?.isDown || this.keys.A?.isDown;
-    const right = this.cursors?.right?.isDown || this.keys.D?.isDown;
-    const up = this.cursors?.up?.isDown || this.keys.W?.isDown;
-    const down = this.cursors?.down?.isDown || this.keys.S?.isDown;
-    let x = Number(Boolean(right)) - Number(Boolean(left));
-    let y = Number(Boolean(down)) - Number(Boolean(up));
-    if (x !== 0 && y !== 0) {
-      x *= 0.7071;
-      y *= 0.7071;
-    }
-    return { x, y };
+    const left = this.keys.A?.isDown;
+    const right = this.keys.D?.isDown;
+    return { x: Number(Boolean(right)) - Number(Boolean(left)), y: 0 };
   }
 
   private walkBounds() {
     const width = this.scale.width;
     const height = this.scale.height;
+    const frame = this.sceneFrame();
+    const laneY = Phaser.Math.Clamp(frame.y + frame.height * 0.82, height * 0.58, height - 118);
     return {
-      left: width * 0.08,
-      right: width * 0.92,
-      top: height * 0.56,
-      bottom: height * 0.82,
+      left: Math.max(36, frame.x + frame.width * 0.08),
+      right: Math.min(width - 36, frame.x + frame.width * 0.92),
+      top: laneY,
+      bottom: laneY,
     };
   }
 
@@ -682,24 +802,57 @@ class SirLockedPhaserScene extends Phaser.Scene {
     let nearest: Hotspot | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
     for (const hotspot of this.state.visibleScene.hotspots) {
-      const type = hotspot.type.toUpperCase();
-      if (type === 'CHARACTER') continue;
       const center = this.hotspotCenter(hotspot);
       const distance = Phaser.Math.Distance.Between(pose.x, pose.y, center.x, center.y);
-      if (distance < 92 && distance < nearestDistance) {
+      const radius = hotspot.type.toUpperCase() === 'CHARACTER' ? 120 : 92;
+      if (distance < radius && distance < nearestDistance) {
         nearest = hotspot;
         nearestDistance = distance;
       }
     }
+
+    const explicitCharacterIds = new Set(
+      this.state.visibleScene.hotspots
+        .filter((hotspot) => hotspot.type.toUpperCase() === 'CHARACTER')
+        .map((hotspot) => hotspot.targetId),
+    );
+    const implicitCharacters = this.state.visibleScene.characters.filter((character) => !explicitCharacterIds.has(character.characterId));
+    const implicitCount = Math.max(implicitCharacters.length, 1);
+    const frame = this.sceneFrame();
+    implicitCharacters.forEach((character, index) => {
+      const x = frame.x + frame.width * (0.58 + (index * 0.3 / implicitCount));
+      const y = frame.y + frame.height * 0.8;
+      const distance = Phaser.Math.Distance.Between(pose.x, pose.y, x, y);
+      if (distance < 130 && distance < nearestDistance) {
+        nearest = {
+          hotspotId: `virtual-character-${character.characterId}`,
+          type: 'CHARACTER',
+          targetId: character.characterId,
+          x: (x / this.scale.width) * 100,
+          y: (y / this.scale.height) * 100,
+          width: 0,
+          height: 0,
+          zIndex: 1,
+          label: character.name,
+          isLocked: false,
+        };
+        nearestDistance = distance;
+      }
+    });
     return nearest;
   }
 
   private hotspotCenter(hotspot: Hotspot) {
-    const width = this.scale.width;
-    const height = this.scale.height;
+    const { x, y, w, h } = this.hotspotRect(hotspot);
+    if (hotspot.type.toUpperCase() === 'CHARACTER') {
+      return {
+        x: x + w / 2,
+        y: Math.min(y + h, this.scale.height - 112),
+      };
+    }
     return {
-      x: ((hotspot.x + hotspot.width / 2) / 100) * width,
-      y: ((hotspot.y + hotspot.height / 2) / 100) * height,
+      x: x + w / 2,
+      y: y + h / 2,
     };
   }
 
@@ -733,15 +886,21 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.localPose.moving ? 1 : 0,
       this.localPose.sceneId,
     ].join(':');
-    if (poseKey === this.lastSentPoseKey || time - this.lastPoseSentAt < 80) return;
+    const elapsed = time - this.lastPoseSentAt;
+    const unchanged = poseKey === this.lastSentPoseKey;
+    if ((unchanged && elapsed < 1000) || (!unchanged && elapsed < 80)) return;
     this.lastPoseSentAt = time;
     this.lastSentPoseKey = poseKey;
-    this.callbacks.onPose({ ...this.localPose });
+    this.callbacks.onPose({
+      ...this.localPose,
+      viewportWidth: this.scale.width,
+      viewportHeight: this.scale.height,
+    });
   }
 
   private playerLabel(pose: PlayerPose) {
-    if (pose.role === 'INVESTIGATOR') return 'Watson';
-    if (pose.role === 'INTERROGATOR') return 'Sherlock';
+    if (pose.role === 'INVESTIGATOR') return 'Sherlock';
+    if (pose.role === 'INTERROGATOR') return 'Watson';
     return pose.username?.split(' ')[0] || 'Detective';
   }
 
@@ -772,6 +931,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private queueTexture(key: string, url: string) {
     if (
       this.loadingTextureKeys.has(key) ||
+      this.attemptedTextureKeys.has(key) ||
       this.failedTextureKeys.has(key) ||
       this.pendingTextures.has(key) ||
       this.textures.exists(key)
@@ -784,6 +944,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private flushTextures() {
     if (this.load.isLoading() || this.pendingTextures.size === 0) return;
     for (const [key, url] of this.pendingTextures) {
+      this.attemptedTextureKeys.add(key);
       this.loadingTextureKeys.add(key);
       this.load.image(key, url);
     }
@@ -812,6 +973,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let stopped = false;
   let phaserGame: Phaser.Game | null = null;
   let phaserScene: SirLockedPhaserScene | null = null;
+  let sceneInputBlockedUntil = 0;
   const playerPoses = new Map<string, PlayerPose>();
   let poseErrorShown = false;
 
@@ -836,7 +998,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   const hub = createRoomConnection(roomId, {
-    GameStateUpdated: (s: GameState) => applyState(s),
+    GameStateUpdated: () => {
+      refetch().catch((err: any) => console.warn('State refetch failed', err));
+    },
     ItemFound: ({ userId }: { userId: string }) => {
       if (userId !== me.userId) toast('Your partner found something.', 'info');
     },
@@ -849,11 +1013,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     DialogueAnswered: ({ userId }: { userId: string }) => {
       if (userId !== me.userId) toast('Your partner unlocked new testimony.', 'info');
     },
-    SceneChanged: () => toast('You moved to a new location.', 'info'),
-    StageChanged: ({ isFinalStageCompleted }: { isFinalStageCompleted: boolean }) => {
-      toast(isFinalStageCompleted
-        ? 'The final confrontation is ready.'
-        : 'A new lead opens the next location.', 'success', 5500);
+    SceneChanged: ({ userId }: { userId: string }) => {
+      toast(userId === me.userId ? 'You moved to a new location.' : 'Your partner moved to another location.', 'info');
+    },
+    StageChanged: ({ isFinalStageCompleted, userId }: { isFinalStageCompleted: boolean; userId: string }) => {
+      if (isFinalStageCompleted) {
+        toast('The final confrontation is ready.', 'success', 5500);
+        return;
+      }
+      toast(userId === me.userId ? 'A new lead opens the next location.' : 'Your partner opened a new lead.', 'success', 5500);
     },
     PlayerPoseUpdated: (pose: PlayerPose) => {
       if (!pose?.userId || pose.userId === me.userId) return;
@@ -907,31 +1075,29 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     render(app, `
     <div class="point-game point-game-phaser">
-      <header class="game-hud">
-        <div>
-          <strong>${escapeHtml(scene.title)}</strong>
-          <span class="muted small">${escapeHtml(state.caseTitle)} / Room ${escapeHtml(state.roomCode)}</span>
-        </div>
-        <div class="game-objective">${escapeHtml(state.currentObjective)}</div>
-        <div class="game-players">${playersHtml()}</div>
-      </header>
-
       <main class="scene-canvas phaser-scene-wrap">
         <div id="${hostId}" class="phaser-game-host"></div>
+        <header class="game-hud game-hud-overlay">
+          <div>
+          <strong>${escapeHtml(scene.title)}</strong>
+          <span class="muted small">${escapeHtml(state.caseTitle)} / Room ${escapeHtml(state.roomCode)}</span>
+          </div>
+          <div class="game-objective">${escapeHtml(state.currentObjective)}</div>
+          <div class="game-players">${playersHtml()}</div>
+          <div class="game-hud-actions">
+            <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
+            <button class="round-tool" id="map-btn" title="Locations">Map</button>
+            <button class="round-tool" id="log-btn" title="Action log">Log</button>
+            <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
+                    title="${state.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}">Accuse</button>
+          </div>
+        </header>
         <div class="scene-title-card">
-          <h2>${escapeHtml(scene.title)}</h2>
           <p>${escapeHtml(scene.description)}</p>
         </div>
-        <div class="scene-tools">
-          <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
-          <button class="round-tool" id="map-btn" title="Locations">Map</button>
-          <button class="round-tool" id="log-btn" title="Action log">Log</button>
-          <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
-                  title="${state.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}">Accuse</button>
-        </div>
+        ${inventoryBar()}
       </main>
 
-      ${inventoryBar()}
       ${introOverlay(myRole())}
       ${overlayHtml()}
       ${accusationModal()}
@@ -951,6 +1117,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       playerPoses,
       onHotspot,
       onCharacter: (characterId) => {
+        if (isSceneInputBlocked()) return;
         overlay = { type: 'dialogue', characterId };
         draw();
       },
@@ -964,6 +1131,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           y: pose.y,
           direction: pose.direction,
           moving: pose.moving,
+          viewportWidth: pose.viewportWidth,
+          viewportHeight: pose.viewportHeight,
         }).catch((err: any) => {
           if (!poseErrorShown) {
             poseErrorShown = true;
@@ -979,8 +1148,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       parent: host,
       backgroundColor: '#050812',
       scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.NO_CENTER,
         width: 1600,
         height: 900,
       },
@@ -993,6 +1162,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     });
 
     phaserScene.updateGameState(state, selectedInventoryItemId);
+    phaserScene.setSceneInteractionEnabled(!isSceneInputBlocked());
     // Debug handle for QA tooling (canvas snapshots, state inspection).
     (window as unknown as Record<string, unknown>).__sirlockedGame = phaserGame;
   }
@@ -1265,10 +1435,30 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     </div>`;
   }
 
+  function isSceneInputBlocked() {
+    return Boolean(overlay || accusation) ||
+      !sessionStorage.getItem(introKey) ||
+      Date.now() < sceneInputBlockedUntil;
+  }
+
   function bind() {
-    app.querySelector('#intro-dismiss')?.addEventListener('click', () => {
+    app.querySelectorAll('.overlay').forEach((layer) => {
+      ['pointerdown', 'pointerup', 'click'].forEach((eventName) => {
+        layer.addEventListener(eventName, (event) => {
+          if (!(event.target instanceof Element) || !event.target.closest('.modal, .dialogue-box')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+        layer.addEventListener(eventName, (event) => {
+          event.stopPropagation();
+        });
+      });
+    });
+
+    app.querySelector('#intro-dismiss')?.addEventListener('pointerdown', (event) => {
       sessionStorage.setItem(introKey, '1');
-      app.querySelector('#intro-overlay')?.remove();
+      dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
     });
 
     app.querySelectorAll('[data-inventory]').forEach((button) =>
@@ -1294,8 +1484,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         if (sceneId) await goToScene(sceneId);
       }));
 
-    app.querySelectorAll('[data-close-overlay]').forEach((button) =>
-      button.addEventListener('click', () => { overlay = null; draw(); }));
+    app.querySelectorAll('[data-close-overlay]').forEach((button) => {
+      button.addEventListener('pointerdown', (event) => {
+        overlay = null;
+        app.querySelectorAll('.inventory-item.is-selected').forEach((item) => item.classList.remove('is-selected'));
+        dismissOverlayWithShield(button as HTMLElement, event);
+      });
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      });
+    });
 
     app.querySelectorAll('[data-dialogue]').forEach((button) =>
       button.addEventListener('click', async () => {
@@ -1328,13 +1527,52 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         if (input.checked) accusation.evidenceIds.add(evidenceId);
         else accusation.evidenceIds.delete(evidenceId);
       }));
-    app.querySelector('#accuse-cancel')?.addEventListener('click', () => { accusation = null; draw(); });
+    app.querySelector('#accuse-cancel')?.addEventListener('pointerdown', (event) => {
+      accusation = null;
+      dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
+    });
     app.querySelector('#accuse-review')?.addEventListener('click', () => { if (accusation) accusation.step = 2; draw(); });
     app.querySelector('#accuse-back')?.addEventListener('click', () => { if (accusation) accusation.step = 1; draw(); });
     app.querySelector('#accuse-confirm')?.addEventListener('click', submitAccusation);
   }
 
+  function dismissOverlayWithShield(control: HTMLElement, event: Event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const layer = control.closest('.overlay') as HTMLElement | null;
+    if (!layer || layer.dataset.dismissing === 'true') return;
+    layer.dataset.dismissing = 'true';
+    layer.classList.add('is-closing-shield');
+
+    sceneInputBlockedUntil = Date.now() + 800;
+    phaserScene?.setSceneInteractionEnabled(false);
+
+    let finished = false;
+    let fallbackTimer = 0;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(fallbackTimer);
+      window.removeEventListener('pointerup', finish, true);
+      window.removeEventListener('pointercancel', finish, true);
+      sceneInputBlockedUntil = Date.now() + 120;
+      window.setTimeout(() => {
+        layer.remove();
+        if (!isSceneInputBlocked()) {
+          phaserScene?.setSceneInteractionEnabled(true);
+        }
+      }, 130);
+    };
+
+    window.addEventListener('pointerup', finish, { capture: true, once: true });
+    window.addEventListener('pointercancel', finish, { capture: true, once: true });
+    fallbackTimer = window.setTimeout(finish, 800);
+  }
+
   async function onHotspot({ type, target, locked, label }: HotspotClick) {
+    if (isSceneInputBlocked()) return;
+
     if (selectedInventoryItemId) {
       // Using an item never blocks the normal interaction: locks are driven by
       // missing clues on the backend, so explain that and continue as a plain click.
@@ -1387,6 +1625,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   async function completeScene() {
+    if (!state?.currentSceneCanComplete) {
+      const missing = state?.currentSceneMissingRequirements;
+      const parts = [];
+      if (missing?.requiredItemIds?.length) parts.push(`${missing.requiredItemIds.length} object(s)`);
+      if (missing?.requiredDialogueIds?.length) parts.push(`${missing.requiredDialogueIds.length} conversation(s)`);
+      if (missing?.requiredClueIds?.length) parts.push(`${missing.requiredClueIds.length} clue(s)`);
+      toast(parts.length ? `Not yet. Still missing ${parts.join(', ')}.` : 'Keep searching this scene first.', 'info', 4200);
+      return;
+    }
+
     try {
       const res = await gameApi.completeScene(roomId);
       toast(res.message, 'success', 5500);

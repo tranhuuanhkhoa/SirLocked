@@ -160,7 +160,7 @@ If complete:
 
 Endpoint: `POST /api/game/rooms/{roomId}/complete-stage`.
 
-Current implementation is an idempotent confirmation. It checks whether all scenes in the current stage are completed and returns current state without advancing. Actual progression happens through `complete-scene`.
+Current implementation is an idempotent confirmation. It returns current state without advancing. If the current stage is complete, it confirms that stage. If `complete-scene` has already advanced to the next stage, it can also confirm that the previous stage is complete while the current stage remains in progress. Actual progression happens through `complete-scene`.
 
 ## Revisit Scene
 

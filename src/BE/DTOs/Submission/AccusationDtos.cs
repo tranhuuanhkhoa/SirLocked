@@ -10,7 +10,8 @@ public class AccuseRequest
     public string Motive { get; set; } = string.Empty;
     public string Method { get; set; } = string.Empty;
 
-    public List<string> EvidenceIds { get; set; } = new();
+    [Required]
+    public List<string>? EvidenceIds { get; set; } = new();
 }
 
 public class GameResultResponse

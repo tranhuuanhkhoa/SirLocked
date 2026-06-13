@@ -192,6 +192,8 @@ public class GameStateResponse
     public List<string> SelectedEvidenceIds { get; set; } = new();
     public string GameStatus { get; set; } = string.Empty;
     public bool AvailableForAccusation { get; set; }
+    public bool CurrentSceneCanComplete { get; set; }
+    public MissingRequirementsDto CurrentSceneMissingRequirements { get; set; } = new();
     public string CurrentObjective { get; set; } = string.Empty;
     public VisibleSceneDto VisibleScene { get; set; } = new();
     /// <summary>Full metadata for collected items, including items picked up in other scenes.</summary>

@@ -239,6 +239,7 @@ public class RoomService : IRoomService
         {
             CurrentStageId = firstStage.StageId,
             CurrentSceneId = firstScene.SceneId,
+            PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
             Version = 1,
             VisitedSceneIds = new List<string> { firstScene.SceneId },
             GameStatus = GameStatus.InProgress,

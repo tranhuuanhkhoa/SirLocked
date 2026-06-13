@@ -1,9 +1,7 @@
 using MongoDB.Driver;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
-using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.DTOs.Investigation;
-using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
@@ -13,17 +11,21 @@ namespace SirLocked.Api.Services;
 
 public class GameplayService : IGameplayService
 {
-    private const int ActionLogLimit = 40;
-
     private readonly MongoDbContext _db;
     private readonly ICaseService _caseService;
     private readonly IGameNotifier _notifier;
+    private readonly IGameStateBuilder _stateBuilder;
 
-    public GameplayService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier)
+    public GameplayService(
+        MongoDbContext db,
+        ICaseService caseService,
+        IGameNotifier notifier,
+        IGameStateBuilder stateBuilder)
     {
         _db = db;
         _caseService = caseService;
         _notifier = notifier;
+        _stateBuilder = stateBuilder;
     }
 
     // ----- Read -----
@@ -35,7 +37,7 @@ public class GameplayService : IGameplayService
         {
             throw ApiException.BadRequest("The game has not started yet.");
         }
-        return await BuildStateAsync(room, gameCase);
+        return await _stateBuilder.BuildStateAsync(room, gameCase, userId);
     }
 
     public async Task<GameResultResponse> GetResultAsync(string userId, string roomId)
@@ -59,7 +61,7 @@ public class GameplayService : IGameplayService
 
             var item = gameCase.Items.FirstOrDefault(i => i.ItemId == itemId)
                 ?? throw ApiException.NotFound("This item does not exist in the case.");
-            var scene = CurrentScene(gameCase, state);
+            var scene = CurrentScene(gameCase, state, user.Id);
 
             if (!scene.ItemIds.Contains(itemId))
             {
@@ -80,7 +82,7 @@ public class GameplayService : IGameplayService
                 // Idempotent: no new clues, no duplicate logs.
                 return new GameActionResponse
                 {
-                    State = await BuildStateAsync(room, gameCase),
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
                     Message = $"{item.Name} was already inspected.",
                     Detail = item.InspectText
@@ -113,7 +115,7 @@ public class GameplayService : IGameplayService
             {
                 await _notifier.ClueUnlocked(roomId, clueId, itemId, user.Id, state.Version);
             }
-            var stateResponse = await BuildStateAsync(room, gameCase);
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
 
             return new GameActionResponse
@@ -139,7 +141,7 @@ public class GameplayService : IGameplayService
 
             var dialogue = gameCase.Dialogues.FirstOrDefault(d => d.DialogueId == dialogueId)
                 ?? throw ApiException.NotFound("This dialogue does not exist in the case.");
-            var scene = CurrentScene(gameCase, state);
+            var scene = CurrentScene(gameCase, state, user.Id);
 
             if (!scene.CharacterIds.Contains(dialogue.CharacterId))
             {
@@ -159,7 +161,7 @@ public class GameplayService : IGameplayService
             {
                 return new GameActionResponse
                 {
-                    State = await BuildStateAsync(room, gameCase),
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
                     Message = $"You already asked {character.Name} this.",
                     Detail = dialogue.Answer
@@ -189,7 +191,7 @@ public class GameplayService : IGameplayService
             {
                 await _notifier.ClueUnlocked(roomId, clueId, dialogueId, user.Id, state.Version);
             }
-            var stateResponse = await BuildStateAsync(room, gameCase);
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
 
             return new GameActionResponse
@@ -227,7 +229,7 @@ public class GameplayService : IGameplayService
 
         return new GameActionResponse
         {
-            State = await BuildStateAsync(room, gameCase),
+            State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
             Changed = false,
             Message = $"You presented \"{clue.Title}\" to {character.Name}.",
             Detail = dialogue.Answer
@@ -242,7 +244,47 @@ public class GameplayService : IGameplayService
         {
             var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
-            var scene = CurrentScene(gameCase, state);
+            var scene = CurrentScene(gameCase, state, user.Id);
+
+            if (GameRules.IsSceneAlreadyCompleted(state, scene.SceneId))
+            {
+                var nextOpened = NextOpenedScene(gameCase, state, scene.SceneId);
+                if (nextOpened is not null)
+                {
+                    var completedStageId = StageForScene(gameCase, scene.SceneId).StageId;
+                    var nextStage = StageForScene(gameCase, nextOpened.SceneId);
+                    SetPlayerScene(state, user.Id, nextStage.StageId, nextOpened.SceneId);
+
+                    if (!await TrySaveStateAsync(room))
+                    {
+                        if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                        continue;
+                    }
+
+                    var moveMessage = $"Moved to {nextOpened.Title}.";
+                    await LogAsync(roomId, user.Id, "GO_TO_SCENE", $"{user.FullName} moved to {nextOpened.Title}.", new { nextOpened.SceneId });
+                    if (completedStageId != nextStage.StageId)
+                    {
+                        await _notifier.StageChanged(roomId, completedStageId, nextStage.StageId,
+                            scene.SceneId, nextOpened.SceneId, false, user.Id, state.Version);
+                    }
+                    else
+                    {
+                        await _notifier.SceneChanged(roomId, scene.SceneId, nextOpened.SceneId, user.Id, state.Version);
+                    }
+
+                    var movedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+                    await _notifier.GameStateUpdated(roomId, movedState);
+                    return new GameActionResponse { State = movedState, Changed = true, Message = moveMessage };
+                }
+
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = $"{scene.Title} is already complete."
+                };
+            }
 
             var inspected = state.InspectedItemIds.ToHashSet();
             var unlocked = state.UnlockedClueIds.ToHashSet();
@@ -266,9 +308,9 @@ public class GameplayService : IGameplayService
                 state.CompletedSceneIds.Add(scene.SceneId);
             }
 
-            var (previousStageId, previousSceneId) = (state.CurrentStageId, state.CurrentSceneId);
+            var (previousStageId, previousSceneId) = (StageForScene(gameCase, scene.SceneId).StageId, scene.SceneId);
             var orderedStages = gameCase.Stages.OrderBy(s => s.Order).ToList();
-            var stage = orderedStages.First(s => s.StageId == state.CurrentStageId);
+            var stage = orderedStages.First(s => s.Scenes.Any(s => s.SceneId == scene.SceneId));
             var sceneIndex = stage.Scenes.FindIndex(s => s.SceneId == scene.SceneId);
 
             string message;
@@ -279,7 +321,7 @@ public class GameplayService : IGameplayService
             {
                 // Next scene in the same stage.
                 var next = stage.Scenes[sceneIndex + 1];
-                state.CurrentSceneId = next.SceneId;
+                SetPlayerScene(state, user.Id, stage.StageId, next.SceneId);
                 if (!state.VisitedSceneIds.Contains(next.SceneId)) state.VisitedSceneIds.Add(next.SceneId);
                 message = $"A new location opened: {next.Title}.";
             }
@@ -296,8 +338,7 @@ public class GameplayService : IGameplayService
                 {
                     var nextStage = orderedStages[stageIndex + 1];
                     var nextScene = nextStage.Scenes.First();
-                    state.CurrentStageId = nextStage.StageId;
-                    state.CurrentSceneId = nextScene.SceneId;
+                    SetPlayerScene(state, user.Id, nextStage.StageId, nextScene.SceneId);
                     if (!state.VisitedSceneIds.Contains(nextScene.SceneId)) state.VisitedSceneIds.Add(nextScene.SceneId);
                     stageChanged = true;
                     message = $"The investigation moves on: {nextScene.Title}.";
@@ -307,6 +348,7 @@ public class GameplayService : IGameplayService
                     // Last scene of last stage: stay here; the accusation becomes available.
                     stageChanged = true;
                     isFinalStageCompleted = true;
+                    SetPlayerScene(state, user.Id, stage.StageId, scene.SceneId);
                     message = "Every lead has been followed. It is time for the final accusation.";
                 }
             }
@@ -322,14 +364,14 @@ public class GameplayService : IGameplayService
             if (stageChanged)
             {
                 await _notifier.StageChanged(roomId, previousStageId, state.CurrentStageId,
-                    previousSceneId, state.CurrentSceneId, isFinalStageCompleted, user.Id, state.Version);
+                    previousSceneId, state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId), isFinalStageCompleted, user.Id, state.Version);
             }
             else
             {
-                await _notifier.SceneChanged(roomId, previousSceneId, state.CurrentSceneId, user.Id, state.Version);
+                await _notifier.SceneChanged(roomId, previousSceneId, state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId), user.Id, state.Version);
             }
 
-            var stateResponse = await BuildStateAsync(room, gameCase);
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
 
             return new GameActionResponse { State = stateResponse, Changed = true, Message = message };
@@ -340,21 +382,36 @@ public class GameplayService : IGameplayService
     {
         var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
         var state = room.GameplayState!;
-        var stage = gameCase.Stages.OrderBy(s => s.Order).First(s => s.StageId == state.CurrentStageId);
+        var orderedStages = gameCase.Stages.OrderBy(s => s.Order).ToList();
+        var playerScene = CurrentScene(gameCase, state, user.Id);
+        var currentStageIndex = orderedStages.FindIndex(s => s.Scenes.Any(scene => scene.SceneId == playerScene.SceneId));
+        if (currentStageIndex < 0)
+        {
+            throw ApiException.BadRequest("The current stage no longer exists in the case definition.");
+        }
+        var stage = orderedStages[currentStageIndex];
 
-        var incomplete = stage.Scenes.Where(s => !state.CompletedSceneIds.Contains(s.SceneId))
-            .Select(s => s.SceneId).ToList();
+        var incomplete = GameRules.MissingSceneIds(stage, state).ToList();
         if (incomplete.Count > 0)
         {
+            var previousStage = currentStageIndex > 0 ? orderedStages[currentStageIndex - 1] : null;
+            if (previousStage is not null && GameRules.IsStageComplete(previousStage, state))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "Previous stage is complete. Current stage is still in progress."
+                };
+            }
+
             throw ApiException.BadRequest("Not every scene in this stage is complete.",
                 new { incompleteSceneIds = incomplete });
         }
 
-        // All scenes complete means complete-scene already advanced the stage pointer;
-        // this endpoint is an idempotent confirmation.
         return new GameActionResponse
         {
-            State = await BuildStateAsync(room, gameCase),
+            State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
             Changed = false,
             Message = "Stage is complete."
         };
@@ -379,19 +436,19 @@ public class GameplayService : IGameplayService
                 throw ApiException.BadRequest("You can only revisit places the investigation has already opened.");
             }
 
-            if (state.CurrentSceneId == sceneId)
+            var currentPlayerSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
+            if (currentPlayerSceneId == sceneId)
             {
                 return new GameActionResponse
                 {
-                    State = await BuildStateAsync(room, gameCase),
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
                     Message = "You are already here."
                 };
             }
 
-            var previousSceneId = state.CurrentSceneId;
-            state.CurrentSceneId = sceneId;
-            state.CurrentStageId = target.Stage.StageId;
+            var previousSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
+            SetPlayerScene(state, user.Id, target.Stage.StageId, sceneId);
 
             if (!await TrySaveStateAsync(room))
             {
@@ -401,7 +458,7 @@ public class GameplayService : IGameplayService
 
             await LogAsync(roomId, user.Id, "GO_TO_SCENE", $"{user.FullName} moved to {target.Scene.Title}.", new { sceneId });
             await _notifier.SceneChanged(roomId, previousSceneId, sceneId, user.Id, state.Version);
-            var stateResponse = await BuildStateAsync(room, gameCase);
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
 
             return new GameActionResponse { State = stateResponse, Changed = true, Message = $"Moved to {target.Scene.Title}." };
@@ -415,7 +472,8 @@ public class GameplayService : IGameplayService
         var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
         var state = room.GameplayState!;
 
-        if (!IsAccusationAvailable(gameCase, state))
+        var playerSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
+        if (!GameRules.IsAccusationAvailable(gameCase, state, playerSceneId))
         {
             throw ApiException.BadRequest("The final accusation is not available yet. Reach the final scene and gather all required evidence first.");
         }
@@ -425,7 +483,8 @@ public class GameplayService : IGameplayService
             throw ApiException.BadRequest("The accused person is not part of this case.");
         }
 
-        var unknownEvidence = request.EvidenceIds.Where(e => !state.UnlockedClueIds.Contains(e)).ToList();
+        var submittedEvidenceIds = request.EvidenceIds ?? new List<string>();
+        var unknownEvidence = submittedEvidenceIds.Where(e => !state.UnlockedClueIds.Contains(e)).ToList();
         if (unknownEvidence.Count > 0)
         {
             throw ApiException.BadRequest("You can only present clues your team has unlocked.",
@@ -433,9 +492,9 @@ public class GameplayService : IGameplayService
         }
 
         var success = request.CulpritId == gameCase.FinalLogic.CulpritId
-            && gameCase.FinalLogic.RequiredEvidenceIds.All(request.EvidenceIds.Contains);
+            && gameCase.FinalLogic.RequiredEvidenceIds.All(submittedEvidenceIds.Contains);
 
-        state.SelectedEvidenceIds = request.EvidenceIds.Distinct().ToList();
+        state.SelectedEvidenceIds = submittedEvidenceIds.Distinct().ToList();
         state.GameStatus = success ? GameStatus.Won : GameStatus.Failed;
         state.CompletedAt = DateTime.UtcNow;
         room.Status = RoomStatus.Completed;
@@ -460,11 +519,11 @@ public class GameplayService : IGameplayService
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
         await LogAsync(roomId, user.Id, "ACCUSE",
             success ? $"{user.FullName} accused {accusedName} — the case is solved!" : $"{user.FullName} accused {accusedName} — the accusation failed.",
-            new { request.CulpritId, request.EvidenceIds });
+            new { request.CulpritId, EvidenceIds = submittedEvidenceIds });
 
         var resultResponse = ToResultResponse(result, gameCase);
         await _notifier.GameCompleted(roomId, resultResponse);
-        await _notifier.GameStateUpdated(roomId, await BuildStateAsync(room, gameCase));
+        await _notifier.GameStateUpdated(roomId, await _stateBuilder.BuildStateAsync(room, gameCase, user.Id));
         return resultResponse;
     }
 
@@ -502,9 +561,36 @@ public class GameplayService : IGameplayService
         }
     }
 
-    private static CaseScene CurrentScene(GameCase gameCase, GameplayState state) =>
-        gameCase.Stages.SelectMany(s => s.Scenes).FirstOrDefault(s => s.SceneId == state.CurrentSceneId)
+    private static CaseScene CurrentScene(GameCase gameCase, GameplayState state, string userId)
+    {
+        var sceneId = state.PlayerSceneIds.GetValueOrDefault(userId, state.CurrentSceneId);
+        return gameCase.Stages.SelectMany(s => s.Scenes).FirstOrDefault(s => s.SceneId == sceneId)
             ?? throw ApiException.BadRequest("The current scene no longer exists in the case definition.");
+    }
+
+    private static CaseStage StageForScene(GameCase gameCase, string sceneId) =>
+        gameCase.Stages.FirstOrDefault(s => s.Scenes.Any(scene => scene.SceneId == sceneId))
+            ?? throw ApiException.BadRequest("The current stage no longer exists in the case definition.");
+
+    private static CaseScene? NextOpenedScene(GameCase gameCase, GameplayState state, string sceneId)
+    {
+        var scenes = gameCase.Stages
+            .OrderBy(s => s.Order)
+            .SelectMany(s => s.Scenes)
+            .ToList();
+        var index = scenes.FindIndex(scene => scene.SceneId == sceneId);
+        if (index < 0 || index + 1 >= scenes.Count) return null;
+
+        var next = scenes[index + 1];
+        return state.VisitedSceneIds.Contains(next.SceneId) ? next : null;
+    }
+
+    private static void SetPlayerScene(GameplayState state, string userId, string stageId, string sceneId)
+    {
+        state.PlayerSceneIds[userId] = sceneId;
+        state.CurrentStageId = stageId;
+        state.CurrentSceneId = sceneId;
+    }
 
     /// <summary>Optimistic concurrency: persists the room only if the stored version still matches.</summary>
     private async Task<bool> TrySaveStateAsync(GameRoom room)
@@ -539,144 +625,6 @@ public class GameplayService : IGameplayService
         });
     }
 
-    private static bool IsAccusationAvailable(GameCase gameCase, GameplayState state)
-    {
-        var lastStage = gameCase.Stages.OrderBy(s => s.Order).Last();
-        var lastScene = lastStage.Scenes.Last();
-        return state.GameStatus == GameStatus.InProgress
-            && state.CurrentSceneId == lastScene.SceneId
-            && gameCase.FinalLogic.RequiredEvidenceIds.All(state.UnlockedClueIds.Contains);
-    }
-
-    private async Task<GameStateResponse> BuildStateAsync(GameRoom room, GameCase gameCase)
-    {
-        var state = room.GameplayState!;
-        var unlocked = state.UnlockedClueIds.ToHashSet();
-        var scene = CurrentScene(gameCase, state);
-
-        var sceneDialogues = gameCase.Dialogues
-            .Where(d => scene.CharacterIds.Contains(d.CharacterId))
-            .Select(d => SceneDialogueDto.From(d, unlocked, state.AskedDialogueIds.Contains(d.DialogueId)))
-            .ToList();
-
-        var visibleScene = new VisibleSceneDto
-        {
-            SceneId = scene.SceneId,
-            Title = scene.Title,
-            Description = scene.Description,
-            BackgroundUrl = scene.BackgroundUrl,
-            Hotspots = scene.Hotspots.OrderBy(h => h.ZIndex).Select(h => HotspotDto.From(h, unlocked)).ToList(),
-            Items = scene.ItemIds
-                .Select(id => gameCase.Items.FirstOrDefault(i => i.ItemId == id))
-                .Where(i => i is not null)
-                .Select(i => SceneItemDto.From(i!, state.InspectedItemIds.Contains(i!.ItemId)))
-                .ToList(),
-            Characters = scene.CharacterIds
-                .Select(id => gameCase.Characters.FirstOrDefault(c => c.CharacterId == id))
-                .Where(c => c is not null)
-                .Select(c => CaseCharacterDto.From(c!))
-                .ToList(),
-            AvailableDialogues = sceneDialogues
-        };
-
-        var sceneMap = gameCase.Stages.OrderBy(s => s.Order)
-            .SelectMany(s => s.Scenes)
-            .Select(s => new SceneMapEntryDto
-            {
-                SceneId = s.SceneId,
-                Title = s.Title,
-                IsCurrent = s.SceneId == state.CurrentSceneId,
-                IsVisited = state.VisitedSceneIds.Contains(s.SceneId),
-                IsCompleted = state.CompletedSceneIds.Contains(s.SceneId)
-            })
-            .ToList();
-
-        var unlockedClues = gameCase.Clues
-            .Where(c => unlocked.Contains(c.ClueId))
-            .Select(ClueDto.From)
-            .ToList();
-
-        var logs = await _db.ActionLogs.Find(l => l.RoomId == room.Id)
-            .SortByDescending(l => l.CreatedAt).Limit(ActionLogLimit).ToListAsync();
-        logs.Reverse();
-
-        return new GameStateResponse
-        {
-            RoomId = room.Id,
-            RoomCode = room.RoomCode,
-            CaseId = gameCase.CaseId,
-            CaseTitle = gameCase.Title,
-            CaseSummary = gameCase.Summary,
-            RoomStatus = room.Status,
-            CurrentStageId = state.CurrentStageId,
-            CurrentSceneId = state.CurrentSceneId,
-            Version = state.Version,
-            Players = room.Players.Select(RoomPlayerDto.From).ToList(),
-            VisitedSceneIds = state.VisitedSceneIds,
-            InspectedItemIds = state.InspectedItemIds,
-            CollectedItemIds = state.CollectedItemIds,
-            CollectedItems = state.CollectedItemIds
-                .Select(id => gameCase.Items.FirstOrDefault(i => i.ItemId == id))
-                .Where(i => i is not null)
-                .Select(i => SceneItemDto.From(i!, state.InspectedItemIds.Contains(i!.ItemId)))
-                .ToList(),
-            UnlockedClueIds = state.UnlockedClueIds,
-            AskedDialogueIds = state.AskedDialogueIds,
-            CompletedSceneIds = state.CompletedSceneIds,
-            CompletedStageIds = state.CompletedStageIds,
-            SelectedEvidenceIds = state.SelectedEvidenceIds,
-            GameStatus = state.GameStatus,
-            AvailableForAccusation = IsAccusationAvailable(gameCase, state),
-            CurrentObjective = BuildObjective(gameCase, state, scene),
-            VisibleScene = visibleScene,
-            SceneMap = sceneMap,
-            UnlockedClues = unlockedClues,
-            EvidenceClues = unlockedClues.Where(c => c.IsEvidence).ToList(),
-            Suspects = gameCase.Characters.Select(CaseCharacterDto.From).ToList(),
-            ActionLog = logs.Select(l => new ActionLogEntryDto
-            {
-                ActionType = l.ActionType,
-                Message = l.Message,
-                UserId = l.UserId,
-                CreatedAt = l.CreatedAt
-            }).ToList()
-        };
-    }
-
-    private static string BuildObjective(GameCase gameCase, GameplayState state, CaseScene scene)
-    {
-        if (state.GameStatus != GameStatus.InProgress)
-        {
-            return state.GameStatus == GameStatus.Won ? "Case closed — the culprit was exposed." : "Case closed — the culprit escaped.";
-        }
-
-        if (IsAccusationAvailable(gameCase, state))
-        {
-            return "All the evidence is on the table. Confront the suspects and make the final accusation.";
-        }
-
-        var inspected = state.InspectedItemIds.ToHashSet();
-        var unlocked = state.UnlockedClueIds.ToHashSet();
-        var asked = state.AskedDialogueIds.ToHashSet();
-
-        if (CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked))
-        {
-            return $"You have found everything that matters in {scene.Title}. Continue the investigation when both of you are ready.";
-        }
-
-        // Hint by category first; exact IDs stay hidden so deduction remains a game.
-        var parts = new List<string>();
-        var missingItems = scene.CompleteCondition.RequiredItemIds.Count(i => !inspected.Contains(i));
-        var missingClues = scene.CompleteCondition.RequiredClueIds.Count(c => !unlocked.Contains(c));
-        var missingDialogues = scene.CompleteCondition.RequiredDialogueIds.Count(d => !asked.Contains(d));
-        if (missingItems > 0) parts.Add($"examine {missingItems} more piece(s) of physical evidence");
-        if (missingDialogues > 0) parts.Add($"ask {missingDialogues} more question(s)");
-        if (missingClues > 0) parts.Add($"uncover {missingClues} more clue(s)");
-
-        return parts.Count == 0
-            ? $"Investigate {scene.Title}."
-            : $"Investigate {scene.Title}: {string.Join(", ", parts)}.";
-    }
 
     private static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {

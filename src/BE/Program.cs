@@ -32,6 +32,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICaseValidationService, CaseValidationService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
