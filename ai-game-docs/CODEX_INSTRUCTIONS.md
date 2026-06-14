@@ -66,10 +66,11 @@ Movement must be layered on top of existing backend gameplay commands. Do not mo
 
 ## AI Rules
 
-- Deepseek is optional.
-- No API key means mock generation.
-- Deepseek invalid output gets one retry.
-- Persistent invalid Deepseek output falls back to mock.
+- AI case creation is OpenAI-only.
+- No OpenAI API key means AI generation fails with a configuration error.
+- Story preview must stay spoiler-free.
+- Full logic is generated only after preview approval.
+- OpenAI invalid full-case output gets one repair/validation retry.
 - Valid generated bundles are exported to `src/BE/GeneratedCaseJson/`.
 - Do not commit generated bundles.
 

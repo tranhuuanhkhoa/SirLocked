@@ -96,6 +96,7 @@ public class CaseValidationService : ICaseValidationService
     {
         var itemIds = c.Items.Select(i => i.ItemId).ToHashSet();
         var characterIds = c.Characters.Select(x => x.CharacterId).ToHashSet();
+        var sceneIds = c.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId).ToHashSet();
         var clueIds = c.Clues.Select(x => x.ClueId).ToHashSet();
         var dialogueIds = c.Dialogues.Select(x => x.DialogueId).ToHashSet();
 
@@ -144,6 +145,8 @@ public class CaseValidationService : ICaseValidationService
                         result.Add("InvalidValue", hotspotPath, "Hotspot coordinates must be percentages (x/y 0-100, width/height 1-100).", hotspot.HotspotId);
                 }
 
+                ValidateRuntimeLayout(scene, scenePath, itemIds, characterIds, sceneIds, result);
+
                 var condition = scene.CompleteCondition;
                 foreach (var id in condition.RequiredItemIds.Where(id => !itemIds.Contains(id)))
                     result.Add("MissingReference", $"{scenePath}.completeCondition.requiredItemIds", "Required item does not exist.", id);
@@ -169,6 +172,118 @@ public class CaseValidationService : ICaseValidationService
                 result.Add("MissingReference", $"dialogues[{d}].requiredClueIds", "Required clue does not exist.", clueId);
             foreach (var clueId in dialogue.UnlockClueIds.Where(id => !clueIds.Contains(id)))
                 result.Add("MissingReference", $"dialogues[{d}].unlockClueIds", "Unlock clue does not exist.", clueId);
+        }
+    }
+
+    private static void ValidateRuntimeLayout(
+        CaseScene scene,
+        string scenePath,
+        IReadOnlySet<string> itemIds,
+        IReadOnlySet<string> characterIds,
+        IReadOnlySet<string> sceneIds,
+        CaseValidationResult result)
+    {
+        var runtime = scene.Runtime;
+        if (runtime is null)
+        {
+            return;
+        }
+
+        if (runtime.Width <= 0 || runtime.Height <= 0)
+        {
+            result.Add("InvalidValue", $"{scenePath}.runtime", "runtime.width and runtime.height must be positive.", scene.SceneId);
+            return;
+        }
+
+        if (runtime.WalkableArea is not null)
+        {
+            ValidateRuntimeBox(runtime.WalkableArea, $"{scenePath}.runtime.walkableArea", runtime.Width, runtime.Height, result, scene.SceneId);
+        }
+
+        foreach (var (name, spawn) in runtime.SpawnPoints)
+        {
+            ValidateRuntimePoint(spawn, $"{scenePath}.runtime.spawnPoints.{name}", runtime.Width, runtime.Height, result, scene.SceneId);
+        }
+
+        for (var i = 0; i < runtime.ItemPlacements.Count; i++)
+        {
+            var placement = runtime.ItemPlacements[i];
+            var path = $"{scenePath}.runtime.itemPlacements[{i}]";
+            if (!itemIds.Contains(placement.ItemId))
+            {
+                result.Add("MissingReference", $"{path}.itemId", "Runtime item placement target does not exist.", placement.ItemId);
+            }
+            if (!scene.ItemIds.Contains(placement.ItemId))
+            {
+                result.Add("MissingReference", $"{path}.itemId", "Runtime item placement target is not listed in this scene's itemIds.", placement.ItemId);
+            }
+            ValidateRuntimePoint(placement.Position, $"{path}.position", runtime.Width, runtime.Height, result, placement.ItemId);
+            ValidateRuntimeSize(placement.Size, $"{path}.size", result, placement.ItemId);
+            ValidateRuntimeBox(placement.Hotspot, $"{path}.hotspot", runtime.Width, runtime.Height, result, placement.ItemId);
+            if (placement.ReservedSlot is not null)
+            {
+                ValidateRuntimeBox(placement.ReservedSlot, $"{path}.reservedSlot", runtime.Width, runtime.Height, result, placement.ItemId);
+            }
+        }
+
+        for (var i = 0; i < runtime.CharacterPlacements.Count; i++)
+        {
+            var placement = runtime.CharacterPlacements[i];
+            var path = $"{scenePath}.runtime.characterPlacements[{i}]";
+            if (!characterIds.Contains(placement.CharacterId))
+            {
+                result.Add("MissingReference", $"{path}.characterId", "Runtime character placement target does not exist.", placement.CharacterId);
+            }
+            if (!scene.CharacterIds.Contains(placement.CharacterId))
+            {
+                result.Add("MissingReference", $"{path}.characterId", "Runtime character placement target is not listed in this scene's characterIds.", placement.CharacterId);
+            }
+            ValidateRuntimePoint(placement.Position, $"{path}.position", runtime.Width, runtime.Height, result, placement.CharacterId);
+            ValidateRuntimeSize(placement.Size, $"{path}.size", result, placement.CharacterId);
+            ValidateRuntimeBox(placement.Hotspot, $"{path}.hotspot", runtime.Width, runtime.Height, result, placement.CharacterId);
+            if (placement.ReservedSlot is not null)
+            {
+                ValidateRuntimeBox(placement.ReservedSlot, $"{path}.reservedSlot", runtime.Width, runtime.Height, result, placement.CharacterId);
+            }
+        }
+
+        for (var i = 0; i < runtime.Transitions.Count; i++)
+        {
+            var transition = runtime.Transitions[i];
+            var path = $"{scenePath}.runtime.transitions[{i}]";
+            if (string.IsNullOrWhiteSpace(transition.TargetSceneId))
+            {
+                result.Add("MissingField", $"{path}.targetSceneId", "Transition targetSceneId is required.", transition.TransitionId);
+            }
+            else if (!sceneIds.Contains(transition.TargetSceneId))
+            {
+                result.Add("MissingReference", $"{path}.targetSceneId", "Transition target scene does not exist.", transition.TargetSceneId);
+            }
+            ValidateRuntimeBox(transition.Hotspot, $"{path}.hotspot", runtime.Width, runtime.Height, result, transition.TransitionId);
+        }
+    }
+
+    private static void ValidateRuntimePoint(RuntimePoint point, string path, int width, int height, CaseValidationResult result, string id)
+    {
+        if (point.X < 0 || point.X > width || point.Y < 0 || point.Y > height)
+        {
+            result.Add("InvalidValue", path, "Runtime point must fit within runtime.width/runtime.height.", id);
+        }
+    }
+
+    private static void ValidateRuntimeSize(RuntimeSize size, string path, CaseValidationResult result, string id)
+    {
+        if (size.Width <= 0 || size.Height <= 0)
+        {
+            result.Add("InvalidValue", path, "Runtime size width/height must be positive.", id);
+        }
+    }
+
+    private static void ValidateRuntimeBox(RuntimeBox box, string path, int width, int height, CaseValidationResult result, string id)
+    {
+        if (box.Width <= 0 || box.Height <= 0 || box.X < 0 || box.Y < 0 || box.X + box.Width > width || box.Y + box.Height > height)
+        {
+            result.Add("InvalidValue", path, "Runtime box must fit within runtime.width/runtime.height.", id);
         }
     }
 

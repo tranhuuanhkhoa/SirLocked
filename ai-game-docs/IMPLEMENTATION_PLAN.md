@@ -38,12 +38,13 @@ This plan reflects current repository state. Completed items should stay stable 
 ## Completed AI Features
 
 - `GenerateAiCaseRequest` and `AiDraftResponse`.
-- Deepseek chat completion integration.
-- Mock fallback.
+- OpenAI story preview generation.
+- Preview approval endpoint.
+- OpenAI full-case generation after approval.
 - Case auto repair.
 - Strict validation.
 - Export bundle.
-- Admin import/publish draft.
+- Automatic import and publish after approval.
 
 ## Completed Frontend Features
 

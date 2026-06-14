@@ -17,10 +17,41 @@ public class CaseValidationServiceTests
         return JsonSerializer.Deserialize<GameCase>(json, JsonOptions)!;
     }
 
+    private static GameCase LoadRepoCase(string[] relativePath, [System.Runtime.CompilerServices.CallerFilePath] string sourcePath = "")
+    {
+        var sourceDirectory = Path.GetDirectoryName(sourcePath) ?? string.Empty;
+        var starts = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory(), sourceDirectory }
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var start in starts)
+        {
+            var directory = new DirectoryInfo(start);
+            while (directory is not null)
+            {
+                var path = Path.Combine(new[] { directory.FullName }.Concat(relativePath).ToArray());
+                if (File.Exists(path))
+                {
+                    var json = File.ReadAllText(path);
+                    return JsonSerializer.Deserialize<GameCase>(json, JsonOptions)!;
+                }
+                directory = directory.Parent;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not find repo file '{Path.Combine(relativePath)}'.");
+    }
+
     [Fact]
     public void SampleCase_IsValid()
     {
         var result = _validator.Validate(LoadSampleCase());
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void DemoLumiereCase_IsValid()
+    {
+        var result = _validator.Validate(LoadRepoCase(new[] { "ai-game-docs", "demo-case", "case.json" }));
         Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
     }
 
@@ -118,6 +149,77 @@ public class CaseValidationServiceTests
         c.Stages[0].Scenes[0].CompleteCondition.Logic = "MAYBE";
         var result = _validator.Validate(c);
         Assert.Contains(result.Errors, e => e.Code == "InvalidValue" && e.Path.Contains("completeCondition.logic"));
+    }
+
+    [Fact]
+    public void RuntimeLayout_WithValidReferences_IsAccepted()
+    {
+        var c = LoadSampleCase();
+        var scenes = c.Stages.SelectMany(s => s.Scenes).ToList();
+        var scene = scenes[0];
+        var itemId = scene.ItemIds[0];
+        scene.Runtime = new SceneRuntime
+        {
+            Width = 1600,
+            Height = 900,
+            FloorY = 720,
+            WalkableArea = new RuntimeBox { X = 0, Y = 630, Width = 1600, Height = 135 },
+            SpawnPoints =
+            {
+                ["default"] = new SpawnPoint { X = 240, Y = 720, Direction = "right" }
+            },
+            ItemPlacements =
+            {
+                new ItemPlacement
+                {
+                    ItemId = itemId,
+                    Position = new RuntimePoint { X = 240, Y = 520 },
+                    Size = new RuntimeSize { Width = 120, Height = 80 },
+                    Hotspot = new RuntimeBox { X = 180, Y = 440, Width = 120, Height = 80 },
+                    ReservedSlot = new RuntimeBox { X = 180, Y = 440, Width = 120, Height = 80 }
+                }
+            },
+            Transitions =
+            {
+                new TransitionZone
+                {
+                    TransitionId = "exit-next",
+                    TargetSceneId = scenes[1].SceneId,
+                    Label = "Next",
+                    Hotspot = new RuntimeBox { X = 1360, Y = 640, Width = 180, Height = 54 }
+                }
+            }
+        };
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void RuntimeTransition_ToMissingScene_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        scene.Runtime = new SceneRuntime
+        {
+            Width = 1600,
+            Height = 900,
+            Transitions =
+            {
+                new TransitionZone
+                {
+                    TransitionId = "exit-missing",
+                    TargetSceneId = "scene-does-not-exist",
+                    Label = "Missing",
+                    Hotspot = new RuntimeBox { X = 1360, Y = 640, Width = 180, Height = 54 }
+                }
+            }
+        };
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "MissingReference" && e.RefId == "scene-does-not-exist");
     }
 
     [Fact]

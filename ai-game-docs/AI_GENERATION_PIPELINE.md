@@ -1,15 +1,28 @@
 # AI Generation Pipeline
 
-Last synced with code: 2026-06-12.
+Last synced with code: 2026-06-14.
 
-Current implementation lives in `AiCaseService`, `MockCaseFactory`, `CaseAutoRepair`, and `CaseValidationService`.
+Current implementation lives in `AiCaseService`, `CaseAutoRepair`, and `CaseValidationService`.
 
-Current AI generation produces playable clue/dialogue case JSON. The next 2D co-op direction should extend generation to include optional scene runtime layout data described in `SCENE_RUNTIME_SCHEMA.md`.
+The active code path is OpenAI-only. The creator first approves a spoiler-free story preview. Only after approval does the backend generate the culprit, clue graph, final logic, full case JSON, validation, import, and publish.
 
 ## Access Control
 
-- `POST /api/admin/ai-cases`: `ADMIN` or `VIP`.
-- Draft listing/detail/import/publish: `ADMIN` only.
+- `POST /api/admin/ai-cases`: `ADMIN` or `VIP`; creates the story preview only.
+- `POST /api/admin/ai-cases/{draftId}/approve`: `ADMIN` or `VIP`; generates the full case and publishes it automatically.
+- Draft listing/detail and legacy import endpoints remain `ADMIN` only.
+
+## Configuration
+
+```env
+OpenAI__ApiKey=
+OpenAI__LogicModel=gpt-5.5
+OpenAI__ImageModel=gpt-image-2
+OpenAI__BaseUrl=https://api.openai.com/v1
+OpenAI__TimeoutSeconds=900
+```
+
+`OpenAI__ApiKey` is required for AI case creation. Real keys must stay in local `.env` files or deployment secrets.
 
 ## Input
 
@@ -17,34 +30,74 @@ Current AI generation produces playable clue/dialogue case JSON. The next 2D co-
 {
   "prompt": "A jewel heist during a thunderstorm at the observatory",
   "stageCount": 4,
-  "difficulty": "medium",
-  "visualStyle": "cinematic detective"
+  "difficulty": "medium"
 }
 ```
 
 Defaults:
 
+- `prompt`: optional; when blank, OpenAI invents an original case or uses loose public-domain mystery inspiration
 - `stageCount`: `4`
 - `difficulty`: `medium`
-- `visualStyle`: `cinematic detective`
+- visual style is not creator-controlled; all assets use the fixed SirLocked Victorian gaslight chibi pixel-art contract
 
-## Provider Selection
+## Step 1: Story Preview
 
-If `AI__DeepseekApiKey` is configured:
+`POST /api/admin/ai-cases` inserts an `AiCaseDraft`, calls OpenAI, and stores `storyPreview`.
 
-- provider starts as `Deepseek`,
-- backend calls `{DeepseekBaseUrl}/chat/completions`,
-- model comes from `AI__DeepseekModel`,
-- timeout is clamped from `AI__DeepseekTimeoutSeconds`.
+The preview JSON contains:
 
-If no Deepseek key is configured:
+- `title`
+- `summary`
+- `setting`
+- `openingIncident`
+- `tone`
+- `playerPromise`
+- `estimatedScenes`
+- `keyLocations`
+- `suspectTeasers`
 
-- provider is `mock`,
-- backend uses `MockCaseFactory`.
+Preview rules:
 
-## Deepseek Prompt Contract
+- No culprit.
+- No method.
+- No solution.
+- No final evidence.
+- Only player-facing premise and vibe.
 
-Deepseek is instructed to output exactly one JSON object using the current `GameCase` shape:
+The draft status becomes `STORY_AWAITING_APPROVAL`.
+
+## Step 2: Approve And Publish
+
+`POST /api/admin/ai-cases/{draftId}/approve` only accepts drafts in `STORY_AWAITING_APPROVAL`.
+
+The backend then:
+
+1. Calls OpenAI to generate a full `GameCase` JSON object.
+2. Strips markdown fences if present.
+3. Parses JSON into `GameCase`.
+4. Forces status to `DRAFT`.
+5. Fills missing `caseId` with `case-ai-{timestamp}`.
+6. Runs deterministic `CaseAutoRepair`.
+7. Validates through `CaseValidationService`.
+8. Retries once with validation feedback if needed.
+9. Generates cover art and normalized `1600x900` scene backgrounds.
+10. Uses OpenAI vision over each background and scene JSON to create `scene.placementPlan`.
+11. Generates scene-specific NPC sprites and item cutouts using the full background, a placement-area crop, and the placement metadata as image references.
+12. Removes white backgrounds, verifies alpha, and rejects unusable cutouts.
+13. Uses OpenAI vision again only to verify scale/alignment within the original slot.
+14. Builds `scene.runtime` from the placement plan with final corrections limited to `±40px` and `80%..120%` scale.
+15. Writes generated files under `src/FE/public/assets/ai-generated/v3-placement-first/{caseId}/`.
+16. Re-validates the case after image URLs and runtime metadata are attached.
+17. Saves invalid attempts under `GeneratedCaseJson/_invalid-ai`.
+18. Exports valid bundles under `src/BE/GeneratedCaseJson/{timestamp}-{caseId}-{draftId}`.
+19. Imports the valid JSON with overwrite enabled.
+20. Publishes the imported case.
+21. Updates the draft status to `PUBLISHED` and sets `importedCaseId`.
+
+## Full Case Contract
+
+OpenAI is instructed to output exactly one JSON object using the current `GameCase` shape:
 
 - `caseId`, `title`, `summary`, `status`, `estimatedMinutes`, `coverImageUrl`
 - `stages` with scenes and hotspots
@@ -54,32 +107,15 @@ Deepseek is instructed to output exactly one JSON object using the current `Game
 - `dialogues`
 - `finalLogic`
 
-For the current implementation, runtime movement layout is not required. For the next movement-aware case format, scenes should also include optional `runtime` metadata for spawn points, walk bounds, interactables, character placements, and transition zones.
-
 Important constraints:
 
 - IDs use type prefixes such as `case-`, `stage-`, `scene-`, `char-`, `item-`, `clue-`, `dlg-`, `hotspot-`.
 - Every item appears in exactly one scene and has one `ITEM` hotspot.
+- Every scene character has a `CHARACTER` hotspot.
 - Every clue is unlocked by an item or dialogue.
 - Dialogue/hotspot/scene requirements must be reachable in linear play order.
 - Final evidence IDs are clue IDs with `isEvidence: true`.
-- Status is always `DRAFT`.
-
-## Pipeline Steps
-
-1. Insert `AiCaseDraft`.
-2. Generate raw JSON through Deepseek or mock.
-3. Strip markdown fences if present.
-4. Parse JSON into `GameCase`.
-5. Force generated case status to `DRAFT`.
-6. Fill missing `caseId` with `case-ai-{timestamp}`.
-7. Run deterministic `CaseAutoRepair`.
-8. Validate through `CaseValidationService`.
-9. If Deepseek validation fails, retry once with validation errors as feedback.
-10. If Deepseek still fails or cannot parse, fall back to mock.
-11. Save invalid attempts under `GeneratedCaseJson/_invalid-ai`.
-12. Export valid bundle under `src/BE/GeneratedCaseJson/{timestamp}-{caseId}-{draftId}`.
-13. Update draft status, generated JSON, case summary fields, and export paths.
+- Status is always `DRAFT` before import/publish.
 
 ## Export Bundle
 
@@ -94,43 +130,33 @@ Valid drafts write:
 - `clues.json`
 - `dialogues.json`
 - `final-logic.json`
+- `asset-manifest.json`
 - `asset-prompts.json`
 - `validation-report.json`
 
-`asset-prompts.json` contains prompt text for future cover/background/character/item image generation. No image generation or upload is performed in current code.
+`asset-manifest.json` records the generated asset URLs, file paths, prompts, and image model. `asset-prompts.json` records the prompt set used for cover/background/character/item images.
 
-## Future Movement-Aware Generation
+## Image And Runtime Generation
 
-When the 2D movement direction becomes implementation scope, the AI prompt should require each scene to include:
+After the full case JSON passes validation, the pipeline:
 
-- logical `width` and `height`,
-- `floorY`,
-- `walkBounds`,
-- role-based `spawnPoints`,
-- item `interactables` aligned with existing `itemIds`,
-- character placements aligned with existing `characterIds`,
-- transition zones aligned with backend scene progression,
-- optional UI safe areas for dialogue/clue panels.
+1. Generates scene backgrounds with prompts that reserve open floor/surface space.
+2. Normalizes each background to `1600x900`.
+3. Sends each background plus scene JSON to OpenAI vision before generating any scene assets.
+4. Stores `scene.placementPlan`, including coordinates, size, anchor, facing, surface, lighting, perspective, depth, and placement reason.
+5. Generates shared dialogue portraits.
+6. Generates a separate NPC sprite for each scene appearance using the full background and a crop around the planned slot.
+7. Generates each item using the same background-reference and placement-context approach.
+8. Removes white backgrounds with edge-connected flood fill, trims transparent space, and verifies alpha.
+9. Sends the real cutouts and original plan to OpenAI vision for verification only.
+10. Limits final corrections to `±40px` and `80%..120%` scale without moving an entity to a different surface.
+11. Builds `scene.runtime` directly from the verified placement plan and re-validates.
 
-The generated movement metadata must not create a second source of truth. It only tells the renderer where things are. Existing backend rules still decide whether an item/dialogue/scene transition is allowed.
-
-## Import And Publish
-
-`POST /api/admin/ai-cases/{draftId}/import?overwrite=false`:
-
-- imports generated JSON as a case,
-- leaves it as draft.
-
-`POST /api/admin/ai-cases/{draftId}/publish?overwrite=false`:
-
-- imports generated JSON,
-- publishes the case.
-
-Both update draft status to `IMPORTED` and set `importedCaseId`.
+Runtime metadata must not become a second source of gameplay truth. Backend rules still decide whether an item/dialogue/scene transition is allowed.
 
 ## Failure Behavior
 
-- Provider HTTP errors are logged to `aiGenerationLogs` and surfaced as `502`.
-- Parse errors mark the draft invalid unless Deepseek fallback succeeds.
-- Invalid drafts keep generated JSON and validation errors but cannot be imported.
-- Mock fallback exists so the demo can continue without a live AI provider.
+- OpenAI HTTP errors are logged to `aiGenerationLogs` and surfaced as `502`.
+- Parse errors are retried once through OpenAI repair.
+- Validation errors are retried once with deterministic validator feedback.
+- Invalid drafts keep generated JSON and validation errors but are not published.

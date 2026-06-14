@@ -1,25 +1,21 @@
 # Scene Runtime Schema
 
-Status: target schema for the 2D movement direction. Current `GameCase` supports scenes, hotspots, items, characters, and backgrounds, but does not yet persist full movement layout metadata.
+Status: implemented optional extension for the 2D scene renderer.
 
 ## Goal
 
-Add enough scene runtime metadata for a 2D co-op scene:
+`hotspots` stay as gameplay triggers and legacy percent fallback. `runtime` is the renderer source of truth for pixel-accurate placement inside a logical 1600x900 world:
 
-- spawn points,
-- walk bounds,
-- interaction zones,
-- object positions,
-- character positions,
-- transition zones.
+- walk bounds and player spawn points,
+- item sprite placement separate from item hitboxes,
+- NPC placement separate from character hitboxes,
+- scene transition zones.
 
-The schema should extend the current case JSON without breaking existing cases.
+Existing cases remain valid when `runtime` is missing.
 
-## Extension Strategy
+## Scene Field
 
-Use optional fields. Existing cases remain valid when runtime metadata is missing.
-
-Recommended new field on each scene:
+Each scene may include:
 
 ```json
 {
@@ -27,147 +23,107 @@ Recommended new field on each scene:
   "runtime": {
     "width": 1600,
     "height": 900,
-    "cameraMode": "side-scroller",
     "floorY": 720,
-    "walkBounds": {
-      "minX": 120,
-      "maxX": 1480
+    "walkableArea": { "x": 0, "y": 630, "width": 1600, "height": 135 },
+    "spawnPoints": {
+      "default": { "x": 240, "y": 720, "anchor": "bottom-center", "direction": "right" },
+      "INVESTIGATOR": { "x": 240, "y": 720, "anchor": "bottom-center", "direction": "right" },
+      "INTERROGATOR": { "x": 320, "y": 720, "anchor": "bottom-center", "direction": "right" }
     },
-    "spawnPoints": {},
-    "interactables": [],
+    "itemPlacements": [],
+    "characterPlacements": [],
     "transitions": []
   }
 }
 ```
 
-## Scene Runtime
+## Coordinate Rules
 
-| Field | Type | Purpose |
-| --- | --- | --- |
-| `width` | number | Internal scene coordinate width |
-| `height` | number | Internal scene coordinate height |
-| `cameraMode` | string | `side-scroller` for initial left/right movement |
-| `floorY` | number | Default y coordinate for character feet |
-| `walkBounds` | object | Simple horizontal movement clamp |
-| `walkPolygons` | array | Optional future polygon walkable areas |
-| `spawnPoints` | object | Role-based entry positions |
-| `interactables` | array | Runtime hitboxes/zones mapped to item/character/dialogue targets |
-| `transitions` | array | Doors/exits mapped to scene IDs |
+- Origin is top-left.
+- `x` grows right, `y` grows down.
+- Coordinates are logical scene pixels, independent from browser size.
+- The current Lumiere case uses `width: 1600` and `height: 900`.
+- `floorY` is the player feet line.
+- Characters and most props use `anchor: "bottom-center"` so `position.y` is their feet or bottom edge.
+- The renderer scales all runtime coordinates to the actual full-screen Phaser frame.
 
-## Spawn Points
+## Walkable Area
 
 ```json
 {
-  "spawnPoints": {
-    "default": { "x": 180, "y": 720, "direction": "right" },
-    "INVESTIGATOR": { "x": 160, "y": 720, "direction": "right" },
-    "INTERROGATOR": { "x": 230, "y": 720, "direction": "right" }
-  }
+  "walkableArea": { "x": 0, "y": 630, "width": 1600, "height": 135 },
+  "floorY": 720
 }
 ```
 
-Use role-specific spawn points when present. Fall back to `default`.
+The current movement model is horizontal only (`A` and `D`). `walkableArea.x` and `walkableArea.width` clamp movement; `floorY` fixes the vertical feet position.
 
-## Interactables
-
-Interactables connect movement proximity to existing gameplay IDs.
+## Item Placements
 
 ```json
 {
-  "interactableId": "int-bitter-glass",
-  "type": "ITEM",
-  "targetId": "item-bitter-glass",
-  "label": "Crystal glass",
-  "x": 460,
-  "y": 700,
-  "width": 90,
-  "height": 80,
-  "interactionRadius": 90,
-  "requiredClueIds": [],
-  "allowedRoles": ["INVESTIGATOR"]
+  "itemId": "item-ledger",
+  "asset": "/assets/items/ledger.png",
+  "position": { "x": 712, "y": 558, "anchor": "bottom-center" },
+  "size": { "width": 144, "height": 108 },
+  "hotspot": { "x": 640, "y": 450, "width": 144, "height": 108 },
+  "reservedSlot": { "x": 640, "y": 450, "width": 144, "height": 108 },
+  "anchor": "bottom-center",
+  "depth": 12
 }
 ```
 
-Types:
+`reservedSlot` documents the intended visual slot from `asset-prompts.json`. `hotspot` is the click/proximity box and may be larger than the visual sprite when needed, but it should not be used as the only source for sprite placement.
 
-- `ITEM`
-- `CHARACTER`
-- `EXIT`
-- `CLUE_AREA`
-
-For compatibility, current `hotspots` can be transformed into `interactables` by scaling percentage coordinates into scene pixels.
-
-## Character Placement
-
-Characters in a scene can optionally have runtime positions:
+## Character Placements
 
 ```json
 {
-  "characterPlacements": [
-    {
-      "characterId": "char-edgar",
-      "x": 1080,
-      "y": 720,
-      "direction": "left",
-      "interactionRadius": 120
-    }
-  ]
+  "characterId": "char-victor",
+  "position": { "x": 1112, "y": 702, "anchor": "bottom-center" },
+  "size": { "width": 144, "height": 288 },
+  "hotspot": { "x": 1040, "y": 414, "width": 144, "height": 288 },
+  "reservedSlot": { "x": 1040, "y": 414, "width": 144, "height": 288 },
+  "anchor": "bottom-center",
+  "direction": "left",
+  "depth": 702
 }
 ```
 
-If missing, the renderer can auto-place characters based on scene layout.
+NPC sprite gaps come from `asset-prompts.json` `npcGaps`. The renderer uses `direction` to flip NPC sprites where needed.
 
 ## Transition Zones
 
 ```json
 {
-  "transitionId": "door-to-corridor",
-  "targetSceneId": "scene-servants-corridor",
-  "x": 1450,
-  "y": 700,
-  "width": 90,
-  "height": 180,
-  "requiredClueIds": ["clue-staged-lock"],
-  "label": "Servants' corridor"
+  "transitionId": "exit-office-to-props",
+  "targetSceneId": "scene-props-room",
+  "label": "Props Room",
+  "hotspot": { "x": 1374, "y": 640, "width": 190, "height": 54 },
+  "depth": 22
 }
 ```
 
-Transition zones should not bypass backend progression. The client may show them only when the target scene is already visited or when backend progression has opened it.
+The frontend only shows a transition when the target scene is already visited, or when the backend says the current scene can proceed and the target is the next scene.
 
-## Coordinate Conventions
+## Validation
 
-- Origin is top-left.
-- `x` grows right.
-- `y` grows down.
-- Character feet stand at `y`.
-- Scene sizes are logical coordinates independent of rendered CSS pixels.
-- Renderer scales logical coordinates to viewport.
+Backend validation checks:
 
-## AI Generation Requirements
+- runtime width and height are positive,
+- points and boxes fit inside the runtime dimensions,
+- item placements reference real items listed in the same scene,
+- character placements reference real characters listed in the same scene,
+- transitions reference real scenes,
+- runtime metadata remains optional for legacy cases.
 
-When AI supports runtime layouts, it should generate:
+## Debugging
 
-- scene width/height,
-- role spawn points,
-- floorY,
-- walk bounds,
-- item interactable positions,
-- character placement,
+Open a game URL with `debugLayout=1` or press `F2` in the Phaser view. The debug overlay draws:
+
+- logical frame and 100px grid,
+- walkable area and floor line,
+- item slots, hotspots, and anchors,
+- NPC gaps, hotspots, and anchors,
 - transition zones,
-- UI-safe areas if needed.
-
-AI must keep generated `targetId` values aligned with existing `itemIds`, `characterIds`, and scene progression.
-
-## Validation Requirements
-
-Future backend validation should check:
-
-- runtime dimensions are positive,
-- spawn points are inside walk bounds,
-- interactable target IDs exist,
-- interactable roles are valid,
-- transition target scenes exist,
-- interactable boxes fit inside scene dimensions,
-- required clue IDs exist.
-
-Do not require runtime metadata for legacy cases until the renderer depends on it.
+- live screen/world pointer coordinates.

@@ -41,6 +41,7 @@ public class GameStateBuilder : IGameStateBuilder
             Title = scene.Title,
             Description = scene.Description,
             BackgroundUrl = scene.BackgroundUrl,
+            Runtime = scene.Runtime,
             Hotspots = scene.Hotspots.OrderBy(h => h.ZIndex).Select(h => HotspotDto.From(h, unlocked)).ToList(),
             Items = scene.ItemIds
                 .Select(id => gameCase.Items.FirstOrDefault(i => i.ItemId == id))

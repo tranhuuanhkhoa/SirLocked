@@ -206,7 +206,8 @@ All routes require `ADMIN`.
 
 | Method | Route | Auth | Body/Query | Data |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/admin/ai-cases` | `ADMIN` or `VIP` | `{ "prompt": "...", "stageCount": 4, "difficulty": "medium", "visualStyle": "cinematic detective" }` | `AiDraftResponse` |
+| `POST` | `/api/admin/ai-cases` | `ADMIN` or `VIP` | `{ "prompt": "", "stageCount": 4, "difficulty": "medium" }`; `prompt` is optional | `AiDraftResponse` with `storyPreview` |
+| `POST` | `/api/admin/ai-cases/{draftId}/approve` | `ADMIN` or `VIP` | none | `AiDraftResponse` with `publishedCase` |
 | `GET` | `/api/admin/ai-cases` | `ADMIN` | none | `AiDraftResponse[]` without generated JSON |
 | `GET` | `/api/admin/ai-cases/{draftId}` | `ADMIN` | none | `AiDraftResponse` with generated JSON |
 | `POST` | `/api/admin/ai-cases/{draftId}/import?overwrite=false` | `ADMIN` | query | `CaseSummaryResponse` |
@@ -215,9 +216,14 @@ All routes require `ADMIN`.
 AI statuses:
 
 - `GENERATED_INVALID`
-- `MOCK_GENERATED_VALID`
-- `DEEPSEEK_GENERATED_VALID`
+- `GENERATING_STORY`
+- `STORY_AWAITING_APPROVAL`
+- `GENERATING_FULL_CASE`
+- `OPENAI_GENERATED_VALID`
+- `GENERATING_ASSETS`
+- `ASSETS_GENERATED`
 - `IMPORTED`
+- `PUBLISHED`
 
 ## Health
 
@@ -273,4 +279,4 @@ Movement/sync design details are documented in `PLAYER_MOVEMENT_SYSTEM.md` and `
 | `404` | Missing room, case, item, dialogue, draft, or result |
 | `409` | Conflict such as duplicate email, full room, duplicate role, concurrent state write |
 | `422` | Valid JSON payload that cannot be parsed/processed as a valid case |
-| `502` | Deepseek/provider failure |
+| `502` | OpenAI/provider failure |

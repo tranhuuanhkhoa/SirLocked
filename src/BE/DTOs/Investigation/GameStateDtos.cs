@@ -147,6 +147,7 @@ public class VisibleSceneDto
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string BackgroundUrl { get; set; } = string.Empty;
+    public SceneRuntime? Runtime { get; set; }
     public List<HotspotDto> Hotspots { get; set; } = new();
     public List<SceneItemDto> Items { get; set; } = new();
     public List<CaseCharacterDto> Characters { get; set; } = new();

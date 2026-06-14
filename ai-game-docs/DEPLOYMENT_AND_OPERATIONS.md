@@ -1,6 +1,6 @@
 # Deployment And Operations
 
-Last synced with code: 2026-06-12.
+Last synced with code: 2026-06-14.
 
 ## Local Requirements
 
@@ -21,12 +21,16 @@ Required for backend startup:
 - `Jwt__Issuer`
 - `Jwt__Audience`
 
+Required for AI case creation:
+
+- `OpenAI__ApiKey`
+- `OpenAI__LogicModel`
+- `OpenAI__ImageModel`
+- `OpenAI__BaseUrl`
+- `OpenAI__TimeoutSeconds`
+
 Optional:
 
-- `AI__DeepseekApiKey`
-- `AI__DeepseekModel`
-- `AI__DeepseekBaseUrl`
-- `AI__DeepseekTimeoutSeconds`
 - Cloudinary settings, currently unused by code.
 
 The backend loads repo-root `.env` through `EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory())`.
@@ -111,7 +115,13 @@ AI draft exports are written under:
 src/BE/GeneratedCaseJson/
 ```
 
-This folder is excluded from API compilation and should remain ignored by git.
+Generated AI image assets are written under:
+
+```txt
+src/FE/public/assets/ai-generated/
+```
+
+These folders are excluded from source control. For production, replace local file writes with durable asset storage such as object storage or Cloudinary.
 
 ## Production Notes
 

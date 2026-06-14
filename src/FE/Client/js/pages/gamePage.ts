@@ -56,6 +56,67 @@ type Hotspot = {
   isLocked: boolean;
 };
 
+type RuntimeBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type RuntimePoint = {
+  x: number;
+  y: number;
+  anchor?: string;
+  direction?: 'left' | 'right';
+};
+
+type RuntimeSize = {
+  width: number;
+  height: number;
+};
+
+type RuntimeItemPlacement = {
+  itemId: string;
+  asset?: string;
+  position: RuntimePoint;
+  size: RuntimeSize;
+  hotspot: RuntimeBox;
+  reservedSlot?: RuntimeBox;
+  anchor?: string;
+  depth?: number;
+};
+
+type RuntimeCharacterPlacement = {
+  characterId: string;
+  asset?: string;
+  position: RuntimePoint;
+  size: RuntimeSize;
+  hotspot: RuntimeBox;
+  reservedSlot?: RuntimeBox;
+  anchor?: string;
+  direction?: 'left' | 'right';
+  depth?: number;
+};
+
+type RuntimeTransition = {
+  transitionId: string;
+  targetSceneId: string;
+  label: string;
+  hotspot: RuntimeBox;
+  depth?: number;
+};
+
+type SceneRuntime = {
+  width?: number;
+  height?: number;
+  floorY?: number;
+  walkableArea?: RuntimeBox;
+  spawnPoints?: Record<string, RuntimePoint>;
+  itemPlacements?: RuntimeItemPlacement[];
+  characterPlacements?: RuntimeCharacterPlacement[];
+  transitions?: RuntimeTransition[];
+};
+
 type SceneItem = {
   itemId: string;
   name: string;
@@ -87,6 +148,7 @@ type VisibleScene = {
   title: string;
   description: string;
   backgroundUrl: string;
+  runtime?: SceneRuntime;
   hotspots: Hotspot[];
   items: SceneItem[];
   characters: SceneCharacter[];
@@ -216,10 +278,12 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private localPlayer: Phaser.GameObjects.Container | null = null;
   private remotePlayers = new Map<string, Phaser.GameObjects.Container>();
   private promptText: Phaser.GameObjects.Text | null = null;
+  private debugPointerText: Phaser.GameObjects.Text | null = null;
   private nearestHotspot: Hotspot | null = null;
   private lastPoseSentAt = 0;
   private lastSentPoseKey = '';
   private sceneInteractionEnabled = true;
+  private debugLayout = false;
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -237,7 +301,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.definePlayerFrames();
-    this.keys = (this.input.keyboard?.addKeys('A,D,E') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
+    this.debugLayout = window.location.href.includes('debugLayout=1');
+    this.keys = (this.input.keyboard?.addKeys('A,D,E,F2') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
     // Remember 404s so a missing asset doesn't trigger an endless reload loop.
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
       if (file?.key) this.failedTextureKeys.add(file.key);
@@ -268,6 +333,12 @@ class SirLockedPhaserScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.ready) return;
     this.animatePlayers(time);
+    this.updateDebugPointerText();
+    if (this.keys.F2 && Phaser.Input.Keyboard.JustDown(this.keys.F2)) {
+      this.debugLayout = !this.debugLayout;
+      this.draw();
+      return;
+    }
     if (!this.state || !this.localPose || !this.localPlayer) return;
 
     if (!this.sceneInteractionEnabled) {
@@ -368,6 +439,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.drawSceneNavigation(width, height);
     this.drawInventoryHint(width, height);
     this.drawControlHint(width, height);
+    this.drawDebugOverlay(scene, width, height);
     this.flushTextures();
   }
 
@@ -377,7 +449,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
     let assetWidth = 1600;
     let assetHeight = 900;
 
-    if (scene) {
+    const runtime = scene?.runtime;
+    if (runtime?.width && runtime?.height) {
+      assetWidth = runtime.width;
+      assetHeight = runtime.height;
+    } else if (scene) {
       const bgUrl = sceneBackgroundUrl(scene);
       const bgKey = `bg:${scene.sceneId}:${bgUrl}`;
       if (bgUrl && this.textures.exists(bgKey)) {
@@ -399,6 +475,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private hotspotRect(hotspot: Hotspot) {
+    const runtimeBox = this.runtimeHotspotBox(hotspot);
+    if (runtimeBox) return this.worldRect(runtimeBox);
+
     const frame = this.sceneFrame();
     return {
       x: frame.x + (hotspot.x / 100) * frame.width,
@@ -406,6 +485,78 @@ class SirLockedPhaserScene extends Phaser.Scene {
       w: Math.max((hotspot.width / 100) * frame.width, 36),
       h: Math.max((hotspot.height / 100) * frame.height, 30),
     };
+  }
+
+  private sceneRuntime() {
+    return this.state?.visibleScene.runtime ?? null;
+  }
+
+  private runtimeWidth() {
+    const width = this.sceneRuntime()?.width;
+    return width && width > 0 ? width : 1600;
+  }
+
+  private runtimeHeight() {
+    const height = this.sceneRuntime()?.height;
+    return height && height > 0 ? height : 900;
+  }
+
+  private worldPoint(point: RuntimePoint) {
+    const frame = this.sceneFrame();
+    return {
+      x: frame.x + (point.x / this.runtimeWidth()) * frame.width,
+      y: frame.y + (point.y / this.runtimeHeight()) * frame.height,
+    };
+  }
+
+  private worldSize(size: RuntimeSize) {
+    const frame = this.sceneFrame();
+    return {
+      width: (size.width / this.runtimeWidth()) * frame.width,
+      height: (size.height / this.runtimeHeight()) * frame.height,
+    };
+  }
+
+  private worldRect(box: RuntimeBox) {
+    const point = this.worldPoint({ x: box.x, y: box.y });
+    const size = this.worldSize({ width: box.width, height: box.height });
+    return { x: point.x, y: point.y, w: Math.max(size.width, 1), h: Math.max(size.height, 1) };
+  }
+
+  private screenToWorld(x: number, y: number) {
+    const frame = this.sceneFrame();
+    return {
+      x: ((x - frame.x) / frame.width) * this.runtimeWidth(),
+      y: ((y - frame.y) / frame.height) * this.runtimeHeight(),
+    };
+  }
+
+  private originForAnchor(anchor: string | undefined) {
+    switch ((anchor ?? 'bottom-center').toLowerCase()) {
+      case 'top-left': return { x: 0, y: 0 };
+      case 'top-center': return { x: 0.5, y: 0 };
+      case 'center':
+      case 'center-center': return { x: 0.5, y: 0.5 };
+      case 'bottom-left': return { x: 0, y: 1 };
+      case 'bottom-right': return { x: 1, y: 1 };
+      case 'bottom-center':
+      default: return { x: 0.5, y: 1 };
+    }
+  }
+
+  private itemPlacement(itemId: string) {
+    return this.sceneRuntime()?.itemPlacements?.find((placement) => placement.itemId === itemId) ?? null;
+  }
+
+  private characterPlacement(characterId: string) {
+    return this.sceneRuntime()?.characterPlacements?.find((placement) => placement.characterId === characterId) ?? null;
+  }
+
+  private runtimeHotspotBox(hotspot: Hotspot) {
+    const type = hotspot.type.toUpperCase();
+    if (type === 'ITEM') return this.itemPlacement(hotspot.targetId)?.hotspot ?? null;
+    if (type === 'CHARACTER') return this.characterPlacement(hotspot.targetId)?.hotspot ?? null;
+    return null;
   }
 
   private drawBackground(scene: VisibleScene, width: number, height: number) {
@@ -457,11 +608,17 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const sceneItem = this.state?.visibleScene.items.find((i) => i.itemId === hotspot.targetId);
       const itemUrl = playableAssetUrl(sceneItem?.imageUrl);
       const itemKey = itemUrl ? `item:${hotspot.targetId}:${itemUrl}` : '';
+      const placement = this.itemPlacement(hotspot.targetId);
       let itemImage: Phaser.GameObjects.Image | null = null;
       if (itemKey && !collected) {
         if (this.textures.exists(itemKey)) {
-          const image = this.add.image(x + w / 2, y + h / 2, itemKey).setOrigin(0.5).setDepth(5);
-          image.setScale(Math.min(w / image.width, h / image.height));
+          const anchor = this.originForAnchor(placement?.anchor ?? placement?.position?.anchor ?? 'center');
+          const point = placement ? this.worldPoint(placement.position) : { x: x + w / 2, y: y + h / 2 };
+          const size = placement ? this.worldSize(placement.size) : { width: w, height: h };
+          const image = this.add.image(point.x, point.y, itemKey)
+            .setOrigin(anchor.x, anchor.y)
+            .setDepth(placement?.depth ?? 5);
+          image.setDisplaySize(size.width, size.height);
           itemImage = image;
         } else {
           this.queueTexture(itemKey, itemUrl);
@@ -501,19 +658,30 @@ class SirLockedPhaserScene extends Phaser.Scene {
         .filter((hotspot) => hotspot.type.toUpperCase() === 'CHARACTER')
         .map((hotspot) => hotspot.targetId),
     );
+    const renderedCharacterIds = new Set<string>();
+
+    for (const character of scene.characters) {
+      const placement = this.characterPlacement(character.characterId);
+      if (!placement) continue;
+      const feet = this.worldPoint(placement.position);
+      const size = this.worldSize(placement.size);
+      this.drawCharacterButton(character, feet.x, feet.y, height, placement, size);
+      renderedCharacterIds.add(character.characterId);
+    }
 
     // CHARACTER hotspots are the NPC standing gaps: feet at the rect bottom-center.
     const positioned = scene.hotspots.filter((hotspot) => hotspot.type.toUpperCase() === 'CHARACTER');
     for (const hotspot of positioned) {
       const character = scene.characters.find((ch) => ch.characterId === hotspot.targetId);
-      if (!character) continue;
+      if (!character || renderedCharacterIds.has(character.characterId)) continue;
       const { x, y, w, h } = this.hotspotRect(hotspot);
       const feetX = x + w / 2;
       const feetY = Math.min(y + h, height - 112);
       this.drawCharacterButton(character, feetX, feetY, height);
+      renderedCharacterIds.add(character.characterId);
     }
 
-    const implicit = scene.characters.filter((ch) => !hotspotCharacterIds.has(ch.characterId));
+    const implicit = scene.characters.filter((ch) => !hotspotCharacterIds.has(ch.characterId) && !renderedCharacterIds.has(ch.characterId));
     const count = Math.max(implicit.length, 1);
     const frame = this.sceneFrame(scene);
     implicit.forEach((character, index) => {
@@ -524,15 +692,23 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   // x,y = feet position of the NPC.
-  private drawCharacterButton(character: SceneCharacter, x: number, y: number, height: number) {
-    const group = this.add.container(x, y).setDepth(Math.round(y));
+  private drawCharacterButton(
+    character: SceneCharacter,
+    x: number,
+    y: number,
+    height: number,
+    placement?: RuntimeCharacterPlacement,
+    placementSize?: RuntimeSize,
+  ) {
+    const group = this.add.container(x, y).setDepth(placement?.depth ?? Math.round(y));
     // Keep NPCs roughly in scale with the player chibis (height * 0.26 -> ~230px)
     // so they read as people standing in the room, not looming over it.
-    const npcH = Phaser.Math.Clamp(height * 0.27, 140, 235);
+    const npcH = placementSize?.height ?? Phaser.Math.Clamp(height * 0.27, 140, 235);
+    const npcW = placementSize?.width ?? npcH * (256 / 384);
     const fresh = this.state?.visibleScene.availableDialogues
       .filter((dialogue) => dialogue.characterId === character.characterId && !dialogue.isAsked && !dialogue.isLocked).length ?? 0;
 
-    const spriteUrl = characterSpriteUrl(character);
+    const spriteUrl = playableAssetUrl(placement?.asset) || characterSpriteUrl(character);
     const spriteKey = spriteUrl ? `npc:${character.characterId}:${spriteUrl}` : '';
     const shadow = this.add.ellipse(0, -2, npcH * 0.4, npcH * 0.08, 0x000000, 0.32);
 
@@ -541,10 +717,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
       body = this.add.image(0, 0, spriteKey)
         .setOrigin(0.5, 1)
         .setInteractive({ useHandCursor: true });
-      (body as Phaser.GameObjects.Image).setDisplaySize(npcH * (256 / 384), npcH);
+      (body as Phaser.GameObjects.Image).setDisplaySize(npcW, npcH);
+      (body as Phaser.GameObjects.Image).setFlipX(placement?.direction === 'right');
     } else {
       if (spriteKey && spriteUrl) this.queueTexture(spriteKey, spriteUrl);
-      body = this.add.rectangle(0, 0, npcH * 0.42, npcH, this.colorFromId(character.characterId, 0x3a2a55), 0.6)
+      body = this.add.rectangle(0, 0, npcW, npcH, this.colorFromId(character.characterId, 0x3a2a55), 0.6)
         .setOrigin(0.5, 1)
         .setStrokeStyle(1, 0xc9a84c, 0.4)
         .setInteractive({ useHandCursor: true });
@@ -705,6 +882,24 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const next = this.state.sceneMap[currentIndex + 1];
     const completedCurrent = this.state.completedSceneIds.includes(this.state.currentSceneId);
     const canProceed = Boolean(this.state.currentSceneCanComplete);
+    const runtimeTransitions = this.sceneRuntime()?.transitions ?? [];
+
+    if (runtimeTransitions.length > 0) {
+      runtimeTransitions.forEach((transition) => {
+        const targetEntry = this.state!.sceneMap.find((entry) => entry.sceneId === transition.targetSceneId);
+        const canRevisit = Boolean(targetEntry?.isVisited && !targetEntry.isCurrent);
+        const opensNext = Boolean(canProceed && next?.sceneId === transition.targetSceneId);
+        if (!canRevisit && !opensNext) return;
+
+        const box = this.worldRect(transition.hotspot);
+        const label = transition.label || targetEntry?.title || 'Move';
+        const action = canRevisit
+          ? () => this.callbacks.onScene(transition.targetSceneId)
+          : () => this.callbacks.onProceed();
+        this.drawButton(box.x + box.w / 2, box.y + box.h / 2, this.shorten(label, 18), action, Math.max(148, Math.min(box.w, 240)), opensNext);
+      });
+      return;
+    }
 
     visited.slice(-2).forEach((entry, index) => {
       const x = index === 0 ? 92 : width - 92;
@@ -731,6 +926,101 @@ class SirLockedPhaserScene extends Phaser.Scene {
       backgroundColor: 'rgba(10,22,40,0.82)',
       padding: { x: 10, y: 5 },
     }).setOrigin(0.5);
+  }
+
+  private drawDebugOverlay(scene: VisibleScene, width: number, height: number) {
+    if (!this.debugLayout) {
+      this.debugPointerText = null;
+      return;
+    }
+
+    const graphics = this.add.graphics().setDepth(300);
+    const frame = this.sceneFrame(scene);
+    graphics.lineStyle(2, 0xffffff, 0.9);
+    graphics.strokeRect(frame.x, frame.y, frame.width, frame.height);
+
+    graphics.lineStyle(1, 0xffffff, 0.14);
+    for (let x = 0; x <= this.runtimeWidth(); x += 100) {
+      const a = this.worldPoint({ x, y: 0 });
+      const b = this.worldPoint({ x, y: this.runtimeHeight() });
+      graphics.lineBetween(a.x, a.y, b.x, b.y);
+    }
+    for (let y = 0; y <= this.runtimeHeight(); y += 100) {
+      const a = this.worldPoint({ x: 0, y });
+      const b = this.worldPoint({ x: this.runtimeWidth(), y });
+      graphics.lineBetween(a.x, a.y, b.x, b.y);
+    }
+
+    const runtime = this.sceneRuntime();
+    if (runtime?.walkableArea) {
+      this.debugBox(graphics, runtime.walkableArea, 0x3aa7ff, 0.18, 'walkable');
+    }
+    if (runtime?.floorY) {
+      const a = this.worldPoint({ x: 0, y: runtime.floorY });
+      const b = this.worldPoint({ x: this.runtimeWidth(), y: runtime.floorY });
+      graphics.lineStyle(2, 0xff4fd8, 0.8);
+      graphics.lineBetween(a.x, a.y, b.x, b.y);
+    }
+
+    for (const placement of runtime?.itemPlacements ?? []) {
+      if (placement.reservedSlot) this.debugBox(graphics, placement.reservedSlot, 0x40e0d0, 0.34, `slot ${placement.itemId}`);
+      this.debugBox(graphics, placement.hotspot, 0xffd447, 0.42, `hotspot ${placement.itemId}`);
+      this.debugAnchor(graphics, placement.position, 0x71ff71);
+    }
+
+    for (const placement of runtime?.characterPlacements ?? []) {
+      if (placement.reservedSlot) this.debugBox(graphics, placement.reservedSlot, 0xbe7dff, 0.32, `gap ${placement.characterId}`);
+      this.debugBox(graphics, placement.hotspot, 0xffd447, 0.42, `hotspot ${placement.characterId}`);
+      this.debugAnchor(graphics, placement.position, 0xff4fd8);
+    }
+
+    for (const transition of runtime?.transitions ?? []) {
+      this.debugBox(graphics, transition.hotspot, 0x6fa8ff, 0.45, `exit ${transition.targetSceneId}`);
+    }
+
+    if (!runtime) {
+      for (const hotspot of scene.hotspots) {
+        const rect = this.hotspotRect(hotspot);
+        graphics.lineStyle(2, 0xffd447, 0.5);
+        graphics.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      }
+    }
+
+    this.debugPointerText = this.add.text(12, height - 142, '', {
+      fontFamily: 'Source Code Pro, monospace',
+      fontSize: '12px',
+      color: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0.72)',
+      padding: { x: 8, y: 6 },
+    }).setDepth(310);
+    this.updateDebugPointerText();
+  }
+
+  private debugBox(graphics: Phaser.GameObjects.Graphics, box: RuntimeBox, color: number, alpha: number, label: string) {
+    const rect = this.worldRect(box);
+    graphics.lineStyle(2, color, alpha);
+    graphics.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    this.add.text(rect.x + 4, rect.y + 4, label, {
+      fontFamily: 'Source Code Pro, monospace',
+      fontSize: '11px',
+      color: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0.54)',
+      padding: { x: 3, y: 2 },
+    }).setDepth(305);
+  }
+
+  private debugAnchor(graphics: Phaser.GameObjects.Graphics, point: RuntimePoint, color: number) {
+    const p = this.worldPoint(point);
+    graphics.lineStyle(2, color, 0.94);
+    graphics.lineBetween(p.x - 8, p.y, p.x + 8, p.y);
+    graphics.lineBetween(p.x, p.y - 8, p.x, p.y + 8);
+  }
+
+  private updateDebugPointerText() {
+    if (!this.debugPointerText) return;
+    const pointer = this.input.activePointer;
+    const world = this.screenToWorld(pointer.x, pointer.y);
+    this.debugPointerText.setText(`screen ${Math.round(pointer.x)},${Math.round(pointer.y)} | world ${Math.round(world.x)},${Math.round(world.y)} | F2 layout`);
   }
 
   private drawButton(
@@ -771,6 +1061,20 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private walkBounds() {
     const width = this.scale.width;
     const height = this.scale.height;
+    const runtime = this.sceneRuntime();
+    if (runtime?.walkableArea) {
+      const area = this.worldRect(runtime.walkableArea);
+      const floorY = runtime.floorY
+        ? this.worldPoint({ x: 0, y: runtime.floorY }).y
+        : area.y + area.h;
+      return {
+        left: Math.max(36, area.x),
+        right: Math.min(width - 36, area.x + area.w),
+        top: floorY,
+        bottom: floorY,
+      };
+    }
+
     const frame = this.sceneFrame();
     const laneY = Phaser.Math.Clamp(frame.y + frame.height * 0.82, height * 0.58, height - 118);
     return {
@@ -783,8 +1087,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   private spawnPose(player: RoomPlayer | undefined, slot: number): PlayerPose {
     const bounds = this.walkBounds();
-    const x = Phaser.Math.Clamp(bounds.left + 120 + slot * 92, bounds.left, bounds.right);
-    const y = bounds.bottom - slot * 18;
+    const runtime = this.sceneRuntime();
+    const roleSpawn = player?.role ? runtime?.spawnPoints?.[player.role] : null;
+    const defaultSpawn = runtime?.spawnPoints?.default;
+    const spawn = roleSpawn ?? defaultSpawn;
+    const spawnPoint = spawn ? this.worldPoint(spawn) : null;
+    const x = spawnPoint
+      ? Phaser.Math.Clamp(spawnPoint.x + slot * 18, bounds.left, bounds.right)
+      : Phaser.Math.Clamp(bounds.left + 120 + slot * 92, bounds.left, bounds.right);
+    const y = spawnPoint ? bounds.bottom : bounds.bottom - slot * 18;
     return {
       userId: player?.userId ?? this.callbacks.localUserId,
       username: player?.username,
@@ -792,7 +1103,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       sceneId: this.state?.currentSceneId ?? '',
       x,
       y,
-      direction: 'right',
+      direction: spawn?.direction ?? 'right',
       moving: false,
     };
   }

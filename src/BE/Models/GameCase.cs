@@ -52,7 +52,40 @@ public class CaseScene
     public List<string> ItemIds { get; set; } = new();
     public List<string> CharacterIds { get; set; } = new();
     public List<SceneHotspot> Hotspots { get; set; } = new();
+    public ScenePlacementPlan? PlacementPlan { get; set; }
+    public SceneRuntime? Runtime { get; set; }
     public CompleteCondition CompleteCondition { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class ScenePlacementPlan
+{
+    public string SceneId { get; set; } = string.Empty;
+    public int Width { get; set; } = 1600;
+    public int Height { get; set; } = 900;
+    public double FloorY { get; set; } = 720;
+    public RuntimeBox WalkableArea { get; set; } = new();
+    public Dictionary<string, SpawnPoint> SpawnPoints { get; set; } = new();
+    public List<PlannedPlacement> Placements { get; set; } = new();
+    public List<TransitionZone> Transitions { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class PlannedPlacement
+{
+    public string Type { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public string Anchor { get; set; } = "center";
+    public string Facing { get; set; } = "left";
+    public string Surface { get; set; } = string.Empty;
+    public string Lighting { get; set; } = string.Empty;
+    public string Perspective { get; set; } = string.Empty;
+    public int Depth { get; set; } = 5;
+    public string Reason { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
@@ -80,6 +113,86 @@ public class CompleteCondition
     public List<string> RequiredItemIds { get; set; } = new();
     public List<string> RequiredClueIds { get; set; } = new();
     public List<string> RequiredDialogueIds { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class SceneRuntime
+{
+    public int Width { get; set; } = 1600;
+    public int Height { get; set; } = 900;
+    public double? FloorY { get; set; }
+    public RuntimeBox? WalkableArea { get; set; }
+    public Dictionary<string, SpawnPoint> SpawnPoints { get; set; } = new();
+    public List<ItemPlacement> ItemPlacements { get; set; } = new();
+    public List<CharacterPlacement> CharacterPlacements { get; set; } = new();
+    public List<TransitionZone> Transitions { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class RuntimePoint
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public string Anchor { get; set; } = "bottom-center";
+}
+
+[BsonIgnoreExtraElements]
+public class RuntimeSize
+{
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class RuntimeBox
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class SpawnPoint : RuntimePoint
+{
+    public string Direction { get; set; } = "right";
+}
+
+[BsonIgnoreExtraElements]
+public class ItemPlacement
+{
+    public string ItemId { get; set; } = string.Empty;
+    public string Asset { get; set; } = string.Empty;
+    public RuntimePoint Position { get; set; } = new();
+    public RuntimeSize Size { get; set; } = new();
+    public RuntimeBox Hotspot { get; set; } = new();
+    public RuntimeBox? ReservedSlot { get; set; }
+    public string Anchor { get; set; } = "bottom-center";
+    public int Depth { get; set; } = 5;
+}
+
+[BsonIgnoreExtraElements]
+public class CharacterPlacement
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string Asset { get; set; } = string.Empty;
+    public RuntimePoint Position { get; set; } = new();
+    public RuntimeSize Size { get; set; } = new();
+    public RuntimeBox Hotspot { get; set; } = new();
+    public RuntimeBox? ReservedSlot { get; set; }
+    public string Anchor { get; set; } = "bottom-center";
+    public string Direction { get; set; } = "left";
+    public int? Depth { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class TransitionZone
+{
+    public string TransitionId { get; set; } = string.Empty;
+    public string TargetSceneId { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public RuntimeBox Hotspot { get; set; } = new();
+    public int Depth { get; set; } = 22;
 }
 
 [BsonIgnoreExtraElements]

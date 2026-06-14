@@ -24,6 +24,8 @@ dist/
 
 # Generated case JSON (may contain AI output)
 src/BE/GeneratedCaseJson/
+src/FE/public/assets/ai-generated/
+tmp/
 
 # Local tooling (portable MongoDB etc.)
 .tools/

@@ -3,11 +3,69 @@ import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 
+const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
+const STATUS_PUBLISHED = 'PUBLISHED';
+const TERMINAL_STATUSES = new Set([STATUS_PUBLISHED, 'GENERATED_INVALID']);
+const PROGRESS_STATES = {
+  GENERATING_STORY: {
+    percent: 8,
+    title: 'Creating the case premise',
+    detail: 'GPT is preparing a spoiler-free mystery outline.',
+  },
+  STORY_AWAITING_APPROVAL: {
+    percent: 18,
+    title: 'Story premise ready',
+    detail: 'Starting full case generation automatically.',
+  },
+  GENERATING_FULL_CASE: {
+    percent: 35,
+    title: 'Building the full investigation',
+    detail: 'Generating the culprit, suspects, clues, dialogue, and case logic.',
+  },
+  OPENAI_GENERATED_VALID: {
+    percent: 52,
+    title: 'Case logic validated',
+    detail: 'The investigation is consistent. Preparing visual assets.',
+  },
+  GENERATING_ASSETS: {
+    percent: 68,
+    title: 'Generating scenes and assets',
+    detail: 'Creating backgrounds, placement plans, characters, and evidence.',
+  },
+  ASSETS_GENERATED: {
+    percent: 92,
+    title: 'Assets ready',
+    detail: 'Importing and publishing the playable case.',
+  },
+  IMPORTED: {
+    percent: 97,
+    title: 'Case imported',
+    detail: 'Publishing the case.',
+  },
+  PUBLISHED: {
+    percent: 100,
+    title: 'Case published',
+    detail: 'The new case is ready to play.',
+  },
+  GENERATED_INVALID: {
+    percent: 100,
+    title: 'Generation failed',
+    detail: 'The generated case did not pass validation.',
+  },
+};
+
 export async function renderAdminAiPage(app) {
-  render(app, '<div class="page"><p class="muted">Loading AI case creator…</p></div>');
+  render(app, '<div class="page"><p class="muted">Loading AI case creator...</p></div>');
 
   let drafts = [];
   const canManageDrafts = session.isAdmin();
+  let pollTimer = null;
+  let progressClock = null;
+  let runStartedAt = 0;
+  let runVersion = 0;
+  let currentProgressStatus = 'GENERATING_STORY';
+  let disposed = false;
+
   try {
     if (canManageDrafts) drafts = await aiCaseApi.drafts();
   } catch {
@@ -16,20 +74,23 @@ export async function renderAdminAiPage(app) {
 
   draw();
 
+  function isSuccessStatus(status) {
+    return status === STATUS_AWAITING_APPROVAL || status === STATUS_PUBLISHED || status === 'OPENAI_GENERATED_VALID' || status === 'ASSETS_GENERATED';
+  }
+
   function draftRow(d) {
-    const valid = d.status.endsWith('_GENERATED_VALID') || d.status === 'IMPORTED';
+    const title = d.caseTitle || d.storyPreview?.title || '(preview)';
+    const prompt = d.prompt || 'AI-generated original mystery';
     return `
     <tr>
-      <td>${escapeHtml(d.caseTitle || '(untitled)')}<br><span class="muted small">${escapeHtml(d.prompt.slice(0, 70))}…</span></td>
+      <td>${escapeHtml(title)}<br><span class="muted small">${escapeHtml(prompt.slice(0, 70))}</span></td>
       <td><span class="chip">${escapeHtml(d.provider)}</span></td>
-      <td><span class="chip ${valid ? 'chip-ok' : 'chip-bad'}">${escapeHtml(d.status)}</span></td>
+      <td><span class="chip ${isSuccessStatus(d.status) ? 'chip-ok' : 'chip-bad'}">${escapeHtml(d.status)}</span></td>
       <td>
-        ${canManageDrafts ? `<button class="btn btn-ghost btn-sm" data-view="${d.draftId}">View</button>` : ''}
-        ${canManageDrafts && d.status === 'IMPORTED'
-          ? `<a class="btn btn-ghost btn-sm" href="#/admin/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">Case</a>`
-          : canManageDrafts && valid
-            ? `<button class="btn btn-primary btn-sm" data-publish-draft="${d.draftId}">Import + publish</button>`
-            : ''}
+        <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">View</button>
+        ${d.status === STATUS_PUBLISHED || d.importedCaseId
+          ? `<a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">Open case</a>`
+          : ''}
       </td>
     </tr>`;
   }
@@ -38,33 +99,27 @@ export async function renderAdminAiPage(app) {
     render(app, `
     <div class="page">
       <h2>AI Case Creator</h2>
-      <p class="muted">Describe a mystery and generate a full playable case draft. With a Deepseek key configured the story is written by AI; without one a deterministic mock case is generated, so this always works.</p>
-      ${canManageDrafts ? '' : '<p class="notice">VIP access can generate a draft. Admin review, import, and publish remain admin-only.</p>'}
+      <p class="muted">Create a complete SirLocked mystery with fixed pixel-art direction. The case is generated, validated, imported, and published automatically.</p>
 
-      <form id="ai-form" class="ai-form">
-        <textarea class="json-input" name="prompt" rows="3" required minlength="8"
-          placeholder="A locked-room manor mystery with a poisoned drink and a missing ledger…"></textarea>
-        <div class="ai-form-row">
-          <label class="field-label">Stages
-            <select class="field-input" name="stageCount">
-              <option>2</option><option>3</option><option selected>4</option><option>5</option>
-            </select>
-          </label>
-          <label class="field-label">Difficulty
-            <select class="field-input" name="difficulty">
-              <option>easy</option><option selected>medium</option><option>hard</option>
-            </select>
-          </label>
-          <label class="field-label">Visual style
-            <input class="field-input" name="visualStyle" value="cinematic detective">
-          </label>
-          <button class="btn btn-gold" type="submit" id="generate-btn">Generate case</button>
+      <div class="ai-quick-create">
+        <button class="btn btn-gold" type="button" id="quick-create-btn">Create new case</button>
+        <span class="muted small">4 scenes · medium difficulty · automatic publish</span>
+      </div>
+
+      <section class="generation-progress" id="generation-progress" hidden aria-live="polite">
+        <div class="generation-progress-heading">
+          <strong id="generation-progress-title">Preparing...</strong>
+          <span id="generation-progress-percent">0%</span>
         </div>
-      </form>
+        <div class="generation-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="generation-progress-fill" id="generation-progress-fill"></div>
+        </div>
+        <p class="muted small" id="generation-progress-detail"></p>
+      </section>
 
       <div id="ai-output">${activeDraft ? draftDetail(activeDraft) : ''}</div>
 
-      ${canManageDrafts ? '<h3 class="section-title">Recent drafts</h3>' : ''}
+      ${canManageDrafts ? '<h3 class="section-title">Recent AI drafts</h3>' : ''}
       ${!canManageDrafts
         ? ''
         : drafts.length === 0
@@ -78,37 +133,145 @@ export async function renderAdminAiPage(app) {
   }
 
   function draftDetail(d) {
-    const valid = d.status.endsWith('_GENERATED_VALID') || d.status === 'IMPORTED';
+    const preview = d.storyPreview;
+    const statusOk = isSuccessStatus(d.status);
+    const published = d.publishedCase || d.importedCaseId || d.status === STATUS_PUBLISHED;
+    const caseId = d.publishedCase?.caseId || d.importedCaseId || d.caseId;
     return `
-    <div class="notice ${valid ? 'notice-ok' : 'notice-bad'}">
-      <strong>${escapeHtml(d.caseTitle || d.caseId || 'Draft')}</strong> — ${escapeHtml(d.status)} (${escapeHtml(d.provider)})
+    <div class="notice ${statusOk ? 'notice-ok' : 'notice-bad'}">
+      <strong>${escapeHtml(d.caseTitle || preview?.title || d.caseId || 'AI draft')}</strong> - ${escapeHtml(d.status)} (${escapeHtml(d.provider)})
       ${d.jsonFolderPath ? `<br><span class="muted small">Bundle: ${escapeHtml(d.jsonFolderPath)}</span>` : ''}
+      ${d.assetManifest?.assetRootUrl
+        ? `<br><span class="muted small">Assets: ${escapeHtml(d.assetManifest.assetRootUrl)} (${d.assetManifest.assets?.length ?? 0})</span>`
+        : ''}
       ${d.validationErrors?.length
         ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
         : ''}
-      ${canManageDrafts && valid && d.status !== 'IMPORTED'
+      ${published && caseId
         ? `<div class="case-actions">
-            <button class="btn btn-ghost btn-sm" data-import-draft="${d.draftId}">Import as draft case</button>
-            <button class="btn btn-primary btn-sm" data-publish-draft="${d.draftId}">Import + publish</button>
-          </div>` : ''}
+            <a class="btn btn-primary btn-sm" href="#/cases/${encodeURIComponent(caseId)}">Open published case</a>
+            ${session.isAdmin() ? `<a class="btn btn-ghost btn-sm" href="#/admin/cases/${encodeURIComponent(caseId)}">Admin review</a>` : ''}
+          </div>`
+        : ''}
     </div>
-    ${d.generatedJson ? `<details class="json-details"><summary>Generated JSON</summary><pre class="json-view">${escapeHtml(d.generatedJson)}</pre></details>` : ''}`;
+    ${preview ? previewCard(preview, d) : ''}
+    ${d.generatedJson && session.isAdmin()
+      ? `<details class="json-details"><summary>Generated JSON</summary><pre class="json-view">${escapeHtml(d.generatedJson)}</pre></details>`
+      : ''}`;
+  }
+
+  function previewCard(preview, draft) {
+    return `
+    <section class="notice">
+      <h3>${escapeHtml(preview.title)}</h3>
+      <p>${escapeHtml(preview.summary)}</p>
+      <p><strong>Setting:</strong> ${escapeHtml(preview.setting || 'Pending')}</p>
+      <p><strong>Opening incident:</strong> ${escapeHtml(preview.openingIncident || 'Pending')}</p>
+      <p><strong>Tone:</strong> ${escapeHtml(preview.tone || 'Pending')}</p>
+      <p><strong>Player promise:</strong> ${escapeHtml(preview.playerPromise || 'Pending')}</p>
+      ${preview.keyLocations?.length
+        ? `<p><strong>Locations:</strong> ${preview.keyLocations.map(escapeHtml).join(', ')}</p>`
+        : ''}
+      ${preview.suspectTeasers?.length
+        ? `<p><strong>Suspects:</strong> ${preview.suspectTeasers.map(escapeHtml).join(', ')}</p>`
+        : ''}
+    </section>`;
+  }
+
+  function updateProgress(status, overrideDetail = '') {
+    const panel = qs('#generation-progress', app);
+    if (!panel) return;
+    currentProgressStatus = status;
+
+    const state = PROGRESS_STATES[status] || {
+      percent: 5,
+      title: 'Generating case',
+      detail: status || 'Waiting for the backend.',
+    };
+    const elapsed = runStartedAt ? Math.max(0, Math.floor((Date.now() - runStartedAt) / 1000)) : 0;
+    const detail = overrideDetail || state.detail;
+    const fill = qs('#generation-progress-fill', panel);
+    const track = panel.querySelector('[role="progressbar"]');
+
+    panel.hidden = false;
+    qs('#generation-progress-title', panel).textContent = state.title;
+    qs('#generation-progress-percent', panel).textContent = `${state.percent}%`;
+    qs('#generation-progress-detail', panel).textContent = `${detail} Elapsed: ${elapsed}s.`;
+    fill.style.width = `${state.percent}%`;
+    track.setAttribute('aria-valuenow', String(state.percent));
+    panel.classList.toggle('generation-progress-error', status === 'GENERATED_INVALID');
+  }
+
+  function stopPolling() {
+    if (pollTimer) window.clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+
+  function startProgressClock() {
+    if (progressClock) window.clearInterval(progressClock);
+    progressClock = window.setInterval(() => {
+      if (!disposed && runStartedAt) updateProgress(currentProgressStatus);
+    }, 1000);
+  }
+
+  function stopProgressClock() {
+    if (progressClock) window.clearInterval(progressClock);
+    progressClock = null;
+  }
+
+  function startPolling(draftId, version) {
+    stopPolling();
+
+    const poll = async () => {
+      if (disposed || version !== runVersion) return;
+      try {
+        const current = await aiCaseApi.draft(draftId);
+        if (disposed || version !== runVersion) return;
+        updateProgress(current.status);
+        if (TERMINAL_STATUSES.has(current.status)) return;
+      } catch {
+        if (disposed || version !== runVersion) return;
+        updateProgress('GENERATING_FULL_CASE', 'Still generating. Waiting for the next status update.');
+      }
+      if (!disposed && version === runVersion) pollTimer = window.setTimeout(poll, 1500);
+    };
+
+    pollTimer = window.setTimeout(poll, 500);
   }
 
   function bind() {
-    qs('#ai-form', app).addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const button = qs('#generate-btn', app);
+    qs('#quick-create-btn', app).addEventListener('click', async () => {
+      const button = qs('#quick-create-btn', app);
+      const version = ++runVersion;
+      runStartedAt = Date.now();
       button.disabled = true;
-      button.textContent = 'Generating… (AI can take a few minutes)';
-      const data = new FormData(e.target);
+      button.textContent = 'Creating case...';
+      updateProgress('GENERATING_STORY');
+      startProgressClock();
+
       try {
-        const draft = await aiCaseApi.generate(
-          data.get('prompt'), Number(data.get('stageCount')), data.get('difficulty'), data.get('visualStyle'));
+        const previewDraft = await aiCaseApi.generate('', 4, 'medium');
+        if (disposed || version !== runVersion) return;
+        updateProgress(previewDraft.status);
+        startPolling(previewDraft.draftId, version);
+
+        const draft = await aiCaseApi.approveDraft(previewDraft.draftId);
+        if (disposed || version !== runVersion) return;
+        stopPolling();
+        stopProgressClock();
+        updateProgress(draft.status);
         if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
         draw(draft);
-        toast(draft.validationErrors?.length ? 'Generated, but the case failed validation.' : 'Case draft generated.', draft.validationErrors?.length ? 'error' : 'success');
+        const title = draft.publishedCase?.title || draft.caseTitle || draft.storyPreview?.title || 'Case';
+        if (draft.status === STATUS_PUBLISHED) {
+          toast(`"${title}" published.`, 'success', 7000);
+        } else {
+          toast('Case generation finished but did not publish. Check validation details.', 'error', 9000);
+        }
       } catch (err) {
+        if (disposed || version !== runVersion) return;
+        stopPolling();
+        stopProgressClock();
         toast(err.message, 'error', 7000);
         draw();
       }
@@ -123,22 +286,12 @@ export async function renderAdminAiPage(app) {
           toast(err.message, 'error');
         }
       }));
-
-    const bindDraftAction = (selector, action, label) =>
-      app.querySelectorAll(selector).forEach((btn) =>
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          try {
-            const summary = await action(btn.dataset.importDraft || btn.dataset.publishDraft);
-            toast(`"${summary.title}" ${label}.`, 'success');
-            if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-            draw();
-          } catch (err) {
-            toast(err.message, 'error');
-            btn.disabled = false;
-          }
-        }));
-    bindDraftAction('[data-import-draft]', (id) => aiCaseApi.importDraft(id), 'imported as draft');
-    bindDraftAction('[data-publish-draft]', (id) => aiCaseApi.publishDraft(id), 'imported and published');
   }
+
+  return () => {
+    disposed = true;
+    runVersion += 1;
+    stopPolling();
+    stopProgressClock();
+  };
 }

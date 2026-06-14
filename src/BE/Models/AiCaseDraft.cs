@@ -3,12 +3,29 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SirLocked.Api.Models;
 
+public static class AiVisualStyleDefaults
+{
+    public const string PixelDetectiveTheme = "SirLocked Victorian gaslight pixel-art detective game";
+
+    public const string PixelArtContract =
+        "2D cozy detective adventure game in chibi pixel-art style; fixed side-view camera at standing eye level; " +
+        "crisp nearest-neighbor pixel edges with no anti-aliasing, no blur, no painterly brushwork and no photorealism; " +
+        "clean dark outlines; flat cel shading with two-tone value steps; consistent sprite scale and pixel density; " +
+        "characters use oversized expressive heads around 40 percent of total height, compact bodies and readable silhouettes; " +
+        "muted Victorian palette using deep teal, warm sepia, brass gold and oxblood red; warm upper-left key light with restrained shadows.";
+}
+
 public static class AiDraftStatus
 {
-    public const string MockGeneratedValid = "MOCK_GENERATED_VALID";
-    public const string DeepseekGeneratedValid = "DEEPSEEK_GENERATED_VALID";
+    public const string GeneratingStory = "GENERATING_STORY";
+    public const string StoryAwaitingApproval = "STORY_AWAITING_APPROVAL";
+    public const string GeneratingFullCase = "GENERATING_FULL_CASE";
+    public const string OpenAiGeneratedValid = "OPENAI_GENERATED_VALID";
+    public const string GeneratingAssets = "GENERATING_ASSETS";
+    public const string AssetsGenerated = "ASSETS_GENERATED";
     public const string GeneratedInvalid = "GENERATED_INVALID";
     public const string Imported = "IMPORTED";
+    public const string Published = "PUBLISHED";
 }
 
 [BsonIgnoreExtraElements]
@@ -21,7 +38,9 @@ public class AiCaseDraft
     public string Prompt { get; set; } = string.Empty;
     public AiDraftSettings Settings { get; set; } = new();
     public string Status { get; set; } = string.Empty;
-    public string Provider { get; set; } = "mock";
+    public string Provider { get; set; } = "OpenAI";
+    public AiStoryPreview StoryPreview { get; set; } = new();
+    public AiAssetManifest AssetManifest { get; set; } = new();
     public string GeneratedJson { get; set; } = string.Empty;
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;
@@ -39,7 +58,51 @@ public class AiDraftSettings
 {
     public int StageCount { get; set; } = 4;
     public string Difficulty { get; set; } = "medium";
-    public string VisualStyle { get; set; } = "cinematic detective";
+    public string VisualStyle { get; set; } = AiVisualStyleDefaults.PixelDetectiveTheme;
+}
+
+[BsonIgnoreExtraElements]
+public class AiStoryPreview
+{
+    public string Title { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string Setting { get; set; } = string.Empty;
+    public string OpeningIncident { get; set; } = string.Empty;
+    public string Tone { get; set; } = string.Empty;
+    public string PlayerPromise { get; set; } = string.Empty;
+    public int EstimatedScenes { get; set; }
+    public List<string> KeyLocations { get; set; } = new();
+    public List<string> SuspectTeasers { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class AiAssetManifest
+{
+    public string AssetRootUrl { get; set; } = string.Empty;
+    public string AssetRootPath { get; set; } = string.Empty;
+    public string AssetPipelineVersion { get; set; } = string.Empty;
+    public string LogicModel { get; set; } = string.Empty;
+    public string ImageModel { get; set; } = string.Empty;
+    public List<AiGeneratedAsset> Assets { get; set; } = new();
+    public DateTime? GeneratedAt { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class AiGeneratedAsset
+{
+    public string AssetType { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public string PipelineVersion { get; set; } = string.Empty;
+    public int? SourceWidth { get; set; }
+    public int? SourceHeight { get; set; }
+    public int? NormalizedWidth { get; set; }
+    public int? NormalizedHeight { get; set; }
+    public bool? HasAlpha { get; set; }
+    public string ProcessingStatus { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]

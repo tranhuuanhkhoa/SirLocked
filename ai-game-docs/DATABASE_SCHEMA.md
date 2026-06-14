@@ -292,10 +292,20 @@ Only the latest 40 entries are returned in `GameStateResponse.actionLog`.
   "settings": {
     "stageCount": 4,
     "difficulty": "medium",
-    "visualStyle": "cinematic detective"
+    "visualStyle": "SirLocked Victorian gaslight pixel-art detective game"
   },
-  "status": "MOCK_GENERATED_VALID",
-  "provider": "mock",
+  "status": "PUBLISHED",
+  "provider": "OpenAI",
+  "storyPreview": {
+    "title": "Generated Preview",
+    "summary": "Spoiler-free creator-approved premise"
+  },
+  "assetManifest": {
+    "assetRootUrl": "/assets/ai-generated/case-ai-20260612000000",
+    "logicModel": "gpt-5.5",
+    "imageModel": "gpt-image-2",
+    "assets": []
+  },
   "generatedJson": "{...}",
   "caseId": "case-ai-20260612000000",
   "caseTitle": "Generated Case",
@@ -311,9 +321,14 @@ Only the latest 40 entries are returned in `GameStateResponse.actionLog`.
 AI draft statuses:
 
 - `GENERATED_INVALID`
-- `MOCK_GENERATED_VALID`
-- `DEEPSEEK_GENERATED_VALID`
+- `GENERATING_STORY`
+- `STORY_AWAITING_APPROVAL`
+- `GENERATING_FULL_CASE`
+- `OPENAI_GENERATED_VALID`
+- `GENERATING_ASSETS`
+- `ASSETS_GENERATED`
 - `IMPORTED`
+- `PUBLISHED`
 
 ## aiGenerationLogs
 
@@ -321,7 +336,7 @@ AI draft statuses:
 {
   "_id": "ObjectId",
   "draftId": "draft-id",
-  "provider": "Deepseek",
+  "provider": "OpenAI",
   "step": "GenerateCaseJson",
   "status": "SUCCESS",
   "prompt": "Prompt text truncated to 4000 chars",

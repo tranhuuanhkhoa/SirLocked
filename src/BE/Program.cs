@@ -17,7 +17,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
-builder.Services.Configure<AiSettings>(builder.Configuration.GetSection("AI"));
+builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
+builder.Services.PostConfigure<OpenAiSettings>(settings =>
+{
+    if (string.IsNullOrWhiteSpace(settings.ApiKey))
+    {
+        var fallbackKeys = new[]
+        {
+            builder.Configuration["OpenAI:ApiKey"],
+            builder.Configuration["OPENAI_API_KEY"],
+            builder.Configuration["AI:ChatGptApiKey"]
+        };
+        settings.ApiKey = fallbackKeys.FirstOrDefault(key => !string.IsNullOrWhiteSpace(key)) ?? string.Empty;
+    }
+});
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
@@ -37,7 +50,7 @@ builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
-builder.Services.AddHttpClient(AiCaseService.DeepseekHttpClientName);
+builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();

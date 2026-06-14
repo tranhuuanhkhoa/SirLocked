@@ -1,6 +1,6 @@
 # SirLocked Project Brief
 
-Last synced with code: 2026-06-12.
+Last synced with code: 2026-06-14.
 
 ## Product Goal
 
@@ -16,13 +16,13 @@ The project is intentionally demo-oriented. The priority is a reliable end-to-en
 | Database | MongoDB via `MongoDB.Driver` |
 | Frontend | Vite SPA, JavaScript hash routes, TypeScript/Phaser gameplay renderer |
 | Realtime | SignalR hub at `/hubs/game` |
-| AI case generation | Deepseek when `AI__DeepseekApiKey` exists, deterministic mock fallback otherwise |
+| AI case generation | OpenAI-only story preview approval, then full case generation and automatic publish |
 | Tests | xUnit backend tests and Python API smoke test |
 
 ## User Roles
 
 - `PLAYER`: public registration role. Can browse published cases, create/join rooms, play games.
-- `VIP`: can generate AI case drafts. Cannot list/import/publish all drafts unless promoted to admin.
+- `VIP`: can create AI story previews, approve them, and publish the generated case from the AI flow.
 - `ADMIN`: seeded on startup when no admin exists. Can manage users, validate/import/publish cases, seed demo data, and manage AI drafts.
 
 Default admin:
@@ -49,7 +49,7 @@ Default admin:
 - Revisit previously visited scenes through `go-to-scene`.
 - Final accusation with win/fail result.
 - SignalR lobby/gameplay events plus player pose broadcast.
-- AI/mock case draft generation, validation, export bundle, import, publish.
+- OpenAI story preview approval, full case generation, image/runtime generation, validation, export bundle, import, and publish.
 
 ## Out Of Scope For Current Code
 
@@ -57,7 +57,7 @@ Default admin:
 - More than two active players.
 - A full browser case editor.
 - Room chat persistence.
-- Real image generation or Cloudinary upload.
+- Cloudinary upload.
 - Separate gameplay-state collection.
 - Server-side asset upload pipeline.
 

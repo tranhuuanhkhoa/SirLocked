@@ -86,9 +86,11 @@ Last synced with code: 2026-06-12.
 
 ## AI Case Requirements
 
-- `ADMIN` and `VIP` can generate drafts.
-- Only `ADMIN` can list, inspect, import, or publish drafts.
-- Missing Deepseek key uses `MockCaseFactory`.
-- Deepseek generation is parsed, mechanically repaired, validated, retried once on validation failure, then falls back to mock if still invalid.
+- `ADMIN` and `VIP` can generate spoiler-free story previews.
+- `ADMIN` and `VIP` can approve a preview to generate full logic and publish the case automatically.
+- Only `ADMIN` can list and inspect all AI drafts.
+- Missing OpenAI configuration fails the AI request instead of using a mock fallback.
+- OpenAI full-case generation is parsed, mechanically repaired, validated, and retried once on validation failure.
+- Generated cases receive OpenAI image assets and OpenAI-vision runtime placement before publish.
 - Valid drafts are exported under `src/BE/GeneratedCaseJson/`.
-- Generated cases are saved as draft until imported/published by admin.
+- Generated cases are imported and published automatically after approval.

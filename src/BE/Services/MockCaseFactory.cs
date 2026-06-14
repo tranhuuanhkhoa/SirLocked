@@ -6,8 +6,8 @@ using SirLocked.Api.Models.Enums;
 namespace SirLocked.Api.Services;
 
 /// <summary>
-/// Deterministic offline case generator used as the AI fallback when no Deepseek key is configured
-/// and for demo seeding. Produces a structurally valid, fully playable GameCase: every scene can be
+/// Deterministic offline case generator used for demo seeding. Produces a structurally valid,
+/// fully playable GameCase: every scene can be
 /// completed in linear order and all final evidence is discoverable.
 /// </summary>
 public static class MockCaseFactory
