@@ -1,0 +1,37 @@
+[
+  {
+    "characterId": "char-1",
+    "name": "Dr. Vega",
+    "role": "Astronomer",
+    "imageUrl": "/assets/characters/dr-vega.jpg",
+    "description": "The head astronomer, a meticulous woman in her 50s. She seems nervous."
+  },
+  {
+    "characterId": "char-2",
+    "name": "Janitor Miller",
+    "role": "Janitor",
+    "imageUrl": "/assets/characters/janitor-miller.jpg",
+    "description": "The janitor, a gruff man in his 60s. He was mopping near the hall."
+  },
+  {
+    "characterId": "char-3",
+    "name": "Professor Reed",
+    "role": "Visiting Scholar",
+    "imageUrl": "/assets/characters/professor-reed.jpg",
+    "description": "A visiting professor from a rival university, interested in the gem."
+  },
+  {
+    "characterId": "char-4",
+    "name": "Technician Kim",
+    "role": "Technician",
+    "imageUrl": "/assets/characters/technician-kim.jpg",
+    "description": "A young technician who maintains the observatory equipment. He has a limp."
+  },
+  {
+    "characterId": "char-5",
+    "name": "Security Guard",
+    "role": "Security",
+    "imageUrl": "/assets/characters/security-guard.jpg",
+    "description": "The night security guard, a burly man with a flashlight. He claims to have seen nothing."
+  }
+]

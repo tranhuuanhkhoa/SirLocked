@@ -1,0 +1,112 @@
+[
+  {
+    "itemId": "item-broken-lock",
+    "name": "Broken Lock",
+    "description": "The vault\u0027s electronic lock is smashed, wires exposed.",
+    "inspectText": "The lock was forced open with a heavy tool. Sparks from the storm may have shorted it.",
+    "imageUrl": "/assets/items/broken-lock.jpg",
+    "unlockClueIds": [
+      "clue-lock-tampered"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-footprint",
+    "name": "Muddy Footprint",
+    "description": "A large, distinct footprint near the vault entrance.",
+    "inspectText": "The footprint has a unique tread pattern. Size 12, possibly a work boot.",
+    "imageUrl": "/assets/items/footprint.jpg",
+    "unlockClueIds": [
+      "clue-footprint-large"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-torn-cloth",
+    "name": "Torn Cloth",
+    "description": "A piece of blue wool fabric caught on the vault door hinge.",
+    "inspectText": "The cloth is high-quality wool, possibly from a uniform or coat.",
+    "imageUrl": "/assets/items/torn-cloth.jpg",
+    "unlockClueIds": [
+      "clue-cloth-wool"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-sapphire-box",
+    "name": "Empty Jewel Box",
+    "description": "The velvet-lined box that held the sapphire.",
+    "inspectText": "The box is empty. There\u0027s a thin layer of dust on the bottom, but the center is clean.",
+    "imageUrl": "/assets/items/sapphire-box.jpg",
+    "unlockClueIds": [
+      "clue-box-dust"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-keys",
+    "name": "Spare Keys",
+    "description": "A set of spare keys to the vault, kept in the curator\u0027s desk.",
+    "inspectText": "All keys are accounted for except one: the master key. A recent copy might exist.",
+    "imageUrl": "/assets/items/keys.jpg",
+    "unlockClueIds": [
+      "clue-keys-copy"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-umbrella",
+    "name": "Wet Umbrella",
+    "description": "A wet umbrella in the curator\u0027s office.",
+    "inspectText": "The umbrella is still dripping. But the curator said she didn\u0027t go out in the storm.",
+    "imageUrl": "/assets/items/umbrella.jpg",
+    "unlockClueIds": [
+      "clue-umbrella-dry"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-gloves",
+    "name": "Leather Gloves",
+    "description": "A pair of leather work gloves, found in the workshop.",
+    "inspectText": "The gloves have traces of mud and a faint chemical smell.",
+    "imageUrl": "/assets/items/gloves.jpg",
+    "unlockClueIds": [
+      "clue-gloves-mud"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-toolbox",
+    "name": "Toolbox",
+    "description": "A metal toolbox with various tools.",
+    "inspectText": "A heavy pry bar is missing from the set. The slot is empty.",
+    "imageUrl": "/assets/items/toolbox.jpg",
+    "unlockClueIds": [
+      "clue-toolbox-prybar"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-sapphire-stolen",
+    "name": "Stolen Sapphire",
+    "description": "The missing sapphire, hidden in a telescope mount.",
+    "inspectText": "The sapphire is flawless. It matches the description perfectly.",
+    "imageUrl": "/assets/items/sapphire-stolen.jpg",
+    "unlockClueIds": [
+      "clue-sapphire-found"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-rope",
+    "name": "Climbing Rope",
+    "description": "A long rope tied to the dome\u0027s railing.",
+    "inspectText": "The rope is new and shows signs of recent use. It leads down to the ground.",
+    "imageUrl": "/assets/items/rope.jpg",
+    "unlockClueIds": [
+      "clue-rope-used"
+    ],
+    "isCollectible": true
+  }
+]

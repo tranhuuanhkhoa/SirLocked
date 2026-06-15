@@ -1,0 +1,489 @@
+{
+  "id": "",
+  "caseId": "case-observatory-heist",
+  "title": "The Observatory Heist",
+  "summary": "During a fierce thunderstorm, the priceless Starfire Diamond is stolen from the locked observatory vault. Players must investigate the scene, interrogate suspects, and uncover the truth behind the theft.",
+  "status": "DRAFT",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/cases/observatory-heist.jpg",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "title": "Crime Scene Investigation",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-1",
+          "title": "The Vault Room",
+          "backgroundUrl": "/assets/scenes/vault-room.jpg",
+          "description": "The vault door is wide open. The diamond is missing. Rain hammers against the dome above. You see a broken glass case, a wet footprint, and a strange tool on the floor.",
+          "itemIds": [
+            "item-1",
+            "item-2",
+            "item-3"
+          ],
+          "characterIds": [
+            "char-1",
+            "char-2"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-1",
+              "type": "ITEM",
+              "targetId": "item-1",
+              "x": 30,
+              "y": 50,
+              "width": 10,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Broken glass",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-2",
+              "type": "ITEM",
+              "targetId": "item-2",
+              "x": 60,
+              "y": 70,
+              "width": 8,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Wet footprint",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-3",
+              "type": "ITEM",
+              "targetId": "item-3",
+              "x": 45,
+              "y": 80,
+              "width": 6,
+              "height": 6,
+              "zIndex": 1,
+              "label": "Lockpick set",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-1",
+              "item-2",
+              "item-3"
+            ],
+            "requiredClueIds": [
+              "clue-1",
+              "clue-2",
+              "clue-3"
+            ],
+            "requiredDialogueIds": []
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2",
+      "title": "Interviews and Alibis",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-2",
+          "title": "Observatory Lounge",
+          "backgroundUrl": "/assets/scenes/lounge.jpg",
+          "description": "The suspects are gathered. Dr. Vega looks nervous, Janitor Moore is defensive, and Visitor Chen seems calm. A coffee cup sits on the table.",
+          "itemIds": [
+            "item-4",
+            "item-5"
+          ],
+          "characterIds": [
+            "char-3",
+            "char-4",
+            "char-5"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-4",
+              "type": "ITEM",
+              "targetId": "item-4",
+              "x": 20,
+              "y": 40,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Coffee cup",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-5",
+              "type": "ITEM",
+              "targetId": "item-5",
+              "x": 75,
+              "y": 30,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Visitor log",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-4",
+              "item-5"
+            ],
+            "requiredClueIds": [
+              "clue-4",
+              "clue-5"
+            ],
+            "requiredDialogueIds": [
+              "dlg-1",
+              "dlg-2",
+              "dlg-3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3",
+      "title": "The Final Deduction",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-3",
+          "title": "Roof Access",
+          "backgroundUrl": "/assets/scenes/roof.jpg",
+          "description": "The storm has passed. You find a wet rope and a small cloth fragment near the roof hatch. A faint trail leads away.",
+          "itemIds": [
+            "item-6",
+            "item-7"
+          ],
+          "characterIds": [
+            "char-4"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-6",
+              "type": "ITEM",
+              "targetId": "item-6",
+              "x": 50,
+              "y": 60,
+              "width": 8,
+              "height": 15,
+              "zIndex": 1,
+              "label": "Rope",
+              "requiredClueIds": [
+                "clue-2"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-7",
+              "type": "ITEM",
+              "targetId": "item-7",
+              "x": 70,
+              "y": 40,
+              "width": 6,
+              "height": 6,
+              "zIndex": 1,
+              "label": "Cloth fragment",
+              "requiredClueIds": [
+                "clue-4"
+              ]
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-6",
+              "item-7"
+            ],
+            "requiredClueIds": [
+              "clue-6",
+              "clue-7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-4"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-1",
+      "name": "Dr. Vega",
+      "role": "Astronomer",
+      "imageUrl": "/assets/characters/dr-vega.jpg",
+      "description": "The head astronomer, nervous and sweating. Claims he was in his office during the theft."
+    },
+    {
+      "characterId": "char-2",
+      "name": "Janitor Moore",
+      "role": "Janitor",
+      "imageUrl": "/assets/characters/janitor-moore.jpg",
+      "description": "The janitor, defensive and shifty. Says he was cleaning the restrooms."
+    },
+    {
+      "characterId": "char-3",
+      "name": "Visitor Chen",
+      "role": "Visitor",
+      "imageUrl": "/assets/characters/visitor-chen.jpg",
+      "description": "A calm visitor who claims to be a tourist. He was in the gift shop."
+    },
+    {
+      "characterId": "char-4",
+      "name": "Security Guard Park",
+      "role": "Security",
+      "imageUrl": "/assets/characters/guard-park.jpg",
+      "description": "The security guard on duty. He was patrolling the perimeter."
+    },
+    {
+      "characterId": "char-5",
+      "name": "Assistant Kim",
+      "role": "Assistant",
+      "imageUrl": "/assets/characters/assistant-kim.jpg",
+      "description": "Dr. Vega\u0027s assistant, quiet and observant. She was in the library."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "name": "Broken glass",
+      "description": "Shards from the display case.",
+      "inspectText": "The glass is thick but shattered cleanly. There\u0027s a tiny trace of oil on the edge.",
+      "imageUrl": "/assets/items/broken-glass.jpg",
+      "unlockClueIds": [
+        "clue-1"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-2",
+      "name": "Wet footprint",
+      "description": "A muddy footprint near the vault.",
+      "inspectText": "The footprint is large, size 12, with a distinct tread pattern. It\u0027s still wet.",
+      "imageUrl": "/assets/items/wet-footprint.jpg",
+      "unlockClueIds": [
+        "clue-2"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-3",
+      "name": "Lockpick set",
+      "description": "A professional lockpick set.",
+      "inspectText": "High-quality lockpicks, slightly worn. One pick has a small notch.",
+      "imageUrl": "/assets/items/lockpick-set.jpg",
+      "unlockClueIds": [
+        "clue-3"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-4",
+      "name": "Coffee cup",
+      "description": "A half-empty coffee cup with lipstick stain.",
+      "inspectText": "The cup is warm. The lipstick shade is a deep red, and there\u0027s a faint smell of almonds.",
+      "imageUrl": "/assets/items/coffee-cup.jpg",
+      "unlockClueIds": [
+        "clue-4"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-5",
+      "name": "Visitor log",
+      "description": "The sign-in sheet for today.",
+      "inspectText": "Only Dr. Vega, Janitor Moore, and Visitor Chen signed in. The times show Chen arrived at 7pm, Moore at 6:30pm, Vega at 6pm. The theft was at 7:30pm.",
+      "imageUrl": "/assets/items/visitor-log.jpg",
+      "unlockClueIds": [
+        "clue-5"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-6",
+      "name": "Rope",
+      "description": "A wet nylon rope tied to the roof hatch.",
+      "inspectText": "The rope is strong and has a knot that looks like a sailor\u0027s knot. It\u0027s wet from the rain.",
+      "imageUrl": "/assets/items/rope.jpg",
+      "unlockClueIds": [
+        "clue-6"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-7",
+      "name": "Cloth fragment",
+      "description": "A torn piece of fabric caught on the hatch.",
+      "inspectText": "Dark blue cotton, possibly from a uniform. It has a small stain that smells like chemicals.",
+      "imageUrl": "/assets/items/cloth-fragment.jpg",
+      "unlockClueIds": [
+        "clue-7"
+      ],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-1",
+      "title": "Oil on glass",
+      "content": "The glass shards have traces of machine oil, suggesting a tool was used.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-1",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-2",
+      "title": "Footprint size",
+      "content": "The footprint is size 12, which matches Janitor Moore\u0027s shoes (he wears size 12 work boots).",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-2",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-3",
+      "title": "Notched lockpick",
+      "content": "The lockpick set has a notch on one pick, indicating it was custom-made.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-3",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-4",
+      "title": "Lipstick and almonds",
+      "content": "The coffee cup has a deep red lipstick and almond scent. Assistant Kim wears that shade and uses almond-scented lotion.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-4",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-5",
+      "title": "Timeline inconsistency",
+      "content": "Visitor Chen signed in at 7pm, but the theft was at 7:30pm. He had time to reach the vault if he went quickly.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-5",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-6",
+      "title": "Sailor\u0027s knot",
+      "content": "The knot on the rope is a bowline, commonly used by sailors. Visitor Chen was a sailor before coming here.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-6",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-7",
+      "title": "Chemical stain",
+      "content": "The cloth fragment has a chemical stain that matches the cleaning solvent used by Janitor Moore.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-7",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-8",
+      "title": "Alibi check",
+      "content": "Dr. Vega claimed he was in his office, but the security camera shows him near the vault at 7:25pm.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-3",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-9",
+      "title": "Motive financial",
+      "content": "Dr. Vega had significant gambling debts and needed money urgently.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-1",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-10",
+      "title": "Motive revenge",
+      "content": "Janitor Moore was fired from his previous job for theft and holds a grudge against the wealthy.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "dlg-2",
+      "sourceType": "dialogue"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-1",
+      "characterId": "char-1",
+      "question": "Dr. Vega, where were you during the theft?",
+      "answer": "I was in my office, preparing for the night\u0027s observations. I didn\u0027t hear anything because of the storm.",
+      "requiredClueIds": [],
+      "unlockClueIds": [
+        "clue-9"
+      ]
+    },
+    {
+      "dialogueId": "dlg-2",
+      "characterId": "char-2",
+      "question": "Janitor Moore, what were you doing?",
+      "answer": "I was cleaning the restrooms on the ground floor. I have witnesses? No, everyone was elsewhere.",
+      "requiredClueIds": [],
+      "unlockClueIds": [
+        "clue-10"
+      ]
+    },
+    {
+      "dialogueId": "dlg-3",
+      "characterId": "char-3",
+      "question": "Visitor Chen, can you confirm your whereabouts?",
+      "answer": "I was in the gift shop buying souvenirs. The clerk can vouch for me. But I did see Dr. Vega near the vault around 7:25pm.",
+      "requiredClueIds": [
+        "clue-5"
+      ],
+      "unlockClueIds": [
+        "clue-8"
+      ]
+    },
+    {
+      "dialogueId": "dlg-4",
+      "characterId": "char-4",
+      "question": "Security Guard Park, did you see anything unusual?",
+      "answer": "I saw a figure on the roof during the storm. Couldn\u0027t identify who, but they were wearing a dark blue uniform.",
+      "requiredClueIds": [
+        "clue-6"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-1",
+    "motive": "Dr. Vega had gambling debts and needed the diamond to pay them off.",
+    "method": "Dr. Vega used a custom lockpick to open the vault, smashed the glass with a tool (leaving oil), and escaped through the roof using a rope. He left a wet footprint because of the rain.",
+    "requiredEvidenceIds": [
+      "clue-3",
+      "clue-7",
+      "clue-8"
+    ],
+    "winEnding": "You present the evidence: the custom lockpick, the chemical stain matching his uniform, and the security footage. Dr. Vega confesses. Justice is served.",
+    "failEnding": "You accuse the wrong person. The real culprit escapes with the diamond. The case remains unsolved."
+  },
+  "createdAt": "2026-06-11T17:22:15.6580269Z",
+  "updatedAt": "2026-06-11T17:22:15.658027Z"
+}

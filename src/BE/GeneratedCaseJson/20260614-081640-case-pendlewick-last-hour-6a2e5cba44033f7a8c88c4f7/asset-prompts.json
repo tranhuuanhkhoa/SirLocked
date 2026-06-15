@@ -1,0 +1,104 @@
+{
+  "visualStyle": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms",
+  "imageModel": "gpt-image-2",
+  "cover": {
+    "target": "/assets/ai-generated/case-pendlewick-last-hour/cases/cover.png",
+    "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms cover for: The Last Hour of Pendlewick Workshop. A short cooperative locked-room mystery in a forgotten Victorian clockmaker workshop. A wealthy patron has been found dead beside a stopped astronomical clock, with three suspects, a missing brass gear, and a broken window that may be less helpful than it first appears."
+  },
+  "backgrounds": [
+    {
+      "sceneId": "scene-1",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-1.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms background, empty playable detective game scene with clear open floor and reserved uncluttered areas for characters/items, Main Workshop: Dusty benches crowd the warm-lit room. The patron lies near Pendlewick\u0027s grand astronomical clock, while the locked front door and silent mechanisms make the workshop feel like a puzzle box."
+    },
+    {
+      "sceneId": "scene-2",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-2.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms background, empty playable detective game scene with clear open floor and reserved uncluttered areas for characters/items, Display Alcove: Finished clocks gleam in glass cases. Client cards, appointment notes, and an old apprentice drawing make this alcove feel more orderly than the crime scene."
+    },
+    {
+      "sceneId": "scene-3",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-3.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms background, empty playable detective game scene with clear open floor and reserved uncluttered areas for characters/items, Rear Repair Nook: A cramped repair corner holds spare parts, oil tins, and a narrow ladder. The practical clutter shows who recently moved through the workshop after the lamps were lit."
+    },
+    {
+      "sceneId": "scene-4",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-4.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms background, empty playable detective game scene with clear open floor and reserved uncluttered areas for characters/items, Broken Window Corner: Cold air seeps through a cracked pane above the alley. The glass, curtain cord, and one carefully guarded folio decide whether the obvious escape route is real or staged."
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-constable-reed",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-constable-reed-portrait.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background game character sprite and portrait, Constable Jonah Reed, Local constable and case guide: A steady village constable who keeps the scene calm, notes the order of discoveries, and helps players test whether the locked room was truly locked."
+    },
+    {
+      "characterId": "char-eliza-vane",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-eliza-vane-portrait.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background game character sprite and portrait, Eliza Vane, Clockmaker\u0027s former apprentice: A clever, anxious mechanic who once helped Pendlewick maintain the astronomical clock and resents being treated like a convenient suspect."
+    },
+    {
+      "characterId": "char-crispin-hale",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-crispin-hale-portrait.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background game character sprite and portrait, Crispin Hale, The patron\u0027s private secretary: A tidy, silver-tongued secretary who speaks carefully about the late patron\u0027s affairs and keeps a leather folio close at hand."
+    },
+    {
+      "characterId": "char-nora-bell",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-nora-bell-portrait.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background game character sprite and portrait, Nora Bell, Workshop caretaker: A practical caretaker with oil-dark sleeves, a tired manner, and a sharp memory for which doors, lamps, and windows were disturbed."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-body",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-body.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Patron\u0027s Body: The wealthy patron lies beside the base of the astronomical clock, his evening coat dusted with brass filings."
+    },
+    {
+      "itemId": "item-astronomical-clock",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-astronomical-clock.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Stopped Astronomical Clock: Pendlewick\u0027s grand clock shows moons, planets, and an alarm dial frozen beneath a dusty glass face."
+    },
+    {
+      "itemId": "item-door-latch",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-door-latch.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Front Door Latch: A brass latch on the main workshop door, polished at the handle and scratched near the catch."
+    },
+    {
+      "itemId": "item-appointment-ledger",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-appointment-ledger.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Appointment Ledger: A neat ledger of private appointments, invoices, and notes for wealthy clients."
+    },
+    {
+      "itemId": "item-apprentice-blueprint",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-apprentice-blueprint.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Old Mechanism Blueprint: A folded apprentice drawing of Pendlewick\u0027s astronomical clock, annotated in small, careful handwriting."
+    },
+    {
+      "itemId": "item-ladder",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-ladder.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Narrow Repair Ladder: A small ladder used to reach the clock\u0027s upper panels and the high workshop windows."
+    },
+    {
+      "itemId": "item-numbered-parts-tray",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-numbered-parts-tray.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Numbered Parts Tray: A shallow tray with labeled slots for tiny brass wheels, screws, pins, and gear blanks."
+    },
+    {
+      "itemId": "item-broken-window",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-broken-window.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Broken Window: A small high window is cracked open above a narrow alley, with glass scattered below the sill."
+    },
+    {
+      "itemId": "item-curtain-cord",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-curtain-cord.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Curtain Cord: A tasseled cord hangs beside the broken window\u0027s heavy curtain."
+    },
+    {
+      "itemId": "item-secretary-folio",
+      "target": "/assets/ai-generated/case-pendlewick-last-hour/items/item-secretary-folio.png",
+      "prompt": "pixel-art Victorian detective game, warm lamplight, readable side-scrolling rooms transparent-background evidence item sprite, Secretary\u0027s Leather Folio: A slim leather folio Crispin Hale keeps under one arm, stuffed with patron papers and tied with a ribbon."
+    }
+  ]
+}

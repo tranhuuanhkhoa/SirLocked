@@ -1,0 +1,37 @@
+[
+  {
+    "characterId": "char-1",
+    "name": "Dr. Vega",
+    "role": "Astronomer",
+    "imageUrl": "/assets/characters/dr-vega.jpg",
+    "description": "The head astronomer, nervous and sweating. Claims he was in his office during the theft."
+  },
+  {
+    "characterId": "char-2",
+    "name": "Janitor Moore",
+    "role": "Janitor",
+    "imageUrl": "/assets/characters/janitor-moore.jpg",
+    "description": "The janitor, defensive and shifty. Says he was cleaning the restrooms."
+  },
+  {
+    "characterId": "char-3",
+    "name": "Visitor Chen",
+    "role": "Visitor",
+    "imageUrl": "/assets/characters/visitor-chen.jpg",
+    "description": "A calm visitor who claims to be a tourist. He was in the gift shop."
+  },
+  {
+    "characterId": "char-4",
+    "name": "Security Guard Park",
+    "role": "Security",
+    "imageUrl": "/assets/characters/guard-park.jpg",
+    "description": "The security guard on duty. He was patrolling the perimeter."
+  },
+  {
+    "characterId": "char-5",
+    "name": "Assistant Kim",
+    "role": "Assistant",
+    "imageUrl": "/assets/characters/assistant-kim.jpg",
+    "description": "Dr. Vega\u0027s assistant, quiet and observant. She was in the library."
+  }
+]

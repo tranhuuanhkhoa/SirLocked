@@ -1,0 +1,113 @@
+[
+  {
+    "itemId": "item-body",
+    "name": "Patron\u0027s Body",
+    "description": "The wealthy patron lies beside the base of the astronomical clock, his evening coat dusted with brass filings.",
+    "inspectText": "There are no signs of a struggle across the room. A small crescent bruise near the temple matches the curve of a clock weight rather than a hand weapon.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-body.png",
+    "unlockClueIds": [
+      "clue-weight-shaped-injury"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-astronomical-clock",
+    "name": "Stopped Astronomical Clock",
+    "description": "Pendlewick\u0027s grand clock shows moons, planets, and an alarm dial frozen beneath a dusty glass face.",
+    "inspectText": "The clock stopped at 8:47, exactly where the alarm pin is set. One brass socket in the calendar train is empty, and the alarm hammer is half-released.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-astronomical-clock.png",
+    "unlockClueIds": [
+      "clue-clock-stopped-at-alarm",
+      "clue-empty-gear-socket"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-door-latch",
+    "name": "Front Door Latch",
+    "description": "A brass latch on the main workshop door, polished at the handle and scratched near the catch.",
+    "inspectText": "A thin waxy residue clings to the latch notch. Fine parallel scratches suggest a thread was pulled through the gap after the door was shut.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-door-latch.png",
+    "unlockClueIds": [
+      "clue-thread-marked-latch"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-appointment-ledger",
+    "name": "Appointment Ledger",
+    "description": "A neat ledger of private appointments, invoices, and notes for wealthy clients.",
+    "inspectText": "Tonight\u0027s entry names the patron and mentions a private review of \u0027Hale\u0027s accounts before the new trust is signed.\u0027 The next line is underlined twice.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-appointment-ledger.png",
+    "unlockClueIds": [
+      "clue-ledger-threatened-secretary"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-apprentice-blueprint",
+    "name": "Old Mechanism Blueprint",
+    "description": "A folded apprentice drawing of Pendlewick\u0027s astronomical clock, annotated in small, careful handwriting.",
+    "inspectText": "The drawing marks the calendar gear as removable during service. A note says removing it stalls the visible dial without breaking the alarm weight release.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-apprentice-blueprint.png",
+    "unlockClueIds": [
+      "clue-blueprint-gear-note"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-ladder",
+    "name": "Narrow Repair Ladder",
+    "description": "A small ladder used to reach the clock\u0027s upper panels and the high workshop windows.",
+    "inspectText": "Fresh amber clock oil shines on the third rung. The smear is too high for ordinary floor sweeping and too fresh to be old workshop grime.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-ladder.png",
+    "unlockClueIds": [
+      "clue-oil-on-ladder"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-numbered-parts-tray",
+    "name": "Numbered Parts Tray",
+    "description": "A shallow tray with labeled slots for tiny brass wheels, screws, pins, and gear blanks.",
+    "inspectText": "Slot nineteen is empty and ringed with the same bright oil as the astronomical clock. Its label matches the size stamped on the missing calendar gear socket.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-numbered-parts-tray.png",
+    "unlockClueIds": [
+      "clue-numbered-gear-missing"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-broken-window",
+    "name": "Broken Window",
+    "description": "A small high window is cracked open above a narrow alley, with glass scattered below the sill.",
+    "inspectText": "One clean footprint in alley dust points away from the workshop. But most of the broken glass lies inside, and the sill dust is barely disturbed.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-broken-window.png",
+    "unlockClueIds": [
+      "clue-alley-footprint"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-curtain-cord",
+    "name": "Curtain Cord",
+    "description": "A tasseled cord hangs beside the broken window\u0027s heavy curtain.",
+    "inspectText": "Tiny glass slivers are caught in the inner fold of the drawn curtain. The pane was broken while the curtain was already closed, from inside the room.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-curtain-cord.png",
+    "unlockClueIds": [
+      "clue-glass-cut-drawn-curtain"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-secretary-folio",
+    "name": "Secretary\u0027s Leather Folio",
+    "description": "A slim leather folio Crispin Hale keeps under one arm, stuffed with patron papers and tied with a ribbon.",
+    "inspectText": "Behind the account papers is a wrapped brass gear stamped with the number nineteen. Its teeth are oily and match the empty socket in Pendlewick\u0027s clock.",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/items/item-secretary-folio.png",
+    "unlockClueIds": [
+      "clue-gear-in-secretary-folio"
+    ],
+    "isCollectible": true
+  }
+]

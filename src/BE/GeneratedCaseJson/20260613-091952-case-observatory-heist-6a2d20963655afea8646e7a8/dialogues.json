@@ -1,0 +1,71 @@
+[
+  {
+    "dialogueId": "dlg-curator-1",
+    "characterId": "char-curator",
+    "question": "What happened?",
+    "answer": "I was in my office reviewing star charts. I heard a loud crash during the thunder, then the alarm. When I got here, the vault was open and the sapphire was gone.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-assistant-1",
+    "characterId": "char-assistant",
+    "question": "Where were you?",
+    "answer": "I was in the workshop, working on a telescope. I didn\u0027t hear anything unusual until the alarm.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-security-1",
+    "characterId": "char-security",
+    "question": "What did you see?",
+    "answer": "I was on patrol. The storm knocked out power briefly. When I came back, the vault door was open. I saw a shadow on the roof, but it was gone.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-security-alibi"
+    ]
+  },
+  {
+    "dialogueId": "dlg-curator-2",
+    "characterId": "char-curator",
+    "question": "Why is your umbrella wet?",
+    "answer": "I... I stepped outside briefly to check the storm. It\u0027s nothing.",
+    "requiredClueIds": [
+      "clue-umbrella-dry"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-assistant-2",
+    "characterId": "char-assistant",
+    "question": "Tell me about your debts.",
+    "answer": "I had some financial trouble, but I was managing. The curator refused to help. I didn\u0027t steal the sapphire!",
+    "requiredClueIds": [
+      "clue-keys-copy"
+    ],
+    "unlockClueIds": [
+      "clue-assistant-motive"
+    ]
+  },
+  {
+    "dialogueId": "dlg-security-2",
+    "characterId": "char-security",
+    "question": "The rope on the roof?",
+    "answer": "I didn\u0027t put it there. It must have been the thief. I was on the ground all night.",
+    "requiredClueIds": [
+      "clue-rope-used"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-assistant-3",
+    "characterId": "char-assistant",
+    "question": "The sapphire was in your telescope mount!",
+    "answer": "I... I found it and hid it for safekeeping. I was going to return it!",
+    "requiredClueIds": [
+      "clue-sapphire-found",
+      "clue-assistant-motive"
+    ],
+    "unlockClueIds": []
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "dialogueId": "dlg-1",
+    "characterId": "char-1",
+    "question": "Dr. Vega, where were you when the theft occurred?",
+    "answer": "I was in my office reviewing star charts. I heard the alarm but thought it was thunder.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-4"
+    ]
+  },
+  {
+    "dialogueId": "dlg-2",
+    "characterId": "char-3",
+    "question": "Professor Reed, what brings you here?",
+    "answer": "I was invited to study the gem. I was in the library reading when the alarm went off.",
+    "requiredClueIds": [
+      "clue-3"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-3",
+    "characterId": "char-3",
+    "question": "Did you see anyone suspicious?",
+    "answer": "I saw the janitor near the main hall around 11:45. He seemed to be in a hurry.",
+    "requiredClueIds": [
+      "clue-4"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-4",
+    "characterId": "char-4",
+    "question": "Technician Kim, why were you in the library?",
+    "answer": "I was fixing a bookshelf. I noticed the map on the table but didn\u0027t touch it.",
+    "requiredClueIds": [
+      "clue-5"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-5",
+    "characterId": "char-5",
+    "question": "Security Guard, did you hear anything?",
+    "answer": "I was making rounds. I heard a crash from the main hall but by the time I got there, the gem was gone.",
+    "requiredClueIds": [
+      "clue-7"
+    ],
+    "unlockClueIds": [
+      "clue-8"
+    ]
+  },
+  {
+    "dialogueId": "dlg-6",
+    "characterId": "char-5",
+    "question": "Why is your hair on the crowbar?",
+    "answer": "I... I must have leaned against it earlier. I didn\u0027t steal anything!",
+    "requiredClueIds": [
+      "clue-7",
+      "clue-8"
+    ],
+    "unlockClueIds": []
+  }
+]

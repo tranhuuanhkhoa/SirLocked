@@ -1,0 +1,102 @@
+[
+  {
+    "itemId": "item-1",
+    "name": "Torn Festival Ribbon",
+    "description": "A strip of green ribbon snagged near the musicians\u2019 awning.",
+    "inspectText": "The ribbon matches the color worn by the festival musicians, but the torn edge is stretched around a splinter rather than cut by a blade.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-1.png",
+    "unlockClueIds": [
+      "clue-1"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-2",
+    "name": "Wet Footprint Mold",
+    "description": "A preserved impression from the tidewarden\u2019s office floorboards.",
+    "inspectText": "The print is too clean for a panicked intruder and carries the grid pattern of official harbor-issue tide boots kept in the office cupboard.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-2.png",
+    "unlockClueIds": [
+      "clue-3"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-3",
+    "name": "Empty Ledger Chain",
+    "description": "The brass chain that once secured the pearl ledger to the counting desk.",
+    "inspectText": "The clasp is scratched around the keyway but not broken. Someone opened it with a fitting key, then closed it again to make the absence look hurried.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-3.png",
+    "unlockClueIds": [
+      "clue-4"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-4",
+    "name": "Dry Bell Rope",
+    "description": "The main pull rope hanging beneath the brass fog bell.",
+    "inspectText": "Despite the claimed twelve strokes, the rope fibers are dry, stiff, and undisturbed. No recent hand, rain, or strain has moved it.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-4.png",
+    "unlockClueIds": [
+      "clue-5"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-5",
+    "name": "Clockwork Striker Pin",
+    "description": "A small maintenance pin wedged near the restored bell striker.",
+    "inspectText": "A smear of harbor-office sealing wax held the pin just long enough to delay the striker. Once loosened, the mechanism would ring twelve times without anyone pulling the rope.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-5.png",
+    "unlockClueIds": [
+      "clue-6"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-6",
+    "name": "Tarred Caulking Rag",
+    "description": "A sticky rag found in Tess Rill\u2019s shed, black with pitch.",
+    "inspectText": "The smell matches the public bellhouse repair pitch rather than Tess\u2019s boatyard tar. It explains the dark smears near the bell without proving Tess touched the mechanism that night.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-6.png",
+    "unlockClueIds": [
+      "clue-7"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-7",
+    "name": "Tide Chart Slate",
+    "description": "A chalked slate showing the night\u2019s tide windows around Gullmarsh Harbor.",
+    "inspectText": "Low water exposed the lighthouse causeway from shortly after the bell rang until the tide turned. A person could cross, hide something, and return before most festival-goers left the market.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-7.png",
+    "unlockClueIds": [
+      "clue-8"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-8",
+    "name": "Blue Lantern Shard",
+    "description": "A curved piece of blue glass found between causeway stones.",
+    "inspectText": "The shard is from an assistant tidewarden\u2019s signal lantern, a model issued for customs work and distinct from the amber lamps carried by lighthouse staff.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-8.png",
+    "unlockClueIds": [
+      "clue-9"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-9",
+    "name": "Recovered Pearl Ledger",
+    "description": "The missing pearl ledger wrapped in an oilskin satchel behind lighthouse shelving.",
+    "inspectText": "The satchel is marked with Edda Vale\u2019s initials beneath salt crust. Inside, altered entries show matching ink, pressure, and letter forms to her office hand.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-9.png",
+    "unlockClueIds": [
+      "clue-10",
+      "clue-11"
+    ],
+    "isCollectible": true
+  }
+]

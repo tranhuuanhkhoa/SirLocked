@@ -1,0 +1,82 @@
+[
+  {
+    "clueId": "clue-1",
+    "title": "Cloth Fragment",
+    "content": "A small piece of blue fabric, likely from a lab coat.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-1",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-2",
+    "title": "Red Clay",
+    "content": "The footprint contains red clay, which is found only near the rooftop garden.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-2",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-3",
+    "title": "Umbrella Dry Floor",
+    "content": "The umbrella is wet, but the floor is dry, indicating it was brought inside after the rain started, possibly by someone who went out during the storm.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-3",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-4",
+    "title": "Midnight Meeting",
+    "content": "The note says \u0027Meet me at midnight. Bring the key.\u0027 The key likely opens the display case.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": true,
+    "source": "item-4",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-5",
+    "title": "Map Route",
+    "content": "The map shows a route from the main hall to the roof. The red clay smudge matches the footprint clay.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-5",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-6",
+    "title": "Torn Glove",
+    "content": "The torn glove suggests the thief might have injured their finger. The metal polish smell indicates handling of metal objects.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-6",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-7",
+    "title": "Crowbar Hair",
+    "content": "A hair caught on the crowbar. It is black and short, possibly from the security guard.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-7",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-8",
+    "title": "Gem Fragment Match",
+    "content": "The fragment matches the missing gem. It was found on the roof, suggesting the thief went there.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-8",
+    "sourceType": "item"
+  }
+]

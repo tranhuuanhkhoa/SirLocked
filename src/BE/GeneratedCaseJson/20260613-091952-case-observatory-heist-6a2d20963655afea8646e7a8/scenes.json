@@ -1,0 +1,273 @@
+[
+  {
+    "sceneId": "scene-1",
+    "title": "Observatory Entrance",
+    "backgroundUrl": "/assets/scenes/observatory-entrance.jpg",
+    "description": "Rain lashes against the grand entrance. The vault door is ajar, and the sapphire is gone. The staff huddle nervously.",
+    "itemIds": [
+      "item-broken-lock",
+      "item-footprint"
+    ],
+    "characterIds": [
+      "char-curator",
+      "char-assistant"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-lock",
+        "type": "ITEM",
+        "targetId": "item-broken-lock",
+        "x": 30,
+        "y": 50,
+        "width": 10,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Broken Lock",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-footprint",
+        "type": "ITEM",
+        "targetId": "item-footprint",
+        "x": 70,
+        "y": 80,
+        "width": 12,
+        "height": 10,
+        "zIndex": 1,
+        "label": "Muddy Footprint",
+        "requiredClueIds": []
+      }
+    ],
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-broken-lock",
+        "item-footprint"
+      ],
+      "requiredClueIds": [
+        "clue-lock-tampered",
+        "clue-footprint-large"
+      ],
+      "requiredDialogueIds": [
+        "dlg-curator-1",
+        "dlg-assistant-1"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-2",
+    "title": "Vault Room",
+    "backgroundUrl": "/assets/scenes/vault-room.jpg",
+    "description": "The vault interior is dark, lit only by emergency lights. The empty pedestal where the sapphire once sat is covered in dust.",
+    "itemIds": [
+      "item-torn-cloth",
+      "item-sapphire-box"
+    ],
+    "characterIds": [
+      "char-security"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-cloth",
+        "type": "ITEM",
+        "targetId": "item-torn-cloth",
+        "x": 45,
+        "y": 60,
+        "width": 8,
+        "height": 6,
+        "zIndex": 1,
+        "label": "Torn Cloth",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-box",
+        "type": "ITEM",
+        "targetId": "item-sapphire-box",
+        "x": 55,
+        "y": 40,
+        "width": 10,
+        "height": 12,
+        "zIndex": 1,
+        "label": "Empty Jewel Box",
+        "requiredClueIds": []
+      }
+    ],
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-torn-cloth",
+        "item-sapphire-box"
+      ],
+      "requiredClueIds": [
+        "clue-cloth-wool",
+        "clue-box-dust"
+      ],
+      "requiredDialogueIds": [
+        "dlg-security-1"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-3",
+    "title": "Curator\u0027s Office",
+    "backgroundUrl": "/assets/scenes/curator-office.jpg",
+    "description": "A cozy office filled with star charts. The curator seems anxious.",
+    "itemIds": [
+      "item-keys",
+      "item-umbrella"
+    ],
+    "characterIds": [
+      "char-curator"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-keys",
+        "type": "ITEM",
+        "targetId": "item-keys",
+        "x": 20,
+        "y": 70,
+        "width": 8,
+        "height": 10,
+        "zIndex": 1,
+        "label": "Spare Keys",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-umbrella",
+        "type": "ITEM",
+        "targetId": "item-umbrella",
+        "x": 80,
+        "y": 30,
+        "width": 10,
+        "height": 15,
+        "zIndex": 1,
+        "label": "Wet Umbrella",
+        "requiredClueIds": []
+      }
+    ],
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-keys",
+        "item-umbrella"
+      ],
+      "requiredClueIds": [
+        "clue-keys-copy",
+        "clue-umbrella-dry"
+      ],
+      "requiredDialogueIds": [
+        "dlg-curator-2"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-4",
+    "title": "Assistant\u0027s Workshop",
+    "backgroundUrl": "/assets/scenes/workshop.jpg",
+    "description": "A cluttered workshop with tools and a half-finished telescope.",
+    "itemIds": [
+      "item-gloves",
+      "item-toolbox"
+    ],
+    "characterIds": [
+      "char-assistant"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-gloves",
+        "type": "ITEM",
+        "targetId": "item-gloves",
+        "x": 60,
+        "y": 40,
+        "width": 8,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Leather Gloves",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-toolbox",
+        "type": "ITEM",
+        "targetId": "item-toolbox",
+        "x": 40,
+        "y": 70,
+        "width": 12,
+        "height": 10,
+        "zIndex": 1,
+        "label": "Toolbox",
+        "requiredClueIds": []
+      }
+    ],
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-gloves",
+        "item-toolbox"
+      ],
+      "requiredClueIds": [
+        "clue-gloves-mud",
+        "clue-toolbox-prybar"
+      ],
+      "requiredDialogueIds": [
+        "dlg-assistant-2"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-5",
+    "title": "Rooftop Observatory",
+    "backgroundUrl": "/assets/scenes/rooftop-observatory.jpg",
+    "description": "The storm rages above. The telescope dome is open. A figure lurks in the shadows.",
+    "itemIds": [
+      "item-sapphire-stolen",
+      "item-rope"
+    ],
+    "characterIds": [
+      "char-security",
+      "char-assistant"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-sapphire",
+        "type": "ITEM",
+        "targetId": "item-sapphire-stolen",
+        "x": 50,
+        "y": 30,
+        "width": 6,
+        "height": 6,
+        "zIndex": 1,
+        "label": "Stolen Sapphire",
+        "requiredClueIds": [
+          "clue-box-dust"
+        ]
+      },
+      {
+        "hotspotId": "hotspot-rope",
+        "type": "ITEM",
+        "targetId": "item-rope",
+        "x": 70,
+        "y": 80,
+        "width": 10,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Climbing Rope",
+        "requiredClueIds": []
+      }
+    ],
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-sapphire-stolen",
+        "item-rope"
+      ],
+      "requiredClueIds": [
+        "clue-sapphire-found",
+        "clue-rope-used"
+      ],
+      "requiredDialogueIds": [
+        "dlg-security-2",
+        "dlg-assistant-3"
+      ]
+    }
+  }
+]
