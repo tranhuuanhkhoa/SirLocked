@@ -116,10 +116,41 @@ public class AiCaseService : IAiCaseService
             throw ApiException.BadRequest("Only a story preview waiting for approval can generate the full case.");
         }
 
+        return await GenerateFullCaseAndPublishAsync(draft);
+    }
+
+    public async Task<AiDraftResponse> ContinueDraftAsync(string draftId)
+    {
+        EnsureOpenAiConfigured();
+
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+
+        if (draft.Status == AiDraftStatus.Published)
+        {
+            return AiDraftResponse.From(draft);
+        }
+
+        if (!string.IsNullOrWhiteSpace(draft.GeneratedJson))
+        {
+            return await GenerateAssetsFromStoredJsonAndPublishAsync(draft, forceRegenerate: false);
+        }
+
+        if ((draft.Status is AiDraftStatus.StoryAwaitingApproval or AiDraftStatus.GeneratedInvalid)
+            && HasSavedStoryPreview(draft.StoryPreview))
+        {
+            return await GenerateFullCaseAndPublishAsync(draft);
+        }
+
+        throw ApiException.BadRequest("This AI draft does not have enough saved data to continue. Create a new case instead.");
+    }
+
+    private async Task<AiDraftResponse> GenerateFullCaseAndPublishAsync(AiCaseDraft draft)
+    {
         try
         {
             await _db.AiCaseDrafts.UpdateOneAsync(
-                d => d.Id == draftId,
+                d => d.Id == draft.Id,
                 Builders<AiCaseDraft>.Update
                     .Set(d => d.Status, AiDraftStatus.GeneratingFullCase)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
@@ -151,49 +182,21 @@ public class AiCaseService : IAiCaseService
                 return AiDraftResponse.From(failed);
             }
 
+            var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
             await _db.AiCaseDrafts.UpdateOneAsync(
                 d => d.Id == draft.Id,
                 Builders<AiCaseDraft>.Update
                     .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
+                    .Set(d => d.GeneratedJson, normalizedJson)
+                    .Set(d => d.CaseId, gameCase.CaseId)
+                    .Set(d => d.CaseTitle, gameCase.Title)
+                    .Set(d => d.ValidationErrors, new List<string>())
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
 
-            var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate: false);
-            draft.AssetManifest = assetManifest;
-            validation = _validator.Validate(gameCase);
-            var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-            if (!validation.IsValid)
-            {
-                var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-                await SaveInvalidAttemptAsync(draft, normalizedJson, errors);
-                var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
-                return AiDraftResponse.From(failed);
-            }
-
-            var folder = ExportBundle(draft, gameCase, normalizedJson, validation.Errors.Count);
-            var generatedUpdate = Builders<AiCaseDraft>.Update
-                .Set(d => d.Status, AiDraftStatus.AssetsGenerated)
-                .Set(d => d.AssetManifest, assetManifest)
-                .Set(d => d.GeneratedJson, normalizedJson)
-                .Set(d => d.CaseId, gameCase.CaseId)
-                .Set(d => d.CaseTitle, gameCase.Title)
-                .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
-                .Set(d => d.JsonFolderPath, folder)
-                .Set(d => d.ValidationErrors, new List<string>())
-                .Set(d => d.UpdatedAt, DateTime.UtcNow);
-            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, generatedUpdate);
-
-            using var doc = JsonDocument.Parse(normalizedJson);
-            var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite: true);
-            summary = await _caseService.PublishAsync(summary.CaseId);
-
-            var publishUpdate = Builders<AiCaseDraft>.Update
-                .Set(d => d.Status, AiDraftStatus.Published)
-                .Set(d => d.ImportedCaseId, summary.CaseId)
-                .Set(d => d.UpdatedAt, DateTime.UtcNow);
-            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, publishUpdate);
-
-            var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
-            return AiDraftResponse.From(saved, publishedCase: summary);
+            draft.GeneratedJson = normalizedJson;
+            draft.CaseId = gameCase.CaseId;
+            draft.CaseTitle = gameCase.Title;
+            return await GenerateAssetsAndPublishAsync(draft, gameCase, forceRegenerate: false);
         }
         catch (ApiException ex)
         {
@@ -202,13 +205,8 @@ public class AiCaseService : IAiCaseService
         }
     }
 
-    public async Task<AiDraftResponse> RegenerateAssetsAsync(string draftId)
+    private async Task<AiDraftResponse> GenerateAssetsFromStoredJsonAndPublishAsync(AiCaseDraft draft, bool forceRegenerate)
     {
-        EnsureOpenAiConfigured();
-
-        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
-            ?? throw ApiException.NotFound("AI draft not found.");
-
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
         {
             throw ApiException.BadRequest("This draft has no generated case JSON to regenerate from.");
@@ -219,45 +217,7 @@ public class AiCaseService : IAiCaseService
             var gameCase = JsonSerializer.Deserialize<GameCase>(StripMarkdownFences(draft.GeneratedJson), PrettyJson)
                 ?? throw ApiException.BadRequest("Stored generated case JSON is empty.");
 
-            await _db.AiCaseDrafts.UpdateOneAsync(
-                d => d.Id == draftId,
-                Builders<AiCaseDraft>.Update
-                    .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
-                    .Set(d => d.UpdatedAt, DateTime.UtcNow));
-
-            var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate: true);
-            draft.AssetManifest = assetManifest;
-
-            var validation = _validator.Validate(gameCase);
-            var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-            if (!validation.IsValid)
-            {
-                var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-                await SaveInvalidAttemptAsync(draft, normalizedJson, errors);
-                var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
-                return AiDraftResponse.From(failed);
-            }
-
-            var folder = ExportBundle(draft, gameCase, normalizedJson, validation.Errors.Count);
-            using var doc = JsonDocument.Parse(normalizedJson);
-            var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite: true);
-            summary = await _caseService.PublishAsync(summary.CaseId);
-
-            var update = Builders<AiCaseDraft>.Update
-                .Set(d => d.Status, AiDraftStatus.Published)
-                .Set(d => d.AssetManifest, assetManifest)
-                .Set(d => d.GeneratedJson, normalizedJson)
-                .Set(d => d.CaseId, gameCase.CaseId)
-                .Set(d => d.CaseTitle, gameCase.Title)
-                .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
-                .Set(d => d.JsonFolderPath, folder)
-                .Set(d => d.ImportedCaseId, summary.CaseId)
-                .Set(d => d.ValidationErrors, new List<string>())
-                .Set(d => d.UpdatedAt, DateTime.UtcNow);
-            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, update);
-
-            var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
-            return AiDraftResponse.From(saved, publishedCase: summary);
+            return await GenerateAssetsAndPublishAsync(draft, gameCase, forceRegenerate);
         }
         catch (JsonException ex)
         {
@@ -268,6 +228,69 @@ public class AiCaseService : IAiCaseService
             await MarkDraftFailedAsync(draft.Id, ex.Message);
             throw;
         }
+    }
+
+    private async Task<AiDraftResponse> GenerateAssetsAndPublishAsync(AiCaseDraft draft, GameCase gameCase, bool forceRegenerate)
+    {
+        var preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
+                .Set(d => d.GeneratedJson, preAssetJson)
+                .Set(d => d.CaseId, gameCase.CaseId)
+                .Set(d => d.CaseTitle, gameCase.Title)
+                .Set(d => d.ValidationErrors, new List<string>())
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+
+        var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate);
+        draft.AssetManifest = assetManifest;
+
+        var validation = _validator.Validate(gameCase);
+        var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        if (!validation.IsValid)
+        {
+            var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
+            await SaveInvalidAttemptAsync(draft, normalizedJson, errors);
+            var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+            return AiDraftResponse.From(failed);
+        }
+
+        var folder = ExportBundle(draft, gameCase, normalizedJson, validation.Errors.Count);
+        var generatedUpdate = Builders<AiCaseDraft>.Update
+            .Set(d => d.Status, AiDraftStatus.AssetsGenerated)
+            .Set(d => d.AssetManifest, assetManifest)
+            .Set(d => d.GeneratedJson, normalizedJson)
+            .Set(d => d.CaseId, gameCase.CaseId)
+            .Set(d => d.CaseTitle, gameCase.Title)
+            .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
+            .Set(d => d.JsonFolderPath, folder)
+            .Set(d => d.ValidationErrors, new List<string>())
+            .Set(d => d.UpdatedAt, DateTime.UtcNow);
+        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, generatedUpdate);
+
+        using var doc = JsonDocument.Parse(normalizedJson);
+        var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite: true);
+        summary = await _caseService.PublishAsync(summary.CaseId);
+
+        var publishUpdate = Builders<AiCaseDraft>.Update
+            .Set(d => d.Status, AiDraftStatus.Published)
+            .Set(d => d.ImportedCaseId, summary.CaseId)
+            .Set(d => d.UpdatedAt, DateTime.UtcNow);
+        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, publishUpdate);
+
+        var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+        return AiDraftResponse.From(saved, publishedCase: summary);
+    }
+
+    public async Task<AiDraftResponse> RegenerateAssetsAsync(string draftId)
+    {
+        EnsureOpenAiConfigured();
+
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+
+        return await GenerateAssetsFromStoredJsonAndPublishAsync(draft, forceRegenerate: true);
     }
 
     public async Task<List<AiDraftResponse>> GetDraftsAsync()
@@ -308,6 +331,12 @@ public class AiCaseService : IAiCaseService
 
         return summary;
     }
+
+    private static bool HasSavedStoryPreview(AiStoryPreview? preview) =>
+        preview is not null
+        && (!string.IsNullOrWhiteSpace(preview.Title)
+            || !string.IsNullOrWhiteSpace(preview.Summary)
+            || !string.IsNullOrWhiteSpace(preview.OpeningIncident));
 
     private async Task<(GameCase Case, CaseValidationResult Validation)> ParseRepairValidateWithRetryAsync(AiCaseDraft draft, string rawJson)
     {

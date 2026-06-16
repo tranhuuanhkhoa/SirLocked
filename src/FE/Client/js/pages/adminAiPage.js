@@ -5,7 +5,16 @@ import { toast } from '../utils/toast.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_PUBLISHED = 'PUBLISHED';
-const TERMINAL_STATUSES = new Set([STATUS_PUBLISHED, 'GENERATED_INVALID']);
+const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
+const TERMINAL_STATUSES = new Set([STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
+const CONTINUABLE_STATUSES = new Set([
+  STATUS_AWAITING_APPROVAL,
+  STATUS_GENERATED_INVALID,
+  'OPENAI_GENERATED_VALID',
+  'GENERATING_ASSETS',
+  'ASSETS_GENERATED',
+  'IMPORTED',
+]);
 const PROGRESS_STATES = {
   GENERATING_STORY: {
     percent: 8,
@@ -50,7 +59,7 @@ const PROGRESS_STATES = {
   GENERATED_INVALID: {
     percent: 100,
     title: 'Generation failed',
-    detail: 'The generated case did not pass validation.',
+    detail: 'Fix the account or validation issue, then continue this draft.',
   },
 };
 
@@ -78,6 +87,16 @@ export async function renderAdminAiPage(app) {
     return status === STATUS_AWAITING_APPROVAL || status === STATUS_PUBLISHED || status === 'OPENAI_GENERATED_VALID' || status === 'ASSETS_GENERATED';
   }
 
+  function canContinueDraft(d) {
+    return !d.publishedCase && !d.importedCaseId && d.status !== STATUS_PUBLISHED && CONTINUABLE_STATUSES.has(d.status);
+  }
+
+  function continueButton(d, style = 'btn-primary') {
+    return canContinueDraft(d)
+      ? `<button class="btn ${style} btn-sm" type="button" data-continue="${escapeHtml(d.draftId)}">Tiếp tục</button>`
+      : '';
+  }
+
   function draftRow(d) {
     const title = d.caseTitle || d.storyPreview?.title || '(preview)';
     const prompt = d.prompt || 'AI-generated original mystery';
@@ -88,6 +107,7 @@ export async function renderAdminAiPage(app) {
       <td><span class="chip ${isSuccessStatus(d.status) ? 'chip-ok' : 'chip-bad'}">${escapeHtml(d.status)}</span></td>
       <td>
         <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">View</button>
+        ${continueButton(d)}
         ${d.status === STATUS_PUBLISHED || d.importedCaseId
           ? `<a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">Open case</a>`
           : ''}
@@ -137,6 +157,7 @@ export async function renderAdminAiPage(app) {
     const statusOk = isSuccessStatus(d.status);
     const published = d.publishedCase || d.importedCaseId || d.status === STATUS_PUBLISHED;
     const caseId = d.publishedCase?.caseId || d.importedCaseId || d.caseId;
+    const resumeAction = continueButton(d);
     return `
     <div class="notice ${statusOk ? 'notice-ok' : 'notice-bad'}">
       <strong>${escapeHtml(d.caseTitle || preview?.title || d.caseId || 'AI draft')}</strong> - ${escapeHtml(d.status)} (${escapeHtml(d.provider)})
@@ -152,6 +173,8 @@ export async function renderAdminAiPage(app) {
             <a class="btn btn-primary btn-sm" href="#/cases/${encodeURIComponent(caseId)}">Open published case</a>
             ${session.isAdmin() ? `<a class="btn btn-ghost btn-sm" href="#/admin/cases/${encodeURIComponent(caseId)}">Admin review</a>` : ''}
           </div>`
+        : resumeAction
+        ? `<div class="case-actions">${resumeAction}</div>`
         : ''}
     </div>
     ${preview ? previewCard(preview, d) : ''}
@@ -243,6 +266,7 @@ export async function renderAdminAiPage(app) {
     qs('#quick-create-btn', app).addEventListener('click', async () => {
       const button = qs('#quick-create-btn', app);
       const version = ++runVersion;
+      let activeDraftId = null;
       runStartedAt = Date.now();
       button.disabled = true;
       button.textContent = 'Creating case...';
@@ -251,6 +275,7 @@ export async function renderAdminAiPage(app) {
 
       try {
         const previewDraft = await aiCaseApi.generate('', 4, 'medium');
+        activeDraftId = previewDraft.draftId;
         if (disposed || version !== runVersion) return;
         updateProgress(previewDraft.status);
         startPolling(previewDraft.draftId, version);
@@ -272,8 +297,17 @@ export async function renderAdminAiPage(app) {
         if (disposed || version !== runVersion) return;
         stopPolling();
         stopProgressClock();
+        let latest = null;
+        if (activeDraftId) {
+          try {
+            latest = await aiCaseApi.draft(activeDraftId);
+          } catch {
+            /* fall back to the normal page if the failed draft cannot be reloaded */
+          }
+        }
+        if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
         toast(err.message, 'error', 7000);
-        draw();
+        draw(latest);
       }
     });
 
@@ -286,6 +320,48 @@ export async function renderAdminAiPage(app) {
           toast(err.message, 'error');
         }
       }));
+
+    app.querySelectorAll('[data-continue]').forEach((btn) =>
+      btn.addEventListener('click', () => continueDraft(btn.dataset.continue, btn)));
+  }
+
+  async function continueDraft(draftId, button) {
+    const version = ++runVersion;
+    runStartedAt = Date.now();
+    button.disabled = true;
+    button.textContent = 'Đang tiếp tục...';
+    updateProgress('GENERATING_FULL_CASE', 'Continuing the saved draft.');
+    startProgressClock();
+    startPolling(draftId, version);
+
+    try {
+      const draft = await aiCaseApi.continueDraft(draftId);
+      if (disposed || version !== runVersion) return;
+      stopPolling();
+      stopProgressClock();
+      updateProgress(draft.status);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      draw(draft);
+      const title = draft.publishedCase?.title || draft.caseTitle || draft.storyPreview?.title || 'Case';
+      if (draft.status === STATUS_PUBLISHED) {
+        toast(`"${title}" published.`, 'success', 7000);
+      } else {
+        toast('Draft continued but did not publish. Check validation details.', 'error', 9000);
+      }
+    } catch (err) {
+      if (disposed || version !== runVersion) return;
+      stopPolling();
+      stopProgressClock();
+      let latest = null;
+      try {
+        latest = await aiCaseApi.draft(draftId);
+      } catch {
+        /* keep the current page if the draft cannot be reloaded */
+      }
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
   }
 
   return () => {

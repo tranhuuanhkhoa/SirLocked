@@ -4,6 +4,7 @@ export const aiCaseApi = {
   generate: (prompt, stageCount, difficulty) =>
     post('/api/admin/ai-cases', { prompt, stageCount, difficulty }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),
+  continueDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/continue`),
   drafts: () => get('/api/admin/ai-cases'),
   draft: (draftId) => get(`/api/admin/ai-cases/${draftId}`),
   importDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/import?overwrite=${overwrite}`),

@@ -27,6 +27,10 @@ public class AdminAiCasesController : BaseApiController
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> Approve(string draftId) =>
         Ok(await _aiCaseService.ApproveDraftAsync(draftId), "Full case generated and published.");
 
+    [HttpPost("{draftId}/continue")]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> Continue(string draftId) =>
+        Ok(await _aiCaseService.ContinueDraftAsync(draftId), "AI case generation continued.");
+
     [HttpPost("{draftId}/regenerate-assets")]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> RegenerateAssets(string draftId) =>
         Ok(await _aiCaseService.RegenerateAssetsAsync(draftId), "Assets regenerated with the current pipeline and published.");
