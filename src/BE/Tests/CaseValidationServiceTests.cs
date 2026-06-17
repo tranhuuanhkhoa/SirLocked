@@ -197,6 +197,184 @@ public class CaseValidationServiceTests
     }
 
     [Fact]
+    public void CameraClue_WithValidZone_IsAccepted()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-valid");
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 220, Y = 260, Width = 110, Height = 80 });
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void CameraEmbedded_FullLogicWithoutClueZones_IsAccepted()
+    {
+        var c = CreateMinimalCameraEmbeddedCase();
+
+        var result = _validator.ValidateFullLogic(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void CameraEmbedded_PublishWithoutClueZones_IsRejected()
+    {
+        var c = CreateMinimalCameraEmbeddedCase();
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.RefId == "clue-camera-final" && e.Path.Contains("clueZone"));
+    }
+
+    [Fact]
+    public void CameraEmbedded_FinalItemEvidenceWithoutPuzzleIntent_IsRejected()
+    {
+        var c = CreateMinimalCameraEmbeddedCase();
+        ConvertFinalCameraClueToItem(c, isPuzzle: false);
+
+        var result = _validator.ValidateFullLogic(c);
+
+        Assert.Contains(result.Errors, e => e.Code is "InvalidCameraEmbeddedItem" or "InvalidCameraEvidenceSource");
+    }
+
+    [Fact]
+    public void CameraEmbedded_FinalItemEvidenceWithPuzzleIntent_IsAccepted()
+    {
+        var c = CreateMinimalCameraEmbeddedCase();
+        ConvertFinalCameraClueToItem(c, isPuzzle: true);
+
+        var result = _validator.ValidateFullLogic(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void CameraEmbeddedRepair_ConvertsFinalItemEvidenceToCameraAndKeepsClueId()
+    {
+        var c = CreateMinimalCameraEmbeddedCase();
+        ConvertFinalCameraClueToItem(c, isPuzzle: false);
+
+        var fixes = CameraEmbeddedCaseRepair.RepairFinalItemEvidenceToCamera(c);
+        var clue = c.Clues.Single(cl => cl.ClueId == "clue-camera-final");
+        var result = _validator.ValidateFullLogic(c);
+
+        Assert.NotEmpty(fixes);
+        Assert.Equal("clue-camera-final", clue.ClueId);
+        Assert.Equal("camera", clue.SourceType);
+        Assert.Equal("camera", clue.DiscoverMethod);
+        Assert.Equal("scene-workshop", clue.SceneId);
+        Assert.DoesNotContain(c.Items, item => item.ItemId == "item-hatch-key");
+        Assert.DoesNotContain("item-hatch-key", c.Stages[0].Scenes[0].ItemIds);
+        Assert.DoesNotContain(c.Stages[0].Scenes[0].Hotspots, h => h.TargetId == "item-hatch-key");
+        Assert.Contains("clue-camera-final", c.FinalLogic.RequiredEvidenceIds);
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void RequiredCameraEvidence_WithoutZone_WhenLayoutExists_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var missingZoneClue = AddCameraClue(c, scene, "clue-photo-missing-zone", isEvidence: true);
+        var validZoneClue = AddCameraClue(c, scene, "clue-photo-layout-anchor");
+        scene.Runtime = RuntimeWithClueZone(validZoneClue.ClueId, new RuntimeBox { X = 220, Y = 260, Width = 110, Height = 80 });
+        c.FinalLogic.RequiredEvidenceIds.Add(missingZoneClue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue"
+            && e.RefId == missingZoneClue.ClueId
+            && e.Path.Contains("clueZone"));
+    }
+
+    [Fact]
+    public void CameraClueZone_OutOfBounds_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-out-of-bounds");
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 1560, Y = 840, Width = 120, Height = 90 });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue"
+            && e.RefId == clue.ClueId
+            && e.Path.Contains("clueZones[0].bounds"));
+    }
+
+    [Fact]
+    public void CameraClueZone_TooSmall_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-too-small");
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 220, Y = 260, Width = 12, Height = 12 });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue"
+            && e.RefId == clue.ClueId
+            && e.Message.Contains("at least 16x16"));
+    }
+
+    [Fact]
+    public void RequiredCameraEvidence_WithFallbackZone_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-fallback-zone", isEvidence: true);
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 220, Y = 260, Width = 110, Height = 80 });
+        scene.Runtime.ClueZones[0].IsFallback = true;
+        scene.Runtime.ClueZones[0].Source = "fallback";
+        scene.Runtime.ClueZones[0].DetectionStatus = "NOT_FOUND";
+        scene.Runtime.ClueZones[0].Confidence = 0;
+        c.FinalLogic.RequiredEvidenceIds.Add(clue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue"
+            && e.RefId == clue.ClueId
+            && e.Message.Contains("fallback"));
+    }
+
+    [Fact]
+    public void RequiredCameraEvidence_WithLowConfidenceZone_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-low-confidence", isEvidence: true);
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 220, Y = 260, Width = 110, Height = 80 });
+        scene.Runtime.ClueZones[0].Confidence = 0.4;
+        c.FinalLogic.RequiredEvidenceIds.Add(clue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue"
+            && e.RefId == clue.ClueId
+            && e.Path.Contains("confidence"));
+    }
+
+    [Fact]
+    public void RequiredCameraEvidence_WithNonFoundDetectionStatus_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-ambiguous", isEvidence: true);
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 220, Y = 260, Width = 110, Height = 80 });
+        scene.Runtime.ClueZones[0].DetectionStatus = "AMBIGUOUS";
+        c.FinalLogic.RequiredEvidenceIds.Add(clue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue"
+            && e.RefId == clue.ClueId
+            && e.Path.Contains("detectionStatus"));
+    }
+
+    [Fact]
     public void RuntimeTransition_ToMissingScene_IsRejected()
     {
         var c = LoadSampleCase();
@@ -232,5 +410,173 @@ public class CaseValidationServiceTests
             Assert.True(result.IsValid,
                 $"stages={stages}: " + string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
         }
+    }
+
+    private static CaseClue AddCameraClue(GameCase c, CaseScene scene, string clueId, bool isEvidence = false)
+    {
+        var clue = new CaseClue
+        {
+            ClueId = clueId,
+            Title = "Photo clue",
+            Content = "A photographed clue embedded in the scene.",
+            Source = scene.SceneId,
+            SourceType = "camera",
+            DiscoverMethod = "camera",
+            SceneId = scene.SceneId,
+            VisualDescription = "A small brass token tucked under the chair leg.",
+            InventoryDescription = "The photo shows a brass token under the chair leg.",
+            NarrativeMeaning = "The token links the suspect to the scene.",
+            HintLevel = 2,
+            Tags = { "camera", "evidence" },
+            IsCritical = isEvidence,
+            IsEvidence = isEvidence
+        };
+        c.Clues.Add(clue);
+        return clue;
+    }
+
+    private static SceneRuntime RuntimeWithClueZone(string clueId, RuntimeBox bounds) => new()
+    {
+        Width = 1600,
+        Height = 900,
+        FloorY = 720,
+        WalkableArea = new RuntimeBox { X = 0, Y = 630, Width = 1600, Height = 135 },
+        CameraRules = new CameraRules
+        {
+            CaptureRectWidth = 180,
+            CaptureRectHeight = 140,
+            MinClueCoverage = 0.45,
+            NearMissCoverage = 0.22,
+            RequireCaptureCenterInside = true
+        },
+        ClueZones =
+        {
+            new ClueZone
+            {
+                ClueId = clueId,
+                Label = "Photo clue",
+                Bounds = bounds,
+                Visibility = "medium",
+                DetectionDifficulty = "medium",
+                DetectionStatus = "FOUND",
+                Confidence = 0.8,
+                Source = "vision",
+                IsFallback = false
+            }
+        }
+    };
+
+    private static GameCase CreateMinimalCameraEmbeddedCase()
+    {
+        var c = new GameCase
+        {
+            CaseId = "case-camera-minimal",
+            Title = "Camera Minimal",
+            Summary = "A compact camera-first validation case.",
+            Status = "DRAFT",
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            EstimatedMinutes = 20,
+            Characters =
+            {
+                new CaseCharacter
+                {
+                    CharacterId = "char-culprit",
+                    Name = "Culprit",
+                    Role = "Suspect",
+                    Description = "A suspect with a broken alibi."
+                }
+            },
+            Clues =
+            {
+                new CaseClue
+                {
+                    ClueId = "clue-camera-final",
+                    Title = "Photographed Hatch Mark",
+                    Content = "The hatch mark proves who opened the hidden route.",
+                    IsCritical = true,
+                    IsEvidence = true,
+                    Source = "scene-workshop",
+                    SourceType = "camera",
+                    DiscoverMethod = "camera",
+                    SceneId = "scene-workshop",
+                    VisualDescription = "A fresh brass scrape across the upper hatch latch.",
+                    InventoryDescription = "The photo shows the hatch latch scraped by a brass key.",
+                    NarrativeMeaning = "Only the culprit had the key that leaves this scrape.",
+                    HintLevel = 2,
+                    Tags = { "camera", "final" },
+                    RelatedCharacterIds = { "char-culprit" }
+                }
+            },
+            FinalLogic = new FinalLogic
+            {
+                CulpritId = "char-culprit",
+                Motive = "Debt.",
+                Method = "Hidden access through the hatch.",
+                RequiredEvidenceIds = { "clue-camera-final" },
+                WinEnding = "The camera evidence proves the route.",
+                FailEnding = "The accusation lacks the decisive photo."
+            }
+        };
+
+        c.Stages.Add(new CaseStage
+        {
+            StageId = "stage-workshop",
+            Title = "Workshop",
+            Order = 1,
+            Scenes =
+            {
+                new CaseScene
+                {
+                    SceneId = "scene-workshop",
+                    Title = "Workshop",
+                    Description = "A room with a visible hatch mark.",
+                    CharacterIds = { "char-culprit" },
+                    CompleteCondition = new CompleteCondition
+                    {
+                        Logic = "AND",
+                        RequiredClueIds = { "clue-camera-final" }
+                    }
+                }
+            }
+        });
+
+        return c;
+    }
+
+    private static void ConvertFinalCameraClueToItem(GameCase c, bool isPuzzle)
+    {
+        var scene = c.Stages[0].Scenes[0];
+        var item = new CaseItem
+        {
+            ItemId = "item-hatch-key",
+            Name = "Hatch Key",
+            Description = "A key that can open the service hatch.",
+            InspectText = "Its brass teeth match the hatch scrape.",
+            UnlockClueIds = { "clue-camera-final" },
+            IsInteractivePuzzleObject = isPuzzle,
+            InteractionPurpose = isPuzzle ? CaseItemInteractionPurposes.UnlockDoor : string.Empty,
+            InteractionReason = isPuzzle ? "The player must physically use the key to unlock the service hatch." : string.Empty
+        };
+        c.Items.Add(item);
+        scene.ItemIds.Add(item.ItemId);
+        scene.Hotspots.Add(new SceneHotspot
+        {
+            HotspotId = "hotspot-hatch-key",
+            Type = "ITEM",
+            TargetId = item.ItemId,
+            X = 40,
+            Y = 55,
+            Width = 8,
+            Height = 10,
+            Label = item.Name
+        });
+        scene.CompleteCondition.RequiredClueIds.Clear();
+        scene.CompleteCondition.RequiredItemIds.Add(item.ItemId);
+
+        var clue = c.Clues[0];
+        clue.Source = item.ItemId;
+        clue.SourceType = "item";
+        clue.DiscoverMethod = "item";
+        clue.SceneId = string.Empty;
     }
 }

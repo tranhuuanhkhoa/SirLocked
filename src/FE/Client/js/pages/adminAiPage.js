@@ -4,9 +4,12 @@ import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
+const STATUS_FULL_LOGIC_AWAITING_APPROVAL = 'FULL_LOGIC_AWAITING_APPROVAL';
+const STATUS_SCENE_LAYOUT_AWAITING_APPROVAL = 'SCENE_LAYOUT_AWAITING_APPROVAL';
+const STATUS_READY_TO_PUBLISH = 'READY_TO_PUBLISH';
 const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
-const TERMINAL_STATUSES = new Set([STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
+const TERMINAL_STATUSES = new Set([STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
 const PROGRESS_STATES = {
   GENERATING_STORY: {
     percent: 8,
@@ -16,7 +19,7 @@ const PROGRESS_STATES = {
   STORY_AWAITING_APPROVAL: {
     percent: 18,
     title: 'Story premise ready',
-    detail: 'Starting full case generation automatically.',
+    detail: 'Approve the premise to generate full case logic.',
   },
   GENERATING_FULL_CASE: {
     percent: 35,
@@ -26,7 +29,32 @@ const PROGRESS_STATES = {
   OPENAI_GENERATED_VALID: {
     percent: 52,
     title: 'Case logic validated',
-    detail: 'The investigation is consistent. Preparing visual assets.',
+    detail: 'The investigation is consistent. Preparing scene layout.',
+  },
+  FULL_LOGIC_AWAITING_APPROVAL: {
+    percent: 50,
+    title: 'Full logic ready',
+    detail: 'Review the case logic before generating scene layouts.',
+  },
+  GENERATING_SCENE_LAYOUT: {
+    percent: 68,
+    title: 'Generating scene layouts',
+    detail: 'Creating embedded clue backgrounds and detecting clue regions.',
+  },
+  SCENE_LAYOUT_AWAITING_APPROVAL: {
+    percent: 82,
+    title: 'Scene layout ready',
+    detail: 'Review clue zones and scene metadata before publishing.',
+  },
+  GENERATING_FINAL_ASSETS: {
+    percent: 90,
+    title: 'Generating final assets',
+    detail: 'Preparing character assets and the final runtime bundle.',
+  },
+  READY_TO_PUBLISH: {
+    percent: 96,
+    title: 'Ready to publish',
+    detail: 'Final assets are ready. Publish is a separate manual action.',
   },
   GENERATING_ASSETS: {
     percent: 68,
@@ -76,7 +104,13 @@ export async function renderAdminAiPage(app) {
   draw();
 
   function isSuccessStatus(status) {
-    return status === STATUS_AWAITING_APPROVAL || status === STATUS_PUBLISHED || status === 'OPENAI_GENERATED_VALID' || status === 'ASSETS_GENERATED';
+    return status === STATUS_AWAITING_APPROVAL ||
+      status === STATUS_FULL_LOGIC_AWAITING_APPROVAL ||
+      status === STATUS_SCENE_LAYOUT_AWAITING_APPROVAL ||
+      status === STATUS_READY_TO_PUBLISH ||
+      status === STATUS_PUBLISHED ||
+      status === 'OPENAI_GENERATED_VALID' ||
+      status === 'ASSETS_GENERATED';
   }
 
   function canContinueDraft(d) {
@@ -84,6 +118,18 @@ export async function renderAdminAiPage(app) {
   }
 
   function continueButton(d, style = 'btn-primary') {
+    if (d.status === STATUS_AWAITING_APPROVAL) {
+      return `<button class="btn ${style} btn-sm" type="button" data-approve-story="${escapeHtml(d.draftId)}">Approve story preview</button>`;
+    }
+    if (d.status === STATUS_FULL_LOGIC_AWAITING_APPROVAL) {
+      return `<button class="btn ${style} btn-sm" type="button" data-approve-full-logic="${escapeHtml(d.draftId)}">Approve full logic</button>`;
+    }
+    if (d.status === STATUS_SCENE_LAYOUT_AWAITING_APPROVAL) {
+      return `<button class="btn ${style} btn-sm" type="button" data-approve-scene-layout="${escapeHtml(d.draftId)}">Approve layout</button>`;
+    }
+    if (d.status === STATUS_READY_TO_PUBLISH && session.isAdmin()) {
+      return `<button class="btn ${style} btn-sm" type="button" data-publish-draft="${escapeHtml(d.draftId)}">Publish</button>`;
+    }
     return canContinueDraft(d)
       ? `<button class="btn ${style} btn-sm" type="button" data-continue="${escapeHtml(d.draftId)}">Continue</button>`
       : '';
@@ -111,11 +157,11 @@ export async function renderAdminAiPage(app) {
     render(app, `
     <div class="page">
       <h2>AI Case Creator</h2>
-      <p class="muted">Create a complete SirLocked mystery with fixed pixel-art direction. The case is generated, validated, imported, and published automatically.</p>
+      <p class="muted">Create a complete SirLocked mystery with embedded camera clues, then approve full logic and scene layout before publishing.</p>
 
       <div class="ai-quick-create">
         <button class="btn btn-gold" type="button" id="quick-create-btn">Create new case</button>
-        <span class="muted small">4 scenes · medium difficulty · automatic publish</span>
+        <span class="muted small">preview first - manual approval required</span>
       </div>
 
       <section class="generation-progress" id="generation-progress" hidden aria-live="polite">
@@ -174,9 +220,34 @@ export async function renderAdminAiPage(app) {
         : ''}
     </div>
     ${preview ? previewCard(preview, d) : ''}
+    ${repairPanel(d)}
     ${d.generatedJson && session.isAdmin()
       ? `<details class="json-details"><summary>Generated JSON</summary><pre class="json-view">${escapeHtml(d.generatedJson)}</pre></details>`
       : ''}`;
+  }
+
+  function repairPanel(d) {
+    if (d.status !== STATUS_FULL_LOGIC_AWAITING_APPROVAL && d.status !== STATUS_GENERATED_INVALID) return '';
+    const hasCandidate = Boolean(d.repairedCandidateJson);
+    return `
+    <section class="notice">
+      <h3>Full logic repair</h3>
+      <p class="muted small">Creates a camera-first repair candidate without overwriting the current draft.</p>
+      <div class="case-actions">
+        <button class="btn btn-ghost btn-sm" type="button" data-repair-full-logic="${escapeHtml(d.draftId)}">Repair item evidence</button>
+        ${hasCandidate && d.repairStatus === 'CANDIDATE_READY'
+          ? `<button class="btn btn-primary btn-sm" type="button" data-accept-repair="${escapeHtml(d.draftId)}">Accept repair</button>
+             <button class="btn btn-ghost btn-sm" type="button" data-reject-repair="${escapeHtml(d.draftId)}">Reject repair</button>`
+          : ''}
+      </div>
+      ${d.repairStatus ? `<p class="muted small">Repair status: ${escapeHtml(d.repairStatus)}</p>` : ''}
+      ${d.repairValidationReport?.length
+        ? `<ul>${d.repairValidationReport.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
+        : ''}
+      ${hasCandidate && session.isAdmin()
+        ? `<details class="json-details"><summary>Repaired candidate JSON</summary><pre class="json-view">${escapeHtml(d.repairedCandidateJson)}</pre></details>`
+        : ''}
+    </section>`;
   }
 
   function previewCard(preview, draft) {
@@ -274,21 +345,12 @@ export async function renderAdminAiPage(app) {
         activeDraftId = previewDraft.draftId;
         if (disposed || version !== runVersion) return;
         updateProgress(previewDraft.status);
-        startPolling(previewDraft.draftId, version);
-
-        const draft = await aiCaseApi.approveDraft(previewDraft.draftId);
-        if (disposed || version !== runVersion) return;
         stopPolling();
         stopProgressClock();
-        updateProgress(draft.status);
+        updateProgress(previewDraft.status);
         if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-        draw(draft);
-        const title = draft.publishedCase?.title || draft.caseTitle || draft.storyPreview?.title || 'Case';
-        if (draft.status === STATUS_PUBLISHED) {
-          toast(`"${title}" published.`, 'success', 7000);
-        } else {
-          toast('Case generation finished but did not publish. Check validation details.', 'error', 9000);
-        }
+        draw(previewDraft);
+        toast('Story preview is ready for manual approval.', 'success', 7000);
       } catch (err) {
         if (disposed || version !== runVersion) return;
         stopPolling();
@@ -319,6 +381,185 @@ export async function renderAdminAiPage(app) {
 
     app.querySelectorAll('[data-continue]').forEach((btn) =>
       btn.addEventListener('click', () => continueDraft(btn.dataset.continue, btn)));
+
+    app.querySelectorAll('[data-approve-story]').forEach((btn) =>
+      btn.addEventListener('click', () => approveStory(btn.dataset.approveStory, btn)));
+
+    app.querySelectorAll('[data-approve-full-logic]').forEach((btn) =>
+      btn.addEventListener('click', () => approveGate(btn.dataset.approveFullLogic, btn, 'full-logic')));
+
+    app.querySelectorAll('[data-approve-scene-layout]').forEach((btn) =>
+      btn.addEventListener('click', () => approveGate(btn.dataset.approveSceneLayout, btn, 'scene-layout')));
+
+    app.querySelectorAll('[data-publish-draft]').forEach((btn) =>
+      btn.addEventListener('click', () => publishDraft(btn.dataset.publishDraft, btn)));
+
+    app.querySelectorAll('[data-repair-full-logic]').forEach((btn) =>
+      btn.addEventListener('click', () => repairFullLogic(btn.dataset.repairFullLogic, btn)));
+
+    app.querySelectorAll('[data-accept-repair]').forEach((btn) =>
+      btn.addEventListener('click', () => acceptRepair(btn.dataset.acceptRepair, btn)));
+
+    app.querySelectorAll('[data-reject-repair]').forEach((btn) =>
+      btn.addEventListener('click', () => rejectRepair(btn.dataset.rejectRepair, btn)));
+  }
+
+  async function approveStory(draftId, button) {
+    const version = ++runVersion;
+    runStartedAt = Date.now();
+    button.disabled = true;
+    button.textContent = 'Generating logic...';
+    updateProgress('GENERATING_FULL_CASE');
+    startProgressClock();
+    startPolling(draftId, version);
+
+    try {
+      const draft = await aiCaseApi.approveDraft(draftId);
+      if (disposed || version !== runVersion) return;
+      stopPolling();
+      stopProgressClock();
+      updateProgress(draft.status);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      draw(draft);
+      toast('Full case logic is ready for review.', 'success', 7000);
+    } catch (err) {
+      if (disposed || version !== runVersion) return;
+      stopPolling();
+      stopProgressClock();
+      let latest = null;
+      try {
+        latest = await aiCaseApi.draft(draftId);
+      } catch {
+        /* keep current page if reload fails */
+      }
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
+  }
+
+  async function approveGate(draftId, button, gate) {
+    const version = ++runVersion;
+    runStartedAt = Date.now();
+    button.disabled = true;
+    button.textContent = gate === 'full-logic' ? 'Generating layout...' : 'Generating final assets...';
+    updateProgress(gate === 'full-logic' ? 'GENERATING_SCENE_LAYOUT' : 'GENERATING_FINAL_ASSETS');
+    startProgressClock();
+    startPolling(draftId, version);
+
+    try {
+      const draft = gate === 'full-logic'
+        ? await aiCaseApi.approveFullLogic(draftId)
+        : await aiCaseApi.approveSceneLayout(draftId);
+      if (disposed || version !== runVersion) return;
+      stopPolling();
+      stopProgressClock();
+      updateProgress(draft.status);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      draw(draft);
+      if (draft.status === STATUS_SCENE_LAYOUT_AWAITING_APPROVAL) {
+        toast('Scene layout is ready for review.', 'success', 7000);
+      } else if (draft.status === STATUS_READY_TO_PUBLISH) {
+        toast('Final assets are ready. Publish manually when you are ready.', 'success', 7000);
+      } else {
+        toast('Draft advanced to the next gate.', 'info', 7000);
+      }
+    } catch (err) {
+      if (disposed || version !== runVersion) return;
+      stopPolling();
+      stopProgressClock();
+      let latest = null;
+      try {
+        latest = await aiCaseApi.draft(draftId);
+      } catch {
+        /* keep current page if reload fails */
+      }
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
+  }
+
+  async function publishDraft(draftId, button) {
+    const version = ++runVersion;
+    runStartedAt = Date.now();
+    button.disabled = true;
+    button.textContent = 'Publishing...';
+    updateProgress('IMPORTED', 'Publishing the approved draft.');
+    startProgressClock();
+
+    try {
+      const published = await aiCaseApi.publishDraft(draftId, true);
+      if (disposed || version !== runVersion) return;
+      stopProgressClock();
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      const latest = await aiCaseApi.draft(draftId).catch(() => null);
+      draw(latest);
+      toast(`"${published.title || 'Case'}" published.`, 'success', 7000);
+    } catch (err) {
+      if (disposed || version !== runVersion) return;
+      stopProgressClock();
+      let latest = null;
+      try {
+        latest = await aiCaseApi.draft(draftId);
+      } catch {
+        /* keep current page if reload fails */
+      }
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
+  }
+
+  async function repairFullLogic(draftId, button) {
+    button.disabled = true;
+    button.textContent = 'Repairing...';
+    try {
+      const draft = await aiCaseApi.repairFullLogic(
+        draftId,
+        'Convert item-based final evidence into embedded camera clues and keep clue IDs stable.'
+      );
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      draw(draft);
+      toast(draft.repairStatus === 'CANDIDATE_READY' ? 'Repair candidate is ready.' : 'Repair candidate needs review.', 'info', 7000);
+    } catch (err) {
+      const latest = await aiCaseApi.draft(draftId).catch(() => null);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
+  }
+
+  async function acceptRepair(draftId, button) {
+    button.disabled = true;
+    button.textContent = 'Accepting...';
+    try {
+      const draft = await aiCaseApi.acceptRepair(draftId);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      draw(draft);
+      toast('Repair accepted. Review full logic before layout generation.', 'success', 7000);
+    } catch (err) {
+      const latest = await aiCaseApi.draft(draftId).catch(() => null);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
+  }
+
+  async function rejectRepair(draftId, button) {
+    button.disabled = true;
+    button.textContent = 'Rejecting...';
+    try {
+      const draft = await aiCaseApi.rejectRepair(draftId);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      draw(draft);
+      toast('Repair rejected. Original logic remains unchanged.', 'info', 7000);
+    } catch (err) {
+      const latest = await aiCaseApi.draft(draftId).catch(() => null);
+      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      toast(err.message, 'error', 9000);
+      draw(latest);
+    }
   }
 
   async function continueDraft(draftId, button) {

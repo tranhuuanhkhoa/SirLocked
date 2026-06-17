@@ -20,12 +20,26 @@ public static class AiDraftStatus
     public const string GeneratingStory = "GENERATING_STORY";
     public const string StoryAwaitingApproval = "STORY_AWAITING_APPROVAL";
     public const string GeneratingFullCase = "GENERATING_FULL_CASE";
+    public const string FullLogicAwaitingApproval = "FULL_LOGIC_AWAITING_APPROVAL";
     public const string OpenAiGeneratedValid = "OPENAI_GENERATED_VALID";
+    public const string GeneratingSceneLayout = "GENERATING_SCENE_LAYOUT";
+    public const string SceneLayoutAwaitingApproval = "SCENE_LAYOUT_AWAITING_APPROVAL";
+    public const string GeneratingFinalAssets = "GENERATING_FINAL_ASSETS";
+    public const string ReadyToPublish = "READY_TO_PUBLISH";
     public const string GeneratingAssets = "GENERATING_ASSETS";
     public const string AssetsGenerated = "ASSETS_GENERATED";
     public const string GeneratedInvalid = "GENERATED_INVALID";
     public const string Imported = "IMPORTED";
     public const string Published = "PUBLISHED";
+}
+
+public static class AiRepairStatus
+{
+    public const string None = "NONE";
+    public const string CandidateReady = "CANDIDATE_READY";
+    public const string CandidateInvalid = "CANDIDATE_INVALID";
+    public const string Accepted = "ACCEPTED";
+    public const string Rejected = "REJECTED";
 }
 
 [BsonIgnoreExtraElements]
@@ -39,6 +53,8 @@ public class AiCaseDraft
     public AiDraftSettings Settings { get; set; } = new();
     public string Status { get; set; } = string.Empty;
     public string Provider { get; set; } = "OpenAI";
+    public string CreatedByUserId { get; set; } = string.Empty;
+    public string CreatedByRole { get; set; } = string.Empty;
     public AiStoryPreview StoryPreview { get; set; } = new();
     public AiAssetManifest AssetManifest { get; set; } = new();
     public string GeneratedJson { get; set; } = string.Empty;
@@ -47,6 +63,12 @@ public class AiCaseDraft
     public string JsonFilePath { get; set; } = string.Empty;
     public string JsonFolderPath { get; set; } = string.Empty;
     public List<string> ValidationErrors { get; set; } = new();
+    public string OriginalGeneratedJson { get; set; } = string.Empty;
+    public string RepairedCandidateJson { get; set; } = string.Empty;
+    public List<string> RepairValidationReport { get; set; } = new();
+    public string RepairStatus { get; set; } = AiRepairStatus.None;
+    public string RepairInstructions { get; set; } = string.Empty;
+    public List<AiPlannedCall> PlannedCalls { get; set; } = new();
     /// <summary>Set when the draft has been imported into gameCases.</summary>
     public string? ImportedCaseId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -59,6 +81,7 @@ public class AiDraftSettings
     public int StageCount { get; set; } = 4;
     public string Difficulty { get; set; } = "medium";
     public string VisualStyle { get; set; } = AiVisualStyleDefaults.PixelDetectiveTheme;
+    public string GenerationMode { get; set; } = CaseGenerationModes.CameraEmbedded;
 }
 
 [BsonIgnoreExtraElements]
@@ -103,6 +126,16 @@ public class AiGeneratedAsset
     public int? NormalizedHeight { get; set; }
     public bool? HasAlpha { get; set; }
     public string ProcessingStatus { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class AiPlannedCall
+{
+    public string Step { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public bool WouldCallApi { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 [BsonIgnoreExtraElements]

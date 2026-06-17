@@ -20,6 +20,9 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
 {
+    static bool EnvFlag(IConfiguration configuration, string key) =>
+        bool.TryParse(configuration[key], out var enabled) && enabled;
+
     if (string.IsNullOrWhiteSpace(settings.ApiKey))
     {
         var fallbackKeys = new[]
@@ -30,6 +33,13 @@ builder.Services.PostConfigure<OpenAiSettings>(settings =>
         };
         settings.ApiKey = fallbackKeys.FirstOrDefault(key => !string.IsNullOrWhiteSpace(key)) ?? string.Empty;
     }
+
+    settings.AiDryRun |= EnvFlag(builder.Configuration, "AI_DRY_RUN");
+    settings.MockAiResponses |= EnvFlag(builder.Configuration, "MOCK_AI_RESPONSES");
+    settings.SkipAssetGeneration |= EnvFlag(builder.Configuration, "SKIP_ASSET_GENERATION");
+    settings.DisableAutoPublish |= EnvFlag(builder.Configuration, "DISABLE_AUTO_PUBLISH");
+    settings.GenerateJsonOnly |= EnvFlag(builder.Configuration, "GENERATE_JSON_ONLY");
+    settings.ValidateOnly |= EnvFlag(builder.Configuration, "VALIDATE_ONLY");
 });
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 

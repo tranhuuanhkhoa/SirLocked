@@ -6,24 +6,38 @@ namespace SirLocked.Api.Services;
 
 public class CaseValidationService : ICaseValidationService
 {
-    public CaseValidationResult Validate(GameCase gameCase)
+    public CaseValidationResult Validate(GameCase gameCase) => Validate(gameCase, CaseValidationStage.Publish);
+
+    public CaseValidationResult ValidateFullLogic(GameCase gameCase) => Validate(gameCase, CaseValidationStage.FullLogic);
+
+    public CaseValidationResult ValidateSceneLayout(GameCase gameCase) => Validate(gameCase, CaseValidationStage.SceneLayout);
+
+    private static CaseValidationResult Validate(GameCase gameCase, CaseValidationStage stage)
     {
         var result = new CaseValidationResult();
 
         ValidateRequiredFields(gameCase, result);
         ValidateDuplicateIds(gameCase, result);
-        ValidateReferences(gameCase, result);
-        ValidateClues(gameCase, result);
+        ValidateReferences(gameCase, result, stage);
+        ValidateCameraEmbeddedItems(gameCase, result);
+        ValidateClues(gameCase, result, stage);
         ValidateFinalLogic(gameCase, result);
 
         // Only simulate progression when the structure itself is sound; otherwise the
         // reference errors above already explain what is broken.
-        if (result.IsValid)
+        if (result.IsValid && stage == CaseValidationStage.Publish)
         {
             ValidatePlaythroughReachability(gameCase, result);
         }
 
         return result;
+    }
+
+    private enum CaseValidationStage
+    {
+        FullLogic,
+        SceneLayout,
+        Publish
     }
 
     private static void ValidateRequiredFields(GameCase c, CaseValidationResult result)
@@ -92,7 +106,7 @@ public class CaseValidationService : ICaseValidationService
         }
     }
 
-    private static void ValidateReferences(GameCase c, CaseValidationResult result)
+    private static void ValidateReferences(GameCase c, CaseValidationResult result, CaseValidationStage stage)
     {
         var itemIds = c.Items.Select(i => i.ItemId).ToHashSet();
         var characterIds = c.Characters.Select(x => x.CharacterId).ToHashSet();
@@ -145,7 +159,10 @@ public class CaseValidationService : ICaseValidationService
                         result.Add("InvalidValue", hotspotPath, "Hotspot coordinates must be percentages (x/y 0-100, width/height 1-100).", hotspot.HotspotId);
                 }
 
-                ValidateRuntimeLayout(scene, scenePath, itemIds, characterIds, sceneIds, result);
+                if (stage != CaseValidationStage.FullLogic)
+                {
+                    ValidateRuntimeLayout(scene, scenePath, itemIds, characterIds, sceneIds, clueIds, result);
+                }
 
                 var condition = scene.CompleteCondition;
                 foreach (var id in condition.RequiredItemIds.Where(id => !itemIds.Contains(id)))
@@ -181,6 +198,7 @@ public class CaseValidationService : ICaseValidationService
         IReadOnlySet<string> itemIds,
         IReadOnlySet<string> characterIds,
         IReadOnlySet<string> sceneIds,
+        IReadOnlySet<string> clueIds,
         CaseValidationResult result)
     {
         var runtime = scene.Runtime;
@@ -247,6 +265,45 @@ public class CaseValidationService : ICaseValidationService
             }
         }
 
+        for (var i = 0; i < runtime.ClueZones.Count; i++)
+        {
+            var zone = runtime.ClueZones[i];
+            var path = $"{scenePath}.runtime.clueZones[{i}]";
+            if (!clueIds.Contains(zone.ClueId))
+            {
+                result.Add("MissingReference", $"{path}.clueId", "Runtime clue zone target does not exist.", zone.ClueId);
+            }
+            ValidateRuntimeBox(zone.Bounds, $"{path}.bounds", runtime.Width, runtime.Height, result, zone.ClueId);
+            if (zone.Bounds.Width < 16 || zone.Bounds.Height < 16)
+            {
+                result.Add("InvalidValue", $"{path}.bounds", "Clue zone must be at least 16x16 runtime pixels.", zone.ClueId);
+            }
+            if (!string.IsNullOrWhiteSpace(zone.DetectionStatus)
+                && zone.DetectionStatus.ToUpperInvariant() is not ("FOUND" or "AMBIGUOUS" or "NOT_FOUND" or "OCCLUDED" or "TOO_SMALL"))
+            {
+                result.Add("InvalidValue", $"{path}.detectionStatus", "Clue zone detectionStatus is invalid.", zone.ClueId);
+            }
+            if (zone.Confidence < 0 || zone.Confidence > 1)
+            {
+                result.Add("InvalidValue", $"{path}.confidence", "Clue zone confidence must be between 0 and 1.", zone.ClueId);
+            }
+            foreach (var clueId in zone.RequiredClueIds.Where(id => !clueIds.Contains(id)))
+            {
+                result.Add("MissingReference", $"{path}.requiredClueIds", "Required clue does not exist.", clueId);
+            }
+        }
+
+        if (runtime.CameraRules.CaptureRectWidth <= 0 || runtime.CameraRules.CaptureRectHeight <= 0)
+        {
+            result.Add("InvalidValue", $"{scenePath}.runtime.cameraRules", "Camera capture rectangle width and height must be positive.", scene.SceneId);
+        }
+        if (runtime.CameraRules.MinClueCoverage <= 0 || runtime.CameraRules.MinClueCoverage > 1
+            || runtime.CameraRules.NearMissCoverage <= 0 || runtime.CameraRules.NearMissCoverage > 1
+            || runtime.CameraRules.NearMissCoverage > runtime.CameraRules.MinClueCoverage)
+        {
+            result.Add("InvalidValue", $"{scenePath}.runtime.cameraRules", "Camera coverage thresholds must be 0..1 and nearMiss must be <= minClueCoverage.", scene.SceneId);
+        }
+
         for (var i = 0; i < runtime.Transitions.Count; i++)
         {
             var transition = runtime.Transitions[i];
@@ -287,26 +344,167 @@ public class CaseValidationService : ICaseValidationService
         }
     }
 
-    private static void ValidateClues(GameCase c, CaseValidationResult result)
+    private static void ValidateCameraEmbeddedItems(GameCase c, CaseValidationResult result)
+    {
+        if (!IsCameraEmbeddedCase(c))
+        {
+            return;
+        }
+
+        var referencedItemIds = c.Stages
+            .SelectMany(stage => stage.Scenes)
+            .SelectMany(scene => scene.ItemIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToHashSet(StringComparer.Ordinal);
+
+        for (var i = 0; i < c.Items.Count; i++)
+        {
+            var item = c.Items[i];
+            if (!referencedItemIds.Contains(item.ItemId))
+            {
+                continue;
+            }
+
+            if (!IsAllowedCameraModePuzzleItem(item))
+            {
+                result.Add(
+                    "InvalidCameraEmbeddedItem",
+                    $"items[{i}]",
+                    "CAMERA_EMBEDDED cases may only keep scene items when they are true interactive puzzle objects with interactionPurpose and interactionReason.",
+                    item.ItemId);
+            }
+        }
+    }
+
+    private static void ValidateClues(GameCase c, CaseValidationResult result, CaseValidationStage stage)
     {
         var itemIds = c.Items.Select(i => i.ItemId).ToHashSet();
+        var itemById = c.Items
+            .Where(i => !string.IsNullOrWhiteSpace(i.ItemId))
+            .GroupBy(i => i.ItemId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         var dialogueIds = c.Dialogues.Select(d => d.DialogueId).ToHashSet();
+        var sceneIds = c.Stages.SelectMany(s => s.Scenes).Select(s => s.SceneId).ToHashSet();
+        var characterIds = c.Characters.Select(ch => ch.CharacterId).ToHashSet();
+        var cameraZoneCounts = c.Stages
+            .SelectMany(stage => stage.Scenes)
+            .SelectMany(scene => scene.Runtime?.ClueZones ?? new List<ClueZone>())
+            .GroupBy(zone => zone.ClueId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var cameraZoneByClue = c.Stages
+            .SelectMany(stage => stage.Scenes)
+            .SelectMany(scene => scene.Runtime?.ClueZones ?? new List<ClueZone>())
+            .Where(zone => !string.IsNullOrWhiteSpace(zone.ClueId))
+            .GroupBy(zone => zone.ClueId)
+            .ToDictionary(g => g.Key, g => g.First());
+        var finalEvidenceIds = c.FinalLogic.RequiredEvidenceIds.ToHashSet();
+        var requiresCameraLayout = stage is CaseValidationStage.SceneLayout or CaseValidationStage.Publish;
+        var isCameraEmbedded = IsCameraEmbeddedCase(c);
 
         for (var i = 0; i < c.Clues.Count; i++)
         {
             var clue = c.Clues[i];
             var sourceType = clue.SourceType?.ToLowerInvariant();
+            var discoverMethod = DiscoverMethod(clue);
 
-            if (sourceType is not ("item" or "dialogue"))
+            if (discoverMethod is not ("item" or "dialogue" or "camera"))
             {
-                result.Add("InvalidValue", $"clues[{i}].sourceType", "Clue sourceType must be 'item' or 'dialogue'.", clue.ClueId);
+                result.Add("InvalidValue", $"clues[{i}].discoverMethod", "Clue discoverMethod must be 'item', 'dialogue', or 'camera'.", clue.ClueId);
+            }
+
+            if (sourceType is not ("item" or "dialogue" or "camera"))
+            {
+                result.Add("InvalidValue", $"clues[{i}].sourceType", "Clue sourceType must be 'item', 'dialogue', or 'camera'.", clue.ClueId);
                 continue;
             }
 
-            var sourceExists = sourceType == "item" ? itemIds.Contains(clue.Source) : dialogueIds.Contains(clue.Source);
-            if (!sourceExists)
-                result.Add("MissingReference", $"clues[{i}].source", $"Clue source {sourceType} does not exist.", clue.Source);
+            if (sourceType == "item" && !itemIds.Contains(clue.Source))
+            {
+                result.Add("MissingReference", $"clues[{i}].source", "Clue source item does not exist.", clue.Source);
+            }
+            if (sourceType == "dialogue" && !dialogueIds.Contains(clue.Source))
+            {
+                result.Add("MissingReference", $"clues[{i}].source", "Clue source dialogue does not exist.", clue.Source);
+            }
+
+            var isFinalEvidence = finalEvidenceIds.Contains(clue.ClueId);
+            if (isCameraEmbedded
+                && (isFinalEvidence || clue.IsEvidence || clue.IsCritical)
+                && (sourceType == "item" || discoverMethod == "item"))
+            {
+                if (!itemById.TryGetValue(clue.Source, out var sourceItem) || !IsAllowedCameraModePuzzleItem(sourceItem))
+                {
+                    result.Add("InvalidCameraEvidenceSource", $"clues[{i}].source",
+                        "CAMERA_EMBEDDED evidence may use item discovery only when the source item is a true interactive puzzle object with a clear interactionReason.",
+                        clue.ClueId);
+                }
+            }
+
+            if (discoverMethod == "camera")
+            {
+                if (string.IsNullOrWhiteSpace(clue.VisualDescription))
+                {
+                    result.Add("MissingField", $"clues[{i}].visualDescription", "Camera clue needs a visualDescription for background generation.", clue.ClueId);
+                }
+                if (string.IsNullOrWhiteSpace(clue.InventoryDescription))
+                {
+                    result.Add("MissingField", $"clues[{i}].inventoryDescription", "Camera clue needs an inventoryDescription for photo evidence.", clue.ClueId);
+                }
+                if (string.IsNullOrWhiteSpace(clue.SceneId) || !sceneIds.Contains(clue.SceneId))
+                {
+                    result.Add("MissingReference", $"clues[{i}].sceneId", "Camera clue must reference an existing sceneId.", clue.ClueId);
+                }
+
+                if (string.IsNullOrWhiteSpace(clue.NarrativeMeaning))
+                {
+                    result.Add("MissingField", $"clues[{i}].narrativeMeaning", "Camera clue needs a narrativeMeaning for evidence reasoning.", clue.ClueId);
+                }
+
+                var count = cameraZoneCounts.GetValueOrDefault(clue.ClueId);
+                if (requiresCameraLayout && count != 1)
+                {
+                    result.Add("InvalidValue", $"clues[{i}].clueZone",
+                        $"Camera clue must have exactly one runtime clue zone; found {count}.", clue.ClueId);
+                }
+
+                var requiresVerifiedZone = clue.IsEvidence || clue.IsCritical || finalEvidenceIds.Contains(clue.ClueId);
+                if (requiresCameraLayout && requiresVerifiedZone && cameraZoneByClue.TryGetValue(clue.ClueId, out var zone))
+                {
+                    if (zone.IsFallback || string.Equals(zone.Source, "fallback", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Add("InvalidValue", $"clues[{i}].clueZone", "Required camera clue cannot use a fallback clue zone.", clue.ClueId);
+                    }
+                    if (!string.Equals(zone.DetectionStatus, "FOUND", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Add("InvalidValue", $"clues[{i}].clueZone.detectionStatus", "Required camera clue zone must have detectionStatus FOUND.", clue.ClueId);
+                    }
+                    if (zone.Confidence < 0.65)
+                    {
+                        result.Add("InvalidValue", $"clues[{i}].clueZone.confidence", "Required camera clue zone confidence must be at least 0.65.", clue.ClueId);
+                    }
+                }
+            }
+
+            foreach (var characterId in clue.RelatedCharacterIds.Where(id => !characterIds.Contains(id)))
+            {
+                result.Add("MissingReference", $"clues[{i}].relatedCharacterIds", "Related character does not exist.", characterId);
+            }
         }
+    }
+
+    private static bool IsCameraEmbeddedCase(GameCase c) =>
+        string.Equals(c.GenerationMode, CaseGenerationModes.CameraEmbedded, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAllowedCameraModePuzzleItem(CaseItem item)
+    {
+        if (!item.IsInteractivePuzzleObject || string.IsNullOrWhiteSpace(item.InteractionReason))
+        {
+            return false;
+        }
+
+        return item.InteractionPurpose is CaseItemInteractionPurposes.UnlockDoor
+            or CaseItemInteractionPurposes.CombineItem
+            or CaseItemInteractionPurposes.OperateMechanism;
     }
 
     private static void ValidateFinalLogic(GameCase c, CaseValidationResult result)
@@ -355,6 +553,8 @@ public class CaseValidationService : ICaseValidationService
     {
         var itemById = c.Items.ToDictionary(x => x.ItemId, x => x);
         var dialogueById = c.Dialogues.ToDictionary(x => x.DialogueId, x => x);
+        var clueById = c.Clues.ToDictionary(x => x.ClueId, x => x);
+        var hasCameraLayout = c.Stages.SelectMany(s => s.Scenes).Any(scene => scene.Runtime?.ClueZones.Count > 0);
 
         var unlockedClues = new HashSet<string>();
         var inspectedItems = new HashSet<string>();
@@ -395,6 +595,28 @@ public class CaseValidationService : ICaseValidationService
                         foreach (var clue in dialogue.UnlockClueIds) unlockedClues.Add(clue);
                         progressed = true;
                     }
+
+                    foreach (var zone in scene.Runtime?.ClueZones ?? new List<ClueZone>())
+                    {
+                        if (unlockedClues.Contains(zone.ClueId)) continue;
+                        if (!clueById.TryGetValue(zone.ClueId, out var clue)) continue;
+                        if (DiscoverMethod(clue) != "camera") continue;
+                        if (!zone.RequiredClueIds.All(unlockedClues.Contains)) continue;
+
+                        unlockedClues.Add(zone.ClueId);
+                        progressed = true;
+                    }
+
+                    if (!hasCameraLayout)
+                    {
+                        foreach (var clue in c.Clues.Where(cl => DiscoverMethod(cl) == "camera" && cl.SceneId == scene.SceneId))
+                        {
+                            if (unlockedClues.Add(clue.ClueId))
+                            {
+                                progressed = true;
+                            }
+                        }
+                    }
                 } while (progressed);
 
                 if (!IsConditionSatisfied(scene.CompleteCondition, inspectedItems, unlockedClues, askedDialogues))
@@ -419,12 +641,24 @@ public class CaseValidationService : ICaseValidationService
         {
             var unlockedByItem = c.Items.Any(i => i.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByDialogue = c.Dialogues.Any(d => d.UnlockClueIds.Contains(clue.ClueId));
-            if (!unlockedByItem && !unlockedByDialogue)
+            var unlockedByCamera = DiscoverMethod(clue) == "camera"
+                && (!hasCameraLayout || c.Stages.SelectMany(s => s.Scenes).Any(scene =>
+                    scene.Runtime?.ClueZones.Any(zone => zone.ClueId == clue.ClueId) == true));
+            if (!unlockedByItem && !unlockedByDialogue && !unlockedByCamera)
             {
                 result.Add("OrphanClue", $"clue:{clue.ClueId}",
-                    $"Clue '{clue.ClueId}' is not unlocked by any item or dialogue.", clue.ClueId);
+                    $"Clue '{clue.ClueId}' is not unlocked by any item, dialogue, or camera clue zone.", clue.ClueId);
             }
         }
+    }
+
+    private static string DiscoverMethod(CaseClue clue)
+    {
+        if (!string.IsNullOrWhiteSpace(clue.DiscoverMethod))
+        {
+            return clue.DiscoverMethod.Trim().ToLowerInvariant();
+        }
+        return clue.SourceType.Trim().ToLowerInvariant();
     }
 
     public static bool IsConditionSatisfied(

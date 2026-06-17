@@ -23,6 +23,10 @@ public class GameController : BaseApiController
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> InspectItem(string roomId, [FromBody] InspectItemRequest request) =>
         Ok(await _gameplayService.InspectItemAsync(Caller, roomId, request.ItemId));
 
+    [HttpPost("capture-clue")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> CaptureClue(string roomId, [FromBody] CaptureClueRequest request) =>
+        Ok(await _gameplayService.CaptureClueAsync(Caller, roomId, request));
+
     [HttpPost("ask-dialogue")]
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> AskDialogue(string roomId, [FromBody] AskDialogueRequest request) =>
         Ok(await _gameplayService.AskDialogueAsync(Caller, roomId, request.DialogueId));

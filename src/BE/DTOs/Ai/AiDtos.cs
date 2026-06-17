@@ -27,6 +27,8 @@ public class AiDraftResponse
     public AiDraftSettings Settings { get; set; } = new();
     public string Status { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
+    public string CreatedByUserId { get; set; } = string.Empty;
+    public string CreatedByRole { get; set; } = string.Empty;
     public AiStoryPreview? StoryPreview { get; set; }
     public AiAssetManifest? AssetManifest { get; set; }
     public string CaseId { get; set; } = string.Empty;
@@ -37,6 +39,13 @@ public class AiDraftResponse
     public string JsonFilePath { get; set; } = string.Empty;
     public string JsonFolderPath { get; set; } = string.Empty;
     public List<string> ValidationErrors { get; set; } = new();
+    public string OriginalGeneratedJson { get; set; } = string.Empty;
+    public string RepairedCandidateJson { get; set; } = string.Empty;
+    public List<string> RepairValidationReport { get; set; } = new();
+    public string RepairStatus { get; set; } = string.Empty;
+    public string RepairInstructions { get; set; } = string.Empty;
+    public List<AiPlannedCall> PlannedCalls { get; set; } = new();
+    public AiCostReport CostReport { get; set; } = new();
     public string? ImportedCaseId { get; set; }
     public CaseSummaryResponse? PublishedCase { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -48,6 +57,8 @@ public class AiDraftResponse
         Settings = d.Settings,
         Status = d.Status,
         Provider = d.Provider,
+        CreatedByUserId = d.CreatedByUserId,
+        CreatedByRole = d.CreatedByRole,
         StoryPreview = HasStoryPreview(d.StoryPreview) ? d.StoryPreview : null,
         AssetManifest = HasAssetManifest(d.AssetManifest) ? d.AssetManifest : null,
         CaseId = d.CaseId,
@@ -58,6 +69,17 @@ public class AiDraftResponse
         JsonFilePath = d.JsonFilePath,
         JsonFolderPath = d.JsonFolderPath,
         ValidationErrors = d.ValidationErrors,
+        OriginalGeneratedJson = includeJson ? d.OriginalGeneratedJson : string.Empty,
+        RepairedCandidateJson = includeJson ? d.RepairedCandidateJson : string.Empty,
+        RepairValidationReport = d.RepairValidationReport,
+        RepairStatus = d.RepairStatus,
+        RepairInstructions = d.RepairInstructions,
+        PlannedCalls = d.PlannedCalls,
+        CostReport = new AiCostReport
+        {
+            DryRun = d.PlannedCalls.Any(call => !call.WouldCallApi),
+            PlannedCalls = d.PlannedCalls
+        },
         ImportedCaseId = d.ImportedCaseId,
         PublishedCase = publishedCase,
         CreatedAt = d.CreatedAt
@@ -84,7 +106,12 @@ public class AiDraftResponse
         return !string.IsNullOrWhiteSpace(d.GeneratedJson)
                && d.Status is AiDraftStatus.GeneratedInvalid
                    or AiDraftStatus.OpenAiGeneratedValid
-                   or AiDraftStatus.GeneratingAssets
+                   or AiDraftStatus.FullLogicAwaitingApproval
+                  or AiDraftStatus.SceneLayoutAwaitingApproval
+                  or AiDraftStatus.GeneratingSceneLayout
+                  or AiDraftStatus.GeneratingFinalAssets
+                  or AiDraftStatus.ReadyToPublish
+                  or AiDraftStatus.GeneratingAssets
                    or AiDraftStatus.AssetsGenerated
                    or AiDraftStatus.Imported;
     }
@@ -92,4 +119,16 @@ public class AiDraftResponse
     private static bool HasAssetManifest(AiAssetManifest? manifest) =>
         manifest is not null
         && (!string.IsNullOrWhiteSpace(manifest.AssetRootUrl) || manifest.Assets.Count > 0);
+}
+
+public class RepairFullLogicRequest
+{
+    [MaxLength(2000)]
+    public string? RepairInstructions { get; set; }
+}
+
+public class AiCostReport
+{
+    public bool DryRun { get; set; }
+    public List<AiPlannedCall> PlannedCalls { get; set; } = new();
 }

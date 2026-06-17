@@ -129,6 +129,120 @@ public class GameplayService : IGameplayService
         }
     }
 
+    // ----- Investigator: capture embedded clue with camera -----
+
+    public async Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request)
+    {
+        if (request.CaptureRect.Width <= 0 || request.CaptureRect.Height <= 0)
+        {
+            throw ApiException.BadRequest("Capture rectangle width and height must be positive.");
+        }
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            RequireRole(player, PlayerRole.Investigator, "Only the investigator can capture clue photos.");
+
+            var scene = CurrentScene(gameCase, state, user.Id);
+            if (scene.SceneId != request.SceneId)
+            {
+                throw ApiException.BadRequest("You can only capture clues in your current scene.");
+            }
+
+            var runtime = scene.Runtime;
+            if (runtime is null || runtime.ClueZones.Count == 0)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    CaptureResult = "MISS",
+                    Message = "No important detail was detected."
+                };
+            }
+
+            var clueById = gameCase.Clues.ToDictionary(c => c.ClueId);
+            var availableZones = runtime.ClueZones
+                .Where(z => clueById.ContainsKey(z.ClueId))
+                .Where(z => !state.CapturedClueIds.Contains(z.ClueId))
+                .Where(z => z.RequiredClueIds.All(state.UnlockedClueIds.Contains))
+                .ToList();
+
+            var rules = NormalizeCameraRules(runtime.CameraRules);
+            var best = availableZones
+                .Select(zone => new
+                {
+                    Zone = zone,
+                    Coverage = ClueCoverage(request.CaptureRect, zone.Bounds),
+                    CenterInside = CaptureCenterInside(request.CaptureRect, zone.Bounds)
+                })
+                .OrderByDescending(x => x.Coverage)
+                .ThenByDescending(x => x.CenterInside)
+                .FirstOrDefault();
+
+            if (best is null || best.Coverage < rules.NearMissCoverage)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    CaptureResult = "MISS",
+                    Message = "No important detail was detected."
+                };
+            }
+
+            var isHit = best.Coverage >= rules.MinClueCoverage
+                        && (!rules.RequireCaptureCenterInside || best.CenterInside);
+            if (!isHit)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    CaptureResult = "NEAR_MISS",
+                    MatchedClueId = best.Zone.ClueId,
+                    Message = "There is something notable here. Frame it more carefully."
+                };
+            }
+
+            var clue = clueById[best.Zone.ClueId];
+            state.CapturedClueIds.Add(clue.ClueId);
+            var newClues = state.UnlockedClueIds.Contains(clue.ClueId)
+                ? new List<string>()
+                : new List<string> { clue.ClueId };
+            state.UnlockedClueIds.AddRange(newClues);
+
+            if (!await TrySaveStateAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(roomId, user.Id, "CAPTURE_CLUE", $"{user.FullName} photographed {clue.Title}.",
+                new { clueId = clue.ClueId, sceneId = scene.SceneId, request.CaptureRect });
+            foreach (var clueId in newClues)
+            {
+                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, source = "camera" });
+                await _notifier.ClueUnlocked(roomId, clueId, "camera", user.Id, state.Version);
+            }
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                CaptureResult = "HIT",
+                MatchedClueId = clue.ClueId,
+                UnlockedClueIds = newClues,
+                Message = newClues.Count > 0 ? "Evidence photo captured." : "Evidence photo already linked to the case.",
+                Detail = string.IsNullOrWhiteSpace(clue.InventoryDescription) ? clue.Content : clue.InventoryDescription
+            };
+        }
+    }
+
     // ----- Interrogator: ask dialogue -----
 
     public async Task<GameActionResponse> AskDialogueAsync(CurrentUser user, string roomId, string dialogueId)
@@ -625,6 +739,40 @@ public class GameplayService : IGameplayService
         });
     }
 
+    private static CameraRules NormalizeCameraRules(CameraRules? rules) => new()
+    {
+        CaptureRectWidth = rules?.CaptureRectWidth is > 0 ? rules.CaptureRectWidth : 180,
+        CaptureRectHeight = rules?.CaptureRectHeight is > 0 ? rules.CaptureRectHeight : 140,
+        MinClueCoverage = ClampRatio(rules?.MinClueCoverage, 0.45),
+        NearMissCoverage = Math.Min(ClampRatio(rules?.NearMissCoverage, 0.22), ClampRatio(rules?.MinClueCoverage, 0.45)),
+        RequireCaptureCenterInside = rules?.RequireCaptureCenterInside ?? true
+    };
+
+    private static double ClampRatio(double? value, double fallback)
+    {
+        var v = value is > 0 ? value.Value : fallback;
+        return Math.Clamp(v, 0.01, 1);
+    }
+
+    private static double ClueCoverage(CaptureRectDto capture, RuntimeBox clue)
+    {
+        var left = Math.Max(capture.X, clue.X);
+        var top = Math.Max(capture.Y, clue.Y);
+        var right = Math.Min(capture.X + capture.Width, clue.X + clue.Width);
+        var bottom = Math.Min(capture.Y + capture.Height, clue.Y + clue.Height);
+        if (right <= left || bottom <= top || clue.Width <= 0 || clue.Height <= 0) return 0;
+
+        var intersection = (right - left) * (bottom - top);
+        return intersection / (clue.Width * clue.Height);
+    }
+
+    private static bool CaptureCenterInside(CaptureRectDto capture, RuntimeBox clue)
+    {
+        var centerX = capture.X + capture.Width / 2;
+        var centerY = capture.Y + capture.Height / 2;
+        return centerX >= clue.X && centerX <= clue.X + clue.Width
+               && centerY >= clue.Y && centerY <= clue.Y + clue.Height;
+    }
 
     private static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {

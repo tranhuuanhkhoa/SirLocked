@@ -45,6 +45,7 @@ public class GameplayState
     public List<string> VisitedSceneIds { get; set; } = new();
     public List<string> InspectedItemIds { get; set; } = new();
     public List<string> CollectedItemIds { get; set; } = new();
+    public List<string> CapturedClueIds { get; set; } = new();
     public List<string> UnlockedClueIds { get; set; } = new();
     public List<string> AskedDialogueIds { get; set; } = new();
     public List<string> CompletedSceneIds { get; set; } = new();

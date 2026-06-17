@@ -18,11 +18,19 @@ public static class CaseAutoRepair
         EnsureSourceUnlocks(c, fixes);
         EnsureHotspots(c, fixes);
         EnsureEvidenceFlags(c, fixes);
-        RelaxUnreachableRequirements(c, fixes);
-        EnsureDiscoverableFinalEvidence(c, fixes);
+        if (!HasCameraClues(c))
+        {
+            RelaxUnreachableRequirements(c, fixes);
+            EnsureDiscoverableFinalEvidence(c, fixes);
+        }
 
         return fixes;
     }
+
+    private static bool HasCameraClues(GameCase c) =>
+        c.Clues.Any(cl =>
+            string.Equals(cl.DiscoverMethod, "camera", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(cl.SourceType, "camera", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>A clue that nothing unlocks but that declares a valid source gets attached to that source.</summary>
     private static void EnsureSourceUnlocks(GameCase c, List<string> fixes)

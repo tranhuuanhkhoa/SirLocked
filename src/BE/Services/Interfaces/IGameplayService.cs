@@ -8,6 +8,7 @@ public interface IGameplayService
 {
     Task<GameStateResponse> GetStateAsync(string userId, string roomId);
     Task<GameActionResponse> InspectItemAsync(CurrentUser user, string roomId, string itemId);
+    Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request);
     Task<GameActionResponse> AskDialogueAsync(CurrentUser user, string roomId, string dialogueId);
     Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, string dialogueId, string evidenceId);
     Task<GameActionResponse> CompleteSceneAsync(CurrentUser user, string roomId);

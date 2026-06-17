@@ -3,6 +3,8 @@ import { get, post } from './http.js';
 export const gameApi = {
   state: (roomId) => get(`/api/game/rooms/${roomId}/state`),
   inspectItem: (roomId, itemId) => post(`/api/game/rooms/${roomId}/inspect-item`, { itemId }),
+  captureClue: (roomId, sceneId, captureRect) =>
+    post(`/api/game/rooms/${roomId}/capture-clue`, { sceneId, captureRect }),
   askDialogue: (roomId, dialogueId) => post(`/api/game/rooms/${roomId}/ask-dialogue`, { dialogueId }),
   presentEvidence: (roomId, dialogueId, evidenceId) =>
     post(`/api/game/rooms/${roomId}/present-evidence`, { dialogueId, evidenceId }),

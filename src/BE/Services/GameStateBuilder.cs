@@ -92,6 +92,7 @@ public class GameStateBuilder : IGameStateBuilder
             VisitedSceneIds = state.VisitedSceneIds,
             InspectedItemIds = state.InspectedItemIds,
             CollectedItemIds = state.CollectedItemIds,
+            CapturedClueIds = state.CapturedClueIds,
             CollectedItems = state.CollectedItemIds
                 .Select(id => gameCase.Items.FirstOrDefault(i => i.ItemId == id))
                 .Where(i => i is not null)

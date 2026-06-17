@@ -28,12 +28,17 @@ function characterPortraitUrl(character: SceneCharacter) {
   return playableAssetUrl(character.imageUrl);
 }
 
-// In-scene chibi sprite sits next to the dialogue portrait by naming convention:
-// /assets/characters/mona-portrait.png -> /assets/characters/mona-sprite.png
+// In-scene chibi sprite sits next to the dialogue portrait by naming convention.
 function characterSpriteUrl(character: SceneCharacter) {
   const portrait = playableAssetUrl(character.imageUrl);
   if (!portrait || !portrait.includes('-portrait')) return '';
   return portrait.replace('-portrait', '-sprite');
+}
+
+function sceneCharacterSpriteUrl(character: SceneCharacter, sceneId: string | undefined) {
+  const portrait = playableAssetUrl(character.imageUrl);
+  if (!portrait || !portrait.includes('-portrait') || !sceneId) return '';
+  return portrait.replace('-portrait', `-${sceneId}-sprite`);
 }
 
 type RoomPlayer = {
@@ -105,6 +110,23 @@ type RuntimeTransition = {
   depth?: number;
 };
 
+type RuntimeClueZone = {
+  clueId: string;
+  label?: string;
+  bounds: RuntimeBox;
+  shape?: string;
+  visibility?: string;
+  detectionDifficulty?: string;
+};
+
+type CameraRules = {
+  captureRectWidth?: number;
+  captureRectHeight?: number;
+  minClueCoverage?: number;
+  nearMissCoverage?: number;
+  requireCaptureCenterInside?: boolean;
+};
+
 type SceneRuntime = {
   width?: number;
   height?: number;
@@ -114,6 +136,8 @@ type SceneRuntime = {
   itemPlacements?: RuntimeItemPlacement[];
   characterPlacements?: RuntimeCharacterPlacement[];
   transitions?: RuntimeTransition[];
+  clueZones?: RuntimeClueZone[];
+  cameraRules?: CameraRules;
 };
 
 type SceneItem = {
@@ -161,6 +185,9 @@ type Clue = {
   source: string;
   isCritical: boolean;
   isEvidence: boolean;
+  inventoryDescription?: string;
+  narrativeMeaning?: string;
+  discoverMethod?: string;
 };
 
 type SceneMapEntry = {
@@ -196,6 +223,7 @@ type GameState = {
   visibleScene: VisibleScene;
   inspectedItemIds: string[];
   collectedItemIds: string[];
+  capturedClueIds: string[];
   collectedItems: SceneItem[];
   unlockedClues: Clue[];
   evidenceClues: Clue[];
@@ -216,6 +244,7 @@ type Overlay =
   | { type: 'log' }
   | { type: 'dialogue'; characterId: string }
   | { type: 'inspect'; itemId: string; detail: string; unlockedClueIds: string[] }
+  | { type: 'photo'; clueId: string; detail: string }
   | { type: 'inventory'; itemId: string }
   | { type: 'puzzle'; label: string; message: string };
 
@@ -251,6 +280,7 @@ type PhaserCallbacks = {
   playerPoses: Map<string, PlayerPose>;
   onHotspot: (hotspot: HotspotClick) => void;
   onCharacter: (characterId: string) => void;
+  onCapture: (captureRect: RuntimeBox) => void;
   onProceed: () => void;
   onScene: (sceneId: string) => void;
   onPose: (pose: PlayerPose) => void;
@@ -283,6 +313,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private lastSentPoseKey = '';
   private sceneInteractionEnabled = true;
   private debugLayout = false;
+  private cameraMode = false;
+  private lastCameraPointerKey = '';
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -307,6 +339,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
       if (file?.key) this.failedTextureKeys.add(file.key);
     });
     this.scale.on('resize', () => this.draw());
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.cameraMode || !this.ready) return;
+      const pointerKey = `${Math.round(pointer.x / 3)},${Math.round(pointer.y / 3)}`;
+      if (pointerKey === this.lastCameraPointerKey) return;
+      this.lastCameraPointerKey = pointerKey;
+      this.draw();
+    });
     this.draw();
   }
 
@@ -391,6 +430,21 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
   }
 
+  setCameraMode(enabled: boolean) {
+    this.cameraMode = enabled;
+    if (enabled) {
+      this.sceneInteractionEnabled = false;
+      if (this.input) {
+        this.input.enabled = true;
+        this.input.resetPointers();
+      }
+      if (this.game?.input) {
+        this.game.input.enabled = true;
+      }
+    }
+    if (this.ready) this.draw();
+  }
+
   updateRemotePose(pose: PlayerPose) {
     this.callbacks.playerPoses.set(pose.userId, pose);
     const existing = this.remotePlayers.get(pose.userId);
@@ -438,6 +492,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.drawSceneNavigation(width, height);
     this.drawInventoryHint(width, height);
     this.drawControlHint(width, height);
+    this.drawCameraOverlay(width, height);
     this.drawDebugOverlay(scene, width, height);
     this.flushTextures();
   }
@@ -707,7 +762,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const fresh = this.state?.visibleScene.availableDialogues
       .filter((dialogue) => dialogue.characterId === character.characterId && !dialogue.isAsked && !dialogue.isLocked).length ?? 0;
 
-    const spriteUrl = playableAssetUrl(placement?.asset) || characterSpriteUrl(character);
+    const spriteUrls = [
+      playableAssetUrl(placement?.asset),
+      sceneCharacterSpriteUrl(character, this.state?.currentSceneId),
+      characterSpriteUrl(character),
+    ].filter((url, index, urls) => url && urls.indexOf(url) === index);
+    const readySpriteUrl = spriteUrls.find((url) => this.textures.exists(`npc:${character.characterId}:${url}`));
+    const spriteUrl = readySpriteUrl ?? spriteUrls[0] ?? '';
     const spriteKey = spriteUrl ? `npc:${character.characterId}:${spriteUrl}` : '';
     const shadow = this.add.ellipse(0, -2, npcH * 0.4, npcH * 0.08, 0x000000, 0.32);
 
@@ -719,7 +780,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
       (body as Phaser.GameObjects.Image).setDisplaySize(npcW, npcH);
       (body as Phaser.GameObjects.Image).setFlipX(placement?.direction === 'right');
     } else {
-      if (spriteKey && spriteUrl) this.queueTexture(spriteKey, spriteUrl);
+      for (const url of spriteUrls) {
+        this.queueTexture(`npc:${character.characterId}:${url}`, url);
+      }
       body = this.add.rectangle(0, 0, npcW, npcH, this.colorFromId(character.characterId, 0x3a2a55), 0.6)
         .setOrigin(0.5, 1)
         .setStrokeStyle(1, 0xc9a84c, 0.4)
@@ -927,6 +990,78 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }).setOrigin(0.5);
   }
 
+  private drawCameraOverlay(width: number, height: number) {
+    if (!this.cameraMode) return;
+
+    const rect = this.cameraScreenRect(width, height);
+    const graphics = this.add.graphics().setDepth(240);
+    graphics.fillStyle(0x6d7178, 0.2);
+    graphics.fillRect(0, 0, width, height);
+    graphics.fillStyle(0x000000, 0.18);
+    graphics.fillRect(0, 0, width, rect.y);
+    graphics.fillRect(0, rect.y + rect.height, width, height - rect.y - rect.height);
+    graphics.fillRect(0, rect.y, rect.x, rect.height);
+    graphics.fillRect(rect.x + rect.width, rect.y, width - rect.x - rect.width, rect.height);
+    graphics.lineStyle(2, 0xf4dc8f, 0.96);
+    graphics.strokeRect(rect.x, rect.y, rect.width, rect.height);
+    graphics.lineStyle(5, 0xf4dc8f, 0.92);
+    const corner = Math.min(34, rect.width * 0.22, rect.height * 0.22);
+    graphics.lineBetween(rect.x, rect.y, rect.x + corner, rect.y);
+    graphics.lineBetween(rect.x, rect.y, rect.x, rect.y + corner);
+    graphics.lineBetween(rect.x + rect.width, rect.y, rect.x + rect.width - corner, rect.y);
+    graphics.lineBetween(rect.x + rect.width, rect.y, rect.x + rect.width, rect.y + corner);
+    graphics.lineBetween(rect.x, rect.y + rect.height, rect.x + corner, rect.y + rect.height);
+    graphics.lineBetween(rect.x, rect.y + rect.height, rect.x, rect.y + rect.height - corner);
+    graphics.lineBetween(rect.x + rect.width, rect.y + rect.height, rect.x + rect.width - corner, rect.y + rect.height);
+    graphics.lineBetween(rect.x + rect.width, rect.y + rect.height, rect.x + rect.width, rect.y + rect.height - corner);
+
+    this.add.text(width / 2, rect.y - 14, 'Camera', {
+      fontFamily: 'Crimson Text, serif',
+      fontSize: '17px',
+      color: '#f4dc8f',
+      backgroundColor: 'rgba(10,22,40,0.84)',
+      padding: { x: 10, y: 5 },
+    }).setOrigin(0.5, 1).setDepth(245);
+
+    this.add.zone(width / 2, height / 2, width, height)
+      .setDepth(250)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.callbacks.onCapture(this.cameraWorldRect(this.cameraScreenRect(width, height))));
+  }
+
+  private cameraScreenRect(width: number, height: number) {
+    const rules = this.sceneRuntime()?.cameraRules ?? {};
+    const size = this.worldSize({
+      width: rules.captureRectWidth && rules.captureRectWidth > 0 ? rules.captureRectWidth : 180,
+      height: rules.captureRectHeight && rules.captureRectHeight > 0 ? rules.captureRectHeight : 140,
+    });
+    const frame = this.sceneFrame();
+    const captureWidth = Phaser.Math.Clamp(size.width, 120, Math.min(width * 0.72, frame.width, 420));
+    const captureHeight = Phaser.Math.Clamp(size.height, 92, Math.min(height * 0.62, frame.height, 320));
+    const pointer = this.input.activePointer;
+    const fallbackX = frame.x + frame.width / 2;
+    const fallbackY = frame.y + frame.height / 2;
+    const pointerInsideCanvas = pointer.x >= 0 && pointer.y >= 0 && pointer.x <= width && pointer.y <= height;
+    const centerX = Phaser.Math.Clamp(pointerInsideCanvas ? pointer.x : fallbackX, frame.x, frame.x + frame.width);
+    const centerY = Phaser.Math.Clamp(pointerInsideCanvas ? pointer.y : fallbackY, frame.y, frame.y + frame.height);
+    return {
+      x: Phaser.Math.Clamp(centerX - captureWidth / 2, frame.x, frame.x + frame.width - captureWidth),
+      y: Phaser.Math.Clamp(centerY - captureHeight / 2, frame.y, frame.y + frame.height - captureHeight),
+      width: captureWidth,
+      height: captureHeight,
+    };
+  }
+
+  private cameraWorldRect(rect: RuntimeBox): RuntimeBox {
+    const topLeft = this.screenToWorld(rect.x, rect.y);
+    const bottomRight = this.screenToWorld(rect.x + rect.width, rect.y + rect.height);
+    const x = Phaser.Math.Clamp(Math.min(topLeft.x, bottomRight.x), 0, this.runtimeWidth());
+    const y = Phaser.Math.Clamp(Math.min(topLeft.y, bottomRight.y), 0, this.runtimeHeight());
+    const right = Phaser.Math.Clamp(Math.max(topLeft.x, bottomRight.x), 0, this.runtimeWidth());
+    const bottom = Phaser.Math.Clamp(Math.max(topLeft.y, bottomRight.y), 0, this.runtimeHeight());
+    return { x, y, width: Math.max(1, right - x), height: Math.max(1, bottom - y) };
+  }
+
   private drawDebugOverlay(scene: VisibleScene, width: number, height: number) {
     if (!this.debugLayout) {
       this.debugPointerText = null;
@@ -975,6 +1110,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
     for (const transition of runtime?.transitions ?? []) {
       this.debugBox(graphics, transition.hotspot, 0x6fa8ff, 0.45, `exit ${transition.targetSceneId}`);
+    }
+
+    for (const zone of runtime?.clueZones ?? []) {
+      this.debugBox(graphics, zone.bounds, 0x7cff9b, 0.5, `clue ${zone.clueId}`);
     }
 
     if (!runtime) {
@@ -1280,6 +1419,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let overlay: Overlay = null;
   let selectedInventoryItemId: string | null = null;
   let accusation: Accusation = null;
+  let cameraMode = false;
+  let captureInFlight = false;
   let stopped = false;
   let phaserGame: Phaser.Game | null = null;
   let phaserScene: SirLockedPhaserScene | null = null;
@@ -1300,6 +1441,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function applyState(fresh: GameState) {
     if (!fresh || (state && fresh.version < state.version)) return;
     state = fresh;
+    if (myRole() !== 'INVESTIGATOR') cameraMode = false;
     if (state.roomStatus === 'COMPLETED') {
       window.location.hash = `#/result/${roomId}`;
       return;
@@ -1396,6 +1538,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <div class="game-players">${playersHtml()}</div>
           <div class="game-hud-actions">
             <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
+            <button class="round-tool ${cameraMode ? 'is-hot' : ''}" id="camera-btn" ${myRole() === 'INVESTIGATOR' ? '' : 'disabled'}
+                    title="${myRole() === 'INVESTIGATOR' ? 'Photograph embedded scene clues' : 'Only the Investigator can capture scene clues'}">
+              Camera <span class="badge">${state.capturedClueIds?.length ?? 0}</span>
+            </button>
             <button class="round-tool" id="map-btn" title="Locations">Map</button>
             <button class="round-tool" id="log-btn" title="Action log">Log</button>
             <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
@@ -1431,6 +1577,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         overlay = { type: 'dialogue', characterId };
         draw();
       },
+      onCapture: (captureRect) => captureClue(captureRect),
       onProceed: () => completeScene(),
       onScene: (sceneId) => goToScene(sceneId),
       onPose: (pose) => {
@@ -1473,6 +1620,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     phaserScene.updateGameState(state, selectedInventoryItemId);
     phaserScene.setSceneInteractionEnabled(!isSceneInputBlocked());
+    phaserScene.setCameraMode(cameraMode && !isSceneInputBlocked());
     // Debug handle for QA tooling (canvas snapshots, state inspection).
     (window as unknown as Record<string, unknown>).__sirlockedGame = phaserGame;
   }
@@ -1531,6 +1679,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (overlay.type === 'log') return logOverlay();
     if (overlay.type === 'dialogue') return dialogueOverlay(overlay.characterId);
     if (overlay.type === 'inspect') return inspectOverlay(overlay.itemId, overlay.detail, overlay.unlockedClueIds ?? []);
+    if (overlay.type === 'photo') return photoOverlay(overlay.clueId, overlay.detail);
     if (overlay.type === 'inventory') return inventoryDetailOverlay(overlay.itemId);
     if (overlay.type === 'puzzle') return puzzleOverlay(overlay.label, overlay.message);
     return '';
@@ -1612,6 +1761,20 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
             : '<p class="muted small">No new evidence found.</p>'}
           <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
         </div>
+      </div>
+    </div>`;
+  }
+
+  function photoOverlay(clueId: string, detail: string) {
+    const clue = state!.unlockedClues.find((c) => c.clueId === clueId) ?? state!.evidenceClues.find((c) => c.clueId === clueId);
+    return `
+    <div class="overlay">
+      <div class="modal">
+        <h2>${escapeHtml(clue?.title ?? 'Photographic evidence')}</h2>
+        <p>${escapeHtml(detail || clue?.inventoryDescription || clue?.content || 'A scene clue has been added to the case file.')}</p>
+        ${clue?.narrativeMeaning ? `<p class="muted">${escapeHtml(clue.narrativeMeaning)}</p>` : ''}
+        <p class="clue-flash">Photo captured and logged.</p>
+        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
       </div>
     </div>`;
   }
@@ -1781,6 +1944,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       }));
 
     app.querySelector('#case-file-btn')?.addEventListener('click', () => { overlay = { type: 'case' }; draw(); });
+    app.querySelector('#camera-btn')?.addEventListener('click', () => {
+      if (myRole() !== 'INVESTIGATOR') {
+        toast('Only the Investigator can capture scene clues.', 'info');
+        return;
+      }
+      overlay = null;
+      accusation = null;
+      cameraMode = !cameraMode;
+      draw();
+    });
     app.querySelector('#map-btn')?.addEventListener('click', () => { overlay = { type: 'map' }; draw(); });
     app.querySelector('#log-btn')?.addEventListener('click', () => { overlay = { type: 'log' }; draw(); });
     app.querySelector('#accuse-btn')?.addEventListener('click', () => {
@@ -1931,6 +2104,39 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');
+    }
+  }
+
+  async function captureClue(captureRect: RuntimeBox) {
+    if (!state || captureInFlight || !cameraMode || isSceneInputBlocked()) return;
+    if (myRole() !== 'INVESTIGATOR') {
+      toast('Only the Investigator can capture scene clues.', 'info');
+      return;
+    }
+
+    captureInFlight = true;
+    try {
+      const res = await gameApi.captureClue(roomId, state.currentSceneId, captureRect);
+      const result = String(res.captureResult || '').toUpperCase();
+      if (result === 'HIT') {
+        cameraMode = false;
+        const clueId = res.matchedClueId || res.unlockedClueIds?.[0] || '';
+        overlay = { type: 'photo', clueId, detail: res.detail || res.message || 'Photo evidence added.' };
+        toast(res.message || 'Photo evidence captured.', 'success');
+        applyState(res.state);
+        return;
+      }
+
+      if (result === 'NEAR_MISS') {
+        toast(res.message || 'Close, but the clue is not framed clearly enough.', 'info', 3600);
+      } else {
+        toast(res.message || 'Nothing noteworthy in that frame.', 'info', 3200);
+      }
+      if (res.state) applyState(res.state);
+    } catch (err: any) {
+      toast(err.message, 'error');
+    } finally {
+      captureInFlight = false;
     }
   }
 

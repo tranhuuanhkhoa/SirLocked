@@ -57,7 +57,7 @@ public class AiCaseService : IAiCaseService
         _logger = logger;
     }
 
-    public async Task<AiDraftResponse> CreatePreviewAsync(GenerateAiCaseRequest request)
+    public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request)
     {
         EnsureOpenAiConfigured();
         var creatorPrompt = request.Prompt?.Trim() ?? string.Empty;
@@ -69,10 +69,13 @@ public class AiCaseService : IAiCaseService
             {
                 StageCount = request.StageCount,
                 Difficulty = request.Difficulty,
-                VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme
+                VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
+                GenerationMode = CaseGenerationModes.CameraEmbedded
             },
             Status = AiDraftStatus.GeneratingStory,
-            Provider = ProviderName
+            Provider = ProviderName,
+            CreatedByUserId = user.Id,
+            CreatedByRole = user.Role
         };
         await _db.AiCaseDrafts.InsertOneAsync(draft);
 
@@ -99,12 +102,13 @@ public class AiCaseService : IAiCaseService
         }
     }
 
-    public async Task<AiDraftResponse> ApproveDraftAsync(string draftId)
+    public async Task<AiDraftResponse> ApproveDraftAsync(CurrentUser user, string draftId)
     {
         EnsureOpenAiConfigured();
 
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
 
         if (draft.Status == AiDraftStatus.Published)
         {
@@ -116,15 +120,51 @@ public class AiCaseService : IAiCaseService
             throw ApiException.BadRequest("Only a story preview waiting for approval can generate the full case.");
         }
 
-        return await GenerateFullCaseAndPublishAsync(draft);
+        return await GenerateFullCaseLogicAsync(draft);
     }
 
-    public async Task<AiDraftResponse> ContinueDraftAsync(string draftId)
+    public async Task<AiDraftResponse> ApproveFullLogicAsync(CurrentUser user, string draftId)
     {
         EnsureOpenAiConfigured();
 
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+
+        if (draft.Status != AiDraftStatus.FullLogicAwaitingApproval)
+        {
+            throw ApiException.BadRequest("Only a full case logic draft waiting for approval can generate scene layouts.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(draft.RepairedCandidateJson) && draft.RepairStatus == AiRepairStatus.CandidateReady)
+        {
+            throw ApiException.BadRequest("This draft has a pending repair candidate. Accept or reject it before approving full logic.");
+        }
+
+        return await GenerateSceneLayoutAsync(draft, forceRegenerate: false);
+    }
+
+    public async Task<AiDraftResponse> ApproveSceneLayoutAsync(CurrentUser user, string draftId)
+    {
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+
+        if (draft.Status != AiDraftStatus.SceneLayoutAwaitingApproval && draft.Status != AiDraftStatus.AssetsGenerated)
+        {
+            throw ApiException.BadRequest("Only a scene layout waiting for approval can generate final assets.");
+        }
+
+        return await GenerateFinalAssetsAsync(draft);
+    }
+
+    public async Task<AiDraftResponse> ContinueDraftAsync(CurrentUser user, string draftId)
+    {
+        EnsureOpenAiConfigured();
+
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
 
         if (draft.Status == AiDraftStatus.Published)
         {
@@ -133,12 +173,24 @@ public class AiCaseService : IAiCaseService
 
         if (!string.IsNullOrWhiteSpace(draft.GeneratedJson))
         {
-            return await GenerateAssetsFromStoredJsonAndPublishAsync(draft, forceRegenerate: false);
+            if (draft.Status == AiDraftStatus.FullLogicAwaitingApproval)
+            {
+                return await GenerateSceneLayoutAsync(draft, forceRegenerate: false);
+            }
+            if (draft.Status == AiDraftStatus.SceneLayoutAwaitingApproval || draft.Status == AiDraftStatus.AssetsGenerated)
+            {
+                return await GenerateFinalAssetsAsync(draft);
+            }
+            if (draft.Status == AiDraftStatus.ReadyToPublish)
+            {
+                return AiDraftResponse.From(draft);
+            }
+            return await GenerateSceneLayoutAsync(draft, forceRegenerate: false);
         }
 
         if (draft.Status == AiDraftStatus.StoryAwaitingApproval && HasSavedStoryPreview(draft.StoryPreview))
         {
-            return await GenerateFullCaseAndPublishAsync(draft);
+            return await GenerateFullCaseLogicAsync(draft);
         }
 
         if (draft.Status == AiDraftStatus.GeneratedInvalid && HasSavedStoryPreview(draft.StoryPreview))
@@ -150,7 +202,117 @@ public class AiCaseService : IAiCaseService
         throw ApiException.BadRequest("This AI draft does not have enough saved data to continue. Create a new case instead.");
     }
 
-    private async Task<AiDraftResponse> GenerateFullCaseAndPublishAsync(AiCaseDraft draft)
+    public async Task<AiDraftResponse> RepairFullLogicAsync(CurrentUser user, string draftId, RepairFullLogicRequest request)
+    {
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+
+        if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
+        {
+            throw ApiException.BadRequest("This draft has no generated case JSON to repair.");
+        }
+
+        if (draft.Status is not (AiDraftStatus.FullLogicAwaitingApproval or AiDraftStatus.GeneratedInvalid or AiDraftStatus.OpenAiGeneratedValid))
+        {
+            throw ApiException.BadRequest("Only a generated full logic draft can be repaired.");
+        }
+
+        var gameCase = _caseService.ParseCase(draft.GeneratedJson);
+        gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
+        var fixes = CameraEmbeddedCaseRepair.RepairFinalItemEvidenceToCamera(gameCase);
+        if (fixes.Count == 0)
+        {
+            fixes.Add("No item-based final evidence needed camera repair.");
+        }
+
+        var validation = _validator.ValidateFullLogic(gameCase);
+        var candidateJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        var report = validation.IsValid
+            ? fixes
+            : fixes.Concat(validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")).ToList();
+        var instructions = request.RepairInstructions?.Trim() ?? string.Empty;
+
+        var update = Builders<AiCaseDraft>.Update
+            .Set(d => d.OriginalGeneratedJson, string.IsNullOrWhiteSpace(draft.OriginalGeneratedJson) ? draft.GeneratedJson : draft.OriginalGeneratedJson)
+            .Set(d => d.RepairedCandidateJson, candidateJson)
+            .Set(d => d.RepairValidationReport, report)
+            .Set(d => d.RepairStatus, validation.IsValid ? AiRepairStatus.CandidateReady : AiRepairStatus.CandidateInvalid)
+            .Set(d => d.RepairInstructions, instructions)
+            .Set(d => d.ValidationErrors, validation.IsValid ? new List<string>() : report)
+            .Set(d => d.UpdatedAt, DateTime.UtcNow);
+        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, update);
+
+        await LogGenerationAsync(draft.Id, draft.Provider, "RepairFullLogic", validation.IsValid ? "CANDIDATE_READY" : "CANDIDATE_INVALID",
+            instructions, string.Join("\n", report), null);
+
+        var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+        return AiDraftResponse.From(saved);
+    }
+
+    public async Task<AiDraftResponse> AcceptFullLogicRepairAsync(CurrentUser user, string draftId)
+    {
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+
+        if (draft.RepairStatus != AiRepairStatus.CandidateReady || string.IsNullOrWhiteSpace(draft.RepairedCandidateJson))
+        {
+            throw ApiException.BadRequest("This draft has no valid repair candidate to accept.");
+        }
+
+        var gameCase = _caseService.ParseCase(draft.RepairedCandidateJson);
+        gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
+        var validation = _validator.ValidateFullLogic(gameCase);
+        if (!validation.IsValid)
+        {
+            var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
+            await _db.AiCaseDrafts.UpdateOneAsync(
+                d => d.Id == draft.Id,
+                Builders<AiCaseDraft>.Update
+                    .Set(d => d.RepairStatus, AiRepairStatus.CandidateInvalid)
+                    .Set(d => d.RepairValidationReport, errors)
+                    .Set(d => d.ValidationErrors, errors)
+                    .Set(d => d.UpdatedAt, DateTime.UtcNow));
+            throw ApiException.BadRequest("The repair candidate no longer passes full logic validation.");
+        }
+
+        var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval)
+                .Set(d => d.GeneratedJson, normalizedJson)
+                .Set(d => d.CaseId, gameCase.CaseId)
+                .Set(d => d.CaseTitle, gameCase.Title)
+                .Set(d => d.RepairStatus, AiRepairStatus.Accepted)
+                .Set(d => d.ValidationErrors, new List<string>())
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+
+        var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+        return AiDraftResponse.From(saved);
+    }
+
+    public async Task<AiDraftResponse> RejectFullLogicRepairAsync(CurrentUser user, string draftId)
+    {
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.RepairStatus, AiRepairStatus.Rejected)
+                .Set(d => d.RepairedCandidateJson, string.Empty)
+                .Set(d => d.RepairValidationReport, new List<string>())
+                .Set(d => d.ValidationErrors, new List<string>())
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+
+        var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+        return AiDraftResponse.From(saved);
+    }
+
+    private async Task<AiDraftResponse> GenerateFullCaseLogicAsync(AiCaseDraft draft)
     {
         try
         {
@@ -191,7 +353,7 @@ public class AiCaseService : IAiCaseService
             await _db.AiCaseDrafts.UpdateOneAsync(
                 d => d.Id == draft.Id,
                 Builders<AiCaseDraft>.Update
-                    .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
+                    .Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval)
                     .Set(d => d.GeneratedJson, normalizedJson)
                     .Set(d => d.CaseId, gameCase.CaseId)
                     .Set(d => d.CaseTitle, gameCase.Title)
@@ -201,7 +363,8 @@ public class AiCaseService : IAiCaseService
             draft.GeneratedJson = normalizedJson;
             draft.CaseId = gameCase.CaseId;
             draft.CaseTitle = gameCase.Title;
-            return await GenerateAssetsAndPublishAsync(draft, gameCase, forceRegenerate: false);
+            var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+            return AiDraftResponse.From(saved);
         }
         catch (ApiException ex)
         {
@@ -210,7 +373,7 @@ public class AiCaseService : IAiCaseService
         }
     }
 
-    private async Task<AiDraftResponse> GenerateAssetsFromStoredJsonAndPublishAsync(AiCaseDraft draft, bool forceRegenerate)
+    private async Task<AiDraftResponse> GenerateSceneLayoutAsync(AiCaseDraft draft, bool forceRegenerate)
     {
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
         {
@@ -222,7 +385,7 @@ public class AiCaseService : IAiCaseService
             var gameCase = JsonSerializer.Deserialize<GameCase>(StripMarkdownFences(draft.GeneratedJson), PrettyJson)
                 ?? throw ApiException.BadRequest("Stored generated case JSON is empty.");
 
-            return await GenerateAssetsAndPublishAsync(draft, gameCase, forceRegenerate);
+            return await GenerateSceneLayoutAsync(draft, gameCase, forceRegenerate);
         }
         catch (JsonException ex)
         {
@@ -235,23 +398,48 @@ public class AiCaseService : IAiCaseService
         }
     }
 
-    private async Task<AiDraftResponse> GenerateAssetsAndPublishAsync(AiCaseDraft draft, GameCase gameCase, bool forceRegenerate)
+    private async Task<AiDraftResponse> GenerateSceneLayoutAsync(AiCaseDraft draft, GameCase gameCase, bool forceRegenerate)
     {
         var preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        var fullLogicValidation = _validator.ValidateFullLogic(gameCase);
+        if (!fullLogicValidation.IsValid)
+        {
+            var errors = fullLogicValidation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
+            await SaveInvalidAttemptAsync(draft, preAssetJson, errors);
+            var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+            return AiDraftResponse.From(failed);
+        }
+
+        if (_settings.BlocksAssetCalls)
+        {
+            await RecordPlannedSceneLayoutCallsAsync(draft.Id, gameCase);
+            await _db.AiCaseDrafts.UpdateOneAsync(
+                d => d.Id == draft.Id,
+                Builders<AiCaseDraft>.Update
+                    .Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval)
+                    .Set(d => d.GeneratedJson, preAssetJson)
+                    .Set(d => d.CaseId, gameCase.CaseId)
+                    .Set(d => d.CaseTitle, gameCase.Title)
+                    .Set(d => d.ValidationErrors, new List<string>())
+                    .Set(d => d.UpdatedAt, DateTime.UtcNow));
+            var dryRunDraft = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+            return AiDraftResponse.From(dryRunDraft);
+        }
+
         await _db.AiCaseDrafts.UpdateOneAsync(
             d => d.Id == draft.Id,
             Builders<AiCaseDraft>.Update
-                .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
+                .Set(d => d.Status, AiDraftStatus.GeneratingSceneLayout)
                 .Set(d => d.GeneratedJson, preAssetJson)
                 .Set(d => d.CaseId, gameCase.CaseId)
                 .Set(d => d.CaseTitle, gameCase.Title)
                 .Set(d => d.ValidationErrors, new List<string>())
                 .Set(d => d.UpdatedAt, DateTime.UtcNow));
 
-        var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate);
+        var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets: false);
         draft.AssetManifest = assetManifest;
 
-        var validation = _validator.Validate(gameCase);
+        var validation = _validator.ValidateSceneLayout(gameCase);
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
         {
@@ -263,7 +451,7 @@ public class AiCaseService : IAiCaseService
 
         var folder = ExportBundle(draft, gameCase, normalizedJson, validation.Errors.Count);
         var generatedUpdate = Builders<AiCaseDraft>.Update
-            .Set(d => d.Status, AiDraftStatus.AssetsGenerated)
+            .Set(d => d.Status, AiDraftStatus.SceneLayoutAwaitingApproval)
             .Set(d => d.AssetManifest, assetManifest)
             .Set(d => d.GeneratedJson, normalizedJson)
             .Set(d => d.CaseId, gameCase.CaseId)
@@ -274,51 +462,110 @@ public class AiCaseService : IAiCaseService
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
         await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, generatedUpdate);
 
-        using var doc = JsonDocument.Parse(normalizedJson);
-        var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite: true);
-        summary = await _caseService.PublishAsync(summary.CaseId);
-
-        var publishUpdate = Builders<AiCaseDraft>.Update
-            .Set(d => d.Status, AiDraftStatus.Published)
-            .Set(d => d.ImportedCaseId, summary.CaseId)
-            .Set(d => d.UpdatedAt, DateTime.UtcNow);
-        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, publishUpdate);
-
         var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
-        return AiDraftResponse.From(saved, publishedCase: summary);
+        return AiDraftResponse.From(saved);
     }
 
-    public async Task<AiDraftResponse> RegenerateAssetsAsync(string draftId)
+    public async Task<AiDraftResponse> RegenerateAssetsAsync(CurrentUser user, string draftId)
     {
         EnsureOpenAiConfigured();
 
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
 
-        return await GenerateAssetsFromStoredJsonAndPublishAsync(draft, forceRegenerate: true);
+        return await GenerateSceneLayoutAsync(draft, forceRegenerate: true);
     }
 
-    public async Task<List<AiDraftResponse>> GetDraftsAsync()
+    private async Task<AiDraftResponse> GenerateFinalAssetsAsync(AiCaseDraft draft)
     {
+        if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
+        {
+            throw ApiException.BadRequest("This draft has no generated case JSON for final asset generation.");
+        }
+
+        var gameCase = JsonSerializer.Deserialize<GameCase>(StripMarkdownFences(draft.GeneratedJson), PrettyJson)
+            ?? throw ApiException.BadRequest("Stored generated case JSON is empty.");
+
+        if (_settings.BlocksAssetCalls)
+        {
+            await RecordPlannedFinalAssetCallsAsync(draft.Id, gameCase);
+            var dryRunDraft = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+            return AiDraftResponse.From(dryRunDraft);
+        }
+
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.Status, AiDraftStatus.GeneratingFinalAssets)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+
+        var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate: false, includeFinalAssets: true);
+        var validation = _validator.Validate(gameCase);
+        var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        if (!validation.IsValid)
+        {
+            var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
+            await SaveInvalidAttemptAsync(draft, normalizedJson, errors);
+            throw ApiException.BadRequest("Final asset generation produced an invalid case runtime.");
+        }
+
+        var folder = ExportBundle(draft, gameCase, normalizedJson, validation.Errors.Count);
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.Status, AiDraftStatus.GeneratingFinalAssets)
+                .Set(d => d.AssetManifest, assetManifest)
+                .Set(d => d.GeneratedJson, normalizedJson)
+                .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
+                .Set(d => d.JsonFolderPath, folder)
+                .Set(d => d.ValidationErrors, new List<string>())
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+
+        var readyUpdate = Builders<AiCaseDraft>.Update
+            .Set(d => d.Status, AiDraftStatus.ReadyToPublish)
+            .Set(d => d.AssetManifest, assetManifest)
+            .Set(d => d.GeneratedJson, normalizedJson)
+            .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
+            .Set(d => d.JsonFolderPath, folder)
+            .Set(d => d.ValidationErrors, new List<string>())
+            .Set(d => d.UpdatedAt, DateTime.UtcNow);
+        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, readyUpdate);
+
+        var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+        return AiDraftResponse.From(saved);
+    }
+
+    public async Task<List<AiDraftResponse>> GetDraftsAsync(CurrentUser user)
+    {
+        EnsureAdmin(user);
         var drafts = await _db.AiCaseDrafts.Find(_ => true).SortByDescending(d => d.CreatedAt).Limit(50).ToListAsync();
         return drafts.Select(d => AiDraftResponse.From(d, includeJson: false)).ToList();
     }
 
-    public async Task<AiDraftResponse> GetDraftAsync(string draftId)
+    public async Task<AiDraftResponse> GetDraftAsync(CurrentUser user, string draftId)
     {
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
         return AiDraftResponse.From(draft);
     }
 
-    public async Task<CaseSummaryResponse> ImportDraftAsync(string draftId, bool overwrite, bool publish)
+    public async Task<CaseSummaryResponse> ImportDraftAsync(CurrentUser user, string draftId, bool overwrite, bool publish)
     {
+        EnsureAdmin(user);
+        EnsureImportPublishAllowed();
+
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
 
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson) || draft.Status == AiDraftStatus.GeneratedInvalid)
         {
             throw ApiException.BadRequest("This draft failed validation and cannot be imported.");
+        }
+        if (draft.Status != AiDraftStatus.ReadyToPublish)
+        {
+            throw ApiException.BadRequest("AI draft cannot be published directly. Approve full logic and scene layout first.");
         }
 
         using var doc = JsonDocument.Parse(draft.GeneratedJson);
@@ -376,6 +623,9 @@ public class AiCaseService : IAiCaseService
         }
 
         gameCase.Status = CaseStatus.Draft;
+        gameCase.GenerationMode = string.IsNullOrWhiteSpace(draft.Settings.GenerationMode)
+            ? CaseGenerationModes.CameraEmbedded
+            : draft.Settings.GenerationMode;
         if (string.IsNullOrWhiteSpace(gameCase.CaseId))
         {
             gameCase.CaseId = $"case-ai-{DateTime.UtcNow:yyyyMMddHHmmss}";
@@ -387,13 +637,18 @@ public class AiCaseService : IAiCaseService
             await LogGenerationAsync(draft.Id, draft.Provider, "AutoRepair", "APPLIED", string.Empty, string.Join("\n", fixes), null);
         }
 
-        return (gameCase, _validator.Validate(gameCase));
+        return (gameCase, _validator.ValidateFullLogic(gameCase));
     }
 
     // ----- OpenAI -----
 
     private void EnsureOpenAiConfigured()
     {
+        if (_settings.BlocksAiCalls)
+        {
+            return;
+        }
+
         if (!_settings.HasApiKey)
         {
             throw ApiException.BadRequest("OpenAI__ApiKey must be configured before generating AI cases.");
@@ -402,6 +657,18 @@ public class AiCaseService : IAiCaseService
 
     private async Task<string> GenerateJsonWithOpenAiAsync(string draftId, string step, string prompt, int maxOutputTokens)
     {
+        if (_settings.BlocksAiCalls)
+        {
+            var reason = _settings.MockAiResponses
+                ? "MOCK_AI_RESPONSES enabled"
+                : "AI_DRY_RUN enabled";
+            await RecordPlannedCallAsync(draftId, step, "text", wouldCallApi: false, reason);
+            await LogGenerationAsync(draftId, ProviderName, step, "MOCKED", prompt, reason, null);
+            return MockJsonResponse(step);
+        }
+
+        await RecordPlannedCallAsync(draftId, step, "text", wouldCallApi: true, "Text AI call will run.");
+
         var payload = new
         {
             model = _settings.LogicModel,
@@ -567,19 +834,24 @@ public class AiCaseService : IAiCaseService
         var sample = """
         {
           "caseId": "case-example", "title": "...", "summary": "...", "status": "DRAFT",
+          "generationMode": "CAMERA_EMBEDDED",
           "estimatedMinutes": 35, "coverImageUrl": "/assets/cases/example.jpg",
           "stages": [{ "stageId": "stage-1", "title": "...", "order": 1, "scenes": [{
             "sceneId": "scene-1", "title": "...", "backgroundUrl": "/assets/scenes/example.jpg",
-            "description": "...", "itemIds": ["item-1"], "characterIds": ["char-1"],
-            "hotspots": [{ "hotspotId": "hotspot-1", "type": "ITEM", "targetId": "item-1",
-              "x": 46, "y": 61, "width": 8, "height": 10, "label": "...", "requiredClueIds": [] }],
-            "completeCondition": { "logic": "AND", "requiredItemIds": ["item-1"],
+            "description": "...", "itemIds": [], "characterIds": ["char-1"],
+            "hotspots": [],
+            "completeCondition": { "logic": "AND", "requiredItemIds": [],
               "requiredClueIds": ["clue-1"], "requiredDialogueIds": ["dlg-1"] } }] }],
           "characters": [{ "characterId": "char-1", "name": "...", "role": "...", "imageUrl": "/assets/characters/x.png", "description": "..." }],
           "items": [{ "itemId": "item-1", "name": "...", "description": "...", "inspectText": "...",
-            "imageUrl": "/assets/items/x.png", "unlockClueIds": ["clue-1"], "isCollectible": true }],
+            "imageUrl": "/assets/items/x.png", "unlockClueIds": [], "isCollectible": true,
+            "isInteractivePuzzleObject": true, "interactionPurpose": "operate-mechanism",
+            "interactionReason": "The player must physically turn this mechanism to unlock the service hatch." }],
           "clues": [{ "clueId": "clue-1", "title": "...", "content": "...", "isCritical": true,
-            "isEvidence": true, "isRedHerring": false, "source": "item-1", "sourceType": "item" }],
+            "isEvidence": true, "isRedHerring": false, "source": "scene-1", "sourceType": "camera",
+            "sceneId": "scene-1", "discoverMethod": "camera", "visualDescription": "...",
+            "inventoryDescription": "...", "narrativeMeaning": "...", "hintLevel": 2,
+            "tags": ["time"], "relatedCharacterIds": ["char-1"] }],
           "dialogues": [{ "dialogueId": "dlg-1", "characterId": "char-1", "question": "...",
             "answer": "...", "requiredClueIds": [], "unlockClueIds": [] }],
           "finalLogic": { "culpritId": "char-1", "motive": "...", "method": "...",
@@ -601,21 +873,31 @@ public class AiCaseService : IAiCaseService
         Now generate the complete hidden case logic as one JSON object.
         The full JSON may include the culprit and solution in finalLogic, clues, and private dialogue answers.
         Do not reveal the culprit or final solution in the public case summary.
+        New AI cases use embedded camera evidence by default: important evidence is drawn directly into the scene background,
+        then photographed by the Investigator. Use item records only for optional interactive puzzle objects.
 
         Hard requirements:
         - Exactly {draft.Settings.StageCount} stages, each with 1 or 2 scenes (6 scenes total maximum).
-        - 4 to 5 characters, 8 to 10 items, 10 to 12 clues, 10 to 16 dialogues.
+        - generationMode must be "CAMERA_EMBEDDED".
+        - 4 to 5 characters, 0 to 4 interactive items, 10 to 12 clues, 10 to 16 dialogues.
         - Use exactly this JSON shape and property names (camelCase):
         {sample}
         - Use id prefixes: caseId "case-", stageId "stage-", sceneId "scene-", characterId "char-", itemId "item-", clueId "clue-", dialogueId "dlg-", hotspotId "hotspot-". Never use a generic "id" field.
         - All IDs must be unique and every referenced ID must exist.
+        - Final and required evidence should use discoverMethod "camera", sourceType "camera", sceneId to the scene where the visual evidence appears, and source to that same sceneId.
+        - Every camera clue must include visualDescription, inventoryDescription, narrativeMeaning, hintLevel, tags, and relatedCharacterIds.
+        - If the player only needs to observe, photograph, read, compare, notice, or document the object, it must be a camera clue, not an item.
+        - Ledger, folio, ticket, label, cylinder, feather, wax mark, hatch mark, clock face, dust line, bloodless trace, powder mark, and note on table must be camera clues unless there is a real use/combine/operate puzzle.
+        - Interactive items are optional; use them only when the player must use a key, turn a lever, combine an object, unlock a door, operate a mechanism, or move an object.
+        - Every item must set isInteractivePuzzleObject true, interactionPurpose to unlock-door/combine-item/operate-mechanism, and interactionReason explaining the physical gameplay action.
         - Every item must appear in exactly one scene's itemIds and have one ITEM hotspot in that scene with percent coordinates (x/y 0-100, width/height 3-20).
         - Every listed character must appear in at least one scene's characterIds and have one CHARACTER hotspot in each scene where they appear.
         - Hotspot x/y are percent coordinates for the intended visual center of the object or character. width/height are percent hitbox sizes.
-        - Every clue must be unlocked by at least one item or dialogue; clue.source/sourceType must point at one unlocking item or dialogue.
+        - Every clue must be unlockable by camera, item, or dialogue. For camera clues, scene runtime clueZones will be generated after the background exists.
         - Dialogue requiredClueIds must only need clues discoverable in the same scene or earlier by linear scene order; same for hotspot requiredClueIds and completeCondition.
         - Each scene's completeCondition must be satisfiable using only that scene and earlier scenes.
         - finalLogic.requiredEvidenceIds must be clue IDs only; each of those clues must set isEvidence true and be discoverable before the final scene ends.
+        - finalLogic.requiredEvidenceIds must not be item-heavy. If a final clue is sourced from an item, that item must be a true interactive puzzle object with interactionReason.
         - The culprit must be one of the characters. Include at least one red herring clue with isRedHerring true.
         - Build a contradiction chain in dialogues and delay the strongest culprit evidence to a later stage.
         - status must be "DRAFT".
@@ -626,7 +908,11 @@ public class AiCaseService : IAiCaseService
 
     // ----- Phase 3-7 asset and runtime generation -----
 
-    private async Task<AiAssetManifest> GenerateAssetsAndRuntimeAsync(AiCaseDraft draft, GameCase gameCase, bool forceRegenerate)
+    private async Task<AiAssetManifest> GenerateAssetsAndRuntimeAsync(
+        AiCaseDraft draft,
+        GameCase gameCase,
+        bool forceRegenerate,
+        bool includeFinalAssets)
     {
         var assetsRoot = FindUpwards("src/FE/public/assets")
             ?? throw ApiException.BadRequest("Frontend public assets folder was not found. Expected src/FE/public/assets.");
@@ -661,7 +947,7 @@ public class AiCaseService : IAiCaseService
         var orderedScenes = OrderedScenes(gameCase).ToList();
         foreach (var scene in orderedScenes)
         {
-            var backgroundPrompt = BuildBackgroundImagePrompt(draft, scene);
+            var backgroundPrompt = BuildBackgroundImagePrompt(draft, gameCase, scene);
             var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
             await GenerateImageFileAsync(
                 draft.Id,
@@ -701,6 +987,17 @@ public class AiCaseService : IAiCaseService
             await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
+        if (!includeFinalAssets)
+        {
+            foreach (var scene in orderedScenes)
+            {
+                scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
+                await SaveAssetCheckpointAsync(draft, gameCase, manifest);
+            }
+
+            return manifest;
+        }
+
         foreach (var character in gameCase.Characters)
         {
             var portraitPrompt = BuildCharacterPortraitPrompt(draft, character);
@@ -715,7 +1012,7 @@ public class AiCaseService : IAiCaseService
             var portraitInfo = await GeneratedImageProcessor.AnalyzeAsync(portraitPath);
             character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{Slugify(character.CharacterId)}-portrait.png";
             manifest.Assets.Add(NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath, portraitPrompt, portraitInfo));
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
         }
 
         foreach (var scene in orderedScenes)
@@ -740,10 +1037,10 @@ public class AiCaseService : IAiCaseService
                     forceRegenerate);
                 var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, scene.SceneId, characterId);
                 manifest.Assets.Add(NewAsset("character-sprite", $"{scene.SceneId}:{characterId}", spriteUrl, spritePath, spritePrompt, spriteInfo, CutoutImageModel));
-                await SaveAssetCheckpointAsync(draft, gameCase, manifest);
+                await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
             }
 
-            foreach (var itemId in scene.ItemIds)
+            foreach (var itemId in scene.ItemIds.Where(itemId => ShouldGenerateItemAsset(gameCase, gameCase.Items.First(item => item.ItemId == itemId))))
             {
                 var item = gameCase.Items.First(item => item.ItemId == itemId);
                 var placement = FindPlannedPlacement(plan, "item", itemId);
@@ -760,7 +1057,7 @@ public class AiCaseService : IAiCaseService
                     forceRegenerate);
                 item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(item.ItemId)}.png";
                 manifest.Assets.Add(NewAsset("item", item.ItemId, item.ImageUrl, itemPath, itemPrompt, itemInfo, CutoutImageModel));
-                await SaveAssetCheckpointAsync(draft, gameCase, manifest);
+                await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
             }
         }
 
@@ -783,19 +1080,23 @@ public class AiCaseService : IAiCaseService
                 maxOutputTokens: 3500);
             scene.PlacementPlan = ApplyPlacementVerification(scene.PlacementPlan!, verificationJson);
             scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
         }
 
         return manifest;
     }
 
-    private async Task SaveAssetCheckpointAsync(AiCaseDraft draft, GameCase gameCase, AiAssetManifest manifest)
+    private async Task SaveAssetCheckpointAsync(
+        AiCaseDraft draft,
+        GameCase gameCase,
+        AiAssetManifest manifest,
+        string status = AiDraftStatus.GeneratingSceneLayout)
     {
         var checkpointJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         await _db.AiCaseDrafts.UpdateOneAsync(
             d => d.Id == draft.Id,
             Builders<AiCaseDraft>.Update
-                .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
+                .Set(d => d.Status, status)
                 .Set(d => d.AssetManifest, manifest)
                 .Set(d => d.GeneratedJson, checkpointJson)
                 .Set(d => d.CaseId, gameCase.CaseId)
@@ -835,10 +1136,13 @@ public class AiCaseService : IAiCaseService
     }
 
     private static bool HasUsablePlacementPlan(CaseScene scene) =>
-        scene.PlacementPlan is { Placements.Count: > 0, SpawnPoints.Count: > 0 };
+        scene.PlacementPlan is { Placements.Count: > 0, SpawnPoints.Count: > 0 }
+        || scene.PlacementPlan is { ClueZones.Count: > 0, SpawnPoints.Count: > 0 };
 
     private static bool HasUsableRuntime(CaseScene scene) =>
-        scene.Runtime is { ItemPlacements.Count: > 0 } || scene.Runtime is { CharacterPlacements.Count: > 0 };
+        scene.Runtime is { ItemPlacements.Count: > 0 }
+        || scene.Runtime is { CharacterPlacements.Count: > 0 }
+        || scene.Runtime is { ClueZones.Count: > 0 };
 
     private async Task<GeneratedImageProcessResult> GenerateCutoutFileAsync(
         string draftId,
@@ -849,6 +1153,12 @@ public class AiCaseService : IAiCaseService
         IReadOnlyList<VisionImageInput>? references = null,
         bool forceRegenerate = false)
     {
+        if (_settings.BlocksAssetCalls)
+        {
+            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: false, AssetBlockReason());
+            throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
+        }
+
         Exception? lastError = null;
         var currentPrompt = prompt;
         var cutoutModel = CutoutImageModel;
@@ -924,11 +1234,19 @@ public class AiCaseService : IAiCaseService
         bool transparentBackground,
         bool forceRegenerate)
     {
+        if (_settings.BlocksAssetCalls)
+        {
+            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: false, AssetBlockReason());
+            throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
+        }
+
         if (!forceRegenerate && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
         {
             await LogGenerationAsync(draftId, ProviderName, step, "REUSED", prompt, $"reused {filePath}", null);
             return;
         }
+
+        await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: true, "Referenced image generation call will run.");
 
         try
         {
@@ -1011,6 +1329,12 @@ public class AiCaseService : IAiCaseService
         bool allowFallback = false,
         bool forceRegenerate = false)
     {
+        if (_settings.BlocksAssetCalls)
+        {
+            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: false, AssetBlockReason());
+            throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
+        }
+
         try
         {
             if (!forceRegenerate && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
@@ -1018,6 +1342,8 @@ public class AiCaseService : IAiCaseService
                 await LogGenerationAsync(draftId, ProviderName, step, "REUSED", prompt, $"reused {filePath}", null);
                 return;
             }
+
+            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: true, "Image generation call will run.");
 
             var client = _httpClientFactory.CreateClient(OpenAiHttpClientName);
             client.Timeout = Timeout.InfiniteTimeSpan;
@@ -1245,7 +1571,7 @@ public class AiCaseService : IAiCaseService
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var placements = new List<PlannedPlacement>();
 
-        foreach (var itemId in scene.ItemIds)
+        foreach (var itemId in scene.ItemIds.Where(itemId => ShouldGenerateItemAsset(gameCase, gameCase.Items.First(item => item.ItemId == itemId))))
         {
             var item = gameCase.Items.First(i => i.ItemId == itemId);
             existing.TryGetValue($"item:{itemId}", out var supplied);
@@ -1297,12 +1623,62 @@ public class AiCaseService : IAiCaseService
         }
 
         plan.Placements = placements;
+        plan.ClueZones = SanitizeClueZones(plan.ClueZones, gameCase, scene);
         plan.Transitions = SanitizeTransitions(
             plan.Transitions ?? new List<TransitionZone>(),
             previousScene,
             nextScene,
             new SceneRuntime { Width = RuntimeWidth, Height = RuntimeHeight });
         return plan;
+    }
+
+    private static List<ClueZone> SanitizeClueZones(List<ClueZone>? supplied, GameCase gameCase, CaseScene scene)
+    {
+        var existing = (supplied ?? new List<ClueZone>())
+            .Where(z => !string.IsNullOrWhiteSpace(z.ClueId))
+            .GroupBy(z => z.ClueId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var sceneClues = gameCase.Clues
+            .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
+            .ToList();
+        var result = new List<ClueZone>();
+
+        for (var i = 0; i < sceneClues.Count; i++)
+        {
+            var clue = sceneClues[i];
+            existing.TryGetValue(clue.ClueId, out var zone);
+            var fallback = new RuntimeBox
+            {
+                X = 260 + (i % 4) * 260,
+                Y = 300 + (i / 4) * 150,
+                Width = 120,
+                Height = 90
+            };
+            var isFallback = zone is null;
+            var bounds = SanitizeBox(zone?.Bounds ?? fallback, RuntimeWidth, RuntimeHeight);
+            result.Add(new ClueZone
+            {
+                ClueId = clue.ClueId,
+                Label = string.IsNullOrWhiteSpace(zone?.Label) ? clue.Title : zone.Label,
+                Bounds = bounds,
+                Shape = string.IsNullOrWhiteSpace(zone?.Shape) ? "rect" : zone.Shape,
+                Surface = zone?.Surface ?? string.Empty,
+                Visibility = string.IsNullOrWhiteSpace(zone?.Visibility) ? "medium" : zone.Visibility,
+                DetectionDifficulty = string.IsNullOrWhiteSpace(zone?.DetectionDifficulty) ? "medium" : zone.DetectionDifficulty,
+                DetectionStatus = isFallback
+                    ? "NOT_FOUND"
+                    : string.IsNullOrWhiteSpace(zone?.DetectionStatus) ? "FOUND" : zone.DetectionStatus,
+                Confidence = isFallback ? 0 : zone!.Confidence <= 0 ? 0.75 : Math.Clamp(zone.Confidence, 0, 1),
+                Source = isFallback
+                    ? "fallback"
+                    : string.IsNullOrWhiteSpace(zone?.Source) ? "vision" : zone.Source,
+                IsFallback = isFallback || zone?.IsFallback == true,
+                RequiredClueIds = zone?.RequiredClueIds ?? new List<string>(),
+                Reason = zone?.Reason ?? "Fallback clue region; verify before publishing."
+            });
+        }
+
+        return result;
     }
 
     private static PlannedPlacement SanitizePlannedPlacement(
@@ -1419,7 +1795,7 @@ public class AiCaseService : IAiCaseService
             new($"BACKGROUND {scene.SceneId}: {scene.Title} (already normalized to {RuntimeWidth}x{RuntimeHeight})", backgroundPath)
         };
 
-        foreach (var item in gameCase.Items.Where(item => scene.ItemIds.Contains(item.ItemId)))
+        foreach (var item in gameCase.Items.Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldGenerateItemAsset(gameCase, item)))
         {
             images.Add(new(
                 $"ITEM {item.ItemId}: {item.Name}. Use this exact cutout aspect when placing it.",
@@ -1438,6 +1814,12 @@ public class AiCaseService : IAiCaseService
 
     private async Task<string> GenerateJsonWithOpenAiVisionAsync(string draftId, string step, string prompt, IReadOnlyList<VisionImageInput> images, int maxOutputTokens)
     {
+        if (_settings.BlocksAssetCalls)
+        {
+            await RecordPlannedCallAsync(draftId, step, "vision", wouldCallApi: false, AssetBlockReason());
+            throw ApiException.BadRequest("Vision layout generation is disabled by dry-run/safety settings.");
+        }
+
         if (images.Count == 0)
         {
             throw ApiException.BadGateway("OpenAI vision request needs at least one image.");
@@ -1477,6 +1859,7 @@ public class AiCaseService : IAiCaseService
 
         try
         {
+            await RecordPlannedCallAsync(draftId, step, "vision", wouldCallApi: true, "Vision layout call will run.");
             var client = _httpClientFactory.CreateClient(OpenAiHttpClientName);
             client.Timeout = TimeSpan.FromSeconds(Math.Clamp(_settings.TimeoutSeconds, 30, 1800));
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
@@ -1589,6 +1972,23 @@ public class AiCaseService : IAiCaseService
                 Height = RuntimeHeight,
                 FloorY = plan.FloorY
             }),
+            ClueZones = plan.ClueZones.Select(z => new ClueZone
+            {
+                ClueId = z.ClueId,
+                Label = z.Label,
+                Bounds = SanitizeBox(z.Bounds, RuntimeWidth, RuntimeHeight),
+                Shape = string.IsNullOrWhiteSpace(z.Shape) ? "rect" : z.Shape,
+                Surface = z.Surface,
+                Visibility = z.Visibility,
+                DetectionDifficulty = z.DetectionDifficulty,
+                DetectionStatus = z.DetectionStatus,
+                Confidence = z.Confidence,
+                Source = z.Source,
+                IsFallback = z.IsFallback,
+                RequiredClueIds = z.RequiredClueIds,
+                Reason = z.Reason
+            }).ToList(),
+            CameraRules = new CameraRules(),
             Transitions = plan.Transitions.Select(t => new TransitionZone
             {
                 TransitionId = t.TransitionId,
@@ -1849,21 +2249,36 @@ public class AiCaseService : IAiCaseService
         Crisp intentional pixels, readable silhouettes, no text, no logo, no UI, no frame, no border.
         """;
 
-    private static string BuildBackgroundImagePrompt(AiCaseDraft draft, CaseScene scene) =>
-        $"""
+    private static string BuildBackgroundImagePrompt(AiCaseDraft draft, GameCase gameCase, CaseScene scene)
+    {
+        var embeddedClues = gameCase.Clues
+            .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
+            .Select(clue => new
+            {
+                clueId = clue.ClueId,
+                title = clue.Title,
+                visualDescription = clue.VisualDescription,
+                hintLevel = clue.HintLevel,
+                tags = clue.Tags
+            })
+            .ToList();
+        return $"""
         {FixedVisualStylePrompt}
         Wide pixel-art side-scrolling SirLocked detective game background, 16:9 landscape composition.
         Scene: {scene.Title}.
         Description: {scene.Description}
+        Embedded camera evidence to include naturally in this background:
+        {JsonSerializer.Serialize(embeddedClues, PrettyJson)}
         Treat the scene description as subject matter only. Ignore any embedded request for another visual style, medium, camera system or rendering technique.
         The requested image is 1600x912 and will be center-cropped to exactly 1600x900. Keep all important architecture, tables, shelves, doors, props, and playable surfaces inside the central 1600x900 crop.
-        Generate the empty environment only: no characters, no evidence objects, no labels, no UI, no text.
+        Generate the environment with all camera-discoverable clue objects naturally embedded in the art. Do not draw red circles, arrows, labels, UI, or text.
+        Do not render NPCs. Do not leave camera clues as separate stickers; they must look like part of the room.
         Leave clear open floor in the lower third for two player avatars and NPC sprites.
-        Leave plausible empty tabletop/shelf/floor areas where evidence sprites can be composited later.
         Keep the bottom 110 pixels visually quiet because the game inventory UI overlays that area.
         Full-room composition, fixed side-view camera, stable orthographic-like perspective, usable game scene.
         Crisp pixel clusters only: no smooth digital painting, no realistic photography, no anti-aliasing, no decorative border or frame.
         """;
+    }
 
     private static string BuildCharacterPortraitPrompt(AiCaseDraft draft, CaseCharacter character) =>
         $"""
@@ -1933,11 +2348,14 @@ public class AiCaseService : IAiCaseService
         CaseScene? nextScene)
     {
         var items = gameCase.Items
-            .Where(item => scene.ItemIds.Contains(item.ItemId))
+            .Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldGenerateItemAsset(gameCase, item))
             .Select(item => new { id = item.ItemId, name = item.Name, description = item.Description });
         var characters = gameCase.Characters
             .Where(character => scene.CharacterIds.Contains(character.CharacterId))
             .Select(character => new { id = character.CharacterId, name = character.Name, role = character.Role, description = character.Description });
+        var cameraClues = gameCase.Clues
+            .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
+            .Select(clue => new { id = clue.ClueId, title = clue.Title, visualDescription = clue.VisualDescription, hintLevel = clue.HintLevel });
         var transitions = new[]
             {
                 previousScene is null ? null : new { targetSceneId = previousScene.SceneId, label = previousScene.Title },
@@ -1946,7 +2364,8 @@ public class AiCaseService : IAiCaseService
             .Where(value => value is not null);
 
         return $$"""
-        Inspect the supplied empty 1600x900 game background and create the placement plan before any NPC or item art is generated.
+        Inspect the supplied 1600x900 game background and create runtime metadata.
+        Camera clues are already embedded in the background; identify their exact clue regions.
 
         Scene:
         {{JsonSerializer.Serialize(new { sceneId = scene.SceneId, title = scene.Title, description = scene.Description }, PrettyJson)}}
@@ -1956,6 +2375,9 @@ public class AiCaseService : IAiCaseService
 
         NPCs:
         {{JsonSerializer.Serialize(characters, PrettyJson)}}
+
+        Camera clues to locate:
+        {{JsonSerializer.Serialize(cameraClues, PrettyJson)}}
 
         Allowed transitions:
         {{JsonSerializer.Serialize(transitions, PrettyJson)}}
@@ -2004,6 +2426,23 @@ public class AiCaseService : IAiCaseService
               "reason": "why the item physically belongs on this exact surface"
             }
           ],
+          "clueZones": [
+            {
+              "clueId": "clue-id",
+              "label": "short player-facing label",
+              "bounds": { "x": 612, "y": 478, "width": 84, "height": 68 },
+              "shape": "rect",
+              "surface": "visible table, floor, wall, shelf or object",
+              "visibility": "easy|medium|hard",
+              "detectionDifficulty": "easy|medium|hard",
+              "detectionStatus": "FOUND|AMBIGUOUS|NOT_FOUND|OCCLUDED|TOO_SMALL",
+              "confidence": 0.86,
+              "source": "vision",
+              "isFallback": false,
+              "requiredClueIds": [],
+              "reason": "why this box tightly contains the visible clue"
+            }
+          ],
           "transitions": [
             {
               "transitionId": "transition-target-scene",
@@ -2017,6 +2456,13 @@ public class AiCaseService : IAiCaseService
 
         Rules:
         - Choose placements from actual visible geometry in the supplied background.
+        - For every listed camera clue, include exactly one clueZones entry.
+        - clueZones bounds are top-left pixel boxes in the 1600x900 background and must tightly cover the visible clue.
+        - Set detectionStatus to FOUND only when the clue is visibly present inside the box.
+        - If a clue is not visible, return detectionStatus NOT_FOUND with confidence 0 and explain why; do not invent a box.
+        - confidence must be 0..1 and should be at least 0.65 for evidence that can be published.
+        - source must be "vision" and isFallback must be false for real detections.
+        - Important clues may be subtle, but not invisible; avoid boxes smaller than 16x16.
         - Every listed item and NPC must appear exactly once.
         - Item x/y is the visual center. NPC x/y is the feet position.
         - Put items on named visible surfaces; never float them.
@@ -2225,6 +2671,55 @@ public class AiCaseService : IAiCaseService
     private static string NormalizeDirection(string? value) =>
         string.Equals(value, "right", StringComparison.OrdinalIgnoreCase) ? "right" : "left";
 
+    private static bool IsCameraClue(CaseClue clue) =>
+        string.Equals(clue.DiscoverMethod, "camera", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(clue.SourceType, "camera", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCameraEmbeddedCase(GameCase gameCase) =>
+        string.Equals(gameCase.GenerationMode, CaseGenerationModes.CameraEmbedded, StringComparison.OrdinalIgnoreCase);
+
+    private static bool ShouldGenerateItemAsset(GameCase gameCase, CaseItem item) =>
+        !IsCameraEmbeddedCase(gameCase)
+        || item.IsInteractivePuzzleObject
+            && !string.IsNullOrWhiteSpace(item.InteractionReason)
+            && item.InteractionPurpose is CaseItemInteractionPurposes.UnlockDoor
+                or CaseItemInteractionPurposes.CombineItem
+                or CaseItemInteractionPurposes.OperateMechanism;
+
+    private static void EnsureAdmin(CurrentUser user)
+    {
+        if (!string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
+        {
+            throw ApiException.Forbidden("Only admins can perform this AI case operation.");
+        }
+    }
+
+    private static void EnsureDraftAccess(CurrentUser user, AiCaseDraft draft)
+    {
+        if (string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(draft.CreatedByUserId))
+        {
+            throw ApiException.Forbidden("This draft has no owner metadata. Ask an admin to review it.");
+        }
+
+        if (!string.Equals(draft.CreatedByUserId, user.Id, StringComparison.Ordinal))
+        {
+            throw ApiException.Forbidden("You can only manage AI drafts that you created.");
+        }
+    }
+
+    private void EnsureImportPublishAllowed()
+    {
+        if (_settings.BlocksImportOrPublish)
+        {
+            throw ApiException.BadRequest("AI draft import/publish is disabled by dry-run/safety settings.");
+        }
+    }
+
     // ----- Persistence helpers -----
 
     private async Task MarkDraftFailedAsync(string draftId, string error)
@@ -2250,6 +2745,125 @@ public class AiCaseService : IAiCaseService
             .Set(d => d.ValidationErrors, errors)
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
         await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, update);
+    }
+
+    private async Task RecordPlannedCallAsync(string draftId, string step, string type, bool wouldCallApi, string reason)
+    {
+        var planned = new AiPlannedCall
+        {
+            Step = step,
+            Type = type,
+            WouldCallApi = wouldCallApi,
+            Reason = reason
+        };
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draftId,
+            Builders<AiCaseDraft>.Update
+                .Push(d => d.PlannedCalls, planned)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+        await LogGenerationAsync(draftId, ProviderName, $"Planned:{step}", wouldCallApi ? "PLANNED_API" : "PLANNED_SKIPPED",
+            string.Empty, JsonSerializer.Serialize(planned, PrettyJson), null);
+    }
+
+    private async Task RecordPlannedSceneLayoutCallsAsync(string draftId, GameCase gameCase)
+    {
+        await RecordPlannedCallAsync(draftId, "GenerateCoverImage", "image", wouldCallApi: false, AssetBlockReason());
+        foreach (var scene in OrderedScenes(gameCase))
+        {
+            await RecordPlannedCallAsync(draftId, $"GenerateBackground:{scene.SceneId}", "image", wouldCallApi: false, AssetBlockReason());
+            await RecordPlannedCallAsync(draftId, $"PlanScenePlacement:{scene.SceneId}", "vision", wouldCallApi: false, AssetBlockReason());
+        }
+    }
+
+    private async Task RecordPlannedFinalAssetCallsAsync(string draftId, GameCase gameCase)
+    {
+        foreach (var character in gameCase.Characters)
+        {
+            await RecordPlannedCallAsync(draftId, $"GenerateCharacterPortrait:{character.CharacterId}", "image", wouldCallApi: false, AssetBlockReason());
+        }
+        foreach (var scene in OrderedScenes(gameCase))
+        {
+            foreach (var characterId in scene.CharacterIds)
+            {
+                await RecordPlannedCallAsync(draftId, $"GenerateCharacterSprite:{scene.SceneId}:{characterId}", "image", wouldCallApi: false, AssetBlockReason());
+            }
+            foreach (var itemId in scene.ItemIds.Where(itemId =>
+                         gameCase.Items.Any(item => item.ItemId == itemId && ShouldGenerateItemAsset(gameCase, item))))
+            {
+                await RecordPlannedCallAsync(draftId, $"GenerateItem:{scene.SceneId}:{itemId}", "image", wouldCallApi: false, AssetBlockReason());
+            }
+            await RecordPlannedCallAsync(draftId, $"VerifyScenePlacement:{scene.SceneId}", "vision", wouldCallApi: false, AssetBlockReason());
+        }
+    }
+
+    private string AssetBlockReason()
+    {
+        if (_settings.AiDryRun) return "AI_DRY_RUN enabled";
+        if (_settings.SkipAssetGeneration) return "SKIP_ASSET_GENERATION enabled";
+        if (_settings.GenerateJsonOnly) return "GENERATE_JSON_ONLY enabled";
+        if (_settings.ValidateOnly) return "VALIDATE_ONLY enabled";
+        return "Asset generation disabled";
+    }
+
+    private static string MockJsonResponse(string step)
+    {
+        if (step.Equals("CreateStoryPreview", StringComparison.OrdinalIgnoreCase))
+        {
+            return JsonSerializer.Serialize(new AiStoryPreview
+            {
+                Title = "Mock Clocktower Case",
+                Summary = "A safe mock preview used to verify the AI pipeline without external API calls.",
+                Setting = "A foggy Victorian clocktower.",
+                OpeningIncident = "The clock stops at midnight and a missing ledger becomes the key mystery.",
+                Tone = "Cozy, deductive, and test-friendly.",
+                PlayerPromise = "Players will compare scene evidence and testimony before a final accusation.",
+                EstimatedScenes = 4,
+                KeyLocations = { "Clocktower Office", "Workshop", "Courtyard", "Archive" },
+                SuspectTeasers = { "The watchmaker", "The archivist", "The courier" }
+            }, PrettyJson);
+        }
+
+        var mock = MockCaseFactory.Create("A safe mock AI case for dry-run validation", 4, "medium");
+        mock.CaseId = "case-mock-ai-dry-run";
+        mock.Title = "Mock AI Dry Run Case";
+        mock.Summary = "Mock case generated locally without external AI calls.";
+        ConvertMockCaseToCameraEmbedded(mock);
+        return JsonSerializer.Serialize(mock, PrettyJson);
+    }
+
+    private static void ConvertMockCaseToCameraEmbedded(GameCase mock)
+    {
+        mock.GenerationMode = CaseGenerationModes.CameraEmbedded;
+        var itemScene = mock.Stages
+            .SelectMany(stage => stage.Scenes)
+            .SelectMany(scene => scene.ItemIds.Select(itemId => new { itemId, scene }))
+            .ToDictionary(x => x.itemId, x => x.scene, StringComparer.Ordinal);
+        var itemById = mock.Items.ToDictionary(item => item.ItemId, StringComparer.Ordinal);
+
+        foreach (var clue in mock.Clues.Where(clue => string.Equals(clue.SourceType, "item", StringComparison.OrdinalIgnoreCase)))
+        {
+            itemScene.TryGetValue(clue.Source, out var scene);
+            itemById.TryGetValue(clue.Source, out var item);
+            scene ??= mock.Stages.SelectMany(stage => stage.Scenes).First();
+            clue.Source = scene.SceneId;
+            clue.SourceType = "camera";
+            clue.DiscoverMethod = "camera";
+            clue.SceneId = scene.SceneId;
+            clue.VisualDescription = FirstNonBlank(clue.VisualDescription, item?.Description ?? string.Empty, clue.Content);
+            clue.InventoryDescription = FirstNonBlank(clue.InventoryDescription, item?.InspectText ?? string.Empty, clue.Content);
+            clue.NarrativeMeaning = FirstNonBlank(clue.NarrativeMeaning, clue.Content, clue.Title);
+            clue.HintLevel = clue.HintLevel <= 0 ? 1 : clue.HintLevel;
+            if (!clue.Tags.Contains("camera", StringComparer.OrdinalIgnoreCase)) clue.Tags.Add("camera");
+        }
+
+        foreach (var scene in mock.Stages.SelectMany(stage => stage.Scenes))
+        {
+            scene.ItemIds.Clear();
+            scene.Hotspots.RemoveAll(h => h.Type.Equals("ITEM", StringComparison.OrdinalIgnoreCase));
+            scene.CompleteCondition.RequiredItemIds.Clear();
+        }
+
+        mock.Items.Clear();
     }
 
     private string ExportBundle(AiCaseDraft draft, GameCase gameCase, string caseJson, int errorCount)
@@ -2294,7 +2908,7 @@ public class AiCaseService : IAiCaseService
             {
                 sceneId = s.SceneId,
                 target = s.BackgroundUrl,
-                prompt = BuildBackgroundImagePrompt(draft, s)
+                prompt = BuildBackgroundImagePrompt(draft, gameCase, s)
             }),
             placements = gameCase.Stages.SelectMany(stage => stage.Scenes).Select(scene => new
             {
@@ -2305,11 +2919,13 @@ public class AiCaseService : IAiCaseService
                     characterId,
                     target = scene.Runtime?.CharacterPlacements.FirstOrDefault(p => p.CharacterId == characterId)?.Asset
                 }),
-                items = scene.ItemIds.Select(itemId => new
-                {
-                    itemId,
-                    target = gameCase.Items.FirstOrDefault(item => item.ItemId == itemId)?.ImageUrl
-                })
+                items = gameCase.Items
+                    .Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldGenerateItemAsset(gameCase, item))
+                    .Select(item => new
+                    {
+                        itemId = item.ItemId,
+                        target = item.ImageUrl
+                    })
             })
         });
         WriteFile("validation-report.json", new { isValid = errorCount == 0, errorCount, validatedAt = DateTime.UtcNow });
@@ -2348,4 +2964,7 @@ public class AiCaseService : IAiCaseService
 
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..max];
+
+    private static string FirstNonBlank(params string[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? string.Empty;
 }

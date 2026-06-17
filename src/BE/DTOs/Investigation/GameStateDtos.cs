@@ -17,6 +17,23 @@ public class AskDialogueRequest
     public string DialogueId { get; set; } = string.Empty;
 }
 
+public class CaptureRectDto
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+
+public class CaptureClueRequest
+{
+    [Required]
+    public string SceneId { get; set; } = string.Empty;
+
+    [Required]
+    public CaptureRectDto CaptureRect { get; set; } = new();
+}
+
 public class PresentEvidenceRequest
 {
     [Required]
@@ -127,6 +144,12 @@ public class ClueDto
     public bool IsEvidence { get; set; }
     public string Source { get; set; } = string.Empty;
     public string SourceType { get; set; } = string.Empty;
+    public string SceneId { get; set; } = string.Empty;
+    public string DiscoverMethod { get; set; } = string.Empty;
+    public string InventoryDescription { get; set; } = string.Empty;
+    public string NarrativeMeaning { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new();
+    public List<string> RelatedCharacterIds { get; set; } = new();
 
     // isRedHerring is intentionally NOT exposed to players: spotting red herrings is gameplay.
     public static ClueDto From(CaseClue c) => new()
@@ -137,7 +160,13 @@ public class ClueDto
         IsCritical = c.IsCritical,
         IsEvidence = c.IsEvidence,
         Source = c.Source,
-        SourceType = c.SourceType
+        SourceType = c.SourceType,
+        SceneId = c.SceneId,
+        DiscoverMethod = string.IsNullOrWhiteSpace(c.DiscoverMethod) ? c.SourceType : c.DiscoverMethod,
+        InventoryDescription = c.InventoryDescription,
+        NarrativeMeaning = c.NarrativeMeaning,
+        Tags = c.Tags,
+        RelatedCharacterIds = c.RelatedCharacterIds
     };
 }
 
@@ -186,6 +215,7 @@ public class GameStateResponse
     public List<string> VisitedSceneIds { get; set; } = new();
     public List<string> InspectedItemIds { get; set; } = new();
     public List<string> CollectedItemIds { get; set; } = new();
+    public List<string> CapturedClueIds { get; set; } = new();
     public List<string> UnlockedClueIds { get; set; } = new();
     public List<string> AskedDialogueIds { get; set; } = new();
     public List<string> CompletedSceneIds { get; set; } = new();
@@ -215,6 +245,8 @@ public class GameActionResponse
     public string Message { get; set; } = string.Empty;
     /// <summary>Inspect text / dialogue answer for the action just performed.</summary>
     public string? Detail { get; set; }
+    public string CaptureResult { get; set; } = string.Empty;
+    public string? MatchedClueId { get; set; }
 }
 
 public class MissingRequirementsDto
