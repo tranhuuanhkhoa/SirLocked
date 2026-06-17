@@ -11,9 +11,8 @@ const PLAYER_SHEETS: Record<string, { key: string; url: string }> = {
   INVESTIGATOR: { key: 'player-holmes', url: '/assets/players/holmes-sheet.png' },
   INTERROGATOR: { key: 'player-watson', url: '/assets/players/watson-sheet.png' },
 };
-// Sheets are 1024x192 with 128px transparent padding on both sides.
-// The eight usable frames occupy the middle 768px at 96x192 each.
-const PLAYER_FRAME = { width: 96, height: 192, sourceX: 128 };
+// Sheets are 1024x192 with eight 128x192 frames.
+const PLAYER_FRAME = { width: 128, height: 192, sourceX: 0 };
 
 function playableAssetUrl(value: string | undefined) {
   const url = String(value ?? '').trim();

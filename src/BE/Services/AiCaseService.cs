@@ -136,10 +136,15 @@ public class AiCaseService : IAiCaseService
             return await GenerateAssetsFromStoredJsonAndPublishAsync(draft, forceRegenerate: false);
         }
 
-        if ((draft.Status is AiDraftStatus.StoryAwaitingApproval or AiDraftStatus.GeneratedInvalid)
-            && HasSavedStoryPreview(draft.StoryPreview))
+        if (draft.Status == AiDraftStatus.StoryAwaitingApproval && HasSavedStoryPreview(draft.StoryPreview))
         {
             return await GenerateFullCaseAndPublishAsync(draft);
+        }
+
+        if (draft.Status == AiDraftStatus.GeneratedInvalid && HasSavedStoryPreview(draft.StoryPreview))
+        {
+            throw ApiException.BadRequest(
+                "This failed draft has no saved case JSON checkpoint, so continuing would regenerate the full case. Create a new case instead.");
         }
 
         throw ApiException.BadRequest("This AI draft does not have enough saved data to continue. Create a new case instead.");
@@ -626,7 +631,7 @@ public class AiCaseService : IAiCaseService
         var assetsRoot = FindUpwards("src/FE/public/assets")
             ?? throw ApiException.BadRequest("Frontend public assets folder was not found. Expected src/FE/public/assets.");
 
-        var caseSlug = Slugify(gameCase.CaseId);
+        var caseSlug = ResolveAssetSlug(draft, gameCase, assetsRoot);
         var caseAssetsRoot = Path.Combine(assetsRoot, "ai-generated", AssetPipelineVersion, caseSlug);
         Directory.CreateDirectory(caseAssetsRoot);
         Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "cases"));
@@ -651,6 +656,7 @@ public class AiCaseService : IAiCaseService
         var coverInfo = await GeneratedImageProcessor.AnalyzeAsync(coverPath);
         gameCase.CoverImageUrl = $"{manifest.AssetRootUrl}/cases/cover.png";
         manifest.Assets.Add(NewAsset("cover", gameCase.CaseId, gameCase.CoverImageUrl, coverPath, coverPrompt, coverInfo));
+        await SaveAssetCheckpointAsync(draft, gameCase, manifest);
 
         var orderedScenes = OrderedScenes(gameCase).ToList();
         foreach (var scene in orderedScenes)
@@ -667,11 +673,17 @@ public class AiCaseService : IAiCaseService
             var backgroundInfo = await GeneratedImageProcessor.NormalizeBackgroundAsync(backgroundPath);
             scene.BackgroundUrl = $"{manifest.AssetRootUrl}/scenes/{Slugify(scene.SceneId)}.png";
             manifest.Assets.Add(NewAsset("background", scene.SceneId, scene.BackgroundUrl, backgroundPath, backgroundPrompt, backgroundInfo));
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
         for (var i = 0; i < orderedScenes.Count; i++)
         {
             var scene = orderedScenes[i];
+            if (!forceRegenerate && HasUsablePlacementPlan(scene))
+            {
+                continue;
+            }
+
             var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
             var planPrompt = BuildPlacementPlanPrompt(gameCase, scene, PreviousScene(orderedScenes, i), NextScene(orderedScenes, i));
             var planJson = await GenerateJsonWithOpenAiVisionAsync(
@@ -686,6 +698,7 @@ public class AiCaseService : IAiCaseService
                 scene,
                 PreviousScene(orderedScenes, i),
                 NextScene(orderedScenes, i));
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
         foreach (var character in gameCase.Characters)
@@ -702,6 +715,7 @@ public class AiCaseService : IAiCaseService
             var portraitInfo = await GeneratedImageProcessor.AnalyzeAsync(portraitPath);
             character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{Slugify(character.CharacterId)}-portrait.png";
             manifest.Assets.Add(NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath, portraitPrompt, portraitInfo));
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
         foreach (var scene in orderedScenes)
@@ -726,6 +740,7 @@ public class AiCaseService : IAiCaseService
                     forceRegenerate);
                 var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, scene.SceneId, characterId);
                 manifest.Assets.Add(NewAsset("character-sprite", $"{scene.SceneId}:{characterId}", spriteUrl, spritePath, spritePrompt, spriteInfo, CutoutImageModel));
+                await SaveAssetCheckpointAsync(draft, gameCase, manifest);
             }
 
             foreach (var itemId in scene.ItemIds)
@@ -745,12 +760,18 @@ public class AiCaseService : IAiCaseService
                     forceRegenerate);
                 item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(item.ItemId)}.png";
                 manifest.Assets.Add(NewAsset("item", item.ItemId, item.ImageUrl, itemPath, itemPrompt, itemInfo, CutoutImageModel));
+                await SaveAssetCheckpointAsync(draft, gameCase, manifest);
             }
         }
 
         for (var i = 0; i < orderedScenes.Count; i++)
         {
             var scene = orderedScenes[i];
+            if (!forceRegenerate && HasUsableRuntime(scene))
+            {
+                continue;
+            }
+
             var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
             var visionImages = BuildLayoutVisionInputs(scene, gameCase, caseAssetsRoot, backgroundPath);
             var verificationPrompt = BuildPlacementVerificationPrompt(scene);
@@ -762,10 +783,62 @@ public class AiCaseService : IAiCaseService
                 maxOutputTokens: 3500);
             scene.PlacementPlan = ApplyPlacementVerification(scene.PlacementPlan!, verificationJson);
             scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
         return manifest;
     }
+
+    private async Task SaveAssetCheckpointAsync(AiCaseDraft draft, GameCase gameCase, AiAssetManifest manifest)
+    {
+        var checkpointJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.Status, AiDraftStatus.GeneratingAssets)
+                .Set(d => d.AssetManifest, manifest)
+                .Set(d => d.GeneratedJson, checkpointJson)
+                .Set(d => d.CaseId, gameCase.CaseId)
+                .Set(d => d.CaseTitle, gameCase.Title)
+                .Set(d => d.ValidationErrors, new List<string>())
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+    }
+
+    private static string ResolveAssetSlug(AiCaseDraft draft, GameCase gameCase, string assetsRoot)
+    {
+        var generatedRoot = Path.Combine(assetsRoot, "ai-generated", AssetPipelineVersion);
+        if (!string.IsNullOrWhiteSpace(draft.AssetManifest.AssetRootPath)
+            && IsPathInside(draft.AssetManifest.AssetRootPath, generatedRoot))
+        {
+            return Path.GetFileName(Path.TrimEndingDirectorySeparator(draft.AssetManifest.AssetRootPath));
+        }
+
+        var baseSlug = Slugify(gameCase.CaseId);
+        var basePath = Path.Combine(generatedRoot, baseSlug);
+        if (!Directory.Exists(basePath) || DirectoryIsEmpty(basePath))
+        {
+            return baseSlug;
+        }
+
+        var suffix = string.IsNullOrWhiteSpace(draft.Id) ? DateTime.UtcNow.ToString("yyyyMMddHHmmss") : draft.Id[..Math.Min(8, draft.Id.Length)];
+        return $"{baseSlug}-{suffix}";
+    }
+
+    private static bool DirectoryIsEmpty(string path) =>
+        !Directory.EnumerateFileSystemEntries(path).Any();
+
+    private static bool IsPathInside(string path, string root)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var fullRoot = Path.GetFullPath(root);
+        return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasUsablePlacementPlan(CaseScene scene) =>
+        scene.PlacementPlan is { Placements.Count: > 0, SpawnPoints.Count: > 0 };
+
+    private static bool HasUsableRuntime(CaseScene scene) =>
+        scene.Runtime is { ItemPlacements.Count: > 0 } || scene.Runtime is { CharacterPlacements.Count: > 0 };
 
     private async Task<GeneratedImageProcessResult> GenerateCutoutFileAsync(
         string draftId,

@@ -7,14 +7,6 @@ const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
 const TERMINAL_STATUSES = new Set([STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
-const CONTINUABLE_STATUSES = new Set([
-  STATUS_AWAITING_APPROVAL,
-  STATUS_GENERATED_INVALID,
-  'OPENAI_GENERATED_VALID',
-  'GENERATING_ASSETS',
-  'ASSETS_GENERATED',
-  'IMPORTED',
-]);
 const PROGRESS_STATES = {
   GENERATING_STORY: {
     percent: 8,
@@ -88,12 +80,12 @@ export async function renderAdminAiPage(app) {
   }
 
   function canContinueDraft(d) {
-    return !d.publishedCase && !d.importedCaseId && d.status !== STATUS_PUBLISHED && CONTINUABLE_STATUSES.has(d.status);
+    return Boolean(d.canContinue);
   }
 
   function continueButton(d, style = 'btn-primary') {
     return canContinueDraft(d)
-      ? `<button class="btn ${style} btn-sm" type="button" data-continue="${escapeHtml(d.draftId)}">Tiếp tục</button>`
+      ? `<button class="btn ${style} btn-sm" type="button" data-continue="${escapeHtml(d.draftId)}">Continue</button>`
       : '';
   }
 
@@ -158,6 +150,7 @@ export async function renderAdminAiPage(app) {
     const published = d.publishedCase || d.importedCaseId || d.status === STATUS_PUBLISHED;
     const caseId = d.publishedCase?.caseId || d.importedCaseId || d.caseId;
     const resumeAction = continueButton(d);
+    const cannotResume = d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published;
     return `
     <div class="notice ${statusOk ? 'notice-ok' : 'notice-bad'}">
       <strong>${escapeHtml(d.caseTitle || preview?.title || d.caseId || 'AI draft')}</strong> - ${escapeHtml(d.status)} (${escapeHtml(d.provider)})
@@ -167,6 +160,9 @@ export async function renderAdminAiPage(app) {
         : ''}
       ${d.validationErrors?.length
         ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
+        : ''}
+      ${cannotResume
+        ? '<p class="muted small">This failed draft has no saved case JSON checkpoint, so continuing would regenerate it. Create a new case after fixing the billing issue.</p>'
         : ''}
       ${published && caseId
         ? `<div class="case-actions">
@@ -329,8 +325,8 @@ export async function renderAdminAiPage(app) {
     const version = ++runVersion;
     runStartedAt = Date.now();
     button.disabled = true;
-    button.textContent = 'Đang tiếp tục...';
-    updateProgress('GENERATING_FULL_CASE', 'Continuing the saved draft.');
+    button.textContent = 'Continuing...';
+    updateProgress('GENERATING_ASSETS', 'Continuing from the saved checkpoint.');
     startProgressClock();
     startPolling(draftId, version);
 

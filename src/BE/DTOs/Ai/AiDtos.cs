@@ -32,6 +32,8 @@ public class AiDraftResponse
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;
     public string GeneratedJson { get; set; } = string.Empty;
+    public bool HasGeneratedJson { get; set; }
+    public bool CanContinue { get; set; }
     public string JsonFilePath { get; set; } = string.Empty;
     public string JsonFolderPath { get; set; } = string.Empty;
     public List<string> ValidationErrors { get; set; } = new();
@@ -51,6 +53,8 @@ public class AiDraftResponse
         CaseId = d.CaseId,
         CaseTitle = d.CaseTitle,
         GeneratedJson = includeJson ? d.GeneratedJson : string.Empty,
+        HasGeneratedJson = !string.IsNullOrWhiteSpace(d.GeneratedJson),
+        CanContinue = CanContinueDraft(d),
         JsonFilePath = d.JsonFilePath,
         JsonFolderPath = d.JsonFolderPath,
         ValidationErrors = d.ValidationErrors,
@@ -64,6 +68,26 @@ public class AiDraftResponse
         && (!string.IsNullOrWhiteSpace(preview.Title)
             || !string.IsNullOrWhiteSpace(preview.Summary)
             || !string.IsNullOrWhiteSpace(preview.OpeningIncident));
+
+    private static bool CanContinueDraft(AiCaseDraft d)
+    {
+        if (d.Status == AiDraftStatus.Published || !string.IsNullOrWhiteSpace(d.ImportedCaseId))
+        {
+            return false;
+        }
+
+        if (d.Status == AiDraftStatus.StoryAwaitingApproval)
+        {
+            return HasStoryPreview(d.StoryPreview);
+        }
+
+        return !string.IsNullOrWhiteSpace(d.GeneratedJson)
+               && d.Status is AiDraftStatus.GeneratedInvalid
+                   or AiDraftStatus.OpenAiGeneratedValid
+                   or AiDraftStatus.GeneratingAssets
+                   or AiDraftStatus.AssetsGenerated
+                   or AiDraftStatus.Imported;
+    }
 
     private static bool HasAssetManifest(AiAssetManifest? manifest) =>
         manifest is not null
