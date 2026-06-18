@@ -46,22 +46,13 @@ public class GameStateBuilder : IGameStateBuilder
             {
                 dialogueDto.EvidenceChallenges = gameCase.EvidenceChallenges
                     .Where(c => c.DialogueId == dialogueDto.DialogueId)
-                    .Select(challenge =>
-                    {
-                        var resolved = state.ResolvedConfrontationRecords
-                            .FirstOrDefault(record => record.ChallengeId == challenge.ChallengeId);
-                        return new EvidenceChallengeDto
-                        {
-                            ChallengeId = challenge.ChallengeId,
-                            DialogueId = challenge.DialogueId,
-                            Prompt = challenge.Prompt,
-                            IsResolved = resolved is not null,
-                            Resolution = resolved is null ? null : challenge.SuccessResponse
-                        };
-                    })
+                    .Select(challenge => GameplayConversationRules.BuildChallengeDto(gameCase, state, challenge.ChallengeId)!)
                     .ToList();
             }
         }
+
+        // Authoritative transcript of visited conversation nodes for tree NPCs in this scene.
+        var conversationTranscript = GameplayConversationRules.BuildTranscript(gameCase, state, scene.CharacterIds);
 
         var visibleScene = new VisibleSceneDto
         {
@@ -82,7 +73,8 @@ public class GameStateBuilder : IGameStateBuilder
                 .Select(c => CaseCharacterDto.From(c!))
                 .ToList(),
             AvailableDialogues = sceneDialogues,
-            ConversationTreeCharacterIds = conversationTreeCharacterIds
+            ConversationTreeCharacterIds = conversationTreeCharacterIds,
+            ConversationTranscript = conversationTranscript
         };
 
         var sceneMap = gameCase.Stages.OrderBy(s => s.Order)

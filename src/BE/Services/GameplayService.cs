@@ -360,6 +360,87 @@ public class GameplayService : IGameplayService
         }
     }
 
+    // ----- Interrogator: conversation tree -----
+
+    public async Task<ConverseResponse> ConverseAsync(CurrentUser user, string roomId, ConverseRequest request)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            RequireRole(player, PlayerRole.Interrogator, "Only the interrogator can question characters.");
+
+            var scene = CurrentScene(gameCase, state, user.Id);
+            var ruleResult = GameplayConversationRules.Apply(
+                gameCase,
+                state,
+                scene,
+                request,
+                user.Id,
+                player.Role ?? string.Empty,
+                DateTime.UtcNow);
+
+            if (ruleResult.Changed)
+            {
+                if (!await TrySaveStateAsync(room))
+                {
+                    if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                    continue;
+                }
+            }
+
+            var character = gameCase.Characters.First(character => character.CharacterId == request.CharacterId);
+            if (ruleResult.Changed || ruleResult.SelectedChoice is not null)
+            {
+                await LogAsync(roomId, user.Id, "CONVERSE",
+                    $"{user.FullName} continued the conversation with {character.Name}.",
+                    new
+                    {
+                        request.CharacterId,
+                        NodeId = ruleResult.Node.NodeId,
+                        ChoiceId = ruleResult.SelectedChoice?.ChoiceId
+                    });
+            }
+
+            if (ruleResult.Changed)
+            {
+                foreach (var clueId in ruleResult.UnlockedClueIds)
+                {
+                    var clue = gameCase.Clues.First(clue => clue.ClueId == clueId);
+                    await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.",
+                        new { clueId, conversationNodeId = ruleResult.Node.NodeId });
+                }
+
+                await NotifyNewCluesAndDialoguesAsync(
+                    roomId,
+                    gameCase,
+                    state,
+                    user,
+                    player,
+                    scene.SceneId,
+                    ruleResult.UnlockedClueIds,
+                    ruleResult.Node.NodeId);
+            }
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            if (ruleResult.Changed)
+                await _notifier.GameStateUpdated(roomId, stateResponse);
+
+            var unlocked = state.UnlockedClueIds.ToHashSet();
+            return new ConverseResponse
+            {
+                Node = ConversationNodeDto.From(ruleResult.Node),
+                Choices = ruleResult.Node.Choices
+                    .Select(choice => ConversationChoiceDto.From(choice, unlocked))
+                    .ToList(),
+                Challenge = GameplayConversationRules.BuildChallengeDto(gameCase, state, ruleResult.Node.ChallengeId),
+                UnlockedClueIds = ruleResult.UnlockedClueIds.ToList(),
+                State = stateResponse,
+                Changed = ruleResult.Changed
+            };
+        }
+    }
+
     // ----- Present evidence / confrontation -----
 
     public async Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, PresentEvidenceRequest request)
@@ -402,7 +483,7 @@ public class GameplayService : IGameplayService
             var scene = CurrentScene(gameCase, state, user.Id);
             if (!scene.CharacterIds.Contains(dialogue.CharacterId))
                 throw ApiException.BadRequest("This character is not in the current scene.");
-            if (!state.AskedDialogueIds.Contains(dialogue.DialogueId))
+            if (!GameplayConversationRules.IsChallengeAvailable(gameCase, state, scene, challenge))
                 throw ApiException.BadRequest("Ask the related question before presenting evidence.");
 
             var ruleResult = GameplayV2Rules.ApplyEvidence(
@@ -504,8 +585,7 @@ public class GameplayService : IGameplayService
             {
                 var challenge = gameCase.EvidenceChallenges.FirstOrDefault(c => c.ChallengeId == request.TargetId)
                     ?? throw ApiException.NotFound("This evidence challenge does not exist in the case.");
-                var dialogue = gameCase.Dialogues.First(d => d.DialogueId == challenge.DialogueId);
-                if (!scene.CharacterIds.Contains(dialogue.CharacterId) || !state.AskedDialogueIds.Contains(dialogue.DialogueId))
+                if (!GameplayConversationRules.IsChallengeAvailable(gameCase, state, scene, challenge))
                     throw ApiException.BadRequest("This confrontation is not available in the current scene.");
                 if (state.ResolvedConfrontationRecords.Any(record => record.ChallengeId == challenge.ChallengeId))
                     throw ApiException.BadRequest("This confrontation is already resolved.");
@@ -1110,7 +1190,48 @@ public class GameplayService : IGameplayService
                 ActorRole = player.Role ?? string.Empty,
                 SceneId = dialogueScene?.SceneId ?? sceneId,
                 TargetId = dialogue.DialogueId,
+                CharacterId = dialogue.CharacterId,
                 Message = "New testimony is now available.",
+                Version = state.Version
+            });
+        }
+
+        var newlyAvailableConversationNodes = gameCase.ConversationNodes
+            .Where(node => !state.VisitedConversationNodeIds.Contains(node.NodeId))
+            .Where(node => node.RequiredClueIds.Count > 0 && node.RequiredClueIds.All(state.UnlockedClueIds.Contains))
+            .Where(node => node.RequiredClueIds.Any(newClueIds.Contains))
+            .ToList();
+        foreach (var node in newlyAvailableConversationNodes)
+        {
+            var nodeScene = gameCase.Stages.SelectMany(stage => stage.Scenes)
+                .FirstOrDefault(candidate => candidate.CharacterIds.Contains(node.CharacterId));
+            await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+            {
+                Type = "CONVERSATION_NODE_UNLOCKED",
+                ActorUserId = user.Id,
+                ActorRole = player.Role ?? string.Empty,
+                SceneId = nodeScene?.SceneId ?? sceneId,
+                TargetId = node.NodeId,
+                CharacterId = node.CharacterId,
+                Message = "A new conversation topic is now available.",
+                Version = state.Version
+            });
+        }
+
+        // A choice on an already-visited node whose gate just became satisfied.
+        foreach (var (node, choice) in GameplayConversationRules.NewlyUnlockedChoices(gameCase, state, newClueIds))
+        {
+            var choiceScene = gameCase.Stages.SelectMany(stage => stage.Scenes)
+                .FirstOrDefault(candidate => candidate.CharacterIds.Contains(node.CharacterId));
+            await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+            {
+                Type = "CONVERSATION_CHOICE_UNLOCKED",
+                ActorUserId = user.Id,
+                ActorRole = player.Role ?? string.Empty,
+                SceneId = choiceScene?.SceneId ?? sceneId,
+                TargetId = choice.ChoiceId,
+                CharacterId = node.CharacterId,
+                Message = "A new conversation option is now available.",
                 Version = state.Version
             });
         }

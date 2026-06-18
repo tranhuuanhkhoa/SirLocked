@@ -40,6 +40,10 @@ public class GameController : BaseApiController
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> AskDialogue(string roomId, [FromBody] AskDialogueRequest request) =>
         Ok(await _gameplayService.AskDialogueAsync(Caller, roomId, request.DialogueId));
 
+    [HttpPost("converse")]
+    public async Task<ActionResult<ApiResponse<ConverseResponse>>> Converse(string roomId, [FromBody] ConverseRequest request) =>
+        Ok(await _gameplayService.ConverseAsync(Caller, roomId, request));
+
     [HttpPost("present-evidence")]
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> PresentEvidence(string roomId, [FromBody] PresentEvidenceRequest request) =>
         Ok(await _gameplayService.PresentEvidenceAsync(Caller, roomId, request));

@@ -91,6 +91,8 @@ public class InvestigationUpdateDto
     public string ActorRole { get; set; } = string.Empty;
     public string SceneId { get; set; } = string.Empty;
     public string? TargetId { get; set; }
+    /// <summary>NPC the update relates to, when known — lets the client name/badge the right character.</summary>
+    public string? CharacterId { get; set; }
     public string Message { get; set; } = string.Empty;
     public long Version { get; set; }
 }
@@ -285,9 +287,23 @@ public class ConverseResponse
 {
     public ConversationNodeDto Node { get; set; } = new();
     public List<ConversationChoiceDto> Choices { get; set; } = new();
+    public EvidenceChallengeDto? Challenge { get; set; }
     public List<string> UnlockedClueIds { get; set; } = new();
     public GameStateResponse State { get; set; } = new();
     public bool Changed { get; set; }
+}
+
+/// <summary>
+/// Authoritative transcript of a visited conversation node, used by the client to
+/// rebuild the chat log idempotently. Only visited nodes are projected, so no
+/// unseen content leaks.
+/// </summary>
+public class ConversationTranscriptEntryDto
+{
+    public string NodeId { get; set; } = string.Empty;
+    public string CharacterId { get; set; } = string.Empty;
+    public List<ConversationLineDto> Lines { get; set; } = new();
+    public EvidenceChallengeDto? Challenge { get; set; }
 }
 
 public class ResolvedConfrontationDto
@@ -362,6 +378,7 @@ public class VisibleSceneDto
     public List<CaseCharacterDto> Characters { get; set; } = new();
     public List<SceneDialogueDto> AvailableDialogues { get; set; } = new();
     public List<string> ConversationTreeCharacterIds { get; set; } = new();
+    public List<ConversationTranscriptEntryDto> ConversationTranscript { get; set; } = new();
 }
 
 public class SceneMapEntryDto
