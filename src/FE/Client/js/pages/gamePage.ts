@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Camera, createIcons } from 'lucide';
+import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Gavel, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
@@ -656,15 +656,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (bgUrl) this.queueTexture(bgKey, bgUrl);
   }
 
-  private drawSceneLighting(width: number, height: number) {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x02050c, 0.34);
-    graphics.fillRect(0, 0, width, height * 0.2);
-    graphics.fillStyle(0x02050c, 0.52);
-    graphics.fillRect(0, height * 0.8, width, height * 0.2);
-    graphics.fillStyle(0x02050c, 0.34);
-    graphics.fillRect(0, 0, width * 0.08, height);
-    graphics.fillRect(width * 0.92, 0, width * 0.08, height);
+  private drawSceneLighting(_width: number, _height: number) {
+    // Scene artwork already includes lighting; keep runtime from adding dark scrims.
   }
 
   private drawHotspots(scene: VisibleScene, width: number, height: number) {
@@ -1319,7 +1312,6 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const padding = 14;
     const obstacles = [
       ...(this.sceneRuntime()?.itemPlacements ?? []).map((placement) => placement.reservedSlot),
-      ...(this.sceneRuntime()?.characterPlacements ?? []).map((placement) => placement.reservedSlot),
     ].filter((box): box is RuntimeBox => Boolean(box));
     return obstacles.some((box) =>
       x >= box.x - padding && x <= box.x + box.width + padding
@@ -1545,6 +1537,38 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let appliedSceneId = '';
   let appliedInventoryItemId: string | null = null;
   const evidencePhotoObjectUrls = new Map<string, string>();
+  let inventoryOpen = false;
+  let sceneIntroActive = true; // Show on initial load
+  let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (stopped || !state) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+    if (e.key === 'Escape') {
+      if (inventoryOpen || cameraMode || overlay || accusation) {
+        inventoryOpen = false;
+        cameraMode = false;
+        overlay = null;
+        accusation = null;
+        draw();
+        return;
+      }
+    }
+
+    if (isSceneInputBlocked()) return;
+
+    if (e.key.toLowerCase() === 'b') {
+      inventoryOpen = !inventoryOpen;
+      draw();
+    } else if (e.key.toLowerCase() === 'z') {
+      if (myRole() === 'INVESTIGATOR') {
+        cameraMode = !cameraMode;
+        draw();
+      }
+    }
+  };
+  window.addEventListener('keydown', handleKeydown);
 
   const refetch = async () => applyState(await gameApi.state(roomId));
 
@@ -1563,9 +1587,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         <main class="scene-canvas phaser-scene-wrap">
           <div id="${hostId}" class="phaser-game-host"></div>
           <header id="game-hud-slot" class="game-hud game-hud-overlay"></header>
-          <div id="scene-title-slot" class="scene-title-card"></div>
           <div id="inventory-slot"></div>
         </main>
+        <div id="scene-intro-slot"></div>
         <div id="game-transient-slot"></div>
       </div>`);
     shellMounted = true;
@@ -1574,8 +1598,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function applyState(fresh: GameState) {
     if (!fresh || (state && fresh.version < state.version)) return;
+    const isNewScene = state && state.currentSceneId !== fresh.currentSceneId;
     state = fresh;
     if (myRole() !== 'INVESTIGATOR') cameraMode = false;
+    
+    if (isNewScene) {
+      sceneIntroActive = true;
+      if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
+      sceneIntroTimeout = setTimeout(() => {
+        sceneIntroActive = false;
+        draw();
+      }, 3000);
+    }
     if (state.roomStatus === 'COMPLETED') {
       window.location.hash = `#/result/${roomId}`;
       return;
@@ -1640,6 +1674,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     await hub.start();
     if (stopped || !state) return () => hub.stop();
+    sceneIntroTimeout = setTimeout(() => { sceneIntroActive = false; draw(); }, 3000);
     draw();
   } catch (err: any) {
     if (err.message?.includes('not started')) {
@@ -1659,30 +1694,25 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     mountShell();
     const scene = state.visibleScene;
     const hud = app.querySelector('#game-hud-slot');
-    if (hud) hud.innerHTML = `
-      <div>
-        <strong>${escapeHtml(scene.title)}</strong>
-        <span class="muted small">${escapeHtml(state.caseTitle)} / Room ${escapeHtml(state.roomCode)}</span>
-      </div>
-      <div class="game-objective">${escapeHtml(state.currentObjective)}</div>
-      <div class="game-players">${playersHtml()}</div>
-      <div class="game-hud-actions">
-        <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
-        <button class="round-tool camera-tool ${cameraMode ? 'is-hot' : ''}" id="camera-btn" ${myRole() === 'INVESTIGATOR' ? '' : 'disabled'}
-                aria-label="${myRole() === 'INVESTIGATOR' ? 'Open camera' : 'Camera is available to the Investigator only'}"
-                title="${myRole() === 'INVESTIGATOR' ? 'Photograph embedded scene clues' : 'Only the Investigator can capture scene clues'}">
-          <i data-lucide="camera" aria-hidden="true"></i><span class="camera-badge">${state.capturedClueIds?.length ?? 0}</span>
-        </button>
-        <button class="round-tool" id="map-btn" title="Locations">Map</button>
-        <button class="round-tool" id="log-btn" title="Action log">Log</button>
-        <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
-                title="${state.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}">Accuse</button>
-      </div>`;
+    if (hud) hud.innerHTML = '';
 
-    const title = app.querySelector('#scene-title-slot');
-    if (title) title.innerHTML = `<p>${escapeHtml(scene.description)}</p>`;
+    const introSlot = app.querySelector('#scene-intro-slot');
+    if (introSlot) {
+      if (sceneIntroActive) {
+        const locationTitle = locationTitleParts(scene.title);
+        introSlot.innerHTML = `
+          <div class="scene-intro-toast">
+            <h2>${escapeHtml(locationTitle.area)}</h2>
+            ${locationTitle.scene ? `<p>${escapeHtml(locationTitle.scene)}</p>` : ''}
+          </div>
+        `;
+      } else {
+        introSlot.innerHTML = '';
+      }
+    }
+
     const inventory = app.querySelector('#inventory-slot');
-    if (inventory) inventory.innerHTML = inventoryBar();
+    if (inventory) inventory.innerHTML = inventoryDrawer() + investigationToolDock();
     const transient = app.querySelector('#game-transient-slot');
     if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}`;
 
@@ -1698,7 +1728,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     phaserScene?.setSceneInteractionEnabled(!isSceneInputBlocked());
     phaserScene?.setCameraMode(cameraMode && !isSceneInputBlocked());
     bind();
-    createIcons({ icons: { Camera } });
+    createIcons({
+      icons: {
+        Camera,
+        Briefcase,
+        X,
+        FolderSearch,
+        Map: MapIcon,
+        Gavel,
+      },
+    });
     hydrateEvidenceImages();
   }
 
@@ -1773,29 +1812,87 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       </span>`).join('');
   }
 
-  function inventoryBar() {
-    // collectedItems carries metadata for items picked up in any scene;
-    // visibleScene.items only covers the current scene, so it is just a fallback.
+  function locationTitleParts(title: string) {
+    const words = title.trim().split(/\s+/).filter(Boolean);
+    if (words.length <= 2) return { area: title.toUpperCase(), scene: '' };
+    return {
+      area: words.slice(0, 2).join(' ').toUpperCase(),
+      scene: words.slice(2).join(' '),
+    };
+  }
+
+  function investigationToolDock() {
+    const isInv = myRole() === 'INVESTIGATOR';
+    const cameraHtml = isInv ? `
+      <button class="floating-btn camera-tool ${cameraMode ? 'is-hot' : ''}" id="floating-camera-btn" title="Camera (Z)">
+        <i data-lucide="camera" aria-hidden="true"></i>
+        <span class="hotkey-label">Z</span>
+        <span class="camera-badge">${state!.capturedClueIds?.length ?? 0}</span>
+      </button>
+    ` : '';
+
+    return `
+      <div class="investigation-tool-dock">
+        <button class="floating-btn" id="case-file-btn" title="Case File" aria-label="Case File">
+          <i data-lucide="folder-search"></i>
+          <span class="tool-badge">${state!.unlockedClues.length}</span>
+        </button>
+        <button class="floating-btn" id="map-btn" title="Locations" aria-label="Locations"><i data-lucide="map"></i></button>
+        ${cameraHtml}
+        <button class="floating-btn bag-tool ${inventoryOpen ? 'is-open' : ''}" id="floating-bag-btn" title="Inventory (B)">
+          <i data-lucide="briefcase" aria-hidden="true"></i>
+          <span class="hotkey-label">B</span>
+          ${state!.collectedItemIds.length > 0 ? `<span class="camera-badge">${state!.collectedItemIds.length}</span>` : ''}
+        </button>
+        <button class="floating-btn ${state!.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state!.availableForAccusation ? '' : 'disabled'}
+                title="${state!.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}" aria-label="Accuse">
+          <i data-lucide="gavel"></i>
+        </button>
+      </div>
+    `;
+  }
+
+  function HintChip() {
+    if (!state?.currentObjective) return '';
+    return `<div class="hint-chip" title="${escapeHtml(state.currentObjective)}">${escapeHtml(state.currentObjective)}</div>`;
+  }
+
+  function inventoryDrawer() {
+    if (!inventoryOpen) return '';
+
     const itemsById = new Map(state!.visibleScene.items.map((i) => [i.itemId, i]));
     for (const item of state!.collectedItems ?? []) itemsById.set(item.itemId, item);
     const collected = state!.collectedItemIds.map((id) => itemsById.get(id) ?? { itemId: id, name: prettyId(id), imageUrl: '' });
+    
+    const totalSlots = 12;
+    const slots = [];
+    for (let i = 0; i < totalSlots; i++) {
+      const item = collected[i];
+      if (item) {
+        slots.push(`
+          <button class="inventory-drawer-slot is-filled ${overlay?.type === 'inventory' && overlay.itemId === item.itemId ? 'is-selected' : ''}"
+                  data-inventory="${escapeHtml(item.itemId)}" title="${escapeHtml(item.name)}">
+            <span class="inventory-icon" style="${placeholderStyle(item.itemId)}">
+              ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
+            </span>
+          </button>
+        `);
+      } else {
+        slots.push(`<div class="inventory-drawer-slot is-empty"></div>`);
+      }
+    }
+
     return `
-    <footer class="inventory-bar">
-      <span class="inventory-title">Inventory</span>
-      <div class="inventory-items">
-        ${collected.length === 0
-          ? '<span class="muted small">Collected items appear here.</span>'
-          : collected.map((item) => `
-            <button class="inventory-item ${overlay?.type === 'inventory' && overlay.itemId === item.itemId ? 'is-selected' : ''}"
-                    data-inventory="${escapeHtml(item.itemId)}" title="${escapeHtml(item.name)}">
-              <span class="inventory-icon" style="${placeholderStyle(item.itemId)}">
-                ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
-              </span>
-              <span>${escapeHtml(item.name)}</span>
-            </button>`).join('')}
+      <div class="inventory-drawer">
+        <div class="inventory-drawer-header">
+          <span>Bag</span>
+          <button class="close-drawer-btn" title="Close (Esc)"><i data-lucide="x"></i></button>
+        </div>
+        <div class="inventory-drawer-grid">
+          ${slots.join('')}
+        </div>
       </div>
-      <span class="muted small">Click an item to review what you found.</span>
-    </footer>`;
+    `;
   }
 
   function introOverlay(role: string | null) {
@@ -2114,7 +2211,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       }));
 
     app.querySelector('#case-file-btn')?.addEventListener('click', () => { overlay = { type: 'case' }; draw(); });
-    app.querySelector('#camera-btn')?.addEventListener('click', () => {
+    app.querySelector('#floating-camera-btn')?.addEventListener('click', () => {
       if (myRole() !== 'INVESTIGATOR') {
         toast('Only the Investigator can capture scene clues.', 'info');
         return;
@@ -2124,8 +2221,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       cameraMode = !cameraMode;
       draw();
     });
+    app.querySelector('#floating-bag-btn')?.addEventListener('click', () => {
+      inventoryOpen = !inventoryOpen;
+      draw();
+    });
+    app.querySelector('.close-drawer-btn')?.addEventListener('click', () => {
+      inventoryOpen = false;
+      draw();
+    });
     app.querySelector('#map-btn')?.addEventListener('click', () => { overlay = { type: 'map' }; draw(); });
-    app.querySelector('#log-btn')?.addEventListener('click', () => { overlay = { type: 'log' }; draw(); });
     app.querySelector('#accuse-btn')?.addEventListener('click', () => {
       accusation = { step: 1, culpritId: null, evidenceIds: new Set(state!.evidenceClues.map((c) => c.clueId)) };
       draw();
@@ -2374,6 +2478,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   return () => {
     stopped = true;
+    window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
     for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);
     evidencePhotoObjectUrls.clear();

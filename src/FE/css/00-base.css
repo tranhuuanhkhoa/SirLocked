@@ -1,4 +1,4 @@
-﻿  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
     --navy: #07111f;
@@ -22,6 +22,7 @@
     --line: rgba(239, 212, 134, 0.18);
     --line-strong: rgba(239, 212, 134, 0.42);
     --shadow-lg: 0 22px 70px rgba(0, 0, 0, 0.42);
+    --app-nav-height: 48px;
   }
 
   body {
