@@ -444,12 +444,12 @@ public class CaseValidationServiceTests
     public void ConversationTree_DepthGreaterThanTwo_IsRejected()
     {
         var c = LoadSampleCase();
-        AddValidConversationTree(c);
+        var root = AddValidConversationTree(c);
         c.ConversationNodes.First(node => node.NodeId == "node-phase-c-follow-up").Choices[0].NextNodeId = "node-phase-c-too-deep";
         c.ConversationNodes.Add(new ConversationNode
         {
             NodeId = "node-phase-c-too-deep",
-            CharacterId = c.ConversationNodes[0].CharacterId,
+            CharacterId = root.CharacterId,
             Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "That goes too far." } },
             Choices = { new ConversationChoice { ChoiceId = "choice-return", Label = "Return" } }
         });
@@ -476,6 +476,18 @@ public class CaseValidationServiceTests
         var result = _validator.Validate(c);
 
         Assert.Contains(result.Errors, e => e.Code == "InvalidValue" && e.Path.Contains("challengeId"));
+    }
+
+    [Fact]
+    public void SampleCase_ConversationTree_RoundTripsAndValidates()
+    {
+        var c = LoadSampleCase();
+
+        Assert.NotEmpty(c.ConversationNodes);
+        var root = c.ConversationNodes.Single(node => node.IsRoot && node.CharacterId == "char-mira");
+        Assert.NotEmpty(root.Choices);
+        Assert.Contains(root.Choices, choice => string.IsNullOrEmpty(choice.NextNodeId)); // a way back / end exists
+        Assert.True(_validator.Validate(c).IsValid);
     }
 
     [Fact]

@@ -854,6 +854,13 @@ public class AiCaseService : IAiCaseService
             "tags": ["time"], "relatedCharacterIds": ["char-1"] }],
           "dialogues": [{ "dialogueId": "dlg-1", "characterId": "char-1", "question": "...",
             "answer": "...", "requiredClueIds": [], "unlockClueIds": [] }],
+          "conversationNodes": [{ "nodeId": "conv-1-root", "characterId": "char-1", "isRoot": true,
+            "requiredClueIds": [], "lines": [{ "speaker": "NPC", "text": "..." }], "unlockClueIds": [], "challengeId": null,
+            "choices": [{ "choiceId": "conv-1-topic", "label": "...", "requiredClueIds": [], "nextNodeId": "conv-1-topic-node" },
+              { "choiceId": "conv-1-leave", "label": "Leave", "requiredClueIds": [], "nextNodeId": null }] },
+            { "nodeId": "conv-1-topic-node", "characterId": "char-1", "isRoot": false, "requiredClueIds": [],
+              "lines": [{ "speaker": "NPC", "text": "..." }], "unlockClueIds": [], "challengeId": null,
+              "choices": [{ "choiceId": "conv-1-back", "label": "I see.", "requiredClueIds": [], "nextNodeId": null }] }],
           "evidenceChallenges": [{ "challengeId": "challenge-1", "dialogueId": "dlg-1",
             "prompt": "Which evidence contradicts this testimony?", "correctEvidenceId": "clue-1",
             "successResponse": "...", "failureResponse": "...", "unlockClueIds": ["clue-2"] }],
@@ -925,6 +932,7 @@ public class AiCaseService : IAiCaseService
         - finalLogic must have at least three motiveOptions and three methodOptions with unique IDs and valid correctMotiveId/correctMethodId.
         - finalLogic.requiredEvidenceLinks must contain exactly one MOTIVE, one METHOD, and one OPPORTUNITY entry. Their three evidenceId values must be distinct, isEvidence clues, and discoverable before accusation.
         - finalLogic.requiredDeductionIds must reference the required deduction(s), and finalLogic.requiredTeamworkChainIds must reference the required teamwork chain(s).
+        - conversationNodes are OPTIONAL. If you include them for a character, build a small branching tree: exactly one isRoot node, root has at least one topic choice, depth is at most root -> topic -> one follow-up. Every node MUST offer at least one choice with nextNodeId null (a way back to root / end), and follow-up nodes' choices must all use nextNodeId null. nodeId/choiceId unique; nextNodeId and challengeId must reference real same-character nodes/challenges. lines use speaker "NPC" or "DETECTIVE". Do not leave a node without a return choice. Characters without conversationNodes keep using flat dialogues.
         - The culprit must be one of the characters. Include at least one red herring clue with isRedHerring true.
         - Build a contradiction chain in dialogues and delay the strongest culprit evidence to a later stage.
         - status must be "DRAFT".
@@ -2923,6 +2931,7 @@ public class AiCaseService : IAiCaseService
         WriteFile("items.json", gameCase.Items);
         WriteFile("clues.json", gameCase.Clues);
         WriteFile("dialogues.json", gameCase.Dialogues);
+        WriteFile("conversation-nodes.json", gameCase.ConversationNodes);
         WriteFile("evidence-challenges.json", gameCase.EvidenceChallenges);
         WriteFile("deductions.json", gameCase.Deductions);
         WriteFile("required-teamwork-chains.json", gameCase.RequiredTeamworkChains);

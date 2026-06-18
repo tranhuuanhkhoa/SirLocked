@@ -319,6 +319,42 @@ public static class MockCaseFactory
         gameCase.FinalLogic.FailEnding =
             $"The accusation does not hold. Without the full chain of evidence, {culprit.Name} walks free and an innocent reputation is ruined.";
 
+        // A small reference conversation tree (root -> topic -> one follow-up -> back).
+        gameCase.ConversationNodes.Add(new ConversationNode
+        {
+            NodeId = "conv-witness-root",
+            CharacterId = witness.CharacterId,
+            IsRoot = true,
+            Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = $"{witness.Name} watches you warily." } },
+            Choices =
+            {
+                new ConversationChoice { ChoiceId = "conv-witness-topic", Label = "What did you see that night?", NextNodeId = "conv-witness-saw" },
+                new ConversationChoice { ChoiceId = "conv-witness-leave", Label = "That is all for now." }
+            }
+        });
+        gameCase.ConversationNodes.Add(new ConversationNode
+        {
+            NodeId = "conv-witness-saw",
+            CharacterId = witness.CharacterId,
+            Lines =
+            {
+                new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "Shadows by the door, and a sound like breaking glass." },
+                new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "I kept my distance, you understand." }
+            },
+            Choices =
+            {
+                new ConversationChoice { ChoiceId = "conv-witness-follow", Label = "Press for detail.", NextNodeId = "conv-witness-detail" },
+                new ConversationChoice { ChoiceId = "conv-witness-back", Label = "Understood." }
+            }
+        });
+        gameCase.ConversationNodes.Add(new ConversationNode
+        {
+            NodeId = "conv-witness-detail",
+            CharacterId = witness.CharacterId,
+            Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "A figure too careful to be innocent." } },
+            Choices = { new ConversationChoice { ChoiceId = "conv-witness-return", Label = "Thank you." } }
+        });
+
         return gameCase;
     }
 

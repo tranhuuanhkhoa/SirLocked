@@ -39,6 +39,7 @@ public static class CaseAutoRepair
         {
             var unlockedAnywhere = c.Items.Any(i => i.UnlockClueIds.Contains(clue.ClueId))
                 || c.Dialogues.Any(d => d.UnlockClueIds.Contains(clue.ClueId))
+                || c.ConversationNodes.Any(node => node.UnlockClueIds.Contains(clue.ClueId))
                 || c.EvidenceChallenges.Any(challenge => challenge.UnlockClueIds.Contains(clue.ClueId))
                 || c.Deductions.Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId));
             if (unlockedAnywhere) continue;
@@ -247,6 +248,7 @@ public static class CaseAutoRepair
         HashSet<string> unlockedClues,
         HashSet<string> askedDialogues)
     {
+        var visitedConversationNodes = new HashSet<string>();
         bool progressed;
         do
         {
@@ -290,6 +292,18 @@ public static class CaseAutoRepair
                         .SelectMany(challenge => challenge.UnlockClueIds)
                         .All(unlockedClues.Contains))) continue;
                 foreach (var clue in deduction.UnlockClueIds)
+                {
+                    if (unlockedClues.Add(clue)) progressed = true;
+                }
+            }
+
+            foreach (var node in c.ConversationNodes)
+            {
+                if (visitedConversationNodes.Contains(node.NodeId)) continue;
+                if (!scene.CharacterIds.Contains(node.CharacterId)) continue;
+                if (!node.RequiredClueIds.All(unlockedClues.Contains)) continue;
+                visitedConversationNodes.Add(node.NodeId);
+                foreach (var clue in node.UnlockClueIds)
                 {
                     if (unlockedClues.Add(clue)) progressed = true;
                 }

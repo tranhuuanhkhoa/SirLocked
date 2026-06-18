@@ -732,6 +732,51 @@
       "unlockClueIds": []
     }
   ],
+  "conversationNodes": [
+    {
+      "nodeId": "conv-mira-root",
+      "characterId": "char-mira",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "lines": [
+        { "speaker": "NPC", "text": "You again, detective. Ask what you must, but quietly." }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        { "choiceId": "conv-mira-topic-night", "label": "Where were you the night Edgar fell ill?", "requiredClueIds": [], "nextNodeId": "conv-mira-night" },
+        { "choiceId": "conv-mira-topic-leave", "label": "That will be all for now.", "requiredClueIds": [], "nextNodeId": null }
+      ]
+    },
+    {
+      "nodeId": "conv-mira-night",
+      "characterId": "char-mira",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "lines": [
+        { "speaker": "NPC", "text": "On the south balcony, watching the garden." },
+        { "speaker": "NPC", "text": "I heard a glass break below, then hurried footsteps." }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        { "choiceId": "conv-mira-follow-steps", "label": "Whose footsteps?", "requiredClueIds": [], "nextNodeId": "conv-mira-steps" },
+        { "choiceId": "conv-mira-night-back", "label": "I understand.", "requiredClueIds": [], "nextNodeId": null }
+      ]
+    },
+    {
+      "nodeId": "conv-mira-steps",
+      "characterId": "char-mira",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "lines": [
+        { "speaker": "NPC", "text": "I cannot say for certain. Lighter than Edgar's, I think." },
+        { "speaker": "DETECTIVE", "text": "Light enough for a servant, perhaps." }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        { "choiceId": "conv-mira-return", "label": "Thank you, Mira.", "requiredClueIds": [], "nextNodeId": null }
+      ]
+    }
+  ],
   "evidenceChallenges": [
     {
       "challengeId": "challenge-edgar-cufflink",
