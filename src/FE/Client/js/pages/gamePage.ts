@@ -206,6 +206,30 @@ type AccusationConfig = {
   claimTypes: string[];
 };
 
+type ConversationLine = { speaker: 'NPC' | 'DETECTIVE'; text: string };
+type ConversationTranscriptEntry = {
+  nodeId: string;
+  characterId: string;
+  lines: ConversationLine[];
+  challenge?: EvidenceChallenge | null;
+};
+type ConversationNode = {
+  nodeId: string;
+  characterId: string;
+  isRoot: boolean;
+  lines: ConversationLine[];
+  challengeId?: string | null;
+};
+type ConversationChoice = { choiceId: string; label?: string | null; isLocked: boolean };
+type ConverseResponse = {
+  node: ConversationNode;
+  choices: ConversationChoice[];
+  challenge?: EvidenceChallenge | null;
+  unlockedClueIds: string[];
+  state: GameState;
+  changed: boolean;
+};
+
 type VisibleScene = {
   sceneId: string;
   title: string;
@@ -216,6 +240,8 @@ type VisibleScene = {
   items: SceneItem[];
   characters: SceneCharacter[];
   availableDialogues: SceneDialogue[];
+  conversationTreeCharacterIds: string[];
+  conversationTranscript: ConversationTranscriptEntry[];
 };
 
 type Clue = {
@@ -328,6 +354,7 @@ type InvestigationUpdatePayload = {
   actorRole?: string;
   sceneId?: string;
   targetId?: string;
+  characterId?: string;
   message: string;
   version?: number;
 };
@@ -1627,6 +1654,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let convLog: ConvLine[] = [];
   let convRevealedCount = 0; // lines [0, convRevealedCount) are shown instantly; the rest type out
   let convTimer: ReturnType<typeof setInterval> | null = null;
+  // Conversation tree (Phase C) — current node/choices for the open tree NPC (Interrogator only).
+  let convTreeNodeId: string | null = null;
+  let convTreeChoices: ConversationChoice[] = [];
+  let convTreeChallenge: EvidenceChallenge | null = null;
+  let convTreeBusy = false;
   const seenAskableDialogueIds = new Set<string>();
   const newDialogueIds = new Set<string>();
   const visibleNewDialogueIds = new Set<string>();
@@ -1707,7 +1739,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function newDialogueCount(characterId: string) {
     return currentAskableDialogues()
       .filter((dialogue) => dialogue.characterId === characterId && newDialogueIds.has(dialogue.dialogueId))
-      .length;
+      .length
+      + treeCueBadgeCount(characterId);
   }
 
   function markCharacterDialoguesVisible(characterId: string) {
@@ -1716,6 +1749,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       visibleNewDialogueIds.add(dialogue.dialogueId);
       newDialogueIds.delete(dialogue.dialogueId);
     }
+    markTreeCuesVisible(characterId);
   }
 
   function clearNewDialogue(dialogueId: string | undefined) {
@@ -1729,6 +1763,41 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     for (const dialogue of currentAskableDialogues()) {
       if (dialogue.characterId === characterId) visibleNewDialogueIds.delete(dialogue.dialogueId);
     }
+    visibleTreeCueByCharacter.get(characterId)?.clear();
+  }
+
+  // ----- Conversation tree "new" cues (Phase B parity for tree NPCs) -----
+  const newTreeCueByCharacter = new Map<string, Set<string>>();
+  const visibleTreeCueByCharacter = new Map<string, Set<string>>();
+
+  function addTreeCue(characterId?: string, targetId?: string) {
+    if (!characterId || !targetId) return;
+    let set = newTreeCueByCharacter.get(characterId);
+    if (!set) { set = new Set<string>(); newTreeCueByCharacter.set(characterId, set); }
+    set.add(targetId);
+  }
+
+  function markTreeCuesVisible(characterId: string) {
+    const fresh = newTreeCueByCharacter.get(characterId);
+    if (!fresh || fresh.size === 0) return;
+    let vis = visibleTreeCueByCharacter.get(characterId);
+    if (!vis) { vis = new Set<string>(); visibleTreeCueByCharacter.set(characterId, vis); }
+    for (const id of fresh) vis.add(id);
+    fresh.clear();
+  }
+
+  function isTreeCueHighlighted(characterId: string, targetId: string) {
+    return (newTreeCueByCharacter.get(characterId)?.has(targetId) ?? false)
+      || (visibleTreeCueByCharacter.get(characterId)?.has(targetId) ?? false);
+  }
+
+  function treeCueBadgeCount(characterId: string) {
+    return newTreeCueByCharacter.get(characterId)?.size ?? 0;
+  }
+
+  function clearTreeCue(characterId: string, targetId: string) {
+    newTreeCueByCharacter.get(characterId)?.delete(targetId);
+    visibleTreeCueByCharacter.get(characterId)?.delete(targetId);
   }
 
   function closeOverlay() {
@@ -1799,11 +1868,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       if (userId !== me.userId) toast('Your partner unlocked new testimony.', 'info');
     },
     InvestigationUpdate: (update: InvestigationUpdatePayload) => {
+      const namedCharacter = update.characterId
+        ? state?.visibleScene.characters.find((c) => c.characterId === update.characterId)?.name
+        : undefined;
       if (update.type === 'DIALOGUE_UNLOCKED' && update.targetId) {
         newDialogueIds.add(update.targetId);
-        const unlocked = dialogueCharacter(update.targetId);
-        const source = unlocked?.character.name ? ` from ${unlocked.character.name}` : '';
-        toast(`New testimony available${source}.`, update.actorUserId === me.userId ? 'success' : 'info', 4800);
+        const name = namedCharacter ?? dialogueCharacter(update.targetId)?.character.name;
+        toast(`New testimony available${name ? ` from ${name}` : ''}.`, update.actorUserId === me.userId ? 'success' : 'info', 4800);
+      } else if ((update.type === 'CONVERSATION_NODE_UNLOCKED' || update.type === 'CONVERSATION_CHOICE_UNLOCKED') && update.targetId) {
+        addTreeCue(update.characterId, update.targetId);
+        toast(`New conversation lead${namedCharacter ? ` from ${namedCharacter}` : ''}.`, update.actorUserId === me.userId ? 'success' : 'info', 4800);
       } else if (update.actorUserId !== me.userId) {
         toast(update.message || 'The investigation has a new lead.', 'info', 4200);
       }
@@ -1933,6 +2007,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       onCharacter: (characterId) => {
         if (isSceneInputBlocked()) return;
         markCharacterDialoguesVisible(characterId);
+        if (isTreeCharacter(characterId) && myRole() === 'INTERROGATOR') {
+          openConversation(characterId);
+          return;
+        }
         overlay = { type: 'dialogue', characterId };
         draw();
       },
@@ -2304,14 +2382,33 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     convCharacterId = null;
     convLog = [];
     convRevealedCount = 0;
+    convTreeNodeId = null;
+    convTreeChoices = [];
+    convTreeChallenge = null;
   }
 
-  // Deterministically derive the conversation log from authoritative state
-  // (asked Q&A + resolved confrontation responses). Pure and idempotent:
-  // rebuilding from the same state always yields the same log, so re-renders
-  // or repeated asks can never duplicate lines.
+  function isTreeCharacter(characterId: string): boolean {
+    return state!.visibleScene.conversationTreeCharacterIds?.includes(characterId) ?? false;
+  }
+
+  // Deterministically derive the conversation log from authoritative state. Pure and
+  // idempotent: rebuilding from the same state always yields the same log, so re-renders,
+  // reconnects, or repeated actions can never duplicate lines. Tree NPCs rebuild from the
+  // visited-node transcript; flat NPCs rebuild from asked Q&A + resolved confrontations.
   function buildConversation(characterId: string): ConvLine[] {
     const lines: ConvLine[] = [];
+    if (isTreeCharacter(characterId)) {
+      const entries = state!.visibleScene.conversationTranscript?.filter((e) => e.characterId === characterId) ?? [];
+      for (const entry of entries) {
+        for (const line of entry.lines) {
+          lines.push({ speaker: line.speaker === 'DETECTIVE' ? 'SIRLOCKED' : 'NPC', text: line.text });
+        }
+        if (entry.challenge?.isResolved && entry.challenge.resolution) {
+          for (const l of splitSentences(entry.challenge.resolution)) lines.push({ speaker: 'NPC', text: l });
+        }
+      }
+      return lines;
+    }
     const dialogues = state!.visibleScene.availableDialogues.filter((d) => d.characterId === characterId && d.isAsked);
     for (const d of dialogues) {
       lines.push({ speaker: 'SIRLOCKED', text: d.question });
@@ -2382,6 +2479,23 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }).join('');
   }
 
+  function renderChallengePanel(challenge: EvidenceChallenge, role: string | null | undefined) {
+    return `
+      <section class="evidence-challenge conv-challenge">
+        <div class="conv-challenge-head">
+          <span class="conv-challenge-tag">Present evidence</span>
+          <button class="btn btn-ghost btn-sm" data-challenge-hint="${escapeHtml(challenge.challengeId)}">Hint</button>
+        </div>
+        <strong>${escapeHtml(challenge.prompt)}</strong>
+        ${role === 'INTERROGATOR'
+          ? `<div class="challenge-actions">${state!.evidenceClues.map((clue) => `
+              <button class="btn btn-ghost evidence-choice" data-present-challenge="${escapeHtml(challenge.challengeId)}" data-present-evidence="${escapeHtml(clue.clueId)}">
+                ${escapeHtml(clue.title)}
+              </button>`).join('')}</div>`
+          : '<p class="muted small">Only the Interrogator can present evidence.</p>'}
+      </section>`;
+  }
+
   function dialogueOverlay(characterId: string) {
     const character = state!.visibleScene.characters.find((c) => c.characterId === characterId);
     if (!character) return '';
@@ -2395,47 +2509,64 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (freshOpen) convRevealedCount = convLog.length; // existing history shows instantly
     else convRevealedCount = Math.min(convRevealedCount, convLog.length); // newly added lines type out
 
-    const askable = dialogues.filter((d) => !d.isAsked && !d.isLocked);
-    const highlighted = askable.filter((d) => newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId));
-    const lockedCount = dialogues.filter((d) => d.isLocked).length;
-    const activeChallenges = dialogues
-      .filter((d) => d.isAsked)
-      .flatMap((d) => (d.evidenceChallenges ?? []).filter((c) => !c.isResolved));
+    const tree = isTreeCharacter(characterId);
+    let topicsHtml: string;
+    let challengeHtml: string;
+    let newLeadHtml: string;
 
-    const lockedNotice = lockedCount > 0
-      ? `<p class="conv-locked">${lockedCount > 1
-          ? `${lockedCount} more questions locked — find stronger evidence first.`
-          : 'Locked — find stronger evidence before pressing further.'}</p>`
-      : '';
+    if (tree) {
+      const choices = convTreeChoices;
+      const hasNewChoice = choices.some((c) => !c.isLocked && isTreeCueHighlighted(characterId, c.choiceId));
+      newLeadHtml = hasNewChoice
+        ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
+        : '';
 
-    const newLeadHtml = highlighted.length > 0
-      ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
-      : '';
+      if (role !== 'INTERROGATOR') {
+        topicsHtml = '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>';
+      } else if (choices.length === 0) {
+        topicsHtml = '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>';
+      } else {
+        const lockedTree = choices.filter((c) => c.isLocked).length;
+        topicsHtml = `${choices.filter((c) => !c.isLocked).map((c) => {
+            const isNew = isTreeCueHighlighted(characterId, c.choiceId);
+            return `<button class="conv-choice ${isNew ? 'is-new' : ''}" data-converse-node="${escapeHtml(convTreeNodeId ?? '')}" data-converse-choice="${escapeHtml(c.choiceId)}">
+              <span class="conv-choice-tag">${isNew ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(c.label ?? '')}</span>
+            </button>`;
+          }).join('')}
+          ${lockedTree > 0
+            ? `<p class="conv-locked">${lockedTree > 1 ? `${lockedTree} more options locked — find stronger evidence first.` : 'Locked — find stronger evidence before pressing further.'}</p>`
+            : ''}`;
+      }
 
-    const topicsHtml = role !== 'INTERROGATOR'
-      ? '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>'
-      : askable.length === 0 && lockedCount === 0
-        ? '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>'
-        : `${askable.map((d) => `
-            <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
-              <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
-            </button>`).join('')}
-          ${lockedNotice}`;
+      const currentEntry = state!.visibleScene.conversationTranscript?.find((e) => e.nodeId === convTreeNodeId);
+      const nodeChallenge = currentEntry?.challenge ?? convTreeChallenge;
+      challengeHtml = nodeChallenge && !nodeChallenge.isResolved ? renderChallengePanel(nodeChallenge, role) : '';
+    } else {
+      const askable = dialogues.filter((d) => !d.isAsked && !d.isLocked);
+      const highlighted = askable.filter((d) => newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId));
+      const lockedCount = dialogues.filter((d) => d.isLocked).length;
+      const activeChallenges = dialogues
+        .filter((d) => d.isAsked)
+        .flatMap((d) => (d.evidenceChallenges ?? []).filter((c) => !c.isResolved));
 
-    const challengeHtml = activeChallenges.map((challenge) => `
-      <section class="evidence-challenge conv-challenge">
-        <div class="conv-challenge-head">
-          <span class="conv-challenge-tag">Present evidence</span>
-          <button class="btn btn-ghost btn-sm" data-challenge-hint="${escapeHtml(challenge.challengeId)}">Hint</button>
-        </div>
-        <strong>${escapeHtml(challenge.prompt)}</strong>
-        ${role === 'INTERROGATOR'
-          ? `<div class="challenge-actions">${state!.evidenceClues.map((clue) => `
-              <button class="btn btn-ghost evidence-choice" data-present-challenge="${escapeHtml(challenge.challengeId)}" data-present-evidence="${escapeHtml(clue.clueId)}">
-                ${escapeHtml(clue.title)}
-              </button>`).join('')}</div>`
-          : '<p class="muted small">Only the Interrogator can present evidence.</p>'}
-      </section>`).join('');
+      newLeadHtml = highlighted.length > 0
+        ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
+        : '';
+
+      topicsHtml = role !== 'INTERROGATOR'
+        ? '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>'
+        : askable.length === 0 && lockedCount === 0
+          ? '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>'
+          : `${askable.map((d) => `
+              <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
+                <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
+              </button>`).join('')}
+            ${lockedCount > 0
+              ? `<p class="conv-locked">${lockedCount > 1 ? `${lockedCount} more questions locked — find stronger evidence first.` : 'Locked — find stronger evidence before pressing further.'}</p>`
+              : ''}`;
+
+      challengeHtml = activeChallenges.map((challenge) => renderChallengePanel(challenge, role)).join('');
+    }
 
     return `
     <div class="overlay dialogue-overlay">
@@ -2692,6 +2823,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         }
       }));
 
+    app.querySelectorAll('[data-converse-choice]').forEach((button) => button.addEventListener('click', async () => {
+      if (myRole() !== 'INTERROGATOR') {
+        toast('Only the Interrogator can ask questions.', 'info');
+        return;
+      }
+      const target = button as HTMLElement;
+      await chooseConversation(target.dataset.converseNode ?? '', target.dataset.converseChoice ?? '');
+    }));
+
     app.querySelectorAll('[data-present-challenge]').forEach((button) => button.addEventListener('click', async () => {
       const target = button as HTMLElement;
       await presentEvidence(target.dataset.presentChallenge ?? '', target.dataset.presentEvidence ?? '');
@@ -2811,6 +2951,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     if (type === 'CHARACTER') {
       markCharacterDialoguesVisible(target);
+      if (isTreeCharacter(target) && myRole() === 'INTERROGATOR') {
+        openConversation(target);
+        return;
+      }
       overlay = { type: 'dialogue', characterId: target };
       draw();
       return;
@@ -2877,6 +3021,53 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
   }
 
+  // ----- Conversation tree (Phase C) -----
+
+  async function openConversation(characterId: string) {
+    try {
+      const res: ConverseResponse = await gameApi.converse(roomId, { characterId });
+      convTreeNodeId = res.node.nodeId;
+      convTreeChoices = res.choices;
+      convTreeChallenge = res.challenge ?? null;
+      overlay = { type: 'dialogue', characterId };
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message, 'error');
+    }
+  }
+
+  // Re-fetch the current node (no choice) so its choices reflect freshly-unlocked gates.
+  async function refreshConverseNode(characterId: string, nodeId: string) {
+    try {
+      const res: ConverseResponse = await gameApi.converse(roomId, { characterId, nodeId });
+      convTreeNodeId = res.node.nodeId;
+      convTreeChoices = res.choices;
+      convTreeChallenge = res.challenge ?? null;
+      applyState(res.state);
+    } catch {
+      /* keep the existing view */
+    }
+  }
+
+  async function chooseConversation(nodeId: string, choiceId: string) {
+    if (!nodeId || !choiceId || convTreeBusy) return;
+    const characterId = overlay?.type === 'dialogue' ? overlay.characterId : convCharacterId;
+    if (!characterId) return;
+    convTreeBusy = true;
+    try {
+      const res: ConverseResponse = await gameApi.converse(roomId, { characterId, nodeId, choiceId });
+      convTreeNodeId = res.node.nodeId;
+      convTreeChoices = res.choices;
+      convTreeChallenge = res.challenge ?? null;
+      clearTreeCue(characterId, choiceId);
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message, 'error');
+    } finally {
+      convTreeBusy = false;
+    }
+  }
+
   async function presentEvidence(challengeId: string, evidenceId: string) {
     if (!challengeId || !evidenceId) return;
     try {
@@ -2885,6 +3076,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       // state; toast gives transient feedback (and surfaces failure responses).
       toast(res.detail || res.message, res.changed && res.unlockedClueIds?.length ? 'success' : 'info', 5000);
       applyState(res.state);
+      // In tree mode a resolved challenge may open gated follow-ups; refresh the node's choices.
+      if (overlay?.type === 'dialogue' && isTreeCharacter(overlay.characterId) && convTreeNodeId) {
+        await refreshConverseNode(overlay.characterId, convTreeNodeId);
+      }
     } catch (err: any) {
       toast(err.message, 'error');
     }

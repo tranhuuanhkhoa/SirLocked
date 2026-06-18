@@ -15,6 +15,7 @@ export const gameApi = {
   },
   evidencePhoto: (photoUrl) => apiFetchBlob(photoUrl),
   askDialogue: (roomId, dialogueId) => post(`/api/game/rooms/${roomId}/ask-dialogue`, { dialogueId }),
+  converse: (roomId, payload) => post(`/api/game/rooms/${roomId}/converse`, payload),
   presentEvidence: (roomId, payload) => post(`/api/game/rooms/${roomId}/present-evidence`, payload),
   hint: (roomId, contextType, targetId) => post(`/api/game/rooms/${roomId}/hint`, { contextType, targetId }),
   solveDeduction: (roomId, deductionId, optionId) => post(`/api/game/rooms/${roomId}/solve-deduction`, { deductionId, optionId }),
