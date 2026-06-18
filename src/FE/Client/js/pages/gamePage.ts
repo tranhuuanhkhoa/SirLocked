@@ -322,9 +322,20 @@ type PlayerPose = {
   updatedAt?: string;
 };
 
+type InvestigationUpdatePayload = {
+  type?: string;
+  actorUserId: string;
+  actorRole?: string;
+  sceneId?: string;
+  targetId?: string;
+  message: string;
+  version?: number;
+};
+
 type PhaserCallbacks = {
   localUserId: string;
   playerPoses: Map<string, PlayerPose>;
+  newDialogueCount: (characterId: string) => number;
   onHotspot: (hotspot: HotspotClick) => void;
   onCharacter: (characterId: string) => void;
   onCapture: (captureRect: RuntimeBox, photo: Blob) => void;
@@ -818,8 +829,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
     // so they read as people standing in the room, not looming over it.
     const npcH = placementSize?.height ?? Phaser.Math.Clamp(height * 0.27, 140, 235);
     const npcW = placementSize?.width ?? npcH * (256 / 384);
-    const fresh = this.state?.visibleScene.availableDialogues
+    const askable = this.state?.visibleScene.availableDialogues
       .filter((dialogue) => dialogue.characterId === character.characterId && !dialogue.isAsked && !dialogue.isLocked).length ?? 0;
+    const newlyUnlocked = this.callbacks.newDialogueCount(character.characterId);
 
     const spriteUrls = [
       playableAssetUrl(placement?.asset),
@@ -855,20 +867,41 @@ class SirLockedPhaserScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5).setVisible(body instanceof Phaser.GameObjects.Rectangle);
 
-    const name = this.add.text(0, 8, fresh ? `${character.name} (${fresh})` : character.name, {
+    const name = this.add.text(0, 8, askable ? `${character.name} (${askable})` : character.name, {
       fontFamily: 'Crimson Text, serif',
       fontSize: '16px',
-      color: fresh ? '#f4dc8f' : '#f7efd7',
+      color: askable ? '#f4dc8f' : '#f7efd7',
       backgroundColor: 'rgba(10,22,40,0.88)',
       padding: { x: 8, y: 4 },
     }).setOrigin(0.5, 0);
+
+    let newBadge: Phaser.GameObjects.Container | null = null;
+    if (newlyUnlocked > 0) {
+      const badgeBg = this.add.ellipse(npcW * 0.34, -npcH * 0.72, 30, 30, 0xf4dc8f, 0.95)
+        .setStrokeStyle(2, 0x0a1628, 0.9);
+      const badgeText = this.add.text(npcW * 0.34, -npcH * 0.72, '?', {
+        fontFamily: 'Source Code Pro, monospace',
+        fontSize: '18px',
+        color: '#0a1628',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+      newBadge = this.add.container(0, 0, [badgeBg, badgeText]);
+      this.tweens.add({
+        targets: newBadge,
+        scale: { from: 0.92, to: 1.08 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
 
     const open = () => this.callbacks.onCharacter(character.characterId);
     body.on('pointerdown', open);
     body.on('pointerover', () => { if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
     body.on('pointerout', () => { if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
 
-    group.add([shadow, body, initialText, name]);
+    group.add(newBadge ? [shadow, body, initialText, name, newBadge] : [shadow, body, initialText, name]);
   }
 
   private drawPlayers() {
@@ -1594,6 +1627,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let convLog: ConvLine[] = [];
   let convRevealedCount = 0; // lines [0, convRevealedCount) are shown instantly; the rest type out
   let convTimer: ReturnType<typeof setInterval> | null = null;
+  const seenAskableDialogueIds = new Set<string>();
+  const newDialogueIds = new Set<string>();
+  const visibleNewDialogueIds = new Set<string>();
+  let hasSeededAskableDialogues = false;
 
   const handleKeydown = (e: KeyboardEvent) => {
     if (stopped || !state) return;
@@ -1603,7 +1640,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       if (inventoryOpen || cameraMode || overlay || accusation) {
         inventoryOpen = false;
         cameraMode = false;
-        overlay = null;
+        closeOverlay();
         accusation = null;
         draw();
         return;
@@ -1625,6 +1662,79 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   window.addEventListener('keydown', handleKeydown);
 
   const refetch = async () => applyState(await gameApi.state(roomId));
+
+  function currentAskableDialogues(fresh = state) {
+    return fresh?.visibleScene.availableDialogues.filter((dialogue) => !dialogue.isAsked && !dialogue.isLocked) ?? [];
+  }
+
+  function rememberAskableDialogues(fresh: GameState) {
+    const askable = currentAskableDialogues(fresh);
+    const askableIds = new Set(askable.map((dialogue) => dialogue.dialogueId));
+
+    if (!hasSeededAskableDialogues) {
+      askable.forEach((dialogue) => seenAskableDialogueIds.add(dialogue.dialogueId));
+      hasSeededAskableDialogues = true;
+      return;
+    }
+
+    for (const dialogue of askable) {
+      if (!seenAskableDialogueIds.has(dialogue.dialogueId)) {
+        newDialogueIds.add(dialogue.dialogueId);
+      }
+      seenAskableDialogueIds.add(dialogue.dialogueId);
+    }
+
+    for (const dialogueId of [...newDialogueIds]) {
+      const current = fresh.visibleScene.availableDialogues.find((dialogue) => dialogue.dialogueId === dialogueId);
+      if (current && (current.isAsked || current.isLocked || !askableIds.has(dialogueId))) {
+        newDialogueIds.delete(dialogueId);
+        visibleNewDialogueIds.delete(dialogueId);
+      }
+    }
+    for (const dialogueId of [...visibleNewDialogueIds]) {
+      const current = fresh.visibleScene.availableDialogues.find((dialogue) => dialogue.dialogueId === dialogueId);
+      if (current && (current.isAsked || current.isLocked)) visibleNewDialogueIds.delete(dialogueId);
+    }
+  }
+
+  function dialogueCharacter(dialogueId: string) {
+    const dialogue = state?.visibleScene.availableDialogues.find((candidate) => candidate.dialogueId === dialogueId);
+    if (!dialogue) return null;
+    const character = state?.visibleScene.characters.find((candidate) => candidate.characterId === dialogue.characterId);
+    return character ? { dialogue, character } : null;
+  }
+
+  function newDialogueCount(characterId: string) {
+    return currentAskableDialogues()
+      .filter((dialogue) => dialogue.characterId === characterId && newDialogueIds.has(dialogue.dialogueId))
+      .length;
+  }
+
+  function markCharacterDialoguesVisible(characterId: string) {
+    for (const dialogue of currentAskableDialogues()) {
+      if (dialogue.characterId !== characterId || !newDialogueIds.has(dialogue.dialogueId)) continue;
+      visibleNewDialogueIds.add(dialogue.dialogueId);
+      newDialogueIds.delete(dialogue.dialogueId);
+    }
+  }
+
+  function clearNewDialogue(dialogueId: string | undefined) {
+    if (!dialogueId) return;
+    newDialogueIds.delete(dialogueId);
+    visibleNewDialogueIds.delete(dialogueId);
+    seenAskableDialogueIds.add(dialogueId);
+  }
+
+  function clearVisibleDialoguesForCharacter(characterId: string) {
+    for (const dialogue of currentAskableDialogues()) {
+      if (dialogue.characterId === characterId) visibleNewDialogueIds.delete(dialogue.dialogueId);
+    }
+  }
+
+  function closeOverlay() {
+    if (overlay?.type === 'dialogue') clearVisibleDialoguesForCharacter(overlay.characterId);
+    overlay = null;
+  }
 
   function destroyPhaser() {
     if (phaserGame) {
@@ -1653,6 +1763,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function applyState(fresh: GameState) {
     if (!fresh || (state && fresh.version < state.version)) return;
     const isNewScene = state && state.currentSceneId !== fresh.currentSceneId;
+    rememberAskableDialogues(fresh);
     state = fresh;
     if (myRole() !== 'INVESTIGATOR') cameraMode = false;
     
@@ -1687,8 +1798,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     DialogueAnswered: ({ userId }: { userId: string }) => {
       if (userId !== me.userId) toast('Your partner unlocked new testimony.', 'info');
     },
-    InvestigationUpdate: (update: { actorUserId: string; message: string }) => {
-      if (update.actorUserId !== me.userId) toast(update.message || 'The investigation has a new lead.', 'info', 4200);
+    InvestigationUpdate: (update: InvestigationUpdatePayload) => {
+      if (update.type === 'DIALOGUE_UNLOCKED' && update.targetId) {
+        newDialogueIds.add(update.targetId);
+        const unlocked = dialogueCharacter(update.targetId);
+        const source = unlocked?.character.name ? ` from ${unlocked.character.name}` : '';
+        toast(`New testimony available${source}.`, update.actorUserId === me.userId ? 'success' : 'info', 4800);
+      } else if (update.actorUserId !== me.userId) {
+        toast(update.message || 'The investigation has a new lead.', 'info', 4200);
+      }
       refetch().catch(() => {});
     },
     SceneChanged: ({ userId }: { userId: string }) => {
@@ -1810,9 +1928,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     phaserScene = new SirLockedPhaserScene({
       localUserId: me.userId,
       playerPoses,
+      newDialogueCount,
       onHotspot,
       onCharacter: (characterId) => {
         if (isSceneInputBlocked()) return;
+        markCharacterDialoguesVisible(characterId);
         overlay = { type: 'dialogue', characterId };
         draw();
       },
@@ -2276,6 +2396,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     else convRevealedCount = Math.min(convRevealedCount, convLog.length); // newly added lines type out
 
     const askable = dialogues.filter((d) => !d.isAsked && !d.isLocked);
+    const highlighted = askable.filter((d) => newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId));
     const lockedCount = dialogues.filter((d) => d.isLocked).length;
     const activeChallenges = dialogues
       .filter((d) => d.isAsked)
@@ -2287,13 +2408,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           : 'Locked — find stronger evidence before pressing further.'}</p>`
       : '';
 
+    const newLeadHtml = highlighted.length > 0
+      ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
+      : '';
+
     const topicsHtml = role !== 'INTERROGATOR'
       ? '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>'
       : askable.length === 0 && lockedCount === 0
         ? '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>'
         : `${askable.map((d) => `
-            <button class="conv-choice" data-dialogue="${escapeHtml(d.dialogueId)}">
-              <span class="conv-choice-tag">Ask</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
+            <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
+              <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
             </button>`).join('')}
           ${lockedNotice}`;
 
@@ -2339,6 +2464,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <div class="conv-scroll">
             <div class="conversation-log">${conversationLogHtml(character.name)}</div>
             ${challengeHtml ? `<div class="conversation-challenges">${challengeHtml}</div>` : ''}
+            ${newLeadHtml}
             <div class="conversation-choices">${topicsHtml}</div>
           </div>
           <footer class="conv-footer">
@@ -2509,7 +2635,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         toast('Only the Investigator can capture scene clues.', 'info');
         return;
       }
-      overlay = null;
+      closeOverlay();
       accusation = null;
       cameraMode = !cameraMode;
       draw();
@@ -2536,7 +2662,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     app.querySelectorAll('[data-close-overlay]').forEach((button) => {
       button.addEventListener('pointerdown', (event) => {
-        overlay = null;
+        closeOverlay();
         app.querySelectorAll('.inventory-item.is-selected').forEach((item) => item.classList.remove('is-selected'));
         dismissOverlayWithShield(button as HTMLElement, event);
       });
@@ -2557,6 +2683,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         askButton.dataset.asking = '1';
         try {
           const dialogueId = askButton.dataset.dialogue;
+          clearNewDialogue(dialogueId);
           const res = await gameApi.askDialogue(roomId, dialogueId);
           if (res.changed && res.unlockedClueIds.length > 0) toast(res.message, 'success');
           applyState(res.state); // log rebuilds deterministically from state
@@ -2683,6 +2810,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     if (type === 'CHARACTER') {
+      markCharacterDialoguesVisible(target);
       overlay = { type: 'dialogue', characterId: target };
       draw();
       return;
@@ -2793,7 +2921,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     try {
       const res = await gameApi.completeScene(roomId);
       toast(res.message, 'success', 5500);
-      overlay = null;
+      closeOverlay();
       applyState(res.state);
     } catch (err: any) {
       const missing = err.errors?.missing;
@@ -2809,7 +2937,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   async function goToScene(sceneId: string) {
     try {
       const res = await gameApi.goToScene(roomId, sceneId);
-      overlay = null;
+      closeOverlay();
       applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');

@@ -564,6 +564,12 @@ code { font-family: 'Source Code Pro', monospace; color: var(--gold-light); font
 /* Choices */
 .conversation-choices { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 .conv-readonly { margin: 0; }
+.conv-new-lead {
+  margin: 12px 2px 0;
+  color: var(--gold-light);
+  font-size: 0.9rem;
+  font-style: italic;
+}
 .conv-choice {
   display: flex; align-items: center; gap: 12px; width: 100%;
   text-align: left; cursor: pointer; padding: 11px 14px;
@@ -572,12 +578,26 @@ code { font-family: 'Source Code Pro', monospace; color: var(--gold-light); font
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
 .conv-choice:hover { background: rgba(201,168,76,0.14); border-color: var(--gold); transform: translateX(2px); }
+.conv-choice.is-new {
+  background: rgba(201,168,76,0.16);
+  border-color: rgba(244,220,143,0.82);
+  animation: conv-new-pulse 1.7s ease-in-out infinite;
+}
 .conv-choice-tag {
-  flex: none; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
+  flex: 0 0 48px; text-align: center; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
   color: var(--gold-light); border: 1px solid rgba(201,168,76,0.4); border-radius: 6px; padding: 3px 9px;
+}
+.conv-choice.is-new .conv-choice-tag {
+  color: #0a1628;
+  background: var(--gold-light);
+  border-color: var(--gold-light);
 }
 .conv-choice-text { flex: 1; line-height: 1.4; }
 .conv-locked { margin: 6px 2px 0; font-style: italic; color: var(--beige); opacity: 0.65; font-size: 0.85rem; }
+@keyframes conv-new-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244,220,143,0.26); }
+  50% { box-shadow: 0 0 0 6px rgba(244,220,143,0); }
+}
 
 /* Footer */
 .conv-footer {
