@@ -401,6 +401,84 @@ public class CaseValidationServiceTests
     }
 
     [Fact]
+    public void ConversationTree_WithValidShape_IsAccepted()
+    {
+        var c = LoadSampleCase();
+        AddValidConversationTree(c);
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
+    public void ConversationTree_DuplicateChoiceId_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var root = AddValidConversationTree(c);
+        root.Choices.Add(new ConversationChoice
+        {
+            ChoiceId = root.Choices[0].ChoiceId,
+            Label = "Repeat topic",
+            NextNodeId = "node-phase-c-topic"
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "DuplicateId" && e.Path.Contains("choices"));
+    }
+
+    [Fact]
+    public void ConversationTree_MissingRoot_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var root = AddValidConversationTree(c);
+        root.IsRoot = false;
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue" && e.Message.Contains("exactly one root"));
+    }
+
+    [Fact]
+    public void ConversationTree_DepthGreaterThanTwo_IsRejected()
+    {
+        var c = LoadSampleCase();
+        AddValidConversationTree(c);
+        c.ConversationNodes.First(node => node.NodeId == "node-phase-c-follow-up").Choices[0].NextNodeId = "node-phase-c-too-deep";
+        c.ConversationNodes.Add(new ConversationNode
+        {
+            NodeId = "node-phase-c-too-deep",
+            CharacterId = c.ConversationNodes[0].CharacterId,
+            Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "That goes too far." } },
+            Choices = { new ConversationChoice { ChoiceId = "choice-return", Label = "Return" } }
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidConversationDepth" && e.RefId == "node-phase-c-too-deep");
+    }
+
+    [Fact]
+    public void ConversationTree_ChallengeForAnotherCharacter_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var root = AddValidConversationTree(c);
+        var challenge = c.EvidenceChallenges.First();
+        var challengeDialogue = c.Dialogues.First(dialogue => dialogue.DialogueId == challenge.DialogueId);
+        var otherCharacter = c.Characters.First(character => character.CharacterId != challengeDialogue.CharacterId);
+        foreach (var node in c.ConversationNodes)
+        {
+            node.CharacterId = otherCharacter.CharacterId;
+        }
+        c.ConversationNodes.First(node => node.NodeId == root.Choices[0].NextNodeId).ChallengeId = challenge.ChallengeId;
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue" && e.Path.Contains("challengeId"));
+    }
+
+    [Fact]
     public void MockCaseFactory_ProducesValidCase()
     {
         for (var stages = 2; stages <= 5; stages++)
@@ -433,6 +511,51 @@ public class CaseValidationServiceTests
         };
         c.Clues.Add(clue);
         return clue;
+    }
+
+    private static ConversationNode AddValidConversationTree(GameCase c)
+    {
+        var characterId = c.Stages[0].Scenes[0].CharacterIds[0];
+        var root = new ConversationNode
+        {
+            NodeId = "node-phase-c-root",
+            CharacterId = characterId,
+            IsRoot = true,
+            Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "What do you need?" } },
+            Choices =
+            {
+                new ConversationChoice
+                {
+                    ChoiceId = "choice-topic",
+                    Label = "Ask about the timeline",
+                    NextNodeId = "node-phase-c-topic"
+                }
+            }
+        };
+        c.ConversationNodes.Add(root);
+        c.ConversationNodes.Add(new ConversationNode
+        {
+            NodeId = "node-phase-c-topic",
+            CharacterId = characterId,
+            Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "The clock stopped before supper." } },
+            Choices =
+            {
+                new ConversationChoice
+                {
+                    ChoiceId = "choice-follow-up",
+                    Label = "Press on the clock",
+                    NextNodeId = "node-phase-c-follow-up"
+                }
+            }
+        });
+        c.ConversationNodes.Add(new ConversationNode
+        {
+            NodeId = "node-phase-c-follow-up",
+            CharacterId = characterId,
+            Lines = { new ConversationLine { Speaker = ConversationSpeakers.Npc, Text = "I heard the chime twice." } },
+            Choices = { new ConversationChoice { ChoiceId = "choice-return", Label = "Return" } }
+        });
+        return root;
     }
 
     private static SceneRuntime RuntimeWithClueZone(string clueId, RuntimeBox bounds) => new()

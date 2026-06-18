@@ -34,6 +34,11 @@ public class GameStateBuilder : IGameStateBuilder
             .Where(d => scene.CharacterIds.Contains(d.CharacterId))
             .Select(d => SceneDialogueDto.From(d, unlocked, state.AskedDialogueIds.Contains(d.DialogueId)))
             .ToList();
+        var conversationTreeCharacterIds = gameCase.ConversationNodes
+            .Where(node => scene.CharacterIds.Contains(node.CharacterId))
+            .Select(node => node.CharacterId)
+            .Distinct()
+            .ToList();
 
         if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
         {
@@ -76,7 +81,8 @@ public class GameStateBuilder : IGameStateBuilder
                 .Where(c => c is not null)
                 .Select(c => CaseCharacterDto.From(c!))
                 .ToList(),
-            AvailableDialogues = sceneDialogues
+            AvailableDialogues = sceneDialogues,
+            ConversationTreeCharacterIds = conversationTreeCharacterIds
         };
 
         var sceneMap = gameCase.Stages.OrderBy(s => s.Order)
@@ -134,6 +140,7 @@ public class GameStateBuilder : IGameStateBuilder
                 .ToList(),
             UnlockedClueIds = state.UnlockedClueIds,
             AskedDialogueIds = state.AskedDialogueIds,
+            VisitedConversationNodeIds = state.VisitedConversationNodeIds,
             CompletedSceneIds = state.CompletedSceneIds,
             CompletedStageIds = state.CompletedStageIds,
             SelectedEvidenceIds = state.SelectedEvidenceIds,

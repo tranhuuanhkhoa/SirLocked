@@ -228,6 +228,19 @@ public class GameplayV2RuleTests
         Assert.DoesNotContain("FailureResponse", propertyNames);
         var deductionPropertyNames = typeof(DeductionDto).GetProperties().Select(property => property.Name).ToHashSet();
         Assert.DoesNotContain("CorrectOptionId", deductionPropertyNames);
+
+        var conversationChoicePropertyNames = typeof(ConversationChoiceDto).GetProperties().Select(property => property.Name).ToHashSet();
+        Assert.DoesNotContain("RequiredClueIds", conversationChoicePropertyNames);
+        Assert.DoesNotContain("NextNodeId", conversationChoicePropertyNames);
+        var lockedChoice = ConversationChoiceDto.From(new ConversationChoice
+        {
+            ChoiceId = "choice-locked",
+            Label = "Secret branch",
+            RequiredClueIds = { "clue-hidden" },
+            NextNodeId = "node-secret"
+        }, new HashSet<string>());
+        Assert.True(lockedChoice.IsLocked);
+        Assert.Null(lockedChoice.Label);
     }
 
     private static void PrimeFullV2State(GameCase gameCase, GameplayState state, bool solveDeduction = true)

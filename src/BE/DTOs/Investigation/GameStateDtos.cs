@@ -17,6 +17,15 @@ public class AskDialogueRequest
     public string DialogueId { get; set; } = string.Empty;
 }
 
+public class ConverseRequest
+{
+    [Required]
+    public string CharacterId { get; set; } = string.Empty;
+
+    public string? NodeId { get; set; }
+    public string? ChoiceId { get; set; }
+}
+
 public class CaptureRectDto
 {
     public double X { get; set; }
@@ -224,6 +233,63 @@ public class EvidenceChallengeDto
     public string? Resolution { get; set; }
 }
 
+public class ConversationLineDto
+{
+    public string Speaker { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+
+    public static ConversationLineDto From(ConversationLine line) => new()
+    {
+        Speaker = line.Speaker,
+        Text = line.Text
+    };
+}
+
+public class ConversationNodeDto
+{
+    public string NodeId { get; set; } = string.Empty;
+    public string CharacterId { get; set; } = string.Empty;
+    public bool IsRoot { get; set; }
+    public List<ConversationLineDto> Lines { get; set; } = new();
+    public string? ChallengeId { get; set; }
+
+    public static ConversationNodeDto From(ConversationNode node) => new()
+    {
+        NodeId = node.NodeId,
+        CharacterId = node.CharacterId,
+        IsRoot = node.IsRoot,
+        Lines = node.Lines.Select(ConversationLineDto.From).ToList(),
+        ChallengeId = node.ChallengeId
+    };
+}
+
+public class ConversationChoiceDto
+{
+    public string ChoiceId { get; set; } = string.Empty;
+    public string? Label { get; set; }
+    public bool IsLocked { get; set; }
+
+    public static ConversationChoiceDto From(ConversationChoice choice, IReadOnlySet<string> unlockedClues)
+    {
+        var isLocked = choice.RequiredClueIds.Any(id => !unlockedClues.Contains(id));
+        return new ConversationChoiceDto
+        {
+            ChoiceId = choice.ChoiceId,
+            Label = isLocked ? null : choice.Label,
+            IsLocked = isLocked
+        };
+    }
+}
+
+public class ConverseResponse
+{
+    public ConversationNodeDto Node { get; set; } = new();
+    public List<ConversationChoiceDto> Choices { get; set; } = new();
+    public List<string> UnlockedClueIds { get; set; } = new();
+    public GameStateResponse State { get; set; } = new();
+    public bool Changed { get; set; }
+}
+
 public class ResolvedConfrontationDto
 {
     public string ChallengeId { get; set; } = string.Empty;
@@ -295,6 +361,7 @@ public class VisibleSceneDto
     public List<SceneItemDto> Items { get; set; } = new();
     public List<CaseCharacterDto> Characters { get; set; } = new();
     public List<SceneDialogueDto> AvailableDialogues { get; set; } = new();
+    public List<string> ConversationTreeCharacterIds { get; set; } = new();
 }
 
 public class SceneMapEntryDto
@@ -333,6 +400,7 @@ public class GameStateResponse
     public List<string> CapturedClueIds { get; set; } = new();
     public List<string> UnlockedClueIds { get; set; } = new();
     public List<string> AskedDialogueIds { get; set; } = new();
+    public List<string> VisitedConversationNodeIds { get; set; } = new();
     public List<string> CompletedSceneIds { get; set; } = new();
     public List<string> CompletedStageIds { get; set; } = new();
     public List<string> SelectedEvidenceIds { get; set; } = new();

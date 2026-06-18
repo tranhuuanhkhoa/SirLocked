@@ -45,6 +45,8 @@ public class CaseValidationService : ICaseValidationService
     {
         if (c.MechanicsVersion is not (CaseMechanicsVersions.Legacy or CaseMechanicsVersions.InvestigationV2))
             result.Add("InvalidValue", "mechanicsVersion", "mechanicsVersion must be 1 or 2.");
+        if (c.ConversationNodes.Count > 0 && c.MechanicsVersion < CaseMechanicsVersions.InvestigationV2)
+            result.Add("InvalidValue", "conversationNodes", "conversationNodes require mechanicsVersion 2.");
 
         if (string.IsNullOrWhiteSpace(c.CaseId))
             result.Add("MissingField", "caseId", "caseId is required.");
@@ -98,6 +100,7 @@ public class CaseValidationService : ICaseValidationService
         CheckDuplicates(result, "items", c.Items.Select(x => x.ItemId), "itemId");
         CheckDuplicates(result, "clues", c.Clues.Select(x => x.ClueId), "clueId");
         CheckDuplicates(result, "dialogues", c.Dialogues.Select(x => x.DialogueId), "dialogueId");
+        CheckDuplicates(result, "conversationNodes", c.ConversationNodes.Select(x => x.NodeId), "nodeId");
         CheckDuplicates(result, "evidenceChallenges", c.EvidenceChallenges.Select(x => x.ChallengeId), "challengeId");
         CheckDuplicates(result, "deductions", c.Deductions.Select(x => x.DeductionId), "deductionId");
         CheckDuplicates(result, "requiredTeamworkChains", c.RequiredTeamworkChains.Select(x => x.ChainId), "chainId");
@@ -123,6 +126,15 @@ public class CaseValidationService : ICaseValidationService
         var sceneIds = c.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId).ToHashSet();
         var clueIds = c.Clues.Select(x => x.ClueId).ToHashSet();
         var dialogueIds = c.Dialogues.Select(x => x.DialogueId).ToHashSet();
+        var conversationNodeIds = c.ConversationNodes.Select(x => x.NodeId).ToHashSet();
+        var dialogueById = c.Dialogues
+            .Where(dialogue => !string.IsNullOrWhiteSpace(dialogue.DialogueId))
+            .GroupBy(dialogue => dialogue.DialogueId)
+            .ToDictionary(group => group.Key, group => group.First());
+        var challengeById = c.EvidenceChallenges
+            .Where(challenge => !string.IsNullOrWhiteSpace(challenge.ChallengeId))
+            .GroupBy(challenge => challenge.ChallengeId)
+            .ToDictionary(group => group.Key, group => group.First());
 
         for (var s = 0; s < c.Stages.Count; s++)
         {
@@ -211,6 +223,40 @@ public class CaseValidationService : ICaseValidationService
                 result.Add("MissingReference", $"{path}.correctEvidenceId", "Challenge evidence clue does not exist.", challenge.CorrectEvidenceId);
             foreach (var clueId in challenge.UnlockClueIds.Where(id => !clueIds.Contains(id)))
                 result.Add("MissingReference", $"{path}.unlockClueIds", "Challenge unlock clue does not exist.", clueId);
+        }
+
+        for (var n = 0; n < c.ConversationNodes.Count; n++)
+        {
+            var node = c.ConversationNodes[n];
+            var path = $"conversationNodes[{n}]";
+            if (!characterIds.Contains(node.CharacterId))
+                result.Add("MissingReference", $"{path}.characterId", "Conversation node character does not exist.", node.CharacterId);
+            foreach (var clueId in node.RequiredClueIds.Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.requiredClueIds", "Conversation node required clue does not exist.", clueId);
+            foreach (var clueId in node.UnlockClueIds.Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.unlockClueIds", "Conversation node unlock clue does not exist.", clueId);
+            if (!string.IsNullOrWhiteSpace(node.ChallengeId))
+            {
+                if (!challengeById.TryGetValue(node.ChallengeId, out var challenge))
+                {
+                    result.Add("MissingReference", $"{path}.challengeId", "Conversation node challenge does not exist.", node.ChallengeId);
+                }
+                else if (dialogueById.TryGetValue(challenge.DialogueId, out var dialogue)
+                    && dialogue.CharacterId != node.CharacterId)
+                {
+                    result.Add("InvalidValue", $"{path}.challengeId", "Conversation node challenge must belong to the same character.", node.ChallengeId);
+                }
+            }
+
+            for (var ch = 0; ch < node.Choices.Count; ch++)
+            {
+                var choice = node.Choices[ch];
+                var choicePath = $"{path}.choices[{ch}]";
+                foreach (var clueId in choice.RequiredClueIds.Where(id => !clueIds.Contains(id)))
+                    result.Add("MissingReference", $"{choicePath}.requiredClueIds", "Conversation choice required clue does not exist.", clueId);
+                if (!string.IsNullOrWhiteSpace(choice.NextNodeId) && !conversationNodeIds.Contains(choice.NextNodeId))
+                    result.Add("MissingReference", $"{choicePath}.nextNodeId", "Conversation choice target node does not exist.", choice.NextNodeId);
+            }
         }
 
         for (var i = 0; i < c.Deductions.Count; i++)
@@ -418,6 +464,7 @@ public class CaseValidationService : ICaseValidationService
             .GroupBy(i => i.ItemId, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         var dialogueIds = c.Dialogues.Select(d => d.DialogueId).ToHashSet();
+        var conversationNodeIds = c.ConversationNodes.Select(node => node.NodeId).ToHashSet();
         var sceneIds = c.Stages.SelectMany(s => s.Scenes).Select(s => s.SceneId).ToHashSet();
         var characterIds = c.Characters.Select(ch => ch.CharacterId).ToHashSet();
         var cameraZoneCounts = c.Stages
@@ -442,14 +489,14 @@ public class CaseValidationService : ICaseValidationService
             var sourceType = clue.SourceType?.ToLowerInvariant();
             var discoverMethod = DiscoverMethod(clue);
 
-            if (discoverMethod is not ("item" or "dialogue" or "camera"))
+            if (discoverMethod is not ("item" or "dialogue" or "camera" or "conversation"))
             {
-                result.Add("InvalidValue", $"clues[{i}].discoverMethod", "Clue discoverMethod must be 'item', 'dialogue', or 'camera'.", clue.ClueId);
+                result.Add("InvalidValue", $"clues[{i}].discoverMethod", "Clue discoverMethod must be 'item', 'dialogue', 'camera', or 'conversation'.", clue.ClueId);
             }
 
-            if (sourceType is not ("item" or "dialogue" or "camera"))
+            if (sourceType is not ("item" or "dialogue" or "camera" or "conversation"))
             {
-                result.Add("InvalidValue", $"clues[{i}].sourceType", "Clue sourceType must be 'item', 'dialogue', or 'camera'.", clue.ClueId);
+                result.Add("InvalidValue", $"clues[{i}].sourceType", "Clue sourceType must be 'item', 'dialogue', 'camera', or 'conversation'.", clue.ClueId);
                 continue;
             }
 
@@ -460,6 +507,10 @@ public class CaseValidationService : ICaseValidationService
             if (sourceType == "dialogue" && !dialogueIds.Contains(clue.Source))
             {
                 result.Add("MissingReference", $"clues[{i}].source", "Clue source dialogue does not exist.", clue.Source);
+            }
+            if (sourceType == "conversation" && !conversationNodeIds.Contains(clue.Source))
+            {
+                result.Add("MissingReference", $"clues[{i}].source", "Clue source conversation node does not exist.", clue.Source);
             }
 
             var isFinalEvidence = finalEvidenceIds.Contains(clue.ClueId);
@@ -594,6 +645,7 @@ public class CaseValidationService : ICaseValidationService
         var unlockedClues = new HashSet<string>();
         var inspectedItems = new HashSet<string>();
         var askedDialogues = new HashSet<string>();
+        var visitedConversationNodes = new HashSet<string>();
 
         var orderedStages = c.Stages.OrderBy(s => s.Order).ToList();
 
@@ -628,6 +680,17 @@ public class CaseValidationService : ICaseValidationService
 
                         askedDialogues.Add(dialogue.DialogueId);
                         foreach (var clue in dialogue.UnlockClueIds) unlockedClues.Add(clue);
+                        progressed = true;
+                    }
+
+                    foreach (var node in c.ConversationNodes)
+                    {
+                        if (visitedConversationNodes.Contains(node.NodeId)) continue;
+                        if (!scene.CharacterIds.Contains(node.CharacterId)) continue;
+                        if (!node.RequiredClueIds.All(unlockedClues.Contains)) continue;
+
+                        visitedConversationNodes.Add(node.NodeId);
+                        foreach (var clue in node.UnlockClueIds) unlockedClues.Add(clue);
                         progressed = true;
                     }
 
@@ -699,15 +762,16 @@ public class CaseValidationService : ICaseValidationService
         {
             var unlockedByItem = c.Items.Any(i => i.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByDialogue = c.Dialogues.Any(d => d.UnlockClueIds.Contains(clue.ClueId));
+            var unlockedByConversation = c.ConversationNodes.Any(node => node.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByChallenge = c.EvidenceChallenges.Any(challenge => challenge.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByDeduction = c.Deductions.Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByCamera = DiscoverMethod(clue) == "camera"
                 && (!hasCameraLayout || c.Stages.SelectMany(s => s.Scenes).Any(scene =>
                     scene.Runtime?.ClueZones.Any(zone => zone.ClueId == clue.ClueId) == true));
-            if (!unlockedByItem && !unlockedByDialogue && !unlockedByChallenge && !unlockedByDeduction && !unlockedByCamera)
+            if (!unlockedByItem && !unlockedByDialogue && !unlockedByConversation && !unlockedByChallenge && !unlockedByDeduction && !unlockedByCamera)
             {
                 result.Add("OrphanClue", $"clue:{clue.ClueId}",
-                    $"Clue '{clue.ClueId}' is not unlocked by any item, dialogue, challenge, deduction, or camera clue zone.", clue.ClueId);
+                    $"Clue '{clue.ClueId}' is not unlocked by any item, dialogue, conversation node, challenge, deduction, or camera clue zone.", clue.ClueId);
             }
         }
 
@@ -806,6 +870,11 @@ public class CaseValidationService : ICaseValidationService
         if (c.FinalLogic.RequiredTeamworkChainIds.Count == 0)
             result.Add("MissingField", "finalLogic.requiredTeamworkChainIds", "Full V2 final logic requires at least one teamwork chain.");
 
+        if (c.ConversationNodes.Count > 0)
+        {
+            ValidateConversationTree(c, result);
+        }
+
         foreach (var hint in c.Hints)
         {
             var context = hint.ContextType?.Trim().ToUpperInvariant();
@@ -827,6 +896,146 @@ public class CaseValidationService : ICaseValidationService
             result.Add("MissingField", "hints", "Every V2 challenge requires at least one CONFRONTATION hint.", challengeId);
         foreach (var deductionId in deductionIds.Where(id => !c.Hints.Any(h => h.ContextType.Equals(HintContextTypes.Deduction, StringComparison.OrdinalIgnoreCase) && h.TargetId == id)))
             result.Add("MissingField", "hints", "Every V2 deduction requires at least one DEDUCTION hint.", deductionId);
+    }
+
+    private static void ValidateConversationTree(GameCase c, CaseValidationResult result)
+    {
+        var nodes = c.ConversationNodes;
+        var nodeById = nodes
+            .Where(node => !string.IsNullOrWhiteSpace(node.NodeId))
+            .GroupBy(node => node.NodeId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            var node = nodes[i];
+            var path = $"conversationNodes[{i}]";
+            if (string.IsNullOrWhiteSpace(node.NodeId))
+                result.Add("MissingField", $"{path}.nodeId", "Conversation node nodeId is required.");
+            if (string.IsNullOrWhiteSpace(node.CharacterId))
+                result.Add("MissingField", $"{path}.characterId", "Conversation node characterId is required.", node.NodeId);
+            if (node.Lines.Count == 0)
+                result.Add("MissingField", $"{path}.lines", "Conversation node requires at least one line.", node.NodeId);
+
+            for (var lineIndex = 0; lineIndex < node.Lines.Count; lineIndex++)
+            {
+                var line = node.Lines[lineIndex];
+                var speaker = line.Speaker?.Trim().ToUpperInvariant();
+                if (speaker is not (ConversationSpeakers.Npc or ConversationSpeakers.Detective))
+                    result.Add("InvalidValue", $"{path}.lines[{lineIndex}].speaker", "Conversation line speaker must be NPC or DETECTIVE.", node.NodeId);
+                if (string.IsNullOrWhiteSpace(line.Text))
+                    result.Add("MissingField", $"{path}.lines[{lineIndex}].text", "Conversation line text is required.", node.NodeId);
+            }
+
+            CheckDuplicates(result, $"{path}.choices", node.Choices.Select(choice => choice.ChoiceId), "choiceId");
+            for (var choiceIndex = 0; choiceIndex < node.Choices.Count; choiceIndex++)
+            {
+                var choice = node.Choices[choiceIndex];
+                var choicePath = $"{path}.choices[{choiceIndex}]";
+                if (string.IsNullOrWhiteSpace(choice.ChoiceId))
+                    result.Add("MissingField", $"{choicePath}.choiceId", "Conversation choice choiceId is required.", node.NodeId);
+                if (string.IsNullOrWhiteSpace(choice.Label))
+                    result.Add("MissingField", $"{choicePath}.label", "Conversation choice label is required.", choice.ChoiceId);
+                if (!string.IsNullOrWhiteSpace(choice.NextNodeId)
+                    && nodeById.TryGetValue(choice.NextNodeId, out var target)
+                    && target.CharacterId != node.CharacterId)
+                {
+                    result.Add("InvalidValue", $"{choicePath}.nextNodeId", "Conversation choice cannot target a node owned by another character.", choice.NextNodeId);
+                }
+            }
+        }
+
+        foreach (var group in nodes.GroupBy(node => node.CharacterId).Where(group => !string.IsNullOrWhiteSpace(group.Key)))
+        {
+            var roots = group.Where(node => node.IsRoot).ToList();
+            if (roots.Count != 1)
+            {
+                result.Add("InvalidValue", "conversationNodes", $"Character '{group.Key}' must have exactly one root conversation node.", group.Key);
+                continue;
+            }
+
+            var root = roots[0];
+            if (root.Choices.Count == 0)
+            {
+                result.Add("MissingField", $"conversationNodes:{root.NodeId}.choices", "Root conversation node requires at least one topic choice.", root.NodeId);
+            }
+
+            var depths = ConversationDepths(root, group.ToList(), nodeById);
+            foreach (var node in group)
+            {
+                if (!depths.TryGetValue(node.NodeId, out var depth))
+                {
+                    result.Add("UnreachableConversationNode", $"conversationNodes:{node.NodeId}", "Conversation node is not reachable from its character root.", node.NodeId);
+                    continue;
+                }
+
+                if (depth > 2)
+                {
+                    result.Add("InvalidConversationDepth", $"conversationNodes:{node.NodeId}", "Conversation tree depth cannot exceed root -> topic -> follow-up.", node.NodeId);
+                }
+
+                if (depth >= 2 && node.Choices.Any(choice => !string.IsNullOrWhiteSpace(choice.NextNodeId)))
+                {
+                    result.Add("InvalidConversationDepth", $"conversationNodes:{node.NodeId}.choices", "Follow-up conversation nodes must return to root.", node.NodeId);
+                }
+
+                if (!ConversationCanReturnToRoot(node, nodeById, new HashSet<string>()))
+                {
+                    result.Add("ConversationSoftLock", $"conversationNodes:{node.NodeId}.choices", "Conversation node must have a path that returns to root.", node.NodeId);
+                }
+            }
+        }
+    }
+
+    private static Dictionary<string, int> ConversationDepths(
+        ConversationNode root,
+        IReadOnlyCollection<ConversationNode> characterNodes,
+        IReadOnlyDictionary<string, ConversationNode> nodeById)
+    {
+        var characterNodeIds = characterNodes.Select(node => node.NodeId).ToHashSet();
+        var depths = new Dictionary<string, int>();
+        var queue = new Queue<(ConversationNode Node, int Depth)>();
+        queue.Enqueue((root, 0));
+
+        while (queue.Count > 0)
+        {
+            var (node, depth) = queue.Dequeue();
+            if (depths.TryGetValue(node.NodeId, out var currentDepth) && currentDepth <= depth) continue;
+            depths[node.NodeId] = depth;
+
+            foreach (var choice in node.Choices)
+            {
+                if (string.IsNullOrWhiteSpace(choice.NextNodeId)) continue;
+                if (!characterNodeIds.Contains(choice.NextNodeId)) continue;
+                if (nodeById.TryGetValue(choice.NextNodeId, out var next))
+                {
+                    queue.Enqueue((next, depth + 1));
+                }
+            }
+        }
+
+        return depths;
+    }
+
+    private static bool ConversationCanReturnToRoot(
+        ConversationNode node,
+        IReadOnlyDictionary<string, ConversationNode> nodeById,
+        HashSet<string> seen)
+    {
+        if (!seen.Add(node.NodeId)) return false;
+        if (node.Choices.Any(choice => string.IsNullOrWhiteSpace(choice.NextNodeId))) return true;
+
+        foreach (var choice in node.Choices)
+        {
+            if (!string.IsNullOrWhiteSpace(choice.NextNodeId)
+                && nodeById.TryGetValue(choice.NextNodeId, out var next)
+                && ConversationCanReturnToRoot(next, nodeById, seen))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void ValidateOptions(List<AccusationOption> options, string path, CaseValidationResult result)

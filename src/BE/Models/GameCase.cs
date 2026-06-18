@@ -29,6 +29,7 @@ public class GameCase
     public List<CaseItem> Items { get; set; } = new();
     public List<CaseClue> Clues { get; set; } = new();
     public List<CaseDialogue> Dialogues { get; set; } = new();
+    public List<ConversationNode> ConversationNodes { get; set; } = new();
     public List<EvidenceChallenge> EvidenceChallenges { get; set; } = new();
     public List<DeductionChallenge> Deductions { get; set; } = new();
     public List<RequiredTeamworkChain> RequiredTeamworkChains { get; set; } = new();
@@ -329,6 +330,41 @@ public class CaseDialogue
     public string Answer { get; set; } = string.Empty;
     public List<string> RequiredClueIds { get; set; } = new();
     public List<string> UnlockClueIds { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class ConversationNode
+{
+    public string NodeId { get; set; } = string.Empty;
+    public string CharacterId { get; set; } = string.Empty;
+    public bool IsRoot { get; set; }
+    public List<string> RequiredClueIds { get; set; } = new();
+    public List<ConversationLine> Lines { get; set; } = new();
+    public List<string> UnlockClueIds { get; set; } = new();
+    public string? ChallengeId { get; set; }
+    public List<ConversationChoice> Choices { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class ConversationLine
+{
+    public string Speaker { get; set; } = ConversationSpeakers.Npc;
+    public string Text { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class ConversationChoice
+{
+    public string ChoiceId { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public List<string> RequiredClueIds { get; set; } = new();
+    public string? NextNodeId { get; set; }
+}
+
+public static class ConversationSpeakers
+{
+    public const string Npc = "NPC";
+    public const string Detective = "DETECTIVE";
 }
 
 [BsonIgnoreExtraElements]

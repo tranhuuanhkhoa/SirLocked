@@ -50,6 +50,7 @@ public class GameplayState
     public List<string> CapturedClueIds { get; set; } = new();
     public List<string> UnlockedClueIds { get; set; } = new();
     public List<string> AskedDialogueIds { get; set; } = new();
+    public List<string> VisitedConversationNodeIds { get; set; } = new();
     public List<string> CompletedSceneIds { get; set; } = new();
     public List<string> CompletedStageIds { get; set; } = new();
     public List<string> SelectedEvidenceIds { get; set; } = new();
@@ -105,6 +106,7 @@ public static class ClueDiscoverySources
     public const string Inspect = "inspect";
     public const string Camera = "camera";
     public const string Dialogue = "dialogue";
+    public const string Conversation = "conversation";
     public const string Challenge = "challenge";
     public const string Deduction = "deduction";
 }
