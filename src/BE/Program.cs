@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SirLocked.Api.Configurations;
@@ -60,6 +61,7 @@ builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
+builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddControllers();
@@ -135,6 +137,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHealthChecks()
+    .AddCheck<MongoDbHealthCheck>("mongodb", tags: new[] { "ready" });
 
 var app = builder.Build();
 
@@ -150,7 +154,8 @@ app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();
 app.MapHub<GameHub>("/hubs/game");
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapHealthChecks("/health");
+app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 
 // Startup tasks: indexes + admin seed. Failures are logged but do not stop the host,
 // so the app can still boot and report a clear error when MongoDB is unreachable.
@@ -162,9 +167,17 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         await db.PingAsync();
         await db.EnsureIndexesAsync();
-        var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
-        await auth.SeedAdminAsync();
-        logger.LogInformation("MongoDB connected ({Database}); indexes ensured; admin account verified.", db.Settings.DatabaseName);
+        var seedOptions = ResolveAdminSeedOptions(app.Configuration, app.Environment);
+        if (seedOptions is not null)
+        {
+            var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
+            await auth.SeedAdminAsync(seedOptions);
+        }
+        else
+        {
+            logger.LogInformation("Default admin seeding is disabled for environment {Environment}.", app.Environment.EnvironmentName);
+        }
+        logger.LogInformation("MongoDB connected ({Database}); indexes ensured; admin seed policy applied.", db.Settings.DatabaseName);
     }
     catch (Exception ex)
     {
@@ -173,3 +186,52 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static AdminSeedOptions? ResolveAdminSeedOptions(IConfiguration configuration, IHostEnvironment environment)
+{
+    static bool Flag(IConfiguration configuration, string key) =>
+        bool.TryParse(configuration[key], out var enabled) && enabled;
+
+    var enabled = environment.IsDevelopment()
+                  || Flag(configuration, "Auth:SeedDefaultAdmin")
+                  || Flag(configuration, "AUTH_SEED_DEFAULT_ADMIN");
+    if (!enabled)
+    {
+        return null;
+    }
+
+    var email = configuration["Auth:SeedAdminEmail"] ?? AuthService.AdminEmail;
+    var password = configuration["Auth:SeedAdminPassword"];
+    if (string.IsNullOrWhiteSpace(password))
+    {
+        if (!environment.IsDevelopment())
+        {
+            throw new InvalidOperationException("Auth__SeedAdminPassword must be configured when Auth__SeedDefaultAdmin is enabled outside Development.");
+        }
+        password = AuthService.AdminDefaultPassword;
+    }
+    var fullName = configuration["Auth:SeedAdminFullName"] ?? "SirLocked Admin";
+    return new AdminSeedOptions(email, password, fullName);
+}
+
+sealed class MongoDbHealthCheck : IHealthCheck
+{
+    private readonly MongoDbContext _db;
+
+    public MongoDbHealthCheck(MongoDbContext db) => _db = db;
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _db.PingAsync(cancellationToken);
+            return HealthCheckResult.Healthy("MongoDB is reachable.");
+        }
+        catch (Exception ex)
+        {
+            return HealthCheckResult.Unhealthy("MongoDB is unreachable.", ex);
+        }
+    }
+}

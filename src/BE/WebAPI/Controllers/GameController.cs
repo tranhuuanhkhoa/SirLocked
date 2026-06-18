@@ -24,8 +24,17 @@ public class GameController : BaseApiController
         Ok(await _gameplayService.InspectItemAsync(Caller, roomId, request.ItemId));
 
     [HttpPost("capture-clue")]
-    public async Task<ActionResult<ApiResponse<GameActionResponse>>> CaptureClue(string roomId, [FromBody] CaptureClueRequest request) =>
+    [Consumes("multipart/form-data")]
+    [RequestFormLimits(MultipartBodyLengthLimit = 1_100_000)]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> CaptureClue(string roomId, [FromForm] CaptureClueRequest request) =>
         Ok(await _gameplayService.CaptureClueAsync(Caller, roomId, request));
+
+    [HttpGet("clues/{clueId}/photo")]
+    public async Task<IActionResult> GetEvidencePhoto(string roomId, string clueId)
+    {
+        var photo = await _gameplayService.GetEvidencePhotoAsync(CallerId, roomId, clueId);
+        return File(photo.Data, photo.ContentType);
+    }
 
     [HttpPost("ask-dialogue")]
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> AskDialogue(string roomId, [FromBody] AskDialogueRequest request) =>

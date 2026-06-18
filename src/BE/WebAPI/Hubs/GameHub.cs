@@ -70,8 +70,6 @@ public class GameHub : Hub
 
         var x = Math.Clamp(pose.X, 0, 5000);
         var y = Math.Clamp(pose.Y, 0, 5000);
-        var viewportWidth = Math.Clamp(pose.ViewportWidth, 1, 10000);
-        var viewportHeight = Math.Clamp(pose.ViewportHeight, 1, 10000);
         var direction = string.Equals(pose.Direction, "left", StringComparison.OrdinalIgnoreCase) ? "left" : "right";
 
         await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseUpdated", new
@@ -85,8 +83,6 @@ public class GameHub : Hub
             y,
             direction,
             moving = pose.Moving,
-            viewportWidth,
-            viewportHeight,
             updatedAt = DateTime.UtcNow
         });
     }
@@ -134,6 +130,4 @@ public class PlayerPoseMessage
     public double Y { get; set; }
     public string Direction { get; set; } = "right";
     public bool Moving { get; set; }
-    public double ViewportWidth { get; set; } = 1600;
-    public double ViewportHeight { get; set; } = 900;
 }

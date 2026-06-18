@@ -73,6 +73,15 @@ public class GameStateBuilder : IGameStateBuilder
             .Select(ClueDto.From)
             .ToList();
 
+        var photographedClueIds = await _db.EvidencePhotos
+            .Find(photo => photo.RoomId == room.Id && unlocked.Contains(photo.ClueId))
+            .Project(photo => photo.ClueId)
+            .ToListAsync();
+        foreach (var clue in unlockedClues.Where(clue => photographedClueIds.Contains(clue.ClueId)))
+        {
+            clue.PhotoUrl = $"/api/game/rooms/{Uri.EscapeDataString(room.Id)}/clues/{Uri.EscapeDataString(clue.ClueId)}/photo";
+        }
+
         var logs = await _db.ActionLogs.Find(l => l.RoomId == room.Id)
             .SortByDescending(l => l.CreatedAt).Limit(ActionLogLimit).ToListAsync();
         logs.Reverse();

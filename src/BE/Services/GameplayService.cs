@@ -15,17 +15,20 @@ public class GameplayService : IGameplayService
     private readonly ICaseService _caseService;
     private readonly IGameNotifier _notifier;
     private readonly IGameStateBuilder _stateBuilder;
+    private readonly IEvidencePhotoService _evidencePhotos;
 
     public GameplayService(
         MongoDbContext db,
         ICaseService caseService,
         IGameNotifier notifier,
-        IGameStateBuilder stateBuilder)
+        IGameStateBuilder stateBuilder,
+        IEvidencePhotoService evidencePhotos)
     {
         _db = db;
         _caseService = caseService;
         _notifier = notifier;
         _stateBuilder = stateBuilder;
+        _evidencePhotos = evidencePhotos;
     }
 
     // ----- Read -----
@@ -129,6 +132,19 @@ public class GameplayService : IGameplayService
         }
     }
 
+    public async Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId)
+    {
+        var (room, _, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
+        if (room.GameplayState is null || !room.GameplayState.UnlockedClueIds.Contains(clueId))
+        {
+            throw ApiException.NotFound("This evidence photo is not available.");
+        }
+
+        var photo = await _evidencePhotos.GetAsync(roomId, clueId)
+            ?? throw ApiException.NotFound("This evidence photo is not available.");
+        return new EvidencePhotoContent(photo.ImageData, photo.ContentType);
+    }
+
     // ----- Investigator: capture embedded clue with camera -----
 
     public async Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request)
@@ -207,6 +223,13 @@ public class GameplayService : IGameplayService
             }
 
             var clue = clueById[best.Zone.ClueId];
+            var normalizedPhoto = await _evidencePhotos.NormalizeAsync(request.Photo);
+            await _evidencePhotos.UpsertAsync(
+                roomId,
+                clue.ClueId,
+                scene.SceneId,
+                user.Id,
+                normalizedPhoto);
             state.CapturedClueIds.Add(clue.ClueId);
             var newClues = state.UnlockedClueIds.Contains(clue.ClueId)
                 ? new List<string>()
@@ -763,7 +786,13 @@ public class GameplayService : IGameplayService
         if (right <= left || bottom <= top || clue.Width <= 0 || clue.Height <= 0) return 0;
 
         var intersection = (right - left) * (bottom - top);
-        return intersection / (clue.Width * clue.Height);
+        var clueArea = clue.Width * clue.Height;
+        var captureArea = capture.Width * capture.Height;
+        // Use the higher of two ratios so that large clue zones (bigger than the
+        // capture rect) can still be captured by pointing the camera inside them.
+        var clueCoverage = intersection / clueArea;
+        var captureFill = captureArea > 0 ? intersection / captureArea : 0;
+        return Math.Max(clueCoverage, captureFill);
     }
 
     private static bool CaptureCenterInside(CaptureRectDto capture, RuntimeBox clue)

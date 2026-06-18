@@ -65,13 +65,20 @@ Frontend default URL: `http://localhost:5173`
 
 ## Demo Account
 
-On backend startup, if no admin exists, the app seeds:
+On backend startup in `Development`, if no admin exists, the app seeds:
 
 - Email: `admin@sirlocked.local`
 - Password: `Admin123!`
 - Role: `ADMIN`
 
+Outside `Development`, default admin seeding is disabled unless `Auth__SeedDefaultAdmin=true` is explicitly configured. When enabling it outside development, also configure `Auth__SeedAdminPassword`; do not use the demo password in deployed environments.
+
 Public registration creates `PLAYER` accounts. Admins can promote a non-admin user to `VIP` from the dashboard. `VIP` and `ADMIN` accounts can create AI cases.
+
+## Health Checks
+
+- `/live` returns process liveness.
+- `/health` reports readiness and checks MongoDB connectivity.
 
 ## Demo Flow
 

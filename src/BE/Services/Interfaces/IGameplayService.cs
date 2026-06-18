@@ -9,6 +9,7 @@ public interface IGameplayService
     Task<GameStateResponse> GetStateAsync(string userId, string roomId);
     Task<GameActionResponse> InspectItemAsync(CurrentUser user, string roomId, string itemId);
     Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request);
+    Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId);
     Task<GameActionResponse> AskDialogueAsync(CurrentUser user, string roomId, string dialogueId);
     Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, string dialogueId, string evidenceId);
     Task<GameActionResponse> CompleteSceneAsync(CurrentUser user, string roomId);
@@ -17,3 +18,5 @@ public interface IGameplayService
     Task<GameResultResponse> AccuseAsync(CurrentUser user, string roomId, AccuseRequest request);
     Task<GameResultResponse> GetResultAsync(string userId, string roomId);
 }
+
+public sealed record EvidencePhotoContent(byte[] Data, string ContentType);

@@ -47,6 +47,7 @@ public class MongoDbContext
     public IMongoCollection<GameActionLog> ActionLogs => Database.GetCollection<GameActionLog>(Settings.ActionLogsCollectionName);
     public IMongoCollection<AiCaseDraft> AiCaseDrafts => Database.GetCollection<AiCaseDraft>(Settings.AiCaseDraftsCollectionName);
     public IMongoCollection<AiGenerationLog> AiGenerationLogs => Database.GetCollection<AiGenerationLog>(Settings.AiGenerationLogsCollectionName);
+    public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -102,6 +103,14 @@ public class MongoDbContext
             new CreateIndexModel<AiGenerationLog>(Builders<AiGenerationLog>.IndexKeys
                 .Ascending(l => l.DraftId).Descending(l => l.CreatedAt))
         }, ct);
+
+        await EvidencePhotos.Indexes.CreateOneAsync(
+            new CreateIndexModel<EvidencePhoto>(
+                Builders<EvidencePhoto>.IndexKeys
+                    .Ascending(p => p.RoomId)
+                    .Ascending(p => p.ClueId),
+                new CreateIndexOptions { Unique = true, Name = "ux_evidencePhotos_roomId_clueId" }),
+            cancellationToken: ct);
     }
 
     public async Task<bool> PingAsync(CancellationToken ct = default)

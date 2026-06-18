@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Camera, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
@@ -188,6 +189,7 @@ type Clue = {
   inventoryDescription?: string;
   narrativeMeaning?: string;
   discoverMethod?: string;
+  photoUrl?: string;
 };
 
 type SceneMapEntry = {
@@ -271,8 +273,6 @@ type PlayerPose = {
   direction: 'left' | 'right';
   moving: boolean;
   updatedAt?: string;
-  viewportWidth?: number;
-  viewportHeight?: number;
 };
 
 type PhaserCallbacks = {
@@ -280,7 +280,8 @@ type PhaserCallbacks = {
   playerPoses: Map<string, PlayerPose>;
   onHotspot: (hotspot: HotspotClick) => void;
   onCharacter: (characterId: string) => void;
-  onCapture: (captureRect: RuntimeBox) => void;
+  onCapture: (captureRect: RuntimeBox, photo: Blob) => void;
+  onCameraError: (message: string) => void;
   onProceed: () => void;
   onScene: (sceneId: string) => void;
   onPose: (pose: PlayerPose) => void;
@@ -306,6 +307,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private localPose: PlayerPose | null = null;
   private localPlayer: Phaser.GameObjects.Container | null = null;
   private remotePlayers = new Map<string, Phaser.GameObjects.Container>();
+  private remoteTargets = new Map<string, PlayerPose>();
+  private remoteDisplayPoses = new Map<string, PlayerPose>();
   private promptText: Phaser.GameObjects.Text | null = null;
   private debugPointerText: Phaser.GameObjects.Text | null = null;
   private nearestHotspot: Hotspot | null = null;
@@ -315,6 +318,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private debugLayout = false;
   private cameraMode = false;
   private lastCameraPointerKey = '';
+  private cameraGraphics: Phaser.GameObjects.Graphics | null = null;
+  private cameraLabel: Phaser.GameObjects.Text | null = null;
+  private cameraCaptureZone: Phaser.GameObjects.Zone | null = null;
+  private cameraCapturePending = false;
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -333,7 +340,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.ready = true;
     this.definePlayerFrames();
     this.debugLayout = window.location.href.includes('debugLayout=1');
-    this.keys = (this.input.keyboard?.addKeys('A,D,E,F2') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = (this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,E,F2') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
     // Remember 404s so a missing asset doesn't trigger an endless reload loop.
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
       if (file?.key) this.failedTextureKeys.add(file.key);
@@ -344,7 +351,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const pointerKey = `${Math.round(pointer.x / 3)},${Math.round(pointer.y / 3)}`;
       if (pointerKey === this.lastCameraPointerKey) return;
       this.lastCameraPointerKey = pointerKey;
-      this.draw();
+      this.refreshCameraOverlay();
     });
     this.draw();
   }
@@ -371,6 +378,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.ready) return;
     this.animatePlayers(time);
+    this.interpolateRemotePlayers(delta);
     this.updateDebugPointerText();
     if (this.keys.F2 && Phaser.Input.Keyboard.JustDown(this.keys.F2)) {
       this.debugLayout = !this.debugLayout;
@@ -388,17 +396,23 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
 
     const axis = this.inputAxis();
-    const moving = axis.x !== 0;
+    const moving = axis.x !== 0 || axis.y !== 0;
     const speed = 225;
     const seconds = delta / 1000;
     const bounds = this.walkBounds();
 
     if (moving) {
-      this.localPose.x = Phaser.Math.Clamp(this.localPose.x + axis.x * speed * seconds, bounds.left, bounds.right);
+      const magnitude = Math.hypot(axis.x, axis.y) || 1;
+      const dx = (axis.x / magnitude) * speed * seconds;
+      const dy = (axis.y / magnitude) * speed * seconds;
+      const startedInsideObstacle = this.collidesAt(this.localPose.x, this.localPose.y);
+      const nextX = Phaser.Math.Clamp(this.localPose.x + dx, bounds.left, bounds.right);
+      if (startedInsideObstacle || !this.collidesAt(nextX, this.localPose.y)) this.localPose.x = nextX;
+      const nextY = Phaser.Math.Clamp(this.localPose.y + dy, bounds.top, bounds.bottom);
+      if (startedInsideObstacle || !this.collidesAt(this.localPose.x, nextY)) this.localPose.y = nextY;
       if (axis.x < 0) this.localPose.direction = 'left';
       if (axis.x > 0) this.localPose.direction = 'right';
     }
-    this.localPose.y = bounds.bottom;
 
     this.localPose.moving = moving;
     this.localPose.sceneId = this.state.currentSceneId;
@@ -416,7 +430,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   updateGameState(state: GameState, selectedInventoryItemId: string | null) {
     this.state = state;
     this.selectedInventoryItemId = selectedInventoryItemId;
-    if (this.ready) this.draw();
+    if (this.ready) this.refreshCameraOverlay();
   }
 
   setSceneInteractionEnabled(enabled: boolean) {
@@ -447,19 +461,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   updateRemotePose(pose: PlayerPose) {
     this.callbacks.playerPoses.set(pose.userId, pose);
+    this.remoteTargets.set(pose.userId, pose);
     const existing = this.remotePlayers.get(pose.userId);
     if (!this.state || pose.sceneId !== this.state.currentSceneId) {
       existing?.destroy(true);
       this.remotePlayers.delete(pose.userId);
+      this.remoteDisplayPoses.delete(pose.userId);
       return;
     }
 
-    const displayPose = this.remoteDisplayPose(pose);
-    if (existing) {
-      this.placePlayer(existing, displayPose);
-      return;
-    }
+    if (existing) return;
 
+    const displayPose = { ...pose };
+    this.remoteDisplayPoses.set(pose.userId, displayPose);
     const remote = this.createPlayer(displayPose, false);
     this.placePlayer(remote, displayPose);
     this.remotePlayers.set(pose.userId, remote);
@@ -467,6 +481,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   removeRemotePose(userId: string) {
     this.callbacks.playerPoses.delete(userId);
+    this.remoteTargets.delete(userId);
+    this.remoteDisplayPoses.delete(userId);
     this.remotePlayers.get(userId)?.destroy(true);
     this.remotePlayers.delete(userId);
   }
@@ -478,6 +494,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.remotePlayers.clear();
     this.localPlayer = null;
     this.promptText = null;
+    this.cameraGraphics = null;
+    this.cameraLabel = null;
+    this.cameraCaptureZone = null;
     this.nearestHotspot = null;
 
     const width = this.scale.width;
@@ -828,30 +847,20 @@ class SirLockedPhaserScene extends Phaser.Scene {
       if (player.userId === this.callbacks.localUserId) continue;
       const pose = this.callbacks.playerPoses.get(player.userId);
       if (!pose || pose.sceneId !== this.state.currentSceneId) continue;
-      const displayPose = this.remoteDisplayPose({
+      const displayPose = {
         ...pose,
         username: pose.username ?? player.username,
         role: pose.role ?? player.role,
-      });
+      };
+      this.remoteTargets.set(player.userId, displayPose);
+      this.remoteDisplayPoses.set(player.userId, { ...displayPose });
       const remote = this.createPlayer(displayPose, false);
       this.placePlayer(remote, displayPose);
       this.remotePlayers.set(player.userId, remote);
     }
   }
 
-  private remoteDisplayPose(pose: PlayerPose): PlayerPose {
-    const bounds = this.walkBounds();
-    const sourceWidth = pose.viewportWidth && pose.viewportWidth > 0
-      ? pose.viewportWidth
-      : this.scale.width;
-    return {
-      ...pose,
-      x: Phaser.Math.Clamp((pose.x / sourceWidth) * this.scale.width, bounds.left, bounds.right),
-      y: bounds.bottom,
-    };
-  }
-
-  // pose.x/pose.y is the FEET position of the character on the walkway.
+  // pose.x/pose.y is the character's feet position in scene runtime coordinates.
   private createPlayer(pose: PlayerPose, isLocal: boolean) {
     const container = this.add.container(pose.x, pose.y).setDepth(isLocal ? 80 : 70);
     const spriteH = Phaser.Math.Clamp(this.scale.height * 0.26, 120, 230);
@@ -888,8 +897,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private placePlayer(container: Phaser.GameObjects.Container, pose: PlayerPose) {
-    container.setPosition(pose.x, pose.y);
-    container.setDepth(Math.round(pose.y) + (pose.userId === this.callbacks.localUserId ? 100 : 80));
+    const screen = this.worldPoint(pose);
+    container.setPosition(screen.x, screen.y);
+    container.setDepth(Math.round(screen.y) + (pose.userId === this.callbacks.localUserId ? 100 : 80));
     container.setData('moving', pose.moving);
     const body = container.getData('body');
     const sheetKey = container.getData('sheetKey') as string;
@@ -960,6 +970,16 @@ class SirLockedPhaserScene extends Phaser.Scene {
           : () => this.callbacks.onProceed();
         this.drawButton(box.x + box.w / 2, box.y + box.h / 2, this.shorten(label, 18), action, Math.max(148, Math.min(box.w, 240)), opensNext);
       });
+
+      // Fallback: always show a visible proceed button at the bottom so the
+      // player is never stuck when a transition hotspot is hidden behind the HUD.
+      if (canProceed) {
+        const forwardLabel = completedCurrent && next
+          ? `Go to ${this.shorten(next.title, 22)}`
+          : 'Continue investigation';
+        this.drawButton(width / 2, height - 112, forwardLabel, () => this.callbacks.onProceed(), 230, true);
+      }
+
       return;
     }
 
@@ -979,6 +999,22 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
   }
 
+  private interpolateRemotePlayers(delta: number) {
+    const blend = 1 - Math.exp(-Math.max(delta, 0) / 90);
+    for (const [userId, target] of this.remoteTargets) {
+      const container = this.remotePlayers.get(userId);
+      if (!container || target.sceneId !== this.state?.currentSceneId) continue;
+      const current = this.remoteDisplayPoses.get(userId) ?? { ...target };
+      current.x = Phaser.Math.Linear(current.x, target.x, blend);
+      current.y = Phaser.Math.Linear(current.y, target.y, blend);
+      current.direction = target.direction;
+      current.moving = target.moving;
+      current.sceneId = target.sceneId;
+      this.remoteDisplayPoses.set(userId, current);
+      this.placePlayer(container, current);
+    }
+  }
+
   private drawInventoryHint(width: number, height: number) {
     if (!this.selectedInventoryItemId) return;
     this.add.text(width / 2, height - 158, `Using: ${this.prettyId(this.selectedInventoryItemId)}`, {
@@ -992,9 +1028,25 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   private drawCameraOverlay(width: number, height: number) {
     if (!this.cameraMode) return;
+    this.refreshCameraOverlay(width, height);
+  }
+
+  private refreshCameraOverlay(width = this.scale.width, height = this.scale.height) {
+    if (!this.ready) return;
+    if (!this.cameraMode) {
+      this.cameraGraphics?.destroy();
+      this.cameraLabel?.destroy();
+      this.cameraCaptureZone?.destroy();
+      this.cameraGraphics = null;
+      this.cameraLabel = null;
+      this.cameraCaptureZone = null;
+      return;
+    }
 
     const rect = this.cameraScreenRect(width, height);
-    const graphics = this.add.graphics().setDepth(240);
+    const graphics = this.cameraGraphics ?? this.add.graphics().setDepth(240);
+    this.cameraGraphics = graphics;
+    graphics.clear();
     graphics.fillStyle(0x6d7178, 0.2);
     graphics.fillRect(0, 0, width, height);
     graphics.fillStyle(0x000000, 0.18);
@@ -1015,18 +1067,23 @@ class SirLockedPhaserScene extends Phaser.Scene {
     graphics.lineBetween(rect.x + rect.width, rect.y + rect.height, rect.x + rect.width - corner, rect.y + rect.height);
     graphics.lineBetween(rect.x + rect.width, rect.y + rect.height, rect.x + rect.width, rect.y + rect.height - corner);
 
-    this.add.text(width / 2, rect.y - 14, 'Camera', {
+    if (!this.cameraLabel) this.cameraLabel = this.add.text(width / 2, rect.y - 14, 'Camera', {
       fontFamily: 'Crimson Text, serif',
       fontSize: '17px',
       color: '#f4dc8f',
       backgroundColor: 'rgba(10,22,40,0.84)',
       padding: { x: 10, y: 5 },
     }).setOrigin(0.5, 1).setDepth(245);
+    this.cameraLabel.setPosition(width / 2, rect.y - 14);
 
-    this.add.zone(width / 2, height / 2, width, height)
-      .setDepth(250)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.callbacks.onCapture(this.cameraWorldRect(this.cameraScreenRect(width, height))));
+    if (!this.cameraCaptureZone) {
+      this.cameraCaptureZone = this.add.zone(width / 2, height / 2, width, height)
+        .setDepth(250)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.captureCameraFrame());
+    } else {
+      this.cameraCaptureZone.setPosition(width / 2, height / 2).setSize(width, height);
+    }
   }
 
   private cameraScreenRect(width: number, height: number) {
@@ -1036,8 +1093,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
       height: rules.captureRectHeight && rules.captureRectHeight > 0 ? rules.captureRectHeight : 140,
     });
     const frame = this.sceneFrame();
-    const captureWidth = Phaser.Math.Clamp(size.width, 120, Math.min(width * 0.72, frame.width, 420));
-    const captureHeight = Phaser.Math.Clamp(size.height, 92, Math.min(height * 0.62, frame.height, 320));
+    const captureWidth = Phaser.Math.Clamp(size.width * 0.85, 102, Math.min(width * 0.72, frame.width, 357));
+    const captureHeight = Phaser.Math.Clamp(size.height * 0.85, 78, Math.min(height * 0.62, frame.height, 272));
     const pointer = this.input.activePointer;
     const fallbackX = frame.x + frame.width / 2;
     const fallbackY = frame.y + frame.height / 2;
@@ -1060,6 +1117,46 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const right = Phaser.Math.Clamp(Math.max(topLeft.x, bottomRight.x), 0, this.runtimeWidth());
     const bottom = Phaser.Math.Clamp(Math.max(topLeft.y, bottomRight.y), 0, this.runtimeHeight());
     return { x, y, width: Math.max(1, right - x), height: Math.max(1, bottom - y) };
+  }
+
+  private async captureCameraFrame() {
+    if (this.cameraCapturePending || !this.cameraMode) return;
+    this.cameraCapturePending = true;
+    const screenRect = this.cameraScreenRect(this.scale.width, this.scale.height);
+    const worldRect = this.cameraWorldRect(screenRect);
+    try {
+      this.cameraGraphics?.setVisible(false);
+      this.cameraLabel?.setVisible(false);
+      this.cameraCaptureZone?.disableInteractive();
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+      const source = this.game.canvas;
+      const scaleX = source.width / this.scale.width;
+      const scaleY = source.height / this.scale.height;
+      const sx = Math.max(0, Math.round(screenRect.x * scaleX));
+      const sy = Math.max(0, Math.round(screenRect.y * scaleY));
+      const sw = Math.max(1, Math.min(source.width - sx, Math.round(screenRect.width * scaleX)));
+      const sh = Math.max(1, Math.min(source.height - sy, Math.round(screenRect.height * scaleY)));
+      const outputScale = Math.min(1, 640 / Math.max(sw, sh));
+      const output = document.createElement('canvas');
+      output.width = Math.max(1, Math.round(sw * outputScale));
+      output.height = Math.max(1, Math.round(sh * outputScale));
+      const context = output.getContext('2d');
+      if (!context) throw new Error('Camera canvas is unavailable.');
+      context.imageSmoothingEnabled = false;
+      context.drawImage(source, sx, sy, sw, sh, 0, 0, output.width, output.height);
+      const photo = await new Promise<Blob>((resolve, reject) => {
+        output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Camera image could not be encoded.')), 'image/webp', 0.82);
+      });
+      this.callbacks.onCapture(worldRect, photo);
+    } catch (error: any) {
+      this.callbacks.onCameraError(error?.message ?? 'The camera could not capture this frame.');
+    } finally {
+      this.cameraGraphics?.setVisible(true);
+      this.cameraLabel?.setVisible(true);
+      this.cameraCaptureZone?.setInteractive({ useHandCursor: true });
+      this.cameraCapturePending = false;
+    }
   }
 
   private drawDebugOverlay(scene: VisibleScene, width: number, height: number) {
@@ -1191,36 +1288,42 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private inputAxis() {
-    const left = this.keys.A?.isDown;
-    const right = this.keys.D?.isDown;
-    return { x: Number(Boolean(right)) - Number(Boolean(left)), y: 0 };
+    const left = this.keys.A?.isDown || this.keys.LEFT?.isDown;
+    const right = this.keys.D?.isDown || this.keys.RIGHT?.isDown;
+    return {
+      x: Number(Boolean(right)) - Number(Boolean(left)),
+      y: 0,
+    };
   }
 
   private walkBounds() {
-    const width = this.scale.width;
-    const height = this.scale.height;
     const runtime = this.sceneRuntime();
     if (runtime?.walkableArea) {
-      const area = this.worldRect(runtime.walkableArea);
-      const floorY = runtime.floorY
-        ? this.worldPoint({ x: 0, y: runtime.floorY }).y
-        : area.y + area.h;
       return {
-        left: Math.max(36, area.x),
-        right: Math.min(width - 36, area.x + area.w),
-        top: floorY,
-        bottom: floorY,
+        left: runtime.walkableArea.x,
+        right: runtime.walkableArea.x + runtime.walkableArea.width,
+        top: runtime.walkableArea.y,
+        bottom: runtime.walkableArea.y + runtime.walkableArea.height,
       };
     }
 
-    const frame = this.sceneFrame();
-    const laneY = Phaser.Math.Clamp(frame.y + frame.height * 0.82, height * 0.58, height - 118);
     return {
-      left: Math.max(36, frame.x + frame.width * 0.08),
-      right: Math.min(width - 36, frame.x + frame.width * 0.92),
-      top: laneY,
-      bottom: laneY,
+      left: this.runtimeWidth() * 0.08,
+      right: this.runtimeWidth() * 0.92,
+      top: this.runtimeHeight() * 0.62,
+      bottom: this.runtimeHeight() * 0.88,
     };
+  }
+
+  private collidesAt(x: number, y: number) {
+    const padding = 14;
+    const obstacles = [
+      ...(this.sceneRuntime()?.itemPlacements ?? []).map((placement) => placement.reservedSlot),
+      ...(this.sceneRuntime()?.characterPlacements ?? []).map((placement) => placement.reservedSlot),
+    ].filter((box): box is RuntimeBox => Boolean(box));
+    return obstacles.some((box) =>
+      x >= box.x - padding && x <= box.x + box.width + padding
+      && y >= box.y - padding && y <= box.y + box.height + padding);
   }
 
   private spawnPose(player: RoomPlayer | undefined, slot: number): PlayerPose {
@@ -1229,11 +1332,12 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const roleSpawn = player?.role ? runtime?.spawnPoints?.[player.role] : null;
     const defaultSpawn = runtime?.spawnPoints?.default;
     const spawn = roleSpawn ?? defaultSpawn;
-    const spawnPoint = spawn ? this.worldPoint(spawn) : null;
-    const x = spawnPoint
-      ? Phaser.Math.Clamp(spawnPoint.x + slot * 18, bounds.left, bounds.right)
+    const x = spawn
+      ? Phaser.Math.Clamp(spawn.x + slot * 18, bounds.left, bounds.right)
       : Phaser.Math.Clamp(bounds.left + 120 + slot * 92, bounds.left, bounds.right);
-    const y = spawnPoint ? bounds.bottom : bounds.bottom - slot * 18;
+    const y = spawn
+      ? Phaser.Math.Clamp(spawn.y + slot * 18, bounds.top, bounds.bottom)
+      : Phaser.Math.Clamp(bounds.top + (bounds.bottom - bounds.top) * 0.7 - slot * 18, bounds.top, bounds.bottom);
     return {
       userId: player?.userId ?? this.callbacks.localUserId,
       username: player?.username,
@@ -1251,9 +1355,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
     let nearest: Hotspot | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
     for (const hotspot of this.state.visibleScene.hotspots) {
-      const center = this.hotspotCenter(hotspot);
+      const center = this.hotspotWorldCenter(hotspot);
       const distance = Phaser.Math.Distance.Between(pose.x, pose.y, center.x, center.y);
-      const radius = hotspot.type.toUpperCase() === 'CHARACTER' ? 120 : 92;
+      const radius = hotspot.type.toUpperCase() === 'CHARACTER' ? 150 : 115;
       if (distance < radius && distance < nearestDistance) {
         nearest = hotspot;
         nearestDistance = distance;
@@ -1267,18 +1371,17 @@ class SirLockedPhaserScene extends Phaser.Scene {
     );
     const implicitCharacters = this.state.visibleScene.characters.filter((character) => !explicitCharacterIds.has(character.characterId));
     const implicitCount = Math.max(implicitCharacters.length, 1);
-    const frame = this.sceneFrame();
     implicitCharacters.forEach((character, index) => {
-      const x = frame.x + frame.width * (0.58 + (index * 0.3 / implicitCount));
-      const y = frame.y + frame.height * 0.8;
+      const x = this.runtimeWidth() * (0.58 + (index * 0.3 / implicitCount));
+      const y = this.runtimeHeight() * 0.8;
       const distance = Phaser.Math.Distance.Between(pose.x, pose.y, x, y);
       if (distance < 130 && distance < nearestDistance) {
         nearest = {
           hotspotId: `virtual-character-${character.characterId}`,
           type: 'CHARACTER',
           targetId: character.characterId,
-          x: (x / this.scale.width) * 100,
-          y: (y / this.scale.height) * 100,
+          x: (x / this.runtimeWidth()) * 100,
+          y: (y / this.runtimeHeight()) * 100,
           width: 0,
           height: 0,
           zIndex: 1,
@@ -1302,6 +1405,20 @@ class SirLockedPhaserScene extends Phaser.Scene {
     return {
       x: x + w / 2,
       y: y + h / 2,
+    };
+  }
+
+  private hotspotWorldCenter(hotspot: Hotspot) {
+    const runtimeBox = this.runtimeHotspotBox(hotspot);
+    if (runtimeBox) {
+      return {
+        x: runtimeBox.x + runtimeBox.width / 2,
+        y: runtimeBox.y + runtimeBox.height / 2,
+      };
+    }
+    return {
+      x: ((hotspot.x + hotspot.width / 2) / 100) * this.runtimeWidth(),
+      y: ((hotspot.y + hotspot.height / 2) / 100) * this.runtimeHeight(),
     };
   }
 
@@ -1340,11 +1457,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if ((unchanged && elapsed < 1000) || (!unchanged && elapsed < 80)) return;
     this.lastPoseSentAt = time;
     this.lastSentPoseKey = poseKey;
-    this.callbacks.onPose({
-      ...this.localPose,
-      viewportWidth: this.scale.width,
-      viewportHeight: this.scale.height,
-    });
+    this.callbacks.onPose({ ...this.localPose });
   }
 
   private playerLabel(pose: PlayerPose) {
@@ -1427,6 +1540,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let sceneInputBlockedUntil = 0;
   const playerPoses = new Map<string, PlayerPose>();
   let poseErrorShown = false;
+  let shellMounted = false;
+  let appliedStateVersion = -1;
+  let appliedSceneId = '';
+  let appliedInventoryItemId: string | null = null;
+  const evidencePhotoObjectUrls = new Map<string, string>();
 
   const refetch = async () => applyState(await gameApi.state(roomId));
 
@@ -1436,6 +1554,22 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       phaserGame = null;
       phaserScene = null;
     }
+  }
+
+  function mountShell() {
+    if (shellMounted) return;
+    render(app, `
+      <div class="point-game point-game-phaser">
+        <main class="scene-canvas phaser-scene-wrap">
+          <div id="${hostId}" class="phaser-game-host"></div>
+          <header id="game-hud-slot" class="game-hud game-hud-overlay"></header>
+          <div id="scene-title-slot" class="scene-title-card"></div>
+          <div id="inventory-slot"></div>
+        </main>
+        <div id="game-transient-slot"></div>
+      </div>`);
+    shellMounted = true;
+    mountPhaser();
   }
 
   function applyState(fresh: GameState) {
@@ -1522,45 +1656,50 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function draw() {
     if (stopped || !state) return;
-    destroyPhaser();
+    mountShell();
     const scene = state.visibleScene;
+    const hud = app.querySelector('#game-hud-slot');
+    if (hud) hud.innerHTML = `
+      <div>
+        <strong>${escapeHtml(scene.title)}</strong>
+        <span class="muted small">${escapeHtml(state.caseTitle)} / Room ${escapeHtml(state.roomCode)}</span>
+      </div>
+      <div class="game-objective">${escapeHtml(state.currentObjective)}</div>
+      <div class="game-players">${playersHtml()}</div>
+      <div class="game-hud-actions">
+        <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
+        <button class="round-tool camera-tool ${cameraMode ? 'is-hot' : ''}" id="camera-btn" ${myRole() === 'INVESTIGATOR' ? '' : 'disabled'}
+                aria-label="${myRole() === 'INVESTIGATOR' ? 'Open camera' : 'Camera is available to the Investigator only'}"
+                title="${myRole() === 'INVESTIGATOR' ? 'Photograph embedded scene clues' : 'Only the Investigator can capture scene clues'}">
+          <i data-lucide="camera" aria-hidden="true"></i><span class="camera-badge">${state.capturedClueIds?.length ?? 0}</span>
+        </button>
+        <button class="round-tool" id="map-btn" title="Locations">Map</button>
+        <button class="round-tool" id="log-btn" title="Action log">Log</button>
+        <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
+                title="${state.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}">Accuse</button>
+      </div>`;
 
-    render(app, `
-    <div class="point-game point-game-phaser">
-      <main class="scene-canvas phaser-scene-wrap">
-        <div id="${hostId}" class="phaser-game-host"></div>
-        <header class="game-hud game-hud-overlay">
-          <div>
-          <strong>${escapeHtml(scene.title)}</strong>
-          <span class="muted small">${escapeHtml(state.caseTitle)} / Room ${escapeHtml(state.roomCode)}</span>
-          </div>
-          <div class="game-objective">${escapeHtml(state.currentObjective)}</div>
-          <div class="game-players">${playersHtml()}</div>
-          <div class="game-hud-actions">
-            <button class="round-tool" id="case-file-btn" title="Case file">Case File <span class="badge">${state.unlockedClues.length}</span></button>
-            <button class="round-tool ${cameraMode ? 'is-hot' : ''}" id="camera-btn" ${myRole() === 'INVESTIGATOR' ? '' : 'disabled'}
-                    title="${myRole() === 'INVESTIGATOR' ? 'Photograph embedded scene clues' : 'Only the Investigator can capture scene clues'}">
-              Camera <span class="badge">${state.capturedClueIds?.length ?? 0}</span>
-            </button>
-            <button class="round-tool" id="map-btn" title="Locations">Map</button>
-            <button class="round-tool" id="log-btn" title="Action log">Log</button>
-            <button class="round-tool ${state.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state.availableForAccusation ? '' : 'disabled'}
-                    title="${state.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}">Accuse</button>
-          </div>
-        </header>
-        <div class="scene-title-card">
-          <p>${escapeHtml(scene.description)}</p>
-        </div>
-        ${inventoryBar()}
-      </main>
+    const title = app.querySelector('#scene-title-slot');
+    if (title) title.innerHTML = `<p>${escapeHtml(scene.description)}</p>`;
+    const inventory = app.querySelector('#inventory-slot');
+    if (inventory) inventory.innerHTML = inventoryBar();
+    const transient = app.querySelector('#game-transient-slot');
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}`;
 
-      ${introOverlay(myRole())}
-      ${overlayHtml()}
-      ${accusationModal()}
-    </div>`);
-
+    const sceneNeedsUpdate = appliedStateVersion !== state.version
+      || appliedSceneId !== state.currentSceneId
+      || appliedInventoryItemId !== selectedInventoryItemId;
+    if (sceneNeedsUpdate && phaserScene) {
+      phaserScene.updateGameState(state, selectedInventoryItemId);
+      appliedStateVersion = state.version;
+      appliedSceneId = state.currentSceneId;
+      appliedInventoryItemId = selectedInventoryItemId;
+    }
+    phaserScene?.setSceneInteractionEnabled(!isSceneInputBlocked());
+    phaserScene?.setCameraMode(cameraMode && !isSceneInputBlocked());
     bind();
-    mountPhaser();
+    createIcons({ icons: { Camera } });
+    hydrateEvidenceImages();
   }
 
   function mountPhaser() {
@@ -1577,7 +1716,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         overlay = { type: 'dialogue', characterId };
         draw();
       },
-      onCapture: (captureRect) => captureClue(captureRect),
+      onCapture: (captureRect, photo) => captureClue(captureRect, photo),
+      onCameraError: (message) => toast(message, 'error'),
       onProceed: () => completeScene(),
       onScene: (sceneId) => goToScene(sceneId),
       onPose: (pose) => {
@@ -1588,8 +1728,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           y: pose.y,
           direction: pose.direction,
           moving: pose.moving,
-          viewportWidth: pose.viewportWidth,
-          viewportHeight: pose.viewportHeight,
         }).catch((err: any) => {
           if (!poseErrorShown) {
             poseErrorShown = true;
@@ -1619,6 +1757,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     });
 
     phaserScene.updateGameState(state, selectedInventoryItemId);
+    appliedStateVersion = state.version;
+    appliedSceneId = state.currentSceneId;
+    appliedInventoryItemId = selectedInventoryItemId;
     phaserScene.setSceneInteractionEnabled(!isSceneInputBlocked());
     phaserScene.setCameraMode(cameraMode && !isSceneInputBlocked());
     // Debug handle for QA tooling (canvas snapshots, state inspection).
@@ -1685,6 +1826,32 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return '';
   }
 
+  function evidencePhotoMarkup(clue: Clue, className: string) {
+    return clue.photoUrl
+      ? `<img class="${className}" data-auth-image="${escapeHtml(clue.photoUrl)}" alt="Captured view of ${escapeHtml(clue.title)}">`
+      : '';
+  }
+
+  function hydrateEvidenceImages() {
+    app.querySelectorAll<HTMLImageElement>('img[data-auth-image]').forEach((image) => {
+      const path = image.dataset.authImage;
+      if (!path || image.getAttribute('src')) return;
+      const cached = evidencePhotoObjectUrls.get(path);
+      if (cached) {
+        image.src = cached;
+        return;
+      }
+      gameApi.evidencePhoto(path).then((blob: Blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        evidencePhotoObjectUrls.set(path, objectUrl);
+        app.querySelectorAll<HTMLImageElement>('img[data-auth-image]')
+          .forEach((target) => {
+            if (target.dataset.authImage === path) target.src = objectUrl;
+          });
+      }).catch(() => image.remove());
+    });
+  }
+
   function caseFileOverlay() {
     const clues = state!.unlockedClues.slice().reverse();
     return `
@@ -1696,6 +1863,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           ? '<div class="empty-state small">No evidence has been collected yet.</div>'
           : `<div class="case-file-grid">${clues.map((c) => `
               <article class="clue-card ${c.isEvidence ? 'clue-evidence' : ''}">
+                ${evidencePhotoMarkup(c, 'clue-photo')}
                 <div class="clue-head">
                   <strong>${escapeHtml(c.title)}</strong>
                   ${c.isEvidence ? '<span class="chip chip-gold">EVIDENCE</span>' : ''}
@@ -1771,6 +1939,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     <div class="overlay">
       <div class="modal">
         <h2>${escapeHtml(clue?.title ?? 'Photographic evidence')}</h2>
+        ${clue ? evidencePhotoMarkup(clue, 'evidence-photo-large') : ''}
         <p>${escapeHtml(detail || clue?.inventoryDescription || clue?.content || 'A scene clue has been added to the case file.')}</p>
         ${clue?.narrativeMeaning ? `<p class="muted">${escapeHtml(clue.narrativeMeaning)}</p>` : ''}
         <p class="clue-flash">Photo captured and logged.</p>
@@ -1882,6 +2051,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
             : evidence.map((c) => `
               <label class="evidence-row">
                 <input type="checkbox" data-evidence="${escapeHtml(c.clueId)}" ${accusation!.evidenceIds.has(c.clueId) ? 'checked' : ''}>
+                ${evidencePhotoMarkup(c, 'evidence-photo-thumb')}
                 <span><strong>${escapeHtml(c.title)}</strong><br><span class="muted small">${escapeHtml(c.content)}</span></span>
               </label>`).join('')}</div>
           <div class="modal-actions">
@@ -2107,7 +2277,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
   }
 
-  async function captureClue(captureRect: RuntimeBox) {
+  async function captureClue(captureRect: RuntimeBox, photo: Blob) {
     if (!state || captureInFlight || !cameraMode || isSceneInputBlocked()) return;
     if (myRole() !== 'INVESTIGATOR') {
       toast('Only the Investigator can capture scene clues.', 'info');
@@ -2116,7 +2286,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     captureInFlight = true;
     try {
-      const res = await gameApi.captureClue(roomId, state.currentSceneId, captureRect);
+      const res = await gameApi.captureClue(roomId, state.currentSceneId, captureRect, photo);
       const result = String(res.captureResult || '').toUpperCase();
       if (result === 'HIT') {
         cameraMode = false;
@@ -2205,6 +2375,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   return () => {
     stopped = true;
     destroyPhaser();
+    for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);
+    evidencePhotoObjectUrls.clear();
     return hub.stop();
   };
 }

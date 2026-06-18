@@ -32,6 +32,9 @@ public class CaptureClueRequest
 
     [Required]
     public CaptureRectDto CaptureRect { get; set; } = new();
+
+    [Required]
+    public IFormFile Photo { get; set; } = null!;
 }
 
 public class PresentEvidenceRequest
@@ -150,6 +153,7 @@ public class ClueDto
     public string NarrativeMeaning { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new();
     public List<string> RelatedCharacterIds { get; set; } = new();
+    public string? PhotoUrl { get; set; }
 
     // isRedHerring is intentionally NOT exposed to players: spotting red herrings is gameplay.
     public static ClueDto From(CaseClue c) => new()

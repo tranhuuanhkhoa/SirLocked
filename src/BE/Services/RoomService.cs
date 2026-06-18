@@ -86,6 +86,7 @@ public class RoomService : IRoomService
 
         var update = Builders<GameRoom>.Update
             .Push(r => r.Players, new RoomPlayer { UserId = user.Id, Username = user.FullName })
+            .Inc(r => r.LobbyVersion, 1)
             .Set(r => r.UpdatedAt, DateTime.UtcNow);
 
         // Guard against two players grabbing the last slot at the same time.
@@ -115,35 +116,46 @@ public class RoomService : IRoomService
 
     public async Task<RoomResponse?> LeaveAsync(CurrentUser user, string roomId)
     {
-        var room = await RequireRoomAsync(roomId);
-        RequireMember(room, user.Id);
-
-        if (room.Status == RoomStatus.InProgress)
+        for (var attempt = 0; ; attempt++)
         {
-            throw ApiException.BadRequest("You cannot leave a game that is in progress.");
+            var room = await RequireRoomAsync(roomId);
+            RequireMember(room, user.Id);
+
+            if (room.Status == RoomStatus.InProgress)
+            {
+                throw ApiException.BadRequest("You cannot leave a game that is in progress.");
+            }
+
+            room.Players.RemoveAll(p => p.UserId == user.Id);
+
+            if (room.Players.Count == 0)
+            {
+                var deleted = await _db.Rooms.DeleteOneAsync(r => r.Id == roomId && r.LobbyVersion == room.LobbyVersion);
+                if (deleted.DeletedCount == 0)
+                {
+                    if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
+                    continue;
+                }
+                return null;
+            }
+
+            if (room.HostUserId == user.Id)
+            {
+                room.HostUserId = room.Players[0].UserId;
+            }
+
+            room.Status = RoomStatus.Waiting;
+            if (!await TrySaveLobbyAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
+                continue;
+            }
+
+            var gameCase = await _caseService.GetCaseAsync(room.CaseId);
+            var response = RoomResponse.From(room, gameCase.Title);
+            await _notifier.PlayerLeft(roomId, user.Id, response);
+            return response;
         }
-
-        room.Players.RemoveAll(p => p.UserId == user.Id);
-
-        if (room.Players.Count == 0)
-        {
-            await _db.Rooms.DeleteOneAsync(r => r.Id == roomId);
-            return null;
-        }
-
-        if (room.HostUserId == user.Id)
-        {
-            room.HostUserId = room.Players[0].UserId;
-        }
-
-        room.Status = RoomStatus.Waiting;
-        room.UpdatedAt = DateTime.UtcNow;
-        await _db.Rooms.ReplaceOneAsync(r => r.Id == roomId, room);
-
-        var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        var response = RoomResponse.From(room, gameCase.Title);
-        await _notifier.PlayerLeft(roomId, user.Id, response);
-        return response;
     }
 
     public async Task<RoomResponse> SelectRoleAsync(CurrentUser user, string roomId, string role)
@@ -154,104 +166,122 @@ public class RoomService : IRoomService
             throw ApiException.BadRequest($"Role must be {PlayerRole.Investigator} or {PlayerRole.Interrogator}.");
         }
 
-        var room = await RequireRoomAsync(roomId);
-        var player = RequireMember(room, user.Id);
-        RequireLobby(room);
-
-        if (room.Players.Any(p => p.UserId != user.Id && p.Role == role))
+        for (var attempt = 0; ; attempt++)
         {
-            throw ApiException.Conflict("The other player has already taken this role.");
+            var room = await RequireRoomAsync(roomId);
+            var player = RequireMember(room, user.Id);
+            RequireLobby(room);
+
+            if (room.Players.Any(p => p.UserId != user.Id && p.Role == role))
+            {
+                throw ApiException.Conflict("The other player has already taken this role.");
+            }
+
+            player.Role = role;
+            player.IsReady = false; // changing role resets readiness
+            if (!await TrySaveLobbyAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
+                continue;
+            }
+
+            var gameCase = await _caseService.GetCaseAsync(room.CaseId);
+            var response = RoomResponse.From(room, gameCase.Title);
+            await _notifier.RolesUpdated(roomId, user.Id, response);
+            return response;
         }
-
-        player.Role = role;
-        player.IsReady = false; // changing role resets readiness
-        room.UpdatedAt = DateTime.UtcNow;
-        await _db.Rooms.ReplaceOneAsync(r => r.Id == roomId, room);
-
-        var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        var response = RoomResponse.From(room, gameCase.Title);
-        await _notifier.RolesUpdated(roomId, user.Id, response);
-        return response;
     }
 
     public async Task<RoomResponse> SetReadyAsync(CurrentUser user, string roomId, bool isReady)
     {
-        var room = await RequireRoomAsync(roomId);
-        var player = RequireMember(room, user.Id);
-        RequireLobby(room);
-
-        if (isReady && string.IsNullOrEmpty(player.Role))
+        for (var attempt = 0; ; attempt++)
         {
-            throw ApiException.BadRequest("Select a role before readying up.");
+            var room = await RequireRoomAsync(roomId);
+            var player = RequireMember(room, user.Id);
+            RequireLobby(room);
+
+            if (isReady && string.IsNullOrEmpty(player.Role))
+            {
+                throw ApiException.BadRequest("Select a role before readying up.");
+            }
+
+            player.IsReady = isReady;
+            room.Status = room.Players.Count == MaxPlayers && room.Players.All(p => p.IsReady)
+                ? RoomStatus.Ready
+                : RoomStatus.Waiting;
+            if (!await TrySaveLobbyAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
+                continue;
+            }
+
+            var gameCase = await _caseService.GetCaseAsync(room.CaseId);
+            var response = RoomResponse.From(room, gameCase.Title);
+            await _notifier.ReadyUpdated(roomId, user.Id, response);
+            return response;
         }
-
-        player.IsReady = isReady;
-        room.Status = room.Players.Count == MaxPlayers && room.Players.All(p => p.IsReady)
-            ? RoomStatus.Ready
-            : RoomStatus.Waiting;
-        room.UpdatedAt = DateTime.UtcNow;
-        await _db.Rooms.ReplaceOneAsync(r => r.Id == roomId, room);
-
-        var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        var response = RoomResponse.From(room, gameCase.Title);
-        await _notifier.ReadyUpdated(roomId, user.Id, response);
-        return response;
     }
 
     public async Task<RoomResponse> StartAsync(CurrentUser user, string roomId)
     {
-        var room = await RequireRoomAsync(roomId);
-        RequireMember(room, user.Id);
-
-        if (room.HostUserId != user.Id)
+        for (var attempt = 0; ; attempt++)
         {
-            throw ApiException.Forbidden("Only the host can start the game.");
+            var room = await RequireRoomAsync(roomId);
+            RequireMember(room, user.Id);
+
+            if (room.HostUserId != user.Id)
+            {
+                throw ApiException.Forbidden("Only the host can start the game.");
+            }
+            if (room.Status == RoomStatus.InProgress)
+            {
+                throw ApiException.Conflict("The game has already started.");
+            }
+            if (room.Status == RoomStatus.Completed)
+            {
+                throw ApiException.BadRequest("This room is already completed.");
+            }
+
+            var notReady = room.Players.Where(p => !p.IsReady || string.IsNullOrEmpty(p.Role))
+                .Select(p => p.Username).ToList();
+            if (room.Players.Count < MaxPlayers || notReady.Count > 0)
+            {
+                throw ApiException.BadRequest("All players must join, pick a role, and ready up before starting.",
+                    new { playersInRoom = room.Players.Count, requiredPlayers = MaxPlayers, notReadyPlayers = notReady });
+            }
+
+            var roles = room.Players.Select(p => p.Role).ToHashSet();
+            if (roles.Count != MaxPlayers)
+            {
+                throw ApiException.Conflict("Players must have two different roles.");
+            }
+
+            var gameCase = await _caseService.GetCaseAsync(room.CaseId);
+            var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
+            var firstScene = firstStage.Scenes.First();
+
+            room.Status = RoomStatus.InProgress;
+            room.GameplayState = new GameplayState
+            {
+                CurrentStageId = firstStage.StageId,
+                CurrentSceneId = firstScene.SceneId,
+                PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
+                Version = 1,
+                VisitedSceneIds = new List<string> { firstScene.SceneId },
+                GameStatus = GameStatus.InProgress,
+                StartedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            if (!await TrySaveLobbyAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
+                continue;
+            }
+
+            var response = RoomResponse.From(room, gameCase.Title);
+            await _notifier.GameStarted(roomId, response);
+            return response;
         }
-        if (room.Status == RoomStatus.InProgress)
-        {
-            throw ApiException.Conflict("The game has already started.");
-        }
-        if (room.Status == RoomStatus.Completed)
-        {
-            throw ApiException.BadRequest("This room is already completed.");
-        }
-
-        var notReady = room.Players.Where(p => !p.IsReady || string.IsNullOrEmpty(p.Role))
-            .Select(p => p.Username).ToList();
-        if (room.Players.Count < MaxPlayers || notReady.Count > 0)
-        {
-            throw ApiException.BadRequest("All players must join, pick a role, and ready up before starting.",
-                new { playersInRoom = room.Players.Count, requiredPlayers = MaxPlayers, notReadyPlayers = notReady });
-        }
-
-        var roles = room.Players.Select(p => p.Role).ToHashSet();
-        if (roles.Count != MaxPlayers)
-        {
-            throw ApiException.Conflict("Players must have two different roles.");
-        }
-
-        var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
-        var firstScene = firstStage.Scenes.First();
-
-        room.Status = RoomStatus.InProgress;
-        room.GameplayState = new GameplayState
-        {
-            CurrentStageId = firstStage.StageId,
-            CurrentSceneId = firstScene.SceneId,
-            PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
-            Version = 1,
-            VisitedSceneIds = new List<string> { firstScene.SceneId },
-            GameStatus = GameStatus.InProgress,
-            StartedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        room.UpdatedAt = DateTime.UtcNow;
-        await _db.Rooms.ReplaceOneAsync(r => r.Id == roomId, room);
-
-        var response = RoomResponse.From(room, gameCase.Title);
-        await _notifier.GameStarted(roomId, response);
-        return response;
     }
 
     private async Task<GameRoom> RequireRoomAsync(string roomId)
@@ -270,6 +300,23 @@ public class RoomService : IRoomService
         {
             throw ApiException.Conflict("The game has already started.");
         }
+    }
+
+    private async Task<bool> TrySaveLobbyAsync(GameRoom room)
+    {
+        var expectedVersion = room.LobbyVersion;
+        room.LobbyVersion = expectedVersion + 1;
+        room.UpdatedAt = DateTime.UtcNow;
+
+        var result = await _db.Rooms.ReplaceOneAsync(
+            r => r.Id == room.Id && r.LobbyVersion == expectedVersion,
+            room);
+        if (result.ModifiedCount == 0)
+        {
+            room.LobbyVersion = expectedVersion;
+            return false;
+        }
+        return true;
     }
 
     private static string GenerateRoomCode()

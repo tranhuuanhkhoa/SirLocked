@@ -1,10 +1,19 @@
-import { get, post } from './http.js';
+import { apiFetchBlob, apiFetchForm, get, post } from './http.js';
 
 export const gameApi = {
   state: (roomId) => get(`/api/game/rooms/${roomId}/state`),
   inspectItem: (roomId, itemId) => post(`/api/game/rooms/${roomId}/inspect-item`, { itemId }),
-  captureClue: (roomId, sceneId, captureRect) =>
-    post(`/api/game/rooms/${roomId}/capture-clue`, { sceneId, captureRect }),
+  captureClue: (roomId, sceneId, captureRect, photo) => {
+    const form = new FormData();
+    form.append('sceneId', sceneId);
+    form.append('captureRect.x', String(captureRect.x));
+    form.append('captureRect.y', String(captureRect.y));
+    form.append('captureRect.width', String(captureRect.width));
+    form.append('captureRect.height', String(captureRect.height));
+    form.append('photo', photo, 'evidence.webp');
+    return apiFetchForm(`/api/game/rooms/${roomId}/capture-clue`, form);
+  },
+  evidencePhoto: (photoUrl) => apiFetchBlob(photoUrl),
   askDialogue: (roomId, dialogueId) => post(`/api/game/rooms/${roomId}/ask-dialogue`, { dialogueId }),
   presentEvidence: (roomId, dialogueId, evidenceId) =>
     post(`/api/game/rooms/${roomId}/present-evidence`, { dialogueId, evidenceId }),

@@ -17,7 +17,7 @@ namespace SirLocked.Api.Services;
 public class AuthService : IAuthService
 {
     public const string AdminEmail = "admin@sirlocked.local";
-    private const string AdminDefaultPassword = "Admin123!";
+    public const string AdminDefaultPassword = "Admin123!";
 
     private readonly MongoDbContext _db;
     private readonly JwtSettings _jwt;
@@ -84,21 +84,26 @@ public class AuthService : IAuthService
         return ToUserResponse(user);
     }
 
-    public async Task SeedAdminAsync()
+    public async Task SeedAdminAsync(AdminSeedOptions options)
     {
         var existing = await _db.Users.Find(u => u.Role == UserRole.Admin).FirstOrDefaultAsync();
         if (existing is not null) return;
 
+        if (string.IsNullOrWhiteSpace(options.Email) || string.IsNullOrWhiteSpace(options.Password))
+        {
+            throw new InvalidOperationException("Admin seed email and password must be configured when admin seeding is enabled.");
+        }
+
         var admin = new User
         {
-            FullName = "SirLocked Admin",
-            Email = AdminEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(AdminDefaultPassword),
+            FullName = string.IsNullOrWhiteSpace(options.FullName) ? "SirLocked Admin" : options.FullName.Trim(),
+            Email = NormalizeEmail(options.Email),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(options.Password),
             Role = UserRole.Admin,
             Status = UserStatus.Active
         };
         await _db.Users.InsertOneAsync(admin);
-        _logger.LogInformation("Seeded default admin account {Email}.", AdminEmail);
+        _logger.LogInformation("Seeded admin account {Email}.", admin.Email);
     }
 
     private AuthResponse BuildAuthResponse(User user)
@@ -140,3 +145,5 @@ public class AuthService : IAuthService
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }
+
+public sealed record AdminSeedOptions(string Email, string Password, string FullName);

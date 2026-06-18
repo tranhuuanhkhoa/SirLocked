@@ -16,6 +16,8 @@ public class GameRoom
     public string HostUserId { get; set; } = string.Empty;
     public List<RoomPlayer> Players { get; set; } = new();
     public string Status { get; set; } = RoomStatus.Waiting;
+    /// <summary>Optimistic-concurrency version for lobby mutations before gameplay starts.</summary>
+    public long LobbyVersion { get; set; } = 1;
 
     /// <summary>Embedded authoritative runtime state; null until the game starts.</summary>
     public GameplayState? GameplayState { get; set; }
