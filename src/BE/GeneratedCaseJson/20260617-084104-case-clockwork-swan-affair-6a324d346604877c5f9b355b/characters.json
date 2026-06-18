@@ -1,0 +1,37 @@
+[
+  {
+    "characterId": "char-1",
+    "name": "Lady Maribel Quince",
+    "role": "Patron of the exhibition",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-1-portrait.png",
+    "description": "Elegant, commanding, and visibly terrified that the evening\u0027s disaster will ruin both her reputation and her fortune."
+  },
+  {
+    "characterId": "char-2",
+    "name": "Orin Vale",
+    "role": "Rival automaton maker",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-2-portrait.png",
+    "description": "A polished inventor with old grievances against the missing man and the misfortune of being named by the swan\u0027s message."
+  },
+  {
+    "characterId": "char-3",
+    "name": "Professor Selda Morcant",
+    "role": "Scholar of mechanical logic",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-3-portrait.png",
+    "description": "Precise, severe, and more offended by impossible machinery than by personal insult."
+  },
+  {
+    "characterId": "char-4",
+    "name": "Pip Tallow",
+    "role": "Inventor\u0027s apprentice",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-4-portrait.png",
+    "description": "A nervous young mechanic who knows Halcyon House\u0027s gears, ducts, and service passages better than any guest."
+  },
+  {
+    "characterId": "char-5",
+    "name": "Captain Rusk Fen",
+    "role": "Canal security officer",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-5-portrait.png",
+    "description": "A square-shouldered officer hired to keep order at the gala, carrying a notebook full of clean conclusions and carefully omitted inconveniences."
+  }
+]

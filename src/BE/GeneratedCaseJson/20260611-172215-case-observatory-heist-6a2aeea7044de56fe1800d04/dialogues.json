@@ -1,0 +1,44 @@
+[
+  {
+    "dialogueId": "dlg-1",
+    "characterId": "char-1",
+    "question": "Dr. Vega, where were you during the theft?",
+    "answer": "I was in my office, preparing for the night\u0027s observations. I didn\u0027t hear anything because of the storm.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-9"
+    ]
+  },
+  {
+    "dialogueId": "dlg-2",
+    "characterId": "char-2",
+    "question": "Janitor Moore, what were you doing?",
+    "answer": "I was cleaning the restrooms on the ground floor. I have witnesses? No, everyone was elsewhere.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-10"
+    ]
+  },
+  {
+    "dialogueId": "dlg-3",
+    "characterId": "char-3",
+    "question": "Visitor Chen, can you confirm your whereabouts?",
+    "answer": "I was in the gift shop buying souvenirs. The clerk can vouch for me. But I did see Dr. Vega near the vault around 7:25pm.",
+    "requiredClueIds": [
+      "clue-5"
+    ],
+    "unlockClueIds": [
+      "clue-8"
+    ]
+  },
+  {
+    "dialogueId": "dlg-4",
+    "characterId": "char-4",
+    "question": "Security Guard Park, did you see anything unusual?",
+    "answer": "I saw a figure on the roof during the storm. Couldn\u0027t identify who, but they were wearing a dark blue uniform.",
+    "requiredClueIds": [
+      "clue-6"
+    ],
+    "unlockClueIds": []
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "characterId": "char-constable-reed",
+    "name": "Constable Jonah Reed",
+    "role": "Local constable and case guide",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-constable-reed-portrait.png",
+    "description": "A steady village constable who keeps the scene calm, notes the order of discoveries, and helps players test whether the locked room was truly locked."
+  },
+  {
+    "characterId": "char-eliza-vane",
+    "name": "Eliza Vane",
+    "role": "Clockmaker\u0027s former apprentice",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-eliza-vane-portrait.png",
+    "description": "A clever, anxious mechanic who once helped Pendlewick maintain the astronomical clock and resents being treated like a convenient suspect."
+  },
+  {
+    "characterId": "char-crispin-hale",
+    "name": "Crispin Hale",
+    "role": "The patron\u0027s private secretary",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-crispin-hale-portrait.png",
+    "description": "A tidy, silver-tongued secretary who speaks carefully about the late patron\u0027s affairs and keeps a leather folio close at hand."
+  },
+  {
+    "characterId": "char-nora-bell",
+    "name": "Nora Bell",
+    "role": "Workshop caretaker",
+    "imageUrl": "/assets/ai-generated/case-pendlewick-last-hour/characters/char-nora-bell-portrait.png",
+    "description": "A practical caretaker with oil-dark sleeves, a tired manner, and a sharp memory for which doors, lamps, and windows were disturbed."
+  }
+]

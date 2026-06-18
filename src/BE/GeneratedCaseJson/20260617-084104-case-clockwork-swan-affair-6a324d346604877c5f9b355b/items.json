@@ -1,0 +1,112 @@
+[
+  {
+    "itemId": "item-1",
+    "name": "Swan\u0027s Prophecy Strip",
+    "description": "A narrow ribbon of cream paper scratched by the automaton\u0027s silver beak.",
+    "inspectText": "The message reads, \u0027ORIN VALE SILENCES THE HAND THAT WOUND THE SWAN.\u0027 Beneath the fresh letters are faint pressure marks from an earlier alignment test, as if the strip was fed into a prepared writing action rather than composed spontaneously.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-1.png",
+    "unlockClueIds": [
+      "clue-1"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-2",
+    "name": "Fuse Alcove Lever",
+    "description": "A brass-handled lighting lever hidden behind a velvet curtain near the security alcove.",
+    "inspectText": "The lever is warm from recent handling and dust has been rubbed from only one side. It could have cut the gallery lamps without touching the main house controls.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-2.png",
+    "unlockClueIds": [
+      "clue-2"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-3",
+    "name": "Patron\u0027s Guest Ledger",
+    "description": "Lady Quince\u0027s gilt-edged ledger of invitees, investments, and seating arrangements.",
+    "inspectText": "Several investors are marked with anxious sums beside their names. Lady Quince stood to lose heavily if the demonstration failed, though the ledger places her at the front receiving line until the blackout.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-3.png",
+    "unlockClueIds": [
+      "clue-3"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-4",
+    "name": "Scored Workroom Latch",
+    "description": "The inner latch of the locked workroom door, marked near the staple.",
+    "inspectText": "Fine scratches run downward from the latch, and a bent sliver of blackened wire lies in the jamb. The bolt could be dropped from outside by someone patient enough to thread the wire through the gap.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-4.png",
+    "unlockClueIds": [
+      "clue-4"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-5",
+    "name": "Empty Message-Cylinder Tray",
+    "description": "A velvet-lined tray labeled for the swan\u0027s interchangeable instruction cylinders.",
+    "inspectText": "One slot is empty and its dust outline is clean. The missing cylinder would control the beak\u0027s writing pattern; swapping it would change the message without rebuilding the automaton.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-5.png",
+    "unlockClueIds": [
+      "clue-5"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-6",
+    "name": "Apprentice\u0027s Oil Rag",
+    "description": "A rag smelling of violet machine oil, tucked under the workbench.",
+    "inspectText": "The rag bears Pip\u0027s stitched initials and oil fresh enough to suggest recent work. A drying smear, however, matches the eight o\u0027clock maintenance oil rather than the nine o\u0027clock disturbance.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-6.png",
+    "unlockClueIds": [
+      "clue-6"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-7",
+    "name": "Muddy Uniform Bootprint",
+    "description": "A wet print preserved in canal silt beside the private hatch.",
+    "inspectText": "The sole pattern is standard canal-security issue, but the mud contains bright brass dust of the kind shaken from a watchmaker\u0027s file tray. The print points from the service hatch toward the landing, not the street.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-7.png",
+    "unlockClueIds": [
+      "clue-9"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-8",
+    "name": "Knotted Mooring Rope",
+    "description": "A short rope left around a dock cleat in a neat, uncommon knot.",
+    "inspectText": "The knot is a double lock-bight used by Bellweather canal officers to secure silent patrol launches. Its tar is still tacky from recent rain exposure.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-8.png",
+    "unlockClueIds": [
+      "clue-10"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-9",
+    "name": "Invoice for a Blank Cylinder",
+    "description": "A folded arcade receipt for precision engraving on an unmarked swan cylinder.",
+    "inspectText": "The order is signed \u0027R. Fen\u0027 and dated three days before the gala. It requests a blank cylinder cut to Halcyon House specifications and paid for in canal-security scrip.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-9.png",
+    "unlockClueIds": [
+      "clue-11"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-10",
+    "name": "Swan Base Music Box",
+    "description": "A small locked compartment beneath the automaton\u0027s pedestal, opened after identifying the removable cylinder system.",
+    "inspectText": "Inside the music-box drum is a thin ledger page in the inventor\u0027s hand. It records stolen escapement jewels moved by canal patrol and names Captain Rusk Fen as the officer taking a percentage.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-10.png",
+    "unlockClueIds": [
+      "clue-12"
+    ],
+    "isCollectible": true
+  }
+]

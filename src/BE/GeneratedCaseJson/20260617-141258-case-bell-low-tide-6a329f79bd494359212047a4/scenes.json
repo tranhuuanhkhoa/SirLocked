@@ -1,0 +1,2126 @@
+[
+  {
+    "sceneId": "scene-1",
+    "title": "Tideglass Quay Unveiling Platform",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/scenes/scene-1.png",
+    "description": "A bunting-draped platform stands above wet quay stones while fog curls around the crowd ropes. The ribbon has fallen, the guest of honor is gone, and the old chapel bell has only just stopped tolling.",
+    "itemIds": [
+      "item-1"
+    ],
+    "characterIds": [
+      "char-1",
+      "char-4"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-1",
+        "type": "ITEM",
+        "targetId": "item-1",
+        "x": 48,
+        "y": 64,
+        "width": 8,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Cracked pocket compass",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-2",
+        "type": "CHARACTER",
+        "targetId": "char-1",
+        "x": 27,
+        "y": 48,
+        "width": 12,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Maribel Quince",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-3",
+        "type": "CHARACTER",
+        "targetId": "char-4",
+        "x": 76,
+        "y": 52,
+        "width": 11,
+        "height": 19,
+        "zIndex": 1,
+        "label": "Tomas Reed",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-1",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-1",
+          "x": 740,
+          "y": 501,
+          "width": 54,
+          "height": 54,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "wet wooden unveiling platform deck directly in front of the central lectern where the guest of honor had stood",
+          "lighting": "dim cool overcast light with small warm reflections from brass fittings and surrounding lanterns",
+          "perspective": "slight top-down view of the platform deck, so a small pocket object can rest flat on the horizontal boards",
+          "depth": 8,
+          "reason": "The cracked pocket compass physically belongs on the central platform surface at Venn\u0027s standing position and remains visible without covering the embedded clues."
+        },
+        {
+          "type": "npc",
+          "id": "char-1",
+          "x": 870,
+          "y": 720,
+          "width": 104,
+          "height": 240,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "wet foreground quay stones in front of the unveiling platform, clear of the player spawn area",
+          "lighting": "cool blue-grey rainy ambient light with warm amber spill from the quay lamps and small highlights reflected from wet stone",
+          "perspective": "side-on pixel-art scene with a slight top-down view of the quay paving and platform surfaces",
+          "depth": 13,
+          "reason": "Maribel can stand on the open visible floor near the official platform without blocking the speech-page or wax clue zones."
+        },
+        {
+          "type": "npc",
+          "id": "char-4",
+          "x": 1250,
+          "y": 720,
+          "width": 96,
+          "height": 225,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "wet foreground quay stones near the right-hand press table and rope barrier",
+          "lighting": "cool harbor fog light mixed with warm amber edge light from the right lantern and reflections on the rain-slick ground",
+          "perspective": "side-on pixel-art scene with slight top-down floor perspective; feet align to the foreground paving plane",
+          "depth": 14,
+          "reason": "Tomas fits naturally near the press equipment side of the quay, with his feet on clear visible floor and away from spawn points and clue hotspots."
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-2",
+          "label": "Gouged speech page",
+          "bounds": {
+            "x": 226,
+            "y": 329,
+            "width": 176,
+            "height": 162
+          },
+          "shape": "rect",
+          "surface": "slanted speech stand on the left side of the unveiling platform",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.84,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box encloses the rain-speckled cream speech page on the tilted stand, the diagonal silver paperknife pinning it, and the dark gouged-through sentence visible across the lower middle of the page."
+        },
+        {
+          "clueId": "clue-3",
+          "label": "Blue wax smear",
+          "bounds": {
+            "x": 1083,
+            "y": 374,
+            "width": 48,
+            "height": 38
+          },
+          "shape": "rect",
+          "surface": "varnished wooden platform rail on the right side, beneath the top rail near the blue drape",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.92,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The bounds tightly contain the bright thumb-sized blue wax splatter and small glistening drips on the right-hand wooden rail, distinct from the surrounding brown varnish."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "The Condemned Chapel Bell Tower",
+          "hotspot": {
+            "x": 945,
+            "y": 35,
+            "width": 130,
+            "height": 215
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-1",
+          "asset": "/assets/items/cracked-pocket-compass.png",
+          "position": {
+            "x": 740,
+            "y": 501,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 54,
+            "height": 54
+          },
+          "hotspot": {
+            "x": 713,
+            "y": 474,
+            "width": 54,
+            "height": 54
+          },
+          "reservedSlot": {
+            "x": 713,
+            "y": 474,
+            "width": 54,
+            "height": 54
+          },
+          "anchor": "center",
+          "depth": 8
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-1",
+          "asset": "/assets/characters/char-1-scene-1-sprite.png",
+          "position": {
+            "x": 870,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 104,
+            "height": 240
+          },
+          "hotspot": {
+            "x": 818,
+            "y": 480,
+            "width": 104,
+            "height": 240
+          },
+          "reservedSlot": {
+            "x": 818,
+            "y": 480,
+            "width": 104,
+            "height": 240
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 13
+        },
+        {
+          "characterId": "char-4",
+          "asset": "/assets/characters/char-4-scene-1-sprite.png",
+          "position": {
+            "x": 1250,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 225
+          },
+          "hotspot": {
+            "x": 1202,
+            "y": 495,
+            "width": 96,
+            "height": 225
+          },
+          "reservedSlot": {
+            "x": 1202,
+            "y": 495,
+            "width": 96,
+            "height": 225
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 14
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-2",
+          "label": "Gouged speech page",
+          "bounds": {
+            "x": 226,
+            "y": 329,
+            "width": 176,
+            "height": 162
+          },
+          "shape": "rect",
+          "surface": "slanted speech stand on the left side of the unveiling platform",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.84,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box encloses the rain-speckled cream speech page on the tilted stand, the diagonal silver paperknife pinning it, and the dark gouged-through sentence visible across the lower middle of the page."
+        },
+        {
+          "clueId": "clue-3",
+          "label": "Blue wax smear",
+          "bounds": {
+            "x": 1083,
+            "y": 374,
+            "width": 48,
+            "height": 38
+          },
+          "shape": "rect",
+          "surface": "varnished wooden platform rail on the right side, beneath the top rail near the blue drape",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.92,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The bounds tightly contain the bright thumb-sized blue wax splatter and small glistening drips on the right-hand wooden rail, distinct from the surrounding brown varnish."
+        }
+      ],
+      "cameraRules": {
+        "captureRectWidth": 180,
+        "captureRectHeight": 140,
+        "minClueCoverage": 0.45,
+        "nearMissCoverage": 0.22,
+        "requireCaptureCenterInside": true
+      },
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "The Condemned Chapel Bell Tower",
+          "hotspot": {
+            "x": 945,
+            "y": 35,
+            "width": 130,
+            "height": 215
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-1"
+      ],
+      "requiredClueIds": [
+        "clue-1",
+        "clue-2",
+        "clue-3"
+      ],
+      "requiredDialogueIds": [
+        "dlg-1",
+        "dlg-2",
+        "dlg-3"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-2",
+    "title": "The Condemned Chapel Bell Tower",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/scenes/scene-2.png",
+    "description": "Inside the locked chapel tower, rotten stairs climb toward the silent bell. Salt air, dust, and municipal warning placards make the chamber feel abandoned, but several details look far too recent.",
+    "itemIds": [],
+    "characterIds": [
+      "char-5",
+      "char-2"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-4",
+        "type": "CHARACTER",
+        "targetId": "char-5",
+        "x": 34,
+        "y": 55,
+        "width": 12,
+        "height": 21,
+        "zIndex": 1,
+        "label": "Edda Krail",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-5",
+        "type": "CHARACTER",
+        "targetId": "char-2",
+        "x": 67,
+        "y": 57,
+        "width": 13,
+        "height": 21,
+        "zIndex": 1,
+        "label": "Jonah Pike",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-2",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "npc",
+          "id": "char-5",
+          "x": 1430,
+          "y": 720,
+          "width": 95,
+          "height": 245,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible dusty stone floor at the right of the condemned placard and below the wall ladder",
+          "lighting": "mostly cool shadow with a faint warm spill from the left window catching edges of objects",
+          "perspective": "side-on tower interior with a slightly elevated view of the floor plane and vertical wall geometry",
+          "depth": 13,
+          "reason": "Edda fits naturally as caretaker beside the municipal warning signs on a clear patch of floor, facing back into the room and away from the right-edge transition."
+        },
+        {
+          "type": "npc",
+          "id": "char-2",
+          "x": 1165,
+          "y": 720,
+          "width": 115,
+          "height": 260,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "clear dusty stone floor in front of the bell support posts and right side of the stair base",
+          "lighting": "dim warm light from the tall left window with cooler deep shadow toward the right side of the tower",
+          "perspective": "side-on painted scene with slight top-down visibility on the floor and upright stone walls; objects scale smaller toward the rear stairs",
+          "depth": 12,
+          "reason": "Jonah can stand on the open floor near the salvage chains and bell structure without blocking the player spawn area or the central clue footprints."
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-4",
+          "label": "Salt-wet rope knot",
+          "bounds": {
+            "x": 586,
+            "y": 340,
+            "width": 43,
+            "height": 188
+          },
+          "shape": "rect",
+          "surface": "hanging bell rope beside the central rotten stair",
+          "visibility": "easy",
+          "detectionDifficulty": "easy",
+          "detectionStatus": "FOUND",
+          "confidence": 0.9,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box tightly contains the large frayed knot and the darkened wet rope section hanging below it, visually distinct from the dusty dry wall and floor around it."
+        },
+        {
+          "clueId": "clue-5",
+          "label": "Brass pulley filings",
+          "bounds": {
+            "x": 1028,
+            "y": 139,
+            "width": 91,
+            "height": 145
+          },
+          "shape": "rect",
+          "surface": "upper wooden beam and stair tread area beneath the bell mechanism",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.78,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box encloses the bright crescent gouge on the dusty beam and the nearby gold-colored flecks falling and collecting on the stair surface below."
+        },
+        {
+          "clueId": "clue-6",
+          "label": "Diver boot prints",
+          "bounds": {
+            "x": 489,
+            "y": 650,
+            "width": 526,
+            "height": 181
+          },
+          "shape": "rect",
+          "surface": "dusty stone chapel floor across the center foreground",
+          "visibility": "easy",
+          "detectionDifficulty": "easy",
+          "detectionStatus": "FOUND",
+          "confidence": 0.88,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The rectangle covers the visible trail of broad dark hobnailed footprints crossing the dust from left-center toward the lower right, with softened dusty edges."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-1",
+          "targetSceneId": "scene-1",
+          "label": "Tideglass Quay Unveiling Platform",
+          "hotspot": {
+            "x": 58,
+            "y": 6,
+            "width": 172,
+            "height": 488
+          },
+          "depth": 20
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Venn\u2019s Drafting Room at the Harbor Works Office",
+          "hotspot": {
+            "x": 1510,
+            "y": 42,
+            "width": 75,
+            "height": 584
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [],
+      "characterPlacements": [
+        {
+          "characterId": "char-5",
+          "asset": "/assets/characters/char-5-scene-2-sprite.png",
+          "position": {
+            "x": 1430,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 95,
+            "height": 245
+          },
+          "hotspot": {
+            "x": 1382.5,
+            "y": 475,
+            "width": 95,
+            "height": 245
+          },
+          "reservedSlot": {
+            "x": 1382.5,
+            "y": 475,
+            "width": 95,
+            "height": 245
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 13
+        },
+        {
+          "characterId": "char-2",
+          "asset": "/assets/characters/char-2-scene-2-sprite.png",
+          "position": {
+            "x": 1165,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 115,
+            "height": 260
+          },
+          "hotspot": {
+            "x": 1107.5,
+            "y": 460,
+            "width": 115,
+            "height": 260
+          },
+          "reservedSlot": {
+            "x": 1107.5,
+            "y": 460,
+            "width": 115,
+            "height": 260
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 12
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-4",
+          "label": "Salt-wet rope knot",
+          "bounds": {
+            "x": 586,
+            "y": 340,
+            "width": 43,
+            "height": 188
+          },
+          "shape": "rect",
+          "surface": "hanging bell rope beside the central rotten stair",
+          "visibility": "easy",
+          "detectionDifficulty": "easy",
+          "detectionStatus": "FOUND",
+          "confidence": 0.9,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box tightly contains the large frayed knot and the darkened wet rope section hanging below it, visually distinct from the dusty dry wall and floor around it."
+        },
+        {
+          "clueId": "clue-5",
+          "label": "Brass pulley filings",
+          "bounds": {
+            "x": 1028,
+            "y": 139,
+            "width": 91,
+            "height": 145
+          },
+          "shape": "rect",
+          "surface": "upper wooden beam and stair tread area beneath the bell mechanism",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.78,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box encloses the bright crescent gouge on the dusty beam and the nearby gold-colored flecks falling and collecting on the stair surface below."
+        },
+        {
+          "clueId": "clue-6",
+          "label": "Diver boot prints",
+          "bounds": {
+            "x": 489,
+            "y": 650,
+            "width": 526,
+            "height": 181
+          },
+          "shape": "rect",
+          "surface": "dusty stone chapel floor across the center foreground",
+          "visibility": "easy",
+          "detectionDifficulty": "easy",
+          "detectionStatus": "FOUND",
+          "confidence": 0.88,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The rectangle covers the visible trail of broad dark hobnailed footprints crossing the dust from left-center toward the lower right, with softened dusty edges."
+        }
+      ],
+      "cameraRules": {
+        "captureRectWidth": 180,
+        "captureRectHeight": 140,
+        "minClueCoverage": 0.45,
+        "nearMissCoverage": 0.22,
+        "requireCaptureCenterInside": true
+      },
+      "transitions": [
+        {
+          "transitionId": "transition-scene-1",
+          "targetSceneId": "scene-1",
+          "label": "Tideglass Quay Unveiling Platform",
+          "hotspot": {
+            "x": 58,
+            "y": 6,
+            "width": 172,
+            "height": 488
+          },
+          "depth": 20
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Venn\u2019s Drafting Room at the Harbor Works Office",
+          "hotspot": {
+            "x": 1510,
+            "y": 42,
+            "width": 75,
+            "height": 584
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "clue-4",
+        "clue-5",
+        "clue-6"
+      ],
+      "requiredDialogueIds": [
+        "dlg-4",
+        "dlg-5",
+        "dlg-6"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-3",
+    "title": "Venn\u2019s Drafting Room at the Harbor Works Office",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/scenes/scene-3.png",
+    "description": "Venn\u2019s desk is crowded with tide tables, brass dividers, revised floodgate plans, and locked civic files. Rain ticks against the high windows while the city searches for its missing engineer.",
+    "itemIds": [],
+    "characterIds": [
+      "char-1",
+      "char-3"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-6",
+        "type": "CHARACTER",
+        "targetId": "char-1",
+        "x": 24,
+        "y": 54,
+        "width": 12,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Maribel Quince",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-7",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 72,
+        "y": 53,
+        "width": 12,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Celia Venn",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-3",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "npc",
+          "id": "char-1",
+          "x": 900,
+          "y": 720,
+          "width": 104,
+          "height": 248,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible wooden floorboards in front of Venn\u0027s drafting desk",
+          "lighting": "cool blue rain light from the tall rear windows with warm amber fill from the desk lamp and wall lanterns",
+          "perspective": "straight-on room view with slight top-down visibility on floorboards and desktop surfaces",
+          "depth": 12,
+          "reason": "This floor position is in front of the central desk, clear of the player spawn points, and gives the deputy a natural stance for questioning beside the civic documents."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 1315,
+          "y": 720,
+          "width": 100,
+          "height": 244,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible wooden floorboards between the desk and the stacked civic file trunks",
+          "lighting": "cool blue window backlight with warm highlights from the right-side lamps and brass instruments",
+          "perspective": "straight-on room view with slight top-down visibility on floorboards and furniture tops",
+          "depth": 13,
+          "reason": "This right-side floor area is visible, does not block the clue papers on the desk, and suits Celia standing near the locked files while facing the conversation."
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-7",
+          "label": "Circled culvert route plan",
+          "bounds": {
+            "x": 775,
+            "y": 377,
+            "width": 190,
+            "height": 108
+          },
+          "shape": "rect",
+          "surface": "large engineering plan spread across the center of Venn\u0027s drafting desk",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.72,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "This box covers the marked area on the main desk blueprint where the platform footprint is annotated and the narrow route beneath it is drawn on the plan."
+        },
+        {
+          "clueId": "clue-8",
+          "label": "Tomas Reed access note",
+          "bounds": {
+            "x": 1008,
+            "y": 399,
+            "width": 215,
+            "height": 113
+          },
+          "shape": "rect",
+          "surface": "open ledger on the right side of Venn\u0027s drafting desk",
+          "visibility": "easy",
+          "detectionDifficulty": "easy",
+          "detectionStatus": "FOUND",
+          "confidence": 0.9,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The bounds tightly contain the open ledger pages headed with permit requests and illustrated supplement notes, including the visible Tomas Reed entries for chapel elevations and Tideglass cutaways."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "The Condemned Chapel Bell Tower",
+          "hotspot": {
+            "x": 111,
+            "y": 190,
+            "width": 195,
+            "height": 345
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Fogbound Warehouse Row Beneath Gull Street",
+          "hotspot": {
+            "x": 928,
+            "y": 45,
+            "width": 198,
+            "height": 315
+          },
+          "depth": 21
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [],
+      "characterPlacements": [
+        {
+          "characterId": "char-1",
+          "asset": "/assets/characters/char-1-scene-3-sprite.png",
+          "position": {
+            "x": 900,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 104,
+            "height": 248
+          },
+          "hotspot": {
+            "x": 848,
+            "y": 472,
+            "width": 104,
+            "height": 248
+          },
+          "reservedSlot": {
+            "x": 848,
+            "y": 472,
+            "width": 104,
+            "height": 248
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 12
+        },
+        {
+          "characterId": "char-3",
+          "asset": "/assets/characters/char-3-scene-3-sprite.png",
+          "position": {
+            "x": 1315,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 100,
+            "height": 244
+          },
+          "hotspot": {
+            "x": 1265,
+            "y": 476,
+            "width": 100,
+            "height": 244
+          },
+          "reservedSlot": {
+            "x": 1265,
+            "y": 476,
+            "width": 100,
+            "height": 244
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 13
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-7",
+          "label": "Circled culvert route plan",
+          "bounds": {
+            "x": 775,
+            "y": 377,
+            "width": 190,
+            "height": 108
+          },
+          "shape": "rect",
+          "surface": "large engineering plan spread across the center of Venn\u0027s drafting desk",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.72,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "This box covers the marked area on the main desk blueprint where the platform footprint is annotated and the narrow route beneath it is drawn on the plan."
+        },
+        {
+          "clueId": "clue-8",
+          "label": "Tomas Reed access note",
+          "bounds": {
+            "x": 1008,
+            "y": 399,
+            "width": 215,
+            "height": 113
+          },
+          "shape": "rect",
+          "surface": "open ledger on the right side of Venn\u0027s drafting desk",
+          "visibility": "easy",
+          "detectionDifficulty": "easy",
+          "detectionStatus": "FOUND",
+          "confidence": 0.9,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The bounds tightly contain the open ledger pages headed with permit requests and illustrated supplement notes, including the visible Tomas Reed entries for chapel elevations and Tideglass cutaways."
+        }
+      ],
+      "cameraRules": {
+        "captureRectWidth": 180,
+        "captureRectHeight": 140,
+        "minClueCoverage": 0.45,
+        "nearMissCoverage": 0.22,
+        "requireCaptureCenterInside": true
+      },
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "The Condemned Chapel Bell Tower",
+          "hotspot": {
+            "x": 111,
+            "y": 190,
+            "width": 195,
+            "height": 345
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Fogbound Warehouse Row Beneath Gull Street",
+          "hotspot": {
+            "x": 928,
+            "y": 45,
+            "width": 198,
+            "height": 315
+          },
+          "depth": 21
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "clue-7",
+        "clue-8"
+      ],
+      "requiredDialogueIds": [
+        "dlg-7",
+        "dlg-8",
+        "dlg-9"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-4",
+    "title": "Fogbound Warehouse Row Beneath Gull Street",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/scenes/scene-4.png",
+    "description": "The warehouse row crouches beneath Gull Street, where drainage arches breathe fog over slick cobbles. Loading doors, handcarts, and old tide marks offer a quieter record than frightened witnesses.",
+    "itemIds": [],
+    "characterIds": [
+      "char-2",
+      "char-4"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-8",
+        "type": "CHARACTER",
+        "targetId": "char-2",
+        "x": 31,
+        "y": 57,
+        "width": 12,
+        "height": 21,
+        "zIndex": 1,
+        "label": "Jonah Pike",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-9",
+        "type": "CHARACTER",
+        "targetId": "char-4",
+        "x": 70,
+        "y": 54,
+        "width": 11,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Tomas Reed",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-4",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "npc",
+          "id": "char-2",
+          "x": 1385,
+          "y": 720,
+          "width": 112,
+          "height": 240,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "wet cobbled floor in front of the stacked crates and barrels at the right loading platform",
+          "lighting": "warm amber gaslight from the warehouse lamps above and left, with cool blue fog fill from the arches",
+          "perspective": "side-on pixel-art street view with slight top-down visibility on the cobbles and vertical warehouse walls",
+          "depth": 16,
+          "reason": "This clear patch of visible cobbles places the retired diver near harbor cargo without blocking the lock clue, caster tracks, or player spawn points."
+        },
+        {
+          "type": "npc",
+          "id": "char-4",
+          "x": 940,
+          "y": 720,
+          "width": 96,
+          "height": 220,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "wet cobbled floor directly before the warehouse doors",
+          "lighting": "warm amber spill from the lantern over the warehouse door, mixed with cool fog-blue ambient light from the street arches",
+          "perspective": "side-on pixel-art street view with slight top-down visibility on the cobbles and vertical warehouse walls",
+          "depth": 15,
+          "reason": "This open floor area suits a newspaper illustrator observing the warehouse frontage while remaining clear of the central spawn area and clue regions."
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-9",
+          "label": "Waxed warehouse lock",
+          "bounds": {
+            "x": 1058,
+            "y": 452,
+            "width": 63,
+            "height": 78
+          },
+          "shape": "rect",
+          "surface": "black lock on the central seam of the green warehouse double doors",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.91,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box encloses the dark padlock, the bright blue wax daub on its right side, and the small printed parcel-paper scrap hanging directly beneath it."
+        },
+        {
+          "clueId": "clue-10",
+          "label": "Fine caster tracks",
+          "bounds": {
+            "x": 407,
+            "y": 536,
+            "width": 460,
+            "height": 338
+          },
+          "shape": "rect",
+          "surface": "wet grit and cobbles between the low drainage arch and the warehouse frontage",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.86,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The rectangle covers the two narrow pale wheel lines as they emerge from the arch area and curve across the wet cobbles, visibly crossing older broader cart marks."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Venn\u2019s Drafting Room at the Harbor Works Office",
+          "hotspot": {
+            "x": 300,
+            "y": 168,
+            "width": 225,
+            "height": 42
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "The Half-Finished Machinery Beneath the Quay",
+          "hotspot": {
+            "x": 215,
+            "y": 276,
+            "width": 390,
+            "height": 250
+          },
+          "depth": 21
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [],
+      "characterPlacements": [
+        {
+          "characterId": "char-2",
+          "asset": "/assets/characters/char-2-scene-4-sprite.png",
+          "position": {
+            "x": 1385,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 112,
+            "height": 240
+          },
+          "hotspot": {
+            "x": 1329,
+            "y": 480,
+            "width": 112,
+            "height": 240
+          },
+          "reservedSlot": {
+            "x": 1329,
+            "y": 480,
+            "width": 112,
+            "height": 240
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 16
+        },
+        {
+          "characterId": "char-4",
+          "asset": "/assets/characters/char-4-scene-4-sprite.png",
+          "position": {
+            "x": 940,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 892,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 892,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 15
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-9",
+          "label": "Waxed warehouse lock",
+          "bounds": {
+            "x": 1058,
+            "y": 452,
+            "width": 63,
+            "height": 78
+          },
+          "shape": "rect",
+          "surface": "black lock on the central seam of the green warehouse double doors",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.91,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box encloses the dark padlock, the bright blue wax daub on its right side, and the small printed parcel-paper scrap hanging directly beneath it."
+        },
+        {
+          "clueId": "clue-10",
+          "label": "Fine caster tracks",
+          "bounds": {
+            "x": 407,
+            "y": 536,
+            "width": 460,
+            "height": 338
+          },
+          "shape": "rect",
+          "surface": "wet grit and cobbles between the low drainage arch and the warehouse frontage",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.86,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The rectangle covers the two narrow pale wheel lines as they emerge from the arch area and curve across the wet cobbles, visibly crossing older broader cart marks."
+        }
+      ],
+      "cameraRules": {
+        "captureRectWidth": 180,
+        "captureRectHeight": 140,
+        "minClueCoverage": 0.45,
+        "nearMissCoverage": 0.22,
+        "requireCaptureCenterInside": true
+      },
+      "transitions": [
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Venn\u2019s Drafting Room at the Harbor Works Office",
+          "hotspot": {
+            "x": 300,
+            "y": 168,
+            "width": 225,
+            "height": 42
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "The Half-Finished Machinery Beneath the Quay",
+          "hotspot": {
+            "x": 215,
+            "y": 276,
+            "width": 390,
+            "height": 250
+          },
+          "depth": 21
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "clue-9",
+        "clue-10"
+      ],
+      "requiredDialogueIds": [
+        "dlg-10",
+        "dlg-11"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-5",
+    "title": "The Half-Finished Machinery Beneath the Quay",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/scenes/scene-5.png",
+    "description": "Below Tideglass Quay, unfinished gears and sluice housings stand over black water. The machinery is not yet running, but the tides have already been using these passages.",
+    "itemIds": [],
+    "characterIds": [
+      "char-5",
+      "char-3"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-10",
+        "type": "CHARACTER",
+        "targetId": "char-5",
+        "x": 29,
+        "y": 58,
+        "width": 12,
+        "height": 21,
+        "zIndex": 1,
+        "label": "Edda Krail",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-11",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 73,
+        "y": 56,
+        "width": 12,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Celia Venn",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-5",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "npc",
+          "id": "char-5",
+          "x": 350,
+          "y": 720,
+          "width": 98,
+          "height": 226,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "open stone floor beside the left-hand workbench, crates, barrel, and unfinished winch",
+          "lighting": "warm amber lantern light from upper left with cooler teal fill from the central waterway",
+          "perspective": "side-on pixel-art quay interior with slight top-down view of the receding stone floor",
+          "depth": 11,
+          "reason": "Edda fits on the visible left foreground floor near maintenance tools, leaving the central player spawn lane clear."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 1235,
+          "y": 720,
+          "width": 104,
+          "height": 236,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "open stone floor in front of the right-side sluice wall and ladder, clear of the caisson clue cluster",
+          "lighting": "dim cool teal ambient light from the water passages with a weak warm amber rim from the left lantern",
+          "perspective": "side-on pixel-art quay interior with slight top-down view of the receding stone floor",
+          "depth": 13,
+          "reason": "Celia can stand on the unobstructed right foreground paving without blocking the spawn area or the visible caisson evidence."
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-11",
+          "label": "Scuffs and cut bell line",
+          "bounds": {
+            "x": 886,
+            "y": 421,
+            "width": 274,
+            "height": 222
+          },
+          "shape": "rect",
+          "surface": "stone floor and front face of the tide-black caisson at its base",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.9,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box contains the frayed hanging cord against the caisson, the small cuff button on the floor, the dark fresh boot scuff marks, and the fallen flask lying on its side beside the caisson."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Fogbound Warehouse Row Beneath Gull Street",
+          "hotspot": {
+            "x": 444,
+            "y": 300,
+            "width": 136,
+            "height": 204
+          },
+          "depth": 20
+        },
+        {
+          "transitionId": "transition-scene-6",
+          "targetSceneId": "scene-6",
+          "label": "Temporary Newspaper Loft Over Gull Street",
+          "hotspot": {
+            "x": 1182,
+            "y": 143,
+            "width": 98,
+            "height": 414
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [],
+      "characterPlacements": [
+        {
+          "characterId": "char-5",
+          "asset": "/assets/characters/char-5-scene-5-sprite.png",
+          "position": {
+            "x": 350,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 98,
+            "height": 226
+          },
+          "hotspot": {
+            "x": 301,
+            "y": 494,
+            "width": 98,
+            "height": 226
+          },
+          "reservedSlot": {
+            "x": 301,
+            "y": 494,
+            "width": 98,
+            "height": 226
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 11
+        },
+        {
+          "characterId": "char-3",
+          "asset": "/assets/characters/char-3-scene-5-sprite.png",
+          "position": {
+            "x": 1235,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 104,
+            "height": 236
+          },
+          "hotspot": {
+            "x": 1183,
+            "y": 484,
+            "width": 104,
+            "height": 236
+          },
+          "reservedSlot": {
+            "x": 1183,
+            "y": 484,
+            "width": 104,
+            "height": 236
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 13
+        }
+      ],
+      "clueZones": [
+        {
+          "clueId": "clue-11",
+          "label": "Scuffs and cut bell line",
+          "bounds": {
+            "x": 886,
+            "y": 421,
+            "width": 274,
+            "height": 222
+          },
+          "shape": "rect",
+          "surface": "stone floor and front face of the tide-black caisson at its base",
+          "visibility": "medium",
+          "detectionDifficulty": "medium",
+          "detectionStatus": "FOUND",
+          "confidence": 0.9,
+          "source": "vision",
+          "isFallback": false,
+          "requiredClueIds": [],
+          "reason": "The box contains the frayed hanging cord against the caisson, the small cuff button on the floor, the dark fresh boot scuff marks, and the fallen flask lying on its side beside the caisson."
+        }
+      ],
+      "cameraRules": {
+        "captureRectWidth": 180,
+        "captureRectHeight": 140,
+        "minClueCoverage": 0.45,
+        "nearMissCoverage": 0.22,
+        "requireCaptureCenterInside": true
+      },
+      "transitions": [
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Fogbound Warehouse Row Beneath Gull Street",
+          "hotspot": {
+            "x": 444,
+            "y": 300,
+            "width": 136,
+            "height": 204
+          },
+          "depth": 20
+        },
+        {
+          "transitionId": "transition-scene-6",
+          "targetSceneId": "scene-6",
+          "label": "Temporary Newspaper Loft Over Gull Street",
+          "hotspot": {
+            "x": 1182,
+            "y": 143,
+            "width": 98,
+            "height": 414
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "clue-11"
+      ],
+      "requiredDialogueIds": [
+        "dlg-12"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-6",
+    "title": "Temporary Newspaper Loft Over Gull Street",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/scenes/scene-6.png",
+    "description": "A borrowed loft above the warehouses holds damp proofs, sketching boards, drying ink, and a view across the fog to the chapel tower. The final question is whether these drawings record the case or helped create it.",
+    "itemIds": [
+      "item-3"
+    ],
+    "characterIds": [
+      "char-4",
+      "char-1",
+      "char-3"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-12",
+        "type": "ITEM",
+        "targetId": "item-3",
+        "x": 55,
+        "y": 66,
+        "width": 10,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Weatherproof sketchbook",
+        "requiredClueIds": [
+          "clue-10"
+        ]
+      },
+      {
+        "hotspotId": "hotspot-13",
+        "type": "CHARACTER",
+        "targetId": "char-4",
+        "x": 63,
+        "y": 50,
+        "width": 11,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Tomas Reed",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-14",
+        "type": "CHARACTER",
+        "targetId": "char-1",
+        "x": 25,
+        "y": 54,
+        "width": 12,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Maribel Quince",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-15",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 82,
+        "y": 55,
+        "width": 12,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Celia Venn",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-6",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-3",
+          "x": 1248,
+          "y": 527,
+          "width": 92,
+          "height": 58,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "right-hand newspaper worktable beside the ink tools and damp proof stacks",
+          "lighting": "warm desk-lantern glow across the tabletop with cool blue window fill from behind",
+          "perspective": "slightly top-down tabletop plane within the side-on room perspective",
+          "depth": 8,
+          "reason": "The sketchbook fits naturally among the illustrator\u0027s proofs, papers, and ink on the visible worktable surface and does not float or overlap the NPC positions."
+        },
+        {
+          "type": "npc",
+          "id": "char-4",
+          "x": 900,
+          "y": 720,
+          "width": 100,
+          "height": 226,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "visible open floorboards in front of the window ledge and just right of the drafting table",
+          "lighting": "cool foggy window light from behind and above, edged by warm interior lantern light from the left and right",
+          "perspective": "side-on painted interior with a slight top-down view on the plank floor and tabletops",
+          "depth": 12,
+          "reason": "Tomas belongs beside the drafting board and window view, with his feet on unobstructed floor and enough separation from other NPCs."
+        },
+        {
+          "type": "npc",
+          "id": "char-1",
+          "x": 1060,
+          "y": 720,
+          "width": 102,
+          "height": 232,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible central floorboards in front of the tall window and left of the newspaper worktable",
+          "lighting": "cool blue-grey backlight from the large window, with warm amber spill from the wall lamp, stove, and desk lanterns",
+          "perspective": "side-on painted interior with a slight top-down view on the plank floor and tabletops",
+          "depth": 13,
+          "reason": "This clear floor position keeps Maribel in the open discussion space between the window and worktable without covering the player spawn points or important furniture."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 315,
+          "y": 720,
+          "width": 96,
+          "height": 224,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "visible left-side floorboards between the stove/bookcase area and the open central walkway",
+          "lighting": "warm amber light from the wall lamp and stove, with weaker cool window fill from the right",
+          "perspective": "side-on painted interior with a slight top-down view on the plank floor and tabletops",
+          "depth": 12,
+          "reason": "This location places Celia near the papers and shelves while leaving the green door transition and player spawn area unobstructed."
+        }
+      ],
+      "clueZones": [],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "The Half-Finished Machinery Beneath the Quay",
+          "hotspot": {
+            "x": 49,
+            "y": 229,
+            "width": 128,
+            "height": 391
+          },
+          "depth": 20
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-3",
+          "asset": "/assets/items/weatherproof-sketchbook.png",
+          "position": {
+            "x": 1248,
+            "y": 527,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 92,
+            "height": 58
+          },
+          "hotspot": {
+            "x": 1202,
+            "y": 498,
+            "width": 92,
+            "height": 58
+          },
+          "reservedSlot": {
+            "x": 1202,
+            "y": 498,
+            "width": 92,
+            "height": 58
+          },
+          "anchor": "center",
+          "depth": 8
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-4",
+          "asset": "/assets/characters/char-4-scene-6-sprite.png",
+          "position": {
+            "x": 900,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 100,
+            "height": 226
+          },
+          "hotspot": {
+            "x": 850,
+            "y": 494,
+            "width": 100,
+            "height": 226
+          },
+          "reservedSlot": {
+            "x": 850,
+            "y": 494,
+            "width": 100,
+            "height": 226
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 12
+        },
+        {
+          "characterId": "char-1",
+          "asset": "/assets/characters/char-1-scene-6-sprite.png",
+          "position": {
+            "x": 1060,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 102,
+            "height": 232
+          },
+          "hotspot": {
+            "x": 1009,
+            "y": 488,
+            "width": 102,
+            "height": 232
+          },
+          "reservedSlot": {
+            "x": 1009,
+            "y": 488,
+            "width": 102,
+            "height": 232
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 13
+        },
+        {
+          "characterId": "char-3",
+          "asset": "/assets/characters/char-3-scene-6-sprite.png",
+          "position": {
+            "x": 315,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 224
+          },
+          "hotspot": {
+            "x": 267,
+            "y": 496,
+            "width": 96,
+            "height": 224
+          },
+          "reservedSlot": {
+            "x": 267,
+            "y": 496,
+            "width": 96,
+            "height": 224
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 12
+        }
+      ],
+      "clueZones": [],
+      "cameraRules": {
+        "captureRectWidth": 180,
+        "captureRectHeight": 140,
+        "minClueCoverage": 0.45,
+        "nearMissCoverage": 0.22,
+        "requireCaptureCenterInside": true
+      },
+      "transitions": [
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "The Half-Finished Machinery Beneath the Quay",
+          "hotspot": {
+            "x": 49,
+            "y": 229,
+            "width": 128,
+            "height": 391
+          },
+          "depth": 20
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-3"
+      ],
+      "requiredClueIds": [
+        "clue-12"
+      ],
+      "requiredDialogueIds": [
+        "dlg-13",
+        "dlg-14"
+      ]
+    }
+  }
+]

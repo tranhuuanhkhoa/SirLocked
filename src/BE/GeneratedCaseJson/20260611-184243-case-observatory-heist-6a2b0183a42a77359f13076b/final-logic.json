@@ -1,0 +1,11 @@
+{
+  "culpritId": "char-5",
+  "motive": "The security guard needed money to pay off gambling debts.",
+  "method": "He used a crowbar to break the case, wore gloves, and escaped through the roof. The red clay on his shoes matched the rooftop garden.",
+  "requiredEvidenceIds": [
+    "clue-7",
+    "clue-8"
+  ],
+  "winEnding": "You present the crowbar with the guard\u0027s hair and the gem fragment. The guard confesses, and the gem is recovered.",
+  "failEnding": "You accuse the wrong person. The real thief escapes, and the gem is lost forever."
+}

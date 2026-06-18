@@ -1,0 +1,16 @@
+{
+  "culpritId": "char-4",
+  "motive": "Tomas Reed abducted Venn out of revenge and zeal for exposure. His father had died years earlier in a harbor works accident that Tomas believed Venn and the Commission minimized, and Venn\u2019s wavering speech convinced Tomas that the truth about Tideglass Quay would again be softened or buried. Tomas meant to force a confession and create a public spectacle that no official could ignore.",
+  "method": "Weeks before the unveiling, Tomas used his newspaper assignment to access the condemned chapel and the quay plans. He copied the tower route, set a temporary brass pulley and brine-wet cord through the old drain, and arranged for the chapel bell to ring remotely at low tide. On the platform he used blue wax to secure a release cord near the press pen and exploited the bell\u2019s three tolls and fogbound confusion to force Venn through the inspection hatch into the maintenance culvert. Venn was moved by folding easel-cart through Gull Street warehouse C-7 and briefly held in the unfinished caisson chamber. The tower was locked because nobody needed to be inside it when the bell rang.",
+  "requiredEvidenceIds": [
+    "clue-3",
+    "clue-4",
+    "clue-7",
+    "clue-9",
+    "clue-10",
+    "clue-11",
+    "clue-12"
+  ],
+  "winEnding": "SirLocked reconstructs the route from platform to tower drain, warehouse, and caisson, then confronts Tomas with the impossible sketch. Venn is recovered alive from a low-tide service chamber before the water rises. The quay opening is halted for inspection, Maribel is forced to disclose the unsafe sluice, and the bell\u2019s ghostly toll is revealed as a human scheme built from grief, cleverness, and tide tables.",
+  "failEnding": "Without the contradiction in Tomas\u2019s sketches, suspicion scatters among Maribel\u2019s civic panic, Jonah\u2019s old diver prints, and Edda\u2019s keys. The city treats the bell as an unsolved marvel, the tide chambers flood before a full search, and the true route of Venn\u2019s disappearance remains hidden beneath Gull Street."
+}

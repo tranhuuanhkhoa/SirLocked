@@ -1,0 +1,122 @@
+[
+  {
+    "clueId": "clue-clock-stopped-at-alarm",
+    "title": "Clock Stopped at the Alarm",
+    "content": "The astronomical clock stopped at 8:47, the same minute set on the alarm dial, tying the patron\u0027s death to the clock\u0027s mechanism rather than a random intrusion.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-astronomical-clock",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-empty-gear-socket",
+    "title": "Empty Gear Socket",
+    "content": "A removable brass gear is missing from the calendar train. The empty socket is clean and freshly oiled, so the gear was taken recently.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-astronomical-clock",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-weight-shaped-injury",
+    "title": "Weight-Shaped Injury",
+    "content": "The patron\u0027s injury matches the rounded edge of a clock weight, supporting a mechanical strike rather than a fistfight or a weapon brought from outside.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-body",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-thread-marked-latch",
+    "title": "Thread-Marked Latch",
+    "content": "Wax residue and scratches on the door latch show it could be set from outside with a fine thread, making the locked room appear sealed after the killer left.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-door-latch",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-secretary-reported-lock",
+    "title": "Secretary Reported the Lock First",
+    "content": "Nora did not test the handle herself until after Crispin Hale announced the door was locked, meaning the earliest claim about the locked room came from a suspect.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-caretaker-first-at-door",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-ledger-threatened-secretary",
+    "title": "Ledger Threatened the Secretary",
+    "content": "The patron planned to review Hale\u0027s accounts before signing a new trust, giving the secretary a direct reason to fear exposure that very evening.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-appointment-ledger",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-blueprint-gear-note",
+    "title": "Blueprint Gear Note",
+    "content": "The missing gear would stall the visible calendar motion but would not prevent the alarm weight from releasing, explaining how the clock could stop while still causing harm.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-apprentice-blueprint",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-oil-on-ladder",
+    "title": "Fresh Oil on the Ladder",
+    "content": "Fresh clock oil on the ladder suggests someone recently climbed to reach either the clock\u0027s upper access panel or the high window.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-ladder",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-numbered-gear-missing",
+    "title": "Numbered Gear Slot Empty",
+    "content": "The workshop\u0027s parts tray is missing gear number nineteen, the same size required by the empty socket in the astronomical clock.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-numbered-parts-tray",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-alley-footprint",
+    "title": "Convenient Alley Footprint",
+    "content": "A single clean footprint points away from the broken window, inviting the conclusion that an intruder fled into the alley.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": true,
+    "source": "item-broken-window",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-glass-cut-drawn-curtain",
+    "title": "Glass in the Drawn Curtain",
+    "content": "Glass caught inside the drawn curtain proves the window was broken from within after the curtain was closed, making the alley escape a staged false trail.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-curtain-cord",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-gear-in-secretary-folio",
+    "title": "Gear in the Secretary\u0027s Folio",
+    "content": "The missing number nineteen brass gear is hidden in Crispin Hale\u0027s folio, still oily and matching the clock\u0027s empty socket and the workshop parts tray.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-secretary-folio",
+    "sourceType": "item"
+  }
+]

@@ -1,0 +1,2569 @@
+{
+  "id": "",
+  "caseId": "case-clockwork-swan-affair",
+  "title": "The Clockwork Swan Affair",
+  "summary": "SirLocked and his companion investigate a rain-soaked exhibition at Halcyon House, where a prophetic automaton writes an accusation moments before its inventor vanishes from a locked workroom. The inquiry moves through guests, mechanisms, canal evidence, and Bellweather\u0027s watchmaker trade before the swan\u0027s message can be understood.",
+  "status": "DRAFT",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/cases/cover.png",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "title": "The Accusing Swan",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-1",
+          "title": "Halcyon House Exhibition Gallery",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/scenes/scene-1.png",
+          "description": "Rain ticks against the glass dome while patrons murmur around the silver automaton. The lamps have just been restored, the inventor is missing, and the swan\u0027s paper strip curls from its beak like a challenge.",
+          "itemIds": [
+            "item-1",
+            "item-2",
+            "item-3"
+          ],
+          "characterIds": [
+            "char-1",
+            "char-2",
+            "char-3",
+            "char-4",
+            "char-5"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-1",
+              "type": "ITEM",
+              "targetId": "item-1",
+              "x": 51,
+              "y": 58,
+              "width": 9,
+              "height": 6,
+              "zIndex": 1,
+              "label": "Prophecy strip",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-2",
+              "type": "ITEM",
+              "targetId": "item-2",
+              "x": 12,
+              "y": 46,
+              "width": 8,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Fuse alcove",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-3",
+              "type": "ITEM",
+              "targetId": "item-3",
+              "x": 32,
+              "y": 72,
+              "width": 10,
+              "height": 7,
+              "zIndex": 1,
+              "label": "Guest ledger",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-4",
+              "type": "CHARACTER",
+              "targetId": "char-1",
+              "x": 24,
+              "y": 45,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Lady Maribel Quince",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-5",
+              "type": "CHARACTER",
+              "targetId": "char-2",
+              "x": 68,
+              "y": 47,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Orin Vale",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-6",
+              "type": "CHARACTER",
+              "targetId": "char-3",
+              "x": 79,
+              "y": 48,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Professor Selda Morcant",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-7",
+              "type": "CHARACTER",
+              "targetId": "char-4",
+              "x": 43,
+              "y": 50,
+              "width": 7,
+              "height": 17,
+              "zIndex": 1,
+              "label": "Pip Tallow",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-8",
+              "type": "CHARACTER",
+              "targetId": "char-5",
+              "x": 89,
+              "y": 49,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Captain Rusk Fen",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-1",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "item",
+                "id": "item-1",
+                "x": 1028,
+                "y": 374,
+                "width": 72,
+                "height": 116,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "the silver automaton swan\u0027s beak on the central raised plinth",
+                "lighting": "warm amber overhead lamp highlights on the cream paper with cool blue window backlight around the swan neck",
+                "perspective": "side-on display view; the strip hangs downward from the beak in the same plane as the automaton head",
+                "depth": 8,
+                "reason": "The prophecy strip physically belongs curling from the swan\u0027s beak, matching the central exhibit and keeping it visible above the platform. Verification: Aspect corrected for the tall curled strip and nudged upward to align with the swan beak while staying on the same central plinth display."
+              },
+              {
+                "type": "item",
+                "id": "item-2",
+                "x": 1486,
+                "y": 503,
+                "width": 45,
+                "height": 98,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "right wall panel partly exposed beside the tied velvet curtain near the security alcove",
+                "lighting": "dim warm spill from the gallery lamps with cooler blue shadow from the adjacent glass wall and curtain",
+                "perspective": "flat side-wall placement in the same upright architectural perspective as the right columns and curtain",
+                "depth": 6,
+                "reason": "The brass-handled lighting lever is placed where a hidden fuse alcove would plausibly sit behind the velvet curtain, on a visible vertical wall surface. Verification: Aspect corrected for the narrow vertical lever-and-curtain cutout; center remains on the right wall alcove panel."
+              },
+              {
+                "type": "item",
+                "id": "item-3",
+                "x": 1450,
+                "y": 523,
+                "width": 111,
+                "height": 69,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "top of the small right-side writing table beneath the velvet curtain",
+                "lighting": "warm amber lamp glow across the tabletop with subdued blue rain light from the windows behind",
+                "perspective": "slightly top-visible side view of the table surface, matching the tabletop ellipse and legs in the background",
+                "depth": 7,
+                "reason": "A gilt-edged guest ledger naturally rests on the writing table used for gala records and remains separate from the nearby NPC\u0027s floor position. Verification: Aspect corrected for the thicker ledger cutout and slightly raised so it reads as resting on the right writing table."
+              },
+              {
+                "type": "npc",
+                "id": "char-1",
+                "x": 420,
+                "y": 720,
+                "width": 124,
+                "height": 236,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "open wooden gallery floor in front of the left display table and double doors",
+                "lighting": "warm amber light from the left wall sconce and overhead lamps, with cool blue rain-lit window fill from the rear glass dome",
+                "perspective": "side-on pixel-art interior with a shallow receding wooden floor plane; vertical architecture remains upright and feet sit on the visible floorboards",
+                "depth": 14,
+                "reason": "Lady Maribel Quince can command the room from the left side near the entrance without blocking the player spawn points or the door hotspot. Verification: Full-body sprite aspect corrected; feet remain aligned to the wooden floor in the original left-side slot."
+              },
+              {
+                "type": "npc",
+                "id": "char-2",
+                "x": 840,
+                "y": 720,
+                "width": 126,
+                "height": 252,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "open wooden floor centered before the raised automaton platform",
+                "lighting": "warm overhead lantern light from above with silver reflections from the automaton and cool blue backlight through the rain-streaked glass",
+                "perspective": "side-on gallery view with slight floor recession toward the central display; character feet align to the same foreground floor line",
+                "depth": 15,
+                "reason": "Orin Vale is positioned where he can be confronted in front of the swan display named in the accusation while leaving the investigator and interrogator spawn area clear. Verification: Full-body sprite aspect corrected; feet stay on the same floor line before the automaton platform."
+              },
+              {
+                "type": "npc",
+                "id": "char-3",
+                "x": 1035,
+                "y": 720,
+                "width": 117,
+                "height": 234,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "open wooden floor just right of the automaton platform steps",
+                "lighting": "amber lantern light from above-left mixed with cool blue glass-dome backlight from the windows behind the exhibit",
+                "perspective": "side-on 2D perspective with horizontal floorboards and modest depth compression toward the display platform",
+                "depth": 16,
+                "reason": "Professor Selda Morcant stands close enough to study the mechanical swan but remains on visible floor, clear of the central spawn locations and the item on the beak. Verification: Full-body sprite aspect corrected; feet remain planted on the floor just right of the automaton platform."
+              },
+              {
+                "type": "npc",
+                "id": "char-4",
+                "x": 1215,
+                "y": 720,
+                "width": 105,
+                "height": 187,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "open wooden floor in front of the right display cabinet",
+                "lighting": "warm amber light from the central hanging lamp with cool rainy blue fill from the tall windows behind the cabinet",
+                "perspective": "side-on gallery perspective; feet are anchored to the foreground floorboards below the cabinet line",
+                "depth": 17,
+                "reason": "Pip Tallow belongs near the machinery and service-side cabinet area, leaving enough space around neighboring NPCs and all interactive items. Verification: Shorter child sprite aspect corrected; feet stay on the same floor position in front of the right cabinet."
+              },
+              {
+                "type": "npc",
+                "id": "char-5",
+                "x": 1430,
+                "y": 720,
+                "width": 134,
+                "height": 238,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "open wooden floor beside the right writing table and velvet-curtained alcove",
+                "lighting": "warm light from the nearby lanterns and desk area, contrasted by cool blue rain light from the glass wall behind",
+                "perspective": "side-on pixel-art room with shallow floor recession; the officer\u0027s feet align with the same visible plank floor as the other foreground figures",
+                "depth": 18,
+                "reason": "Captain Rusk Fen is placed near the security alcove and right-side desk without overlapping the ledger item or blocking movement through the foreground. Verification: Officer sprite aspect corrected; feet remain on the floor beside the right writing table and curtained alcove."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Inventor\u0027s Locked Workroom",
+                "hotspot": {
+                  "x": 184,
+                  "y": 304,
+                  "width": 176,
+                  "height": 304
+                },
+                "depth": 3
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-1",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-1.png",
+                "position": {
+                  "x": 1028,
+                  "y": 374,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 72,
+                  "height": 116
+                },
+                "hotspot": {
+                  "x": 992,
+                  "y": 316,
+                  "width": 72,
+                  "height": 116
+                },
+                "reservedSlot": {
+                  "x": 992,
+                  "y": 316,
+                  "width": 72,
+                  "height": 116
+                },
+                "anchor": "center",
+                "depth": 8
+              },
+              {
+                "itemId": "item-2",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-2.png",
+                "position": {
+                  "x": 1486,
+                  "y": 503,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 45,
+                  "height": 98
+                },
+                "hotspot": {
+                  "x": 1463.5,
+                  "y": 454,
+                  "width": 45,
+                  "height": 98
+                },
+                "reservedSlot": {
+                  "x": 1463.5,
+                  "y": 454,
+                  "width": 45,
+                  "height": 98
+                },
+                "anchor": "center",
+                "depth": 6
+              },
+              {
+                "itemId": "item-3",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-3.png",
+                "position": {
+                  "x": 1450,
+                  "y": 523,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 111,
+                  "height": 69
+                },
+                "hotspot": {
+                  "x": 1394.5,
+                  "y": 488.5,
+                  "width": 111,
+                  "height": 69
+                },
+                "reservedSlot": {
+                  "x": 1394.5,
+                  "y": 488.5,
+                  "width": 111,
+                  "height": 69
+                },
+                "anchor": "center",
+                "depth": 7
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-1",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-1-scene-1-sprite.png",
+                "position": {
+                  "x": 420,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 124,
+                  "height": 236
+                },
+                "hotspot": {
+                  "x": 358,
+                  "y": 484,
+                  "width": 124,
+                  "height": 236
+                },
+                "reservedSlot": {
+                  "x": 358,
+                  "y": 484,
+                  "width": 124,
+                  "height": 236
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 14
+              },
+              {
+                "characterId": "char-2",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-2-scene-1-sprite.png",
+                "position": {
+                  "x": 840,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 126,
+                  "height": 252
+                },
+                "hotspot": {
+                  "x": 777,
+                  "y": 468,
+                  "width": 126,
+                  "height": 252
+                },
+                "reservedSlot": {
+                  "x": 777,
+                  "y": 468,
+                  "width": 126,
+                  "height": 252
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 15
+              },
+              {
+                "characterId": "char-3",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-3-scene-1-sprite.png",
+                "position": {
+                  "x": 1035,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 117,
+                  "height": 234
+                },
+                "hotspot": {
+                  "x": 976.5,
+                  "y": 486,
+                  "width": 117,
+                  "height": 234
+                },
+                "reservedSlot": {
+                  "x": 976.5,
+                  "y": 486,
+                  "width": 117,
+                  "height": 234
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 16
+              },
+              {
+                "characterId": "char-4",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-4-scene-1-sprite.png",
+                "position": {
+                  "x": 1215,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 105,
+                  "height": 187
+                },
+                "hotspot": {
+                  "x": 1162.5,
+                  "y": 533,
+                  "width": 105,
+                  "height": 187
+                },
+                "reservedSlot": {
+                  "x": 1162.5,
+                  "y": 533,
+                  "width": 105,
+                  "height": 187
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 17
+              },
+              {
+                "characterId": "char-5",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-5-scene-1-sprite.png",
+                "position": {
+                  "x": 1430,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 134,
+                  "height": 238
+                },
+                "hotspot": {
+                  "x": 1363,
+                  "y": 482,
+                  "width": 134,
+                  "height": 238
+                },
+                "reservedSlot": {
+                  "x": 1363,
+                  "y": 482,
+                  "width": 134,
+                  "height": 238
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 18
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Inventor\u0027s Locked Workroom",
+                "hotspot": {
+                  "x": 184,
+                  "y": 304,
+                  "width": 176,
+                  "height": 304
+                },
+                "depth": 3
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-1",
+              "item-2",
+              "item-3"
+            ],
+            "requiredClueIds": [
+              "clue-1",
+              "clue-2",
+              "clue-3",
+              "clue-7",
+              "clue-8"
+            ],
+            "requiredDialogueIds": [
+              "dlg-3",
+              "dlg-5"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-2",
+          "title": "The Inventor\u0027s Locked Workroom",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/scenes/scene-2.png",
+          "description": "The adjoining workroom is bolted from within, yet its narrow service fittings and half-finished mechanisms make the locked room feel less certain than it first appeared.",
+          "itemIds": [
+            "item-4",
+            "item-5",
+            "item-6"
+          ],
+          "characterIds": [
+            "char-3",
+            "char-4",
+            "char-1"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-9",
+              "type": "ITEM",
+              "targetId": "item-4",
+              "x": 18,
+              "y": 52,
+              "width": 8,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Scored latch",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-10",
+              "type": "ITEM",
+              "targetId": "item-5",
+              "x": 57,
+              "y": 62,
+              "width": 12,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Gear tray",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-11",
+              "type": "ITEM",
+              "targetId": "item-6",
+              "x": 39,
+              "y": 78,
+              "width": 9,
+              "height": 6,
+              "zIndex": 1,
+              "label": "Oil rag",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-12",
+              "type": "CHARACTER",
+              "targetId": "char-3",
+              "x": 72,
+              "y": 48,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Professor Selda Morcant",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-13",
+              "type": "CHARACTER",
+              "targetId": "char-4",
+              "x": 49,
+              "y": 49,
+              "width": 7,
+              "height": 17,
+              "zIndex": 1,
+              "label": "Pip Tallow",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-14",
+              "type": "CHARACTER",
+              "targetId": "char-1",
+              "x": 84,
+              "y": 49,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Lady Maribel Quince",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-2",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "item",
+                "id": "item-4",
+                "x": 625,
+                "y": 391,
+                "width": 96,
+                "height": 54,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "brass latch and staple on the inner face of the central locked workroom door",
+                "lighting": "warm amber highlights from the left window and nearby lamp with dark teal shadows in the door recesses",
+                "perspective": "front-facing vertical door plane in the same straight-on room perspective",
+                "depth": 6,
+                "reason": "The scored latch belongs directly on the visible door hardware where the marks near the staple would be inspected. Verification: Adjusted downward within the original door-hardware slot so the full latch cutout aligns with the visible central workroom latch and keeps its wide brass aspect."
+              },
+              {
+                "type": "item",
+                "id": "item-5",
+                "x": 895,
+                "y": 456,
+                "width": 120,
+                "height": 60,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "front edge of the central blueprint workbench tabletop beneath the wall diagram",
+                "lighting": "soft warm light from the left catching the tabletop, with cooler shadows beneath the shelves and pipes",
+                "perspective": "slightly top-visible tabletop surface in the room\u0027s shallow downward perspective",
+                "depth": 8,
+                "reason": "A velvet-lined tray for interchangeable instruction cylinders naturally rests on the workbench where mechanical parts and plans are being handled. Verification: Scale corrected to the tray cutout aspect while staying on the same front edge of the central workbench tabletop."
+              },
+              {
+                "type": "item",
+                "id": "item-6",
+                "x": 1105,
+                "y": 585,
+                "width": 74,
+                "height": 40,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "shadowed lower shelf area under the central workbench",
+                "lighting": "low, occluded warm light with deep brown shadows under the bench",
+                "perspective": "low shelf/floor plane visible beneath the bench in the same slight downward perspective",
+                "depth": 10,
+                "reason": "The oil rag is tucked under the workbench, visible in the dark lower opening without floating or obstructing the walkway. Verification: Minor aspect correction keeps the oil rag tucked in the same shadowed lower shelf area under the workbench."
+              },
+              {
+                "type": "npc",
+                "id": "char-3",
+                "x": 1010,
+                "y": 720,
+                "width": 114,
+                "height": 207,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible wooden floor directly in front of the blueprint workbench",
+                "lighting": "mixed warm amber side light from the left and subdued cool shadow from the teal brick wall and machinery",
+                "perspective": "straight-on side-view room with a slight downward view of the plank floor receding toward the back wall",
+                "depth": 14,
+                "reason": "Professor Morcant has a clear standing spot before the drafting bench and blueprint board, where the room\u0027s mechanical logic can be examined without blocking items. Verification: Feet remain on the floor in front of the blueprint workbench; scale narrowed to fit the actual full-body professor cutout aspect within the planned slot."
+              },
+              {
+                "type": "npc",
+                "id": "char-4",
+                "x": 1260,
+                "y": 720,
+                "width": 102,
+                "height": 203,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible wooden floor in front of the vertical service pipes and gear assembly",
+                "lighting": "dimmer cool-green shadow with warm brass highlights from the left-side lamps catching the pipework",
+                "perspective": "straight-on side-view room with a slight downward view of the plank floor receding toward the back wall",
+                "depth": 15,
+                "reason": "Pip stands beside the service fittings he would know best, with his feet on unobstructed floor and away from the player spawn area. Verification: Feet remain on the same floor position by the service pipes, with scale corrected for the actual Pip sprite proportions."
+              },
+              {
+                "type": "npc",
+                "id": "char-1",
+                "x": 780,
+                "y": 720,
+                "width": 121,
+                "height": 270,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "open wooden floor in front of the locked workroom door and left edge of the central bench",
+                "lighting": "warm amber light from the tall left window and brass lamps, falling off into cooler green-blue shadows toward the right wall",
+                "perspective": "straight-on side-view room with a slight downward view of the plank floor receding toward the back wall",
+                "depth": 13,
+                "reason": "This keeps Lady Maribel clear of the player spawn points while placing her on visible floor near the locked door, suitable for a worried patron watching the sealed entrance. Verification: Feet sit on the original floor position near the locked door, with width increased to match Lady Maribel\u0027s actual cutout aspect."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-1",
+                "targetSceneId": "scene-1",
+                "label": "Halcyon House Exhibition Gallery",
+                "hotspot": {
+                  "x": 505,
+                  "y": 495,
+                  "width": 145,
+                  "height": 92
+                },
+                "depth": 4
+              },
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Bellweather Canal Docks",
+                "hotspot": {
+                  "x": 1200,
+                  "y": 255,
+                  "width": 120,
+                  "height": 170
+                },
+                "depth": 5
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-4",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-4.png",
+                "position": {
+                  "x": 625,
+                  "y": 391,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 96,
+                  "height": 54
+                },
+                "hotspot": {
+                  "x": 577,
+                  "y": 364,
+                  "width": 96,
+                  "height": 54
+                },
+                "reservedSlot": {
+                  "x": 577,
+                  "y": 364,
+                  "width": 96,
+                  "height": 54
+                },
+                "anchor": "center",
+                "depth": 6
+              },
+              {
+                "itemId": "item-5",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-5.png",
+                "position": {
+                  "x": 895,
+                  "y": 456,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 120,
+                  "height": 60
+                },
+                "hotspot": {
+                  "x": 835,
+                  "y": 426,
+                  "width": 120,
+                  "height": 60
+                },
+                "reservedSlot": {
+                  "x": 835,
+                  "y": 426,
+                  "width": 120,
+                  "height": 60
+                },
+                "anchor": "center",
+                "depth": 8
+              },
+              {
+                "itemId": "item-6",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-6.png",
+                "position": {
+                  "x": 1105,
+                  "y": 585,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 74,
+                  "height": 40
+                },
+                "hotspot": {
+                  "x": 1068,
+                  "y": 565,
+                  "width": 74,
+                  "height": 40
+                },
+                "reservedSlot": {
+                  "x": 1068,
+                  "y": 565,
+                  "width": 74,
+                  "height": 40
+                },
+                "anchor": "center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-3",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-3-scene-2-sprite.png",
+                "position": {
+                  "x": 1010,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 114,
+                  "height": 207
+                },
+                "hotspot": {
+                  "x": 953,
+                  "y": 513,
+                  "width": 114,
+                  "height": 207
+                },
+                "reservedSlot": {
+                  "x": 953,
+                  "y": 513,
+                  "width": 114,
+                  "height": 207
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-4",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-4-scene-2-sprite.png",
+                "position": {
+                  "x": 1260,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 102,
+                  "height": 203
+                },
+                "hotspot": {
+                  "x": 1209,
+                  "y": 517,
+                  "width": 102,
+                  "height": 203
+                },
+                "reservedSlot": {
+                  "x": 1209,
+                  "y": 517,
+                  "width": 102,
+                  "height": 203
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 15
+              },
+              {
+                "characterId": "char-1",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-1-scene-2-sprite.png",
+                "position": {
+                  "x": 780,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 121,
+                  "height": 270
+                },
+                "hotspot": {
+                  "x": 719.5,
+                  "y": 450,
+                  "width": 121,
+                  "height": 270
+                },
+                "reservedSlot": {
+                  "x": 719.5,
+                  "y": 450,
+                  "width": 121,
+                  "height": 270
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 13
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-1",
+                "targetSceneId": "scene-1",
+                "label": "Halcyon House Exhibition Gallery",
+                "hotspot": {
+                  "x": 505,
+                  "y": 495,
+                  "width": 145,
+                  "height": 92
+                },
+                "depth": 4
+              },
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Bellweather Canal Docks",
+                "hotspot": {
+                  "x": 1200,
+                  "y": 255,
+                  "width": 120,
+                  "height": 170
+                },
+                "depth": 5
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-4",
+              "item-5",
+              "item-6"
+            ],
+            "requiredClueIds": [
+              "clue-4",
+              "clue-5",
+              "clue-6"
+            ],
+            "requiredDialogueIds": [
+              "dlg-6",
+              "dlg-7"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2",
+      "title": "The Canal Trace",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-3",
+          "title": "Bellweather Canal Docks",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/scenes/scene-3.png",
+          "description": "Below Halcyon House, fog gathers over the black canal. A private landing, supposedly locked all evening, bears signs of recent use despite the captain\u0027s tidy report.",
+          "itemIds": [
+            "item-7",
+            "item-8"
+          ],
+          "characterIds": [
+            "char-5",
+            "char-4"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-15",
+              "type": "ITEM",
+              "targetId": "item-7",
+              "x": 34,
+              "y": 73,
+              "width": 10,
+              "height": 7,
+              "zIndex": 1,
+              "label": "Muddy bootprint",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-16",
+              "type": "ITEM",
+              "targetId": "item-8",
+              "x": 61,
+              "y": 68,
+              "width": 13,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Knotted mooring rope",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-17",
+              "type": "CHARACTER",
+              "targetId": "char-5",
+              "x": 76,
+              "y": 45,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Captain Rusk Fen",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-18",
+              "type": "CHARACTER",
+              "targetId": "char-4",
+              "x": 22,
+              "y": 49,
+              "width": 7,
+              "height": 17,
+              "zIndex": 1,
+              "label": "Pip Tallow",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-3",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "item",
+                "id": "item-7",
+                "x": 427,
+                "y": 613,
+                "width": 80,
+                "height": 54,
+                "anchor": "center",
+                "facing": "right",
+                "surface": "damp cobblestones at the foot of the stone steps beside the private green double door",
+                "lighting": "warm amber light from the wall lantern above the door, fading into cool blue canal shadows at ground level",
+                "perspective": "flat object on the foreground cobblestone plane, seen from a slightly elevated side view",
+                "depth": 7,
+                "reason": "The muddy bootprint is placed where wet silt would be tracked from the locked landing toward the private hatch-like door and is visibly supported by the cobblestone floor. Verification: Aspect corrected to match the bootprint cutout; it remains centered on the damp cobblestones at the foot of the steps."
+              },
+              {
+                "type": "item",
+                "id": "item-8",
+                "x": 957,
+                "y": 535,
+                "width": 74,
+                "height": 53,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "low dock cleat and mooring post along the canal railing near the center-right water edge",
+                "lighting": "low cool canal light with a soft warm glint from the hanging lantern to the left",
+                "perspective": "small object wrapped around a mid-ground dock fitting on the horizontal quay rail line",
+                "depth": 8,
+                "reason": "The short rope belongs physically around the visible mooring hardware at the canal edge, matching its description as a neat knot left on a dock cleat. Verification: Scale and aspect fit the mooring rope cutout and keep it aligned with the canal-edge cleat/post hardware."
+              },
+              {
+                "type": "npc",
+                "id": "char-5",
+                "x": 1240,
+                "y": 720,
+                "width": 134,
+                "height": 238,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "clear cobblestone quay in front of the right-hand mooring posts and crane platform",
+                "lighting": "cool canal moon-fog overall with warm amber rim light from dock lamps to the left and small highlights from the right-side building windows",
+                "perspective": "side-on view with characters grounded on the foreground cobbles; objects farther back sit higher in the frame",
+                "depth": 13,
+                "reason": "Captain Rusk fits naturally on the open security watch area by the mooring posts and crane, with enough separation from Pip, clues, transitions, and the player spawn area. Verification: Width adjusted to the full-body sprite aspect while keeping Captain Rusk\u0027s feet on the cobblestone floor in the planned watch area."
+              },
+              {
+                "type": "npc",
+                "id": "char-4",
+                "x": 850,
+                "y": 720,
+                "width": 110,
+                "height": 196,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "open cobblestone dock apron in front of the canal railing, just right of the wooden stairs",
+                "lighting": "dim blue-green night fog with warm amber spill from the hanging dock lantern above-left, strongest highlights on upper left edges",
+                "perspective": "side-on pixel-art dock scene with a slightly elevated camera; floor recedes upward toward the canal railing",
+                "depth": 12,
+                "reason": "Pip can stand on the clear cobblestone area near the stair and service structures without blocking the player spawn points, and the nearby machinery and dock access suit an apprentice familiar with house passages. Verification: Scale corrected to the Pip cutout aspect; feet remain grounded at the original dock-apron position."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Inventor\u0027s Locked Workroom",
+                "hotspot": {
+                  "x": 285,
+                  "y": 205,
+                  "width": 145,
+                  "height": 280
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-scene-4",
+                "targetSceneId": "scene-4",
+                "label": "A Cramped Watchmaker\u0027s Arcade",
+                "hotspot": {
+                  "x": 1450,
+                  "y": 560,
+                  "width": 135,
+                  "height": 150
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-7",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-7.png",
+                "position": {
+                  "x": 427,
+                  "y": 613,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 80,
+                  "height": 54
+                },
+                "hotspot": {
+                  "x": 387,
+                  "y": 586,
+                  "width": 80,
+                  "height": 54
+                },
+                "reservedSlot": {
+                  "x": 387,
+                  "y": 586,
+                  "width": 80,
+                  "height": 54
+                },
+                "anchor": "center",
+                "depth": 7
+              },
+              {
+                "itemId": "item-8",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-8.png",
+                "position": {
+                  "x": 957,
+                  "y": 535,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 74,
+                  "height": 53
+                },
+                "hotspot": {
+                  "x": 920,
+                  "y": 508.5,
+                  "width": 74,
+                  "height": 53
+                },
+                "reservedSlot": {
+                  "x": 920,
+                  "y": 508.5,
+                  "width": 74,
+                  "height": 53
+                },
+                "anchor": "center",
+                "depth": 8
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-5",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-5-scene-3-sprite.png",
+                "position": {
+                  "x": 1240,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 134,
+                  "height": 238
+                },
+                "hotspot": {
+                  "x": 1173,
+                  "y": 482,
+                  "width": 134,
+                  "height": 238
+                },
+                "reservedSlot": {
+                  "x": 1173,
+                  "y": 482,
+                  "width": 134,
+                  "height": 238
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 13
+              },
+              {
+                "characterId": "char-4",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-4-scene-3-sprite.png",
+                "position": {
+                  "x": 850,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 110,
+                  "height": 196
+                },
+                "hotspot": {
+                  "x": 795,
+                  "y": 524,
+                  "width": 110,
+                  "height": 196
+                },
+                "reservedSlot": {
+                  "x": 795,
+                  "y": 524,
+                  "width": 110,
+                  "height": 196
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 12
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Inventor\u0027s Locked Workroom",
+                "hotspot": {
+                  "x": 285,
+                  "y": 205,
+                  "width": 145,
+                  "height": 280
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-scene-4",
+                "targetSceneId": "scene-4",
+                "label": "A Cramped Watchmaker\u0027s Arcade",
+                "hotspot": {
+                  "x": 1450,
+                  "y": 560,
+                  "width": 135,
+                  "height": 150
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-7",
+              "item-8"
+            ],
+            "requiredClueIds": [
+              "clue-9",
+              "clue-10"
+            ],
+            "requiredDialogueIds": [
+              "dlg-9",
+              "dlg-10"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3",
+      "title": "The Watchmaker\u0027s Paper Trail",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-4",
+          "title": "A Cramped Watchmaker\u0027s Arcade",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/scenes/scene-4.png",
+          "description": "Bellweather\u0027s late-night arcade smells of brass filings, lamp oil, and wet wool. Among repair slips and specialty orders, the swan\u0027s supposed prophecy begins to look manufactured.",
+          "itemIds": [
+            "item-9"
+          ],
+          "characterIds": [
+            "char-2",
+            "char-3"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-19",
+              "type": "ITEM",
+              "targetId": "item-9",
+              "x": 48,
+              "y": 66,
+              "width": 11,
+              "height": 7,
+              "zIndex": 1,
+              "label": "Workshop invoice",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-20",
+              "type": "CHARACTER",
+              "targetId": "char-2",
+              "x": 29,
+              "y": 48,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Orin Vale",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-21",
+              "type": "CHARACTER",
+              "targetId": "char-3",
+              "x": 71,
+              "y": 48,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Professor Selda Morcant",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-4",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "item",
+                "id": "item-9",
+                "x": 718,
+                "y": 500,
+                "width": 66,
+                "height": 62,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "central wooden workbench tabletop directly below the arched window",
+                "lighting": "warm amber overhead lamp glow with cool bluish window fill across the tabletop",
+                "perspective": "straight-on view with tabletop visible from a shallow top-down angle",
+                "depth": 7,
+                "reason": "A folded invoice physically belongs on the watchmaker\u0027s central workbench among repair papers and orders, and the surface is fully visible. Verification: Cutout is more upright than the planned wide rectangle; scaled to its actual folded-invoice aspect while staying centered on the same workbench tabletop."
+              },
+              {
+                "type": "npc",
+                "id": "char-2",
+                "x": 985,
+                "y": 720,
+                "width": 120,
+                "height": 300,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible stone floor in front of the large right-side drawer cabinet and cubby shelves",
+                "lighting": "warm amber oil-lamp light from above with cool blue-green fill from the window and street arch; shadows fall low across the stone floor",
+                "perspective": "straight-on pixel-art side view with a slight top-down view of the floor plane",
+                "depth": 12,
+                "reason": "Orin can stand clear of the player spawn area while appearing associated with the watchmaker cabinets and precision drawers behind him. Verification: Full-body sprite fits the planned floor slot with feet aligned to the stone floor and clear separation from surrounding furniture."
+              },
+              {
+                "type": "npc",
+                "id": "char-3",
+                "x": 1265,
+                "y": 720,
+                "width": 115,
+                "height": 290,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible stone floor between the large parts cabinet and the glass-front display cupboard",
+                "lighting": "warm amber light from the nearby hanging lamp above the right arcade bay, with dim teal ambient spill from the shop windows",
+                "perspective": "straight-on pixel-art side view with a slight top-down view of the floor plane",
+                "depth": 13,
+                "reason": "The professor has open floor space beside the display case, separate from Orin and away from both exits, suitable for examining the mechanical stock. Verification: Full-body sprite fits the planned right-side floor slot with feet at floor level and remains clear of the display cupboard and door."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Bellweather Canal Docks",
+                "hotspot": {
+                  "x": 24,
+                  "y": 142,
+                  "width": 218,
+                  "height": 470
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-scene-5",
+                "targetSceneId": "scene-5",
+                "label": "Return to the Exhibition Gallery",
+                "hotspot": {
+                  "x": 1392,
+                  "y": 306,
+                  "width": 98,
+                  "height": 284
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-9",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-9.png",
+                "position": {
+                  "x": 718,
+                  "y": 500,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 66,
+                  "height": 62
+                },
+                "hotspot": {
+                  "x": 685,
+                  "y": 469,
+                  "width": 66,
+                  "height": 62
+                },
+                "reservedSlot": {
+                  "x": 685,
+                  "y": 469,
+                  "width": 66,
+                  "height": 62
+                },
+                "anchor": "center",
+                "depth": 7
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-2",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-2-scene-4-sprite.png",
+                "position": {
+                  "x": 985,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 120,
+                  "height": 300
+                },
+                "hotspot": {
+                  "x": 925,
+                  "y": 420,
+                  "width": 120,
+                  "height": 300
+                },
+                "reservedSlot": {
+                  "x": 925,
+                  "y": 420,
+                  "width": 120,
+                  "height": 300
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 12
+              },
+              {
+                "characterId": "char-3",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-3-scene-4-sprite.png",
+                "position": {
+                  "x": 1265,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 115,
+                  "height": 290
+                },
+                "hotspot": {
+                  "x": 1207.5,
+                  "y": 430,
+                  "width": 115,
+                  "height": 290
+                },
+                "reservedSlot": {
+                  "x": 1207.5,
+                  "y": 430,
+                  "width": 115,
+                  "height": 290
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 13
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Bellweather Canal Docks",
+                "hotspot": {
+                  "x": 24,
+                  "y": 142,
+                  "width": 218,
+                  "height": 470
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-scene-5",
+                "targetSceneId": "scene-5",
+                "label": "Return to the Exhibition Gallery",
+                "hotspot": {
+                  "x": 1392,
+                  "y": 306,
+                  "width": 98,
+                  "height": 284
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-9"
+            ],
+            "requiredClueIds": [
+              "clue-11"
+            ],
+            "requiredDialogueIds": [
+              "dlg-11",
+              "dlg-12"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-4",
+      "title": "The Swan Opened",
+      "order": 4,
+      "scenes": [
+        {
+          "sceneId": "scene-5",
+          "title": "Return to the Exhibition Gallery",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/scenes/scene-5.png",
+          "description": "The guests are gathered again beneath the glass dome. With the swan\u0027s base opened and the night nearly spent, every earlier statement can be tested against the mechanism and the canal trail.",
+          "itemIds": [
+            "item-10"
+          ],
+          "characterIds": [
+            "char-1",
+            "char-4",
+            "char-5"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-22",
+              "type": "ITEM",
+              "targetId": "item-10",
+              "x": 53,
+              "y": 55,
+              "width": 12,
+              "height": 9,
+              "zIndex": 1,
+              "label": "Swan base music box",
+              "requiredClueIds": [
+                "clue-5"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-23",
+              "type": "CHARACTER",
+              "targetId": "char-1",
+              "x": 25,
+              "y": 48,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Lady Maribel Quince",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-24",
+              "type": "CHARACTER",
+              "targetId": "char-4",
+              "x": 43,
+              "y": 50,
+              "width": 7,
+              "height": 17,
+              "zIndex": 1,
+              "label": "Pip Tallow",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-25",
+              "type": "CHARACTER",
+              "targetId": "char-5",
+              "x": 78,
+              "y": 48,
+              "width": 8,
+              "height": 18,
+              "zIndex": 1,
+              "label": "Captain Rusk Fen",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-5",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "item",
+                "id": "item-10",
+                "x": 803,
+                "y": 500,
+                "width": 96,
+                "height": 84,
+                "anchor": "center",
+                "facing": "left",
+                "surface": "opened front compartment shelf of the central gilded swan automaton pedestal",
+                "lighting": "strong warm golden chandelier light directly above the swan base, edged by cool moonlit reflections from the glass dome",
+                "perspective": "front-facing object on the central display pedestal in the same straight-on pixel-art perspective as the gallery",
+                "depth": 7,
+                "reason": "The music box compartment belongs physically inside the opened pedestal base beneath the automaton swan, centered on the visible front shelf where the mechanism was revealed. Verification: Full swan-base cutout needed a taller, narrower scale and slight upward alignment; it remains centered on the opened front compartment shelf."
+              },
+              {
+                "type": "npc",
+                "id": "char-1",
+                "x": 415,
+                "y": 720,
+                "width": 144,
+                "height": 275,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "visible wooden gallery floor in front of the left display cabinet",
+                "lighting": "warm amber light from the left wall sconces and central chandelier, with cool blue moonlight from the glass dome behind",
+                "perspective": "straight-on side-view adventure game perspective with a slightly receding wooden floor toward the central swan platform",
+                "depth": 12,
+                "reason": "This spot is clear of the player spawn area, leaves the left exit unobstructed, and places the patron near the exhibition displays where she can face the gathered group. Verification: Feet sit on the wooden floor in the planned left slot; width corrected to match the full-body cutout aspect."
+              },
+              {
+                "type": "npc",
+                "id": "char-4",
+                "x": 930,
+                "y": 720,
+                "width": 114,
+                "height": 220,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible wooden floor just right of the central swan platform",
+                "lighting": "warm overhead chandelier glow on the front, mixed with cool blue backlight from the tall glass windows",
+                "perspective": "straight-on side-view adventure game perspective with floorboards receding toward the rear platform",
+                "depth": 13,
+                "reason": "The apprentice stands close to the opened automaton base without covering the item, making sense for a mechanic explaining the mechanism while keeping both spawn points clear. Verification: Feet sit on the floor just right of the swan platform; scale corrected slightly wider and shorter to match the cutout without covering the item."
+              },
+              {
+                "type": "npc",
+                "id": "char-5",
+                "x": 1215,
+                "y": 720,
+                "width": 136,
+                "height": 255,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible wooden gallery floor before the right shelving and counter",
+                "lighting": "warm amber light from the right wall lamps and chandelier, with faint cool moonlight from the glass dome windows",
+                "perspective": "straight-on side-view adventure game perspective with a central vanishing direction toward the swan display",
+                "depth": 14,
+                "reason": "This open floor area suits the security officer watching the others from the right side and does not overlap the stairs, cabinets, item, or spawn positions. Verification: Feet align with the wooden floor in the planned right-side slot; width adjusted to preserve the officer cutout proportions."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-4",
+                "targetSceneId": "scene-4",
+                "label": "A Cramped Watchmaker\u0027s Arcade",
+                "hotspot": {
+                  "x": 38,
+                  "y": 320,
+                  "width": 160,
+                  "height": 350
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-10",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-10.png",
+                "position": {
+                  "x": 803,
+                  "y": 500,
+                  "anchor": "center"
+                },
+                "size": {
+                  "width": 96,
+                  "height": 84
+                },
+                "hotspot": {
+                  "x": 755,
+                  "y": 458,
+                  "width": 96,
+                  "height": 84
+                },
+                "reservedSlot": {
+                  "x": 755,
+                  "y": 458,
+                  "width": 96,
+                  "height": 84
+                },
+                "anchor": "center",
+                "depth": 7
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-1",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-1-scene-5-sprite.png",
+                "position": {
+                  "x": 415,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 275
+                },
+                "hotspot": {
+                  "x": 343,
+                  "y": 445,
+                  "width": 144,
+                  "height": 275
+                },
+                "reservedSlot": {
+                  "x": 343,
+                  "y": 445,
+                  "width": 144,
+                  "height": 275
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 12
+              },
+              {
+                "characterId": "char-4",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-4-scene-5-sprite.png",
+                "position": {
+                  "x": 930,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 114,
+                  "height": 220
+                },
+                "hotspot": {
+                  "x": 873,
+                  "y": 500,
+                  "width": 114,
+                  "height": 220
+                },
+                "reservedSlot": {
+                  "x": 873,
+                  "y": 500,
+                  "width": 114,
+                  "height": 220
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 13
+              },
+              {
+                "characterId": "char-5",
+                "asset": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-5-scene-5-sprite.png",
+                "position": {
+                  "x": 1215,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 136,
+                  "height": 255
+                },
+                "hotspot": {
+                  "x": 1147,
+                  "y": 465,
+                  "width": 136,
+                  "height": 255
+                },
+                "reservedSlot": {
+                  "x": 1147,
+                  "y": 465,
+                  "width": 136,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-4",
+                "targetSceneId": "scene-4",
+                "label": "A Cramped Watchmaker\u0027s Arcade",
+                "hotspot": {
+                  "x": 38,
+                  "y": 320,
+                  "width": 160,
+                  "height": 350
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-10"
+            ],
+            "requiredClueIds": [
+              "clue-12"
+            ],
+            "requiredDialogueIds": [
+              "dlg-13",
+              "dlg-14",
+              "dlg-15"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-1",
+      "name": "Lady Maribel Quince",
+      "role": "Patron of the exhibition",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-1-portrait.png",
+      "description": "Elegant, commanding, and visibly terrified that the evening\u0027s disaster will ruin both her reputation and her fortune."
+    },
+    {
+      "characterId": "char-2",
+      "name": "Orin Vale",
+      "role": "Rival automaton maker",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-2-portrait.png",
+      "description": "A polished inventor with old grievances against the missing man and the misfortune of being named by the swan\u0027s message."
+    },
+    {
+      "characterId": "char-3",
+      "name": "Professor Selda Morcant",
+      "role": "Scholar of mechanical logic",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-3-portrait.png",
+      "description": "Precise, severe, and more offended by impossible machinery than by personal insult."
+    },
+    {
+      "characterId": "char-4",
+      "name": "Pip Tallow",
+      "role": "Inventor\u0027s apprentice",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-4-portrait.png",
+      "description": "A nervous young mechanic who knows Halcyon House\u0027s gears, ducts, and service passages better than any guest."
+    },
+    {
+      "characterId": "char-5",
+      "name": "Captain Rusk Fen",
+      "role": "Canal security officer",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/characters/char-5-portrait.png",
+      "description": "A square-shouldered officer hired to keep order at the gala, carrying a notebook full of clean conclusions and carefully omitted inconveniences."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "name": "Swan\u0027s Prophecy Strip",
+      "description": "A narrow ribbon of cream paper scratched by the automaton\u0027s silver beak.",
+      "inspectText": "The message reads, \u0027ORIN VALE SILENCES THE HAND THAT WOUND THE SWAN.\u0027 Beneath the fresh letters are faint pressure marks from an earlier alignment test, as if the strip was fed into a prepared writing action rather than composed spontaneously.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-1.png",
+      "unlockClueIds": [
+        "clue-1"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-2",
+      "name": "Fuse Alcove Lever",
+      "description": "A brass-handled lighting lever hidden behind a velvet curtain near the security alcove.",
+      "inspectText": "The lever is warm from recent handling and dust has been rubbed from only one side. It could have cut the gallery lamps without touching the main house controls.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-2.png",
+      "unlockClueIds": [
+        "clue-2"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-3",
+      "name": "Patron\u0027s Guest Ledger",
+      "description": "Lady Quince\u0027s gilt-edged ledger of invitees, investments, and seating arrangements.",
+      "inspectText": "Several investors are marked with anxious sums beside their names. Lady Quince stood to lose heavily if the demonstration failed, though the ledger places her at the front receiving line until the blackout.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-3.png",
+      "unlockClueIds": [
+        "clue-3"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-4",
+      "name": "Scored Workroom Latch",
+      "description": "The inner latch of the locked workroom door, marked near the staple.",
+      "inspectText": "Fine scratches run downward from the latch, and a bent sliver of blackened wire lies in the jamb. The bolt could be dropped from outside by someone patient enough to thread the wire through the gap.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-4.png",
+      "unlockClueIds": [
+        "clue-4"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-5",
+      "name": "Empty Message-Cylinder Tray",
+      "description": "A velvet-lined tray labeled for the swan\u0027s interchangeable instruction cylinders.",
+      "inspectText": "One slot is empty and its dust outline is clean. The missing cylinder would control the beak\u0027s writing pattern; swapping it would change the message without rebuilding the automaton.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-5.png",
+      "unlockClueIds": [
+        "clue-5"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-6",
+      "name": "Apprentice\u0027s Oil Rag",
+      "description": "A rag smelling of violet machine oil, tucked under the workbench.",
+      "inspectText": "The rag bears Pip\u0027s stitched initials and oil fresh enough to suggest recent work. A drying smear, however, matches the eight o\u0027clock maintenance oil rather than the nine o\u0027clock disturbance.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-6.png",
+      "unlockClueIds": [
+        "clue-6"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-7",
+      "name": "Muddy Uniform Bootprint",
+      "description": "A wet print preserved in canal silt beside the private hatch.",
+      "inspectText": "The sole pattern is standard canal-security issue, but the mud contains bright brass dust of the kind shaken from a watchmaker\u0027s file tray. The print points from the service hatch toward the landing, not the street.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-7.png",
+      "unlockClueIds": [
+        "clue-9"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-8",
+      "name": "Knotted Mooring Rope",
+      "description": "A short rope left around a dock cleat in a neat, uncommon knot.",
+      "inspectText": "The knot is a double lock-bight used by Bellweather canal officers to secure silent patrol launches. Its tar is still tacky from recent rain exposure.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-8.png",
+      "unlockClueIds": [
+        "clue-10"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-9",
+      "name": "Invoice for a Blank Cylinder",
+      "description": "A folded arcade receipt for precision engraving on an unmarked swan cylinder.",
+      "inspectText": "The order is signed \u0027R. Fen\u0027 and dated three days before the gala. It requests a blank cylinder cut to Halcyon House specifications and paid for in canal-security scrip.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-9.png",
+      "unlockClueIds": [
+        "clue-11"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-10",
+      "name": "Swan Base Music Box",
+      "description": "A small locked compartment beneath the automaton\u0027s pedestal, opened after identifying the removable cylinder system.",
+      "inspectText": "Inside the music-box drum is a thin ledger page in the inventor\u0027s hand. It records stolen escapement jewels moved by canal patrol and names Captain Rusk Fen as the officer taking a percentage.",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-clockwork-swan-affair/items/item-10.png",
+      "unlockClueIds": [
+        "clue-12"
+      ],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-1",
+      "title": "The Swan Accuses Orin",
+      "content": "The public message names Orin Vale, but the pressure marks suggest a prearranged writing action rather than a genuine prophecy or spontaneous accusation.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": true,
+      "source": "item-1",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-2",
+      "title": "Blackout from the Security Alcove",
+      "content": "The lamps were cut from a concealed lever near the hired security post, not by a general power failure elsewhere in the house.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-2",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-3",
+      "title": "Lady Quince\u0027s Financial Peril",
+      "content": "Lady Quince had a strong reason to dread a failed demonstration, making her appear suspicious, but the ledger also supports her presence in public view during the crucial minute.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": true,
+      "source": "item-3",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-4",
+      "title": "Locked Room Faked by Wire",
+      "content": "The workroom was not proof that the inventor vanished alone; the latch could be set from the corridor after someone removed him through another route.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-4",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-5",
+      "title": "Removable Message Cylinder",
+      "content": "The swan\u0027s writing was governed by a removable cylinder, so a forged accusation could be installed before the demonstration by someone with access or a duplicate part.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-5",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-6",
+      "title": "Pip\u0027s Oil Rag Is Misleading",
+      "content": "Pip handled the swan earlier, but the oil timing points to scheduled maintenance rather than the blackout interval.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": true,
+      "source": "item-6",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-7",
+      "title": "The Message Could Not Be Composed Live",
+      "content": "Professor Morcant confirms that the swan cannot reason, improvise, or identify a culprit; it can only execute mechanical instructions prepared in advance.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-3",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-8",
+      "title": "Rusk Claims the Canal Gate Stayed Locked",
+      "content": "Captain Fen states that no one used the private canal gate during the blackout and that he personally checked it afterward.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-5",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-9",
+      "title": "Security Bootprint at the Hatch",
+      "content": "A canal-security bootprint links the service hatch to recent dock use, contradicting the claim that the gate remained untouched.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-7",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-10",
+      "title": "Officer\u0027s Lock-Knot on the Rope",
+      "content": "The rope was tied with a canal officer\u0027s silent-launch knot, indicating an official boat or officer\u0027s hand was involved in the inventor\u0027s removal.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-8",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-11",
+      "title": "R. Fen Ordered a Blank Cylinder",
+      "content": "A blank swan cylinder was ordered in Captain Fen\u0027s name before the gala, providing the means to install the false accusation against Orin.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-9",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-12",
+      "title": "The Inventor\u0027s Ledger Names Fen",
+      "content": "The hidden ledger gives Fen a motive: the inventor had documented a canal-security smuggling scheme and intended to expose it once his investors were assembled.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-10",
+      "sourceType": "item"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-1",
+      "characterId": "char-1",
+      "question": "What did you stand to gain from tonight\u0027s demonstration?",
+      "answer": "Gain? Survival, more like. If the swan charmed the investors, Halcyon House would breathe again. If it failed, I would be ruined in silk instead of sackcloth.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-2",
+      "characterId": "char-2",
+      "question": "The swan named you. Why would the inventor fear you?",
+      "answer": "Because he enjoyed humiliating rivals in public. I disliked the man, certainly, but murder by parlor toy is not my style. I never touched the swan tonight.",
+      "requiredClueIds": [
+        "clue-1"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-3",
+      "characterId": "char-3",
+      "question": "Could the swan have chosen that accusation by itself?",
+      "answer": "Absolutely not. A mechanism may astonish fools, but it does not acquire conscience in a thunderclap. If it wrote those words, those words were arranged for it beforehand.",
+      "requiredClueIds": [
+        "clue-1"
+      ],
+      "unlockClueIds": [
+        "clue-7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-4",
+      "characterId": "char-4",
+      "question": "Where were you when the lamps failed?",
+      "answer": "Sent off for violet oil from the workroom shelf, sir. Master said I was hovering. When I came back, everyone was shouting and the swan had already written.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-5",
+      "characterId": "char-5",
+      "question": "What did your security sweep find?",
+      "answer": "Nothing useful. The canal gate stayed locked, the crowd stayed inside, and the blackout was over before a thief could cross the gallery. I logged it plainly.",
+      "requiredClueIds": [],
+      "unlockClueIds": [
+        "clue-8"
+      ]
+    },
+    {
+      "dialogueId": "dlg-6",
+      "characterId": "char-4",
+      "question": "Your oil rag was found in the workroom. Did you return there during the blackout?",
+      "answer": "No. That rag is mine, but I used it before the guests arrived. Master sent me away just before nine, and I saw Captain Fen near the service corridor as I left.",
+      "requiredClueIds": [
+        "clue-6"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-7",
+      "characterId": "char-3",
+      "question": "What does the empty cylinder tray tell you?",
+      "answer": "That the swan\u0027s \u0027voice\u0027 was portable. A practiced hand could replace a message cylinder in less than two minutes, especially while everyone stared at darkness.",
+      "requiredClueIds": [
+        "clue-5"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-8",
+      "characterId": "char-1",
+      "question": "Who had permission to move through the service side of the house?",
+      "answer": "The servants, Pip, my late-arriving caterer, and Captain Fen\u0027s men. The captain requested the route himself, claiming it let him guard the canal gate discreetly.",
+      "requiredClueIds": [
+        "clue-4"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-9",
+      "characterId": "char-5",
+      "question": "How do you explain a canal-security bootprint by the hatch?",
+      "answer": "My officers checked the landing before the gala. A print proves diligence, not guilt. As I said, no boat took anyone from my gate tonight.",
+      "requiredClueIds": [
+        "clue-8",
+        "clue-9"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-10",
+      "characterId": "char-4",
+      "question": "Do you recognize this knot?",
+      "answer": "That\u0027s not a house knot. Canal officers use it so a launch can be freed without a splash. Master always said it was clever and dishonest-looking.",
+      "requiredClueIds": [
+        "clue-10"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-11",
+      "characterId": "char-2",
+      "question": "This invoice is for a swan cylinder. Is it yours?",
+      "answer": "No. My name is Orin Vale, not R. Fen, and I pay in guild notes, not canal-security scrip. Someone wanted my disgrace to be the loudest fact in the room.",
+      "requiredClueIds": [
+        "clue-11"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-12",
+      "characterId": "char-3",
+      "question": "Would this blank cylinder be enough to forge the swan\u0027s message?",
+      "answer": "More than enough. Cut the pins to spell Orin\u0027s name, set the starter cam, and the swan becomes a silver-tongued liar on schedule.",
+      "requiredClueIds": [
+        "clue-5",
+        "clue-11"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-13",
+      "characterId": "char-1",
+      "question": "Did the inventor ever mention exposing a crime tonight?",
+      "answer": "Only in hints. He said the swan would bring more than investment to light and warned me not to let Captain Fen handle the machine\u0027s base. I thought it was artistic temperament.",
+      "requiredClueIds": [
+        "clue-12"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-14",
+      "characterId": "char-5",
+      "question": "The rope, bootprint, and invoice all point to you. What was in your official report?",
+      "answer": "My report contained what would prevent panic. Yes, I ordered a cylinder as a security test. Yes, I checked the dock. None of that proves I harmed the inventor.",
+      "requiredClueIds": [
+        "clue-9",
+        "clue-10",
+        "clue-11"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-15",
+      "characterId": "char-4",
+      "question": "Why hide a ledger inside the swan?",
+      "answer": "Master trusted gears more than people. He said if anything happened, the swan would keep his true message safe where a thief would not think to read beneath the music.",
+      "requiredClueIds": [
+        "clue-12"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-5",
+    "motive": "Captain Rusk Fen was running stolen precision jewels through canal-security patrols. The inventor discovered the scheme, hid a ledger inside the swan\u0027s base, and planned to expose Fen before wealthy witnesses after the demonstration secured public attention.",
+    "method": "Fen used his security access to reach the fuse alcove, cut the gallery lamps, swap in a prepared message cylinder accusing Orin Vale, and remove the inventor through the service hatch to a waiting canal launch. He then reset the workroom latch from outside with wire, reported the canal gate unused, and relied on the forged prophecy to send suspicion toward Orin while the inventor was held at a patrol boathouse.",
+    "requiredEvidenceIds": [
+      "clue-2",
+      "clue-4",
+      "clue-5",
+      "clue-9",
+      "clue-10",
+      "clue-11",
+      "clue-12"
+    ],
+    "winEnding": "SirLocked and his companion reconstruct the blackout minute, open the swan\u0027s base, and confront Fen with the cylinder invoice, officer\u0027s knot, dock trace, and hidden ledger. Fen\u0027s composure fails when his own security report contradicts the physical trail. The inventor is recovered from the patrol boathouse before dawn, Orin is cleared, and the Clockwork Swan earns fame not as a prophet, but as the machine that preserved its maker\u0027s warning.",
+    "failEnding": "Without the full chain of mechanism, dock evidence, and motive, the accusation against Orin remains persuasive enough to divide the guests. Fen files a polished report, the inventor is moved before the patrol boathouse can be searched, and the swan\u0027s false prophecy becomes Bellweather gossip rather than proof."
+  },
+  "createdAt": "2026-06-17T07:34:50.3526562Z",
+  "updatedAt": "2026-06-17T07:34:50.3526563Z"
+}

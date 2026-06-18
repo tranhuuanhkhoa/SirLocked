@@ -1,0 +1,18 @@
+{
+  "culpritId": "char-3",
+  "motive": "Edda Vale altered pearl-duty entries to cover money she had diverted from harbor fees while trying to preserve her career and pay family debts. When the tidewarden discovered the irregularities before the festival audit, she stole the ledger to prevent exposure.",
+  "method": "Edda used her duplicate ledger key and office access to stage a locked-room disappearance. She made the wet footprint with harbor-issue boots, unchained the ledger without forcing the clasp, lured the tidewarden to the lighthouse dry store, and rigged the restored bellhouse striker with a wax-held maintenance pin so the bell would ring twelve times after she had returned to the market. During the confusion, she crossed the low-tide causeway with her blue signal lantern and hid the ledger in her own oilskin satchel.",
+  "requiredEvidenceIds": [
+    "clue-3",
+    "clue-4",
+    "clue-5",
+    "clue-6",
+    "clue-8",
+    "clue-9",
+    "clue-10",
+    "clue-11",
+    "clue-12"
+  ],
+  "winEnding": "SirLocked and the companion confront Edda with the duplicate-key evidence, the delayed striker, Oren\u2019s blue-lantern sighting, and the ledger in her satchel. Edda yields, the tidewarden is freed from the lighthouse dry store, and Gullmarsh\u2019s bell is restored to warning only of fog, not deceit.",
+  "failEnding": "Without connecting the bell mechanism, causeway timing, and ledger alterations, suspicion scatters among the merchant, musician, and boatwright. The tide returns over the causeway, Edda has time to move the ledger again, and Gullmarsh wakes to rumor instead of justice."
+}

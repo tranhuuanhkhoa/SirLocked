@@ -1,0 +1,154 @@
+[
+  {
+    "dialogueId": "dlg-1",
+    "characterId": "char-1",
+    "question": "What did you stand to gain from tonight\u0027s demonstration?",
+    "answer": "Gain? Survival, more like. If the swan charmed the investors, Halcyon House would breathe again. If it failed, I would be ruined in silk instead of sackcloth.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-2",
+    "characterId": "char-2",
+    "question": "The swan named you. Why would the inventor fear you?",
+    "answer": "Because he enjoyed humiliating rivals in public. I disliked the man, certainly, but murder by parlor toy is not my style. I never touched the swan tonight.",
+    "requiredClueIds": [
+      "clue-1"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-3",
+    "characterId": "char-3",
+    "question": "Could the swan have chosen that accusation by itself?",
+    "answer": "Absolutely not. A mechanism may astonish fools, but it does not acquire conscience in a thunderclap. If it wrote those words, those words were arranged for it beforehand.",
+    "requiredClueIds": [
+      "clue-1"
+    ],
+    "unlockClueIds": [
+      "clue-7"
+    ]
+  },
+  {
+    "dialogueId": "dlg-4",
+    "characterId": "char-4",
+    "question": "Where were you when the lamps failed?",
+    "answer": "Sent off for violet oil from the workroom shelf, sir. Master said I was hovering. When I came back, everyone was shouting and the swan had already written.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-5",
+    "characterId": "char-5",
+    "question": "What did your security sweep find?",
+    "answer": "Nothing useful. The canal gate stayed locked, the crowd stayed inside, and the blackout was over before a thief could cross the gallery. I logged it plainly.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-8"
+    ]
+  },
+  {
+    "dialogueId": "dlg-6",
+    "characterId": "char-4",
+    "question": "Your oil rag was found in the workroom. Did you return there during the blackout?",
+    "answer": "No. That rag is mine, but I used it before the guests arrived. Master sent me away just before nine, and I saw Captain Fen near the service corridor as I left.",
+    "requiredClueIds": [
+      "clue-6"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-7",
+    "characterId": "char-3",
+    "question": "What does the empty cylinder tray tell you?",
+    "answer": "That the swan\u0027s \u0027voice\u0027 was portable. A practiced hand could replace a message cylinder in less than two minutes, especially while everyone stared at darkness.",
+    "requiredClueIds": [
+      "clue-5"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-8",
+    "characterId": "char-1",
+    "question": "Who had permission to move through the service side of the house?",
+    "answer": "The servants, Pip, my late-arriving caterer, and Captain Fen\u0027s men. The captain requested the route himself, claiming it let him guard the canal gate discreetly.",
+    "requiredClueIds": [
+      "clue-4"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-9",
+    "characterId": "char-5",
+    "question": "How do you explain a canal-security bootprint by the hatch?",
+    "answer": "My officers checked the landing before the gala. A print proves diligence, not guilt. As I said, no boat took anyone from my gate tonight.",
+    "requiredClueIds": [
+      "clue-8",
+      "clue-9"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-10",
+    "characterId": "char-4",
+    "question": "Do you recognize this knot?",
+    "answer": "That\u0027s not a house knot. Canal officers use it so a launch can be freed without a splash. Master always said it was clever and dishonest-looking.",
+    "requiredClueIds": [
+      "clue-10"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-11",
+    "characterId": "char-2",
+    "question": "This invoice is for a swan cylinder. Is it yours?",
+    "answer": "No. My name is Orin Vale, not R. Fen, and I pay in guild notes, not canal-security scrip. Someone wanted my disgrace to be the loudest fact in the room.",
+    "requiredClueIds": [
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-12",
+    "characterId": "char-3",
+    "question": "Would this blank cylinder be enough to forge the swan\u0027s message?",
+    "answer": "More than enough. Cut the pins to spell Orin\u0027s name, set the starter cam, and the swan becomes a silver-tongued liar on schedule.",
+    "requiredClueIds": [
+      "clue-5",
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-13",
+    "characterId": "char-1",
+    "question": "Did the inventor ever mention exposing a crime tonight?",
+    "answer": "Only in hints. He said the swan would bring more than investment to light and warned me not to let Captain Fen handle the machine\u0027s base. I thought it was artistic temperament.",
+    "requiredClueIds": [
+      "clue-12"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-14",
+    "characterId": "char-5",
+    "question": "The rope, bootprint, and invoice all point to you. What was in your official report?",
+    "answer": "My report contained what would prevent panic. Yes, I ordered a cylinder as a security test. Yes, I checked the dock. None of that proves I harmed the inventor.",
+    "requiredClueIds": [
+      "clue-9",
+      "clue-10",
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-15",
+    "characterId": "char-4",
+    "question": "Why hide a ledger inside the swan?",
+    "answer": "Master trusted gears more than people. He said if anything happened, the swan would keep his true message safe where a thief would not think to read beneath the music.",
+    "requiredClueIds": [
+      "clue-12"
+    ],
+    "unlockClueIds": []
+  }
+]

@@ -1,0 +1,88 @@
+{
+  "visualStyle": "cinematic detective",
+  "cover": {
+    "target": "/assets/cases/observatory-heist.jpg",
+    "prompt": "cinematic detective cover for: The Observatory Heist. During a fierce thunderstorm, the priceless Starfire Diamond is stolen from the locked observatory vault. Players must investigate the scene, interrogate suspects, and uncover the truth behind the theft."
+  },
+  "backgrounds": [
+    {
+      "sceneId": "scene-1",
+      "target": "/assets/scenes/vault-room.jpg",
+      "prompt": "cinematic detective background, The Vault Room: The vault door is wide open. The diamond is missing. Rain hammers against the dome above. You see a broken glass case, a wet footprint, and a strange tool on the floor."
+    },
+    {
+      "sceneId": "scene-2",
+      "target": "/assets/scenes/lounge.jpg",
+      "prompt": "cinematic detective background, Observatory Lounge: The suspects are gathered. Dr. Vega looks nervous, Janitor Moore is defensive, and Visitor Chen seems calm. A coffee cup sits on the table."
+    },
+    {
+      "sceneId": "scene-3",
+      "target": "/assets/scenes/roof.jpg",
+      "prompt": "cinematic detective background, Roof Access: The storm has passed. You find a wet rope and a small cloth fragment near the roof hatch. A faint trail leads away."
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-1",
+      "target": "/assets/characters/dr-vega.jpg",
+      "prompt": "cinematic detective character portrait, Dr. Vega, Astronomer: The head astronomer, nervous and sweating. Claims he was in his office during the theft."
+    },
+    {
+      "characterId": "char-2",
+      "target": "/assets/characters/janitor-moore.jpg",
+      "prompt": "cinematic detective character portrait, Janitor Moore, Janitor: The janitor, defensive and shifty. Says he was cleaning the restrooms."
+    },
+    {
+      "characterId": "char-3",
+      "target": "/assets/characters/visitor-chen.jpg",
+      "prompt": "cinematic detective character portrait, Visitor Chen, Visitor: A calm visitor who claims to be a tourist. He was in the gift shop."
+    },
+    {
+      "characterId": "char-4",
+      "target": "/assets/characters/guard-park.jpg",
+      "prompt": "cinematic detective character portrait, Security Guard Park, Security: The security guard on duty. He was patrolling the perimeter."
+    },
+    {
+      "characterId": "char-5",
+      "target": "/assets/characters/assistant-kim.jpg",
+      "prompt": "cinematic detective character portrait, Assistant Kim, Assistant: Dr. Vega\u0027s assistant, quiet and observant. She was in the library."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "target": "/assets/items/broken-glass.jpg",
+      "prompt": "cinematic detective evidence close-up, Broken glass: Shards from the display case."
+    },
+    {
+      "itemId": "item-2",
+      "target": "/assets/items/wet-footprint.jpg",
+      "prompt": "cinematic detective evidence close-up, Wet footprint: A muddy footprint near the vault."
+    },
+    {
+      "itemId": "item-3",
+      "target": "/assets/items/lockpick-set.jpg",
+      "prompt": "cinematic detective evidence close-up, Lockpick set: A professional lockpick set."
+    },
+    {
+      "itemId": "item-4",
+      "target": "/assets/items/coffee-cup.jpg",
+      "prompt": "cinematic detective evidence close-up, Coffee cup: A half-empty coffee cup with lipstick stain."
+    },
+    {
+      "itemId": "item-5",
+      "target": "/assets/items/visitor-log.jpg",
+      "prompt": "cinematic detective evidence close-up, Visitor log: The sign-in sheet for today."
+    },
+    {
+      "itemId": "item-6",
+      "target": "/assets/items/rope.jpg",
+      "prompt": "cinematic detective evidence close-up, Rope: A wet nylon rope tied to the roof hatch."
+    },
+    {
+      "itemId": "item-7",
+      "target": "/assets/items/cloth-fragment.jpg",
+      "prompt": "cinematic detective evidence close-up, Cloth fragment: A torn piece of fabric caught on the hatch."
+    }
+  ]
+}

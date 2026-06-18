@@ -1,0 +1,302 @@
+[
+  {
+    "clueId": "clue-1",
+    "title": "Compass Cracked Inward",
+    "content": "Venn\u2019s compass was not dropped from a height; its glass was crushed by a hard edge pressing down on it. A fleck of blue sealing wax is trapped beneath the hinge.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-1",
+    "sourceType": "item",
+    "sceneId": "scene-1",
+    "discoverMethod": "item",
+    "visualDescription": "A brass pocket compass lies open on the wet platform boards, its cracked glass catching fog-diffused light.",
+    "inventoryDescription": "Cracked compass with inward damage and a blue wax fleck in the hinge.",
+    "narrativeMeaning": "Venn was forced or knocked against something close at hand on the platform, and the blue wax connects the disappearance to a prepared object rather than a spontaneous flight.",
+    "hintLevel": 2,
+    "tags": [
+      "physical",
+      "wax",
+      "platform"
+    ],
+    "relatedCharacterIds": [
+      "char-1",
+      "char-4"
+    ]
+  },
+  {
+    "clueId": "clue-2",
+    "title": "Scratched Certification Sentence",
+    "content": "Venn\u2019s ceremonial speech has one sentence violently scratched out: \u0027I cannot certify the western sluice under present workmanship.\u0027",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-1",
+    "sourceType": "camera",
+    "sceneId": "scene-1",
+    "discoverMethod": "camera",
+    "visualDescription": "A rain-speckled speech page is pinned beneath a silver paperknife, with one line gouged through so hard the paper is torn.",
+    "inventoryDescription": "Speech page with a destroyed sentence refusing to certify the western sluice.",
+    "narrativeMeaning": "Venn was preparing to expose a problem with Tideglass Quay, giving several people a reason to silence or control him before he spoke.",
+    "hintLevel": 2,
+    "tags": [
+      "motive",
+      "quay",
+      "speech"
+    ],
+    "relatedCharacterIds": [
+      "char-1",
+      "char-3"
+    ]
+  },
+  {
+    "clueId": "clue-3",
+    "title": "Blue Wax on the Platform Rail",
+    "content": "A smear of blue sealing wax is pressed into the underside of the platform rail beside the press pen, shaped like it once held a small wire or cord in place.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-1",
+    "sourceType": "camera",
+    "sceneId": "scene-1",
+    "discoverMethod": "camera",
+    "visualDescription": "Beneath a varnished rail, a thumb-sized blue wax smear glistens where rain has not washed it away.",
+    "inventoryDescription": "Blue wax smear with a narrow groove, found under the platform rail near the press position.",
+    "narrativeMeaning": "The wax was used as a temporary fastener for a prepared mechanism near where the press had access, not merely as an official seal.",
+    "hintLevel": 2,
+    "tags": [
+      "wax",
+      "mechanism",
+      "press"
+    ],
+    "relatedCharacterIds": [
+      "char-1",
+      "char-4"
+    ]
+  },
+  {
+    "clueId": "clue-4",
+    "title": "Salt-Wet Bell Rope",
+    "content": "The chapel bell rope is wet with brine, not rain, and tied with a recent rolling hitch around a thinner cord descending into an old drain channel.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-2",
+    "sourceType": "camera",
+    "sceneId": "scene-2",
+    "discoverMethod": "camera",
+    "visualDescription": "A thick, frayed bell rope hangs beside the stair, darkened with saltwater at the knot while the surrounding floor remains dusty.",
+    "inventoryDescription": "Brine-wet bell rope tied to a thinner cord that runs down into the drainage masonry.",
+    "narrativeMeaning": "The bell was rung remotely through the tower\u2019s drainage route, making the locked tower a trick rather than a miracle.",
+    "hintLevel": 1,
+    "tags": [
+      "method",
+      "bell",
+      "tide"
+    ],
+    "relatedCharacterIds": [
+      "char-5",
+      "char-2"
+    ]
+  },
+  {
+    "clueId": "clue-5",
+    "title": "Fresh Brass Pulley Filings",
+    "content": "New brass filings lie beneath an old beam where a small removable pulley has recently scored the wood. The chapel\u2019s original fittings are iron, not brass.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-2",
+    "sourceType": "camera",
+    "sceneId": "scene-2",
+    "discoverMethod": "camera",
+    "visualDescription": "A dusty beam bears a bright crescent scratch, with gold-colored filings sprinkled on the rotten stair tread below.",
+    "inventoryDescription": "Fresh brass filings from a temporary pulley installed in the bell tower.",
+    "narrativeMeaning": "Someone brought modern gear into the tower, set up a temporary pull system, and removed most of it before the investigation arrived.",
+    "hintLevel": 2,
+    "tags": [
+      "method",
+      "pulley",
+      "preparation"
+    ],
+    "relatedCharacterIds": [
+      "char-5",
+      "char-4"
+    ]
+  },
+  {
+    "clueId": "clue-6",
+    "title": "Old Diver Prints in Tower Dust",
+    "content": "Heavy boot prints in the tower dust appear to match a diver\u2019s hobnailed soles, but the dust has settled inside the impressions and the edges are softened with age.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "scene-2",
+    "sourceType": "camera",
+    "sceneId": "scene-2",
+    "discoverMethod": "camera",
+    "visualDescription": "Broad, hobnailed footprints cross the dusty chapel floor, dramatic but softened under a grey film of settled dust.",
+    "inventoryDescription": "Old diver-style boot prints in the chapel tower dust.",
+    "narrativeMeaning": "The prints tempt suspicion toward Jonah Pike, but their age means they predate the disappearance and cannot explain the fresh bell-ringing trick.",
+    "hintLevel": 1,
+    "tags": [
+      "red-herring",
+      "footprints",
+      "tower"
+    ],
+    "relatedCharacterIds": [
+      "char-2",
+      "char-5"
+    ]
+  },
+  {
+    "clueId": "clue-7",
+    "title": "Culvert Hatch Beneath the Platform",
+    "content": "Venn\u2019s revised plan shows an inspection hatch directly under the unveiling platform, linked by a maintenance culvert to the Gull Street warehouses and the unfinished sluice chamber.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-3",
+    "sourceType": "camera",
+    "sceneId": "scene-3",
+    "discoverMethod": "camera",
+    "visualDescription": "A large engineering plan is spread over Venn\u2019s desk, with a red-pencil circle around the platform footprint and a narrow route marked beneath it.",
+    "inventoryDescription": "Harbor plan showing a hidden hatch and maintenance culvert under the unveiling platform.",
+    "narrativeMeaning": "Venn did not need to vanish through the crowd; he could have been dropped or forced into a concealed route beneath the platform during the bell distraction.",
+    "hintLevel": 2,
+    "tags": [
+      "route",
+      "platform",
+      "culvert"
+    ],
+    "relatedCharacterIds": [
+      "char-1",
+      "char-3",
+      "char-4"
+    ]
+  },
+  {
+    "clueId": "clue-8",
+    "title": "Illustrated Supplement Access Note",
+    "content": "A Harbor Works ledger records that Tomas Reed requested tower elevations and quay cutaway drawings three weeks earlier for an illustrated newspaper supplement. Edda\u2019s initials approve chapel access for \u0027sketching only.\u0027",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-3",
+    "sourceType": "camera",
+    "sceneId": "scene-3",
+    "discoverMethod": "camera",
+    "visualDescription": "An open ledger page shows neat columns of permit requests, with Tomas Reed\u2019s name beside chapel elevations and Tideglass cutaways.",
+    "inventoryDescription": "Permit ledger showing Tomas had legitimate early access to chapel and quay plans.",
+    "narrativeMeaning": "Tomas had the knowledge needed to plan both the bell trick and the underground route before the unveiling.",
+    "hintLevel": 2,
+    "tags": [
+      "access",
+      "plans",
+      "contradiction"
+    ],
+    "relatedCharacterIds": [
+      "char-4",
+      "char-5"
+    ]
+  },
+  {
+    "clueId": "clue-9",
+    "title": "Blue Wax on Warehouse Lock",
+    "content": "The lock of warehouse C-7 bears the same blue wax, but underneath it is a torn newspaper parcel label rather than a municipal seal.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-4",
+    "sourceType": "camera",
+    "sceneId": "scene-4",
+    "discoverMethod": "camera",
+    "visualDescription": "A black warehouse lock is daubed with blue wax; a scrap of printed parcel paper clings beneath the wax like it was sealed in haste.",
+    "inventoryDescription": "Blue wax on a Gull Street warehouse lock, mixed with a torn newspaper parcel label.",
+    "narrativeMeaning": "The blue wax is not exclusively civic property. It links the prepared route to newspaper materials associated with Tomas.",
+    "hintLevel": 2,
+    "tags": [
+      "wax",
+      "warehouse",
+      "newspaper"
+    ],
+    "relatedCharacterIds": [
+      "char-4"
+    ]
+  },
+  {
+    "clueId": "clue-10",
+    "title": "Narrow Caster Tracks",
+    "content": "Twin narrow caster tracks run from the drainage arch to warehouse C-7. Their spacing matches a folding illustrator\u2019s easel-cart, not Jonah\u2019s heavy diver barrow.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-4",
+    "sourceType": "camera",
+    "sceneId": "scene-4",
+    "discoverMethod": "camera",
+    "visualDescription": "In the wet grit, two fine wheel lines curve from a low arch toward the warehouse door, crossing over broader older cart marks.",
+    "inventoryDescription": "Narrow caster tracks leading from the culvert exit to the warehouse door.",
+    "narrativeMeaning": "Someone moved a burden from the platform route using a light press or artist\u2019s cart, weakening the theory that a diver dragged Venn away.",
+    "hintLevel": 2,
+    "tags": [
+      "route",
+      "cart",
+      "warehouse"
+    ],
+    "relatedCharacterIds": [
+      "char-4",
+      "char-2"
+    ]
+  },
+  {
+    "clueId": "clue-11",
+    "title": "Caisson Scuffs and Cut Bell Line",
+    "content": "In the unfinished machine chamber, a cut cord runs from the drainage channel toward Gull Street. Nearby scuffs, a torn cuff button marked A.V., and a half-empty water flask show Venn was held alive here briefly after the platform disappearance.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-5",
+    "sourceType": "camera",
+    "sceneId": "scene-5",
+    "discoverMethod": "camera",
+    "visualDescription": "Beside a tide-black caisson, a frayed cord dangles over fresh boot scuffs, a monogrammed cuff button, and a flask on its side.",
+    "inventoryDescription": "Cut remote bell line with signs that Alaric Venn was temporarily held in the machine chamber.",
+    "narrativeMeaning": "The bell mechanism and the abduction route meet below the quay. The culprit used the low-tide drainage path and kept Venn alive long enough to move him onward.",
+    "hintLevel": 3,
+    "tags": [
+      "method",
+      "abduction",
+      "caisson"
+    ],
+    "relatedCharacterIds": [
+      "char-4",
+      "char-3"
+    ]
+  },
+  {
+    "clueId": "clue-12",
+    "title": "The Impossible Sketch",
+    "content": "Tomas\u2019s sketchbook contains a drawing dated during the public ceremony from inside the condemned bell tower, plus a later page mapping the culvert route to warehouse C-7 before officials announced it. One page is sealed with the same blue wax found on the platform and warehouse lock.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-3",
+    "sourceType": "item",
+    "sceneId": "scene-6",
+    "discoverMethod": "item",
+    "visualDescription": "An oilskin sketchbook lies open to a meticulous tower interior view, with a timed note in the margin and blue wax pressed into the page corner.",
+    "inventoryDescription": "Tomas\u2019s timed sketchbook showing forbidden tower access, the culvert route, and matching blue wax.",
+    "narrativeMeaning": "Tomas\u2019s own records place him inside the locked tower and in possession of the route before he claimed to know nothing important. It breaks his alibi and ties together the wax, bell trick, and removal path.",
+    "hintLevel": 3,
+    "tags": [
+      "culprit",
+      "alibi",
+      "sketchbook",
+      "wax"
+    ],
+    "relatedCharacterIds": [
+      "char-4"
+    ]
+  }
+]

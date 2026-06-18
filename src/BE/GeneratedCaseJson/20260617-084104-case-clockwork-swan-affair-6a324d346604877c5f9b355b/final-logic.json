@@ -1,0 +1,16 @@
+{
+  "culpritId": "char-5",
+  "motive": "Captain Rusk Fen was running stolen precision jewels through canal-security patrols. The inventor discovered the scheme, hid a ledger inside the swan\u0027s base, and planned to expose Fen before wealthy witnesses after the demonstration secured public attention.",
+  "method": "Fen used his security access to reach the fuse alcove, cut the gallery lamps, swap in a prepared message cylinder accusing Orin Vale, and remove the inventor through the service hatch to a waiting canal launch. He then reset the workroom latch from outside with wire, reported the canal gate unused, and relied on the forged prophecy to send suspicion toward Orin while the inventor was held at a patrol boathouse.",
+  "requiredEvidenceIds": [
+    "clue-2",
+    "clue-4",
+    "clue-5",
+    "clue-9",
+    "clue-10",
+    "clue-11",
+    "clue-12"
+  ],
+  "winEnding": "SirLocked and his companion reconstruct the blackout minute, open the swan\u0027s base, and confront Fen with the cylinder invoice, officer\u0027s knot, dock trace, and hidden ledger. Fen\u0027s composure fails when his own security report contradicts the physical trail. The inventor is recovered from the patrol boathouse before dawn, Orin is cleared, and the Clockwork Swan earns fame not as a prophet, but as the machine that preserved its maker\u0027s warning.",
+  "failEnding": "Without the full chain of mechanism, dock evidence, and motive, the accusation against Orin remains persuasive enough to divide the guests. Fen files a polished report, the inventor is moved before the patrol boathouse can be searched, and the swan\u0027s false prophecy becomes Bellweather gossip rather than proof."
+}

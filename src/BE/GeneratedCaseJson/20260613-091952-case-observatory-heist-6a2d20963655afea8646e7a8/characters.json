@@ -1,0 +1,30 @@
+[
+  {
+    "characterId": "char-curator",
+    "name": "Dr. Evelyn Starling",
+    "role": "Curator",
+    "imageUrl": "/assets/characters/curator.jpg",
+    "description": "Elderly curator, obsessed with the sapphire\u0027s history. Known for her strict security."
+  },
+  {
+    "characterId": "char-assistant",
+    "name": "Marcus Webb",
+    "role": "Research Assistant",
+    "imageUrl": "/assets/characters/assistant.jpg",
+    "description": "Young, ambitious assistant. Has a background in engineering and access to all areas."
+  },
+  {
+    "characterId": "char-security",
+    "name": "Victor Stone",
+    "role": "Security Guard",
+    "imageUrl": "/assets/characters/security.jpg",
+    "description": "Veteran guard, on duty during the heist. Known for his strict adherence to protocol."
+  },
+  {
+    "characterId": "char-meteorologist",
+    "name": "Dr. Iris Gale",
+    "role": "Meteorologist",
+    "imageUrl": "/assets/characters/meteorologist.jpg",
+    "description": "Visiting scientist studying the storm. Not officially part of staff but present that night."
+  }
+]

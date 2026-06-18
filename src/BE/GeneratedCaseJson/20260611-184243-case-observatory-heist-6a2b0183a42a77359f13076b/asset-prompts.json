@@ -1,0 +1,98 @@
+{
+  "visualStyle": "cinematic detective",
+  "cover": {
+    "target": "/assets/cases/observatory-heist.jpg",
+    "prompt": "cinematic detective cover for: The Midnight Observatory Heist. During a fierce thunderstorm, a priceless gem is stolen from the Hilltop Observatory. Players must investigate the scene, question suspects, and piece together clues to identify the thief."
+  },
+  "backgrounds": [
+    {
+      "sceneId": "scene-1",
+      "target": "/assets/scenes/main-hall.jpg",
+      "prompt": "cinematic detective background, Observatory Main Hall: The main hall of the observatory is dimly lit by emergency lights. The glass display case that held the Starfire Diamond is shattered. A thunderclap echoes outside."
+    },
+    {
+      "sceneId": "scene-2",
+      "target": "/assets/scenes/office-vega.jpg",
+      "prompt": "cinematic detective background, Office of Dr. Vega: Dr. Vega\u0027s office is cluttered with star charts and books. A window is slightly open, letting in rain."
+    },
+    {
+      "sceneId": "scene-3",
+      "target": "/assets/scenes/library.jpg",
+      "prompt": "cinematic detective background, Library: The library has shelves of astronomy books. A map on the table shows escape routes."
+    },
+    {
+      "sceneId": "scene-4",
+      "target": "/assets/scenes/rooftop.jpg",
+      "prompt": "cinematic detective background, Rooftop Telescope Deck: The rooftop deck is exposed to the storm. The telescope is covered with a tarp. A glint of something metallic catches your eye."
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-1",
+      "target": "/assets/characters/dr-vega.jpg",
+      "prompt": "cinematic detective character portrait, Dr. Vega, Astronomer: The head astronomer, a meticulous woman in her 50s. She seems nervous."
+    },
+    {
+      "characterId": "char-2",
+      "target": "/assets/characters/janitor-miller.jpg",
+      "prompt": "cinematic detective character portrait, Janitor Miller, Janitor: The janitor, a gruff man in his 60s. He was mopping near the hall."
+    },
+    {
+      "characterId": "char-3",
+      "target": "/assets/characters/professor-reed.jpg",
+      "prompt": "cinematic detective character portrait, Professor Reed, Visiting Scholar: A visiting professor from a rival university, interested in the gem."
+    },
+    {
+      "characterId": "char-4",
+      "target": "/assets/characters/technician-kim.jpg",
+      "prompt": "cinematic detective character portrait, Technician Kim, Technician: A young technician who maintains the observatory equipment. He has a limp."
+    },
+    {
+      "characterId": "char-5",
+      "target": "/assets/characters/security-guard.jpg",
+      "prompt": "cinematic detective character portrait, Security Guard, Security: The night security guard, a burly man with a flashlight. He claims to have seen nothing."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "target": "/assets/items/shattered-case.jpg",
+      "prompt": "cinematic detective evidence close-up, Shattered Glass Case: The display case is broken, with glass shards scattered around."
+    },
+    {
+      "itemId": "item-2",
+      "target": "/assets/items/footprint.jpg",
+      "prompt": "cinematic detective evidence close-up, Muddy Footprint: A clear footprint leading away from the case, size 10."
+    },
+    {
+      "itemId": "item-3",
+      "target": "/assets/items/wet-umbrella.jpg",
+      "prompt": "cinematic detective evidence close-up, Wet Umbrella: A black umbrella, still wet, leaning against the desk."
+    },
+    {
+      "itemId": "item-4",
+      "target": "/assets/items/note.jpg",
+      "prompt": "cinematic detective evidence close-up, Note: A handwritten note on Dr. Vega\u0027s desk."
+    },
+    {
+      "itemId": "item-5",
+      "target": "/assets/items/map.jpg",
+      "prompt": "cinematic detective evidence close-up, Map with Marks: A map of the observatory with a route marked in red from the main hall to the roof."
+    },
+    {
+      "itemId": "item-6",
+      "target": "/assets/items/gloves.jpg",
+      "prompt": "cinematic detective evidence close-up, Pair of Gloves: A pair of leather gloves, found under a chair."
+    },
+    {
+      "itemId": "item-7",
+      "target": "/assets/items/crowbar.jpg",
+      "prompt": "cinematic detective evidence close-up, Crowbar: A crowbar hidden behind a vent on the roof."
+    },
+    {
+      "itemId": "item-8",
+      "target": "/assets/items/gem-fragment.jpg",
+      "prompt": "cinematic detective evidence close-up, Gem Fragment: A small fragment of the Starfire Diamond, caught in a crevice."
+    }
+  ]
+}

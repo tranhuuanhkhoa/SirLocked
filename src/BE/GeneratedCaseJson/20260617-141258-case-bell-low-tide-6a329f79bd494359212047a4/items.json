@@ -1,0 +1,24 @@
+[
+  {
+    "itemId": "item-1",
+    "name": "Cracked Pocket Compass",
+    "description": "A brass pocket compass found on the unveiling platform where Venn had stood.",
+    "inspectText": "The glass is cracked inward, the needle is pinned at an odd angle, and a tiny flake of blue sealing wax is caught beneath the hinge.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/items/item-1.png",
+    "unlockClueIds": [
+      "clue-1"
+    ],
+    "isCollectible": true
+  },
+  {
+    "itemId": "item-3",
+    "name": "Weatherproof Sketchbook",
+    "description": "Tomas Reed\u2019s oilskin-bound sketchbook, recovered from a paint-stained crate in the newspaper loft.",
+    "inspectText": "The pages are damp at the corners but intact. Several drawings are dated with precise times in a neat illustrator\u2019s hand.",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-bell-low-tide-6a329f79/items/item-3.png",
+    "unlockClueIds": [
+      "clue-12"
+    ],
+    "isCollectible": true
+  }
+]

@@ -1,0 +1,651 @@
+{
+  "id": "",
+  "caseId": "case-observatory-heist",
+  "title": "The Observatory Heist",
+  "summary": "During a violent thunderstorm, a priceless sapphire was stolen from the locked observatory vault. The detective must interrogate the staff, examine clues, and find the culprit before the storm ends.",
+  "status": "DRAFT",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/cases/observatory-heist.jpg",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "title": "The Storm Breaks",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-1",
+          "title": "Observatory Entrance",
+          "backgroundUrl": "/assets/scenes/observatory-entrance.jpg",
+          "description": "Rain lashes against the grand entrance. The vault door is ajar, and the sapphire is gone. The staff huddle nervously.",
+          "itemIds": [
+            "item-broken-lock",
+            "item-footprint"
+          ],
+          "characterIds": [
+            "char-curator",
+            "char-assistant"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-lock",
+              "type": "ITEM",
+              "targetId": "item-broken-lock",
+              "x": 30,
+              "y": 50,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Broken Lock",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-footprint",
+              "type": "ITEM",
+              "targetId": "item-footprint",
+              "x": 70,
+              "y": 80,
+              "width": 12,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Muddy Footprint",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-broken-lock",
+              "item-footprint"
+            ],
+            "requiredClueIds": [
+              "clue-lock-tampered",
+              "clue-footprint-large"
+            ],
+            "requiredDialogueIds": [
+              "dlg-curator-1",
+              "dlg-assistant-1"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-2",
+          "title": "Vault Room",
+          "backgroundUrl": "/assets/scenes/vault-room.jpg",
+          "description": "The vault interior is dark, lit only by emergency lights. The empty pedestal where the sapphire once sat is covered in dust.",
+          "itemIds": [
+            "item-torn-cloth",
+            "item-sapphire-box"
+          ],
+          "characterIds": [
+            "char-security"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-cloth",
+              "type": "ITEM",
+              "targetId": "item-torn-cloth",
+              "x": 45,
+              "y": 60,
+              "width": 8,
+              "height": 6,
+              "zIndex": 1,
+              "label": "Torn Cloth",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-box",
+              "type": "ITEM",
+              "targetId": "item-sapphire-box",
+              "x": 55,
+              "y": 40,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Empty Jewel Box",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-torn-cloth",
+              "item-sapphire-box"
+            ],
+            "requiredClueIds": [
+              "clue-cloth-wool",
+              "clue-box-dust"
+            ],
+            "requiredDialogueIds": [
+              "dlg-security-1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2",
+      "title": "Interviews and Evidence",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-3",
+          "title": "Curator\u0027s Office",
+          "backgroundUrl": "/assets/scenes/curator-office.jpg",
+          "description": "A cozy office filled with star charts. The curator seems anxious.",
+          "itemIds": [
+            "item-keys",
+            "item-umbrella"
+          ],
+          "characterIds": [
+            "char-curator"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-keys",
+              "type": "ITEM",
+              "targetId": "item-keys",
+              "x": 20,
+              "y": 70,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Spare Keys",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-umbrella",
+              "type": "ITEM",
+              "targetId": "item-umbrella",
+              "x": 80,
+              "y": 30,
+              "width": 10,
+              "height": 15,
+              "zIndex": 1,
+              "label": "Wet Umbrella",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-keys",
+              "item-umbrella"
+            ],
+            "requiredClueIds": [
+              "clue-keys-copy",
+              "clue-umbrella-dry"
+            ],
+            "requiredDialogueIds": [
+              "dlg-curator-2"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-4",
+          "title": "Assistant\u0027s Workshop",
+          "backgroundUrl": "/assets/scenes/workshop.jpg",
+          "description": "A cluttered workshop with tools and a half-finished telescope.",
+          "itemIds": [
+            "item-gloves",
+            "item-toolbox"
+          ],
+          "characterIds": [
+            "char-assistant"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-gloves",
+              "type": "ITEM",
+              "targetId": "item-gloves",
+              "x": 60,
+              "y": 40,
+              "width": 8,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Leather Gloves",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-toolbox",
+              "type": "ITEM",
+              "targetId": "item-toolbox",
+              "x": 40,
+              "y": 70,
+              "width": 12,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Toolbox",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-gloves",
+              "item-toolbox"
+            ],
+            "requiredClueIds": [
+              "clue-gloves-mud",
+              "clue-toolbox-prybar"
+            ],
+            "requiredDialogueIds": [
+              "dlg-assistant-2"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3",
+      "title": "The Final Confrontation",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-5",
+          "title": "Rooftop Observatory",
+          "backgroundUrl": "/assets/scenes/rooftop-observatory.jpg",
+          "description": "The storm rages above. The telescope dome is open. A figure lurks in the shadows.",
+          "itemIds": [
+            "item-sapphire-stolen",
+            "item-rope"
+          ],
+          "characterIds": [
+            "char-security",
+            "char-assistant"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-sapphire",
+              "type": "ITEM",
+              "targetId": "item-sapphire-stolen",
+              "x": 50,
+              "y": 30,
+              "width": 6,
+              "height": 6,
+              "zIndex": 1,
+              "label": "Stolen Sapphire",
+              "requiredClueIds": [
+                "clue-box-dust"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-rope",
+              "type": "ITEM",
+              "targetId": "item-rope",
+              "x": 70,
+              "y": 80,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Climbing Rope",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-sapphire-stolen",
+              "item-rope"
+            ],
+            "requiredClueIds": [
+              "clue-sapphire-found",
+              "clue-rope-used"
+            ],
+            "requiredDialogueIds": [
+              "dlg-security-2",
+              "dlg-assistant-3"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-curator",
+      "name": "Dr. Evelyn Starling",
+      "role": "Curator",
+      "imageUrl": "/assets/characters/curator.jpg",
+      "description": "Elderly curator, obsessed with the sapphire\u0027s history. Known for her strict security."
+    },
+    {
+      "characterId": "char-assistant",
+      "name": "Marcus Webb",
+      "role": "Research Assistant",
+      "imageUrl": "/assets/characters/assistant.jpg",
+      "description": "Young, ambitious assistant. Has a background in engineering and access to all areas."
+    },
+    {
+      "characterId": "char-security",
+      "name": "Victor Stone",
+      "role": "Security Guard",
+      "imageUrl": "/assets/characters/security.jpg",
+      "description": "Veteran guard, on duty during the heist. Known for his strict adherence to protocol."
+    },
+    {
+      "characterId": "char-meteorologist",
+      "name": "Dr. Iris Gale",
+      "role": "Meteorologist",
+      "imageUrl": "/assets/characters/meteorologist.jpg",
+      "description": "Visiting scientist studying the storm. Not officially part of staff but present that night."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-broken-lock",
+      "name": "Broken Lock",
+      "description": "The vault\u0027s electronic lock is smashed, wires exposed.",
+      "inspectText": "The lock was forced open with a heavy tool. Sparks from the storm may have shorted it.",
+      "imageUrl": "/assets/items/broken-lock.jpg",
+      "unlockClueIds": [
+        "clue-lock-tampered"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-footprint",
+      "name": "Muddy Footprint",
+      "description": "A large, distinct footprint near the vault entrance.",
+      "inspectText": "The footprint has a unique tread pattern. Size 12, possibly a work boot.",
+      "imageUrl": "/assets/items/footprint.jpg",
+      "unlockClueIds": [
+        "clue-footprint-large"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-torn-cloth",
+      "name": "Torn Cloth",
+      "description": "A piece of blue wool fabric caught on the vault door hinge.",
+      "inspectText": "The cloth is high-quality wool, possibly from a uniform or coat.",
+      "imageUrl": "/assets/items/torn-cloth.jpg",
+      "unlockClueIds": [
+        "clue-cloth-wool"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-sapphire-box",
+      "name": "Empty Jewel Box",
+      "description": "The velvet-lined box that held the sapphire.",
+      "inspectText": "The box is empty. There\u0027s a thin layer of dust on the bottom, but the center is clean.",
+      "imageUrl": "/assets/items/sapphire-box.jpg",
+      "unlockClueIds": [
+        "clue-box-dust"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-keys",
+      "name": "Spare Keys",
+      "description": "A set of spare keys to the vault, kept in the curator\u0027s desk.",
+      "inspectText": "All keys are accounted for except one: the master key. A recent copy might exist.",
+      "imageUrl": "/assets/items/keys.jpg",
+      "unlockClueIds": [
+        "clue-keys-copy"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-umbrella",
+      "name": "Wet Umbrella",
+      "description": "A wet umbrella in the curator\u0027s office.",
+      "inspectText": "The umbrella is still dripping. But the curator said she didn\u0027t go out in the storm.",
+      "imageUrl": "/assets/items/umbrella.jpg",
+      "unlockClueIds": [
+        "clue-umbrella-dry"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-gloves",
+      "name": "Leather Gloves",
+      "description": "A pair of leather work gloves, found in the workshop.",
+      "inspectText": "The gloves have traces of mud and a faint chemical smell.",
+      "imageUrl": "/assets/items/gloves.jpg",
+      "unlockClueIds": [
+        "clue-gloves-mud"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-toolbox",
+      "name": "Toolbox",
+      "description": "A metal toolbox with various tools.",
+      "inspectText": "A heavy pry bar is missing from the set. The slot is empty.",
+      "imageUrl": "/assets/items/toolbox.jpg",
+      "unlockClueIds": [
+        "clue-toolbox-prybar"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-sapphire-stolen",
+      "name": "Stolen Sapphire",
+      "description": "The missing sapphire, hidden in a telescope mount.",
+      "inspectText": "The sapphire is flawless. It matches the description perfectly.",
+      "imageUrl": "/assets/items/sapphire-stolen.jpg",
+      "unlockClueIds": [
+        "clue-sapphire-found"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-rope",
+      "name": "Climbing Rope",
+      "description": "A long rope tied to the dome\u0027s railing.",
+      "inspectText": "The rope is new and shows signs of recent use. It leads down to the ground.",
+      "imageUrl": "/assets/items/rope.jpg",
+      "unlockClueIds": [
+        "clue-rope-used"
+      ],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-lock-tampered",
+      "title": "Lock Tampered With",
+      "content": "The lock was forced open with a pry bar, not a key. The storm\u0027s electrical surge may have disabled the alarm.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-broken-lock",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-footprint-large",
+      "title": "Large Footprint",
+      "content": "The footprint is size 12, consistent with the assistant\u0027s work boots.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-footprint",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-cloth-wool",
+      "title": "Wool Cloth",
+      "content": "The torn cloth is from a blue wool uniform, like the security guard\u0027s coat.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-torn-cloth",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-box-dust",
+      "title": "Dust Pattern",
+      "content": "The dust in the box is undisturbed except for a clean circle exactly the size of the sapphire. It wasn\u0027t moved recently.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-sapphire-box",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-keys-copy",
+      "title": "Duplicate Key",
+      "content": "The master key is missing. The assistant recently asked the curator for access to make a copy for \u0027emergency\u0027.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-keys",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-umbrella-dry",
+      "title": "Umbrella Contradiction",
+      "content": "The curator claimed she didn\u0027t go out, but her umbrella is wet. She must have lied.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-umbrella",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-gloves-mud",
+      "title": "Muddy Gloves",
+      "content": "The gloves have mud matching the footprint\u0027s mud. They also have traces of metal shavings.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-gloves",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-toolbox-prybar",
+      "title": "Missing Pry Bar",
+      "content": "A heavy pry bar is missing from the assistant\u0027s toolbox. It could have been used to break the lock.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-toolbox",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-sapphire-found",
+      "title": "Sapphire Recovered",
+      "content": "The sapphire was hidden in the telescope mount on the rooftop. Only someone with knowledge of the observatory would know that spot.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-sapphire-stolen",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-rope-used",
+      "title": "Rope Used",
+      "content": "The rope is tied to the dome railing and shows signs of recent climbing. The thief escaped via the roof during the storm.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-rope",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-assistant-motive",
+      "title": "Assistant\u0027s Motive",
+      "content": "The assistant had gambling debts and needed money. He was overheard arguing with the curator about a loan.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-assistant-2",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-security-alibi",
+      "title": "Security Alibi",
+      "content": "The security guard was checking the perimeter when the alarm went off. His log shows he was at the east gate at the time of the heist.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-security-1",
+      "sourceType": "dialogue"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-curator-1",
+      "characterId": "char-curator",
+      "question": "What happened?",
+      "answer": "I was in my office reviewing star charts. I heard a loud crash during the thunder, then the alarm. When I got here, the vault was open and the sapphire was gone.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-assistant-1",
+      "characterId": "char-assistant",
+      "question": "Where were you?",
+      "answer": "I was in the workshop, working on a telescope. I didn\u0027t hear anything unusual until the alarm.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-security-1",
+      "characterId": "char-security",
+      "question": "What did you see?",
+      "answer": "I was on patrol. The storm knocked out power briefly. When I came back, the vault door was open. I saw a shadow on the roof, but it was gone.",
+      "requiredClueIds": [],
+      "unlockClueIds": [
+        "clue-security-alibi"
+      ]
+    },
+    {
+      "dialogueId": "dlg-curator-2",
+      "characterId": "char-curator",
+      "question": "Why is your umbrella wet?",
+      "answer": "I... I stepped outside briefly to check the storm. It\u0027s nothing.",
+      "requiredClueIds": [
+        "clue-umbrella-dry"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-assistant-2",
+      "characterId": "char-assistant",
+      "question": "Tell me about your debts.",
+      "answer": "I had some financial trouble, but I was managing. The curator refused to help. I didn\u0027t steal the sapphire!",
+      "requiredClueIds": [
+        "clue-keys-copy"
+      ],
+      "unlockClueIds": [
+        "clue-assistant-motive"
+      ]
+    },
+    {
+      "dialogueId": "dlg-security-2",
+      "characterId": "char-security",
+      "question": "The rope on the roof?",
+      "answer": "I didn\u0027t put it there. It must have been the thief. I was on the ground all night.",
+      "requiredClueIds": [
+        "clue-rope-used"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-assistant-3",
+      "characterId": "char-assistant",
+      "question": "The sapphire was in your telescope mount!",
+      "answer": "I... I found it and hid it for safekeeping. I was going to return it!",
+      "requiredClueIds": [
+        "clue-sapphire-found",
+        "clue-assistant-motive"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-assistant",
+    "motive": "Gambling debts and resentment towards the curator for refusing a loan.",
+    "method": "Used a duplicate key (from earlier copying) to unlock the vault during the storm. Used a pry bar from his toolbox to break the lock when the electronic system failed. Hid the sapphire in the telescope mount and escaped via rope from the roof.",
+    "requiredEvidenceIds": [
+      "clue-sapphire-found",
+      "clue-assistant-motive"
+    ],
+    "winEnding": "You confront Marcus with the evidence. He confesses, and the sapphire is returned. Justice prevails.",
+    "failEnding": "Without enough evidence, the culprit escapes in the storm. The sapphire is lost forever."
+  },
+  "createdAt": "2026-06-13T09:19:52.8154879Z",
+  "updatedAt": "2026-06-13T09:19:52.8154881Z"
+}

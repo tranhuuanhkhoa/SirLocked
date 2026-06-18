@@ -1,0 +1,37 @@
+[
+  {
+    "characterId": "char-1",
+    "name": "Maren Quill",
+    "role": "Pearl merchant",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-1-portrait.png",
+    "description": "A polished dealer whose fortune depends on clean pearl records. She is proud, anxious, and quick to notice who profits from an audit."
+  },
+  {
+    "characterId": "char-2",
+    "name": "Lio Fen",
+    "role": "Festival musician",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-2-portrait.png",
+    "description": "A reed-pipe player with a bright sash, a nervous manner, and a habit of turning evasive when asked about where his music stopped."
+  },
+  {
+    "characterId": "char-3",
+    "name": "Edda Vale",
+    "role": "Assistant tidewarden",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-3-portrait.png",
+    "description": "The missing tidewarden\u2019s efficient deputy. She knows every key, signal, and tide custom in Gullmarsh, and stays noticeably calm after the disappearance."
+  },
+  {
+    "characterId": "char-4",
+    "name": "Oren Brack",
+    "role": "Retired lighthouse keeper",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-4-portrait.png",
+    "description": "A weathered keeper who treats the fog bell as a language. His folklore sounds fanciful until the tide and mechanics begin to support him."
+  },
+  {
+    "characterId": "char-5",
+    "name": "Tess Rill",
+    "role": "Boatwright",
+    "imageUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-5-portrait.png",
+    "description": "A practical craftswoman with unpaid debts, tar on her cuffs, and little patience for being accused because she works near suspicious materials."
+  }
+]
