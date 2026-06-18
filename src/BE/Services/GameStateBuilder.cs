@@ -35,6 +35,29 @@ public class GameStateBuilder : IGameStateBuilder
             .Select(d => SceneDialogueDto.From(d, unlocked, state.AskedDialogueIds.Contains(d.DialogueId)))
             .ToList();
 
+        if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+        {
+            foreach (var dialogueDto in sceneDialogues.Where(d => d.IsAsked))
+            {
+                dialogueDto.EvidenceChallenges = gameCase.EvidenceChallenges
+                    .Where(c => c.DialogueId == dialogueDto.DialogueId)
+                    .Select(challenge =>
+                    {
+                        var resolved = state.ResolvedConfrontationRecords
+                            .FirstOrDefault(record => record.ChallengeId == challenge.ChallengeId);
+                        return new EvidenceChallengeDto
+                        {
+                            ChallengeId = challenge.ChallengeId,
+                            DialogueId = challenge.DialogueId,
+                            Prompt = challenge.Prompt,
+                            IsResolved = resolved is not null,
+                            Resolution = resolved is null ? null : challenge.SuccessResponse
+                        };
+                    })
+                    .ToList();
+            }
+        }
+
         var visibleScene = new VisibleSceneDto
         {
             SceneId = scene.SceneId,
@@ -72,6 +95,7 @@ public class GameStateBuilder : IGameStateBuilder
             .Where(c => unlocked.Contains(c.ClueId))
             .Select(ClueDto.From)
             .ToList();
+        var resolvedChallengeIds = state.ResolvedConfrontationRecords.Select(record => record.ChallengeId).ToHashSet();
 
         var photographedClueIds = await _db.EvidencePhotos
             .Find(photo => photo.RoomId == room.Id && unlocked.Contains(photo.ClueId))
@@ -93,6 +117,7 @@ public class GameStateBuilder : IGameStateBuilder
             CaseId = gameCase.CaseId,
             CaseTitle = gameCase.Title,
             CaseSummary = gameCase.Summary,
+            MechanicsVersion = gameCase.MechanicsVersion,
             RoomStatus = room.Status,
             CurrentStageId = stage.StageId,
             CurrentSceneId = scene.SceneId,
@@ -121,6 +146,72 @@ public class GameStateBuilder : IGameStateBuilder
             SceneMap = sceneMap,
             UnlockedClues = unlockedClues,
             EvidenceClues = unlockedClues.Where(c => c.IsEvidence).ToList(),
+            ResolvedConfrontations = state.ResolvedConfrontationRecords.Select(record =>
+            {
+                var challenge = gameCase.EvidenceChallenges.First(c => c.ChallengeId == record.ChallengeId);
+                var evidence = gameCase.Clues.First(c => c.ClueId == record.EvidenceId);
+                return new ResolvedConfrontationDto
+                {
+                    ChallengeId = record.ChallengeId,
+                    EvidenceId = record.EvidenceId,
+                    EvidenceTitle = evidence.Title,
+                    Prompt = challenge.Prompt,
+                    Resolution = challenge.SuccessResponse,
+                    ResolvedByUserId = record.ResolvedByUserId,
+                    ResolvedAt = record.ResolvedAt
+                };
+            }).ToList(),
+            Deductions = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2
+                ? gameCase.Deductions.Select(deduction =>
+                {
+                    var missingClues = deduction.RequiredClueIds.Where(id => !unlocked.Contains(id)).ToList();
+                    var missingChallenges = deduction.RequiredChallengeIds.Where(id => !resolvedChallengeIds.Contains(id)).ToList();
+                    var solved = state.SolvedDeductionRecords.FirstOrDefault(record => record.DeductionId == deduction.DeductionId);
+                    return new DeductionDto
+                    {
+                        DeductionId = deduction.DeductionId,
+                        Prompt = deduction.Prompt,
+                        RequiredClueIds = deduction.RequiredClueIds,
+                        RequiredChallengeIds = deduction.RequiredChallengeIds,
+                        MissingClueIds = missingClues,
+                        MissingChallengeIds = missingChallenges,
+                        Options = deduction.Options.Select(option => new DeductionOptionDto { Id = option.Id, Label = option.Label }).ToList(),
+                        IsAvailable = missingClues.Count == 0 && missingChallenges.Count == 0,
+                        IsSolved = solved is not null,
+                        Resolution = solved is null ? null : deduction.SuccessResponse
+                    };
+                }).ToList()
+                : new List<DeductionDto>(),
+            SolvedDeductions = state.SolvedDeductionRecords.Select(record => new SolvedDeductionDto
+            {
+                DeductionId = record.DeductionId,
+                SelectedOptionId = record.SelectedOptionId,
+                SolvedByUserId = record.SolvedByUserId,
+                SolvedAt = record.SolvedAt
+            }).ToList(),
+            Testimonies = gameCase.Dialogues.Where(dialogue => state.AskedDialogueIds.Contains(dialogue.DialogueId))
+                .Select(dialogue => new TestimonyDto
+                {
+                    DialogueId = dialogue.DialogueId,
+                    CharacterName = gameCase.Characters.First(character => character.CharacterId == dialogue.CharacterId).Name,
+                    Question = dialogue.Question,
+                    Answer = dialogue.Answer
+                }).ToList(),
+            AccusationConfig = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2
+                ? new AccusationConfigDto
+                {
+                    MotiveOptions = gameCase.FinalLogic.MotiveOptions
+                        .Select(option => new AccusationOptionDto { Id = option.Id, Label = option.Label }).ToList(),
+                    MethodOptions = gameCase.FinalLogic.MethodOptions
+                        .Select(option => new AccusationOptionDto { Id = option.Id, Label = option.Label }).ToList(),
+                    ClaimTypes = new List<string>
+                    {
+                        EvidenceClaimTypes.Motive,
+                        EvidenceClaimTypes.Method,
+                        EvidenceClaimTypes.Opportunity
+                    }
+                }
+                : null,
             Suspects = gameCase.Characters.Select(CaseCharacterDto.From).ToList(),
             ActionLog = logs.Select(l => new ActionLogEntryDto
             {

@@ -39,11 +39,51 @@ public class CaptureClueRequest
 
 public class PresentEvidenceRequest
 {
-    [Required]
     public string DialogueId { get; set; } = string.Empty;
+
+    public string ChallengeId { get; set; } = string.Empty;
 
     [Required]
     public string EvidenceId { get; set; } = string.Empty;
+}
+
+public class HintRequest
+{
+    [Required]
+    public string ContextType { get; set; } = string.Empty;
+
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
+}
+
+public class HintResponse
+{
+    public GameStateResponse State { get; set; } = new();
+    public string HintId { get; set; } = string.Empty;
+    public string ContextType { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public bool IsNew { get; set; }
+}
+
+public class SolveDeductionRequest
+{
+    [Required]
+    public string DeductionId { get; set; } = string.Empty;
+
+    [Required]
+    public string OptionId { get; set; } = string.Empty;
+}
+
+public class InvestigationUpdateDto
+{
+    public string Type { get; set; } = string.Empty;
+    public string ActorUserId { get; set; } = string.Empty;
+    public string ActorRole { get; set; } = string.Empty;
+    public string SceneId { get; set; } = string.Empty;
+    public string? TargetId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public long Version { get; set; }
 }
 
 public class GoToSceneRequest
@@ -120,6 +160,7 @@ public class SceneDialogueDto
     public bool IsAsked { get; set; }
     /// <summary>The answer is only revealed once the dialogue has been asked.</summary>
     public string? Answer { get; set; }
+    public List<EvidenceChallengeDto> EvidenceChallenges { get; set; } = new();
 
     public static SceneDialogueDto From(CaseDialogue d, IReadOnlySet<string> unlockedClues, bool asked)
     {
@@ -174,6 +215,75 @@ public class ClueDto
     };
 }
 
+public class EvidenceChallengeDto
+{
+    public string ChallengeId { get; set; } = string.Empty;
+    public string DialogueId { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public bool IsResolved { get; set; }
+    public string? Resolution { get; set; }
+}
+
+public class ResolvedConfrontationDto
+{
+    public string ChallengeId { get; set; } = string.Empty;
+    public string EvidenceId { get; set; } = string.Empty;
+    public string EvidenceTitle { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public string Resolution { get; set; } = string.Empty;
+    public string ResolvedByUserId { get; set; } = string.Empty;
+    public DateTime ResolvedAt { get; set; }
+}
+
+public class TestimonyDto
+{
+    public string DialogueId { get; set; } = string.Empty;
+    public string CharacterName { get; set; } = string.Empty;
+    public string Question { get; set; } = string.Empty;
+    public string Answer { get; set; } = string.Empty;
+}
+
+public class AccusationOptionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+public class AccusationConfigDto
+{
+    public List<AccusationOptionDto> MotiveOptions { get; set; } = new();
+    public List<AccusationOptionDto> MethodOptions { get; set; } = new();
+    public List<string> ClaimTypes { get; set; } = new();
+}
+
+public class DeductionOptionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+public class DeductionDto
+{
+    public string DeductionId { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public List<string> RequiredClueIds { get; set; } = new();
+    public List<string> RequiredChallengeIds { get; set; } = new();
+    public List<string> MissingClueIds { get; set; } = new();
+    public List<string> MissingChallengeIds { get; set; } = new();
+    public List<DeductionOptionDto> Options { get; set; } = new();
+    public bool IsAvailable { get; set; }
+    public bool IsSolved { get; set; }
+    public string? Resolution { get; set; }
+}
+
+public class SolvedDeductionDto
+{
+    public string DeductionId { get; set; } = string.Empty;
+    public string SelectedOptionId { get; set; } = string.Empty;
+    public string SolvedByUserId { get; set; } = string.Empty;
+    public DateTime SolvedAt { get; set; }
+}
+
 public class VisibleSceneDto
 {
     public string SceneId { get; set; } = string.Empty;
@@ -211,6 +321,7 @@ public class GameStateResponse
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;
     public string CaseSummary { get; set; } = string.Empty;
+    public int MechanicsVersion { get; set; }
     public string RoomStatus { get; set; } = string.Empty;
     public string CurrentStageId { get; set; } = string.Empty;
     public string CurrentSceneId { get; set; } = string.Empty;
@@ -236,6 +347,11 @@ public class GameStateResponse
     public List<SceneMapEntryDto> SceneMap { get; set; } = new();
     public List<ClueDto> UnlockedClues { get; set; } = new();
     public List<ClueDto> EvidenceClues { get; set; } = new();
+    public List<ResolvedConfrontationDto> ResolvedConfrontations { get; set; } = new();
+    public List<DeductionDto> Deductions { get; set; } = new();
+    public List<SolvedDeductionDto> SolvedDeductions { get; set; } = new();
+    public List<TestimonyDto> Testimonies { get; set; } = new();
+    public AccusationConfigDto? AccusationConfig { get; set; }
     /// <summary>All case characters: used by the final accusation suspect picker.</summary>
     public List<CaseCharacterDto> Suspects { get; set; } = new();
     public List<ActionLogEntryDto> ActionLog { get; set; } = new();

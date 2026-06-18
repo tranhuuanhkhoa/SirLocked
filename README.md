@@ -95,14 +95,23 @@ Public registration creates `PLAYER` accounts. Admins can promote a non-admin us
 11. Complete scenes/stages until final accusation is available.
 12. Submit a culprit and evidence to reach win/fail result.
 
+For a code-synced Vietnamese map of the current AI case creation, room, realtime,
+and gameplay flows, see
+[`ai-game-docs/CURRENT_CASE_AND_GAME_FLOW_VI.md`](ai-game-docs/CURRENT_CASE_AND_GAME_FLOW_VI.md).
+
 ## AI Case Creator
 
-The AI flow is intentionally two-step:
+The AI flow uses explicit review gates:
 
-1. Create a spoiler-free story preview for approval.
-2. Approve the preview to generate hidden culprit logic, full case JSON, OpenAI image assets, runtime placement metadata, validation, import, and publish.
+1. Create and approve a spoiler-free story preview.
+2. Generate and approve the hidden culprit logic and full case JSON.
+3. Generate and approve scene backgrounds, clue regions, and placement metadata.
+4. Generate final portraits, sprites, item assets, and runtime metadata.
+5. An admin imports and publishes the validated case.
 
-Only the second step generates the culprit and final logic. Generated bundles are written under `src/BE/GeneratedCaseJson/`, and generated image assets under `src/FE/public/assets/ai-generated/`; both are ignored by git.
+The culprit and final logic are first generated after story approval. Generated
+bundles are written under `src/BE/GeneratedCaseJson/`, and generated image assets
+under `src/FE/public/assets/ai-generated/`; both are ignored by git.
 
 ## Verification
 

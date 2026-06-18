@@ -833,7 +833,7 @@ public class AiCaseService : IAiCaseService
         var previewJson = JsonSerializer.Serialize(draft.StoryPreview, PrettyJson);
         var sample = """
         {
-          "caseId": "case-example", "title": "...", "summary": "...", "status": "DRAFT",
+          "caseId": "case-example", "title": "...", "summary": "...", "status": "DRAFT", "mechanicsVersion": 2,
           "generationMode": "CAMERA_EMBEDDED",
           "estimatedMinutes": 35, "coverImageUrl": "/assets/cases/example.jpg",
           "stages": [{ "stageId": "stage-1", "title": "...", "order": 1, "scenes": [{
@@ -854,8 +854,27 @@ public class AiCaseService : IAiCaseService
             "tags": ["time"], "relatedCharacterIds": ["char-1"] }],
           "dialogues": [{ "dialogueId": "dlg-1", "characterId": "char-1", "question": "...",
             "answer": "...", "requiredClueIds": [], "unlockClueIds": [] }],
+          "evidenceChallenges": [{ "challengeId": "challenge-1", "dialogueId": "dlg-1",
+            "prompt": "Which evidence contradicts this testimony?", "correctEvidenceId": "clue-1",
+            "successResponse": "...", "failureResponse": "...", "unlockClueIds": ["clue-2"] }],
+          "deductions": [{ "deductionId": "deduction-1", "prompt": "Which chain explains the case?",
+            "requiredClueIds": ["clue-1", "clue-2"], "requiredChallengeIds": ["challenge-1"],
+            "options": [{ "id": "deduce-1", "label": "..." }, { "id": "deduce-2", "label": "..." }, { "id": "deduce-3", "label": "..." }],
+            "correctOptionId": "deduce-1", "successResponse": "...", "failureResponse": "...", "unlockClueIds": [] }],
+          "requiredTeamworkChains": [{ "chainId": "chain-1", "investigatorClueId": "clue-1",
+            "interrogatorChallengeId": "challenge-1", "deductionId": "deduction-1", "description": "..." }],
+          "hints": [{ "hintId": "hint-scene-1", "contextType": "SCENE", "targetId": "scene-1", "order": 1, "text": "..." },
+            { "hintId": "hint-challenge-1", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 1, "text": "..." },
+            { "hintId": "hint-deduction-1", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 1, "text": "..." }],
           "finalLogic": { "culpritId": "char-1", "motive": "...", "method": "...",
-            "requiredEvidenceIds": ["clue-1"], "winEnding": "...", "failEnding": "..." }
+            "requiredEvidenceIds": ["clue-1"],
+            "motiveOptions": [{ "id": "motive-1", "label": "..." }, { "id": "motive-2", "label": "..." }, { "id": "motive-3", "label": "..." }],
+            "methodOptions": [{ "id": "method-1", "label": "..." }, { "id": "method-2", "label": "..." }, { "id": "method-3", "label": "..." }],
+            "correctMotiveId": "motive-1", "correctMethodId": "method-1",
+            "requiredEvidenceLinks": [{ "claimType": "MOTIVE", "evidenceId": "clue-1" },
+              { "claimType": "METHOD", "evidenceId": "clue-2" }, { "claimType": "OPPORTUNITY", "evidenceId": "clue-3" }],
+            "requiredDeductionIds": ["deduction-1"], "requiredTeamworkChainIds": ["chain-1"],
+            "winEnding": "...", "failEnding": "..." }
         }
         """;
 
@@ -879,6 +898,7 @@ public class AiCaseService : IAiCaseService
         Hard requirements:
         - Exactly {draft.Settings.StageCount} stages, each with 1 or 2 scenes (6 scenes total maximum).
         - generationMode must be "CAMERA_EMBEDDED".
+        - mechanicsVersion must be 2.
         - 4 to 5 characters, 0 to 4 interactive items, 10 to 12 clues, 10 to 16 dialogues.
         - Use exactly this JSON shape and property names (camelCase):
         {sample}
@@ -898,6 +918,13 @@ public class AiCaseService : IAiCaseService
         - Each scene's completeCondition must be satisfiable using only that scene and earlier scenes.
         - finalLogic.requiredEvidenceIds must be clue IDs only; each of those clues must set isEvidence true and be discoverable before the final scene ends.
         - finalLogic.requiredEvidenceIds must not be item-heavy. If a final clue is sourced from an item, that item must be a true interactive puzzle object with interactionReason.
+        - Create at least two evidenceChallenges. challengeId must use prefix "challenge-" and be unique. Each challenge references an existing dialogue, accepts one isEvidence clue, and unlocks at least one clue.
+        - Create at least one deduction. deductionId must use prefix "deduction-", require at least one clue and one resolved challenge, have at least three options, and have a valid correctOptionId.
+        - Create at least one requiredTeamworkChain. chainId must use prefix "chain-" and connect one investigator clue, one interrogator challenge, and one deduction.
+        - Create at least one SCENE hint per scene, one CONFRONTATION hint per challenge, and one DEDUCTION hint per deduction.
+        - finalLogic must have at least three motiveOptions and three methodOptions with unique IDs and valid correctMotiveId/correctMethodId.
+        - finalLogic.requiredEvidenceLinks must contain exactly one MOTIVE, one METHOD, and one OPPORTUNITY entry. Their three evidenceId values must be distinct, isEvidence clues, and discoverable before accusation.
+        - finalLogic.requiredDeductionIds must reference the required deduction(s), and finalLogic.requiredTeamworkChainIds must reference the required teamwork chain(s).
         - The culprit must be one of the characters. Include at least one red herring clue with isRedHerring true.
         - Build a contradiction chain in dialogues and delay the strongest culprit evidence to a later stage.
         - status must be "DRAFT".
@@ -2896,6 +2923,10 @@ public class AiCaseService : IAiCaseService
         WriteFile("items.json", gameCase.Items);
         WriteFile("clues.json", gameCase.Clues);
         WriteFile("dialogues.json", gameCase.Dialogues);
+        WriteFile("evidence-challenges.json", gameCase.EvidenceChallenges);
+        WriteFile("deductions.json", gameCase.Deductions);
+        WriteFile("required-teamwork-chains.json", gameCase.RequiredTeamworkChains);
+        WriteFile("hints.json", gameCase.Hints);
         WriteFile("final-logic.json", gameCase.FinalLogic);
         WriteFile("asset-manifest.json", draft.AssetManifest);
         WriteFile("asset-prompts.json", new

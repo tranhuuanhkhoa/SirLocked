@@ -1,0 +1,51 @@
+[
+  {
+    "hintId": "hint-scene-1",
+    "contextType": "SCENE",
+    "targetId": "scene-1",
+    "order": 1,
+    "text": "Photograph what the blackout should not have changed: the direction of broken glass, the moisture on the pedestal, and traces near the service door."
+  },
+  {
+    "hintId": "hint-scene-2",
+    "contextType": "SCENE",
+    "targetId": "scene-2",
+    "order": 1,
+    "text": "The pump room is full of public gossip, but the useful evidence is practical: who handled mineral powder and who pretends not to have seen movement."
+  },
+  {
+    "hintId": "hint-scene-3",
+    "contextType": "SCENE",
+    "targetId": "scene-3",
+    "order": 1,
+    "text": "Marrow\u0027s missing journal left impressions behind. Look for traces on the writing surface and documents that complicate obvious inheritance motives."
+  },
+  {
+    "hintId": "hint-scene-4",
+    "contextType": "SCENE",
+    "targetId": "scene-4",
+    "order": 1,
+    "text": "The cellar should be dusty and unused. Fresh marks, chapel materials, and hidden storage are more important than old gardening clutter."
+  },
+  {
+    "hintId": "hint-challenge-1",
+    "contextType": "CONFRONTATION",
+    "targetId": "challenge-1",
+    "order": 1,
+    "text": "Voss claims no one passed toward Bellweather. Use evidence that proves someone did use the service approach."
+  },
+  {
+    "hintId": "hint-challenge-2",
+    "contextType": "CONFRONTATION",
+    "targetId": "challenge-2",
+    "order": 1,
+    "text": "Livia minimizes the oath. Confront her with the professor\u0027s own trace connecting the oath to a named trustee."
+  },
+  {
+    "hintId": "hint-deduction-1",
+    "contextType": "DEDUCTION",
+    "targetId": "deduction-1",
+    "order": 1,
+    "text": "Build the chain in three parts: the orchid was moved before the blackout, the cellar route shows who could stage it, and the study reveals why the journal had to vanish."
+  }
+]

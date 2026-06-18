@@ -69,6 +69,9 @@ def main():
 
     published = call("PATCH", f"/api/admin/cases/{case_id}/publish", token=admin_token)
     check("sample case published", published["status"] == "PUBLISHED")
+    full_case = call("GET", f"/api/admin/cases/{case_id}", token=admin_token)
+    challenge_by_id = {c["challengeId"]: c for c in full_case.get("evidenceChallenges", [])}
+    deduction_by_id = {d["deductionId"]: d for d in full_case.get("deductions", [])}
 
     bad_case = {"caseJson": {"caseId": "case-broken", "title": "Broken", "stages": [],
                              "characters": [], "items": [], "clues": [], "dialogues": [],
@@ -109,6 +112,11 @@ def main():
     state = call("GET", f"/api/game/rooms/{room_id}/state", token=ta)
     check("initial scene rendered with hotspots",
           bool(state["visibleScene"]["sceneId"]) and len(state["visibleScene"]["hotspots"]) > 0)
+    hint = call("POST", f"/api/game/rooms/{room_id}/hint", token=ta,
+                body={"contextType": "SCENE", "targetId": state["currentSceneId"]})
+    repeated_hint = call("POST", f"/api/game/rooms/{room_id}/hint", token=ta,
+                         body={"contextType": "SCENE", "targetId": state["currentSceneId"]})
+    check("V2 hint is persisted and exhausted hint is idempotent", hint["isNew"] and not repeated_hint["isNew"])
 
     first_item = state["visibleScene"]["hotspots"][0]["targetId"]
     code, body = call("POST", f"/api/game/rooms/{room_id}/inspect-item", token=tb,
@@ -125,6 +133,11 @@ def main():
         scene = state["visibleScene"]
         unlocked = set(state["unlockedClueIds"])
 
+        partner_state = call("GET", f"/api/game/rooms/{room_id}/state", token=tb)
+        if partner_state["currentSceneId"] != state["currentSceneId"]:
+            call("POST", f"/api/game/rooms/{room_id}/go-to-scene", token=tb,
+                 body={"sceneId": state["currentSceneId"]})
+
         for hotspot in scene["hotspots"]:
             if hotspot["type"] != "ITEM" or hotspot["isLocked"]:
                 continue
@@ -139,6 +152,25 @@ def main():
             if dlg["isLocked"] or dlg["isAsked"]:
                 continue
             result = call("POST", f"/api/game/rooms/{room_id}/ask-dialogue", token=tb, body={"dialogueId": dlg["dialogueId"]})
+            progressed = progressed or result["changed"]
+
+        state = call("GET", f"/api/game/rooms/{room_id}/state", token=tb)
+        for dlg in state["visibleScene"]["availableDialogues"]:
+            for challenge in dlg.get("evidenceChallenges", []):
+                if challenge["isResolved"]:
+                    continue
+                authored = challenge_by_id[challenge["challengeId"]]
+                result = call("POST", f"/api/game/rooms/{room_id}/present-evidence", token=tb,
+                              body={"challengeId": challenge["challengeId"], "evidenceId": authored["correctEvidenceId"]})
+                progressed = progressed or result["changed"]
+
+        state = call("GET", f"/api/game/rooms/{room_id}/state", token=ta)
+        for deduction in state.get("deductions", []):
+            if deduction["isSolved"] or not deduction["isAvailable"]:
+                continue
+            authored = deduction_by_id[deduction["deductionId"]]
+            result = call("POST", f"/api/game/rooms/{room_id}/solve-deduction", token=ta,
+                          body={"deductionId": deduction["deductionId"], "optionId": authored["correctOptionId"]})
             progressed = progressed or result["changed"]
 
         try:
@@ -167,13 +199,20 @@ def main():
 
     # Find the real culprit by asking the backend for the result of a correct accusation.
     # The sample case culprit is part of the suspect list; pick it from finalLogic via admin case detail.
-    full_case = call("GET", f"/api/admin/cases/{case_id}", token=admin_token)
     culprit = full_case["finalLogic"]["culpritId"]
     check("culprit is one of the suspects shown to players", culprit in suspects)
 
     result = call("POST", f"/api/game/rooms/{room_id}/accuse", token=ta,
-                  body={"culpritId": culprit, "motive": "debt", "method": "poison", "evidenceIds": evidence_ids})
+                  body={"culpritId": culprit,
+                        "motiveId": full_case["finalLogic"]["correctMotiveId"],
+                        "methodId": full_case["finalLogic"]["correctMethodId"],
+                        "evidenceLinks": full_case["finalLogic"]["requiredEvidenceLinks"]})
     check("correct accusation wins", result["success"] is True)
+    check("V2 result reports each accusation component", result["culpritResult"]["isCorrect"]
+          and result["motiveResult"]["isCorrect"] and result["methodResult"]["isCorrect"]
+          and all(item["isCorrect"] for item in result["evidenceResults"]))
+    check("Full V2 result calculates score and teamwork", result["scoreSummary"]["totalScore"] >= 0
+          and result["scoreSummary"]["rank"] and result["scoreSummary"]["teamworkScore"] == 100)
     check("win ending text returned", len(result["ending"]) > 10)
 
     result2 = call("GET", f"/api/game/rooms/{room_id}/result", token=tb)
@@ -192,6 +231,9 @@ def main():
         st = call("GET", f"/api/game/rooms/{rid2}/state", token=ta)
         if st["availableForAccusation"]:
             break
+        partner = call("GET", f"/api/game/rooms/{rid2}/state", token=tb)
+        if partner["currentSceneId"] != st["currentSceneId"]:
+            call("POST", f"/api/game/rooms/{rid2}/go-to-scene", token=tb, body={"sceneId": st["currentSceneId"]})
         for hotspot in st["visibleScene"]["hotspots"]:
             if hotspot["type"] == "ITEM" and not hotspot["isLocked"] and hotspot["targetId"] not in st["inspectedItemIds"]:
                 call("POST", f"/api/game/rooms/{rid2}/inspect-item", token=ta, body={"itemId": hotspot["targetId"]})
@@ -199,23 +241,38 @@ def main():
         for dlg in st["visibleScene"]["availableDialogues"]:
             if not dlg["isLocked"] and not dlg["isAsked"]:
                 call("POST", f"/api/game/rooms/{rid2}/ask-dialogue", token=tb, body={"dialogueId": dlg["dialogueId"]})
+        st = call("GET", f"/api/game/rooms/{rid2}/state", token=tb)
+        for dlg in st["visibleScene"]["availableDialogues"]:
+            for challenge in dlg.get("evidenceChallenges", []):
+                if not challenge["isResolved"]:
+                    authored = challenge_by_id[challenge["challengeId"]]
+                    call("POST", f"/api/game/rooms/{rid2}/present-evidence", token=tb,
+                         body={"challengeId": challenge["challengeId"], "evidenceId": authored["correctEvidenceId"]})
+        st = call("GET", f"/api/game/rooms/{rid2}/state", token=ta)
+        for deduction in st.get("deductions", []):
+            if not deduction["isSolved"] and deduction["isAvailable"]:
+                authored = deduction_by_id[deduction["deductionId"]]
+                call("POST", f"/api/game/rooms/{rid2}/solve-deduction", token=ta,
+                     body={"deductionId": deduction["deductionId"], "optionId": authored["correctOptionId"]})
         try:
             call("POST", f"/api/game/rooms/{rid2}/complete-scene", token=ta)
         except ApiError:
             pass
     wrong_suspect = next(c["characterId"] for c in st["suspects"] if c["characterId"] != culprit)
     fail_result = call("POST", f"/api/game/rooms/{rid2}/accuse", token=tb,
-                       body={"culpritId": wrong_suspect, "evidenceIds": []})
+                       body={"culpritId": wrong_suspect,
+                             "motiveId": full_case["finalLogic"]["correctMotiveId"],
+                             "methodId": full_case["finalLogic"]["correctMethodId"],
+                             "evidenceLinks": full_case["finalLogic"]["requiredEvidenceLinks"]})
     check("wrong accusation returns fail result (not an error)", fail_result["success"] is False)
+    check("wrong accusation identifies the incorrect component", fail_result["culpritResult"]["isCorrect"] is False)
     check("fail ending text returned", len(fail_result["ending"]) > 10)
 
-    print("== AI mock generation ==")
+    print("== AI story preview ==")
     draft = call("POST", "/api/admin/ai-cases", token=admin_token,
                  body={"prompt": "A jewel heist during a thunderstorm at the observatory", "stageCount": 3})
-    check(f"AI draft generated by {draft['provider']} ({draft['status']})",
-          draft["status"] in ("MOCK_GENERATED_VALID", "DEEPSEEK_GENERATED_VALID"))
-    imported = call("POST", f"/api/admin/ai-cases/{draft['draftId']}/publish?overwrite=true", token=admin_token)
-    check("AI draft imported and published", imported["status"] == "PUBLISHED")
+    check(f"AI story preview generated by {draft['provider']} ({draft['status']})",
+          draft["status"] == "STORY_AWAITING_APPROVAL")
 
     published_list = call("GET", "/api/cases/published", token=ta)
     check("players see published cases", any(c["caseId"] == case_id for c in published_list))

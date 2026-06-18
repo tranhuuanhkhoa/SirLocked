@@ -46,6 +46,28 @@ public class GameplayRuleTests
             CompletedSceneIds = new List<string> { lastScene.SceneId },
             UnlockedClueIds = gameCase.FinalLogic.RequiredEvidenceIds.ToList()
         };
+        state.UnlockedClueIds.AddRange(gameCase.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId));
+        foreach (var chain in gameCase.RequiredTeamworkChains)
+        {
+            if (!state.UnlockedClueIds.Contains(chain.InvestigatorClueId)) state.UnlockedClueIds.Add(chain.InvestigatorClueId);
+            state.ResolvedConfrontationRecords.Add(new ResolvedConfrontationRecord
+            {
+                ChallengeId = chain.InterrogatorChallengeId,
+                EvidenceId = gameCase.EvidenceChallenges.First(challenge => challenge.ChallengeId == chain.InterrogatorChallengeId).CorrectEvidenceId,
+                ResolvedByUserId = "user-int",
+                ResolvedByRole = "INTERROGATOR"
+            });
+        }
+        foreach (var deductionId in gameCase.FinalLogic.RequiredDeductionIds)
+        {
+            state.SolvedDeductionRecords.Add(new SolvedDeductionRecord
+            {
+                DeductionId = deductionId,
+                SelectedOptionId = gameCase.Deductions.First(deduction => deduction.DeductionId == deductionId).CorrectOptionId,
+                SolvedByUserId = "user-inv",
+                SolvedByRole = "INVESTIGATOR"
+            });
+        }
 
         Assert.True(GameRules.IsAccusationAvailable(gameCase, state));
     }

@@ -15,12 +15,12 @@ export const gameApi = {
   },
   evidencePhoto: (photoUrl) => apiFetchBlob(photoUrl),
   askDialogue: (roomId, dialogueId) => post(`/api/game/rooms/${roomId}/ask-dialogue`, { dialogueId }),
-  presentEvidence: (roomId, dialogueId, evidenceId) =>
-    post(`/api/game/rooms/${roomId}/present-evidence`, { dialogueId, evidenceId }),
+  presentEvidence: (roomId, payload) => post(`/api/game/rooms/${roomId}/present-evidence`, payload),
+  hint: (roomId, contextType, targetId) => post(`/api/game/rooms/${roomId}/hint`, { contextType, targetId }),
+  solveDeduction: (roomId, deductionId, optionId) => post(`/api/game/rooms/${roomId}/solve-deduction`, { deductionId, optionId }),
   completeScene: (roomId) => post(`/api/game/rooms/${roomId}/complete-scene`),
   completeStage: (roomId) => post(`/api/game/rooms/${roomId}/complete-stage`),
   goToScene: (roomId, sceneId) => post(`/api/game/rooms/${roomId}/go-to-scene`, { sceneId }),
-  accuse: (roomId, culpritId, motive, method, evidenceIds) =>
-    post(`/api/game/rooms/${roomId}/accuse`, { culpritId, motive, method, evidenceIds }),
+  accuse: (roomId, payload) => post(`/api/game/rooms/${roomId}/accuse`, payload),
   result: (roomId) => get(`/api/game/rooms/${roomId}/result`),
 };

@@ -38,7 +38,9 @@ public static class CaseAutoRepair
         foreach (var clue in c.Clues)
         {
             var unlockedAnywhere = c.Items.Any(i => i.UnlockClueIds.Contains(clue.ClueId))
-                || c.Dialogues.Any(d => d.UnlockClueIds.Contains(clue.ClueId));
+                || c.Dialogues.Any(d => d.UnlockClueIds.Contains(clue.ClueId))
+                || c.EvidenceChallenges.Any(challenge => challenge.UnlockClueIds.Contains(clue.ClueId))
+                || c.Deductions.Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId));
             if (unlockedAnywhere) continue;
 
             if (string.Equals(clue.SourceType, "item", StringComparison.OrdinalIgnoreCase))
@@ -125,6 +127,15 @@ public static class CaseAutoRepair
             {
                 clue.IsEvidence = true;
                 fixes.Add($"Marked final evidence clue '{clue.ClueId}' with isEvidence: true.");
+            }
+        }
+        foreach (var evidenceId in c.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId))
+        {
+            var clue = c.Clues.FirstOrDefault(candidate => candidate.ClueId == evidenceId);
+            if (clue is not null && !clue.IsEvidence)
+            {
+                clue.IsEvidence = true;
+                fixes.Add($"Marked V2 final evidence clue '{clue.ClueId}' with isEvidence: true.");
             }
         }
     }
@@ -259,6 +270,29 @@ public static class CaseAutoRepair
                 askedDialogues.Add(dialogue.DialogueId);
                 foreach (var clue in dialogue.UnlockClueIds) unlockedClues.Add(clue);
                 progressed = true;
+            }
+
+            foreach (var challenge in c.EvidenceChallenges)
+            {
+                if (!askedDialogues.Contains(challenge.DialogueId)) continue;
+                if (!unlockedClues.Contains(challenge.CorrectEvidenceId)) continue;
+                foreach (var clue in challenge.UnlockClueIds)
+                {
+                    if (unlockedClues.Add(clue)) progressed = true;
+                }
+            }
+
+            foreach (var deduction in c.Deductions)
+            {
+                if (!deduction.RequiredClueIds.All(unlockedClues.Contains)) continue;
+                if (!deduction.RequiredChallengeIds.All(challengeId =>
+                    c.EvidenceChallenges.Where(challenge => challenge.ChallengeId == challengeId)
+                        .SelectMany(challenge => challenge.UnlockClueIds)
+                        .All(unlockedClues.Contains))) continue;
+                foreach (var clue in deduction.UnlockClueIds)
+                {
+                    if (unlockedClues.Add(clue)) progressed = true;
+                }
             }
         } while (progressed);
     }

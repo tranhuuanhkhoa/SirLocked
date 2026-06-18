@@ -11,7 +11,9 @@ public interface IGameplayService
     Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request);
     Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId);
     Task<GameActionResponse> AskDialogueAsync(CurrentUser user, string roomId, string dialogueId);
-    Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, string dialogueId, string evidenceId);
+    Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, PresentEvidenceRequest request);
+    Task<HintResponse> RequestHintAsync(CurrentUser user, string roomId, HintRequest request);
+    Task<GameActionResponse> SolveDeductionAsync(CurrentUser user, string roomId, SolveDeductionRequest request);
     Task<GameActionResponse> CompleteSceneAsync(CurrentUser user, string roomId);
     Task<GameActionResponse> CompleteStageAsync(CurrentUser user, string roomId);
     Task<GameActionResponse> GoToSceneAsync(CurrentUser user, string roomId, string sceneId);

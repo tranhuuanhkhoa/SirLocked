@@ -20,6 +20,7 @@ public interface IGameNotifier
     Task ClueUnlocked(string roomId, string clueId, string? sourceId, string userId, long version);
     Task DialogueAnswered(string roomId, string dialogueId, string userId, long version);
     Task EvidencePresented(string roomId, string dialogueId, string evidenceId, string userId, long version);
+    Task InvestigationUpdate(string roomId, InvestigationUpdateDto update);
     Task SceneChanged(string roomId, string previousSceneId, string currentSceneId, string userId, long version);
     Task StageChanged(string roomId, string previousStageId, string currentStageId, string previousSceneId, string currentSceneId, bool isFinalStageCompleted, string userId, long version);
     Task GameCompleted(string roomId, GameResultResponse result);

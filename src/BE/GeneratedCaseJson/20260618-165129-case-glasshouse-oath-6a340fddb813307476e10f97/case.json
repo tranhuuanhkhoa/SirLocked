@@ -1,0 +1,2285 @@
+{
+  "id": "",
+  "caseId": "case-glasshouse-oath",
+  "title": "The Glasshouse Oath",
+  "summary": "SirLocked and his companion investigate the death of Professor Elian Marrow at Bellweather Glasshouse, where a priceless night-blooming orchid vanished during a midnight lamp failure. Across the glasshouse, pump room, study, and old orchid cellar, the investigators must compare botanical traces, fractured alibis, and the household\u0027s guarded oath to discover who carefully pruned the truth.",
+  "status": "DRAFT",
+  "mechanicsVersion": 2,
+  "generationMode": "CAMERA_EMBEDDED",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/cases/cover.png",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "title": "The Midnight Bloom",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-1",
+          "title": "Bellweather Glasshouse",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/scenes/scene-1.png",
+          "description": "The humid central conservatory glitters with rain and broken display panes. The orchid pedestal stands empty beneath blackened lamps while the household waits among palms, misted glass, and carefully arranged shock.",
+          "itemIds": [],
+          "characterIds": [
+            "char-livia-marrow",
+            "char-marta-quill",
+            "char-halden-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-scene-1-livia",
+              "type": "CHARACTER",
+              "targetId": "char-livia-marrow",
+              "x": 24,
+              "y": 61,
+              "width": 11,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-1-marta",
+              "type": "CHARACTER",
+              "targetId": "char-marta-quill",
+              "x": 69,
+              "y": 64,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-1-pike",
+              "type": "CHARACTER",
+              "targetId": "char-halden-pike",
+              "x": 84,
+              "y": 58,
+              "width": 10,
+              "height": 17,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-1",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "npc",
+                "id": "char-livia-marrow",
+                "x": 1285,
+                "y": 720,
+                "width": 104,
+                "height": 246,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "open tiled floor in the right aisle, in front of the plant table and blue cabinet",
+                "lighting": "warm amber light from the twin central lamps and left wall sconce, mixed with cool blue rainy backlight from the glasshouse windows",
+                "perspective": "straight-on pixel-art room view with a slightly elevated camera; floor tiles recede toward the rear glass wall and verticals remain upright",
+                "depth": 14,
+                "reason": "This spot leaves the player spawn area clear, keeps her feet on visible floor, and places the heir near the orchid display without covering the pedestal or the glass clue."
+              },
+              {
+                "type": "npc",
+                "id": "char-marta-quill",
+                "x": 390,
+                "y": 720,
+                "width": 108,
+                "height": 238,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "visible tiled floor beside the left palm and ceramic planter",
+                "lighting": "warm amber spill from the left wall lantern with cooler blue reflections from the rain-dark glass behind the plants",
+                "perspective": "straight-on pixel-art room view with a slightly elevated camera; floor tiles recede toward the rear glass wall and verticals remain upright",
+                "depth": 13,
+                "reason": "The gardener belongs near the plants and service side of the conservatory, with her feet on unobstructed floor and away from the player spawn points."
+              },
+              {
+                "type": "npc",
+                "id": "char-halden-pike",
+                "x": 730,
+                "y": 720,
+                "width": 94,
+                "height": 232,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "clear tiled walkway just left of the empty orchid pedestal",
+                "lighting": "overhead amber glow from the central black lamps, edged by cool blue rain light through the glass panes",
+                "perspective": "straight-on pixel-art room view with a slightly elevated camera; floor tiles recede toward the rear glass wall and verticals remain upright",
+                "depth": 13,
+                "reason": "This position lets the trustee stand close to the central display as a family confidant while remaining clear of the investigator spawn and not covering the dry ring on the pedestal."
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-1",
+                "label": "wrong-way glass fall",
+                "bounds": {
+                  "x": 836,
+                  "y": 568,
+                  "width": 369,
+                  "height": 124
+                },
+                "shape": "rect",
+                "surface": "wet tiled walkway to the right of the empty pedestal",
+                "visibility": "easy",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.91,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box encloses the visible crescent of long bright glass shards and scattered safety fragments fanning across the floor away from the pedestal."
+              },
+              {
+                "clueId": "clue-2",
+                "label": "gray gritty footprint",
+                "bounds": {
+                  "x": 232,
+                  "y": 548,
+                  "width": 69,
+                  "height": 82
+                },
+                "shape": "rect",
+                "surface": "damp lower threshold area beside the left service door",
+                "visibility": "medium",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.82,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box tightly contains the partial boot-sole mark in the wet condensation at the base of the service door, distinct from the surrounding dark soil and puddled floor."
+              },
+              {
+                "clueId": "clue-3",
+                "label": "dry pedestal ring",
+                "bounds": {
+                  "x": 786,
+                  "y": 444,
+                  "width": 77,
+                  "height": 27
+                },
+                "shape": "rect",
+                "surface": "top slab of the empty marble orchid pedestal",
+                "visibility": "easy",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.94,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The bounds cover the crisp oval dry mark on the otherwise damp pedestal top where the orchid pot had been sitting."
+              },
+              {
+                "clueId": "clue-4",
+                "label": "green twine on vent latch",
+                "bounds": {
+                  "x": 819,
+                  "y": 106,
+                  "width": 55,
+                  "height": 64
+                },
+                "shape": "rect",
+                "surface": "brass latch on the upper ventilation panel above the broken display windows",
+                "visibility": "medium",
+                "detectionDifficulty": "hard",
+                "detectionStatus": "FOUND",
+                "confidence": 0.78,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box captures the small faded green fiber hanging from the brass vent latch above the display area, including its frayed dangling end."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Mineral Pump Room",
+                "hotspot": {
+                  "x": 181,
+                  "y": 252,
+                  "width": 130,
+                  "height": 286
+                },
+                "depth": 8
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [],
+            "characterPlacements": [
+              {
+                "characterId": "char-livia-marrow",
+                "asset": "/assets/characters/char-livia-marrow-scene-1-sprite.png",
+                "position": {
+                  "x": 1285,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 104,
+                  "height": 246
+                },
+                "hotspot": {
+                  "x": 1233,
+                  "y": 474,
+                  "width": 104,
+                  "height": 246
+                },
+                "reservedSlot": {
+                  "x": 1233,
+                  "y": 474,
+                  "width": 104,
+                  "height": 246
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-marta-quill",
+                "asset": "/assets/characters/char-marta-quill-scene-1-sprite.png",
+                "position": {
+                  "x": 390,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 108,
+                  "height": 238
+                },
+                "hotspot": {
+                  "x": 336,
+                  "y": 482,
+                  "width": 108,
+                  "height": 238
+                },
+                "reservedSlot": {
+                  "x": 336,
+                  "y": 482,
+                  "width": 108,
+                  "height": 238
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 13
+              },
+              {
+                "characterId": "char-halden-pike",
+                "asset": "/assets/characters/char-halden-pike-scene-1-sprite.png",
+                "position": {
+                  "x": 730,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 94,
+                  "height": 232
+                },
+                "hotspot": {
+                  "x": 683,
+                  "y": 488,
+                  "width": 94,
+                  "height": 232
+                },
+                "reservedSlot": {
+                  "x": 683,
+                  "y": 488,
+                  "width": 94,
+                  "height": 232
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 13
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-1",
+                "label": "wrong-way glass fall",
+                "bounds": {
+                  "x": 836,
+                  "y": 568,
+                  "width": 369,
+                  "height": 124
+                },
+                "shape": "rect",
+                "surface": "wet tiled walkway to the right of the empty pedestal",
+                "visibility": "easy",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.91,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box encloses the visible crescent of long bright glass shards and scattered safety fragments fanning across the floor away from the pedestal."
+              },
+              {
+                "clueId": "clue-2",
+                "label": "gray gritty footprint",
+                "bounds": {
+                  "x": 232,
+                  "y": 548,
+                  "width": 69,
+                  "height": 82
+                },
+                "shape": "rect",
+                "surface": "damp lower threshold area beside the left service door",
+                "visibility": "medium",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.82,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box tightly contains the partial boot-sole mark in the wet condensation at the base of the service door, distinct from the surrounding dark soil and puddled floor."
+              },
+              {
+                "clueId": "clue-3",
+                "label": "dry pedestal ring",
+                "bounds": {
+                  "x": 786,
+                  "y": 444,
+                  "width": 77,
+                  "height": 27
+                },
+                "shape": "rect",
+                "surface": "top slab of the empty marble orchid pedestal",
+                "visibility": "easy",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.94,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The bounds cover the crisp oval dry mark on the otherwise damp pedestal top where the orchid pot had been sitting."
+              },
+              {
+                "clueId": "clue-4",
+                "label": "green twine on vent latch",
+                "bounds": {
+                  "x": 819,
+                  "y": 106,
+                  "width": 55,
+                  "height": 64
+                },
+                "shape": "rect",
+                "surface": "brass latch on the upper ventilation panel above the broken display windows",
+                "visibility": "medium",
+                "detectionDifficulty": "hard",
+                "detectionStatus": "FOUND",
+                "confidence": 0.78,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box captures the small faded green fiber hanging from the brass vent latch above the display area, including its frayed dangling end."
+              }
+            ],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Mineral Pump Room",
+                "hotspot": {
+                  "x": 181,
+                  "y": 252,
+                  "width": 130,
+                  "height": 286
+                },
+                "depth": 8
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-1",
+              "clue-2",
+              "clue-3"
+            ],
+            "requiredDialogueIds": [
+              "dlg-1",
+              "dlg-3",
+              "dlg-4"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2",
+      "title": "Gossip at the Springs",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-2",
+          "title": "The Mineral Pump Room",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/scenes/scene-2.png",
+          "description": "Under painted ironwork and steaming mineral taps, Veyrbridge society murmurs over the scandal. Dealer\u0027s cards, charity hampers, and wet footprints turn polite gossip into a map of who moved where before midnight.",
+          "itemIds": [],
+          "characterIds": [
+            "char-cassian-voss",
+            "char-silas-fen",
+            "char-halden-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-scene-2-voss",
+              "type": "CHARACTER",
+              "targetId": "char-cassian-voss",
+              "x": 29,
+              "y": 58,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-2-silas",
+              "type": "CHARACTER",
+              "targetId": "char-silas-fen",
+              "x": 55,
+              "y": 61,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-2-pike",
+              "type": "CHARACTER",
+              "targetId": "char-halden-pike",
+              "x": 78,
+              "y": 57,
+              "width": 10,
+              "height": 17,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-2",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "npc",
+                "id": "char-cassian-voss",
+                "x": 315,
+                "y": 720,
+                "width": 110,
+                "height": 255,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "open wet stone tile floor in the left foreground, clear of the player spawn points",
+                "lighting": "warm golden light from the tall left windows with softer amber gas-lamp highlights and cooler shadows toward the right",
+                "perspective": "straight-on room view with a shallow three-quarter tiled floor; foreground figures are larger and lower, background fixtures recede upward",
+                "depth": 14,
+                "reason": "The left foreground has visible walkable tile space beside the water counter and footprints, giving the botanist a clear standing position without blocking the clue table or exits."
+              },
+              {
+                "type": "npc",
+                "id": "char-silas-fen",
+                "x": 455,
+                "y": 695,
+                "width": 96,
+                "height": 235,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "visible stone tile aisle just left of center, in front of the potted fern and away from the investigator spawn",
+                "lighting": "warm side light from the left windows with dim teal shadows under the ironwork and reflected highlights on wet tiles",
+                "perspective": "straight-on room view with shallow three-quarter floor perspective; this mid-floor position is slightly smaller than foreground scale",
+                "depth": 12,
+                "reason": "This open aisle leaves the player spawn clear while placing the rare plant dealer near the public pump-room floor and away from the foreground table clues."
+              },
+              {
+                "type": "npc",
+                "id": "char-halden-pike",
+                "x": 1320,
+                "y": 315,
+                "width": 72,
+                "height": 170,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible iron stair landing on the right side above the hamper area",
+                "lighting": "dim upper-right interior light with warm lamp glints on the railing and softer shadow than the sunlit left side",
+                "perspective": "elevated rear placement on the staircase, so the figure is smaller and higher in the frame than floor-level characters",
+                "depth": 6,
+                "reason": "The stair landing is a distinct visible standing surface that keeps the reverend out of the crowded hamper clue area while giving him a watchful position above the room."
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-5",
+                "label": "Debt telegram",
+                "bounds": {
+                  "x": 825,
+                  "y": 566,
+                  "width": 93,
+                  "height": 67
+                },
+                "shape": "rect",
+                "surface": "round foreground card table, partly beneath the small mineral-water saucer",
+                "visibility": "medium",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.78,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box encloses the folded written paper on the round table with the small saucer sitting over its upper edge; the visible lines of text match the debt-telegram placement described."
+              },
+              {
+                "clueId": "clue-7",
+                "label": "Chapel hampers powder",
+                "bounds": {
+                  "x": 1213,
+                  "y": 448,
+                  "width": 377,
+                  "height": 285
+                },
+                "shape": "rect",
+                "surface": "stacked wicker hampers marked CHAPEL VESTRY and the adjacent powder-dusted tile floor",
+                "visibility": "easy",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.93,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box tightly covers the visible group of chapel vestry wicker hampers on the right, including their pale gray dusting on lids, handles, and the spilled powder gathered on the floor around them."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-1",
+                "targetSceneId": "scene-1",
+                "label": "Bellweather Glasshouse",
+                "hotspot": {
+                  "x": 0,
+                  "y": 560,
+                  "width": 120,
+                  "height": 180
+                },
+                "depth": 24
+              },
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Professor Marrow\u0027s Study",
+                "hotspot": {
+                  "x": 1150,
+                  "y": 326,
+                  "width": 60,
+                  "height": 160
+                },
+                "depth": 9
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [],
+            "characterPlacements": [
+              {
+                "characterId": "char-cassian-voss",
+                "asset": "/assets/characters/char-cassian-voss-scene-2-sprite.png",
+                "position": {
+                  "x": 315,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 110,
+                  "height": 255
+                },
+                "hotspot": {
+                  "x": 260,
+                  "y": 465,
+                  "width": 110,
+                  "height": 255
+                },
+                "reservedSlot": {
+                  "x": 260,
+                  "y": 465,
+                  "width": 110,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 14
+              },
+              {
+                "characterId": "char-silas-fen",
+                "asset": "/assets/characters/char-silas-fen-scene-2-sprite.png",
+                "position": {
+                  "x": 455,
+                  "y": 695,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 96,
+                  "height": 235
+                },
+                "hotspot": {
+                  "x": 407,
+                  "y": 460,
+                  "width": 96,
+                  "height": 235
+                },
+                "reservedSlot": {
+                  "x": 407,
+                  "y": 460,
+                  "width": 96,
+                  "height": 235
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 12
+              },
+              {
+                "characterId": "char-halden-pike",
+                "asset": "/assets/characters/char-halden-pike-scene-2-sprite.png",
+                "position": {
+                  "x": 1320,
+                  "y": 315,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 72,
+                  "height": 170
+                },
+                "hotspot": {
+                  "x": 1284,
+                  "y": 145,
+                  "width": 72,
+                  "height": 170
+                },
+                "reservedSlot": {
+                  "x": 1284,
+                  "y": 145,
+                  "width": 72,
+                  "height": 170
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 6
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-5",
+                "label": "Debt telegram",
+                "bounds": {
+                  "x": 825,
+                  "y": 566,
+                  "width": 93,
+                  "height": 67
+                },
+                "shape": "rect",
+                "surface": "round foreground card table, partly beneath the small mineral-water saucer",
+                "visibility": "medium",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.78,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box encloses the folded written paper on the round table with the small saucer sitting over its upper edge; the visible lines of text match the debt-telegram placement described."
+              },
+              {
+                "clueId": "clue-7",
+                "label": "Chapel hampers powder",
+                "bounds": {
+                  "x": 1213,
+                  "y": 448,
+                  "width": 377,
+                  "height": 285
+                },
+                "shape": "rect",
+                "surface": "stacked wicker hampers marked CHAPEL VESTRY and the adjacent powder-dusted tile floor",
+                "visibility": "easy",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.93,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box tightly covers the visible group of chapel vestry wicker hampers on the right, including their pale gray dusting on lids, handles, and the spilled powder gathered on the floor around them."
+              }
+            ],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-scene-1",
+                "targetSceneId": "scene-1",
+                "label": "Bellweather Glasshouse",
+                "hotspot": {
+                  "x": 0,
+                  "y": 560,
+                  "width": 120,
+                  "height": 180
+                },
+                "depth": 24
+              },
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Professor Marrow\u0027s Study",
+                "hotspot": {
+                  "x": 1150,
+                  "y": 326,
+                  "width": 60,
+                  "height": 160
+                },
+                "depth": 9
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-5",
+              "clue-6",
+              "clue-7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-5",
+              "dlg-6",
+              "dlg-7"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3",
+      "title": "The Professor\u0027s Papers",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-3",
+          "title": "Professor Marrow\u0027s Study",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/scenes/scene-3.png",
+          "description": "Marrow\u0027s desk is a storm of field notes, specimen drawers, coded plant labels, and disturbed correspondence. The missing journal has left shapes behind: impressions, dust lines, and appointments no one is eager to explain.",
+          "itemIds": [],
+          "characterIds": [
+            "char-livia-marrow",
+            "char-cassian-voss"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-scene-3-livia",
+              "type": "CHARACTER",
+              "targetId": "char-livia-marrow",
+              "x": 34,
+              "y": 60,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-3-voss",
+              "type": "CHARACTER",
+              "targetId": "char-cassian-voss",
+              "x": 72,
+              "y": 59,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-3",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "npc",
+                "id": "char-livia-marrow",
+                "x": 1210,
+                "y": 720,
+                "width": 96,
+                "height": 235,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible wooden floor just left of the right-hand rug and beside the front of Marrow\u0027s desk",
+                "lighting": "dim study lighting with warm amber highlights from the left wall sconce and green desk lamp, with cooler rain-blue fill from the window",
+                "perspective": "slightly elevated three-quarter side view; floor recedes diagonally toward the rear wall and furniture tops are visible",
+                "depth": 14,
+                "reason": "This spot places Livia on unobstructed floor near the inheritance papers and desk, away from the player spawn points and clear of the door transition."
+              },
+              {
+                "type": "npc",
+                "id": "char-cassian-voss",
+                "x": 410,
+                "y": 720,
+                "width": 104,
+                "height": 250,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "visible parquet floor in front of the left specimen drawers and bookcase",
+                "lighting": "dim study lighting with stronger warm glow from the left sconce and window-side instruments, fading into the central desk lamp light",
+                "perspective": "slightly elevated three-quarter side view matching the desk and floor grid, with feet planted on the visible floor plane",
+                "depth": 13,
+                "reason": "This location gives Cassian a clear standing position on the left side of the study near the botanical shelves, without blocking clue areas or spawn points."
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-8",
+                "label": "Impressed blotter",
+                "bounds": {
+                  "x": 646,
+                  "y": 399,
+                  "width": 352,
+                  "height": 104
+                },
+                "shape": "rect",
+                "surface": "green leather blotter on the center of Marrow\u0027s desk",
+                "visibility": "medium",
+                "detectionDifficulty": "hard",
+                "detectionStatus": "FOUND",
+                "confidence": 0.86,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box tightly covers the green desktop blotter where the faint reversed lettering, including the large reversed PIKE impression, is visible across the leather surface alongside the lighter empty journal-shaped area."
+              },
+              {
+                "clueId": "clue-9",
+                "label": "Estate appointment",
+                "bounds": {
+                  "x": 956,
+                  "y": 389,
+                  "width": 234,
+                  "height": 130
+                },
+                "shape": "rect",
+                "surface": "right side of Marrow\u0027s desk, covering the desk calendar and Harrow \u0026 Vale solicitor calling card",
+                "visibility": "easy",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.94,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The rectangle contains the open May 17 desk calendar with the handwritten \u0027Harrow \u0026 Vale, estate restraint\u0027 note and the nearby Harrow \u0026 Vale solicitors calling card on the desk."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Mineral Pump Room",
+                "hotspot": {
+                  "x": 1302,
+                  "y": 72,
+                  "width": 194,
+                  "height": 505
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-scene-4",
+                "targetSceneId": "scene-4",
+                "label": "The Old Orchid House Cellar",
+                "hotspot": {
+                  "x": 72,
+                  "y": 76,
+                  "width": 162,
+                  "height": 437
+                },
+                "depth": 18
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [],
+            "characterPlacements": [
+              {
+                "characterId": "char-livia-marrow",
+                "asset": "/assets/characters/char-livia-marrow-scene-3-sprite.png",
+                "position": {
+                  "x": 1210,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 96,
+                  "height": 235
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 485,
+                  "width": 96,
+                  "height": 235
+                },
+                "reservedSlot": {
+                  "x": 1162,
+                  "y": 485,
+                  "width": 96,
+                  "height": 235
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-cassian-voss",
+                "asset": "/assets/characters/char-cassian-voss-scene-3-sprite.png",
+                "position": {
+                  "x": 410,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 104,
+                  "height": 250
+                },
+                "hotspot": {
+                  "x": 358,
+                  "y": 470,
+                  "width": 104,
+                  "height": 250
+                },
+                "reservedSlot": {
+                  "x": 358,
+                  "y": 470,
+                  "width": 104,
+                  "height": 250
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 13
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-8",
+                "label": "Impressed blotter",
+                "bounds": {
+                  "x": 646,
+                  "y": 399,
+                  "width": 352,
+                  "height": 104
+                },
+                "shape": "rect",
+                "surface": "green leather blotter on the center of Marrow\u0027s desk",
+                "visibility": "medium",
+                "detectionDifficulty": "hard",
+                "detectionStatus": "FOUND",
+                "confidence": 0.86,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box tightly covers the green desktop blotter where the faint reversed lettering, including the large reversed PIKE impression, is visible across the leather surface alongside the lighter empty journal-shaped area."
+              },
+              {
+                "clueId": "clue-9",
+                "label": "Estate appointment",
+                "bounds": {
+                  "x": 956,
+                  "y": 389,
+                  "width": 234,
+                  "height": 130
+                },
+                "shape": "rect",
+                "surface": "right side of Marrow\u0027s desk, covering the desk calendar and Harrow \u0026 Vale solicitor calling card",
+                "visibility": "easy",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.94,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The rectangle contains the open May 17 desk calendar with the handwritten \u0027Harrow \u0026 Vale, estate restraint\u0027 note and the nearby Harrow \u0026 Vale solicitors calling card on the desk."
+              }
+            ],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-scene-2",
+                "targetSceneId": "scene-2",
+                "label": "The Mineral Pump Room",
+                "hotspot": {
+                  "x": 1302,
+                  "y": 72,
+                  "width": 194,
+                  "height": 505
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-scene-4",
+                "targetSceneId": "scene-4",
+                "label": "The Old Orchid House Cellar",
+                "hotspot": {
+                  "x": 72,
+                  "y": 76,
+                  "width": 162,
+                  "height": 437
+                },
+                "depth": 18
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-8",
+              "clue-9",
+              "clue-10"
+            ],
+            "requiredDialogueIds": [
+              "dlg-9",
+              "dlg-10",
+              "dlg-11"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-4",
+      "title": "Below the Orchid House",
+      "order": 4,
+      "scenes": [
+        {
+          "sceneId": "scene-4",
+          "title": "The Old Orchid House Cellar",
+          "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/scenes/scene-4.png",
+          "description": "Beneath the estate, a disused growing chamber breathes cold mineral damp. Fresh scrapes cut through settled dust near the service hatch, and something has been hidden behind cracked propagation frames.",
+          "itemIds": [],
+          "characterIds": [
+            "char-marta-quill",
+            "char-silas-fen",
+            "char-halden-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-scene-4-marta",
+              "type": "CHARACTER",
+              "targetId": "char-marta-quill",
+              "x": 23,
+              "y": 62,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-4-silas",
+              "type": "CHARACTER",
+              "targetId": "char-silas-fen",
+              "x": 58,
+              "y": 63,
+              "width": 10,
+              "height": 18,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-4-pike",
+              "type": "CHARACTER",
+              "targetId": "char-halden-pike",
+              "x": 82,
+              "y": 58,
+              "width": 10,
+              "height": 17,
+              "zIndex": 1,
+              "label": "",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": {
+            "sceneId": "scene-4",
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "placements": [
+              {
+                "type": "npc",
+                "id": "char-marta-quill",
+                "x": 1340,
+                "y": 720,
+                "width": 110,
+                "height": 245,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible tiled floor in front of the right-side potted orchids and cellar window",
+                "lighting": "dim mixed cellar light, with cool green window light from the right and weaker warm lantern spill from the upper left",
+                "perspective": "side-on pixel-art cellar view with a shallow top-down floor plane receding toward the back wall",
+                "depth": 14,
+                "reason": "The open floor in front of the right plant grouping is unobstructed, keeps Marta near the greenhouse collection she tends, and does not cover either clue region or the player spawn points."
+              },
+              {
+                "type": "npc",
+                "id": "char-silas-fen",
+                "x": 850,
+                "y": 720,
+                "width": 105,
+                "height": 235,
+                "anchor": "bottom-center",
+                "facing": "right",
+                "surface": "visible central tiled floor in front of the dusty propagation frames",
+                "lighting": "low amber-green cellar lighting, mostly shadowed with faint warm spill from the left lantern and cool reflected light from the right window",
+                "perspective": "side-on pixel-art cellar view with a shallow top-down floor plane receding toward the back wall",
+                "depth": 13,
+                "reason": "This central floor position places Silas near the hidden-crate area without overlapping the actual clue, and leaves the investigator spawn area clear."
+              },
+              {
+                "type": "npc",
+                "id": "char-halden-pike",
+                "x": 1030,
+                "y": 720,
+                "width": 105,
+                "height": 240,
+                "anchor": "bottom-center",
+                "facing": "left",
+                "surface": "visible tiled floor just left of the leaning cracked propagation frames",
+                "lighting": "subdued cellar shadows with warm highlights from the left lantern and faint cool green light from the right window",
+                "perspective": "side-on pixel-art cellar view with a shallow top-down floor plane receding toward the back wall",
+                "depth": 13,
+                "reason": "The floor is clear at this spot, and the Reverend can stand near the chapel-seal evidence without blocking the crate clue or the transition hotspot."
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-11",
+                "label": "Waxed service hatch",
+                "bounds": {
+                  "x": 211,
+                  "y": 642,
+                  "width": 232,
+                  "height": 121
+                },
+                "shape": "rect",
+                "surface": "foreground iron service hatch set into the tiled floor",
+                "visibility": "hard",
+                "detectionDifficulty": "hard",
+                "detectionStatus": "FOUND",
+                "confidence": 0.74,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box encloses the visible foreground service hatch details: the pull chain rising from the hatch, the nearby dark snag on the hatch edge, and the amber wax-colored smear on the latch hardware at the lower right of the plate."
+              },
+              {
+                "clueId": "clue-12",
+                "label": "Hidden orchid crate",
+                "bounds": {
+                  "x": 1085,
+                  "y": 374,
+                  "width": 142,
+                  "height": 166
+                },
+                "shape": "rect",
+                "surface": "slatted wooden crate partly hidden behind the cracked propagation frames",
+                "visibility": "medium",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.88,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The rectangle tightly covers the exposed slatted crate behind the leaning glass frames, including the pale orchid blooms visible through the openings and the broken paper band with the round chapel-office seal hanging on the front."
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Professor Marrow\u0027s Study",
+                "hotspot": {
+                  "x": 137,
+                  "y": 70,
+                  "width": 176,
+                  "height": 285
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 540,
+              "width": 1600,
+              "height": 250
+            },
+            "spawnPoints": {
+              "INVESTIGATOR": {
+                "direction": "right",
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "INTERROGATOR": {
+                "direction": "right",
+                "x": 660,
+                "y": 720,
+                "anchor": "bottom-center"
+              },
+              "default": {
+                "direction": "right",
+                "x": 610,
+                "y": 720,
+                "anchor": "bottom-center"
+              }
+            },
+            "itemPlacements": [],
+            "characterPlacements": [
+              {
+                "characterId": "char-marta-quill",
+                "asset": "/assets/characters/char-marta-quill-scene-4-sprite.png",
+                "position": {
+                  "x": 1340,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 110,
+                  "height": 245
+                },
+                "hotspot": {
+                  "x": 1285,
+                  "y": 475,
+                  "width": 110,
+                  "height": 245
+                },
+                "reservedSlot": {
+                  "x": 1285,
+                  "y": 475,
+                  "width": 110,
+                  "height": 245
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-silas-fen",
+                "asset": "/assets/characters/char-silas-fen-scene-4-sprite.png",
+                "position": {
+                  "x": 850,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 105,
+                  "height": 235
+                },
+                "hotspot": {
+                  "x": 797.5,
+                  "y": 485,
+                  "width": 105,
+                  "height": 235
+                },
+                "reservedSlot": {
+                  "x": 797.5,
+                  "y": 485,
+                  "width": 105,
+                  "height": 235
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 13
+              },
+              {
+                "characterId": "char-halden-pike",
+                "asset": "/assets/characters/char-halden-pike-scene-4-sprite.png",
+                "position": {
+                  "x": 1030,
+                  "y": 720,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 105,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 977.5,
+                  "y": 480,
+                  "width": 105,
+                  "height": 240
+                },
+                "reservedSlot": {
+                  "x": 977.5,
+                  "y": 480,
+                  "width": 105,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 13
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-11",
+                "label": "Waxed service hatch",
+                "bounds": {
+                  "x": 211,
+                  "y": 642,
+                  "width": 232,
+                  "height": 121
+                },
+                "shape": "rect",
+                "surface": "foreground iron service hatch set into the tiled floor",
+                "visibility": "hard",
+                "detectionDifficulty": "hard",
+                "detectionStatus": "FOUND",
+                "confidence": 0.74,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The box encloses the visible foreground service hatch details: the pull chain rising from the hatch, the nearby dark snag on the hatch edge, and the amber wax-colored smear on the latch hardware at the lower right of the plate."
+              },
+              {
+                "clueId": "clue-12",
+                "label": "Hidden orchid crate",
+                "bounds": {
+                  "x": 1085,
+                  "y": 374,
+                  "width": 142,
+                  "height": 166
+                },
+                "shape": "rect",
+                "surface": "slatted wooden crate partly hidden behind the cracked propagation frames",
+                "visibility": "medium",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.88,
+                "source": "vision",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The rectangle tightly covers the exposed slatted crate behind the leaning glass frames, including the pale orchid blooms visible through the openings and the broken paper band with the round chapel-office seal hanging on the front."
+              }
+            ],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-scene-3",
+                "targetSceneId": "scene-3",
+                "label": "Professor Marrow\u0027s Study",
+                "hotspot": {
+                  "x": 137,
+                  "y": 70,
+                  "width": 176,
+                  "height": 285
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-11",
+              "clue-12"
+            ],
+            "requiredDialogueIds": [
+              "dlg-12",
+              "dlg-13",
+              "dlg-14"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-livia-marrow",
+      "name": "Livia Marrow",
+      "role": "The professor\u0027s niece and heir",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/characters/char-livia-marrow-portrait.png",
+      "description": "Poised, observant, and wounded by years of withheld approval. Livia inherits Bellweather but seems more frightened by the family oath than pleased by the estate."
+    },
+    {
+      "characterId": "char-cassian-voss",
+      "name": "Dr. Cassian Voss",
+      "role": "Rival botanist",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/characters/char-cassian-voss-portrait.png",
+      "description": "A polished academic whose admiration for Marrow conceals a bruising professional rivalry over orchid classification and public recognition."
+    },
+    {
+      "characterId": "char-marta-quill",
+      "name": "Marta Quill",
+      "role": "Head gardener",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/characters/char-marta-quill-portrait.png",
+      "description": "Practical, blunt, and fiercely loyal to the living collection. Marta knows every valve and walkway in the glasshouse, and she resents anyone who treats plants as trophies."
+    },
+    {
+      "characterId": "char-silas-fen",
+      "name": "Silas Fen",
+      "role": "Rare plant dealer",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/characters/char-silas-fen-portrait.png",
+      "description": "Charming, evasive, and financially pressed. Silas has foreign buyers, bad debts, and an obvious interest in the missing orchid."
+    },
+    {
+      "characterId": "char-halden-pike",
+      "name": "Reverend Halden Pike",
+      "role": "Family confidant and trustee",
+      "imageUrl": "/assets/ai-generated/v3-placement-first/case-glasshouse-oath/characters/char-halden-pike-portrait.png",
+      "description": "Soft-spoken and insistent on peace. Reverend Pike has long mediated Bellweather family matters and invokes the old Glasshouse Oath whenever questions become dangerous."
+    }
+  ],
+  "items": [],
+  "clues": [
+    {
+      "clueId": "clue-1",
+      "title": "Glass Fallen the Wrong Way",
+      "content": "The largest display shards lie outward from the orchid pedestal rather than inward from the roofline, suggesting the shattered panes were disturbed after the orchid was already handled.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-1",
+      "sourceType": "camera",
+      "sceneId": "scene-1",
+      "discoverMethod": "camera",
+      "visualDescription": "A crescent of long glass shards fans away from the empty pedestal across the tiled walkway, with smaller safety fragments still clinging to the upper frame.",
+      "inventoryDescription": "Photograph of glass shards fanning outward from the orchid display.",
+      "narrativeMeaning": "The scene was staged to look like a chaotic accident, but the break pattern does not match a simple fall from above.",
+      "hintLevel": 2,
+      "tags": [
+        "method",
+        "staging",
+        "glasshouse"
+      ],
+      "relatedCharacterIds": [
+        "char-marta-quill",
+        "char-halden-pike"
+      ]
+    },
+    {
+      "clueId": "clue-2",
+      "title": "Gray Mineral Footprint by the Service Door",
+      "content": "A pale gray footprint at the glasshouse service door contains mineral grit unlike the black greenhouse soil. It matches powder used around the pump room charity hampers and chapel stores.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-1",
+      "sourceType": "camera",
+      "sceneId": "scene-1",
+      "discoverMethod": "camera",
+      "visualDescription": "A partial boot print in damp condensation beside the service door, its sole packed with light gray grit rather than dark potting soil.",
+      "inventoryDescription": "Photograph of a gray mineral footprint at the service door.",
+      "narrativeMeaning": "Someone entered or left through the service way after passing through an area connected to the mineral springs or chapel stores.",
+      "hintLevel": 2,
+      "tags": [
+        "opportunity",
+        "trace",
+        "timeline"
+      ],
+      "relatedCharacterIds": [
+        "char-halden-pike",
+        "char-cassian-voss"
+      ]
+    },
+    {
+      "clueId": "clue-3",
+      "title": "Dry Ring on the Orchid Pedestal",
+      "content": "The pedestal is wet with lamp-mist except for a dry circular ring where the orchid pot sat. The ring has sharply dried edges, meaning the pot was removed several minutes before the lamps failed.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-1",
+      "sourceType": "camera",
+      "sceneId": "scene-1",
+      "discoverMethod": "camera",
+      "visualDescription": "An empty marble pedestal with beads of moisture everywhere except a clean dry circle at the center, its edge visibly crisp under returning lamplight.",
+      "inventoryDescription": "Photograph of the dry pot ring on the wet orchid pedestal.",
+      "narrativeMeaning": "The orchid theft was not a spontaneous act during the darkness; it began before the public blackout.",
+      "hintLevel": 2,
+      "tags": [
+        "timeline",
+        "orchid",
+        "method"
+      ],
+      "relatedCharacterIds": [
+        "char-silas-fen",
+        "char-halden-pike"
+      ]
+    },
+    {
+      "clueId": "clue-4",
+      "title": "Green Tying Twine on the Vent Latch",
+      "content": "A strand of green gardener\u0027s twine is caught on the vent latch, seeming to implicate Marta. The strand is brittle and sun-faded, likely from an old plant tie rather than tonight\u0027s work.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": true,
+      "source": "scene-1",
+      "sourceType": "camera",
+      "sceneId": "scene-1",
+      "discoverMethod": "camera",
+      "visualDescription": "A faded green fiber snagged on a brass vent latch above the broken display area, dry and frayed at both ends.",
+      "inventoryDescription": "Photograph of old green twine snagged on the vent latch.",
+      "narrativeMeaning": "It points suspiciously toward the gardener at first, but its age makes it a misleading trace rather than proof.",
+      "hintLevel": 1,
+      "tags": [
+        "red-herring",
+        "marta",
+        "vent"
+      ],
+      "relatedCharacterIds": [
+        "char-marta-quill"
+      ]
+    },
+    {
+      "clueId": "clue-5",
+      "title": "Silas Fen\u0027s Debt Telegram",
+      "content": "A telegram tucked beside a pump room saucer demands payment from Silas by dawn and mentions a foreign buyer seeking \u0027night stock of exceptional rarity.\u0027",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": true,
+      "source": "scene-2",
+      "sourceType": "camera",
+      "sceneId": "scene-2",
+      "discoverMethod": "camera",
+      "visualDescription": "A folded telegram under a mineral-water saucer, with the words \u0027payment by dawn\u0027 and \u0027foreign buyer\u0027 visible through damp paper.",
+      "inventoryDescription": "Photograph of Silas Fen\u0027s urgent debt telegram.",
+      "narrativeMeaning": "Silas had a powerful motive to steal the orchid, but the document alone does not place him inside the glasshouse at the decisive time.",
+      "hintLevel": 1,
+      "tags": [
+        "red-herring",
+        "motive",
+        "silas"
+      ],
+      "relatedCharacterIds": [
+        "char-silas-fen"
+      ]
+    },
+    {
+      "clueId": "clue-6",
+      "title": "Voss Saw a Gray-Dusted Figure",
+      "content": "Pressed on his pump room alibi, Dr. Voss admits he saw a gray-dusted figure pass from the corridor toward Bellweather just after midnight, but he kept silent to avoid being drawn into scandal.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-5",
+      "sourceType": "dialogue",
+      "sceneId": "scene-2",
+      "discoverMethod": "dialogue",
+      "visualDescription": "No physical photograph; this clue is recorded as SirLocked\u0027s interview note after confronting Voss.",
+      "inventoryDescription": "Interview note: Voss saw a gray-dusted figure heading toward the estate.",
+      "narrativeMeaning": "The footprint trace corresponds to a witnessed movement, tightening the timeline around the service route.",
+      "hintLevel": 2,
+      "tags": [
+        "testimony",
+        "opportunity",
+        "timeline"
+      ],
+      "relatedCharacterIds": [
+        "char-cassian-voss",
+        "char-halden-pike"
+      ]
+    },
+    {
+      "clueId": "clue-7",
+      "title": "Chapel Charity Hampers with Mineral Powder",
+      "content": "The pump room charity hampers are dusted with pale mineral powder from spring-salt wrappings. Their labels show Reverend Pike was arranging delivery through the chapel vestry shortly before midnight.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-2",
+      "sourceType": "camera",
+      "sceneId": "scene-2",
+      "discoverMethod": "camera",
+      "visualDescription": "Stacked wicker hampers marked for the chapel vestry, their handles and nearby floor dusted with the same pale gray powder seen in the glasshouse print.",
+      "inventoryDescription": "Photograph of mineral-dusted chapel charity hampers.",
+      "narrativeMeaning": "The gray powder is tied to Pike\u0027s movements, not to ordinary garden work.",
+      "hintLevel": 2,
+      "tags": [
+        "trace",
+        "pike",
+        "pump-room"
+      ],
+      "relatedCharacterIds": [
+        "char-halden-pike"
+      ]
+    },
+    {
+      "clueId": "clue-8",
+      "title": "Blotter Impression Naming Pike",
+      "content": "The professor\u0027s desk blotter preserves a reversed impression: \u0027Pike trustee sales... Oath clause void if concealed.\u0027 Marrow had evidence connecting Pike to improper sales from the Bellweather collection.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-3",
+      "sourceType": "camera",
+      "sceneId": "scene-3",
+      "discoverMethod": "camera",
+      "visualDescription": "A green leather blotter under angled light, showing faint reversed words pressed into the surface beside an empty rectangle where a journal had lain.",
+      "inventoryDescription": "Photograph of the blotter impression naming Pike and the oath clause.",
+      "narrativeMeaning": "This supplies a concealed motive: the professor was preparing to expose Pike\u0027s abuse of his trustee position.",
+      "hintLevel": 3,
+      "tags": [
+        "motive",
+        "journal",
+        "oath"
+      ],
+      "relatedCharacterIds": [
+        "char-halden-pike",
+        "char-livia-marrow"
+      ]
+    },
+    {
+      "clueId": "clue-9",
+      "title": "Livia\u0027s Lawyer Appointment",
+      "content": "A calendar entry and rain-spotted calling card show Livia had already arranged to meet a solicitor about refusing immediate sale of Bellweather, undermining the idea that she urgently killed for inheritance.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-3",
+      "sourceType": "camera",
+      "sceneId": "scene-3",
+      "discoverMethod": "camera",
+      "visualDescription": "A desk calendar opened to the following morning with \u0027Harrow \u0026 Vale, estate restraint\u0027 written beside a solicitor\u0027s damp calling card.",
+      "inventoryDescription": "Photograph of Livia\u0027s solicitor appointment.",
+      "narrativeMeaning": "Livia had inheritance concerns, but her documented plan points to preserving the estate rather than profiting from murder.",
+      "hintLevel": 1,
+      "tags": [
+        "alibi",
+        "inheritance",
+        "livia"
+      ],
+      "relatedCharacterIds": [
+        "char-livia-marrow"
+      ]
+    },
+    {
+      "clueId": "clue-10",
+      "title": "Livia Reveals the Oath\u0027s Silence",
+      "content": "After being confronted with the blotter, Livia admits the household swore not to discuss the old Glasshouse Oath: a trustee scandal could strip Bellweather\u0027s private collection and expose years of quiet sales.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-11",
+      "sourceType": "dialogue",
+      "sceneId": "scene-3",
+      "discoverMethod": "dialogue",
+      "visualDescription": "No physical photograph; this clue is recorded as an interview note after confronting Livia with the blotter.",
+      "inventoryDescription": "Interview note: Livia explains why the oath frightened the household.",
+      "narrativeMeaning": "The oath was not sentimental family folklore; it was a legal and social threat to whoever had exploited the collection.",
+      "hintLevel": 2,
+      "tags": [
+        "oath",
+        "motive",
+        "testimony"
+      ],
+      "relatedCharacterIds": [
+        "char-livia-marrow",
+        "char-halden-pike"
+      ]
+    },
+    {
+      "clueId": "clue-11",
+      "title": "Chapel Wax and Cassock Fiber on the Service Hatch",
+      "content": "The cellar-side service hatch bears fresh chapel taper wax and a black wool fiber consistent with Reverend Pike\u0027s cassock. The hatch gives direct access to the glasshouse service door and lamp control line.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-4",
+      "sourceType": "camera",
+      "sceneId": "scene-4",
+      "discoverMethod": "camera",
+      "visualDescription": "A low iron hatch with a smear of amber candle wax on the latch plate and a short black wool fiber caught in a splinter near the pull chain.",
+      "inventoryDescription": "Photograph of chapel wax and black fiber on the cellar service hatch.",
+      "narrativeMeaning": "This is the strongest late physical link between Pike and the hidden route used to stage the blackout and move the orchid.",
+      "hintLevel": 3,
+      "tags": [
+        "method",
+        "opportunity",
+        "pike",
+        "cellar"
+      ],
+      "relatedCharacterIds": [
+        "char-halden-pike"
+      ]
+    },
+    {
+      "clueId": "clue-12",
+      "title": "Hidden Crate with Orchid and Journal",
+      "content": "Behind old propagation frames is a ventilated crate containing the missing orchid and Marrow\u0027s research journal. The crate is sealed with a chapel-office paper band bearing Pike\u0027s impression.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-4",
+      "sourceType": "camera",
+      "sceneId": "scene-4",
+      "discoverMethod": "camera",
+      "visualDescription": "A slatted crate tucked behind dusty frames, with pale orchid petals visible through the vents and a broken paper band stamped with the chapel office seal.",
+      "inventoryDescription": "Photograph of the hidden orchid crate and missing journal.",
+      "narrativeMeaning": "The stolen object and the motive document were hidden together by someone with chapel materials and access.",
+      "hintLevel": 3,
+      "tags": [
+        "culprit",
+        "orchid",
+        "journal",
+        "pike"
+      ],
+      "relatedCharacterIds": [
+        "char-halden-pike",
+        "char-silas-fen"
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-1",
+      "characterId": "char-livia-marrow",
+      "question": "What did your uncle intend to announce at the midnight viewing?",
+      "answer": "Only the orchid\u0027s bloom, I thought. Uncle enjoyed ceremony. If there was another announcement, he kept it from me, as he kept most approvals.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-2",
+      "characterId": "char-livia-marrow",
+      "question": "Several people mention a Glasshouse Oath. What is it?",
+      "answer": "An old family phrase. A promise to protect the collection and not disgrace Bellweather. Reverend Pike says repeating it now will only wound the living.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-3",
+      "characterId": "char-marta-quill",
+      "question": "Who could operate the glasshouse vents and lamps?",
+      "answer": "Any fool can pull a chain if shown where it hangs. Knowing which chain matters is another thing. I checked the vents at half-eleven; they were sound then.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-4",
+      "characterId": "char-halden-pike",
+      "question": "Why are you so certain this was an accident?",
+      "answer": "Because grief seeks villains when it cannot bear chance. Professor Marrow was old, the glass was treacherous, and no good comes from dragging sacred family vows into public mud.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-5",
+      "characterId": "char-cassian-voss",
+      "question": "Where were you when the lamps failed?",
+      "answer": "In the pump room by the north windows, alone with a glass of the most sulfurous water in England. I saw no one of consequence pass toward Bellweather.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-6",
+      "characterId": "char-silas-fen",
+      "question": "Your debts make the vanished orchid convenient. Did you arrange a buyer?",
+      "answer": "A dealer hears offers. Hearing is not stealing, and stealing is not murder. I meant to bid on cuttings when Marrow\u0027s vanity cooled.",
+      "requiredClueIds": [
+        "clue-5"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-7",
+      "characterId": "char-halden-pike",
+      "question": "Why are the chapel charity hampers dusted with the same gray mineral powder found at the glasshouse?",
+      "answer": "The hampers were packed from the spring stores. I carried some, yes, but only before the viewing. Charity leaves dust on honest sleeves.",
+      "requiredClueIds": [
+        "clue-7"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-8",
+      "characterId": "char-silas-fen",
+      "question": "Could the orchid be sold quickly?",
+      "answer": "Not whole. Too famous. A smuggler would divide it, ruin it, and still attract every customs man from here to Calais. The journal may be worth more than the plant to the right enemy.",
+      "requiredClueIds": [
+        "clue-3"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-9",
+      "characterId": "char-livia-marrow",
+      "question": "Did inheriting Bellweather solve your difficulties?",
+      "answer": "It multiplies them. I asked a solicitor how to keep the estate intact, not how to sell it. Uncle never believed I would choose duty without being forced.",
+      "requiredClueIds": [
+        "clue-9"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-10",
+      "characterId": "char-cassian-voss",
+      "question": "Was your feud with Professor Marrow serious enough to steal his journal?",
+      "answer": "His classifications were infuriating and often correct. I wanted to defeat him in print, not rummage through his drawers like a housebreaker.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-11",
+      "characterId": "char-livia-marrow",
+      "question": "The blotter names Reverend Pike and trustee sales. Did your uncle discuss this?",
+      "answer": "No. That is, not plainly. He told me some promises rot if kept in darkness, but he never said Pike\u0027s name to me.",
+      "requiredClueIds": [
+        "clue-8"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-12",
+      "characterId": "char-marta-quill",
+      "question": "Who knew the old cellar hatch still opened into the glasshouse service way?",
+      "answer": "I knew, Marrow knew, and Reverend Pike knew from blessing the old orchid house after the fever year. Silas could guess; Voss would never soil his cuffs unless fame required it.",
+      "requiredClueIds": [
+        "clue-11"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-13",
+      "characterId": "char-silas-fen",
+      "question": "The orchid and journal were hidden in the cellar. Is this your crate?",
+      "answer": "No dealer hides a prize under its owner\u0027s house with a chapel seal on it. If I had stolen that plant, it would already be three counties away and nameless.",
+      "requiredClueIds": [
+        "clue-12"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-14",
+      "characterId": "char-halden-pike",
+      "question": "How do you explain chapel wax, cassock fiber, and the hidden crate below the orchid house?",
+      "answer": "Bellweather is full of old chapel things. Wax travels on hands; fibers travel on air. As for the crate, I beg you to consider what scandal will do to Livia and to every servant here.",
+      "requiredClueIds": [
+        "clue-11",
+        "clue-12"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-1",
+      "dialogueId": "dlg-5",
+      "prompt": "Which evidence contradicts Voss\u0027s claim that he saw no one of consequence pass toward Bellweather?",
+      "correctEvidenceId": "clue-2",
+      "successResponse": "Voss stiffens and concedes the gray trace matters. He admits seeing a gray-dusted figure move from the pump corridor toward the estate shortly after midnight.",
+      "failureResponse": "Voss dismisses the point as gossip dressed as deduction. A stronger physical trace is needed to make him amend his account.",
+      "unlockClueIds": [
+        "clue-6"
+      ]
+    },
+    {
+      "challengeId": "challenge-2",
+      "dialogueId": "dlg-11",
+      "prompt": "Which evidence proves Livia knows more about the oath and Pike\u0027s trustee trouble than she first admitted?",
+      "correctEvidenceId": "clue-8",
+      "successResponse": "Livia\u0027s composure breaks. She admits the oath was being used to silence talk of trustee sales and that her uncle meant to expose the truth.",
+      "failureResponse": "Livia retreats into family propriety. Her denial needs to be tested against the professor\u0027s own surviving trace.",
+      "unlockClueIds": [
+        "clue-10"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-1",
+      "prompt": "Which chain best explains the death, the vanished orchid, and the household\u0027s oath?",
+      "requiredClueIds": [
+        "clue-2",
+        "clue-3",
+        "clue-8",
+        "clue-11",
+        "clue-12"
+      ],
+      "requiredChallengeIds": [
+        "challenge-1",
+        "challenge-2"
+      ],
+      "options": [
+        {
+          "id": "deduce-1",
+          "label": "Pike removed the orchid before the blackout, used the cellar hatch and lamp line to stage an accident, and hid both orchid and journal to suppress Marrow\u0027s proof of trustee sales."
+        },
+        {
+          "id": "deduce-2",
+          "label": "Silas stole the orchid for a buyer during the darkness, and the professor died accidentally when pursuing him through unstable display glass."
+        },
+        {
+          "id": "deduce-3",
+          "label": "Marta triggered the lamps and vents to protect the collection from sale, then planted chapel traces to punish Reverend Pike."
+        }
+      ],
+      "correctOptionId": "deduce-1",
+      "successResponse": "The clues align: the orchid was gone before the darkness, the service route bears Pike\u0027s chapel traces, and the journal explains why the oath had become dangerous.",
+      "failureResponse": "That chain leaves either the early removal, the chapel-marked hatch, or the trustee motive unexplained.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-1",
+      "investigatorClueId": "clue-11",
+      "interrogatorChallengeId": "challenge-2",
+      "deductionId": "deduction-1",
+      "description": "One investigator documents the cellar hatch\u0027s chapel wax and cassock fiber while the other presses Livia on the blotter impression, linking physical access to the suppressed oath motive before forming the final accusation."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-scene-1",
+      "contextType": "SCENE",
+      "targetId": "scene-1",
+      "order": 1,
+      "text": "Photograph what the blackout should not have changed: the direction of broken glass, the moisture on the pedestal, and traces near the service door."
+    },
+    {
+      "hintId": "hint-scene-2",
+      "contextType": "SCENE",
+      "targetId": "scene-2",
+      "order": 1,
+      "text": "The pump room is full of public gossip, but the useful evidence is practical: who handled mineral powder and who pretends not to have seen movement."
+    },
+    {
+      "hintId": "hint-scene-3",
+      "contextType": "SCENE",
+      "targetId": "scene-3",
+      "order": 1,
+      "text": "Marrow\u0027s missing journal left impressions behind. Look for traces on the writing surface and documents that complicate obvious inheritance motives."
+    },
+    {
+      "hintId": "hint-scene-4",
+      "contextType": "SCENE",
+      "targetId": "scene-4",
+      "order": 1,
+      "text": "The cellar should be dusty and unused. Fresh marks, chapel materials, and hidden storage are more important than old gardening clutter."
+    },
+    {
+      "hintId": "hint-challenge-1",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-1",
+      "order": 1,
+      "text": "Voss claims no one passed toward Bellweather. Use evidence that proves someone did use the service approach."
+    },
+    {
+      "hintId": "hint-challenge-2",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-2",
+      "order": 1,
+      "text": "Livia minimizes the oath. Confront her with the professor\u0027s own trace connecting the oath to a named trustee."
+    },
+    {
+      "hintId": "hint-deduction-1",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-1",
+      "order": 1,
+      "text": "Build the chain in three parts: the orchid was moved before the blackout, the cellar route shows who could stage it, and the study reveals why the journal had to vanish."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-halden-pike",
+    "motive": "Reverend Pike had secretly profited from improper trustee sales of Bellweather specimens. Professor Marrow\u0027s missing journal and planned announcement would expose the fraud and void the protective silence of the Glasshouse Oath.",
+    "method": "Pike removed the orchid before the lamps failed, used the old cellar service hatch to reach the glasshouse lamp control line, staged the shattering glass as an accident during the darkness, and hid the orchid with Marrow\u0027s journal in a chapel-sealed crate below the old orchid house.",
+    "requiredEvidenceIds": [
+      "clue-2",
+      "clue-3",
+      "clue-8",
+      "clue-11",
+      "clue-12"
+    ],
+    "motiveOptions": [
+      {
+        "id": "motive-1",
+        "label": "To prevent Marrow from exposing Pike\u0027s trustee sales and the legal danger hidden inside the Glasshouse Oath."
+      },
+      {
+        "id": "motive-2",
+        "label": "To help Livia inherit Bellweather before Marrow could disinherit her."
+      },
+      {
+        "id": "motive-3",
+        "label": "To sell the orchid to a foreign buyer and pay private gambling debts."
+      }
+    ],
+    "methodOptions": [
+      {
+        "id": "method-1",
+        "label": "Remove the orchid before the blackout, enter by the cellar hatch, interrupt the lamps, stage the glass break, and hide the orchid with the journal."
+      },
+      {
+        "id": "method-2",
+        "label": "Break the roof panes from outside during the storm, causing an accidental fall while stealing the orchid afterward."
+      },
+      {
+        "id": "method-3",
+        "label": "Poison the professor with orchid pollen, then scatter glass to conceal the true cause."
+      }
+    ],
+    "correctMotiveId": "motive-1",
+    "correctMethodId": "method-1",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "evidenceId": "clue-8"
+      },
+      {
+        "claimType": "METHOD",
+        "evidenceId": "clue-11"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "evidenceId": "clue-2"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-1"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-1"
+    ],
+    "winEnding": "SirLocked lays the photographs in order: the early-dry pedestal ring, the gray service-door print, the blotter naming Pike, and the chapel-marked cellar hatch. Pike\u0027s appeal to silence collapses when the hidden crate reveals both orchid and journal. The professor\u0027s death is no longer a sad accident but a staged crime born of trustee fraud and fear. Livia releases the Glasshouse Oath to lawful scrutiny, Marta returns the orchid to controlled care, and Veyrbridge learns that some vows protect truth only when they are finally spoken aloud.",
+    "failEnding": "The accusation falters around gossip and obvious motives. Silas\u0027s debts and Marta\u0027s access muddy the account, allowing Pike to urge discretion until the inquiry cools. The orchid survives in hiding for a time, but Marrow\u0027s journal disappears again, and the Glasshouse Oath remains a polished phrase covering an unpruned lie."
+  },
+  "createdAt": "2026-06-18T15:42:54.0921843Z",
+  "updatedAt": "2026-06-18T15:42:54.0921843Z"
+}

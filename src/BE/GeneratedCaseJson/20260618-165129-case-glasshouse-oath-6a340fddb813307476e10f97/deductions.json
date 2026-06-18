@@ -1,0 +1,35 @@
+[
+  {
+    "deductionId": "deduction-1",
+    "prompt": "Which chain best explains the death, the vanished orchid, and the household\u0027s oath?",
+    "requiredClueIds": [
+      "clue-2",
+      "clue-3",
+      "clue-8",
+      "clue-11",
+      "clue-12"
+    ],
+    "requiredChallengeIds": [
+      "challenge-1",
+      "challenge-2"
+    ],
+    "options": [
+      {
+        "id": "deduce-1",
+        "label": "Pike removed the orchid before the blackout, used the cellar hatch and lamp line to stage an accident, and hid both orchid and journal to suppress Marrow\u0027s proof of trustee sales."
+      },
+      {
+        "id": "deduce-2",
+        "label": "Silas stole the orchid for a buyer during the darkness, and the professor died accidentally when pursuing him through unstable display glass."
+      },
+      {
+        "id": "deduce-3",
+        "label": "Marta triggered the lamps and vents to protect the collection from sale, then planted chapel traces to punish Reverend Pike."
+      }
+    ],
+    "correctOptionId": "deduce-1",
+    "successResponse": "The clues align: the orchid was gone before the darkness, the service route bears Pike\u0027s chapel traces, and the journal explains why the oath had become dangerous.",
+    "failureResponse": "That chain leaves either the early removal, the chapel-marked hatch, or the trustee motive unexplained.",
+    "unlockClueIds": []
+  }
+]

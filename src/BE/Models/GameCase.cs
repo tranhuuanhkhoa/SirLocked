@@ -19,6 +19,7 @@ public class GameCase
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string Status { get; set; } = CaseStatus.Draft;
+    public int MechanicsVersion { get; set; } = CaseMechanicsVersions.Legacy;
     public string GenerationMode { get; set; } = CaseGenerationModes.LegacyItem;
     public int EstimatedMinutes { get; set; }
     public string CoverImageUrl { get; set; } = string.Empty;
@@ -28,6 +29,10 @@ public class GameCase
     public List<CaseItem> Items { get; set; } = new();
     public List<CaseClue> Clues { get; set; } = new();
     public List<CaseDialogue> Dialogues { get; set; } = new();
+    public List<EvidenceChallenge> EvidenceChallenges { get; set; } = new();
+    public List<DeductionChallenge> Deductions { get; set; } = new();
+    public List<RequiredTeamworkChain> RequiredTeamworkChains { get; set; } = new();
+    public List<CaseHint> Hints { get; set; } = new();
     public FinalLogic FinalLogic { get; set; } = new();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -56,6 +61,31 @@ public class CaseScene
     public ScenePlacementPlan? PlacementPlan { get; set; }
     public SceneRuntime? Runtime { get; set; }
     public CompleteCondition CompleteCondition { get; set; } = new();
+}
+
+public static class CaseMechanicsVersions
+{
+    public const int Legacy = 1;
+    public const int InvestigationV2 = 2;
+}
+
+public static class HintContextTypes
+{
+    public const string Scene = "SCENE";
+    public const string Confrontation = "CONFRONTATION";
+    public const string Deduction = "DEDUCTION";
+}
+
+public static class EvidenceClaimTypes
+{
+    public const string Motive = "MOTIVE";
+    public const string Method = "METHOD";
+    public const string Opportunity = "OPPORTUNITY";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        Motive, Method, Opportunity
+    };
 }
 
 public static class CaseGenerationModes
@@ -302,12 +332,79 @@ public class CaseDialogue
 }
 
 [BsonIgnoreExtraElements]
+public class EvidenceChallenge
+{
+    public string ChallengeId { get; set; } = string.Empty;
+    public string DialogueId { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public string CorrectEvidenceId { get; set; } = string.Empty;
+    public string SuccessResponse { get; set; } = string.Empty;
+    public string FailureResponse { get; set; } = string.Empty;
+    public List<string> UnlockClueIds { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class CaseHint
+{
+    public string HintId { get; set; } = string.Empty;
+    public string ContextType { get; set; } = HintContextTypes.Scene;
+    public string TargetId { get; set; } = string.Empty;
+    public int Order { get; set; }
+    public string Text { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class DeductionChallenge
+{
+    public string DeductionId { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public List<string> RequiredClueIds { get; set; } = new();
+    public List<string> RequiredChallengeIds { get; set; } = new();
+    public List<AccusationOption> Options { get; set; } = new();
+    public string CorrectOptionId { get; set; } = string.Empty;
+    public string SuccessResponse { get; set; } = string.Empty;
+    public string FailureResponse { get; set; } = string.Empty;
+    public List<string> UnlockClueIds { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class RequiredTeamworkChain
+{
+    public string ChainId { get; set; } = string.Empty;
+    public string InvestigatorClueId { get; set; } = string.Empty;
+    public string InterrogatorChallengeId { get; set; } = string.Empty;
+    public string DeductionId { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class AccusationOption
+{
+    public string Id { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class RequiredEvidenceLink
+{
+    public string ClaimType { get; set; } = string.Empty;
+    public string EvidenceId { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
 public class FinalLogic
 {
     public string CulpritId { get; set; } = string.Empty;
     public string Motive { get; set; } = string.Empty;
     public string Method { get; set; } = string.Empty;
     public List<string> RequiredEvidenceIds { get; set; } = new();
+    public List<AccusationOption> MotiveOptions { get; set; } = new();
+    public List<AccusationOption> MethodOptions { get; set; } = new();
+    public string CorrectMotiveId { get; set; } = string.Empty;
+    public string CorrectMethodId { get; set; } = string.Empty;
+    public List<RequiredEvidenceLink> RequiredEvidenceLinks { get; set; } = new();
+    public List<string> RequiredDeductionIds { get; set; } = new();
+    public List<string> RequiredTeamworkChainIds { get; set; } = new();
     public string WinEnding { get; set; } = string.Empty;
     public string FailEnding { get; set; } = string.Empty;
 }

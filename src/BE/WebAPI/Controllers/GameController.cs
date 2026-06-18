@@ -42,7 +42,15 @@ public class GameController : BaseApiController
 
     [HttpPost("present-evidence")]
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> PresentEvidence(string roomId, [FromBody] PresentEvidenceRequest request) =>
-        Ok(await _gameplayService.PresentEvidenceAsync(Caller, roomId, request.DialogueId, request.EvidenceId));
+        Ok(await _gameplayService.PresentEvidenceAsync(Caller, roomId, request));
+
+    [HttpPost("hint")]
+    public async Task<ActionResult<ApiResponse<HintResponse>>> Hint(string roomId, [FromBody] HintRequest request) =>
+        Ok(await _gameplayService.RequestHintAsync(Caller, roomId, request));
+
+    [HttpPost("solve-deduction")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> SolveDeduction(string roomId, [FromBody] SolveDeductionRequest request) =>
+        Ok(await _gameplayService.SolveDeductionAsync(Caller, roomId, request));
 
     [HttpPost("complete-scene")]
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> CompleteScene(string roomId) =>

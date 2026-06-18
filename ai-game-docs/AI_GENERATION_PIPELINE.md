@@ -2,6 +2,10 @@
 
 Last synced with code: 2026-06-14.
 
+> Note: the code now uses separate full-logic, scene-layout, and final-asset
+> approval gates. See `CURRENT_CASE_AND_GAME_FLOW_VI.md` for the code-synced
+> flow as of 2026-06-18.
+
 Current implementation lives in `AiCaseService`, `CaseAutoRepair`, and `CaseValidationService`.
 
 The active code path is OpenAI-only. The creator first approves a spoiler-free story preview. Only after approval does the backend generate the culprit, clue graph, final logic, full case JSON, validation, import, and publish.

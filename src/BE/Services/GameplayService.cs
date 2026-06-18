@@ -99,6 +99,7 @@ public class GameplayService : IGameplayService
             }
             var newClues = item.UnlockClueIds.Where(c => !state.UnlockedClueIds.Contains(c)).ToList();
             state.UnlockedClueIds.AddRange(newClues);
+            RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Inspect);
 
             if (!await TrySaveStateAsync(room))
             {
@@ -114,10 +115,10 @@ public class GameplayService : IGameplayService
             }
 
             await _notifier.ItemFound(roomId, itemId, user.Id, state.Version);
-            foreach (var clueId in newClues)
-            {
-                await _notifier.ClueUnlocked(roomId, clueId, itemId, user.Id, state.Version);
-            }
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, itemId);
+            else
+                foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, itemId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
 
@@ -169,6 +170,12 @@ public class GameplayService : IGameplayService
             var runtime = scene.Runtime;
             if (runtime is null || runtime.ClueZones.Count == 0)
             {
+                state.CameraMissCount++;
+                if (!await TrySaveStateAsync(room))
+                {
+                    if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                    continue;
+                }
                 return new GameActionResponse
                 {
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
@@ -199,6 +206,12 @@ public class GameplayService : IGameplayService
 
             if (best is null || best.Coverage < rules.NearMissCoverage)
             {
+                state.CameraMissCount++;
+                if (!await TrySaveStateAsync(room))
+                {
+                    if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                    continue;
+                }
                 return new GameActionResponse
                 {
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
@@ -235,6 +248,7 @@ public class GameplayService : IGameplayService
                 ? new List<string>()
                 : new List<string> { clue.ClueId };
             state.UnlockedClueIds.AddRange(newClues);
+            RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Camera);
 
             if (!await TrySaveStateAsync(room))
             {
@@ -247,8 +261,11 @@ public class GameplayService : IGameplayService
             foreach (var clueId in newClues)
             {
                 await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, source = "camera" });
-                await _notifier.ClueUnlocked(roomId, clueId, "camera", user.Id, state.Version);
             }
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, "camera");
+            else
+                foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, "camera", user.Id, state.Version);
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
@@ -308,6 +325,7 @@ public class GameplayService : IGameplayService
             state.AskedDialogueIds.Add(dialogueId);
             var newClues = dialogue.UnlockClueIds.Where(c => !state.UnlockedClueIds.Contains(c)).ToList();
             state.UnlockedClueIds.AddRange(newClues);
+            RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Dialogue);
 
             if (!await TrySaveStateAsync(room))
             {
@@ -324,10 +342,10 @@ public class GameplayService : IGameplayService
             }
 
             await _notifier.DialogueAnswered(roomId, dialogueId, user.Id, state.Version);
-            foreach (var clueId in newClues)
-            {
-                await _notifier.ClueUnlocked(roomId, clueId, dialogueId, user.Id, state.Version);
-            }
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, dialogueId);
+            else
+                foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, dialogueId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
 
@@ -342,35 +360,307 @@ public class GameplayService : IGameplayService
         }
     }
 
-    // ----- Present evidence (optional MVP) -----
+    // ----- Present evidence / confrontation -----
 
-    public async Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, string dialogueId, string evidenceId)
+    public async Task<GameActionResponse> PresentEvidenceAsync(CurrentUser user, string roomId, PresentEvidenceRequest request)
     {
-        var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
-        var state = room.GameplayState!;
-
-        var dialogue = gameCase.Dialogues.FirstOrDefault(d => d.DialogueId == dialogueId)
-            ?? throw ApiException.NotFound("This dialogue does not exist in the case.");
-        var clue = gameCase.Clues.FirstOrDefault(c => c.ClueId == evidenceId)
-            ?? throw ApiException.NotFound("This clue does not exist in the case.");
-
-        if (!state.UnlockedClueIds.Contains(evidenceId))
+        for (var attempt = 0; ; attempt++)
         {
-            throw ApiException.BadRequest("You have not unlocked this clue yet.");
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            var clue = gameCase.Clues.FirstOrDefault(c => c.ClueId == request.EvidenceId)
+                ?? throw ApiException.NotFound("This clue does not exist in the case.");
+            if (!state.UnlockedClueIds.Contains(request.EvidenceId))
+                throw ApiException.BadRequest("You have not unlocked this clue yet.");
+
+            if (gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV2)
+            {
+                if (string.IsNullOrWhiteSpace(request.DialogueId))
+                    throw ApiException.BadRequest("dialogueId is required for legacy cases.");
+                var legacyDialogue = gameCase.Dialogues.FirstOrDefault(d => d.DialogueId == request.DialogueId)
+                    ?? throw ApiException.NotFound("This dialogue does not exist in the case.");
+                var legacyCharacter = gameCase.Characters.First(c => c.CharacterId == legacyDialogue.CharacterId);
+                await LogAsync(roomId, user.Id, "PRESENT_EVIDENCE",
+                    $"{user.FullName} presented \"{clue.Title}\" to {legacyCharacter.Name}.", new { request.DialogueId, request.EvidenceId });
+                await _notifier.EvidencePresented(roomId, request.DialogueId, request.EvidenceId, user.Id, state.Version);
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = $"You presented \"{clue.Title}\" to {legacyCharacter.Name}.",
+                    Detail = legacyDialogue.Answer
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ChallengeId))
+                throw ApiException.BadRequest("challengeId is required for V2 cases.");
+            RequireRole(player, PlayerRole.Interrogator, "Only the interrogator can confront characters with evidence.");
+
+            var challenge = gameCase.EvidenceChallenges.FirstOrDefault(c => c.ChallengeId == request.ChallengeId)
+                ?? throw ApiException.NotFound("This evidence challenge does not exist in the case.");
+            var dialogue = gameCase.Dialogues.First(d => d.DialogueId == challenge.DialogueId);
+            var scene = CurrentScene(gameCase, state, user.Id);
+            if (!scene.CharacterIds.Contains(dialogue.CharacterId))
+                throw ApiException.BadRequest("This character is not in the current scene.");
+            if (!state.AskedDialogueIds.Contains(dialogue.DialogueId))
+                throw ApiException.BadRequest("Ask the related question before presenting evidence.");
+
+            var ruleResult = GameplayV2Rules.ApplyEvidence(
+                state, challenge, request.EvidenceId, user.Id, player.Role ?? string.Empty, DateTime.UtcNow);
+            if (ruleResult.Outcome == ConfrontationOutcome.AlreadyResolved)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "This contradiction has already been resolved.",
+                    Detail = challenge.SuccessResponse
+                };
+            }
+
+            if (ruleResult.Outcome == ConfrontationOutcome.DuplicateRejected)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "That evidence has already been tried here.",
+                    Detail = challenge.FailureResponse
+                };
+            }
+
+            var correct = ruleResult.Outcome == ConfrontationOutcome.Resolved;
+            var newClues = ruleResult.UnlockedClueIds.ToList();
+
+            if (!await TrySaveStateAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            var character = gameCase.Characters.First(c => c.CharacterId == dialogue.CharacterId);
+            await LogAsync(roomId, user.Id, correct ? "CONTRADICTION_RESOLVED" : "PRESENT_EVIDENCE_FAILED",
+                correct ? $"{user.FullName} exposed a contradiction in {character.Name}'s testimony."
+                    : $"{user.FullName} presented unrelated evidence to {character.Name}.",
+                new { challenge.ChallengeId, request.EvidenceId });
+            await _notifier.EvidencePresented(roomId, dialogue.DialogueId, request.EvidenceId, user.Id, state.Version);
+            if (correct)
+            {
+                await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+                {
+                    Type = "CONTRADICTION_RESOLVED",
+                    ActorUserId = user.Id,
+                    ActorRole = player.Role ?? string.Empty,
+                    SceneId = scene.SceneId,
+                    TargetId = challenge.ChallengeId,
+                    Message = "A contradiction has been exposed.",
+                    Version = state.Version
+                });
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, challenge.ChallengeId);
+            }
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                UnlockedClueIds = newClues,
+                Message = correct ? "The evidence breaks the testimony." : "The evidence does not support this confrontation.",
+                Detail = correct ? challenge.SuccessResponse : challenge.FailureResponse
+            };
         }
+    }
 
-        var character = gameCase.Characters.First(c => c.CharacterId == dialogue.CharacterId);
-        await LogAsync(roomId, user.Id, "PRESENT_EVIDENCE",
-            $"{user.FullName} presented \"{clue.Title}\" to {character.Name}.", new { dialogueId, evidenceId });
-        await _notifier.EvidencePresented(roomId, dialogueId, evidenceId, user.Id, state.Version);
-
-        return new GameActionResponse
+    public async Task<HintResponse> RequestHintAsync(CurrentUser user, string roomId, HintRequest request)
+    {
+        for (var attempt = 0; ; attempt++)
         {
-            State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
-            Changed = false,
-            Message = $"You presented \"{clue.Title}\" to {character.Name}.",
-            Detail = dialogue.Answer
-        };
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            var scene = CurrentScene(gameCase, state, user.Id);
+            var context = request.ContextType.Trim().ToUpperInvariant();
+
+            if (gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV2)
+            {
+                if (context != HintContextTypes.Scene || request.TargetId != scene.SceneId)
+                    throw ApiException.BadRequest("Legacy cases only support hints for the current scene.");
+                return new HintResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    ContextType = context,
+                    TargetId = scene.SceneId,
+                    Message = BuildLegacyHint(scene, state),
+                    IsNew = false
+                };
+            }
+
+            if (context == HintContextTypes.Scene)
+            {
+                if (request.TargetId != scene.SceneId)
+                    throw ApiException.BadRequest("Scene hints are only available for your current scene.");
+            }
+            else if (context == HintContextTypes.Confrontation)
+            {
+                var challenge = gameCase.EvidenceChallenges.FirstOrDefault(c => c.ChallengeId == request.TargetId)
+                    ?? throw ApiException.NotFound("This evidence challenge does not exist in the case.");
+                var dialogue = gameCase.Dialogues.First(d => d.DialogueId == challenge.DialogueId);
+                if (!scene.CharacterIds.Contains(dialogue.CharacterId) || !state.AskedDialogueIds.Contains(dialogue.DialogueId))
+                    throw ApiException.BadRequest("This confrontation is not available in the current scene.");
+                if (state.ResolvedConfrontationRecords.Any(record => record.ChallengeId == challenge.ChallengeId))
+                    throw ApiException.BadRequest("This confrontation is already resolved.");
+            }
+            else if (context == HintContextTypes.Deduction)
+            {
+                var deduction = gameCase.Deductions.FirstOrDefault(d => d.DeductionId == request.TargetId)
+                    ?? throw ApiException.NotFound("This deduction does not exist in the case.");
+                var resolvedChallengeIds = state.ResolvedConfrontationRecords.Select(record => record.ChallengeId).ToHashSet();
+                if (deduction.RequiredClueIds.Any(id => !state.UnlockedClueIds.Contains(id))
+                    || deduction.RequiredChallengeIds.Any(id => !resolvedChallengeIds.Contains(id)))
+                    throw ApiException.BadRequest("This deduction is not available yet.");
+                if (state.SolvedDeductionRecords.Any(record => record.DeductionId == deduction.DeductionId))
+                    throw ApiException.BadRequest("This deduction is already solved.");
+            }
+            else
+            {
+                throw ApiException.BadRequest("V2 hints only support SCENE, CONFRONTATION, and DEDUCTION.");
+            }
+
+            var hints = gameCase.Hints
+                .Where(h => h.ContextType.Equals(context, StringComparison.OrdinalIgnoreCase) && h.TargetId == request.TargetId)
+                .OrderBy(h => h.Order).ToList();
+            if (hints.Count == 0) throw ApiException.NotFound("No hint is available for this target.");
+
+            var selected = hints.FirstOrDefault(h => !state.UsedHintIds.Contains(h.HintId)) ?? hints[^1];
+            var isNew = !state.UsedHintIds.Contains(selected.HintId);
+            if (!isNew)
+            {
+                return new HintResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    HintId = selected.HintId,
+                    ContextType = context,
+                    TargetId = request.TargetId,
+                    Message = selected.Text,
+                    IsNew = false
+                };
+            }
+
+            state.UsedHintIds.Add(selected.HintId);
+            if (!await TrySaveStateAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(roomId, user.Id, "HINT_USED", $"{user.FullName} requested an investigation hint.",
+                new { selected.HintId, context, request.TargetId });
+            await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+            {
+                Type = "SCENE_HINT_USED",
+                ActorUserId = user.Id,
+                ActorRole = player.Role ?? string.Empty,
+                SceneId = scene.SceneId,
+                TargetId = request.TargetId,
+                Message = "Your teammate requested an investigation hint.",
+                Version = state.Version
+            });
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+            return new HintResponse
+            {
+                State = stateResponse,
+                HintId = selected.HintId,
+                ContextType = context,
+                TargetId = request.TargetId,
+                Message = selected.Text,
+                IsNew = true
+            };
+        }
+    }
+
+    public async Task<GameActionResponse> SolveDeductionAsync(CurrentUser user, string roomId, SolveDeductionRequest request)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            if (gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV2)
+                throw ApiException.BadRequest("Deductions are only available in V2 cases.");
+
+            var state = room.GameplayState!;
+            var scene = CurrentScene(gameCase, state, user.Id);
+            var deduction = gameCase.Deductions.FirstOrDefault(d => d.DeductionId == request.DeductionId)
+                ?? throw ApiException.NotFound("This deduction does not exist in the case.");
+            if (deduction.Options.All(option => option.Id != request.OptionId))
+                throw ApiException.BadRequest("Select a valid deduction option.");
+
+            var resolvedChallengeIds = state.ResolvedConfrontationRecords.Select(record => record.ChallengeId).ToHashSet();
+            var missingClues = deduction.RequiredClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
+            var missingChallenges = deduction.RequiredChallengeIds.Where(id => !resolvedChallengeIds.Contains(id)).ToList();
+            if (missingClues.Count > 0 || missingChallenges.Count > 0)
+                throw ApiException.BadRequest("This deduction is not available yet.", new { missingClues, missingChallenges });
+
+            var ruleResult = GameplayV2Rules.ApplyDeduction(
+                state, deduction, request.OptionId, user.Id, player.Role ?? string.Empty, DateTime.UtcNow);
+            if (ruleResult.Outcome == DeductionOutcome.AlreadySolved)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "This deduction has already been solved.",
+                    Detail = deduction.SuccessResponse
+                };
+            }
+
+            if (ruleResult.Outcome == DeductionOutcome.DuplicateRejected)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "That deduction answer has already been tried.",
+                    Detail = deduction.FailureResponse
+                };
+            }
+
+            var solved = ruleResult.Outcome == DeductionOutcome.Solved;
+            var newClues = ruleResult.UnlockedClueIds.ToList();
+            if (!await TrySaveStateAsync(room))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(roomId, user.Id, solved ? "DEDUCTION_SOLVED" : "DEDUCTION_FAILED",
+                solved ? $"{user.FullName} resolved a deduction." : $"{user.FullName} tested an incorrect deduction.",
+                new { request.DeductionId, request.OptionId });
+            if (solved)
+            {
+                await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+                {
+                    Type = "DEDUCTION_SOLVED",
+                    ActorUserId = user.Id,
+                    ActorRole = player.Role ?? string.Empty,
+                    SceneId = scene.SceneId,
+                    TargetId = deduction.DeductionId,
+                    Message = "A deduction has been resolved.",
+                    Version = state.Version
+                });
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, deduction.DeductionId);
+            }
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                UnlockedClueIds = newClues,
+                Message = solved ? "The deduction fits the evidence." : "That deduction does not hold.",
+                Detail = solved ? deduction.SuccessResponse : deduction.FailureResponse
+            };
+        }
     }
 
     // ----- Scene / stage progression -----
@@ -620,16 +910,25 @@ public class GameplayService : IGameplayService
             throw ApiException.BadRequest("The accused person is not part of this case.");
         }
 
-        var submittedEvidenceIds = request.EvidenceIds ?? new List<string>();
-        var unknownEvidence = submittedEvidenceIds.Where(e => !state.UnlockedClueIds.Contains(e)).ToList();
-        if (unknownEvidence.Count > 0)
+        var isV2 = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2;
+        List<string> submittedEvidenceIds;
+        bool success;
+        if (isV2)
         {
-            throw ApiException.BadRequest("You can only present clues your team has unlocked.",
-                new { unknownEvidenceIds = unknownEvidence });
+            var validationError = GameplayV2Rules.ValidateAccusation(gameCase, state, request);
+            if (validationError is not null) throw ApiException.BadRequest(validationError);
+            submittedEvidenceIds = request.EvidenceLinks.Select(link => link.EvidenceId).ToList();
+            success = GameplayV2Rules.IsAccusationCorrect(gameCase, request);
         }
-
-        var success = request.CulpritId == gameCase.FinalLogic.CulpritId
-            && gameCase.FinalLogic.RequiredEvidenceIds.All(submittedEvidenceIds.Contains);
+        else
+        {
+            submittedEvidenceIds = request.EvidenceIds ?? new List<string>();
+            var unknownEvidence = submittedEvidenceIds.Where(e => !state.UnlockedClueIds.Contains(e)).ToList();
+            if (unknownEvidence.Count > 0)
+                throw ApiException.BadRequest("You can only present clues your team has unlocked.", new { unknownEvidenceIds = unknownEvidence });
+            success = request.CulpritId == gameCase.FinalLogic.CulpritId
+                && gameCase.FinalLogic.RequiredEvidenceIds.All(submittedEvidenceIds.Contains);
+        }
 
         state.SelectedEvidenceIds = submittedEvidenceIds.Distinct().ToList();
         state.GameStatus = success ? GameStatus.Won : GameStatus.Failed;
@@ -648,6 +947,14 @@ public class GameplayService : IGameplayService
             Players = room.Players.Select(p => p.UserId).ToList(),
             SelectedCulpritId = request.CulpritId,
             SelectedEvidenceIds = state.SelectedEvidenceIds,
+            SelectedMotiveId = request.MotiveId,
+            SelectedMethodId = request.MethodId,
+            SelectedEvidenceLinks = request.EvidenceLinks.Select(link => new SelectedEvidenceLink
+            {
+                ClaimType = link.ClaimType.Trim().ToUpperInvariant(),
+                EvidenceId = link.EvidenceId
+            }).ToList(),
+            ScoreSummary = isV2 ? GameplayV2Rules.BuildScoreSummary(gameCase, state, success) : null,
             Success = success,
             Ending = success ? gameCase.FinalLogic.WinEnding : gameCase.FinalLogic.FailEnding
         };
@@ -656,7 +963,7 @@ public class GameplayService : IGameplayService
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
         await LogAsync(roomId, user.Id, "ACCUSE",
             success ? $"{user.FullName} accused {accusedName} — the case is solved!" : $"{user.FullName} accused {accusedName} — the accusation failed.",
-            new { request.CulpritId, EvidenceIds = submittedEvidenceIds });
+            new { request.CulpritId, request.MotiveId, request.MethodId, EvidenceIds = submittedEvidenceIds });
 
         var resultResponse = ToResultResponse(result, gameCase);
         await _notifier.GameCompleted(roomId, resultResponse);
@@ -762,6 +1069,64 @@ public class GameplayService : IGameplayService
         });
     }
 
+    private async Task NotifyNewCluesAndDialoguesAsync(
+        string roomId,
+        GameCase gameCase,
+        GameplayState state,
+        CurrentUser user,
+        RoomPlayer player,
+        string sceneId,
+        IReadOnlyCollection<string> newClueIds,
+        string sourceId)
+    {
+        foreach (var clueId in newClueIds)
+        {
+            await _notifier.ClueUnlocked(roomId, clueId, sourceId, user.Id, state.Version);
+            await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+            {
+                Type = "CLUE_UNLOCKED",
+                ActorUserId = user.Id,
+                ActorRole = player.Role ?? string.Empty,
+                SceneId = sceneId,
+                TargetId = clueId,
+                Message = "A new piece of evidence has been discovered.",
+                Version = state.Version
+            });
+        }
+
+        var newlyAvailableDialogues = gameCase.Dialogues
+            .Where(dialogue => !state.AskedDialogueIds.Contains(dialogue.DialogueId))
+            .Where(dialogue => dialogue.RequiredClueIds.Count > 0 && dialogue.RequiredClueIds.All(state.UnlockedClueIds.Contains))
+            .Where(dialogue => dialogue.RequiredClueIds.Any(newClueIds.Contains))
+            .ToList();
+        foreach (var dialogue in newlyAvailableDialogues)
+        {
+            var dialogueScene = gameCase.Stages.SelectMany(stage => stage.Scenes)
+                .FirstOrDefault(candidate => candidate.CharacterIds.Contains(dialogue.CharacterId));
+            await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+            {
+                Type = "DIALOGUE_UNLOCKED",
+                ActorUserId = user.Id,
+                ActorRole = player.Role ?? string.Empty,
+                SceneId = dialogueScene?.SceneId ?? sceneId,
+                TargetId = dialogue.DialogueId,
+                Message = "New testimony is now available.",
+                Version = state.Version
+            });
+        }
+    }
+
+    private static string BuildLegacyHint(CaseScene scene, GameplayState state)
+    {
+        if (scene.CompleteCondition.RequiredDialogueIds.Any(id => !state.AskedDialogueIds.Contains(id)))
+            return "An important statement has not been verified yet.";
+        if (scene.CompleteCondition.RequiredClueIds.Any(id => !state.UnlockedClueIds.Contains(id)))
+            return "There is still a suspicious trace in this location.";
+        if (scene.CompleteCondition.RequiredItemIds.Any(id => !state.InspectedItemIds.Contains(id)))
+            return "An object in this location deserves closer inspection.";
+        return "You have enough information to continue the investigation.";
+    }
+
     private static CameraRules NormalizeCameraRules(CameraRules? rules) => new()
     {
         CaptureRectWidth = rules?.CaptureRectWidth is > 0 ? rules.CaptureRectWidth : 180,
@@ -803,10 +1168,47 @@ public class GameplayService : IGameplayService
                && centerY >= clue.Y && centerY <= clue.Y + clue.Height;
     }
 
+    private static void RecordClueDiscoveries(GameplayState state, IEnumerable<string> clueIds, string userId, string? role, string sourceAction)
+    {
+        foreach (var clueId in clueIds)
+        {
+            if (state.ClueDiscoveries.Any(record => record.ClueId == clueId)) continue;
+            state.ClueDiscoveries.Add(new ClueDiscoveryRecord
+            {
+                ClueId = clueId,
+                DiscoveredByUserId = userId,
+                DiscoveredByRole = role ?? string.Empty,
+                SourceAction = sourceAction,
+                DiscoveredAt = DateTime.UtcNow
+            });
+        }
+    }
+
     private static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {
         string NameOf(string characterId) =>
             gameCase.Characters.FirstOrDefault(c => c.CharacterId == characterId)?.Name ?? characterId;
+        string ClueTitle(string clueId) => gameCase.Clues.FirstOrDefault(clue => clue.ClueId == clueId)?.Title ?? clueId;
+        string OptionLabel(IEnumerable<AccusationOption> options, string optionId) =>
+            options.FirstOrDefault(option => option.Id == optionId)?.Label ?? optionId;
+
+        var isV2 = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2;
+        var evidenceResults = isV2
+            ? gameCase.FinalLogic.RequiredEvidenceLinks.Select(required =>
+            {
+                var selected = result.SelectedEvidenceLinks.FirstOrDefault(link =>
+                    link.ClaimType.Equals(required.ClaimType, StringComparison.OrdinalIgnoreCase));
+                return new EvidenceClaimResult
+                {
+                    ClaimType = required.ClaimType,
+                    SelectedEvidenceId = selected?.EvidenceId ?? string.Empty,
+                    SelectedEvidenceTitle = selected is null ? string.Empty : ClueTitle(selected.EvidenceId),
+                    CorrectEvidenceId = required.EvidenceId,
+                    CorrectEvidenceTitle = ClueTitle(required.EvidenceId),
+                    IsCorrect = selected?.EvidenceId == required.EvidenceId
+                };
+            }).ToList()
+            : new List<EvidenceClaimResult>();
 
         return new GameResultResponse
         {
@@ -820,9 +1222,37 @@ public class GameplayService : IGameplayService
             Ending = result.Ending,
             CorrectCulpritId = gameCase.FinalLogic.CulpritId,
             CorrectCulpritName = NameOf(gameCase.FinalLogic.CulpritId),
-            Motive = gameCase.FinalLogic.Motive,
-            Method = gameCase.FinalLogic.Method,
-            RequiredEvidenceIds = gameCase.FinalLogic.RequiredEvidenceIds,
+            Motive = isV2 ? OptionLabel(gameCase.FinalLogic.MotiveOptions, gameCase.FinalLogic.CorrectMotiveId) : gameCase.FinalLogic.Motive,
+            Method = isV2 ? OptionLabel(gameCase.FinalLogic.MethodOptions, gameCase.FinalLogic.CorrectMethodId) : gameCase.FinalLogic.Method,
+            RequiredEvidenceIds = isV2
+                ? gameCase.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId).ToList()
+                : gameCase.FinalLogic.RequiredEvidenceIds,
+            CulpritResult = isV2 ? new AccusationComponentResult
+            {
+                SelectedId = result.SelectedCulpritId,
+                SelectedLabel = NameOf(result.SelectedCulpritId),
+                CorrectId = gameCase.FinalLogic.CulpritId,
+                CorrectLabel = NameOf(gameCase.FinalLogic.CulpritId),
+                IsCorrect = result.SelectedCulpritId == gameCase.FinalLogic.CulpritId
+            } : null,
+            MotiveResult = isV2 ? new AccusationComponentResult
+            {
+                SelectedId = result.SelectedMotiveId,
+                SelectedLabel = OptionLabel(gameCase.FinalLogic.MotiveOptions, result.SelectedMotiveId),
+                CorrectId = gameCase.FinalLogic.CorrectMotiveId,
+                CorrectLabel = OptionLabel(gameCase.FinalLogic.MotiveOptions, gameCase.FinalLogic.CorrectMotiveId),
+                IsCorrect = result.SelectedMotiveId == gameCase.FinalLogic.CorrectMotiveId
+            } : null,
+            MethodResult = isV2 ? new AccusationComponentResult
+            {
+                SelectedId = result.SelectedMethodId,
+                SelectedLabel = OptionLabel(gameCase.FinalLogic.MethodOptions, result.SelectedMethodId),
+                CorrectId = gameCase.FinalLogic.CorrectMethodId,
+                CorrectLabel = OptionLabel(gameCase.FinalLogic.MethodOptions, gameCase.FinalLogic.CorrectMethodId),
+                IsCorrect = result.SelectedMethodId == gameCase.FinalLogic.CorrectMethodId
+            } : null,
+            EvidenceResults = evidenceResults,
+            ScoreSummary = result.ScoreSummary,
             CompletedAt = result.CreatedAt
         };
     }

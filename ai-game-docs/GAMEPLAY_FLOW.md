@@ -2,6 +2,10 @@
 
 Last synced with code: 2026-06-12.
 
+> Note: gameplay now includes camera clue capture and per-player scene location
+> through `PlayerSceneIds`. See `CURRENT_CASE_AND_GAME_FLOW_VI.md` for the
+> code-synced flow as of 2026-06-18.
+
 This file describes the current authoritative backend flow. For the next 2D co-op direction, layer the movement/runtime rules from `PLAYER_MOVEMENT_SYSTEM.md`, `REALTIME_CHARACTER_SYNC.md`, and `SCENE_RUNTIME_SCHEMA.md` on top of these commands.
 
 ## Lobby Flow

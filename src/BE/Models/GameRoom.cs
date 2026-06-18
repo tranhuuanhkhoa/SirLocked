@@ -53,8 +53,58 @@ public class GameplayState
     public List<string> CompletedSceneIds { get; set; } = new();
     public List<string> CompletedStageIds { get; set; } = new();
     public List<string> SelectedEvidenceIds { get; set; } = new();
+    public List<ResolvedConfrontationRecord> ResolvedConfrontationRecords { get; set; } = new();
+    public List<string> EvidenceAttemptKeys { get; set; } = new();
+    public int WrongEvidencePresentationCount { get; set; }
+    public int CameraMissCount { get; set; }
+    public List<string> UsedHintIds { get; set; } = new();
+    public List<SolvedDeductionRecord> SolvedDeductionRecords { get; set; } = new();
+    public List<string> DeductionAttemptKeys { get; set; } = new();
+    public int WrongDeductionCount { get; set; }
+    /// <summary>First-discovery attribution per clue, used for teamwork scoring.</summary>
+    public List<ClueDiscoveryRecord> ClueDiscoveries { get; set; } = new();
     public string GameStatus { get; set; } = Enums.GameStatus.InProgress;
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class ResolvedConfrontationRecord
+{
+    public string ChallengeId { get; set; } = string.Empty;
+    public string EvidenceId { get; set; } = string.Empty;
+    public string ResolvedByUserId { get; set; } = string.Empty;
+    public string ResolvedByRole { get; set; } = string.Empty;
+    public DateTime ResolvedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class SolvedDeductionRecord
+{
+    public string DeductionId { get; set; } = string.Empty;
+    public string SelectedOptionId { get; set; } = string.Empty;
+    public string SolvedByUserId { get; set; } = string.Empty;
+    public string SolvedByRole { get; set; } = string.Empty;
+    public DateTime SolvedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class ClueDiscoveryRecord
+{
+    public string ClueId { get; set; } = string.Empty;
+    public string DiscoveredByUserId { get; set; } = string.Empty;
+    public string DiscoveredByRole { get; set; } = string.Empty;
+    /// <summary>inspect | camera | dialogue | challenge | deduction.</summary>
+    public string SourceAction { get; set; } = string.Empty;
+    public DateTime DiscoveredAt { get; set; } = DateTime.UtcNow;
+}
+
+public static class ClueDiscoverySources
+{
+    public const string Inspect = "inspect";
+    public const string Camera = "camera";
+    public const string Dialogue = "dialogue";
+    public const string Challenge = "challenge";
+    public const string Deduction = "deduction";
 }

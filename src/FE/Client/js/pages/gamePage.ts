@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Gavel, createIcons } from 'lucide';
+import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Gavel, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
@@ -165,6 +165,45 @@ type SceneDialogue = {
   isAsked: boolean;
   isLocked: boolean;
   missingClueIds?: string[];
+  evidenceChallenges: EvidenceChallenge[];
+};
+
+type EvidenceChallenge = {
+  challengeId: string;
+  dialogueId: string;
+  prompt: string;
+  isResolved: boolean;
+  resolution?: string;
+};
+
+type ResolvedConfrontation = {
+  challengeId: string;
+  evidenceId: string;
+  evidenceTitle: string;
+  prompt: string;
+  resolution: string;
+  resolvedByUserId: string;
+  resolvedAt: string;
+};
+
+type Testimony = { dialogueId: string; characterName: string; question: string; answer: string };
+
+type Deduction = {
+  deductionId: string;
+  prompt: string;
+  missingClueIds: string[];
+  missingChallengeIds: string[];
+  options: AccusationOption[];
+  isAvailable: boolean;
+  isSolved: boolean;
+  resolution?: string;
+};
+
+type AccusationOption = { id: string; label: string };
+type AccusationConfig = {
+  motiveOptions: AccusationOption[];
+  methodOptions: AccusationOption[];
+  claimTypes: string[];
 };
 
 type VisibleScene = {
@@ -218,6 +257,7 @@ type GameState = {
   roomCode: string;
   caseTitle: string;
   caseSummary: string;
+  mechanicsVersion: number;
   roomStatus: string;
   currentSceneId: string;
   version: number;
@@ -229,6 +269,10 @@ type GameState = {
   collectedItems: SceneItem[];
   unlockedClues: Clue[];
   evidenceClues: Clue[];
+  resolvedConfrontations: ResolvedConfrontation[];
+  deductions: Deduction[];
+  testimonies: Testimony[];
+  accusationConfig?: AccusationConfig;
   suspects: SceneCharacter[];
   sceneMap: SceneMapEntry[];
   completedSceneIds: string[];
@@ -241,7 +285,7 @@ type GameState = {
 
 type Overlay =
   | null
-  | { type: 'case' }
+  | { type: 'case'; tab: 'evidence' | 'testimony' | 'contradictions' }
   | { type: 'map' }
   | { type: 'log' }
   | { type: 'dialogue'; characterId: string }
@@ -254,6 +298,9 @@ type Accusation = null | {
   step: number;
   culpritId: string | null;
   evidenceIds: Set<string>;
+  motiveId: string | null;
+  methodId: string | null;
+  evidenceLinks: Record<string, string>;
 };
 
 type HotspotClick = {
@@ -1541,6 +1588,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let sceneIntroActive = true; // Show on initial load
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  // ----- Conversation view state (dialogue overlay) -----
+  type ConvLine = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
+  let convCharacterId: string | null = null;
+  let convLog: ConvLine[] = [];
+  let convRevealedCount = 0; // lines [0, convRevealedCount) are shown instantly; the rest type out
+  let convTimer: ReturnType<typeof setInterval> | null = null;
+
   const handleKeydown = (e: KeyboardEvent) => {
     if (stopped || !state) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -1633,6 +1687,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     DialogueAnswered: ({ userId }: { userId: string }) => {
       if (userId !== me.userId) toast('Your partner unlocked new testimony.', 'info');
     },
+    InvestigationUpdate: (update: { actorUserId: string; message: string }) => {
+      if (update.actorUserId !== me.userId) toast(update.message || 'The investigation has a new lead.', 'info', 4200);
+      refetch().catch(() => {});
+    },
     SceneChanged: ({ userId }: { userId: string }) => {
       toast(userId === me.userId ? 'You moved to a new location.' : 'Your partner moved to another location.', 'info');
     },
@@ -1692,6 +1750,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function draw() {
     if (stopped || !state) return;
     mountShell();
+    if (!overlay || overlay.type !== 'dialogue') resetConversation();
     const scene = state.visibleScene;
     const hud = app.querySelector('#game-hud-slot');
     if (hud) hud.innerHTML = '';
@@ -1736,9 +1795,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         FolderSearch,
         Map: MapIcon,
         Gavel,
+        Lightbulb,
       },
     });
     hydrateEvidenceImages();
+    hydrateDialogueTypewriter();
   }
 
   function mountPhaser() {
@@ -1838,6 +1899,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <span class="tool-badge">${state!.unlockedClues.length}</span>
         </button>
         <button class="floating-btn" id="map-btn" title="Locations" aria-label="Locations"><i data-lucide="map"></i></button>
+        <button class="floating-btn" id="hint-btn" title="Request a hint" aria-label="Hint"><i data-lucide="lightbulb"></i></button>
         ${cameraHtml}
         <button class="floating-btn bag-tool ${inventoryOpen ? 'is-open' : ''}" id="floating-bag-btn" title="Inventory (B)">
           <i data-lucide="briefcase" aria-hidden="true"></i>
@@ -1912,7 +1974,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function overlayHtml() {
     if (!overlay) return '';
-    if (overlay.type === 'case') return caseFileOverlay();
+    if (overlay.type === 'case') return caseFileOverlay(overlay.tab);
     if (overlay.type === 'map') return mapOverlay();
     if (overlay.type === 'log') return logOverlay();
     if (overlay.type === 'dialogue') return dialogueOverlay(overlay.characterId);
@@ -1949,26 +2011,48 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     });
   }
 
-  function caseFileOverlay() {
+  function caseFileOverlay(tab: 'evidence' | 'testimony' | 'contradictions') {
     const clues = state!.unlockedClues.slice().reverse();
+    const tabs = `
+      <div class="case-file-tabs">
+        <button class="${tab === 'evidence' ? 'is-active' : ''}" data-case-tab="evidence">Evidence</button>
+        <button class="${tab === 'testimony' ? 'is-active' : ''}" data-case-tab="testimony">Testimony</button>
+        <button class="${tab === 'contradictions' ? 'is-active' : ''}" data-case-tab="contradictions">Contradictions</button>
+      </div>`;
+    const content = tab === 'evidence'
+      ? (clues.length === 0
+        ? '<div class="empty-state small">No evidence has been collected yet.</div>'
+        : `<div class="case-file-grid">${clues.map((c) => `
+            <article class="clue-card ${c.isEvidence ? 'clue-evidence' : ''}">
+              ${evidencePhotoMarkup(c, 'clue-photo')}
+              <div class="clue-head"><strong>${escapeHtml(c.title)}</strong>${c.isEvidence ? '<span class="chip chip-gold">EVIDENCE</span>' : ''}</div>
+              <p>${escapeHtml(c.content)}</p>
+            </article>`).join('')}</div>`)
+      : tab === 'testimony'
+        ? (state!.testimonies.length === 0
+          ? '<div class="empty-state small">No testimony has been recorded yet.</div>'
+          : `<div class="notebook-list">${state!.testimonies.map((entry) => `
+              <article><strong>${escapeHtml(entry.characterName)}</strong><p>${escapeHtml(entry.question)}</p><blockquote>${escapeHtml(entry.answer)}</blockquote></article>`).join('')}</div>`)
+        : `<div class="notebook-list">
+            ${state!.resolvedConfrontations.length === 0 ? '<div class="empty-state small">No contradictions have been exposed yet.</div>' : state!.resolvedConfrontations.map((record) => `
+              <article><strong>${escapeHtml(record.prompt)}</strong><p>${escapeHtml(record.evidenceTitle)}</p><blockquote>${escapeHtml(record.resolution)}</blockquote></article>`).join('')}
+            ${state!.deductions.map((deduction) => `
+              <article class="deduction-card ${deduction.isSolved ? 'is-solved' : deduction.isAvailable ? 'is-available' : 'is-locked'}">
+                <div class="clue-head"><strong>${escapeHtml(deduction.prompt)}</strong><span class="chip">${deduction.isSolved ? 'SOLVED' : deduction.isAvailable ? 'READY' : 'LOCKED'}</span></div>
+                ${deduction.isSolved
+                  ? `<blockquote>${escapeHtml(deduction.resolution ?? '')}</blockquote>`
+                  : deduction.isAvailable
+                    ? `<div class="deduction-options">${deduction.options.map((option) => `<button class="btn btn-ghost" data-solve-deduction="${escapeHtml(deduction.deductionId)}" data-option="${escapeHtml(option.id)}">${escapeHtml(option.label)}</button>`).join('')}</div>
+                       <button class="btn btn-ghost" data-deduction-hint="${escapeHtml(deduction.deductionId)}">Hint</button>`
+                    : `<p class="muted">Missing ${deduction.missingClueIds.length} clue(s) and ${deduction.missingChallengeIds.length} contradiction(s).</p>`}
+              </article>`).join('')}
+          </div>`;
     return `
     <div class="overlay">
       <div class="modal modal-wide case-file-modal">
         <h2>Case File</h2>
-        <p class="muted">Evidence and clues discovered by both players.</p>
-        ${clues.length === 0
-          ? '<div class="empty-state small">No evidence has been collected yet.</div>'
-          : `<div class="case-file-grid">${clues.map((c) => `
-              <article class="clue-card ${c.isEvidence ? 'clue-evidence' : ''}">
-                ${evidencePhotoMarkup(c, 'clue-photo')}
-                <div class="clue-head">
-                  <strong>${escapeHtml(c.title)}</strong>
-                  ${c.isEvidence ? '<span class="chip chip-gold">EVIDENCE</span>' : ''}
-                  ${c.isCritical && !c.isEvidence ? '<span class="chip">KEY</span>' : ''}
-                </div>
-                <p>${escapeHtml(c.content)}</p>
-                <span class="muted small">Source: ${escapeHtml(prettyId(c.source))}</span>
-              </article>`).join('')}</div>`}
+        ${tabs}
+        ${content}
         <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
       </div>
     </div>`;
@@ -2086,38 +2170,180 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     </div>`;
   }
 
+  // ----- Conversation helpers (Phase A dialogue view) -----
+
+  function splitSentences(text: string): string[] {
+    if (!text) return [];
+    const matches = text.match(/[^.!?]+[.!?]+(?:["'’”)]+)?|\S[^.!?]*$/g);
+    const parts = (matches ?? [text]).map((s) => s.trim()).filter(Boolean);
+    return parts.length > 0 ? parts : [text.trim()];
+  }
+
+  function resetConversation() {
+    if (convTimer) { clearInterval(convTimer); convTimer = null; }
+    convCharacterId = null;
+    convLog = [];
+    convRevealedCount = 0;
+  }
+
+  // Deterministically derive the conversation log from authoritative state
+  // (asked Q&A + resolved confrontation responses). Pure and idempotent:
+  // rebuilding from the same state always yields the same log, so re-renders
+  // or repeated asks can never duplicate lines.
+  function buildConversation(characterId: string): ConvLine[] {
+    const lines: ConvLine[] = [];
+    const dialogues = state!.visibleScene.availableDialogues.filter((d) => d.characterId === characterId && d.isAsked);
+    for (const d of dialogues) {
+      lines.push({ speaker: 'SIRLOCKED', text: d.question });
+      for (const line of splitSentences(d.answer)) lines.push({ speaker: 'NPC', text: line });
+      for (const challenge of d.evidenceChallenges ?? []) {
+        if (challenge.isResolved && challenge.resolution) {
+          for (const line of splitSentences(challenge.resolution)) lines.push({ speaker: 'NPC', text: line });
+        }
+      }
+    }
+    return lines;
+  }
+
+  function hydrateDialogueTypewriter() {
+    if (convTimer) { clearInterval(convTimer); convTimer = null; }
+    if (!overlay || overlay.type !== 'dialogue') return;
+    const logEl = app.querySelector<HTMLElement>('.conv-scroll');
+    logEl?.scrollTo({ top: logEl.scrollHeight });
+    const pending = Array.from(app.querySelectorAll<HTMLElement>('.conv-text.is-typing'));
+    if (pending.length === 0) { convRevealedCount = convLog.length; return; }
+    let idx = 0;
+    let charCount = 0;
+    convTimer = setInterval(() => {
+      const el = pending[idx];
+      if (!el) {
+        if (convTimer) clearInterval(convTimer);
+        convTimer = null;
+        convRevealedCount = convLog.length;
+        return;
+      }
+      const full = el.getAttribute('data-full') ?? '';
+      charCount += 1;
+      el.textContent = full.slice(0, charCount);
+      if (logEl) logEl.scrollTop = logEl.scrollHeight;
+      if (charCount >= full.length) {
+        el.classList.remove('is-typing');
+        idx += 1;
+        charCount = 0;
+      }
+    }, 16);
+  }
+
+  function conversationLogHtml(characterName: string) {
+    if (convLog.length === 0) {
+      return '<p class="conv-empty muted small">Choose a topic below to begin questioning.</p>';
+    }
+    // Group consecutive lines from the same speaker into a single turn (one label,
+    // one bubble with multiple lines). The flat index is preserved per line so the
+    // typewriter still reveals only the newest lines.
+    type Turn = { speaker: 'SIRLOCKED' | 'NPC'; lines: { text: string; index: number }[] };
+    const turns: Turn[] = [];
+    convLog.forEach((line, index) => {
+      const last = turns[turns.length - 1];
+      if (last && last.speaker === line.speaker) last.lines.push({ text: line.text, index });
+      else turns.push({ speaker: line.speaker, lines: [{ text: line.text, index }] });
+    });
+    return turns.map((turn) => {
+      const speaker = turn.speaker === 'SIRLOCKED' ? 'SirLocked' : characterName;
+      const cls = turn.speaker === 'SIRLOCKED' ? 'conv-turn conv-mine' : 'conv-turn conv-npc';
+      const bubble = turn.lines.map((l) => {
+        const typing = l.index >= convRevealedCount;
+        return `<p class="conv-text ${typing ? 'is-typing' : ''}" data-full="${escapeHtml(l.text)}">${typing ? '' : escapeHtml(l.text)}</p>`;
+      }).join('');
+      return `<div class="${cls}">
+          <div class="conv-speaker">${escapeHtml(speaker)}</div>
+          <div class="conv-bubble">${bubble}</div>
+        </div>`;
+    }).join('');
+  }
+
   function dialogueOverlay(characterId: string) {
     const character = state!.visibleScene.characters.find((c) => c.characterId === characterId);
     if (!character) return '';
     const role = myRole();
     const dialogues = state!.visibleScene.availableDialogues.filter((d) => d.characterId === characterId);
     const imageUrl = characterPortraitUrl(character);
+
+    const freshOpen = convCharacterId !== characterId;
+    if (freshOpen) convCharacterId = characterId;
+    convLog = buildConversation(characterId);
+    if (freshOpen) convRevealedCount = convLog.length; // existing history shows instantly
+    else convRevealedCount = Math.min(convRevealedCount, convLog.length); // newly added lines type out
+
+    const askable = dialogues.filter((d) => !d.isAsked && !d.isLocked);
+    const lockedCount = dialogues.filter((d) => d.isLocked).length;
+    const activeChallenges = dialogues
+      .filter((d) => d.isAsked)
+      .flatMap((d) => (d.evidenceChallenges ?? []).filter((c) => !c.isResolved));
+
+    const lockedNotice = lockedCount > 0
+      ? `<p class="conv-locked">${lockedCount > 1
+          ? `${lockedCount} more questions locked — find stronger evidence first.`
+          : 'Locked — find stronger evidence before pressing further.'}</p>`
+      : '';
+
+    const topicsHtml = role !== 'INTERROGATOR'
+      ? '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>'
+      : askable.length === 0 && lockedCount === 0
+        ? '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>'
+        : `${askable.map((d) => `
+            <button class="conv-choice" data-dialogue="${escapeHtml(d.dialogueId)}">
+              <span class="conv-choice-tag">Ask</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
+            </button>`).join('')}
+          ${lockedNotice}`;
+
+    const challengeHtml = activeChallenges.map((challenge) => `
+      <section class="evidence-challenge conv-challenge">
+        <div class="conv-challenge-head">
+          <span class="conv-challenge-tag">Present evidence</span>
+          <button class="btn btn-ghost btn-sm" data-challenge-hint="${escapeHtml(challenge.challengeId)}">Hint</button>
+        </div>
+        <strong>${escapeHtml(challenge.prompt)}</strong>
+        ${role === 'INTERROGATOR'
+          ? `<div class="challenge-actions">${state!.evidenceClues.map((clue) => `
+              <button class="btn btn-ghost evidence-choice" data-present-challenge="${escapeHtml(challenge.challengeId)}" data-present-evidence="${escapeHtml(clue.clueId)}">
+                ${escapeHtml(clue.title)}
+              </button>`).join('')}</div>`
+          : '<p class="muted small">Only the Interrogator can present evidence.</p>'}
+      </section>`).join('');
+
     return `
     <div class="overlay dialogue-overlay">
-      <div class="dialogue-box">
-        <div class="dialogue-portrait" style="${placeholderStyle(character.characterId)}">
-          ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" onerror="this.remove()">` : ''}
-          <span>${initials(character.name)}</span>
-        </div>
-        <div class="dialogue-copy">
-          <h2>${escapeHtml(character.name)}</h2>
-          <p class="muted">${escapeHtml(character.role)}. ${escapeHtml(character.description)}</p>
-          ${role !== 'INTERROGATOR'
-            ? '<p class="notice">Only the Interrogator can ask questions. You can still read the testimony.</p>'
-            : ''}
-          <div class="dialogue-list">
-            ${dialogues.length === 0
-              ? '<p class="muted small">There is nothing useful to ask right now.</p>'
-              : dialogues.map((d) => `
-                <button class="dialogue-row ${d.isAsked ? 'is-asked' : ''} ${d.isLocked ? 'is-locked' : ''}"
-                        data-dialogue="${escapeHtml(d.dialogueId)}" ${d.isLocked ? 'disabled' : ''}
-                        ${d.isLocked ? `title="Needs ${d.missingClueIds?.length || 'more'} more clue(s) before this can be asked"` : ''}>
-                  <span>${d.isLocked ? `Locked${d.missingClueIds?.length ? ` (${d.missingClueIds.length} clue${d.missingClueIds.length > 1 ? 's' : ''} missing)` : ''}` : d.isAsked ? 'Asked' : 'Ask'}</span>
-                  <span>${escapeHtml(d.question)}</span>
-                </button>
-                ${d.isAsked && d.answer ? `<div class="dialogue-answer">"${escapeHtml(d.answer)}"</div>` : ''}`).join('')}
+      <div class="conversation-box">
+        <aside class="conv-portrait-col">
+          <div class="conv-portrait" style="${placeholderStyle(character.characterId)}">
+            ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" onerror="this.remove()">` : ''}
+            <span>${initials(character.name)}</span>
           </div>
-          <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+          <div class="conv-portrait-caption">
+            <strong>${escapeHtml(character.name)}</strong>
+            <span>${escapeHtml(character.role)}</span>
+          </div>
+        </aside>
+        <div class="conv-main">
+          <header class="conv-header">
+            <div class="conv-header-top">
+              <h2>${escapeHtml(character.name)}</h2>
+              ${role !== 'INTERROGATOR'
+                ? '<span class="conv-badge">Viewing testimony — Interrogator controls questioning.</span>'
+                : ''}
+            </div>
+            <p class="conv-role">${escapeHtml(character.role)}</p>
+            <p class="conv-desc">${escapeHtml(character.description)}</p>
+          </header>
+          <div class="conv-scroll">
+            <div class="conversation-log">${conversationLogHtml(character.name)}</div>
+            ${challengeHtml ? `<div class="conversation-challenges">${challengeHtml}</div>` : ''}
+            <div class="conversation-choices">${topicsHtml}</div>
+          </div>
+          <footer class="conv-footer">
+            <button class="btn btn-gold" data-close-overlay>Leave</button>
+          </footer>
         </div>
       </div>
     </div>`;
@@ -2126,6 +2352,62 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function accusationModal() {
     if (!accusation) return '';
     const evidence = state!.evidenceClues;
+    const v2 = state!.mechanicsVersion >= 2 && state!.accusationConfig;
+
+    if (v2) {
+      const config = state!.accusationConfig!;
+      const steps = ['Suspect', 'Motive', 'Method', 'Evidence', 'Review'];
+      const header = `<div class="accusation-steps">${steps.map((label, index) => `<span class="${accusation!.step === index + 1 ? 'is-active' : ''}">${label}</span>`).join('')}</div>`;
+      let body = '';
+      let canContinue = false;
+      if (accusation.step === 1) {
+        canContinue = Boolean(accusation.culpritId);
+        body = `<div class="suspect-grid">${state!.suspects.map((suspect) => `
+          <button class="suspect-card ${accusation!.culpritId === suspect.characterId ? 'is-selected' : ''}" data-suspect="${escapeHtml(suspect.characterId)}">
+            <strong>${escapeHtml(suspect.name)}</strong><span class="muted small">${escapeHtml(suspect.role)}</span>
+          </button>`).join('')}</div>`;
+      } else if (accusation.step === 2) {
+        canContinue = Boolean(accusation.motiveId);
+        body = optionPicker(config.motiveOptions, accusation.motiveId, 'motive');
+      } else if (accusation.step === 3) {
+        canContinue = Boolean(accusation.methodId);
+        body = optionPicker(config.methodOptions, accusation.methodId, 'method');
+      } else if (accusation.step === 4) {
+        canContinue = config.claimTypes.every((claim) => Boolean(accusation!.evidenceLinks[claim]))
+          && new Set(Object.values(accusation.evidenceLinks)).size === config.claimTypes.length;
+        body = `<div class="claim-evidence-list">${config.claimTypes.map((claim) => `
+          <label><strong>${escapeHtml(claim)}</strong>
+            <select data-claim="${escapeHtml(claim)}">
+              <option value="">Select evidence</option>
+              ${evidence.map((clue) => `<option value="${escapeHtml(clue.clueId)}" ${accusation!.evidenceLinks[claim] === clue.clueId ? 'selected' : ''}>${escapeHtml(clue.title)}</option>`).join('')}
+            </select>
+          </label>`).join('')}</div>
+          ${Object.values(accusation.evidenceLinks).filter(Boolean).length === config.claimTypes.length && !canContinue ? '<p class="notice">Each claim must use different evidence.</p>' : ''}`;
+      } else {
+        const culprit = state!.suspects.find((suspect) => suspect.characterId === accusation!.culpritId);
+        const motive = config.motiveOptions.find((option) => option.id === accusation!.motiveId);
+        const method = config.methodOptions.find((option) => option.id === accusation!.methodId);
+        canContinue = true;
+        body = `<div class="accusation-review">
+          <p><strong>Suspect:</strong> ${escapeHtml(culprit?.name ?? '')}</p>
+          <p><strong>Motive:</strong> ${escapeHtml(motive?.label ?? '')}</p>
+          <p><strong>Method:</strong> ${escapeHtml(method?.label ?? '')}</p>
+          ${config.claimTypes.map((claim) => `<p><strong>${escapeHtml(claim)}:</strong> ${escapeHtml(evidence.find((clue) => clue.clueId === accusation!.evidenceLinks[claim])?.title ?? '')}</p>`).join('')}
+          <p class="notice">A wrong accusation ends the case.</p>
+        </div>`;
+      }
+
+      return `<div class="overlay"><div class="modal modal-wide">
+        <h2>Final Accusation</h2>${header}${body}
+        <div class="modal-actions">
+          ${accusation.step === 1 ? '<button class="btn btn-ghost" id="accuse-cancel">Not yet</button>' : '<button class="btn btn-ghost" id="accuse-back">Back</button>'}
+          ${accusation.step < 5
+            ? `<button class="btn btn-gold" id="accuse-next" ${canContinue ? '' : 'disabled'}>Continue</button>`
+            : '<button class="btn btn-gold" id="accuse-confirm">Make accusation</button>'}
+        </div>
+      </div></div>`;
+    }
+
     if (accusation.step === 1) {
       return `
       <div class="overlay">
@@ -2175,6 +2457,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     </div>`;
   }
 
+  function optionPicker(options: AccusationOption[], selectedId: string | null, kind: 'motive' | 'method') {
+    return `<div class="accusation-options">${options.map((option) => `
+      <button class="option-row ${selectedId === option.id ? 'is-selected' : ''}" data-${kind}="${escapeHtml(option.id)}">${escapeHtml(option.label)}</button>`).join('')}</div>`;
+  }
+
   function isSceneInputBlocked() {
     return Boolean(overlay || accusation) ||
       !sessionStorage.getItem(introKey) ||
@@ -2185,7 +2472,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     app.querySelectorAll('.overlay').forEach((layer) => {
       ['pointerdown', 'pointerup', 'click'].forEach((eventName) => {
         layer.addEventListener(eventName, (event) => {
-          if (!(event.target instanceof Element) || !event.target.closest('.modal, .dialogue-box')) {
+          if (!(event.target instanceof Element) || !event.target.closest('.modal, .dialogue-box, .conversation-box')) {
             event.preventDefault();
             event.stopImmediatePropagation();
           }
@@ -2210,7 +2497,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         draw();
       }));
 
-    app.querySelector('#case-file-btn')?.addEventListener('click', () => { overlay = { type: 'case' }; draw(); });
+    app.querySelector('#case-file-btn')?.addEventListener('click', () => { overlay = { type: 'case', tab: 'evidence' }; draw(); });
+    app.querySelectorAll('[data-case-tab]').forEach((button) => button.addEventListener('click', () => {
+      const tab = (button as HTMLElement).dataset.caseTab as 'evidence' | 'testimony' | 'contradictions';
+      overlay = { type: 'case', tab };
+      draw();
+    }));
+    app.querySelector('#hint-btn')?.addEventListener('click', () => requestHint('SCENE', state!.currentSceneId));
     app.querySelector('#floating-camera-btn')?.addEventListener('click', () => {
       if (myRole() !== 'INVESTIGATOR') {
         toast('Only the Investigator can capture scene clues.', 'info');
@@ -2231,7 +2524,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     });
     app.querySelector('#map-btn')?.addEventListener('click', () => { overlay = { type: 'map' }; draw(); });
     app.querySelector('#accuse-btn')?.addEventListener('click', () => {
-      accusation = { step: 1, culpritId: null, evidenceIds: new Set(state!.evidenceClues.map((c) => c.clueId)) };
+      accusation = { step: 1, culpritId: null, motiveId: null, methodId: null, evidenceIds: new Set(), evidenceLinks: {} };
       draw();
     });
 
@@ -2259,15 +2552,33 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           toast('Only the Interrogator can ask questions.', 'info');
           return;
         }
+        const askButton = button as HTMLButtonElement;
+        if (askButton.dataset.asking === '1') return; // guard against double-clicks
+        askButton.dataset.asking = '1';
         try {
-          const dialogueId = (button as HTMLElement).dataset.dialogue;
+          const dialogueId = askButton.dataset.dialogue;
           const res = await gameApi.askDialogue(roomId, dialogueId);
           if (res.changed && res.unlockedClueIds.length > 0) toast(res.message, 'success');
-          applyState(res.state);
+          applyState(res.state); // log rebuilds deterministically from state
         } catch (err: any) {
           toast(err.message, 'error');
         }
       }));
+
+    app.querySelectorAll('[data-present-challenge]').forEach((button) => button.addEventListener('click', async () => {
+      const target = button as HTMLElement;
+      await presentEvidence(target.dataset.presentChallenge ?? '', target.dataset.presentEvidence ?? '');
+    }));
+    app.querySelectorAll('[data-challenge-hint]').forEach((button) => button.addEventListener('click', async () => {
+      await requestHint('CONFRONTATION', (button as HTMLElement).dataset.challengeHint ?? '');
+    }));
+    app.querySelectorAll('[data-deduction-hint]').forEach((button) => button.addEventListener('click', async () => {
+      await requestHint('DEDUCTION', (button as HTMLElement).dataset.deductionHint ?? '');
+    }));
+    app.querySelectorAll('[data-solve-deduction]').forEach((button) => button.addEventListener('click', async () => {
+      const target = button as HTMLElement;
+      await solveDeduction(target.dataset.solveDeduction ?? '', target.dataset.option ?? '');
+    }));
 
     app.querySelectorAll('[data-suspect]').forEach((button) =>
       button.addEventListener('click', () => {
@@ -2275,6 +2586,25 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         accusation.culpritId = (button as HTMLElement).dataset.suspect ?? null;
         draw();
       }));
+    app.querySelectorAll('[data-motive]').forEach((button) => button.addEventListener('click', () => {
+      if (!accusation) return;
+      accusation.motiveId = (button as HTMLElement).dataset.motive ?? null;
+      draw();
+    }));
+    app.querySelectorAll('[data-method]').forEach((button) => button.addEventListener('click', () => {
+      if (!accusation) return;
+      accusation.methodId = (button as HTMLElement).dataset.method ?? null;
+      draw();
+    }));
+    app.querySelectorAll('[data-claim]').forEach((select) => select.addEventListener('change', () => {
+      if (!accusation) return;
+      const input = select as HTMLSelectElement;
+      const claim = input.dataset.claim;
+      if (!claim) return;
+      if (input.value) accusation.evidenceLinks[claim] = input.value;
+      else delete accusation.evidenceLinks[claim];
+      draw();
+    }));
     app.querySelectorAll('[data-evidence]').forEach((box) =>
       box.addEventListener('change', () => {
         if (!accusation) return;
@@ -2289,7 +2619,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
     });
     app.querySelector('#accuse-review')?.addEventListener('click', () => { if (accusation) accusation.step = 2; draw(); });
-    app.querySelector('#accuse-back')?.addEventListener('click', () => { if (accusation) accusation.step = 1; draw(); });
+    app.querySelector('#accuse-next')?.addEventListener('click', () => { if (accusation) accusation.step++; draw(); });
+    app.querySelector('#accuse-back')?.addEventListener('click', () => {
+      if (!accusation) return;
+      accusation.step = state!.mechanicsVersion >= 2 ? Math.max(1, accusation.step - 1) : 1;
+      draw();
+    });
     app.querySelector('#accuse-confirm')?.addEventListener('click', submitAccusation);
   }
 
@@ -2414,14 +2749,44 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
   }
 
+  async function presentEvidence(challengeId: string, evidenceId: string) {
+    if (!challengeId || !evidenceId) return;
+    try {
+      const res = await gameApi.presentEvidence(roomId, { challengeId, evidenceId, dialogueId: '' });
+      // On success the resolved-confrontation response is rebuilt into the log from
+      // state; toast gives transient feedback (and surfaces failure responses).
+      toast(res.detail || res.message, res.changed && res.unlockedClueIds?.length ? 'success' : 'info', 5000);
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message, 'error');
+    }
+  }
+
+  async function solveDeduction(deductionId: string, optionId: string) {
+    if (!deductionId || !optionId) return;
+    try {
+      const res = await gameApi.solveDeduction(roomId, deductionId, optionId);
+      toast(res.detail || res.message, res.changed && res.unlockedClueIds?.length ? 'success' : 'info', 5000);
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message, 'error');
+    }
+  }
+
+  async function requestHint(contextType: 'SCENE' | 'CONFRONTATION' | 'DEDUCTION', targetId: string) {
+    if (!targetId) return;
+    try {
+      const res = await gameApi.hint(roomId, contextType, targetId);
+      toast(res.message, 'info', 6500);
+      if (res.state) applyState(res.state);
+    } catch (err: any) {
+      toast(err.message, 'error');
+    }
+  }
+
   async function completeScene() {
     if (!state?.currentSceneCanComplete) {
-      const missing = state?.currentSceneMissingRequirements;
-      const parts = [];
-      if (missing?.requiredItemIds?.length) parts.push(`${missing.requiredItemIds.length} object(s)`);
-      if (missing?.requiredDialogueIds?.length) parts.push(`${missing.requiredDialogueIds.length} conversation(s)`);
-      if (missing?.requiredClueIds?.length) parts.push(`${missing.requiredClueIds.length} clue(s)`);
-      toast(parts.length ? `Not yet. Still missing ${parts.join(', ')}.` : 'Keep searching this scene first.', 'info', 4200);
+      toast('You do not have enough grounds to leave this location yet. Request a hint if you are stuck.', 'info', 4200);
       return;
     }
 
@@ -2433,11 +2798,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     } catch (err: any) {
       const missing = err.errors?.missing;
       if (missing) {
-        const parts = [];
-        if (missing.requiredItemIds?.length) parts.push(`${missing.requiredItemIds.length} object(s)`);
-        if (missing.requiredDialogueIds?.length) parts.push(`${missing.requiredDialogueIds.length} conversation(s)`);
-        if (missing.requiredClueIds?.length) parts.push(`${missing.requiredClueIds.length} clue(s)`);
-        toast(`Not yet. Still missing ${parts.join(', ')}.`, 'error', 5500);
+        toast('An important trace or statement still needs to be verified.', 'error', 5500);
       } else {
         toast(err.message, 'error');
       }
@@ -2459,7 +2820,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const button = event.currentTarget as HTMLButtonElement;
     button.disabled = true;
     try {
-      const result = await gameApi.accuse(roomId, accusation!.culpritId, '', '', [...accusation!.evidenceIds]);
+      const payload = state!.mechanicsVersion >= 2
+        ? {
+            culpritId: accusation!.culpritId,
+            motiveId: accusation!.motiveId,
+            methodId: accusation!.methodId,
+            evidenceLinks: Object.entries(accusation!.evidenceLinks).map(([claimType, evidenceId]) => ({ claimType, evidenceId })),
+            evidenceIds: [],
+          }
+        : { culpritId: accusation!.culpritId, motive: '', method: '', evidenceIds: [...accusation!.evidenceIds], evidenceLinks: [] };
+      const result = await gameApi.accuse(roomId, payload);
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
       window.location.hash = `#/result/${roomId}`;
     } catch (err: any) {
@@ -2478,6 +2848,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   return () => {
     stopped = true;
+    if (convTimer) { clearInterval(convTimer); convTimer = null; }
     window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
     for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);

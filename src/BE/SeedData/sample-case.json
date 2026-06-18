@@ -3,6 +3,7 @@
   "title": "The Locked Manor Ledger",
   "summary": "A financier dies inside a locked study after dinner. The investigation moves from the study to the servants' corridor, pantry, balcony route, and final confrontation to prove who poisoned the drink and staged the locked room.",
   "status": "DRAFT",
+  "mechanicsVersion": 2,
   "estimatedMinutes": 35,
   "coverImageUrl": "/assets/cases/locked-manor.jpg",
   "stages": [
@@ -731,6 +732,69 @@
       "unlockClueIds": []
     }
   ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-edgar-cufflink",
+      "dialogueId": "dlg-edgar-cufflink",
+      "prompt": "Edgar says the cufflink fell there days ago. Which evidence disproves that claim?",
+      "correctEvidenceId": "clue-balcony-entry",
+      "successResponse": "The fresh rain-soaked footprint proves the balcony trace was made tonight.",
+      "failureResponse": "That evidence does not establish when the cufflink reached the balcony.",
+      "unlockClueIds": ["clue-mira-witness"]
+    },
+    {
+      "challengeId": "challenge-edgar-debt",
+      "dialogueId": "dlg-edgar-debt",
+      "prompt": "Edgar denies that the debt gave him a reason to kill. Which evidence ties the debt to the crime?",
+      "correctEvidenceId": "clue-hidden-debt",
+      "successResponse": "The burned ledger establishes that financial ruin gave Edgar a direct motive.",
+      "failureResponse": "That evidence does not establish Edgar's financial motive.",
+      "unlockClueIds": ["clue-staged-lock"]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-edgar-chain",
+      "prompt": "Which chain proves Edgar had motive, method, and the opportunity to stage the locked room?",
+      "requiredClueIds": [
+        "clue-poison-source",
+        "clue-balcony-entry",
+        "clue-hidden-debt"
+      ],
+      "requiredChallengeIds": [
+        "challenge-edgar-cufflink",
+        "challenge-edgar-debt"
+      ],
+      "options": [
+        { "id": "deduce-edgar-poison-balcony", "label": "Edgar used debt as motive, pantry poison as method, and the balcony route as opportunity" },
+        { "id": "deduce-ada-tray", "label": "Ada poisoned the tray after being dismissed" },
+        { "id": "deduce-mira-inheritance", "label": "Mira used the balcony to protect her inheritance" }
+      ],
+      "correctOptionId": "deduce-edgar-poison-balcony",
+      "successResponse": "The evidence chain now connects Edgar's motive, poison method, and balcony opportunity.",
+      "failureResponse": "That theory leaves at least one part of the chain unsupported.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-edgar-final",
+      "investigatorClueId": "clue-poison-source",
+      "interrogatorChallengeId": "challenge-edgar-cufflink",
+      "deductionId": "deduction-edgar-chain",
+      "description": "The investigator finds the poison source, the interrogator breaks Edgar's balcony testimony, and the team resolves the final chain."
+    }
+  ],
+  "hints": [
+    { "hintId": "hint-study-1", "contextType": "SCENE", "targetId": "scene-study", "order": 1, "text": "Start with the victim's glass and the marks around the study lock." },
+    { "hintId": "hint-corridor-1", "contextType": "SCENE", "targetId": "scene-servants-corridor", "order": 1, "text": "Check the servants' timeline before deciding who handled the tray." },
+    { "hintId": "hint-pantry-1", "contextType": "SCENE", "targetId": "scene-pantry", "order": 1, "text": "Look for a substance that matches the scent on the victim's glass." },
+    { "hintId": "hint-balcony-1", "contextType": "SCENE", "targetId": "scene-south-balcony", "order": 1, "text": "Tonight's rain can distinguish an old trace from a fresh one." },
+    { "hintId": "hint-accusation-1", "contextType": "SCENE", "targetId": "scene-accusation-room", "order": 1, "text": "Connect motive, method, and access before making the accusation." },
+    { "hintId": "hint-edgar-cufflink-1", "contextType": "CONFRONTATION", "targetId": "challenge-edgar-cufflink", "order": 1, "text": "Use evidence that proves when someone crossed the balcony." },
+    { "hintId": "hint-edgar-debt-1", "contextType": "CONFRONTATION", "targetId": "challenge-edgar-debt", "order": 1, "text": "Use the financial record that Edgar tried to destroy." },
+    { "hintId": "hint-deduction-edgar-chain-1", "contextType": "DEDUCTION", "targetId": "deduction-edgar-chain", "order": 1, "text": "The final chain needs one motive clue, one method clue, and one opportunity clue." }
+  ],
   "finalLogic": {
     "culpritId": "char-edgar",
     "motive": "Hidden debt and fear of financial ruin.",
@@ -741,6 +805,29 @@
       "clue-drink-prepared-before-lock",
       "clue-balcony-entry",
       "clue-edgar-cufflink"
+    ],
+    "motiveOptions": [
+      { "id": "motive-debt", "label": "Hidden debt and fear of financial ruin" },
+      { "id": "motive-inheritance", "label": "A dispute over the family inheritance" },
+      { "id": "motive-dismissal", "label": "Revenge for a planned dismissal" }
+    ],
+    "methodOptions": [
+      { "id": "method-poison-balcony", "label": "Poison the unattended drink, then use the balcony to stage the locked room" },
+      { "id": "method-direct-attack", "label": "Attack the victim after forcing the study lock" },
+      { "id": "method-servant-accomplice", "label": "Use a servant accomplice to poison the tray" }
+    ],
+    "correctMotiveId": "motive-debt",
+    "correctMethodId": "method-poison-balcony",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "clue-hidden-debt" },
+      { "claimType": "METHOD", "evidenceId": "clue-poison-source" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "clue-balcony-entry" }
+    ],
+    "requiredDeductionIds": [
+      "deduction-edgar-chain"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-edgar-final"
     ],
     "winEnding": "Edgar's alibi collapses under the chain of poison, debt, and balcony evidence. The locked-room illusion is exposed.",
     "failEnding": "The accusation lacks the proof needed to break the locked-room illusion, and the true culprit escapes suspicion."

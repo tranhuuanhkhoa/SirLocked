@@ -22,6 +22,7 @@ public class CaseValidationService : ICaseValidationService
         ValidateCameraEmbeddedItems(gameCase, result);
         ValidateClues(gameCase, result, stage);
         ValidateFinalLogic(gameCase, result);
+        ValidateInvestigationV2(gameCase, result);
 
         // Only simulate progression when the structure itself is sound; otherwise the
         // reference errors above already explain what is broken.
@@ -42,6 +43,9 @@ public class CaseValidationService : ICaseValidationService
 
     private static void ValidateRequiredFields(GameCase c, CaseValidationResult result)
     {
+        if (c.MechanicsVersion is not (CaseMechanicsVersions.Legacy or CaseMechanicsVersions.InvestigationV2))
+            result.Add("InvalidValue", "mechanicsVersion", "mechanicsVersion must be 1 or 2.");
+
         if (string.IsNullOrWhiteSpace(c.CaseId))
             result.Add("MissingField", "caseId", "caseId is required.");
         if (string.IsNullOrWhiteSpace(c.Title))
@@ -94,6 +98,12 @@ public class CaseValidationService : ICaseValidationService
         CheckDuplicates(result, "items", c.Items.Select(x => x.ItemId), "itemId");
         CheckDuplicates(result, "clues", c.Clues.Select(x => x.ClueId), "clueId");
         CheckDuplicates(result, "dialogues", c.Dialogues.Select(x => x.DialogueId), "dialogueId");
+        CheckDuplicates(result, "evidenceChallenges", c.EvidenceChallenges.Select(x => x.ChallengeId), "challengeId");
+        CheckDuplicates(result, "deductions", c.Deductions.Select(x => x.DeductionId), "deductionId");
+        CheckDuplicates(result, "requiredTeamworkChains", c.RequiredTeamworkChains.Select(x => x.ChainId), "chainId");
+        CheckDuplicates(result, "hints", c.Hints.Select(x => x.HintId), "hintId");
+        CheckDuplicates(result, "finalLogic.motiveOptions", c.FinalLogic.MotiveOptions.Select(x => x.Id), "motive option id");
+        CheckDuplicates(result, "finalLogic.methodOptions", c.FinalLogic.MethodOptions.Select(x => x.Id), "method option id");
         CheckDuplicates(result, "hotspots", c.Stages.SelectMany(s => s.Scenes).SelectMany(s => s.Hotspots).Select(h => h.HotspotId), "hotspotId");
     }
 
@@ -189,6 +199,30 @@ public class CaseValidationService : ICaseValidationService
                 result.Add("MissingReference", $"dialogues[{d}].requiredClueIds", "Required clue does not exist.", clueId);
             foreach (var clueId in dialogue.UnlockClueIds.Where(id => !clueIds.Contains(id)))
                 result.Add("MissingReference", $"dialogues[{d}].unlockClueIds", "Unlock clue does not exist.", clueId);
+        }
+
+        for (var i = 0; i < c.EvidenceChallenges.Count; i++)
+        {
+            var challenge = c.EvidenceChallenges[i];
+            var path = $"evidenceChallenges[{i}]";
+            if (!dialogueIds.Contains(challenge.DialogueId))
+                result.Add("MissingReference", $"{path}.dialogueId", "Challenge dialogue does not exist.", challenge.DialogueId);
+            if (!clueIds.Contains(challenge.CorrectEvidenceId))
+                result.Add("MissingReference", $"{path}.correctEvidenceId", "Challenge evidence clue does not exist.", challenge.CorrectEvidenceId);
+            foreach (var clueId in challenge.UnlockClueIds.Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.unlockClueIds", "Challenge unlock clue does not exist.", clueId);
+        }
+
+        for (var i = 0; i < c.Deductions.Count; i++)
+        {
+            var deduction = c.Deductions[i];
+            var path = $"deductions[{i}]";
+            foreach (var clueId in deduction.RequiredClueIds.Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.requiredClueIds", "Deduction required clue does not exist.", clueId);
+            foreach (var challengeId in deduction.RequiredChallengeIds.Where(id => c.EvidenceChallenges.All(challenge => challenge.ChallengeId != id)))
+                result.Add("MissingReference", $"{path}.requiredChallengeIds", "Deduction required challenge does not exist.", challengeId);
+            foreach (var clueId in deduction.UnlockClueIds.Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.unlockClueIds", "Deduction unlock clue does not exist.", clueId);
         }
     }
 
@@ -397,7 +431,8 @@ public class CaseValidationService : ICaseValidationService
             .Where(zone => !string.IsNullOrWhiteSpace(zone.ClueId))
             .GroupBy(zone => zone.ClueId)
             .ToDictionary(g => g.Key, g => g.First());
-        var finalEvidenceIds = c.FinalLogic.RequiredEvidenceIds.ToHashSet();
+        var finalEvidenceIds = c.FinalLogic.RequiredEvidenceIds
+            .Concat(c.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId)).ToHashSet();
         var requiresCameraLayout = stage is CaseValidationStage.SceneLayout or CaseValidationStage.Publish;
         var isCameraEmbedded = IsCameraEmbeddedCase(c);
 
@@ -522,7 +557,7 @@ public class CaseValidationService : ICaseValidationService
             result.Add("MissingField", "finalLogic.winEnding", "finalLogic.winEnding is required.");
         if (string.IsNullOrWhiteSpace(final.FailEnding))
             result.Add("MissingField", "finalLogic.failEnding", "finalLogic.failEnding is required.");
-        if (final.RequiredEvidenceIds.Count == 0)
+        if (c.MechanicsVersion < CaseMechanicsVersions.InvestigationV2 && final.RequiredEvidenceIds.Count == 0)
             result.Add("MissingField", "finalLogic.requiredEvidenceIds", "At least one required evidence clue is needed.");
 
         for (var i = 0; i < final.RequiredEvidenceIds.Count; i++)
@@ -596,6 +631,29 @@ public class CaseValidationService : ICaseValidationService
                         progressed = true;
                     }
 
+                    foreach (var challenge in c.EvidenceChallenges)
+                    {
+                        if (!askedDialogues.Contains(challenge.DialogueId)) continue;
+                        if (!unlockedClues.Contains(challenge.CorrectEvidenceId)) continue;
+                        foreach (var clueId in challenge.UnlockClueIds)
+                        {
+                            if (unlockedClues.Add(clueId)) progressed = true;
+                        }
+                    }
+
+                    foreach (var deduction in c.Deductions)
+                    {
+                        if (!deduction.RequiredClueIds.All(unlockedClues.Contains)) continue;
+                        if (!deduction.RequiredChallengeIds.All(challengeId =>
+                            c.EvidenceChallenges.Where(challenge => challenge.ChallengeId == challengeId)
+                                .SelectMany(challenge => challenge.UnlockClueIds)
+                                .All(unlockedClues.Contains))) continue;
+                        foreach (var clueId in deduction.UnlockClueIds)
+                        {
+                            if (unlockedClues.Add(clueId)) progressed = true;
+                        }
+                    }
+
                     foreach (var zone in scene.Runtime?.ClueZones ?? new List<ClueZone>())
                     {
                         if (unlockedClues.Contains(zone.ClueId)) continue;
@@ -641,14 +699,143 @@ public class CaseValidationService : ICaseValidationService
         {
             var unlockedByItem = c.Items.Any(i => i.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByDialogue = c.Dialogues.Any(d => d.UnlockClueIds.Contains(clue.ClueId));
+            var unlockedByChallenge = c.EvidenceChallenges.Any(challenge => challenge.UnlockClueIds.Contains(clue.ClueId));
+            var unlockedByDeduction = c.Deductions.Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByCamera = DiscoverMethod(clue) == "camera"
                 && (!hasCameraLayout || c.Stages.SelectMany(s => s.Scenes).Any(scene =>
                     scene.Runtime?.ClueZones.Any(zone => zone.ClueId == clue.ClueId) == true));
-            if (!unlockedByItem && !unlockedByDialogue && !unlockedByCamera)
+            if (!unlockedByItem && !unlockedByDialogue && !unlockedByChallenge && !unlockedByDeduction && !unlockedByCamera)
             {
                 result.Add("OrphanClue", $"clue:{clue.ClueId}",
-                    $"Clue '{clue.ClueId}' is not unlocked by any item, dialogue, or camera clue zone.", clue.ClueId);
+                    $"Clue '{clue.ClueId}' is not unlocked by any item, dialogue, challenge, deduction, or camera clue zone.", clue.ClueId);
             }
+        }
+
+        foreach (var evidenceId in c.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId).Where(id => !unlockedClues.Contains(id)))
+        {
+            result.Add("UndiscoverableEvidence", "finalLogic.requiredEvidenceLinks",
+                $"Final evidence clue '{evidenceId}' is never unlocked by any reachable action.", evidenceId);
+        }
+    }
+
+    private static void ValidateInvestigationV2(GameCase c, CaseValidationResult result)
+    {
+        if (c.MechanicsVersion < CaseMechanicsVersions.InvestigationV2) return;
+
+        var clueById = c.Clues.Where(clue => !string.IsNullOrWhiteSpace(clue.ClueId))
+            .GroupBy(clue => clue.ClueId).ToDictionary(group => group.Key, group => group.First());
+        var sceneIds = c.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId).ToHashSet();
+        var challengeIds = c.EvidenceChallenges.Select(challenge => challenge.ChallengeId).ToHashSet();
+        var deductionIds = c.Deductions.Select(deduction => deduction.DeductionId).ToHashSet();
+
+        if (c.EvidenceChallenges.Count < 2)
+            result.Add("MissingField", "evidenceChallenges", "V2 cases require at least two evidence challenges.");
+        if (c.Deductions.Count == 0)
+            result.Add("MissingField", "deductions", "Full V2 cases require at least one deduction.");
+        if (c.RequiredTeamworkChains.Count == 0)
+            result.Add("MissingField", "requiredTeamworkChains", "Full V2 cases require at least one cross-role teamwork chain.");
+
+        for (var i = 0; i < c.EvidenceChallenges.Count; i++)
+        {
+            var challenge = c.EvidenceChallenges[i];
+            var path = $"evidenceChallenges[{i}]";
+            if (string.IsNullOrWhiteSpace(challenge.ChallengeId)) result.Add("MissingField", $"{path}.challengeId", "challengeId is required.");
+            if (string.IsNullOrWhiteSpace(challenge.Prompt)) result.Add("MissingField", $"{path}.prompt", "Challenge prompt is required.", challenge.ChallengeId);
+            if (string.IsNullOrWhiteSpace(challenge.SuccessResponse)) result.Add("MissingField", $"{path}.successResponse", "Challenge successResponse is required.", challenge.ChallengeId);
+            if (string.IsNullOrWhiteSpace(challenge.FailureResponse)) result.Add("MissingField", $"{path}.failureResponse", "Challenge failureResponse is required.", challenge.ChallengeId);
+            if (challenge.UnlockClueIds.Count == 0) result.Add("MissingField", $"{path}.unlockClueIds", "Challenge must unlock at least one clue.", challenge.ChallengeId);
+            if (clueById.TryGetValue(challenge.CorrectEvidenceId, out var evidence) && !evidence.IsEvidence)
+                result.Add("InvalidEvidenceFlag", $"{path}.correctEvidenceId", "Challenge evidence must set isEvidence: true.", challenge.CorrectEvidenceId);
+        }
+
+        for (var i = 0; i < c.Deductions.Count; i++)
+        {
+            var deduction = c.Deductions[i];
+            var path = $"deductions[{i}]";
+            if (string.IsNullOrWhiteSpace(deduction.DeductionId)) result.Add("MissingField", $"{path}.deductionId", "deductionId is required.");
+            if (string.IsNullOrWhiteSpace(deduction.Prompt)) result.Add("MissingField", $"{path}.prompt", "Deduction prompt is required.", deduction.DeductionId);
+            if (deduction.RequiredClueIds.Count == 0) result.Add("MissingField", $"{path}.requiredClueIds", "Deduction must require at least one clue.", deduction.DeductionId);
+            if (deduction.RequiredChallengeIds.Count == 0) result.Add("MissingField", $"{path}.requiredChallengeIds", "Deduction must require at least one resolved challenge.", deduction.DeductionId);
+            ValidateOptions(deduction.Options, $"{path}.options", result);
+            if (deduction.Options.All(option => option.Id != deduction.CorrectOptionId))
+                result.Add("MissingReference", $"{path}.correctOptionId", "Deduction correct option must reference one option.", deduction.CorrectOptionId);
+            if (string.IsNullOrWhiteSpace(deduction.SuccessResponse)) result.Add("MissingField", $"{path}.successResponse", "Deduction successResponse is required.", deduction.DeductionId);
+            if (string.IsNullOrWhiteSpace(deduction.FailureResponse)) result.Add("MissingField", $"{path}.failureResponse", "Deduction failureResponse is required.", deduction.DeductionId);
+        }
+
+        foreach (var chain in c.RequiredTeamworkChains)
+        {
+            if (string.IsNullOrWhiteSpace(chain.ChainId))
+                result.Add("MissingField", "requiredTeamworkChains.chainId", "chainId is required.");
+            if (!clueById.ContainsKey(chain.InvestigatorClueId))
+                result.Add("MissingReference", "requiredTeamworkChains.investigatorClueId", "Teamwork chain investigator clue does not exist.", chain.InvestigatorClueId);
+            if (!challengeIds.Contains(chain.InterrogatorChallengeId))
+                result.Add("MissingReference", "requiredTeamworkChains.interrogatorChallengeId", "Teamwork chain challenge does not exist.", chain.InterrogatorChallengeId);
+            if (!deductionIds.Contains(chain.DeductionId))
+                result.Add("MissingReference", "requiredTeamworkChains.deductionId", "Teamwork chain deduction does not exist.", chain.DeductionId);
+        }
+
+        ValidateOptions(c.FinalLogic.MotiveOptions, "finalLogic.motiveOptions", result);
+        ValidateOptions(c.FinalLogic.MethodOptions, "finalLogic.methodOptions", result);
+        if (c.FinalLogic.MotiveOptions.All(option => option.Id != c.FinalLogic.CorrectMotiveId))
+            result.Add("MissingReference", "finalLogic.correctMotiveId", "Correct motive must reference a motive option.", c.FinalLogic.CorrectMotiveId);
+        if (c.FinalLogic.MethodOptions.All(option => option.Id != c.FinalLogic.CorrectMethodId))
+            result.Add("MissingReference", "finalLogic.correctMethodId", "Correct method must reference a method option.", c.FinalLogic.CorrectMethodId);
+
+        var links = c.FinalLogic.RequiredEvidenceLinks;
+        var claims = links.Select(link => link.ClaimType.Trim().ToUpperInvariant()).ToList();
+        if (links.Count != 3 || claims.Distinct().Count() != 3 || !EvidenceClaimTypes.All.SetEquals(claims))
+            result.Add("InvalidValue", "finalLogic.requiredEvidenceLinks", "V2 final logic requires exactly one MOTIVE, METHOD, and OPPORTUNITY evidence link.");
+        if (links.Select(link => link.EvidenceId).Distinct().Count() != links.Count)
+            result.Add("InvalidValue", "finalLogic.requiredEvidenceLinks", "Each final claim must use a different evidence clue.");
+
+        for (var i = 0; i < links.Count; i++)
+        {
+            var link = links[i];
+            if (!clueById.TryGetValue(link.EvidenceId, out var clue))
+                result.Add("MissingReference", $"finalLogic.requiredEvidenceLinks[{i}].evidenceId", "Final evidence clue does not exist.", link.EvidenceId);
+            else if (!clue.IsEvidence)
+                result.Add("InvalidEvidenceFlag", $"finalLogic.requiredEvidenceLinks[{i}].evidenceId", "Final evidence clue must set isEvidence: true.", link.EvidenceId);
+        }
+        foreach (var deductionId in c.FinalLogic.RequiredDeductionIds.Where(id => !deductionIds.Contains(id)))
+            result.Add("MissingReference", "finalLogic.requiredDeductionIds", "Required deduction does not exist.", deductionId);
+        foreach (var chainId in c.FinalLogic.RequiredTeamworkChainIds.Where(id => c.RequiredTeamworkChains.All(chain => chain.ChainId != id)))
+            result.Add("MissingReference", "finalLogic.requiredTeamworkChainIds", "Required teamwork chain does not exist.", chainId);
+        if (c.FinalLogic.RequiredDeductionIds.Count == 0)
+            result.Add("MissingField", "finalLogic.requiredDeductionIds", "Full V2 final logic requires at least one deduction.");
+        if (c.FinalLogic.RequiredTeamworkChainIds.Count == 0)
+            result.Add("MissingField", "finalLogic.requiredTeamworkChainIds", "Full V2 final logic requires at least one teamwork chain.");
+
+        foreach (var hint in c.Hints)
+        {
+            var context = hint.ContextType?.Trim().ToUpperInvariant();
+            if (context == HintContextTypes.Scene && !sceneIds.Contains(hint.TargetId))
+                result.Add("MissingReference", "hints.targetId", "SCENE hint target must be an existing scene.", hint.TargetId);
+            else if (context == HintContextTypes.Confrontation && !challengeIds.Contains(hint.TargetId))
+                result.Add("MissingReference", "hints.targetId", "CONFRONTATION hint target must be an existing challenge.", hint.TargetId);
+            else if (context == HintContextTypes.Deduction && !deductionIds.Contains(hint.TargetId))
+                result.Add("MissingReference", "hints.targetId", "DEDUCTION hint target must be an existing deduction.", hint.TargetId);
+            else if (context is not (HintContextTypes.Scene or HintContextTypes.Confrontation or HintContextTypes.Deduction))
+                result.Add("InvalidValue", "hints.contextType", "V2 hints only support SCENE, CONFRONTATION, and DEDUCTION.", hint.HintId);
+            if (string.IsNullOrWhiteSpace(hint.HintId) || string.IsNullOrWhiteSpace(hint.Text) || hint.Order < 1)
+                result.Add("InvalidValue", "hints", "Each hint requires hintId, text, and order >= 1.", hint.HintId);
+        }
+
+        foreach (var sceneId in sceneIds.Where(id => !c.Hints.Any(h => h.ContextType.Equals(HintContextTypes.Scene, StringComparison.OrdinalIgnoreCase) && h.TargetId == id)))
+            result.Add("MissingField", "hints", "Every V2 scene requires at least one SCENE hint.", sceneId);
+        foreach (var challengeId in challengeIds.Where(id => !c.Hints.Any(h => h.ContextType.Equals(HintContextTypes.Confrontation, StringComparison.OrdinalIgnoreCase) && h.TargetId == id)))
+            result.Add("MissingField", "hints", "Every V2 challenge requires at least one CONFRONTATION hint.", challengeId);
+        foreach (var deductionId in deductionIds.Where(id => !c.Hints.Any(h => h.ContextType.Equals(HintContextTypes.Deduction, StringComparison.OrdinalIgnoreCase) && h.TargetId == id)))
+            result.Add("MissingField", "hints", "Every V2 deduction requires at least one DEDUCTION hint.", deductionId);
+    }
+
+    private static void ValidateOptions(List<AccusationOption> options, string path, CaseValidationResult result)
+    {
+        if (options.Count < 3) result.Add("MissingField", path, "V2 accusation requires at least three options.");
+        for (var i = 0; i < options.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(options[i].Id) || string.IsNullOrWhiteSpace(options[i].Label))
+                result.Add("MissingField", $"{path}[{i}]", "Accusation options require id and label.", options[i].Id);
         }
     }
 

@@ -48,6 +48,7 @@ public static class MockCaseFactory
             Title = $"The {theme} Affair",
             Summary = $"{Capitalize(prompt.Trim().TrimEnd('.'))}. Two detectives must trace the physical evidence and break the suspects' stories before the culprit slips away.",
             Status = CaseStatus.Draft,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV2,
             EstimatedMinutes = 15 + stageCount * 7,
             CoverImageUrl = $"/assets/cases/{id}.jpg"
         };
@@ -111,7 +112,7 @@ public static class MockCaseFactory
                 var itemIndex = s * 2 + i + 1;
                 var itemId = $"item-{slug}-{itemIndex}";
                 var clueId = $"clue-{slug}-{itemIndex}";
-                var isEvidence = i == 0 && s > 0; // strongest evidence appears in later scenes
+                var isEvidence = i == 0; // each scene contributes one confrontation-grade evidence clue
                 var isHerring = s == 0 && i == 1; // one early misleading clue
 
                 gameCase.Items.Add(new CaseItem
@@ -208,7 +209,35 @@ public static class MockCaseFactory
                 RequiredClueIds = isFinal && evidenceClueIds.Count > 1
                     ? evidenceClueIds.Where(idd => idd != dialogueClueId).Take(3).ToList()
                     : new List<string> { firstItemClue },
+                UnlockClueIds = new List<string>()
+            });
+
+            var challengeId = $"challenge-{slug}-{s + 1}";
+            gameCase.EvidenceChallenges.Add(new EvidenceChallenge
+            {
+                ChallengeId = challengeId,
+                DialogueId = lockedDialogueId,
+                Prompt = $"Which evidence contradicts {talkTo.Name}'s account?",
+                CorrectEvidenceId = firstItemClue,
+                SuccessResponse = $"The physical trace from {sceneName.ToLowerInvariant()} proves the testimony cannot be true.",
+                FailureResponse = "That evidence does not contradict this part of the testimony.",
                 UnlockClueIds = new List<string> { dialogueClueId }
+            });
+            gameCase.Hints.Add(new CaseHint
+            {
+                HintId = $"hint-scene-{slug}-{s + 1}",
+                ContextType = HintContextTypes.Scene,
+                TargetId = sceneId,
+                Order = 1,
+                Text = $"Compare the first physical trace in {sceneName.ToLowerInvariant()} with the suspect's statement."
+            });
+            gameCase.Hints.Add(new CaseHint
+            {
+                HintId = $"hint-challenge-{slug}-{s + 1}",
+                ContextType = HintContextTypes.Confrontation,
+                TargetId = challengeId,
+                Order = 1,
+                Text = "Use evidence found in this location that directly conflicts with the testimony."
             });
 
             scene.CompleteCondition = new CompleteCondition
@@ -227,6 +256,64 @@ public static class MockCaseFactory
         gameCase.FinalLogic.Motive = $"The {theme.ToLowerInvariant()} concealed a debt that would have destroyed {culprit.Name}.";
         gameCase.FinalLogic.Method = $"{culprit.Name} used trusted access to stage the scene and let suspicion fall on {redHerring.Name}.";
         gameCase.FinalLogic.RequiredEvidenceIds = evidenceClueIds.Distinct().ToList();
+        var distinctEvidence = evidenceClueIds.Distinct().Take(3).ToList();
+        gameCase.FinalLogic.MotiveOptions = new List<AccusationOption>
+        {
+            new() { Id = "motive-debt", Label = $"A hidden debt tied to the {theme.ToLowerInvariant()}" },
+            new() { Id = "motive-jealousy", Label = "Professional jealousy" },
+            new() { Id = "motive-revenge", Label = "Revenge for an old betrayal" }
+        };
+        gameCase.FinalLogic.MethodOptions = new List<AccusationOption>
+        {
+            new() { Id = "method-trusted-access", Label = "Trusted access followed by a staged scene" },
+            new() { Id = "method-forced-entry", Label = "Forced entry after the incident" },
+            new() { Id = "method-accomplice", Label = "An accomplice created a false alibi" }
+        };
+        gameCase.FinalLogic.CorrectMotiveId = "motive-debt";
+        gameCase.FinalLogic.CorrectMethodId = "method-trusted-access";
+        gameCase.FinalLogic.RequiredEvidenceLinks = new List<RequiredEvidenceLink>
+        {
+            new() { ClaimType = EvidenceClaimTypes.Motive, EvidenceId = distinctEvidence[0] },
+            new() { ClaimType = EvidenceClaimTypes.Method, EvidenceId = distinctEvidence[1] },
+            new() { ClaimType = EvidenceClaimTypes.Opportunity, EvidenceId = distinctEvidence[2] }
+        };
+        var requiredChallengeIds = gameCase.EvidenceChallenges.Take(2).Select(challenge => challenge.ChallengeId).ToList();
+        var deductionId = "deduction-final-chain";
+        gameCase.Deductions.Add(new DeductionChallenge
+        {
+            DeductionId = deductionId,
+            Prompt = $"Which reasoning chain proves {culprit.Name}'s guilt?",
+            RequiredClueIds = distinctEvidence.ToList(),
+            RequiredChallengeIds = requiredChallengeIds,
+            Options = new List<AccusationOption>
+            {
+                new() { Id = "deduce-culprit-chain", Label = $"The physical evidence and contradictions point to {culprit.Name}" },
+                new() { Id = "deduce-red-herring", Label = $"{redHerring.Name}'s suspicious behavior proves guilt" },
+                new() { Id = "deduce-accident", Label = "The death was accidental and the clues are unrelated" }
+            },
+            CorrectOptionId = "deduce-culprit-chain",
+            SuccessResponse = "The motive, method, and opportunity now form one defensible chain.",
+            FailureResponse = "That theory leaves a major contradiction unresolved."
+        });
+        gameCase.Hints.Add(new CaseHint
+        {
+            HintId = "hint-deduction-final-chain",
+            ContextType = HintContextTypes.Deduction,
+            TargetId = deductionId,
+            Order = 1,
+            Text = "Use the evidence that supports motive, method, and opportunity together."
+        });
+        var chainId = "chain-final-teamwork";
+        gameCase.RequiredTeamworkChains.Add(new RequiredTeamworkChain
+        {
+            ChainId = chainId,
+            InvestigatorClueId = distinctEvidence[1],
+            InterrogatorChallengeId = requiredChallengeIds[0],
+            DeductionId = deductionId,
+            Description = "The investigator finds the core physical proof, the interrogator resolves a contradiction, and the team completes the final deduction."
+        });
+        gameCase.FinalLogic.RequiredDeductionIds = new List<string> { deductionId };
+        gameCase.FinalLogic.RequiredTeamworkChainIds = new List<string> { chainId };
         gameCase.FinalLogic.WinEnding =
             $"The evidence chain closes around {culprit.Name}. The staged scene, the traces, and the broken alibi leave no escape, and {redHerring.Name} is cleared.";
         gameCase.FinalLogic.FailEnding =

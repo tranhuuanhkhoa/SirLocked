@@ -45,6 +45,9 @@ public class GameNotifier : IGameNotifier
     public Task EvidencePresented(string roomId, string dialogueId, string evidenceId, string userId, long version) =>
         Group(roomId).SendAsync("EvidencePresented", new { roomId, dialogueId, evidenceId, userId, version });
 
+    public Task InvestigationUpdate(string roomId, InvestigationUpdateDto update) =>
+        Group(roomId).SendAsync("InvestigationUpdate", update);
+
     public Task SceneChanged(string roomId, string previousSceneId, string currentSceneId, string userId, long version) =>
         Group(roomId).SendAsync("SceneChanged", new { roomId, previousSceneId, currentSceneId, userId, version });
 

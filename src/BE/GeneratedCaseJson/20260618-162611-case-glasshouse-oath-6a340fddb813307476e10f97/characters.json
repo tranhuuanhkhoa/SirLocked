@@ -1,0 +1,37 @@
+[
+  {
+    "characterId": "char-livia-marrow",
+    "name": "Livia Marrow",
+    "role": "The professor\u0027s niece and heir",
+    "imageUrl": "/assets/characters/livia-marrow.png",
+    "description": "Poised, observant, and wounded by years of withheld approval. Livia inherits Bellweather but seems more frightened by the family oath than pleased by the estate."
+  },
+  {
+    "characterId": "char-cassian-voss",
+    "name": "Dr. Cassian Voss",
+    "role": "Rival botanist",
+    "imageUrl": "/assets/characters/cassian-voss.png",
+    "description": "A polished academic whose admiration for Marrow conceals a bruising professional rivalry over orchid classification and public recognition."
+  },
+  {
+    "characterId": "char-marta-quill",
+    "name": "Marta Quill",
+    "role": "Head gardener",
+    "imageUrl": "/assets/characters/marta-quill.png",
+    "description": "Practical, blunt, and fiercely loyal to the living collection. Marta knows every valve and walkway in the glasshouse, and she resents anyone who treats plants as trophies."
+  },
+  {
+    "characterId": "char-silas-fen",
+    "name": "Silas Fen",
+    "role": "Rare plant dealer",
+    "imageUrl": "/assets/characters/silas-fen.png",
+    "description": "Charming, evasive, and financially pressed. Silas has foreign buyers, bad debts, and an obvious interest in the missing orchid."
+  },
+  {
+    "characterId": "char-halden-pike",
+    "name": "Reverend Halden Pike",
+    "role": "Family confidant and trustee",
+    "imageUrl": "/assets/characters/halden-pike.png",
+    "description": "Soft-spoken and insistent on peace. Reverend Pike has long mediated Bellweather family matters and invokes the old Glasshouse Oath whenever questions become dangerous."
+  }
+]
