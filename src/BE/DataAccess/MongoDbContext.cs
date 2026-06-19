@@ -48,6 +48,7 @@ public class MongoDbContext
     public IMongoCollection<AiCaseDraft> AiCaseDrafts => Database.GetCollection<AiCaseDraft>(Settings.AiCaseDraftsCollectionName);
     public IMongoCollection<AiGenerationLog> AiGenerationLogs => Database.GetCollection<AiGenerationLog>(Settings.AiGenerationLogsCollectionName);
     public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
+    public IMongoCollection<CaseReview> Reviews => Database.GetCollection<CaseReview>(Settings.ReviewsCollectionName);
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -111,6 +112,15 @@ public class MongoDbContext
                     .Ascending(p => p.ClueId),
                 new CreateIndexOptions { Unique = true, Name = "ux_evidencePhotos_roomId_clueId" }),
             cancellationToken: ct);
+
+        await Reviews.Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<CaseReview>(
+                Builders<CaseReview>.IndexKeys.Ascending(r => r.CaseId).Ascending(r => r.UserId),
+                new CreateIndexOptions { Unique = true, Name = "ux_reviews_caseId_userId" }),
+            new CreateIndexModel<CaseReview>(
+                Builders<CaseReview>.IndexKeys.Ascending(r => r.CaseId).Descending(r => r.CreatedAt))
+        }, ct);
     }
 
     public async Task<bool> PingAsync(CancellationToken ct = default)
