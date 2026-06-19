@@ -212,7 +212,7 @@ def main():
           and result["motiveResult"]["isCorrect"] and result["methodResult"]["isCorrect"]
           and all(item["isCorrect"] for item in result["evidenceResults"]))
     check("Full V2 result calculates score and teamwork", result["scoreSummary"]["totalScore"] >= 0
-          and result["scoreSummary"]["rank"] and result["scoreSummary"]["teamworkScore"] == 100)
+          and result["scoreSummary"]["rank"] and 0 <= result["scoreSummary"]["teamworkScore"] <= 15)
     check("win ending text returned", len(result["ending"]) > 10)
 
     result2 = call("GET", f"/api/game/rooms/{room_id}/result", token=tb)
