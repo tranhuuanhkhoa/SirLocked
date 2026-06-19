@@ -1739,3 +1739,60 @@ body.game-page-active .nav-links {
     width: 100%;
   }
 }
+
+/* ---------- Workshop hub + case stats (Phase 1) ---------- */
+.ws-toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.ws-search { max-width: 340px; margin-top: 0; }
+.ws-tabs { margin-bottom: 0; flex-wrap: wrap; }
+.ws-tab {
+  padding: 7px 14px; background: transparent; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px;
+  color: var(--beige-muted); font-family: 'Crimson Text', serif; font-size: 0.95rem;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.ws-tab:hover { color: var(--gold-light); border-color: var(--line-strong); }
+.ws-tab.is-active { color: var(--gold-light); border-color: var(--gold); background: rgba(201,168,76,0.12); }
+
+.ws-card-by { margin-bottom: 6px; letter-spacing: 0.3px; }
+.ws-teaser-row { margin: 10px 0 4px; }
+.ws-teaser { color: var(--gold-light); font-size: 0.92rem; font-weight: 600; }
+.ws-teaser-empty { color: var(--beige-muted); font-weight: 400; font-style: italic; }
+
+.ws-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 24px; }
+
+.ws-detail-head { display: flex; gap: 26px; margin: 8px 0; flex-wrap: wrap; align-items: flex-start; }
+.ws-detail-cover { flex: none; }
+.ws-detail-meta { flex: 1; min-width: 280px; }
+.ws-detail-meta h2 { margin-bottom: 8px; }
+
+.ws-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.ws-stat {
+  background: var(--navy2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 18px 16px; text-align: center;
+}
+.ws-stat-value {
+  font-family: 'Playfair Display', Georgia, serif; font-size: 2.1rem; line-height: 1.1;
+  color: var(--gold-light);
+}
+.ws-stat-label { color: var(--beige); margin-top: 6px; font-size: 0.98rem; }
+.ws-stat-hint { margin-top: 4px; }
+.ws-stat-bad .ws-stat-value { color: #e8a0a0; }
+.ws-stat-ok .ws-stat-value { color: #9fd9a8; }
+
+.ws-soon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.ws-soon {
+  background: rgba(10, 25, 43, 0.5);
+  border: 1px dashed var(--line-strong); border-radius: 10px; padding: 18px; opacity: 0.78;
+}
+.ws-soon strong { display: block; color: var(--white); font-family: 'Playfair Display', Georgia, serif; margin-bottom: 6px; }
+.ws-soon-badge {
+  display: inline-block; margin-bottom: 8px; padding: 2px 9px; border-radius: 999px;
+  font-size: 0.7rem; letter-spacing: 0.5px; background: rgba(201, 168, 76, 0.18);
+  color: var(--gold-light); border: 1px solid var(--line-strong);
+}
+
+@media (max-width: 720px) {
+  .ws-toolbar { flex-direction: column; align-items: stretch; }
+  .ws-search { max-width: none; }
+  .ws-detail-cover { width: 100%; }
+}
