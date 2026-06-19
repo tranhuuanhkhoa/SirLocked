@@ -49,6 +49,7 @@ public class MongoDbContext
     public IMongoCollection<AiGenerationLog> AiGenerationLogs => Database.GetCollection<AiGenerationLog>(Settings.AiGenerationLogsCollectionName);
     public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
     public IMongoCollection<CaseReview> Reviews => Database.GetCollection<CaseReview>(Settings.ReviewsCollectionName);
+    public IMongoCollection<WeeklyFeature> WeeklyFeatures => Database.GetCollection<WeeklyFeature>(Settings.WeeklyFeaturesCollectionName);
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -121,6 +122,14 @@ public class MongoDbContext
             new CreateIndexModel<CaseReview>(
                 Builders<CaseReview>.IndexKeys.Ascending(r => r.CaseId).Descending(r => r.CreatedAt))
         }, ct);
+
+        await WeeklyFeatures.Indexes.CreateOneAsync(
+            new CreateIndexModel<WeeklyFeature>(
+                Builders<WeeklyFeature>.IndexKeys
+                    .Ascending(w => w.Type)
+                    .Ascending(w => w.IsActive),
+                new CreateIndexOptions { Name = "ix_weeklyFeatures_type_isActive" }),
+            cancellationToken: ct);
     }
 
     public async Task<bool> PingAsync(CancellationToken ct = default)

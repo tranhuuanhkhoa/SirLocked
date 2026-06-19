@@ -15,4 +15,5 @@ public class MongoDbSettings
     public string GeneratedAssetsCollectionName { get; set; } = "generatedAssets";
     public string EvidencePhotosCollectionName { get; set; } = "evidencePhotos";
     public string ReviewsCollectionName { get; set; } = "reviews";
+    public string WeeklyFeaturesCollectionName { get; set; } = "weeklyFeatures";
 }

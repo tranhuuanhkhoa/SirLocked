@@ -16,12 +16,15 @@ import { renderAdminCasesPage } from './pages/adminCasesPage.js';
 import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
 import { renderAdminImportPage } from './pages/adminImportPage.js';
 import { renderAdminAiPage } from './pages/adminAiPage.js';
+import { renderChallengePage } from './pages/challengePage.js';
+import { renderWeeklyAdminPage } from './pages/weeklyAdminPage.js';
 
 const routes = [
   { pattern: /^#\/login$/, page: renderLoginPage, anonymous: true },
   { pattern: /^#\/cases$/, page: renderCasesPage },
   { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
   { pattern: /^#\/workshop$/, page: renderWorkshopPage },
+  { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
   { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage },
   { pattern: /^#\/join$/, page: renderJoinRoomPage },
@@ -30,6 +33,7 @@ const routes = [
   { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
   { pattern: /^#\/detective$/, page: renderDetectivePage },
   { pattern: /^#\/detective\/([^/]+)$/, page: renderDetectivePage },
+  { pattern: /^#\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true },
   { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
   { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },

@@ -65,6 +65,9 @@ builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
 builder.Services.AddScoped<IWorkshopService, WorkshopService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
+builder.Services.AddScoped<IBadgeService, BadgeService>();
+builder.Services.AddScoped<IWeeklyService, WeeklyService>();
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddControllers();
