@@ -1739,3 +1739,56 @@ body.game-page-active .nav-links {
     width: 100%;
   }
 }
+
+/* ============================================================================
+   Workshop leaderboard widget (.ws-lb-*) — appended, self-contained namespace.
+   Standalone module: renderLeaderboardSection(caseId, mountElement).
+   ============================================================================ */
+.ws-lb { display: block; }
+.ws-lb-panel { display: flex; flex-direction: column; gap: 14px; }
+.ws-lb-loading, .ws-lb-error, .ws-lb-empty { color: var(--beige-muted); font-family: 'Crimson Text', serif; }
+.ws-lb-error { color: var(--copper); }
+.ws-lb-empty { font-style: italic; padding: 18px 4px; }
+
+.ws-lb-tabs { display: inline-flex; gap: 6px; border-bottom: 1px solid var(--line); }
+.ws-lb-tab {
+  background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;
+  color: var(--beige-muted); font-family: 'Crimson Text', serif; font-size: 1rem;
+  padding: 8px 14px; margin-bottom: -1px;
+}
+.ws-lb-tab:hover { color: var(--beige); }
+.ws-lb-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+.ws-lb-table { width: 100%; border-collapse: collapse; font-family: 'Crimson Text', serif; }
+.ws-lb-table thead th {
+  text-align: left; color: var(--beige-muted); font-weight: 600; font-size: 0.8rem;
+  text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; border-bottom: 1px solid var(--line);
+}
+.ws-lb-col-rank { width: 56px; text-align: center; }
+.ws-lb-col-time, .ws-lb-col-score { width: 96px; text-align: right; }
+.ws-lb-table thead .ws-lb-col-rank { text-align: center; }
+.ws-lb-table thead .ws-lb-col-time, .ws-lb-table thead .ws-lb-col-score { text-align: right; }
+
+.ws-lb-row td {
+  padding: 10px 12px; border-bottom: 1px solid var(--line); color: var(--beige); vertical-align: middle;
+}
+.ws-lb-row .ws-lb-col-rank { text-align: center; }
+.ws-lb-row .ws-lb-col-time, .ws-lb-row .ws-lb-col-score { text-align: right; font-variant-numeric: tabular-nums; }
+.ws-lb-col-team { color: var(--white); }
+.ws-lb-col-score { color: var(--gold-light); font-weight: 600; }
+
+.ws-lb-rank-num { color: var(--beige-muted); }
+.ws-lb-medal { font-size: 1.2rem; }
+
+/* Top 3 highlight: gold / silver (beige) / bronze (copper) from existing tokens. */
+.ws-lb-rank-1 { background: color-mix(in srgb, var(--gold) 14%, transparent); }
+.ws-lb-rank-1 .ws-lb-col-team { color: var(--gold-light); font-weight: 700; }
+.ws-lb-rank-2 { background: color-mix(in srgb, var(--beige) 9%, transparent); }
+.ws-lb-rank-3 { background: color-mix(in srgb, var(--copper) 12%, transparent); }
+
+.ws-lb-foot { color: var(--beige-muted); font-size: 0.85rem; text-align: right; margin-top: 4px; }
+
+@media (max-width: 720px) {
+  .ws-lb-col-score, .ws-lb-col-time { width: auto; }
+  .ws-lb-row td, .ws-lb-table thead th { padding: 8px 6px; }
+}
