@@ -88,20 +88,63 @@ export async function renderWorkshopCasePage(app, caseId) {
       </div>
     </div>
 
-    <h3 class="section-title">Thống kê vụ án</h3>
-    ${stats.totalPlays === 0
-      ? '<div class="empty-state">Chưa có ai phá án này — hãy là đội đầu tiên ghi tên vào hồ sơ!</div>'
-      : `<div class="ws-stat-grid">${tiles.join('')}</div>`}
+    <div class="ws-detail-tabs" role="tablist" aria-label="Nội dung vụ án">
+      <button type="button" class="ws-detail-tab is-active" data-tab="stats" role="tab" aria-selected="true">Thống kê</button>
+      <button type="button" class="ws-detail-tab" data-tab="reviews" role="tab" aria-selected="false">Đánh giá</button>
+      <button type="button" class="ws-detail-tab" data-tab="leaderboard" role="tab" aria-selected="false">Bảng xếp hạng</button>
+    </div>
 
-    <h3 class="section-title">Đánh giá &amp; Review</h3>
-    <div id="ws-review-mount"></div>
-
-    <h3 class="section-title">Bảng xếp hạng</h3>
-    <div id="ws-leaderboard-mount"></div>
+    <div class="ws-detail-panel" data-panel="stats">
+      ${stats.totalPlays === 0
+        ? '<div class="empty-state">Chưa có ai phá án này — hãy là đội đầu tiên ghi tên vào hồ sơ!</div>'
+        : `<div class="ws-stat-grid">${tiles.join('')}</div>`}
+    </div>
+    <div class="ws-detail-panel" data-panel="reviews" hidden>
+      <div id="ws-review-mount"></div>
+    </div>
+    <div class="ws-detail-panel" data-panel="leaderboard" hidden>
+      <div id="ws-leaderboard-mount"></div>
+    </div>
   </div>`);
 
-  renderReviewSection(caseId, app.querySelector('#ws-review-mount'));
-  renderLeaderboardSection(caseId, app.querySelector('#ws-leaderboard-mount'));
+  // Lazy-mount each tab's widget on first open (avoid fetching review + leaderboard up front).
+  const mounted = new Set();
+  function failPanel(el, what, err) {
+    console.error(`workshop detail: ${what} mount failed`, err);
+    if (el) el.innerHTML = `<p class="muted">Không tải được ${what}.</p>`;
+  }
+  function mountOnce(tab) {
+    if (mounted.has(tab)) return;
+    mounted.add(tab);
+    if (tab === 'reviews') {
+      const el = app.querySelector('#ws-review-mount');
+      try {
+        Promise.resolve(renderReviewSection(caseId, el)).catch((err) => failPanel(el, 'đánh giá', err));
+      } catch (err) {
+        failPanel(el, 'đánh giá', err);
+      }
+    } else if (tab === 'leaderboard') {
+      const el = app.querySelector('#ws-leaderboard-mount');
+      try {
+        Promise.resolve(renderLeaderboardSection(caseId, el)).catch((err) => failPanel(el, 'bảng xếp hạng', err));
+      } catch (err) {
+        failPanel(el, 'bảng xếp hạng', err);
+      }
+    }
+  }
+  function showTab(name) {
+    app.querySelectorAll('.ws-detail-tab').forEach((b) => {
+      const on = b.dataset.tab === name;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    app.querySelectorAll('.ws-detail-panel').forEach((p) => {
+      p.hidden = p.dataset.panel !== name;
+    });
+    mountOnce(name);
+  }
+  app.querySelectorAll('.ws-detail-tab').forEach((b) =>
+    b.addEventListener('click', () => showTab(b.dataset.tab)));
 
   app.querySelector('#ws-play').addEventListener('click', async (e) => {
     const btn = e.currentTarget;

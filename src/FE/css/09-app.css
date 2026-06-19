@@ -2074,3 +2074,18 @@ body.game-page-active .nav-links {
   .ws-weekly-banner-body { padding: 0 16px 16px; }
   .ws-weekly-dates { grid-template-columns: 1fr; }
 }
+
+/* ---------- Workshop case-detail main tabs (Thống kê / Đánh giá / Bảng xếp hạng) ---------- */
+.ws-detail-tabs {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line); margin: 22px 0 18px;
+}
+.ws-detail-tab {
+  padding: 9px 16px; background: transparent; cursor: pointer;
+  border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  color: var(--beige-muted); font-family: 'Crimson Text', serif; font-size: 1rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ws-detail-tab:hover { color: var(--gold-light); }
+.ws-detail-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold); }
+.ws-detail-panel { padding-top: 4px; }
