@@ -1,6 +1,7 @@
 import { leaderboardApi } from '../../api/leaderboardApi.js';
 import { escapeHtml } from '../../utils/dom.js';
 import { toast } from '../../utils/toast.js';
+import { leaderboardTableHtml } from './leaderboardTable.js';
 
 /**
  * Standalone leaderboard widget for a case. Self-contained:
@@ -9,16 +10,13 @@ import { toast } from '../../utils/toast.js';
  *   renderLeaderboardSection(caseId, document.querySelector('#leaderboard-mount'));
  *
  * Read-only: shows the top teams who solved the case, by fastest first-solve or by score.
- * (Medal glyphs are used for the top 3 rather than the lucide package, which is not installed
- * in this repo; top-3 colouring comes from .ws-lb-rank-* tokens in 09-app.css.)
+ * The table markup lives in leaderboardTable.js (shared with the weekly challenge page).
  */
 
 const METRICS = [
   { key: 'fastest', label: 'Phá nhanh nhất' },
   { key: 'topScore', label: 'Top điểm' },
 ];
-
-const MEDALS = ['🥇', '🥈', '🥉'];
 
 export async function renderLeaderboardSection(caseId, mount) {
   if (!mount) return;
@@ -38,7 +36,7 @@ async function load(state) {
     renderShell(state, '<p class="ws-lb-error">Không tải được bảng xếp hạng.</p>');
     return;
   }
-  renderShell(state, boardHtml(board));
+  renderShell(state, leaderboardTableHtml(board));
 }
 
 function renderShell(state, bodyHtml) {
@@ -60,48 +58,4 @@ function renderShell(state, bodyHtml) {
       load(state);
     });
   });
-}
-
-function boardHtml(board) {
-  const entries = board?.entries || [];
-  if (entries.length === 0) {
-    return '<p class="ws-lb-empty">Chưa đội nào phá án — hãy là đội đầu tiên!</p>';
-  }
-
-  const rows = entries.map(rowHtml).join('');
-  const total = board.totalRanked || entries.length;
-  return `
-    <table class="ws-lb-table">
-      <thead>
-        <tr>
-          <th class="ws-lb-col-rank">#</th>
-          <th class="ws-lb-col-team">Đội</th>
-          <th class="ws-lb-col-time">Thời gian</th>
-          <th class="ws-lb-col-score">Điểm</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    ${total > entries.length ? `<p class="ws-lb-foot">Hiển thị ${entries.length} / ${total} đội</p>` : ''}`;
-}
-
-function rowHtml(e) {
-  const isTop = e.rank <= 3;
-  const rankCell = isTop
-    ? `<span class="ws-lb-medal" aria-label="Hạng ${e.rank}">${MEDALS[e.rank - 1]}</span>`
-    : `<span class="ws-lb-rank-num">${e.rank}</span>`;
-  return `
-    <tr class="ws-lb-row ws-lb-rank-${isTop ? e.rank : 'n'}">
-      <td class="ws-lb-col-rank">${rankCell}</td>
-      <td class="ws-lb-col-team">${escapeHtml(e.teamDisplay)}</td>
-      <td class="ws-lb-col-time">${formatTime(e.solveTimeSeconds)}</td>
-      <td class="ws-lb-col-score">${e.score}</td>
-    </tr>`;
-}
-
-function formatTime(seconds) {
-  if (seconds == null) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }

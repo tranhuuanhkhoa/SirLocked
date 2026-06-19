@@ -1792,3 +1792,81 @@ body.game-page-active .nav-links {
   .ws-lb-col-score, .ws-lb-col-time { width: auto; }
   .ws-lb-row td, .ws-lb-table thead th { padding: 8px 6px; }
 }
+
+/* ============================================================================
+   Phase 5 — achievements (.ws-badge-*) and weekly features (.ws-weekly-*).
+   Appended; token-based; self-contained namespaces.
+   ============================================================================ */
+.ws-badge { display: block; }
+.ws-badge-loading, .ws-badge-error { color: var(--beige-muted); font-family: 'Crimson Text', serif; }
+.ws-badge-error { color: var(--copper); }
+.ws-badge-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;
+}
+.ws-badge-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 12px;
+}
+.ws-badge-card.is-earned {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--gold) 12%, var(--panel));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+.ws-badge-card.is-locked { opacity: 0.55; filter: grayscale(0.6); }
+.ws-badge-icon, .ws-badge-icon-svg { width: 34px; height: 34px; }
+.ws-badge-card.is-earned .ws-badge-icon-svg { color: var(--gold-light); }
+.ws-badge-card.is-locked .ws-badge-icon-svg { color: var(--beige-muted); }
+.ws-badge-name { font-family: 'Playfair Display', Georgia, serif; color: var(--white); font-size: 1rem; }
+.ws-badge-context { color: var(--gold-light); font-size: 0.8rem; }
+.ws-badge-howto { color: var(--beige-muted); font-size: 0.8rem; }
+
+/* Weekly banner + challenge ------------------------------------------------- */
+.ws-weekly { display: block; }
+.ws-weekly-empty { color: var(--beige-muted); font-style: italic; padding: 22px 4px; }
+.ws-weekly-tag {
+  display: inline-block; background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  color: var(--ink); font-weight: 700; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 6px;
+}
+.ws-weekly-banner {
+  display: grid; grid-template-columns: 200px 1fr; gap: 18px; align-items: stretch;
+  background: var(--panel-strong);
+  border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--gold) 16%, transparent);
+}
+.ws-weekly-banner-media { background: var(--charcoal); min-height: 130px; position: relative; }
+.ws-weekly-banner-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ws-weekly-banner-body { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 18px 0; }
+.ws-weekly-title { font-family: 'Playfair Display', Georgia, serif; color: var(--white); margin: 0; }
+.ws-weekly-summary { color: var(--beige); font-family: 'Crimson Text', serif; }
+.ws-weekly-cta {
+  align-self: flex-start; margin-top: auto;
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold)); color: var(--ink);
+  border-radius: 6px; padding: 8px 20px; font-weight: 600; text-decoration: none;
+}
+.ws-weekly-countdown {
+  display: inline-block; color: var(--gold-light); font-family: 'Crimson Text', serif;
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 14px; margin: 12px 0;
+}
+
+/* Weekly admin -------------------------------------------------------------- */
+.ws-weekly-form {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 18px; margin-top: 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.ws-weekly-form h3 { color: var(--white); }
+.ws-weekly-current { font-size: 0.9rem; }
+.ws-weekly-label { display: flex; flex-direction: column; gap: 4px; color: var(--beige-muted); font-size: 0.85rem; }
+.ws-weekly-select, .ws-weekly-input {
+  background: var(--charcoal); border: 1px solid var(--line); border-radius: 6px;
+  color: var(--beige); font-family: 'Crimson Text', serif; font-size: 1rem; padding: 8px 10px;
+}
+.ws-weekly-select:focus, .ws-weekly-input:focus { outline: none; border-color: var(--line-strong); }
+.ws-weekly-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ws-weekly-actions { display: flex; gap: 10px; }
+
+@media (max-width: 720px) {
+  .ws-weekly-banner { grid-template-columns: 1fr; }
+  .ws-weekly-banner-body { padding: 0 16px 16px; }
+  .ws-weekly-dates { grid-template-columns: 1fr; }
+}

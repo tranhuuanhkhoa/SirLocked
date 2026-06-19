@@ -17,15 +17,19 @@ public static class LeaderboardRules
         IEnumerable<GameResult> results,
         IReadOnlyDictionary<string, GameRoom> roomsById,
         string? metric,
-        int limit)
+        int limit,
+        DateTime? after = null,
+        DateTime? before = null)
     {
         var safeMetric = LeaderboardMetrics.Normalize(metric);
         var safeLimit = limit <= 0 ? DefaultLimit : Math.Min(limit, MaxLimit);
 
         // Only successful solves count; one row per team = its FIRST success (earliest createdAt),
-        // so replaying a case you already cracked never earns extra rankings.
+        // so replaying a case you already cracked never earns extra rankings. An optional
+        // [after, before) window restricts to plays in that period (used by the weekly challenge).
         var firstSuccessPerTeam = results
             .Where(r => r.Success && r.Players.Count > 0)
+            .Where(r => (after is null || r.CreatedAt >= after) && (before is null || r.CreatedAt < before))
             .GroupBy(TeamKey)
             .Select(group => group.OrderBy(r => r.CreatedAt).First())
             .Select(r => ToEntry(r, roomsById))

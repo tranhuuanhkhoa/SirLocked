@@ -17,11 +17,22 @@ public class LeaderboardService : ILeaderboardService
     public LeaderboardService(MongoDbContext db) => _db = db;
 
     public async Task<LeaderboardDto> GetCaseLeaderboardAsync(
-        string caseId, string? metric, int limit = 100, CancellationToken ct = default)
+        string caseId, string? metric, int limit = 100,
+        DateTime? after = null, DateTime? before = null, CancellationToken ct = default)
     {
-        var results = await _db.GameResults
-            .Find(r => r.CaseId == caseId && r.Success)
-            .ToListAsync(ct);
+        var filter = Builders<GameResult>.Filter.And(
+            Builders<GameResult>.Filter.Eq(r => r.CaseId, caseId),
+            Builders<GameResult>.Filter.Eq(r => r.Success, true));
+        if (after is not null)
+        {
+            filter &= Builders<GameResult>.Filter.Gte(r => r.CreatedAt, after.Value);
+        }
+        if (before is not null)
+        {
+            filter &= Builders<GameResult>.Filter.Lt(r => r.CreatedAt, before.Value);
+        }
+
+        var results = await _db.GameResults.Find(filter).ToListAsync(ct);
 
         if (results.Count == 0)
         {
@@ -39,6 +50,6 @@ public class LeaderboardService : ILeaderboardService
             : await _db.Rooms.Find(Builders<GameRoom>.Filter.In(r => r.Id, roomIds)).ToListAsync(ct);
 
         var roomsById = rooms.ToDictionary(r => r.Id);
-        return LeaderboardRules.Build(results, roomsById, metric, limit);
+        return LeaderboardRules.Build(results, roomsById, metric, limit, after, before);
     }
 }

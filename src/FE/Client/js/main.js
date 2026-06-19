@@ -13,6 +13,8 @@ import { renderAdminCasesPage } from './pages/adminCasesPage.js';
 import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
 import { renderAdminImportPage } from './pages/adminImportPage.js';
 import { renderAdminAiPage } from './pages/adminAiPage.js';
+import { renderChallengePage } from './pages/challengePage.js';
+import { renderWeeklyAdminPage } from './pages/weeklyAdminPage.js';
 
 const routes = [
   { pattern: /^#\/login$/, page: renderLoginPage, anonymous: true },
@@ -23,6 +25,8 @@ const routes = [
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage },
   { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage },
   { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
+  { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
+  { pattern: /^#\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true },
   { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
   { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },

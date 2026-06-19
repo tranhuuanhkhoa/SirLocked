@@ -48,6 +48,7 @@ public class MongoDbContext
     public IMongoCollection<AiCaseDraft> AiCaseDrafts => Database.GetCollection<AiCaseDraft>(Settings.AiCaseDraftsCollectionName);
     public IMongoCollection<AiGenerationLog> AiGenerationLogs => Database.GetCollection<AiGenerationLog>(Settings.AiGenerationLogsCollectionName);
     public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
+    public IMongoCollection<WeeklyFeature> WeeklyFeatures => Database.GetCollection<WeeklyFeature>(Settings.WeeklyFeaturesCollectionName);
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -110,6 +111,14 @@ public class MongoDbContext
                     .Ascending(p => p.RoomId)
                     .Ascending(p => p.ClueId),
                 new CreateIndexOptions { Unique = true, Name = "ux_evidencePhotos_roomId_clueId" }),
+            cancellationToken: ct);
+
+        await WeeklyFeatures.Indexes.CreateOneAsync(
+            new CreateIndexModel<WeeklyFeature>(
+                Builders<WeeklyFeature>.IndexKeys
+                    .Ascending(w => w.Type)
+                    .Ascending(w => w.IsActive),
+                new CreateIndexOptions { Name = "ix_weeklyFeatures_type_isActive" }),
             cancellationToken: ct);
     }
 
