@@ -2,6 +2,7 @@ import { profileApi } from '../api/profileApi.js';
 import { session } from '../services/session.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { Award, Trophy, Gamepad2, Target, Timer, Crown, Folder, Users, createIcons } from 'lucide';
+import { renderBadgeSection } from './workshop/badgeSection.js';
 
 function pct(fraction) {
   return `${Math.round((fraction ?? 0) * 100)}%`;
@@ -87,6 +88,9 @@ export async function renderDetectivePage(app, userIdParam) {
 
     ${statsBlock}
 
+    <h3 class="section-title">Huy hiệu</h3>
+    <div id="ws-badge-mount"></div>
+
     ${creator ? `
       <h3 class="section-title">Case tôi tạo</h3>
       <div class="ws-profile-stat-grid">
@@ -96,4 +100,6 @@ export async function renderDetectivePage(app, userIdParam) {
   </div>`);
 
   createIcons({ icons: { Award, Trophy, Gamepad2, Target, Timer, Crown, Folder, Users } });
+
+  renderBadgeSection(userId, app.querySelector('#ws-badge-mount'));
 }

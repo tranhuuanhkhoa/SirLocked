@@ -52,7 +52,8 @@ function renderNav() {
   }
   const adminLinks = session.isAdmin()
     ? `<a href="#/admin" class="nav-link">Dashboard</a>
-       <a href="#/admin/cases" class="nav-link">Manage Cases</a>`
+       <a href="#/admin/cases" class="nav-link">Manage Cases</a>
+       <a href="#/admin/weekly" class="nav-link">Weekly</a>`
     : '';
   const aiLinks = session.canGenerateAi()
     ? '<a href="#/admin/ai" class="nav-link">AI Creator</a>'

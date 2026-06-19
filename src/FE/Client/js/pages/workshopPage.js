@@ -2,6 +2,7 @@ import { workshopApi } from '../api/workshopApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { renderCaseOfWeekBanner } from './workshop/caseOfWeekBanner.js';
 
 const SORTS = [
   { key: 'hot', label: 'Hot' },
@@ -49,8 +50,12 @@ export async function renderWorkshopPage(app) {
   <div class="page">
     <div class="page-head">
       <h2>Workshop màn chơi</h2>
-      <a class="btn btn-ghost" href="#/cases">Tất cả case</a>
+      <div class="case-actions">
+        <a class="btn btn-ghost" href="#/workshop/challenge">Thử thách tuần</a>
+        <a class="btn btn-ghost" href="#/cases">Tất cả case</a>
+      </div>
     </div>
+    <div id="ws-cow-mount"></div>
     <div class="ws-toolbar">
       <input id="ws-search" class="field-input ws-search" type="search"
              placeholder="Tìm theo tên vụ án…" autocomplete="off" aria-label="Tìm vụ án">
@@ -64,6 +69,8 @@ export async function renderWorkshopPage(app) {
   const resultsEl = app.querySelector('#ws-results');
   const searchEl = app.querySelector('#ws-search');
   const tabsEl = app.querySelector('.ws-tabs');
+
+  renderCaseOfWeekBanner(app.querySelector('#ws-cow-mount'));
 
   function syncTabs() {
     tabsEl.querySelectorAll('.ws-tab').forEach((b) =>

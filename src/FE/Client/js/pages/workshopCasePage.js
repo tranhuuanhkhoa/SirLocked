@@ -3,6 +3,8 @@ import { caseApi } from '../api/caseApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { renderReviewSection } from './workshop/reviewSection.js';
+import { renderLeaderboardSection } from './workshop/leaderboardSection.js';
 
 function pct(fraction) {
   return `${Math.round((fraction ?? 0) * 100)}%`;
@@ -91,20 +93,15 @@ export async function renderWorkshopCasePage(app, caseId) {
       ? '<div class="empty-state">Chưa có ai phá án này — hãy là đội đầu tiên ghi tên vào hồ sơ!</div>'
       : `<div class="ws-stat-grid">${tiles.join('')}</div>`}
 
-    <h3 class="section-title">Sắp ra mắt</h3>
-    <div class="ws-soon-grid">
-      <div class="ws-soon" aria-disabled="true">
-        <span class="ws-soon-badge">Phase 2</span>
-        <strong>Đánh giá &amp; Review</strong>
-        <p class="muted small">Đội đã hoàn thành vụ án sẽ chấm sao và để lại nhận xét (độ khó, công bằng, cốt truyện, twist).</p>
-      </div>
-      <div class="ws-soon" aria-disabled="true">
-        <span class="ws-soon-badge">Phase 3</span>
-        <strong>Bảng xếp hạng</strong>
-        <p class="muted small">Phá nhanh nhất, điểm cao nhất, ít buộc tội sai — tách solo và co-op.</p>
-      </div>
-    </div>
+    <h3 class="section-title">Đánh giá &amp; Review</h3>
+    <div id="ws-review-mount"></div>
+
+    <h3 class="section-title">Bảng xếp hạng</h3>
+    <div id="ws-leaderboard-mount"></div>
   </div>`);
+
+  renderReviewSection(caseId, app.querySelector('#ws-review-mount'));
+  renderLeaderboardSection(caseId, app.querySelector('#ws-leaderboard-mount'));
 
   app.querySelector('#ws-play').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
