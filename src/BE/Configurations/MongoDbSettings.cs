@@ -14,4 +14,5 @@ public class MongoDbSettings
     public string AiGenerationLogsCollectionName { get; set; } = "aiGenerationLogs";
     public string GeneratedAssetsCollectionName { get; set; } = "generatedAssets";
     public string EvidencePhotosCollectionName { get; set; } = "evidencePhotos";
+    public string ReviewsCollectionName { get; set; } = "reviews";
 }

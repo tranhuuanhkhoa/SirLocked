@@ -1740,6 +1740,115 @@ body.game-page-active .nav-links {
   }
 }
 
+/* ============================================================================
+   Workshop review widget (.ws-review-*) — appended, self-contained namespace.
+   Standalone module: renderReviewSection(caseId, mountElement).
+   ============================================================================ */
+.ws-review { display: block; }
+.ws-review-panel { display: flex; flex-direction: column; gap: 22px; }
+.ws-review-loading, .ws-review-error { color: var(--beige-muted); font-family: 'Crimson Text', serif; }
+.ws-review-error { color: var(--copper); }
+.ws-review-subtitle {
+  font-family: 'Playfair Display', Georgia, serif; color: var(--white);
+  font-size: 1.1rem; margin-bottom: 10px;
+}
+.ws-review-link { color: var(--gold-light); text-decoration: underline; }
+
+/* Summary ------------------------------------------------------------------ */
+.ws-review-summary {
+  display: grid; grid-template-columns: minmax(120px, 160px) 1fr; gap: 18px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px;
+}
+.ws-review-score { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ws-review-score-num { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--gold-light); line-height: 1; }
+.ws-review-stars { color: var(--gold); letter-spacing: 2px; font-size: 1.05rem; }
+.ws-review-count { color: var(--beige-muted); font-size: 0.85rem; }
+.ws-review-bars { display: flex; flex-direction: column; gap: 8px; }
+.ws-review-bar-row { display: grid; grid-template-columns: 84px 1fr 34px; gap: 10px; align-items: center; }
+.ws-review-bar-label { color: var(--beige); font-size: 0.9rem; }
+.ws-review-bar-track { height: 8px; background: var(--charcoal); border-radius: 6px; overflow: hidden; }
+.ws-review-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 6px; }
+.ws-review-bar-val { color: var(--beige-muted); font-size: 0.85rem; text-align: right; }
+
+/* Write area --------------------------------------------------------------- */
+.ws-review-notice {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 14px 18px; color: var(--beige); display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+}
+.ws-review-form {
+  background: var(--panel-strong); border: 1px solid var(--line); border-radius: 6px;
+  padding: 18px; display: flex; flex-direction: column; gap: 14px;
+}
+.ws-review-field { display: flex; flex-direction: column; gap: 6px; }
+.ws-review-field-label { color: var(--beige-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+.ws-review-sub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.ws-review-star-input { display: inline-flex; align-items: center; gap: 2px; }
+.ws-review-star-btn {
+  background: none; border: none; cursor: pointer; font-size: 1.4rem; line-height: 1;
+  color: var(--gold); padding: 0 1px;
+}
+.ws-review-star-btn:not(.is-on) { color: var(--gold-dim); }
+.ws-review-star-clear {
+  background: none; border: none; cursor: pointer; color: var(--beige-muted);
+  font-size: 1.1rem; margin-left: 6px;
+}
+.ws-review-text {
+  background: var(--charcoal); border: 1px solid var(--line); border-radius: 6px;
+  color: var(--beige); font-family: 'Crimson Text', serif; font-size: 1rem; padding: 10px 12px; resize: vertical;
+}
+.ws-review-text:focus { outline: none; border-color: var(--line-strong); }
+.ws-review-checkbox { display: flex; align-items: center; gap: 8px; color: var(--beige); font-size: 0.95rem; cursor: pointer; }
+.ws-review-submit {
+  align-self: flex-start; background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  color: var(--ink); border: none; border-radius: 6px; padding: 10px 22px; cursor: pointer;
+  font-family: 'Crimson Text', serif; font-size: 1rem; font-weight: 600;
+}
+.ws-review-submit:disabled { opacity: 0.6; cursor: default; }
+
+/* List --------------------------------------------------------------------- */
+.ws-review-items { display: flex; flex-direction: column; gap: 12px; }
+.ws-review-empty { color: var(--beige-muted); font-style: italic; }
+.ws-review-item {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ws-review-item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ws-review-item-author { color: var(--white); font-weight: 600; }
+.ws-review-item-stars { font-size: 0.95rem; }
+.ws-review-item-text { color: var(--beige); font-family: 'Crimson Text', serif; line-height: 1.5; }
+.ws-review-badge {
+  font-size: 0.78rem; padding: 2px 10px; border-radius: 6px; letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+.ws-review-badge-solved {
+  color: var(--gold-light);
+  background: color-mix(in srgb, var(--teal) 24%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.ws-review-badge-wrong {
+  color: var(--beige-muted);
+  background: color-mix(in srgb, var(--copper) 20%, transparent);
+  border-color: color-mix(in srgb, var(--copper) 40%, transparent);
+}
+.ws-review-spoiler { position: relative; }
+.ws-review-spoiler.is-hidden .ws-review-item-text { filter: blur(6px); user-select: none; }
+.ws-review-spoiler .ws-review-reveal { display: none; }
+.ws-review-spoiler.is-hidden .ws-review-reveal {
+  display: inline-block; position: absolute; inset: 0; margin: auto; height: fit-content; width: fit-content;
+  background: var(--panel-strong); color: var(--gold-light); border: 1px solid var(--line-strong);
+  border-radius: 6px; padding: 6px 14px; cursor: pointer; font-family: 'Crimson Text', serif;
+}
+.ws-review-more {
+  align-self: center; margin-top: 12px; background: none; border: 1px solid var(--line-strong);
+  color: var(--gold-light); border-radius: 6px; padding: 8px 20px; cursor: pointer; font-family: 'Crimson Text', serif;
+}
+.ws-review-more:disabled { opacity: 0.6; cursor: default; }
+
+@media (max-width: 720px) {
+  .ws-review-summary { grid-template-columns: 1fr; }
+  .ws-review-sub-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- Workshop hub + case stats (Phase 1) ---------- */
 .ws-toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .ws-search { max-width: 340px; margin-top: 0; }
