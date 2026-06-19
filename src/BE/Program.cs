@@ -64,6 +64,7 @@ builder.Services.AddScoped<IGameNotifier, GameNotifier>();
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
 builder.Services.AddScoped<IWorkshopService, WorkshopService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddControllers();
