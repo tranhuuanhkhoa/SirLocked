@@ -8,6 +8,7 @@ import { renderJoinRoomPage } from './pages/joinRoomPage.js';
 import { renderLobbyPage } from './pages/lobbyPage.js';
 import { renderGamePage } from './pages/gamePage.ts';
 import { renderResultPage } from './pages/resultPage.js';
+import { renderDetectivePage } from './pages/detectivePage.js';
 import { renderAdminDashboardPage } from './pages/adminDashboardPage.js';
 import { renderAdminCasesPage } from './pages/adminCasesPage.js';
 import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
@@ -23,6 +24,8 @@ const routes = [
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage },
   { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage },
   { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
+  { pattern: /^#\/detective$/, page: renderDetectivePage },
+  { pattern: /^#\/detective\/([^/]+)$/, page: renderDetectivePage },
   { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
   { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
@@ -58,6 +61,7 @@ function renderNav() {
         <a href="#/cases" class="nav-link">Cases</a>
         <a href="#/create-room" class="nav-link">Create Room</a>
         <a href="#/join" class="nav-link">Join Room</a>
+        <a href="#/detective" class="nav-link">Hồ sơ</a>
         ${adminLinks}
         ${aiLinks}
       </div>

@@ -1739,3 +1739,41 @@ body.game-page-active .nav-links {
     width: 100%;
   }
 }
+
+/* ---------- Detective profile + rank (Phase 4) ---------- */
+.ws-profile-header { display: flex; gap: 22px; align-items: center; margin: 8px 0 24px; flex-wrap: wrap; }
+.ws-profile-badge {
+  flex: none; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(201, 168, 76, 0.12); border: 2px solid var(--gold); color: var(--gold-light);
+}
+.ws-profile-badge svg { width: 44px; height: 44px; }
+.ws-profile-id { flex: 1; min-width: 260px; }
+.ws-profile-id h2 { margin-bottom: 8px; }
+.ws-profile-role { display: inline-flex; align-items: center; gap: 4px; }
+.ws-profile-role svg { width: 13px; height: 13px; }
+.ws-profile-rank-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+
+.ws-profile-progress {
+  height: 10px; border-radius: 999px; overflow: hidden;
+  background: rgba(201, 168, 76, 0.14); border: 1px solid var(--line); max-width: 460px;
+}
+.ws-profile-progress-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transition: width 0.4s ease;
+}
+
+.ws-profile-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+.ws-profile-stat {
+  background: var(--navy2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 18px 16px; text-align: center;
+}
+.ws-profile-stat svg { width: 22px; height: 22px; color: var(--gold); margin-bottom: 6px; }
+.ws-profile-stat-value {
+  font-family: 'Playfair Display', Georgia, serif; font-size: 1.9rem; line-height: 1.1; color: var(--gold-light);
+}
+.ws-profile-stat-label { color: var(--beige-muted); margin-top: 4px; font-size: 0.92rem; }
+
+@media (max-width: 720px) {
+  .ws-profile-header { flex-direction: column; align-items: flex-start; }
+}
