@@ -87,6 +87,24 @@ builder.Services.AddRateLimiter(options =>
         config.QueueLimit = 0;
     });
 
+    // 3 lần đăng ký / 5 phút / 1 IP — chống tạo tài khoản rác
+    options.AddFixedWindowLimiter("register", config =>
+    {
+        config.PermitLimit = 3;
+        config.Window = TimeSpan.FromMinutes(5);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+
+    // 3 lần gửi mail (forgot/resend) / 5 phút / 1 IP — chống dội bom email
+    options.AddFixedWindowLimiter("email", config =>
+    {
+        config.PermitLimit = 3;
+        config.Window = TimeSpan.FromMinutes(5);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+
     // Trả về 429 với message rõ ràng
     options.OnRejected = async (context, token) =>
     {

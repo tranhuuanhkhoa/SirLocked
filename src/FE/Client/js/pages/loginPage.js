@@ -42,7 +42,7 @@ export async function renderLoginPage(app) {
         <label class="field-label">Email
           <input class="field-input" name="email" type="email" required autocomplete="email" placeholder="detective@sirlocked.local">
         </label>
-        <label class="field-label">Password (min 6 characters)
+        <label class="field-label">Password (tối thiểu 6 ký tự, gồm chữ và số)
           <input class="field-input" name="password" type="password" required minlength="6" autocomplete="new-password" placeholder="••••••••">
         </label>
         <button class="btn btn-primary btn-block" type="submit">Create account</button>

@@ -10,6 +10,7 @@ public interface IAuthService
     Task<UserResponse> GetMeAsync(string userId);
     Task ChangePasswordAsync(string userId, ChangePasswordRequest request);
     Task<AuthResponse> GoogleLoginAsync(string email, string fullName);
+    Task LogoutAsync(string userId);
     Task<object> ForgotPasswordAsync(ForgotPasswordRequest request);
     Task ResetPasswordAsync(ResetPasswordRequest request);
     Task<object> ResendVerificationAsync(string userId);

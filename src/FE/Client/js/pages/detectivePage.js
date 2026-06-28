@@ -124,7 +124,7 @@ export async function renderDetectivePage(app, userIdParam) {
         <label class="field-label">Mật khẩu hiện tại
           <input class="field-input" name="currentPassword" type="password" required placeholder="••••••••">
         </label>
-        <label class="field-label">Mật khẩu mới (tối thiểu 6 ký tự)
+        <label class="field-label">Mật khẩu mới (tối thiểu 6 ký tự, gồm chữ và số)
           <input class="field-input" name="newPassword" type="password" required minlength="6" placeholder="••••••••">
         </label>
         <label class="field-label">Xác nhận mật khẩu mới

@@ -51,6 +51,7 @@ public class AuthService : IAuthService
             Role = UserRole.Player,
             Status = UserStatus.Active,
             EmailVerificationToken = verificationToken,
+            EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(24),
             IsEmailVerified = false
         };
 
@@ -80,7 +81,15 @@ public class AuthService : IAuthService
     {
         var email = NormalizeEmail(request.Email);
         var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+
+        // Tài khoản đăng nhập bằng Google không có mật khẩu (hash rỗng).
+        // Tránh BCrypt.Verify ném exception với hash rỗng → trả lỗi gọn gàng.
+        if (user is null || string.IsNullOrEmpty(user.PasswordHash))
+        {
+            throw ApiException.Unauthorized("Invalid email or password.");
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             throw ApiException.Unauthorized("Invalid email or password.");
         }
@@ -149,6 +158,16 @@ public class AuthService : IAuthService
         return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
+    public async Task LogoutAsync(string userId)
+    {
+        // Thu hồi refresh token để token cũ không thể dùng tiếp sau khi đăng xuất
+        var update = Builders<User>.Update
+            .Set(u => u.RefreshToken, null)
+            .Set(u => u.RefreshTokenExpiry, null)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+    }
+
     public async Task<object> ForgotPasswordAsync(ForgotPasswordRequest request)
     {
         var email = NormalizeEmail(request.Email);
@@ -208,6 +227,7 @@ public class AuthService : IAuthService
 
         var update = Builders<User>.Update
             .Set(u => u.EmailVerificationToken, token)
+            .Set(u => u.EmailVerificationTokenExpiry, DateTime.UtcNow.AddHours(24))
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
 
@@ -229,9 +249,13 @@ public class AuthService : IAuthService
         var user = await _db.Users.Find(u => u.EmailVerificationToken == request.Token).FirstOrDefaultAsync()
             ?? throw ApiException.BadRequest("Invalid verification token.");
 
+        if (user.EmailVerificationTokenExpiry < DateTime.UtcNow)
+            throw ApiException.BadRequest("Liên kết xác minh đã hết hạn. Vui lòng yêu cầu gửi lại.");
+
         var update = Builders<User>.Update
             .Set(u => u.IsEmailVerified, true)
             .Set(u => u.EmailVerificationToken, null)
+            .Set(u => u.EmailVerificationTokenExpiry, null)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
     }

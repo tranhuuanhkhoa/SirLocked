@@ -19,6 +19,7 @@ public class AuthController : BaseApiController
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("register")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request) =>
         Ok(await _authService.RegisterAsync(request), "Account created.");
 
@@ -78,6 +79,7 @@ public class AuthController : BaseApiController
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("email")]
     public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] ForgotPasswordRequest request) =>
         Ok(await _authService.ForgotPasswordAsync(request), "Reset token generated.");
 
@@ -99,6 +101,7 @@ public class AuthController : BaseApiController
 
     [HttpPost("resend-verification")]
     [Authorize]
+    [EnableRateLimiting("email")]
     public async Task<ActionResult<ApiResponse<object>>> ResendVerification() =>
         Ok(await _authService.ResendVerificationAsync(CallerId), "Verification token generated.");
 
@@ -112,7 +115,10 @@ public class AuthController : BaseApiController
 
     [HttpPost("logout")]
     [Authorize]
-    public ActionResult<ApiResponse<object>> Logout() =>
-        // JWTs are stateless; the client discards the token.
-        Ok<object>(new { loggedOut = true }, "Logged out.");
+    public async Task<ActionResult<ApiResponse<object>>> Logout()
+    {
+        // Thu hồi refresh token phía server; client cũng tự xóa JWT.
+        await _authService.LogoutAsync(CallerId);
+        return Ok<object>(new { loggedOut = true }, "Logged out.");
+    }
 }

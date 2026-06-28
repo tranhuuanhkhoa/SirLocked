@@ -1,4 +1,5 @@
 import { session } from './services/session.js';
+import { authApi } from './api/authApi.js';
 import { escapeHtml, render } from './utils/dom.js';
 import { renderLoginPage } from './pages/loginPage.js';
 import { renderCasesPage } from './pages/casesPage.js';
@@ -88,7 +89,13 @@ function renderNav() {
         <button class="btn btn-ghost btn-sm" id="nav-logout">Log out</button>
       </div>
     </nav>`);
-  navRoot.querySelector('#nav-logout').addEventListener('click', () => {
+  navRoot.querySelector('#nav-logout').addEventListener('click', async () => {
+    // Gọi API để thu hồi refresh token phía server (best effort)
+    try {
+      await authApi.logout();
+    } catch {
+      /* logout là best effort — kể cả lỗi vẫn xóa session local */
+    }
     session.clear();
     window.location.hash = '#/login';
   });

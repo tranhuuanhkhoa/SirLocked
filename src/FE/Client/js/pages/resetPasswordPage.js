@@ -30,7 +30,7 @@ export async function renderResetPasswordPage(app) {
       <div class="gold-divider"></div>
       <form id="form-reset" class="auth-form">
         <p style="color:#cfc7b2;font-size:13px;margin-bottom:14px">Nhập mật khẩu mới cho tài khoản của bạn.</p>
-        <label class="field-label">Mật khẩu mới
+        <label class="field-label">Mật khẩu mới (tối thiểu 6 ký tự, gồm chữ và số)
           <input class="field-input" name="newPassword" type="password" required minlength="6" autocomplete="new-password" placeholder="••••••••">
         </label>
         <label class="field-label">Xác nhận mật khẩu mới
