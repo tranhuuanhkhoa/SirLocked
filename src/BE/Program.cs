@@ -1,5 +1,8 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -17,6 +20,8 @@ EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory());
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
@@ -53,6 +58,7 @@ if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length <
 builder.Services.AddSingleton<MongoDbContext>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICaseValidationService, CaseValidationService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
@@ -69,6 +75,28 @@ builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
+
+builder.Services.AddRateLimiter(options =>
+{
+    // 5 lần login / 1 phút / 1 IP
+    options.AddFixedWindowLimiter("login", config =>
+    {
+        config.PermitLimit = 5;
+        config.Window = TimeSpan.FromMinutes(1);
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+
+    // Trả về 429 với message rõ ràng
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"success\":false,\"message\":\"Too many attempts. Please wait 1 minute and try again.\"}",
+            token);
+    };
+});
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
@@ -111,7 +139,18 @@ builder.Services.AddCors(options =>
     });
 });
 
+var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettings>() ?? new GoogleSettings();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddCookie("External")
+    .AddGoogle(options =>
+    {
+        options.ClientId = googleSettings.ClientId;
+        options.ClientSecret = googleSettings.ClientSecret;
+        options.CallbackPath = "/signin-google";
+        options.SignInScheme = "External";
+        options.SaveTokens = true;
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -149,6 +188,7 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseRateLimiter();
 
 app.UseSwagger();
 app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "SirLocked API v1"));

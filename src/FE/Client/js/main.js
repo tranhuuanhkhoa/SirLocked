@@ -18,18 +18,26 @@ import { renderAdminImportPage } from './pages/adminImportPage.js';
 import { renderAdminAiPage } from './pages/adminAiPage.js';
 import { renderChallengePage } from './pages/challengePage.js';
 import { renderWeeklyAdminPage } from './pages/weeklyAdminPage.js';
+import { renderOAuthCallbackPage } from './pages/oauthCallbackPage.js';
+import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
+import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
+import { renderVerifyNoticePage } from './pages/verifyNoticePage.js';
 
 const routes = [
   { pattern: /^#\/login$/, page: renderLoginPage, anonymous: true },
+  { pattern: /^#\/oauth-callback/, page: renderOAuthCallbackPage, anonymous: true },
+  { pattern: /^#\/verify-email/, page: renderVerifyEmailPage, anonymous: true },
+  { pattern: /^#\/reset-password/, page: renderResetPasswordPage, anonymous: true },
+  { pattern: /^#\/verify-notice$/, page: renderVerifyNoticePage },
   { pattern: /^#\/cases$/, page: renderCasesPage },
   { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
   { pattern: /^#\/workshop$/, page: renderWorkshopPage },
   { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
   { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
-  { pattern: /^#\/create-room$/, page: renderCreateRoomPage },
-  { pattern: /^#\/join$/, page: renderJoinRoomPage },
-  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage },
-  { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage },
+  { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
+  { pattern: /^#\/join$/, page: renderJoinRoomPage, requiresVerified: true },
+  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true },
+  { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage, requiresVerified: true },
   { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
   { pattern: /^#\/detective$/, page: renderDetectivePage },
   { pattern: /^#\/detective\/([^/]+)$/, page: renderDetectivePage },
@@ -119,6 +127,11 @@ async function route() {
   }
   if (r.admin && !session.isAdmin()) {
     window.location.hash = '#/cases';
+    return;
+  }
+  if (r.requiresVerified && !session.isEmailVerified()) {
+    alert('Bạn cần xác minh email trước khi vào game. Vào trang Hồ sơ để xác minh.');
+    window.location.hash = '#/detective';
     return;
   }
   if (r.aiAccess && !session.canGenerateAi()) {

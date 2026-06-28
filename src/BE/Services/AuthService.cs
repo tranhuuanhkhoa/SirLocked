@@ -22,12 +22,14 @@ public class AuthService : IAuthService
     private readonly MongoDbContext _db;
     private readonly JwtSettings _jwt;
     private readonly ILogger<AuthService> _logger;
+    private readonly IEmailService _email;
 
-    public AuthService(MongoDbContext db, IOptions<JwtSettings> jwt, ILogger<AuthService> logger)
+    public AuthService(MongoDbContext db, IOptions<JwtSettings> jwt, ILogger<AuthService> logger, IEmailService email)
     {
         _db = db;
         _jwt = jwt.Value;
         _logger = logger;
+        _email = email;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -39,13 +41,17 @@ public class AuthService : IAuthService
             throw ApiException.Conflict("An account with this email already exists.");
         }
 
+        var verificationToken = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+
         var user = new User
         {
             FullName = request.FullName.Trim(),
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            Role = UserRole.Player, // public registration always creates PLAYER
-            Status = UserStatus.Active
+            Role = UserRole.Player,
+            Status = UserStatus.Active,
+            EmailVerificationToken = verificationToken,
+            IsEmailVerified = false
         };
 
         try
@@ -57,7 +63,17 @@ public class AuthService : IAuthService
             throw ApiException.Conflict("An account with this email already exists.");
         }
 
-        return BuildAuthResponse(user);
+        // Gửi email xác minh (không chặn đăng ký nếu gửi lỗi)
+        try
+        {
+            await _email.SendVerificationEmailAsync(user.Email, user.FullName, verificationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+        }
+
+        return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -74,7 +90,7 @@ public class AuthService : IAuthService
             throw ApiException.Forbidden("This account is locked or deleted.");
         }
 
-        return BuildAuthResponse(user);
+        return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
     public async Task<UserResponse> GetMeAsync(string userId)
@@ -82,6 +98,161 @@ public class AuthService : IAuthService
         var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("User not found.");
         return ToUserResponse(user);
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    {
+        var user = await _db.Users.Find(u => u.RefreshToken == request.RefreshToken).FirstOrDefaultAsync()
+            ?? throw ApiException.Unauthorized("Invalid refresh token.");
+
+        if (user.RefreshTokenExpiry < DateTime.UtcNow)
+            throw ApiException.Unauthorized("Refresh token has expired. Please log in again.");
+
+        if (user.Status != UserStatus.Active)
+            throw ApiException.Forbidden("This account is locked or deleted.");
+
+        return await BuildAuthResponseAndSaveRefreshToken(user);
+    }
+
+    public async Task<AuthResponse> GoogleLoginAsync(string email, string fullName)
+    {
+        email = NormalizeEmail(email);
+        var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
+
+        if (user is null)
+        {
+            // Tự động tạo tài khoản mới khi đăng nhập Google lần đầu
+            user = new Models.User
+            {
+                FullName = fullName,
+                Email = email,
+                PasswordHash = string.Empty, // không dùng password với OAuth
+                Role = UserRole.Player,
+                Status = UserStatus.Active,
+                IsEmailVerified = true // Google đã xác minh email rồi
+            };
+            await _db.Users.InsertOneAsync(user);
+            _logger.LogInformation("New user registered via Google: {Email}", email);
+        }
+        else if (user.Status != UserStatus.Active)
+        {
+            throw ApiException.Forbidden("This account is locked or deleted.");
+        }
+        else if (!user.IsEmailVerified)
+        {
+            // Tự động verify email nếu đăng nhập qua Google
+            var verifyUpdate = Builders<Models.User>.Update.Set(u => u.IsEmailVerified, true);
+            await _db.Users.UpdateOneAsync(u => u.Id == user.Id, verifyUpdate);
+            user.IsEmailVerified = true;
+        }
+
+        return await BuildAuthResponseAndSaveRefreshToken(user);
+    }
+
+    public async Task<object> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        var email = NormalizeEmail(request.Email);
+        var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
+
+        // Không tiết lộ email có tồn tại hay không (bảo mật)
+        if (user is null || user.Status != UserStatus.Active)
+            return new { message = "If this email exists, a reset link has been sent." };
+
+        var token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        var expiry = DateTime.UtcNow.AddMinutes(30);
+
+        var update = Builders<User>.Update
+            .Set(u => u.ResetPasswordToken, token)
+            .Set(u => u.ResetPasswordTokenExpiry, expiry)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+
+        // Gửi email chứa mã đặt lại mật khẩu
+        try
+        {
+            await _email.SendPasswordResetEmailAsync(user.Email, user.FullName, token);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send reset email to {Email}", email);
+        }
+
+        return new { message = "If this email exists, a reset code has been sent." };
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        var user = await _db.Users.Find(u => u.ResetPasswordToken == request.Token).FirstOrDefaultAsync()
+            ?? throw ApiException.BadRequest("Invalid or expired reset token.");
+
+        if (user.ResetPasswordTokenExpiry < DateTime.UtcNow)
+            throw ApiException.BadRequest("Reset token has expired. Please request a new one.");
+
+        var update = Builders<User>.Update
+            .Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(request.NewPassword))
+            .Set(u => u.ResetPasswordToken, null)
+            .Set(u => u.ResetPasswordTokenExpiry, null)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+    }
+
+    public async Task<object> ResendVerificationAsync(string userId)
+    {
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("User not found.");
+
+        if (user.IsEmailVerified)
+            throw ApiException.BadRequest("Email is already verified.");
+
+        var token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+
+        var update = Builders<User>.Update
+            .Set(u => u.EmailVerificationToken, token)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+
+        // Gửi lại email xác minh
+        try
+        {
+            await _email.SendVerificationEmailAsync(user.Email, user.FullName, token);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+        }
+
+        return new { message = "A verification code has been sent to your email." };
+    }
+
+    public async Task VerifyEmailAsync(VerifyEmailRequest request)
+    {
+        var user = await _db.Users.Find(u => u.EmailVerificationToken == request.Token).FirstOrDefaultAsync()
+            ?? throw ApiException.BadRequest("Invalid verification token.");
+
+        var update = Builders<User>.Update
+            .Set(u => u.IsEmailVerified, true)
+            .Set(u => u.EmailVerificationToken, null)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+    }
+
+    public async Task ChangePasswordAsync(string userId, ChangePasswordRequest request)
+    {
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("User not found.");
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            throw ApiException.BadRequest("Current password is incorrect.");
+
+        if (request.CurrentPassword == request.NewPassword)
+            throw ApiException.BadRequest("New password must be different from current password.");
+
+        var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        var update = Builders<User>.Update
+            .Set(u => u.PasswordHash, newHash)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
     }
 
     public async Task SeedAdminAsync(AdminSeedOptions options)
@@ -100,13 +271,14 @@ public class AuthService : IAuthService
             Email = NormalizeEmail(options.Email),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(options.Password),
             Role = UserRole.Admin,
-            Status = UserStatus.Active
+            Status = UserStatus.Active,
+            IsEmailVerified = true
         };
         await _db.Users.InsertOneAsync(admin);
         _logger.LogInformation("Seeded admin account {Email}.", admin.Email);
     }
 
-    private AuthResponse BuildAuthResponse(User user)
+    private async Task<AuthResponse> BuildAuthResponseAndSaveRefreshToken(User user)
     {
         var expiresAt = DateTime.UtcNow.AddHours(_jwt.ExpiryHours);
         var claims = new[]
@@ -125,10 +297,21 @@ public class AuthService : IAuthService
             expires: expiresAt,
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
+        var refreshToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(64));
+        var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+        var update = Builders<User>.Update
+            .Set(u => u.RefreshToken, refreshToken)
+            .Set(u => u.RefreshTokenExpiry, refreshTokenExpiry)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+
         return new AuthResponse
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             ExpiresAt = expiresAt,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiry = refreshTokenExpiry,
             User = ToUserResponse(user)
         };
     }
@@ -140,6 +323,7 @@ public class AuthService : IAuthService
         Email = user.Email,
         Role = user.Role,
         Status = user.Status,
+        IsEmailVerified = user.IsEmailVerified,
         CreatedAt = user.CreatedAt
     };
 

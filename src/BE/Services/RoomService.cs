@@ -24,8 +24,22 @@ public class RoomService : IRoomService
         _notifier = notifier;
     }
 
+    // Người chơi phải xác minh email trước khi tạo/vào phòng. Admin được miễn.
+    private async Task EnsureEmailVerifiedAsync(CurrentUser user)
+    {
+        if (user.Role == UserRole.Admin) return;
+
+        var account = await _db.Users.Find(u => u.Id == user.Id).FirstOrDefaultAsync();
+        if (account is null || !account.IsEmailVerified)
+        {
+            throw ApiException.Forbidden("Vui lòng xác minh email trước khi vào game.");
+        }
+    }
+
     public async Task<RoomResponse> CreateAsync(CurrentUser user, string caseId)
     {
+        await EnsureEmailVerifiedAsync(user);
+
         var gameCase = await _caseService.GetCaseAsync(caseId);
         if (gameCase.Status != CaseStatus.Published)
         {
@@ -62,6 +76,8 @@ public class RoomService : IRoomService
 
     public async Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode)
     {
+        await EnsureEmailVerifiedAsync(user);
+
         var code = roomCode.Trim().ToUpperInvariant();
         var room = await _db.Rooms.Find(r => r.RoomCode == code).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("No room with this code was found.");

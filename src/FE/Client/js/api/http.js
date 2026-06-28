@@ -1,10 +1,41 @@
 import { session } from '../services/session.js';
 
+let isRefreshing = false;
+let refreshPromise = null;
+
+async function tryRefreshToken() {
+  if (isRefreshing) return refreshPromise;
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: session.refreshToken() }),
+      });
+      if (!res.ok) throw new Error('Refresh failed');
+      const payload = await res.json();
+      session.save(payload.data);
+      return true;
+    } catch {
+      session.clear();
+      window.location.hash = '#/login';
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 /**
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
-export async function apiFetch(method, path, body) {
+export async function apiFetch(method, path, body, _retry = true) {
   const headers = { 'Content-Type': 'application/json' };
   const token = session.token();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -28,6 +59,11 @@ export async function apiFetch(method, path, body) {
   }
 
   if (!response.ok) {
+    // Token hết hạn → thử refresh rồi retry 1 lần
+    if (response.status === 401 && session.isLoggedIn() && _retry && session.isRefreshTokenValid()) {
+      const refreshed = await tryRefreshToken();
+      if (refreshed) return apiFetch(method, path, body, false);
+    }
     if (response.status === 401 && session.isLoggedIn()) {
       session.clear();
       window.location.hash = '#/login';
