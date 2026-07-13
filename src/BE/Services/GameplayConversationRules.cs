@@ -10,6 +10,15 @@ public sealed record ConversationRuleResult(
     bool Changed,
     IReadOnlyList<string> UnlockedClueIds);
 
+internal enum ConversationTransitionStatus
+{
+    Available,
+    CurrentLocked,
+    ChoiceLocked,
+    TargetUnavailable,
+    TargetLocked
+}
+
 public static class GameplayConversationRules
 {
     private const string LockedMessage = "This conversation option is not available yet.";
@@ -45,7 +54,6 @@ public static class GameplayConversationRules
             throw ApiException.BadRequest("This conversation node is not available.");
         if (!current.IsRoot && !state.VisitedConversationNodeIds.Contains(current.NodeId))
             throw ApiException.BadRequest("This conversation node is not available.");
-        EnsureUnlocked(current.RequiredClueIds, state);
 
         ConversationChoice? selectedChoice = null;
         var reached = current;
@@ -53,15 +61,24 @@ public static class GameplayConversationRules
         {
             selectedChoice = current.Choices.FirstOrDefault(choice => choice.ChoiceId == request.ChoiceId)
                 ?? throw ApiException.BadRequest("This conversation choice is not available.");
-            EnsureUnlocked(selectedChoice.RequiredClueIds, state);
-
-            reached = string.IsNullOrWhiteSpace(selectedChoice.NextNodeId)
-                ? root
-                : gameCase.ConversationNodes.FirstOrDefault(node => node.NodeId == selectedChoice.NextNodeId)
-                    ?? throw ApiException.BadRequest("This conversation node is not available.");
-            if (reached.CharacterId != request.CharacterId)
+            var nodeById = characterNodes.ToDictionary(node => node.NodeId);
+            var transition = ResolveTransition(
+                current,
+                selectedChoice,
+                root,
+                nodeById,
+                state.UnlockedClueIds,
+                out reached);
+            if (transition is ConversationTransitionStatus.CurrentLocked
+                or ConversationTransitionStatus.ChoiceLocked
+                or ConversationTransitionStatus.TargetLocked)
+                throw ApiException.BadRequest(LockedMessage);
+            if (transition == ConversationTransitionStatus.TargetUnavailable)
                 throw ApiException.BadRequest("This conversation node is not available.");
-            EnsureUnlocked(reached.RequiredClueIds, state);
+        }
+        else
+        {
+            EnsureUnlocked(current.RequiredClueIds, state);
         }
 
         if (state.VisitedConversationNodeIds.Contains(reached.NodeId))
@@ -84,6 +101,38 @@ public static class GameplayConversationRules
         }
 
         return new ConversationRuleResult(reached, selectedChoice, true, newClues);
+    }
+
+    /// <summary>
+    /// Shared runtime/publish-time transition contract. Keep the reachability simulator on this
+    /// helper so choice and target clue gates cannot drift from live conversation traversal.
+    /// </summary>
+    internal static ConversationTransitionStatus ResolveTransition(
+        ConversationNode current,
+        ConversationChoice choice,
+        ConversationNode root,
+        IReadOnlyDictionary<string, ConversationNode> nodeById,
+        IReadOnlyCollection<string> unlockedClueIds,
+        out ConversationNode reached)
+    {
+        reached = root;
+        if (current.RequiredClueIds.Any(id => !unlockedClueIds.Contains(id)))
+            return ConversationTransitionStatus.CurrentLocked;
+        if (choice.RequiredClueIds.Any(id => !unlockedClueIds.Contains(id)))
+            return ConversationTransitionStatus.ChoiceLocked;
+
+        if (!string.IsNullOrWhiteSpace(choice.NextNodeId))
+        {
+            if (!nodeById.TryGetValue(choice.NextNodeId, out var target))
+                return ConversationTransitionStatus.TargetUnavailable;
+            reached = target;
+        }
+        if (reached.CharacterId != current.CharacterId)
+            return ConversationTransitionStatus.TargetUnavailable;
+        if (reached.RequiredClueIds.Any(id => !unlockedClueIds.Contains(id)))
+            return ConversationTransitionStatus.TargetLocked;
+
+        return ConversationTransitionStatus.Available;
     }
 
     public static IReadOnlyList<ConversationChoice> VisibleChoices(ConversationNode node, GameplayState state)
@@ -159,17 +208,34 @@ public static class GameplayConversationRules
         GameCase gameCase,
         GameplayState state,
         CaseScene scene,
+        EvidenceChallenge challenge) =>
+        IsChallengeAvailable(
+            gameCase,
+            state.AskedDialogueIds,
+            state.VisitedConversationNodeIds,
+            scene,
+            challenge);
+
+    /// <summary>
+    /// Shared runtime/publish-time challenge availability contract. The simulator supplies its
+    /// pure accumulated state so conversation-owned challenges stay aligned with live gameplay.
+    /// </summary>
+    internal static bool IsChallengeAvailable(
+        GameCase gameCase,
+        IReadOnlyCollection<string> askedDialogueIds,
+        IReadOnlyCollection<string> visitedConversationNodeIds,
+        CaseScene scene,
         EvidenceChallenge challenge)
     {
         var dialogue = gameCase.Dialogues.FirstOrDefault(item => item.DialogueId == challenge.DialogueId);
         if (dialogue is null || !scene.CharacterIds.Contains(dialogue.CharacterId))
             return false;
 
-        return state.AskedDialogueIds.Contains(dialogue.DialogueId)
+        return askedDialogueIds.Contains(dialogue.DialogueId)
             || gameCase.ConversationNodes.Any(node =>
                 node.CharacterId == dialogue.CharacterId
                 && node.ChallengeId == challenge.ChallengeId
-                && state.VisitedConversationNodeIds.Contains(node.NodeId));
+                && visitedConversationNodeIds.Contains(node.NodeId));
     }
 
     private static void EnsureUnlocked(IEnumerable<string> requiredClueIds, GameplayState state)

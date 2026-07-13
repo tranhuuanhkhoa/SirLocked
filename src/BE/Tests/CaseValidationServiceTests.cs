@@ -214,13 +214,21 @@ public class CaseValidationServiceTests
     public void UnlockCycle_BlockingRequiredProgress_IsRejected()
     {
         var c = LoadSampleCase();
-        // First scene's required dialogue now requires a clue that only its own asking unlocks elsewhere:
-        // make the first item's unlock depend on a clue that is unlocked by a dialogue requiring that same clue.
         var firstScene = c.Stages[0].Scenes[0];
         var requiredDialogueId = firstScene.CompleteCondition.RequiredDialogueIds[0];
         var dialogue = c.Dialogues.First(d => d.DialogueId == requiredDialogueId);
-        var lateClue = c.FinalLogic.RequiredEvidenceIds.Last(); // discoverable only in a later stage
-        dialogue.RequiredClueIds.Add(lateClue);
+        var circularClue = new CaseClue
+        {
+            ClueId = "clue-dialogue-cycle",
+            Title = "Circular disclosure",
+            Content = "This clue is disclosed only after it is already known.",
+            Source = dialogue.DialogueId,
+            SourceType = "dialogue",
+            DiscoverMethod = "dialogue"
+        };
+        c.Clues.Add(circularClue);
+        dialogue.RequiredClueIds.Add(circularClue.ClueId);
+        dialogue.UnlockClueIds.Add(circularClue.ClueId);
 
         var result = _validator.Validate(c);
         Assert.Contains(result.Errors, e => e.Code == "UnreachableScene" && e.RefId == firstScene.SceneId);
@@ -242,6 +250,127 @@ public class CaseValidationServiceTests
         c.FinalLogic.RequiredEvidenceIds.Add("clue-never-unlocked");
         var result = _validator.Validate(c);
         Assert.Contains(result.Errors, e => e.Code is "UndiscoverableEvidence" or "OrphanClue");
+    }
+
+    [Fact]
+    public void SceneUnlockedOnlyFromInsideIt_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scenes = c.Stages.OrderBy(stage => stage.Order).SelectMany(stage => stage.Scenes).ToList();
+        var entryScene = scenes[0];
+        var targetScene = scenes[1];
+        var keyItemId = entryScene.ItemIds[0];
+        c.Interactions.Add(new CaseInteraction
+        {
+            InteractionId = "interaction-self-unlock-scene",
+            Type = CaseInteractionTypes.UseItemOnTarget,
+            TargetId = targetScene.ItemIds[0],
+            RequiredItemIds = { keyItemId },
+            UnlockSceneIds = { targetScene.SceneId }
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, error =>
+            error.Code == "UnreachableScene" && error.RefId == targetScene.SceneId);
+    }
+
+    [Fact]
+    public void SceneUnlockedFromReachableEarlierScene_IsAccepted()
+    {
+        var c = LoadSampleCase();
+        var scenes = c.Stages.OrderBy(stage => stage.Order).SelectMany(stage => stage.Scenes).ToList();
+        var entryScene = scenes[0];
+        var targetScene = scenes[1];
+        var keyItemId = entryScene.ItemIds[0];
+        c.Interactions.Add(new CaseInteraction
+        {
+            InteractionId = "interaction-earlier-scene-unlock",
+            Type = CaseInteractionTypes.UseItemOnTarget,
+            TargetId = entryScene.ItemIds[1],
+            RequiredItemIds = { keyItemId },
+            UnlockSceneIds = { targetScene.SceneId }
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(error =>
+            $"{error.Code} {error.Path}: {error.Message}")));
+    }
+
+    [Fact]
+    public void ConversationChoiceRequiresClueItUnlocks_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var root = AddValidConversationTree(c);
+        var topic = c.ConversationNodes.Single(node => node.NodeId == root.Choices[0].NextNodeId);
+        var clue = AddConversationClue(c, topic, "clue-conversation-cycle", isEvidence: true);
+        root.Choices[0].RequiredClueIds.Add(clue.ClueId);
+        topic.UnlockClueIds.Add(clue.ClueId);
+        c.FinalLogic.RequiredEvidenceIds.Add(clue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, error =>
+            error.Code == "UndiscoverableEvidence" && error.RefId == clue.ClueId);
+    }
+
+    [Fact]
+    public void ConversationNodeReachedThroughAvailableChoice_IsAccepted()
+    {
+        var c = LoadSampleCase();
+        var root = AddValidConversationTree(c);
+        var topic = c.ConversationNodes.Single(node => node.NodeId == root.Choices[0].NextNodeId);
+        var clue = AddConversationClue(c, topic, "clue-reachable-conversation", isEvidence: true);
+        topic.UnlockClueIds.Add(clue.ClueId);
+        c.FinalLogic.RequiredEvidenceIds.Add(clue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(error =>
+            $"{error.Code} {error.Path}: {error.Message}")));
+    }
+
+    [Fact]
+    public void ConversationNodeChallengeWithoutAskedDialogue_IsAccepted()
+    {
+        var c = LoadSampleCase();
+        var challenge = c.EvidenceChallenges.Single(item => item.ChallengeId == "challenge-edgar-debt");
+        var challengeDialogue = c.Dialogues.Single(dialogue => dialogue.DialogueId == challenge.DialogueId);
+        var root = AddValidConversationTree(c, challengeDialogue.CharacterId);
+        var topic = c.ConversationNodes.Single(node => node.NodeId == root.Choices[0].NextNodeId);
+        var challengeClue = AddConversationClue(c, topic, "clue-tree-only-challenge", isEvidence: true);
+
+        topic.ChallengeId = challenge.ChallengeId;
+        challenge.UnlockClueIds = new List<string> { challengeClue.ClueId };
+        challengeDialogue.RequiredClueIds = new List<string> { challengeClue.ClueId };
+        c.FinalLogic.RequiredEvidenceIds.Add(challengeClue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(error =>
+            $"{error.Code} {error.Path}: {error.Message}")));
+    }
+
+    [Fact]
+    public void DirectlyReachableNodeRequirementWithoutGraphPath_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var root = AddValidConversationTree(c);
+        var topic = c.ConversationNodes.Single(node => node.NodeId == root.Choices[0].NextNodeId);
+        var unlockedInEntryScene = c.Items
+            .Where(item => c.Stages.OrderBy(stage => stage.Order).First().Scenes[0].ItemIds.Contains(item.ItemId))
+            .SelectMany(item => item.UnlockClueIds)
+            .First();
+        var gateClue = AddConversationClue(c, topic, "clue-untraversable-choice");
+        topic.RequiredClueIds.Add(unlockedInEntryScene);
+        topic.UnlockClueIds.Add(gateClue.ClueId);
+        root.Choices[0].RequiredClueIds.Add(gateClue.ClueId);
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, error =>
+            error.Code == "UnreachableConversationNode" && error.RefId == topic.NodeId);
     }
 
     [Fact]
@@ -821,9 +950,9 @@ public class CaseValidationServiceTests
         }
     }
 
-    private static ConversationNode AddValidConversationTree(GameCase c)
+    private static ConversationNode AddValidConversationTree(GameCase c, string? characterId = null)
     {
-        var characterId = c.Stages[0].Scenes[0].CharacterIds[0];
+        characterId ??= c.Stages[0].Scenes[0].CharacterIds[0];
         var root = new ConversationNode
         {
             NodeId = "node-phase-c-root",
@@ -864,6 +993,27 @@ public class CaseValidationServiceTests
             Choices = { new ConversationChoice { ChoiceId = "choice-return", Label = "Return" } }
         });
         return root;
+    }
+
+    private static CaseClue AddConversationClue(
+        GameCase c,
+        ConversationNode sourceNode,
+        string clueId,
+        bool isEvidence = false)
+    {
+        var clue = new CaseClue
+        {
+            ClueId = clueId,
+            Title = "Conversation clue",
+            Content = "A fact disclosed along a reachable conversation branch.",
+            Source = sourceNode.NodeId,
+            SourceType = "conversation",
+            DiscoverMethod = "conversation",
+            IsCritical = isEvidence,
+            IsEvidence = isEvidence
+        };
+        c.Clues.Add(clue);
+        return clue;
     }
 
     private static SceneRuntime RuntimeWithClueZone(string clueId, RuntimeBox bounds) => new()

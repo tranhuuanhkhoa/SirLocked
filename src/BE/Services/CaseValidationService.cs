@@ -835,10 +835,10 @@ public class CaseValidationService : ICaseValidationService
     }
 
     /// <summary>
-    /// Simulates a greedy linear playthrough (stages by order, scenes by array order) and checks that
-    /// every scene can be completed and all final evidence is discoverable. This subsumes
-    /// unlock-cycle and unreachable-requirement checks: anything locked behind a cycle never
-    /// enters the unlocked set and surfaces as a deadlocked scene or undiscoverable evidence.
+    /// Simulates a greedy free-roam playthrough and checks that every scene can be entered and
+    /// completed and that all final evidence is discoverable. Unlock-cycle and unreachable-
+    /// requirement checks fall out of the global fixpoint: state behind a cycle never becomes
+    /// reachable and surfaces as a deadlocked scene, conversation node, or evidence clue.
     /// </summary>
     private static void ValidatePlaythroughReachability(GameCase c, CaseValidationResult result)
     {
@@ -854,19 +854,37 @@ public class CaseValidationService : ICaseValidationService
         var visitedConversationNodes = new HashSet<string>();
         var usedInteractions = new HashSet<string>();
         var solvedPuzzles = new HashSet<string>();
-        var unlockedScenes = new HashSet<string>();
 
         var orderedStages = c.Stages.OrderBy(s => s.Order).ToList();
-
-        foreach (var stage in orderedStages)
+        var orderedScenes = orderedStages.SelectMany(stage => stage.Scenes).ToList();
+        var firstScene = orderedScenes[0];
+        var simulatedState = new GameplayState
         {
-            foreach (var scene in stage.Scenes)
+            CurrentStageId = orderedStages[0].StageId,
+            CurrentSceneId = firstScene.SceneId,
+            VisitedSceneIds = new List<string> { firstScene.SceneId },
+            UnlockedSceneIds = new List<string> { firstScene.SceneId }
+        };
+
+        bool globalProgressed;
+        do
+        {
+            globalProgressed = false;
+            foreach (var scene in orderedScenes)
             {
+                // Runtime reachability is authoritative. Do not duplicate CanEnterScene here.
+                if (!GameRules.CanEnterScene(c, simulatedState, scene.SceneId)) continue;
+                if (!simulatedState.VisitedSceneIds.Contains(scene.SceneId))
+                {
+                    simulatedState.VisitedSceneIds.Add(scene.SceneId);
+                    globalProgressed = true;
+                }
+
                 // Fixpoint: keep applying every available unlock until nothing changes.
-                bool progressed;
+                bool sceneProgressed;
                 do
                 {
-                    progressed = false;
+                    sceneProgressed = false;
 
                     foreach (var itemId in scene.ItemIds)
                     {
@@ -879,7 +897,7 @@ public class CaseValidationService : ICaseValidationService
                         inspectedItems.Add(itemId);
                         if (item.IsCollectible) collectedItems.Add(itemId);
                         foreach (var clue in item.UnlockClueIds) unlockedClues.Add(clue);
-                        progressed = true;
+                        sceneProgressed = true;
                     }
 
                     foreach (var interaction in c.Interactions)
@@ -888,8 +906,8 @@ public class CaseValidationService : ICaseValidationService
                         if (!CanApplyInteractionInScene(scene, interaction, collectedItems, unlockedClues)) continue;
 
                         usedInteractions.Add(interaction.InteractionId);
-                        if (ApplyReachabilityEffects(interaction.UnlockClueIds, interaction.UnlockItemIds, interaction.UnlockSceneIds, interaction.ConsumeItemIds, unlockedClues, collectedItems, unlockedScenes))
-                            progressed = true;
+                        if (ApplyReachabilityEffects(interaction.UnlockClueIds, interaction.UnlockItemIds, interaction.UnlockSceneIds, interaction.ConsumeItemIds, unlockedClues, collectedItems, simulatedState))
+                            sceneProgressed = true;
                     }
 
                     foreach (var puzzle in c.Puzzles)
@@ -900,8 +918,8 @@ public class CaseValidationService : ICaseValidationService
                         if (!puzzle.RequiredClueIds.All(unlockedClues.Contains)) continue;
 
                         solvedPuzzles.Add(puzzle.PuzzleId);
-                        if (ApplyReachabilityEffects(puzzle.UnlockClueIds, puzzle.UnlockItemIds, puzzle.UnlockSceneIds, Enumerable.Empty<string>(), unlockedClues, collectedItems, unlockedScenes))
-                            progressed = true;
+                        if (ApplyReachabilityEffects(puzzle.UnlockClueIds, puzzle.UnlockItemIds, puzzle.UnlockSceneIds, Enumerable.Empty<string>(), unlockedClues, collectedItems, simulatedState))
+                            sceneProgressed = true;
                     }
 
                     foreach (var dialogue in c.Dialogues)
@@ -912,27 +930,24 @@ public class CaseValidationService : ICaseValidationService
 
                         askedDialogues.Add(dialogue.DialogueId);
                         foreach (var clue in dialogue.UnlockClueIds) unlockedClues.Add(clue);
-                        progressed = true;
+                        sceneProgressed = true;
                     }
 
-                    foreach (var node in c.ConversationNodes)
-                    {
-                        if (visitedConversationNodes.Contains(node.NodeId)) continue;
-                        if (!scene.CharacterIds.Contains(node.CharacterId)) continue;
-                        if (!node.RequiredClueIds.All(unlockedClues.Contains)) continue;
-
-                        visitedConversationNodes.Add(node.NodeId);
-                        foreach (var clue in node.UnlockClueIds) unlockedClues.Add(clue);
-                        progressed = true;
-                    }
+                    if (ApplyReachableConversationNodes(c, scene, unlockedClues, visitedConversationNodes))
+                        sceneProgressed = true;
 
                     foreach (var challenge in c.EvidenceChallenges)
                     {
-                        if (!askedDialogues.Contains(challenge.DialogueId)) continue;
+                        if (!GameplayConversationRules.IsChallengeAvailable(
+                                c,
+                                askedDialogues,
+                                visitedConversationNodes,
+                                scene,
+                                challenge)) continue;
                         if (!unlockedClues.Contains(challenge.CorrectEvidenceId)) continue;
                         foreach (var clueId in challenge.UnlockClueIds)
                         {
-                            if (unlockedClues.Add(clueId)) progressed = true;
+                            if (unlockedClues.Add(clueId)) sceneProgressed = true;
                         }
                     }
 
@@ -945,7 +960,7 @@ public class CaseValidationService : ICaseValidationService
                                 .All(unlockedClues.Contains))) continue;
                         foreach (var clueId in deduction.UnlockClueIds)
                         {
-                            if (unlockedClues.Add(clueId)) progressed = true;
+                            if (unlockedClues.Add(clueId)) sceneProgressed = true;
                         }
                     }
 
@@ -957,7 +972,7 @@ public class CaseValidationService : ICaseValidationService
                         if (!zone.RequiredClueIds.All(unlockedClues.Contains)) continue;
 
                         unlockedClues.Add(zone.ClueId);
-                        progressed = true;
+                        sceneProgressed = true;
                     }
 
                     if (!hasCameraLayout)
@@ -966,21 +981,40 @@ public class CaseValidationService : ICaseValidationService
                         {
                             if (unlockedClues.Add(clue.ClueId))
                             {
-                                progressed = true;
+                                sceneProgressed = true;
                             }
                         }
                     }
-                } while (progressed);
-
-                if (!IsConditionSatisfied(scene.CompleteCondition, inspectedItems, unlockedClues, askedDialogues))
-                {
-                    var missing = DescribeMissing(scene.CompleteCondition, inspectedItems, unlockedClues, askedDialogues);
-                    result.Add("UnreachableScene", $"scene:{scene.SceneId}",
-                        $"Scene '{scene.SceneId}' can never be completed with a linear playthrough. Missing: {missing}. " +
-                        "Check unlock chains for cycles or requirements that only become available later.",
-                        scene.SceneId);
-                }
+                    if (sceneProgressed) globalProgressed = true;
+                } while (sceneProgressed);
             }
+        } while (globalProgressed);
+
+        foreach (var scene in orderedScenes)
+        {
+            if (!simulatedState.VisitedSceneIds.Contains(scene.SceneId))
+            {
+                result.Add("UnreachableScene", $"scene:{scene.SceneId}",
+                    $"Scene '{scene.SceneId}' can never be entered under the runtime scene-unlock rules.",
+                    scene.SceneId);
+                continue;
+            }
+
+            if (!IsConditionSatisfied(scene.CompleteCondition, inspectedItems, unlockedClues, askedDialogues))
+            {
+                var missing = DescribeMissing(scene.CompleteCondition, inspectedItems, unlockedClues, askedDialogues);
+                result.Add("UnreachableScene", $"scene:{scene.SceneId}",
+                    $"Scene '{scene.SceneId}' can be entered but never completed. Missing: {missing}. " +
+                    "Check unlock chains for cycles or requirements that never become available.",
+                    scene.SceneId);
+            }
+        }
+
+        foreach (var node in c.ConversationNodes.Where(node => !visitedConversationNodes.Contains(node.NodeId)))
+        {
+            result.Add("UnreachableConversationNode", $"conversationNodes:{node.NodeId}",
+                "Conversation node is not reachable through an available choice from its character root.",
+                node.NodeId);
         }
 
         foreach (var evidenceId in c.FinalLogic.RequiredEvidenceIds.Where(id => !unlockedClues.Contains(id)))
@@ -1016,6 +1050,63 @@ public class CaseValidationService : ICaseValidationService
         }
     }
 
+    private static bool ApplyReachableConversationNodes(
+        GameCase gameCase,
+        CaseScene scene,
+        HashSet<string> unlockedClues,
+        HashSet<string> visitedConversationNodes)
+    {
+        var progressed = false;
+        foreach (var characterId in scene.CharacterIds)
+        {
+            var nodes = gameCase.ConversationNodes
+                .Where(node => node.CharacterId == characterId)
+                .ToList();
+            if (nodes.Count == 0) continue;
+
+            var root = nodes.Single(node => node.IsRoot);
+            var nodeById = nodes.ToDictionary(node => node.NodeId);
+            bool characterProgressed;
+            do
+            {
+                characterProgressed = false;
+                if (!visitedConversationNodes.Contains(root.NodeId)
+                    && root.RequiredClueIds.All(unlockedClues.Contains))
+                {
+                    visitedConversationNodes.Add(root.NodeId);
+                    foreach (var clueId in root.UnlockClueIds) unlockedClues.Add(clueId);
+                    characterProgressed = true;
+                }
+
+                if (!visitedConversationNodes.Contains(root.NodeId)) continue;
+
+                foreach (var current in nodes.Where(node => visitedConversationNodes.Contains(node.NodeId)))
+                {
+                    foreach (var choice in current.Choices)
+                    {
+                        var transition = GameplayConversationRules.ResolveTransition(
+                            current,
+                            choice,
+                            root,
+                            nodeById,
+                            unlockedClues,
+                            out var reached);
+                        if (transition != ConversationTransitionStatus.Available
+                            || !visitedConversationNodes.Add(reached.NodeId))
+                            continue;
+
+                        foreach (var clueId in reached.UnlockClueIds) unlockedClues.Add(clueId);
+                        characterProgressed = true;
+                    }
+                }
+
+                if (characterProgressed) progressed = true;
+            } while (characterProgressed);
+        }
+
+        return progressed;
+    }
+
     private static bool CanApplyInteractionInScene(
         CaseScene scene,
         CaseInteraction interaction,
@@ -1036,7 +1127,7 @@ public class CaseValidationService : ICaseValidationService
         IEnumerable<string> consumeItemIds,
         HashSet<string> unlockedClues,
         HashSet<string> collectedItems,
-        HashSet<string> unlockedScenes)
+        GameplayState simulatedState)
     {
         var progressed = false;
         foreach (var itemId in consumeItemIds)
@@ -1049,7 +1140,11 @@ public class CaseValidationService : ICaseValidationService
         }
         foreach (var sceneId in unlockSceneIds)
         {
-            if (unlockedScenes.Add(sceneId)) progressed = true;
+            if (!simulatedState.UnlockedSceneIds.Contains(sceneId))
+            {
+                simulatedState.UnlockedSceneIds.Add(sceneId);
+                progressed = true;
+            }
         }
         foreach (var clueId in unlockClueIds)
         {
