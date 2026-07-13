@@ -110,11 +110,30 @@ const smokeState = {
       isVisited: true,
       isUnlocked: true,
       isCompleted: false,
+      pendingRequirementCount: 0,
+    },
+    {
+      sceneId: 'scene-hall',
+      title: 'Unknown location',
+      isCurrent: false,
+      isVisited: false,
+      isUnlocked: false,
+      isCompleted: false,
+      pendingRequirementCount: 0,
+    },
+    {
+      sceneId: 'scene-vault',
+      title: 'Unknown location',
+      isCurrent: false,
+      isVisited: false,
+      isUnlocked: false,
+      isCompleted: false,
+      pendingRequirementCount: 0,
     },
   ],
   completedSceneIds: [],
   availableForAccusation: false,
-  currentSceneCanComplete: false,
+  currentSceneCanComplete: true,
   currentSceneMissingRequirements: {
     requiredItemIds: [],
     requiredClueIds: [],
@@ -122,6 +141,54 @@ const smokeState = {
   },
   currentObjective: 'Talk to the witness.',
   actionLog: [],
+};
+
+const progressedState = {
+  ...smokeState,
+  currentSceneId: 'scene-hall',
+  version: 2,
+  visibleScene: {
+    ...smokeState.visibleScene,
+    sceneId: 'scene-hall',
+    title: 'Unlocked Hall',
+    description: 'The next authored location is now open.',
+    hotspots: [],
+    characters: [],
+    availableDialogues: [],
+  },
+  unlockedSceneIds: ['scene-smoke', 'scene-hall'],
+  completedSceneIds: ['scene-smoke'],
+  currentSceneCanComplete: false,
+  currentObjective: 'Investigate the unlocked hall.',
+  sceneMap: [
+    {
+      sceneId: 'scene-smoke',
+      title: 'Smoke Study',
+      isCurrent: false,
+      isVisited: true,
+      isUnlocked: true,
+      isCompleted: true,
+      pendingRequirementCount: 0,
+    },
+    {
+      sceneId: 'scene-hall',
+      title: 'Unlocked Hall',
+      isCurrent: true,
+      isVisited: true,
+      isUnlocked: true,
+      isCompleted: false,
+      pendingRequirementCount: 0,
+    },
+    {
+      sceneId: 'scene-vault',
+      title: 'Unknown location',
+      isCurrent: false,
+      isVisited: false,
+      isUnlocked: false,
+      isCompleted: false,
+      pendingRequirementCount: 0,
+    },
+  ],
 };
 
 test.beforeEach(async ({ page }) => {
@@ -142,6 +209,16 @@ test.beforeEach(async ({ page }) => {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ success: true, data: smokeState }),
+    });
+  });
+  await page.route(`**/api/game/rooms/${roomId}/complete-scene`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { state: progressedState, changed: true, message: 'Continued to Unlocked Hall.' },
+      }),
     });
   });
 });
@@ -175,6 +252,36 @@ test('game screen renders canvas, HUD, inventory, dialogue, and mobile controls'
   await page.locator('#mobile-interact-btn').click();
   await expect(page.locator('.conversation-box')).toBeVisible();
   await expect(page.locator('.conversation-choices')).toContainText('Waiting for the Interrogator');
+});
+
+test('locked authored scenes stay hidden until Continue applies server movement', async ({ page }) => {
+  let goToSceneRequests = 0;
+  await page.route(`**/api/game/rooms/${roomId}/go-to-scene`, async (route) => {
+    goToSceneRequests++;
+    await route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.setViewportSize({ width: 1100, height: 760 });
+  await page.goto(`/#/game/${roomId}`);
+  const canvas = page.locator('canvas').first();
+  await expect(canvas).toBeVisible();
+
+  await page.locator('#map-btn').click();
+  const lockedEntries = page.locator('.map-entry:disabled').filter({ hasText: 'Unknown location' });
+  await expect(lockedEntries).toHaveCount(2);
+  await expect(lockedEntries).toHaveText([/Unknown location/, /Unknown location/]);
+  await page.locator('[data-close-overlay]').click();
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  await canvas.click({ position: { x: box!.width / 2, y: box!.height - 112 } });
+
+  await expect(page.locator('#game-hud-slot .game-objective')).toContainText('Investigate the unlocked hall.');
+  expect(goToSceneRequests).toBe(0);
+
+  await page.locator('#map-btn').click();
+  await expect(page.locator('.map-entry').filter({ hasText: 'Unlocked Hall' })).toHaveCount(1);
+  await expect(page.locator('.map-entry:disabled').filter({ hasText: 'Unknown location' })).toHaveCount(1);
 });
 
 async function canvasHasNonBlankPixels(canvas: Locator) {

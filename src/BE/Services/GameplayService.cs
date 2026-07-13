@@ -1069,47 +1069,86 @@ public partial class GameplayService : IGameplayService
             var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
             var scene = CurrentScene(gameCase, state, user.Id);
+            var wasCompleted = GameRules.IsSceneAlreadyCompleted(state, scene.SceneId);
 
-            if (GameRules.IsSceneAlreadyCompleted(state, scene.SceneId))
+            if (!wasCompleted)
+            {
+                var inspected = state.InspectedItemIds.ToHashSet();
+                var unlocked = state.UnlockedClueIds.ToHashSet();
+                var asked = state.AskedDialogueIds.ToHashSet();
+
+                if (!CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked))
+                {
+                    throw ApiException.BadRequest("Scene requirements are not complete.", new
+                    {
+                        missing = new MissingRequirementsDto
+                        {
+                            RequiredItemIds = scene.CompleteCondition.RequiredItemIds.Where(i => !inspected.Contains(i)).ToList(),
+                            RequiredClueIds = scene.CompleteCondition.RequiredClueIds.Where(c => !unlocked.Contains(c)).ToList(),
+                            RequiredDialogueIds = scene.CompleteCondition.RequiredDialogueIds.Where(d => !asked.Contains(d)).ToList()
+                        }
+                    });
+                }
+            }
+
+            var transition = GameRules.ApplySceneContinuation(gameCase, state, user.Id, scene.SceneId);
+            var nextScene = GameRules.GetNextAuthoredScene(gameCase, scene.SceneId);
+            if (!transition.HasChanges)
             {
                 return new GameActionResponse
                 {
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
-                    Message = $"{scene.Title} is fully investigated."
+                    Message = nextScene is null
+                        ? $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete."
+                        : $"You already continued from {scene.Title}."
                 };
             }
 
-            var inspected = state.InspectedItemIds.ToHashSet();
-            var unlocked = state.UnlockedClueIds.ToHashSet();
-            var asked = state.AskedDialogueIds.ToHashSet();
-
-            if (!CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked))
-            {
-                throw ApiException.BadRequest("Scene requirements are not complete.", new
-                {
-                    missing = new MissingRequirementsDto
-                    {
-                        RequiredItemIds = scene.CompleteCondition.RequiredItemIds.Where(i => !inspected.Contains(i)).ToList(),
-                        RequiredClueIds = scene.CompleteCondition.RequiredClueIds.Where(c => !unlocked.Contains(c)).ToList(),
-                        RequiredDialogueIds = scene.CompleteCondition.RequiredDialogueIds.Where(d => !asked.Contains(d)).ToList()
-                    }
-                });
-            }
-
-            // Rooms created before derived completion existed can reach here with a satisfied
-            // condition that was never recorded; saving with the case runs the auto-complete pass.
+            // The completion, successor unlock, visit, and caller-only movement are persisted in
+            // one optimistic update. TrySave also repairs derived completion for older rooms.
             if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "COMPLETE_SCENE", $"{scene.Title} is fully investigated.", new { sceneId = scene.SceneId });
+            if (transition.CompletedNow)
+            {
+                await LogAsync(roomId, user.Id, "COMPLETE_SCENE", $"{scene.Title} is fully investigated.", new { sceneId = scene.SceneId });
+            }
+            else if (transition.IsContinuation && nextScene is not null)
+            {
+                await LogAsync(roomId, user.Id, "CONTINUE_SCENE", $"{user.FullName} continued to {nextScene.Title}.", new
+                {
+                    previousSceneId = scene.SceneId,
+                    currentSceneId = nextScene.SceneId
+                });
+            }
+
+            if (transition.CallerMoved && nextScene is not null)
+            {
+                await _notifier.SceneChanged(roomId, scene.SceneId, nextScene.SceneId, user.Id, state.Version);
+                if (transition.CrossesStage)
+                {
+                    await _notifier.StageChanged(
+                        roomId,
+                        transition.CurrentStageId,
+                        transition.SuccessorStageId!,
+                        scene.SceneId,
+                        nextScene.SceneId,
+                        GameRules.AllScenesCompleted(gameCase, state),
+                        user.Id,
+                        state.Version);
+                }
+            }
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
-            return new GameActionResponse { State = stateResponse, Changed = true, Message = $"{scene.Title} is fully investigated." };
+            var message = nextScene is null
+                ? $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete."
+                : $"Continued to {nextScene.Title}.";
+            return new GameActionResponse { State = stateResponse, Changed = true, Message = message };
         }
     }
 

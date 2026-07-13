@@ -85,19 +85,23 @@ public class GameStateBuilder : IGameStateBuilder
 
         var sceneMap = gameCase.Stages.OrderBy(s => s.Order)
             .SelectMany(s => s.Scenes)
-            .Select(s => new SceneMapEntryDto
+            .Select(s =>
             {
-                SceneId = s.SceneId,
-                Title = s.Title,
-                IsCurrent = s.SceneId == scene.SceneId,
-                IsVisited = state.VisitedSceneIds.Contains(s.SceneId),
-                IsUnlocked = GameRules.CanEnterScene(gameCase, state, s.SceneId),
-                IsCompleted = state.CompletedSceneIds.Contains(s.SceneId),
-                PendingRequirementCount = state.CompletedSceneIds.Contains(s.SceneId)
-                    ? 0
-                    : s.CompleteCondition.RequiredItemIds.Count(i => !inspected.Contains(i))
-                        + s.CompleteCondition.RequiredClueIds.Count(c => !unlocked.Contains(c))
-                        + s.CompleteCondition.RequiredDialogueIds.Count(d => !asked.Contains(d))
+                var canEnter = GameRules.CanEnterScene(gameCase, state, s.SceneId);
+                return new SceneMapEntryDto
+                {
+                    SceneId = s.SceneId,
+                    Title = canEnter ? s.Title : "Unknown location",
+                    IsCurrent = s.SceneId == scene.SceneId,
+                    IsVisited = state.VisitedSceneIds.Contains(s.SceneId),
+                    IsUnlocked = canEnter,
+                    IsCompleted = state.CompletedSceneIds.Contains(s.SceneId),
+                    PendingRequirementCount = state.CompletedSceneIds.Contains(s.SceneId)
+                        ? 0
+                        : s.CompleteCondition.RequiredItemIds.Count(i => !inspected.Contains(i))
+                            + s.CompleteCondition.RequiredClueIds.Count(c => !unlocked.Contains(c))
+                            + s.CompleteCondition.RequiredDialogueIds.Count(d => !asked.Contains(d))
+                };
             })
             .ToList();
 

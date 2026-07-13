@@ -332,6 +332,7 @@ Khi start, backend khoi tao:
 - Scene dau cua stage do.
 - Ca hai `PlayerSceneIds` cung tro vao scene dau.
 - `VisitedSceneIds` chua scene dau.
+- `UnlockedSceneIds` chi chua scene dau.
 - `Version = 1`.
 - Room `IN_PROGRESS`.
 - Game `IN_PROGRESS`.
@@ -474,13 +475,23 @@ Neu chua du, backend tra danh sach item/clue/dialogue con thieu.
 Neu du:
 
 1. Them scene vao `CompletedSceneIds`.
-2. Mo scene ke tiep va them vao `VisitedSceneIds`.
-3. Chi di chuyen player vua bam complete sang scene ke tiep.
-4. Player con lai co the van o scene cu.
-5. Phat `SceneChanged` hoac `StageChanged`.
+2. Mo scene ke tiep theo thu tu authored: `stage.order`, sau do thu tu trong
+   `scenes[]`. Khong tu dong visit scene nay cho ca team.
+3. Them scene ke tiep vao `VisitedSceneIds` khi player vua bam continue di vao.
+4. Chi cap nhat `PlayerSceneIds` cua player vua bam continue.
+5. Player con lai van o scene cu va co the bam continue sau, ke ca khi teammate
+   da complete scene.
+6. Phat `SceneChanged`; phat them `StageChanged` neu scene ke tiep nam o stage moi.
 
 Neu scene da duoc teammate complete, player con lai bam continue se duoc dua sang
 scene ke tiep neu scene do da mo.
+
+`interaction.unlockSceneIds` va `puzzle.unlockSceneIds` van co the mo mot scene
+o xa som hon thu tu authored. Viec mo som khong tu visit scene va khong di chuyen
+player nao.
+
+Scene cuoi khong co successor: player giu nguyen vi tri. Final confrontation chi
+mo khi tat ca scene trong case da complete va cac dieu kien accusation khac deu du.
 
 `complete-stage` chi la endpoint xac nhan idempotent; tien do that nam o
 `complete-scene`.
@@ -491,15 +502,19 @@ Endpoint:
 
 - `POST /api/game/rooms/{roomId}/go-to-scene`
 
-Chi duoc di den scene da co trong `VisitedSceneIds`. Backend chi thay
+Chi duoc di den scene da co trong `VisitedSceneIds` hoac `UnlockedSceneIds`. Scene
+da visit luon co the quay lai. Scene da unlock nhung chua visit co the duoc chon;
+khi vao, backend them scene vao `VisitedSceneIds`. Backend chi thay
 `PlayerSceneIds` cua user dang goi, nen hai nguoi co the tach scene.
+
+Map hien scene locked la dia diem chua biet, khong lo title va khong cho click.
 
 ## 6. Final accusation va ket qua
 
 Accusation chi mo khi player dang:
 
 - O scene cuoi cua stage cuoi.
-- Scene cuoi da complete.
+- Tat ca scene cua tat ca stage da complete.
 - Tat ca `finalLogic.requiredEvidenceIds` da unlock.
 - Game van `IN_PROGRESS`.
 

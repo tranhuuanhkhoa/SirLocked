@@ -284,6 +284,7 @@ public class RoomService : IRoomService
                 PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
                 Version = 1,
                 VisitedSceneIds = new List<string> { firstScene.SceneId },
+                UnlockedSceneIds = new List<string> { firstScene.SceneId },
                 GameStatus = GameStatus.InProgress,
                 StartedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

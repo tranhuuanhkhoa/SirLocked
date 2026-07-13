@@ -367,6 +367,22 @@ public class CaseValidationService : ICaseValidationService
             AddMissingReferences(result, $"{path}.requiredClueIds", interaction.RequiredClueIds, clueIds, "Required clue does not exist.");
             AddMissingReferences(result, $"{path}.unlockClueIds", interaction.UnlockClueIds, clueIds, "Unlock clue does not exist.");
             AddMissingReferences(result, $"{path}.unlockSceneIds", interaction.UnlockSceneIds, sceneIds, "Unlock scene does not exist.");
+
+            if (!isCombine)
+            {
+                var sourceScenes = c.Stages.SelectMany(stage => stage.Scenes)
+                    .Where(scene => IsTargetInScene(scene, interaction.TargetId))
+                    .ToList();
+                foreach (var unlockedSceneId in interaction.UnlockSceneIds.Where(sceneIds.Contains))
+                {
+                    if (sourceScenes.Count > 0 && sourceScenes.All(scene => scene.SceneId == unlockedSceneId))
+                    {
+                        result.Add("UnreachableScene", $"{path}.unlockSceneIds",
+                            "An explicit scene unlock cannot depend on an interaction target that exists only inside that same scene.",
+                            unlockedSceneId);
+                    }
+                }
+            }
         }
     }
 
@@ -418,6 +434,19 @@ public class CaseValidationService : ICaseValidationService
             AddMissingReferences(result, $"{path}.requiredClueIds", puzzle.RequiredClueIds, clueIds, "Required clue does not exist.");
             AddMissingReferences(result, $"{path}.unlockClueIds", puzzle.UnlockClueIds, clueIds, "Unlock clue does not exist.");
             AddMissingReferences(result, $"{path}.unlockSceneIds", puzzle.UnlockSceneIds, sceneIds, "Unlock scene does not exist.");
+
+            var sourceScenes = c.Stages.SelectMany(stage => stage.Scenes)
+                .Where(scene => IsTargetInScene(scene, puzzle.TargetId))
+                .ToList();
+            foreach (var unlockedSceneId in puzzle.UnlockSceneIds.Where(sceneIds.Contains))
+            {
+                if (sourceScenes.Count > 0 && sourceScenes.All(scene => scene.SceneId == unlockedSceneId))
+                {
+                    result.Add("UnreachableScene", $"{path}.unlockSceneIds",
+                        "An explicit scene unlock cannot depend on a puzzle target that exists only inside that same scene.",
+                        unlockedSceneId);
+                }
+            }
         }
     }
 
@@ -835,10 +864,10 @@ public class CaseValidationService : ICaseValidationService
     }
 
     /// <summary>
-    /// Simulates a greedy free-roam playthrough and checks that every scene can be entered and
-    /// completed and that all final evidence is discoverable. Unlock-cycle and unreachable-
-    /// requirement checks fall out of the global fixpoint: state behind a cycle never becomes
-    /// reachable and surfaces as a deadlocked scene, conversation node, or evidence clue.
+    /// Simulates a greedy authored-order playthrough and checks that every scene can be entered
+    /// and completed and that all final evidence is discoverable. Explicit scene unlocks may make
+    /// later scenes reachable early. Unlock-cycle and unreachable-requirement checks fall out of
+    /// the global fixpoint.
     /// </summary>
     private static void ValidatePlaythroughReachability(GameCase c, CaseValidationResult result)
     {
@@ -856,7 +885,7 @@ public class CaseValidationService : ICaseValidationService
         var solvedPuzzles = new HashSet<string>();
 
         var orderedStages = c.Stages.OrderBy(s => s.Order).ToList();
-        var orderedScenes = orderedStages.SelectMany(stage => stage.Scenes).ToList();
+        var orderedScenes = GameRules.GetAuthoredScenes(c);
         var firstScene = orderedScenes[0];
         var simulatedState = new GameplayState
         {
@@ -987,6 +1016,14 @@ public class CaseValidationService : ICaseValidationService
                     }
                     if (sceneProgressed) globalProgressed = true;
                 } while (sceneProgressed);
+
+                if (!simulatedState.CompletedSceneIds.Contains(scene.SceneId)
+                    && IsConditionSatisfied(scene.CompleteCondition, inspectedItems, unlockedClues, askedDialogues))
+                {
+                    simulatedState.CompletedSceneIds.Add(scene.SceneId);
+                    GameRules.UnlockAuthoredSuccessor(c, simulatedState, scene.SceneId);
+                    globalProgressed = true;
+                }
             }
         } while (globalProgressed);
 

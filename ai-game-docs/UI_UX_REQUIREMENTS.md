@@ -91,7 +91,24 @@ Do not show the game as disconnected "stage complete" screens. Translate progres
 - all leads in this room are exhausted,
 - final confrontation is ready.
 
-Scene map should allow only visited scenes. Future scenes must not be clickable.
+Scene progression follows authored order: stage `order`, then scene array order.
+Completing a scene opens its immediate successor, while explicit interaction or
+puzzle unlocks may open a later branch early.
+
+Scene map behavior:
+
+- visited scenes remain selectable for revisits,
+- unlocked but unvisited scenes are selectable,
+- locked future scenes are disabled and shown as an unknown location without
+  revealing their title,
+- selecting an unlocked scene visits it and moves only the calling player.
+
+Continue must consume the server-authored successor and returned player-specific
+state. It must not calculate a first incomplete/unlocked destination or issue a
+second `go-to-scene` request. If a teammate already completed the shared scene,
+Continue still advances only the player who pressed it. The final scene remains in
+place, and the accusation UI stays hidden until every scene and final requirement
+is complete.
 
 ## Final Accusation UX
 

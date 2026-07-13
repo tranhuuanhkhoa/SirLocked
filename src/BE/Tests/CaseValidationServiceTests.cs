@@ -281,7 +281,7 @@ public class CaseValidationServiceTests
         var c = LoadSampleCase();
         var scenes = c.Stages.OrderBy(stage => stage.Order).SelectMany(stage => stage.Scenes).ToList();
         var entryScene = scenes[0];
-        var targetScene = scenes[1];
+        var targetScene = scenes[^1];
         var keyItemId = entryScene.ItemIds[0];
         c.Interactions.Add(new CaseInteraction
         {

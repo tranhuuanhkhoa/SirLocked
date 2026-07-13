@@ -1058,10 +1058,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
     const visited = this.state.sceneMap.filter((entry) => entry.isVisited && !entry.isCurrent);
     const currentIndex = this.state.sceneMap.findIndex((entry) => entry.isCurrent);
-    // With free movement, "forward" means the first reachable scene that still has work left,
-    // falling back to authored order when everything is done.
-    const next = this.state.sceneMap.find((entry) => !entry.isCurrent && !entry.isCompleted && entry.isUnlocked)
-      ?? this.state.sceneMap[currentIndex + 1];
+    const next = currentIndex >= 0 ? this.state.sceneMap[currentIndex + 1] : undefined;
     const completedCurrent = this.state.completedSceneIds.includes(this.state.currentSceneId);
     const canProceed = Boolean(this.state.currentSceneCanComplete);
     const runtimeTransitions = this.sceneRuntime()?.transitions ?? [];
@@ -1071,21 +1068,25 @@ class SirLockedPhaserScene extends Phaser.Scene {
         const targetEntry = this.state!.sceneMap.find((entry) => entry.sceneId === transition.targetSceneId);
         const canRevisit = Boolean(targetEntry?.isVisited && !targetEntry.isCurrent);
         const canUseUnlockedPath = Boolean(targetEntry?.isUnlocked && !targetEntry.isCurrent);
-        const opensNext = Boolean(canProceed && next?.sceneId === transition.targetSceneId);
-        if (!canRevisit && !canUseUnlockedPath && !opensNext) return;
+        if (!canRevisit && !canUseUnlockedPath) return;
 
         const box = this.worldRect(transition.hotspot);
         const label = transition.label || targetEntry?.title || 'Move';
-        const action = canRevisit || canUseUnlockedPath
-          ? () => this.callbacks.onScene(transition.targetSceneId)
-          : () => this.callbacks.onProceed();
-        this.drawButton(box.x + box.w / 2, box.y + box.h / 2, this.shorten(label, 18), action, Math.max(148, Math.min(box.w, 240)), opensNext);
+        const isAuthoredSuccessor = Boolean(canProceed && next?.sceneId === transition.targetSceneId);
+        this.drawButton(
+          box.x + box.w / 2,
+          box.y + box.h / 2,
+          this.shorten(label, 18),
+          () => this.callbacks.onScene(transition.targetSceneId),
+          Math.max(148, Math.min(box.w, 240)),
+          isAuthoredSuccessor,
+        );
       });
 
       // Fallback: always show a visible proceed button at the bottom so the
       // player is never stuck when a transition hotspot is hidden behind the HUD.
       if (canProceed) {
-        const forwardLabel = completedCurrent && next
+        const forwardLabel = completedCurrent && next?.isUnlocked
           ? `Go to ${this.shorten(next.title, 22)}`
           : 'Continue investigation';
         this.drawButton(width / 2, height - 112, forwardLabel, () => this.callbacks.onProceed(), 230, true);
@@ -1102,7 +1103,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
     const forwardLabel = !canProceed
       ? 'Keep searching'
-      : completedCurrent && next
+      : completedCurrent && next?.isUnlocked
         ? `Go to ${this.shorten(next.title, 22)}`
         : 'Continue investigation';
     if (canProceed) {
@@ -3400,18 +3401,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     try {
-      // Completion itself is derived server-side; this call flushes it for older rooms
-      // and returns fresh state. Movement stays in the player's hands.
+      // The server chooses the immediate authored successor and moves only this player.
       const res = await gameApi.completeScene(roomId);
       closeOverlay();
       applyState(res.state);
-      const next = res.state.sceneMap?.find((s: SceneMapEntry) => !s.isCurrent && !s.isCompleted && s.isUnlocked)
-        ?? res.state.sceneMap?.find((s: SceneMapEntry) => !s.isCurrent && s.isUnlocked);
-      if (next) {
-        await goToScene(next.sceneId);
-      } else {
-        toast(res.message, 'success', 5500);
-      }
+      toast(res.message, 'success', 5500);
     } catch (err: any) {
       const missing = err.errors?.missing;
       if (missing) {
