@@ -69,9 +69,30 @@ public class GameplayState
     /// <summary>First-discovery attribution per clue, used for teamwork scoring.</summary>
     public List<ClueDiscoveryRecord> ClueDiscoveries { get; set; } = new();
     public string GameStatus { get; set; } = Enums.GameStatus.InProgress;
+    /// <summary>
+    /// Authoritative completion data used to recreate the denormalized game result when its write fails.
+    /// Null for games that have not completed and for legacy room documents.
+    /// </summary>
+    public FinalAccusationSnapshot? FinalAccusationSnapshot { get; set; }
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class FinalAccusationSnapshot
+{
+    public string CaseId { get; set; } = string.Empty;
+    public List<string> PlayerIds { get; set; } = new();
+    public string SelectedCulpritId { get; set; } = string.Empty;
+    public List<string> SelectedEvidenceIds { get; set; } = new();
+    public string SelectedMotiveId { get; set; } = string.Empty;
+    public string SelectedMethodId { get; set; } = string.Empty;
+    public List<SelectedEvidenceLink> SelectedEvidenceLinks { get; set; } = new();
+    public ScoreSummary? ScoreSummary { get; set; }
+    public bool Success { get; set; }
+    public string Ending { get; set; } = string.Empty;
+    public DateTime CompletedAt { get; set; }
 }
 
 [BsonIgnoreExtraElements]

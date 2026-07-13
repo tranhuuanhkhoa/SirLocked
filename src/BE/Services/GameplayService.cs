@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
@@ -16,19 +17,25 @@ public partial class GameplayService : IGameplayService
     private readonly IGameNotifier _notifier;
     private readonly IGameStateBuilder _stateBuilder;
     private readonly IEvidencePhotoService _evidencePhotos;
+    private readonly IGameResultStore _gameResults;
+    private readonly ILogger<GameplayService> _logger;
 
     public GameplayService(
         MongoDbContext db,
         ICaseService caseService,
         IGameNotifier notifier,
         IGameStateBuilder stateBuilder,
-        IEvidencePhotoService evidencePhotos)
+        IEvidencePhotoService evidencePhotos,
+        IGameResultStore gameResults,
+        ILogger<GameplayService> logger)
     {
         _db = db;
         _caseService = caseService;
         _notifier = notifier;
         _stateBuilder = stateBuilder;
         _evidencePhotos = evidencePhotos;
+        _gameResults = gameResults;
+        _logger = logger;
     }
 
     // ----- Read -----
@@ -46,9 +53,18 @@ public partial class GameplayService : IGameplayService
     public async Task<GameResultResponse> GetResultAsync(string userId, string roomId)
     {
         var (room, gameCase, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
-        var result = await _db.GameResults.Find(r => r.RoomId == roomId)
-            .SortByDescending(r => r.CreatedAt).FirstOrDefaultAsync()
-            ?? throw ApiException.NotFound("No result for this room yet.");
+        var result = await _gameResults.FindByRoomIdAsync(roomId);
+        if (result is null)
+        {
+            if (room.Status == RoomStatus.Completed && room.GameplayState?.FinalAccusationSnapshot is null)
+            {
+                _logger.LogWarning(
+                    "Completed room {RoomId} for case {CaseId} has no final accusation snapshot; result recovery is impossible.",
+                    room.Id,
+                    room.CaseId);
+            }
+            result = await GameResultPersistenceCoordinator.MaterializeFromCompletedRoomAsync(room, _gameResults);
+        }
         return ToResultResponse(result, gameCase);
     }
 
@@ -428,7 +444,7 @@ public partial class GameplayService : IGameplayService
     public async Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId)
     {
         var (room, _, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
-        if (room.GameplayState is null || !room.GameplayState.UnlockedClueIds.Contains(clueId))
+        if (!EvidenceCapturePersistenceCoordinator.IsPhotoVisible(room, clueId))
         {
             throw ApiException.NotFound("This evidence photo is not available.");
         }
@@ -447,6 +463,7 @@ public partial class GameplayService : IGameplayService
             throw ApiException.BadRequest("Capture rectangle width and height must be positive.");
         }
 
+        NormalizedEvidencePhoto? normalizedPhoto = null;
         for (var attempt = 0; ; attempt++)
         {
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
@@ -541,26 +558,31 @@ public partial class GameplayService : IGameplayService
             }
 
             var clue = clueById[best.Zone.ClueId];
-            var normalizedPhoto = await _evidencePhotos.NormalizeAsync(request.Photo);
-            state.CapturedClueIds.Add(clue.ClueId);
-            var newClues = state.UnlockedClueIds.Contains(clue.ClueId)
-                ? new List<string>()
-                : new List<string> { clue.ClueId };
-            state.UnlockedClueIds.AddRange(newClues);
-            RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Camera);
+            normalizedPhoto ??= await _evidencePhotos.NormalizeAsync(request.Photo);
+            var newClues = new List<string>();
+            var committed = await EvidenceCapturePersistenceCoordinator.PersistAsync(
+                () => _evidencePhotos.UpsertAsync(
+                    roomId,
+                    clue.ClueId,
+                    scene.SceneId,
+                    user.Id,
+                    normalizedPhoto),
+                async () =>
+                {
+                    state.CapturedClueIds.Add(clue.ClueId);
+                    newClues = state.UnlockedClueIds.Contains(clue.ClueId)
+                        ? new List<string>()
+                        : new List<string> { clue.ClueId };
+                    state.UnlockedClueIds.AddRange(newClues);
+                    RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Camera);
+                    return await TrySaveStateAsync(room, gameCase);
+                });
 
-            if (!await TrySaveStateAsync(room, gameCase))
+            if (!committed)
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
             }
-
-            await _evidencePhotos.UpsertAsync(
-                roomId,
-                clue.ClueId,
-                scene.SceneId,
-                user.Id,
-                normalizedPhoto);
 
             await LogAsync(roomId, user.Id, "CAPTURE_CLUE", $"{user.FullName} photographed {clue.Title}.",
                 new { clueId = clue.ClueId, sceneId = scene.SceneId, request.CaptureRect });
@@ -1278,9 +1300,18 @@ public partial class GameplayService : IGameplayService
                 && gameCase.FinalLogic.RequiredEvidenceIds.All(submittedEvidenceIds.Contains);
         }
 
-        state.SelectedEvidenceIds = submittedEvidenceIds.Distinct().ToList();
+        var completedAt = DateTime.UtcNow;
+        var snapshot = GameResultFactory.CreateSnapshot(
+            room,
+            gameCase,
+            request,
+            submittedEvidenceIds,
+            success,
+            completedAt);
+        state.SelectedEvidenceIds = snapshot.SelectedEvidenceIds.ToList();
         state.GameStatus = success ? GameStatus.Won : GameStatus.Failed;
-        state.CompletedAt = DateTime.UtcNow;
+        state.CompletedAt = completedAt;
+        state.FinalAccusationSnapshot = snapshot;
         room.Status = RoomStatus.Completed;
 
         if (!await TrySaveStateAsync(room, gameCase))
@@ -1288,25 +1319,7 @@ public partial class GameplayService : IGameplayService
             throw ApiException.Conflict("The game state changed; please retry.");
         }
 
-        var result = new GameResult
-        {
-            RoomId = roomId,
-            CaseId = gameCase.CaseId,
-            Players = room.Players.Select(p => p.UserId).ToList(),
-            SelectedCulpritId = request.CulpritId,
-            SelectedEvidenceIds = state.SelectedEvidenceIds,
-            SelectedMotiveId = request.MotiveId,
-            SelectedMethodId = request.MethodId,
-            SelectedEvidenceLinks = request.EvidenceLinks.Select(link => new SelectedEvidenceLink
-            {
-                ClaimType = link.ClaimType.Trim().ToUpperInvariant(),
-                EvidenceId = link.EvidenceId
-            }).ToList(),
-            ScoreSummary = isV2 ? GameplayV2Rules.BuildScoreSummary(gameCase, state, success) : null,
-            Success = success,
-            Ending = success ? gameCase.FinalLogic.WinEnding : gameCase.FinalLogic.FailEnding
-        };
-        await _db.GameResults.InsertOneAsync(result);
+        var result = await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, _gameResults);
 
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
         await LogAsync(roomId, user.Id, "ACCUSE",

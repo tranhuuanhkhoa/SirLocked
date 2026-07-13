@@ -111,8 +111,9 @@ public class GameStateBuilder : IGameStateBuilder
             .ToList();
         var resolvedChallengeIds = state.ResolvedConfrontationRecords.Select(record => record.ChallengeId).ToHashSet();
 
+        var visiblePhotoClueIds = EvidenceCapturePersistenceCoordinator.VisiblePhotoClueIds(state);
         var photographedClueIds = await _db.EvidencePhotos
-            .Find(photo => photo.RoomId == room.Id && unlocked.Contains(photo.ClueId))
+            .Find(photo => photo.RoomId == room.Id && visiblePhotoClueIds.Contains(photo.ClueId))
             .Project(photo => photo.ClueId)
             .ToListAsync();
         foreach (var clue in unlockedClues.Where(clue => photographedClueIds.Contains(clue.ClueId)))

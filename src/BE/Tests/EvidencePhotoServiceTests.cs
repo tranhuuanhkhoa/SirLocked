@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.Models;
 using SirLocked.Api.Services;
 using Xunit;
 
@@ -58,33 +59,91 @@ public class EvidencePhotoServiceTests
     }
 
     [Fact]
-    public void CaptureClueAsync_PersistsPhotoOnlyAfterStateSaveSucceeds()
+    public async Task CapturePersistence_PhotoFailureDoesNotInvokeOrMutateRoomCommit()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot(), "src", "BE", "Services", "GameplayService.cs"));
-        var methodStart = source.IndexOf("public async Task<GameActionResponse> CaptureClueAsync", StringComparison.Ordinal);
-        Assert.True(methodStart >= 0);
+        var state = new GameplayState();
+        var commitInvoked = false;
 
-        var normalize = source.IndexOf("_evidencePhotos.NormalizeAsync", methodStart, StringComparison.Ordinal);
-        var trySave = source.IndexOf("if (!await TrySaveStateAsync(room, gameCase))", normalize, StringComparison.Ordinal);
-        var upsert = source.IndexOf("_evidencePhotos.UpsertAsync", normalize, StringComparison.Ordinal);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            EvidenceCapturePersistenceCoordinator.PersistAsync(
+                () => throw new InvalidOperationException("photo write failed"),
+                () =>
+                {
+                    commitInvoked = true;
+                    state.CapturedClueIds.Add("clue-1");
+                    state.UnlockedClueIds.Add("clue-1");
+                    return Task.FromResult(true);
+                }));
 
-        Assert.True(normalize > methodStart);
-        Assert.True(trySave > normalize);
-        Assert.True(upsert > trySave);
+        Assert.False(commitInvoked);
+        Assert.Empty(state.CapturedClueIds);
+        Assert.Empty(state.UnlockedClueIds);
+    }
+
+    [Fact]
+    public async Task CapturePersistence_ConflictReplayKeepsOrphanHiddenAndEventuallyCommits()
+    {
+        var persistedPhotos = new Dictionary<(string RoomId, string ClueId), byte[]>();
+        var room = new GameRoom
+        {
+            GameplayState = new GameplayState
+            {
+                // The clue was unlocked by another mechanic before this camera attempt.
+                UnlockedClueIds = new List<string> { "clue-1" }
+            }
+        };
+        var upsertAttempts = 0;
+
+        Task UpsertPhoto()
+        {
+            upsertAttempts++;
+            persistedPhotos[("room-1", "clue-1")] = new byte[] { 4, 2 };
+            return Task.CompletedTask;
+        }
+
+        var conflictedState = new GameplayState
+        {
+            UnlockedClueIds = new List<string> { "clue-1" }
+        };
+        var firstCommit = await EvidenceCapturePersistenceCoordinator.PersistAsync(
+            UpsertPhoto,
+            () =>
+            {
+                conflictedState.CapturedClueIds.Add("clue-1");
+                return Task.FromResult(false);
+            });
+
+        Assert.False(firstCommit);
+        Assert.Single(persistedPhotos);
+        Assert.False(EvidenceCapturePersistenceCoordinator.IsPhotoVisible(room, "clue-1"));
+        Assert.DoesNotContain(
+            "clue-1",
+            EvidenceCapturePersistenceCoordinator.VisiblePhotoClueIds(room.GameplayState!));
+
+        var reloadedState = new GameplayState
+        {
+            UnlockedClueIds = new List<string> { "clue-1" }
+        };
+        var secondCommit = await EvidenceCapturePersistenceCoordinator.PersistAsync(
+            UpsertPhoto,
+            () =>
+            {
+                reloadedState.CapturedClueIds.Add("clue-1");
+                room.GameplayState = reloadedState;
+                return Task.FromResult(true);
+            });
+
+        Assert.True(secondCommit);
+        Assert.Equal(2, upsertAttempts);
+        Assert.Single(persistedPhotos);
+        Assert.True(EvidenceCapturePersistenceCoordinator.IsPhotoVisible(room, "clue-1"));
+        Assert.Contains(
+            "clue-1",
+            EvidenceCapturePersistenceCoordinator.VisiblePhotoClueIds(room.GameplayState!));
+        Assert.Contains("clue-1", room.GameplayState!.CapturedClueIds);
     }
 
     private static EvidencePhotoService Service() => new(null!);
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SirLocked.sln")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not locate repository root.");
-    }
 
     private static FormFile FormFile(Stream stream, string contentType) => new(
         stream,

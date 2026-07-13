@@ -109,3 +109,26 @@ public class EvidencePhotoService : IEvidencePhotoService
         await _db.EvidencePhotos.Find(p => p.RoomId == roomId && p.ClueId == clueId)
             .FirstOrDefaultAsync(cancellationToken);
 }
+
+/// <summary>
+/// Orders the two independently durable writes used by a camera hit. The photo write is
+/// idempotent, so optimistic room-save retries may safely replay it.
+/// </summary>
+public static class EvidenceCapturePersistenceCoordinator
+{
+    public static async Task<bool> PersistAsync(
+        Func<Task> persistPhoto,
+        Func<Task<bool>> commitRoomState)
+    {
+        await persistPhoto();
+        return await commitRoomState();
+    }
+
+    public static bool IsPhotoVisible(GameRoom room, string clueId) =>
+        room.GameplayState is { } state
+        && state.UnlockedClueIds.Contains(clueId)
+        && state.CapturedClueIds.Contains(clueId);
+
+    public static HashSet<string> VisiblePhotoClueIds(GameplayState state) =>
+        state.CapturedClueIds.Where(state.UnlockedClueIds.Contains).ToHashSet();
+}

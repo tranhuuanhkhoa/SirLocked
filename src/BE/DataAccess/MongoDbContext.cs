@@ -54,6 +54,10 @@ public class MongoDbContext
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
     {
+        // This invariant must be established before any noncritical index work. Program calls
+        // PingAsync first, and any failure from this phase is converted to a fail-fast exception.
+        await EnsureGameResultIndexesAsync(ct);
+
         await Users.Indexes.CreateManyAsync(new[]
         {
             new CreateIndexModel<User>(
@@ -79,13 +83,6 @@ public class MongoDbContext
             new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.CaseId)),
             new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.HostUserId)),
             new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.Status))
-        }, ct);
-
-        await GameResults.Indexes.CreateManyAsync(new[]
-        {
-            new CreateIndexModel<GameResult>(Builders<GameResult>.IndexKeys.Ascending(r => r.RoomId)),
-            new CreateIndexModel<GameResult>(Builders<GameResult>.IndexKeys.Ascending(r => r.CaseId)),
-            new CreateIndexModel<GameResult>(Builders<GameResult>.IndexKeys.Descending(r => r.CreatedAt))
         }, ct);
 
         await ActionLogs.Indexes.CreateManyAsync(new[]
@@ -132,9 +129,138 @@ public class MongoDbContext
             cancellationToken: ct);
     }
 
+    private async Task EnsureGameResultIndexesAsync(CancellationToken ct)
+    {
+        try
+        {
+            // Never replace the historical non-unique RoomId index until existing data passes
+            // a read-only duplicate preflight. Operators receive every duplicate group and must
+            // resolve it explicitly; startup never deletes or merges result documents.
+            var duplicateRoomIds = await GameResults.Aggregate()
+                .Group<BsonDocument>(new BsonDocument
+                {
+                    { "_id", "$roomId" },
+                    { "count", new BsonDocument("$sum", 1) },
+                    { "resultIds", new BsonDocument("$push", "$_id") }
+                })
+                .Match(new BsonDocument("count", new BsonDocument("$gt", 1)))
+                .ToListAsync(ct);
+            if (duplicateRoomIds.Count > 0)
+            {
+                throw new GameResultIndexInvariantException(duplicateRoomIds.Select(group =>
+                    new DuplicateGameResultRoom(
+                        group["_id"].ToString() ?? "null",
+                        group["count"].ToInt64(),
+                        group["resultIds"].AsBsonArray
+                            .Select(resultId => resultId.ToString() ?? "null")
+                            .ToList()))
+                    .ToList());
+            }
+
+            using (var cursor = await GameResults.Indexes.ListAsync(ct))
+            {
+                var indexes = await cursor.ToListAsync(ct);
+                foreach (var index in indexes.Where(GameResultIndexMigration.IsRoomIdOnlyIndex))
+                {
+                    if (GameResultIndexMigration.IsDesiredRoomIdIndex(index)) continue;
+
+                    var name = index["name"].AsString;
+                    try
+                    {
+                        await GameResults.Indexes.DropOneAsync(name, ct);
+                    }
+                    catch (MongoCommandException exception) when (
+                        GameResultIndexMigration.IsIndexNotFound(exception.Code, exception.CodeName))
+                    {
+                        // Another app instance already removed the same legacy index.
+                    }
+                }
+            }
+
+            await GameResults.Indexes.CreateManyAsync(new[]
+            {
+                new CreateIndexModel<GameResult>(
+                    Builders<GameResult>.IndexKeys.Ascending(result => result.RoomId),
+                    new CreateIndexOptions { Unique = true, Name = GameResultIndexMigration.RequiredIndexName }),
+                new CreateIndexModel<GameResult>(Builders<GameResult>.IndexKeys.Ascending(result => result.CaseId)),
+                new CreateIndexModel<GameResult>(Builders<GameResult>.IndexKeys.Descending(result => result.CreatedAt))
+            }, ct);
+
+            using var verificationCursor = await GameResults.Indexes.ListAsync(ct);
+            var verifiedIndexes = await verificationCursor.ToListAsync(ct);
+            if (!verifiedIndexes.Any(GameResultIndexMigration.IsDesiredRoomIdIndex))
+            {
+                throw new GameResultIndexInvariantException(
+                    $"MongoDB did not confirm required unique index '{GameResultIndexMigration.RequiredIndexName}'.");
+            }
+        }
+        catch (GameResultIndexInvariantException)
+        {
+            throw;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new GameResultIndexInvariantException(
+                $"MongoDB did not confirm required unique index '{GameResultIndexMigration.RequiredIndexName}'.",
+                exception);
+        }
+    }
+
     public async Task<bool> PingAsync(CancellationToken ct = default)
     {
         await Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: ct);
         return true;
     }
+}
+
+public sealed record DuplicateGameResultRoom(
+    string RoomId,
+    long Count,
+    IReadOnlyList<string> ResultIds);
+
+public sealed class GameResultIndexInvariantException : Exception
+{
+    public GameResultIndexInvariantException(IReadOnlyList<DuplicateGameResultRoom> duplicates)
+        : base(BuildDuplicateMessage(duplicates)) => Duplicates = duplicates;
+
+    public GameResultIndexInvariantException(string message, Exception? innerException = null)
+        : base(message, innerException) => Duplicates = Array.Empty<DuplicateGameResultRoom>();
+
+    public IReadOnlyList<DuplicateGameResultRoom> Duplicates { get; }
+
+    private static string BuildDuplicateMessage(IReadOnlyList<DuplicateGameResultRoom> duplicates) =>
+        $"Cannot create {GameResultIndexMigration.RequiredIndexName}; duplicate GameResult.RoomId values exist: "
+        + string.Join("; ", duplicates.Select(duplicate =>
+            $"roomId={duplicate.RoomId}, count={duplicate.Count}, resultIds=[{string.Join(",", duplicate.ResultIds)}]"));
+}
+
+public static class GameResultIndexMigration
+{
+    public const string RequiredIndexName = "ux_gameResults_roomId";
+
+    public static bool IsRoomIdOnlyIndex(BsonDocument index)
+    {
+        if (!index.TryGetValue("key", out var keyValue) || !keyValue.IsBsonDocument) return false;
+        var keys = keyValue.AsBsonDocument;
+        return keys.ElementCount == 1
+               && keys.TryGetValue("roomId", out var direction)
+               && direction.IsNumeric
+               && direction.ToInt32() == 1;
+    }
+
+    public static bool IsDesiredRoomIdIndex(BsonDocument index) =>
+        IsRoomIdOnlyIndex(index)
+        && index.TryGetValue("name", out var name)
+        && name.IsString
+        && name.AsString == RequiredIndexName
+        && index.TryGetValue("unique", out var unique)
+        && unique.IsBoolean
+        && unique.AsBoolean;
+
+    public static bool IsIndexNotFound(int code, string? codeName) =>
+        code == 27 || string.Equals(codeName, "IndexNotFound", StringComparison.Ordinal);
 }

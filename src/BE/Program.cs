@@ -68,6 +68,7 @@ builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
+builder.Services.AddScoped<IGameResultStore, MongoGameResultStore>();
 builder.Services.AddScoped<IWorkshopService, WorkshopService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
@@ -221,8 +222,8 @@ app.MapHub<GameHub>("/hubs/game");
 app.MapHealthChecks("/health");
 app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 
-// Startup tasks: indexes + admin seed. Failures are logged but do not stop the host,
-// so the app can still boot and report a clear error when MongoDB is unreachable.
+// Startup tasks: indexes + admin seed. Connectivity failures are logged without stopping
+// the host, but a result-index invariant failure must abort before endpoints can serve.
 using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
@@ -242,6 +243,17 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("Default admin seeding is disabled for environment {Environment}.", app.Environment.EnvironmentName);
         }
         logger.LogInformation("MongoDB connected ({Database}); indexes ensured; admin seed policy applied.", db.Settings.DatabaseName);
+    }
+    catch (GameResultIndexInvariantException ex)
+    {
+        logger.LogCritical(
+            ex,
+            "GameResult RoomId uniqueness could not be guaranteed; API startup is aborted. Resolve the reported index or duplicate identifiers explicitly.");
+        throw;
+    }
+    catch (OperationCanceledException)
+    {
+        throw;
     }
     catch (Exception ex)
     {
