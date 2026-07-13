@@ -6,6 +6,10 @@ namespace SirLocked.Tests;
 
 public class GameProgressionRuleTests
 {
+    private static readonly HashSet<string> Empty = new();
+
+    private static HashSet<string> Set(params string[] values) => new(values);
+
     private static GameCase BuildCase() => new()
     {
         CaseId = "case-test",
@@ -326,6 +330,112 @@ public class GameProgressionRuleTests
         state.CompletedSceneIds.AddRange(new[] { "scene-a", "scene-b", "scene-c" });
         Assert.True(GameRules.IsAccusationAvailable(gameCase, state, "scene-c"));
         Assert.False(GameRules.IsAccusationAvailable(gameCase, state, "scene-a"));
+    }
+
+    [Fact]
+    public void CompleteConditionProgress_AndCountsEveryMissingId_AndPreservesEmptyAllBehavior()
+    {
+        var condition = new CompleteCondition
+        {
+            Logic = "AND",
+            RequiredItemIds = { "item-1", "item-2" },
+            RequiredClueIds = { "clue-1" }
+        };
+
+        var partial = CompleteConditionProgress.Evaluate(condition, Set("item-1"), Empty, Empty);
+
+        Assert.False(partial.IsSatisfied);
+        Assert.Equal(2, partial.PendingCount);
+        Assert.Equal(new[] { "item-2" }, partial.MissingItemIds);
+        Assert.Equal(new[] { "clue-1" }, partial.MissingClueIds);
+        Assert.Empty(partial.MissingDialogueIds);
+        Assert.Empty(partial.Alternatives);
+
+        var complete = CompleteConditionProgress.Evaluate(
+            condition,
+            Set("item-1", "item-2"),
+            Set("clue-1"),
+            Empty);
+        Assert.True(complete.IsSatisfied);
+        Assert.Equal(0, complete.PendingCount);
+
+        var emptyAnd = CompleteConditionProgress.Evaluate(new CompleteCondition(), Empty, Empty, Empty);
+        Assert.True(emptyAnd.IsSatisfied);
+        Assert.Equal(0, emptyAnd.PendingCount);
+    }
+
+    [Fact]
+    public void CompleteConditionProgress_OrCanBeSatisfiedByAnyRequirementType_AndClearsPublicMissingIds()
+    {
+        var condition = new CompleteCondition
+        {
+            Logic = "OR",
+            RequiredItemIds = { "item-1", "item-2" },
+            RequiredClueIds = { "clue-1" },
+            RequiredDialogueIds = { "dialogue-1" }
+        };
+        var results = new[]
+        {
+            CompleteConditionProgress.Evaluate(condition, Set("item-1", "item-2"), Empty, Empty),
+            CompleteConditionProgress.Evaluate(condition, Empty, Set("clue-1"), Empty),
+            CompleteConditionProgress.Evaluate(condition, Empty, Empty, Set("dialogue-1"))
+        };
+
+        foreach (var result in results)
+        {
+            Assert.True(result.IsSatisfied);
+            Assert.Equal(0, result.PendingCount);
+            Assert.Empty(result.MissingItemIds);
+            Assert.Empty(result.MissingClueIds);
+            Assert.Empty(result.MissingDialogueIds);
+            Assert.Empty(result.Alternatives);
+        }
+    }
+
+    [Fact]
+    public void CompleteConditionProgress_OrIgnoresEmptyBranches_AndUsesShortestUnfinishedBranch()
+    {
+        var condition = new CompleteCondition
+        {
+            Logic = "OR",
+            RequiredItemIds = { "item-1", "item-2" },
+            RequiredClueIds = { "clue-1", "clue-2", "clue-3" }
+        };
+
+        var progress = CompleteConditionProgress.Evaluate(condition, Set("item-1"), Empty, Empty);
+
+        Assert.False(progress.IsSatisfied);
+        Assert.Equal(1, progress.PendingCount);
+        Assert.Equal(2, progress.Alternatives.Count);
+        Assert.DoesNotContain(
+            progress.Alternatives,
+            alternative => alternative.Type == CompleteConditionAlternativeType.Dialogues);
+        Assert.False(CaseValidationService.IsConditionSatisfied(condition, Set("item-1"), Empty, Empty));
+    }
+
+    [Fact]
+    public void CompleteConditionProgress_EmptyOrIsDefensivelyUnsatisfied()
+    {
+        var condition = new CompleteCondition { Logic = "OR" };
+
+        var progress = CompleteConditionProgress.Evaluate(condition, Empty, Empty, Empty);
+
+        Assert.False(progress.IsSatisfied);
+        Assert.Equal(0, progress.PendingCount);
+        Assert.Empty(progress.Alternatives);
+    }
+
+    [Fact]
+    public void Validation_EmptyOrRemainsInvalidContent()
+    {
+        var gameCase = BuildCase();
+        gameCase.Stages[0].Scenes[0].CompleteCondition = new CompleteCondition { Logic = "OR" };
+
+        var result = new CaseValidationService().Validate(gameCase);
+
+        Assert.Contains(result.Errors, error =>
+            error.Code == "InvalidValue"
+            && error.Path.EndsWith("completeCondition", StringComparison.Ordinal));
     }
 
     [Fact]

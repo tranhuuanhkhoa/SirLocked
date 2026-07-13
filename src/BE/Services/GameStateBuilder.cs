@@ -28,9 +28,13 @@ public class GameStateBuilder : IGameStateBuilder
         var collected = state.CollectedItemIds.ToHashSet();
         var solvedPuzzles = state.SolvedPuzzleIds.ToHashSet();
         var asked = state.AskedDialogueIds.ToHashSet();
-        var canCompleteScene = GameRules.IsSceneAlreadyCompleted(state, scene.SceneId)
-            || CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked);
-        var missingRequirements = MissingRequirements(scene.CompleteCondition, inspected, unlocked, asked);
+        var currentSceneProgress = CompleteConditionProgress.Evaluate(
+            scene.CompleteCondition,
+            inspected,
+            unlocked,
+            asked);
+        var canCompleteScene = CanCompleteScene(state, scene.SceneId, currentSceneProgress);
+        var missingRequirements = BuildMissingRequirements(currentSceneProgress);
 
         var sceneDialogues = gameCase.Dialogues
             .Where(d => scene.CharacterIds.Contains(d.CharacterId))
@@ -83,27 +87,7 @@ public class GameStateBuilder : IGameStateBuilder
                 .ToList()
         };
 
-        var sceneMap = gameCase.Stages.OrderBy(s => s.Order)
-            .SelectMany(s => s.Scenes)
-            .Select(s =>
-            {
-                var canEnter = GameRules.CanEnterScene(gameCase, state, s.SceneId);
-                return new SceneMapEntryDto
-                {
-                    SceneId = s.SceneId,
-                    Title = canEnter ? s.Title : "Unknown location",
-                    IsCurrent = s.SceneId == scene.SceneId,
-                    IsVisited = state.VisitedSceneIds.Contains(s.SceneId),
-                    IsUnlocked = canEnter,
-                    IsCompleted = state.CompletedSceneIds.Contains(s.SceneId),
-                    PendingRequirementCount = state.CompletedSceneIds.Contains(s.SceneId)
-                        ? 0
-                        : s.CompleteCondition.RequiredItemIds.Count(i => !inspected.Contains(i))
-                            + s.CompleteCondition.RequiredClueIds.Count(c => !unlocked.Contains(c))
-                            + s.CompleteCondition.RequiredDialogueIds.Count(d => !asked.Contains(d))
-                };
-            })
-            .ToList();
+        var sceneMap = BuildSceneMap(gameCase, state, scene.SceneId, inspected, unlocked, asked);
 
         var unlockedClues = gameCase.Clues
             .Where(c => unlocked.Contains(c.ClueId))
@@ -162,7 +146,7 @@ public class GameStateBuilder : IGameStateBuilder
             AvailableForAccusation = GameRules.IsAccusationAvailable(gameCase, state, scene.SceneId),
             CurrentSceneCanComplete = canCompleteScene,
             CurrentSceneMissingRequirements = missingRequirements,
-            CurrentObjective = BuildObjective(gameCase, state, scene),
+            CurrentObjective = BuildObjective(gameCase, state, scene, currentSceneProgress, unlocked),
             VisibleScene = visibleScene,
             SceneMap = sceneMap,
             UnlockedClues = unlockedClues,
@@ -263,18 +247,56 @@ public class GameStateBuilder : IGameStateBuilder
         || scene.CharacterIds.Contains(targetId)
         || scene.Hotspots.Any(h => h.TargetId == targetId);
 
-    private static MissingRequirementsDto MissingRequirements(
-        CompleteCondition condition,
+    internal static MissingRequirementsDto BuildMissingRequirements(CompleteConditionProgressResult progress) => new()
+    {
+        RequiredItemIds = progress.MissingItemIds.ToList(),
+        RequiredClueIds = progress.MissingClueIds.ToList(),
+        RequiredDialogueIds = progress.MissingDialogueIds.ToList()
+    };
+
+    internal static bool CanCompleteScene(
+        GameplayState state,
+        string sceneId,
+        CompleteConditionProgressResult progress) =>
+        GameRules.IsSceneAlreadyCompleted(state, sceneId) || progress.IsSatisfied;
+
+    internal static List<SceneMapEntryDto> BuildSceneMap(
+        GameCase gameCase,
+        GameplayState state,
+        string currentSceneId,
         IReadOnlySet<string> inspected,
         IReadOnlySet<string> unlocked,
-        IReadOnlySet<string> asked) => new()
-        {
-            RequiredItemIds = condition.RequiredItemIds.Where(i => !inspected.Contains(i)).ToList(),
-            RequiredClueIds = condition.RequiredClueIds.Where(c => !unlocked.Contains(c)).ToList(),
-            RequiredDialogueIds = condition.RequiredDialogueIds.Where(d => !asked.Contains(d)).ToList()
-        };
+        IReadOnlySet<string> asked) =>
+        gameCase.Stages.OrderBy(stage => stage.Order)
+            .SelectMany(stage => stage.Scenes)
+            .Select(scene =>
+            {
+                var canEnter = GameRules.CanEnterScene(gameCase, state, scene.SceneId);
+                var isCompleted = state.CompletedSceneIds.Contains(scene.SceneId);
+                var progress = CompleteConditionProgress.Evaluate(
+                    scene.CompleteCondition,
+                    inspected,
+                    unlocked,
+                    asked);
+                return new SceneMapEntryDto
+                {
+                    SceneId = scene.SceneId,
+                    Title = canEnter ? scene.Title : "Unknown location",
+                    IsCurrent = scene.SceneId == currentSceneId,
+                    IsVisited = state.VisitedSceneIds.Contains(scene.SceneId),
+                    IsUnlocked = canEnter,
+                    IsCompleted = isCompleted,
+                    PendingRequirementCount = isCompleted ? 0 : progress.PendingCount
+                };
+            })
+            .ToList();
 
-    private static string BuildObjective(GameCase gameCase, GameplayState state, CaseScene scene)
+    internal static string BuildObjective(
+        GameCase gameCase,
+        GameplayState state,
+        CaseScene scene,
+        CompleteConditionProgressResult progress,
+        IReadOnlySet<string> unlocked)
     {
         if (state.GameStatus != GameStatus.InProgress)
         {
@@ -285,10 +307,6 @@ public class GameStateBuilder : IGameStateBuilder
         {
             return "All the evidence is on the table. Confront the suspects and make the final accusation.";
         }
-
-        var inspected = state.InspectedItemIds.ToHashSet();
-        var unlocked = state.UnlockedClueIds.ToHashSet();
-        var asked = state.AskedDialogueIds.ToHashSet();
 
         if (GameRules.AllScenesCompleted(gameCase, state))
         {
@@ -313,15 +331,33 @@ public class GameStateBuilder : IGameStateBuilder
                 : $"Every location is fully investigated. Before accusing: {string.Join(", ", finalParts)}.";
         }
 
-        if (CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked))
+        if (progress.IsSatisfied)
         {
             return $"You have found everything that matters in {scene.Title}. Continue the investigation when both of you are ready.";
         }
 
+        if (string.Equals(scene.CompleteCondition.Logic, "OR", StringComparison.OrdinalIgnoreCase))
+        {
+            var alternatives = progress.Alternatives.Select(alternative => alternative.Type switch
+            {
+                CompleteConditionAlternativeType.Items =>
+                    $"examine {alternative.MissingIds.Count} physical evidence item(s)",
+                CompleteConditionAlternativeType.Dialogues =>
+                    $"ask {alternative.MissingIds.Count} question(s)",
+                CompleteConditionAlternativeType.Clues =>
+                    $"uncover {alternative.MissingIds.Count} clue(s)",
+                _ => throw new ArgumentOutOfRangeException()
+            }).ToList();
+
+            return alternatives.Count == 0
+                ? $"Investigate {scene.Title}."
+                : $"Investigate {scene.Title}: choose one \u2014 {string.Join("; or ", alternatives)}.";
+        }
+
         var parts = new List<string>();
-        var missingItems = scene.CompleteCondition.RequiredItemIds.Count(i => !inspected.Contains(i));
-        var missingClues = scene.CompleteCondition.RequiredClueIds.Count(c => !unlocked.Contains(c));
-        var missingDialogues = scene.CompleteCondition.RequiredDialogueIds.Count(d => !asked.Contains(d));
+        var missingItems = progress.MissingItemIds.Count;
+        var missingClues = progress.MissingClueIds.Count;
+        var missingDialogues = progress.MissingDialogueIds.Count;
         if (missingItems > 0) parts.Add($"examine {missingItems} more piece(s) of physical evidence");
         if (missingDialogues > 0) parts.Add($"ask {missingDialogues} more question(s)");
         if (missingClues > 0) parts.Add($"uncover {missingClues} more clue(s)");

@@ -1475,21 +1475,8 @@ public class CaseValidationService : ICaseValidationService
         CompleteCondition condition,
         IReadOnlySet<string> inspectedItems,
         IReadOnlySet<string> unlockedClues,
-        IReadOnlySet<string> askedDialogues)
-    {
-        var itemsOk = condition.RequiredItemIds.All(inspectedItems.Contains);
-        var cluesOk = condition.RequiredClueIds.All(unlockedClues.Contains);
-        var dialoguesOk = condition.RequiredDialogueIds.All(askedDialogues.Contains);
-
-        if (condition.Logic.Equals("OR", StringComparison.OrdinalIgnoreCase))
-        {
-            return (condition.RequiredItemIds.Count > 0 && itemsOk)
-                || (condition.RequiredClueIds.Count > 0 && cluesOk)
-                || (condition.RequiredDialogueIds.Count > 0 && dialoguesOk);
-        }
-
-        return itemsOk && cluesOk && dialoguesOk;
-    }
+        IReadOnlySet<string> askedDialogues) =>
+        CompleteConditionProgress.Evaluate(condition, inspectedItems, unlockedClues, askedDialogues).IsSatisfied;
 
     private static string DescribeMissing(
         CompleteCondition condition,
