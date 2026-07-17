@@ -2,9 +2,10 @@ import { caseApi } from '../api/caseApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr } from '../services/i18n.js';
 
 export async function renderCasesPage(app) {
-  render(app, '<div class="page"><p class="muted">Loading published cases…</p></div>');
+  render(app, `<div class="page"><p class="muted">${tr('Loading published cases…', 'Đang tải các vụ án…')}</p></div>`);
 
   let cases = [];
   try {
@@ -25,14 +26,14 @@ export async function renderCasesPage(app) {
         <h3>${escapeHtml(c.title)}</h3>
         <p class="case-summary">${escapeHtml(c.summary)}</p>
         <div class="case-meta">
-          <span class="chip">${c.estimatedMinutes} min</span>
-          <span class="chip">${c.sceneCount} scenes</span>
-          <span class="chip">${c.characterCount} suspects</span>
-          <span class="chip">${c.clueCount} clues</span>
+          <span class="chip">${c.estimatedMinutes} ${tr('min', 'phút')}</span>
+          <span class="chip">${c.sceneCount} ${tr('scenes', 'hiện trường')}</span>
+          <span class="chip">${c.characterCount} ${tr('suspects', 'nghi phạm')}</span>
+          <span class="chip">${c.clueCount} ${tr('clues', 'manh mối')}</span>
         </div>
         <div class="case-actions">
-          <a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(c.caseId)}">Details</a>
-          <button class="btn btn-primary btn-sm" data-create="${escapeHtml(c.caseId)}">Create room</button>
+          <a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(c.caseId)}">${tr('Details', 'Chi tiết')}</a>
+          <button class="btn btn-primary btn-sm" data-create="${escapeHtml(c.caseId)}">${tr('Create room', 'Tạo phòng')}</button>
         </div>
       </div>
     </article>`).join('');
@@ -40,14 +41,14 @@ export async function renderCasesPage(app) {
   render(app, `
   <div class="page">
     <div class="page-head">
-      <h2>Published Cases</h2>
+      <h2>${tr('Published Cases', 'Vụ án đã xuất bản')}</h2>
       <div class="case-actions">
-        <a class="btn btn-primary" href="#/create-room">Create room</a>
-        <a class="btn btn-ghost" href="#/join">Have a room code?</a>
+        <a class="btn btn-primary" href="#/create-room">${tr('Create room', 'Tạo phòng')}</a>
+        <a class="btn btn-ghost" href="#/join">${tr('Have a room code?', 'Đã có mã phòng?')}</a>
       </div>
     </div>
     ${cases.length === 0
-      ? '<div class="empty-state">No cases are published yet. Ask an admin to seed and publish the sample case.</div>'
+      ? `<div class="empty-state">${tr('No cases are published yet. Ask an admin to publish a case.', 'Chưa có vụ án nào được xuất bản. Hãy yêu cầu quản trị viên xuất bản một vụ án.')}</div>`
       : `<div class="case-grid">${cards}</div>`}
   </div>`);
 

@@ -1,6 +1,7 @@
 import { session } from './services/session.js';
 import { authApi } from './api/authApi.js';
 import { escapeHtml, render } from './utils/dom.js';
+import { languageSwitchMarkup, setUiLanguage, tr, uiLanguage } from './services/i18n.js';
 import { renderLoginPage } from './pages/loginPage.js';
 import { renderCasesPage } from './pages/casesPage.js';
 import { renderCaseDetailPage } from './pages/caseDetailPage.js';
@@ -64,12 +65,12 @@ function renderNav() {
     return;
   }
   const adminLinks = session.isAdmin()
-    ? `<a href="#/admin" class="nav-link">Dashboard</a>
-       <a href="#/admin/cases" class="nav-link">Manage Cases</a>
-       <a href="#/admin/weekly" class="nav-link">Weekly</a>`
+    ? `<a href="#/admin" class="nav-link">${tr('Dashboard', 'Tổng quan')}</a>
+       <a href="#/admin/cases" class="nav-link">${tr('Manage Cases', 'Quản lý vụ án')}</a>
+       <a href="#/admin/weekly" class="nav-link">${tr('Weekly', 'Hàng tuần')}</a>`
     : '';
   const aiLinks = session.canGenerateAi()
-    ? '<a href="#/admin/ai" class="nav-link">AI Creator</a>'
+    ? `<a href="#/admin/ai" class="nav-link">${tr('AI Creator', 'Tạo vụ án AI')}</a>`
     : '';
   const roleChip = session.isAdmin()
     ? ' <span class="chip chip-gold">ADMIN</span>'
@@ -80,17 +81,18 @@ function renderNav() {
     <nav class="app-nav">
       <a class="nav-brand" href="#/cases">SIR<span>LOCKED</span></a>
       <div class="nav-links">
-        <a href="#/cases" class="nav-link">Cases</a>
-        <a href="#/workshop" class="nav-link">Workshop</a>
-        <a href="#/create-room" class="nav-link">Create Room</a>
-        <a href="#/join" class="nav-link">Join Room</a>
-        <a href="#/detective" class="nav-link">Hồ sơ</a>
+        <a href="#/cases" class="nav-link">${tr('Cases', 'Vụ án')}</a>
+        <a href="#/workshop" class="nav-link">${tr('Workshop', 'Cộng đồng')}</a>
+        <a href="#/create-room" class="nav-link">${tr('Create Room', 'Tạo phòng')}</a>
+        <a href="#/join" class="nav-link">${tr('Join Room', 'Vào phòng')}</a>
+        <a href="#/detective" class="nav-link">${tr('Profile', 'Hồ sơ')}</a>
         ${adminLinks}
         ${aiLinks}
       </div>
       <div class="nav-user">
+        ${languageSwitchMarkup('ui-language-switch-nav')}
         <span class="nav-username">${escapeHtml(user.fullName)}${roleChip}</span>
-        <button class="btn btn-ghost btn-sm" id="nav-logout">Log out</button>
+        <button class="btn btn-ghost btn-sm" id="nav-logout">${tr('Log out', 'Đăng xuất')}</button>
       </div>
     </nav>`);
   navRoot.querySelector('#nav-logout').addEventListener('click', async () => {
@@ -141,7 +143,10 @@ async function route() {
     return;
   }
   if (r.requiresVerified && !session.isEmailVerified()) {
-    alert('Bạn cần xác minh email trước khi vào game. Vào trang Hồ sơ để xác minh.');
+    alert(tr(
+      'You must verify your email before entering the game. Open Profile to verify it.',
+      'Bạn cần xác minh email trước khi vào game. Vào trang Hồ sơ để xác minh.',
+    ));
     window.location.hash = '#/detective';
     return;
   }
@@ -156,4 +161,15 @@ async function route() {
 }
 
 window.addEventListener('hashchange', route);
-window.addEventListener('DOMContentLoaded', route);
+window.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.lang = uiLanguage();
+  route();
+});
+
+document.addEventListener('click', (event) => {
+  const button = event.target.closest?.('[data-ui-language]');
+  const language = button?.dataset.uiLanguage;
+  if (!language || language === uiLanguage()) return;
+  setUiLanguage(language);
+  route();
+});

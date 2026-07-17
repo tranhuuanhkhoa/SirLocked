@@ -22,6 +22,20 @@ code { font-family: 'Source Code Pro', monospace; color: var(--gold-light); font
 .nav-link:hover { color: var(--gold-light); background: rgba(201,168,76,0.08); }
 .nav-user { display: flex; align-items: center; gap: 12px; }
 .nav-username { color: var(--beige); }
+.ui-language-switch {
+  display: inline-flex; align-items: center; padding: 2px;
+  border: 1px solid rgba(201,168,76,0.4); border-radius: 6px;
+  background: rgba(7,12,24,0.55);
+}
+.ui-language-option {
+  min-width: 34px; padding: 4px 7px; border: 0; border-radius: 4px;
+  background: transparent; color: var(--beige-muted); cursor: pointer;
+  font: 700 0.72rem/1 'Source Code Pro', monospace; letter-spacing: 0.5px;
+}
+.ui-language-option:hover { color: var(--gold-light); }
+.ui-language-option.is-active { background: var(--gold); color: var(--navy); }
+.ui-language-option:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+.ui-language-switch-auth { position: absolute; top: 14px; right: 14px; }
 
 /* ---------- layout ---------- */
 .page { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; }
@@ -77,6 +91,7 @@ code { font-family: 'Source Code Pro', monospace; color: var(--gold-light); font
 /* ---------- auth ---------- */
 .auth-screen { min-height: calc(100vh - 60px); display: grid; place-items: center; padding: 30px 16px; }
 .auth-panel {
+  position: relative;
   width: 100%; max-width: 420px; background: var(--navy2);
   border: 1px solid rgba(201,168,76,0.3); border-radius: 12px; padding: 36px;
 }

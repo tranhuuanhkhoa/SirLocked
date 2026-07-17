@@ -2,6 +2,7 @@ import { authApi } from '../api/authApi.js';
 import { session } from '../services/session.js';
 import { render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { languageSwitchMarkup, tr } from '../services/i18n.js';
 
 export async function renderLoginPage(app) {
   if (session.isLoggedIn()) {
@@ -12,51 +13,52 @@ export async function renderLoginPage(app) {
   render(app, `
   <div class="auth-screen">
     <div class="auth-panel">
+      ${languageSwitchMarkup('ui-language-switch-auth')}
       <div class="auth-logo">
         <h1>SIR LOCKED</h1>
-        <p>The Mystery Awaits</p>
+        <p>${tr('The Mystery Awaits', 'Bí ẩn đang chờ đợi')}</p>
       </div>
       <div class="gold-divider"></div>
       <div class="tab-row">
-        <button class="form-tab active" data-tab="login">Log in</button>
-        <button class="form-tab" data-tab="register">Register</button>
+        <button class="form-tab active" data-tab="login">${tr('Log in', 'Đăng nhập')}</button>
+        <button class="form-tab" data-tab="register">${tr('Register', 'Đăng ký')}</button>
       </div>
 
       <form id="form-login" class="auth-form">
         <label class="field-label">Email
           <input class="field-input" name="email" type="email" required autocomplete="email" placeholder="detective@sirlocked.local">
         </label>
-        <label class="field-label">Password
+        <label class="field-label">${tr('Password', 'Mật khẩu')}
           <input class="field-input" name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
         </label>
-        <button class="btn btn-primary btn-block" type="submit">Log in</button>
+        <button class="btn btn-primary btn-block" type="submit">${tr('Log in', 'Đăng nhập')}</button>
         <p style="text-align:center;margin-top:8px">
-          <a href="#" id="link-forgot" style="color:#d8ae52;font-size:13px">Quên mật khẩu?</a>
+          <a href="#" id="link-forgot" style="color:#d8ae52;font-size:13px">${tr('Forgot password?', 'Quên mật khẩu?')}</a>
         </p>
       </form>
 
       <form id="form-register" class="auth-form" hidden>
-        <label class="field-label">Full name
+        <label class="field-label">${tr('Full name', 'Họ và tên')}
           <input class="field-input" name="fullName" type="text" required minlength="2" placeholder="Detective Holmes">
         </label>
         <label class="field-label">Email
           <input class="field-input" name="email" type="email" required autocomplete="email" placeholder="detective@sirlocked.local">
         </label>
-        <label class="field-label">Password (tối thiểu 6 ký tự, gồm chữ và số)
+        <label class="field-label">${tr('Password (at least 6 characters, including letters and numbers)', 'Mật khẩu (tối thiểu 6 ký tự, gồm chữ và số)')}
           <input class="field-input" name="password" type="password" required minlength="6" autocomplete="new-password" placeholder="••••••••">
         </label>
-        <button class="btn btn-primary btn-block" type="submit">Create account</button>
+        <button class="btn btn-primary btn-block" type="submit">${tr('Create account', 'Tạo tài khoản')}</button>
       </form>
 
       <form id="form-forgot" class="auth-form" hidden>
-        <p style="color:#efe7d2;font-size:13px;margin-bottom:12px">Nhập email để nhận mã đặt lại mật khẩu.</p>
+        <p style="color:#efe7d2;font-size:13px;margin-bottom:12px">${tr('Enter your email to receive a password reset link.', 'Nhập email để nhận liên kết đặt lại mật khẩu.')}</p>
         <label class="field-label">Email
           <input class="field-input" name="email" type="email" required placeholder="detective@sirlocked.local">
         </label>
-        <button class="btn btn-primary btn-block" type="submit">Gửi yêu cầu</button>
+        <button class="btn btn-primary btn-block" type="submit">${tr('Send request', 'Gửi yêu cầu')}</button>
         <div id="forgot-result" style="margin-top:12px"></div>
         <p style="text-align:center;margin-top:8px">
-          <a href="#" id="link-back-login" style="color:#d8ae52;font-size:13px">← Quay lại đăng nhập</a>
+          <a href="#" id="link-back-login" style="color:#d8ae52;font-size:13px">${tr('← Back to login', '← Quay lại đăng nhập')}</a>
         </p>
       </form>
 
@@ -64,10 +66,10 @@ export async function renderLoginPage(app) {
       <a href="http://localhost:5215/api/auth/google" class="btn btn-block"
          style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;text-decoration:none;padding:10px;border-radius:6px;font-weight:600">
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        Đăng nhập với Google
+        ${tr('Continue with Google', 'Đăng nhập với Google')}
       </a>
 
-      <p class="auth-hint">Two detectives. One locked case.</p>
+      <p class="auth-hint">${tr('Two detectives. One locked case.', 'Hai thám tử. Một vụ án bí ẩn.')}</p>
     </div>
   </div>`);
 

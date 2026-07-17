@@ -196,6 +196,9 @@ const progressedState = {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(([id]) => {
     window.localStorage.setItem('sirlocked.token', 'smoke-token');
+    if (!window.localStorage.getItem('sirlocked.uiLanguage')) {
+      window.localStorage.setItem('sirlocked.uiLanguage', 'en');
+    }
     window.localStorage.setItem('sirlocked.user', JSON.stringify({
       userId: 'player-1',
       fullName: 'Smoke Player',
@@ -284,6 +287,32 @@ test('locked authored scenes stay hidden until Continue applies server movement'
   await page.locator('#map-btn').click();
   await expect(page.locator('.map-entry').filter({ hasText: 'Unlocked Hall' })).toHaveCount(1);
   await expect(page.locator('.map-entry:disabled').filter({ hasText: 'Unknown location' })).toHaveCount(1);
+});
+
+test('interface language switch changes English and Vietnamese and persists', async ({ page }) => {
+  await page.route('**/api/cases/published', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/#/cases');
+  await expect(page.locator('.page-head h2')).toHaveText('Published Cases');
+  await expect(page.locator('[data-ui-language="en"]')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.locator('[data-ui-language="vi"]').click();
+  await expect(page.locator('.page-head h2')).toHaveText('Vụ án đã xuất bản');
+  await expect(page.locator('.nav-links')).toContainText('Tạo phòng');
+  await expect(page.locator('[data-ui-language="vi"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem('sirlocked.uiLanguage'))).toBe('vi');
+
+  await page.reload();
+  await expect(page.locator('.page-head h2')).toHaveText('Vụ án đã xuất bản');
+  await page.locator('[data-ui-language="en"]').click();
+  await expect(page.locator('.page-head h2')).toHaveText('Published Cases');
 });
 
 test('two-player presence recovers and version events coalesce to one state refetch', async ({ page }) => {
