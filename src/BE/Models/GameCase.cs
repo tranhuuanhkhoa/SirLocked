@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using SirLocked.Api.Models.Enums;
+using System.Text.Json.Serialization;
 
 namespace SirLocked.Api.Models;
 
@@ -18,6 +19,13 @@ public class GameCase
     public string CaseId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
+    public string Language { get; set; } = CaseLanguages.English;
+    [JsonPropertyName("art_style")]
+    public string ArtStyle { get; set; } = AiVisualStyleDefaults.ArtStyle;
+    [JsonPropertyName("sub_style")]
+    public string SubStyle { get; set; } = AiVisualStyleDefaults.SubStyle;
+    [JsonPropertyName("character_style")]
+    public string CharacterStyle { get; set; } = AiVisualStyleDefaults.CharacterStyle;
     public string Status { get; set; } = CaseStatus.Draft;
     public int MechanicsVersion { get; set; } = CaseMechanicsVersions.Legacy;
     public string GenerationMode { get; set; } = CaseGenerationModes.LegacyItem;
@@ -34,6 +42,8 @@ public class GameCase
     public List<DeductionChallenge> Deductions { get; set; } = new();
     public List<RequiredTeamworkChain> RequiredTeamworkChains { get; set; } = new();
     public List<CaseHint> Hints { get; set; } = new();
+    public List<CaseInteraction> Interactions { get; set; } = new();
+    public List<CasePuzzle> Puzzles { get; set; } = new();
     public FinalLogic FinalLogic { get; set; } = new();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -56,6 +66,8 @@ public class CaseScene
     public string Title { get; set; } = string.Empty;
     public string BackgroundUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    /// <summary>English/ASCII art direction used only by the image pipeline.</summary>
+    public string VisualDescription { get; set; } = string.Empty;
     public List<string> ItemIds { get; set; } = new();
     public List<string> CharacterIds { get; set; } = new();
     public List<SceneHotspot> Hotspots { get; set; } = new();
@@ -92,7 +104,27 @@ public static class EvidenceClaimTypes
 public static class CaseGenerationModes
 {
     public const string LegacyItem = "LEGACY_ITEM";
+    /// <summary>
+    /// Empty room backgrounds are generated first; NPC and small evidence cutouts are placed by runtime afterwards.
+    /// </summary>
+    public const string PlacementFirst = "PLACEMENT_FIRST";
     public const string CameraEmbedded = "CAMERA_EMBEDDED";
+}
+
+public static class CaseLanguages
+{
+    public const string English = "en";
+    public const string Vietnamese = "vi";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        English, Vietnamese
+    };
+
+    public static string Normalize(string? language) =>
+        string.Equals(language?.Trim(), Vietnamese, StringComparison.OrdinalIgnoreCase)
+            ? Vietnamese
+            : English;
 }
 
 public static class CaseItemInteractionPurposes
@@ -102,6 +134,61 @@ public static class CaseItemInteractionPurposes
     public const string OperateMechanism = "operate-mechanism";
     public const string LegacyEvidence = "legacy-evidence";
     public const string Decorative = "decorative";
+}
+
+public static class CaseItemRenderModes
+{
+    public const string Cutout = "CUTOUT";
+    public const string Embedded = "EMBEDDED";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        Cutout, Embedded
+    };
+
+    public static string Infer(CaseItem item) =>
+        !item.IsCollectible && item.InteractionPurpose == CaseItemInteractionPurposes.OperateMechanism
+            ? Embedded
+            : Cutout;
+}
+
+public static class CaseInteractionTypes
+{
+    public const string UseItemOnTarget = "USE_ITEM_ON_TARGET";
+    public const string CombineItems = "COMBINE_ITEMS";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        UseItemOnTarget, CombineItems
+    };
+}
+
+public static class CasePuzzleTypes
+{
+    public const string CodePuzzle = "CODE_PUZZLE";
+    public const string SequencePuzzle = "SEQUENCE_PUZZLE";
+    public const string SymbolMatchPuzzle = "SYMBOL_MATCH_PUZZLE";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        CodePuzzle, SequencePuzzle, SymbolMatchPuzzle
+    };
+}
+
+public static class ClueVisualTextPolicies
+{
+    public const string NoText = "NO_TEXT";
+    public const string AbstractSymbols = "ABSTRACT_SYMBOLS";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        NoText, AbstractSymbols
+    };
+
+    public static string Normalize(string? value) =>
+        string.Equals(value?.Trim(), AbstractSymbols, StringComparison.OrdinalIgnoreCase)
+            ? AbstractSymbols
+            : NoText;
 }
 
 [BsonIgnoreExtraElements]
@@ -281,6 +368,7 @@ public class CaseCharacter
     public string Role { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string VisualDescription { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
@@ -290,6 +378,8 @@ public class CaseItem
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string InspectText { get; set; } = string.Empty;
+    public string VisualDescription { get; set; } = string.Empty;
+    public string RenderMode { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public List<string> UnlockClueIds { get; set; } = new();
     public bool IsCollectible { get; set; } = true;
@@ -314,6 +404,7 @@ public class CaseClue
     public string SceneId { get; set; } = string.Empty;
     public string DiscoverMethod { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+    public string VisualTextPolicy { get; set; } = ClueVisualTextPolicies.NoText;
     public string InventoryDescription { get; set; } = string.Empty;
     public string NarrativeMeaning { get; set; } = string.Empty;
     public int HintLevel { get; set; }
@@ -377,6 +468,42 @@ public class EvidenceChallenge
     public string SuccessResponse { get; set; } = string.Empty;
     public string FailureResponse { get; set; } = string.Empty;
     public List<string> UnlockClueIds { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class CaseInteraction
+{
+    public string InteractionId { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public List<string> RequiredItemIds { get; set; } = new();
+    public List<string> RequiredClueIds { get; set; } = new();
+    public List<string> UnlockItemIds { get; set; } = new();
+    public List<string> UnlockClueIds { get; set; } = new();
+    public List<string> UnlockSceneIds { get; set; } = new();
+    public List<string> ConsumeItemIds { get; set; } = new();
+    public string SuccessMessage { get; set; } = string.Empty;
+    public string FailureMessage { get; set; } = string.Empty;
+    public bool SingleUse { get; set; } = true;
+}
+
+[BsonIgnoreExtraElements]
+public class CasePuzzle
+{
+    public string PuzzleId { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = new();
+    public string CorrectCode { get; set; } = string.Empty;
+    public List<string> CorrectSequence { get; set; } = new();
+    public List<string> RequiredItemIds { get; set; } = new();
+    public List<string> RequiredClueIds { get; set; } = new();
+    public List<string> UnlockItemIds { get; set; } = new();
+    public List<string> UnlockClueIds { get; set; } = new();
+    public List<string> UnlockSceneIds { get; set; } = new();
+    public string SuccessMessage { get; set; } = string.Empty;
+    public string FailureMessage { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]

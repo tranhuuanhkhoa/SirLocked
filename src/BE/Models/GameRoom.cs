@@ -45,10 +45,13 @@ public class GameplayState
     /// <summary>Optimistic-concurrency version, incremented on every successful mutation.</summary>
     public long Version { get; set; }
     public List<string> VisitedSceneIds { get; set; } = new();
+    public List<string> UnlockedSceneIds { get; set; } = new();
     public List<string> InspectedItemIds { get; set; } = new();
     public List<string> CollectedItemIds { get; set; } = new();
     public List<string> CapturedClueIds { get; set; } = new();
     public List<string> UnlockedClueIds { get; set; } = new();
+    public List<string> UsedInteractionIds { get; set; } = new();
+    public List<string> SolvedPuzzleIds { get; set; } = new();
     public List<string> AskedDialogueIds { get; set; } = new();
     public List<string> VisitedConversationNodeIds { get; set; } = new();
     public List<string> CompletedSceneIds { get; set; } = new();
@@ -58,6 +61,7 @@ public class GameplayState
     public List<string> EvidenceAttemptKeys { get; set; } = new();
     public int WrongEvidencePresentationCount { get; set; }
     public int CameraMissCount { get; set; }
+    public int WrongPuzzleCount { get; set; }
     public List<string> UsedHintIds { get; set; } = new();
     public List<SolvedDeductionRecord> SolvedDeductionRecords { get; set; } = new();
     public List<string> DeductionAttemptKeys { get; set; } = new();
@@ -96,7 +100,7 @@ public class ClueDiscoveryRecord
     public string ClueId { get; set; } = string.Empty;
     public string DiscoveredByUserId { get; set; } = string.Empty;
     public string DiscoveredByRole { get; set; } = string.Empty;
-    /// <summary>inspect | camera | dialogue | challenge | deduction.</summary>
+    /// <summary>inspect | camera | dialogue | challenge | deduction | interaction | puzzle.</summary>
     public string SourceAction { get; set; } = string.Empty;
     public DateTime DiscoveredAt { get; set; } = DateTime.UtcNow;
 }
@@ -109,4 +113,6 @@ public static class ClueDiscoverySources
     public const string Conversation = "conversation";
     public const string Challenge = "challenge";
     public const string Deduction = "deduction";
+    public const string Interaction = "interaction";
+    public const string Puzzle = "puzzle";
 }

@@ -55,6 +55,21 @@ public class AdminAiCasesController : BaseApiController
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> RegenerateAssets(string draftId) =>
         Ok(await _aiCaseService.RegenerateAssetsAsync(Caller, draftId), "Assets regenerated with the current pipeline.");
 
+    [HttpPost("{draftId}/retry-json")]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> RetryJson(string draftId) =>
+        Ok(await _aiCaseService.RetryJsonAsync(Caller, draftId), "Case JSON repaired from the saved invalid checkpoint.");
+
+    [HttpPost("{draftId}/regenerate-failed-assets")]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> RegenerateFailedAssets(string draftId) =>
+        Ok(await _aiCaseService.RegenerateFailedAssetsAsync(Caller, draftId), "Failed assets regenerated without reusing rejected files.");
+
+    [HttpPut("{draftId}/case-json")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> ReplaceCaseJson(
+        string draftId,
+        [FromBody] ReplaceAiDraftJsonRequest request) =>
+        Ok(await _aiCaseService.ReplaceDraftJsonAsync(Caller, draftId, request), "Draft JSON replaced and reset to full-logic approval.");
+
     [HttpGet]
     [Authorize(Roles = UserRole.Admin)]
     public async Task<ActionResult<ApiResponse<List<AiDraftResponse>>>> GetDrafts() =>

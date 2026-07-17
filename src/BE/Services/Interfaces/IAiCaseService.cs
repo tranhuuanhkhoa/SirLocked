@@ -15,6 +15,9 @@ public interface IAiCaseService
     Task<AiDraftResponse> AcceptFullLogicRepairAsync(CurrentUser user, string draftId);
     Task<AiDraftResponse> RejectFullLogicRepairAsync(CurrentUser user, string draftId);
     Task<AiDraftResponse> RegenerateAssetsAsync(CurrentUser user, string draftId);
+    Task<AiDraftResponse> RetryJsonAsync(CurrentUser user, string draftId);
+    Task<AiDraftResponse> RegenerateFailedAssetsAsync(CurrentUser user, string draftId);
+    Task<AiDraftResponse> ReplaceDraftJsonAsync(CurrentUser user, string draftId, ReplaceAiDraftJsonRequest request);
     Task<List<AiDraftResponse>> GetDraftsAsync(CurrentUser user);
     Task<AiDraftResponse> GetDraftAsync(CurrentUser user, string draftId);
     Task<CaseSummaryResponse> ImportDraftAsync(CurrentUser user, string draftId, bool overwrite, bool publish);

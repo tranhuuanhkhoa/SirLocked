@@ -117,4 +117,5 @@ export async function apiFetchBlob(path) {
 
 export const get = (path) => apiFetch('GET', path);
 export const post = (path, body) => apiFetch('POST', path, body ?? {});
+export const put = (path, body) => apiFetch('PUT', path, body ?? {});
 export const patch = (path, body) => apiFetch('PATCH', path, body ?? {});

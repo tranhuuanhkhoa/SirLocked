@@ -8,6 +8,9 @@ public interface IGameplayService
 {
     Task<GameStateResponse> GetStateAsync(string userId, string roomId);
     Task<GameActionResponse> InspectItemAsync(CurrentUser user, string roomId, string itemId);
+    Task<GameActionResponse> UseItemAsync(CurrentUser user, string roomId, UseItemRequest request);
+    Task<GameActionResponse> CombineItemsAsync(CurrentUser user, string roomId, CombineItemsRequest request);
+    Task<GameActionResponse> SolvePuzzleAsync(CurrentUser user, string roomId, SolvePuzzleRequest request);
     Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request);
     Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId);
     Task<GameActionResponse> AskDialogueAsync(CurrentUser user, string roomId, string dialogueId);

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 620" role="img" aria-label="Sealed astral chronometer">
+  <defs><linearGradient id="e"><stop stop-color="#30262a"/><stop offset=".55" stop-color="#0d1115"/><stop offset="1" stop-color="#42262a"/></linearGradient><linearGradient id="b"><stop stop-color="#f4d271"/><stop offset=".4" stop-color="#865026"/><stop offset=".72" stop-color="#dea946"/><stop offset="1" stop-color="#4c281e"/></linearGradient><filter id="t"><feTurbulence baseFrequency=".55" numOctaves="2" seed="19" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter></defs>
+  <g stroke="#29191a" stroke-width="18" stroke-linejoin="round" filter="url(#t)">
+    <path d="M100 560V170q0-95 95-95h310q95 0 95 95v390z" fill="url(#e)"/>
+    <path d="M72 560h556l-38 45H110z" fill="url(#b)"/>
+    <circle cx="350" cy="290" r="155" fill="#d8c79b" stroke="url(#b)" stroke-width="26"/>
+    <circle cx="350" cy="290" r="98" fill="#1e2929" stroke="#6d3d25" stroke-width="14"/>
+    <path d="M350 178v52M462 290h-52M350 402v-52M238 290h52" stroke="#c28e38" stroke-width="18"/>
+    <path d="M350 290l-55-62M350 290l78 25" stroke="#a63330" stroke-width="18" stroke-linecap="round"/>
+    <circle cx="350" cy="290" r="20" fill="url(#b)"/>
+    <g fill="#17171a" stroke="url(#b)" stroke-width="12"><circle cx="210" cy="470" r="60"/><circle cx="350" cy="470" r="60"/><circle cx="490" cy="470" r="60"/></g>
+    <path d="M180 470q30-55 60 0q-30 48-60 0z" fill="#d6c267" stroke-width="8"/><path d="M320 492l30-55 30 55z" fill="#25262b" stroke="#d6c267" stroke-width="8"/><path d="M490 433l15 27 31 4-23 22 6 31-29-15-29 15 6-31-23-22 31-4z" fill="#d6a13f" stroke-width="8"/>
+    <path d="M325 72l25-55 25 55" fill="url(#b)"/>
+  </g>
+</svg>

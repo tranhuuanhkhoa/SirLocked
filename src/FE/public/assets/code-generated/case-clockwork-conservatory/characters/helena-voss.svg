@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1000" role="img" aria-label="Helena Voss character">
+  <defs>
+    <linearGradient id="coat" x2="1" y2="1"><stop stop-color="#9e302e"/><stop offset=".55" stop-color="#631e27"/><stop offset="1" stop-color="#351822"/></linearGradient>
+    <linearGradient id="vest"><stop stop-color="#1c6963"/><stop offset="1" stop-color="#083c3c"/></linearGradient>
+    <linearGradient id="hair"><stop stop-color="#38231f"/><stop offset="1" stop-color="#130f13"/></linearGradient>
+    <filter id="ink"><feTurbulence baseFrequency=".7" numOctaves="2" seed="12" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter>
+  </defs>
+  <g stroke="#21141a" stroke-width="15" stroke-linejoin="round" stroke-linecap="round" filter="url(#ink)">
+    <path d="M206 900l-25 61q42 24 118-1l-4-63z" fill="#252127"/><path d="M323 900l3 61q80 23 116-5l-25-62z" fill="#252127"/>
+    <path d="M226 566q-45 150-20 346l92 2 14-233 16 233 94-2q26-195-31-352z" fill="#29242a"/>
+    <path d="M165 480q-52 124-62 251l70 13 54-151-6 274q89 45 203-3l-12-269 57 151 72-29q-30-154-100-251z" fill="url(#coat)"/>
+    <path d="M224 460l-12 190q91 44 186-2l-18-190z" fill="url(#vest)"/>
+    <path d="M270 464l34 58 39-58 25 66-63 45-60-45z" fill="#ede0bc"/>
+    <path d="M205 460l64 36-35 75-71-86zM395 458l-58 38 36 76 72-90z" fill="#7f2529"/>
+    <g fill="#d6a43e" stroke-width="8"><circle cx="301" cy="590" r="12"/><circle cx="303" cy="635" r="12"/><circle cx="305" cy="680" r="12"/></g>
+    <path d="M112 720q-18 60 48 71q48-4 38-59l-26-35zM487 713q28 56-31 80q-55 5-52-51l24-43z" fill="#e6b48c"/>
+    <path d="M93 706l79-21 28 55-88 23zM414 731l27-55 91 27-33 62z" fill="#176a78"/>
+    <path d="M189 247q-15 169 107 226q127-12 136-177q8-151-116-185q-107 10-127 136z" fill="#efbd92"/>
+    <path d="M176 285q-38-143 80-211q136-48 214 78q29 70-7 174l-57-99q-85 29-189 4l-23 104z" fill="url(#hair)"/>
+    <path d="M188 220q-31 123 17 199l44-84-6-112zM415 196q58 122 7 231l-37-99 2-115z" fill="url(#hair)"/>
+    <path d="M230 302q35-29 71 3M337 302q38-28 69 3" fill="none"/>
+    <ellipse cx="271" cy="337" rx="23" ry="31" fill="#d7a64c"/><ellipse cx="371" cy="337" rx="23" ry="31" fill="#d7a64c"/>
+    <circle cx="276" cy="340" r="10" fill="#1b2422" stroke="none"/><circle cx="376" cy="340" r="10" fill="#1b2422" stroke="none"/>
+    <path d="M314 344l-9 42 25 4M270 414q48 32 100-3" fill="none"/>
+    <path d="M235 96q65-55 136-17l46 42-27 18q-90-38-166 5z" fill="#c59b3b"/>
+    <path d="M452 143l43 35-54 21z" fill="#c59b3b"/>
+  </g>
+</svg>

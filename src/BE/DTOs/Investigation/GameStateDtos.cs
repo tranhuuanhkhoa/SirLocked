@@ -11,6 +11,31 @@ public class InspectItemRequest
     public string ItemId { get; set; } = string.Empty;
 }
 
+public class UseItemRequest
+{
+    [Required]
+    public string ItemId { get; set; } = string.Empty;
+
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
+}
+
+public class CombineItemsRequest
+{
+    [Required]
+    public List<string> ItemIds { get; set; } = new();
+}
+
+public class SolvePuzzleRequest
+{
+    [Required]
+    public string PuzzleId { get; set; } = string.Empty;
+
+    public string Answer { get; set; } = string.Empty;
+
+    public List<string> AnswerSequence { get; set; } = new();
+}
+
 public class AskDialogueRequest
 {
     [Required]
@@ -235,6 +260,49 @@ public class EvidenceChallengeDto
     public string? Resolution { get; set; }
 }
 
+public class ScenePuzzleDto
+{
+    public string PuzzleId { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = new();
+    public int AnswerLength { get; set; }
+    public List<string> RequiredItemIds { get; set; } = new();
+    public List<string> RequiredClueIds { get; set; } = new();
+    public bool IsLocked { get; set; }
+    public bool IsSolved { get; set; }
+    public List<string> MissingItemIds { get; set; } = new();
+    public List<string> MissingClueIds { get; set; } = new();
+
+    public static ScenePuzzleDto From(
+        CasePuzzle puzzle,
+        IReadOnlySet<string> collectedItems,
+        IReadOnlySet<string> unlockedClues,
+        IReadOnlySet<string> solvedPuzzles)
+    {
+        var missingItems = puzzle.RequiredItemIds.Where(id => !collectedItems.Contains(id)).ToList();
+        var missingClues = puzzle.RequiredClueIds.Where(id => !unlockedClues.Contains(id)).ToList();
+        return new ScenePuzzleDto
+        {
+            PuzzleId = puzzle.PuzzleId,
+            Type = puzzle.Type,
+            TargetId = puzzle.TargetId,
+            Prompt = puzzle.Prompt,
+            Options = puzzle.Options,
+            AnswerLength = puzzle.Type.Equals(CasePuzzleTypes.CodePuzzle, StringComparison.OrdinalIgnoreCase)
+                ? 1
+                : Math.Max(1, puzzle.CorrectSequence.Count),
+            RequiredItemIds = puzzle.RequiredItemIds,
+            RequiredClueIds = puzzle.RequiredClueIds,
+            IsLocked = missingItems.Count > 0 || missingClues.Count > 0,
+            IsSolved = solvedPuzzles.Contains(puzzle.PuzzleId),
+            MissingItemIds = missingItems,
+            MissingClueIds = missingClues
+        };
+    }
+}
+
 public class ConversationLineDto
 {
     public string Speaker { get; set; } = string.Empty;
@@ -379,6 +447,7 @@ public class VisibleSceneDto
     public List<SceneDialogueDto> AvailableDialogues { get; set; } = new();
     public List<string> ConversationTreeCharacterIds { get; set; } = new();
     public List<ConversationTranscriptEntryDto> ConversationTranscript { get; set; } = new();
+    public List<ScenePuzzleDto> Puzzles { get; set; } = new();
 }
 
 public class SceneMapEntryDto
@@ -387,7 +456,10 @@ public class SceneMapEntryDto
     public string Title { get; set; } = string.Empty;
     public bool IsCurrent { get; set; }
     public bool IsVisited { get; set; }
+    public bool IsUnlocked { get; set; }
     public bool IsCompleted { get; set; }
+    /// <summary>How many complete-condition requirements (items, clues, dialogues) are still open here.</summary>
+    public int PendingRequirementCount { get; set; }
 }
 
 public class ActionLogEntryDto
@@ -405,6 +477,7 @@ public class GameStateResponse
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;
     public string CaseSummary { get; set; } = string.Empty;
+    public string Language { get; set; } = CaseLanguages.English;
     public int MechanicsVersion { get; set; }
     public string RoomStatus { get; set; } = string.Empty;
     public string CurrentStageId { get; set; } = string.Empty;
@@ -412,15 +485,19 @@ public class GameStateResponse
     public long Version { get; set; }
     public List<RoomPlayerDto> Players { get; set; } = new();
     public List<string> VisitedSceneIds { get; set; } = new();
+    public List<string> UnlockedSceneIds { get; set; } = new();
     public List<string> InspectedItemIds { get; set; } = new();
     public List<string> CollectedItemIds { get; set; } = new();
     public List<string> CapturedClueIds { get; set; } = new();
     public List<string> UnlockedClueIds { get; set; } = new();
+    public List<string> UsedInteractionIds { get; set; } = new();
+    public List<string> SolvedPuzzleIds { get; set; } = new();
     public List<string> AskedDialogueIds { get; set; } = new();
     public List<string> VisitedConversationNodeIds { get; set; } = new();
     public List<string> CompletedSceneIds { get; set; } = new();
     public List<string> CompletedStageIds { get; set; } = new();
     public List<string> SelectedEvidenceIds { get; set; } = new();
+    public int WrongPuzzleCount { get; set; }
     public string GameStatus { get; set; } = string.Empty;
     public bool AvailableForAccusation { get; set; }
     public bool CurrentSceneCanComplete { get; set; }
@@ -447,6 +524,10 @@ public class GameActionResponse
     public GameStateResponse State { get; set; } = new();
     public bool Changed { get; set; }
     public List<string> UnlockedClueIds { get; set; } = new();
+    public List<string> UnlockedItemIds { get; set; } = new();
+    public List<string> UnlockedSceneIds { get; set; } = new();
+    public string? InteractionId { get; set; }
+    public string? PuzzleId { get; set; }
     public string Message { get; set; } = string.Empty;
     /// <summary>Inspect text / dialogue answer for the action just performed.</summary>
     public string? Detail { get; set; }

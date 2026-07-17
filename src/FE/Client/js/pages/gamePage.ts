@@ -5,42 +5,15 @@ import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
-
-// Real assets live under src/FE/public/assets/... and are served at /assets/...
-// Case JSON URLs point straight at them; no placeholder redirection anymore.
-const PLAYER_SHEETS: Record<string, { key: string; url: string }> = {
-  INVESTIGATOR: { key: 'player-holmes', url: '/assets/players/holmes-sheet.png' },
-  INTERROGATOR: { key: 'player-watson', url: '/assets/players/watson-sheet.png' },
-};
-// Sheets are 1024x192 with eight 128x192 frames.
-const PLAYER_FRAME = { width: 128, height: 192, sourceX: 0 };
-
-function playableAssetUrl(value: string | undefined) {
-  const url = String(value ?? '').trim();
-  if (!url || url === '#' || url.toLowerCase() === 'placeholder') return '';
-  return url;
-}
-
-function sceneBackgroundUrl(scene: VisibleScene) {
-  return playableAssetUrl(scene.backgroundUrl);
-}
-
-function characterPortraitUrl(character: SceneCharacter) {
-  return playableAssetUrl(character.imageUrl);
-}
-
-// In-scene chibi sprite sits next to the dialogue portrait by naming convention.
-function characterSpriteUrl(character: SceneCharacter) {
-  const portrait = playableAssetUrl(character.imageUrl);
-  if (!portrait || !portrait.includes('-portrait')) return '';
-  return portrait.replace('-portrait', '-sprite');
-}
-
-function sceneCharacterSpriteUrl(character: SceneCharacter, sceneId: string | undefined) {
-  const portrait = playableAssetUrl(character.imageUrl);
-  if (!portrait || !portrait.includes('-portrait') || !sceneId) return '';
-  return portrait.replace('-portrait', `-${sceneId}-sprite`);
-}
+import {
+  PLAYER_FRAME,
+  PLAYER_SHEETS,
+  characterPortraitUrl,
+  characterSpriteUrl,
+  playableAssetUrl,
+  sceneBackgroundUrl,
+  sceneCharacterSpriteUrl,
+} from '../game/gameAssets.js';
 
 type RoomPlayer = {
   userId: string;
@@ -176,6 +149,21 @@ type EvidenceChallenge = {
   resolution?: string;
 };
 
+type ScenePuzzle = {
+  puzzleId: string;
+  type: 'CODE_PUZZLE' | 'SEQUENCE_PUZZLE' | 'SYMBOL_MATCH_PUZZLE' | string;
+  targetId: string;
+  prompt: string;
+  options: string[];
+  answerLength: number;
+  requiredItemIds: string[];
+  requiredClueIds: string[];
+  isLocked: boolean;
+  isSolved: boolean;
+  missingItemIds: string[];
+  missingClueIds: string[];
+};
+
 type ResolvedConfrontation = {
   challengeId: string;
   evidenceId: string;
@@ -242,6 +230,7 @@ type VisibleScene = {
   availableDialogues: SceneDialogue[];
   conversationTreeCharacterIds: string[];
   conversationTranscript: ConversationTranscriptEntry[];
+  puzzles: ScenePuzzle[];
 };
 
 type Clue = {
@@ -262,7 +251,9 @@ type SceneMapEntry = {
   title: string;
   isCurrent: boolean;
   isVisited: boolean;
+  isUnlocked: boolean;
   isCompleted: boolean;
+  pendingRequirementCount: number;
 };
 
 type ActionLogEntry = {
@@ -283,15 +274,20 @@ type GameState = {
   roomCode: string;
   caseTitle: string;
   caseSummary: string;
+  language: 'en' | 'vi';
   mechanicsVersion: number;
   roomStatus: string;
   currentSceneId: string;
   version: number;
   players: RoomPlayer[];
   visibleScene: VisibleScene;
+  unlockedSceneIds: string[];
   inspectedItemIds: string[];
   collectedItemIds: string[];
   capturedClueIds: string[];
+  usedInteractionIds: string[];
+  solvedPuzzleIds: string[];
+  wrongPuzzleCount: number;
   collectedItems: SceneItem[];
   unlockedClues: Clue[];
   evidenceClues: Clue[];
@@ -318,7 +314,8 @@ type Overlay =
   | { type: 'inspect'; itemId: string; detail: string; unlockedClueIds: string[] }
   | { type: 'photo'; clueId: string; detail: string }
   | { type: 'inventory'; itemId: string }
-  | { type: 'puzzle'; label: string; message: string };
+  | { type: 'puzzle'; label: string; message: string }
+  | { type: 'puzzle-solve'; puzzleId: string };
 
 type Accusation = null | {
   step: number;
@@ -407,6 +404,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private cameraLabel: Phaser.GameObjects.Text | null = null;
   private cameraCaptureZone: Phaser.GameObjects.Zone | null = null;
   private cameraCapturePending = false;
+  private mobileMoveX = 0;
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -542,6 +540,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
       }
     }
     if (this.ready) this.draw();
+  }
+
+  setMobileMoveX(value: number) {
+    this.mobileMoveX = Phaser.Math.Clamp(Math.trunc(value), -1, 1);
+  }
+
+  triggerPrimaryInteraction() {
+    if (!this.sceneInteractionEnabled || this.cameraMode || !this.nearestHotspot) return;
+    this.triggerHotspot(this.nearestHotspot);
   }
 
   updateRemotePose(pose: PlayerPose) {
@@ -1051,7 +1058,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
     const visited = this.state.sceneMap.filter((entry) => entry.isVisited && !entry.isCurrent);
     const currentIndex = this.state.sceneMap.findIndex((entry) => entry.isCurrent);
-    const next = this.state.sceneMap[currentIndex + 1];
+    // With free movement, "forward" means the first reachable scene that still has work left,
+    // falling back to authored order when everything is done.
+    const next = this.state.sceneMap.find((entry) => !entry.isCurrent && !entry.isCompleted && entry.isUnlocked)
+      ?? this.state.sceneMap[currentIndex + 1];
     const completedCurrent = this.state.completedSceneIds.includes(this.state.currentSceneId);
     const canProceed = Boolean(this.state.currentSceneCanComplete);
     const runtimeTransitions = this.sceneRuntime()?.transitions ?? [];
@@ -1060,12 +1070,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
       runtimeTransitions.forEach((transition) => {
         const targetEntry = this.state!.sceneMap.find((entry) => entry.sceneId === transition.targetSceneId);
         const canRevisit = Boolean(targetEntry?.isVisited && !targetEntry.isCurrent);
+        const canUseUnlockedPath = Boolean(targetEntry?.isUnlocked && !targetEntry.isCurrent);
         const opensNext = Boolean(canProceed && next?.sceneId === transition.targetSceneId);
-        if (!canRevisit && !opensNext) return;
+        if (!canRevisit && !canUseUnlockedPath && !opensNext) return;
 
         const box = this.worldRect(transition.hotspot);
         const label = transition.label || targetEntry?.title || 'Move';
-        const action = canRevisit
+        const action = canRevisit || canUseUnlockedPath
           ? () => this.callbacks.onScene(transition.targetSceneId)
           : () => this.callbacks.onProceed();
         this.drawButton(box.x + box.w / 2, box.y + box.h / 2, this.shorten(label, 18), action, Math.max(148, Math.min(box.w, 240)), opensNext);
@@ -1391,7 +1402,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const left = this.keys.A?.isDown || this.keys.LEFT?.isDown;
     const right = this.keys.D?.isDown || this.keys.RIGHT?.isDown;
     return {
-      x: Number(Boolean(right)) - Number(Boolean(left)),
+      x: this.mobileMoveX || Number(Boolean(right)) - Number(Boolean(left)),
       y: 0,
     };
   }
@@ -1645,6 +1656,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let appliedInventoryItemId: string | null = null;
   const evidencePhotoObjectUrls = new Map<string, string>();
   let inventoryOpen = false;
+  let combineMode = false;
+  const combineSelection = new Set<string>();
+  const puzzleDrafts = new Map<string, string[]>();
   let sceneIntroActive = true; // Show on initial load
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -1659,6 +1673,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let convTreeChoices: ConversationChoice[] = [];
   let convTreeChallenge: EvidenceChallenge | null = null;
   let convTreeBusy = false;
+  let convAutoRefreshPending = false;
+  let convLastAutoRefreshKey = '';
   const seenAskableDialogueIds = new Set<string>();
   const newDialogueIds = new Set<string>();
   const visibleNewDialogueIds = new Set<string>();
@@ -1832,6 +1848,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function applyState(fresh: GameState) {
     if (!fresh || (state && fresh.version < state.version)) return;
     const isNewScene = state && state.currentSceneId !== fresh.currentSceneId;
+    const previousClueKey = clueKey(state);
+    const freshClueKey = clueKey(fresh);
+    const unlockedCluesChanged = previousClueKey !== freshClueKey;
+    // Scenes complete themselves server-side once every requirement is met; surface that here.
+    if (state) {
+      const previouslyCompleted = new Set(state.completedSceneIds);
+      for (const sceneId of fresh.completedSceneIds) {
+        if (previouslyCompleted.has(sceneId)) continue;
+        const entry = fresh.sceneMap?.find((s) => s.sceneId === sceneId);
+        toast(`${entry?.title ?? 'A location'} is fully investigated.`, 'success', 4500);
+      }
+    }
     rememberAskableDialogues(fresh);
     state = fresh;
     if (myRole() !== 'INVESTIGATOR') cameraMode = false;
@@ -1848,7 +1876,37 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       window.location.hash = `#/result/${roomId}`;
       return;
     }
+    for (const itemId of [...combineSelection]) {
+      if (!fresh.collectedItemIds.includes(itemId)) combineSelection.delete(itemId);
+    }
+    if (selectedInventoryItemId && !fresh.collectedItemIds.includes(selectedInventoryItemId)) {
+      selectedInventoryItemId = null;
+    }
     draw();
+    if (unlockedCluesChanged) queueConversationRefreshAfterClueUnlock(fresh);
+  }
+
+  function queueConversationRefreshAfterClueUnlock(fresh: GameState) {
+    if (overlay?.type !== 'dialogue' || !isTreeCharacter(overlay.characterId) || !convTreeNodeId) return;
+    const characterId = overlay.characterId;
+    const key = `${fresh.version}:${characterId}:${convTreeNodeId}:${clueKey(fresh)}`;
+    if (convAutoRefreshPending || convLastAutoRefreshKey === key) return;
+
+    convAutoRefreshPending = true;
+    convLastAutoRefreshKey = key;
+    window.setTimeout(async () => {
+      try {
+        if (overlay?.type === 'dialogue' && overlay.characterId === characterId) {
+          await refreshConverseDefaultNode(characterId);
+        }
+      } finally {
+        convAutoRefreshPending = false;
+      }
+    }, 0);
+  }
+
+  function clueKey(snapshot: GameState | null | undefined) {
+    return snapshot?.unlockedClues.map((clue) => clue.clueId).join('|') ?? '';
   }
 
   const hub = createRoomConnection(roomId, {
@@ -1945,7 +2003,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (!overlay || overlay.type !== 'dialogue') resetConversation();
     const scene = state.visibleScene;
     const hud = app.querySelector('#game-hud-slot');
-    if (hud) hud.innerHTML = '';
+    if (hud) {
+      hud.innerHTML = `
+        <div class="game-objective">
+          <strong>${escapeHtml(state.caseTitle)}</strong>
+          <span>${escapeHtml(state.currentObjective || scene.description || scene.title)}</span>
+        </div>
+        <div class="game-players" aria-label="Players">${playersHtml()}</div>
+      `;
+    }
 
     const introSlot = app.querySelector('#scene-intro-slot');
     if (introSlot) {
@@ -1963,7 +2029,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     const inventory = app.querySelector('#inventory-slot');
-    if (inventory) inventory.innerHTML = inventoryDrawer() + investigationToolDock();
+    if (inventory) inventory.innerHTML = inventoryDrawer() + investigationToolDock() + mobileMovementDock();
     const transient = app.querySelector('#game-transient-slot');
     if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}`;
 
@@ -2112,6 +2178,27 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     `;
   }
 
+  function mobileMovementDock() {
+    const cameraHtml = myRole() === 'INVESTIGATOR'
+      ? `<button class="mobile-action-btn ${cameraMode ? 'is-hot' : ''}" id="mobile-camera-btn" aria-label="Camera" aria-pressed="${cameraMode}">
+          <i data-lucide="camera" aria-hidden="true"></i>
+        </button>`
+      : '';
+
+    return `
+      <div class="mobile-movement-dock" aria-label="Movement controls">
+        <button class="mobile-move-btn" data-mobile-move="-1" aria-label="Move left"><span aria-hidden="true">&lsaquo;</span></button>
+        <button class="mobile-interact-btn" id="mobile-interact-btn" aria-label="Interact">E</button>
+        <button class="mobile-move-btn" data-mobile-move="1" aria-label="Move right"><span aria-hidden="true">&rsaquo;</span></button>
+        ${cameraHtml}
+        <button class="mobile-action-btn ${inventoryOpen ? 'is-hot' : ''}" id="mobile-inventory-btn" aria-label="Inventory" aria-pressed="${inventoryOpen}">
+          <i data-lucide="briefcase" aria-hidden="true"></i>
+          ${state!.collectedItemIds.length > 0 ? `<span class="mobile-action-badge">${state!.collectedItemIds.length}</span>` : ''}
+        </button>
+      </div>
+    `;
+  }
+
   function HintChip() {
     if (!state?.currentObjective) return '';
     return `<div class="hint-chip" title="${escapeHtml(state.currentObjective)}">${escapeHtml(state.currentObjective)}</div>`;
@@ -2130,7 +2217,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const item = collected[i];
       if (item) {
         slots.push(`
-          <button class="inventory-drawer-slot is-filled ${overlay?.type === 'inventory' && overlay.itemId === item.itemId ? 'is-selected' : ''}"
+          <button class="inventory-drawer-slot is-filled ${overlay?.type === 'inventory' && overlay.itemId === item.itemId ? 'is-selected' : ''} ${combineSelection.has(item.itemId) ? 'is-combine-selected' : ''}"
                   data-inventory="${escapeHtml(item.itemId)}" title="${escapeHtml(item.name)}">
             <span class="inventory-icon" style="${placeholderStyle(item.itemId)}">
               ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
@@ -2146,6 +2233,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       <div class="inventory-drawer">
         <div class="inventory-drawer-header">
           <span>Bag</span>
+          <button class="btn btn-ghost btn-sm ${combineMode ? 'is-active' : ''}" id="combine-mode-btn">${combineMode ? 'Combining' : 'Combine'}</button>
+          ${combineMode ? `<button class="btn btn-gold btn-sm" id="combine-submit-btn" ${combineSelection.size >= 2 ? '' : 'disabled'}>Use ${combineSelection.size}</button>` : ''}
           <button class="close-drawer-btn" title="Close (Esc)"><i data-lucide="x"></i></button>
         </div>
         <div class="inventory-drawer-grid">
@@ -2180,6 +2269,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (overlay.type === 'photo') return photoOverlay(overlay.clueId, overlay.detail);
     if (overlay.type === 'inventory') return inventoryDetailOverlay(overlay.itemId);
     if (overlay.type === 'puzzle') return puzzleOverlay(overlay.label, overlay.message);
+    if (overlay.type === 'puzzle-solve') return puzzleSolveOverlay(overlay.puzzleId);
     return '';
   }
 
@@ -2264,9 +2354,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         <p class="muted">Move through places the investigation has already opened.</p>
         <div class="map-list">${state!.sceneMap.map((s) => `
           <button class="map-entry ${s.isCurrent ? 'is-current' : ''} ${s.isCompleted ? 'is-done' : ''}"
-                  data-scene="${escapeHtml(s.sceneId)}" ${s.isVisited && !s.isCurrent ? '' : 'disabled'}>
-            <span>${s.isCompleted ? 'Done' : s.isCurrent ? 'Here' : s.isVisited ? 'Open' : 'Locked'}</span>
-            <span>${s.isVisited ? escapeHtml(s.title) : 'Unknown location'}</span>
+                  data-scene="${escapeHtml(s.sceneId)}" ${(s.isVisited || s.isUnlocked) && !s.isCurrent ? '' : 'disabled'}>
+            <span>${s.isCompleted ? 'Done' : s.isCurrent ? 'Here' : s.isVisited || s.isUnlocked ? 'Open' : 'Locked'}</span>
+            <span>${s.isVisited || s.isUnlocked ? escapeHtml(s.title) : 'Unknown location'}${!s.isCompleted && (s.isVisited || s.isUnlocked) && s.pendingRequirementCount > 0 ? ` <em class="muted small">· ${s.pendingRequirementCount} left</em>` : ''}</span>
           </button>`).join('')}</div>
         <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
       </div>
@@ -2350,7 +2440,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           ${clue
             ? `<p class="clue-flash">Evidence logged: ${escapeHtml(clue.title)}</p>`
             : ''}
-          <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+          <div class="modal-actions">
+            ${myRole() === 'INVESTIGATOR' ? `<button class="btn btn-gold" data-use-inventory="${escapeHtml(item.itemId)}">Use</button>` : ''}
+            <button class="btn btn-ghost" data-close-overlay>Close</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -2364,6 +2457,37 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         <p>${escapeHtml(message || 'This needs another clue before it can be opened.')}</p>
         <p class="muted small">Missing clues usually hide in unexamined objects or unasked questions. Compare notes with your partner - the Investigator searches, the Interrogator questions.</p>
         <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+      </div>
+    </div>`;
+  }
+
+  function puzzleSolveOverlay(puzzleId: string) {
+    const puzzle = state!.visibleScene.puzzles?.find((candidate) => candidate.puzzleId === puzzleId);
+    if (!puzzle) return '';
+    const draft = puzzleDrafts.get(puzzle.puzzleId) ?? [];
+    const missing = [...(puzzle.missingItemIds ?? []), ...(puzzle.missingClueIds ?? [])];
+    const title = puzzle.prompt || prettyId(puzzle.puzzleId);
+    const solved = puzzle.isSolved;
+    const locked = puzzle.isLocked;
+    const body = solved
+      ? '<p class="clue-flash">Solved.</p>'
+      : locked
+        ? `<p class="muted">Locked: ${missing.map(prettyId).map(escapeHtml).join(', ') || 'missing requirement'}.</p>`
+        : puzzle.type === 'CODE_PUZZLE'
+          ? `<input class="form-control" id="puzzle-code-answer" maxlength="32" autocomplete="off" placeholder="Code">`
+          : `<div class="deduction-options">${(puzzle.options ?? []).map((option) => `
+              <button class="btn btn-ghost" data-puzzle-option="${escapeHtml(option)}">${escapeHtml(prettyId(option))}</button>`).join('')}</div>
+             <p class="muted small">${draft.length > 0 ? escapeHtml(draft.map(prettyId).join(' -> ')) : 'No symbols selected.'}</p>`;
+
+    return `
+    <div class="overlay">
+      <div class="modal">
+        <h2>${escapeHtml(title)}</h2>
+        ${body}
+        <div class="modal-actions">
+          ${!solved && !locked ? '<button class="btn btn-ghost" id="puzzle-clear-btn">Clear</button><button class="btn btn-gold" id="puzzle-submit-btn">Submit</button>' : ''}
+          <button class="btn btn-ghost" data-close-overlay>Close</button>
+        </div>
       </div>
     </div>`;
   }
@@ -2516,18 +2640,24 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     if (tree) {
       const choices = convTreeChoices;
-      const hasNewChoice = choices.some((c) => !c.isLocked && isTreeCueHighlighted(characterId, c.choiceId));
+      const askable = dialogues.filter((d) => !d.isAsked && !d.isLocked);
+      const hasNewChoice = choices.some((c) => !c.isLocked && isTreeCueHighlighted(characterId, c.choiceId))
+        || askable.some((d) => newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId));
       newLeadHtml = hasNewChoice
         ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
         : '';
 
       if (role !== 'INTERROGATOR') {
         topicsHtml = '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>';
-      } else if (choices.length === 0) {
+      } else if (choices.length === 0 && askable.length === 0) {
         topicsHtml = '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>';
       } else {
-        const lockedTree = choices.filter((c) => c.isLocked).length;
-        topicsHtml = `${choices.filter((c) => !c.isLocked).map((c) => {
+        const lockedTree = choices.filter((c) => c.isLocked).length + dialogues.filter((d) => d.isLocked).length;
+        const dialogueButtons = askable.map((d) => `
+            <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
+              <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
+            </button>`).join('');
+        topicsHtml = `${dialogueButtons}${choices.filter((c) => !c.isLocked).map((c) => {
             const isNew = isTreeCueHighlighted(characterId, c.choiceId);
             return `<button class="conv-choice ${isNew ? 'is-new' : ''}" data-converse-node="${escapeHtml(convTreeNodeId ?? '')}" data-converse-choice="${escapeHtml(c.choiceId)}">
               <span class="conv-choice-tag">${isNew ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(c.label ?? '')}</span>
@@ -2744,15 +2874,40 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       sessionStorage.setItem(introKey, '1');
       dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
     });
+    bindMobileMovementControls();
 
     app.querySelectorAll('[data-inventory]').forEach((button) =>
       button.addEventListener('click', () => {
         const itemId = (button as HTMLElement).dataset.inventory;
         if (!itemId) return;
+        if (combineMode) {
+          if (combineSelection.has(itemId)) combineSelection.delete(itemId);
+          else combineSelection.add(itemId);
+          draw();
+          return;
+        }
         // Toggle the detail view: clicking the open item (or its overlay) closes it.
         overlay = overlay?.type === 'inventory' && overlay.itemId === itemId ? null : { type: 'inventory', itemId };
         draw();
       }));
+    app.querySelector('#combine-mode-btn')?.addEventListener('click', () => {
+      combineMode = !combineMode;
+      if (!combineMode) combineSelection.clear();
+      overlay = null;
+      draw();
+    });
+    app.querySelector('#combine-submit-btn')?.addEventListener('click', combineItems);
+    app.querySelectorAll('[data-use-inventory]').forEach((button) => button.addEventListener('click', () => {
+      const itemId = (button as HTMLElement).dataset.useInventory;
+      if (!itemId) return;
+      selectedInventoryItemId = itemId;
+      combineMode = false;
+      combineSelection.clear();
+      inventoryOpen = false;
+      closeOverlay();
+      toast(`Using ${prettyId(itemId)}. Choose a target in the scene.`, 'info');
+      draw();
+    }));
 
     app.querySelector('#case-file-btn')?.addEventListener('click', () => { overlay = { type: 'case', tab: 'evidence' }; draw(); });
     app.querySelectorAll('[data-case-tab]').forEach((button) => button.addEventListener('click', () => {
@@ -2761,16 +2916,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       draw();
     }));
     app.querySelector('#hint-btn')?.addEventListener('click', () => requestHint('SCENE', state!.currentSceneId));
-    app.querySelector('#floating-camera-btn')?.addEventListener('click', () => {
-      if (myRole() !== 'INVESTIGATOR') {
-        toast('Only the Investigator can capture scene clues.', 'info');
-        return;
-      }
-      closeOverlay();
-      accusation = null;
-      cameraMode = !cameraMode;
-      draw();
-    });
+    app.querySelector('#floating-camera-btn')?.addEventListener('click', toggleCameraMode);
     app.querySelector('#floating-bag-btn')?.addEventListener('click', () => {
       inventoryOpen = !inventoryOpen;
       draw();
@@ -2846,6 +2992,23 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const target = button as HTMLElement;
       await solveDeduction(target.dataset.solveDeduction ?? '', target.dataset.option ?? '');
     }));
+    app.querySelectorAll('[data-puzzle-option]').forEach((button) => button.addEventListener('click', () => {
+      if (overlay?.type !== 'puzzle-solve') return;
+      const puzzleId = overlay.puzzleId;
+      const puzzle = state!.visibleScene.puzzles.find((candidate) => candidate.puzzleId === puzzleId);
+      if (!puzzle) return;
+      const option = (button as HTMLElement).dataset.puzzleOption;
+      if (!option) return;
+      const draft = puzzleDrafts.get(puzzle.puzzleId) ?? [];
+      if (draft.length < Math.max(1, puzzle.answerLength || 1)) draft.push(option);
+      puzzleDrafts.set(puzzle.puzzleId, draft);
+      draw();
+    }));
+    app.querySelector('#puzzle-clear-btn')?.addEventListener('click', () => {
+      if (overlay?.type === 'puzzle-solve') puzzleDrafts.delete(overlay.puzzleId);
+      draw();
+    });
+    app.querySelector('#puzzle-submit-btn')?.addEventListener('click', solveOpenPuzzle);
 
     app.querySelectorAll('[data-suspect]').forEach((button) =>
       button.addEventListener('click', () => {
@@ -2895,6 +3058,53 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     app.querySelector('#accuse-confirm')?.addEventListener('click', submitAccusation);
   }
 
+  function bindMobileMovementControls() {
+    app.querySelectorAll<HTMLElement>('[data-mobile-move]').forEach((button) => {
+      const value = Number(button.dataset.mobileMove ?? '0');
+      const start = (event: Event) => {
+        event.preventDefault();
+        if (isSceneInputBlocked()) return;
+        phaserScene?.setMobileMoveX(value);
+      };
+      const stop = (event: Event) => {
+        event.preventDefault();
+        phaserScene?.setMobileMoveX(0);
+      };
+      button.addEventListener('pointerdown', start);
+      button.addEventListener('pointerup', stop);
+      button.addEventListener('pointercancel', stop);
+      button.addEventListener('pointerleave', stop);
+    });
+
+    app.querySelector('#mobile-interact-btn')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (isSceneInputBlocked()) return;
+      phaserScene?.triggerPrimaryInteraction();
+    });
+
+    app.querySelector('#mobile-camera-btn')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      toggleCameraMode();
+    });
+
+    app.querySelector('#mobile-inventory-btn')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      inventoryOpen = !inventoryOpen;
+      draw();
+    });
+  }
+
+  function toggleCameraMode() {
+    if (myRole() !== 'INVESTIGATOR') {
+      toast('Only the Investigator can capture scene clues.', 'info');
+      return;
+    }
+    closeOverlay();
+    accusation = null;
+    cameraMode = !cameraMode;
+    draw();
+  }
+
   function dismissOverlayWithShield(control: HTMLElement, event: Event) {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -2933,20 +3143,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (isSceneInputBlocked()) return;
 
     if (selectedInventoryItemId) {
-      // Using an item never blocks the normal interaction: locks are driven by
-      // missing clues on the backend, so explain that and continue as a plain click.
-      const usedItem = selectedInventoryItemId;
-      selectedInventoryItemId = null;
-      if (locked === 'true') {
-        overlay = {
-          type: 'puzzle',
-          label,
-          message: `${prettyId(usedItem)} has no effect here. This is sealed by a missing clue - keep investigating.`,
-        };
-        draw();
-        return;
-      }
-      toast(`You put ${prettyId(usedItem)} away and take a closer look.`, 'info');
+      await useSelectedItemOnTarget(target);
+      return;
     }
 
     if (type === 'CHARACTER') {
@@ -2962,6 +3160,19 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     if (locked === 'true') {
       overlay = { type: 'puzzle', label, message: 'This interaction is locked by missing evidence.' };
+      draw();
+      return;
+    }
+
+    // A locked puzzle must not swallow the click: the target often has to be
+    // inspected/collected first (which is what unlocks the puzzle later on).
+    const puzzle = state!.visibleScene.puzzles?.find((candidate) => candidate.targetId === target && !candidate.isSolved && !candidate.isLocked);
+    if (puzzle) {
+      if (myRole() !== 'INVESTIGATOR') {
+        toast('Only the Investigator can operate scene puzzles.', 'info');
+        return;
+      }
+      overlay = { type: 'puzzle-solve', puzzleId: puzzle.puzzleId };
       draw();
       return;
     }
@@ -2985,6 +3196,69 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');
+    }
+  }
+
+  async function useSelectedItemOnTarget(targetId: string) {
+    if (!selectedInventoryItemId) return;
+    if (myRole() !== 'INVESTIGATOR') {
+      toast('Only the Investigator can use inventory items.', 'info');
+      selectedInventoryItemId = null;
+      draw();
+      return;
+    }
+
+    const itemId = selectedInventoryItemId;
+    selectedInventoryItemId = null;
+    try {
+      const res = await gameApi.useItem(roomId, itemId, targetId);
+      toast(res.detail || res.message || 'Item used.', res.changed ? 'success' : 'info', 4800);
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message || 'That item does not work here.', 'error');
+      draw();
+    }
+  }
+
+  async function combineItems() {
+    const itemIds = [...combineSelection];
+    if (itemIds.length < 2) return;
+    if (myRole() !== 'INVESTIGATOR') {
+      toast('Only the Investigator can combine inventory items.', 'info');
+      return;
+    }
+
+    try {
+      const res = await gameApi.combineItems(roomId, itemIds);
+      toast(res.detail || res.message || 'Items combined.', res.changed ? 'success' : 'info', 4800);
+      combineSelection.clear();
+      combineMode = false;
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message || 'Those items do not combine.', 'error');
+    }
+  }
+
+  async function solveOpenPuzzle() {
+    if (overlay?.type !== 'puzzle-solve') return;
+    const puzzleId = overlay.puzzleId;
+    const puzzle = state!.visibleScene.puzzles.find((candidate) => candidate.puzzleId === puzzleId);
+    if (!puzzle || puzzle.isLocked || puzzle.isSolved) return;
+
+    const input = app.querySelector<HTMLInputElement>('#puzzle-code-answer');
+    const answer = puzzle.type === 'CODE_PUZZLE' ? input?.value?.trim() ?? '' : '';
+    const answerSequence = puzzle.type === 'CODE_PUZZLE' ? [] : (puzzleDrafts.get(puzzle.puzzleId) ?? []);
+    try {
+      const res = await gameApi.solvePuzzle(roomId, puzzle.puzzleId, answer, answerSequence);
+      const solved = Boolean(res.state?.solvedPuzzleIds?.includes(puzzle.puzzleId));
+      toast(res.detail || res.message || 'Puzzle checked.', solved ? 'success' : 'info', 5200);
+      if (solved) {
+        puzzleDrafts.delete(puzzle.puzzleId);
+        closeOverlay();
+      }
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message || 'Puzzle answer failed.', 'error');
     }
   }
 
@@ -3040,6 +3314,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   async function refreshConverseNode(characterId: string, nodeId: string) {
     try {
       const res: ConverseResponse = await gameApi.converse(roomId, { characterId, nodeId });
+      convTreeNodeId = res.node.nodeId;
+      convTreeChoices = res.choices;
+      convTreeChallenge = res.challenge ?? null;
+      applyState(res.state);
+    } catch {
+      /* keep the existing view */
+    }
+  }
+
+  async function refreshConverseDefaultNode(characterId: string) {
+    try {
+      const res: ConverseResponse = await gameApi.converse(roomId, { characterId });
       convTreeNodeId = res.node.nodeId;
       convTreeChoices = res.choices;
       convTreeChallenge = res.challenge ?? null;
@@ -3114,10 +3400,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     try {
+      // Completion itself is derived server-side; this call flushes it for older rooms
+      // and returns fresh state. Movement stays in the player's hands.
       const res = await gameApi.completeScene(roomId);
-      toast(res.message, 'success', 5500);
       closeOverlay();
       applyState(res.state);
+      const next = res.state.sceneMap?.find((s: SceneMapEntry) => !s.isCurrent && !s.isCompleted && s.isUnlocked)
+        ?? res.state.sceneMap?.find((s: SceneMapEntry) => !s.isCurrent && s.isUnlocked);
+      if (next) {
+        await goToScene(next.sceneId);
+      } else {
+        toast(res.message, 'success', 5500);
+      }
     } catch (err: any) {
       const missing = err.errors?.missing;
       if (missing) {

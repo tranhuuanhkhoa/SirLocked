@@ -56,6 +56,71 @@ public class CaseValidationServiceTests
     }
 
     [Fact]
+    public void ClockworkConservatoryShortDemo_IsPublishable()
+    {
+        var gameCase = LoadRepoCase(new[]
+        {
+            "ai-game-docs", "generated-cases", "clockwork-conservatory-short-demo.json"
+        });
+
+        var result = _validator.Validate(gameCase);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+        Assert.Equal(2, gameCase.Stages.Count);
+        Assert.Equal(2, gameCase.Stages.Sum(stage => stage.Scenes.Count));
+        Assert.Equal(CaseGenerationModes.CameraEmbedded, gameCase.GenerationMode);
+        Assert.Equal(CaseMechanicsVersions.InvestigationV2, gameCase.MechanicsVersion);
+    }
+
+    [Fact]
+    public void BlackglassV5Vietnamese_HasStableLogicAndExpectedTwentyAssets()
+    {
+        var gameCase = LoadRepoCase(new[]
+        {
+            "ai-game-docs", "generated-cases", "blackglass-v5-vi.json"
+        });
+
+        var result = _validator.ValidateFullLogic(gameCase);
+        var generationResult = AiGenerationContract.For(AiGenerationPresets.FullFeature, 6)
+            .Validate(gameCase, new AiDraftSettings
+            {
+                StageCount = 6,
+                GenerationPreset = AiGenerationPresets.FullFeature,
+                Language = CaseLanguages.Vietnamese
+            });
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+        Assert.True(generationResult.IsValid, string.Join("\n", generationResult.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+        Assert.Equal("case-bell-beneath-blackglass", gameCase.CaseId);
+        Assert.Equal("char-wren", gameCase.FinalLogic.CulpritId);
+        Assert.Equal(CaseLanguages.Vietnamese, gameCase.Language);
+        Assert.Equal(
+            ["stage-1", "stage-2", "stage-3", "stage-4", "stage-5", "stage-6"],
+            gameCase.Stages.Select(stage => stage.StageId));
+        Assert.Equal(
+            ["scene-1", "scene-2", "scene-3", "scene-4", "scene-5", "scene-6"],
+            gameCase.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId));
+        Assert.Equal(
+            ["char-rook", "char-mara", "char-flint", "char-quill", "char-wren"],
+            gameCase.Characters.Select(character => character.CharacterId));
+        Assert.Equal(
+            [
+                "clue-clock-brake", "clue-tide-authorization", "clue-vale-model",
+                "clue-undercroft-hush-draft", "clue-service-shaft", "clue-calibrated-optic",
+                "clue-corrected-time", "clue-transit-sequence", "clue-illusion-overlay",
+                "clue-flint-override", "clue-mara-plan", "clue-wren-access"
+            ],
+            gameCase.Clues.Select(clue => clue.ClueId));
+        Assert.All(gameCase.FinalLogic.RequiredEvidenceLinks, link =>
+            Assert.Contains(gameCase.Clues, clue => clue.ClueId == link.EvidenceId));
+        Assert.Equal(20, AiCaseService.ExpectedFinalAssetCount(gameCase));
+        Assert.Equal(3, gameCase.Items.Count(item => item.RenderMode == CaseItemRenderModes.Cutout));
+        Assert.Single(gameCase.Items, item => item.ItemId == "item-service-console"
+            && item.RenderMode == CaseItemRenderModes.Embedded
+            && string.IsNullOrEmpty(item.ImageUrl));
+    }
+
+    [Fact]
     public void SampleCase_HasExpectedShape()
     {
         var c = LoadSampleCase();
@@ -86,6 +151,43 @@ public class CaseValidationServiceTests
         c.Stages[0].Scenes[0].ItemIds.Add("item-does-not-exist");
         var result = _validator.Validate(c);
         Assert.Contains(result.Errors, e => e.Code == "MissingReference" && e.RefId == "item-does-not-exist");
+    }
+
+    [Fact]
+    public void UnknownInteractionType_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages[0].Scenes[0];
+        c.Interactions.Add(new CaseInteraction
+        {
+            InteractionId = "interaction-invalid-type",
+            Type = "SCRIPTED_LOCK",
+            TargetId = scene.ItemIds[0],
+            RequiredItemIds = new List<string> { scene.ItemIds[0] }
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "InvalidValue" && e.Path.Contains("interactions") && e.RefId == "SCRIPTED_LOCK");
+    }
+
+    [Fact]
+    public void PuzzleWithMissingTarget_IsRejected()
+    {
+        var c = LoadSampleCase();
+        c.Puzzles.Add(new CasePuzzle
+        {
+            PuzzleId = "puzzle-missing-target",
+            Type = CasePuzzleTypes.SequencePuzzle,
+            TargetId = "item-does-not-exist",
+            Prompt = "Press the symbols in order.",
+            Options = new List<string> { "sun", "moon" },
+            CorrectSequence = new List<string> { "sun" }
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "MissingReference" && e.Path.Contains("puzzles") && e.RefId == "item-does-not-exist");
     }
 
     [Fact]
@@ -321,6 +423,124 @@ public class CaseValidationServiceTests
     }
 
     [Fact]
+    public void CameraClueZone_MuchLargerThanCapture_IsRejected()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages.SelectMany(s => s.Scenes).First();
+        var clue = AddCameraClue(c, scene, "clue-photo-oversized");
+        scene.Runtime = RuntimeWithClueZone(clue.ClueId, new RuntimeBox { X = 100, Y = 100, Width = 600, Height = 300 });
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, e => e.Code == "OversizedClueZone" && e.RefId == clue.ClueId);
+    }
+
+    [Fact]
+    public void CutoutRuntimeSize_Over160Pixels_IsRejected()
+    {
+        var c = LoadSampleCase();
+        EnableV5VisualContract(c);
+        var scene = c.Stages.SelectMany(stage => stage.Scenes).First();
+        var item = c.Items.Single(candidate => candidate.ItemId == scene.ItemIds.First());
+        scene.Runtime = new SceneRuntime
+        {
+            Width = 1600,
+            Height = 900,
+            ItemPlacements =
+            {
+                new ItemPlacement
+                {
+                    ItemId = item.ItemId,
+                    Asset = "/assets/item.png",
+                    Position = new RuntimePoint { X = 240, Y = 520 },
+                    Size = new RuntimeSize { Width = 161, Height = 100 },
+                    Hotspot = new RuntimeBox { X = 180, Y = 440, Width = 161, Height = 100 }
+                }
+            }
+        };
+
+        var result = _validator.Validate(c);
+
+        Assert.Contains(result.Errors, error => error.Code == "OversizedCutout" && error.RefId == item.ItemId);
+    }
+
+    [Fact]
+    public void EmbeddedMechanism_KeepsHotspotAndPuzzleWithoutOverlayAsset()
+    {
+        var c = LoadSampleCase();
+        EnableV5VisualContract(c);
+        var scene = c.Stages.SelectMany(stage => stage.Scenes).First();
+        var item = c.Items.Single(candidate => candidate.ItemId == scene.ItemIds.First());
+        item.IsCollectible = false;
+        item.IsInteractivePuzzleObject = true;
+        item.InteractionPurpose = CaseItemInteractionPurposes.OperateMechanism;
+        item.RenderMode = CaseItemRenderModes.Embedded;
+        item.ImageUrl = string.Empty;
+        scene.Runtime = new SceneRuntime
+        {
+            Width = 1600,
+            Height = 900,
+            ItemPlacements =
+            {
+                new ItemPlacement
+                {
+                    ItemId = item.ItemId,
+                    Asset = string.Empty,
+                    Position = new RuntimePoint { X = 500, Y = 450 },
+                    Size = new RuntimeSize { Width = 320, Height = 220 },
+                    Hotspot = new RuntimeBox { X = 340, Y = 230, Width = 320, Height = 220 }
+                }
+            }
+        };
+        c.Puzzles.Add(new CasePuzzle
+        {
+            PuzzleId = "puzzle-embedded-mechanism",
+            Type = CasePuzzleTypes.SequencePuzzle,
+            TargetId = item.ItemId,
+            Prompt = "Operate the mechanism.",
+            Options = { "left", "right" },
+            CorrectSequence = { "left", "right" }
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.DoesNotContain(result.Errors, error => error.RefId == item.ItemId
+            && (error.Code == "OversizedCutout" || error.Path.EndsWith(".asset") || error.Path.EndsWith(".renderMode")));
+        Assert.Contains(scene.Runtime.ItemPlacements, placement => placement.ItemId == item.ItemId
+            && string.IsNullOrEmpty(placement.Asset)
+            && placement.Hotspot.Width > 0);
+        Assert.Contains(c.Puzzles, puzzle => puzzle.TargetId == item.ItemId);
+    }
+
+    [Fact]
+    public void EmbeddedCollectibleItem_IsRejected()
+    {
+        var c = LoadSampleCase();
+        EnableV5VisualContract(c);
+        var item = c.Items[0];
+        item.RenderMode = CaseItemRenderModes.Embedded;
+        item.IsCollectible = true;
+
+        var result = _validator.ValidateFullLogic(c);
+
+        Assert.Contains(result.Errors, error => error.RefId == item.ItemId && error.Path.EndsWith(".renderMode"));
+    }
+
+    [Fact]
+    public void V5CharacterWithoutVisualDescription_IsRejected()
+    {
+        var c = LoadSampleCase();
+        EnableV5VisualContract(c);
+        var character = c.Characters[0];
+        character.VisualDescription = string.Empty;
+
+        var result = _validator.ValidateFullLogic(c);
+
+        Assert.Contains(result.Errors, error => error.RefId == character.CharacterId
+            && error.Path.EndsWith(".visualDescription"));
+    }
+
+    [Fact]
     public void RequiredCameraEvidence_WithFallbackZone_IsRejected()
     {
         var c = LoadSampleCase();
@@ -502,6 +722,67 @@ public class CaseValidationServiceTests
         }
     }
 
+    [Fact]
+    public void AutoRepair_ConvertsAiTargetHotspotToInteractiveItemTarget()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages[0].Scenes[0];
+        var requiredItemId = c.Items[0].ItemId;
+
+        scene.Hotspots.Add(new SceneHotspot
+        {
+            HotspotId = "hotspot-tunnel-hatch",
+            Type = "TARGET",
+            TargetId = "hotspot-tunnel-hatch",
+            X = 59,
+            Y = 65,
+            Width = 12,
+            Height = 10,
+            Label = "Tunnel Hatch"
+        });
+        c.Interactions.Add(new CaseInteraction
+        {
+            InteractionId = "interaction-open-tunnel-hatch",
+            Type = CaseInteractionTypes.UseItemOnTarget,
+            TargetId = "hotspot-tunnel-hatch",
+            RequiredItemIds = { requiredItemId },
+            SuccessMessage = "The hatch opens.",
+            FailureMessage = "That does not fit here."
+        });
+        c.Puzzles.Add(new CasePuzzle
+        {
+            PuzzleId = "puzzle-tunnel-hatch",
+            Type = CasePuzzleTypes.SequencePuzzle,
+            TargetId = "hotspot-tunnel-hatch",
+            Prompt = "Set the hatch tumblers in order.",
+            Options = { "one", "two", "three" },
+            CorrectSequence = { "one", "two" },
+            SuccessMessage = "The tumblers align.",
+            FailureMessage = "The hatch stays shut."
+        });
+
+        var fixes = CaseAutoRepair.Repair(c);
+        var repairedItem = c.Items.Single(item => item.ItemId == "item-tunnel-hatch");
+
+        Assert.Contains(fixes, fix => fix.Contains("Converted unsupported hotspot target", StringComparison.Ordinal));
+        Assert.False(repairedItem.IsCollectible);
+        Assert.True(repairedItem.IsInteractivePuzzleObject);
+        Assert.Equal(CaseItemInteractionPurposes.OperateMechanism, repairedItem.InteractionPurpose);
+        Assert.Equal(CaseItemRenderModes.Embedded, repairedItem.RenderMode);
+        Assert.False(string.IsNullOrWhiteSpace(repairedItem.VisualDescription));
+        Assert.Equal(string.Empty, repairedItem.ImageUrl);
+        Assert.Contains("item-tunnel-hatch", scene.ItemIds);
+        Assert.Contains(scene.Hotspots, hotspot =>
+            hotspot.HotspotId == "hotspot-tunnel-hatch"
+            && hotspot.Type == "ITEM"
+            && hotspot.TargetId == "item-tunnel-hatch");
+        Assert.Equal("item-tunnel-hatch", c.Interactions.Single(i => i.InteractionId == "interaction-open-tunnel-hatch").TargetId);
+        Assert.Equal("item-tunnel-hatch", c.Puzzles.Single(p => p.PuzzleId == "puzzle-tunnel-hatch").TargetId);
+
+        var result = _validator.Validate(c);
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
     private static CaseClue AddCameraClue(GameCase c, CaseScene scene, string clueId, bool isEvidence = false)
     {
         var clue = new CaseClue
@@ -523,6 +804,21 @@ public class CaseValidationServiceTests
         };
         c.Clues.Add(clue);
         return clue;
+    }
+
+    private static void EnableV5VisualContract(GameCase c)
+    {
+        c.Language = CaseLanguages.Vietnamese;
+        c.ArtStyle = AiVisualStyleDefaults.ArtStyle;
+        c.SubStyle = AiVisualStyleDefaults.SubStyle;
+        c.CharacterStyle = AiVisualStyleDefaults.CharacterStyle;
+        foreach (var character in c.Characters)
+            character.VisualDescription = $"Distinct pixel character identity for {character.Name}.";
+        foreach (var item in c.Items)
+        {
+            item.VisualDescription = $"Small portable pixel-art object: {item.Name}.";
+            item.RenderMode = CaseItemRenderModes.Cutout;
+        }
     }
 
     private static ConversationNode AddValidConversationTree(GameCase c)

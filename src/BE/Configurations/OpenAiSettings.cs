@@ -6,8 +6,21 @@ public class OpenAiSettings
     public string LogicModel { get; set; } = "gpt-5.5";
     public string ImageModel { get; set; } = "gpt-image-2";
     public string CutoutImageModel { get; set; } = "gpt-image-1.5";
+    public string CharacterImageQuality { get; set; } = "high";
+    public string CharacterStyleReferencePath { get; set; } =
+        "characters/mona-sprite.png";
+    public List<string> CharacterStyleReferencePaths { get; set; } =
+    [
+        "players/holmes.png",
+        "characters/mona-sprite.png",
+        "characters/samuel-sprite.png",
+        "characters/victor-sprite.png",
+        "characters/eleanor-sprite.png"
+    ];
     public string BaseUrl { get; set; } = "https://api.openai.com/v1";
     public int TimeoutSeconds { get; set; } = 900;
+    public int MaxConcurrentImageRequests { get; set; } = 2;
+    public int MaxConcurrentVisionRequests { get; set; } = 2;
     public bool AiDryRun { get; set; }
     public bool MockAiResponses { get; set; }
     public bool SkipAssetGeneration { get; set; }

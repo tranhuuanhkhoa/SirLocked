@@ -124,6 +124,68 @@ public class GeneratedImageProcessorTests
         }
     }
 
+    [Fact]
+    public async Task CreateCharacterPortraitAsync_DerivesSquareUpperBodyPortrait()
+    {
+        var spritePath = TempPngPath();
+        var portraitPath = TempPngPath();
+        try
+        {
+            using (var image = new Image<Rgba32>(Configuration.Default, 100, 160, new Rgba32(0, 0, 0, 0)))
+            {
+                for (var y = 10; y < 150; y++)
+                {
+                    for (var x = 30; x < 70; x++)
+                    {
+                        image[x, y] = new Rgba32(180, 25, 20, 255);
+                    }
+                }
+
+                await image.SaveAsPngAsync(spritePath);
+            }
+
+            var result = await GeneratedImageProcessor.CreateCharacterPortraitAsync(spritePath, portraitPath, 128);
+
+            Assert.Equal(128, result.NormalizedWidth);
+            Assert.Equal(128, result.NormalizedHeight);
+            Assert.True(result.HasAlpha);
+            Assert.True(result.CornersTransparent);
+            Assert.Equal("derived-character-portrait", result.ProcessingStatus);
+
+            using var portrait = await Image.LoadAsync<Rgba32>(portraitPath);
+            Assert.Equal(0, portrait[0, 0].A);
+            Assert.Contains(Enumerable.Range(0, portrait.Height), y =>
+                Enumerable.Range(0, portrait.Width).Any(x => portrait[x, y].A == 255));
+        }
+        finally
+        {
+            DeleteIfExists(spritePath);
+            DeleteIfExists(portraitPath);
+        }
+    }
+
+    [Fact]
+    public async Task CreateCharacterPortraitAsync_RejectsEmptySprite()
+    {
+        var spritePath = TempPngPath();
+        var portraitPath = TempPngPath();
+        try
+        {
+            using (var image = new Image<Rgba32>(Configuration.Default, 64, 96, new Rgba32(0, 0, 0, 0)))
+            {
+                await image.SaveAsPngAsync(spritePath);
+            }
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GeneratedImageProcessor.CreateCharacterPortraitAsync(spritePath, portraitPath, 128));
+        }
+        finally
+        {
+            DeleteIfExists(spritePath);
+            DeleteIfExists(portraitPath);
+        }
+    }
+
     private static string TempPngPath() =>
         Path.Combine(Path.GetTempPath(), $"sirlocked-{Guid.NewGuid():N}.png");
 

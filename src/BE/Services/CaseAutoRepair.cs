@@ -15,6 +15,8 @@ public static class CaseAutoRepair
     {
         var fixes = new List<string>();
 
+        NormalizeVisualMetadata(c, fixes);
+        NormalizeUnsupportedHotspots(c, fixes);
         EnsureSourceUnlocks(c, fixes);
         EnsureHotspots(c, fixes);
         EnsureEvidenceFlags(c, fixes);
@@ -27,10 +29,180 @@ public static class CaseAutoRepair
         return fixes;
     }
 
+    private static void NormalizeVisualMetadata(GameCase c, List<string> fixes)
+    {
+        foreach (var character in c.Characters.Where(character => string.IsNullOrWhiteSpace(character.VisualDescription)))
+        {
+            character.VisualDescription = FirstNonBlank(character.Description, character.Role, character.Name);
+            fixes.Add($"Added visualDescription to character '{character.CharacterId}'.");
+        }
+
+        foreach (var item in c.Items)
+        {
+            if (string.IsNullOrWhiteSpace(item.VisualDescription))
+            {
+                item.VisualDescription = FirstNonBlank(item.Description, item.Name, item.ItemId);
+                fixes.Add($"Added visualDescription to item '{item.ItemId}'.");
+            }
+            if (!CaseItemRenderModes.All.Contains(item.RenderMode))
+            {
+                item.RenderMode = CaseItemRenderModes.Infer(item);
+                fixes.Add($"Set renderMode '{item.RenderMode}' on item '{item.ItemId}'.");
+            }
+        }
+    }
+
     private static bool HasCameraClues(GameCase c) =>
         c.Clues.Any(cl =>
             string.Equals(cl.DiscoverMethod, "camera", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(cl.SourceType, "camera", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// LLMs sometimes invent hotspot type TARGET for physical puzzle targets such as hatches,
+    /// panels, or dials. Runtime hotspots only support ITEM/CHARACTER, so convert those targets
+    /// into non-collectible interactive items and retarget interactions/puzzles to the item.
+    /// </summary>
+    private static void NormalizeUnsupportedHotspots(GameCase c, List<string> fixes)
+    {
+        var existingItemIds = c.Items
+            .Where(item => !string.IsNullOrWhiteSpace(item.ItemId))
+            .Select(item => item.ItemId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var scene in c.Stages.SelectMany(stage => stage.Scenes))
+        {
+            foreach (var hotspot in scene.Hotspots)
+            {
+                var type = hotspot.Type?.Trim();
+                if (type is null || type.Equals("ITEM", StringComparison.OrdinalIgnoreCase) || type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (type.Equals("TARGET", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("OBJECT", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("DOOR", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("MECHANISM", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("LOCATION", StringComparison.OrdinalIgnoreCase))
+                {
+                    var oldTargetId = hotspot.TargetId;
+                    var newItemId = ExistingOrNewItemId(c, existingItemIds, oldTargetId, hotspot.HotspotId);
+                    var label = FirstNonBlank(hotspot.Label, HumanizeId(oldTargetId), HumanizeId(hotspot.HotspotId), "Interactive target");
+
+                    if (c.Items.All(item => item.ItemId != newItemId))
+                    {
+                        c.Items.Add(new CaseItem
+                        {
+                            ItemId = newItemId,
+                            Name = label,
+                            Description = $"Interactive target in {scene.Title}.",
+                            InspectText = $"This {label.ToLowerInvariant()} can be examined and used by the investigation.",
+                            VisualDescription = $"Built-in {label.ToLowerInvariant()} integrated into the scene architecture, operated through one clear physical control with no letters, numbers, labels or display text.",
+                            RenderMode = CaseItemRenderModes.Embedded,
+                            ImageUrl = string.Empty,
+                            IsCollectible = false,
+                            IsInteractivePuzzleObject = true,
+                            InteractionPurpose = CaseItemInteractionPurposes.OperateMechanism,
+                            InteractionReason = "AI generated this as a scene target; the game engine represents clickable targets as interactive items."
+                        });
+                        existingItemIds.Add(newItemId);
+                        fixes.Add($"Converted unsupported hotspot target '{oldTargetId}' into item '{newItemId}'.");
+                    }
+
+                    if (!scene.ItemIds.Contains(newItemId))
+                    {
+                        scene.ItemIds.Add(newItemId);
+                    }
+
+                    hotspot.Type = "ITEM";
+                    hotspot.TargetId = newItemId;
+                    hotspot.Label = label;
+
+                    RetargetMechanicTargets(c, oldTargetId, hotspot.HotspotId, newItemId, fixes);
+                    continue;
+                }
+
+                hotspot.Type = "ITEM";
+                fixes.Add($"Normalized unsupported hotspot type '{type}' on '{hotspot.HotspotId}' to ITEM.");
+            }
+        }
+    }
+
+    private static string ExistingOrNewItemId(GameCase c, HashSet<string> existingItemIds, string targetId, string hotspotId)
+    {
+        if (!string.IsNullOrWhiteSpace(targetId) && existingItemIds.Contains(targetId))
+        {
+            return targetId;
+        }
+
+        var source = FirstNonBlank(targetId, hotspotId, "target");
+        var baseId = source.StartsWith("item-", StringComparison.OrdinalIgnoreCase)
+            ? SlugId(source)
+            : $"item-{SlugId(source.StartsWith("hotspot-", StringComparison.OrdinalIgnoreCase) ? source["hotspot-".Length..] : source)}";
+
+        if (!existingItemIds.Contains(baseId) && c.Items.All(item => item.ItemId != baseId))
+        {
+            return baseId;
+        }
+
+        for (var i = 2; i < 1000; i++)
+        {
+            var candidate = $"{baseId}-{i}";
+            if (!existingItemIds.Contains(candidate) && c.Items.All(item => item.ItemId != candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return $"item-target-{Guid.NewGuid():N}";
+    }
+
+    private static void RetargetMechanicTargets(GameCase c, string oldTargetId, string hotspotId, string newItemId, List<string> fixes)
+    {
+        var oldIds = new[] { oldTargetId, hotspotId }
+            .Where(id => !string.IsNullOrWhiteSpace(id) && id != newItemId)
+            .Distinct(StringComparer.Ordinal)
+            .ToHashSet(StringComparer.Ordinal);
+        if (oldIds.Count == 0) return;
+
+        foreach (var interaction in c.Interactions.Where(interaction => oldIds.Contains(interaction.TargetId)))
+        {
+            var old = interaction.TargetId;
+            interaction.TargetId = newItemId;
+            fixes.Add($"Interaction '{interaction.InteractionId}' target changed from '{old}' to '{newItemId}'.");
+        }
+
+        foreach (var puzzle in c.Puzzles.Where(puzzle => oldIds.Contains(puzzle.TargetId)))
+        {
+            var old = puzzle.TargetId;
+            puzzle.TargetId = newItemId;
+            fixes.Add($"Puzzle '{puzzle.PuzzleId}' target changed from '{old}' to '{newItemId}'.");
+        }
+    }
+
+    private static string SlugId(string value)
+    {
+        var chars = value.Trim().ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray();
+        var slug = string.Join('-', new string(chars)
+            .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return string.IsNullOrWhiteSpace(slug) ? "target" : slug;
+    }
+
+    private static string HumanizeId(string value)
+    {
+        var source = value;
+        if (source.StartsWith("hotspot-", StringComparison.OrdinalIgnoreCase)) source = source["hotspot-".Length..];
+        if (source.StartsWith("item-", StringComparison.OrdinalIgnoreCase)) source = source["item-".Length..];
+        var words = source.Split(new[] { '-', '_' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return words.Length == 0
+            ? string.Empty
+            : string.Join(' ', words.Select(word => char.ToUpperInvariant(word[0]) + word[1..]));
+    }
+
+    private static string FirstNonBlank(params string[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? string.Empty;
 
     /// <summary>A clue that nothing unlocks but that declares a valid source gets attached to that source.</summary>
     private static void EnsureSourceUnlocks(GameCase c, List<string> fixes)

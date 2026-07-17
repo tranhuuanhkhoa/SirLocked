@@ -37,7 +37,7 @@ public static class GameplayConversationRules
 
         var root = characterNodes.Single(node => node.IsRoot);
         var current = string.IsNullOrWhiteSpace(request.NodeId)
-            ? root
+            ? ResolveDefaultNode(characterNodes, state, root)
             : gameCase.ConversationNodes.FirstOrDefault(node => node.NodeId == request.NodeId)
                 ?? throw ApiException.BadRequest("This conversation node is not available.");
 
@@ -84,6 +84,14 @@ public static class GameplayConversationRules
         }
 
         return new ConversationRuleResult(reached, selectedChoice, true, newClues);
+    }
+
+    public static IReadOnlyList<ConversationChoice> VisibleChoices(ConversationNode node, GameplayState state)
+    {
+        // Visited branches stay selectable: revisiting is idempotent, and hiding them used to
+        // strand the player on a node whose only remaining choice was "leave" while gated
+        // follow-ups lived deeper in an already-visited branch.
+        return node.Choices.ToList();
     }
 
     /// <summary>Public, spoiler-safe challenge projection (prompt + resolved + resolution only).</summary>
@@ -168,5 +176,28 @@ public static class GameplayConversationRules
     {
         if (requiredClueIds.Any(id => !state.UnlockedClueIds.Contains(id)))
             throw ApiException.BadRequest(LockedMessage);
+    }
+
+    private static ConversationNode ResolveDefaultNode(
+        IReadOnlyCollection<ConversationNode> characterNodes,
+        GameplayState state,
+        ConversationNode root)
+    {
+        var nodeById = characterNodes
+            .Where(node => !string.IsNullOrWhiteSpace(node.NodeId))
+            .GroupBy(node => node.NodeId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        foreach (var nodeId in state.VisitedConversationNodeIds.AsEnumerable().Reverse())
+        {
+            if (!nodeById.TryGetValue(nodeId, out var node)) continue;
+            var hasPendingBranch = node.Choices.Any(choice =>
+                !string.IsNullOrWhiteSpace(choice.NextNodeId)
+                && nodeById.ContainsKey(choice.NextNodeId)
+                && !state.VisitedConversationNodeIds.Contains(choice.NextNodeId));
+            if (hasPendingBranch) return node;
+        }
+
+        return root;
     }
 }

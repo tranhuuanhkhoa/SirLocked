@@ -25,6 +25,8 @@ public class GameStateBuilder : IGameStateBuilder
         var scene = CurrentScene(gameCase, state, userId);
         var stage = StageForScene(gameCase, scene.SceneId);
         var inspected = state.InspectedItemIds.ToHashSet();
+        var collected = state.CollectedItemIds.ToHashSet();
+        var solvedPuzzles = state.SolvedPuzzleIds.ToHashSet();
         var asked = state.AskedDialogueIds.ToHashSet();
         var canCompleteScene = GameRules.IsSceneAlreadyCompleted(state, scene.SceneId)
             || CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked);
@@ -74,7 +76,11 @@ public class GameStateBuilder : IGameStateBuilder
                 .ToList(),
             AvailableDialogues = sceneDialogues,
             ConversationTreeCharacterIds = conversationTreeCharacterIds,
-            ConversationTranscript = conversationTranscript
+            ConversationTranscript = conversationTranscript,
+            Puzzles = gameCase.Puzzles
+                .Where(puzzle => IsTargetAvailableInScene(scene, puzzle.TargetId))
+                .Select(puzzle => ScenePuzzleDto.From(puzzle, collected, unlocked, solvedPuzzles))
+                .ToList()
         };
 
         var sceneMap = gameCase.Stages.OrderBy(s => s.Order)
@@ -85,7 +91,13 @@ public class GameStateBuilder : IGameStateBuilder
                 Title = s.Title,
                 IsCurrent = s.SceneId == scene.SceneId,
                 IsVisited = state.VisitedSceneIds.Contains(s.SceneId),
-                IsCompleted = state.CompletedSceneIds.Contains(s.SceneId)
+                IsUnlocked = GameRules.CanEnterScene(gameCase, state, s.SceneId),
+                IsCompleted = state.CompletedSceneIds.Contains(s.SceneId),
+                PendingRequirementCount = state.CompletedSceneIds.Contains(s.SceneId)
+                    ? 0
+                    : s.CompleteCondition.RequiredItemIds.Count(i => !inspected.Contains(i))
+                        + s.CompleteCondition.RequiredClueIds.Count(c => !unlocked.Contains(c))
+                        + s.CompleteCondition.RequiredDialogueIds.Count(d => !asked.Contains(d))
             })
             .ToList();
 
@@ -115,6 +127,7 @@ public class GameStateBuilder : IGameStateBuilder
             CaseId = gameCase.CaseId,
             CaseTitle = gameCase.Title,
             CaseSummary = gameCase.Summary,
+            Language = gameCase.Language,
             MechanicsVersion = gameCase.MechanicsVersion,
             RoomStatus = room.Status,
             CurrentStageId = stage.StageId,
@@ -122,6 +135,7 @@ public class GameStateBuilder : IGameStateBuilder
             Version = state.Version,
             Players = room.Players.Select(RoomPlayerDto.From).ToList(),
             VisitedSceneIds = state.VisitedSceneIds,
+            UnlockedSceneIds = state.UnlockedSceneIds,
             InspectedItemIds = state.InspectedItemIds,
             CollectedItemIds = state.CollectedItemIds,
             CapturedClueIds = state.CapturedClueIds,
@@ -131,11 +145,14 @@ public class GameStateBuilder : IGameStateBuilder
                 .Select(i => SceneItemDto.From(i!, state.InspectedItemIds.Contains(i!.ItemId)))
                 .ToList(),
             UnlockedClueIds = state.UnlockedClueIds,
+            UsedInteractionIds = state.UsedInteractionIds,
+            SolvedPuzzleIds = state.SolvedPuzzleIds,
             AskedDialogueIds = state.AskedDialogueIds,
             VisitedConversationNodeIds = state.VisitedConversationNodeIds,
             CompletedSceneIds = state.CompletedSceneIds,
             CompletedStageIds = state.CompletedStageIds,
             SelectedEvidenceIds = state.SelectedEvidenceIds,
+            WrongPuzzleCount = state.WrongPuzzleCount,
             GameStatus = state.GameStatus,
             AvailableForAccusation = GameRules.IsAccusationAvailable(gameCase, state, scene.SceneId),
             CurrentSceneCanComplete = canCompleteScene,
@@ -236,6 +253,11 @@ public class GameStateBuilder : IGameStateBuilder
         gameCase.Stages.FirstOrDefault(s => s.Scenes.Any(scene => scene.SceneId == sceneId))
             ?? throw ApiException.BadRequest("The current stage no longer exists in the case definition.");
 
+    private static bool IsTargetAvailableInScene(CaseScene scene, string targetId) =>
+        scene.ItemIds.Contains(targetId)
+        || scene.CharacterIds.Contains(targetId)
+        || scene.Hotspots.Any(h => h.TargetId == targetId);
+
     private static MissingRequirementsDto MissingRequirements(
         CompleteCondition condition,
         IReadOnlySet<string> inspected,
@@ -262,6 +284,29 @@ public class GameStateBuilder : IGameStateBuilder
         var inspected = state.InspectedItemIds.ToHashSet();
         var unlocked = state.UnlockedClueIds.ToHashSet();
         var asked = state.AskedDialogueIds.ToHashSet();
+
+        if (GameRules.AllScenesCompleted(gameCase, state))
+        {
+            var requiredEvidenceIds = (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2
+                    ? gameCase.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId)
+                    : gameCase.FinalLogic.RequiredEvidenceIds)
+                .Distinct().ToList();
+            var missingEvidence = requiredEvidenceIds.Count(id => !unlocked.Contains(id));
+            var missingDeductions = gameCase.FinalLogic.RequiredDeductionIds
+                .Count(id => state.SolvedDeductionRecords.All(record => record.DeductionId != id));
+            var missingChains = gameCase.FinalLogic.RequiredTeamworkChainIds
+                .Count(id => !GameRules.IsTeamworkChainComplete(gameCase, state, id));
+
+            var finalParts = new List<string>();
+            if (missingEvidence > 0) finalParts.Add($"secure {missingEvidence} more piece(s) of key evidence");
+            if (missingChains > 0) finalParts.Add($"resolve {missingChains} more confrontation chain(s) with your partner");
+            if (missingDeductions > 0) finalParts.Add($"solve {missingDeductions} more deduction(s)");
+
+            var lastScene = gameCase.Stages.OrderBy(s => s.Order).Last().Scenes.Last();
+            return finalParts.Count == 0
+                ? $"Head to {lastScene.Title} to make the final accusation."
+                : $"Every location is fully investigated. Before accusing: {string.Join(", ", finalParts)}.";
+        }
 
         if (CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked))
         {

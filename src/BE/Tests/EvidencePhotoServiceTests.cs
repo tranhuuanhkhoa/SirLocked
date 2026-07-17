@@ -57,7 +57,34 @@ public class EvidencePhotoServiceTests
         Assert.Equal(400, error.StatusCode);
     }
 
+    [Fact]
+    public void CaptureClueAsync_PersistsPhotoOnlyAfterStateSaveSucceeds()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot(), "src", "BE", "Services", "GameplayService.cs"));
+        var methodStart = source.IndexOf("public async Task<GameActionResponse> CaptureClueAsync", StringComparison.Ordinal);
+        Assert.True(methodStart >= 0);
+
+        var normalize = source.IndexOf("_evidencePhotos.NormalizeAsync", methodStart, StringComparison.Ordinal);
+        var trySave = source.IndexOf("if (!await TrySaveStateAsync(room, gameCase))", normalize, StringComparison.Ordinal);
+        var upsert = source.IndexOf("_evidencePhotos.UpsertAsync", normalize, StringComparison.Ordinal);
+
+        Assert.True(normalize > methodStart);
+        Assert.True(trySave > normalize);
+        Assert.True(upsert > trySave);
+    }
+
     private static EvidencePhotoService Service() => new(null!);
+
+    private static string RepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SirLocked.sln")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? throw new InvalidOperationException("Could not locate repository root.");
+    }
 
     private static FormFile FormFile(Stream stream, string contentType) => new(
         stream,

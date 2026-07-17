@@ -1,0 +1,1017 @@
+{
+  "id": "",
+  "caseId": "case-midnight-express-ledger",
+  "title": "The Sealed Ledger Affair",
+  "summary": "A sealed ledger vanishes aboard a night train while its owner is found unconscious in a locked compartment. Two detectives must trace the physical evidence and break the suspects\u0027 stories before the culprit slips away.",
+  "status": "DRAFT",
+  "mechanicsVersion": 2,
+  "generationMode": "LEGACY_ITEM",
+  "estimatedMinutes": 43,
+  "coverImageUrl": "/assets/cases/lumiere-murder.png",
+  "stages": [
+    {
+      "stageId": "stage-scene-of-the-1",
+      "title": "Lead 1: Scene of the Crime",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-scene-of-the-1",
+          "title": "Scene of the Crime",
+          "backgroundUrl": "/assets/scenes/lobby.png",
+          "description": "The investigation begins where the incident was discovered. Every object here saw what happened.",
+          "itemIds": [
+            "item-a-sealed-ledger-1",
+            "item-a-sealed-ledger-2"
+          ],
+          "characterIds": [
+            "char-inspector-hale",
+            "char-victor-crane",
+            "char-oliver-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-1",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-1",
+              "x": 22,
+              "y": 52,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Scene of the Crime Exhibit A",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-2",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-2",
+              "x": 60,
+              "y": 66,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Scene of the Crime Exhibit B",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-a-sealed-ledger-1",
+              "item-a-sealed-ledger-2"
+            ],
+            "requiredClueIds": [
+              "clue-a-sealed-ledger-1",
+              "clue-a-sealed-ledger-dlg-1"
+            ],
+            "requiredDialogueIds": [
+              "dlg-a-sealed-ledger-1-press"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-service-passage-2",
+      "title": "Lead 2: Service Passage",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-service-passage-2",
+          "title": "Service Passage",
+          "backgroundUrl": "/assets/scenes/backstage-hallway.png",
+          "description": "A back route that staff and guests pretend not to use. Movements here decide alibis.",
+          "itemIds": [
+            "item-a-sealed-ledger-3",
+            "item-a-sealed-ledger-4"
+          ],
+          "characterIds": [
+            "char-inspector-hale",
+            "char-lena-marsh",
+            "char-oliver-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-3",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-3",
+              "x": 25,
+              "y": 52,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Service Passage Exhibit A",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-4",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-4",
+              "x": 63,
+              "y": 66,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Service Passage Exhibit B",
+              "requiredClueIds": [
+                "clue-a-sealed-ledger-1"
+              ]
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-a-sealed-ledger-3",
+              "item-a-sealed-ledger-4"
+            ],
+            "requiredClueIds": [
+              "clue-a-sealed-ledger-3",
+              "clue-a-sealed-ledger-dlg-2"
+            ],
+            "requiredDialogueIds": [
+              "dlg-a-sealed-ledger-2-press"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-private-quarters-3",
+      "title": "Lead 3: Private Quarters",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-private-quarters-3",
+          "title": "Private Quarters",
+          "backgroundUrl": "/assets/scenes/owners-office.png",
+          "description": "Personal effects reveal motives that public faces hide.",
+          "itemIds": [
+            "item-a-sealed-ledger-5",
+            "item-a-sealed-ledger-6"
+          ],
+          "characterIds": [
+            "char-inspector-hale",
+            "char-victor-crane",
+            "char-oliver-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-5",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-5",
+              "x": 28,
+              "y": 52,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Private Quarters Exhibit A",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-6",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-6",
+              "x": 66,
+              "y": 66,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Private Quarters Exhibit B",
+              "requiredClueIds": [
+                "clue-a-sealed-ledger-3"
+              ]
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-a-sealed-ledger-5",
+              "item-a-sealed-ledger-6"
+            ],
+            "requiredClueIds": [
+              "clue-a-sealed-ledger-5",
+              "clue-a-sealed-ledger-dlg-3"
+            ],
+            "requiredDialogueIds": [
+              "dlg-a-sealed-ledger-3-press"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-final-confrontation-4",
+      "title": "Final Confrontation",
+      "order": 4,
+      "scenes": [
+        {
+          "sceneId": "scene-final-confrontation-4",
+          "title": "Final Confrontation",
+          "backgroundUrl": "/assets/scenes/dressing-room.png",
+          "description": "All suspects are gathered. The chain of evidence must now name the culprit.",
+          "itemIds": [
+            "item-a-sealed-ledger-7",
+            "item-a-sealed-ledger-8"
+          ],
+          "characterIds": [
+            "char-inspector-hale",
+            "char-victor-crane",
+            "char-lena-marsh",
+            "char-oliver-pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-7",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-7",
+              "x": 31,
+              "y": 52,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Final Confrontation Exhibit A",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-a-sealed-ledger-8",
+              "type": "ITEM",
+              "targetId": "item-a-sealed-ledger-8",
+              "x": 69,
+              "y": 66,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Final Confrontation Exhibit B",
+              "requiredClueIds": [
+                "clue-a-sealed-ledger-5"
+              ]
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-a-sealed-ledger-7",
+              "item-a-sealed-ledger-8"
+            ],
+            "requiredClueIds": [
+              "clue-a-sealed-ledger-7",
+              "clue-a-sealed-ledger-dlg-4"
+            ],
+            "requiredDialogueIds": [
+              "dlg-a-sealed-ledger-4-press"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-inspector-hale",
+      "name": "Inspector Hale",
+      "role": "Lead detective",
+      "imageUrl": "/assets/characters/samuel-portrait.png",
+      "description": "Keeps the investigation anchored to verifiable facts."
+    },
+    {
+      "characterId": "char-victor-crane",
+      "name": "Victor Crane",
+      "role": "Trusted associate and true culprit",
+      "imageUrl": "/assets/characters/victor-portrait.png",
+      "description": "Smooth and helpful, but the sealed ledger ruined them long before tonight."
+    },
+    {
+      "characterId": "char-lena-marsh",
+      "name": "Lena Marsh",
+      "role": "Devoted employee and red herring suspect",
+      "imageUrl": "/assets/characters/eleanor-portrait.png",
+      "description": "Hides an embarrassing secret that looks like guilt but is not."
+    },
+    {
+      "characterId": "char-oliver-pike",
+      "name": "Oliver Pike",
+      "role": "Nervous witness",
+      "imageUrl": "/assets/characters/mona-portrait.png",
+      "description": "Saw more than they admit, and fears being blamed for it."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-a-sealed-ledger-1",
+      "name": "Scene of the Crime Exhibit A",
+      "description": "A physical trace left in the scene of the crime.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the scene of the crime that night.",
+      "imageUrl": "/assets/items/ledger.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-1"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-2",
+      "name": "Scene of the Crime Exhibit B",
+      "description": "A physical trace left in the scene of the crime.",
+      "inspectText": "It points suspiciously at Lena Marsh, but proves embarrassment rather than guilt.",
+      "imageUrl": "/assets/items/key.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-2"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-3",
+      "name": "Service Passage Exhibit A",
+      "description": "A physical trace left in the service passage.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the service passage that night.",
+      "imageUrl": "/assets/items/letter.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-3"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-4",
+      "name": "Service Passage Exhibit B",
+      "description": "A physical trace left in the service passage.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the service passage that night.",
+      "imageUrl": "/assets/items/pawn-ticket.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-4"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-5",
+      "name": "Private Quarters Exhibit A",
+      "description": "A physical trace left in the private quarters.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the private quarters that night.",
+      "imageUrl": "/assets/items/scratched-photo.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-5"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-6",
+      "name": "Private Quarters Exhibit B",
+      "description": "A physical trace left in the private quarters.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the private quarters that night.",
+      "imageUrl": "/assets/items/love-letter.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-6"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-7",
+      "name": "Final Confrontation Exhibit A",
+      "description": "A physical trace left in the final confrontation.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the final confrontation that night.",
+      "imageUrl": "/assets/items/ledger.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-7"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    },
+    {
+      "itemId": "item-a-sealed-ledger-8",
+      "name": "Final Confrontation Exhibit B",
+      "description": "A physical trace left in the final confrontation.",
+      "inspectText": "This ties the sealed ledger directly to whoever moved through the final confrontation that night.",
+      "imageUrl": "/assets/items/key.png",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-8"
+      ],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": false,
+      "interactionPurpose": "",
+      "interactionReason": ""
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-a-sealed-ledger-1",
+      "title": "Trace 1: Scene of the Crime",
+      "content": "Physical evidence from the scene of the crime narrows down who had the opportunity.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-1",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-2",
+      "title": "Lena Marsh\u0027s Secret",
+      "content": "Lena Marsh hid something here, but it does not connect to the sealed ledger itself.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-a-sealed-ledger-2",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-dlg-1",
+      "title": "Statement 1: Victor Crane",
+      "content": "Victor Crane\u0027s story does not fit the physical trace found in the scene of the crime.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-a-sealed-ledger-1-press",
+      "sourceType": "dialogue",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-3",
+      "title": "Trace 3: Service Passage",
+      "content": "Physical evidence from the service passage narrows down who had the opportunity.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-3",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-4",
+      "title": "Trace 4: Service Passage",
+      "content": "Physical evidence from the service passage narrows down who had the opportunity.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-4",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-dlg-2",
+      "title": "Statement 2: Lena Marsh",
+      "content": "Lena Marsh\u0027s story does not fit the physical trace found in the service passage.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-a-sealed-ledger-2-press",
+      "sourceType": "dialogue",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-5",
+      "title": "Trace 5: Private Quarters",
+      "content": "Physical evidence from the private quarters narrows down who had the opportunity.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-5",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-6",
+      "title": "Trace 6: Private Quarters",
+      "content": "Physical evidence from the private quarters narrows down who had the opportunity.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-6",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-dlg-3",
+      "title": "Statement 3: Victor Crane",
+      "content": "Victor Crane\u0027s story does not fit the physical trace found in the private quarters.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-a-sealed-ledger-3-press",
+      "sourceType": "dialogue",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-7",
+      "title": "Trace 7: Final Confrontation",
+      "content": "Physical evidence from the final confrontation narrows down who had the opportunity.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-7",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-8",
+      "title": "Trace 8: Final Confrontation",
+      "content": "Physical evidence from the final confrontation narrows down who had the opportunity.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-a-sealed-ledger-8",
+      "sourceType": "item",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "clue-a-sealed-ledger-dlg-4",
+      "title": "Statement 4: Victor Crane",
+      "content": "Confronted with the evidence chain, Victor Crane\u0027s account of the night collapses.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "dlg-a-sealed-ledger-4-press",
+      "sourceType": "dialogue",
+      "sceneId": "",
+      "discoverMethod": "",
+      "visualDescription": "",
+      "inventoryDescription": "",
+      "narrativeMeaning": "",
+      "hintLevel": 0,
+      "tags": [],
+      "relatedCharacterIds": []
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-a-sealed-ledger-1-open",
+      "characterId": "char-oliver-pike",
+      "question": "What did you notice near the scene of the crime?",
+      "answer": "I heard movement when everyone was supposed to be elsewhere. I did not dare to speak before.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-1-press",
+      "characterId": "char-victor-crane",
+      "question": "How do you explain what we found in the scene of the crime?",
+      "answer": "That... that must belong to someone else. I was never there that long.",
+      "requiredClueIds": [
+        "clue-a-sealed-ledger-1"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-2-open",
+      "characterId": "char-oliver-pike",
+      "question": "What did you notice near the service passage?",
+      "answer": "I heard movement when everyone was supposed to be elsewhere. I did not dare to speak before.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-2-press",
+      "characterId": "char-lena-marsh",
+      "question": "How do you explain what we found in the service passage?",
+      "answer": "That... that must belong to someone else. I was never there that long.",
+      "requiredClueIds": [
+        "clue-a-sealed-ledger-3"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-3-open",
+      "characterId": "char-oliver-pike",
+      "question": "What did you notice near the private quarters?",
+      "answer": "I heard movement when everyone was supposed to be elsewhere. I did not dare to speak before.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-3-press",
+      "characterId": "char-victor-crane",
+      "question": "How do you explain what we found in the private quarters?",
+      "answer": "That... that must belong to someone else. I was never there that long.",
+      "requiredClueIds": [
+        "clue-a-sealed-ledger-5"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-4-open",
+      "characterId": "char-oliver-pike",
+      "question": "Will you finally tell the whole truth?",
+      "answer": "Yes. I saw Victor Crane where they claimed they never went.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-a-sealed-ledger-4-press",
+      "characterId": "char-victor-crane",
+      "question": "Your alibi contradicts every piece of evidence. What really happened?",
+      "answer": "...You cannot prove\u2014 no. No, it was the only way out. The debt would have destroyed everything.",
+      "requiredClueIds": [
+        "clue-a-sealed-ledger-1",
+        "clue-a-sealed-ledger-3",
+        "clue-a-sealed-ledger-5"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "conversationNodes": [
+    {
+      "nodeId": "conv-witness-root",
+      "characterId": "char-oliver-pike",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Oliver Pike watches you warily."
+        }
+      ],
+      "unlockClueIds": [],
+      "challengeId": null,
+      "choices": [
+        {
+          "choiceId": "conv-witness-topic",
+          "label": "What did you see that night?",
+          "requiredClueIds": [],
+          "nextNodeId": "conv-witness-saw"
+        },
+        {
+          "choiceId": "conv-witness-leave",
+          "label": "That is all for now.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "conv-witness-saw",
+      "characterId": "char-oliver-pike",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Shadows by the door, and a sound like breaking glass."
+        },
+        {
+          "speaker": "NPC",
+          "text": "I kept my distance, you understand."
+        }
+      ],
+      "unlockClueIds": [],
+      "challengeId": null,
+      "choices": [
+        {
+          "choiceId": "conv-witness-follow",
+          "label": "Press for detail.",
+          "requiredClueIds": [],
+          "nextNodeId": "conv-witness-detail"
+        },
+        {
+          "choiceId": "conv-witness-back",
+          "label": "Understood.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "conv-witness-detail",
+      "characterId": "char-oliver-pike",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "A figure too careful to be innocent."
+        }
+      ],
+      "unlockClueIds": [],
+      "challengeId": null,
+      "choices": [
+        {
+          "choiceId": "conv-witness-return",
+          "label": "Thank you.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-a-sealed-ledger-1",
+      "dialogueId": "dlg-a-sealed-ledger-1-press",
+      "prompt": "Which evidence contradicts Victor Crane\u0027s account?",
+      "correctEvidenceId": "clue-a-sealed-ledger-1",
+      "successResponse": "The physical trace from scene of the crime proves the testimony cannot be true.",
+      "failureResponse": "That evidence does not contradict this part of the testimony.",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-dlg-1"
+      ]
+    },
+    {
+      "challengeId": "challenge-a-sealed-ledger-2",
+      "dialogueId": "dlg-a-sealed-ledger-2-press",
+      "prompt": "Which evidence contradicts Lena Marsh\u0027s account?",
+      "correctEvidenceId": "clue-a-sealed-ledger-3",
+      "successResponse": "The physical trace from service passage proves the testimony cannot be true.",
+      "failureResponse": "That evidence does not contradict this part of the testimony.",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-dlg-2"
+      ]
+    },
+    {
+      "challengeId": "challenge-a-sealed-ledger-3",
+      "dialogueId": "dlg-a-sealed-ledger-3-press",
+      "prompt": "Which evidence contradicts Victor Crane\u0027s account?",
+      "correctEvidenceId": "clue-a-sealed-ledger-5",
+      "successResponse": "The physical trace from private quarters proves the testimony cannot be true.",
+      "failureResponse": "That evidence does not contradict this part of the testimony.",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-dlg-3"
+      ]
+    },
+    {
+      "challengeId": "challenge-a-sealed-ledger-4",
+      "dialogueId": "dlg-a-sealed-ledger-4-press",
+      "prompt": "Which evidence contradicts Victor Crane\u0027s account?",
+      "correctEvidenceId": "clue-a-sealed-ledger-7",
+      "successResponse": "The physical trace from final confrontation proves the testimony cannot be true.",
+      "failureResponse": "That evidence does not contradict this part of the testimony.",
+      "unlockClueIds": [
+        "clue-a-sealed-ledger-dlg-4"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-final-chain",
+      "prompt": "Which reasoning chain proves Victor Crane\u0027s guilt?",
+      "requiredClueIds": [
+        "clue-a-sealed-ledger-1",
+        "clue-a-sealed-ledger-3",
+        "clue-a-sealed-ledger-5"
+      ],
+      "requiredChallengeIds": [
+        "challenge-a-sealed-ledger-1",
+        "challenge-a-sealed-ledger-2"
+      ],
+      "options": [
+        {
+          "id": "deduce-culprit-chain",
+          "label": "The physical evidence and contradictions point to Victor Crane"
+        },
+        {
+          "id": "deduce-red-herring",
+          "label": "Lena Marsh\u0027s suspicious behavior proves guilt"
+        },
+        {
+          "id": "deduce-accident",
+          "label": "The death was accidental and the clues are unrelated"
+        }
+      ],
+      "correctOptionId": "deduce-culprit-chain",
+      "successResponse": "The motive, method, and opportunity now form one defensible chain.",
+      "failureResponse": "That theory leaves a major contradiction unresolved.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-final-teamwork",
+      "investigatorClueId": "clue-a-sealed-ledger-3",
+      "interrogatorChallengeId": "challenge-a-sealed-ledger-1",
+      "deductionId": "deduction-final-chain",
+      "description": "The investigator finds the core physical proof, the interrogator resolves a contradiction, and the team completes the final deduction."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-scene-a-sealed-ledger-1",
+      "contextType": "SCENE",
+      "targetId": "scene-scene-of-the-1",
+      "order": 1,
+      "text": "Compare the first physical trace in scene of the crime with the suspect\u0027s statement."
+    },
+    {
+      "hintId": "hint-challenge-a-sealed-ledger-1",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-a-sealed-ledger-1",
+      "order": 1,
+      "text": "Use evidence found in this location that directly conflicts with the testimony."
+    },
+    {
+      "hintId": "hint-scene-a-sealed-ledger-2",
+      "contextType": "SCENE",
+      "targetId": "scene-service-passage-2",
+      "order": 1,
+      "text": "Compare the first physical trace in service passage with the suspect\u0027s statement."
+    },
+    {
+      "hintId": "hint-challenge-a-sealed-ledger-2",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-a-sealed-ledger-2",
+      "order": 1,
+      "text": "Use evidence found in this location that directly conflicts with the testimony."
+    },
+    {
+      "hintId": "hint-scene-a-sealed-ledger-3",
+      "contextType": "SCENE",
+      "targetId": "scene-private-quarters-3",
+      "order": 1,
+      "text": "Compare the first physical trace in private quarters with the suspect\u0027s statement."
+    },
+    {
+      "hintId": "hint-challenge-a-sealed-ledger-3",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-a-sealed-ledger-3",
+      "order": 1,
+      "text": "Use evidence found in this location that directly conflicts with the testimony."
+    },
+    {
+      "hintId": "hint-scene-a-sealed-ledger-4",
+      "contextType": "SCENE",
+      "targetId": "scene-final-confrontation-4",
+      "order": 1,
+      "text": "Compare the first physical trace in final confrontation with the suspect\u0027s statement."
+    },
+    {
+      "hintId": "hint-challenge-a-sealed-ledger-4",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-a-sealed-ledger-4",
+      "order": 1,
+      "text": "Use evidence found in this location that directly conflicts with the testimony."
+    },
+    {
+      "hintId": "hint-deduction-final-chain",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-final-chain",
+      "order": 1,
+      "text": "Use the evidence that supports motive, method, and opportunity together."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-victor-crane",
+    "motive": "The sealed ledger concealed a debt that would have destroyed Victor Crane.",
+    "method": "Victor Crane used trusted access to stage the scene and let suspicion fall on Lena Marsh.",
+    "requiredEvidenceIds": [
+      "clue-a-sealed-ledger-1",
+      "clue-a-sealed-ledger-3",
+      "clue-a-sealed-ledger-5",
+      "clue-a-sealed-ledger-7",
+      "clue-a-sealed-ledger-dlg-4"
+    ],
+    "motiveOptions": [
+      {
+        "id": "motive-debt",
+        "label": "A hidden debt tied to the sealed ledger"
+      },
+      {
+        "id": "motive-jealousy",
+        "label": "Professional jealousy"
+      },
+      {
+        "id": "motive-revenge",
+        "label": "Revenge for an old betrayal"
+      }
+    ],
+    "methodOptions": [
+      {
+        "id": "method-trusted-access",
+        "label": "Trusted access followed by a staged scene"
+      },
+      {
+        "id": "method-forced-entry",
+        "label": "Forced entry after the incident"
+      },
+      {
+        "id": "method-accomplice",
+        "label": "An accomplice created a false alibi"
+      }
+    ],
+    "correctMotiveId": "motive-debt",
+    "correctMethodId": "method-trusted-access",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "evidenceId": "clue-a-sealed-ledger-1"
+      },
+      {
+        "claimType": "METHOD",
+        "evidenceId": "clue-a-sealed-ledger-3"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "evidenceId": "clue-a-sealed-ledger-5"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-final-chain"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-final-teamwork"
+    ],
+    "winEnding": "The evidence chain closes around Victor Crane. The staged scene, the traces, and the broken alibi leave no escape, and Lena Marsh is cleared.",
+    "failEnding": "The accusation does not hold. Without the full chain of evidence, Victor Crane walks free and an innocent reputation is ruined."
+  },
+  "createdAt": "2026-06-19T03:56:50.9560922Z",
+  "updatedAt": "2026-06-19T03:56:50.9561126Z"
+}

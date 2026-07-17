@@ -8,6 +8,7 @@ public class CaseSummaryResponse
     public string CaseId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
+    public string Language { get; set; } = CaseLanguages.English;
     public string Status { get; set; } = string.Empty;
     public int EstimatedMinutes { get; set; }
     public string CoverImageUrl { get; set; } = string.Empty;
@@ -24,6 +25,7 @@ public class CaseSummaryResponse
         CaseId = c.CaseId,
         Title = c.Title,
         Summary = c.Summary,
+        Language = CaseLanguages.Normalize(c.Language),
         Status = c.Status,
         EstimatedMinutes = c.EstimatedMinutes,
         CoverImageUrl = c.CoverImageUrl,
@@ -50,6 +52,7 @@ public class CasePublicDetailResponse : CaseSummaryResponse
             CaseId = summary.CaseId,
             Title = summary.Title,
             Summary = summary.Summary,
+            Language = summary.Language,
             Status = summary.Status,
             EstimatedMinutes = summary.EstimatedMinutes,
             CoverImageUrl = summary.CoverImageUrl,

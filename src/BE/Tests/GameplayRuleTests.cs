@@ -43,7 +43,8 @@ public class GameplayRuleTests
         {
             CurrentSceneId = lastScene.SceneId,
             GameStatus = GameStatus.InProgress,
-            CompletedSceneIds = new List<string> { lastScene.SceneId },
+            // The accusation now requires the whole case investigated, not just the final scene.
+            CompletedSceneIds = gameCase.Stages.SelectMany(s => s.Scenes).Select(s => s.SceneId).ToList(),
             UnlockedClueIds = gameCase.FinalLogic.RequiredEvidenceIds.ToList()
         };
         state.UnlockedClueIds.AddRange(gameCase.FinalLogic.RequiredEvidenceLinks.Select(link => link.EvidenceId));

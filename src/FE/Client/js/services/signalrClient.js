@@ -7,6 +7,20 @@ import { session } from './session.js';
  * caller refetch GET /api/game/rooms/{roomId}/state to replace local state.
  */
 export function createRoomConnection(roomId, handlers = {}, { onReconnected, onClose } = {}) {
+  if (window.__sirlockedNoSignalR === true) {
+    return {
+      connection: {
+        state: 'Connected',
+        invoke: async () => {},
+        on: () => {},
+        onclose: () => {},
+        onreconnected: () => {},
+      },
+      async start() {},
+      async stop() {},
+    };
+  }
+
   const connection = new signalR.HubConnectionBuilder()
     .withUrl('/hubs/game', { accessTokenFactory: () => session.token() })
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])

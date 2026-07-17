@@ -1,0 +1,579 @@
+{
+  "id": "",
+  "caseId": "case-clockwork-conservatory",
+  "title": "The Clockwork Conservatory",
+  "summary": "At ten seventeen, every clock in Bellweather Conservatory stops and its priceless sunstone vanishes. Photograph the traces, test two alibis, open a sealed chronometer, and identify who stole the missing minute.",
+  "status": "DRAFT",
+  "mechanicsVersion": 2,
+  "generationMode": "CAMERA_EMBEDDED",
+  "estimatedMinutes": 15,
+  "coverImageUrl": "/assets/code-generated/case-clockwork-conservatory/cover.svg",
+  "stages": [
+    {
+      "stageId": "stage-glass-gallery",
+      "title": "The Missing Minute",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-glass-gallery",
+          "title": "Bellweather Glass Gallery",
+          "backgroundUrl": "/assets/code-generated/case-clockwork-conservatory/scenes/glass-gallery.svg",
+          "description": "A moonlit Victorian conservatory of brass clocks and winter plants. The empty sunstone pedestal stands beneath a stopped master clock.",
+          "itemIds": ["item-winding-key"],
+          "characterIds": ["char-elias-finch"],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-winding-key",
+              "type": "ITEM",
+              "targetId": "item-winding-key",
+              "x": 13,
+              "y": 70,
+              "width": 9,
+              "height": 12,
+              "zIndex": 8,
+              "label": "Brass winding key",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-elias",
+              "type": "CHARACTER",
+              "targetId": "char-elias-finch",
+              "x": 67,
+              "y": 34,
+              "width": 18,
+              "height": 49,
+              "zIndex": 10,
+              "label": "Elias Finch",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": null,
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": { "x": 90, "y": 560, "width": 1420, "height": 210 },
+            "spawnPoints": {
+              "player1": { "x": 420, "y": 720, "anchor": "bottom-center", "direction": "right" },
+              "player2": { "x": 540, "y": 720, "anchor": "bottom-center", "direction": "right" }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-winding-key",
+                "asset": "/assets/code-generated/case-clockwork-conservatory/items/winding-key.svg",
+                "position": { "x": 275, "y": 718, "anchor": "bottom-center" },
+                "size": { "width": 105, "height": 105 },
+                "hotspot": { "x": 205, "y": 625, "width": 140, "height": 130 },
+                "reservedSlot": { "x": 200, "y": 615, "width": 150, "height": 145 },
+                "anchor": "bottom-center",
+                "depth": 8
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-elias-finch",
+                "asset": "/assets/code-generated/case-clockwork-conservatory/characters/elias-finch.svg",
+                "position": { "x": 1215, "y": 720, "anchor": "bottom-center" },
+                "size": { "width": 260, "height": 430 },
+                "hotspot": { "x": 1070, "y": 300, "width": 290, "height": 440 },
+                "reservedSlot": { "x": 1045, "y": 280, "width": 330, "height": 470 },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 10
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "clue-stopped-watch",
+                "label": "Pocket watch stopped at 10:17",
+                "bounds": { "x": 700, "y": 622, "width": 145, "height": 105 },
+                "shape": "rect",
+                "surface": "marble floor beside the empty pedestal",
+                "visibility": "medium",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.94,
+                "source": "manual-code-layout",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "The pale watch face is clearly readable against the dark floor when framed with the camera."
+              },
+              {
+                "clueId": "clue-cobalt-oil",
+                "label": "Cobalt gear oil on the window latch",
+                "bounds": { "x": 1370, "y": 390, "width": 125, "height": 120 },
+                "shape": "rect",
+                "surface": "east window latch",
+                "visibility": "subtle",
+                "detectionDifficulty": "medium",
+                "detectionStatus": "FOUND",
+                "confidence": 0.91,
+                "source": "manual-code-layout",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "A vivid blue smear contrasts with the warm brass latch and is large enough for reliable camera capture."
+              }
+            ],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-to-workshop",
+                "targetSceneId": "scene-clockwork-workshop",
+                "label": "Enter the clockwork workshop",
+                "hotspot": { "x": 1510, "y": 430, "width": 80, "height": 330 },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": ["item-winding-key"],
+            "requiredClueIds": ["clue-stopped-watch", "clue-cobalt-oil", "clue-elias-cleared"],
+            "requiredDialogueIds": ["dlg-elias-timeline"]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-clockwork-workshop",
+      "title": "The Sealed Chronometer",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-clockwork-workshop",
+          "title": "Clockwork Workshop",
+          "backgroundUrl": "/assets/code-generated/case-clockwork-conservatory/scenes/clockwork-workshop.svg",
+          "description": "A narrow workshop crowded with orreries, gear drawers, and a sealed black chronometer. Curator Helena Voss waits beside the workbench.",
+          "itemIds": ["item-sealed-chronometer"],
+          "characterIds": ["char-helena-voss"],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-chronometer",
+              "type": "ITEM",
+              "targetId": "item-sealed-chronometer",
+              "x": 38,
+              "y": 45,
+              "width": 20,
+              "height": 27,
+              "zIndex": 9,
+              "label": "Sealed chronometer",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-helena",
+              "type": "CHARACTER",
+              "targetId": "char-helena-voss",
+              "x": 69,
+              "y": 33,
+              "width": 18,
+              "height": 51,
+              "zIndex": 10,
+              "label": "Helena Voss",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": null,
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": { "x": 100, "y": 570, "width": 1400, "height": 200 },
+            "spawnPoints": {
+              "player1": { "x": 315, "y": 720, "anchor": "bottom-center", "direction": "right" },
+              "player2": { "x": 435, "y": 720, "anchor": "bottom-center", "direction": "right" }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-sealed-chronometer",
+                "asset": "/assets/code-generated/case-clockwork-conservatory/items/sealed-chronometer.svg",
+                "position": { "x": 760, "y": 610, "anchor": "bottom-center" },
+                "size": { "width": 300, "height": 260 },
+                "hotspot": { "x": 610, "y": 390, "width": 320, "height": 270 },
+                "reservedSlot": { "x": 590, "y": 370, "width": 360, "height": 300 },
+                "anchor": "bottom-center",
+                "depth": 9
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-helena-voss",
+                "asset": "/assets/code-generated/case-clockwork-conservatory/characters/helena-voss.svg",
+                "position": { "x": 1240, "y": 720, "anchor": "bottom-center" },
+                "size": { "width": 265, "height": 435 },
+                "hotspot": { "x": 1090, "y": 290, "width": 300, "height": 450 },
+                "reservedSlot": { "x": 1070, "y": 275, "width": 335, "height": 475 },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 10
+              }
+            ],
+            "clueZones": [],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-to-gallery",
+                "targetSceneId": "scene-glass-gallery",
+                "label": "Return to the glass gallery",
+                "hotspot": { "x": 10, "y": 430, "width": 80, "height": 330 },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-hidden-invoice",
+              "clue-tampered-escapement",
+              "clue-helena-slip"
+            ],
+            "requiredDialogueIds": ["dlg-helena-oil"]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-helena-voss",
+      "name": "Helena Voss",
+      "role": "Conservatory curator",
+      "imageUrl": "/assets/code-generated/case-clockwork-conservatory/characters/helena-voss.svg",
+      "description": "A precise woman in an oxblood Victorian coat, brass hair comb, dark bobbed hair, and cobalt-stained gloves. She maintains the conservatory's rare mechanisms."
+    },
+    {
+      "characterId": "char-elias-finch",
+      "name": "Elias Finch",
+      "role": "Night watchman",
+      "imageUrl": "/assets/code-generated/case-clockwork-conservatory/characters/elias-finch.svg",
+      "description": "An anxious elderly watchman in a deep teal uniform, silver moustache, worn cap, and a ring of ordinary iron keys."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-winding-key",
+      "name": "Sunburst Winding Key",
+      "description": "A small brass key with a six-point sunburst bow and square clockwork shaft.",
+      "inspectText": "The polished teeth match the unusual keyhole on the sealed workshop chronometer.",
+      "imageUrl": "/assets/code-generated/case-clockwork-conservatory/items/winding-key.svg",
+      "unlockClueIds": [],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "unlock-door",
+      "interactionReason": "The player must carry this physical winding key to open the sealed chronometer in the workshop."
+    },
+    {
+      "itemId": "item-sealed-chronometer",
+      "name": "Sealed Astral Chronometer",
+      "description": "An ebony clockwork case with three celestial dials and a sunburst keyhole.",
+      "inspectText": "The lid is locked. Three symbols—moon, raven, and sun—circle the main dial.",
+      "imageUrl": "/assets/code-generated/case-clockwork-conservatory/items/sealed-chronometer.svg",
+      "unlockClueIds": [],
+      "isCollectible": false,
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "The player must unlock this target with the winding key, then enter the symbol sequence hidden inside."
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-stopped-watch",
+      "title": "The Stopped Pocket Watch",
+      "content": "Elias's dropped watch stopped at exactly 10:17, when the conservatory's magnetic alarm discharged.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-glass-gallery",
+      "sourceType": "camera",
+      "sceneId": "scene-glass-gallery",
+      "discoverMethod": "camera",
+      "visualDescription": "An open silver pocket watch on the marble floor, both hands fixed at 10:17, with a faint blue electrical scorch on its chain.",
+      "inventoryDescription": "A photograph clearly showing Elias's watch frozen at 10:17 by the alarm pulse.",
+      "narrativeMeaning": "The watch verifies Elias was beside the public alarm coil when it fired, not inside the insulated workshop stealing the sunstone.",
+      "hintLevel": 1,
+      "tags": ["timeline", "alibi", "alarm"],
+      "relatedCharacterIds": ["char-elias-finch"]
+    },
+    {
+      "clueId": "clue-cobalt-oil",
+      "title": "Cobalt Gear-Oil Smear",
+      "content": "Fresh cobalt gear oil marks the window latch used to bypass the alarm. Only the curator's precision mechanisms use this distinctive lubricant.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "scene-glass-gallery",
+      "sourceType": "camera",
+      "sceneId": "scene-glass-gallery",
+      "discoverMethod": "camera",
+      "visualDescription": "A glossy cobalt-blue thumb smear across a warm brass window latch, next to a tiny curved scrape from a clockmaker's tool.",
+      "inventoryDescription": "A close photograph of fresh cobalt oil and a tool scrape on the alarm-bypass latch.",
+      "narrativeMeaning": "Helena handled the bypass latch with oil from her private workshop, giving her the unique opportunity to defeat the alarm.",
+      "hintLevel": 2,
+      "tags": ["opportunity", "oil", "window-latch"],
+      "relatedCharacterIds": ["char-helena-voss"]
+    },
+    {
+      "clueId": "clue-elias-cleared",
+      "title": "Elias's Verified Timeline",
+      "content": "When confronted with the watch photograph, Elias remembers the alarm coil throwing him against the pedestal at 10:17. The electrical mark confirms his account.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-elias-timeline",
+      "sourceType": "dialogue",
+      "sceneId": "scene-glass-gallery",
+      "discoverMethod": "dialogue",
+      "visualDescription": "",
+      "inventoryDescription": "Elias's alibi is consistent with the stopped watch and alarm discharge.",
+      "narrativeMeaning": "The watchman is removed from the suspect chain.",
+      "hintLevel": 1,
+      "tags": ["alibi", "cleared"],
+      "relatedCharacterIds": ["char-elias-finch"]
+    },
+    {
+      "clueId": "clue-hidden-invoice",
+      "title": "The Auction Debt Invoice",
+      "content": "A hidden invoice proves Helena secretly pledged the sunstone to settle a ruinous auction debt before dawn.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "interaction-open-chronometer",
+      "sourceType": "interaction",
+      "sceneId": "scene-clockwork-workshop",
+      "discoverMethod": "interaction",
+      "visualDescription": "",
+      "inventoryDescription": "A signed debt invoice naming Helena and the missing sunstone as collateral.",
+      "narrativeMeaning": "The invoice establishes Helena's immediate financial motive.",
+      "hintLevel": 2,
+      "tags": ["motive", "debt", "invoice"],
+      "relatedCharacterIds": ["char-helena-voss"]
+    },
+    {
+      "clueId": "clue-tampered-escapement",
+      "title": "The Reversed Escapement",
+      "content": "The chronometer's hidden escapement was reversed to emit a magnetic pulse at 10:17, stopping every exposed clock while the insulated workshop clock kept running.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "puzzle-astral-sequence",
+      "sourceType": "puzzle",
+      "sceneId": "scene-clockwork-workshop",
+      "discoverMethod": "puzzle",
+      "visualDescription": "",
+      "inventoryDescription": "The reversed escapement is the mechanism that created the false missing minute.",
+      "narrativeMeaning": "This proves how Helena manufactured the time discrepancy and disabled the gallery clocks.",
+      "hintLevel": 3,
+      "tags": ["method", "chronometer", "magnetic-pulse"],
+      "relatedCharacterIds": ["char-helena-voss"]
+    },
+    {
+      "clueId": "clue-helena-slip",
+      "title": "Helena's Impossible Detail",
+      "content": "Pressed with the oil photograph, Helena claims the east latch was already blue before the theft—an impossible detail because the smear is invisible from the gallery floor.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-helena-oil",
+      "sourceType": "dialogue",
+      "sceneId": "scene-clockwork-workshop",
+      "discoverMethod": "dialogue",
+      "visualDescription": "",
+      "inventoryDescription": "Helena knew the precise appearance of a hidden smear she claimed never to have seen.",
+      "narrativeMeaning": "Her own statement places her hand on the bypass latch.",
+      "hintLevel": 2,
+      "tags": ["contradiction", "knowledge", "confrontation"],
+      "relatedCharacterIds": ["char-helena-voss"]
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-elias-timeline",
+      "characterId": "char-elias-finch",
+      "question": "Where were you when the clocks stopped?",
+      "answer": "By the pedestal. The alarm coil flashed blue and knocked the watch from my hand. I heard the east window click, but I saw no one.",
+      "requiredClueIds": ["clue-stopped-watch"],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-helena-oil",
+      "characterId": "char-helena-voss",
+      "question": "Why is your cobalt lubricant on the bypass latch?",
+      "answer": "That blue mark was already on the underside of the east latch yesterday. I never touched it tonight.",
+      "requiredClueIds": ["clue-cobalt-oil"],
+      "unlockClueIds": []
+    }
+  ],
+  "conversationNodes": [],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-elias-alibi",
+      "dialogueId": "dlg-elias-timeline",
+      "prompt": "Which evidence verifies Elias was struck by the alarm pulse at 10:17?",
+      "correctEvidenceId": "clue-stopped-watch",
+      "successResponse": "The scorched chain and frozen hands independently confirm Elias's timeline.",
+      "failureResponse": "That evidence does not place Elias beside the alarm when it discharged.",
+      "unlockClueIds": ["clue-elias-cleared"]
+    },
+    {
+      "challengeId": "challenge-helena-latch",
+      "dialogueId": "dlg-helena-oil",
+      "prompt": "Which evidence proves Helena knows a detail visible only to the person who handled the latch?",
+      "correctEvidenceId": "clue-cobalt-oil",
+      "successResponse": "The photograph exposes Helena's impossible knowledge of the hidden cobalt smear.",
+      "failureResponse": "That evidence does not contradict Helena's statement about the east latch.",
+      "unlockClueIds": ["clue-helena-slip"]
+    }
+  ],
+  "interactions": [
+    {
+      "interactionId": "interaction-open-chronometer",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-sealed-chronometer",
+      "requiredItemIds": ["item-winding-key"],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": ["clue-hidden-invoice"],
+      "unlockSceneIds": [],
+      "consumeItemIds": [],
+      "successMessage": "The sunburst key turns twice. A hidden drawer opens, revealing Helena's debt invoice and three engraved symbols.",
+      "failureMessage": "The chronometer's square lock requires a matching winding key.",
+      "singleUse": true
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "puzzle-astral-sequence",
+      "type": "SEQUENCE_PUZZLE",
+      "targetId": "item-sealed-chronometer",
+      "prompt": "The invoice margin reads: 'Night watches the bird; dawn follows.' Set the three celestial dials in order.",
+      "options": ["moon", "raven", "sun", "star"],
+      "correctCode": "",
+      "correctSequence": ["moon", "raven", "sun"],
+      "requiredItemIds": [],
+      "requiredClueIds": ["clue-hidden-invoice"],
+      "unlockItemIds": [],
+      "unlockClueIds": ["clue-tampered-escapement"],
+      "unlockSceneIds": [],
+      "successMessage": "The dials align. The rear plate opens and exposes a deliberately reversed magnetic escapement.",
+      "failureMessage": "The gears bind and reset. The margin note describes a progression from night to dawn."
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-missing-minute",
+      "prompt": "Which chain explains the theft of the sunstone and the missing minute?",
+      "requiredClueIds": [
+        "clue-hidden-invoice",
+        "clue-tampered-escapement",
+        "clue-elias-cleared",
+        "clue-helena-slip"
+      ],
+      "requiredChallengeIds": ["challenge-elias-alibi", "challenge-helena-latch"],
+      "options": [
+        {
+          "id": "deduction-helena-clock-pulse",
+          "label": "Helena used the reversed chronometer to stop the gallery clocks, bypassed the latch, and stole the sunstone to cover her debt"
+        },
+        {
+          "id": "deduction-elias-forced-window",
+          "label": "Elias forced the window after smashing his own watch to fabricate an alibi"
+        },
+        {
+          "id": "deduction-random-power-failure",
+          "label": "A random power failure stopped the clocks and an unknown visitor took the stone"
+        }
+      ],
+      "correctOptionId": "deduction-helena-clock-pulse",
+      "successResponse": "Motive, mechanism, opportunity, and Helena's impossible knowledge form one complete chain.",
+      "failureResponse": "That theory conflicts with either the magnetic timing evidence or the hidden debt invoice.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-gallery-to-confrontation",
+      "investigatorClueId": "clue-cobalt-oil",
+      "interrogatorChallengeId": "challenge-helena-latch",
+      "deductionId": "deduction-missing-minute",
+      "description": "One detective photographs the hidden oil trace; the other uses it to break Helena's alibi; both combine that contradiction with the opened chronometer."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-gallery-watch",
+      "contextType": "SCENE",
+      "targetId": "scene-glass-gallery",
+      "order": 1,
+      "text": "Use the camera near the empty pedestal, then inspect the east window latch above eye level."
+    },
+    {
+      "hintId": "hint-workshop-key",
+      "contextType": "SCENE",
+      "targetId": "scene-clockwork-workshop",
+      "order": 1,
+      "text": "The sunburst key from the gallery fits a square lock in this room. The note inside describes a sequence from night to dawn."
+    },
+    {
+      "hintId": "hint-elias-challenge",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-elias-alibi",
+      "order": 1,
+      "text": "Choose evidence that records both the exact time and the alarm's electrical effect."
+    },
+    {
+      "hintId": "hint-helena-challenge",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-helena-latch",
+      "order": 1,
+      "text": "Choose the close photograph of a detail hidden on the east latch."
+    },
+    {
+      "hintId": "hint-final-deduction",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-missing-minute",
+      "order": 1,
+      "text": "Connect Helena's debt, the reversed escapement, and the cobalt trace."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-helena-voss",
+    "motive": "Helena had secretly pledged the sunstone against an auction debt due before dawn.",
+    "method": "She reversed the astral chronometer's escapement to fire a magnetic pulse at 10:17, stopping the gallery clocks while she bypassed the east latch and removed the sunstone.",
+    "requiredEvidenceIds": ["clue-hidden-invoice", "clue-tampered-escapement", "clue-cobalt-oil"],
+    "motiveOptions": [
+      { "id": "motive-auction-debt", "label": "A secret auction debt secured against the sunstone" },
+      { "id": "motive-jealousy", "label": "Jealousy of Elias's promotion" },
+      { "id": "motive-sabotage", "label": "A plan to close the conservatory permanently" }
+    ],
+    "methodOptions": [
+      { "id": "method-magnetic-minute", "label": "A reversed chronometer emitted a magnetic pulse while the east latch was bypassed" },
+      { "id": "method-broken-watch", "label": "A broken pocket watch was used to fake the time" },
+      { "id": "method-power-cut", "label": "The building power was cut from outside" }
+    ],
+    "correctMotiveId": "motive-auction-debt",
+    "correctMethodId": "method-magnetic-minute",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "clue-hidden-invoice" },
+      { "claimType": "METHOD", "evidenceId": "clue-tampered-escapement" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "clue-cobalt-oil" }
+    ],
+    "requiredDeductionIds": ["deduction-missing-minute"],
+    "requiredTeamworkChainIds": ["chain-gallery-to-confrontation"],
+    "winEnding": "The chronometer chimes its stolen minute back into place. Faced with the invoice, the reversed escapement, and her cobalt fingerprint, Helena returns the sunstone from the insulated gear cabinet. Elias is cleared before the first train arrives.",
+    "failEnding": "The theory leaves a gap in the missing minute. Without a complete chain tying debt, mechanism, and access together, the magistrate refuses the accusation and the sunstone disappears into the dawn market."
+  },
+  "createdAt": "2026-07-13T00:00:00Z",
+  "updatedAt": "2026-07-13T00:00:00Z"
+}

@@ -122,6 +122,47 @@ public static class GeneratedImageProcessor
             hasAlpha ? "verified-alpha" : "opaque");
     }
 
+    public static async Task<GeneratedImageProcessResult> CreateCharacterPortraitAsync(
+        string spritePath,
+        string portraitPath,
+        int portraitSize = 1024,
+        CancellationToken cancellationToken = default)
+    {
+        using var sprite = await Image.LoadAsync<Rgba32>(spritePath, cancellationToken);
+        var bounds = GetAlphaBounds(sprite)
+            ?? throw new InvalidOperationException($"Character sprite has no visible subject: {spritePath}");
+
+        var upperBodyHeight = Math.Clamp((int)Math.Ceiling(bounds.Height * 0.62), 1, bounds.Height);
+        var cropWidth = Math.Clamp(Math.Max(bounds.Width, upperBodyHeight), 1, sprite.Width);
+        var cropLeft = Math.Clamp(bounds.Left + (bounds.Width - cropWidth) / 2, 0, sprite.Width - cropWidth);
+        var cropHeight = Math.Min(upperBodyHeight, sprite.Height - bounds.Top);
+        var crop = new Rectangle(cropLeft, bounds.Top, cropWidth, cropHeight);
+
+        using var upperBody = sprite.Clone(ctx => ctx.Crop(crop));
+        var padding = Math.Max(16, portraitSize / 16);
+        var available = Math.Max(1, portraitSize - padding * 2);
+        var scale = Math.Min((double)available / upperBody.Width, (double)available / upperBody.Height);
+        var targetWidth = Math.Max(1, (int)Math.Round(upperBody.Width * scale));
+        var targetHeight = Math.Max(1, (int)Math.Round(upperBody.Height * scale));
+        upperBody.Mutate(ctx => ctx.Resize(targetWidth, targetHeight, KnownResamplers.Lanczos3));
+
+        using var portrait = new Image<Rgba32>(Configuration.Default, portraitSize, portraitSize, new Rgba32(0, 0, 0, 0));
+        var x = (portraitSize - targetWidth) / 2;
+        var y = portraitSize - padding - targetHeight;
+        portrait.Mutate(ctx => ctx.DrawImage(upperBody, new Point(x, y), 1f));
+
+        Directory.CreateDirectory(Path.GetDirectoryName(portraitPath)!);
+        await portrait.SaveAsPngAsync(portraitPath, PngWithAlpha, cancellationToken);
+        return new GeneratedImageProcessResult(
+            sprite.Width,
+            sprite.Height,
+            portrait.Width,
+            portrait.Height,
+            HasTransparentPixels(portrait),
+            HasTransparentCorners(portrait),
+            "derived-character-portrait");
+    }
+
     public static async Task CreatePlacementContextAsync(
         string backgroundPath,
         string outputPath,

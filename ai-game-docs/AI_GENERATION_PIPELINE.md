@@ -1,6 +1,6 @@
 # AI Generation Pipeline
 
-Last synced with code: 2026-06-14.
+Last synced with code: 2026-07-14 (`ai-case-prompt-v2`, `story-preview-v2`, `case-logic-v2`).
 
 > Note: the code now uses separate full-logic, scene-layout, and final-asset
 > approval gates. See `CURRENT_CASE_AND_GAME_FLOW_VI.md` for the code-synced
@@ -13,7 +13,7 @@ The active code path is OpenAI-only. The creator first approves a spoiler-free s
 ## Access Control
 
 - `POST /api/admin/ai-cases`: `ADMIN` or `VIP`; creates the story preview only.
-- `POST /api/admin/ai-cases/{draftId}/approve`: `ADMIN` or `VIP`; generates the full case and publishes it automatically.
+- `POST /api/admin/ai-cases/{draftId}/approve`: `ADMIN` or `VIP`; generates and validates full logic, then waits for explicit logic/layout/final approval.
 - Draft listing/detail and legacy import endpoints remain `ADMIN` only.
 
 ## Configuration
@@ -34,7 +34,9 @@ OpenAI__TimeoutSeconds=900
 {
   "prompt": "A jewel heist during a thunderstorm at the observatory",
   "stageCount": 4,
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "generationPreset": "NORMAL_RANDOM",
+  "language": "vi"
 }
 ```
 
@@ -43,6 +45,8 @@ Defaults:
 - `prompt`: optional; when blank, OpenAI invents an original case or uses loose public-domain mystery inspiration
 - `stageCount`: `4`
 - `difficulty`: `medium`
+- `generationPreset`: `NORMAL_RANDOM`; the other contracts are `SHORT_DEMO`, `PUZZLE_HEAVY`, `DIALOGUE_HEAVY`, and `FULL_FEATURE`
+- `language`: `en` by default; `vi` makes all player-facing prose Vietnamese while image art direction remains English/ASCII
 - visual style is not creator-controlled; all assets use the fixed SirLocked Victorian gaslight chibi pixel-art contract
 
 ## Step 1: Story Preview
@@ -71,27 +75,29 @@ Preview rules:
 
 The draft status becomes `STORY_AWAITING_APPROVAL`.
 
-## Step 2: Approve And Publish
+## Step 2: Approve Full Logic
 
 `POST /api/admin/ai-cases/{draftId}/approve` only accepts drafts in `STORY_AWAITING_APPROVAL`.
 
 The backend then:
 
-1. Calls OpenAI to generate a full `GameCase` JSON object.
-2. Strips markdown fences if present.
-3. Parses JSON into `GameCase`.
-4. Forces status to `DRAFT`.
-5. Fills missing `caseId` with `case-ai-{timestamp}`.
-6. Runs deterministic `CaseAutoRepair`.
-7. Validates through `CaseValidationService`.
-8. Retries once with validation feedback if needed.
-9. Generates cover art and normalized `1600x900` scene backgrounds.
+1. Calls the Responses API with strict Structured Outputs and the `case-logic-v2` schema.
+2. Parses the model-owned `GeneratedCaseLogic` DTO; the model cannot supply asset URLs, runtime, placement, status, timestamps, language, or style fields.
+3. Injects the server-owned `pixel_art` / `high_detail_pixel` / `chibi` profile, language, mechanics version, generation mode, and empty runtime/asset fields.
+4. Injects `generationMode=CAMERA_EMBEDDED`, matching Glass Meridian: camera clues are small scene-scale environmental details; NPCs and interactive `CUTOUT` items are composited later, while large interactive fixtures remain `EMBEDDED`.
+5. Runs deterministic `CaseAutoRepair`, reachability, preset-contract, Vietnamese-language, and visual-safety validation before any image call.
+6. If semantic validation fails, retries exactly once with both the invalid JSON checkpoint and validation errors.
+7. Stops at `FULL_LOGIC_AWAITING_APPROVAL`; scene layout and final assets have separate approval gates.
+
+After full-logic and scene-layout approval, the asset pipeline:
+
+9. Generates cover art and normalized `1600x900` scene backgrounds containing natural camera evidence. NPCs, CUTOUT items, close-up panels, callouts, split screens, and montages are prohibited in this layer.
 10. Uses OpenAI vision over each background and scene JSON to create `scene.placementPlan`.
-11. Generates scene-specific NPC sprites and item cutouts using the full background, a placement-area crop, and the placement metadata as image references.
+11. Generates NPC sprites and interactive item cutouts using the full background, a placement-area crop, and the placement metadata as image references, then composites them at runtime.
 12. Removes white backgrounds, verifies alpha, and rejects unusable cutouts.
 13. Uses OpenAI vision again only to verify scale/alignment within the original slot.
 14. Builds `scene.runtime` from the placement plan with final corrections limited to `±40px` and `80%..120%` scale.
-15. Writes generated files under `src/FE/public/assets/ai-generated/v3-placement-first/{caseId}/`.
+15. Writes new generated files under `src/FE/public/assets/ai-generated/v3-placement-first/{caseId-or-safe-suffixed-id}/`. Existing non-empty v3 case folders and all v5 assets are preserved; a suffix prevents overwrite.
 16. Re-validates the case after image URLs and runtime metadata are attached.
 17. Saves invalid attempts under `GeneratedCaseJson/_invalid-ai`.
 18. Exports valid bundles under `src/BE/GeneratedCaseJson/{timestamp}-{caseId}-{draftId}`.
@@ -101,9 +107,10 @@ The backend then:
 
 ## Full Case Contract
 
-OpenAI is instructed to output exactly one JSON object using the current `GameCase` shape:
+OpenAI is instructed to output exactly one strict `GeneratedCaseLogic` object. `GameCase` is assembled by the backend after the response:
 
-- `caseId`, `title`, `summary`, `status`, `estimatedMinutes`, `coverImageUrl`
+- model-owned story and mechanic fields such as `caseId`, `title`, `summary`, `estimatedMinutes`, stages, characters, clues, dialogue, interactions, puzzles, deductions, and `finalLogic`
+- server-owned fields such as status, style, language, URLs, placement, and runtime are excluded from the model schema
 - `stages` with scenes and hotspots
 - `characters`
 - `items`
@@ -160,7 +167,9 @@ Runtime metadata must not become a second source of gameplay truth. Backend rule
 
 ## Failure Behavior
 
-- OpenAI HTTP errors are logged to `aiGenerationLogs` and surfaced as `502`.
-- Parse errors are retried once through OpenAI repair.
-- Validation errors are retried once with deterministic validator feedback.
-- Invalid drafts keep generated JSON and validation errors but are not published.
+- Attempts are classified as `HTTP_ERROR`, `REFUSAL`, `INCOMPLETE`, `SCHEMA_ERROR`, `SEMANTIC_ERROR`, or `VISUAL_SAFETY_ERROR`.
+- Every attempt summary records response ID, model, token usage, schema/prompt version, validation errors, hashes, and the path to the full raw response. Raw bodies are not truncated in storage.
+- Preview permits one retry only for an incomplete response. Full logic permits one semantic repair and has no nested parse retry.
+- Invalid drafts retain the JSON checkpoint, `failurePhase`, and `failedAssetIds`; they are never advanced to image generation or publication.
+- `POST /api/admin/ai-cases/{draftId}/retry-json` repairs the stored JSON checkpoint.
+- `POST /api/admin/ai-cases/{draftId}/regenerate-failed-assets` first revalidates JSON, then force-regenerates only failed assets. Prompt-hash and prior-QA markers are required for reuse.

@@ -9,7 +9,9 @@ public enum ConfrontationOutcome
     Resolved,
     Rejected,
     DuplicateRejected,
-    AlreadyResolved
+    AlreadyResolved,
+    /// <summary>The correct evidence has not been discovered yet, so no attempt can succeed.</summary>
+    NotYetPossible
 }
 
 public enum DeductionOutcome
@@ -79,6 +81,12 @@ public static class GameplayV2Rules
     {
         if (state.ResolvedConfrontationRecords.Any(record => record.ChallengeId == challenge.ChallengeId))
             return new ConfrontationRuleResult(ConfrontationOutcome.AlreadyResolved, false, Array.Empty<string>());
+
+        // The right evidence may live in a scene the team has not searched yet. Guessing at that
+        // point cannot succeed, so it neither burns an attempt nor counts against the score.
+        if (!string.IsNullOrWhiteSpace(challenge.CorrectEvidenceId)
+            && !state.UnlockedClueIds.Contains(challenge.CorrectEvidenceId))
+            return new ConfrontationRuleResult(ConfrontationOutcome.NotYetPossible, false, Array.Empty<string>());
 
         var attemptKey = $"{challenge.ChallengeId}:{evidenceId}";
         if (state.EvidenceAttemptKeys.Contains(attemptKey))
@@ -187,7 +195,8 @@ public static class GameplayV2Rules
 
         var wrongEvidencePenalty = state.WrongEvidencePresentationCount * 3;
         var wrongDeductionPenalty = state.WrongDeductionCount * 2;
-        var cameraMissPenalty = state.CameraMissCount * 1;
+        // Aiming the camera is a skill check, not a knowledge check — cap its drain on the score.
+        var cameraMissPenalty = Math.Min(state.CameraMissCount, 10);
 
         var total = Math.Clamp(
             evidenceCoverage + contradictionCoverage + deductionCoverage + teamworkScore

@@ -119,6 +119,46 @@ public class GameplayConversationRuleTests
     }
 
     [Fact]
+    public void OpenWithoutNode_ResumesVisitedNodeWithPendingBranch()
+    {
+        var (gameCase, state, scene) = Fixture();
+        Apply(gameCase, state, scene, new ConverseRequest { CharacterId = "char-1" });
+        Apply(gameCase, state, scene, new ConverseRequest
+        {
+            CharacterId = "char-1",
+            NodeId = "root",
+            ChoiceId = "choice-topic"
+        });
+
+        var resumed = Apply(gameCase, state, scene, new ConverseRequest { CharacterId = "char-1" });
+
+        Assert.Equal("topic", resumed.Node.NodeId);
+        Assert.False(resumed.Changed);
+        Assert.Contains(resumed.Node.Choices, choice => choice.ChoiceId == "choice-follow");
+    }
+
+    [Fact]
+    public void VisibleChoices_KeepsVisitedBranchesNavigable()
+    {
+        var (gameCase, state, scene) = Fixture();
+        Apply(gameCase, state, scene, new ConverseRequest { CharacterId = "char-1" });
+        Apply(gameCase, state, scene, new ConverseRequest
+        {
+            CharacterId = "char-1",
+            NodeId = "root",
+            ChoiceId = "choice-topic"
+        });
+
+        var root = gameCase.ConversationNodes.Single(node => node.NodeId == "root");
+        var visibleChoices = GameplayConversationRules.VisibleChoices(root, state);
+
+        // Visited branches must stay selectable so gated follow-ups deeper in the tree
+        // remain reachable without reopening the conversation.
+        Assert.Contains(visibleChoices, choice => choice.ChoiceId == "choice-topic");
+        Assert.Contains(visibleChoices, choice => choice.ChoiceId == "choice-locked-target");
+    }
+
+    [Fact]
     public void GatedChoiceBecomesAvailableAfterRequiredClueIsUnlocked()
     {
         var (gameCase, state, scene) = Fixture();

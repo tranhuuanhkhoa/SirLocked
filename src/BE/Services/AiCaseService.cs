@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using SirLocked.Api.Configurations;
@@ -18,6 +20,7 @@ public class AiCaseService : IAiCaseService
 {
     public const string OpenAiHttpClientName = "openai";
     public const string AssetPipelineVersion = "v3-placement-first";
+    private const string CharacterAssetStyleVersion = "canonical-pixel-chibi";
 
     private const string ProviderName = "OpenAI";
     private const int RuntimeWidth = GeneratedImageProcessor.SceneWidth;
@@ -26,7 +29,7 @@ public class AiCaseService : IAiCaseService
     private const double BottomUiReservedTop = 790;
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private sealed record VisionImageInput(string Label, string Path);
-    private sealed record EntityPlacementContext(CaseScene Scene, PlannedPlacement Placement, string BackgroundPath, string ContextPath);
+    private sealed record PlacementQaFailure(string Type, string Id, string Reason);
     private string CutoutImageModel => string.IsNullOrWhiteSpace(_settings.CutoutImageModel)
         ? _settings.ImageModel
         : _settings.CutoutImageModel.Trim();
@@ -60,6 +63,7 @@ public class AiCaseService : IAiCaseService
     public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request)
     {
         EnsureOpenAiConfigured();
+        ApplyPresetDefaults(request);
         var creatorPrompt = request.Prompt?.Trim() ?? string.Empty;
 
         var draft = new AiCaseDraft
@@ -70,7 +74,9 @@ public class AiCaseService : IAiCaseService
                 StageCount = request.StageCount,
                 Difficulty = request.Difficulty,
                 VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
-                GenerationMode = CaseGenerationModes.CameraEmbedded
+                GenerationMode = CaseGenerationModes.CameraEmbedded,
+                GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset),
+                Language = CaseLanguages.Normalize(request.Language)
             },
             Status = AiDraftStatus.GeneratingStory,
             Provider = ProviderName,
@@ -82,7 +88,21 @@ public class AiCaseService : IAiCaseService
         try
         {
             var prompt = BuildStoryPreviewPrompt(request);
-            var content = await GenerateJsonWithOpenAiAsync(draft.Id, "CreateStoryPreview", prompt, maxOutputTokens: 2500);
+            string content;
+            try
+            {
+                content = await GenerateJsonWithOpenAiAsync(
+                    draft.Id, "CreateStoryPreview", prompt, maxOutputTokens: 2500,
+                    AiGenerationSchemaVersions.StoryPreview, AiStrictSchemaProvider.StoryPreviewSchema(), attemptNumber: 1);
+            }
+            catch (ApiException)
+            {
+                var failedDraft = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+                if (failedDraft.GenerationAttempts.LastOrDefault()?.FailureCategory != AiFailureCategories.Incomplete) throw;
+                content = await GenerateJsonWithOpenAiAsync(
+                    draft.Id, "CreateStoryPreview:RetryIncomplete", prompt, maxOutputTokens: 2500,
+                    AiGenerationSchemaVersions.StoryPreview, AiStrictSchemaProvider.StoryPreviewSchema(), attemptNumber: 2);
+            }
             var preview = ParseStoryPreview(content, request);
 
             var update = Builders<AiCaseDraft>.Update
@@ -97,9 +117,34 @@ public class AiCaseService : IAiCaseService
         }
         catch (ApiException ex)
         {
-            await MarkDraftFailedAsync(draft.Id, ex.Message);
+            await MarkDraftFailedAsync(draft.Id, ex.Message, AiFailurePhases.StoryJson);
             throw;
         }
+    }
+
+    private static void ApplyPresetDefaults(GenerateAiCaseRequest request)
+    {
+        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
+        request.Language = CaseLanguages.Normalize(request.Language);
+        request.Difficulty = string.IsNullOrWhiteSpace(request.Difficulty) ? "medium" : request.Difficulty.Trim().ToLowerInvariant();
+
+        request.StageCount = request.GenerationPreset switch
+        {
+            AiGenerationPresets.FullFeature => 6,
+            AiGenerationPresets.ShortDemo => 2,
+            AiGenerationPresets.PuzzleHeavy => Math.Max(request.StageCount, 5),
+            AiGenerationPresets.DialogueHeavy => Math.Max(request.StageCount, 5),
+            _ => Math.Clamp(request.StageCount, 2, 6)
+        };
+
+        request.Difficulty = request.GenerationPreset switch
+        {
+            AiGenerationPresets.FullFeature => "hard",
+            AiGenerationPresets.ShortDemo => "easy",
+            AiGenerationPresets.PuzzleHeavy => "hard",
+            AiGenerationPresets.DialogueHeavy when request.Difficulty == "easy" => "medium",
+            _ => request.Difficulty
+        };
     }
 
     public async Task<AiDraftResponse> ApproveDraftAsync(CurrentUser user, string draftId)
@@ -171,6 +216,19 @@ public class AiCaseService : IAiCaseService
             return AiDraftResponse.From(draft);
         }
 
+        if (draft.Status == AiDraftStatus.GeneratedInvalid
+            && draft.FailurePhase is AiFailurePhases.FullLogicJson or AiFailurePhases.PreAssetValidation)
+        {
+            return await RetryJsonAsync(user, draftId);
+        }
+
+        if (draft.Status == AiDraftStatus.GeneratedInvalid && draft.FailurePhase == AiFailurePhases.VisualQa)
+        {
+            // Revalidate the saved JSON before spending another image call so unsafe camera
+            // composition metadata is repaired before a failed background is regenerated.
+            return await RegenerateFailedAssetsAsync(user, draftId);
+        }
+
         if (!string.IsNullOrWhiteSpace(draft.GeneratedJson))
         {
             if (draft.Status == AiDraftStatus.FullLogicAwaitingApproval)
@@ -227,6 +285,8 @@ public class AiCaseService : IAiCaseService
         }
 
         var validation = _validator.ValidateFullLogic(gameCase);
+        validation.Errors.AddRange(AiGenerationContract.For(draft.Settings.GenerationPreset, draft.Settings.StageCount)
+            .Validate(gameCase, draft.Settings).Errors);
         var candidateJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         var report = validation.IsValid
             ? fixes
@@ -264,6 +324,8 @@ public class AiCaseService : IAiCaseService
         var gameCase = _caseService.ParseCase(draft.RepairedCandidateJson);
         gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
         var validation = _validator.ValidateFullLogic(gameCase);
+        validation.Errors.AddRange(AiGenerationContract.For(draft.Settings.GenerationPreset, draft.Settings.StageCount)
+            .Validate(gameCase, draft.Settings).Errors);
         if (!validation.IsValid)
         {
             var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
@@ -326,25 +388,36 @@ public class AiCaseService : IAiCaseService
                 draft.Id,
                 "GenerateFullCaseJson",
                 BuildFullCasePrompt(draft),
-                maxOutputTokens: 18000);
+                maxOutputTokens: MaxFullCaseOutputTokens(draft),
+                AiGenerationSchemaVersions.CaseLogic,
+                AiStrictSchemaProvider.CaseLogicSchema(),
+                attemptNumber: 1);
 
-            var (gameCase, validation) = await ParseRepairValidateWithRetryAsync(draft, rawJson);
+            var (gameCase, validation) = await ParseRepairValidateAsync(draft, rawJson);
             if (!validation.IsValid)
             {
+                await RecordValidationAttemptAsync(draft.Id, "GenerateFullCaseJson", 1, rawJson, validation);
                 var feedback = string.Join("\n", validation.Errors.Take(25).Select(e => $"- {e.Code} at {e.Path}: {e.Message}"));
                 var retryJson = await GenerateJsonWithOpenAiAsync(
                     draft.Id,
                     "RepairFullCaseJson",
-                    BuildFullCasePrompt(draft, $"The previous JSON failed deterministic validation:\n{feedback}\nReturn the full corrected JSON object."),
-                    maxOutputTokens: 18000);
-                (gameCase, validation) = await ParseRepairValidateWithRetryAsync(draft, retryJson);
+                    BuildFullCasePrompt(draft,
+                        $"The previous JSON failed deterministic validation:\n{feedback}\nReturn the full corrected object while preserving all valid IDs, culprit, stage order and evidence links.",
+                        rawJson),
+                    maxOutputTokens: MaxFullCaseOutputTokens(draft),
+                    AiGenerationSchemaVersions.CaseLogic,
+                    AiStrictSchemaProvider.CaseLogicSchema(),
+                    attemptNumber: 2);
+                (gameCase, validation) = await ParseRepairValidateAsync(draft, retryJson);
+                if (!validation.IsValid)
+                    await RecordValidationAttemptAsync(draft.Id, "RepairFullCaseJson", 2, retryJson, validation);
             }
 
             if (!validation.IsValid)
             {
                 var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
                 var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-                await SaveInvalidAttemptAsync(draft, invalidJson, errors);
+                await SaveInvalidAttemptAsync(draft, invalidJson, errors, AiFailurePhases.FullLogicJson);
                 var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
                 return AiDraftResponse.From(failed);
             }
@@ -358,6 +431,8 @@ public class AiCaseService : IAiCaseService
                     .Set(d => d.CaseId, gameCase.CaseId)
                     .Set(d => d.CaseTitle, gameCase.Title)
                     .Set(d => d.ValidationErrors, new List<string>())
+                    .Set(d => d.FailurePhase, AiFailurePhases.None)
+                    .Set(d => d.FailedAssetIds, new List<string>())
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
 
             draft.GeneratedJson = normalizedJson;
@@ -368,12 +443,15 @@ public class AiCaseService : IAiCaseService
         }
         catch (ApiException ex)
         {
-            await MarkDraftFailedAsync(draft.Id, ex.Message);
+            await MarkDraftFailedAsync(draft.Id, ex.Message, AiFailurePhases.FullLogicJson);
             throw;
         }
     }
 
-    private async Task<AiDraftResponse> GenerateSceneLayoutAsync(AiCaseDraft draft, bool forceRegenerate)
+    private async Task<AiDraftResponse> GenerateSceneLayoutAsync(
+        AiCaseDraft draft,
+        bool forceRegenerate,
+        IReadOnlySet<string>? forceAssetIds = null)
     {
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
         {
@@ -384,8 +462,9 @@ public class AiCaseService : IAiCaseService
         {
             var gameCase = JsonSerializer.Deserialize<GameCase>(StripMarkdownFences(draft.GeneratedJson), PrettyJson)
                 ?? throw ApiException.BadRequest("Stored generated case JSON is empty.");
+            await ApplyCaseAutoRepairAsync(draft, gameCase);
 
-            return await GenerateSceneLayoutAsync(draft, gameCase, forceRegenerate);
+            return await GenerateSceneLayoutAsync(draft, gameCase, forceRegenerate, forceAssetIds);
         }
         catch (JsonException ex)
         {
@@ -398,14 +477,21 @@ public class AiCaseService : IAiCaseService
         }
     }
 
-    private async Task<AiDraftResponse> GenerateSceneLayoutAsync(AiCaseDraft draft, GameCase gameCase, bool forceRegenerate)
+    private async Task<AiDraftResponse> GenerateSceneLayoutAsync(
+        AiCaseDraft draft,
+        GameCase gameCase,
+        bool forceRegenerate,
+        IReadOnlySet<string>? forceAssetIds = null)
     {
+        await ApplyCaseAutoRepairAsync(draft, gameCase);
         var preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         var fullLogicValidation = _validator.ValidateFullLogic(gameCase);
+        fullLogicValidation.Errors.AddRange(AiGenerationContract.For(draft.Settings.GenerationPreset, draft.Settings.StageCount)
+            .Validate(gameCase, draft.Settings).Errors);
         if (!fullLogicValidation.IsValid)
         {
             var errors = fullLogicValidation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-            await SaveInvalidAttemptAsync(draft, preAssetJson, errors);
+            await SaveInvalidAttemptAsync(draft, preAssetJson, errors, AiFailurePhases.PreAssetValidation);
             var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
             return AiDraftResponse.From(failed);
         }
@@ -436,7 +522,7 @@ public class AiCaseService : IAiCaseService
                 .Set(d => d.ValidationErrors, new List<string>())
                 .Set(d => d.UpdatedAt, DateTime.UtcNow));
 
-        var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets: false);
+        var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets: false, forceAssetIds: forceAssetIds);
         draft.AssetManifest = assetManifest;
 
         var validation = _validator.ValidateSceneLayout(gameCase);
@@ -444,7 +530,7 @@ public class AiCaseService : IAiCaseService
         if (!validation.IsValid)
         {
             var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-            await SaveInvalidAttemptAsync(draft, normalizedJson, errors);
+            await SaveInvalidAttemptAsync(draft, normalizedJson, errors, AiFailurePhases.SceneLayout);
             var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
             return AiDraftResponse.From(failed);
         }
@@ -459,6 +545,8 @@ public class AiCaseService : IAiCaseService
             .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
             .Set(d => d.JsonFolderPath, folder)
             .Set(d => d.ValidationErrors, new List<string>())
+            .Set(d => d.FailurePhase, AiFailurePhases.None)
+            .Set(d => d.FailedAssetIds, new List<string>())
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
         await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, generatedUpdate);
 
@@ -474,7 +562,186 @@ public class AiCaseService : IAiCaseService
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
 
-        return await GenerateSceneLayoutAsync(draft, forceRegenerate: true);
+        return await GenerateSceneLayoutAsync(draft, forceRegenerate: true, draft.FailedAssetIds.ToHashSet(StringComparer.Ordinal));
+    }
+
+    public async Task<AiDraftResponse> RegenerateFailedAssetsAsync(CurrentUser user, string draftId)
+    {
+        EnsureOpenAiConfigured();
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+        if (draft.FailedAssetIds.Count == 0)
+            throw ApiException.BadRequest("This draft has no recorded failed assets.");
+
+        if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
+            throw ApiException.BadRequest("This draft has no saved JSON checkpoint to validate before regeneration.");
+
+        GameCase? gameCase;
+        try
+        {
+            gameCase = JsonSerializer.Deserialize<GameCase>(StripMarkdownFences(draft.GeneratedJson), PrettyJson);
+        }
+        catch (JsonException)
+        {
+            gameCase = null;
+        }
+
+        if (gameCase is null)
+        {
+            await SaveInvalidAttemptAsync(
+                draft,
+                draft.GeneratedJson,
+                ["SCHEMA_ERROR $: The saved JSON checkpoint cannot be parsed."],
+                AiFailurePhases.PreAssetValidation);
+            return await RetryJsonAsync(user, draftId);
+        }
+
+        await ApplyCaseAutoRepairAsync(draft, gameCase);
+        var validation = _validator.ValidateFullLogic(gameCase);
+        validation.Errors.AddRange(AiGenerationContract.For(
+            draft.Settings.GenerationPreset,
+            draft.Settings.StageCount).Validate(gameCase, draft.Settings).Errors);
+
+        if (!validation.IsValid)
+        {
+            var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+            var errors = validation.Errors
+                .Select(error => $"{error.Code} {error.Path}: {error.Message}")
+                .ToList();
+            await SaveInvalidAttemptAsync(
+                draft,
+                invalidJson,
+                errors,
+                AiFailurePhases.PreAssetValidation);
+            return await RetryJsonAsync(user, draftId);
+        }
+
+        var failedAssetIds = draft.FailedAssetIds.ToHashSet(StringComparer.Ordinal);
+        return await GenerateSceneLayoutAsync(draft, forceRegenerate: true, failedAssetIds);
+    }
+
+    public async Task<AiDraftResponse> RetryJsonAsync(CurrentUser user, string draftId)
+    {
+        EnsureOpenAiConfigured();
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+        if (draft.Status != AiDraftStatus.GeneratedInvalid || string.IsNullOrWhiteSpace(draft.GeneratedJson))
+            throw ApiException.BadRequest("Only a failed draft with a saved JSON checkpoint can be repaired.");
+        if (draft.FailurePhase is not (AiFailurePhases.FullLogicJson or AiFailurePhases.PreAssetValidation))
+            throw ApiException.BadRequest("This failure is not a JSON-generation failure. Regenerate the failed assets instead.");
+
+        var feedback = string.Join("\n", draft.ValidationErrors.Take(25).Select(error => $"- {error}"));
+        var attemptNumber = draft.GenerationAttempts.Count(attempt =>
+            attempt.SchemaVersion == AiGenerationSchemaVersions.CaseLogic) + 1;
+        var repairedJson = await GenerateJsonWithOpenAiAsync(
+            draft.Id,
+            "RetryFullCaseJson",
+            BuildFullCasePrompt(draft,
+                $"Repair the saved checkpoint using these deterministic errors:\n{feedback}\nPreserve all valid IDs, culprit, stage order and evidence links.",
+                draft.GeneratedJson),
+            MaxFullCaseOutputTokens(draft),
+            AiGenerationSchemaVersions.CaseLogic,
+            AiStrictSchemaProvider.CaseLogicSchema(),
+            attemptNumber);
+
+        var (gameCase, validation) = await ParseRepairValidateAsync(draft, repairedJson);
+        if (!validation.IsValid)
+        {
+            await RecordValidationAttemptAsync(draft.Id, "RetryFullCaseJson", attemptNumber, repairedJson, validation);
+            var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+            var errors = validation.Errors.Select(error => $"{error.Code} {error.Path}: {error.Message}").ToList();
+            await SaveInvalidAttemptAsync(draft, invalidJson, errors, AiFailurePhases.FullLogicJson);
+            return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
+        }
+
+        var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update
+                .Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval)
+                .Set(d => d.GeneratedJson, normalizedJson)
+                .Set(d => d.CaseId, gameCase.CaseId)
+                .Set(d => d.CaseTitle, gameCase.Title)
+                .Set(d => d.ValidationErrors, new List<string>())
+                .Set(d => d.FailurePhase, AiFailurePhases.None)
+                .Set(d => d.FailedAssetIds, new List<string>())
+                .Set(d => d.UpdatedAt, DateTime.UtcNow));
+        return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
+    }
+
+    public async Task<AiDraftResponse> ReplaceDraftJsonAsync(
+        CurrentUser user,
+        string draftId,
+        ReplaceAiDraftJsonRequest request)
+    {
+        EnsureAdmin(user);
+        var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+
+        if (request.CaseJson.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+        {
+            throw ApiException.BadRequest("caseJson is required.");
+        }
+
+        var gameCase = _caseService.ParseCase(request.CaseJson.GetRawText());
+        gameCase.Status = CaseStatus.Draft;
+        gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
+        gameCase.Language = CaseLanguages.Normalize(gameCase.Language);
+        gameCase.ArtStyle = AiVisualStyleDefaults.ArtStyle;
+        gameCase.SubStyle = AiVisualStyleDefaults.SubStyle;
+        gameCase.CharacterStyle = AiVisualStyleDefaults.CharacterStyle;
+        gameCase.CoverImageUrl = string.Empty;
+        foreach (var scene in OrderedScenes(gameCase))
+        {
+            scene.BackgroundUrl = string.Empty;
+            scene.PlacementPlan = null;
+            scene.Runtime = null;
+        }
+        foreach (var character in gameCase.Characters) character.ImageUrl = string.Empty;
+        foreach (var item in gameCase.Items) item.ImageUrl = string.Empty;
+        NormalizeVisualMetadata(gameCase);
+
+        var validation = _validator.ValidateFullLogic(gameCase);
+        validation.Errors.AddRange(AiGenerationContract.For(draft.Settings.GenerationPreset, draft.Settings.StageCount)
+            .Validate(gameCase, draft.Settings).Errors);
+        if (!validation.IsValid)
+        {
+            throw ApiException.BadRequest(string.Join("\n", validation.Errors.Take(20)
+                .Select(error => $"{error.Code} {error.Path}: {error.Message}")));
+        }
+
+        var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        var updateParts = new List<UpdateDefinition<AiCaseDraft>>
+        {
+            Builders<AiCaseDraft>.Update.Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval),
+            Builders<AiCaseDraft>.Update.Set(d => d.OriginalGeneratedJson, draft.GeneratedJson),
+            Builders<AiCaseDraft>.Update.Set(d => d.GeneratedJson, normalizedJson),
+            Builders<AiCaseDraft>.Update.Set(d => d.CaseId, gameCase.CaseId),
+            Builders<AiCaseDraft>.Update.Set(d => d.CaseTitle, gameCase.Title),
+            Builders<AiCaseDraft>.Update.Set(d => d.AssetManifest, new AiAssetManifest()),
+            Builders<AiCaseDraft>.Update.Set(d => d.JsonFilePath, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.JsonFolderPath, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ValidationErrors, new List<string>()),
+            Builders<AiCaseDraft>.Update.Set(d => d.FailurePhase, AiFailurePhases.None),
+            Builders<AiCaseDraft>.Update.Set(d => d.FailedAssetIds, new List<string>()),
+            Builders<AiCaseDraft>.Update.Set(d => d.RepairedCandidateJson, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.RepairValidationReport, new List<string>()),
+            Builders<AiCaseDraft>.Update.Set(d => d.RepairStatus, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.Settings.Language, gameCase.Language),
+            Builders<AiCaseDraft>.Update.Set(d => d.UpdatedAt, DateTime.UtcNow)
+        };
+        if (request.StoryPreview is not null)
+        {
+            updateParts.Add(Builders<AiCaseDraft>.Update.Set(d => d.StoryPreview, request.StoryPreview));
+        }
+
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == draft.Id,
+            Builders<AiCaseDraft>.Update.Combine(updateParts));
+        var saved = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
+        return AiDraftResponse.From(saved);
     }
 
     private async Task<AiDraftResponse> GenerateFinalAssetsAsync(AiCaseDraft draft)
@@ -501,12 +768,13 @@ public class AiCaseService : IAiCaseService
                 .Set(d => d.UpdatedAt, DateTime.UtcNow));
 
         var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate: false, includeFinalAssets: true);
+        draft.AssetManifest = assetManifest;
         var validation = _validator.Validate(gameCase);
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
         {
             var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-            await SaveInvalidAttemptAsync(draft, normalizedJson, errors);
+            await SaveInvalidAttemptAsync(draft, normalizedJson, errors, AiFailurePhases.FinalAssets);
             throw ApiException.BadRequest("Final asset generation produced an invalid case runtime.");
         }
 
@@ -529,6 +797,8 @@ public class AiCaseService : IAiCaseService
             .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
             .Set(d => d.JsonFolderPath, folder)
             .Set(d => d.ValidationErrors, new List<string>())
+            .Set(d => d.FailurePhase, AiFailurePhases.None)
+            .Set(d => d.FailedAssetIds, new List<string>())
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
         await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, readyUpdate);
 
@@ -590,22 +860,10 @@ public class AiCaseService : IAiCaseService
             || !string.IsNullOrWhiteSpace(preview.Summary)
             || !string.IsNullOrWhiteSpace(preview.OpeningIncident));
 
-    private async Task<(GameCase Case, CaseValidationResult Validation)> ParseRepairValidateWithRetryAsync(AiCaseDraft draft, string rawJson)
-    {
-        try
-        {
-            return await ParseRepairValidateAsync(draft, rawJson);
-        }
-        catch (ApiException ex)
-        {
-            var retryJson = await GenerateJsonWithOpenAiAsync(
-                draft.Id,
-                "RepairUnparseableCaseJson",
-                BuildFullCasePrompt(draft, $"The previous response could not be parsed as the required JSON object. Parser error: {ex.Message}\nReturn the complete corrected JSON object only."),
-                maxOutputTokens: 18000);
-            return await ParseRepairValidateAsync(draft, retryJson);
-        }
-    }
+    private static int MaxFullCaseOutputTokens(AiCaseDraft draft) =>
+        AiGenerationPresets.Normalize(draft.Settings.GenerationPreset) == AiGenerationPresets.FullFeature
+            ? 28000
+            : 18000;
 
     private async Task<(GameCase Case, CaseValidationResult Validation)> ParseRepairValidateAsync(AiCaseDraft draft, string rawJson)
     {
@@ -614,30 +872,81 @@ public class AiCaseService : IAiCaseService
         GameCase gameCase;
         try
         {
-            gameCase = _caseService.ParseCase(rawJson);
+            var generated = JsonSerializer.Deserialize<GeneratedCaseLogic>(rawJson, PrettyJson)
+                ?? throw ApiException.Unprocessable("The generated case logic was empty.");
+            gameCase = generated.ToGameCase(draft.Settings);
         }
-        catch (ApiException ex)
+        catch (Exception ex) when (ex is JsonException or ApiException)
         {
             await SaveInvalidAttemptAsync(draft, rawJson, new List<string> { ex.Message });
             throw ApiException.Unprocessable("The generated case JSON could not be parsed.", new { details = ex.Message, draftId = draft.Id });
         }
 
-        gameCase.Status = CaseStatus.Draft;
-        gameCase.GenerationMode = string.IsNullOrWhiteSpace(draft.Settings.GenerationMode)
-            ? CaseGenerationModes.CameraEmbedded
-            : draft.Settings.GenerationMode;
         if (string.IsNullOrWhiteSpace(gameCase.CaseId))
         {
             gameCase.CaseId = $"case-ai-{DateTime.UtcNow:yyyyMMddHHmmss}";
         }
 
+        NormalizeVisualMetadata(gameCase);
         var fixes = CaseAutoRepair.Repair(gameCase);
-        if (fixes.Count > 0)
+        await LogCaseAutoRepairAsync(draft, fixes);
+
+        var validation = _validator.ValidateFullLogic(gameCase);
+        validation.Errors.AddRange(AiGenerationContract.For(draft.Settings.GenerationPreset, draft.Settings.StageCount)
+            .Validate(gameCase, draft.Settings).Errors);
+        return (gameCase, validation);
+    }
+
+    private async Task ApplyCaseAutoRepairAsync(AiCaseDraft draft, GameCase gameCase)
+    {
+        gameCase.Status = CaseStatus.Draft;
+        gameCase.Language = CaseLanguages.Normalize(draft.Settings.Language ?? gameCase.Language);
+        gameCase.ArtStyle = AiVisualStyleDefaults.ArtStyle;
+        gameCase.SubStyle = AiVisualStyleDefaults.SubStyle;
+        gameCase.CharacterStyle = AiVisualStyleDefaults.CharacterStyle;
+        // Match the proven Glass Meridian composition: camera clues are environmental details
+        // in the room background, while NPCs and interactive CUTOUT items are placed afterwards.
+        gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
+        if (string.IsNullOrWhiteSpace(gameCase.CaseId))
         {
-            await LogGenerationAsync(draft.Id, draft.Provider, "AutoRepair", "APPLIED", string.Empty, string.Join("\n", fixes), null);
+            gameCase.CaseId = $"case-ai-{DateTime.UtcNow:yyyyMMddHHmmss}";
         }
 
-        return (gameCase, _validator.ValidateFullLogic(gameCase));
+        NormalizeVisualMetadata(gameCase);
+
+        var fixes = CaseAutoRepair.Repair(gameCase);
+        await LogCaseAutoRepairAsync(draft, fixes);
+    }
+
+    private static void NormalizeVisualMetadata(GameCase gameCase)
+    {
+        foreach (var character in gameCase.Characters)
+        {
+            character.VisualDescription = FirstNonBlank(character.VisualDescription, character.Description, character.Role);
+        }
+
+        foreach (var item in gameCase.Items)
+        {
+            item.RenderMode = CaseItemRenderModes.All.Contains(item.RenderMode)
+                ? item.RenderMode.ToUpperInvariant()
+                : CaseItemRenderModes.Infer(item);
+            item.VisualDescription = FirstNonBlank(item.VisualDescription, item.Description, item.Name);
+            if (item.RenderMode == CaseItemRenderModes.Embedded)
+            {
+                item.ImageUrl = string.Empty;
+            }
+        }
+
+        foreach (var clue in gameCase.Clues)
+        {
+            clue.VisualTextPolicy = ClueVisualTextPolicies.Normalize(clue.VisualTextPolicy);
+        }
+    }
+
+    private async Task LogCaseAutoRepairAsync(AiCaseDraft draft, List<string> fixes)
+    {
+        if (fixes.Count == 0) return;
+        await LogGenerationAsync(draft.Id, draft.Provider, "AutoRepair", "APPLIED", string.Empty, string.Join("\n", fixes), null);
     }
 
     // ----- OpenAI -----
@@ -655,7 +964,23 @@ public class AiCaseService : IAiCaseService
         }
     }
 
-    private async Task<string> GenerateJsonWithOpenAiAsync(string draftId, string step, string prompt, int maxOutputTokens)
+    internal sealed record OpenAiTextEnvelope(
+        string ResponseId,
+        string Status,
+        string Content,
+        string Refusal,
+        string IncompleteReason,
+        int InputTokens,
+        int OutputTokens);
+
+    private async Task<string> GenerateJsonWithOpenAiAsync(
+        string draftId,
+        string step,
+        string prompt,
+        int maxOutputTokens,
+        string schemaVersion,
+        JsonObject schema,
+        int attemptNumber)
     {
         if (_settings.BlocksAiCalls)
         {
@@ -676,11 +1001,19 @@ public class AiCaseService : IAiCaseService
             input = prompt,
             text = new
             {
-                format = new { type = "json_object" }
+                format = new
+                {
+                    type = "json_schema",
+                    name = schemaVersion.Replace('-', '_'),
+                    description = "Strict SirLocked AI case generation contract.",
+                    schema,
+                    strict = true
+                }
             },
             max_output_tokens = maxOutputTokens
         };
 
+        var attemptRecorded = false;
         try
         {
             var client = _httpClientFactory.CreateClient(OpenAiHttpClientName);
@@ -692,13 +1025,54 @@ public class AiCaseService : IAiCaseService
                 new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"));
 
             var body = await response.Content.ReadAsStringAsync();
+            var rawPath = await SaveRawAttemptAsync(draftId, step, attemptNumber, body);
             if (!response.IsSuccessStatusCode)
             {
+                await RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
+                {
+                    Step = step, AttemptNumber = attemptNumber, Model = _settings.LogicModel,
+                    PromptVersion = AiGenerationSchemaVersions.Prompt, SchemaVersion = schemaVersion,
+                    Status = "FAILED", FailureCategory = AiFailureCategories.HttpError,
+                    ResponseSha256 = Sha256(body), RawResponsePath = rawPath
+                });
+                attemptRecorded = true;
                 await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, body, $"HTTP {(int)response.StatusCode}");
                 throw ApiException.BadGateway($"OpenAI request failed with HTTP {(int)response.StatusCode}.");
             }
 
-            var content = ExtractOpenAiOutputText(body);
+            var envelope = ExtractOpenAiTextEnvelope(body);
+            var category = envelope.Status.Equals("incomplete", StringComparison.OrdinalIgnoreCase)
+                ? AiFailureCategories.Incomplete
+                : !string.IsNullOrWhiteSpace(envelope.Refusal)
+                    ? AiFailureCategories.Refusal
+                    : string.IsNullOrWhiteSpace(envelope.Content)
+                        ? AiFailureCategories.SchemaError
+                        : string.Empty;
+            await RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
+            {
+                Step = step,
+                AttemptNumber = attemptNumber,
+                ResponseId = envelope.ResponseId,
+                Model = _settings.LogicModel,
+                PromptVersion = AiGenerationSchemaVersions.Prompt,
+                SchemaVersion = schemaVersion,
+                Status = string.IsNullOrWhiteSpace(category) ? "SUCCESS" : "FAILED",
+                FailureCategory = category,
+                InputTokens = envelope.InputTokens,
+                OutputTokens = envelope.OutputTokens,
+                ResponseSha256 = Sha256(envelope.Content),
+                RawResponsePath = rawPath
+            });
+            attemptRecorded = true;
+
+            if (category == AiFailureCategories.Incomplete)
+                throw ApiException.BadGateway($"OpenAI response was incomplete: {envelope.IncompleteReason}.");
+            if (category == AiFailureCategories.Refusal)
+                throw ApiException.BadGateway($"OpenAI refused the structured case request: {envelope.Refusal}");
+            if (category == AiFailureCategories.SchemaError)
+                throw ApiException.BadGateway("OpenAI returned no structured JSON output.");
+
+            var content = envelope.Content;
             await LogGenerationAsync(draftId, ProviderName, step, "SUCCESS", prompt, Truncate(content, 8000), null);
             return content;
         }
@@ -709,24 +1083,51 @@ public class AiCaseService : IAiCaseService
         catch (Exception ex)
         {
             _logger.LogError(ex, "OpenAI generation failed.");
+            if (!attemptRecorded)
+            {
+                await RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
+                {
+                    Step = step, AttemptNumber = attemptNumber, Model = _settings.LogicModel,
+                    PromptVersion = AiGenerationSchemaVersions.Prompt, SchemaVersion = schemaVersion,
+                    Status = "FAILED", FailureCategory = AiFailureCategories.HttpError,
+                    ValidationErrors = { ex.Message }
+                });
+            }
             await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
             throw ApiException.BadGateway($"OpenAI request failed: {ex.Message}");
         }
     }
 
-    private static string ExtractOpenAiOutputText(string responseBody)
+    internal static OpenAiTextEnvelope ExtractOpenAiTextEnvelope(string responseBody)
     {
         using var doc = JsonDocument.Parse(responseBody);
         var root = doc.RootElement;
-
-        if (root.TryGetProperty("output_text", out var outputText) && outputText.ValueKind == JsonValueKind.String)
+        var responseId = root.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty;
+        var status = root.TryGetProperty("status", out var statusNode) ? statusNode.GetString() ?? string.Empty : string.Empty;
+        var incompleteReason = root.TryGetProperty("incomplete_details", out var incomplete)
+            && incomplete.ValueKind == JsonValueKind.Object
+            && incomplete.TryGetProperty("reason", out var reason)
+                ? reason.GetString() ?? string.Empty
+                : string.Empty;
+        var inputTokens = 0;
+        var outputTokens = 0;
+        if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object)
         {
-            return outputText.GetString() ?? string.Empty;
+            if (usage.TryGetProperty("input_tokens", out var input) && input.TryGetInt32(out var parsedInput)) inputTokens = parsedInput;
+            if (usage.TryGetProperty("output_tokens", out var outputUsage) && outputUsage.TryGetInt32(out var parsedOutput)) outputTokens = parsedOutput;
+        }
+
+        var builder = new StringBuilder();
+        var refusal = string.Empty;
+
+        var hasTopLevelOutputText = root.TryGetProperty("output_text", out var outputText) && outputText.ValueKind == JsonValueKind.String;
+        if (hasTopLevelOutputText)
+        {
+            builder.Append(outputText.GetString());
         }
 
         if (root.TryGetProperty("output", out var output) && output.ValueKind == JsonValueKind.Array)
         {
-            var builder = new StringBuilder();
             foreach (var outputItem in output.EnumerateArray())
             {
                 if (!outputItem.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
@@ -736,21 +1137,16 @@ public class AiCaseService : IAiCaseService
 
                 foreach (var part in content.EnumerateArray())
                 {
-                    if (part.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
+                    if (part.TryGetProperty("refusal", out var refusalNode) && refusalNode.ValueKind == JsonValueKind.String)
+                        refusal = refusalNode.GetString() ?? string.Empty;
+                    if (!hasTopLevelOutputText && part.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
                     {
                         builder.Append(text.GetString());
                     }
                 }
             }
-
-            var extracted = builder.ToString();
-            if (!string.IsNullOrWhiteSpace(extracted))
-            {
-                return extracted;
-            }
         }
-
-        throw ApiException.BadGateway("OpenAI returned an empty response.");
+        return new OpenAiTextEnvelope(responseId, status, builder.ToString(), refusal, incompleteReason, inputTokens, outputTokens);
     }
 
     private static AiStoryPreview ParseStoryPreview(string content, GenerateAiCaseRequest request)
@@ -801,6 +1197,9 @@ public class AiCaseService : IAiCaseService
         {{creatorDirection}}
 
         Requested difficulty: {{request.Difficulty}}
+        Generation preset: {{request.GenerationPreset}} - {{PresetStoryGuidance(request.GenerationPreset)}}
+        Output language: {{CaseLanguages.Normalize(request.Language)}}.
+        {{LanguageGenerationInstruction(request.Language)}}
         Target stage count later: {{request.StageCount}}
         The investigators are SirLocked and a companion. Keep the case suitable for cooperative clue hunting.
 
@@ -828,12 +1227,15 @@ public class AiCaseService : IAiCaseService
         """;
     }
 
-    private static string BuildFullCasePrompt(AiCaseDraft draft, string? correction = null)
+    internal static string BuildFullCasePrompt(AiCaseDraft draft, string? correction = null, string? previousJson = null)
     {
         var previewJson = JsonSerializer.Serialize(draft.StoryPreview, PrettyJson);
-        var sample = """
+        var contract = AiGenerationContract.For(draft.Settings.GenerationPreset, draft.Settings.StageCount);
+        _ = """
         {
-          "caseId": "case-example", "title": "...", "summary": "...", "status": "DRAFT", "mechanicsVersion": 2,
+          "caseId": "case-example", "title": "...", "summary": "...", "language": "en",
+          "art_style": "pixel_art", "sub_style": "high_detail_pixel", "character_style": "chibi",
+          "status": "DRAFT", "mechanicsVersion": 2,
           "generationMode": "CAMERA_EMBEDDED",
           "estimatedMinutes": 35, "coverImageUrl": "/assets/cases/example.jpg",
           "stages": [{ "stageId": "stage-1", "title": "...", "order": 1, "scenes": [{
@@ -842,14 +1244,16 @@ public class AiCaseService : IAiCaseService
             "hotspots": [],
             "completeCondition": { "logic": "AND", "requiredItemIds": [],
               "requiredClueIds": ["clue-1"], "requiredDialogueIds": ["dlg-1"] } }] }],
-          "characters": [{ "characterId": "char-1", "name": "...", "role": "...", "imageUrl": "/assets/characters/x.png", "description": "..." }],
+          "characters": [{ "characterId": "char-1", "name": "...", "role": "...", "imageUrl": "", "description": "...",
+            "visualDescription": "English art direction: age, body shape, face, skin tone, hair, costume, colors and one distinctive feature." }],
           "items": [{ "itemId": "item-1", "name": "...", "description": "...", "inspectText": "...",
-            "imageUrl": "/assets/items/x.png", "unlockClueIds": [], "isCollectible": true,
-            "isInteractivePuzzleObject": true, "interactionPurpose": "operate-mechanism",
-            "interactionReason": "The player must physically turn this mechanism to unlock the service hatch." }],
+            "visualDescription": "English art direction describing the exact small portable evidence object.", "renderMode": "CUTOUT",
+            "imageUrl": "", "unlockClueIds": ["clue-1"], "isCollectible": true,
+            "isInteractivePuzzleObject": false, "interactionPurpose": "legacy-evidence",
+            "interactionReason": "The player inspects this small evidence sprite to unlock its clue." }],
           "clues": [{ "clueId": "clue-1", "title": "...", "content": "...", "isCritical": true,
             "isEvidence": true, "isRedHerring": false, "source": "scene-1", "sourceType": "camera",
-            "sceneId": "scene-1", "discoverMethod": "camera", "visualDescription": "...",
+            "sceneId": "scene-1", "discoverMethod": "camera", "visualDescription": "A crescent gouge beneath the brass floor bolt edge.",
             "inventoryDescription": "...", "narrativeMeaning": "...", "hintLevel": 2,
             "tags": ["time"], "relatedCharacterIds": ["char-1"] }],
           "dialogues": [{ "dialogueId": "dlg-1", "characterId": "char-1", "question": "...",
@@ -873,6 +1277,17 @@ public class AiCaseService : IAiCaseService
           "hints": [{ "hintId": "hint-scene-1", "contextType": "SCENE", "targetId": "scene-1", "order": 1, "text": "..." },
             { "hintId": "hint-challenge-1", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 1, "text": "..." },
             { "hintId": "hint-deduction-1", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 1, "text": "..." }],
+          "interactions": [{ "interactionId": "interaction-open-chest", "type": "USE_ITEM_ON_TARGET",
+            "targetId": "item-locked-chest", "requiredItemIds": ["item-rusty-key"], "requiredClueIds": [],
+            "unlockItemIds": ["item-ancient-map"], "unlockClueIds": ["clue-chest-inscription"], "unlockSceneIds": [],
+            "consumeItemIds": [], "successMessage": "The key turns. The chest opens.",
+            "failureMessage": "That does not fit here.", "singleUse": true }],
+          "puzzles": [{ "puzzleId": "puzzle-rune-order", "type": "SEQUENCE_PUZZLE",
+            "targetId": "item-stone-panel", "prompt": "Press the runes in the order shown by the mural.",
+            "options": ["sun", "scarab", "eye", "serpent"], "correctSequence": ["sun", "eye", "scarab"],
+            "correctCode": "", "requiredItemIds": [], "requiredClueIds": ["clue-mural-order"],
+            "unlockClueIds": ["clue-hidden-door-opened"], "unlockItemIds": [], "unlockSceneIds": ["scene-hidden-passage"],
+            "successMessage": "The stone panel sinks into the wall.", "failureMessage": "The chamber remains silent." }],
           "finalLogic": { "culpritId": "char-1", "motive": "...", "method": "...",
             "requiredEvidenceIds": ["clue-1"],
             "motiveOptions": [{ "id": "motive-1", "label": "..." }, { "id": "motive-2", "label": "..." }, { "id": "motive-3", "label": "..." }],
@@ -893,39 +1308,62 @@ public class AiCaseService : IAiCaseService
         {(string.IsNullOrWhiteSpace(draft.Prompt) ? "No direction supplied; use the approved preview as the story source of truth." : draft.Prompt)}
 
         Difficulty: {draft.Settings.Difficulty}
+        Generation preset: {draft.Settings.GenerationPreset}
+        Output language: {CaseLanguages.Normalize(draft.Settings.Language)}
+        {LanguageGenerationInstruction(draft.Settings.Language)}
+        Preset contract (the server validates these exact bounds):
+        {contract.PromptRequirements()}
         The story is investigated by SirLocked and a companion.
         Visual styling is handled separately by the fixed product art pipeline and must not affect case logic.
 
         Now generate the complete hidden case logic as one JSON object.
         The full JSON may include the culprit and solution in finalLogic, clues, and private dialogue answers.
         Do not reveal the culprit or final solution in the public case summary.
-        New AI cases use embedded camera evidence by default: important evidence is drawn directly into the scene background,
-        then photographed by the Investigator. Use item records only for optional interactive puzzle objects.
+        Match the proven Glass Meridian v3 composition. Camera evidence is drawn as small, natural environmental detail
+        inside one continuous room background. NPCs and interactive CUTOUT items are generated separately and composited later.
 
         Hard requirements:
-        - Exactly {draft.Settings.StageCount} stages, each with 1 or 2 scenes (6 scenes total maximum).
-        - generationMode must be "CAMERA_EMBEDDED".
-        - mechanicsVersion must be 2.
-        - 4 to 5 characters, 0 to 4 interactive items, 10 to 12 clues, 10 to 16 dialogues.
-        - Use exactly this JSON shape and property names (camelCase):
-        {sample}
+        - Each stage contains 1 or 2 scenes; follow the preset stage and total-scene bounds above.
+        - Language, fixed pixel style, mechanicsVersion, generationMode, status, timestamps, runtime and asset URLs are server-owned and are not part of your output schema.
+        - Follow the strict JSON schema supplied with this request. Use empty arrays and empty strings for optional mechanics instead of inventing properties.
         - Use id prefixes: caseId "case-", stageId "stage-", sceneId "scene-", characterId "char-", itemId "item-", clueId "clue-", dialogueId "dlg-", hotspotId "hotspot-". Never use a generic "id" field.
         - All IDs must be unique and every referenced ID must exist.
-        - Final and required evidence should use discoverMethod "camera", sourceType "camera", sceneId to the scene where the visual evidence appears, and source to that same sceneId.
-        - Every camera clue must include visualDescription, inventoryDescription, narrativeMeaning, hintLevel, tags, and relatedCharacterIds.
-        - If the player only needs to observe, photograph, read, compare, notice, or document the object, it must be a camera clue, not an item.
-        - Ledger, folio, ticket, label, cylinder, feather, wax mark, hatch mark, clock face, dust line, bloodless trace, powder mark, and note on table must be camera clues unless there is a real use/combine/operate puzzle.
-        - Interactive items are optional; use them only when the player must use a key, turn a lever, combine an object, unlock a door, operate a mechanism, or move an object.
-        - Every item must set isInteractivePuzzleObject true, interactionPurpose to unlock-door/combine-item/operate-mechanism, and interactionReason explaining the physical gameplay action.
+        - Final and required environmental evidence should use discoverMethod/sourceType "camera", sceneId for the room containing it, and source equal to that same sceneId.
+        - Every camera clue must include visualDescription, inventoryDescription, narrativeMeaning, hintLevel, tags and relatedCharacterIds.
+        - Every scene must include an English/ASCII visualDescription describing only architecture, materials, lighting and playable surfaces, separate from its player-facing description. Do not mention NPCs or photographic composition.
+        - A camera clue visualDescription must describe the actual scene-scale physical detail and its natural location, for example "a bright crescent gouge beneath the tarnished floor bolt edge".
+        - Never use composition words such as macro, close-up, close view, photograph, photographed, zoom, inset, framed detail, panel, callout, montage or split screen in visualDescription.
+        - Every camera clue uses visualTextPolicy NO_TEXT. ABSTRACT_SYMBOLS is allowed only when required by a SYMBOL_MATCH_PUZZLE.
+        - Express camera evidence through shape, material, color, wear, damage, alignment and position. Never require readable writing, letters, numbers, labels, boards, screens, documents, annotations, captions or interface elements.
+        - If the player only observes or photographs a detail, make it a camera clue naturally embedded in the room, not a CUTOUT item.
+        - Items are for supported physical gameplay: inventory use, combining objects, unlocking a door, or operating a bounded mechanism puzzle.
+        - Every interactive item must set isInteractivePuzzleObject true, interactionPurpose to unlock-door/combine-item/operate-mechanism, and interactionReason explaining the physical gameplay action. operate-mechanism is target metadata only; it is not an interaction type.
+        - Every character needs a detailed English visualDescription covering age, silhouette/body shape, face, skin tone, hair, costume layers/colors and a distinctive role-specific feature. Make the cast visually diverse.
+        - Every item needs an English/ASCII visualDescription and renderMode "CUTOUT" or "EMBEDDED".
+        - CUTOUT is only for small portable/handheld objects. Never model furniture, a full console, cabinet, door, wall panel or large machine as a CUTOUT.
+        - Non-collectible operate-mechanism targets must use renderMode "EMBEDDED" so they are drawn once in the background and clicked through a hotspot.
+        - Asset URLs are server-owned and must not be added to model output.
         - Every item must appear in exactly one scene's itemIds and have one ITEM hotspot in that scene with percent coordinates (x/y 0-100, width/height 3-20).
+        - Scene hotspot type may ONLY be "ITEM" or "CHARACTER". Never output "TARGET", "CLUE", "OBJECT", "DOOR", "LOCATION", or custom hotspot types.
+        - If a lock, hatch, dial, panel, mechanism, display, cabinet, table, or other physical target must be clicked for an interaction or puzzle, model that target as an item with isCollectible false, isInteractivePuzzleObject true, interactionPurpose "operate-mechanism", and a normal ITEM hotspot.
+        - interactions.targetId and puzzles.targetId must reference a real itemId, characterId, scene item/character, transition, or hotspot target. They must not reference a hotspotId unless that exact id is also a target id.
+        - interactions and puzzles arrays are required; use [] when no mechanic is needed.
+        - Interactions may only use type USE_ITEM_ON_TARGET or COMBINE_ITEMS. Max 4 interactions total. No script strings, no custom logic.
+        - Never output OPERATE_TARGET. The runtime rejects unsupported interaction types until a dedicated endpoint exists.
+        - Use CaseInteraction only for supported physical actions: key into lock, gem into socket, map onto table, placing an item on a plate, or combining inventory items.
+        - Puzzles may only use type CODE_PUZZLE, SEQUENCE_PUZZLE, or SYMBOL_MATCH_PUZZLE. Max 3 puzzles total. Options max 12 entries, correctSequence max 8 entries, code max 32 characters.
+        - Keep puzzle successMessage/failureMessage to one short sentence under 140 characters.
+        - Puzzle answers must be bounded by correctCode or correctSequence. Never generate free-form expressions, code snippets, regex, formulas, or instructions requiring new client code.
+        - Across the full case, use at most 2 unlockSceneIds. unlockSceneIds must reference existing scenes.
+        - Clues unlocked by interactions should use sourceType/discoverMethod "interaction" and source equal to interactionId. Clues unlocked by puzzles should use sourceType/discoverMethod "puzzle" and source equal to puzzleId.
         - Every listed character must appear in at least one scene's characterIds and have one CHARACTER hotspot in each scene where they appear.
         - Hotspot x/y are percent coordinates for the intended visual center of the object or character. width/height are percent hitbox sizes.
-        - Every clue must be unlockable by camera, item, or dialogue. For camera clues, scene runtime clueZones will be generated after the background exists.
+        - Every clue must be unlockable by camera, item, dialogue, conversation, interaction, puzzle, challenge, or deduction. Camera clueZones are detected from the finished background during scene layout.
         - Dialogue requiredClueIds must only need clues discoverable in the same scene or earlier by linear scene order; same for hotspot requiredClueIds and completeCondition.
         - Each scene's completeCondition must be satisfiable using only that scene and earlier scenes.
         - finalLogic.requiredEvidenceIds must be clue IDs only; each of those clues must set isEvidence true and be discoverable before the final scene ends.
-        - finalLogic.requiredEvidenceIds must not be item-heavy. If a final clue is sourced from an item, that item must be a true interactive puzzle object with interactionReason.
-        - Create at least two evidenceChallenges. challengeId must use prefix "challenge-" and be unique. Each challenge references an existing dialogue, accepts one isEvidence clue, and unlocks at least one clue.
+        - finalLogic.requiredEvidenceIds should primarily reference naturally embedded camera clues. Item-sourced final evidence is allowed only when the item has a real supported use/combine/puzzle action.
+        - Create exactly {contract.EvidenceChallenges} evidenceChallenges. challengeId must use prefix "challenge-" and be unique. Each challenge references an existing dialogue, accepts one isEvidence clue, and unlocks at least one clue.
         - Create at least one deduction. deductionId must use prefix "deduction-", require at least one clue and one resolved challenge, have at least three options, and have a valid correctOptionId.
         - Create at least one requiredTeamworkChain. chainId must use prefix "chain-" and connect one investigator clue, one interrogator challenge, and one deduction.
         - Create at least one SCENE hint per scene, one CONFRONTATION hint per challenge, and one DEDUCTION hint per deduction.
@@ -935,11 +1373,64 @@ public class AiCaseService : IAiCaseService
         - conversationNodes are OPTIONAL. If you include them for a character, build a small branching tree: exactly one isRoot node, root has at least one topic choice, depth is at most root -> topic -> one follow-up. Every node MUST offer at least one choice with nextNodeId null (a way back to root / end), and follow-up nodes' choices must all use nextNodeId null. nodeId/choiceId unique; nextNodeId and challengeId must reference real same-character nodes/challenges. lines use speaker "NPC" or "DETECTIVE". Do not leave a node without a return choice. Characters without conversationNodes keep using flat dialogues.
         - The culprit must be one of the characters. Include at least one red herring clue with isRedHerring true.
         - Build a contradiction chain in dialogues and delay the strongest culprit evidence to a later stage.
-        - status must be "DRAFT".
+        - Keep long narrative prose out of mechanical messages. Prefer concise strings so the full JSON is complete and not truncated.
         - Output JSON only.
         {correction ?? string.Empty}
+        {(string.IsNullOrWhiteSpace(previousJson) ? string.Empty : $"Previous JSON checkpoint to repair:\n{previousJson}")}
         """;
     }
+
+    private static string PresetStoryGuidance(string preset) => AiGenerationPresets.Normalize(preset) switch
+    {
+        AiGenerationPresets.FullFeature => "long full-feature case; use the maximum scope and promise every major gameplay mechanic.",
+        AiGenerationPresets.ShortDemo => "short, fast demo case; keep scope compact and easy to finish.",
+        AiGenerationPresets.PuzzleHeavy => "puzzle-forward mystery; promise mechanical locks, ciphers, sequences, and item logic.",
+        AiGenerationPresets.DialogueHeavy => "dialogue-forward mystery; promise layered witness questioning and contradictions.",
+        _ => "normal random case; choose a balanced mix of mechanics appropriate to the story."
+    };
+
+    private static string LanguageGenerationInstruction(string? language) =>
+        CaseLanguages.Normalize(language) == CaseLanguages.Vietnamese
+            ? "Write every player-facing title, summary, role, description, item/clue text, dialogue, conversation line/choice, hint, challenge, deduction, puzzle, success/failure message and ending in natural Vietnamese with full diacritics. Preserve proper names. Keep IDs, enum values, tags, renderMode, interactionPurpose and internal visualDescription art directions in English/ASCII."
+            : "Write all player-facing prose in English. Keep IDs, enum values and tags in English/ASCII.";
+
+    private static string PresetFullLogicRequirements(string preset) => AiGenerationPresets.Normalize(preset) switch
+    {
+        AiGenerationPresets.FullFeature => """
+        - FULL FEATURE CASE: use exactly 6 stages and include every major mechanic.
+        - Include exactly 3 puzzles: one CODE_PUZZLE, one SEQUENCE_PUZZLE, and one SYMBOL_MATCH_PUZZLE.
+        - Include at least one USE_ITEM_ON_TARGET interaction and at least one COMBINE_ITEMS interaction.
+        - Include naturally embedded camera evidence required by finalLogic.requiredEvidenceLinks.
+        - Include conversationNodes for at least two characters.
+        - Include at least three evidenceChallenges, at least two deductions, and at least two requiredTeamworkChains.
+        - Make the story longer and layered, with evidence delayed across early, middle, and late stages.
+        """,
+        AiGenerationPresets.ShortDemo => """
+        - SHORT DEMO: use exactly 2 stages.
+        - Keep the case simple: one core contradiction, natural camera evidence, two evidenceChallenges, and one deduction.
+        - Puzzles and interactions are optional; use at most one puzzle and at most one interaction.
+        - Keep clue count near the low end and avoid deep conversation trees.
+        """,
+        AiGenerationPresets.PuzzleHeavy => """
+        - PUZZLE HEAVY: include exactly 3 puzzles and make puzzle solving central to progression.
+        - Include one CODE_PUZZLE, one SEQUENCE_PUZZLE, and one SYMBOL_MATCH_PUZZLE.
+        - Include at least one USE_ITEM_ON_TARGET interaction and one COMBINE_ITEMS interaction.
+        - Puzzle rewards must unlock clues/items/scenes that matter to finalLogic, not just optional flavor.
+        - Dialogue can stay moderate, but at least two evidenceChallenges and one deduction are still required.
+        """,
+        AiGenerationPresets.DialogueHeavy => """
+        - DIALOGUE HEAVY: make testimony, contradictions, and conversation trees central.
+        - Include conversationNodes for at least three characters, each with a root and at least one topic branch.
+        - Include at least three evidenceChallenges and two deductions.
+        - Puzzles are optional; use zero or one puzzle unless the story strongly needs it.
+        - Use naturally embedded camera clues as leverage for interrogation and final accusation.
+        """,
+        _ => """
+        - NORMAL RANDOM: create a balanced case.
+        - Randomly choose a sensible mix of camera evidence, dialogue, evidenceChallenges, deduction, and optional puzzle/interactions.
+        - Do not force every mechanic; only include mechanics that make the mystery clearer and playable.
+        """
+    };
 
     // ----- Phase 3-7 asset and runtime generation -----
 
@@ -947,8 +1438,11 @@ public class AiCaseService : IAiCaseService
         AiCaseDraft draft,
         GameCase gameCase,
         bool forceRegenerate,
-        bool includeFinalAssets)
+        bool includeFinalAssets,
+        IReadOnlySet<string>? forceAssetIds = null)
     {
+        bool ForceTarget(string targetId) => forceRegenerate
+            && (forceAssetIds is null || forceAssetIds.Count == 0 || forceAssetIds.Contains(targetId));
         var assetsRoot = FindUpwards("src/FE/public/assets")
             ?? throw ApiException.BadRequest("Frontend public assets folder was not found. Expected src/FE/public/assets.");
 
@@ -960,6 +1454,7 @@ public class AiCaseService : IAiCaseService
         Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "characters"));
         Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "items"));
         Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "references"));
+        var characterStyleReferences = ResolveCharacterStyleReferences(assetsRoot);
 
         var manifest = new AiAssetManifest
         {
@@ -973,52 +1468,125 @@ public class AiCaseService : IAiCaseService
 
         var coverPrompt = BuildCoverImagePrompt(draft, gameCase);
         var coverPath = Path.Combine(caseAssetsRoot, "cases", "cover.png");
-        await GenerateImageFileAsync(draft.Id, "GenerateCoverImage", coverPrompt, "1024x1024", coverPath, forceRegenerate: forceRegenerate);
+        await GenerateImageFileAsync(draft.Id, "GenerateCoverImage", coverPrompt, "1024x1024", coverPath, forceRegenerate: ForceTarget(gameCase.CaseId));
         var coverInfo = await GeneratedImageProcessor.AnalyzeAsync(coverPath);
         gameCase.CoverImageUrl = $"{manifest.AssetRootUrl}/cases/cover.png";
         manifest.Assets.Add(NewAsset("cover", gameCase.CaseId, gameCase.CoverImageUrl, coverPath, coverPrompt, coverInfo));
         await SaveAssetCheckpointAsync(draft, gameCase, manifest);
 
         var orderedScenes = OrderedScenes(gameCase).ToList();
-        foreach (var scene in orderedScenes)
+        var backgroundPrompts = orderedScenes.ToDictionary(
+            scene => scene.SceneId,
+            scene =>
+            {
+                var basePrompt = BuildBackgroundImagePrompt(draft, gameCase, scene);
+                var previous = draft.AssetManifest.Assets.FirstOrDefault(asset =>
+                    asset.AssetType == "background"
+                    && asset.TargetId == scene.SceneId
+                    && asset.QaPassed
+                    && !string.IsNullOrWhiteSpace(asset.Prompt));
+                var path = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
+                return previous is not null && CanReusePassedBackground(path, previous.Prompt)
+                    ? previous.Prompt
+                    : basePrompt;
+            },
+            StringComparer.Ordinal);
+        var scenesRequiringBackgroundQa = orderedScenes
+            .Where(scene =>
+            {
+                var prompt = backgroundPrompts[scene.SceneId];
+                var path = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
+                return ForceTarget(scene.SceneId)
+                       || !CanReusePassedBackground(path, prompt);
+            })
+            .Select(scene => scene.SceneId)
+            .ToHashSet(StringComparer.Ordinal);
+        var backgroundAssets = await RunBoundedAsync(
+            orderedScenes,
+            _settings.MaxConcurrentImageRequests,
+            async scene =>
+            {
+                var backgroundPrompt = backgroundPrompts[scene.SceneId];
+                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
+                await GenerateImageFileAsync(
+                    draft.Id,
+                    $"GenerateBackground:{scene.SceneId}",
+                    backgroundPrompt,
+                    $"{RuntimeWidth}x{GeneratedImageProcessor.SceneRequestHeight}",
+                    backgroundPath,
+                    forceRegenerate: scenesRequiringBackgroundQa.Contains(scene.SceneId));
+                var backgroundInfo = await GeneratedImageProcessor.NormalizeBackgroundAsync(backgroundPath);
+                scene.BackgroundUrl = $"{manifest.AssetRootUrl}/scenes/{Slugify(scene.SceneId)}.png";
+                return NewAsset("background", scene.SceneId, scene.BackgroundUrl, backgroundPath, backgroundPrompt, backgroundInfo);
+            });
+
+        foreach (var backgroundAsset in backgroundAssets)
         {
-            var backgroundPrompt = BuildBackgroundImagePrompt(draft, gameCase, scene);
-            var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-            await GenerateImageFileAsync(
-                draft.Id,
-                $"GenerateBackground:{scene.SceneId}",
-                backgroundPrompt,
-                $"{RuntimeWidth}x{GeneratedImageProcessor.SceneRequestHeight}",
-                backgroundPath,
-                forceRegenerate: forceRegenerate);
-            var backgroundInfo = await GeneratedImageProcessor.NormalizeBackgroundAsync(backgroundPath);
-            scene.BackgroundUrl = $"{manifest.AssetRootUrl}/scenes/{Slugify(scene.SceneId)}.png";
-            manifest.Assets.Add(NewAsset("background", scene.SceneId, scene.BackgroundUrl, backgroundPath, backgroundPrompt, backgroundInfo));
+            manifest.Assets.Add(backgroundAsset);
             await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
-        for (var i = 0; i < orderedScenes.Count; i++)
-        {
-            var scene = orderedScenes[i];
-            if (!forceRegenerate && HasUsablePlacementPlan(scene))
+        var scenesNeedingPlan = orderedScenes
+            .Select((scene, index) => (Scene: scene, Index: index))
+            .Where(entry => scenesRequiringBackgroundQa.Contains(entry.Scene.SceneId) || !HasUsablePlacementPlan(entry.Scene))
+            .ToList();
+        var plannedScenes = await RunBoundedAsync(
+            scenesNeedingPlan,
+            _settings.MaxConcurrentVisionRequests,
+            async entry =>
             {
-                continue;
-            }
+                var scene = entry.Scene;
+                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
+                var previous = PreviousScene(orderedScenes, entry.Index);
+                var next = NextScene(orderedScenes, entry.Index);
+                var planPrompt = BuildPlacementPlanPrompt(gameCase, scene, previous, next);
+                string? lastQaError = null;
+                for (var attempt = 1; attempt <= 2; attempt++)
+                {
+                    if (attempt > 1)
+                    {
+                        var retryPrompt = $"{BuildBackgroundImagePrompt(draft, gameCase, scene)}\nCritical correction: {lastQaError} Regenerate the complete room with no readable or pseudo-text and exact high-detail pixel-art style.";
+                        await GenerateImageFileAsync(
+                            draft.Id,
+                            $"GenerateBackground:{scene.SceneId}:RetryVisualQa",
+                            retryPrompt,
+                            $"{RuntimeWidth}x{GeneratedImageProcessor.SceneRequestHeight}",
+                            backgroundPath,
+                            forceRegenerate: true);
+                        await GeneratedImageProcessor.NormalizeBackgroundAsync(backgroundPath);
+                        var asset = manifest.Assets.FirstOrDefault(candidate => candidate.AssetType == "background" && candidate.TargetId == scene.SceneId);
+                        if (asset is not null)
+                        {
+                            asset.Prompt = retryPrompt;
+                            asset.PromptSha256 = Sha256(retryPrompt);
+                        }
+                    }
 
-            var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-            var planPrompt = BuildPlacementPlanPrompt(gameCase, scene, PreviousScene(orderedScenes, i), NextScene(orderedScenes, i));
-            var planJson = await GenerateJsonWithOpenAiVisionAsync(
-                draft.Id,
-                $"PlanScenePlacement:{scene.SceneId}",
-                planPrompt,
-                new[] { new VisionImageInput($"BACKGROUND {scene.SceneId}: {scene.Title}", backgroundPath) },
-                maxOutputTokens: 5000);
-            scene.PlacementPlan = ParseAndSanitizePlacementPlan(
-                planJson,
-                gameCase,
-                scene,
-                PreviousScene(orderedScenes, i),
-                NextScene(orderedScenes, i));
+                    var planJson = await GenerateJsonWithOpenAiVisionAsync(
+                        draft.Id,
+                        attempt == 1 ? $"PlanScenePlacement:{scene.SceneId}" : $"PlanScenePlacement:{scene.SceneId}:RetryVisualQa",
+                        planPrompt,
+                        new[] { new VisionImageInput($"BACKGROUND {scene.SceneId}: {scene.Title}", backgroundPath) },
+                        maxOutputTokens: 5000);
+                    if (TryValidateBackgroundQa(planJson, out lastQaError))
+                    {
+                        scene.PlacementPlan = ParseAndSanitizePlacementPlan(planJson, gameCase, scene, previous, next);
+                        var backgroundAsset = manifest.Assets
+                            .First(asset => asset.AssetType == "background" && asset.TargetId == scene.SceneId);
+                        backgroundAsset.QaPassed = true;
+                        backgroundAsset.PromptSha256 = Sha256(backgroundAsset.Prompt);
+                        await File.WriteAllTextAsync(BackgroundQaMarkerPath(backgroundPath), backgroundAsset.PromptSha256);
+                        return scene;
+                    }
+                }
+
+                var failure = $"Scene {scene.SceneId} failed visual QA after one retry: {lastQaError}";
+                await MarkDraftFailedAsync(draft.Id, failure, AiFailurePhases.VisualQa, new[] { scene.SceneId });
+                throw ApiException.BadGateway(failure);
+            });
+
+        foreach (var _ in plannedScenes)
+        {
             await SaveAssetCheckpointAsync(draft, gameCase, manifest);
         }
 
@@ -1033,92 +1601,148 @@ public class AiCaseService : IAiCaseService
             return manifest;
         }
 
-        foreach (var character in gameCase.Characters)
-        {
-            var portraitPrompt = BuildCharacterPortraitPrompt(draft, character);
-            var portraitPath = Path.Combine(caseAssetsRoot, "characters", $"{Slugify(character.CharacterId)}-portrait.png");
-            await GenerateImageFileAsync(
-                draft.Id,
-                $"GenerateCharacterPortrait:{character.CharacterId}",
-                portraitPrompt,
-                "1024x1024",
-                portraitPath,
-                forceRegenerate: forceRegenerate);
-            var portraitInfo = await GeneratedImageProcessor.AnalyzeAsync(portraitPath);
-            character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{Slugify(character.CharacterId)}-portrait.png";
-            manifest.Assets.Add(NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath, portraitPrompt, portraitInfo));
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-        }
-
-        foreach (var scene in orderedScenes)
-        {
-            var plan = scene.PlacementPlan ?? throw ApiException.BadGateway($"Scene {scene.SceneId} has no placement plan.");
-            var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-
-            foreach (var characterId in scene.CharacterIds)
+        var characterAssets = await RunBoundedAsync(
+            gameCase.Characters,
+            _settings.MaxConcurrentImageRequests,
+            async character =>
             {
-                var character = gameCase.Characters.First(c => c.CharacterId == characterId);
-                var placement = FindPlannedPlacement(plan, "npc", characterId);
-                var contextPath = await CreatePlacementContextAsync(caseAssetsRoot, backgroundPath, scene, placement);
-                var spritePrompt = BuildCharacterSpritePrompt(draft, character, scene, placement);
-                var spritePath = CharacterSpritePath(caseAssetsRoot, scene.SceneId, characterId);
+                var spritePrompt = BuildCharacterMasterSpritePrompt(character);
+                var spritePath = CharacterSpritePath(caseAssetsRoot, character.CharacterId);
                 var spriteInfo = await GenerateCutoutFileAsync(
                     draft.Id,
-                    $"GenerateCharacterSprite:{scene.SceneId}:{characterId}",
+                    $"GenerateCharacterSprite:{character.CharacterId}",
                     spritePrompt,
                     "1024x1536",
                     spritePath,
-                    BuildAssetReferenceInputs(scene, placement, backgroundPath, contextPath),
-                    forceRegenerate);
-                var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, scene.SceneId, characterId);
-                manifest.Assets.Add(NewAsset("character-sprite", $"{scene.SceneId}:{characterId}", spriteUrl, spritePath, spritePrompt, spriteInfo, CutoutImageModel));
-                await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-            }
+                    references: characterStyleReferences,
+                    forceRegenerate: forceRegenerate,
+                    quality: NormalizeImageQuality(_settings.CharacterImageQuality));
+                var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, character.CharacterId);
 
-            foreach (var itemId in scene.ItemIds.Where(itemId => ShouldGenerateItemAsset(gameCase, gameCase.Items.First(item => item.ItemId == itemId))))
+                var portraitPath = Path.Combine(caseAssetsRoot, "characters", CharacterAssetStyleVersion, $"{Slugify(character.CharacterId)}-portrait.png");
+                var portraitInfo = await GeneratedImageProcessor.CreateCharacterPortraitAsync(spritePath, portraitPath);
+                character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{CharacterAssetStyleVersion}/{Slugify(character.CharacterId)}-portrait.png";
+                var portraitPrompt = $"Derived locally from canonical sprite {spriteUrl}.";
+
+                return new[]
+                {
+                    NewAsset("character-sprite", character.CharacterId, spriteUrl, spritePath, spritePrompt, spriteInfo, CutoutImageModel),
+                    NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath, portraitPrompt, portraitInfo, CutoutImageModel)
+                };
+            });
+
+        foreach (var assetGroup in characterAssets)
+        {
+            manifest.Assets.AddRange(assetGroup);
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
+        }
+
+        var itemJobs = orderedScenes
+            .SelectMany(scene =>
             {
-                var item = gameCase.Items.First(item => item.ItemId == itemId);
-                var placement = FindPlannedPlacement(plan, "item", itemId);
-                var contextPath = await CreatePlacementContextAsync(caseAssetsRoot, backgroundPath, scene, placement);
-                var itemPrompt = BuildItemImagePrompt(draft, item, scene, placement);
-                var itemPath = Path.Combine(caseAssetsRoot, "items", $"{Slugify(item.ItemId)}.png");
+                var plan = scene.PlacementPlan ?? throw ApiException.BadGateway($"Scene {scene.SceneId} has no placement plan.");
+                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
+                return scene.ItemIds
+                    .Select(itemId => gameCase.Items.First(item => item.ItemId == itemId))
+                    .Where(item => ShouldGenerateItemAsset(gameCase, item))
+                    .Select(item => (Scene: scene, Plan: plan, BackgroundPath: backgroundPath, Item: item));
+            })
+            .GroupBy(job => job.Item.ItemId, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToList();
+        var itemAssets = await RunBoundedAsync(
+            itemJobs,
+            _settings.MaxConcurrentImageRequests,
+            async job =>
+            {
+                var placement = FindPlannedPlacement(job.Plan, "item", job.Item.ItemId);
+                var contextPath = await CreatePlacementContextAsync(caseAssetsRoot, job.BackgroundPath, job.Scene, placement);
+                var itemPrompt = BuildItemImagePrompt(draft, job.Item, job.Scene, placement);
+                var itemPath = Path.Combine(caseAssetsRoot, "items", $"{Slugify(job.Item.ItemId)}.png");
                 var itemInfo = await GenerateCutoutFileAsync(
                     draft.Id,
-                    $"GenerateItem:{scene.SceneId}:{item.ItemId}",
+                    $"GenerateItem:{job.Scene.SceneId}:{job.Item.ItemId}",
                     itemPrompt,
                     "1024x1024",
                     itemPath,
-                    BuildAssetReferenceInputs(scene, placement, backgroundPath, contextPath),
+                    BuildAssetReferenceInputs(job.Scene, placement, job.BackgroundPath, contextPath),
                     forceRegenerate);
-                item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(item.ItemId)}.png";
-                manifest.Assets.Add(NewAsset("item", item.ItemId, item.ImageUrl, itemPath, itemPrompt, itemInfo, CutoutImageModel));
-                await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-            }
+                job.Item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(job.Item.ItemId)}.png";
+                return NewAsset("item", job.Item.ItemId, job.Item.ImageUrl, itemPath, itemPrompt, itemInfo, CutoutImageModel);
+            });
+
+        foreach (var itemAsset in itemAssets)
+        {
+            manifest.Assets.Add(itemAsset);
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
         }
 
-        for (var i = 0; i < orderedScenes.Count; i++)
+        // Final asset verification must always run after the actual cutouts exist. Reusing the
+        // pre-asset runtime would skip style/identity/scale QA entirely.
+        var scenesNeedingVerification = orderedScenes.ToList();
+        foreach (var scene in orderedScenes)
         {
-            var scene = orderedScenes[i];
-            if (!forceRegenerate && HasUsableRuntime(scene))
-            {
-                continue;
-            }
-
-            var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-            var visionImages = BuildLayoutVisionInputs(scene, gameCase, caseAssetsRoot, backgroundPath);
-            var verificationPrompt = BuildPlacementVerificationPrompt(scene);
-            var verificationJson = await GenerateJsonWithOpenAiVisionAsync(
-                draft.Id,
-                $"VerifyScenePlacement:{scene.SceneId}",
-                verificationPrompt,
-                visionImages,
-                maxOutputTokens: 3500);
-            scene.PlacementPlan = ApplyPlacementVerification(scene.PlacementPlan!, verificationJson);
             scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
+        }
+
+        var verifiedScenes = await RunBoundedAsync(
+            scenesNeedingVerification,
+            1,
+            async scene =>
+            {
+                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
+                var verificationPrompt = BuildPlacementVerificationPrompt(scene);
+                for (var attempt = 1; attempt <= 2; attempt++)
+                {
+                    var visionImages = BuildLayoutVisionInputs(scene, gameCase, caseAssetsRoot, backgroundPath);
+                    var verificationJson = await GenerateJsonWithOpenAiVisionAsync(
+                        draft.Id,
+                        attempt == 1 ? $"VerifyScenePlacement:{scene.SceneId}" : $"VerifyScenePlacement:{scene.SceneId}:RetryVisualQa",
+                        verificationPrompt,
+                        visionImages,
+                        maxOutputTokens: 3500);
+                    var failures = ReadPlacementQaFailures(verificationJson, gameCase);
+                    if (failures.Count == 0)
+                    {
+                        scene.PlacementPlan = ApplyPlacementVerification(scene.PlacementPlan!, verificationJson);
+                        scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
+                        return scene;
+                    }
+
+                    if (attempt == 2)
+                    {
+                        throw ApiException.BadGateway($"Scene {scene.SceneId} asset QA failed after one retry: {string.Join("; ", failures.Select(failure => $"{failure.Type}:{failure.Id} {failure.Reason}"))}");
+                    }
+
+                    await RegenerateFailedCutoutsAsync(
+                        draft,
+                        gameCase,
+                        scene,
+                        caseAssetsRoot,
+                        backgroundPath,
+                        characterStyleReferences,
+                        manifest,
+                        failures);
+                }
+
+                throw ApiException.BadGateway($"Scene {scene.SceneId} asset QA did not complete.");
+            });
+
+        foreach (var _ in verifiedScenes)
+        {
             await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
         }
 
         return manifest;
+    }
+
+    private static string BackgroundQaMarkerPath(string backgroundPath) => $"{backgroundPath}.qa-passed";
+
+    internal static bool CanReusePassedBackground(string backgroundPath, string prompt)
+    {
+        var markerPath = BackgroundQaMarkerPath(backgroundPath);
+        if (!CanReuseGeneratedFile(backgroundPath, prompt) || !File.Exists(markerPath)) return false;
+        return string.Equals(File.ReadAllText(markerPath).Trim(), Sha256(prompt), StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task SaveAssetCheckpointAsync(
@@ -1163,11 +1787,49 @@ public class AiCaseService : IAiCaseService
     private static bool DirectoryIsEmpty(string path) =>
         !Directory.EnumerateFileSystemEntries(path).Any();
 
+    private IReadOnlyList<VisionImageInput>? ResolveCharacterStyleReferences(string assetsRoot)
+    {
+        var configuredPaths = (_settings.CharacterStyleReferencePaths ?? new List<string>())
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => path.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (configuredPaths.Count == 0 && !string.IsNullOrWhiteSpace(_settings.CharacterStyleReferencePath))
+        {
+            configuredPaths.Add(_settings.CharacterStyleReferencePath.Trim());
+        }
+
+        var references = new List<VisionImageInput>();
+        foreach (var configuredPath in configuredPaths)
+        {
+            var fullPath = Path.GetFullPath(Path.Combine(
+                assetsRoot,
+                configuredPath.Replace('/', Path.DirectorySeparatorChar)));
+            if (!IsPathInside(fullPath, assetsRoot) || !File.Exists(fullPath))
+            {
+                _logger.LogWarning(
+                    "Character style reference was not found or escaped the frontend assets root: {CharacterStyleReferencePath}",
+                    configuredPath);
+                continue;
+            }
+
+            references.Add(new VisionImageInput(
+                "CANONICAL PIXEL-CHIBI STYLE REFERENCE ONLY: match crisp pixel clusters, proportions, outlines, shading and sprite readability; do not copy identity, face, clothing, pose or accessories",
+                fullPath));
+        }
+
+        return references.Count == 0 ? null : references;
+    }
+
     private static bool IsPathInside(string path, string root)
     {
         var fullPath = Path.GetFullPath(path);
         var fullRoot = Path.GetFullPath(root);
-        return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase);
+        var relativePath = Path.GetRelativePath(fullRoot, fullPath);
+        return !Path.IsPathRooted(relativePath)
+            && !string.Equals(relativePath, "..", StringComparison.Ordinal)
+            && !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
     }
 
     private static bool HasUsablePlacementPlan(CaseScene scene) =>
@@ -1179,6 +1841,37 @@ public class AiCaseService : IAiCaseService
         || scene.Runtime is { CharacterPlacements.Count: > 0 }
         || scene.Runtime is { ClueZones.Count: > 0 };
 
+    private static async Task<IReadOnlyList<TResult>> RunBoundedAsync<TSource, TResult>(
+        IEnumerable<TSource> source,
+        int maxConcurrency,
+        Func<TSource, Task<TResult>> operation)
+    {
+        var items = source.ToList();
+        if (items.Count == 0)
+        {
+            return Array.Empty<TResult>();
+        }
+
+        using var gate = new SemaphoreSlim(Math.Clamp(maxConcurrency, 1, 8));
+        var tasks = items.Select(async (item, index) =>
+        {
+            await gate.WaitAsync();
+            try
+            {
+                return (Index: index, Result: await operation(item));
+            }
+            finally
+            {
+                gate.Release();
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        return results
+            .OrderBy(result => result.Index)
+            .Select(result => result.Result)
+            .ToArray();
+    }
+
     private async Task<GeneratedImageProcessResult> GenerateCutoutFileAsync(
         string draftId,
         string step,
@@ -1186,7 +1879,8 @@ public class AiCaseService : IAiCaseService
         string size,
         string filePath,
         IReadOnlyList<VisionImageInput>? references = null,
-        bool forceRegenerate = false)
+        bool forceRegenerate = false,
+        string? quality = null)
     {
         if (_settings.BlocksAssetCalls)
         {
@@ -1218,7 +1912,8 @@ public class AiCaseService : IAiCaseService
                     references,
                     cutoutModel,
                     transparentBackground: true,
-                    regenerate);
+                    forceRegenerate: regenerate,
+                    quality: quality);
             }
             else
             {
@@ -1231,7 +1926,8 @@ public class AiCaseService : IAiCaseService
                     modelOverride: cutoutModel,
                     transparentBackground: true,
                     allowFallback: false,
-                    forceRegenerate: regenerate);
+                    forceRegenerate: regenerate,
+                    quality: quality);
             }
 
             try
@@ -1267,7 +1963,8 @@ public class AiCaseService : IAiCaseService
         IReadOnlyList<VisionImageInput> references,
         string model,
         bool transparentBackground,
-        bool forceRegenerate)
+        bool forceRegenerate,
+        string? quality = null)
     {
         if (_settings.BlocksAssetCalls)
         {
@@ -1275,7 +1972,7 @@ public class AiCaseService : IAiCaseService
             throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
         }
 
-        if (!forceRegenerate && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
+        if (!forceRegenerate && CanReuseGeneratedFile(filePath, prompt))
         {
             await LogGenerationAsync(draftId, ProviderName, step, "REUSED", prompt, $"reused {filePath}", null);
             return;
@@ -1294,6 +1991,10 @@ public class AiCaseService : IAiCaseService
             form.Add(new StringContent(prompt), "prompt");
             form.Add(new StringContent(size), "size");
             form.Add(new StringContent("1"), "n");
+            if (!string.IsNullOrWhiteSpace(quality))
+            {
+                form.Add(new StringContent(NormalizeImageQuality(quality)), "quality");
+            }
             if (transparentBackground)
             {
                 form.Add(new StringContent("transparent"), "background");
@@ -1324,6 +2025,7 @@ public class AiCaseService : IAiCaseService
                 var imageBytes = await ExtractImageBytesAsync(client, body);
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
                 await File.WriteAllBytesAsync(filePath, imageBytes);
+                await WritePromptHashAsync(filePath, prompt);
                 await LogGenerationAsync(
                     draftId,
                     ProviderName,
@@ -1362,7 +2064,8 @@ public class AiCaseService : IAiCaseService
         string? modelOverride = null,
         bool transparentBackground = false,
         bool allowFallback = false,
-        bool forceRegenerate = false)
+        bool forceRegenerate = false,
+        string? quality = null)
     {
         if (_settings.BlocksAssetCalls)
         {
@@ -1372,7 +2075,7 @@ public class AiCaseService : IAiCaseService
 
         try
         {
-            if (!forceRegenerate && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
+            if (!forceRegenerate && CanReuseGeneratedFile(filePath, prompt))
             {
                 await LogGenerationAsync(draftId, ProviderName, step, "REUSED", prompt, $"reused {filePath}", null);
                 return;
@@ -1392,7 +2095,7 @@ public class AiCaseService : IAiCaseService
                     $"Image model '{imageModel}' does not support background=transparent. Configure OpenAI:CutoutImageModel to a transparent-background capable model.");
             }
 
-            var payload = BuildImagePayload(imageModel, prompt, size, useTransparentParameter);
+            var payload = BuildImagePayload(imageModel, prompt, size, useTransparentParameter, quality);
             var response = await PostImageGenerationAsync(client, payload);
 
             var body = await response.Content.ReadAsStringAsync();
@@ -1406,12 +2109,14 @@ public class AiCaseService : IAiCaseService
                     throw ApiException.BadGateway($"OpenAI image request failed with HTTP {(int)response.StatusCode}: {Truncate(body, 600)}");
                 }
 
+                await WritePromptHashAsync(filePath, prompt);
                 return;
             }
 
             var imageBytes = await ExtractImageBytesAsync(client, body);
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
             await File.WriteAllBytesAsync(filePath, imageBytes);
+            await WritePromptHashAsync(filePath, prompt);
             await LogGenerationAsync(draftId, ProviderName, step, "SUCCESS", prompt, $"wrote {filePath}", null);
         }
         catch (TaskCanceledException ex)
@@ -1421,6 +2126,7 @@ public class AiCaseService : IAiCaseService
             {
                 throw ApiException.BadGateway($"OpenAI image request timed out: {ex.Message}");
             }
+            await WritePromptHashAsync(filePath, prompt);
         }
         catch (ApiException)
         {
@@ -1434,19 +2140,60 @@ public class AiCaseService : IAiCaseService
             {
                 throw ApiException.BadGateway($"OpenAI image request failed: {ex.Message}");
             }
+            await WritePromptHashAsync(filePath, prompt);
         }
     }
 
-    private async Task<HttpResponseMessage> PostImageGenerationAsync(HttpClient client, Dictionary<string, object> payload)
+    private static bool CanReuseGeneratedFile(string filePath, string prompt)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Clamp(_settings.TimeoutSeconds, 60, 360)));
-        return await client.PostAsync(
-            $"{_settings.BaseUrl.TrimEnd('/')}/images/generations",
-            new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"),
-            timeout.Token);
+        var hashPath = $"{filePath}.prompt.sha256";
+        return File.Exists(filePath)
+               && new FileInfo(filePath).Length > 0
+               && File.Exists(hashPath)
+               && string.Equals(File.ReadAllText(hashPath).Trim(), Sha256(prompt), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static Dictionary<string, object> BuildImagePayload(string model, string prompt, string size, bool useTransparent)
+    private static Task WritePromptHashAsync(string filePath, string prompt) =>
+        File.WriteAllTextAsync($"{filePath}.prompt.sha256", Sha256(prompt));
+
+    private async Task<HttpResponseMessage> PostImageGenerationAsync(HttpClient client, Dictionary<string, object> payload)
+    {
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Clamp(_settings.TimeoutSeconds, 60, 360)));
+            var response = await client.PostAsync(
+                $"{_settings.BaseUrl.TrimEnd('/')}/images/generations",
+                new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"),
+                timeout.Token);
+            var statusCode = (int)response.StatusCode;
+            if (attempt == maxAttempts || (statusCode != 429 && statusCode < 500))
+            {
+                return response;
+            }
+
+            var retryDelay = response.Headers.RetryAfter?.Delta
+                ?? TimeSpan.FromSeconds(Math.Pow(2, attempt));
+            retryDelay = TimeSpan.FromSeconds(Math.Clamp(retryDelay.TotalSeconds, 1, 30));
+            _logger.LogWarning(
+                "OpenAI image generation returned HTTP {StatusCode}; retrying attempt {NextAttempt}/{MaxAttempts} after {DelaySeconds:n0}s.",
+                statusCode,
+                attempt + 1,
+                maxAttempts,
+                retryDelay.TotalSeconds);
+            response.Dispose();
+            await Task.Delay(retryDelay);
+        }
+
+        throw new InvalidOperationException("OpenAI image retry loop exited unexpectedly.");
+    }
+
+    private static Dictionary<string, object> BuildImagePayload(
+        string model,
+        string prompt,
+        string size,
+        bool useTransparent,
+        string? quality)
     {
         var payload = new Dictionary<string, object>
         {
@@ -1462,8 +2209,22 @@ public class AiCaseService : IAiCaseService
             payload["output_format"] = "png";
         }
 
+        if (!string.IsNullOrWhiteSpace(quality))
+        {
+            payload["quality"] = NormalizeImageQuality(quality);
+        }
+
         return payload;
     }
+
+    private static string NormalizeImageQuality(string? quality) => quality?.Trim().ToLowerInvariant() switch
+    {
+        "low" => "low",
+        "medium" => "medium",
+        "high" => "high",
+        "auto" => "auto",
+        _ => "high"
+    };
 
     private static bool SupportsTransparentImageParameter(string model) =>
         !string.Equals(model, "gpt-image-2", StringComparison.OrdinalIgnoreCase);
@@ -1502,17 +2263,6 @@ public class AiCaseService : IAiCaseService
                 Path.Combine(assetsRoot, "scenes", "owners-office.png"),
                 Path.Combine(assetsRoot, "scenes", "backstage-hallway.png"),
                 Path.Combine(assetsRoot, "scenes", "props-room.png")
-            };
-        }
-
-        if (step.StartsWith("GenerateCharacterPortrait:", StringComparison.Ordinal))
-        {
-            return new[]
-            {
-                Path.Combine(assetsRoot, "characters", "mona-portrait.png"),
-                Path.Combine(assetsRoot, "characters", "samuel-portrait.png"),
-                Path.Combine(assetsRoot, "characters", "victor-portrait.png"),
-                Path.Combine(assetsRoot, "characters", "eleanor-portrait.png")
             };
         }
 
@@ -1606,7 +2356,7 @@ public class AiCaseService : IAiCaseService
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var placements = new List<PlannedPlacement>();
 
-        foreach (var itemId in scene.ItemIds.Where(itemId => ShouldGenerateItemAsset(gameCase, gameCase.Items.First(item => item.ItemId == itemId))))
+        foreach (var itemId in scene.ItemIds.Where(itemId => ShouldPlaceItem(gameCase, gameCase.Items.First(item => item.ItemId == itemId))))
         {
             var item = gameCase.Items.First(i => i.ItemId == itemId);
             existing.TryGetValue($"item:{itemId}", out var supplied);
@@ -1813,11 +2563,11 @@ public class AiCaseService : IAiCaseService
             new($"LOCAL PLACEMENT CROP for {placement.Type} {placement.Id} at x={placement.X:0}, y={placement.Y:0}", contextPath)
         };
 
-    private static string CharacterSpritePath(string caseAssetsRoot, string sceneId, string characterId) =>
-        Path.Combine(caseAssetsRoot, "characters", $"{Slugify(characterId)}-{Slugify(sceneId)}-sprite.png");
+    private static string CharacterSpritePath(string caseAssetsRoot, string characterId) =>
+        Path.Combine(caseAssetsRoot, "characters", CharacterAssetStyleVersion, $"{Slugify(characterId)}-sprite.png");
 
-    private static string CharacterSpriteUrl(string assetRootUrl, string sceneId, string characterId) =>
-        $"{assetRootUrl}/characters/{Slugify(characterId)}-{Slugify(sceneId)}-sprite.png";
+    private static string CharacterSpriteUrl(string assetRootUrl, string characterId) =>
+        $"{assetRootUrl}/characters/{CharacterAssetStyleVersion}/{Slugify(characterId)}-sprite.png";
 
     private static List<VisionImageInput> BuildLayoutVisionInputs(
         CaseScene scene,
@@ -1841,7 +2591,7 @@ public class AiCaseService : IAiCaseService
         {
             images.Add(new(
                 $"NPC {character.CharacterId}: {character.Name}. Full-body sprite, feet should sit on the floor.",
-                CharacterSpritePath(caseAssetsRoot, scene.SceneId, character.CharacterId)));
+                CharacterSpritePath(caseAssetsRoot, character.CharacterId)));
         }
 
         return images;
@@ -1910,7 +2660,7 @@ public class AiCaseService : IAiCaseService
                 throw ApiException.BadGateway($"OpenAI vision request failed with HTTP {(int)response.StatusCode}.");
             }
 
-            var content = ExtractOpenAiOutputText(body);
+            var content = ExtractOpenAiTextEnvelope(body).Content;
             await LogGenerationAsync(draftId, ProviderName, step, "SUCCESS", prompt, Truncate(content, 8000), null);
             return content;
         }
@@ -2042,7 +2792,7 @@ public class AiCaseService : IAiCaseService
                 runtime.ItemPlacements.Add(new ItemPlacement
                 {
                     ItemId = item.ItemId,
-                    Asset = item.ImageUrl,
+                    Asset = ItemRenderMode(item) == CaseItemRenderModes.Embedded ? string.Empty : item.ImageUrl,
                     Position = new RuntimePoint { X = placement.X, Y = placement.Y, Anchor = placement.Anchor },
                     Size = new RuntimeSize { Width = placement.Width, Height = placement.Height },
                     Hotspot = box,
@@ -2057,7 +2807,7 @@ public class AiCaseService : IAiCaseService
                 runtime.CharacterPlacements.Add(new CharacterPlacement
                 {
                     CharacterId = character.CharacterId,
-                    Asset = SceneCharacterSpriteUrl(character.ImageUrl, scene.SceneId, character.CharacterId),
+                    Asset = CharacterSpriteUrlFromPortrait(character.ImageUrl, character.CharacterId),
                     Position = new RuntimePoint { X = placement.X, Y = placement.Y, Anchor = "bottom-center" },
                     Size = new RuntimeSize { Width = placement.Width, Height = placement.Height },
                     Hotspot = box,
@@ -2089,11 +2839,11 @@ public class AiCaseService : IAiCaseService
                 Height = placement.Height
             };
 
-    private static string SceneCharacterSpriteUrl(string portraitUrl, string sceneId, string characterId)
+    private static string CharacterSpriteUrlFromPortrait(string portraitUrl, string characterId)
     {
         var slash = portraitUrl.LastIndexOf('/');
         var folder = slash >= 0 ? portraitUrl[..(slash + 1)] : string.Empty;
-        return $"{folder}{Slugify(characterId)}-{Slugify(sceneId)}-sprite.png";
+        return $"{folder}{Slugify(characterId)}-sprite.png";
     }
 
     private static Dictionary<string, SpawnPoint> SanitizeSpawnPoints(Dictionary<string, SpawnPoint> spawnPoints, SceneRuntime runtime)
@@ -2177,18 +2927,19 @@ public class AiCaseService : IAiCaseService
     {
         var width = size.Width > 0 ? size.Width : 80;
         var height = size.Height > 0 ? size.Height : 80;
-        var maxWidth = IsLargeItem(item) ? 280d : 160d;
-        var maxHeight = IsLargeItem(item) ? 150d : 160d;
+        var embedded = ItemRenderMode(item) == CaseItemRenderModes.Embedded;
+        var maxWidth = embedded ? 480d : 160d;
+        var maxHeight = embedded ? 320d : 160d;
 
-        if (IsSmallEvidence(item))
+        if (!embedded && IsSmallEvidence(item))
         {
             maxWidth = 118;
             maxHeight = 118;
         }
 
         var scale = Math.Min(1d, Math.Min(maxWidth / Math.Max(width, 1), maxHeight / Math.Max(height, 1)));
-        width = Clamp(width * scale, 34, maxWidth);
-        height = Clamp(height * scale, 34, maxHeight);
+        width = Clamp(width * scale, embedded ? 48 : 34, maxWidth);
+        height = Clamp(height * scale, embedded ? 48 : 34, maxHeight);
         return new RuntimeSize { Width = width, Height = height };
     }
 
@@ -2243,7 +2994,7 @@ public class AiCaseService : IAiCaseService
         return new ItemPlacement
         {
             ItemId = item.ItemId,
-            Asset = item.ImageUrl,
+            Asset = ItemRenderMode(item) == CaseItemRenderModes.Embedded ? string.Empty : item.ImageUrl,
             Position = new RuntimePoint { X = x, Y = y, Anchor = "center" },
             Size = new RuntimeSize { Width = width, Height = height },
             Hotspot = new RuntimeBox { X = x - width / 2, Y = y - height / 2, Width = width, Height = height },
@@ -2271,7 +3022,8 @@ public class AiCaseService : IAiCaseService
         };
     }
 
-    private static string FixedVisualStylePrompt =>
+    internal static string FixedVisualStylePrompt =>
+        $"Required profile: art_style={AiVisualStyleDefaults.ArtStyle}, sub_style={AiVisualStyleDefaults.SubStyle}, character_style={AiVisualStyleDefaults.CharacterStyle}. " +
         $"{AiVisualStyleDefaults.PixelDetectiveTheme}. {AiVisualStyleDefaults.PixelArtContract}";
 
     private static string BuildCoverImagePrompt(AiCaseDraft draft, GameCase gameCase) =>
@@ -2284,15 +3036,48 @@ public class AiCaseService : IAiCaseService
         Crisp intentional pixels, readable silhouettes, no text, no logo, no UI, no frame, no border.
         """;
 
-    private static string BuildBackgroundImagePrompt(AiCaseDraft draft, GameCase gameCase, CaseScene scene)
+    internal static string BuildBackgroundImagePrompt(AiCaseDraft draft, GameCase gameCase, CaseScene scene)
     {
+        var embeddedTargets = gameCase.Items
+            .Where(item => scene.ItemIds.Contains(item.ItemId) && ItemRenderMode(item) == CaseItemRenderModes.Embedded)
+            .Select(item => new
+            {
+                itemId = item.ItemId,
+                visualDescription = item.VisualDescription,
+                interactionPurpose = item.InteractionPurpose
+            })
+            .ToList();
+
+        if (!IsCameraEmbeddedCase(gameCase))
+        {
+            return $"""
+            {FixedVisualStylePrompt}
+            Wide pixel-art side-scrolling SirLocked detective game background, 16:9 landscape composition.
+            EMPTY ROOM / PLACEMENT-FIRST CONTRACT: generate the environment layer only. NPC and small evidence sprites will be composited later by the runtime.
+            Environment-only art direction: {FirstNonBlank(scene.VisualDescription, scene.Description)}
+            Embedded interactive architectural targets to draw exactly once as part of the room:
+            {JsonSerializer.Serialize(embeddedTargets, PrettyJson)}
+            Treat the art direction as architecture, materials, lighting and atmosphere only. Ignore any named person, suspect, character, clue, evidence object, close-up, macro view, inset panel, callout or montage that may have leaked into it.
+            The requested image is 1600x912 and will be center-cropped to exactly 1600x900. Keep architecture, tables, shelves, doors and playable surfaces inside the central 1600x900 crop.
+            Leave plausible empty tabletop, shelf and floor areas where CUTOUT evidence sprites and NPC sprites can be composited later.
+            Do not render people, characters, silhouettes, bodies, collectible evidence, handheld props or CUTOUT items. Only the listed EMBEDDED architectural targets may appear.
+            Absolutely no readable words, letters, numbers, signage, labels, captions, writing-bearing surfaces, UI, logos, annotations, colored selection boxes, pseudo-text/gibberish, split screens, framed detail views or floating close-up panels.
+            Do not add boards, displays, paperwork or interface panels as decorative ambience.
+            Leave clear open floor in the lower third for two player avatars and NPC sprites.
+            Keep the bottom 110 pixels visually quiet because the game inventory UI overlays that area.
+            Full-room composition, fixed side-view camera, stable orthographic-like perspective, usable game scene.
+            Crisp pixel clusters only: no smooth digital painting, no realistic photography, no anti-aliasing, no decorative border or frame.
+            Final check: the output must be one continuous empty room background; all NPCs and small evidence are absent and will be added later.
+            """;
+        }
+
         var embeddedClues = gameCase.Clues
             .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
             .Select(clue => new
             {
                 clueId = clue.ClueId,
-                title = clue.Title,
                 visualDescription = clue.VisualDescription,
+                visualTextPolicy = ClueVisualTextPolicies.Normalize(clue.VisualTextPolicy),
                 hintLevel = clue.HintLevel,
                 tags = clue.Tags
             })
@@ -2300,14 +3085,19 @@ public class AiCaseService : IAiCaseService
         return $"""
         {FixedVisualStylePrompt}
         Wide pixel-art side-scrolling SirLocked detective game background, 16:9 landscape composition.
-        Scene: {scene.Title}.
-        Description: {scene.Description}
+        Internal scene art direction: {FirstNonBlank(scene.VisualDescription, scene.Description)}
         Embedded camera evidence to include naturally in this background:
         {JsonSerializer.Serialize(embeddedClues, PrettyJson)}
-        Treat the scene description as subject matter only. Ignore any embedded request for another visual style, medium, camera system or rendering technique.
+        Embedded interactive environment targets to draw exactly once as part of the room:
+        {JsonSerializer.Serialize(embeddedTargets, PrettyJson)}
+        Treat the art direction as subject matter only. Ignore any embedded request for another visual style, medium, camera system or rendering technique.
         The requested image is 1600x912 and will be center-cropped to exactly 1600x900. Keep all important architecture, tables, shelves, doors, props, and playable surfaces inside the central 1600x900 crop.
-        Generate the environment with all camera-discoverable clue objects naturally embedded in the art. Do not draw red circles, arrows, labels, UI, or text.
-        Do not render NPCs. Do not leave camera clues as separate stickers; they must look like part of the room.
+        Generate the environment with all camera-discoverable clues and embedded interactive targets naturally integrated into the room.
+        Render every camera clue at its ordinary scene-scale size and exact physical location. The clue metadata describes what exists in the room, never a requested camera angle or a separate image.
+        Produce one continuous full-room composition only. Never enlarge a clue, repeat it, isolate it, or present it in a close-up, inset, framed detail, panel, callout, montage or split screen.
+        Absolutely no readable words, letters, numbers, signage, labels, captions, writing-bearing surfaces, UI, logos, annotations, colored selection boxes or pseudo-text/gibberish.
+        Do not add boards, displays, paperwork or interface panels as decorative ambience. ABSTRACT_SYMBOLS clues may show only a small deliberate sequence of simple geometric icons described by that clue; this exception never permits alphabetic or numeric glyphs.
+        Do not render NPCs or CUTOUT items. Camera clues must look like subtle parts of the environment, never separate stickers or foreground product shots.
         Leave clear open floor in the lower third for two player avatars and NPC sprites.
         Keep the bottom 110 pixels visually quiet because the game inventory UI overlays that area.
         Full-room composition, fixed side-view camera, stable orthographic-like perspective, usable game scene.
@@ -2315,39 +3105,36 @@ public class AiCaseService : IAiCaseService
         """;
     }
 
-    private static string BuildCharacterPortraitPrompt(AiCaseDraft draft, CaseCharacter character) =>
+    internal static string BuildCharacterMasterSpritePrompt(CaseCharacter character) =>
         $"""
-        {FixedVisualStylePrompt}
-        Large pixel-art dialogue portrait of {character.Name}, {character.Role}. {character.Description}
-        Treat the character description as identity/costume information only and ignore any alternate art-style instruction inside it.
-        Waist-up three-quarter portrait with expressive face, chibi-inspired features, detailed pixel shading,
-        warm restrained rim light, crisp pixel edges, no anti-aliasing, no text, no frame, no border.
-        """;
+        Create one canonical transparent-background full-body high-detail pixel-art chibi NPC sprite for {character.Name}, {character.Role}.
+        Required profile: art_style=pixel_art, sub_style=high_detail_pixel, character_style=chibi.
 
-    private static string BuildCharacterSpritePrompt(
-        AiCaseDraft draft,
-        CaseCharacter character,
-        CaseScene scene,
-        PlannedPlacement placement) =>
-        $"""
-        Create one isolated full-body 2D game NPC sprite for {character.Name}, {character.Role}.
-        Character description: {character.Description}
-        Scene: {scene.Title}. {scene.Description}
-        Fixed visual style: {FixedVisualStylePrompt}
-        Ignore any alternate visual-style instruction embedded in character or scene descriptions.
+        When input images are present, they are CANONICAL STYLE REFERENCES ONLY. Match their crisp pixel clusters,
+        chibi proportions, dark pixel outlines, two-tone shading, palette discipline and readability at gameplay scale.
+        Never copy the reference character's identity, facial features, hairstyle, monocle, hat, red coat, pose or accessories
+        unless the current visual description explicitly requires the same feature.
 
-        The first input image is the full scene background. The second input image is the exact local area where this sprite will be placed.
-        Runtime placement: x={placement.X:0}, y={placement.Y:0}, width about {placement.Width:0}px, height about {placement.Height:0}px,
-        anchor={placement.Anchor}, facing={placement.Facing}, depth={placement.Depth}.
-        Perspective: {placement.Perspective}
-        Lighting: {placement.Lighting}
-        Placement reason: {placement.Reason}
+        Narrative role: {character.Description}
+        Identity and costume specification (source of truth): {character.VisualDescription}
 
-        Match the background's pixel density, crisp pixel clusters, rendering style, camera angle, color palette, contrast, perspective and light direction.
-        Preserve the SirLocked chibi character proportions and never render realistic or painterly anatomy.
-        The pose and facing direction must look natural at the specified location.
-        Output only the complete isolated character as a PNG with real transparent alpha background.
-        No white background, no solid background, no room background, no floor rectangle, no canvas, no frame, no text, no UI, no labels, no cropped feet, no cast-shadow box.
+        Mandatory visual contract:
+        {AiVisualStyleDefaults.CharacterIllustrationContract}
+
+        Preserve every specified age cue, facial structure, skin tone, body shape, hairstyle, costume layer, color and accessory.
+        Do not make this character look like another cast member or a generic young brown-haired anime character.
+
+        Composition: complete head-to-toe body, centered, small even padding, neutral standing three-quarter pose facing left,
+        complete hands with readable fingers, complete shoes and feet, strong silhouette, no props unless explicitly identity-defining.
+        Use restrained upper-left lighting expressed only through crisp two-tone pixel clusters.
+        This exact master asset will be scaled, flipped and reused in every side-view scene, so keep the pose neutral and the costume unambiguous.
+
+        Quality exclusions: no smooth vector/anime rendering, no brush textures, no photorealism, no anti-aliasing,
+        no random mosaic texture, no blur, no compression artifacts, no malformed face, no fused fingers, no extra limbs,
+        no cropped head, hands or feet, and no illegible tiny details.
+
+        Output only the isolated character as a high-resolution PNG with real transparent alpha background.
+        No white or solid background, no room, no floor rectangle, no cast-shadow box, no canvas, no frame, no text, no UI and no labels.
         """;
 
     private static string BuildItemImagePrompt(
@@ -2358,6 +3145,7 @@ public class AiCaseService : IAiCaseService
         $"""
         Create one isolated detective evidence item sprite: {item.Name}.
         Item description: {item.Description}
+        Exact visual specification: {item.VisualDescription}
         Scene: {scene.Title}. {scene.Description}
         Fixed visual style: {FixedVisualStylePrompt}
         Ignore any alternate visual-style instruction embedded in item or scene descriptions.
@@ -2370,7 +3158,8 @@ public class AiCaseService : IAiCaseService
         Placement reason: {placement.Reason}
 
         Match the background's crisp pixel density, camera angle, color palette, perspective, two-tone material rendering and light direction.
-        No anti-aliasing, no smooth painterly rendering and no photorealism.
+        This must be one small portable or handheld object, never a full console, cabinet, door, wall panel, desk, body or large machine.
+        No anti-aliasing, no smooth rendering, no brush textures and no photorealism.
         Orient the item so it sits naturally on the named surface at the specified runtime size.
         Output only the complete isolated item as a PNG with real transparent alpha background.
         No white background, no solid background, no room background, no table rectangle, no canvas, no frame, no text, no UI, no labels, no shadow box.
@@ -2383,24 +3172,41 @@ public class AiCaseService : IAiCaseService
         CaseScene? nextScene)
     {
         var items = gameCase.Items
-            .Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldGenerateItemAsset(gameCase, item))
-            .Select(item => new { id = item.ItemId, name = item.Name, description = item.Description });
+            .Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldPlaceItem(gameCase, item))
+            .Select(item => new
+            {
+                id = item.ItemId,
+                name = item.Name,
+                description = item.Description,
+                visualDescription = item.VisualDescription,
+                renderMode = ItemRenderMode(item)
+            });
         var characters = gameCase.Characters
             .Where(character => scene.CharacterIds.Contains(character.CharacterId))
             .Select(character => new { id = character.CharacterId, name = character.Name, role = character.Role, description = character.Description });
         var cameraClues = gameCase.Clues
             .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
-            .Select(clue => new { id = clue.ClueId, title = clue.Title, visualDescription = clue.VisualDescription, hintLevel = clue.HintLevel });
+            .Select(clue => new
+            {
+                id = clue.ClueId,
+                visualDescription = clue.VisualDescription,
+                visualTextPolicy = ClueVisualTextPolicies.Normalize(clue.VisualTextPolicy),
+                hintLevel = clue.HintLevel
+            });
         var transitions = new[]
             {
                 previousScene is null ? null : new { targetSceneId = previousScene.SceneId, label = previousScene.Title },
                 nextScene is null ? null : new { targetSceneId = nextScene.SceneId, label = nextScene.Title }
             }
             .Where(value => value is not null);
+        var placementFirst = !IsCameraEmbeddedCase(gameCase);
+        var compositionInstruction = placementFirst
+            ? "This must be an empty environment. NPCs and CUTOUT evidence are intentionally absent and will be composited later; plan their future placements on visible empty surfaces."
+            : "Camera clues are already embedded in the background; identify their exact clue regions.";
 
         return $$"""
         Inspect the supplied 1600x900 game background and create runtime metadata.
-        Camera clues are already embedded in the background; identify their exact clue regions.
+        {{compositionInstruction}}
 
         Scene:
         {{JsonSerializer.Serialize(new { sceneId = scene.SceneId, title = scene.Title, description = scene.Description }, PrettyJson)}}
@@ -2422,6 +3228,15 @@ public class AiCaseService : IAiCaseService
           "sceneId": "{{scene.SceneId}}",
           "width": 1600,
           "height": 900,
+          "backgroundQa": {
+            "pixelArtMatch": true,
+            "prohibitedTextFound": false,
+            "prohibitedUiFound": false,
+            "duplicateEmbeddedTargetFound": false,
+            "unexpectedForegroundContentFound": false,
+            "sceneMatch": true,
+            "notes": "brief visual QA notes"
+          },
           "floorY": 720,
           "walkableArea": { "x": 0, "y": 540, "width": 1600, "height": 250 },
           "spawnPoints": {
@@ -2491,6 +3306,12 @@ public class AiCaseService : IAiCaseService
 
         Rules:
         - Choose placements from actual visible geometry in the supplied background.
+        - backgroundQa.pixelArtMatch is true only for crisp high-detail pixel art matching the canonical chibi game style.
+        - backgroundQa.prohibitedTextFound is true for any readable word, letter, number, sign, label, caption, logo or pseudo-text/gibberish. Deliberate geometric icons are allowed only for listed ABSTRACT_SYMBOLS clues.
+        - backgroundQa.prohibitedUiFound is true for selection boxes, arrows, callouts, HUD panels, camera overlays or annotations baked into the room art.
+        - backgroundQa.duplicateEmbeddedTargetFound is true when an EMBEDDED target appears more than once.
+        - backgroundQa.unexpectedForegroundContentFound is true when any NPC, person, CUTOUT item, inset detail panel, framed close-up, enlarged clue, callout, split screen or montage is baked into the background. A camera clue at natural scene scale is allowed and must not trigger this flag.
+        - backgroundQa.sceneMatch is true only when architecture, lighting, materials and listed embedded mechanisms match the supplied scene specification.
         - For every listed camera clue, include exactly one clueZones entry.
         - clueZones bounds are top-left pixel boxes in the 1600x900 background and must tightly cover the visible clue.
         - Set detectionStatus to FOUND only when the clue is visibly present inside the box.
@@ -2498,7 +3319,7 @@ public class AiCaseService : IAiCaseService
         - confidence must be 0..1 and should be at least 0.65 for evidence that can be published.
         - source must be "vision" and isFallback must be false for real detections.
         - Important clues may be subtle, but not invisible; avoid boxes smaller than 16x16.
-        - Every listed item and NPC must appear exactly once.
+        - Return exactly one planned placement for every listed item and NPC. In PLACEMENT_FIRST mode they must not already appear in the background.
         - Item x/y is the visual center. NPC x/y is the feet position.
         - Put items on named visible surfaces; never float them.
         - Put NPC feet on visible floor.
@@ -2506,11 +3327,47 @@ public class AiCaseService : IAiCaseService
         - Keep normal placements below y=112 and entirely above y=790.
         - Keep both player spawn areas clear.
         - Do not overlap placements or transitions.
-        - Item sizes should normally be 40..150px. Large bodies/documents may be up to 280px wide.
+        - CUTOUT item sizes must stay 34..160px and describe only a small portable object.
+        - EMBEDDED items already exist in the background. Return a tight clickable box over the visible mechanism; never invent or duplicate it as a separate object.
         - NPC sizes should normally be 80..260px wide and 160..420px high, based on the background's perspective.
+        - Inspect the background for prohibited readable text, letters, numbers, signage, labels or pseudo-text/gibberish. If any exists, do not claim the scene is publishable.
         - Include only allowed transition target IDs.
         - Output JSON only.
         """;
+    }
+
+    private static bool TryValidateBackgroundQa(string json, out string error)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(StripMarkdownFences(json));
+            if (!document.RootElement.TryGetProperty("backgroundQa", out var qa))
+            {
+                error = "The vision response omitted backgroundQa.";
+                return false;
+            }
+
+            var pixelArtMatch = qa.TryGetProperty("pixelArtMatch", out var styleNode) && styleNode.ValueKind == JsonValueKind.True;
+            var prohibitedTextFound = qa.TryGetProperty("prohibitedTextFound", out var textNode) && textNode.ValueKind == JsonValueKind.True;
+            var prohibitedUiFound = qa.TryGetProperty("prohibitedUiFound", out var uiNode) && uiNode.ValueKind == JsonValueKind.True;
+            var duplicateEmbeddedTargetFound = qa.TryGetProperty("duplicateEmbeddedTargetFound", out var duplicateNode) && duplicateNode.ValueKind == JsonValueKind.True;
+            var unexpectedForegroundContentFound = qa.TryGetProperty("unexpectedForegroundContentFound", out var foregroundNode) && foregroundNode.ValueKind == JsonValueKind.True;
+            var sceneMatch = qa.TryGetProperty("sceneMatch", out var sceneNode) && sceneNode.ValueKind == JsonValueKind.True;
+            var notes = qa.TryGetProperty("notes", out var notesNode) ? notesNode.GetString() : string.Empty;
+            if (!pixelArtMatch || prohibitedTextFound || prohibitedUiFound || duplicateEmbeddedTargetFound || unexpectedForegroundContentFound || !sceneMatch)
+            {
+                error = $"pixelArtMatch={pixelArtMatch}; prohibitedTextFound={prohibitedTextFound}; prohibitedUiFound={prohibitedUiFound}; duplicateEmbeddedTargetFound={duplicateEmbeddedTargetFound}; unexpectedForegroundContentFound={unexpectedForegroundContentFound}; sceneMatch={sceneMatch}; {notes}".Trim();
+                return false;
+            }
+
+            error = string.Empty;
+            return true;
+        }
+        catch (JsonException ex)
+        {
+            error = $"Visual QA JSON could not be parsed: {ex.Message}";
+            return false;
+        }
     }
 
     private static string BuildPlacementVerificationPrompt(CaseScene scene) =>
@@ -2534,13 +3391,20 @@ public class AiCaseService : IAiCaseService
               "width": 90,
               "height": 60,
               "accepted": true,
-              "reason": "brief visual verification"
+              "styleMatch": true,
+              "identityMatch": true,
+              "smallPortableObject": true,
+              "reason": "brief visual verification and QA"
             }
           ]
         }
 
         Rules:
         - Include every planned item and NPC exactly once.
+        - accepted requires the placement to fit the background perspective, lighting and pixel density.
+        - NPC styleMatch requires crisp high-detail pixel art, chibi proportions and no smooth vector/anime rendering; identityMatch requires the labeled character to have a distinct age, face, hair, silhouette and costume.
+        - CUTOUT items must set smallPortableObject true only when the asset is a single small handheld/portable object, not furniture or a full mechanism.
+        - Item placements with no corresponding cutout image are EMBEDDED targets already drawn in the background; mark them accepted when the background contains one coherent target and do not reject them for smallPortableObject.
         - Keep x and y within 40 pixels of the original values.
         - Keep width and height within 80%..120% of the original values.
         - Preserve the original surface and anchor.
@@ -2635,12 +3499,115 @@ public class AiCaseService : IAiCaseService
         - Keep item, character, and transition boxes above y = 790. The bottom inventory/control UI uses y 790..900.
         - Keep player spawn boxes clear around x 520..720 and y 500..790.
         - Do not overlap item, character, spawn, and transition boxes.
-        - Choose item sizes from the visible cutout image, usually 48..150 px wide. Only bodies or large documents may be wider.
+        - CUTOUT items are small portable props: choose 48..150 px and never exceed 160x160 px. Large fixtures belong in the background as EMBEDDED targets, never as overlays.
         - Include every listed item exactly once.
         - Include every listed character exactly once.
         - Include only the listed transition target scene IDs.
         - Output JSON only.
         """;
+    }
+
+    private static List<PlacementQaFailure> ReadPlacementQaFailures(string verificationJson, GameCase gameCase)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(StripMarkdownFences(verificationJson));
+            if (!document.RootElement.TryGetProperty("placements", out var placements) || placements.ValueKind != JsonValueKind.Array)
+            {
+                return new List<PlacementQaFailure> { new("response", "placements", "Verification response omitted placements.") };
+            }
+
+            var failures = new List<PlacementQaFailure>();
+            foreach (var placement in placements.EnumerateArray())
+            {
+                var type = placement.TryGetProperty("type", out var typeNode) ? NormalizePlacementType(typeNode.GetString()) : "item";
+                var id = placement.TryGetProperty("id", out var idNode) ? idNode.GetString() ?? string.Empty : string.Empty;
+                var accepted = placement.TryGetProperty("accepted", out var acceptedNode) && acceptedNode.ValueKind == JsonValueKind.True;
+                var embedded = type == "item"
+                    && gameCase.Items.FirstOrDefault(item => item.ItemId == id) is { } item
+                    && ItemRenderMode(item) == CaseItemRenderModes.Embedded;
+                var styleMatch = embedded || placement.TryGetProperty("styleMatch", out var styleNode) && styleNode.ValueKind == JsonValueKind.True;
+                var identityMatch = type != "npc" || placement.TryGetProperty("identityMatch", out var identityNode) && identityNode.ValueKind == JsonValueKind.True;
+                var smallPortable = type != "item" || embedded || placement.TryGetProperty("smallPortableObject", out var smallNode) && smallNode.ValueKind == JsonValueKind.True;
+                if (!accepted || !styleMatch || !identityMatch || !smallPortable)
+                {
+                    var reason = placement.TryGetProperty("reason", out var reasonNode) && reasonNode.ValueKind == JsonValueKind.String
+                        ? reasonNode.GetString() ?? "Asset failed visual QA."
+                        : "Asset failed visual QA.";
+                    failures.Add(new PlacementQaFailure(type, id, reason));
+                }
+            }
+            return failures;
+        }
+        catch (JsonException ex)
+        {
+            return new List<PlacementQaFailure> { new("response", "json", ex.Message) };
+        }
+    }
+
+    private async Task RegenerateFailedCutoutsAsync(
+        AiCaseDraft draft,
+        GameCase gameCase,
+        CaseScene scene,
+        string caseAssetsRoot,
+        string backgroundPath,
+        IReadOnlyList<VisionImageInput>? characterStyleReferences,
+        AiAssetManifest manifest,
+        IReadOnlyCollection<PlacementQaFailure> failures)
+    {
+        foreach (var failure in failures
+                     .Where(failure => !string.IsNullOrWhiteSpace(failure.Id))
+                     .DistinctBy(failure => $"{failure.Type}:{failure.Id}"))
+        {
+            if (failure.Type == "npc")
+            {
+                var character = gameCase.Characters.FirstOrDefault(candidate => candidate.CharacterId == failure.Id);
+                if (character is null) continue;
+                var prompt = $"{BuildCharacterMasterSpritePrompt(character)}\nCritical visual QA correction: {failure.Reason}";
+                var spritePath = CharacterSpritePath(caseAssetsRoot, character.CharacterId);
+                var spriteInfo = await GenerateCutoutFileAsync(
+                    draft.Id,
+                    $"GenerateCharacterSprite:{character.CharacterId}:RetryVisualQa",
+                    prompt,
+                    "1024x1536",
+                    spritePath,
+                    references: characterStyleReferences,
+                    forceRegenerate: true,
+                    quality: NormalizeImageQuality(_settings.CharacterImageQuality));
+                var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, character.CharacterId);
+                var portraitPath = Path.Combine(caseAssetsRoot, "characters", CharacterAssetStyleVersion, $"{Slugify(character.CharacterId)}-portrait.png");
+                var portraitInfo = await GeneratedImageProcessor.CreateCharacterPortraitAsync(spritePath, portraitPath);
+                character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{CharacterAssetStyleVersion}/{Slugify(character.CharacterId)}-portrait.png";
+                manifest.Assets.RemoveAll(asset => asset.TargetId == character.CharacterId && asset.AssetType.StartsWith("character-", StringComparison.Ordinal));
+                manifest.Assets.Add(NewAsset("character-sprite", character.CharacterId, spriteUrl, spritePath, prompt, spriteInfo, CutoutImageModel));
+                manifest.Assets.Add(NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath,
+                    $"Derived locally from canonical sprite {spriteUrl} after visual QA retry.", portraitInfo, CutoutImageModel));
+                continue;
+            }
+
+            if (failure.Type == "item")
+            {
+                var item = gameCase.Items.FirstOrDefault(candidate => candidate.ItemId == failure.Id);
+                if (item is null || ItemRenderMode(item) != CaseItemRenderModes.Cutout) continue;
+                var placement = FindPlannedPlacement(scene.PlacementPlan!, "item", item.ItemId);
+                var contextPath = await CreatePlacementContextAsync(caseAssetsRoot, backgroundPath, scene, placement);
+                var prompt = $"{BuildItemImagePrompt(draft, item, scene, placement)}\nCritical visual QA correction: {failure.Reason}";
+                var itemPath = Path.Combine(caseAssetsRoot, "items", $"{Slugify(item.ItemId)}.png");
+                var itemInfo = await GenerateCutoutFileAsync(
+                    draft.Id,
+                    $"GenerateItem:{scene.SceneId}:{item.ItemId}:RetryVisualQa",
+                    prompt,
+                    "1024x1024",
+                    itemPath,
+                    BuildAssetReferenceInputs(scene, placement, backgroundPath, contextPath),
+                    forceRegenerate: true);
+                item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(item.ItemId)}.png";
+                manifest.Assets.RemoveAll(asset => asset.TargetId == item.ItemId && asset.AssetType == "item");
+                manifest.Assets.Add(NewAsset("item", item.ItemId, item.ImageUrl, itemPath, prompt, itemInfo, CutoutImageModel));
+            }
+        }
+
+        await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
     }
 
     private AiGeneratedAsset NewAsset(
@@ -2657,6 +3624,8 @@ public class AiCaseService : IAiCaseService
         Url = url,
         FilePath = filePath,
         Prompt = prompt,
+        PromptSha256 = Sha256(prompt),
+        QaPassed = type != "background",
         Model = string.IsNullOrWhiteSpace(model) ? _settings.ImageModel : model,
         PipelineVersion = AssetPipelineVersion,
         SourceWidth = processing?.SourceWidth,
@@ -2713,13 +3682,23 @@ public class AiCaseService : IAiCaseService
     private static bool IsCameraEmbeddedCase(GameCase gameCase) =>
         string.Equals(gameCase.GenerationMode, CaseGenerationModes.CameraEmbedded, StringComparison.OrdinalIgnoreCase);
 
-    private static bool ShouldGenerateItemAsset(GameCase gameCase, CaseItem item) =>
+    private static string ItemRenderMode(CaseItem item) =>
+        CaseItemRenderModes.All.Contains(item.RenderMode)
+            ? item.RenderMode.ToUpperInvariant()
+            : CaseItemRenderModes.Infer(item);
+
+    private static bool ShouldPlaceItem(GameCase gameCase, CaseItem item) =>
         !IsCameraEmbeddedCase(gameCase)
-        || item.IsInteractivePuzzleObject
-            && !string.IsNullOrWhiteSpace(item.InteractionReason)
-            && item.InteractionPurpose is CaseItemInteractionPurposes.UnlockDoor
-                or CaseItemInteractionPurposes.CombineItem
-                or CaseItemInteractionPurposes.OperateMechanism;
+        || item.IsInteractivePuzzleObject && !string.IsNullOrWhiteSpace(item.InteractionReason);
+
+    private static bool ShouldGenerateItemAsset(GameCase gameCase, CaseItem item) =>
+        ShouldPlaceItem(gameCase, item) && ItemRenderMode(item) == CaseItemRenderModes.Cutout;
+
+    internal static int ExpectedFinalAssetCount(GameCase gameCase) =>
+        1
+        + gameCase.Stages.Sum(stage => stage.Scenes.Count)
+        + (gameCase.Characters.Count * 2)
+        + gameCase.Items.Count(item => ShouldGenerateItemAsset(gameCase, item));
 
     private static void EnsureAdmin(CurrentUser user)
     {
@@ -2757,16 +3736,23 @@ public class AiCaseService : IAiCaseService
 
     // ----- Persistence helpers -----
 
-    private async Task MarkDraftFailedAsync(string draftId, string error)
+    private async Task MarkDraftFailedAsync(string draftId, string error, string? failurePhase = null, IEnumerable<string>? failedAssetIds = null)
     {
-        var update = Builders<AiCaseDraft>.Update
+        var updates = new List<UpdateDefinition<AiCaseDraft>>
+        {
+            Builders<AiCaseDraft>.Update
             .Set(d => d.Status, AiDraftStatus.GeneratedInvalid)
             .Set(d => d.ValidationErrors, new List<string> { error })
-            .Set(d => d.UpdatedAt, DateTime.UtcNow);
-        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draftId, update);
+            .Set(d => d.UpdatedAt, DateTime.UtcNow)
+        };
+        if (!string.IsNullOrWhiteSpace(failurePhase))
+            updates.Add(Builders<AiCaseDraft>.Update.Set(d => d.FailurePhase, failurePhase));
+        if (failedAssetIds is not null)
+            updates.Add(Builders<AiCaseDraft>.Update.Set(d => d.FailedAssetIds, failedAssetIds.Distinct().ToList()));
+        await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draftId, Builders<AiCaseDraft>.Update.Combine(updates));
     }
 
-    private async Task SaveInvalidAttemptAsync(AiCaseDraft draft, string rawJson, List<string> errors)
+    private async Task SaveInvalidAttemptAsync(AiCaseDraft draft, string rawJson, List<string> errors, string failurePhase = AiFailurePhases.FullLogicJson)
     {
         var invalidDir = Path.Combine(GeneratedRoot(), "_invalid-ai");
         Directory.CreateDirectory(invalidDir);
@@ -2778,9 +3764,57 @@ public class AiCaseService : IAiCaseService
             .Set(d => d.GeneratedJson, rawJson)
             .Set(d => d.JsonFilePath, filePath)
             .Set(d => d.ValidationErrors, errors)
+            .Set(d => d.FailurePhase, failurePhase)
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
         await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id, update);
     }
+
+    private async Task<string> SaveRawAttemptAsync(string draftId, string step, int attemptNumber, string body)
+    {
+        var folder = Path.Combine(GeneratedRoot(), "_attempts", draftId);
+        Directory.CreateDirectory(folder);
+        var safeStep = Slugify(step);
+        var path = Path.Combine(folder, $"{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{attemptNumber}-{safeStep}.json");
+        await File.WriteAllTextAsync(path, body);
+        return path;
+    }
+
+    private async Task RecordGenerationAttemptAsync(string draftId, AiGenerationAttempt attempt)
+    {
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            draft => draft.Id == draftId,
+            Builders<AiCaseDraft>.Update
+                .Push(draft => draft.GenerationAttempts, attempt)
+                .Set(draft => draft.PromptVersion, attempt.PromptVersion)
+                .Set(draft => draft.SchemaVersion, attempt.SchemaVersion)
+                .Set(draft => draft.UpdatedAt, DateTime.UtcNow));
+    }
+
+    private Task RecordValidationAttemptAsync(
+        string draftId,
+        string step,
+        int attemptNumber,
+        string response,
+        CaseValidationResult validation) =>
+        RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
+        {
+            Step = $"{step}:Validation",
+            AttemptNumber = attemptNumber,
+            Model = _settings.LogicModel,
+            PromptVersion = AiGenerationSchemaVersions.Prompt,
+            SchemaVersion = AiGenerationSchemaVersions.CaseLogic,
+            Status = "FAILED",
+            FailureCategory = validation.Errors.Any(error => error.Code is "VisualSafety" or "InvalidVisualTextPolicy")
+                ? AiFailureCategories.VisualSafetyError
+                : AiFailureCategories.SemanticError,
+            ResponseSha256 = Sha256(response),
+            ValidationErrors = validation.Errors.Take(50)
+                .Select(error => $"{error.Code} {error.Path}: {error.Message}")
+                .ToList()
+        });
+
+    private static string Sha256(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value ?? string.Empty))).ToLowerInvariant();
 
     private async Task RecordPlannedCallAsync(string draftId, string step, string type, bool wouldCallApi, string reason)
     {
@@ -2814,20 +3848,21 @@ public class AiCaseService : IAiCaseService
     {
         foreach (var character in gameCase.Characters)
         {
-            await RecordPlannedCallAsync(draftId, $"GenerateCharacterPortrait:{character.CharacterId}", "image", wouldCallApi: false, AssetBlockReason());
+            await RecordPlannedCallAsync(draftId, $"GenerateCharacterSprite:{character.CharacterId}", "image", wouldCallApi: false, AssetBlockReason());
         }
+        var plannedItemIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var scene in OrderedScenes(gameCase))
         {
-            foreach (var characterId in scene.CharacterIds)
-            {
-                await RecordPlannedCallAsync(draftId, $"GenerateCharacterSprite:{scene.SceneId}:{characterId}", "image", wouldCallApi: false, AssetBlockReason());
-            }
             foreach (var itemId in scene.ItemIds.Where(itemId =>
+                         plannedItemIds.Add(itemId) &&
                          gameCase.Items.Any(item => item.ItemId == itemId && ShouldGenerateItemAsset(gameCase, item))))
             {
                 await RecordPlannedCallAsync(draftId, $"GenerateItem:{scene.SceneId}:{itemId}", "image", wouldCallApi: false, AssetBlockReason());
             }
-            await RecordPlannedCallAsync(draftId, $"VerifyScenePlacement:{scene.SceneId}", "vision", wouldCallApi: false, AssetBlockReason());
+            if (!HasUsableRuntime(scene))
+            {
+                await RecordPlannedCallAsync(draftId, $"VerifyScenePlacement:{scene.SceneId}", "vision", wouldCallApi: false, AssetBlockReason());
+            }
         }
     }
 
@@ -2863,7 +3898,7 @@ public class AiCaseService : IAiCaseService
         mock.Title = "Mock AI Dry Run Case";
         mock.Summary = "Mock case generated locally without external AI calls.";
         ConvertMockCaseToCameraEmbedded(mock);
-        return JsonSerializer.Serialize(mock, PrettyJson);
+        return JsonSerializer.Serialize(GeneratedCaseLogic.FromGameCase(mock), PrettyJson);
     }
 
     private static void ConvertMockCaseToCameraEmbedded(GameCase mock)
@@ -2893,12 +3928,17 @@ public class AiCaseService : IAiCaseService
 
         foreach (var scene in mock.Stages.SelectMany(stage => stage.Scenes))
         {
+            scene.VisualDescription = $"Victorian detective environment for {scene.Title}, composed from physical props, material wear, color contrast and clear silhouettes.";
             scene.ItemIds.Clear();
             scene.Hotspots.RemoveAll(h => h.Type.Equals("ITEM", StringComparison.OrdinalIgnoreCase));
             scene.CompleteCondition.RequiredItemIds.Clear();
         }
 
         mock.Items.Clear();
+        foreach (var clue in mock.Clues)
+        {
+            clue.VisualTextPolicy = ClueVisualTextPolicies.NoText;
+        }
     }
 
     private string ExportBundle(AiCaseDraft draft, GameCase gameCase, string caseJson, int errorCount)
@@ -2936,36 +3976,32 @@ public class AiCaseService : IAiCaseService
         WriteFile("deductions.json", gameCase.Deductions);
         WriteFile("required-teamwork-chains.json", gameCase.RequiredTeamworkChains);
         WriteFile("hints.json", gameCase.Hints);
+        WriteFile("interactions.json", gameCase.Interactions);
+        WriteFile("puzzles.json", gameCase.Puzzles);
         WriteFile("final-logic.json", gameCase.FinalLogic);
         WriteFile("asset-manifest.json", draft.AssetManifest);
-        WriteFile("asset-prompts.json", new
+        WriteFile("asset-prompts.json", new Dictionary<string, object?>
         {
-            visualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
-            visualStyleContract = AiVisualStyleDefaults.PixelArtContract,
-            imageModel = _settings.ImageModel,
-            cover = new { target = gameCase.CoverImageUrl, prompt = BuildCoverImagePrompt(draft, gameCase) },
-            backgrounds = gameCase.Stages.SelectMany(s => s.Scenes).Select(s => new
+            ["language"] = gameCase.Language,
+            ["art_style"] = gameCase.ArtStyle,
+            ["sub_style"] = gameCase.SubStyle,
+            ["character_style"] = gameCase.CharacterStyle,
+            ["visualStyleContract"] = AiVisualStyleDefaults.PixelArtContract,
+            ["imageModel"] = _settings.ImageModel,
+            ["assets"] = draft.AssetManifest.Assets.Select(asset => new
             {
-                sceneId = s.SceneId,
-                target = s.BackgroundUrl,
-                prompt = BuildBackgroundImagePrompt(draft, gameCase, s)
+                asset.AssetType,
+                asset.TargetId,
+                asset.Url,
+                asset.Model,
+                asset.PipelineVersion,
+                asset.Prompt,
+                asset.ProcessingStatus
             }),
-            placements = gameCase.Stages.SelectMany(stage => stage.Scenes).Select(scene => new
+            ["placements"] = gameCase.Stages.SelectMany(stage => stage.Scenes).Select(scene => new
             {
                 scene.SceneId,
-                scene.PlacementPlan,
-                characters = scene.CharacterIds.Select(characterId => new
-                {
-                    characterId,
-                    target = scene.Runtime?.CharacterPlacements.FirstOrDefault(p => p.CharacterId == characterId)?.Asset
-                }),
-                items = gameCase.Items
-                    .Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldGenerateItemAsset(gameCase, item))
-                    .Select(item => new
-                    {
-                        itemId = item.ItemId,
-                        target = item.ImageUrl
-                    })
+                scene.PlacementPlan
             })
         });
         WriteFile("validation-report.json", new { isValid = errorCount == 0, errorCount, validatedAt = DateTime.UtcNow });

@@ -3,6 +3,10 @@ import { apiFetchBlob, apiFetchForm, get, post } from './http.js';
 export const gameApi = {
   state: (roomId) => get(`/api/game/rooms/${roomId}/state`),
   inspectItem: (roomId, itemId) => post(`/api/game/rooms/${roomId}/inspect-item`, { itemId }),
+  useItem: (roomId, itemId, targetId) => post(`/api/game/rooms/${roomId}/use-item`, { itemId, targetId }),
+  combineItems: (roomId, itemIds) => post(`/api/game/rooms/${roomId}/combine-items`, { itemIds }),
+  solvePuzzle: (roomId, puzzleId, answer, answerSequence = []) =>
+    post(`/api/game/rooms/${roomId}/solve-puzzle`, { puzzleId, answer, answerSequence }),
   captureClue: (roomId, sceneId, captureRect, photo) => {
     const form = new FormData();
     form.append('sceneId', sceneId);

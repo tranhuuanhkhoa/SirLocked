@@ -9,7 +9,7 @@ using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.Services;
 
-public class GameplayService : IGameplayService
+public partial class GameplayService : IGameplayService
 {
     private readonly MongoDbContext _db;
     private readonly ICaseService _caseService;
@@ -101,7 +101,7 @@ public class GameplayService : IGameplayService
             state.UnlockedClueIds.AddRange(newClues);
             RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Inspect);
 
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
@@ -129,6 +129,298 @@ public class GameplayService : IGameplayService
                 UnlockedClueIds = newClues,
                 Message = newClues.Count > 0 ? "New clue discovered." : $"{item.Name} inspected.",
                 Detail = item.InspectText
+            };
+        }
+    }
+
+    public async Task<GameActionResponse> UseItemAsync(CurrentUser user, string roomId, UseItemRequest request)
+    {
+        var itemId = request.ItemId.Trim();
+        var targetId = request.TargetId.Trim();
+        if (string.IsNullOrWhiteSpace(itemId) || string.IsNullOrWhiteSpace(targetId))
+            throw ApiException.BadRequest("itemId and targetId are required.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            RequireRole(player, PlayerRole.Investigator, "Only the investigator can use inventory items on scene objects.");
+
+            var scene = CurrentScene(gameCase, state, user.Id);
+            var item = gameCase.Items.FirstOrDefault(i => i.ItemId == itemId)
+                ?? throw ApiException.NotFound("This inventory item does not exist in the case.");
+            if (!state.CollectedItemIds.Contains(itemId))
+                throw ApiException.BadRequest("You have not collected this item yet.");
+            if (!IsTargetAvailableInScene(scene, targetId))
+                throw ApiException.BadRequest("That target is not available in the current scene.");
+
+            var candidates = gameCase.Interactions
+                .Where(interaction => interaction.Type.Equals(CaseInteractionTypes.UseItemOnTarget, StringComparison.OrdinalIgnoreCase))
+                .Where(interaction => interaction.TargetId == targetId)
+                .Where(interaction => interaction.RequiredItemIds.Contains(itemId))
+                .ToList();
+            var interaction = candidates.FirstOrDefault(candidate =>
+                candidate.RequiredItemIds.All(state.CollectedItemIds.Contains)
+                && candidate.RequiredClueIds.All(state.UnlockedClueIds.Contains));
+
+            if (interaction is null)
+            {
+                var message = candidates.FirstOrDefault()?.FailureMessage;
+                throw ApiException.BadRequest(string.IsNullOrWhiteSpace(message) ? "That item does not work here." : message);
+            }
+
+            if (interaction.SingleUse && state.UsedInteractionIds.Contains(interaction.InteractionId))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    InteractionId = interaction.InteractionId,
+                    Message = string.IsNullOrWhiteSpace(interaction.SuccessMessage)
+                        ? "This interaction has already been resolved."
+                        : interaction.SuccessMessage
+                };
+            }
+
+            var effects = ApplyMechanicEffects(
+                state,
+                interaction.UnlockClueIds,
+                interaction.UnlockItemIds,
+                interaction.UnlockSceneIds,
+                interaction.ConsumeItemIds,
+                user.Id,
+                player.Role,
+                ClueDiscoverySources.Interaction);
+            if (!state.UsedInteractionIds.Contains(interaction.InteractionId))
+                state.UsedInteractionIds.Add(interaction.InteractionId);
+
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(roomId, user.Id, "USE_ITEM",
+                $"{user.FullName} used {item.Name} on {targetId}.",
+                new { interaction.InteractionId, itemId, targetId });
+            foreach (var clueId in effects.NewClueIds)
+            {
+                var clue = gameCase.Clues.First(c => c.ClueId == clueId);
+                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, interaction.InteractionId });
+            }
+
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, effects.NewClueIds, interaction.InteractionId);
+            else
+                foreach (var clueId in effects.NewClueIds) await _notifier.ClueUnlocked(roomId, clueId, interaction.InteractionId, user.Id, state.Version);
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                InteractionId = interaction.InteractionId,
+                UnlockedClueIds = effects.NewClueIds,
+                UnlockedItemIds = effects.NewItemIds,
+                UnlockedSceneIds = effects.NewSceneIds,
+                Message = string.IsNullOrWhiteSpace(interaction.SuccessMessage) ? "The item works." : interaction.SuccessMessage
+            };
+        }
+    }
+
+    public async Task<GameActionResponse> CombineItemsAsync(CurrentUser user, string roomId, CombineItemsRequest request)
+    {
+        var itemIds = (request.ItemIds ?? new List<string>())
+            .Select(id => id.Trim())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (itemIds.Count < 2) throw ApiException.BadRequest("Select at least two items to combine.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            RequireRole(player, PlayerRole.Investigator, "Only the investigator can combine inventory items.");
+
+            var missingItems = itemIds.Where(id => !state.CollectedItemIds.Contains(id)).ToList();
+            if (missingItems.Count > 0)
+                throw ApiException.BadRequest("You can only combine items in your inventory.", new { missingItemIds = missingItems });
+
+            var supplied = itemIds.ToHashSet();
+            var interaction = gameCase.Interactions
+                .Where(candidate => candidate.Type.Equals(CaseInteractionTypes.CombineItems, StringComparison.OrdinalIgnoreCase))
+                .Where(candidate => candidate.RequiredItemIds.ToHashSet().SetEquals(supplied))
+                .FirstOrDefault(candidate => candidate.RequiredClueIds.All(state.UnlockedClueIds.Contains));
+
+            if (interaction is null)
+                throw ApiException.BadRequest("Those items do not combine into anything useful.");
+
+            if (interaction.SingleUse && state.UsedInteractionIds.Contains(interaction.InteractionId))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    InteractionId = interaction.InteractionId,
+                    Message = string.IsNullOrWhiteSpace(interaction.SuccessMessage)
+                        ? "These items have already been combined."
+                        : interaction.SuccessMessage
+                };
+            }
+
+            var effects = ApplyMechanicEffects(
+                state,
+                interaction.UnlockClueIds,
+                interaction.UnlockItemIds,
+                interaction.UnlockSceneIds,
+                interaction.ConsumeItemIds,
+                user.Id,
+                player.Role,
+                ClueDiscoverySources.Interaction);
+            if (!state.UsedInteractionIds.Contains(interaction.InteractionId))
+                state.UsedInteractionIds.Add(interaction.InteractionId);
+
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(roomId, user.Id, "COMBINE_ITEMS",
+                $"{user.FullName} combined inventory items.",
+                new { interaction.InteractionId, itemIds });
+            foreach (var clueId in effects.NewClueIds)
+            {
+                var clue = gameCase.Clues.First(c => c.ClueId == clueId);
+                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, interaction.InteractionId });
+            }
+
+            var scene = CurrentScene(gameCase, state, user.Id);
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, effects.NewClueIds, interaction.InteractionId);
+            else
+                foreach (var clueId in effects.NewClueIds) await _notifier.ClueUnlocked(roomId, clueId, interaction.InteractionId, user.Id, state.Version);
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                InteractionId = interaction.InteractionId,
+                UnlockedClueIds = effects.NewClueIds,
+                UnlockedItemIds = effects.NewItemIds,
+                UnlockedSceneIds = effects.NewSceneIds,
+                Message = string.IsNullOrWhiteSpace(interaction.SuccessMessage) ? "The items fit together." : interaction.SuccessMessage
+            };
+        }
+    }
+
+    public async Task<GameActionResponse> SolvePuzzleAsync(CurrentUser user, string roomId, SolvePuzzleRequest request)
+    {
+        var puzzleId = request.PuzzleId.Trim();
+        if (string.IsNullOrWhiteSpace(puzzleId)) throw ApiException.BadRequest("puzzleId is required.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            RequireRole(player, PlayerRole.Investigator, "Only the investigator can operate scene puzzles.");
+
+            var scene = CurrentScene(gameCase, state, user.Id);
+            var puzzle = gameCase.Puzzles.FirstOrDefault(p => p.PuzzleId == puzzleId)
+                ?? throw ApiException.NotFound("This puzzle does not exist in the case.");
+            if (!IsTargetAvailableInScene(scene, puzzle.TargetId))
+                throw ApiException.BadRequest("This puzzle target is not available in the current scene.");
+
+            var missingItems = puzzle.RequiredItemIds.Where(id => !state.CollectedItemIds.Contains(id)).ToList();
+            var missingClues = puzzle.RequiredClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
+            if (missingItems.Count > 0 || missingClues.Count > 0)
+                throw ApiException.BadRequest("This puzzle is not available yet.", new { missingItemIds = missingItems, missingClueIds = missingClues });
+
+            if (state.SolvedPuzzleIds.Contains(puzzle.PuzzleId))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    PuzzleId = puzzle.PuzzleId,
+                    Message = string.IsNullOrWhiteSpace(puzzle.SuccessMessage)
+                        ? "This puzzle has already been solved."
+                        : puzzle.SuccessMessage,
+                    Detail = puzzle.SuccessMessage
+                };
+            }
+
+            if (!IsPuzzleAnswerCorrect(puzzle, request))
+            {
+                state.WrongPuzzleCount++;
+                if (!await TrySaveStateAsync(room, gameCase))
+                {
+                    if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                    continue;
+                }
+
+                await LogAsync(roomId, user.Id, "PUZZLE_FAILED",
+                    $"{user.FullName} tried an incorrect puzzle answer.",
+                    new { puzzle.PuzzleId, puzzle.TargetId });
+                var failedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+                await _notifier.GameStateUpdated(roomId, failedState);
+                return new GameActionResponse
+                {
+                    State = failedState,
+                    Changed = true,
+                    PuzzleId = puzzle.PuzzleId,
+                    Message = string.IsNullOrWhiteSpace(puzzle.FailureMessage) ? "That answer does not work." : puzzle.FailureMessage,
+                    Detail = puzzle.FailureMessage
+                };
+            }
+
+            state.SolvedPuzzleIds.Add(puzzle.PuzzleId);
+            var effects = ApplyMechanicEffects(
+                state,
+                puzzle.UnlockClueIds,
+                puzzle.UnlockItemIds,
+                puzzle.UnlockSceneIds,
+                Enumerable.Empty<string>(),
+                user.Id,
+                player.Role,
+                ClueDiscoverySources.Puzzle);
+
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(roomId, user.Id, "PUZZLE_SOLVED",
+                $"{user.FullName} solved a puzzle.",
+                new { puzzle.PuzzleId, puzzle.TargetId });
+            foreach (var clueId in effects.NewClueIds)
+            {
+                var clue = gameCase.Clues.First(c => c.ClueId == clueId);
+                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, puzzle.PuzzleId });
+            }
+
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, effects.NewClueIds, puzzle.PuzzleId);
+            else
+                foreach (var clueId in effects.NewClueIds) await _notifier.ClueUnlocked(roomId, clueId, puzzle.PuzzleId, user.Id, state.Version);
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                PuzzleId = puzzle.PuzzleId,
+                UnlockedClueIds = effects.NewClueIds,
+                UnlockedItemIds = effects.NewItemIds,
+                UnlockedSceneIds = effects.NewSceneIds,
+                Message = string.IsNullOrWhiteSpace(puzzle.SuccessMessage) ? "Puzzle solved." : puzzle.SuccessMessage,
+                Detail = puzzle.SuccessMessage
             };
         }
     }
@@ -171,7 +463,7 @@ public class GameplayService : IGameplayService
             if (runtime is null || runtime.ClueZones.Count == 0)
             {
                 state.CameraMissCount++;
-                if (!await TrySaveStateAsync(room))
+                if (!await TrySaveStateAsync(room, gameCase))
                 {
                     if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                     continue;
@@ -207,17 +499,30 @@ public class GameplayService : IGameplayService
             if (best is null || best.Coverage < rules.NearMissCoverage)
             {
                 state.CameraMissCount++;
-                if (!await TrySaveStateAsync(room))
+                if (!await TrySaveStateAsync(room, gameCase))
                 {
                     if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                     continue;
                 }
+
+                var missMessage = "No important detail was detected.";
+                if (state.CameraMissCount >= 3 && availableZones.Count > 0)
+                {
+                    var nudgeZone = availableZones
+                        .OrderBy(z => CaptureDistance(request.CaptureRect, z.Bounds))
+                        .First();
+                    if (!string.IsNullOrWhiteSpace(nudgeZone.Label))
+                    {
+                        missMessage = $"No important detail was detected. Perhaps \"{nudgeZone.Label}\" deserves a closer look.";
+                    }
+                }
+
                 return new GameActionResponse
                 {
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
                     CaptureResult = "MISS",
-                    Message = "No important detail was detected."
+                    Message = missMessage
                 };
             }
 
@@ -237,12 +542,6 @@ public class GameplayService : IGameplayService
 
             var clue = clueById[best.Zone.ClueId];
             var normalizedPhoto = await _evidencePhotos.NormalizeAsync(request.Photo);
-            await _evidencePhotos.UpsertAsync(
-                roomId,
-                clue.ClueId,
-                scene.SceneId,
-                user.Id,
-                normalizedPhoto);
             state.CapturedClueIds.Add(clue.ClueId);
             var newClues = state.UnlockedClueIds.Contains(clue.ClueId)
                 ? new List<string>()
@@ -250,11 +549,18 @@ public class GameplayService : IGameplayService
             state.UnlockedClueIds.AddRange(newClues);
             RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Camera);
 
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
             }
+
+            await _evidencePhotos.UpsertAsync(
+                roomId,
+                clue.ClueId,
+                scene.SceneId,
+                user.Id,
+                normalizedPhoto);
 
             await LogAsync(roomId, user.Id, "CAPTURE_CLUE", $"{user.FullName} photographed {clue.Title}.",
                 new { clueId = clue.ClueId, sceneId = scene.SceneId, request.CaptureRect });
@@ -327,7 +633,7 @@ public class GameplayService : IGameplayService
             state.UnlockedClueIds.AddRange(newClues);
             RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Dialogue);
 
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
@@ -382,7 +688,7 @@ public class GameplayService : IGameplayService
 
             if (ruleResult.Changed)
             {
-                if (!await TrySaveStateAsync(room))
+                if (!await TrySaveStateAsync(room, gameCase))
                 {
                     if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                     continue;
@@ -430,7 +736,7 @@ public class GameplayService : IGameplayService
             return new ConverseResponse
             {
                 Node = ConversationNodeDto.From(ruleResult.Node),
-                Choices = ruleResult.Node.Choices
+                Choices = GameplayConversationRules.VisibleChoices(ruleResult.Node, state)
                     .Select(choice => ConversationChoiceDto.From(choice, unlocked))
                     .ToList(),
                 Challenge = GameplayConversationRules.BuildChallengeDto(gameCase, state, ruleResult.Node.ChallengeId),
@@ -499,6 +805,17 @@ public class GameplayService : IGameplayService
                 };
             }
 
+            if (ruleResult.Outcome == ConfrontationOutcome.NotYetPossible)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "Nothing in your evidence folder fits this confrontation yet. Keep investigating and come back.",
+                    Detail = challenge.FailureResponse
+                };
+            }
+
             if (ruleResult.Outcome == ConfrontationOutcome.DuplicateRejected)
             {
                 return new GameActionResponse
@@ -513,7 +830,7 @@ public class GameplayService : IGameplayService
             var correct = ruleResult.Outcome == ConfrontationOutcome.Resolved;
             var newClues = ruleResult.UnlockedClueIds.ToList();
 
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
@@ -627,7 +944,7 @@ public class GameplayService : IGameplayService
             }
 
             state.UsedHintIds.Add(selected.HintId);
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
@@ -706,7 +1023,7 @@ public class GameplayService : IGameplayService
 
             var solved = ruleResult.Outcome == DeductionOutcome.Solved;
             var newClues = ruleResult.UnlockedClueIds.ToList();
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
@@ -755,41 +1072,11 @@ public class GameplayService : IGameplayService
 
             if (GameRules.IsSceneAlreadyCompleted(state, scene.SceneId))
             {
-                var nextOpened = NextOpenedScene(gameCase, state, scene.SceneId);
-                if (nextOpened is not null)
-                {
-                    var completedStageId = StageForScene(gameCase, scene.SceneId).StageId;
-                    var nextStage = StageForScene(gameCase, nextOpened.SceneId);
-                    SetPlayerScene(state, user.Id, nextStage.StageId, nextOpened.SceneId);
-
-                    if (!await TrySaveStateAsync(room))
-                    {
-                        if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
-                        continue;
-                    }
-
-                    var moveMessage = $"Moved to {nextOpened.Title}.";
-                    await LogAsync(roomId, user.Id, "GO_TO_SCENE", $"{user.FullName} moved to {nextOpened.Title}.", new { nextOpened.SceneId });
-                    if (completedStageId != nextStage.StageId)
-                    {
-                        await _notifier.StageChanged(roomId, completedStageId, nextStage.StageId,
-                            scene.SceneId, nextOpened.SceneId, false, user.Id, state.Version);
-                    }
-                    else
-                    {
-                        await _notifier.SceneChanged(roomId, scene.SceneId, nextOpened.SceneId, user.Id, state.Version);
-                    }
-
-                    var movedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-                    await _notifier.GameStateUpdated(roomId, movedState);
-                    return new GameActionResponse { State = movedState, Changed = true, Message = moveMessage };
-                }
-
                 return new GameActionResponse
                 {
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
-                    Message = $"{scene.Title} is already complete."
+                    Message = $"{scene.Title} is fully investigated."
                 };
             }
 
@@ -810,78 +1097,19 @@ public class GameplayService : IGameplayService
                 });
             }
 
-            if (!state.CompletedSceneIds.Contains(scene.SceneId))
-            {
-                state.CompletedSceneIds.Add(scene.SceneId);
-            }
-
-            var (previousStageId, previousSceneId) = (StageForScene(gameCase, scene.SceneId).StageId, scene.SceneId);
-            var orderedStages = gameCase.Stages.OrderBy(s => s.Order).ToList();
-            var stage = orderedStages.First(s => s.Scenes.Any(s => s.SceneId == scene.SceneId));
-            var sceneIndex = stage.Scenes.FindIndex(s => s.SceneId == scene.SceneId);
-
-            string message;
-            var stageChanged = false;
-            var isFinalStageCompleted = false;
-
-            if (sceneIndex + 1 < stage.Scenes.Count)
-            {
-                // Next scene in the same stage.
-                var next = stage.Scenes[sceneIndex + 1];
-                SetPlayerScene(state, user.Id, stage.StageId, next.SceneId);
-                if (!state.VisitedSceneIds.Contains(next.SceneId)) state.VisitedSceneIds.Add(next.SceneId);
-                message = $"A new location opened: {next.Title}.";
-            }
-            else
-            {
-                // Stage finished.
-                if (!state.CompletedStageIds.Contains(stage.StageId))
-                {
-                    state.CompletedStageIds.Add(stage.StageId);
-                }
-
-                var stageIndex = orderedStages.FindIndex(s => s.StageId == stage.StageId);
-                if (stageIndex + 1 < orderedStages.Count)
-                {
-                    var nextStage = orderedStages[stageIndex + 1];
-                    var nextScene = nextStage.Scenes.First();
-                    SetPlayerScene(state, user.Id, nextStage.StageId, nextScene.SceneId);
-                    if (!state.VisitedSceneIds.Contains(nextScene.SceneId)) state.VisitedSceneIds.Add(nextScene.SceneId);
-                    stageChanged = true;
-                    message = $"The investigation moves on: {nextScene.Title}.";
-                }
-                else
-                {
-                    // Last scene of last stage: stay here; the accusation becomes available.
-                    stageChanged = true;
-                    isFinalStageCompleted = true;
-                    SetPlayerScene(state, user.Id, stage.StageId, scene.SceneId);
-                    message = "Every lead has been followed. It is time for the final accusation.";
-                }
-            }
-
-            if (!await TrySaveStateAsync(room))
+            // Rooms created before derived completion existed can reach here with a satisfied
+            // condition that was never recorded; saving with the case runs the auto-complete pass.
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "COMPLETE_SCENE", message, new { sceneId = scene.SceneId });
-
-            if (stageChanged)
-            {
-                await _notifier.StageChanged(roomId, previousStageId, state.CurrentStageId,
-                    previousSceneId, state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId), isFinalStageCompleted, user.Id, state.Version);
-            }
-            else
-            {
-                await _notifier.SceneChanged(roomId, previousSceneId, state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId), user.Id, state.Version);
-            }
+            await LogAsync(roomId, user.Id, "COMPLETE_SCENE", $"{scene.Title} is fully investigated.", new { sceneId = scene.SceneId });
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse);
-
-            return new GameActionResponse { State = stateResponse, Changed = true, Message = message };
+            return new GameActionResponse { State = stateResponse, Changed = true, Message = $"{scene.Title} is fully investigated." };
         }
     }
 
@@ -938,9 +1166,9 @@ public class GameplayService : IGameplayService
                 throw ApiException.NotFound("This scene does not exist in the case.");
             }
 
-            if (!state.VisitedSceneIds.Contains(sceneId))
+            if (!GameRules.CanEnterScene(gameCase, state, sceneId))
             {
-                throw ApiException.BadRequest("You can only revisit places the investigation has already opened.");
+                throw ApiException.BadRequest("This place is still sealed. Something in the investigation must open it first.");
             }
 
             var currentPlayerSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
@@ -956,8 +1184,9 @@ public class GameplayService : IGameplayService
 
             var previousSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
             SetPlayerScene(state, user.Id, target.Stage.StageId, sceneId);
+            if (!state.VisitedSceneIds.Contains(sceneId)) state.VisitedSceneIds.Add(sceneId);
 
-            if (!await TrySaveStateAsync(room))
+            if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
@@ -1015,7 +1244,7 @@ public class GameplayService : IGameplayService
         state.CompletedAt = DateTime.UtcNow;
         room.Status = RoomStatus.Completed;
 
-        if (!await TrySaveStateAsync(room))
+        if (!await TrySaveStateAsync(room, gameCase))
         {
             throw ApiException.Conflict("The game state changed; please retry.");
         }
@@ -1096,18 +1325,11 @@ public class GameplayService : IGameplayService
         gameCase.Stages.FirstOrDefault(s => s.Scenes.Any(scene => scene.SceneId == sceneId))
             ?? throw ApiException.BadRequest("The current stage no longer exists in the case definition.");
 
-    private static CaseScene? NextOpenedScene(GameCase gameCase, GameplayState state, string sceneId)
-    {
-        var scenes = gameCase.Stages
-            .OrderBy(s => s.Order)
-            .SelectMany(s => s.Scenes)
-            .ToList();
-        var index = scenes.FindIndex(scene => scene.SceneId == sceneId);
-        if (index < 0 || index + 1 >= scenes.Count) return null;
-
-        var next = scenes[index + 1];
-        return state.VisitedSceneIds.Contains(next.SceneId) ? next : null;
-    }
+    private static bool IsTargetAvailableInScene(CaseScene scene, string targetId) =>
+        scene.ItemIds.Contains(targetId)
+        || scene.CharacterIds.Contains(targetId)
+        || scene.Hotspots.Any(h => h.TargetId == targetId)
+        || (scene.Runtime?.Transitions.Any(t => t.TransitionId == targetId || t.TargetSceneId == targetId) == true);
 
     private static void SetPlayerScene(GameplayState state, string userId, string stageId, string sceneId)
     {
@@ -1116,10 +1338,18 @@ public class GameplayService : IGameplayService
         state.CurrentSceneId = sceneId;
     }
 
-    /// <summary>Optimistic concurrency: persists the room only if the stored version still matches.</summary>
-    private async Task<bool> TrySaveStateAsync(GameRoom room)
+    /// <summary>
+    /// Optimistic concurrency: persists the room only if the stored version still matches.
+    /// When the case is supplied, derives scene/stage completion from the evidence state first,
+    /// so progression never depends on a manual "complete scene" confirmation.
+    /// </summary>
+    private async Task<bool> TrySaveStateAsync(GameRoom room, GameCase? gameCase = null)
     {
         var state = room.GameplayState!;
+        if (gameCase is not null && state.GameStatus == GameStatus.InProgress)
+        {
+            GameRules.AutoCompleteProgress(gameCase, state);
+        }
         var expectedVersion = state.Version;
         state.Version = expectedVersion + 1;
         state.UpdatedAt = DateTime.UtcNow;
@@ -1279,6 +1509,13 @@ public class GameplayService : IGameplayService
         var clueCoverage = intersection / clueArea;
         var captureFill = captureArea > 0 ? intersection / captureArea : 0;
         return Math.Max(clueCoverage, captureFill);
+    }
+
+    private static double CaptureDistance(CaptureRectDto capture, RuntimeBox clue)
+    {
+        var dx = (capture.X + capture.Width / 2.0) - (clue.X + clue.Width / 2.0);
+        var dy = (capture.Y + capture.Height / 2.0) - (clue.Y + clue.Height / 2.0);
+        return Math.Sqrt(dx * dx + dy * dy);
     }
 
     private static bool CaptureCenterInside(CaptureRectDto capture, RuntimeBox clue)

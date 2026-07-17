@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 
@@ -13,6 +14,16 @@ public class GenerateAiCaseRequest
     public int StageCount { get; set; } = 4;
 
     public string Difficulty { get; set; } = "medium";
+
+    /// <summary>
+    /// Controls case structure density. Unknown values fall back to NORMAL_RANDOM.
+    /// </summary>
+    [MaxLength(40)]
+    public string GenerationPreset { get; set; } = AiGenerationPresets.NormalRandom;
+
+    [MaxLength(5)]
+    [RegularExpression("^(?i:en|vi)$", ErrorMessage = "language must be 'en' or 'vi'.")]
+    public string Language { get; set; } = CaseLanguages.English;
 
     /// <summary>
     /// Kept for backward-compatible clients. The server always applies the fixed SirLocked visual contract.
@@ -45,6 +56,11 @@ public class AiDraftResponse
     public string RepairStatus { get; set; } = string.Empty;
     public string RepairInstructions { get; set; } = string.Empty;
     public List<AiPlannedCall> PlannedCalls { get; set; } = new();
+    public string PromptVersion { get; set; } = string.Empty;
+    public string SchemaVersion { get; set; } = string.Empty;
+    public string FailurePhase { get; set; } = AiFailurePhases.None;
+    public List<string> FailedAssetIds { get; set; } = new();
+    public List<AiGenerationAttemptSummary> GenerationAttempts { get; set; } = new();
     public AiCostReport CostReport { get; set; } = new();
     public string? ImportedCaseId { get; set; }
     public CaseSummaryResponse? PublishedCase { get; set; }
@@ -75,6 +91,11 @@ public class AiDraftResponse
         RepairStatus = d.RepairStatus,
         RepairInstructions = d.RepairInstructions,
         PlannedCalls = d.PlannedCalls,
+        PromptVersion = d.PromptVersion,
+        SchemaVersion = d.SchemaVersion,
+        FailurePhase = d.FailurePhase,
+        FailedAssetIds = d.FailedAssetIds,
+        GenerationAttempts = d.GenerationAttempts.Select(AiGenerationAttemptSummary.From).ToList(),
         CostReport = new AiCostReport
         {
             DryRun = d.PlannedCalls.Any(call => !call.WouldCallApi),
@@ -127,8 +148,44 @@ public class RepairFullLogicRequest
     public string? RepairInstructions { get; set; }
 }
 
+public class ReplaceAiDraftJsonRequest
+{
+    public JsonElement CaseJson { get; set; }
+    public AiStoryPreview? StoryPreview { get; set; }
+}
+
 public class AiCostReport
 {
     public bool DryRun { get; set; }
     public List<AiPlannedCall> PlannedCalls { get; set; } = new();
+}
+
+public class AiGenerationAttemptSummary
+{
+    public string Step { get; set; } = string.Empty;
+    public int AttemptNumber { get; set; }
+    public string ResponseId { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public string SchemaVersion { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string FailureCategory { get; set; } = string.Empty;
+    public int InputTokens { get; set; }
+    public int OutputTokens { get; set; }
+    public List<string> ValidationErrors { get; set; } = new();
+    public DateTime CreatedAt { get; set; }
+
+    public static AiGenerationAttemptSummary From(AiGenerationAttempt attempt) => new()
+    {
+        Step = attempt.Step,
+        AttemptNumber = attempt.AttemptNumber,
+        ResponseId = attempt.ResponseId,
+        Model = attempt.Model,
+        SchemaVersion = attempt.SchemaVersion,
+        Status = attempt.Status,
+        FailureCategory = attempt.FailureCategory,
+        InputTokens = attempt.InputTokens,
+        OutputTokens = attempt.OutputTokens,
+        ValidationErrors = attempt.ValidationErrors,
+        CreatedAt = attempt.CreatedAt
+    };
 }

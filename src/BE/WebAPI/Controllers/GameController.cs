@@ -23,6 +23,18 @@ public class GameController : BaseApiController
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> InspectItem(string roomId, [FromBody] InspectItemRequest request) =>
         Ok(await _gameplayService.InspectItemAsync(Caller, roomId, request.ItemId));
 
+    [HttpPost("use-item")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> UseItem(string roomId, [FromBody] UseItemRequest request) =>
+        Ok(await _gameplayService.UseItemAsync(Caller, roomId, request));
+
+    [HttpPost("combine-items")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> CombineItems(string roomId, [FromBody] CombineItemsRequest request) =>
+        Ok(await _gameplayService.CombineItemsAsync(Caller, roomId, request));
+
+    [HttpPost("solve-puzzle")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> SolvePuzzle(string roomId, [FromBody] SolvePuzzleRequest request) =>
+        Ok(await _gameplayService.SolvePuzzleAsync(Caller, roomId, request));
+
     [HttpPost("capture-clue")]
     [Consumes("multipart/form-data")]
     [RequestFormLimits(MultipartBodyLengthLimit = 1_100_000)]
