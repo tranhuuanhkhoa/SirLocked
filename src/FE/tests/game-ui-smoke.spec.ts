@@ -315,6 +315,19 @@ test('interface language switch changes English and Vietnamese and persists', as
   await expect(page.locator('.page-head h2')).toHaveText('Published Cases');
 });
 
+test('Vietnamese language applies inside gameplay overlays', async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem('sirlocked.uiLanguage', 'vi'));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`/#/game/${roomId}`);
+  await expect(page.locator('canvas').first()).toBeVisible();
+
+  await page.locator('#case-file-btn').click();
+  await expect(page.locator('.case-file-modal h2')).toHaveText('Hồ sơ vụ án');
+  await expect(page.locator('.case-file-tabs')).toContainText('Chứng cứ');
+  await expect(page.locator('.case-file-modal')).toContainText('Chưa thu thập được chứng cứ nào.');
+  await expect(page.getByRole('button', { name: 'Đóng' })).toBeVisible();
+});
+
 test('two-player presence recovers and version events coalesce to one state refetch', async ({ page }) => {
   let stateRequests = 0;
   await page.unroute(`**/api/game/rooms/${roomId}/state`);

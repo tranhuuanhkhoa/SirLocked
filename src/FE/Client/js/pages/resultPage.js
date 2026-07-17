@@ -1,5 +1,6 @@
 import { gameApi } from '../api/gameApi.js';
 import { escapeHtml, render } from '../utils/dom.js';
+import { tr } from '../services/i18n.js';
 
 const scoreBar = (label, value, max) => `
   <div class="score-row">
@@ -10,24 +11,24 @@ const scoreBar = (label, value, max) => `
 
 const teamworkFlags = (score) => {
   const flags = [
-    score.investigatorContribution ? '✓ Investigator' : '· Investigator',
-    score.interrogatorContribution ? '✓ Interrogator' : '· Interrogator',
-    score.crossRoleHandoff ? '✓ Handoff' : '· Handoff'
+    score.investigatorContribution ? `✓ ${tr('Investigator', 'Điều tra viên')}` : `· ${tr('Investigator', 'Điều tra viên')}`,
+    score.interrogatorContribution ? `✓ ${tr('Interrogator', 'Thẩm vấn viên')}` : `· ${tr('Interrogator', 'Thẩm vấn viên')}`,
+    score.crossRoleHandoff ? `✓ ${tr('Handoff', 'Phối hợp')}` : `· ${tr('Handoff', 'Phối hợp')}`
   ];
   return escapeHtml(flags.join('  '));
 };
 
 const scorePenalties = (score) => {
   const parts = [];
-  if (score.wrongEvidencePenalty) parts.push(`−${score.wrongEvidencePenalty} wrong evidence`);
-  if (score.wrongDeductionPenalty) parts.push(`−${score.wrongDeductionPenalty} wrong deductions`);
-  if (score.cameraMissPenalty) parts.push(`−${score.cameraMissPenalty} camera misses`);
+  if (score.wrongEvidencePenalty) parts.push(`−${score.wrongEvidencePenalty} ${tr('wrong evidence', 'chứng cứ sai')}`);
+  if (score.wrongDeductionPenalty) parts.push(`−${score.wrongDeductionPenalty} ${tr('wrong deductions', 'suy luận sai')}`);
+  if (score.cameraMissPenalty) parts.push(`−${score.cameraMissPenalty} ${tr('camera misses', 'lần chụp trượt')}`);
   if (parts.length === 0) return '';
-  return `<div class="score-row score-row-penalty"><span class="muted small">Penalties</span><span class="muted small">${escapeHtml(parts.join('  '))}</span></div>`;
+  return `<div class="score-row score-row-penalty"><span class="muted small">${tr('Penalties', 'Điểm trừ')}</span><span class="muted small">${escapeHtml(parts.join('  '))}</span></div>`;
 };
 
 export async function renderResultPage(app, roomId) {
-  render(app, '<div class="page"><p class="muted">Loading the verdict…</p></div>');
+  render(app, `<div class="page"><p class="muted">${tr('Loading the verdict…', 'Đang tải phán quyết…')}</p></div>`);
 
   let result = null;
   const cached = sessionStorage.getItem(`sirlocked.result.${roomId}`);
@@ -53,58 +54,58 @@ export async function renderResultPage(app, roomId) {
   const verdictRow = (label, value) => `
     <div class="verdict-row ${value.isCorrect ? 'is-correct' : 'is-wrong'}">
       <strong>${escapeHtml(label)}</strong>
-      <span>Your answer: ${escapeHtml(value.selectedLabel || value.selectedEvidenceTitle || 'Not supplied')}</span>
-      ${value.isCorrect ? '<span>Correct</span>' : `<span>Truth: ${escapeHtml(value.correctLabel || value.correctEvidenceTitle || '')}</span>`}
+      <span>${tr('Your answer:', 'Câu trả lời:')} ${escapeHtml(value.selectedLabel || value.selectedEvidenceTitle || tr('Not supplied', 'Chưa cung cấp'))}</span>
+      ${value.isCorrect ? `<span>${tr('Correct', 'Chính xác')}</span>` : `<span>${tr('Truth:', 'Sự thật:')} ${escapeHtml(value.correctLabel || value.correctEvidenceTitle || '')}</span>`}
     </div>`;
   render(app, `
   <div class="page page-narrow result-page ${win ? 'result-win' : 'result-fail'}">
-    <div class="result-banner">${win ? 'CASE CLOSED' : 'CASE COLD'}</div>
-    <h2>${win ? 'The culprit is exposed.' : 'The culprit walks free.'}</h2>
+    <div class="result-banner">${win ? tr('CASE CLOSED', 'PHÁ ÁN THÀNH CÔNG') : tr('CASE COLD', 'VỤ ÁN BẾ TẮC')}</div>
+    <h2>${win ? tr('The culprit is exposed.', 'Hung thủ đã bị vạch mặt.') : tr('The culprit walks free.', 'Hung thủ vẫn ngoài vòng pháp luật.')}</h2>
     <p class="result-ending">${escapeHtml(result.ending)}</p>
 
     ${v2 ? `<div class="verdict-breakdown">
-      ${verdictRow('Culprit', result.culpritResult)}
-      ${verdictRow('Motive', result.motiveResult)}
-      ${verdictRow('Method', result.methodResult)}
-      ${result.evidenceResults.map((entry) => verdictRow(`${entry.claimType} evidence`, entry)).join('')}
+      ${verdictRow(tr('Culprit', 'Hung thủ'), result.culpritResult)}
+      ${verdictRow(tr('Motive', 'Động cơ'), result.motiveResult)}
+      ${verdictRow(tr('Method', 'Phương thức'), result.methodResult)}
+      ${result.evidenceResults.map((entry) => verdictRow(`${entry.claimType} ${tr('evidence', 'chứng cứ')}`, entry)).join('')}
     </div>` : ''}
 
     ${score ? `<div class="result-grid">
       <div class="result-box">
-        <span class="muted small">SCORE</span>
+        <span class="muted small">${tr('SCORE', 'ĐIỂM')}</span>
         <strong>${escapeHtml(String(score.totalScore))}</strong>
-        <span class="muted small">Rank ${escapeHtml(score.rank)}</span>
+        <span class="muted small">${tr('Rank', 'Hạng')} ${escapeHtml(score.rank)}</span>
       </div>
       <div class="result-box">
-        <span class="muted small">TEAMWORK</span>
+        <span class="muted small">${tr('TEAMWORK', 'PHỐI HỢP')}</span>
         <strong>${escapeHtml(String(score.teamworkScore))}/15</strong>
         <span class="muted small">${teamworkFlags(score)}</span>
       </div>
     </div>
     <div class="score-breakdown">
-      ${scoreBar('Evidence', score.evidenceCoverageScore, 40)}
-      ${scoreBar('Contradictions', score.contradictionCoverageScore, 25)}
-      ${scoreBar('Deductions', score.deductionCoverageScore, 20)}
-      ${scoreBar('Teamwork', score.teamworkScore, 15)}
+      ${scoreBar(tr('Evidence', 'Chứng cứ'), score.evidenceCoverageScore, 40)}
+      ${scoreBar(tr('Contradictions', 'Mâu thuẫn'), score.contradictionCoverageScore, 25)}
+      ${scoreBar(tr('Deductions', 'Suy luận'), score.deductionCoverageScore, 20)}
+      ${scoreBar(tr('Teamwork', 'Phối hợp'), score.teamworkScore, 15)}
       ${scorePenalties(score)}
     </div>` : ''}
 
     <div class="result-grid">
       <div class="result-box">
-        <span class="muted small">YOUR ACCUSATION</span>
+        <span class="muted small">${tr('YOUR ACCUSATION', 'CÁO BUỘC CỦA BẠN')}</span>
         <strong>${escapeHtml(result.selectedCulpritName || result.selectedCulpritId)}</strong>
-        <span class="muted small">${result.selectedEvidenceIds.length} piece(s) of evidence presented</span>
+        <span class="muted small">${result.selectedEvidenceIds.length} ${tr('piece(s) of evidence presented', 'chứng cứ đã trình bày')}</span>
       </div>
       <div class="result-box">
-        <span class="muted small">THE TRUTH</span>
+        <span class="muted small">${tr('THE TRUTH', 'SỰ THẬT')}</span>
         <strong>${escapeHtml(result.correctCulpritName || result.correctCulpritId)}</strong>
-        <span class="muted small">Motive: ${escapeHtml(result.motive)}</span>
-        <span class="muted small">Method: ${escapeHtml(result.method)}</span>
+        <span class="muted small">${tr('Motive:', 'Động cơ:')} ${escapeHtml(result.motive)}</span>
+        <span class="muted small">${tr('Method:', 'Phương thức:')} ${escapeHtml(result.method)}</span>
       </div>
     </div>
 
     <div class="case-actions" style="justify-content:center">
-      <a class="btn btn-primary" href="#/cases">Back to cases</a>
+      <a class="btn btn-primary" href="#/cases">${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>
     </div>
   </div>`);
 }

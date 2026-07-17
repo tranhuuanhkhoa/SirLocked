@@ -2,9 +2,10 @@ import { caseApi } from '../api/caseApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr } from '../services/i18n.js';
 
 export async function renderCaseDetailPage(app, caseId) {
-  render(app, '<div class="page"><p class="muted">Loading case…</p></div>');
+  render(app, `<div class="page"><p class="muted">${tr('Loading case…', 'Đang tải vụ án…')}</p></div>`);
 
   let detail;
   try {
@@ -28,7 +29,7 @@ export async function renderCaseDetailPage(app, caseId) {
 
   render(app, `
   <div class="page">
-    <a class="muted small" href="#/cases">&larr; All cases</a>
+    <a class="muted small" href="#/cases">&larr; ${tr('All cases', 'Tất cả vụ án')}</a>
     <div class="case-detail-head">
       <div class="case-cover case-cover-lg" style="${placeholderStyle(detail.caseId)}">
         <img src="${escapeHtml(detail.coverImageUrl)}" alt="" onerror="this.remove()">
@@ -38,19 +39,19 @@ export async function renderCaseDetailPage(app, caseId) {
         <h2>${escapeHtml(detail.title)}</h2>
         <p>${escapeHtml(detail.summary)}</p>
         <div class="case-meta">
-          <span class="chip">${detail.estimatedMinutes} min</span>
-          <span class="chip">${detail.sceneCount} scenes</span>
-          <span class="chip">${detail.itemCount} items</span>
-          <span class="chip">${detail.clueCount} clues</span>
-          <span class="chip">${detail.dialogueCount} questions</span>
+          <span class="chip">${detail.estimatedMinutes} ${tr('min', 'phút')}</span>
+          <span class="chip">${detail.sceneCount} ${tr('scenes', 'hiện trường')}</span>
+          <span class="chip">${detail.itemCount} ${tr('items', 'vật phẩm')}</span>
+          <span class="chip">${detail.clueCount} ${tr('clues', 'manh mối')}</span>
+          <span class="chip">${detail.dialogueCount} ${tr('questions', 'câu hỏi')}</span>
         </div>
         <div class="case-actions">
-          <button class="btn btn-primary" id="create-room">Create room</button>
-          <a class="btn btn-ghost" href="#/join">Join with code</a>
+          <button class="btn btn-primary" id="create-room">${tr('Create room', 'Tạo phòng')}</button>
+          <a class="btn btn-ghost" href="#/join">${tr('Join with code', 'Vào bằng mã phòng')}</a>
         </div>
       </div>
     </div>
-    <h3 class="section-title">People of interest</h3>
+    <h3 class="section-title">${tr('People of interest', 'Nhân vật liên quan')}</h3>
     <div class="char-grid">${characters}</div>
   </div>`);
 

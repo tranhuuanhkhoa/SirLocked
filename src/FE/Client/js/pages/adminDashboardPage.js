@@ -1,9 +1,10 @@
 import { adminApi } from '../api/adminApi.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr } from '../services/i18n.js';
 
 export async function renderAdminDashboardPage(app) {
-  render(app, '<div class="page"><p class="muted">Loading dashboard…</p></div>');
+  render(app, `<div class="page"><p class="muted">${tr('Loading dashboard…', 'Đang tải bảng điều khiển…')}</p></div>`);
 
   let stats;
   let users;
@@ -15,11 +16,11 @@ export async function renderAdminDashboardPage(app) {
   }
 
   const statCards = [
-    ['Users', stats.totalUsers],
-    ['Cases', `${stats.publishedCases}/${stats.totalCases} published`],
-    ['Rooms', `${stats.activeRooms} active / ${stats.totalRooms}`],
-    ['Games finished', `${stats.wins} won · ${stats.losses} failed`],
-    ['AI drafts', stats.totalAiDrafts],
+    [tr('Users', 'Người dùng'), stats.totalUsers],
+    [tr('Cases', 'Vụ án'), `${stats.publishedCases}/${stats.totalCases} ${tr('published', 'đã xuất bản')}`],
+    [tr('Rooms', 'Phòng'), `${stats.activeRooms} ${tr('active', 'đang hoạt động')} / ${stats.totalRooms}`],
+    [tr('Games finished', 'Ván đã kết thúc'), `${stats.wins} ${tr('won', 'thắng')} · ${stats.losses} ${tr('failed', 'thua')}`],
+    [tr('AI drafts', 'Bản nháp AI'), stats.totalAiDrafts],
   ].map(([label, value]) => `
     <div class="stat-card"><span class="muted small">${label}</span><strong>${escapeHtml(String(value))}</strong></div>`).join('');
 
@@ -32,11 +33,11 @@ export async function renderAdminDashboardPage(app) {
       <td>
         ${u.role === 'ADMIN' ? '' : `
           ${u.role === 'VIP'
-            ? `<button class="btn btn-ghost btn-sm" data-role-user="${u.userId}" data-role="PLAYER">Make player</button>`
-            : `<button class="btn btn-ghost btn-sm" data-role-user="${u.userId}" data-role="VIP">Make VIP</button>`}
+            ? `<button class="btn btn-ghost btn-sm" data-role-user="${u.userId}" data-role="PLAYER">${tr('Make player', 'Đổi thành người chơi')}</button>`
+            : `<button class="btn btn-ghost btn-sm" data-role-user="${u.userId}" data-role="VIP">${tr('Make VIP', 'Nâng lên VIP')}</button>`}
           ${u.status === 'ACTIVE'
-            ? `<button class="btn btn-ghost btn-sm" data-lock="${u.userId}">Lock</button>`
-            : `<button class="btn btn-ghost btn-sm" data-unlock="${u.userId}">Unlock</button>`}
+            ? `<button class="btn btn-ghost btn-sm" data-lock="${u.userId}">${tr('Lock', 'Khóa')}</button>`
+            : `<button class="btn btn-ghost btn-sm" data-unlock="${u.userId}">${tr('Unlock', 'Mở khóa')}</button>`}
         `}
       </td>
     </tr>`).join('');
@@ -44,18 +45,18 @@ export async function renderAdminDashboardPage(app) {
   render(app, `
   <div class="page">
     <div class="page-head">
-      <h2>Admin Dashboard</h2>
+      <h2>${tr('Admin Dashboard', 'Bảng điều khiển quản trị')}</h2>
       <div class="case-actions">
-        <button class="btn btn-primary" id="seed-sample">Seed + publish sample case</button>
-        <button class="btn btn-ghost" id="seed-demo">Seed demo cases</button>
-        <a class="btn btn-ghost" href="#/admin/cases">Manage cases</a>
-        <a class="btn btn-ghost" href="#/admin/ai">AI case creator</a>
+        <button class="btn btn-primary" id="seed-sample">${tr('Seed + publish sample case', 'Tạo và xuất bản vụ án mẫu')}</button>
+        <button class="btn btn-ghost" id="seed-demo">${tr('Seed demo cases', 'Tạo các vụ án demo')}</button>
+        <a class="btn btn-ghost" href="#/admin/cases">${tr('Manage cases', 'Quản lý vụ án')}</a>
+        <a class="btn btn-ghost" href="#/admin/ai">${tr('AI case creator', 'Tạo vụ án AI')}</a>
       </div>
     </div>
     <div class="stat-grid">${statCards}</div>
-    <h3 class="section-title">Users</h3>
+    <h3 class="section-title">${tr('Users', 'Người dùng')}</h3>
     <table class="admin-table">
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>${tr('Name', 'Tên')}</th><th>Email</th><th>${tr('Role', 'Vai trò')}</th><th>${tr('Status', 'Trạng thái')}</th><th></th></tr></thead>
       <tbody>${userRows}</tbody>
     </table>
   </div>`);

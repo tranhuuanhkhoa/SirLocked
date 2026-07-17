@@ -3,14 +3,15 @@ import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr } from '../services/i18n.js';
 
 const ROLES = [
-  { id: 'INVESTIGATOR', title: 'Investigator', blurb: 'Examines the scene: inspects items and gathers physical evidence.' },
-  { id: 'INTERROGATOR', title: 'Interrogator', blurb: 'Questions suspects: asks dialogue and exposes contradictions.' },
+  { id: 'INVESTIGATOR', title: 'Investigator', viTitle: 'Điều tra viên', blurb: 'Examines the scene: inspects items and gathers physical evidence.', viBlurb: 'Khám nghiệm hiện trường: kiểm tra vật phẩm và thu thập chứng cứ vật lý.' },
+  { id: 'INTERROGATOR', title: 'Interrogator', viTitle: 'Thẩm vấn viên', blurb: 'Questions suspects: asks dialogue and exposes contradictions.', viBlurb: 'Thẩm vấn nghi phạm: đặt câu hỏi và vạch ra mâu thuẫn.' },
 ];
 
 export async function renderLobbyPage(app, roomId) {
-  render(app, '<div class="page"><p class="muted">Loading lobby…</p></div>');
+  render(app, `<div class="page"><p class="muted">${tr('Loading lobby…', 'Đang tải phòng chờ…')}</p></div>`);
 
   let room;
   let leaving = false;
@@ -52,11 +53,11 @@ export async function renderLobbyPage(app, roomId) {
     const playerRows = room.players.map((p) => `
       <div class="lobby-player ${p.isReady ? 'is-ready' : ''}">
         <span class="lobby-player-name">${escapeHtml(p.username)}
-          ${p.userId === room.hostUserId ? '<span class="chip chip-gold">HOST</span>' : ''}
-          ${p.userId === me.userId ? '<span class="chip">YOU</span>' : ''}
+          ${p.userId === room.hostUserId ? `<span class="chip chip-gold">${tr('HOST', 'CHỦ PHÒNG')}</span>` : ''}
+          ${p.userId === me.userId ? `<span class="chip">${tr('YOU', 'BẠN')}</span>` : ''}
         </span>
-        <span class="chip ${p.role ? 'chip-role' : ''}">${p.role ?? 'choosing role…'}</span>
-        <span class="ready-dot" title="${p.isReady ? 'Ready' : 'Not ready'}">${p.isReady ? 'READY' : 'WAITING'}</span>
+        <span class="chip ${p.role ? 'chip-role' : ''}">${p.role ?? tr('choosing role…', 'đang chọn vai…')}</span>
+        <span class="ready-dot" title="${p.isReady ? tr('Ready', 'Sẵn sàng') : tr('Not ready', 'Chưa sẵn sàng')}">${p.isReady ? tr('READY', 'SẴN SÀNG') : tr('WAITING', 'ĐANG CHỜ')}</span>
       </div>`).join('');
 
     const roleCards = ROLES.map((role) => {
@@ -66,37 +67,37 @@ export async function renderLobbyPage(app, roomId) {
       return `
       <button class="role-card ${mine ? 'is-mine' : ''} ${blocked ? 'is-taken' : ''}"
               data-role="${role.id}" ${blocked ? 'disabled' : ''}>
-        <strong>${role.title}</strong>
-        <p>${role.blurb}</p>
-        ${blocked ? `<span class="muted small">Taken by ${escapeHtml(takenBy.username)}</span>` : ''}
-        ${mine ? '<span class="chip chip-gold">YOUR ROLE</span>' : ''}
+        <strong>${tr(role.title, role.viTitle)}</strong>
+        <p>${tr(role.blurb, role.viBlurb)}</p>
+        ${blocked ? `<span class="muted small">${tr('Taken by', 'Đã được chọn bởi')} ${escapeHtml(takenBy.username)}</span>` : ''}
+        ${mine ? `<span class="chip chip-gold">${tr('YOUR ROLE', 'VAI CỦA BẠN')}</span>` : ''}
       </button>`;
     }).join('');
 
     render(app, `
     <div class="page page-narrow">
       <div class="lobby-head">
-        <h2>Room Lobby</h2>
+        <h2>${tr('Room Lobby', 'Phòng chờ')}</h2>
         <div class="room-code-box">
-          <span class="muted small">ROOM CODE</span>
+          <span class="muted small">${tr('ROOM CODE', 'MÃ PHÒNG')}</span>
           <strong class="room-code">${escapeHtml(room.roomCode)}</strong>
-          <button class="btn btn-ghost btn-sm" id="copy-code">Copy</button>
+          <button class="btn btn-ghost btn-sm" id="copy-code">${tr('Copy', 'Sao chép')}</button>
         </div>
       </div>
-      <p class="muted">Case: <strong>${escapeHtml(room.caseTitle)}</strong> — waiting for two ready detectives.</p>
+      <p class="muted">${tr('Case:', 'Vụ án:')} <strong>${escapeHtml(room.caseTitle)}</strong> — ${tr('waiting for two ready detectives.', 'đang chờ hai thám tử sẵn sàng.')}</p>
 
-      <h3 class="section-title">Detectives (${room.players.length}/2)</h3>
+      <h3 class="section-title">${tr('Detectives', 'Thám tử')} (${room.players.length}/2)</h3>
       <div class="lobby-players">${playerRows}</div>
 
-      <h3 class="section-title">Pick your role</h3>
+      <h3 class="section-title">${tr('Pick your role', 'Chọn vai trò')}</h3>
       <div class="role-grid">${roleCards}</div>
 
       <div class="lobby-actions">
         <button class="btn ${my?.isReady ? 'btn-ghost' : 'btn-primary'}" id="ready-btn" ${my?.role ? '' : 'disabled title="Pick a role first"'}>
-          ${my?.isReady ? 'Cancel ready' : 'Ready up'}
+          ${my?.isReady ? tr('Cancel ready', 'Hủy sẵn sàng') : tr('Ready up', 'Sẵn sàng')}
         </button>
-        ${isHost ? `<button class="btn btn-gold" id="start-btn" ${bothReady ? '' : 'disabled title="Both players must pick different roles and ready up"'}>Start investigation</button>` : '<span class="muted small">The host starts the game when everyone is ready.</span>'}
-        <button class="btn btn-ghost" id="leave-btn">Leave room</button>
+        ${isHost ? `<button class="btn btn-gold" id="start-btn" ${bothReady ? '' : `disabled title="${tr('Both players must pick different roles and ready up', 'Cả hai người phải chọn vai khác nhau và sẵn sàng')}"`}>${tr('Start investigation', 'Bắt đầu điều tra')}</button>` : `<span class="muted small">${tr('The host starts the game when everyone is ready.', 'Chủ phòng sẽ bắt đầu khi mọi người đã sẵn sàng.')}</span>`}
+        <button class="btn btn-ghost" id="leave-btn">${tr('Leave room', 'Rời phòng')}</button>
       </div>
     </div>`);
 

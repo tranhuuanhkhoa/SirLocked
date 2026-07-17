@@ -2,9 +2,10 @@ import { caseApi } from '../api/caseApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr } from '../services/i18n.js';
 
 export async function renderCreateRoomPage(app) {
-  render(app, '<div class="page"><p class="muted">Loading published cases...</p></div>');
+  render(app, `<div class="page"><p class="muted">${tr('Loading published cases...', 'Đang tải các vụ án...')}</p></div>`);
 
   let cases = [];
   try {
@@ -23,9 +24,9 @@ export async function renderCreateRoomPage(app) {
               data-select-case="${escapeHtml(c.caseId)}">
         <span>
           <strong>${escapeHtml(c.title)}</strong>
-          <span class="muted small">${c.estimatedMinutes} min / ${c.sceneCount} scenes / ${c.clueCount} clues</span>
+          <span class="muted small">${c.estimatedMinutes} ${tr('min', 'phút')} / ${c.sceneCount} ${tr('scenes', 'hiện trường')} / ${c.clueCount} ${tr('clues', 'manh mối')}</span>
         </span>
-        <span class="chip">${escapeHtml(c.characterCount)} suspects</span>
+        <span class="chip">${escapeHtml(c.characterCount)} ${tr('suspects', 'nghi phạm')}</span>
       </button>`).join('');
 
     const preview = selected ? `
@@ -38,14 +39,14 @@ export async function renderCreateRoomPage(app) {
           <h3>${escapeHtml(selected.title)}</h3>
           <p>${escapeHtml(selected.summary)}</p>
           <div class="case-meta">
-            <span class="chip">${selected.estimatedMinutes} min</span>
-            <span class="chip">${selected.sceneCount} scenes</span>
-            <span class="chip">${selected.characterCount} suspects</span>
-            <span class="chip">${selected.clueCount} clues</span>
+            <span class="chip">${selected.estimatedMinutes} ${tr('min', 'phút')}</span>
+            <span class="chip">${selected.sceneCount} ${tr('scenes', 'hiện trường')}</span>
+            <span class="chip">${selected.characterCount} ${tr('suspects', 'nghi phạm')}</span>
+            <span class="chip">${selected.clueCount} ${tr('clues', 'manh mối')}</span>
           </div>
           <div class="case-actions">
-            <button class="btn btn-primary" id="create-room-submit">Create room</button>
-            <a class="btn btn-ghost" href="#/cases/${encodeURIComponent(selected.caseId)}">Details</a>
+            <button class="btn btn-primary" id="create-room-submit">${tr('Create room', 'Tạo phòng')}</button>
+            <a class="btn btn-ghost" href="#/cases/${encodeURIComponent(selected.caseId)}">${tr('Details', 'Chi tiết')}</a>
           </div>
         </div>
       </div>` : '';
@@ -54,21 +55,21 @@ export async function renderCreateRoomPage(app) {
     <div class="page">
       <div class="page-head">
         <div>
-          <h2>Create Room</h2>
-          <p class="muted">Choose a published case and open a two-player lobby.</p>
+          <h2>${tr('Create Room', 'Tạo phòng')}</h2>
+          <p class="muted">${tr('Choose a published case and open a two-player lobby.', 'Chọn một vụ án đã xuất bản và mở phòng chờ hai người.')}</p>
         </div>
-        <a class="btn btn-ghost" href="#/join">Join with code</a>
+        <a class="btn btn-ghost" href="#/join">${tr('Join with code', 'Vào bằng mã phòng')}</a>
       </div>
 
       ${cases.length === 0
-        ? '<div class="empty-state">No published cases are available. Ask an admin to seed and publish a case first.</div>'
+        ? `<div class="empty-state">${tr('No published cases are available. Ask an admin to publish a case first.', 'Chưa có vụ án được xuất bản. Hãy yêu cầu quản trị viên xuất bản vụ án trước.')}</div>`
         : `<div class="create-room-grid">
             <section>
-              <h3 class="section-title">Published cases</h3>
+              <h3 class="section-title">${tr('Published cases', 'Vụ án đã xuất bản')}</h3>
               <div class="case-select-list">${caseOptions}</div>
             </section>
             <section>
-              <h3 class="section-title">Room preview</h3>
+              <h3 class="section-title">${tr('Room preview', 'Xem trước phòng')}</h3>
               ${preview}
             </section>
           </div>`}

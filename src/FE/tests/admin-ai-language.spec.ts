@@ -3,6 +3,9 @@ import { expect, test } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('sirlocked.token', 'admin-smoke-token');
+    if (!window.localStorage.getItem('sirlocked.uiLanguage')) {
+      window.localStorage.setItem('sirlocked.uiLanguage', 'en');
+    }
     window.localStorage.setItem('sirlocked.user', JSON.stringify({
       userId: 'admin-1',
       fullName: 'Admin Smoke',
@@ -43,6 +46,41 @@ test.beforeEach(async ({ page }) => {
       }),
     });
   });
+});
+
+test('language switch translates the admin dashboard content, not only navigation', async ({ page }) => {
+  await page.route('**/api/admin/dashboard', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          totalUsers: 90,
+          publishedCases: 9,
+          totalCases: 15,
+          activeRooms: 67,
+          totalRooms: 119,
+          wins: 22,
+          losses: 23,
+          totalAiDrafts: 37,
+        },
+      }),
+    });
+  });
+  await page.route('**/api/admin/users', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+  });
+
+  await page.goto('/#/admin');
+  await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible();
+  await expect(page.locator('.stat-grid')).toContainText('9/15 published');
+
+  await page.locator('[data-ui-language="vi"]').click();
+  await expect(page.getByRole('heading', { name: 'Bảng điều khiển quản trị' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tạo và xuất bản vụ án mẫu' })).toBeVisible();
+  await expect(page.locator('.stat-grid')).toContainText('9/15 đã xuất bản');
+  await expect(page.locator('.admin-table thead')).toContainText('Vai trò');
 });
 
 test('failed drafts expose phase-specific retry actions and endpoints', async ({ page }) => {

@@ -6,6 +6,7 @@ import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr, uiLanguage } from '../services/i18n.js';
 import {
   PLAYER_FRAME,
   PLAYER_SHEETS,
@@ -2044,7 +2045,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <span>${escapeHtml(state.currentObjective || scene.description || scene.title)}</span>
         </div>
         <div class="game-players" aria-label="Players">${playersHtml()}</div>
-        ${canAbandon ? '<button id="abandon-game-btn" class="btn btn-ghost btn-sm" type="button">Abandon after reconnect timeout</button>' : ''}
+        ${canAbandon ? `<button id="abandon-game-btn" class="btn btn-ghost btn-sm" type="button">${tr('Abandon after reconnect timeout', 'Rời ván sau thời gian chờ kết nối lại')}</button>` : ''}
       `;
     }
 
@@ -2168,7 +2169,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function playersHtml() {
     return state!.players.map((p) => `
       <span class="chip ${p.userId === me.userId ? 'chip-gold' : ''}" title="${escapeHtml(p.username)}">
-        ${escapeHtml(p.username.split(' ')[0])} / ${p.role === 'INVESTIGATOR' ? 'INV' : 'INT'}${p.isConnected === false ? ' / OFFLINE' : ''}
+        ${escapeHtml(p.username.split(' ')[0])} / ${p.role === 'INVESTIGATOR' ? 'INV' : 'INT'}${p.isConnected === false ? ` / ${tr('OFFLINE', 'MẤT KẾT NỐI')}` : ''}
       </span>`).join('');
   }
 
@@ -2184,7 +2185,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function investigationToolDock() {
     const isInv = myRole() === 'INVESTIGATOR';
     const cameraHtml = isInv ? `
-      <button class="floating-btn camera-tool ${cameraMode ? 'is-hot' : ''}" id="floating-camera-btn" title="Camera (Z)">
+      <button class="floating-btn camera-tool ${cameraMode ? 'is-hot' : ''}" id="floating-camera-btn" title="${tr('Camera', 'Máy ảnh')} (Z)">
         <i data-lucide="camera" aria-hidden="true"></i>
         <span class="hotkey-label">Z</span>
         <span class="camera-badge">${state!.capturedClueIds?.length ?? 0}</span>
@@ -2193,20 +2194,20 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     return `
       <div class="investigation-tool-dock">
-        <button class="floating-btn" id="case-file-btn" title="Case File" aria-label="Case File">
+        <button class="floating-btn" id="case-file-btn" title="${tr('Case File', 'Hồ sơ vụ án')}" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
           <i data-lucide="folder-search"></i>
           <span class="tool-badge">${state!.unlockedClues.length}</span>
         </button>
-        <button class="floating-btn" id="map-btn" title="Locations" aria-label="Locations"><i data-lucide="map"></i></button>
-        <button class="floating-btn" id="hint-btn" title="Request a hint" aria-label="Hint"><i data-lucide="lightbulb"></i></button>
+        <button class="floating-btn" id="map-btn" title="${tr('Locations', 'Địa điểm')}" aria-label="${tr('Locations', 'Địa điểm')}"><i data-lucide="map"></i></button>
+        <button class="floating-btn" id="hint-btn" title="${tr('Request a hint', 'Yêu cầu gợi ý')}" aria-label="${tr('Hint', 'Gợi ý')}"><i data-lucide="lightbulb"></i></button>
         ${cameraHtml}
-        <button class="floating-btn bag-tool ${inventoryOpen ? 'is-open' : ''}" id="floating-bag-btn" title="Inventory (B)">
+        <button class="floating-btn bag-tool ${inventoryOpen ? 'is-open' : ''}" id="floating-bag-btn" title="${tr('Inventory', 'Túi đồ')} (B)">
           <i data-lucide="briefcase" aria-hidden="true"></i>
           <span class="hotkey-label">B</span>
           ${state!.collectedItemIds.length > 0 ? `<span class="camera-badge">${state!.collectedItemIds.length}</span>` : ''}
         </button>
         <button class="floating-btn ${state!.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state!.availableForAccusation ? '' : 'disabled'}
-                title="${state!.availableForAccusation ? 'Make the final accusation' : 'Unlocks once every required piece of evidence has been found'}" aria-label="Accuse">
+                title="${state!.availableForAccusation ? tr('Make the final accusation', 'Đưa ra cáo buộc cuối cùng') : tr('Unlocks once every required piece of evidence has been found', 'Mở khóa khi đã tìm đủ chứng cứ bắt buộc')}" aria-label="${tr('Accuse', 'Cáo buộc')}">
           <i data-lucide="gavel"></i>
         </button>
       </div>
@@ -2267,10 +2268,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return `
       <div class="inventory-drawer">
         <div class="inventory-drawer-header">
-          <span>Bag</span>
-          <button class="btn btn-ghost btn-sm ${combineMode ? 'is-active' : ''}" id="combine-mode-btn">${combineMode ? 'Combining' : 'Combine'}</button>
-          ${combineMode ? `<button class="btn btn-gold btn-sm" id="combine-submit-btn" ${combineSelection.size >= 2 ? '' : 'disabled'}>Use ${combineSelection.size}</button>` : ''}
-          <button class="close-drawer-btn" title="Close (Esc)"><i data-lucide="x"></i></button>
+          <span>${tr('Bag', 'Túi đồ')}</span>
+          <button class="btn btn-ghost btn-sm ${combineMode ? 'is-active' : ''}" id="combine-mode-btn">${combineMode ? tr('Combining', 'Đang kết hợp') : tr('Combine', 'Kết hợp')}</button>
+          ${combineMode ? `<button class="btn btn-gold btn-sm" id="combine-submit-btn" ${combineSelection.size >= 2 ? '' : 'disabled'}>${tr('Use', 'Dùng')} ${combineSelection.size}</button>` : ''}
+          <button class="close-drawer-btn" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button>
         </div>
         <div class="inventory-drawer-grid">
           ${slots.join('')}
@@ -2281,7 +2282,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function introOverlay(role: string | null) {
     if (sessionStorage.getItem(introKey)) return '';
-    const vi = state!.language === 'vi';
+    const vi = uiLanguage() === 'vi';
     const roleGuide = role === 'INVESTIGATOR'
       ? (vi
         ? 'Bạn là Điều tra viên: khám nghiệm hiện trường, kiểm tra vật thể và chụp chứng cứ.'
@@ -2350,45 +2351,45 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const clues = state!.unlockedClues.slice().reverse();
     const tabs = `
       <div class="case-file-tabs">
-        <button class="${tab === 'evidence' ? 'is-active' : ''}" data-case-tab="evidence">Evidence</button>
-        <button class="${tab === 'testimony' ? 'is-active' : ''}" data-case-tab="testimony">Testimony</button>
-        <button class="${tab === 'contradictions' ? 'is-active' : ''}" data-case-tab="contradictions">Contradictions</button>
+        <button class="${tab === 'evidence' ? 'is-active' : ''}" data-case-tab="evidence">${tr('Evidence', 'Chứng cứ')}</button>
+        <button class="${tab === 'testimony' ? 'is-active' : ''}" data-case-tab="testimony">${tr('Testimony', 'Lời khai')}</button>
+        <button class="${tab === 'contradictions' ? 'is-active' : ''}" data-case-tab="contradictions">${tr('Contradictions', 'Mâu thuẫn')}</button>
       </div>`;
     const content = tab === 'evidence'
       ? (clues.length === 0
-        ? '<div class="empty-state small">No evidence has been collected yet.</div>'
+        ? `<div class="empty-state small">${tr('No evidence has been collected yet.', 'Chưa thu thập được chứng cứ nào.')}</div>`
         : `<div class="case-file-grid">${clues.map((c) => `
             <article class="clue-card ${c.isEvidence ? 'clue-evidence' : ''}">
               ${evidencePhotoMarkup(c, 'clue-photo')}
-              <div class="clue-head"><strong>${escapeHtml(c.title)}</strong>${c.isEvidence ? '<span class="chip chip-gold">EVIDENCE</span>' : ''}</div>
+              <div class="clue-head"><strong>${escapeHtml(c.title)}</strong>${c.isEvidence ? `<span class="chip chip-gold">${tr('EVIDENCE', 'CHỨNG CỨ')}</span>` : ''}</div>
               <p>${escapeHtml(c.content)}</p>
             </article>`).join('')}</div>`)
       : tab === 'testimony'
         ? (state!.testimonies.length === 0
-          ? '<div class="empty-state small">No testimony has been recorded yet.</div>'
+          ? `<div class="empty-state small">${tr('No testimony has been recorded yet.', 'Chưa ghi nhận lời khai nào.')}</div>`
           : `<div class="notebook-list">${state!.testimonies.map((entry) => `
               <article><strong>${escapeHtml(entry.characterName)}</strong><p>${escapeHtml(entry.question)}</p><blockquote>${escapeHtml(entry.answer)}</blockquote></article>`).join('')}</div>`)
         : `<div class="notebook-list">
-            ${state!.resolvedConfrontations.length === 0 ? '<div class="empty-state small">No contradictions have been exposed yet.</div>' : state!.resolvedConfrontations.map((record) => `
+            ${state!.resolvedConfrontations.length === 0 ? `<div class="empty-state small">${tr('No contradictions have been exposed yet.', 'Chưa phát hiện mâu thuẫn nào.')}</div>` : state!.resolvedConfrontations.map((record) => `
               <article><strong>${escapeHtml(record.prompt)}</strong><p>${escapeHtml(record.evidenceTitle)}</p><blockquote>${escapeHtml(record.resolution)}</blockquote></article>`).join('')}
             ${state!.deductions.map((deduction) => `
               <article class="deduction-card ${deduction.isSolved ? 'is-solved' : deduction.isAvailable ? 'is-available' : 'is-locked'}">
-                <div class="clue-head"><strong>${escapeHtml(deduction.prompt)}</strong><span class="chip">${deduction.isSolved ? 'SOLVED' : deduction.isAvailable ? 'READY' : 'LOCKED'}</span></div>
+                <div class="clue-head"><strong>${escapeHtml(deduction.prompt)}</strong><span class="chip">${deduction.isSolved ? tr('SOLVED', 'ĐÃ GIẢI') : deduction.isAvailable ? tr('READY', 'SẴN SÀNG') : tr('LOCKED', 'ĐANG KHÓA')}</span></div>
                 ${deduction.isSolved
                   ? `<blockquote>${escapeHtml(deduction.resolution ?? '')}</blockquote>`
                   : deduction.isAvailable
                     ? `<div class="deduction-options">${deduction.options.map((option) => `<button class="btn btn-ghost" data-solve-deduction="${escapeHtml(deduction.deductionId)}" data-option="${escapeHtml(option.id)}">${escapeHtml(option.label)}</button>`).join('')}</div>
-                       <button class="btn btn-ghost" data-deduction-hint="${escapeHtml(deduction.deductionId)}">Hint</button>`
-                    : `<p class="muted">Missing ${deduction.missingClueIds.length} clue(s) and ${deduction.missingChallengeIds.length} contradiction(s).</p>`}
+                       <button class="btn btn-ghost" data-deduction-hint="${escapeHtml(deduction.deductionId)}">${tr('Hint', 'Gợi ý')}</button>`
+                    : `<p class="muted">${tr('Missing', 'Còn thiếu')} ${deduction.missingClueIds.length} ${tr('clue(s) and', 'manh mối và')} ${deduction.missingChallengeIds.length} ${tr('contradiction(s).', 'mâu thuẫn.')}</p>`}
               </article>`).join('')}
           </div>`;
     return `
     <div class="overlay">
       <div class="modal modal-wide case-file-modal">
-        <h2>Case File</h2>
+        <h2>${tr('Case File', 'Hồ sơ vụ án')}</h2>
         ${tabs}
         ${content}
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
@@ -2397,15 +2398,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return `
     <div class="overlay">
       <div class="modal">
-        <h2>Investigation Map</h2>
-        <p class="muted">Move through places the investigation has already opened.</p>
+        <h2>${tr('Investigation Map', 'Bản đồ điều tra')}</h2>
+        <p class="muted">${tr('Move through places the investigation has already opened.', 'Di chuyển giữa các địa điểm đã được mở trong quá trình điều tra.')}</p>
         <div class="map-list">${state!.sceneMap.map((s) => `
           <button class="map-entry ${s.isCurrent ? 'is-current' : ''} ${s.isCompleted ? 'is-done' : ''}"
                   data-scene="${escapeHtml(s.sceneId)}" ${(s.isVisited || s.isUnlocked) && !s.isCurrent ? '' : 'disabled'}>
-            <span>${s.isCompleted ? 'Done' : s.isCurrent ? 'Here' : s.isVisited || s.isUnlocked ? 'Open' : 'Locked'}</span>
-            <span>${s.isVisited || s.isUnlocked ? escapeHtml(s.title) : 'Unknown location'}${!s.isCompleted && (s.isVisited || s.isUnlocked) && s.pendingRequirementCount > 0 ? ` <em class="muted small">· ${s.pendingRequirementCount} left</em>` : ''}</span>
+            <span>${s.isCompleted ? tr('Done', 'Hoàn tất') : s.isCurrent ? tr('Here', 'Hiện tại') : s.isVisited || s.isUnlocked ? tr('Open', 'Đã mở') : tr('Locked', 'Đang khóa')}</span>
+            <span>${s.isVisited || s.isUnlocked ? escapeHtml(s.title) : tr('Unknown location', 'Địa điểm chưa biết')}${!s.isCompleted && (s.isVisited || s.isUnlocked) && s.pendingRequirementCount > 0 ? ` <em class="muted small">· ${s.pendingRequirementCount} ${tr('left', 'còn lại')}</em>` : ''}</span>
           </button>`).join('')}</div>
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
@@ -2414,15 +2415,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return `
     <div class="overlay">
       <div class="modal">
-        <h2>Co-op Log</h2>
+        <h2>${tr('Co-op Log', 'Nhật ký phối hợp')}</h2>
         ${state!.actionLog.length === 0
-          ? '<div class="empty-state small">Nothing logged yet.</div>'
+          ? `<div class="empty-state small">${tr('Nothing logged yet.', 'Chưa có hoạt động nào được ghi lại.')}</div>`
           : `<div class="log-list">${state!.actionLog.slice().reverse().map((l) => `
               <div class="log-entry">
                 <span class="log-time">${new Date(l.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 <span>${escapeHtml(l.message)}</span>
               </div>`).join('')}</div>`}
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
@@ -2790,7 +2791,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     if (v2) {
       const config = state!.accusationConfig!;
-      const steps = ['Suspect', 'Motive', 'Method', 'Evidence', 'Review'];
+      const steps = [tr('Suspect', 'Nghi phạm'), tr('Motive', 'Động cơ'), tr('Method', 'Phương thức'), tr('Evidence', 'Chứng cứ'), tr('Review', 'Xem lại')];
       const header = `<div class="accusation-steps">${steps.map((label, index) => `<span class="${accusation!.step === index + 1 ? 'is-active' : ''}">${label}</span>`).join('')}</div>`;
       let body = '';
       let canContinue = false;
@@ -2816,7 +2817,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               ${evidence.map((clue) => `<option value="${escapeHtml(clue.clueId)}" ${accusation!.evidenceLinks[claim] === clue.clueId ? 'selected' : ''}>${escapeHtml(clue.title)}</option>`).join('')}
             </select>
           </label>`).join('')}</div>
-          ${Object.values(accusation.evidenceLinks).filter(Boolean).length === config.claimTypes.length && !canContinue ? '<p class="notice">Each claim must use different evidence.</p>' : ''}`;
+          ${Object.values(accusation.evidenceLinks).filter(Boolean).length === config.claimTypes.length && !canContinue ? `<p class="notice">${tr('Each claim must use different evidence.', 'Mỗi luận điểm phải dùng chứng cứ khác nhau.')}</p>` : ''}`;
       } else {
         const culprit = state!.suspects.find((suspect) => suspect.characterId === accusation!.culpritId);
         const motive = config.motiveOptions.find((option) => option.id === accusation!.motiveId);
@@ -2832,11 +2833,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       }
 
       return `<div class="overlay"><div class="modal modal-wide">
-        <h2>Final Accusation</h2>${header}${body}
+        <h2>${tr('Final Accusation', 'Cáo buộc cuối cùng')}</h2>${header}${body}
         <div class="modal-actions">
           ${accusation.step === 1 ? '<button class="btn btn-ghost" id="accuse-cancel">Not yet</button>' : '<button class="btn btn-ghost" id="accuse-back">Back</button>'}
           ${accusation.step < 5
-            ? `<button class="btn btn-gold" id="accuse-next" ${canContinue ? '' : 'disabled'}>Continue</button>`
+            ? `<button class="btn btn-gold" id="accuse-next" ${canContinue ? '' : 'disabled'}>${tr('Continue', 'Tiếp tục')}</button>`
             : '<button class="btn btn-gold" id="accuse-confirm">Make accusation</button>'}
         </div>
       </div></div>`;
@@ -2846,9 +2847,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       return `
       <div class="overlay">
         <div class="modal modal-wide">
-          <h2>Final Accusation</h2>
+          <h2>${tr('Final Accusation', 'Cáo buộc cuối cùng')}</h2>
           <p class="muted">Choose the culprit and the evidence. A wrong accusation ends the case.</p>
-          <h3 class="section-title">Suspects</h3>
+          <h3 class="section-title">${tr('Suspects', 'Nghi phạm')}</h3>
           <div class="suspect-grid">${state!.suspects.map((sus) => `
             <button class="suspect-card ${accusation!.culpritId === sus.characterId ? 'is-selected' : ''}" data-suspect="${escapeHtml(sus.characterId)}">
               <span class="char-avatar" style="${placeholderStyle(sus.characterId)}">
@@ -2858,9 +2859,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               <strong>${escapeHtml(sus.name)}</strong>
               <span class="muted small">${escapeHtml(sus.role)}</span>
             </button>`).join('')}</div>
-          <h3 class="section-title">Evidence</h3>
+          <h3 class="section-title">${tr('Evidence', 'Chứng cứ')}</h3>
           <div class="evidence-list">${evidence.length === 0
-            ? '<div class="empty-state small">No evidence-grade clues unlocked yet.</div>'
+            ? `<div class="empty-state small">${tr('No evidence-grade clues unlocked yet.', 'Chưa mở khóa manh mối đủ giá trị làm chứng cứ.')}</div>`
             : evidence.map((c) => `
               <label class="evidence-row">
                 <input type="checkbox" data-evidence="${escapeHtml(c.clueId)}" ${accusation!.evidenceIds.has(c.clueId) ? 'checked' : ''}>
@@ -2880,9 +2881,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return `
     <div class="overlay">
       <div class="modal">
-        <h2>Confirm the accusation</h2>
+        <h2>${tr('Confirm the accusation', 'Xác nhận cáo buộc')}</h2>
         <p>You are about to accuse <strong>${escapeHtml(culprit?.name ?? '')}</strong> with ${chosen.length} evidence clue(s).</p>
-        <ul class="review-list">${chosen.map((c) => `<li>${escapeHtml(c.title)}</li>`).join('') || '<li class="muted">No evidence selected</li>'}</ul>
+        <ul class="review-list">${chosen.map((c) => `<li>${escapeHtml(c.title)}</li>`).join('') || `<li class="muted">${tr('No evidence selected', 'Chưa chọn chứng cứ')}</li>`}</ul>
         <div class="modal-actions">
           <button class="btn btn-ghost" id="accuse-back">Go back</button>
           <button class="btn btn-gold" id="accuse-confirm">Accuse ${escapeHtml(culprit?.name ?? '')}</button>

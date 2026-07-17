@@ -2,6 +2,7 @@ import { aiCaseApi } from '../api/aiCaseApi.js';
 import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { tr } from '../services/i18n.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_FULL_LOGIC_AWAITING_APPROVAL = 'FULL_LOGIC_AWAITING_APPROVAL';
@@ -186,10 +187,10 @@ export async function renderAdminAiPage(app) {
       <td><span class="chip">${escapeHtml(preset)}</span><br><span class="muted small">${escapeHtml(language)}</span></td>
       <td><span class="chip ${isSuccessStatus(d.status) ? 'chip-ok' : 'chip-bad'}">${escapeHtml(d.status)}</span></td>
       <td>
-        <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">View</button>
+        <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">${tr('View', 'Xem')}</button>
         ${continueButton(d)}
         ${d.status === STATUS_PUBLISHED || d.importedCaseId
-          ? `<a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">Open case</a>`
+          ? `<a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
           : ''}
       </td>
     </tr>`;
@@ -198,31 +199,31 @@ export async function renderAdminAiPage(app) {
   function draw(activeDraft = null) {
     render(app, `
     <div class="page">
-      <h2>AI Case Creator</h2>
-      <p class="muted">Create rooms with natural camera evidence; NPC and interactive item sprites are placed afterwards.</p>
+      <h2>${tr('AI Case Creator', 'Tạo vụ án bằng AI')}</h2>
+      <p class="muted">${tr('Create rooms with natural camera evidence; NPC and interactive item sprites are placed afterwards.', 'Tạo vụ án với chứng cứ ảnh tự nhiên; NPC và vật phẩm tương tác sẽ được bố trí sau.')}</p>
 
       <div class="ai-quick-create">
         <label class="ai-preset-field">
-          <span>Generation preset</span>
+          <span>${tr('Generation preset', 'Cấu hình tạo')}</span>
           <select class="field-input" id="ai-preset-select">
             ${Object.entries(PRESETS).map(([value, preset]) => `<option value="${value}">${escapeHtml(preset.label)}</option>`).join('')}
           </select>
         </label>
         <label class="ai-preset-field ai-language-field">
-          <span>Case language / Ngôn ngữ nội dung</span>
+          <span>${tr('Case language', 'Ngôn ngữ nội dung vụ án')}</span>
           <select class="field-input" id="ai-language-select">
             <option value="en" ${selectedLanguage === 'en' ? 'selected' : ''}>English</option>
             <option value="vi" ${selectedLanguage === 'vi' ? 'selected' : ''}>Tiếng Việt</option>
           </select>
           <small class="muted">Áp dụng cho tiêu đề, cốt truyện, manh mối, hội thoại và kết thúc.</small>
         </label>
-        <button class="btn btn-gold" type="button" id="quick-create-btn">Create new case</button>
+        <button class="btn btn-gold" type="button" id="quick-create-btn">${tr('Create new case', 'Tạo vụ án mới')}</button>
         <span class="muted small" id="ai-preset-help">${escapeHtml(PRESETS.NORMAL_RANDOM.description)}</span>
       </div>
 
       <section class="generation-progress" id="generation-progress" hidden aria-live="polite">
         <div class="generation-progress-heading">
-          <strong id="generation-progress-title">Preparing...</strong>
+          <strong id="generation-progress-title">${tr('Preparing...', 'Đang chuẩn bị...')}</strong>
           <span id="generation-progress-percent">0%</span>
         </div>
         <div class="generation-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -233,13 +234,13 @@ export async function renderAdminAiPage(app) {
 
       <div id="ai-output">${activeDraft ? draftDetail(activeDraft) : ''}</div>
 
-      ${canManageDrafts ? '<h3 class="section-title">Recent AI drafts</h3>' : ''}
+      ${canManageDrafts ? `<h3 class="section-title">${tr('Recent AI drafts', 'Bản nháp AI gần đây')}</h3>` : ''}
       ${!canManageDrafts
         ? ''
         : drafts.length === 0
-        ? '<div class="empty-state small">No drafts yet.</div>'
+        ? `<div class="empty-state small">${tr('No drafts yet.', 'Chưa có bản nháp.')}</div>`
         : `<table class="admin-table">
-            <thead><tr><th>Draft</th><th>Provider</th><th>Preset</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>${tr('Draft', 'Bản nháp')}</th><th>${tr('Provider', 'Nhà cung cấp')}</th><th>${tr('Preset', 'Cấu hình')}</th><th>${tr('Status', 'Trạng thái')}</th><th></th></tr></thead>
             <tbody>${drafts.map(draftRow).join('')}</tbody>
           </table>`}
     </div>`);
