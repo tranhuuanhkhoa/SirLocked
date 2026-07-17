@@ -12,6 +12,7 @@ namespace SirLocked.Api.Services;
 public class RoomService : IRoomService
 {
     public const int MaxPlayers = 2;
+    public static readonly TimeSpan DisconnectGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly MongoDbContext _db;
     private readonly ICaseService _caseService;
@@ -206,6 +207,44 @@ public class RoomService : IRoomService
             await _notifier.RolesUpdated(roomId, user.Id, response);
             return response;
         }
+    }
+
+    public async Task<RoomResponse> AbandonAsync(CurrentUser user, string roomId)
+    {
+        var room = await RequireRoomAsync(roomId);
+        if (room.HostUserId != user.Id)
+            throw ApiException.Forbidden("Only the host can abandon an interrupted game.");
+        if (room.Status != RoomStatus.InProgress || room.GameplayState is null)
+            throw ApiException.BadRequest("Only a game in progress can be abandoned.");
+
+        var teammate = room.Players.FirstOrDefault(player => player.UserId != user.Id)
+            ?? throw ApiException.BadRequest("There is no teammate in this game.");
+        var now = DateTime.UtcNow;
+        if (!RoomRecoveryRules.CanAbandon(teammate, now, DisconnectGracePeriod))
+            throw ApiException.Conflict("Wait 30 seconds for your teammate to reconnect before abandoning the game.");
+
+        var result = await _db.Rooms.UpdateOneAsync(
+            candidate => candidate.Id == roomId
+                && candidate.HostUserId == user.Id
+                && candidate.Status == RoomStatus.InProgress
+                && candidate.GameplayState!.Version == room.GameplayState.Version,
+            Builders<GameRoom>.Update
+                .Set(candidate => candidate.Status, RoomStatus.Abandoned)
+                .Set(candidate => candidate.GameplayState!.GameStatus, GameStatus.Failed)
+                .Set(candidate => candidate.GameplayState!.CompletedAt, now)
+                .Set(candidate => candidate.GameplayState!.UpdatedAt, now)
+                .Set(candidate => candidate.UpdatedAt, now)
+                .Inc(candidate => candidate.GameplayState!.Version, 1));
+        if (result.ModifiedCount != 1)
+            throw ApiException.Conflict("The room changed; refresh before abandoning.");
+
+        room.Status = RoomStatus.Abandoned;
+        room.GameplayState.GameStatus = GameStatus.Failed;
+        room.GameplayState.CompletedAt = now;
+        room.GameplayState.Version++;
+        await _notifier.SystemMessage(roomId, "The host abandoned the game after the reconnect grace period expired.");
+        var gameCase = await _caseService.GetCaseAsync(room.CaseId);
+        return RoomResponse.From(room, gameCase.Title);
     }
 
     public async Task<RoomResponse> SetReadyAsync(CurrentUser user, string roomId, bool isReady)

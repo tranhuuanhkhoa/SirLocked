@@ -51,6 +51,8 @@ public class DetectiveProfileDto
     public string UserId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public bool IsEmailVerified { get; set; }
+    public bool HasPassword { get; set; }
 
     /// <summary>Distinct cases the user has won at least once.</summary>
     public int CasesSolved { get; set; }

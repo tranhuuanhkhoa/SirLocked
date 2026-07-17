@@ -7,7 +7,6 @@ import { renderCaseDetailPage } from './pages/caseDetailPage.js';
 import { renderCreateRoomPage } from './pages/createRoomPage.js';
 import { renderJoinRoomPage } from './pages/joinRoomPage.js';
 import { renderLobbyPage } from './pages/lobbyPage.js';
-import { renderGamePage } from './pages/gamePage.ts';
 import { renderResultPage } from './pages/resultPage.js';
 import { renderWorkshopPage } from './pages/workshopPage.js';
 import { renderWorkshopCasePage } from './pages/workshopCasePage.js';
@@ -38,7 +37,12 @@ const routes = [
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
   { pattern: /^#\/join$/, page: renderJoinRoomPage, requiresVerified: true },
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true },
-  { pattern: /^#\/game\/([^/]+)$/, page: renderGamePage, requiresVerified: true },
+  {
+    pattern: /^#\/game\/([^/]+)$/,
+    page: async (...args) => (await import('./pages/gamePage.ts')).renderGamePage(...args),
+    requiresVerified: true,
+    game: true,
+  },
   { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
   { pattern: /^#\/detective$/, page: renderDetectivePage },
   { pattern: /^#\/detective\/([^/]+)$/, page: renderDetectivePage },
@@ -146,7 +150,7 @@ async function route() {
     return;
   }
 
-  document.body.classList.toggle('game-page-active', r.page === renderGamePage);
+  document.body.classList.toggle('game-page-active', r.game === true);
   renderNav();
   cleanup = await r.page(app, ...m.slice(1));
 }

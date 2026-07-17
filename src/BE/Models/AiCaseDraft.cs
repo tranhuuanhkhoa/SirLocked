@@ -136,6 +136,11 @@ public class AiCaseDraft
     public string FailurePhase { get; set; } = AiFailurePhases.None;
     public List<string> FailedAssetIds { get; set; } = new();
     public List<AiGenerationAttempt> GenerationAttempts { get; set; } = new();
+    /// <summary>Identifies the single generation run that atomically claimed this draft.</summary>
+    public string GenerationRunId { get; set; } = string.Empty;
+    public string GenerationPhase { get; set; } = string.Empty;
+    public int GenerationProgress { get; set; }
+    public DateTime? GenerationClaimedAt { get; set; }
     /// <summary>Set when the draft has been imported into gameCases.</summary>
     public string? ImportedCaseId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

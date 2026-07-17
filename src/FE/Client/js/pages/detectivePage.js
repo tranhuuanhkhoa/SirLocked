@@ -118,7 +118,7 @@ export async function renderDetectivePage(app, userIdParam) {
         <span style="color:#7ecf7e;font-size:13px">Email đã được xác minh</span>
       </div>` : ''}
 
-    ${isOwnProfile ? `
+    ${isOwnProfile && profile.hasPassword ? `
       <h3 class="section-title">Đổi mật khẩu</h3>
       <form id="form-change-password" class="auth-form" style="max-width:420px">
         <label class="field-label">Mật khẩu hiện tại

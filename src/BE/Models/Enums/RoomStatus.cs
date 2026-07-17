@@ -6,6 +6,7 @@ public static class RoomStatus
     public const string Ready = "READY";
     public const string InProgress = "IN_PROGRESS";
     public const string Completed = "COMPLETED";
+    public const string Abandoned = "ABANDONED";
 }
 
 public static class PlayerRole

@@ -49,6 +49,8 @@ public class ProfileService : IProfileService
         }
 
         var profile = BuildProfile(user.Id, user.FullName, user.Role, results, roomsById);
+        profile.IsEmailVerified = user.IsEmailVerified;
+        profile.HasPassword = !string.IsNullOrWhiteSpace(user.PasswordHash);
         profile.CreatorStats = await GetCreatorStatsAsync(userId, ct);
         return profile;
     }

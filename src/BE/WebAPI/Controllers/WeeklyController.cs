@@ -25,7 +25,7 @@ public class WeeklyController : BaseApiController
 
     [HttpGet("challenge")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<WeeklyFeatureDto?>>> Challenge() =>
+    public async Task<ActionResult<ApiResponse<WeeklyFeatureDto?>>> GetChallenge() =>
         Ok(await _weekly.GetActiveChallengeAsync());
 
     [HttpGet("challenge/leaderboard")]

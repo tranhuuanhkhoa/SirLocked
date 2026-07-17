@@ -211,6 +211,8 @@ public class AuthService : IAuthService
             .Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(request.NewPassword))
             .Set(u => u.ResetPasswordToken, null)
             .Set(u => u.ResetPasswordTokenExpiry, null)
+            .Set(u => u.RefreshToken, null)
+            .Set(u => u.RefreshTokenExpiry, null)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
     }
@@ -265,6 +267,9 @@ public class AuthService : IAuthService
         var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("User not found.");
 
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            throw ApiException.BadRequest("This account uses Google sign-in and does not have a local password.");
+
         if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             throw ApiException.BadRequest("Current password is incorrect.");
 
@@ -274,6 +279,8 @@ public class AuthService : IAuthService
         var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         var update = Builders<User>.Update
             .Set(u => u.PasswordHash, newHash)
+            .Set(u => u.RefreshToken, null)
+            .Set(u => u.RefreshTokenExpiry, null)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
 
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
@@ -348,6 +355,7 @@ public class AuthService : IAuthService
         Role = user.Role,
         Status = user.Status,
         IsEmailVerified = user.IsEmailVerified,
+        HasPassword = !string.IsNullOrWhiteSpace(user.PasswordHash),
         CreatedAt = user.CreatedAt
     };
 

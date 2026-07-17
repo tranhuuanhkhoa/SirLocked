@@ -5,15 +5,17 @@ const roomId = 'smoke-room';
 const smokeState = {
   roomId,
   roomCode: 'SMOKE1',
+  hostUserId: 'player-1',
   caseTitle: 'Smoke Case',
   caseSummary: 'A deterministic UI smoke case.',
+  language: 'en',
   mechanicsVersion: 2,
   roomStatus: 'IN_PROGRESS',
   currentSceneId: 'scene-smoke',
   version: 1,
   players: [
-    { userId: 'player-1', username: 'Smoke Player', role: 'INVESTIGATOR' },
-    { userId: 'player-2', username: 'Partner', role: 'INTERROGATOR' },
+    { userId: 'player-1', username: 'Smoke Player', role: 'INVESTIGATOR', isConnected: true },
+    { userId: 'player-2', username: 'Partner', role: 'INTERROGATOR', isConnected: true },
   ],
   visibleScene: {
     sceneId: 'scene-smoke',
@@ -282,6 +284,61 @@ test('locked authored scenes stay hidden until Continue applies server movement'
   await page.locator('#map-btn').click();
   await expect(page.locator('.map-entry').filter({ hasText: 'Unlocked Hall' })).toHaveCount(1);
   await expect(page.locator('.map-entry:disabled').filter({ hasText: 'Unknown location' })).toHaveCount(1);
+});
+
+test('two-player presence recovers and version events coalesce to one state refetch', async ({ page }) => {
+  let stateRequests = 0;
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
+    stateRequests++;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: stateRequests === 1 ? smokeState : progressedState }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`/#/game/${roomId}`);
+  await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner / INT');
+
+  await page.evaluate(() => {
+    const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
+    emit('PlayerPresenceChanged', { userId: 'player-2', isConnected: false });
+  });
+  await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner / INT / OFFLINE');
+  await expect(page.locator('#abandon-game-btn')).toBeVisible();
+
+  await page.evaluate(() => {
+    const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
+    emit('GameStateUpdated', { version: 2 });
+    emit('GameStateUpdated', { version: 2 });
+    emit('GameStateUpdated', { version: 2 });
+  });
+
+  await expect(page.locator('#game-hud-slot .game-objective')).toContainText('Investigate the unlocked hall.');
+  expect(stateRequests).toBe(2);
+
+  await page.evaluate(() => {
+    const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
+    emit('PlayerPresenceChanged', { userId: 'player-2', isConnected: true });
+  });
+  await expect(page.locator('#game-hud-slot .game-players')).not.toContainText('OFFLINE');
+});
+
+test('PC game shell fits supported desktop resolutions', async ({ page }) => {
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 1536, height: 864 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto(`/#/game/${roomId}`);
+    await expect(page.locator('canvas').first()).toBeVisible();
+    const hasHorizontalOverflow = await page.evaluate(() =>
+      document.documentElement.scrollWidth > window.innerWidth + 1);
+    expect(hasHorizontalOverflow).toBe(false);
+  }
 });
 
 async function canvasHasNonBlankPixels(canvas: Locator) {

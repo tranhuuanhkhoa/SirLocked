@@ -32,13 +32,19 @@ public class RoomPlayerDto
     public string Username { get; set; } = string.Empty;
     public string? Role { get; set; }
     public bool IsReady { get; set; }
+    public bool IsConnected { get; set; }
+    public DateTime? LastConnectedAt { get; set; }
+    public DateTime? DisconnectedAt { get; set; }
 
     public static RoomPlayerDto From(RoomPlayer p) => new()
     {
         UserId = p.UserId,
         Username = p.Username,
         Role = p.Role,
-        IsReady = p.IsReady
+        IsReady = p.IsReady,
+        IsConnected = p.IsConnected,
+        LastConnectedAt = p.LastConnectedAt,
+        DisconnectedAt = p.DisconnectedAt
     };
 }
 

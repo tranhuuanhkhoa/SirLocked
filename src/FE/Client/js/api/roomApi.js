@@ -8,4 +8,5 @@ export const roomApi = {
   selectRole: (roomId, role) => post(`/api/rooms/${roomId}/select-role`, { role }),
   ready: (roomId, isReady) => post(`/api/rooms/${roomId}/ready`, { isReady }),
   start: (roomId) => post(`/api/rooms/${roomId}/start`),
+  abandon: (roomId) => post(`/api/rooms/${roomId}/abandon`),
 };

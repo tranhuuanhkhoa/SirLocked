@@ -80,7 +80,10 @@ public class CaseValidationServiceTests
             "ai-game-docs", "generated-cases", "blackglass-v5-vi.json"
         });
 
-        var result = _validator.ValidateFullLogic(gameCase);
+        // The checked-in localized artifact is the deterministic logic source. Hydrate a minimal
+        // publish/runtime layout so the same Vietnamese graph is exercised by full validation.
+        AddPlayableRuntime(gameCase);
+        var result = _validator.Validate(gameCase);
         var generationResult = AiGenerationContract.For(AiGenerationPresets.FullFeature, 6)
             .Validate(gameCase, new AiDraftSettings
             {
@@ -933,6 +936,48 @@ public class CaseValidationServiceTests
         };
         c.Clues.Add(clue);
         return clue;
+    }
+
+    private static void AddPlayableRuntime(GameCase gameCase)
+    {
+        foreach (var scene in gameCase.Stages.SelectMany(stage => stage.Scenes))
+        {
+            scene.Runtime = new SceneRuntime
+            {
+                Width = 1600,
+                Height = 900,
+                FloorY = 720,
+                WalkableArea = new RuntimeBox { X = 80, Y = 620, Width = 1440, Height = 180 },
+                SpawnPoints = new Dictionary<string, SpawnPoint>
+                {
+                    ["default"] = new() { X = 600, Y = 720, Direction = "right" }
+                },
+                CameraRules = new CameraRules
+                {
+                    CaptureRectWidth = 180,
+                    CaptureRectHeight = 140,
+                    MinClueCoverage = 0.45,
+                    NearMissCoverage = 0.22,
+                    RequireCaptureCenterInside = true
+                }
+            };
+
+            foreach (var clue in gameCase.Clues.Where(clue =>
+                         clue.SceneId == scene.SceneId
+                         && clue.DiscoverMethod.Equals("camera", StringComparison.OrdinalIgnoreCase)))
+            {
+                scene.Runtime.ClueZones.Add(new ClueZone
+                {
+                    ClueId = clue.ClueId,
+                    Label = clue.Title,
+                    Bounds = new RuntimeBox { X = 700, Y = 260, Width = 160, Height = 120 },
+                    DetectionStatus = "FOUND",
+                    Confidence = 0.95,
+                    Source = "regression-fixture",
+                    IsFallback = false
+                });
+            }
+        }
     }
 
     private static void EnableV5VisualContract(GameCase c)

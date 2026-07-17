@@ -10,6 +10,7 @@ namespace SirLocked.Api.WebAPI.Hubs;
 [Authorize]
 public class GameHub : Hub
 {
+    private static readonly TimeSpan ReconnectGracePeriod = TimeSpan.FromSeconds(30);
     private readonly MongoDbContext _db;
 
     public GameHub(MongoDbContext db) => _db = db;
@@ -31,6 +32,16 @@ public class GameHub : Hub
         Context.Items[RoomPlayerItemKey(roomId)] = player;
         JoinedRooms().Add(roomId);
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomId));
+        var connectedAt = DateTime.UtcNow;
+        await SetPresenceAsync(roomId, userId!, true, connectedAt);
+        await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
+        {
+            roomId,
+            userId,
+            isConnected = true,
+            changedAt = connectedAt,
+            graceEndsAt = (DateTime?)null
+        });
     }
 
     public async Task LeaveRoom(string roomId)
@@ -49,10 +60,21 @@ public class GameHub : Hub
     {
         foreach (var roomId in JoinedRooms())
         {
+            var disconnectedAt = DateTime.UtcNow;
+            if (!string.IsNullOrWhiteSpace(Context.UserIdentifier))
+                await SetPresenceAsync(roomId, Context.UserIdentifier, false, disconnectedAt);
             await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseLeft", new
             {
                 roomId,
                 userId = Context.UserIdentifier
+            });
+            await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
+            {
+                roomId,
+                userId = Context.UserIdentifier,
+                isConnected = false,
+                changedAt = disconnectedAt,
+                graceEndsAt = disconnectedAt.Add(ReconnectGracePeriod)
             });
         }
 
@@ -108,6 +130,21 @@ public class GameHub : Hub
     }
 
     private static string RoomPlayerItemKey(string roomId) => $"room-player:{roomId}";
+
+    private Task SetPresenceAsync(string roomId, string userId, bool connected, DateTime changedAt)
+    {
+        var update = connected
+            ? Builders<GameRoom>.Update
+                .Set("Players.$.IsConnected", true)
+                .Set("Players.$.LastConnectedAt", changedAt)
+                .Unset("Players.$.DisconnectedAt")
+            : Builders<GameRoom>.Update
+                .Set("Players.$.IsConnected", false)
+                .Set("Players.$.DisconnectedAt", changedAt);
+        return _db.Rooms.UpdateOneAsync(
+            room => room.Id == roomId && room.Players.Any(player => player.UserId == userId),
+            update);
+    }
 
     private HashSet<string> JoinedRooms()
     {

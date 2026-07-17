@@ -12,4 +12,5 @@ public interface IRoomService
     Task<RoomResponse> SelectRoleAsync(CurrentUser user, string roomId, string role);
     Task<RoomResponse> SetReadyAsync(CurrentUser user, string roomId, bool isReady);
     Task<RoomResponse> StartAsync(CurrentUser user, string roomId);
+    Task<RoomResponse> AbandonAsync(CurrentUser user, string roomId);
 }

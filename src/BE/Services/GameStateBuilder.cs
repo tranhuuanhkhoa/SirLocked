@@ -113,6 +113,7 @@ public class GameStateBuilder : IGameStateBuilder
         {
             RoomId = room.Id,
             RoomCode = room.RoomCode,
+            HostUserId = room.HostUserId,
             CaseId = gameCase.CaseId,
             CaseTitle = gameCase.Title,
             CaseSummary = gameCase.Summary,

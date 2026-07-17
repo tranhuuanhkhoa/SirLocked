@@ -34,6 +34,9 @@ public class RoomPlayer
     /// <summary>INVESTIGATOR or INTERROGATOR; null until selected.</summary>
     public string? Role { get; set; }
     public bool IsReady { get; set; }
+    public bool IsConnected { get; set; }
+    public DateTime? LastConnectedAt { get; set; }
+    public DateTime? DisconnectedAt { get; set; }
 }
 
 [BsonIgnoreExtraElements]

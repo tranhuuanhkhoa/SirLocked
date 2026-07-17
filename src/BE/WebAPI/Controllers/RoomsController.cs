@@ -41,4 +41,8 @@ public class RoomsController : BaseApiController
     [HttpPost("{roomId}/start")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Start(string roomId) =>
         Ok(await _roomService.StartAsync(Caller, roomId), "Game started.");
+
+    [HttpPost("{roomId}/abandon")]
+    public async Task<ActionResult<ApiResponse<RoomResponse>>> Abandon(string roomId) =>
+        Ok(await _roomService.AbandonAsync(Caller, roomId), "Game abandoned.");
 }

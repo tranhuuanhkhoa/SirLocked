@@ -61,6 +61,10 @@ public class AiDraftResponse
     public string FailurePhase { get; set; } = AiFailurePhases.None;
     public List<string> FailedAssetIds { get; set; } = new();
     public List<AiGenerationAttemptSummary> GenerationAttempts { get; set; } = new();
+    public string GenerationRunId { get; set; } = string.Empty;
+    public string GenerationPhase { get; set; } = string.Empty;
+    public int GenerationProgress { get; set; }
+    public DateTime? GenerationClaimedAt { get; set; }
     public AiCostReport CostReport { get; set; } = new();
     public string? ImportedCaseId { get; set; }
     public CaseSummaryResponse? PublishedCase { get; set; }
@@ -96,6 +100,10 @@ public class AiDraftResponse
         FailurePhase = d.FailurePhase,
         FailedAssetIds = d.FailedAssetIds,
         GenerationAttempts = d.GenerationAttempts.Select(AiGenerationAttemptSummary.From).ToList(),
+        GenerationRunId = d.GenerationRunId,
+        GenerationPhase = d.GenerationPhase,
+        GenerationProgress = d.GenerationProgress,
+        GenerationClaimedAt = d.GenerationClaimedAt,
         CostReport = new AiCostReport
         {
             DryRun = d.PlannedCalls.Any(call => !call.WouldCallApi),

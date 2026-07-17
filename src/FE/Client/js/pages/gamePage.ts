@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Gavel, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
+import { roomApi } from '../api/roomApi.js';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
@@ -19,6 +20,8 @@ type RoomPlayer = {
   userId: string;
   username: string;
   role: string;
+  isConnected: boolean;
+  disconnectedAt?: string | null;
 };
 
 type Hotspot = {
@@ -272,6 +275,7 @@ type MissingRequirements = {
 type GameState = {
   roomId: string;
   roomCode: string;
+  hostUserId: string;
   caseTitle: string;
   caseSummary: string;
   language: 'en' | 'vi';
@@ -1662,6 +1666,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   const puzzleDrafts = new Map<string, string[]>();
   let sceneIntroActive = true; // Show on initial load
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
+  let stateRefetchPromise: Promise<void> | null = null;
+  let requestedStateVersion = 0;
 
   // ----- Conversation view state (dialogue overlay) -----
   type ConvLine = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
@@ -1711,6 +1717,23 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   window.addEventListener('keydown', handleKeydown);
 
   const refetch = async () => applyState(await gameApi.state(roomId));
+
+  function queueStateRefetch(version = 0) {
+    if (version > 0 && state && version <= state.version) return;
+    requestedStateVersion = Math.max(requestedStateVersion, version);
+    if (stateRefetchPromise) return;
+
+    stateRefetchPromise = Promise.resolve()
+      .then(async () => {
+        requestedStateVersion = 0;
+        await refetch();
+      })
+      .catch((err: any) => console.warn('State refetch failed', err))
+      .finally(() => {
+        stateRefetchPromise = null;
+        if (requestedStateVersion > (state?.version ?? 0)) queueStateRefetch(requestedStateVersion);
+      });
+  }
 
   function currentAskableDialogues(fresh = state) {
     return fresh?.visibleScene.availableDialogues.filter((dialogue) => !dialogue.isAsked && !dialogue.isLocked) ?? [];
@@ -1911,8 +1934,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   const hub = createRoomConnection(roomId, {
-    GameStateUpdated: () => {
-      refetch().catch((err: any) => console.warn('State refetch failed', err));
+    GameStateUpdated: ({ version }: { version: number }) => {
+      queueStateRefetch(version);
     },
     ItemFound: ({ userId }: { userId: string }) => {
       if (userId !== me.userId) toast('Your partner found something.', 'info');
@@ -1940,7 +1963,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       } else if (update.actorUserId !== me.userId) {
         toast(update.message || 'The investigation has a new lead.', 'info', 4200);
       }
-      refetch().catch(() => {});
+      // The version-only GameStateUpdated event performs the single authoritative refetch.
     },
     SceneChanged: ({ userId }: { userId: string }) => {
       toast(userId === me.userId ? 'You moved to a new location.' : 'Your partner moved to another location.', 'info');
@@ -1962,6 +1985,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       playerPoses.delete(userId);
       phaserScene?.removeRemotePose(userId);
     },
+    PlayerPresenceChanged: ({ userId, isConnected }: { userId: string; isConnected: boolean }) => {
+      const player = state?.players.find((entry) => entry.userId === userId);
+      if (player) player.isConnected = isConnected;
+      if (userId !== me.userId) {
+        toast(isConnected ? 'Your partner reconnected.' : 'Your partner disconnected. Waiting for reconnect...', isConnected ? 'success' : 'info', 5000);
+      }
+      draw();
+    },
     GameCompleted: (result: unknown) => {
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
       window.location.hash = `#/result/${roomId}`;
@@ -1971,7 +2002,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     onReconnected: () => {
       poseErrorShown = false;
       toast('Reconnected. Syncing the room...', 'info');
-      refetch().catch(() => {});
+      queueStateRefetch();
     },
   });
 
@@ -2005,12 +2036,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const scene = state.visibleScene;
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
+      const canAbandon = state.hostUserId === me.userId
+        && state.players.some((player) => player.userId !== me.userId && player.isConnected === false);
       hud.innerHTML = `
         <div class="game-objective">
           <strong>${escapeHtml(state.caseTitle)}</strong>
           <span>${escapeHtml(state.currentObjective || scene.description || scene.title)}</span>
         </div>
         <div class="game-players" aria-label="Players">${playersHtml()}</div>
+        ${canAbandon ? '<button id="abandon-game-btn" class="btn btn-ghost btn-sm" type="button">Abandon after reconnect timeout</button>' : ''}
       `;
     }
 
@@ -2134,7 +2168,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function playersHtml() {
     return state!.players.map((p) => `
       <span class="chip ${p.userId === me.userId ? 'chip-gold' : ''}" title="${escapeHtml(p.username)}">
-        ${escapeHtml(p.username.split(' ')[0])} / ${p.role === 'INVESTIGATOR' ? 'INV' : 'INT'}
+        ${escapeHtml(p.username.split(' ')[0])} / ${p.role === 'INVESTIGATOR' ? 'INV' : 'INT'}${p.isConnected === false ? ' / OFFLINE' : ''}
       </span>`).join('');
   }
 
@@ -2247,15 +2281,27 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function introOverlay(role: string | null) {
     if (sessionStorage.getItem(introKey)) return '';
+    const vi = state!.language === 'vi';
+    const roleGuide = role === 'INVESTIGATOR'
+      ? (vi
+        ? 'Bạn là Điều tra viên: khám nghiệm hiện trường, kiểm tra vật thể và chụp chứng cứ.'
+        : 'You are the Investigator: inspect the scene, examine objects, and photograph evidence.')
+      : (vi
+        ? 'Bạn là Thẩm vấn viên: hỏi nhân chứng, đưa chứng cứ và tìm mâu thuẫn.'
+        : 'You are the Interrogator: question witnesses, present evidence, and expose contradictions.');
     return `
     <div class="overlay" id="intro-overlay">
       <div class="modal">
         <h2>${escapeHtml(state!.caseTitle)}</h2>
         <p>${escapeHtml(state!.caseSummary)}</p>
-        <p class="muted">${role === 'INVESTIGATOR'
-          ? 'You are the Investigator. Search the scene, inspect objects, and collect physical evidence.'
-          : 'You are the Interrogator. Click people, question them, and use evidence to unlock contradictions.'}</p>
-        <button class="btn btn-gold btn-block" id="intro-dismiss">Enter the scene</button>
+        <p class="muted">${roleGuide}</p>
+        <ol class="tutorial-steps">
+          <li>${vi ? 'Dùng A/D để di chuyển trái/phải' : 'Use A/D to move left and right'}</li>
+          <li>${vi ? 'Nhấp vật thể hoặc nhân vật để tương tác' : 'Click an object or character to interact'}</li>
+          <li>${vi ? 'Chia sẻ chứng cứ qua Case File và phối hợp với đồng đội' : 'Share evidence through the Case File and coordinate with your partner'}</li>
+          <li>${vi ? 'Hoàn thành suy luận trước khi đưa ra cáo buộc cuối' : 'Complete deductions before the final accusation'}</li>
+        </ol>
+        <button class="btn btn-gold btn-block" id="intro-dismiss">${vi ? 'Bắt đầu điều tra' : 'Enter the scene'}</button>
       </div>
     </div>`;
   }
@@ -2857,6 +2903,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function bind() {
+    app.querySelector('#abandon-game-btn')?.addEventListener('click', async () => {
+      try {
+        await roomApi.abandon(roomId);
+        toast('Game abandoned.', 'info');
+        window.location.hash = '#/cases';
+      } catch (err: any) {
+        toast(err.message, 'error');
+      }
+    });
     app.querySelectorAll('.overlay').forEach((layer) => {
       ['pointerdown', 'pointerup', 'click'].forEach((eventName) => {
         layer.addEventListener(eventName, (event) => {

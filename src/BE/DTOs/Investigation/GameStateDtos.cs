@@ -474,6 +474,7 @@ public class GameStateResponse
 {
     public string RoomId { get; set; } = string.Empty;
     public string RoomCode { get; set; } = string.Empty;
+    public string HostUserId { get; set; } = string.Empty;
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;
     public string CaseSummary { get; set; } = string.Empty;

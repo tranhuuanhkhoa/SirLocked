@@ -8,8 +8,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
+using SirLocked.Api.DTOs;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
 using SirLocked.Api.WebAPI.Hubs;
 using SirLocked.Api.WebAPI.Middlewares;
@@ -117,7 +119,11 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = ApiValidationResponseFactory.Create;
+    });
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

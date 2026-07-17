@@ -30,6 +30,7 @@ public class AiCaseService : IAiCaseService
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private sealed record VisionImageInput(string Label, string Path);
     private sealed record PlacementQaFailure(string Type, string Id, string Reason);
+    private sealed record GenerationClaim(AiCaseDraft Draft, bool Acquired);
     private string CutoutImageModel => string.IsNullOrWhiteSpace(_settings.CutoutImageModel)
         ? _settings.ImageModel
         : _settings.CutoutImageModel.Trim();
@@ -160,12 +161,20 @@ public class AiCaseService : IAiCaseService
             return AiDraftResponse.From(draft);
         }
 
+        if (draft.Status == AiDraftStatus.GeneratingFullCase)
+        {
+            return AiDraftResponse.From(draft);
+        }
+
         if (draft.Status != AiDraftStatus.StoryAwaitingApproval)
         {
             throw ApiException.BadRequest("Only a story preview waiting for approval can generate the full case.");
         }
 
-        return await GenerateFullCaseLogicAsync(draft);
+        var claim = await ClaimGenerationAsync(draft, [AiDraftStatus.StoryAwaitingApproval], AiDraftStatus.GeneratingFullCase, "FULL_LOGIC");
+        return claim.Acquired
+            ? await GenerateFullCaseLogicAsync(claim.Draft)
+            : AiDraftResponse.From(claim.Draft);
     }
 
     public async Task<AiDraftResponse> ApproveFullLogicAsync(CurrentUser user, string draftId)
@@ -175,6 +184,11 @@ public class AiCaseService : IAiCaseService
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
+
+        if (draft.Status == AiDraftStatus.GeneratingSceneLayout)
+        {
+            return AiDraftResponse.From(draft);
+        }
 
         if (draft.Status != AiDraftStatus.FullLogicAwaitingApproval)
         {
@@ -186,7 +200,10 @@ public class AiCaseService : IAiCaseService
             throw ApiException.BadRequest("This draft has a pending repair candidate. Accept or reject it before approving full logic.");
         }
 
-        return await GenerateSceneLayoutAsync(draft, forceRegenerate: false);
+        var claim = await ClaimGenerationAsync(draft, [AiDraftStatus.FullLogicAwaitingApproval], AiDraftStatus.GeneratingSceneLayout, "SCENE_LAYOUT");
+        return claim.Acquired
+            ? await GenerateSceneLayoutAsync(claim.Draft, forceRegenerate: false)
+            : AiDraftResponse.From(claim.Draft);
     }
 
     public async Task<AiDraftResponse> ApproveSceneLayoutAsync(CurrentUser user, string draftId)
@@ -195,12 +212,57 @@ public class AiCaseService : IAiCaseService
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
 
+        if (draft.Status == AiDraftStatus.GeneratingFinalAssets)
+        {
+            return AiDraftResponse.From(draft);
+        }
+
         if (draft.Status != AiDraftStatus.SceneLayoutAwaitingApproval && draft.Status != AiDraftStatus.AssetsGenerated)
         {
             throw ApiException.BadRequest("Only a scene layout waiting for approval can generate final assets.");
         }
 
-        return await GenerateFinalAssetsAsync(draft);
+        var claim = await ClaimGenerationAsync(
+            draft,
+            [AiDraftStatus.SceneLayoutAwaitingApproval, AiDraftStatus.AssetsGenerated],
+            AiDraftStatus.GeneratingFinalAssets,
+            "FINAL_ASSETS");
+        return claim.Acquired
+            ? await GenerateFinalAssetsAsync(claim.Draft)
+            : AiDraftResponse.From(claim.Draft);
+    }
+
+    private async Task<GenerationClaim> ClaimGenerationAsync(
+        AiCaseDraft observedDraft,
+        IReadOnlyCollection<string> expectedStatuses,
+        string claimedStatus,
+        string phase)
+    {
+        var now = DateTime.UtcNow;
+        var runId = Guid.NewGuid().ToString("N");
+        var filter = Builders<AiCaseDraft>.Filter.And(
+            Builders<AiCaseDraft>.Filter.Eq(d => d.Id, observedDraft.Id),
+            Builders<AiCaseDraft>.Filter.In(d => d.Status, expectedStatuses));
+        var update = Builders<AiCaseDraft>.Update
+            .Set(d => d.Status, claimedStatus)
+            .Set(d => d.GenerationRunId, runId)
+            .Set(d => d.GenerationPhase, phase)
+            .Set(d => d.GenerationProgress, 0)
+            .Set(d => d.GenerationClaimedAt, now)
+            .Set(d => d.UpdatedAt, now);
+
+        var claimed = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
+            filter,
+            update,
+            new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After });
+        if (claimed is not null) return new GenerationClaim(claimed, true);
+
+        // Another request won the compare-and-set. Return that authoritative job instead of
+        // starting a second OpenAI/assets run or charging the project twice.
+        var current = await _db.AiCaseDrafts.Find(d => d.Id == observedDraft.Id).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        if (current.Status == claimedStatus) return new GenerationClaim(current, false);
+        throw ApiException.Conflict($"AI draft changed from '{observedDraft.Status}' to '{current.Status}' before generation could start.");
     }
 
     public async Task<AiDraftResponse> ContinueDraftAsync(CurrentUser user, string draftId)
@@ -427,6 +489,7 @@ public class AiCaseService : IAiCaseService
                 d => d.Id == draft.Id,
                 Builders<AiCaseDraft>.Update
                     .Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval)
+                    .Set(d => d.GenerationProgress, 100)
                     .Set(d => d.GeneratedJson, normalizedJson)
                     .Set(d => d.CaseId, gameCase.CaseId)
                     .Set(d => d.CaseTitle, gameCase.Title)
@@ -538,6 +601,7 @@ public class AiCaseService : IAiCaseService
         var folder = ExportBundle(draft, gameCase, normalizedJson, validation.Errors.Count);
         var generatedUpdate = Builders<AiCaseDraft>.Update
             .Set(d => d.Status, AiDraftStatus.SceneLayoutAwaitingApproval)
+            .Set(d => d.GenerationProgress, 100)
             .Set(d => d.AssetManifest, assetManifest)
             .Set(d => d.GeneratedJson, normalizedJson)
             .Set(d => d.CaseId, gameCase.CaseId)
@@ -792,6 +856,7 @@ public class AiCaseService : IAiCaseService
 
         var readyUpdate = Builders<AiCaseDraft>.Update
             .Set(d => d.Status, AiDraftStatus.ReadyToPublish)
+            .Set(d => d.GenerationProgress, 100)
             .Set(d => d.AssetManifest, assetManifest)
             .Set(d => d.GeneratedJson, normalizedJson)
             .Set(d => d.JsonFilePath, Path.Combine(folder, "case.json"))
@@ -1752,10 +1817,19 @@ public class AiCaseService : IAiCaseService
         string status = AiDraftStatus.GeneratingSceneLayout)
     {
         var checkpointJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        var expectedAssets = status == AiDraftStatus.GeneratingFinalAssets
+            ? Math.Max(1, ExpectedFinalAssetCount(gameCase))
+            : Math.Max(1, 1 + gameCase.Stages.Sum(stage => stage.Scenes.Count));
+        var progress = Math.Clamp((int)Math.Round(manifest.Assets.Count * 100d / expectedAssets), 1, 95);
+        FilterDefinition<AiCaseDraft> filter = Builders<AiCaseDraft>.Filter.Eq(d => d.Id, draft.Id);
+        if (!string.IsNullOrWhiteSpace(draft.GenerationRunId))
+            filter &= Builders<AiCaseDraft>.Filter.Eq(d => d.GenerationRunId, draft.GenerationRunId);
         await _db.AiCaseDrafts.UpdateOneAsync(
-            d => d.Id == draft.Id,
+            filter,
             Builders<AiCaseDraft>.Update
                 .Set(d => d.Status, status)
+                .Set(d => d.GenerationPhase, status == AiDraftStatus.GeneratingFinalAssets ? "FINAL_ASSETS" : "SCENE_LAYOUT")
+                .Set(d => d.GenerationProgress, progress)
                 .Set(d => d.AssetManifest, manifest)
                 .Set(d => d.GeneratedJson, checkpointJson)
                 .Set(d => d.CaseId, gameCase.CaseId)

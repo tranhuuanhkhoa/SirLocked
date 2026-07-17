@@ -8,11 +8,13 @@ import { session } from './session.js';
  */
 export function createRoomConnection(roomId, handlers = {}, { onReconnected, onClose } = {}) {
   if (window.__sirlockedNoSignalR === true) {
+    const localHandlers = { ...handlers };
+    window.__sirlockedEmitSignalR = (event, payload) => localHandlers[event]?.(payload);
     return {
       connection: {
         state: 'Connected',
         invoke: async () => {},
-        on: () => {},
+        on: (event, handler) => { localHandlers[event] = handler; },
         onclose: () => {},
         onreconnected: () => {},
       },
