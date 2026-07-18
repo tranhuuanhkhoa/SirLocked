@@ -34,8 +34,18 @@ public class DisclosedPairDto
     public PrivateEvidenceDto Evidence { get; set; } = new();
     public PrivateTestimonyDto Testimony { get; set; } = new();
     public string? Feedback { get; set; }
+    public string? RevealTitle { get; set; }
+    public List<SharedRevealDto> Reveals { get; set; } = new();
     public DateTime DisclosedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
+}
+
+public class SharedRevealDto
+{
+    public string ClueId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string NarrativeMeaning { get; set; } = string.Empty;
 }
 
 public class SharedKnowledgeDto

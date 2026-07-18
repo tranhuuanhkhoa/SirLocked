@@ -47,7 +47,10 @@ public class V3KnowledgeProjectionTests
         Assert.Empty(investigator.ActionLog);
         Assert.Empty(interrogator.ActionLog);
         Assert.Empty(investigator.VisibleScene.ConversationTranscript);
-        Assert.Null(investigator.VisibleScene.Runtime);
+        Assert.NotNull(investigator.VisibleScene.Runtime);
+        Assert.Single(investigator.VisibleScene.Runtime!.ClueZones);
+        Assert.NotNull(interrogator.VisibleScene.Runtime);
+        Assert.Empty(interrogator.VisibleScene.Runtime!.ClueZones);
     }
 
     [Fact]
@@ -145,6 +148,14 @@ public class V3KnowledgeProjectionTests
         var gameCase = Case();
         gameCase.EvidenceChallenges[0].CorrectEvidenceId = "evidence-inv";
         gameCase.EvidenceChallenges[0].UnlockClueIds.Add("reveal-1");
+        gameCase.EvidenceChallenges[0].RevealTitle = "The broken seal";
+        gameCase.Clues.Add(new CaseClue
+        {
+            ClueId = "reveal-1",
+            Title = "The archive was reopened",
+            Content = "Fresh wax proves the seal was remade.",
+            NarrativeMeaning = "The alibi no longer holds."
+        });
         var room = Room();
         var state = room.GameplayState!;
         Discover(state, "evidence-inv", "inv", PlayerRole.Investigator);
@@ -166,6 +177,8 @@ public class V3KnowledgeProjectionTests
         var truth = Assert.Single(response.SharedKnowledge.ResolvedTruths);
         Assert.Equal(V3KnowledgeProjector.ResolvedSharedTruth, truth.Status);
         Assert.Equal("The timeline is broken.", truth.Feedback);
+        Assert.Equal("The broken seal", truth.RevealTitle);
+        Assert.Equal("reveal-1", Assert.Single(truth.Reveals).ClueId);
         Assert.Empty(response.SharedKnowledge.AttemptHistory);
         Assert.Equal(new[] { "reveal-1" }, state.UnlockedClueIds);
         Assert.Single(state.ResolvedConfrontationRecords);
@@ -213,6 +226,37 @@ public class V3KnowledgeProjectionTests
 
             Assert.Equal(before, JsonSerializer.Serialize(response));
         }
+    }
+
+    [Fact]
+    public void PlayableSceneProjection_ExposesOnlyTheCurrentRolesActionSurface()
+    {
+        var gameCase = Case();
+        var room = Room();
+        var investigator = FullResponse(gameCase);
+        var interrogator = FullResponse(gameCase);
+        investigator.VisibleScene.Hotspots = new List<HotspotDto>
+        {
+            new() { HotspotId = "item-hotspot", Type = "ITEM", TargetId = "item-1", Label = "Wax" },
+            new() { HotspotId = "npc-hotspot", Type = "CHARACTER", TargetId = "npc-1", Label = "Witness" }
+        };
+        interrogator.VisibleScene.Hotspots = investigator.VisibleScene.Hotspots;
+
+        V3KnowledgeProjector.Apply(investigator, room, gameCase, "inv");
+        V3KnowledgeProjector.Apply(interrogator, room, gameCase, "int");
+
+        Assert.Equal("ITEM", Assert.Single(investigator.VisibleScene.Hotspots).Type);
+        Assert.Empty(investigator.VisibleScene.AvailableDialogues);
+        Assert.NotEmpty(investigator.VisibleScene.Items);
+        Assert.Equal("CHARACTER", Assert.Single(interrogator.VisibleScene.Hotspots).Type);
+        Assert.Single(interrogator.VisibleScene.AvailableDialogues);
+        Assert.Empty(interrogator.VisibleScene.Items);
+        Assert.All(interrogator.VisibleScene.AvailableDialogues, dialogue =>
+        {
+            Assert.Null(dialogue.Answer);
+            Assert.Empty(dialogue.MissingClueIds);
+            Assert.Empty(dialogue.EvidenceChallenges);
+        });
     }
 
     private static GameCase Case() => new()

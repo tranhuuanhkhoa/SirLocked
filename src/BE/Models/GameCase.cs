@@ -478,6 +478,8 @@ public class EvidenceChallenge
     public string CorrectEvidenceId { get; set; } = string.Empty;
     public string SuccessResponse { get; set; } = string.Empty;
     public string FailureResponse { get; set; } = string.Empty;
+    /// <summary>V3-only shared headline shown after a correct paired confrontation.</summary>
+    public string RevealTitle { get; set; } = string.Empty;
     public List<string> UnlockClueIds { get; set; } = new();
 }
 

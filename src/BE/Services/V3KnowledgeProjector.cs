@@ -64,6 +64,7 @@ public static class V3KnowledgeProjector
         response.SharedKnowledge = BuildSharedKnowledge(state, gameCase, photoUrls);
         response.ActiveConfrontation = BuildActiveView(state.ActiveConfrontation, room, gameCase, player, photoUrls);
         ScrubLegacyKnowledge(response);
+        V3SceneProjectionPolicy.Apply(response, gameCase, player);
     }
 
     public static bool CanViewEvidencePhoto(GameRoom room, GameCase gameCase, string userId, string clueId)
@@ -131,6 +132,21 @@ public static class V3KnowledgeProjector
                     gameCase,
                     photoUrls);
                 if (pair is null) continue;
+                if (isTruth && challenge is not null)
+                {
+                    pair.RevealTitle = challenge.RevealTitle;
+                    pair.Reveals = challenge.UnlockClueIds
+                        .Select(clueId => gameCase.Clues.FirstOrDefault(clue => clue.ClueId == clueId))
+                        .Where(clue => clue is not null)
+                        .Select(clue => new SharedRevealDto
+                        {
+                            ClueId = clue!.ClueId,
+                            Title = clue.Title,
+                            Content = clue.Content,
+                            NarrativeMeaning = clue.NarrativeMeaning
+                        })
+                        .ToList();
+                }
                 if (isTruth) shared.ResolvedTruths.Add(pair);
                 else shared.AttemptHistory.Add(pair);
             }
@@ -244,16 +260,8 @@ public static class V3KnowledgeProjector
 
     private static void ScrubLegacyKnowledge(GameStateResponse response)
     {
-        response.InspectedItemIds = new List<string>();
-        response.CollectedItemIds = new List<string>();
-        response.CapturedClueIds = new List<string>();
         response.UnlockedClueIds = new List<string>();
-        response.AskedDialogueIds = new List<string>();
         response.VisitedConversationNodeIds = new List<string>();
-        response.UsedInteractionIds = new List<string>();
-        response.SolvedPuzzleIds = new List<string>();
-        response.SelectedEvidenceIds = new List<string>();
-        response.CollectedItems = new List<SceneItemDto>();
         response.UnlockedClues = new List<ClueDto>();
         response.EvidenceClues = new List<ClueDto>();
         response.ResolvedConfrontations = new List<ResolvedConfrontationDto>();
@@ -263,20 +271,5 @@ public static class V3KnowledgeProjector
         response.ActionLog = new List<ActionLogEntryDto>();
         response.AccusationConfig = null;
         response.AvailableForAccusation = false;
-        response.CurrentSceneMissingRequirements = new MissingRequirementsDto();
-
-        response.VisibleScene.Runtime = null;
-        response.VisibleScene.Hotspots = new List<HotspotDto>();
-        response.VisibleScene.Items = new List<SceneItemDto>();
-        response.VisibleScene.ConversationTreeCharacterIds = new List<string>();
-        response.VisibleScene.ConversationTranscript = new List<ConversationTranscriptEntryDto>();
-        response.VisibleScene.Puzzles = new List<ScenePuzzleDto>();
-        foreach (var dialogue in response.VisibleScene.AvailableDialogues)
-        {
-            dialogue.Answer = null;
-            dialogue.RequiredClueIds = new List<string>();
-            dialogue.MissingClueIds = new List<string>();
-            dialogue.EvidenceChallenges = new List<EvidenceChallengeDto>();
-        }
     }
 }
