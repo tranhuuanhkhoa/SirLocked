@@ -175,6 +175,10 @@ public class V3KnowledgeProjectionTests
         V3KnowledgeProjector.Apply(response, room, gameCase, "int");
 
         var truth = Assert.Single(response.SharedKnowledge.ResolvedTruths);
+        Assert.True(response.IsCaseComplete);
+        Assert.Equal("Case complete. The final contradiction is cracked and the truth is shared.", response.CurrentObjective);
+        Assert.Empty(response.VisibleScene.Hotspots);
+        Assert.Empty(response.VisibleScene.AvailableDialogues);
         Assert.Equal(V3KnowledgeProjector.ResolvedSharedTruth, truth.Status);
         Assert.Equal("The timeline is broken.", truth.Feedback);
         Assert.Equal("The broken seal", truth.RevealTitle);
@@ -182,6 +186,38 @@ public class V3KnowledgeProjectionTests
         Assert.Empty(response.SharedKnowledge.AttemptHistory);
         Assert.Equal(new[] { "reveal-1" }, state.UnlockedClueIds);
         Assert.Single(state.ResolvedConfrontationRecords);
+    }
+
+    [Fact]
+    public void CorrectAttempt_DoesNotCompleteCaseWhileAnotherChallengeRemains()
+    {
+        var gameCase = Case();
+        gameCase.EvidenceChallenges[0].CorrectEvidenceId = "evidence-inv";
+        gameCase.EvidenceChallenges.Add(new EvidenceChallenge
+        {
+            ChallengeId = "challenge-2",
+            DialogueId = "dialogue-int",
+            TestimonyFragmentId = "fragment-int",
+            CorrectEvidenceId = "evidence-inv"
+        });
+        var room = Room();
+        var state = room.GameplayState!;
+        Discover(state, "evidence-inv", "inv", PlayerRole.Investigator);
+        DiscoverTestimony(state, "fragment-int", "dialogue-int", "int");
+        PairedConfrontationRules.Start(
+            state, "attempt-1", "challenge-1", "fragment-int", "int", PlayerRole.Interrogator, Now);
+        PairedConfrontationRules.ProposeEvidence(
+            state, "attempt-1", "evidence-inv", "inv", PlayerRole.Investigator, 1, Now.AddMinutes(1));
+        PairedConfrontationRules.Confirm(
+            state, "attempt-1", "inv", PlayerRole.Investigator, 2, true, Array.Empty<string>(), Now.AddMinutes(2));
+        PairedConfrontationRules.Confirm(
+            state, "attempt-1", "int", PlayerRole.Interrogator, 2, true, Array.Empty<string>(), Now.AddMinutes(3));
+
+        var response = FullResponse(gameCase);
+        V3KnowledgeProjector.Apply(response, room, gameCase, "int");
+
+        Assert.False(response.IsCaseComplete);
+        Assert.Equal("Question the witness and record claims that can be tested.", response.CurrentObjective);
     }
 
     [Fact]

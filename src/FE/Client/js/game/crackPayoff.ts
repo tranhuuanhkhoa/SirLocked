@@ -7,6 +7,7 @@ export function renderCrackPayoff(
   pair: DisclosedPair | null,
   escape: Escape,
   tr: Translate,
+  caseComplete = false,
 ): string {
   if (!pair) return '';
   const correct = pair.status === 'RESOLVED_SHARED_TRUTH';
@@ -21,8 +22,33 @@ export function renderCrackPayoff(
       <h2 id="v3-crack-title">${escape(correct ? pair.revealTitle || tr('The lie is broken', 'Lời dối trá đã bị phá') : tr('Not enough to break the statement', 'Chưa đủ để phá lời khai'))}</h2>
       ${pair.feedback ? `<p class="v3-crack-feedback">${escape(pair.feedback)}</p>` : ''}
       ${correct ? pair.reveals.map((reveal) => `<div class="v3-shared-reveal"><strong>${escape(reveal.title)}</strong><p>${escape(reveal.content)}</p></div>`).join('') : ''}
-      <button class="btn btn-gold" id="v3-crack-dismiss" type="button">${tr('Continue', 'Tiếp tục')}</button>
+      <button class="btn btn-gold" id="v3-crack-dismiss" type="button">${caseComplete
+        ? tr('View case result', 'Xem kết quả vụ án')
+        : tr('Continue', 'Tiếp tục')}</button>
     </div>
+  </div>`;
+}
+
+export function renderV3CaseComplete(
+  complete: boolean,
+  truth: DisclosedPair | null,
+  escape: Escape,
+  tr: Translate,
+): string {
+  if (!complete) return '';
+  const reveal = truth?.reveals?.[0];
+  return `<div class="v3-case-complete-overlay" role="dialog" aria-modal="true" aria-labelledby="v3-complete-title">
+    <section class="v3-case-complete-card">
+      <span class="v3-crack-kicker">${tr('INVESTIGATION COMPLETE', 'ĐIỀU TRA HOÀN TẤT')}</span>
+      <h2 id="v3-complete-title">${tr('Case complete', 'Vụ án đã hoàn tất')}</h2>
+      <p>${tr(
+        'Both detectives confirmed the contradiction and established a shared truth. There are no more required actions in this sandbox.',
+        'Cả hai điều tra viên đã xác nhận mâu thuẫn và thiết lập sự thật chung. Sandbox này không còn hành động bắt buộc nào.',
+      )}</p>
+      ${truth?.revealTitle ? `<strong class="v3-complete-truth">${escape(truth.revealTitle)}</strong>` : ''}
+      ${reveal ? `<div class="v3-shared-reveal"><strong>${escape(reveal.title)}</strong><p>${escape(reveal.content)}</p></div>` : ''}
+      <button class="btn btn-gold" id="v3-complete-review" type="button">${tr('Review the solved pair', 'Xem lại cặp đã phá')}</button>
+    </section>
   </div>`;
 }
 

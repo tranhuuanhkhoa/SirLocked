@@ -35,6 +35,14 @@ public static class V3SceneProjectionPolicy
         response.VisibleScene.ConversationTranscript = new List<ConversationTranscriptEntryDto>();
         response.VisibleScene.Puzzles = new List<ScenePuzzleDto>();
 
+        if (response.IsCaseComplete)
+        {
+            // A completed V3 sandbox is a terminal review state. Keep scene visuals,
+            // but remove action surfaces so an exhausted NPC cannot look like the next step.
+            response.VisibleScene.Hotspots = new List<HotspotDto>();
+            response.VisibleScene.AvailableDialogues = new List<SceneDialogueDto>();
+        }
+
         response.InspectedItemIds = investigator ? response.InspectedItemIds : new List<string>();
         response.CollectedItemIds = investigator ? response.CollectedItemIds : new List<string>();
         response.CapturedClueIds = investigator ? response.CapturedClueIds : new List<string>();
@@ -44,7 +52,11 @@ public static class V3SceneProjectionPolicy
         response.SolvedPuzzleIds = new List<string>();
         response.SelectedEvidenceIds = new List<string>();
         response.CurrentSceneMissingRequirements = new MissingRequirementsDto();
-        response.CurrentObjective = BuildObjective(gameCase.Language, player.Role, response.ActiveConfrontation);
+        response.CurrentObjective = BuildObjective(
+            gameCase.Language,
+            player.Role,
+            response.ActiveConfrontation,
+            response.IsCaseComplete);
     }
 
     private static HotspotDto SanitizeHotspot(HotspotDto hotspot) => new()
@@ -175,9 +187,17 @@ public static class V3SceneProjectionPolicy
     private static string BuildObjective(
         string language,
         string? role,
-        PairedConfrontationViewDto? active)
+        PairedConfrontationViewDto? active,
+        bool isCaseComplete)
     {
         var vi = language.Equals(CaseLanguages.Vietnamese, StringComparison.OrdinalIgnoreCase);
+        if (isCaseComplete)
+        {
+            return vi
+                ? "Vụ án đã hoàn tất. Mâu thuẫn cuối cùng đã được phá và sự thật đã được chia sẻ."
+                : "Case complete. The final contradiction is cracked and the truth is shared.";
+        }
+
         if (active is not null)
         {
             if (active.Status == PairedConfrontationStatus.CollectingProposals)

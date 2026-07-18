@@ -63,9 +63,17 @@ public static class V3KnowledgeProjector
 
         response.SharedKnowledge = BuildSharedKnowledge(state, gameCase, photoUrls);
         response.ActiveConfrontation = BuildActiveView(state.ActiveConfrontation, room, gameCase, player, photoUrls);
+        response.IsCaseComplete = HasResolvedEveryChallenge(state, gameCase);
         ScrubLegacyKnowledge(response);
         V3SceneProjectionPolicy.Apply(response, gameCase, player);
     }
+
+    private static bool HasResolvedEveryChallenge(GameplayState state, GameCase gameCase) =>
+        gameCase.EvidenceChallenges.Count > 0
+        && gameCase.EvidenceChallenges.All(challenge =>
+            state.PairedConfrontationAttempts.Any(attempt =>
+                attempt.ChallengeId == challenge.ChallengeId
+                && attempt.Status == PairedConfrontationStatus.ResolvedCorrect));
 
     public static bool CanViewEvidencePhoto(GameRoom room, GameCase gameCase, string userId, string clueId)
     {

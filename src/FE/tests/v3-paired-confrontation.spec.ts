@@ -92,6 +92,7 @@ function v3State(role: 'INVESTIGATOR' | 'INTERROGATOR', overrides: Record<string
     currentSceneCanComplete: false,
     currentSceneMissingRequirements: { requiredItemIds: [], requiredClueIds: [], requiredDialogueIds: [] },
     currentObjective: role === 'INVESTIGATOR' ? 'Find physical evidence.' : 'Question the witness.',
+    isCaseComplete: false,
     actionLog: [],
     privateEvidence: role === 'INVESTIGATOR' ? [evidence] : [{ ...evidence, title: investigatorSecret }],
     privateTestimonies: role === 'INTERROGATOR' ? [testimony] : [{ ...testimony, text: interrogatorSecret }],
@@ -156,6 +157,8 @@ function correctTerminalState(role: 'INVESTIGATOR' | 'INTERROGATOR') {
   };
   return reviewState(role, {
     version: 5,
+    currentObjective: 'Archive Office is the final location. The final confrontation is ready when every requirement is complete.',
+    isCaseComplete: undefined,
     activeConfrontation: null,
     sharedKnowledge: { attemptHistory: [], resolvedTruths: [pair] },
   });
@@ -251,6 +254,15 @@ test('Joint Review discloses exactly the pair and correct confirmation presents 
   await expect(page.locator('#v3-crack-dismiss')).toBeFocused();
   await page.locator('#v3-crack-dismiss').click();
   await expect(payoff).toHaveCount(0);
+  const completed = page.locator('.v3-case-complete-overlay');
+  await expect(completed).toBeVisible();
+  await expect(completed).toContainText('Case complete');
+  await expect(completed).toContainText('There are no more required actions in this sandbox.');
+  await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('Case complete');
+  await page.locator('#v3-complete-review').click();
+  await expect(completed).toHaveCount(0);
+  await expect(page.locator('.v3-shared-history')).toContainText('RESOLVED SHARED TRUTH');
+  await expect(page.locator('.v3-shared-history')).toContainText(investigatorSecret);
 });
 
 test('reduced motion keeps the payoff accessible without animation', async ({ page }) => {

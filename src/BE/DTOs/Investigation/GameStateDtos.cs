@@ -504,6 +504,11 @@ public class GameStateResponse
     public bool CurrentSceneCanComplete { get; set; }
     public MissingRequirementsDto CurrentSceneMissingRequirements { get; set; } = new();
     public string CurrentObjective { get; set; } = string.Empty;
+    /// <summary>
+    /// True when every V3 paired-confrontation challenge has been resolved correctly.
+    /// V1/V2 keep the default false value and their completion contract is unchanged.
+    /// </summary>
+    public bool IsCaseComplete { get; set; }
     public VisibleSceneDto VisibleScene { get; set; } = new();
     /// <summary>Full metadata for collected items, including items picked up in other scenes.</summary>
     public List<SceneItemDto> CollectedItems { get; set; } = new();

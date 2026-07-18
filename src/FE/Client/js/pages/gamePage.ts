@@ -41,7 +41,7 @@ import {
   type PrivateEvidence,
   type PrivateTestimony,
 } from '../game/pairedConfrontation.js';
-import { newestTerminalPair, renderCrackPayoff } from '../game/crackPayoff.js';
+import { newestTerminalPair, renderCrackPayoff, renderV3CaseComplete } from '../game/crackPayoff.js';
 
 type RoomPlayer = {
   userId: string;
@@ -333,6 +333,7 @@ type GameState = {
   currentSceneCanComplete: boolean;
   currentSceneMissingRequirements: MissingRequirements;
   currentObjective: string;
+  isCaseComplete?: boolean;
   actionLog: ActionLogEntry[];
   privateEvidence: PrivateEvidence[];
   privateTestimonies: PrivateTestimony[];
@@ -1753,6 +1754,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let caseFileOpenedAt: number | null = null;
   let waitingStartedAt: number | null = null;
   let crackPayoffShownAt: number | null = null;
+  let caseCompleteDismissed = false;
 
   type UiPlaytestEvent =
     | 'ReconnectRestored'
@@ -2243,6 +2245,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return state?.players.find((p) => p.userId === me.userId)?.role ?? null;
   }
 
+  function isV3CaseComplete(current = state) {
+    if (!current || current.mechanicsVersion !== 3) return false;
+    if (typeof current.isCaseComplete === 'boolean') return current.isCaseComplete;
+    // Compatibility for a local V3 server that was already running before this
+    // additive field existed. Current V3 fixtures contain one paired challenge.
+    return (current.sharedKnowledge?.resolvedTruths?.length ?? 0) > 0;
+  }
+
   function uiModel() {
     const latestPartnerLog = state!.actionLog.find((entry) => entry.userId !== me.userId);
     const fallbackPartnerActivity = latestPartnerLog
@@ -2254,11 +2264,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           createdAt: new Date(latestPartnerLog.createdAt).getTime(),
         }
       : null;
+    const completed = isV3CaseComplete();
     return buildGameUiModel({
       mode: uiMode,
       localUserId: me.userId,
       players: state!.players,
-      objective: state!.currentObjective || state!.visibleScene.description || state!.visibleScene.title,
+      objective: completed
+        ? tr(
+            'Case complete. The final contradiction is cracked and the truth is shared.',
+            'Vụ án đã hoàn tất. Mâu thuẫn cuối cùng đã được phá và sự thật đã được chia sẻ.',
+          )
+        : state!.currentObjective || state!.visibleScene.description || state!.visibleScene.title,
       currentSceneId: state!.currentSceneId,
       currentSceneCanComplete: state!.currentSceneCanComplete,
       completedSceneIds: state!.completedSceneIds,
@@ -2302,7 +2318,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const inventory = app.querySelector('#inventory-slot');
     if (inventory) inventory.innerHTML = inventoryDrawer() + caseFileDrawer() + investigationToolDock(model) + mobileMovementDock(model);
     const transient = app.querySelector('#game-transient-slot');
-    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
+    const completedTruth = state.sharedKnowledge?.resolvedTruths?.at(-1) ?? null;
+    const caseComplete = isV3CaseComplete();
+    const showCaseComplete = caseComplete
+      && !crackPayoffPair
+      && !caseCompleteDismissed;
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
 
     const sceneNeedsUpdate = appliedStateVersion !== state.version
       || appliedSceneId !== state.currentSceneId
@@ -2316,6 +2337,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     syncPhaserInputState();
     bind();
     if (crackPayoffPair) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-crack-dismiss')?.focus());
+    else if (showCaseComplete) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-complete-review')?.focus());
     createIcons({
       icons: {
         Camera,
@@ -2964,27 +2986,29 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const hasNewChoice = choices.some((c) => !c.isLocked && isTreeCueHighlighted(characterId, c.choiceId))
         || askable.some((d) => newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId));
       newLeadHtml = hasNewChoice
-        ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
+        ? `<p class="conv-new-lead">${escapeHtml(character.name)} ${tr('seems willing to say more.', 'có vẻ sẵn sàng tiết lộ thêm.')}</p>`
         : '';
 
       if (role !== 'INTERROGATOR') {
-        topicsHtml = '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>';
+        topicsHtml = `<p class="conv-readonly muted small">${tr('Waiting for the Interrogator to continue questioning.', 'Đang chờ Thẩm vấn viên tiếp tục đặt câu hỏi.')}</p>`;
       } else if (choices.length === 0 && askable.length === 0) {
-        topicsHtml = '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>';
+        topicsHtml = `<p class="conv-readonly muted small">${tr('There is nothing left to ask right now.', 'Hiện không còn câu hỏi nào để hỏi.')}</p>`;
       } else {
         const lockedTree = choices.filter((c) => c.isLocked).length + dialogues.filter((d) => d.isLocked).length;
         const dialogueButtons = askable.map((d) => `
             <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
-              <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
+              <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? tr('New', 'Mới') : tr('Ask', 'Hỏi')}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
             </button>`).join('');
         topicsHtml = `${dialogueButtons}${choices.filter((c) => !c.isLocked).map((c) => {
             const isNew = isTreeCueHighlighted(characterId, c.choiceId);
             return `<button class="conv-choice ${isNew ? 'is-new' : ''}" data-converse-node="${escapeHtml(convTreeNodeId ?? '')}" data-converse-choice="${escapeHtml(c.choiceId)}">
-              <span class="conv-choice-tag">${isNew ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(c.label ?? '')}</span>
+              <span class="conv-choice-tag">${isNew ? tr('New', 'Mới') : tr('Ask', 'Hỏi')}</span><span class="conv-choice-text">${escapeHtml(c.label ?? '')}</span>
             </button>`;
           }).join('')}
           ${lockedTree > 0
-            ? `<p class="conv-locked">${lockedTree > 1 ? `${lockedTree} more options locked — find stronger evidence first.` : 'Locked — find stronger evidence before pressing further.'}</p>`
+            ? `<p class="conv-locked">${lockedTree > 1
+              ? tr(`${lockedTree} more options locked — find stronger evidence first.`, `${lockedTree} lựa chọn khác đang bị khóa — hãy tìm chứng cứ mạnh hơn.`)
+              : tr('Locked — find stronger evidence before pressing further.', 'Đang bị khóa — hãy tìm chứng cứ mạnh hơn trước khi hỏi tiếp.')}</p>`
             : ''}`;
       }
 
@@ -3000,19 +3024,21 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         .flatMap((d) => (d.evidenceChallenges ?? []).filter((c) => !c.isResolved));
 
       newLeadHtml = highlighted.length > 0
-        ? `<p class="conv-new-lead">${escapeHtml(character.name)} seems willing to say more.</p>`
+        ? `<p class="conv-new-lead">${escapeHtml(character.name)} ${tr('seems willing to say more.', 'có vẻ sẵn sàng tiết lộ thêm.')}</p>`
         : '';
 
       topicsHtml = role !== 'INTERROGATOR'
-        ? '<p class="conv-readonly muted small">Waiting for the Interrogator to continue questioning.</p>'
+        ? `<p class="conv-readonly muted small">${tr('Waiting for the Interrogator to continue questioning.', 'Đang chờ Thẩm vấn viên tiếp tục đặt câu hỏi.')}</p>`
         : askable.length === 0 && lockedCount === 0
-          ? '<p class="conv-readonly muted small">There is nothing left to ask right now.</p>'
+          ? `<p class="conv-readonly muted small">${tr('There is nothing left to ask right now.', 'Hiện không còn câu hỏi nào để hỏi.')}</p>`
           : `${askable.map((d) => `
               <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
-                <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'New' : 'Ask'}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
+                <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? tr('New', 'Mới') : tr('Ask', 'Hỏi')}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
               </button>`).join('')}
             ${lockedCount > 0
-              ? `<p class="conv-locked">${lockedCount > 1 ? `${lockedCount} more questions locked — find stronger evidence first.` : 'Locked — find stronger evidence before pressing further.'}</p>`
+              ? `<p class="conv-locked">${lockedCount > 1
+                ? tr(`${lockedCount} more questions locked — find stronger evidence first.`, `${lockedCount} câu hỏi khác đang bị khóa — hãy tìm chứng cứ mạnh hơn.`)
+                : tr('Locked — find stronger evidence before pressing further.', 'Đang bị khóa — hãy tìm chứng cứ mạnh hơn trước khi hỏi tiếp.')}</p>`
               : ''}`;
 
       challengeHtml = activeChallenges.map((challenge) => renderChallengePanel(challenge, role)).join('');
@@ -3048,7 +3074,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
             <div class="conversation-choices">${topicsHtml}</div>
           </div>
           <footer class="conv-footer">
-            <button class="btn btn-gold" data-close-overlay>Leave</button>
+            <button class="btn btn-gold" data-close-overlay>${tr('Leave', 'Rời đi')}</button>
           </footer>
         </div>
       </div>
@@ -3323,6 +3349,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     app.querySelectorAll('[data-v3-cancel]').forEach((button) => button.addEventListener('click', () => void cancelPairedConfrontation()));
     app.querySelector('#v3-crack-dismiss')?.addEventListener('click', () => {
       dismissCrackPayoff();
+    });
+    app.querySelector('#v3-complete-review')?.addEventListener('click', () => {
+      caseCompleteDismissed = true;
+      setUiMode({ kind: 'CASE_FILE', section: 'contradictions' }, 'case-file-btn');
     });
     app.querySelectorAll('[data-evidence-detail]').forEach((button) => button.addEventListener('click', () => {
       const clueId = (button as HTMLElement).dataset.evidenceDetail;
