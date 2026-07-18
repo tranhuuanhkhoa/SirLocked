@@ -1,15 +1,15 @@
 # Testing Strategy
 
-Last synced with code: 2026-06-12.
+Last synced with code: 2026-07-18.
 
 ## Test Layers
 
 | Layer | Current coverage |
 | --- | --- |
 | Backend unit tests | xUnit tests for complete condition and case validation |
-| Backend integration/smoke | `scripts/e2e_smoke.py` exercises auth, admin seed/publish, room flow, gameplay, accusation, AI mock |
-| Frontend static checks | `npm run typecheck`, `npm run build` |
-| Manual browser QA | Required for Phaser scene rendering and realtime interaction |
+| Backend integration/smoke | `scripts/e2e_smoke.py` exercises auth, admin seed/publish, room flow, gameplay, accusation, AI mock; GitHub Actions runs it against MongoDB |
+| Frontend static checks | `npm run typecheck`, `npm run build` in GitHub Actions |
+| Frontend browser smoke | Playwright smoke coverage for the gameplay UI; manual QA remains required for Phaser rendering and realtime interaction |
 
 ## Commands
 
@@ -91,8 +91,7 @@ The Python smoke test:
 
 ## Gaps
 
-- No automated browser tests.
 - No automated SignalR reconnect test.
-- No MongoDB integration test fixture.
+- The API smoke test uses a real MongoDB service in CI, but the xUnit suite has no reusable MongoDB integration fixture.
 - No load/performance test.
 - No visual regression testing for Phaser/canvas.

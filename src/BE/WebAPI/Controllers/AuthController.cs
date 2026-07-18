@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Auth;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.WebAPI;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
@@ -14,8 +15,13 @@ namespace SirLocked.Api.WebAPI.Controllers;
 public class AuthController : BaseApiController
 {
     private readonly IAuthService _authService;
+    private readonly FrontendRedirects _frontendRedirects;
 
-    public AuthController(IAuthService authService) => _authService = authService;
+    public AuthController(IAuthService authService, FrontendRedirects frontendRedirects)
+    {
+        _authService = authService;
+        _frontendRedirects = frontendRedirects;
+    }
 
     [HttpPost("register")]
     [AllowAnonymous]
@@ -41,13 +47,12 @@ public class AuthController : BaseApiController
 
     [HttpGet("google")]
     [AllowAnonymous]
-    public IActionResult GoogleLogin([FromQuery] string? returnUrl = null)
+    public IActionResult GoogleLogin()
     {
         var redirectUrl = Url.Action(nameof(GoogleCallback), "Auth");
         var properties = new AuthenticationProperties
         {
-            RedirectUri = redirectUrl,
-            Items = { ["returnUrl"] = returnUrl ?? "http://localhost:5173/#/oauth-callback" }
+            RedirectUri = redirectUrl
         };
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
@@ -59,7 +64,7 @@ public class AuthController : BaseApiController
         // Đọc danh tính từ cookie "External" mà Google middleware đã ghi
         var result = await HttpContext.AuthenticateAsync("External");
         if (!result.Succeeded)
-            return Redirect("http://localhost:5173/#/login?error=google_failed");
+            return Redirect(_frontendRedirects.LoginError("google_failed"));
 
         var email = result.Principal?.FindFirstValue(ClaimTypes.Email);
         var fullName = result.Principal?.FindFirstValue(ClaimTypes.Name) ?? "Google User";
@@ -68,12 +73,12 @@ public class AuthController : BaseApiController
         await HttpContext.SignOutAsync("External");
 
         if (string.IsNullOrEmpty(email))
-            return Redirect("http://localhost:5173/#/login?error=no_email");
+            return Redirect(_frontendRedirects.LoginError("no_email"));
 
         var auth = await _authService.GoogleLoginAsync(email, fullName);
 
         // Redirect về frontend kèm token
-        var redirectUrl = $"http://localhost:5173/#/oauth-callback?token={Uri.EscapeDataString(auth.Token)}&refreshToken={Uri.EscapeDataString(auth.RefreshToken)}";
+        var redirectUrl = _frontendRedirects.OAuthCallback(auth.Token, auth.RefreshToken);
         return Redirect(redirectUrl);
     }
 

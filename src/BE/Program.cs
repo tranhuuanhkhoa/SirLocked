@@ -23,9 +23,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddOptions<EmailSettings>()
+    .Bind(builder.Configuration.GetSection("Email"))
+    .Validate(settings => Uri.TryCreate(settings.FrontendUrl, UriKind.Absolute, out var uri)
+                          && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                          && string.IsNullOrEmpty(uri.UserInfo)
+                          && string.IsNullOrEmpty(uri.Query)
+                          && string.IsNullOrEmpty(uri.Fragment),
+        "Email__FrontendUrl must be an absolute HTTP or HTTPS URL.")
+    .ValidateOnStart();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
+builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
 {
     static bool EnvFlag(IConfiguration configuration, string key) =>
@@ -58,6 +67,9 @@ if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length <
 }
 
 builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<CaseCache>();
+builder.Services.AddSingleton<FrontendRedirects>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -152,12 +164,26 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddCors(options =>
 {
+    var settings = builder.Configuration.GetSection("Cors").Get<CorsSettings>() ?? new CorsSettings();
+    var allowedOrigins = settings.AllowedOrigins
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .Select(origin => origin.Trim().TrimEnd('/'))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    if (allowedOrigins.Length == 0 || allowedOrigins.Any(origin =>
+            !Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.IsNullOrEmpty(uri.UserInfo)
+            || uri.AbsolutePath != "/"
+            || !string.IsNullOrEmpty(uri.Query)
+            || !string.IsNullOrEmpty(uri.Fragment)))
+    {
+        throw new InvalidOperationException("Cors__AllowedOrigins must contain valid absolute HTTP or HTTPS origins.");
+    }
+
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "http://localhost:4173")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -212,11 +238,15 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseRateLimiter();
 
-app.UseSwagger();
-app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "SirLocked API v1"));
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "SirLocked API v1"));
+}
 
 app.UseCors();
 app.UseAuthentication();

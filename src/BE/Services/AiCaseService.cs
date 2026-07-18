@@ -531,7 +531,8 @@ public class AiCaseService : IAiCaseService
         }
         catch (JsonException ex)
         {
-            throw ApiException.BadRequest($"Stored generated case JSON could not be parsed: {ex.Message}");
+            _logger.LogWarning(ex, "Stored generated case JSON for draft {DraftId} could not be parsed.", draft.Id);
+            throw ApiException.BadRequest("Stored generated case JSON could not be parsed.");
         }
         catch (ApiException ex)
         {
@@ -944,7 +945,7 @@ public class AiCaseService : IAiCaseService
         catch (Exception ex) when (ex is JsonException or ApiException)
         {
             await SaveInvalidAttemptAsync(draft, rawJson, new List<string> { ex.Message });
-            throw ApiException.Unprocessable("The generated case JSON could not be parsed.", new { details = ex.Message, draftId = draft.Id });
+            throw ApiException.Unprocessable("The generated case JSON could not be parsed.", new { draftId = draft.Id });
         }
 
         if (string.IsNullOrWhiteSpace(gameCase.CaseId))
@@ -1159,7 +1160,7 @@ public class AiCaseService : IAiCaseService
                 });
             }
             await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
-            throw ApiException.BadGateway($"OpenAI request failed: {ex.Message}");
+            throw ApiException.BadGateway("OpenAI request failed. Check server logs for the correlation ID and provider details.");
         }
     }
 
@@ -1221,9 +1222,9 @@ public class AiCaseService : IAiCaseService
         {
             preview = JsonSerializer.Deserialize<AiStoryPreview>(StripMarkdownFences(content), PrettyJson);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            throw ApiException.BadGateway($"OpenAI story preview could not be parsed: {ex.Message}");
+            throw ApiException.BadGateway("OpenAI story preview could not be parsed.");
         }
 
         if (preview is null || string.IsNullOrWhiteSpace(preview.Title) || string.IsNullOrWhiteSpace(preview.Summary))
@@ -2125,7 +2126,7 @@ public class AiCaseService : IAiCaseService
         {
             _logger.LogError(ex, "OpenAI referenced image generation failed.");
             await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
-            throw ApiException.BadGateway($"OpenAI referenced image request failed: {ex.Message}");
+            throw ApiException.BadGateway("OpenAI referenced image request failed. Check server logs for details.");
         }
     }
 
@@ -2198,7 +2199,7 @@ public class AiCaseService : IAiCaseService
             await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
             if (!allowFallback || !await TryWriteFallbackImageAsync(draftId, step, prompt, filePath, "image request timed out"))
             {
-                throw ApiException.BadGateway($"OpenAI image request timed out: {ex.Message}");
+                throw ApiException.BadGateway("OpenAI image request timed out.");
             }
             await WritePromptHashAsync(filePath, prompt);
         }
@@ -2212,7 +2213,7 @@ public class AiCaseService : IAiCaseService
             await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
             if (!allowFallback || !await TryWriteFallbackImageAsync(draftId, step, prompt, filePath, ex.Message))
             {
-                throw ApiException.BadGateway($"OpenAI image request failed: {ex.Message}");
+                throw ApiException.BadGateway("OpenAI image request failed. Check server logs for details.");
             }
             await WritePromptHashAsync(filePath, prompt);
         }
@@ -2401,9 +2402,9 @@ public class AiCaseService : IAiCaseService
         {
             plan = JsonSerializer.Deserialize<ScenePlacementPlan>(StripMarkdownFences(json), PrettyJson);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            throw ApiException.BadGateway($"OpenAI placement plan could not be parsed: {ex.Message}");
+            throw ApiException.BadGateway("OpenAI placement plan could not be parsed.");
         }
 
         plan ??= new ScenePlacementPlan();
@@ -2746,7 +2747,7 @@ public class AiCaseService : IAiCaseService
         {
             _logger.LogError(ex, "OpenAI vision layout generation failed.");
             await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
-            throw ApiException.BadGateway($"OpenAI vision request failed: {ex.Message}");
+            throw ApiException.BadGateway("OpenAI vision request failed. Check server logs for details.");
         }
     }
 
@@ -2757,9 +2758,9 @@ public class AiCaseService : IAiCaseService
         {
             document = JsonDocument.Parse(StripMarkdownFences(verificationJson));
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            throw ApiException.BadGateway($"OpenAI placement verification could not be parsed: {ex.Message}");
+            throw ApiException.BadGateway("OpenAI placement verification could not be parsed.");
         }
 
         using (document)

@@ -23,6 +23,11 @@ You can start from `ai-game-docs/.env.example`.
 ```env
 MongoDb__ConnectionString=mongodb://localhost:27017
 MongoDb__DatabaseName=SirLockedDb
+Email__FrontendUrl=http://localhost:5173
+Cors__AllowedOrigins__0=http://localhost:5173
+Swagger__Enabled=false
+CaseCache__AbsoluteExpirationSeconds=300
+CaseCache__SlidingExpirationSeconds=60
 Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
@@ -35,6 +40,8 @@ OpenAI__TimeoutSeconds=900
 ```
 
 `OpenAI__ApiKey` is required for the AI case creator. Keep real keys in local `.env` files or deployment secrets only.
+Swagger is always available in `Development`; outside Development it is disabled unless `Swagger__Enabled=true` is explicitly configured.
+The case cache is process-local and intended for the current single-instance deployment. Use a distributed cache or coordinated invalidation before scaling the API to multiple instances.
 
 ## Run Locally
 

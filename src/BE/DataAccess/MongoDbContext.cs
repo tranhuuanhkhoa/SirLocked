@@ -72,7 +72,10 @@ public class MongoDbContext
                 Builders<GameCase>.IndexKeys.Ascending(c => c.CaseId),
                 new CreateIndexOptions { Unique = true, Name = "ux_cases_caseId" }),
             new CreateIndexModel<GameCase>(Builders<GameCase>.IndexKeys.Ascending(c => c.Status)),
-            new CreateIndexModel<GameCase>(Builders<GameCase>.IndexKeys.Descending(c => c.UpdatedAt))
+            new CreateIndexModel<GameCase>(Builders<GameCase>.IndexKeys.Descending(c => c.UpdatedAt)),
+            new CreateIndexModel<GameCase>(
+                Builders<GameCase>.IndexKeys.Ascending(c => c.Status).Descending(c => c.UpdatedAt),
+                new CreateIndexOptions { Name = "ix_cases_status_updatedAt" })
         }, ct);
 
         await Rooms.Indexes.CreateManyAsync(new[]

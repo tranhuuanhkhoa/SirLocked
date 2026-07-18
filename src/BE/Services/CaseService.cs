@@ -18,28 +18,36 @@ public class CaseService : ICaseService
     };
 
     private readonly MongoDbContext _db;
+    private readonly CaseCache _cache;
     private readonly ICaseValidationService _validator;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<CaseService> _logger;
 
-    public CaseService(MongoDbContext db, ICaseValidationService validator, IWebHostEnvironment env, ILogger<CaseService> logger)
+    public CaseService(
+        MongoDbContext db,
+        CaseCache cache,
+        ICaseValidationService validator,
+        IWebHostEnvironment env,
+        ILogger<CaseService> logger)
     {
         _db = db;
+        _cache = cache;
         _validator = validator;
         _env = env;
         _logger = logger;
     }
 
-    public async Task<List<CaseSummaryResponse>> GetPublishedAsync()
-    {
-        var cases = await _db.Cases.Find(c => c.Status == CaseStatus.Published)
-            .SortByDescending(c => c.UpdatedAt).ToListAsync();
-        return cases.Select(CaseSummaryResponse.From).ToList();
-    }
+    public Task<List<CaseSummaryResponse>> GetPublishedAsync() =>
+        _cache.GetPublishedAsync(async () =>
+        {
+            var cases = await _db.Cases.Find(c => c.Status == CaseStatus.Published)
+                .SortByDescending(c => c.UpdatedAt).ToListAsync();
+            return cases.Select(CaseSummaryResponse.From).ToList();
+        });
 
     public async Task<CasePublicDetailResponse> GetPublicDetailAsync(string caseId)
     {
-        var gameCase = await FindCaseAsync(caseId) ?? throw ApiException.NotFound("Case not found.");
+        var gameCase = await GetCaseAsync(caseId);
         if (gameCase.Status != CaseStatus.Published)
         {
             throw ApiException.NotFound("Case not found.");
@@ -47,14 +55,16 @@ public class CaseService : ICaseService
         return CasePublicDetailResponse.FromCase(gameCase);
     }
 
-    public async Task<List<CaseSummaryResponse>> GetAllForAdminAsync()
-    {
-        var cases = await _db.Cases.Find(_ => true).SortByDescending(c => c.UpdatedAt).ToListAsync();
-        return cases.Select(CaseSummaryResponse.From).ToList();
-    }
+    public Task<List<CaseSummaryResponse>> GetAllForAdminAsync() =>
+        _cache.GetAdminListAsync(async () =>
+        {
+            var cases = await _db.Cases.Find(_ => true).SortByDescending(c => c.UpdatedAt).ToListAsync();
+            return cases.Select(CaseSummaryResponse.From).ToList();
+        });
 
-    public async Task<GameCase> GetCaseAsync(string caseId) =>
-        await FindCaseAsync(caseId) ?? throw ApiException.NotFound("Case not found.");
+    public Task<GameCase> GetCaseAsync(string caseId) =>
+        _cache.GetCaseAsync(caseId, async () =>
+            await FindCaseAsync(caseId) ?? throw ApiException.NotFound("Case not found."));
 
     public Task<GameCase?> FindCaseAsync(string caseId) =>
         _db.Cases.Find(c => c.CaseId == caseId).FirstOrDefaultAsync()!;
@@ -174,6 +184,7 @@ public class CaseService : ICaseService
             await _db.Cases.InsertOneAsync(gameCase);
         }
 
+        _cache.Invalidate(gameCase.CaseId);
         _logger.LogInformation("Case '{CaseId}' imported/seeded with status {Status}.", gameCase.CaseId, gameCase.Status);
         return CaseSummaryResponse.From(gameCase);
     }
@@ -186,6 +197,7 @@ public class CaseService : ICaseService
         await _db.Cases.UpdateOneAsync(c => c.Id == gameCase.Id, update);
         gameCase.Status = status;
         gameCase.UpdatedAt = DateTime.UtcNow;
+        _cache.Invalidate(gameCase.CaseId);
         return CaseSummaryResponse.From(gameCase);
     }
 
