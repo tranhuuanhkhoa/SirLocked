@@ -41,6 +41,7 @@ import {
   type PrivateEvidence,
   type PrivateTestimony,
 } from '../game/pairedConfrontation.js';
+import { newestTerminalPair, renderCrackPayoff } from '../game/crackPayoff.js';
 
 type RoomPlayer = {
   userId: string;
@@ -1747,6 +1748,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let stateRefetchPromise: Promise<void> | null = null;
   let requestedStateVersion = 0;
   let pairedCommandInFlight = false;
+  let crackPayoffPair: DisclosedPair | null = null;
+  let crackPayoffTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ----- Conversation view state (dialogue overlay) -----
   type ConvLine = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
@@ -1771,6 +1774,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
     if (e.key === 'Escape') {
+      if (crackPayoffPair) {
+        crackPayoffPair = null;
+        if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
+        draw();
+        return;
+      }
       if (uiMode.kind === 'CASE_FILE' && uiMode.clueId) {
         setUiMode({ kind: 'CASE_FILE', section: uiMode.section });
         return;
@@ -1978,6 +1987,20 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const previousClueKey = clueKey(state);
     const freshClueKey = clueKey(fresh);
     const unlockedCluesChanged = previousClueKey !== freshClueKey;
+    if (fresh.mechanicsVersion === 3) {
+      const previousTerminal = state ? newestTerminalPair(state) : null;
+      const freshTerminal = newestTerminalPair(fresh);
+      const previousKey = previousTerminal ? `${previousTerminal.attemptId}:${previousTerminal.revision}:${previousTerminal.status}` : '';
+      const freshKey = freshTerminal ? `${freshTerminal.attemptId}:${freshTerminal.revision}:${freshTerminal.status}` : '';
+      if (freshTerminal && freshKey !== previousKey) {
+        crackPayoffPair = freshTerminal;
+        if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
+        crackPayoffTimer = setTimeout(() => {
+          crackPayoffPair = null;
+          draw();
+        }, 4500);
+      }
+    }
     // Scenes complete themselves server-side once every requirement is met; surface that here.
     if (state) {
       const previouslyCompleted = new Set(state.completedSceneIds);
@@ -2225,7 +2248,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const inventory = app.querySelector('#inventory-slot');
     if (inventory) inventory.innerHTML = inventoryDrawer() + caseFileDrawer() + investigationToolDock(model) + mobileMovementDock(model);
     const transient = app.querySelector('#game-transient-slot');
-    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
 
     const sceneNeedsUpdate = appliedStateVersion !== state.version
       || appliedSceneId !== state.currentSceneId
@@ -2238,6 +2261,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     syncPhaserInputState();
     bind();
+    if (crackPayoffPair) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-crack-dismiss')?.focus());
     createIcons({
       icons: {
         Camera,
@@ -3233,6 +3257,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }));
     app.querySelector('[data-v3-confirm]')?.addEventListener('click', () => void confirmPairedConfrontation());
     app.querySelectorAll('[data-v3-cancel]').forEach((button) => button.addEventListener('click', () => void cancelPairedConfrontation()));
+    app.querySelector('#v3-crack-dismiss')?.addEventListener('click', () => {
+      crackPayoffPair = null;
+      if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
+      draw();
+    });
     app.querySelectorAll('[data-evidence-detail]').forEach((button) => button.addEventListener('click', () => {
       const clueId = (button as HTMLElement).dataset.evidenceDetail;
       if (clueId) setUiMode({ kind: 'CASE_FILE', section: 'evidence', clueId });
@@ -3907,6 +3936,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   return () => {
     stopped = true;
     if (convTimer) { clearInterval(convTimer); convTimer = null; }
+    if (crackPayoffTimer) { clearTimeout(crackPayoffTimer); crackPayoffTimer = null; }
     window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
     for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);
