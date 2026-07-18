@@ -13,6 +13,9 @@
     <Compile Remove="Tests/**" />
     <Content Remove="Tests/**" />
     <None Remove="Tests/**" />
+    <Compile Remove="IntegrationTests/**" />
+    <Content Remove="IntegrationTests/**" />
+    <None Remove="IntegrationTests/**" />
     <!-- AI export output folder is data, not source -->
     <Content Remove="GeneratedCaseJson/**" />
     <None Include="GeneratedCaseJson/**" CopyToOutputDirectory="Never" />

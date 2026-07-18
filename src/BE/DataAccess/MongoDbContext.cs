@@ -23,6 +23,10 @@ public class MongoDbContext
     public MongoDbContext(IOptions<MongoDbSettings> options)
     {
         Settings = options.Value;
+        if (Settings.AuditSafetyMode)
+        {
+            V3LocalMongoSafetyGuard.EnsureSafe(Settings);
+        }
         var clientSettings = MongoClientSettings.FromConnectionString(Settings.ConnectionString);
         if (clientSettings.UseTls)
         {
