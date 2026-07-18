@@ -83,6 +83,10 @@ public class V3KnowledgeProjectionTests
         Assert.DoesNotContain("INT_UNRELATED_SENTINEL", investigatorJson);
         Assert.Contains("INT_UNRELATED_SENTINEL", interrogatorJson);
         Assert.DoesNotContain("INV_UNRELATED_SENTINEL", interrogatorJson);
+        Assert.Equal(2, investigator.PrivateEvidence.Count);
+        Assert.Empty(investigator.PrivateTestimonies);
+        Assert.Equal(2, interrogator.PrivateTestimonies.Count);
+        Assert.Empty(interrogator.PrivateEvidence);
         Assert.Equal(2, investigator.ActiveConfrontation!.Revision);
         Assert.NotNull(investigator.ActiveConfrontation.Evidence);
         Assert.NotNull(investigator.ActiveConfrontation.Testimony);
@@ -175,6 +179,9 @@ public class V3KnowledgeProjectionTests
         V3KnowledgeProjector.Apply(response, room, gameCase, "int");
 
         var truth = Assert.Single(response.SharedKnowledge.ResolvedTruths);
+        Assert.Single(response.PrivateTestimonies);
+        Assert.Equal("fragment-int", response.PrivateTestimonies[0].TestimonyFragmentId);
+        Assert.Empty(response.PrivateEvidence);
         Assert.True(response.IsCaseComplete);
         Assert.Equal("Case complete. The final contradiction is cracked and the truth is shared.", response.CurrentObjective);
         Assert.Empty(response.VisibleScene.Hotspots);

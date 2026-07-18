@@ -76,6 +76,8 @@ export type PairedConfrontationViewModel = {
   active: ActivePairedConfrontation | null;
   privateEvidence: PrivateEvidence[];
   privateTestimonies: PrivateTestimony[];
+  disclosedEvidenceIds: Set<string>;
+  disclosedTestimonyIds: Set<string>;
   attemptHistory: DisclosedPair[];
   resolvedTruths: DisclosedPair[];
   phase: 'IDLE' | 'COLLECTING' | 'REVIEW' | 'WAITING';
@@ -97,14 +99,34 @@ export function buildPairedConfrontationViewModel(
       : active.status === 'AwaitingSecondConfirmation'
         ? 'WAITING'
         : 'REVIEW';
+  const attemptHistory = [...(state.sharedKnowledge?.attemptHistory ?? [])];
+  const resolvedTruths = [...(state.sharedKnowledge?.resolvedTruths ?? [])];
+  const disclosedPairs = [...attemptHistory, ...resolvedTruths];
+  const disclosedEvidenceIds = new Set(disclosedPairs.map((pair) => pair.evidence.clueId));
+  const disclosedTestimonyIds = new Set(disclosedPairs.map((pair) => pair.testimony.testimonyFragmentId));
+  const evidenceById = new Map((state.privateEvidence ?? []).map((entry) => [entry.clueId, entry]));
+  const testimonyById = new Map((state.privateTestimonies ?? []).map((entry) => [entry.testimonyFragmentId, entry]));
+
+  // Compatibility for an already-running local API that used to remove disclosed
+  // owner knowledge from PrivateEvidence/PrivateTestimonies. Joint Review makes
+  // these exact pairs visible, so restoring only the caller's role-owned side
+  // does not disclose anything new.
+  if (role === 'INVESTIGATOR') {
+    disclosedPairs.forEach((pair) => evidenceById.set(pair.evidence.clueId, pair.evidence));
+  }
+  if (role === 'INTERROGATOR') {
+    disclosedPairs.forEach((pair) => testimonyById.set(pair.testimony.testimonyFragmentId, pair.testimony));
+  }
 
   return {
     role,
     active,
-    privateEvidence: [...(state.privateEvidence ?? [])],
-    privateTestimonies: [...(state.privateTestimonies ?? [])],
-    attemptHistory: [...(state.sharedKnowledge?.attemptHistory ?? [])],
-    resolvedTruths: [...(state.sharedKnowledge?.resolvedTruths ?? [])],
+    privateEvidence: [...evidenceById.values()],
+    privateTestimonies: [...testimonyById.values()],
+    disclosedEvidenceIds,
+    disclosedTestimonyIds,
+    attemptHistory,
+    resolvedTruths,
     phase,
     canStart: role === 'INTERROGATOR' && active === null,
   };
@@ -125,7 +147,9 @@ export function renderPrivateEvidencePanel(
   const canPropose = Boolean(model.active?.canEdit);
   return `<div class="v3-private-list">${model.privateEvidence.map((evidence) => `
     <article class="v3-private-card" data-private-evidence-card="${escape(evidence.clueId)}">
-      <span class="v3-private-label">${tr('PRIVATE · INVESTIGATOR', 'RIÊNG · ĐIỀU TRA VIÊN')}</span>
+      <span class="v3-private-label">${model.disclosedEvidenceIds.has(evidence.clueId)
+        ? tr('SHARED BEFORE · INVESTIGATOR', 'ĐÃ CHIA SẺ · ĐIỀU TRA VIÊN')
+        : tr('PRIVATE · INVESTIGATOR', 'RIÊNG · ĐIỀU TRA VIÊN')}</span>
       <h3>${escape(evidence.title)}</h3>
       <p>${escape(evidence.inventoryDescription || evidence.content)}</p>
       <button class="btn btn-gold btn-sm" data-v3-propose-evidence="${escape(evidence.clueId)}" ${canPropose ? '' : 'disabled'}>
@@ -150,7 +174,9 @@ export function renderPrivateTestimonyPanel(
     const command = model.active ? 'data-v3-edit-testimony' : 'data-v3-start-testimony';
     return `
       <article class="v3-private-card" data-private-testimony-card="${escape(testimony.testimonyFragmentId)}">
-        <span class="v3-private-label">${tr('PRIVATE · INTERROGATOR', 'RIÊNG · THẨM VẤN VIÊN')}</span>
+        <span class="v3-private-label">${model.disclosedTestimonyIds.has(testimony.testimonyFragmentId)
+          ? tr('SHARED BEFORE · INTERROGATOR', 'ĐÃ CHIA SẺ · THẨM VẤN VIÊN')
+          : tr('PRIVATE · INTERROGATOR', 'RIÊNG · THẨM VẤN VIÊN')}</span>
         <h3>${escape(testimony.characterName || tr('Witness', 'Nhân chứng'))}</h3>
         <blockquote>${escape(testimony.text)}</blockquote>
         <button class="btn btn-gold btn-sm" ${command}="${escape(testimony.testimonyFragmentId)}" ${model.active && !model.active.canEdit ? 'disabled' : ''}>
@@ -210,12 +236,6 @@ export function renderJointReviewPanel(
           <strong>${escape(pair.evidence.title)}</strong>
           <blockquote>${escape(pair.testimony.text)}</blockquote>
           ${pair.feedback ? `<p>${escape(pair.feedback)}</p>` : ''}
-          ${pair.status !== 'RESOLVED_SHARED_TRUTH' && model.role === 'INTERROGATOR'
-            ? `<button class="btn btn-ghost btn-sm" ${model.active ? 'data-v3-edit-testimony' : 'data-v3-start-testimony'}="${escape(pair.testimony.testimonyFragmentId)}">${tr('Reuse testimony', 'Dùng lại lời khai')}</button>`
-            : ''}
-          ${pair.status !== 'RESOLVED_SHARED_TRUTH' && model.role === 'INVESTIGATOR' && model.active?.canEdit
-            ? `<button class="btn btn-ghost btn-sm" data-v3-propose-evidence="${escape(pair.evidence.clueId)}">${tr('Reuse evidence', 'Dùng lại chứng cứ')}</button>`
-            : ''}
         </article>`).join('')}</section>`;
 
   return `<div class="v3-review-panel">${activeMarkup}${historyMarkup}</div>`;

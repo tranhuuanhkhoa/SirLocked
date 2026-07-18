@@ -164,6 +164,35 @@ function correctTerminalState(role: 'INVESTIGATOR' | 'INTERROGATOR') {
   });
 }
 
+function exhaustedRetryState(role: 'INVESTIGATOR' | 'INTERROGATOR') {
+  const attempts = [0, 1, 2].map((index) => ({
+    attemptId: `failed-attempt-${index + 1}`,
+    revision: 2,
+    status: 'ResolvedIncorrect',
+    evidence: {
+      ...evidence,
+      clueId: `evidence-${index + 1}`,
+      title: `Evidence option ${index + 1}`,
+    },
+    testimony: {
+      ...testimony,
+      testimonyFragmentId: `testimony-${index + 1}`,
+      text: `Testimony option ${index + 1}`,
+    },
+    feedback: 'This pair does not establish a direct contradiction.',
+    reveals: [],
+    disclosedAt: `2026-07-19T08:0${index}:00Z`,
+    resolvedAt: `2026-07-19T08:0${index}:30Z`,
+  }));
+  return v3State(role, {
+    version: 8,
+    privateEvidence: [],
+    privateTestimonies: [],
+    sharedKnowledge: { attemptHistory: attempts, resolvedTruths: [] },
+    activeConfrontation: null,
+  });
+}
+
 async function prepare(page: Page, initialState: ReturnType<typeof v3State>) {
   await page.addInitScript(([id]) => {
     window.localStorage.setItem('sirlocked.token', 'v3-ui-token');
@@ -210,6 +239,31 @@ test('role-private notebooks never render partner sentinels before Joint Review'
 
   await investigatorContext.close();
   await interrogatorContext.close();
+});
+
+test('all disclosed wrong options remain reusable from each owner notebook', async ({ browser }) => {
+  const interrogatorContext = await browser.newContext();
+  const interrogatorPage = await interrogatorContext.newPage();
+  await prepare(interrogatorPage, exhaustedRetryState('INTERROGATOR'));
+  await interrogatorPage.goto(`/#/game/${roomId}`);
+  await interrogatorPage.locator('#case-file-btn').click();
+  await interrogatorPage.locator('[data-case-tab="testimony"]').click();
+  await expect(interrogatorPage.locator('[data-private-testimony-card]')).toHaveCount(3);
+  const startButtons = interrogatorPage.locator('[data-v3-start-testimony]');
+  await expect(startButtons).toHaveCount(3);
+  await expect(startButtons.first()).toBeEnabled();
+  await expect(interrogatorPage.locator('.v3-private-list')).toContainText('SHARED BEFORE');
+
+  const investigatorContext = await browser.newContext();
+  const investigatorPage = await investigatorContext.newPage();
+  await prepare(investigatorPage, exhaustedRetryState('INVESTIGATOR'));
+  await investigatorPage.goto(`/#/game/${roomId}`);
+  await investigatorPage.locator('#case-file-btn').click();
+  await expect(investigatorPage.locator('[data-private-evidence-card]')).toHaveCount(3);
+  await expect(investigatorPage.locator('.v3-private-list')).toContainText('Waiting for a testimony proposal');
+
+  await interrogatorContext.close();
+  await investigatorContext.close();
 });
 
 test('Joint Review discloses exactly the pair and correct confirmation presents shared payoff', async ({ page }) => {

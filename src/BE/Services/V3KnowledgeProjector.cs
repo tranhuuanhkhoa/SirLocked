@@ -31,21 +31,10 @@ public static class V3KnowledgeProjector
             .GroupBy(clue => clue.ClueId)
             .ToDictionary(group => group.Key, group => group.First().PhotoUrl);
 
-        var activeDisclosures = state.ActiveConfrontation?.Disclosures
-            ?? new List<PairedConfrontationDisclosureRecord>();
-        var terminalDisclosures = state.PairedConfrontationAttempts.SelectMany(attempt => attempt.Disclosures).ToList();
-        var disclosedEvidenceIds = activeDisclosures.Concat(terminalDisclosures)
-            .Select(disclosure => disclosure.EvidenceId)
-            .ToHashSet();
-        var disclosedFragmentIds = activeDisclosures.Concat(terminalDisclosures)
-            .Select(disclosure => disclosure.TestimonyFragmentId)
-            .ToHashSet();
-
         response.PrivateEvidence = state.ClueDiscoveries
             .Where(discovery => discovery.DiscoveredByUserId == userId)
             .Select(discovery => discovery.ClueId)
             .Distinct()
-            .Where(clueId => !disclosedEvidenceIds.Contains(clueId))
             .Select(clueId => gameCase.Clues.FirstOrDefault(clue => clue.ClueId == clueId))
             .Where(clue => clue is { IsEvidence: true })
             .Select(clue => BuildEvidence(clue!, photoUrls))
@@ -55,7 +44,6 @@ public static class V3KnowledgeProjector
             .Where(discovery => discovery.DiscoveredByUserId == userId)
             .Select(discovery => discovery.TestimonyFragmentId)
             .Distinct()
-            .Where(fragmentId => !disclosedFragmentIds.Contains(fragmentId))
             .Select(fragmentId => gameCase.TestimonyFragments.FirstOrDefault(fragment => fragment.Id == fragmentId))
             .Where(fragment => fragment is not null)
             .Select(fragment => BuildTestimony(fragment!, gameCase))

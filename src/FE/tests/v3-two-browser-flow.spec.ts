@@ -339,7 +339,8 @@ for (const run of [1, 2, 3]) {
     await emitState(investigator.page, flow.version);
     await investigator.page.locator('#v3-crack-dismiss').click();
 
-    await interrogator.page.locator('[data-v3-start-testimony="fragment-seal-intact"]').first().click();
+    await interrogator.page.locator('[data-case-tab="testimony"]').click();
+    await interrogator.page.locator('[data-v3-start-testimony="fragment-seal-intact"]').click();
     await emitState(investigator.page, flow.version);
     await investigator.page.locator('[data-case-tab="evidence"]').click();
     await investigator.page.locator('[data-v3-propose-evidence="evidence-blue-wax"]').click();
@@ -347,11 +348,20 @@ for (const run of [1, 2, 3]) {
     await emitState(interrogator.page, flow.version);
 
     await interrogator.page.locator('[data-case-tab="testimony"]').click();
+    const noBagSaved = interrogator.page.waitForResponse((response) =>
+      response.request().method() === 'PUT' && response.url().endsWith('/testimony'));
     await interrogator.page.locator('[data-v3-edit-testimony="fragment-no-bag"]').click();
+    await noBagSaved;
+    await interrogator.page.locator('[data-case-tab="contradictions"]').click();
+    await expect(interrogator.page.locator('.v3-joint-review')).toContainText('I carried no bag.');
     await emitState(investigator.page, flow.version);
     await expect(investigator.page.locator('.v3-confirmation-state')).toContainText('○ You');
 
-    await interrogator.page.locator('[data-v3-edit-testimony="fragment-seal-intact"]').first().click();
+    await interrogator.page.locator('[data-case-tab="testimony"]').click();
+    const sealSaved = interrogator.page.waitForResponse((response) =>
+      response.request().method() === 'PUT' && response.url().endsWith('/testimony'));
+    await interrogator.page.locator('[data-v3-edit-testimony="fragment-seal-intact"]').click();
+    await sealSaved;
     await investigator.page.reload();
     await expect(investigator.page.locator('#case-file-btn')).toBeVisible();
     await investigator.page.locator('#case-file-btn').click();
