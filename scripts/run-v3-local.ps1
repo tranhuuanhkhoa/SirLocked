@@ -10,8 +10,16 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'Docker is required for the isolated V3 local environment.'
 }
 
-$passwordBytes = [Security.Cryptography.RandomNumberGenerator]::GetBytes(18)
-$jwtBytes = [Security.Cryptography.RandomNumberGenerator]::GetBytes(64)
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+try {
+    $passwordBytes = New-Object byte[] 18
+    $jwtBytes = New-Object byte[] 64
+    $rng.GetBytes($passwordBytes)
+    $rng.GetBytes($jwtBytes)
+}
+finally {
+    $rng.Dispose()
+}
 $testPassword = 'V3!' + [Convert]::ToBase64String($passwordBytes).Replace('/', 'x').Replace('+', 'Y')
 $jwtSecret = [Convert]::ToBase64String($jwtBytes)
 
@@ -20,6 +28,9 @@ try {
     $env:ASPNETCORE_ENVIRONMENT = 'V3Local'
     $env:Jwt__Secret = $jwtSecret
     $env:V3LocalAudit__TestPassword = $testPassword
+    $env:MongoDb__AuditSafetyMode = 'true'
+    $env:MongoDb__ConnectionString = 'mongodb://127.0.0.1:27018'
+    $env:MongoDb__DatabaseName = 'sirlocked_v3_local'
 
     Write-Host 'Local-only V3 accounts:'
     Write-Host '  audit_investigator@audit.invalid'
@@ -31,5 +42,8 @@ finally {
     Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue
     Remove-Item Env:Jwt__Secret -ErrorAction SilentlyContinue
     Remove-Item Env:V3LocalAudit__TestPassword -ErrorAction SilentlyContinue
+    Remove-Item Env:MongoDb__AuditSafetyMode -ErrorAction SilentlyContinue
+    Remove-Item Env:MongoDb__ConnectionString -ErrorAction SilentlyContinue
+    Remove-Item Env:MongoDb__DatabaseName -ErrorAction SilentlyContinue
     docker compose -f $composeFile down
 }

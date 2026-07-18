@@ -17,28 +17,35 @@ test.describe('isolated local V3 full-stack flow', () => {
   test.describe.configure({ mode: 'serial' });
   test.skip(!enabled, 'Run through scripts/test-v3-local-full-stack.ps1 with isolated local Mongo.');
 
+  let api: APIRequestContext;
+  let investigatorAuth: Auth;
+  let interrogatorAuth: Auth;
+
+  test.beforeAll(async () => {
+    expect(password, 'The launcher must provide a process-only test password.').not.toBe('');
+    api = await playwrightRequest.newContext({ baseURL: apiBaseUrl });
+    investigatorAuth = await login(api, 'audit_investigator@audit.invalid');
+    interrogatorAuth = await login(api, 'audit_interrogator@audit.invalid');
+  });
+
+  test.afterAll(async () => {
+    await api?.dispose();
+  });
+
   for (const run of [1, 2, 3]) {
     test(`real HTTP/Auth/Mongo and two browser contexts complete V3 (run ${run})`, async ({ browser }) => {
-      expect(password, 'The launcher must provide a process-only test password.').not.toBe('');
-      const api = await playwrightRequest.newContext({ baseURL: apiBaseUrl });
-      try {
-        const investigatorAuth = await login(api, 'audit_investigator@audit.invalid');
-        const interrogatorAuth = await login(api, 'audit_interrogator@audit.invalid');
-        const room = await createStartedRoom(api, investigatorAuth, interrogatorAuth);
-        await discoverPrivateKnowledge(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
-        await assertServerPrivacy(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
+      const room = await createStartedRoom(api, investigatorAuth, interrogatorAuth);
+      await discoverPrivateKnowledge(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
+      await assertServerPrivacy(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
 
-        const investigator = await openPlayer(browser, room.roomId, investigatorAuth);
-        const interrogator = await openPlayer(browser, room.roomId, interrogatorAuth);
-        try {
-          await runCrackLoop(investigator, interrogator);
-          await assertWrongRoleErrorIsGeneric(api, room.roomId, investigatorAuth.token);
-        } finally {
-          await investigator.context().close();
-          await interrogator.context().close();
-        }
+      const investigator = await openPlayer(browser, room.roomId, investigatorAuth);
+      const interrogator = await openPlayer(browser, room.roomId, interrogatorAuth);
+      try {
+        await runCrackLoop(investigator, interrogator);
+        await assertWrongRoleErrorIsGeneric(api, room.roomId, investigatorAuth.token);
       } finally {
-        await api.dispose();
+        await investigator.context().close();
+        await interrogator.context().close();
       }
     });
   }

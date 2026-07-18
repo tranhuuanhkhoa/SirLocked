@@ -21,15 +21,17 @@ Do not edit runtime code, fixture JSON, copy, hint behavior or CSS between Human
 |---|---|
 | Backend Debug unit suite | 276 passed |
 | Backend Release build | Passed, 0 warnings / 0 errors |
-| Integration harness default run | 1 passed (harness compile/guard only; real Mongo opt-in was not enabled) |
+| Real Mongo concurrency gate | 1 passed on MongoDB 8 at `127.0.0.1:27018` |
 | Full frontend browser suite | 16 passed, including three consecutive two-context V3 runs |
-| Opt-in real full-stack browser gate | Implemented for three serial rooms; not executed because Docker is unavailable |
+| Real full-stack browser gate | 3 passed serially through HTTP/Auth/Mongo and two browser contexts |
 | Frontend typecheck | Passed |
 | Frontend production build | Passed; existing bundle-size warning remains non-blocking |
-| Real Mongo local integration | Not executed: Docker/mongod unavailable on this workstation |
-| Mongo Atlas / production DB | Not accessed |
+| Local cleanup | Compose container and network removed after each gate |
+| Remote database mutation | No write, migration or delete command was issued |
 
-The three-run browser result above is a shared mocked API/state contract test, not evidence of real Mongo concurrency. A separate opt-in test performs login, room lifecycle, private discovery, wrong/edit/reload/correct flow and privacy assertions through real HTTP/Auth/Mongo on three serial rooms. Build A is not eligible for a human session requiring real persistence until both local gates run green.
+The mocked browser suite and the real local suite are separate evidence. The real suite performs login, room lifecycle, private discovery, wrong/edit/reload/correct flow and privacy assertions through HTTP/Auth/Mongo on three serial rooms. Both local gates are green, so Build A may proceed to Human Gate 1 without changing runtime code.
+
+During the first pre-fix launcher attempt, port `5290` was already owned by a pre-existing API and received one unsuccessful login request before the test stopped. Its database target was not queried for diagnosis; no write/delete operation was requested. The corrected runner now reserves `5292`, refuses an occupied port, builds an isolated API binary and explicitly overrides Mongo to loopback so repo `.env` values cannot redirect the audit.
 
 ## Start and export
 
