@@ -1,0 +1,3 @@
+session_id,build_commit,sandbox_locale,sandbox_checksum,elapsed_seconds,investigator_action,investigator_actionable,interrogator_action,interrogator_actionable,communication_state,private_detail_spoken_before_review,joint_review_revision,waiting_role,waiting_episode_seconds,wrong_pair_count,edit_count,clarification_count,facilitator_intervention,intervention_category,technical_error,observer_notes_no_pii
+A01,1cc48f7,vi,AE1497C8169AF3517C4D0393BED47A54CDE54A263820C1DE6082DDA249456072,0,ORIENTING,1,ORIENTING,1,NONE,0,,NONE,0,0,0,0,0,NONE,0,
+A01,1cc48f7,vi,AE1497C8169AF3517C4D0393BED47A54CDE54A263820C1DE6082DDA249456072,30,,,,,,,,,,,,,,,,,
