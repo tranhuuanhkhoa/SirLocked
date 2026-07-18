@@ -109,7 +109,7 @@ public class GameStateBuilder : IGameStateBuilder
             .SortByDescending(l => l.CreatedAt).Limit(ActionLogLimit).ToListAsync();
         logs.Reverse();
 
-        return new GameStateResponse
+        var response = new GameStateResponse
         {
             RoomId = room.Id,
             RoomCode = room.RoomCode,
@@ -227,6 +227,8 @@ public class GameStateBuilder : IGameStateBuilder
                 CreatedAt = l.CreatedAt
             }).ToList()
         };
+        V3KnowledgeProjector.Apply(response, room, gameCase, userId);
+        return response;
     }
 
     private static CaseScene CurrentScene(GameCase gameCase, GameplayState state, string userId)

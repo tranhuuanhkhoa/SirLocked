@@ -518,6 +518,14 @@ public class GameStateResponse
     /// <summary>All case characters: used by the final accusation suspect picker.</summary>
     public List<CaseCharacterDto> Suspects { get; set; } = new();
     public List<ActionLogEntryDto> ActionLog { get; set; } = new();
+    /// <summary>V3 caller-owned physical evidence. Empty for mechanics V1/V2.</summary>
+    public List<PrivateEvidenceDto> PrivateEvidence { get; set; } = new();
+    /// <summary>V3 caller-owned testimony fragments. Empty for mechanics V1/V2.</summary>
+    public List<PrivateTestimonyDto> PrivateTestimonies { get; set; } = new();
+    /// <summary>V3 pairs intentionally disclosed through joint review.</summary>
+    public SharedKnowledgeDto SharedKnowledge { get; set; } = new();
+    /// <summary>Caller-safe view of the single active V3 confrontation.</summary>
+    public PairedConfrontationViewDto? ActiveConfrontation { get; set; }
 }
 
 public class GameActionResponse
