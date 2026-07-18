@@ -23,19 +23,21 @@ Do not edit runtime code, fixture JSON, copy, hint behavior or CSS between Human
 | Backend Release build | Passed, 0 warnings / 0 errors |
 | Integration harness default run | 1 passed (harness compile/guard only; real Mongo opt-in was not enabled) |
 | Full frontend browser suite | 16 passed, including three consecutive two-context V3 runs |
+| Opt-in real full-stack browser gate | Implemented for three serial rooms; not executed because Docker is unavailable |
 | Frontend typecheck | Passed |
 | Frontend production build | Passed; existing bundle-size warning remains non-blocking |
 | Real Mongo local integration | Not executed: Docker/mongod unavailable on this workstation |
 | Mongo Atlas / production DB | Not accessed |
 
-The three-run browser test is a shared mocked API/state contract test, not evidence of real Mongo concurrency. The opt-in real HTTP/Mongo harness and Docker compose are present, but Build A is not eligible for a human session requiring real persistence until that local integration gate runs green.
+The three-run browser result above is a shared mocked API/state contract test, not evidence of real Mongo concurrency. A separate opt-in test performs login, room lifecycle, private discovery, wrong/edit/reload/correct flow and privacy assertions through real HTTP/Auth/Mongo on three serial rooms. Build A is not eligible for a human session requiring real persistence until both local gates run green.
 
 ## Start and export
 
 1. Install Docker Desktop or a local MongoDB compatible with the isolated compose; never point the config at Atlas.
 2. Run `scripts/run-v3-local.ps1` from the repository root. Credentials/JWT material exist only in the process environment.
 3. Run `scripts/test-v3-local-mongo.ps1`; require a green real-Mongo gate before Human Gate 1.
-4. Export typed events with `scripts/export-v3-playtest.ps1`. The script refuses SRV, remote hosts and database names outside `sirlocked_v3_*`.
+4. Run `scripts/test-v3-local-full-stack.ps1`; require three consecutive real full-stack browser passes.
+5. Export typed events with `scripts/export-v3-playtest.ps1`. The script refuses SRV, remote hosts and database names outside `sirlocked_v3_*`.
 
 ## Evidence boundary
 
