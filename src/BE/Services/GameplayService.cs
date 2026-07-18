@@ -123,20 +123,21 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "INSPECT_ITEM", $"{user.FullName} inspected {item.Name}.", new { itemId });
+            await LogAsync(gameCase, roomId, user.Id, "INSPECT_ITEM", $"{user.FullName} inspected {item.Name}.", new { itemId });
             foreach (var clueId in newClues)
             {
                 var clue = gameCase.Clues.First(c => c.ClueId == clueId);
-                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, itemId });
+                await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, itemId });
             }
 
-            await _notifier.ItemFound(roomId, itemId, user.Id, state.Version);
+            if (ShouldBroadcastDetailedEvents(gameCase))
+                await _notifier.ItemFound(roomId, itemId, user.Id, state.Version);
             if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
                 await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, itemId);
             else
                 foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, itemId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
 
             return new GameActionResponse
             {
@@ -216,13 +217,13 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "USE_ITEM",
+            await LogAsync(gameCase, roomId, user.Id, "USE_ITEM",
                 $"{user.FullName} used {item.Name} on {targetId}.",
                 new { interaction.InteractionId, itemId, targetId });
             foreach (var clueId in effects.NewClueIds)
             {
                 var clue = gameCase.Clues.First(c => c.ClueId == clueId);
-                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, interaction.InteractionId });
+                await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, interaction.InteractionId });
             }
 
             if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
@@ -231,7 +232,7 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in effects.NewClueIds) await _notifier.ClueUnlocked(roomId, clueId, interaction.InteractionId, user.Id, state.Version);
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             return new GameActionResponse
             {
                 State = stateResponse,
@@ -304,13 +305,13 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "COMBINE_ITEMS",
+            await LogAsync(gameCase, roomId, user.Id, "COMBINE_ITEMS",
                 $"{user.FullName} combined inventory items.",
                 new { interaction.InteractionId, itemIds });
             foreach (var clueId in effects.NewClueIds)
             {
                 var clue = gameCase.Clues.First(c => c.ClueId == clueId);
-                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, interaction.InteractionId });
+                await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, interaction.InteractionId });
             }
 
             var scene = CurrentScene(gameCase, state, user.Id);
@@ -320,7 +321,7 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in effects.NewClueIds) await _notifier.ClueUnlocked(roomId, clueId, interaction.InteractionId, user.Id, state.Version);
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             return new GameActionResponse
             {
                 State = stateResponse,
@@ -379,11 +380,11 @@ public partial class GameplayService : IGameplayService
                     continue;
                 }
 
-                await LogAsync(roomId, user.Id, "PUZZLE_FAILED",
+                await LogAsync(gameCase, roomId, user.Id, "PUZZLE_FAILED",
                     $"{user.FullName} tried an incorrect puzzle answer.",
                     new { puzzle.PuzzleId, puzzle.TargetId });
                 var failedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-                await _notifier.GameStateUpdated(roomId, failedState);
+                await _notifier.GameStateUpdated(roomId, failedState.Version);
                 return new GameActionResponse
                 {
                     State = failedState,
@@ -411,13 +412,13 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "PUZZLE_SOLVED",
+            await LogAsync(gameCase, roomId, user.Id, "PUZZLE_SOLVED",
                 $"{user.FullName} solved a puzzle.",
                 new { puzzle.PuzzleId, puzzle.TargetId });
             foreach (var clueId in effects.NewClueIds)
             {
                 var clue = gameCase.Clues.First(c => c.ClueId == clueId);
-                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, puzzle.PuzzleId });
+                await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, puzzle.PuzzleId });
             }
 
             if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
@@ -426,7 +427,7 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in effects.NewClueIds) await _notifier.ClueUnlocked(roomId, clueId, puzzle.PuzzleId, user.Id, state.Version);
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             return new GameActionResponse
             {
                 State = stateResponse,
@@ -443,14 +444,20 @@ public partial class GameplayService : IGameplayService
 
     public async Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId)
     {
-        var (room, _, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
-        if (!EvidenceCapturePersistenceCoordinator.IsPhotoVisible(room, clueId))
+        var (room, gameCase, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
+        if (!V3KnowledgeProjector.CanViewEvidencePhoto(room, gameCase, userId, clueId))
         {
-            throw ApiException.NotFound("This evidence photo is not available.");
+            throw ApiException.NotFound(
+                "This evidence photo is not available.",
+                "EVIDENCE_NOT_AVAILABLE",
+                "game.confrontation.evidenceUnavailable");
         }
 
         var photo = await _evidencePhotos.GetAsync(roomId, clueId)
-            ?? throw ApiException.NotFound("This evidence photo is not available.");
+            ?? throw ApiException.NotFound(
+                "This evidence photo is not available.",
+                "EVIDENCE_NOT_AVAILABLE",
+                "game.confrontation.evidenceUnavailable");
         return new EvidencePhotoContent(photo.ImageData, photo.ContentType);
     }
 
@@ -584,11 +591,11 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "CAPTURE_CLUE", $"{user.FullName} photographed {clue.Title}.",
+            await LogAsync(gameCase, roomId, user.Id, "CAPTURE_CLUE", $"{user.FullName} photographed {clue.Title}.",
                 new { clueId = clue.ClueId, sceneId = scene.SceneId, request.CaptureRect });
             foreach (var clueId in newClues)
             {
-                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, source = "camera" });
+                await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, source = "camera" });
             }
             if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
                 await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, "camera");
@@ -596,7 +603,7 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, "camera", user.Id, state.Version);
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
 
             return new GameActionResponse
             {
@@ -654,6 +661,10 @@ public partial class GameplayService : IGameplayService
             var newClues = dialogue.UnlockClueIds.Where(c => !state.UnlockedClueIds.Contains(c)).ToList();
             state.UnlockedClueIds.AddRange(newClues);
             RecordClueDiscoveries(state, newClues, user.Id, player.Role, ClueDiscoverySources.Dialogue);
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                RecordTestimonyDiscoveries(gameCase, state, dialogueId, user.Id, player.Role);
+            }
 
             if (!await TrySaveStateAsync(room, gameCase))
             {
@@ -661,21 +672,22 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "ASK_DIALOGUE",
+            await LogAsync(gameCase, roomId, user.Id, "ASK_DIALOGUE",
                 $"{user.FullName} asked {character.Name}: \"{dialogue.Question}\"", new { dialogueId });
             foreach (var clueId in newClues)
             {
                 var clue = gameCase.Clues.First(c => c.ClueId == clueId);
-                await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, dialogueId });
+                await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, dialogueId });
             }
 
-            await _notifier.DialogueAnswered(roomId, dialogueId, user.Id, state.Version);
+            if (ShouldBroadcastDetailedEvents(gameCase))
+                await _notifier.DialogueAnswered(roomId, dialogueId, user.Id, state.Version);
             if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
                 await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, newClues, dialogueId);
             else
                 foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, dialogueId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
 
             return new GameActionResponse
             {
@@ -697,6 +709,13 @@ public partial class GameplayService : IGameplayService
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
             RequireRole(player, PlayerRole.Interrogator, "Only the interrogator can question characters.");
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                throw ApiException.Conflict(
+                    "This conversation mode is not available for the current case.",
+                    "CONFRONTATION_NOT_AVAILABLE",
+                    "game.confrontation.notAvailable");
+            }
 
             var scene = CurrentScene(gameCase, state, user.Id);
             var ruleResult = GameplayConversationRules.Apply(
@@ -720,7 +739,7 @@ public partial class GameplayService : IGameplayService
             var character = gameCase.Characters.First(character => character.CharacterId == request.CharacterId);
             if (ruleResult.Changed || ruleResult.SelectedChoice is not null)
             {
-                await LogAsync(roomId, user.Id, "CONVERSE",
+                await LogAsync(gameCase, roomId, user.Id, "CONVERSE",
                     $"{user.FullName} continued the conversation with {character.Name}.",
                     new
                     {
@@ -735,7 +754,7 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in ruleResult.UnlockedClueIds)
                 {
                     var clue = gameCase.Clues.First(clue => clue.ClueId == clueId);
-                    await LogAsync(roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.",
+                    await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.",
                         new { clueId, conversationNodeId = ruleResult.Node.NodeId });
                 }
 
@@ -752,7 +771,7 @@ public partial class GameplayService : IGameplayService
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             if (ruleResult.Changed)
-                await _notifier.GameStateUpdated(roomId, stateResponse);
+                await _notifier.GameStateUpdated(roomId, stateResponse.Version);
 
             var unlocked = state.UnlockedClueIds.ToHashSet();
             return new ConverseResponse
@@ -777,6 +796,13 @@ public partial class GameplayService : IGameplayService
         {
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                throw ApiException.Conflict(
+                    "Use the paired confrontation flow for this case.",
+                    "CONFRONTATION_NOT_AVAILABLE",
+                    "game.confrontation.notAvailable");
+            }
             var clue = gameCase.Clues.FirstOrDefault(c => c.ClueId == request.EvidenceId)
                 ?? throw ApiException.NotFound("This clue does not exist in the case.");
             if (!state.UnlockedClueIds.Contains(request.EvidenceId))
@@ -789,7 +815,7 @@ public partial class GameplayService : IGameplayService
                 var legacyDialogue = gameCase.Dialogues.FirstOrDefault(d => d.DialogueId == request.DialogueId)
                     ?? throw ApiException.NotFound("This dialogue does not exist in the case.");
                 var legacyCharacter = gameCase.Characters.First(c => c.CharacterId == legacyDialogue.CharacterId);
-                await LogAsync(roomId, user.Id, "PRESENT_EVIDENCE",
+                await LogAsync(gameCase, roomId, user.Id, "PRESENT_EVIDENCE",
                     $"{user.FullName} presented \"{clue.Title}\" to {legacyCharacter.Name}.", new { request.DialogueId, request.EvidenceId });
                 await _notifier.EvidencePresented(roomId, request.DialogueId, request.EvidenceId, user.Id, state.Version);
                 return new GameActionResponse
@@ -859,7 +885,7 @@ public partial class GameplayService : IGameplayService
             }
 
             var character = gameCase.Characters.First(c => c.CharacterId == dialogue.CharacterId);
-            await LogAsync(roomId, user.Id, correct ? "CONTRADICTION_RESOLVED" : "PRESENT_EVIDENCE_FAILED",
+            await LogAsync(gameCase, roomId, user.Id, correct ? "CONTRADICTION_RESOLVED" : "PRESENT_EVIDENCE_FAILED",
                 correct ? $"{user.FullName} exposed a contradiction in {character.Name}'s testimony."
                     : $"{user.FullName} presented unrelated evidence to {character.Name}.",
                 new { challenge.ChallengeId, request.EvidenceId });
@@ -880,7 +906,7 @@ public partial class GameplayService : IGameplayService
             }
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             return new GameActionResponse
             {
                 State = stateResponse,
@@ -972,20 +998,23 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "HINT_USED", $"{user.FullName} requested an investigation hint.",
+            await LogAsync(gameCase, roomId, user.Id, "HINT_USED", $"{user.FullName} requested an investigation hint.",
                 new { selected.HintId, context, request.TargetId });
-            await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+            if (ShouldBroadcastDetailedEvents(gameCase))
             {
-                Type = "SCENE_HINT_USED",
-                ActorUserId = user.Id,
-                ActorRole = player.Role ?? string.Empty,
-                SceneId = scene.SceneId,
-                TargetId = request.TargetId,
-                Message = "Your teammate requested an investigation hint.",
-                Version = state.Version
-            });
+                await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
+                {
+                    Type = "SCENE_HINT_USED",
+                    ActorUserId = user.Id,
+                    ActorRole = player.Role ?? string.Empty,
+                    SceneId = scene.SceneId,
+                    TargetId = request.TargetId,
+                    Message = "Your teammate requested an investigation hint.",
+                    Version = state.Version
+                });
+            }
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             return new HintResponse
             {
                 State = stateResponse,
@@ -1051,10 +1080,10 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, solved ? "DEDUCTION_SOLVED" : "DEDUCTION_FAILED",
+            await LogAsync(gameCase, roomId, user.Id, solved ? "DEDUCTION_SOLVED" : "DEDUCTION_FAILED",
                 solved ? $"{user.FullName} resolved a deduction." : $"{user.FullName} tested an incorrect deduction.",
                 new { request.DeductionId, request.OptionId });
-            if (solved)
+            if (solved && ShouldBroadcastDetailedEvents(gameCase))
             {
                 await _notifier.InvestigationUpdate(roomId, new InvestigationUpdateDto
                 {
@@ -1070,7 +1099,7 @@ public partial class GameplayService : IGameplayService
             }
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             return new GameActionResponse
             {
                 State = stateResponse,
@@ -1090,6 +1119,7 @@ public partial class GameplayService : IGameplayService
         {
             var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
+            RequireNoActiveConfrontation(state);
             var scene = CurrentScene(gameCase, state, user.Id);
             var wasCompleted = GameRules.IsSceneAlreadyCompleted(state, scene.SceneId);
 
@@ -1137,18 +1167,18 @@ public partial class GameplayService : IGameplayService
 
             if (transition.CompletedNow)
             {
-                await LogAsync(roomId, user.Id, "COMPLETE_SCENE", $"{scene.Title} is fully investigated.", new { sceneId = scene.SceneId });
+                await LogAsync(gameCase, roomId, user.Id, "COMPLETE_SCENE", $"{scene.Title} is fully investigated.", new { sceneId = scene.SceneId });
             }
             else if (transition.IsContinuation && nextScene is not null)
             {
-                await LogAsync(roomId, user.Id, "CONTINUE_SCENE", $"{user.FullName} continued to {nextScene.Title}.", new
+                await LogAsync(gameCase, roomId, user.Id, "CONTINUE_SCENE", $"{user.FullName} continued to {nextScene.Title}.", new
                 {
                     previousSceneId = scene.SceneId,
                     currentSceneId = nextScene.SceneId
                 });
             }
 
-            if (transition.CallerMoved && nextScene is not null)
+            if (transition.CallerMoved && nextScene is not null && ShouldBroadcastDetailedEvents(gameCase))
             {
                 await _notifier.SceneChanged(roomId, scene.SceneId, nextScene.SceneId, user.Id, state.Version);
                 if (transition.CrossesStage)
@@ -1166,7 +1196,7 @@ public partial class GameplayService : IGameplayService
             }
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
             var message = nextScene is null
                 ? $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete."
                 : $"Continued to {nextScene.Title}.";
@@ -1178,6 +1208,7 @@ public partial class GameplayService : IGameplayService
     {
         var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
         var state = room.GameplayState!;
+        RequireNoActiveConfrontation(state);
         var orderedStages = gameCase.Stages.OrderBy(s => s.Order).ToList();
         var playerScene = CurrentScene(gameCase, state, user.Id);
         var currentStageIndex = orderedStages.FindIndex(s => s.Scenes.Any(scene => scene.SceneId == playerScene.SceneId));
@@ -1219,6 +1250,7 @@ public partial class GameplayService : IGameplayService
         {
             var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
+            RequireNoActiveConfrontation(state);
 
             var target = gameCase.Stages.SelectMany(st => st.Scenes.Select(sc => (Stage: st, Scene: sc)))
                 .FirstOrDefault(x => x.Scene.SceneId == sceneId);
@@ -1253,10 +1285,11 @@ public partial class GameplayService : IGameplayService
                 continue;
             }
 
-            await LogAsync(roomId, user.Id, "GO_TO_SCENE", $"{user.FullName} moved to {target.Scene.Title}.", new { sceneId });
-            await _notifier.SceneChanged(roomId, previousSceneId, sceneId, user.Id, state.Version);
+            await LogAsync(gameCase, roomId, user.Id, "GO_TO_SCENE", $"{user.FullName} moved to {target.Scene.Title}.", new { sceneId });
+            if (ShouldBroadcastDetailedEvents(gameCase))
+                await _notifier.SceneChanged(roomId, previousSceneId, sceneId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
-            await _notifier.GameStateUpdated(roomId, stateResponse);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
 
             return new GameActionResponse { State = stateResponse, Changed = true, Message = $"Moved to {target.Scene.Title}." };
         }
@@ -1268,6 +1301,7 @@ public partial class GameplayService : IGameplayService
     {
         var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
         var state = room.GameplayState!;
+        RequireNoActiveConfrontation(state);
 
         var playerSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
         if (!GameRules.IsAccusationAvailable(gameCase, state, playerSceneId))
@@ -1322,13 +1356,15 @@ public partial class GameplayService : IGameplayService
         var result = await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, _gameResults);
 
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
-        await LogAsync(roomId, user.Id, "ACCUSE",
+        await LogAsync(gameCase, roomId, user.Id, "ACCUSE",
             success ? $"{user.FullName} accused {accusedName} — the case is solved!" : $"{user.FullName} accused {accusedName} — the accusation failed.",
             new { request.CulpritId, request.MotiveId, request.MethodId, EvidenceIds = submittedEvidenceIds });
 
         var resultResponse = ToResultResponse(result, gameCase);
-        await _notifier.GameCompleted(roomId, resultResponse);
-        await _notifier.GameStateUpdated(roomId, await _stateBuilder.BuildStateAsync(room, gameCase, user.Id));
+        if (ShouldBroadcastDetailedEvents(gameCase))
+            await _notifier.GameCompleted(roomId, resultResponse);
+        var completedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+        await _notifier.GameStateUpdated(roomId, completedState.Version);
         return resultResponse;
     }
 
@@ -1419,8 +1455,12 @@ public partial class GameplayService : IGameplayService
         return true;
     }
 
-    private async Task LogAsync(string roomId, string userId, string actionType, string message, object payload)
+    private async Task LogAsync(GameCase gameCase, string roomId, string userId, string actionType, string message, object payload)
     {
+        // Gate 1 deliberately disables the shared legacy action-log channel for V3.
+        // Private semantic IDs/content must never be persisted there without an audience model.
+        if (!ShouldPersistActionLog(gameCase)) return;
+
         await _db.ActionLogs.InsertOneAsync(new GameActionLog
         {
             RoomId = roomId,
@@ -1441,6 +1481,8 @@ public partial class GameplayService : IGameplayService
         IReadOnlyCollection<string> newClueIds,
         string sourceId)
     {
+        if (!ShouldBroadcastDetailedEvents(gameCase)) return;
+
         foreach (var clueId in newClueIds)
         {
             await _notifier.ClueUnlocked(roomId, clueId, sourceId, user.Id, state.Version);
@@ -1592,6 +1634,42 @@ public partial class GameplayService : IGameplayService
                 DiscoveredAt = DateTime.UtcNow
             });
         }
+    }
+
+    internal static bool ShouldBroadcastDetailedEvents(GameCase gameCase) =>
+        gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV3PairedConfrontation;
+
+    internal static bool ShouldPersistActionLog(GameCase gameCase) =>
+        gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV3PairedConfrontation;
+
+    private static void RecordTestimonyDiscoveries(
+        GameCase gameCase,
+        GameplayState state,
+        string dialogueId,
+        string userId,
+        string? role)
+    {
+        foreach (var fragment in gameCase.TestimonyFragments.Where(candidate => candidate.DialogueId == dialogueId))
+        {
+            if (state.TestimonyDiscoveries.Any(record => record.TestimonyFragmentId == fragment.Id)) continue;
+            state.TestimonyDiscoveries.Add(new TestimonyDiscoveryRecord
+            {
+                TestimonyFragmentId = fragment.Id,
+                DialogueId = dialogueId,
+                DiscoveredByUserId = userId,
+                DiscoveredByRole = role ?? string.Empty,
+                DiscoveredAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    private static void RequireNoActiveConfrontation(GameplayState state)
+    {
+        if (!PairedConfrontationRules.BlocksProgression(state)) return;
+        throw ApiException.Conflict(
+            "Finish or cancel the active confrontation before continuing.",
+            "ACTION_BLOCKED_BY_CONFRONTATION",
+            "game.confrontation.actionBlocked");
     }
 
     private static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)

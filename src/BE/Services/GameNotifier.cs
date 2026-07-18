@@ -30,8 +30,11 @@ public class GameNotifier : IGameNotifier
     public Task GameStarted(string roomId, RoomResponse room) =>
         Group(roomId).SendAsync("GameStarted", new { roomId, room });
 
-    public Task GameStateUpdated(string roomId, GameStateResponse state) =>
-        Group(roomId).SendAsync("GameStateUpdated", new { roomId, version = state.Version });
+    public Task GameStateUpdated(string roomId, long version) =>
+        Group(roomId).SendAsync("GameStateUpdated", BuildGameStateUpdatedPayload(roomId, version));
+
+    internal static GameStateVersionUpdateDto BuildGameStateUpdatedPayload(string roomId, long version) =>
+        new(roomId, version);
 
     public Task ItemFound(string roomId, string itemId, string userId, long version) =>
         Group(roomId).SendAsync("ItemFound", new { roomId, itemId, userId, version });

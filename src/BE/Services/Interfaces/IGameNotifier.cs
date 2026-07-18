@@ -15,7 +15,7 @@ public interface IGameNotifier
     Task GameStarted(string roomId, RoomResponse room);
 
     // Gameplay
-    Task GameStateUpdated(string roomId, GameStateResponse state);
+    Task GameStateUpdated(string roomId, long version);
     Task ItemFound(string roomId, string itemId, string userId, long version);
     Task ClueUnlocked(string roomId, string clueId, string? sourceId, string userId, long version);
     Task DialogueAnswered(string roomId, string dialogueId, string userId, long version);

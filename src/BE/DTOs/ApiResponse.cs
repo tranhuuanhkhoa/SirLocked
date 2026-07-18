@@ -33,4 +33,12 @@ public class ApiException : Exception
     public static ApiException Conflict(string message, object? errors = null) => new(409, message, errors);
     public static ApiException Unprocessable(string message, object? errors = null) => new(422, message, errors);
     public static ApiException BadGateway(string message) => new(502, message);
+
+    public static ApiException NotFound(string message, string code, string messageKey) =>
+        new(404, message, new ApiErrorDetails(code, messageKey));
+
+    public static ApiException Conflict(string message, string code, string messageKey) =>
+        new(409, message, new ApiErrorDetails(code, messageKey));
 }
+
+public sealed record ApiErrorDetails(string Code, string MessageKey);

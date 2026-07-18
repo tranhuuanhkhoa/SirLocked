@@ -223,6 +223,8 @@ public class RoomService : IRoomService
         if (!RoomRecoveryRules.CanAbandon(teammate, now, DisconnectGracePeriod))
             throw ApiException.Conflict("Wait 30 seconds for your teammate to reconnect before abandoning the game.");
 
+        PairedConfrontationRules.CancelForAbandon(room.GameplayState, user.Id, now);
+
         var result = await _db.Rooms.UpdateOneAsync(
             candidate => candidate.Id == roomId
                 && candidate.HostUserId == user.Id
@@ -231,6 +233,8 @@ public class RoomService : IRoomService
             Builders<GameRoom>.Update
                 .Set(candidate => candidate.Status, RoomStatus.Abandoned)
                 .Set(candidate => candidate.GameplayState!.GameStatus, GameStatus.Failed)
+                .Set(candidate => candidate.GameplayState!.ActiveConfrontation, room.GameplayState.ActiveConfrontation)
+                .Set(candidate => candidate.GameplayState!.PairedConfrontationAttempts, room.GameplayState.PairedConfrontationAttempts)
                 .Set(candidate => candidate.GameplayState!.CompletedAt, now)
                 .Set(candidate => candidate.GameplayState!.UpdatedAt, now)
                 .Set(candidate => candidate.UpdatedAt, now)
@@ -242,8 +246,11 @@ public class RoomService : IRoomService
         room.GameplayState.GameStatus = GameStatus.Failed;
         room.GameplayState.CompletedAt = now;
         room.GameplayState.Version++;
-        await _notifier.SystemMessage(roomId, "The host abandoned the game after the reconnect grace period expired.");
         var gameCase = await _caseService.GetCaseAsync(room.CaseId);
+        if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            await _notifier.GameStateUpdated(roomId, room.GameplayState.Version);
+        else
+            await _notifier.SystemMessage(roomId, "The host abandoned the game after the reconnect grace period expired.");
         return RoomResponse.From(room, gameCase.Title);
     }
 
