@@ -5,6 +5,8 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $composeFile = Join-Path $repoRoot 'docker-compose.v3-local.yml'
 $apiProject = Join-Path $repoRoot 'src/BE/SirLocked.API.csproj'
+$apiPort = 5292
+$apiUrl = "http://127.0.0.1:$apiPort"
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'Docker is required for the isolated V3 local environment.'
@@ -24,6 +26,11 @@ $testPassword = 'V3!' + [Convert]::ToBase64String($passwordBytes).Replace('/', '
 $jwtSecret = [Convert]::ToBase64String($jwtBytes)
 
 try {
+    $occupied = Get-NetTCPConnection -LocalPort $apiPort -State Listen -ErrorAction SilentlyContinue
+    if ($occupied) {
+        throw "Refusing to run: local port $apiPort is already owned by PID $($occupied.OwningProcess)."
+    }
+
     docker compose -f $composeFile up -d --wait
     $env:ASPNETCORE_ENVIRONMENT = 'V3Local'
     $env:Jwt__Secret = $jwtSecret
@@ -36,7 +43,9 @@ try {
     Write-Host '  audit_investigator@audit.invalid'
     Write-Host '  audit_interrogator@audit.invalid'
     Write-Host "  Password: $testPassword"
-    dotnet run --project $apiProject --urls http://127.0.0.1:5290
+    Write-Host "API: $apiUrl"
+    Write-Host "Frontend terminal: `$env:VITE_API_URL='$apiUrl'; npm run dev -- --host 127.0.0.1"
+    dotnet run --no-launch-profile --project $apiProject --urls $apiUrl
 }
 finally {
     Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue
