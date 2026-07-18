@@ -19,7 +19,8 @@ public sealed class PairedConfrontationCoordinatorTests
     [Fact]
     public async Task FullCorrectFlow_ResolvesAndTerminalRetryDoesNotWriteTwice()
     {
-        var harness = CreateHarness(enabled: true);
+        var playtestEvents = new RecordingPlaytestEventSink();
+        var harness = CreateHarness(enabled: true, playtestEvents);
 
         var started = await harness.Coordinator.StartAsync(
             User("int"), "room-1", new StartPairedConfrontationRequest
@@ -62,6 +63,16 @@ public sealed class PairedConfrontationCoordinatorTests
         Assert.Equal(new[] { "reveal-clue" }, harness.Room.GameplayState.UnlockedClueIds);
         Assert.Equal(4, harness.Persistence.SaveCount);
         Assert.Equal(4, harness.Notifier.StateUpdateCount);
+        Assert.Equal(new[]
+        {
+            PlaytestEventType.ConfrontationStarted,
+            PlaytestEventType.ProposalSubmitted,
+            PlaytestEventType.JointReviewDisclosed,
+            PlaytestEventType.ConfirmationFirst,
+            PlaytestEventType.ConfirmationSecond,
+            PlaytestEventType.ResolvedCorrect
+        }, playtestEvents.EventTypes);
+        Assert.All(playtestEvents.AttemptIds, id => Assert.Equal(AttemptId, id));
     }
 
     [Fact]
@@ -109,6 +120,7 @@ public sealed class PairedConfrontationCoordinatorTests
             persistence,
             new MinimalStateBuilder(),
             notifier,
+            new NoOpPlaytestEventSink(),
             TimeProvider.System,
             Options.Create(new GameplayV3Settings { Enabled = true }));
 
@@ -126,7 +138,7 @@ public sealed class PairedConfrontationCoordinatorTests
         Assert.Equal(1, notifier.StateUpdateCount);
     }
 
-    private static Harness CreateHarness(bool enabled)
+    private static Harness CreateHarness(bool enabled, IPlaytestEventSink? playtestEvents = null)
     {
         var room = BuildRoom();
         var gameCase = BuildCase();
@@ -137,6 +149,7 @@ public sealed class PairedConfrontationCoordinatorTests
             persistence,
             new MinimalStateBuilder(),
             notifier,
+            playtestEvents ?? new NoOpPlaytestEventSink(),
             TimeProvider.System,
             Options.Create(new GameplayV3Settings { Enabled = enabled }));
         return new Harness(coordinator, room, persistence, notifier);
@@ -218,6 +231,29 @@ public sealed class PairedConfrontationCoordinatorTests
         GameRoom Room,
         RecordingPersistence Persistence,
         RecordingNotifier Notifier);
+
+    private sealed class RecordingPlaytestEventSink : IPlaytestEventSink
+    {
+        public List<PlaytestEventType> EventTypes { get; } = new();
+        public List<string?> AttemptIds { get; } = new();
+
+        public Task RecordAsync(
+            string roomId,
+            string userId,
+            string role,
+            PlaytestEventType eventType,
+            long stateVersion,
+            string? attemptId = null,
+            int? revision = null,
+            long? durationMs = null,
+            int? count = null,
+            CancellationToken cancellationToken = default)
+        {
+            EventTypes.Add(eventType);
+            AttemptIds.Add(attemptId);
+            return Task.CompletedTask;
+        }
+    }
 
     private sealed class SingleContextLoader : IGameplayContextLoader
     {

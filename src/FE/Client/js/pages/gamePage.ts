@@ -1750,6 +1750,47 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let pairedCommandInFlight = false;
   let crackPayoffPair: DisclosedPair | null = null;
   let crackPayoffTimer: ReturnType<typeof setTimeout> | null = null;
+  let caseFileOpenedAt: number | null = null;
+  let waitingStartedAt: number | null = null;
+  let crackPayoffShownAt: number | null = null;
+
+  type UiPlaytestEvent =
+    | 'ReconnectRestored'
+    | 'PrivateNotebookOpened'
+    | 'PrivateNotebookClosed'
+    | 'ConfrontationOverlayOpened'
+    | 'ProposalSelectionDwell'
+    | 'WaitingStarted'
+    | 'WaitingEnded'
+    | 'RevealDisplayed'
+    | 'RevealDismissed';
+
+  function recordV3UiEvent(
+    eventType: UiPlaytestEvent,
+    active = state?.activeConfrontation,
+    durationMs?: number,
+  ) {
+    if (state?.mechanicsVersion !== 3) return;
+    void gameApi.recordPlaytestEvent(roomId, {
+      eventType,
+      attemptId: active?.attemptId ?? undefined,
+      revision: active?.revision ?? undefined,
+      durationMs: durationMs === undefined ? undefined : Math.max(0, Math.round(durationMs)),
+    }).catch(() => undefined);
+  }
+
+  function dismissCrackPayoff() {
+    if (!crackPayoffPair) return;
+    recordV3UiEvent(
+      'RevealDismissed',
+      undefined,
+      crackPayoffShownAt === null ? undefined : performance.now() - crackPayoffShownAt,
+    );
+    crackPayoffPair = null;
+    crackPayoffShownAt = null;
+    if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
+    draw();
+  }
 
   // ----- Conversation view state (dialogue overlay) -----
   type ConvLine = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
@@ -1775,9 +1816,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     if (e.key === 'Escape') {
       if (crackPayoffPair) {
-        crackPayoffPair = null;
-        if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
-        draw();
+        dismissCrackPayoff();
         return;
       }
       if (uiMode.kind === 'CASE_FILE' && uiMode.clueId) {
@@ -1988,16 +2027,30 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const freshClueKey = clueKey(fresh);
     const unlockedCluesChanged = previousClueKey !== freshClueKey;
     if (fresh.mechanicsVersion === 3) {
+      const wasWaiting = state?.activeConfrontation?.status === 'AwaitingSecondConfirmation';
+      const isWaiting = fresh.activeConfrontation?.status === 'AwaitingSecondConfirmation';
+      if (!wasWaiting && isWaiting) {
+        waitingStartedAt = performance.now();
+        recordV3UiEvent('WaitingStarted', fresh.activeConfrontation);
+      } else if (wasWaiting && !isWaiting) {
+        recordV3UiEvent(
+          'WaitingEnded',
+          state?.activeConfrontation,
+          waitingStartedAt === null ? undefined : performance.now() - waitingStartedAt,
+        );
+        waitingStartedAt = null;
+      }
       const previousTerminal = state ? newestTerminalPair(state) : null;
       const freshTerminal = newestTerminalPair(fresh);
       const previousKey = previousTerminal ? `${previousTerminal.attemptId}:${previousTerminal.revision}:${previousTerminal.status}` : '';
       const freshKey = freshTerminal ? `${freshTerminal.attemptId}:${freshTerminal.revision}:${freshTerminal.status}` : '';
       if (freshTerminal && freshKey !== previousKey) {
         crackPayoffPair = freshTerminal;
+        crackPayoffShownAt = performance.now();
+        recordV3UiEvent('RevealDisplayed', undefined);
         if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
         crackPayoffTimer = setTimeout(() => {
-          crackPayoffPair = null;
-          draw();
+          dismissCrackPayoff();
         }, 4500);
       }
     }
@@ -2174,6 +2227,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     await hub.start();
     if (stopped || !state) return () => hub.stop();
+    recordV3UiEvent('ReconnectRestored');
     sceneIntroTimeout = setTimeout(() => { sceneIntroActive = false; draw(); }, 3000);
     draw();
   } catch (err: any) {
@@ -3238,29 +3292,37 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       draw();
     }));
 
-    app.querySelector('#case-file-btn')?.addEventListener('click', () => setUiMode(
-      uiMode.kind === 'CASE_FILE' && uiMode.section !== 'map' ? { kind: 'EXPLORE' } : { kind: 'CASE_FILE', section: 'evidence' },
-      'case-file-btn',
-    ));
+    app.querySelector('#case-file-btn')?.addEventListener('click', () => {
+      const closing = uiMode.kind === 'CASE_FILE' && uiMode.section !== 'map';
+      if (closing) {
+        recordV3UiEvent('PrivateNotebookClosed');
+        caseFileOpenedAt = null;
+      } else {
+        caseFileOpenedAt = performance.now();
+        recordV3UiEvent('PrivateNotebookOpened');
+      }
+      setUiMode(closing ? { kind: 'EXPLORE' } : { kind: 'CASE_FILE', section: 'evidence' }, 'case-file-btn');
+    });
     app.querySelectorAll('[data-case-tab]').forEach((button) => button.addEventListener('click', () => {
       const tab = (button as HTMLElement).dataset.caseTab as 'evidence' | 'testimony' | 'contradictions';
       setUiMode({ kind: 'CASE_FILE', section: tab });
     }));
     app.querySelectorAll('[data-v3-start-testimony]').forEach((button) => button.addEventListener('click', () => {
+      recordV3UiEvent('ProposalSelectionDwell', undefined, caseFileOpenedAt === null ? undefined : performance.now() - caseFileOpenedAt);
       void startPairedConfrontation((button as HTMLElement).dataset.v3StartTestimony ?? '');
     }));
     app.querySelectorAll('[data-v3-edit-testimony]').forEach((button) => button.addEventListener('click', () => {
+      recordV3UiEvent('ProposalSelectionDwell', undefined, caseFileOpenedAt === null ? undefined : performance.now() - caseFileOpenedAt);
       void editPairedTestimony((button as HTMLElement).dataset.v3EditTestimony ?? '');
     }));
     app.querySelectorAll('[data-v3-propose-evidence]').forEach((button) => button.addEventListener('click', () => {
+      recordV3UiEvent('ProposalSelectionDwell', undefined, caseFileOpenedAt === null ? undefined : performance.now() - caseFileOpenedAt);
       void submitPairedEvidence((button as HTMLElement).dataset.v3ProposeEvidence ?? '');
     }));
     app.querySelector('[data-v3-confirm]')?.addEventListener('click', () => void confirmPairedConfrontation());
     app.querySelectorAll('[data-v3-cancel]').forEach((button) => button.addEventListener('click', () => void cancelPairedConfrontation()));
     app.querySelector('#v3-crack-dismiss')?.addEventListener('click', () => {
-      crackPayoffPair = null;
-      if (crackPayoffTimer) clearTimeout(crackPayoffTimer);
-      draw();
+      dismissCrackPayoff();
     });
     app.querySelectorAll('[data-evidence-detail]').forEach((button) => button.addEventListener('click', () => {
       const clueId = (button as HTMLElement).dataset.evidenceDetail;
@@ -3794,7 +3856,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     try {
       const response = await command();
       applyState(response.state);
-      if (openJointReview) setUiMode({ kind: 'CASE_FILE', section: 'contradictions' });
+      if (openJointReview) {
+        setUiMode({ kind: 'CASE_FILE', section: 'contradictions' });
+        recordV3UiEvent('ConfrontationOverlayOpened', response.state?.activeConfrontation);
+      }
     } catch (err: any) {
       if (err.errors?.code === 'CONFRONTATION_STALE') queueStateRefetch();
       toast(err.message || tr('The confrontation command failed.', 'Lệnh đối chất thất bại.'), 'error');

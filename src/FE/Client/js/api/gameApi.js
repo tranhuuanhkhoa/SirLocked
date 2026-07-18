@@ -26,6 +26,7 @@ export const gameApi = {
   submitPairedEvidence: (roomId, attemptId, payload) => put(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/evidence`, payload),
   confirmPairedConfrontation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/confirm`, payload),
   cancelPairedConfrontation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/cancel`, payload),
+  recordPlaytestEvent: (roomId, payload) => post(`/api/game/rooms/${roomId}/playtest-events`, payload),
   hint: (roomId, contextType, targetId) => post(`/api/game/rooms/${roomId}/hint`, { contextType, targetId }),
   solveDeduction: (roomId, deductionId, optionId) => post(`/api/game/rooms/${roomId}/solve-deduction`, { deductionId, optionId }),
   completeScene: (roomId) => post(`/api/game/rooms/${roomId}/complete-scene`),

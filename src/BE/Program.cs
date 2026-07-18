@@ -84,6 +84,10 @@ builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
 builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
+if (builder.Configuration.GetValue<bool>("GameplayV3:PlaytestInstrumentationEnabled"))
+    builder.Services.AddSingleton<IPlaytestEventSink, MongoLocalPlaytestEventSink>();
+else
+    builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
 builder.Services.AddScoped<V3LocalAuditSeeder>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();

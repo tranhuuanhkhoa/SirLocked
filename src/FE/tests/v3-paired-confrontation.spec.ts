@@ -177,6 +177,13 @@ async function prepare(page: Page, initialState: ReturnType<typeof v3State>) {
   await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: initialState }) });
   });
+  await page.route(`**/api/game/rooms/${roomId}/playtest-events`, async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body).not.toHaveProperty('evidenceId');
+    expect(body).not.toHaveProperty('fragmentId');
+    expect(body).not.toHaveProperty('content');
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: true }) });
+  });
 }
 
 test('role-private notebooks never render partner sentinels before Joint Review', async ({ browser }) => {

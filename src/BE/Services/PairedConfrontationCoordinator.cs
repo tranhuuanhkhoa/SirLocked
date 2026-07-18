@@ -20,6 +20,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
     private readonly IGameplayStatePersistence _persistence;
     private readonly IGameStateBuilder _stateBuilder;
     private readonly IGameNotifier _notifier;
+    private readonly IPlaytestEventSink _playtestEvents;
     private readonly TimeProvider _timeProvider;
     private readonly GameplayV3Settings _settings;
 
@@ -28,6 +29,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         IGameplayStatePersistence persistence,
         IGameStateBuilder stateBuilder,
         IGameNotifier notifier,
+        IPlaytestEventSink playtestEvents,
         TimeProvider timeProvider,
         IOptions<GameplayV3Settings> settings)
     {
@@ -35,6 +37,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         _persistence = persistence;
         _stateBuilder = stateBuilder;
         _notifier = notifier;
+        _playtestEvents = playtestEvents;
         _timeProvider = timeProvider;
         _settings = settings.Value;
     }
@@ -63,7 +66,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 user.Id,
                 context.Player.Role!,
                 now);
-        }, cancellationToken);
+        }, PairedCommandKind.Start, cancellationToken);
     }
 
     public Task<PairedConfrontationCommandResponse> EditTestimonyAsync(
@@ -86,7 +89,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 context.Player.Role!,
                 request.ExpectedRevision,
                 now);
-        }, cancellationToken);
+        }, PairedCommandKind.EditTestimony, cancellationToken);
 
     public Task<PairedConfrontationCommandResponse> SubmitEvidenceAsync(
         CurrentUser user,
@@ -106,7 +109,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 context.Player.Role!,
                 request.ExpectedRevision,
                 now);
-        }, cancellationToken);
+        }, PairedCommandKind.SubmitEvidence, cancellationToken);
 
     public Task<PairedConfrontationCommandResponse> ConfirmAsync(
         CurrentUser user,
@@ -137,7 +140,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 isCorrect,
                 challenge.UnlockClueIds,
                 now);
-        }, cancellationToken);
+        }, PairedCommandKind.Confirm, cancellationToken);
 
     public Task<PairedConfrontationCommandResponse> CancelAsync(
         CurrentUser user,
@@ -155,12 +158,13 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 context.Player.Role!,
                 request.ExpectedRevision,
                 now);
-        }, cancellationToken);
+        }, PairedCommandKind.Cancel, cancellationToken);
 
     private async Task<PairedConfrontationCommandResponse> ExecuteAsync(
         CurrentUser user,
         string roomId,
         Func<GameplayContext, DateTime, PairedConfrontationTransition> transitionFactory,
+        PairedCommandKind commandKind,
         CancellationToken cancellationToken)
     {
         for (var writeAttempt = 0; writeAttempt < MaxWriteAttempts; writeAttempt++)
@@ -181,6 +185,16 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
             if (transition.Changed
                 && !await _persistence.TrySaveAsync(context.Room, context.Case, cancellationToken))
             {
+                await _playtestEvents.RecordAsync(
+                    roomId,
+                    user.Id,
+                    context.Player.Role ?? string.Empty,
+                    PlaytestEventType.OptimisticRetry,
+                    context.Room.GameplayState?.Version ?? 0,
+                    transition.Active?.AttemptId ?? transition.Terminal?.AttemptId,
+                    transition.Active?.Revision ?? transition.Terminal?.FinalRevision,
+                    count: writeAttempt + 1,
+                    cancellationToken: cancellationToken);
                 continue;
             }
 
@@ -188,6 +202,14 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
             if (transition.Changed)
             {
                 await _notifier.GameStateUpdated(roomId, state.Version);
+                await RecordTransitionEventsAsync(
+                    roomId,
+                    user.Id,
+                    context.Player.Role ?? string.Empty,
+                    state.Version,
+                    commandKind,
+                    transition,
+                    cancellationToken);
             }
             return BuildResponse(state, transition);
         }
@@ -196,6 +218,63 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
             "The confrontation is busy; refresh and try again.",
             BusyCode,
             "game.confrontation.busy");
+    }
+
+    private async Task RecordTransitionEventsAsync(
+        string roomId,
+        string userId,
+        string role,
+        long stateVersion,
+        PairedCommandKind commandKind,
+        PairedConfrontationTransition transition,
+        CancellationToken cancellationToken)
+    {
+        var attemptId = transition.Active?.AttemptId ?? transition.Terminal?.AttemptId;
+        var revision = transition.Active?.Revision ?? transition.Terminal?.FinalRevision;
+        var eventTypes = new List<PlaytestEventType>();
+        switch (commandKind)
+        {
+            case PairedCommandKind.Start:
+                eventTypes.Add(PlaytestEventType.ConfrontationStarted);
+                break;
+            case PairedCommandKind.SubmitEvidence:
+                eventTypes.Add(PlaytestEventType.ProposalSubmitted);
+                break;
+            case PairedCommandKind.EditTestimony:
+                eventTypes.Add(PlaytestEventType.ProposalEdited);
+                break;
+            case PairedCommandKind.Confirm when transition.Terminal is null:
+                eventTypes.Add(PlaytestEventType.ConfirmationFirst);
+                break;
+            case PairedCommandKind.Confirm:
+                eventTypes.Add(PlaytestEventType.ConfirmationSecond);
+                eventTypes.Add(transition.Status == PairedConfrontationStatus.ResolvedCorrect
+                    ? PlaytestEventType.ResolvedCorrect
+                    : PlaytestEventType.ResolvedIncorrect);
+                break;
+            case PairedCommandKind.Cancel:
+                eventTypes.Add(PlaytestEventType.Cancelled);
+                break;
+        }
+
+        if (transition.Active is { Status: PairedConfrontationStatus.ReadyForReview } active
+            && active.Disclosures.Any(disclosure => disclosure.Revision == active.Revision))
+        {
+            eventTypes.Add(PlaytestEventType.JointReviewDisclosed);
+        }
+
+        foreach (var eventType in eventTypes)
+        {
+            await _playtestEvents.RecordAsync(
+                roomId,
+                userId,
+                role,
+                eventType,
+                stateVersion,
+                attemptId,
+                revision,
+                cancellationToken: cancellationToken);
+        }
     }
 
     private void RequireV3(GameCase gameCase)
@@ -322,4 +401,13 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         "The confrontation is not available.",
         PairedConfrontationRules.NotAvailableCode,
         "game.confrontation.notAvailable");
+
+    private enum PairedCommandKind
+    {
+        Start,
+        EditTestimony,
+        SubmitEvidence,
+        Confirm,
+        Cancel
+    }
 }

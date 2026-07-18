@@ -19,6 +19,7 @@ public partial class GameplayService : IGameplayService
     private readonly IGameStateBuilder _stateBuilder;
     private readonly IEvidencePhotoService _evidencePhotos;
     private readonly IGameResultStore _gameResults;
+    private readonly IPlaytestEventSink _playtestEvents;
     private readonly ILogger<GameplayService> _logger;
 
     public GameplayService(
@@ -29,6 +30,7 @@ public partial class GameplayService : IGameplayService
         IGameStateBuilder stateBuilder,
         IEvidencePhotoService evidencePhotos,
         IGameResultStore gameResults,
+        IPlaytestEventSink playtestEvents,
         ILogger<GameplayService> logger)
     {
         _db = db;
@@ -38,6 +40,7 @@ public partial class GameplayService : IGameplayService
         _stateBuilder = stateBuilder;
         _evidencePhotos = evidencePhotos;
         _gameResults = gameResults;
+        _playtestEvents = playtestEvents;
         _logger = logger;
     }
 
@@ -141,6 +144,18 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, itemId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                var evidenceCount = newClues.Count(clueId =>
+                    gameCase.Clues.Any(clue => clue.ClueId == clueId && clue.IsEvidence));
+                if (evidenceCount > 0)
+                {
+                    await _playtestEvents.RecordAsync(
+                        roomId, user.Id, player.Role ?? string.Empty,
+                        PlaytestEventType.PrivateDiscoveryCount, stateResponse.Version,
+                        count: evidenceCount);
+                }
+            }
 
             return new GameActionResponse
             {
@@ -607,6 +622,18 @@ public partial class GameplayService : IGameplayService
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                var evidenceCount = newClues.Count(clueId =>
+                    gameCase.Clues.Any(candidate => candidate.ClueId == clueId && candidate.IsEvidence));
+                if (evidenceCount > 0)
+                {
+                    await _playtestEvents.RecordAsync(
+                        roomId, user.Id, player.Role ?? string.Empty,
+                        PlaytestEventType.PrivateDiscoveryCount, stateResponse.Version,
+                        count: evidenceCount);
+                }
+            }
 
             return new GameActionResponse
             {
@@ -691,6 +718,17 @@ public partial class GameplayService : IGameplayService
                 foreach (var clueId in newClues) await _notifier.ClueUnlocked(roomId, clueId, dialogueId, user.Id, state.Version);
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                var fragmentCount = gameCase.TestimonyFragments.Count(fragment => fragment.DialogueId == dialogueId);
+                if (fragmentCount > 0)
+                {
+                    await _playtestEvents.RecordAsync(
+                        roomId, user.Id, player.Role ?? string.Empty,
+                        PlaytestEventType.PrivateDiscoveryCount, stateResponse.Version,
+                        count: fragmentCount);
+                }
+            }
 
             return new GameActionResponse
             {
