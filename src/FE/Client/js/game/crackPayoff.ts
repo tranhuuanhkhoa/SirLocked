@@ -47,7 +47,10 @@ export function renderV3CaseComplete(
       )}</p>
       ${truth?.revealTitle ? `<strong class="v3-complete-truth">${escape(truth.revealTitle)}</strong>` : ''}
       ${reveal ? `<div class="v3-shared-reveal"><strong>${escape(reveal.title)}</strong><p>${escape(reveal.content)}</p></div>` : ''}
-      <button class="btn btn-gold" id="v3-complete-review" type="button">${tr('Review the solved pair', 'Xem lại cặp đã phá')}</button>
+      <div class="v3-complete-actions">
+        <button class="btn btn-ghost" id="v3-complete-review" type="button">${tr('Review the solved pair', 'Xem lại cặp đã phá')}</button>
+        <a class="btn btn-gold" id="v3-complete-exit" href="#/cases">${tr('Exit to case list', 'Thoát về danh sách vụ án')}</a>
+      </div>
     </section>
   </div>`;
 }

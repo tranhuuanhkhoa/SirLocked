@@ -259,6 +259,8 @@ test('Joint Review discloses exactly the pair and correct confirmation presents 
   await expect(completed).toContainText('Case complete');
   await expect(completed).toContainText('There are no more required actions in this sandbox.');
   await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('Case complete');
+  await expect(page.locator('#v3-complete-exit')).toHaveAttribute('href', '#/cases');
+  await expect(page.locator('#v3-complete-exit')).toContainText('Exit to case list');
   await page.locator('#v3-complete-review').click();
   await expect(completed).toHaveCount(0);
   await expect(page.locator('.v3-shared-history')).toContainText('RESOLVED SHARED TRUTH');

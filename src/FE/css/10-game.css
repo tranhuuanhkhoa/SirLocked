@@ -2271,6 +2271,7 @@ body.game-page-active .nav-links {
 .v3-case-complete-card h2 { margin: 10px 0; color: #8fe0b2; font-size: clamp(1.7rem, 4vw, 3rem); }
 .v3-case-complete-card > p { max-width: 620px; margin: 0 auto 18px; color: var(--beige); line-height: 1.65; }
 .v3-complete-truth { display: block; margin: 12px 0; color: var(--gold-light); font-size: 1.15rem; }
+.v3-complete-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
 @keyframes v3-payoff-dim { from { opacity: 0; } to { opacity: 1; } }
 @keyframes v3-payoff-enter { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes v3-stamp { from { opacity: 0; transform: rotate(-9deg) scale(2); } to { opacity: 1; transform: rotate(-9deg) scale(1.15); } }
