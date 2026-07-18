@@ -71,6 +71,12 @@ public class GameplayState
     public int WrongDeductionCount { get; set; }
     /// <summary>First-discovery attribution per clue, used for teamwork scoring.</summary>
     public List<ClueDiscoveryRecord> ClueDiscoveries { get; set; } = new();
+    /// <summary>Caller ownership of V3 testimony fragments.</summary>
+    public List<TestimonyDiscoveryRecord> TestimonyDiscoveries { get; set; } = new();
+    /// <summary>The single mutable V3 joint-review attempt, or null when none is active.</summary>
+    public PairedConfrontationState? ActiveConfrontation { get; set; }
+    /// <summary>Terminal V3 attempts retained for disclosure, retries and exactly-once outcomes.</summary>
+    public List<PairedConfrontationAttemptRecord> PairedConfrontationAttempts { get; set; } = new();
     public string GameStatus { get; set; } = Enums.GameStatus.InProgress;
     /// <summary>
     /// Authoritative completion data used to recreate the denormalized game result when its write fails.
@@ -127,6 +133,69 @@ public class ClueDiscoveryRecord
     /// <summary>inspect | camera | dialogue | challenge | deduction | interaction | puzzle.</summary>
     public string SourceAction { get; set; } = string.Empty;
     public DateTime DiscoveredAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class TestimonyDiscoveryRecord
+{
+    public string TestimonyFragmentId { get; set; } = string.Empty;
+    public string DialogueId { get; set; } = string.Empty;
+    public string DiscoveredByUserId { get; set; } = string.Empty;
+    public string DiscoveredByRole { get; set; } = string.Empty;
+    public DateTime DiscoveredAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class PairedConfrontationState
+{
+    public string AttemptId { get; set; } = string.Empty;
+    public string ChallengeId { get; set; } = string.Empty;
+    [BsonRepresentation(BsonType.String)]
+    public PairedConfrontationStatus Status { get; set; } = PairedConfrontationStatus.CollectingProposals;
+    public int Revision { get; set; } = 1;
+    public string TestimonyFragmentId { get; set; } = string.Empty;
+    public string TestimonyProposedByUserId { get; set; } = string.Empty;
+    public string? EvidenceId { get; set; }
+    public string? EvidenceProposedByUserId { get; set; }
+    public List<PlayerConfrontationConfirmation> Confirmations { get; set; } = new();
+    public List<PairedConfrontationDisclosureRecord> Disclosures { get; set; } = new();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class PlayerConfrontationConfirmation
+{
+    public string UserId { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public int Revision { get; set; }
+    public DateTime ConfirmedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class PairedConfrontationDisclosureRecord
+{
+    public int Revision { get; set; }
+    public string EvidenceId { get; set; } = string.Empty;
+    public string TestimonyFragmentId { get; set; } = string.Empty;
+    public DateTime DisclosedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class PairedConfrontationAttemptRecord
+{
+    public string AttemptId { get; set; } = string.Empty;
+    public string ChallengeId { get; set; } = string.Empty;
+    [BsonRepresentation(BsonType.String)]
+    public PairedConfrontationStatus Status { get; set; }
+    public int FinalRevision { get; set; }
+    public string TestimonyFragmentId { get; set; } = string.Empty;
+    public string? EvidenceId { get; set; }
+    public List<PlayerConfrontationConfirmation> Confirmations { get; set; } = new();
+    public List<PairedConfrontationDisclosureRecord> Disclosures { get; set; } = new();
+    public string? CancelledByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime ResolvedAt { get; set; } = DateTime.UtcNow;
 }
 
 public static class ClueDiscoverySources

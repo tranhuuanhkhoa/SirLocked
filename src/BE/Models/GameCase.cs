@@ -37,6 +37,7 @@ public class GameCase
     public List<CaseItem> Items { get; set; } = new();
     public List<CaseClue> Clues { get; set; } = new();
     public List<CaseDialogue> Dialogues { get; set; } = new();
+    public List<TestimonyFragment> TestimonyFragments { get; set; } = new();
     public List<ConversationNode> ConversationNodes { get; set; } = new();
     public List<EvidenceChallenge> EvidenceChallenges { get; set; } = new();
     public List<DeductionChallenge> Deductions { get; set; } = new();
@@ -80,6 +81,7 @@ public static class CaseMechanicsVersions
 {
     public const int Legacy = 1;
     public const int InvestigationV2 = 2;
+    public const int InvestigationV3PairedConfrontation = 3;
 }
 
 public static class HintContextTypes
@@ -424,6 +426,14 @@ public class CaseDialogue
 }
 
 [BsonIgnoreExtraElements]
+public class TestimonyFragment
+{
+    public string Id { get; set; } = string.Empty;
+    public string DialogueId { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
 public class ConversationNode
 {
     public string NodeId { get; set; } = string.Empty;
@@ -463,6 +473,7 @@ public class EvidenceChallenge
 {
     public string ChallengeId { get; set; } = string.Empty;
     public string DialogueId { get; set; } = string.Empty;
+    public string TestimonyFragmentId { get; set; } = string.Empty;
     public string Prompt { get; set; } = string.Empty;
     public string CorrectEvidenceId { get; set; } = string.Empty;
     public string SuccessResponse { get; set; } = string.Empty;
