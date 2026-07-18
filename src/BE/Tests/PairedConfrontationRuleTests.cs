@@ -63,6 +63,21 @@ public class PairedConfrontationRuleTests
     }
 
     [Fact]
+    public void ProposalLostResponseRetry_IsIdempotentEvenWithPreviousRevision()
+    {
+        var state = PairedState();
+        var first = PairedConfrontationRules.ProposeEvidence(
+            state, "attempt-1", "evidence-1", "inv", PlayerRole.Investigator, 1, Now.AddMinutes(1));
+        var retry = PairedConfrontationRules.ProposeEvidence(
+            state, "attempt-1", "evidence-1", "inv", PlayerRole.Investigator, 1, Now.AddMinutes(2));
+
+        Assert.True(first.Changed);
+        Assert.False(retry.Changed);
+        Assert.Equal(2, state.ActiveConfrontation!.Revision);
+        Assert.Single(state.ActiveConfrontation.Disclosures);
+    }
+
+    [Fact]
     public void ConfirmCorrect_ResolvesExactlyOnceAndBindsConfirmationsToRevision()
     {
         var state = ReadyState("evidence-correct");

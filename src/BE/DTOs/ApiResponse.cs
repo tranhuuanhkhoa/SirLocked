@@ -39,6 +39,9 @@ public class ApiException : Exception
 
     public static ApiException Conflict(string message, string code, string messageKey) =>
         new(409, message, new ApiErrorDetails(code, messageKey));
+
+    public static ApiException Forbidden(string message, string code, string messageKey) =>
+        new(403, message, new ApiErrorDetails(code, messageKey));
 }
 
 public sealed record ApiErrorDetails(string Code, string MessageKey);

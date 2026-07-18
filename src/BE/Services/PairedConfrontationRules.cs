@@ -73,12 +73,13 @@ public static class PairedConfrontationRules
         RequireRole(role, PlayerRole.Investigator);
         RequireValue(evidenceId, nameof(evidenceId));
         var active = RequireActive(state, attemptId);
-        RequireRevision(active, expectedRevision);
 
         if (active.EvidenceId == evidenceId && active.EvidenceProposedByUserId == userId)
         {
             return PairedConfrontationTransition.Unchanged(active.Status, active: active);
         }
+
+        RequireRevision(active, expectedRevision);
 
         BeginNewRevision(active, now);
         active.EvidenceId = evidenceId;
@@ -101,7 +102,6 @@ public static class PairedConfrontationRules
         RequireValue(challengeId, nameof(challengeId));
         RequireValue(testimonyFragmentId, nameof(testimonyFragmentId));
         var active = RequireActive(state, attemptId);
-        RequireRevision(active, expectedRevision);
 
         if (active.ChallengeId == challengeId
             && active.TestimonyFragmentId == testimonyFragmentId
@@ -109,6 +109,8 @@ public static class PairedConfrontationRules
         {
             return PairedConfrontationTransition.Unchanged(active.Status, active: active);
         }
+
+        RequireRevision(active, expectedRevision);
 
         BeginNewRevision(active, now);
         active.ChallengeId = challengeId;

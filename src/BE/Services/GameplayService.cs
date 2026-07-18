@@ -13,7 +13,8 @@ namespace SirLocked.Api.Services;
 public partial class GameplayService : IGameplayService
 {
     private readonly MongoDbContext _db;
-    private readonly ICaseService _caseService;
+    private readonly IGameplayContextLoader _contextLoader;
+    private readonly IGameplayStatePersistence _statePersistence;
     private readonly IGameNotifier _notifier;
     private readonly IGameStateBuilder _stateBuilder;
     private readonly IEvidencePhotoService _evidencePhotos;
@@ -22,7 +23,8 @@ public partial class GameplayService : IGameplayService
 
     public GameplayService(
         MongoDbContext db,
-        ICaseService caseService,
+        IGameplayContextLoader contextLoader,
+        IGameplayStatePersistence statePersistence,
         IGameNotifier notifier,
         IGameStateBuilder stateBuilder,
         IEvidencePhotoService evidencePhotos,
@@ -30,7 +32,8 @@ public partial class GameplayService : IGameplayService
         ILogger<GameplayService> logger)
     {
         _db = db;
-        _caseService = caseService;
+        _contextLoader = contextLoader;
+        _statePersistence = statePersistence;
         _notifier = notifier;
         _stateBuilder = stateBuilder;
         _evidencePhotos = evidencePhotos;
@@ -1372,26 +1375,8 @@ public partial class GameplayService : IGameplayService
 
     private async Task<(GameRoom Room, GameCase Case, RoomPlayer Player)> LoadContextAsync(string userId, string roomId, bool requireInProgress)
     {
-        var room = await _db.Rooms.Find(r => r.Id == roomId).FirstOrDefaultAsync()
-            ?? throw ApiException.NotFound("Room not found.");
-
-        var player = room.Players.FirstOrDefault(p => p.UserId == userId)
-            ?? throw ApiException.Forbidden("You are not a member of this room.");
-
-        if (requireInProgress)
-        {
-            if (room.Status == RoomStatus.Completed)
-            {
-                throw ApiException.BadRequest("This game is already finished.");
-            }
-            if (room.Status != RoomStatus.InProgress || room.GameplayState is null)
-            {
-                throw ApiException.BadRequest("The game has not started yet.");
-            }
-        }
-
-        var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        return (room, gameCase, player);
+        var context = await _contextLoader.LoadAsync(userId, roomId, requireInProgress);
+        return (context.Room, context.Case, context.Player);
     }
 
     private static void RequireRole(RoomPlayer player, string role, string message)
@@ -1432,28 +1417,7 @@ public partial class GameplayService : IGameplayService
     /// so progression never depends on a manual "complete scene" confirmation.
     /// </summary>
     private async Task<bool> TrySaveStateAsync(GameRoom room, GameCase? gameCase = null)
-    {
-        var state = room.GameplayState!;
-        if (gameCase is not null && state.GameStatus == GameStatus.InProgress)
-        {
-            GameRules.AutoCompleteProgress(gameCase, state);
-        }
-        var expectedVersion = state.Version;
-        state.Version = expectedVersion + 1;
-        state.UpdatedAt = DateTime.UtcNow;
-        room.UpdatedAt = DateTime.UtcNow;
-
-        var filter = Builders<GameRoom>.Filter.And(
-            Builders<GameRoom>.Filter.Eq(r => r.Id, room.Id),
-            Builders<GameRoom>.Filter.Eq("gameplayState.version", expectedVersion));
-        var result = await _db.Rooms.ReplaceOneAsync(filter, room);
-        if (result.ModifiedCount == 0)
-        {
-            state.Version = expectedVersion;
-            return false;
-        }
-        return true;
-    }
+        => await _statePersistence.TrySaveAsync(room, gameCase);
 
     private async Task LogAsync(GameCase gameCase, string roomId, string userId, string actionType, string message, object payload)
     {

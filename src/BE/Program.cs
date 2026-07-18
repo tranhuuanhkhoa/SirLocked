@@ -35,6 +35,7 @@ builder.Services.AddOptions<EmailSettings>()
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
+builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
 {
     static bool EnvFlag(IConfiguration configuration, string key) =>
@@ -70,6 +71,7 @@ builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CaseCache>();
 builder.Services.AddSingleton<FrontendRedirects>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -77,7 +79,10 @@ builder.Services.AddScoped<ICaseValidationService, CaseValidationService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
+builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
+builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
 builder.Services.AddScoped<IGameplayService, GameplayService>();
+builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
