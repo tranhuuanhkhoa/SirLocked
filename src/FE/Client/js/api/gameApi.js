@@ -1,4 +1,4 @@
-import { apiFetchBlob, apiFetchForm, get, post } from './http.js';
+import { apiFetchBlob, apiFetchForm, get, post, put } from './http.js';
 
 export const gameApi = {
   state: (roomId) => get(`/api/game/rooms/${roomId}/state`),
@@ -21,6 +21,11 @@ export const gameApi = {
   askDialogue: (roomId, dialogueId) => post(`/api/game/rooms/${roomId}/ask-dialogue`, { dialogueId }),
   converse: (roomId, payload) => post(`/api/game/rooms/${roomId}/converse`, payload),
   presentEvidence: (roomId, payload) => post(`/api/game/rooms/${roomId}/present-evidence`, payload),
+  startPairedConfrontation: (roomId, payload) => post(`/api/game/rooms/${roomId}/paired-confrontations`, payload),
+  editPairedTestimony: (roomId, attemptId, payload) => put(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/testimony`, payload),
+  submitPairedEvidence: (roomId, attemptId, payload) => put(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/evidence`, payload),
+  confirmPairedConfrontation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/confirm`, payload),
+  cancelPairedConfrontation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/cancel`, payload),
   hint: (roomId, contextType, targetId) => post(`/api/game/rooms/${roomId}/hint`, { contextType, targetId }),
   solveDeduction: (roomId, deductionId, optionId) => post(`/api/game/rooms/${roomId}/solve-deduction`, { deductionId, optionId }),
   completeScene: (roomId) => post(`/api/game/rooms/${roomId}/complete-scene`),

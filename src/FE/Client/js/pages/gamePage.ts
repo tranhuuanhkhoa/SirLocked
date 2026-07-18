@@ -31,6 +31,16 @@ import {
   renderFinalConfrontationCallout,
   renderGameHud,
 } from '../game/gameShell.js';
+import {
+  buildPairedConfrontationViewModel,
+  renderJointReviewPanel,
+  renderPrivateEvidencePanel,
+  renderPrivateTestimonyPanel,
+  type ActivePairedConfrontation,
+  type DisclosedPair,
+  type PrivateEvidence,
+  type PrivateTestimony,
+} from '../game/pairedConfrontation.js';
 
 type RoomPlayer = {
   userId: string;
@@ -323,6 +333,13 @@ type GameState = {
   currentSceneMissingRequirements: MissingRequirements;
   currentObjective: string;
   actionLog: ActionLogEntry[];
+  privateEvidence: PrivateEvidence[];
+  privateTestimonies: PrivateTestimony[];
+  sharedKnowledge: {
+    attemptHistory: DisclosedPair[];
+    resolvedTruths: DisclosedPair[];
+  };
+  activeConfrontation?: ActivePairedConfrontation | null;
 };
 
 type HotspotClick = {
@@ -1729,6 +1746,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
   let stateRefetchPromise: Promise<void> | null = null;
   let requestedStateVersion = 0;
+  let pairedCommandInFlight = false;
 
   // ----- Conversation view state (dialogue overlay) -----
   type ConvLine = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
@@ -2497,6 +2515,27 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function caseFileOverlay(tab: 'evidence' | 'testimony' | 'contradictions') {
+    if (state!.mechanicsVersion === 3) {
+      const model = buildPairedConfrontationViewModel(state!, myRole());
+      const tabs = `
+        <div class="case-file-tabs">
+          <button class="${tab === 'evidence' ? 'is-active' : ''}" data-case-tab="evidence">${tr('Physical Evidence', 'Chứng cứ vật lý')}</button>
+          <button class="${tab === 'testimony' ? 'is-active' : ''}" data-case-tab="testimony">${tr('Testimony', 'Lời khai')}</button>
+          <button class="${tab === 'contradictions' ? 'is-active' : ''}" data-case-tab="contradictions">${tr('Joint Review', 'Cùng xem xét')}</button>
+        </div>`;
+      const content = tab === 'evidence'
+        ? renderPrivateEvidencePanel(model, escapeHtml, tr)
+        : tab === 'testimony'
+          ? renderPrivateTestimonyPanel(model, escapeHtml, tr)
+          : renderJointReviewPanel(model, escapeHtml, tr);
+      return `
+        <aside class="case-file-drawer case-file-modal v3-case-file" aria-label="${tr('Private Case File', 'Hồ sơ riêng')}">
+          <div class="drawer-title-row"><div><span>${tab === 'contradictions' ? tr('INTENTIONAL DISCLOSURE', 'CHIA SẺ CÓ CHỦ ĐÍCH') : tr('ROLE-PRIVATE NOTEBOOK', 'SỔ TAY RIÊNG THEO VAI')}</span><h2>${tr('Crack the Lie', 'Phá Vỡ Lời Dối')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
+          ${tabs}
+          ${content}
+        </aside>`;
+    }
+
     const clues = state!.unlockedClues.slice().reverse();
     const selectedClueId = uiMode.kind === 'CASE_FILE' ? uiMode.clueId : undefined;
     const selectedClue = selectedClueId
@@ -3183,6 +3222,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const tab = (button as HTMLElement).dataset.caseTab as 'evidence' | 'testimony' | 'contradictions';
       setUiMode({ kind: 'CASE_FILE', section: tab });
     }));
+    app.querySelectorAll('[data-v3-start-testimony]').forEach((button) => button.addEventListener('click', () => {
+      void startPairedConfrontation((button as HTMLElement).dataset.v3StartTestimony ?? '');
+    }));
+    app.querySelectorAll('[data-v3-edit-testimony]').forEach((button) => button.addEventListener('click', () => {
+      void editPairedTestimony((button as HTMLElement).dataset.v3EditTestimony ?? '');
+    }));
+    app.querySelectorAll('[data-v3-propose-evidence]').forEach((button) => button.addEventListener('click', () => {
+      void submitPairedEvidence((button as HTMLElement).dataset.v3ProposeEvidence ?? '');
+    }));
+    app.querySelector('[data-v3-confirm]')?.addEventListener('click', () => void confirmPairedConfrontation());
+    app.querySelectorAll('[data-v3-cancel]').forEach((button) => button.addEventListener('click', () => void cancelPairedConfrontation()));
     app.querySelectorAll('[data-evidence-detail]').forEach((button) => button.addEventListener('click', () => {
       const clueId = (button as HTMLElement).dataset.evidenceDetail;
       if (clueId) setUiMode({ kind: 'CASE_FILE', section: 'evidence', clueId });
@@ -3707,6 +3757,64 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     } catch (err: any) {
       toast(err.message, 'error');
     }
+  }
+
+  async function runPairedCommand(command: () => Promise<any>, openJointReview = true) {
+    if (pairedCommandInFlight) return;
+    pairedCommandInFlight = true;
+    try {
+      const response = await command();
+      applyState(response.state);
+      if (openJointReview) setUiMode({ kind: 'CASE_FILE', section: 'contradictions' });
+    } catch (err: any) {
+      if (err.errors?.code === 'CONFRONTATION_STALE') queueStateRefetch();
+      toast(err.message || tr('The confrontation command failed.', 'Lệnh đối chất thất bại.'), 'error');
+    } finally {
+      pairedCommandInFlight = false;
+    }
+  }
+
+  async function startPairedConfrontation(testimonyFragmentId: string) {
+    if (!testimonyFragmentId || myRole() !== 'INTERROGATOR') return;
+    await runPairedCommand(() => gameApi.startPairedConfrontation(roomId, {
+      attemptId: crypto.randomUUID(),
+      testimonyFragmentId,
+    }));
+  }
+
+  async function editPairedTestimony(testimonyFragmentId: string) {
+    const active = state?.activeConfrontation;
+    if (!active || !testimonyFragmentId || myRole() !== 'INTERROGATOR') return;
+    await runPairedCommand(() => gameApi.editPairedTestimony(roomId, active.attemptId, {
+      testimonyFragmentId,
+      expectedRevision: active.revision,
+    }));
+  }
+
+  async function submitPairedEvidence(evidenceId: string) {
+    const active = state?.activeConfrontation;
+    if (!active || !evidenceId || myRole() !== 'INVESTIGATOR') return;
+    await runPairedCommand(() => gameApi.submitPairedEvidence(roomId, active.attemptId, {
+      evidenceId,
+      expectedRevision: active.revision,
+    }));
+  }
+
+  async function confirmPairedConfrontation() {
+    const active = state?.activeConfrontation;
+    if (!active?.canConfirm) return;
+    await runPairedCommand(() => gameApi.confirmPairedConfrontation(roomId, active.attemptId, {
+      expectedRevision: active.revision,
+    }));
+  }
+
+  async function cancelPairedConfrontation() {
+    const active = state?.activeConfrontation;
+    if (!active?.canCancel) return;
+    if (!window.confirm(tr('Cancel this confrontation attempt? There is no penalty.', 'Hủy lượt đối chất này? Sẽ không có hình phạt.'))) return;
+    await runPairedCommand(() => gameApi.cancelPairedConfrontation(roomId, active.attemptId, {
+      expectedRevision: active.revision,
+    }));
   }
 
   async function solveDeduction(deductionId: string, optionId: string) {

@@ -2164,6 +2164,58 @@ body.game-page-active .nav-links {
 .evidence-detail-art .evidence-photo-large { width: 100%; height: 100%; max-height: none; aspect-ratio: 1; margin: 0; border: 0; object-fit: contain; }
 .case-file-evidence-detail h3 { margin: 0; }
 
+/* V3 paired confrontation: private notebooks and intentional disclosure. */
+.v3-case-file { width: min(820px, 62vw, calc(100vw - 112px)); }
+.v3-private-list,
+.v3-review-panel,
+.v3-shared-history { display: grid; gap: 12px; }
+.v3-private-card,
+.v3-review-cue,
+.v3-joint-review,
+.v3-history-pair,
+.v3-private-empty {
+  padding: 14px;
+  border: 1px solid rgba(239,212,134,0.25);
+  border-radius: 8px;
+  background: rgba(3,10,20,0.75);
+}
+.v3-private-card h3,
+.v3-joint-review h3,
+.v3-history-pair strong { margin: 6px 0; color: var(--white); }
+.v3-private-card p,
+.v3-private-card blockquote,
+.v3-review-cue p,
+.v3-private-empty p { color: var(--beige-muted); line-height: 1.5; }
+.v3-private-card blockquote { margin: 9px 0 14px; }
+.v3-private-label,
+.v3-review-heading span,
+.v3-pair-card > span,
+.v3-history-pair > span {
+  color: var(--gold-dim);
+  font: 700 0.66rem/1.2 'Source Code Pro', monospace;
+  letter-spacing: 0.09em;
+}
+.v3-own-proposal { padding: 9px; border-left: 2px solid var(--gold); background: rgba(239,212,134,0.06); }
+.v3-pair-grid { display: grid; grid-template-columns: minmax(0,1fr) 38px minmax(0,1fr); align-items: stretch; gap: 10px; }
+.v3-pair-card { padding: 13px; border: 1px solid rgba(239,212,134,0.3); border-radius: 8px; background: #071323; }
+.v3-pair-card blockquote { margin: 8px 0; color: var(--beige); line-height: 1.55; }
+.v3-pair-link { display: grid; place-items: center; color: var(--gold-light); font-size: 1.8rem; }
+.v3-confirmation-state { display: flex; gap: 10px; margin: 13px 0; }
+.v3-confirmation-state span { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--beige-muted); }
+.v3-confirmation-state span.is-confirmed { border-color: rgba(101,205,147,0.55); color: #8fe0b2; }
+.v3-waiting { color: var(--gold-light); }
+.v3-review-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.v3-shared-history { margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(239,212,134,0.18); }
+.v3-shared-history h3 { margin: 0; }
+.v3-history-pair.is-truth { border-color: rgba(101,205,147,0.5); }
+.v3-history-pair blockquote { margin: 8px 0; color: var(--beige-muted); }
+
+@media (max-width: 720px) {
+  .v3-case-file { width: auto; }
+  .v3-pair-grid { grid-template-columns: 1fr; }
+  .v3-pair-link { min-height: 26px; }
+}
+
 .discovery-card {
   grid-template-columns: 120px minmax(0, 1fr) auto;
   width: min(540px, calc(100vw - 108px));
