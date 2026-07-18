@@ -317,6 +317,8 @@ public class V3KnowledgeProjectionTests
     {
         MechanicsVersion = gameCase.MechanicsVersion,
         UnlockedClueIds = gameCase.Clues.Select(clue => clue.ClueId).ToList(),
+        UsedInteractionIds = { InvSecret },
+        SolvedPuzzleIds = { IntSecret },
         UnlockedClues = gameCase.Clues.Select(ClueDto.From).ToList(),
         EvidenceClues = gameCase.Clues.Select(ClueDto.From).ToList(),
         CollectedItems =
@@ -354,7 +356,8 @@ public class V3KnowledgeProjectionTests
                     NodeId = IntSecret,
                     Lines = { new ConversationLineDto { Speaker = "NPC", Text = IntSecret } }
                 }
-            }
+            },
+            ConversationTreeCharacterIds = { IntSecret }
         },
         Testimonies =
         {

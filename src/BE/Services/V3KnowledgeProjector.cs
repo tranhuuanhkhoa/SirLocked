@@ -250,6 +250,8 @@ public static class V3KnowledgeProjector
         response.UnlockedClueIds = new List<string>();
         response.AskedDialogueIds = new List<string>();
         response.VisitedConversationNodeIds = new List<string>();
+        response.UsedInteractionIds = new List<string>();
+        response.SolvedPuzzleIds = new List<string>();
         response.SelectedEvidenceIds = new List<string>();
         response.CollectedItems = new List<SceneItemDto>();
         response.UnlockedClues = new List<ClueDto>();
@@ -266,6 +268,7 @@ public static class V3KnowledgeProjector
         response.VisibleScene.Runtime = null;
         response.VisibleScene.Hotspots = new List<HotspotDto>();
         response.VisibleScene.Items = new List<SceneItemDto>();
+        response.VisibleScene.ConversationTreeCharacterIds = new List<string>();
         response.VisibleScene.ConversationTranscript = new List<ConversationTranscriptEntryDto>();
         response.VisibleScene.Puzzles = new List<ScenePuzzleDto>();
         foreach (var dialogue in response.VisibleScene.AvailableDialogues)
