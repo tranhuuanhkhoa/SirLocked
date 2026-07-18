@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Gavel, Lightbulb, createIcons } from 'lucide';
+import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { session } from '../services/session.js';
@@ -16,6 +16,21 @@ import {
   sceneBackgroundUrl,
   sceneCharacterSpriteUrl,
 } from '../game/gameAssets.js';
+import {
+  buildGameUiModel,
+  isCameraMode,
+  isScenePanelOpen,
+  type ContextAction,
+  type DiscoveryNotice,
+  type GameUiMode,
+  type PartnerActivity,
+} from '../game/gameUiModel.js';
+import {
+  renderContextAction,
+  renderDiscoveryCard,
+  renderFinalConfrontationCallout,
+  renderGameHud,
+} from '../game/gameShell.js';
 
 type RoomPlayer = {
   userId: string;
@@ -310,27 +325,6 @@ type GameState = {
   actionLog: ActionLogEntry[];
 };
 
-type Overlay =
-  | null
-  | { type: 'case'; tab: 'evidence' | 'testimony' | 'contradictions' }
-  | { type: 'map' }
-  | { type: 'log' }
-  | { type: 'dialogue'; characterId: string }
-  | { type: 'inspect'; itemId: string; detail: string; unlockedClueIds: string[] }
-  | { type: 'photo'; clueId: string; detail: string }
-  | { type: 'inventory'; itemId: string }
-  | { type: 'puzzle'; label: string; message: string }
-  | { type: 'puzzle-solve'; puzzleId: string };
-
-type Accusation = null | {
-  step: number;
-  culpritId: string | null;
-  evidenceIds: Set<string>;
-  motiveId: string | null;
-  methodId: string | null;
-  evidenceLinks: Record<string, string>;
-};
-
 type HotspotClick = {
   type: string;
   target: string;
@@ -364,11 +358,13 @@ type InvestigationUpdatePayload = {
 type PhaserCallbacks = {
   localUserId: string;
   playerPoses: Map<string, PlayerPose>;
+  tr: (english: string, vietnamese: string) => string;
   newDialogueCount: (characterId: string) => number;
   onHotspot: (hotspot: HotspotClick) => void;
   onCharacter: (characterId: string) => void;
   onCapture: (captureRect: RuntimeBox, photo: Blob) => void;
   onCameraError: (message: string) => void;
+  onContextAction: (action: ContextAction | null) => void;
   onProceed: () => void;
   onScene: (sceneId: string) => void;
   onPose: (pose: PlayerPose) => void;
@@ -396,6 +392,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private remotePlayers = new Map<string, Phaser.GameObjects.Container>();
   private remoteTargets = new Map<string, PlayerPose>();
   private remoteDisplayPoses = new Map<string, PlayerPose>();
+  private remotePoseReceivedAt = new Map<string, number>();
   private promptText: Phaser.GameObjects.Text | null = null;
   private debugPointerText: Phaser.GameObjects.Text | null = null;
   private nearestHotspot: Hotspot | null = null;
@@ -410,6 +407,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private cameraCaptureZone: Phaser.GameObjects.Zone | null = null;
   private cameraCapturePending = false;
   private mobileMoveX = 0;
+  private lastContextActionKey = '';
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -522,7 +520,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   setSceneInteractionEnabled(enabled: boolean) {
+    const wasEnabled = this.sceneInteractionEnabled;
     this.sceneInteractionEnabled = enabled;
+    if (wasEnabled !== enabled) {
+      this.mobileMoveX = 0;
+      this.input?.keyboard?.resetKeys();
+    }
+    if (!enabled && wasEnabled && this.localPose?.moving) {
+      this.localPose.moving = false;
+      this.callbacks.playerPoses.set(this.localPose.userId, { ...this.localPose });
+      if (this.localPlayer) this.placePlayer(this.localPlayer, this.localPose);
+      this.lastSentPoseKey = '';
+      this.callbacks.onPose({ ...this.localPose });
+    }
     if (this.input) {
       this.input.enabled = enabled;
       this.input.resetPointers();
@@ -559,11 +569,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
   updateRemotePose(pose: PlayerPose) {
     this.callbacks.playerPoses.set(pose.userId, pose);
     this.remoteTargets.set(pose.userId, pose);
+    this.remotePoseReceivedAt.set(pose.userId, this.time.now);
     const existing = this.remotePlayers.get(pose.userId);
     if (!this.state || pose.sceneId !== this.state.currentSceneId) {
       existing?.destroy(true);
       this.remotePlayers.delete(pose.userId);
       this.remoteDisplayPoses.delete(pose.userId);
+      this.remotePoseReceivedAt.delete(pose.userId);
       return;
     }
 
@@ -580,6 +592,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.callbacks.playerPoses.delete(userId);
     this.remoteTargets.delete(userId);
     this.remoteDisplayPoses.delete(userId);
+    this.remotePoseReceivedAt.delete(userId);
     this.remotePlayers.get(userId)?.destroy(true);
     this.remotePlayers.delete(userId);
   }
@@ -966,6 +979,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       };
       this.remoteTargets.set(player.userId, displayPose);
       this.remoteDisplayPoses.set(player.userId, { ...displayPose });
+      this.remotePoseReceivedAt.set(player.userId, this.time.now);
       const remote = this.createPlayer(displayPose, false);
       this.placePlayer(remote, displayPose);
       this.remotePlayers.set(player.userId, remote);
@@ -1041,13 +1055,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private drawControlHint(width: number, height: number) {
-    this.add.text(18, height - 104, 'Move: A / D    Interact: E or click', {
-      fontFamily: 'Crimson Text, serif',
-      fontSize: '15px',
-      color: '#d9d4c4',
-      backgroundColor: 'rgba(10,22,40,0.68)',
-      padding: { x: 9, y: 5 },
-    }).setDepth(120);
+    if (width > 720) {
+      this.add.text(18, height - 104, 'Move: A / D    Interact: E or click', {
+        fontFamily: 'Crimson Text, serif',
+        fontSize: '15px',
+        color: '#d9d4c4',
+        backgroundColor: 'rgba(10,22,40,0.68)',
+        padding: { x: 9, y: 5 },
+      }).setDepth(120);
+    }
 
     this.promptText = this.add.text(width / 2, height - 166, '', {
       fontFamily: 'Crimson Text, serif',
@@ -1125,7 +1141,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
       current.x = Phaser.Math.Linear(current.x, target.x, blend);
       current.y = Phaser.Math.Linear(current.y, target.y, blend);
       current.direction = target.direction;
-      current.moving = target.moving;
+      const poseAge = this.time.now - (this.remotePoseReceivedAt.get(userId) ?? this.time.now);
+      current.moving = target.moving && poseAge < 1250;
       current.sceneId = target.sceneId;
       this.remoteDisplayPoses.set(userId, current);
       this.placePlayer(container, current);
@@ -1541,13 +1558,52 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private updateInteractionPrompt() {
     if (!this.promptText || !this.nearestHotspot) {
       this.promptText?.setVisible(false);
+      if (this.lastContextActionKey) {
+        this.lastContextActionKey = '';
+        this.callbacks.onContextAction(null);
+      }
       return;
     }
 
-    const prefix = this.nearestHotspot.isLocked ? 'Locked' : 'Press E';
+    const hotspot = this.nearestHotspot;
+    const type = hotspot.type.toUpperCase();
+    const role = this.state?.players.find((player) => player.userId === this.callbacks.localUserId)?.role;
+    const roleAllowed = type === 'CHARACTER'
+      ? role === 'INTERROGATOR'
+      : type === 'ITEM' || type === 'OBJECT' || type === 'CLUE'
+        ? role === 'INVESTIGATOR'
+        : true;
+    const enabled = !hotspot.isLocked && roleAllowed;
+    const reason = hotspot.isLocked
+      ? this.callbacks.tr('Needs another lead', 'Cần thêm manh mối')
+      : roleAllowed
+        ? undefined
+        : type === 'CHARACTER'
+          ? this.callbacks.tr('Interrogator action', 'Hành động của Thẩm vấn viên')
+          : this.callbacks.tr('Investigator action', 'Hành động của Điều tra viên');
+    const actionLabel = type === 'CHARACTER'
+      ? this.callbacks.tr('Question', 'Hỏi')
+      : type === 'ITEM' || type === 'OBJECT' || type === 'CLUE'
+        ? this.callbacks.tr('Inspect', 'Khám nghiệm')
+        : this.callbacks.tr('Interact', 'Tương tác');
+    const action: ContextAction = {
+      targetId: hotspot.targetId,
+      targetType: type,
+      label: hotspot.label || this.prettyId(hotspot.targetId),
+      actionLabel,
+      keyLabel: 'E',
+      enabled,
+      reason,
+    };
+    const actionKey = `${action.targetId}:${action.enabled}:${action.reason ?? ''}`;
+    if (actionKey !== this.lastContextActionKey) {
+      this.lastContextActionKey = actionKey;
+      this.callbacks.onContextAction(action);
+    }
     this.promptText
-      .setText(`${prefix}: ${this.nearestHotspot.label || this.prettyId(this.nearestHotspot.targetId)}`)
-      .setVisible(true);
+      .setText(`${enabled ? 'E' : '—'}  ${actionLabel}: ${action.label}${reason ? ` · ${reason}` : ''}`)
+      .setColor(enabled ? '#f4dc8f' : '#d9d4c4')
+      .setVisible(false);
   }
 
   private triggerHotspot(hotspot: Hotspot) {
@@ -1645,10 +1701,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   const hostId = `phaser-game-${roomId.replace(/[^a-z0-9_-]/gi, '')}`;
 
   let state: GameState | null = null;
-  let overlay: Overlay = null;
+  let uiMode: GameUiMode = { kind: 'EXPLORE' };
   let selectedInventoryItemId: string | null = null;
-  let accusation: Accusation = null;
-  let cameraMode = false;
   let captureInFlight = false;
   let stopped = false;
   let phaserGame: Phaser.Game | null = null;
@@ -1661,10 +1715,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let appliedSceneId = '';
   let appliedInventoryItemId: string | null = null;
   const evidencePhotoObjectUrls = new Map<string, string>();
-  let inventoryOpen = false;
   let combineMode = false;
   const combineSelection = new Set<string>();
   const puzzleDrafts = new Map<string, string[]>();
+  let contextAction: ContextAction | null = null;
+  let partnerActivity: PartnerActivity | null = null;
+  let discoveryNotice: DiscoveryNotice | null = null;
+  let discoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  let partnerActivityTimer: ReturnType<typeof setTimeout> | null = null;
+  let returnFocusId: string | null = null;
+  let finalReadyAnnounced = false;
   let sceneIntroActive = true; // Show on initial load
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
   let stateRefetchPromise: Promise<void> | null = null;
@@ -1693,12 +1753,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
     if (e.key === 'Escape') {
-      if (inventoryOpen || cameraMode || overlay || accusation) {
-        inventoryOpen = false;
-        cameraMode = false;
-        closeOverlay();
-        accusation = null;
-        draw();
+      if (uiMode.kind === 'CASE_FILE' && uiMode.clueId) {
+        setUiMode({ kind: 'CASE_FILE', section: uiMode.section });
+        return;
+      }
+      if (uiMode.kind !== 'EXPLORE') {
+        closeUiMode();
         return;
       }
     }
@@ -1706,12 +1766,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (isSceneInputBlocked()) return;
 
     if (e.key.toLowerCase() === 'b') {
-      inventoryOpen = !inventoryOpen;
-      draw();
+      if (myRole() === 'INVESTIGATOR') {
+        setUiMode(uiMode.kind === 'INVENTORY' ? { kind: 'EXPLORE' } : { kind: 'INVENTORY' }, 'floating-bag-btn');
+      }
     } else if (e.key.toLowerCase() === 'z') {
       if (myRole() === 'INVESTIGATOR') {
-        cameraMode = !cameraMode;
-        draw();
+        setUiMode(uiMode.kind === 'CAMERA' ? { kind: 'EXPLORE' } : { kind: 'CAMERA' }, 'floating-camera-btn');
       }
     }
   };
@@ -1841,9 +1901,33 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     visibleTreeCueByCharacter.get(characterId)?.delete(targetId);
   }
 
+  function setUiMode(next: GameUiMode, triggerId?: string) {
+    if (uiMode.kind === 'DIALOGUE' && (next.kind !== 'DIALOGUE' || next.characterId !== uiMode.characterId)) {
+      clearVisibleDialoguesForCharacter(uiMode.characterId);
+    }
+    if (triggerId) returnFocusId = triggerId;
+    uiMode = next;
+    if (next.kind !== 'INVENTORY') {
+      combineMode = false;
+      combineSelection.clear();
+    }
+    draw();
+  }
+
+  function closeUiMode() {
+    const focusId = returnFocusId;
+    if (uiMode.kind === 'DIALOGUE') clearVisibleDialoguesForCharacter(uiMode.characterId);
+    uiMode = { kind: 'EXPLORE' };
+    combineMode = false;
+    combineSelection.clear();
+    returnFocusId = null;
+    draw();
+    if (focusId) window.requestAnimationFrame(() => document.getElementById(focusId)?.focus());
+  }
+
   function closeOverlay() {
-    if (overlay?.type === 'dialogue') clearVisibleDialoguesForCharacter(overlay.characterId);
-    overlay = null;
+    if (uiMode.kind === 'DIALOGUE') clearVisibleDialoguesForCharacter(uiMode.characterId);
+    uiMode = { kind: 'EXPLORE' };
   }
 
   function destroyPhaser() {
@@ -1887,7 +1971,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     rememberAskableDialogues(fresh);
     state = fresh;
-    if (myRole() !== 'INVESTIGATOR') cameraMode = false;
+    if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
+    if (fresh.availableForAccusation && !finalReadyAnnounced) {
+      finalReadyAnnounced = true;
+      toast(tr('The final confrontation is ready.', 'Đối chất cuối cùng đã sẵn sàng.'), 'success', 5500);
+    }
     
     if (isNewScene) {
       sceneIntroActive = true;
@@ -1912,8 +2000,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function queueConversationRefreshAfterClueUnlock(fresh: GameState) {
-    if (overlay?.type !== 'dialogue' || !isTreeCharacter(overlay.characterId) || !convTreeNodeId) return;
-    const characterId = overlay.characterId;
+    if (uiMode.kind !== 'DIALOGUE' || !isTreeCharacter(uiMode.characterId) || !convTreeNodeId) return;
+    const characterId = uiMode.characterId;
     const key = `${fresh.version}:${characterId}:${convTreeNodeId}:${clueKey(fresh)}`;
     if (convAutoRefreshPending || convLastAutoRefreshKey === key) return;
 
@@ -1921,7 +2009,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     convLastAutoRefreshKey = key;
     window.setTimeout(async () => {
       try {
-        if (overlay?.type === 'dialogue' && overlay.characterId === characterId) {
+        if (uiMode.kind === 'DIALOGUE' && uiMode.characterId === characterId) {
           await refreshConverseDefaultNode(characterId);
         }
       } finally {
@@ -1932,6 +2020,35 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function clueKey(snapshot: GameState | null | undefined) {
     return snapshot?.unlockedClues.map((clue) => clue.clueId).join('|') ?? '';
+  }
+
+  function showDiscovery(notice: DiscoveryNotice) {
+    discoveryNotice = notice;
+    if (discoveryTimer) clearTimeout(discoveryTimer);
+    discoveryTimer = setTimeout(() => {
+      if (discoveryNotice?.id !== notice.id) return;
+      discoveryNotice = null;
+      draw();
+    }, 6500);
+  }
+
+  function showPartnerActivity(update: InvestigationUpdatePayload) {
+    if (!state || update.actorUserId === me.userId) return;
+    const actor = state.players.find((player) => player.userId === update.actorUserId);
+    partnerActivity = {
+      actorUserId: update.actorUserId,
+      actorName: actor?.username.split(' ')[0] || tr('Partner', 'Đồng đội'),
+      actorRole: update.actorRole,
+      message: update.message || tr('opened a new lead', 'vừa mở một manh mối mới'),
+      sceneId: update.sceneId,
+      createdAt: Date.now(),
+    };
+    if (partnerActivityTimer) clearTimeout(partnerActivityTimer);
+    partnerActivityTimer = setTimeout(() => {
+      partnerActivity = null;
+      draw();
+    }, 6000);
+    draw();
   }
 
   const hub = createRoomConnection(roomId, {
@@ -1951,6 +2068,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       if (userId !== me.userId) toast('Your partner unlocked new testimony.', 'info');
     },
     InvestigationUpdate: (update: InvestigationUpdatePayload) => {
+      showPartnerActivity(update);
       const namedCharacter = update.characterId
         ? state?.visibleScene.characters.find((c) => c.characterId === update.characterId)?.name
         : undefined;
@@ -2030,23 +2148,45 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return state?.players.find((p) => p.userId === me.userId)?.role ?? null;
   }
 
+  function uiModel() {
+    const latestPartnerLog = state!.actionLog.find((entry) => entry.userId !== me.userId);
+    const fallbackPartnerActivity = latestPartnerLog
+      ? {
+          actorUserId: latestPartnerLog.userId,
+          actorName: state!.players.find((player) => player.userId === latestPartnerLog.userId)?.username.split(' ')[0] || tr('Partner', 'Đồng đội'),
+          actorRole: state!.players.find((player) => player.userId === latestPartnerLog.userId)?.role,
+          message: latestPartnerLog.message,
+          createdAt: new Date(latestPartnerLog.createdAt).getTime(),
+        }
+      : null;
+    return buildGameUiModel({
+      mode: uiMode,
+      localUserId: me.userId,
+      players: state!.players,
+      objective: state!.currentObjective || state!.visibleScene.description || state!.visibleScene.title,
+      currentSceneId: state!.currentSceneId,
+      currentSceneCanComplete: state!.currentSceneCanComplete,
+      completedSceneIds: state!.completedSceneIds,
+      sceneMap: state!.sceneMap,
+      newQuestionCount: newDialogueIds.size,
+      partnerActivity: partnerActivity ?? fallbackPartnerActivity,
+      contextAction,
+      discovery: discoveryNotice,
+      availableForAccusation: state!.availableForAccusation,
+    });
+  }
+
   function draw() {
     if (stopped || !state) return;
     mountShell();
-    if (!overlay || overlay.type !== 'dialogue') resetConversation();
+    if (uiMode.kind !== 'DIALOGUE') resetConversation();
+    const model = uiModel();
     const scene = state.visibleScene;
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
       const canAbandon = state.hostUserId === me.userId
         && state.players.some((player) => player.userId !== me.userId && player.isConnected === false);
-      hud.innerHTML = `
-        <div class="game-objective">
-          <strong>${escapeHtml(state.caseTitle)}</strong>
-          <span>${escapeHtml(state.currentObjective || scene.description || scene.title)}</span>
-        </div>
-        <div class="game-players" aria-label="Players">${playersHtml()}</div>
-        ${canAbandon ? `<button id="abandon-game-btn" class="btn btn-ghost btn-sm" type="button">${tr('Abandon after reconnect timeout', 'Rời ván sau thời gian chờ kết nối lại')}</button>` : ''}
-      `;
+      hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, canAbandon, tr);
     }
 
     const introSlot = app.querySelector('#scene-intro-slot');
@@ -2065,9 +2205,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     const inventory = app.querySelector('#inventory-slot');
-    if (inventory) inventory.innerHTML = inventoryDrawer() + investigationToolDock() + mobileMovementDock();
+    if (inventory) inventory.innerHTML = inventoryDrawer() + caseFileDrawer() + investigationToolDock(model) + mobileMovementDock(model);
     const transient = app.querySelector('#game-transient-slot');
-    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}`;
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
 
     const sceneNeedsUpdate = appliedStateVersion !== state.version
       || appliedSceneId !== state.currentSceneId
@@ -2078,8 +2218,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       appliedSceneId = state.currentSceneId;
       appliedInventoryItemId = selectedInventoryItemId;
     }
-    phaserScene?.setSceneInteractionEnabled(!isSceneInputBlocked());
-    phaserScene?.setCameraMode(cameraMode && !isSceneInputBlocked());
+    syncPhaserInputState();
     bind();
     createIcons({
       icons: {
@@ -2088,7 +2227,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         X,
         FolderSearch,
         Map: MapIcon,
-        Gavel,
         Lightbulb,
       },
     });
@@ -2104,22 +2242,40 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     phaserScene = new SirLockedPhaserScene({
       localUserId: me.userId,
       playerPoses,
+      tr,
       newDialogueCount,
       onHotspot,
       onCharacter: (characterId) => {
         if (isSceneInputBlocked()) return;
+        if (myRole() !== 'INTERROGATOR') {
+          toast(tr('Your Interrogator partner handles witness questioning.', 'Đồng đội Thẩm vấn viên phụ trách hỏi nhân chứng.'), 'info');
+          return;
+        }
         markCharacterDialoguesVisible(characterId);
         if (isTreeCharacter(characterId) && myRole() === 'INTERROGATOR') {
           openConversation(characterId);
           return;
         }
-        overlay = { type: 'dialogue', characterId };
-        draw();
+        setUiMode({ kind: 'DIALOGUE', characterId });
       },
       onCapture: (captureRect, photo) => captureClue(captureRect, photo),
       onCameraError: (message) => toast(message, 'error'),
-      onProceed: () => completeScene(),
-      onScene: (sceneId) => goToScene(sceneId),
+      onContextAction: (action) => {
+        const previousKey = contextAction ? `${contextAction.targetType}:${contextAction.targetId}:${contextAction.enabled}:${contextAction.reason ?? ''}` : '';
+        const nextKey = action ? `${action.targetType}:${action.targetId}:${action.enabled}:${action.reason ?? ''}` : '';
+        const previousWasVisible = Boolean(contextAction && contextAction.targetType !== 'CHARACTER');
+        const nextIsVisible = Boolean(action && action.targetType !== 'CHARACTER');
+        contextAction = action;
+        if (previousKey !== nextKey && (previousWasVisible || nextIsVisible)) draw();
+      },
+      onProceed: () => {
+        if (isSceneInputBlocked() || discoveryNotice) return;
+        completeScene();
+      },
+      onScene: (sceneId) => {
+        if (isSceneInputBlocked() || discoveryNotice) return;
+        goToScene(sceneId);
+      },
       onPose: (pose) => {
         if (hub.connection.state !== 'Connected') return;
         hub.connection.invoke('UpdatePlayerPose', roomId, {
@@ -2160,8 +2316,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     appliedStateVersion = state.version;
     appliedSceneId = state.currentSceneId;
     appliedInventoryItemId = selectedInventoryItemId;
-    phaserScene.setSceneInteractionEnabled(!isSceneInputBlocked());
-    phaserScene.setCameraMode(cameraMode && !isSceneInputBlocked());
+    syncPhaserInputState();
     // Debug handle for QA tooling (canvas snapshots, state inspection).
     (window as unknown as Record<string, unknown>).__sirlockedGame = phaserGame;
   }
@@ -2182,10 +2337,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     };
   }
 
-  function investigationToolDock() {
-    const isInv = myRole() === 'INVESTIGATOR';
-    const cameraHtml = isInv ? `
-      <button class="floating-btn camera-tool ${cameraMode ? 'is-hot' : ''}" id="floating-camera-btn" title="${tr('Camera', 'Máy ảnh')} (Z)">
+  function investigationToolDock(model: ReturnType<typeof buildGameUiModel>) {
+    const cameraHtml = model.canUseCamera ? `
+      <button class="floating-btn camera-tool ${model.mode.kind === 'CAMERA' ? 'is-hot' : ''}" id="floating-camera-btn" title="${tr('Camera', 'Máy ảnh')} (Z)" aria-pressed="${model.mode.kind === 'CAMERA'}">
         <i data-lucide="camera" aria-hidden="true"></i>
         <span class="hotkey-label">Z</span>
         <span class="camera-badge">${state!.capturedClueIds?.length ?? 0}</span>
@@ -2194,29 +2348,25 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     return `
       <div class="investigation-tool-dock">
-        <button class="floating-btn" id="case-file-btn" title="${tr('Case File', 'Hồ sơ vụ án')}" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
+        <button class="floating-btn ${model.mode.kind === 'CASE_FILE' && model.mode.section !== 'map' ? 'is-open' : ''}" id="case-file-btn" title="${tr('Case File', 'Hồ sơ vụ án')}" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
           <i data-lucide="folder-search"></i>
-          <span class="tool-badge">${state!.unlockedClues.length}</span>
+          <span class="tool-badge">${model.role === 'INTERROGATOR' && model.newQuestionCount > 0 ? model.newQuestionCount : state!.unlockedClues.length}</span>
         </button>
-        <button class="floating-btn" id="map-btn" title="${tr('Locations', 'Địa điểm')}" aria-label="${tr('Locations', 'Địa điểm')}"><i data-lucide="map"></i></button>
+        <button class="floating-btn ${model.mode.kind === 'CASE_FILE' && model.mode.section === 'map' ? 'is-open' : ''}" id="map-btn" title="${tr('Locations', 'Địa điểm')}" aria-label="${tr('Locations', 'Địa điểm')}"><i data-lucide="map"></i></button>
         <button class="floating-btn" id="hint-btn" title="${tr('Request a hint', 'Yêu cầu gợi ý')}" aria-label="${tr('Hint', 'Gợi ý')}"><i data-lucide="lightbulb"></i></button>
         ${cameraHtml}
-        <button class="floating-btn bag-tool ${inventoryOpen ? 'is-open' : ''}" id="floating-bag-btn" title="${tr('Inventory', 'Túi đồ')} (B)">
+        ${model.canUseInventory ? `<button class="floating-btn bag-tool ${model.mode.kind === 'INVENTORY' ? 'is-open' : ''}" id="floating-bag-btn" title="${tr('Inventory', 'Túi đồ')} (B)" aria-pressed="${model.mode.kind === 'INVENTORY'}">
           <i data-lucide="briefcase" aria-hidden="true"></i>
           <span class="hotkey-label">B</span>
           ${state!.collectedItemIds.length > 0 ? `<span class="camera-badge">${state!.collectedItemIds.length}</span>` : ''}
-        </button>
-        <button class="floating-btn ${state!.availableForAccusation ? 'is-hot' : ''}" id="accuse-btn" ${state!.availableForAccusation ? '' : 'disabled'}
-                title="${state!.availableForAccusation ? tr('Make the final accusation', 'Đưa ra cáo buộc cuối cùng') : tr('Unlocks once every required piece of evidence has been found', 'Mở khóa khi đã tìm đủ chứng cứ bắt buộc')}" aria-label="${tr('Accuse', 'Cáo buộc')}">
-          <i data-lucide="gavel"></i>
-        </button>
+        </button>` : ''}
       </div>
     `;
   }
 
-  function mobileMovementDock() {
-    const cameraHtml = myRole() === 'INVESTIGATOR'
-      ? `<button class="mobile-action-btn ${cameraMode ? 'is-hot' : ''}" id="mobile-camera-btn" aria-label="Camera" aria-pressed="${cameraMode}">
+  function mobileMovementDock(model: ReturnType<typeof buildGameUiModel>) {
+    const cameraHtml = model.canUseCamera
+      ? `<button class="mobile-action-btn ${model.mode.kind === 'CAMERA' ? 'is-hot' : ''}" id="mobile-camera-btn" aria-label="Camera" aria-pressed="${model.mode.kind === 'CAMERA'}">
           <i data-lucide="camera" aria-hidden="true"></i>
         </button>`
       : '';
@@ -2227,10 +2377,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         <button class="mobile-interact-btn" id="mobile-interact-btn" aria-label="Interact">E</button>
         <button class="mobile-move-btn" data-mobile-move="1" aria-label="Move right"><span aria-hidden="true">&rsaquo;</span></button>
         ${cameraHtml}
-        <button class="mobile-action-btn ${inventoryOpen ? 'is-hot' : ''}" id="mobile-inventory-btn" aria-label="Inventory" aria-pressed="${inventoryOpen}">
+        ${model.canUseInventory ? `<button class="mobile-action-btn ${model.mode.kind === 'INVENTORY' ? 'is-hot' : ''}" id="mobile-inventory-btn" aria-label="Inventory" aria-pressed="${model.mode.kind === 'INVENTORY'}">
           <i data-lucide="briefcase" aria-hidden="true"></i>
           ${state!.collectedItemIds.length > 0 ? `<span class="mobile-action-badge">${state!.collectedItemIds.length}</span>` : ''}
-        </button>
+        </button>` : ''}
       </div>
     `;
   }
@@ -2241,7 +2391,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function inventoryDrawer() {
-    if (!inventoryOpen) return '';
+    if (uiMode.kind !== 'INVENTORY') return '';
 
     const itemsById = new Map(state!.visibleScene.items.map((i) => [i.itemId, i]));
     for (const item of state!.collectedItems ?? []) itemsById.set(item.itemId, item);
@@ -2253,7 +2403,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const item = collected[i];
       if (item) {
         slots.push(`
-          <button class="inventory-drawer-slot is-filled ${overlay?.type === 'inventory' && overlay.itemId === item.itemId ? 'is-selected' : ''} ${combineSelection.has(item.itemId) ? 'is-combine-selected' : ''}"
+          <button class="inventory-drawer-slot is-filled ${uiMode.itemId === item.itemId ? 'is-selected' : ''} ${combineSelection.has(item.itemId) ? 'is-combine-selected' : ''}"
                   data-inventory="${escapeHtml(item.itemId)}" title="${escapeHtml(item.name)}">
             <span class="inventory-icon" style="${placeholderStyle(item.itemId)}">
               ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
@@ -2276,6 +2426,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         <div class="inventory-drawer-grid">
           ${slots.join('')}
         </div>
+        ${uiMode.itemId ? inventoryDetailOverlay(uiMode.itemId) : ''}
       </div>
     `;
   }
@@ -2308,17 +2459,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function overlayHtml() {
-    if (!overlay) return '';
-    if (overlay.type === 'case') return caseFileOverlay(overlay.tab);
-    if (overlay.type === 'map') return mapOverlay();
-    if (overlay.type === 'log') return logOverlay();
-    if (overlay.type === 'dialogue') return dialogueOverlay(overlay.characterId);
-    if (overlay.type === 'inspect') return inspectOverlay(overlay.itemId, overlay.detail, overlay.unlockedClueIds ?? []);
-    if (overlay.type === 'photo') return photoOverlay(overlay.clueId, overlay.detail);
-    if (overlay.type === 'inventory') return inventoryDetailOverlay(overlay.itemId);
-    if (overlay.type === 'puzzle') return puzzleOverlay(overlay.label, overlay.message);
-    if (overlay.type === 'puzzle-solve') return puzzleSolveOverlay(overlay.puzzleId);
+    if (uiMode.kind === 'DIALOGUE') return dialogueOverlay(uiMode.characterId);
+    if (uiMode.kind === 'PUZZLE' && uiMode.view === 'LOCKED') return puzzleOverlay(uiMode.label, uiMode.message);
+    if (uiMode.kind === 'PUZZLE' && uiMode.view === 'SOLVE') return puzzleSolveOverlay(uiMode.puzzleId);
     return '';
+  }
+
+  function caseFileDrawer() {
+    if (uiMode.kind !== 'CASE_FILE') return '';
+    return uiMode.section === 'map' ? mapOverlay() : caseFileOverlay(uiMode.section);
   }
 
   function evidencePhotoMarkup(clue: Clue, className: string) {
@@ -2349,6 +2498,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function caseFileOverlay(tab: 'evidence' | 'testimony' | 'contradictions') {
     const clues = state!.unlockedClues.slice().reverse();
+    const selectedClueId = uiMode.kind === 'CASE_FILE' ? uiMode.clueId : undefined;
+    const selectedClue = selectedClueId
+      ? clues.find((clue) => clue.clueId === selectedClueId)
+      : undefined;
     const tabs = `
       <div class="case-file-tabs">
         <button class="${tab === 'evidence' ? 'is-active' : ''}" data-case-tab="evidence">${tr('Evidence', 'Chứng cứ')}</button>
@@ -2358,12 +2511,21 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const content = tab === 'evidence'
       ? (clues.length === 0
         ? `<div class="empty-state small">${tr('No evidence has been collected yet.', 'Chưa thu thập được chứng cứ nào.')}</div>`
-        : `<div class="case-file-grid">${clues.map((c) => `
-            <article class="clue-card ${c.isEvidence ? 'clue-evidence' : ''}">
-              ${evidencePhotoMarkup(c, 'clue-photo')}
-              <div class="clue-head"><strong>${escapeHtml(c.title)}</strong>${c.isEvidence ? `<span class="chip chip-gold">${tr('EVIDENCE', 'CHỨNG CỨ')}</span>` : ''}</div>
-              <p>${escapeHtml(c.content)}</p>
-            </article>`).join('')}</div>`)
+        : selectedClue
+          ? `<section class="case-file-evidence-detail" aria-label="${escapeHtml(selectedClue.title)}">
+              <button class="evidence-detail-back" id="evidence-detail-back" type="button">← ${tr('Back to evidence', 'Trở lại danh sách chứng cứ')}</button>
+              <div class="evidence-detail-art">
+                ${evidencePhotoMarkup(selectedClue, 'evidence-photo-large') || `<span class="evidence-visual-placeholder" aria-hidden="true">${initials(selectedClue.title)}</span>`}
+              </div>
+              <div class="clue-head"><h3>${escapeHtml(selectedClue.title)}</h3>${selectedClue.isEvidence ? `<span class="chip chip-gold">${tr('EVIDENCE', 'CHỨNG CỨ')}</span>` : ''}</div>
+              <p>${escapeHtml(selectedClue.content)}</p>
+            </section>`
+          : `<div class="case-file-grid">${clues.map((c) => `
+            <button class="clue-card case-file-clue-card ${c.isEvidence ? 'clue-evidence' : ''}" data-evidence-detail="${escapeHtml(c.clueId)}" type="button" aria-label="${tr('Open evidence', 'Mở chứng cứ')}: ${escapeHtml(c.title)}">
+              <span class="clue-card-art">${evidencePhotoMarkup(c, 'clue-photo') || `<span class="evidence-visual-placeholder" aria-hidden="true">${initials(c.title)}</span>`}</span>
+              <span class="clue-head"><strong>${escapeHtml(c.title)}</strong>${c.isEvidence ? `<span class="chip chip-gold">${tr('EVIDENCE', 'CHỨNG CỨ')}</span>` : ''}</span>
+              <span class="clue-card-summary">${escapeHtml(c.content)}</span>
+            </button>`).join('')}</div>`)
       : tab === 'testimony'
         ? (state!.testimonies.length === 0
           ? `<div class="empty-state small">${tr('No testimony has been recorded yet.', 'Chưa ghi nhận lời khai nào.')}</div>`
@@ -2384,21 +2546,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               </article>`).join('')}
           </div>`;
     return `
-    <div class="overlay">
-      <div class="modal modal-wide case-file-modal">
-        <h2>${tr('Case File', 'Hồ sơ vụ án')}</h2>
+    <aside class="case-file-drawer case-file-modal" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
+        <div class="drawer-title-row"><div><span>${tr('Shared investigation', 'Điều tra chung')}</span><h2>${tr('Case File', 'Hồ sơ vụ án')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
         ${tabs}
         ${content}
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
-      </div>
-    </div>`;
+    </aside>`;
   }
 
   function mapOverlay() {
     return `
-    <div class="overlay">
-      <div class="modal">
-        <h2>${tr('Investigation Map', 'Bản đồ điều tra')}</h2>
+    <aside class="case-file-drawer map-drawer" aria-label="${tr('Investigation Map', 'Bản đồ điều tra')}">
+        <div class="drawer-title-row"><div><span>${tr('Shared investigation', 'Điều tra chung')}</span><h2>${tr('Investigation Map', 'Bản đồ điều tra')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
         <p class="muted">${tr('Move through places the investigation has already opened.', 'Di chuyển giữa các địa điểm đã được mở trong quá trình điều tra.')}</p>
         <div class="map-list">${state!.sceneMap.map((s) => `
           <button class="map-entry ${s.isCurrent ? 'is-current' : ''} ${s.isCompleted ? 'is-done' : ''}"
@@ -2406,9 +2564,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
             <span>${s.isCompleted ? tr('Done', 'Hoàn tất') : s.isCurrent ? tr('Here', 'Hiện tại') : s.isVisited || s.isUnlocked ? tr('Open', 'Đã mở') : tr('Locked', 'Đang khóa')}</span>
             <span>${s.isVisited || s.isUnlocked ? escapeHtml(s.title) : tr('Unknown location', 'Địa điểm chưa biết')}${!s.isCompleted && (s.isVisited || s.isUnlocked) && s.pendingRequirementCount > 0 ? ` <em class="muted small">· ${s.pendingRequirementCount} ${tr('left', 'còn lại')}</em>` : ''}</span>
           </button>`).join('')}</div>
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
-      </div>
-    </div>`;
+        <button class="btn btn-ghost btn-sm" id="map-case-file-btn" type="button">${tr('Back to case file', 'Trở lại hồ sơ')}</button>
+    </aside>`;
   }
 
   function logOverlay() {
@@ -2475,14 +2632,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const finding = item.inspectText || item.description || 'You collected this item during the investigation.';
     const clue = state!.unlockedClues.find((c) => c.source === itemId);
     return `
-    <div class="overlay">
-      <div class="modal modal-wide inspect-modal">
-        <div class="inspect-art" style="${placeholderStyle(item.itemId)}">
+      <section class="inventory-detail-inline">
+        <div class="inventory-detail-art" style="${placeholderStyle(item.itemId)}">
           ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
           <span>${escapeHtml(item.name)}</span>
         </div>
         <div class="inspect-copy">
-          <h2>${escapeHtml(item.name)}</h2>
+          <h3>${escapeHtml(item.name)}</h3>
           ${item.description ? `<p class="muted">${escapeHtml(item.description)}</p>` : ''}
           <p>${escapeHtml(finding)}</p>
           ${clue
@@ -2490,11 +2646,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
             : ''}
           <div class="modal-actions">
             ${myRole() === 'INVESTIGATOR' ? `<button class="btn btn-gold" data-use-inventory="${escapeHtml(item.itemId)}">Use</button>` : ''}
-            <button class="btn btn-ghost" data-close-overlay>Close</button>
+            <button class="btn btn-ghost" id="inventory-detail-close" type="button">${tr('Back', 'Quay lại')}</button>
           </div>
         </div>
-      </div>
-    </div>`;
+      </section>`;
   }
 
   function puzzleOverlay(label: string, message: string) {
@@ -2596,7 +2751,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function hydrateDialogueTypewriter() {
     if (convTimer) { clearInterval(convTimer); convTimer = null; }
-    if (!overlay || overlay.type !== 'dialogue') return;
+    if (uiMode.kind !== 'DIALOGUE') return;
     const logEl = app.querySelector<HTMLElement>('.conv-scroll');
     logEl?.scrollTo({ top: logEl.scrollHeight });
     const pending = Array.from(app.querySelectorAll<HTMLElement>('.conv-text.is-typing'));
@@ -2762,12 +2917,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         <div class="conv-main">
           <header class="conv-header">
             <div class="conv-header-top">
-              <h2>${escapeHtml(character.name)}</h2>
+              <span class="conv-section-label">${tr('Witness interview', 'Thẩm vấn nhân chứng')}</span>
               ${role !== 'INTERROGATOR'
-                ? '<span class="conv-badge">Viewing testimony — Interrogator controls questioning.</span>'
+                ? `<span class="conv-badge">${tr('Viewing testimony — Interrogator controls questioning.', 'Chỉ xem lời khai — Thẩm vấn viên điều khiển cuộc hỏi.')}</span>`
                 : ''}
             </div>
-            <p class="conv-role">${escapeHtml(character.role)}</p>
             <p class="conv-desc">${escapeHtml(character.description)}</p>
           </header>
           <div class="conv-scroll">
@@ -2785,7 +2939,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function accusationModal() {
-    if (!accusation) return '';
+    if (uiMode.kind !== 'ACCUSATION') return '';
+    const accusation = uiMode.draft;
     const evidence = state!.evidenceClues;
     const v2 = state!.mechanicsVersion >= 2 && state!.accusationConfig;
 
@@ -2799,7 +2954,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         canContinue = Boolean(accusation.culpritId);
         body = `<div class="suspect-grid">${state!.suspects.map((suspect) => `
           <button class="suspect-card ${accusation!.culpritId === suspect.characterId ? 'is-selected' : ''}" data-suspect="${escapeHtml(suspect.characterId)}">
-            <strong>${escapeHtml(suspect.name)}</strong><span class="muted small">${escapeHtml(suspect.role)}</span>
+            <span class="suspect-portrait" style="${placeholderStyle(suspect.characterId)}">
+              ${characterPortraitUrl(suspect) ? `<img src="${escapeHtml(characterPortraitUrl(suspect))}" alt="" onerror="this.remove()">` : ''}
+              <span>${initials(suspect.name)}</span>
+            </span>
+            <span class="suspect-copy"><strong>${escapeHtml(suspect.name)}</strong><span class="muted small">${escapeHtml(suspect.role)}</span></span>
           </button>`).join('')}</div>`;
       } else if (accusation.step === 2) {
         canContinue = Boolean(accusation.motiveId);
@@ -2810,13 +2969,38 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       } else if (accusation.step === 4) {
         canContinue = config.claimTypes.every((claim) => Boolean(accusation!.evidenceLinks[claim]))
           && new Set(Object.values(accusation.evidenceLinks)).size === config.claimTypes.length;
-        body = `<div class="claim-evidence-list">${config.claimTypes.map((claim) => `
-          <label><strong>${escapeHtml(claim)}</strong>
-            <select data-claim="${escapeHtml(claim)}">
-              <option value="">Select evidence</option>
-              ${evidence.map((clue) => `<option value="${escapeHtml(clue.clueId)}" ${accusation!.evidenceLinks[claim] === clue.clueId ? 'selected' : ''}>${escapeHtml(clue.title)}</option>`).join('')}
-            </select>
-          </label>`).join('')}</div>
+        const activeClaim = config.claimTypes.includes(accusation.activeClaimType ?? '')
+          ? accusation.activeClaimType!
+          : config.claimTypes.find((claim) => !accusation.evidenceLinks[claim]) ?? config.claimTypes[0];
+        body = `<div class="accusation-evidence-workspace">
+          <section class="accusation-claim-column" aria-label="${tr('Accusation claims', 'Các luận điểm cáo buộc')}">
+            <div class="accusation-workspace-heading"><strong>${tr('Claims', 'Luận điểm')}</strong><span>${tr('Choose a slot, then click or drag evidence into it.', 'Chọn một ô, sau đó bấm hoặc kéo chứng cứ vào.')}</span></div>
+            ${config.claimTypes.map((claim) => {
+              const selectedClue = evidence.find((clue) => clue.clueId === accusation!.evidenceLinks[claim]);
+              return `<div class="claim-drop-zone ${activeClaim === claim ? 'is-active' : ''} ${selectedClue ? 'is-filled' : ''}" data-claim-drop="${escapeHtml(claim)}">
+                <button class="claim-slot-button" data-claim-slot="${escapeHtml(claim)}" type="button" aria-pressed="${activeClaim === claim}">
+                  <span class="claim-slot-label">${escapeHtml(claim)}</span>
+                  <span class="claim-slot-preview ${selectedClue ? '' : 'is-empty'}">
+                    ${selectedClue ? evidencePhotoMarkup(selectedClue, 'evidence-photo-thumb') : ''}
+                    <span class="claim-slot-mark" aria-hidden="true">${selectedClue ? '✓' : '+'}</span>
+                  </span>
+                  <span class="claim-slot-copy">${selectedClue ? `<strong>${escapeHtml(selectedClue.title)}</strong>` : `<strong>${tr('Drop evidence here', 'Thả chứng cứ vào đây')}</strong>`}</span>
+                </button>
+                ${selectedClue ? `<button class="claim-slot-clear" data-clear-claim="${escapeHtml(claim)}" type="button" aria-label="${tr('Remove evidence from', 'Gỡ chứng cứ khỏi')} ${escapeHtml(claim)}">×</button>` : ''}
+              </div>`;
+            }).join('')}
+          </section>
+          <section class="accusation-evidence-library" aria-label="${tr('Collected evidence', 'Chứng cứ đã thu thập')}">
+            <div class="accusation-workspace-heading"><strong>${tr('Collected evidence', 'Chứng cứ đã thu thập')}</strong><span>${evidence.length} ${tr('available', 'có sẵn')}</span></div>
+            <div class="accusation-evidence-gallery">${evidence.map((clue) => {
+              const assignedClaim = config.claimTypes.find((claim) => accusation!.evidenceLinks[claim] === clue.clueId);
+              return `<button class="accusation-evidence-card ${assignedClaim ? 'is-assigned' : ''}" data-assign-evidence="${escapeHtml(clue.clueId)}" draggable="true" type="button" aria-label="${tr('Assign evidence', 'Gán chứng cứ')}: ${escapeHtml(clue.title)}">
+                <span class="accusation-evidence-art">${evidencePhotoMarkup(clue, 'evidence-photo-thumb') || `<span class="evidence-visual-placeholder" aria-hidden="true">${initials(clue.title)}</span>`}</span>
+                <span class="accusation-evidence-copy"><strong>${escapeHtml(clue.title)}</strong><small>${assignedClaim ? `${tr('Assigned to', 'Đã gán cho')} ${escapeHtml(assignedClaim)}` : tr('Click to assign', 'Bấm để gán')}</small></span>
+              </button>`;
+            }).join('')}</div>
+          </section>
+        </div>
           ${Object.values(accusation.evidenceLinks).filter(Boolean).length === config.claimTypes.length && !canContinue ? `<p class="notice">${tr('Each claim must use different evidence.', 'Mỗi luận điểm phải dùng chứng cứ khác nhau.')}</p>` : ''}`;
       } else {
         const culprit = state!.suspects.find((suspect) => suspect.characterId === accusation!.culpritId);
@@ -2832,7 +3016,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         </div>`;
       }
 
-      return `<div class="overlay"><div class="modal modal-wide">
+      return `<div class="overlay"><div class="modal modal-wide accusation-modal">
         <h2>${tr('Final Accusation', 'Cáo buộc cuối cùng')}</h2>${header}${body}
         <div class="modal-actions">
           ${accusation.step === 1 ? '<button class="btn btn-ghost" id="accuse-cancel">Not yet</button>' : '<button class="btn btn-ghost" id="accuse-back">Back</button>'}
@@ -2898,9 +3082,30 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function isSceneInputBlocked() {
-    return Boolean(overlay || accusation) ||
+    return isScenePanelOpen(uiMode) ||
       !sessionStorage.getItem(introKey) ||
       Date.now() < sceneInputBlockedUntil;
+  }
+
+  function assignEvidenceToClaim(claimType: string, evidenceId: string) {
+    if (uiMode.kind !== 'ACCUSATION' || !state?.accusationConfig) return;
+    const accusation = uiMode.draft;
+    if (!state.accusationConfig.claimTypes.includes(claimType)
+      || !state.evidenceClues.some((clue) => clue.clueId === evidenceId)) return;
+    for (const [claim, assignedEvidenceId] of Object.entries(accusation.evidenceLinks)) {
+      if (claim !== claimType && assignedEvidenceId === evidenceId) delete accusation.evidenceLinks[claim];
+    }
+    accusation.evidenceLinks[claimType] = evidenceId;
+    accusation.activeClaimType = state.accusationConfig.claimTypes.find((claim) => !accusation.evidenceLinks[claim]) ?? claimType;
+    draw();
+  }
+
+  function syncPhaserInputState() {
+    if (!phaserScene) return;
+    const blocked = isSceneInputBlocked();
+    const cameraEnabled = isCameraMode(uiMode) && !blocked;
+    phaserScene.setSceneInteractionEnabled(!blocked);
+    phaserScene.setCameraMode(cameraEnabled);
   }
 
   function bind() {
@@ -2926,6 +3131,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         });
       });
     });
+    app.querySelectorAll('.discovery-card, .final-confrontation-callout').forEach((control) => {
+      ['pointerdown', 'pointerup', 'click'].forEach((eventName) => {
+        control.addEventListener(eventName, (event) => event.stopPropagation());
+      });
+    });
 
     app.querySelector('#intro-dismiss')?.addEventListener('pointerdown', (event) => {
       sessionStorage.setItem(introKey, '1');
@@ -2943,14 +3153,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           draw();
           return;
         }
-        // Toggle the detail view: clicking the open item (or its overlay) closes it.
-        overlay = overlay?.type === 'inventory' && overlay.itemId === itemId ? null : { type: 'inventory', itemId };
+        if (uiMode.kind !== 'INVENTORY') return;
+        uiMode = uiMode.itemId === itemId ? { kind: 'INVENTORY' } : { kind: 'INVENTORY', itemId };
         draw();
       }));
     app.querySelector('#combine-mode-btn')?.addEventListener('click', () => {
       combineMode = !combineMode;
       if (!combineMode) combineSelection.clear();
-      overlay = null;
+      if (uiMode.kind === 'INVENTORY') uiMode = { kind: 'INVENTORY' };
       draw();
     });
     app.querySelector('#combine-submit-btn')?.addEventListener('click', combineItems);
@@ -2960,31 +3170,47 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       selectedInventoryItemId = itemId;
       combineMode = false;
       combineSelection.clear();
-      inventoryOpen = false;
       closeOverlay();
       toast(`Using ${prettyId(itemId)}. Choose a target in the scene.`, 'info');
       draw();
     }));
 
-    app.querySelector('#case-file-btn')?.addEventListener('click', () => { overlay = { type: 'case', tab: 'evidence' }; draw(); });
+    app.querySelector('#case-file-btn')?.addEventListener('click', () => setUiMode(
+      uiMode.kind === 'CASE_FILE' && uiMode.section !== 'map' ? { kind: 'EXPLORE' } : { kind: 'CASE_FILE', section: 'evidence' },
+      'case-file-btn',
+    ));
     app.querySelectorAll('[data-case-tab]').forEach((button) => button.addEventListener('click', () => {
       const tab = (button as HTMLElement).dataset.caseTab as 'evidence' | 'testimony' | 'contradictions';
-      overlay = { type: 'case', tab };
-      draw();
+      setUiMode({ kind: 'CASE_FILE', section: tab });
     }));
+    app.querySelectorAll('[data-evidence-detail]').forEach((button) => button.addEventListener('click', () => {
+      const clueId = (button as HTMLElement).dataset.evidenceDetail;
+      if (clueId) setUiMode({ kind: 'CASE_FILE', section: 'evidence', clueId });
+    }));
+    app.querySelector('#evidence-detail-back')?.addEventListener('click', () => {
+      setUiMode({ kind: 'CASE_FILE', section: 'evidence' });
+    });
     app.querySelector('#hint-btn')?.addEventListener('click', () => requestHint('SCENE', state!.currentSceneId));
     app.querySelector('#floating-camera-btn')?.addEventListener('click', toggleCameraMode);
     app.querySelector('#floating-bag-btn')?.addEventListener('click', () => {
-      inventoryOpen = !inventoryOpen;
-      draw();
+      setUiMode(uiMode.kind === 'INVENTORY' ? { kind: 'EXPLORE' } : { kind: 'INVENTORY' }, 'floating-bag-btn');
     });
-    app.querySelector('.close-drawer-btn')?.addEventListener('click', () => {
-      inventoryOpen = false;
-      draw();
-    });
-    app.querySelector('#map-btn')?.addEventListener('click', () => { overlay = { type: 'map' }; draw(); });
+    app.querySelectorAll('.close-drawer-btn').forEach((button) => button.addEventListener('click', closeUiMode));
+    app.querySelector('#inventory-detail-close')?.addEventListener('click', () => setUiMode({ kind: 'INVENTORY' }));
+    app.querySelector('#map-case-file-btn')?.addEventListener('click', () => setUiMode({ kind: 'CASE_FILE', section: 'evidence' }));
+    app.querySelector('#map-btn')?.addEventListener('click', () => setUiMode(
+      uiMode.kind === 'CASE_FILE' && uiMode.section === 'map' ? { kind: 'EXPLORE' } : { kind: 'CASE_FILE', section: 'map' },
+      'map-btn',
+    ));
     app.querySelector('#accuse-btn')?.addEventListener('click', () => {
-      accusation = { step: 1, culpritId: null, motiveId: null, methodId: null, evidenceIds: new Set(), evidenceLinks: {} };
+      setUiMode({ kind: 'ACCUSATION', draft: { step: 1, culpritId: null, motiveId: null, methodId: null, evidenceIds: new Set(), evidenceLinks: {}, activeClaimType: null } }, 'accuse-btn');
+    });
+    app.querySelector('#discovery-case-file-btn')?.addEventListener('click', () => {
+      discoveryNotice = null;
+      setUiMode({ kind: 'CASE_FILE', section: 'evidence' }, 'discovery-case-file-btn');
+    });
+    app.querySelector('#discovery-dismiss-btn')?.addEventListener('click', () => {
+      discoveryNotice = null;
       draw();
     });
 
@@ -3050,8 +3276,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       await solveDeduction(target.dataset.solveDeduction ?? '', target.dataset.option ?? '');
     }));
     app.querySelectorAll('[data-puzzle-option]').forEach((button) => button.addEventListener('click', () => {
-      if (overlay?.type !== 'puzzle-solve') return;
-      const puzzleId = overlay.puzzleId;
+      if (uiMode.kind !== 'PUZZLE' || uiMode.view !== 'SOLVE') return;
+      const puzzleId = uiMode.puzzleId;
       const puzzle = state!.visibleScene.puzzles.find((candidate) => candidate.puzzleId === puzzleId);
       if (!puzzle) return;
       const option = (button as HTMLElement).dataset.puzzleOption;
@@ -3062,39 +3288,77 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       draw();
     }));
     app.querySelector('#puzzle-clear-btn')?.addEventListener('click', () => {
-      if (overlay?.type === 'puzzle-solve') puzzleDrafts.delete(overlay.puzzleId);
+      if (uiMode.kind === 'PUZZLE' && uiMode.view === 'SOLVE') puzzleDrafts.delete(uiMode.puzzleId);
       draw();
     });
     app.querySelector('#puzzle-submit-btn')?.addEventListener('click', solveOpenPuzzle);
 
     app.querySelectorAll('[data-suspect]').forEach((button) =>
       button.addEventListener('click', () => {
-        if (!accusation) return;
+        if (uiMode.kind !== 'ACCUSATION') return;
+        const accusation = uiMode.draft;
         accusation.culpritId = (button as HTMLElement).dataset.suspect ?? null;
         draw();
       }));
     app.querySelectorAll('[data-motive]').forEach((button) => button.addEventListener('click', () => {
-      if (!accusation) return;
+      if (uiMode.kind !== 'ACCUSATION') return;
+      const accusation = uiMode.draft;
       accusation.motiveId = (button as HTMLElement).dataset.motive ?? null;
       draw();
     }));
     app.querySelectorAll('[data-method]').forEach((button) => button.addEventListener('click', () => {
-      if (!accusation) return;
+      if (uiMode.kind !== 'ACCUSATION') return;
+      const accusation = uiMode.draft;
       accusation.methodId = (button as HTMLElement).dataset.method ?? null;
       draw();
     }));
-    app.querySelectorAll('[data-claim]').forEach((select) => select.addEventListener('change', () => {
-      if (!accusation) return;
-      const input = select as HTMLSelectElement;
-      const claim = input.dataset.claim;
-      if (!claim) return;
-      if (input.value) accusation.evidenceLinks[claim] = input.value;
-      else delete accusation.evidenceLinks[claim];
+    app.querySelectorAll('[data-claim-slot]').forEach((button) => button.addEventListener('click', () => {
+      if (uiMode.kind !== 'ACCUSATION') return;
+      uiMode.draft.activeClaimType = (button as HTMLElement).dataset.claimSlot ?? null;
       draw();
     }));
+    app.querySelectorAll('[data-clear-claim]').forEach((button) => button.addEventListener('click', () => {
+      if (uiMode.kind !== 'ACCUSATION') return;
+      const claim = (button as HTMLElement).dataset.clearClaim;
+      if (!claim) return;
+      delete uiMode.draft.evidenceLinks[claim];
+      uiMode.draft.activeClaimType = claim;
+      draw();
+    }));
+    app.querySelectorAll('[data-assign-evidence]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (uiMode.kind !== 'ACCUSATION' || !state?.accusationConfig) return;
+        const evidenceId = (button as HTMLElement).dataset.assignEvidence;
+        const draft = uiMode.draft;
+        const claim = draft.activeClaimType
+          ?? state.accusationConfig.claimTypes.find((candidate) => !draft.evidenceLinks[candidate])
+          ?? state.accusationConfig.claimTypes[0];
+        if (evidenceId && claim) assignEvidenceToClaim(claim, evidenceId);
+      });
+      button.addEventListener('dragstart', (event) => {
+        const evidenceId = (button as HTMLElement).dataset.assignEvidence;
+        if (evidenceId && event instanceof DragEvent) event.dataTransfer?.setData('text/plain', evidenceId);
+      });
+    });
+    app.querySelectorAll('[data-claim-drop]').forEach((slot) => {
+      slot.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        slot.classList.add('is-drag-over');
+      });
+      slot.addEventListener('dragleave', () => slot.classList.remove('is-drag-over'));
+      slot.addEventListener('drop', (event) => {
+        event.preventDefault();
+        slot.classList.remove('is-drag-over');
+        if (!(event instanceof DragEvent)) return;
+        const claim = (slot as HTMLElement).dataset.claimDrop;
+        const evidenceId = event.dataTransfer?.getData('text/plain');
+        if (claim && evidenceId) assignEvidenceToClaim(claim, evidenceId);
+      });
+    });
     app.querySelectorAll('[data-evidence]').forEach((box) =>
       box.addEventListener('change', () => {
-        if (!accusation) return;
+        if (uiMode.kind !== 'ACCUSATION') return;
+        const accusation = uiMode.draft;
         const input = box as HTMLInputElement;
         const evidenceId = input.dataset.evidence;
         if (!evidenceId) return;
@@ -3102,13 +3366,19 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         else accusation.evidenceIds.delete(evidenceId);
       }));
     app.querySelector('#accuse-cancel')?.addEventListener('pointerdown', (event) => {
-      accusation = null;
+      uiMode = { kind: 'EXPLORE' };
       dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
     });
-    app.querySelector('#accuse-review')?.addEventListener('click', () => { if (accusation) accusation.step = 2; draw(); });
-    app.querySelector('#accuse-next')?.addEventListener('click', () => { if (accusation) accusation.step++; draw(); });
+    app.querySelector('#accuse-review')?.addEventListener('click', () => { if (uiMode.kind === 'ACCUSATION') uiMode.draft.step = 2; draw(); });
+    app.querySelector('#accuse-next')?.addEventListener('click', () => {
+      if (uiMode.kind !== 'ACCUSATION') return;
+      uiMode.draft.step++;
+      if (uiMode.draft.step === 4) uiMode.draft.activeClaimType = state!.accusationConfig?.claimTypes[0] ?? null;
+      draw();
+    });
     app.querySelector('#accuse-back')?.addEventListener('click', () => {
-      if (!accusation) return;
+      if (uiMode.kind !== 'ACCUSATION') return;
+      const accusation = uiMode.draft;
       accusation.step = state!.mechanicsVersion >= 2 ? Math.max(1, accusation.step - 1) : 1;
       draw();
     });
@@ -3146,8 +3416,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     app.querySelector('#mobile-inventory-btn')?.addEventListener('click', (event) => {
       event.preventDefault();
-      inventoryOpen = !inventoryOpen;
-      draw();
+      setUiMode(uiMode.kind === 'INVENTORY' ? { kind: 'EXPLORE' } : { kind: 'INVENTORY' }, 'mobile-inventory-btn');
     });
   }
 
@@ -3156,10 +3425,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       toast('Only the Investigator can capture scene clues.', 'info');
       return;
     }
-    closeOverlay();
-    accusation = null;
-    cameraMode = !cameraMode;
-    draw();
+    setUiMode(uiMode.kind === 'CAMERA' ? { kind: 'EXPLORE' } : { kind: 'CAMERA' }, 'floating-camera-btn');
   }
 
   function dismissOverlayWithShield(control: HTMLElement, event: Event) {
@@ -3172,7 +3438,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     layer.classList.add('is-closing-shield');
 
     sceneInputBlockedUntil = Date.now() + 800;
-    phaserScene?.setSceneInteractionEnabled(false);
+    syncPhaserInputState();
 
     let finished = false;
     let fallbackTimer = 0;
@@ -3182,13 +3448,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       window.clearTimeout(fallbackTimer);
       window.removeEventListener('pointerup', finish, true);
       window.removeEventListener('pointercancel', finish, true);
-      sceneInputBlockedUntil = Date.now() + 120;
+      sceneInputBlockedUntil = Date.now() + 140;
       window.setTimeout(() => {
         layer.remove();
-        if (!isSceneInputBlocked()) {
-          phaserScene?.setSceneInteractionEnabled(true);
-        }
-      }, 130);
+        sceneInputBlockedUntil = 0;
+        syncPhaserInputState();
+      }, 150);
     };
 
     window.addEventListener('pointerup', finish, { capture: true, once: true });
@@ -3205,19 +3470,21 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     if (type === 'CHARACTER') {
+      if (myRole() !== 'INTERROGATOR') {
+        toast(tr('Your Interrogator partner handles witness questioning.', 'Đồng đội Thẩm vấn viên phụ trách hỏi nhân chứng.'), 'info');
+        return;
+      }
       markCharacterDialoguesVisible(target);
       if (isTreeCharacter(target) && myRole() === 'INTERROGATOR') {
         openConversation(target);
         return;
       }
-      overlay = { type: 'dialogue', characterId: target };
-      draw();
+      setUiMode({ kind: 'DIALOGUE', characterId: target });
       return;
     }
 
     if (locked === 'true') {
-      overlay = { type: 'puzzle', label, message: 'This interaction is locked by missing evidence.' };
-      draw();
+      toast(tr('This interaction needs another lead. Compare notes with your partner.', 'Tương tác này cần thêm manh mối. Hãy đối chiếu với đồng đội.'), 'info', 4200);
       return;
     }
 
@@ -3229,14 +3496,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         toast('Only the Investigator can operate scene puzzles.', 'info');
         return;
       }
-      overlay = { type: 'puzzle-solve', puzzleId: puzzle.puzzleId };
-      draw();
+      setUiMode({ kind: 'PUZZLE', view: 'SOLVE', puzzleId: puzzle.puzzleId });
       return;
     }
 
     if (type !== 'ITEM' && type !== 'OBJECT' && type !== 'CLUE') {
-      overlay = { type: 'puzzle', label, message: 'This hotspot is waiting for a case-specific interaction.' };
-      draw();
+      toast(tr('This point is waiting for a case-specific interaction.', 'Điểm này đang chờ một tương tác riêng của vụ án.'), 'info');
       return;
     }
 
@@ -3247,9 +3512,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     try {
+      const item = state!.visibleScene.items.find((candidate) => candidate.itemId === target);
       const res = await gameApi.inspectItem(roomId, target);
-      overlay = { type: 'inspect', itemId: target, detail: res.detail, unlockedClueIds: res.unlockedClueIds };
-      if (res.changed && res.unlockedClueIds.length > 0) toast(res.message, 'success');
+      showDiscovery({
+        id: `item:${target}:${Date.now()}`,
+        kind: 'ITEM',
+        title: item?.name || prettyId(target),
+        detail: res.detail || item?.inspectText || item?.description || tr('The object has been examined.', 'Vật thể đã được khám nghiệm.'),
+        imageUrl: item?.imageUrl,
+        clueCount: res.unlockedClueIds?.length ?? 0,
+      });
       applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');
@@ -3297,8 +3569,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   async function solveOpenPuzzle() {
-    if (overlay?.type !== 'puzzle-solve') return;
-    const puzzleId = overlay.puzzleId;
+    if (uiMode.kind !== 'PUZZLE' || uiMode.view !== 'SOLVE') return;
+    const puzzleId = uiMode.puzzleId;
     const puzzle = state!.visibleScene.puzzles.find((candidate) => candidate.puzzleId === puzzleId);
     if (!puzzle || puzzle.isLocked || puzzle.isSolved) return;
 
@@ -3320,7 +3592,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   async function captureClue(captureRect: RuntimeBox, photo: Blob) {
-    if (!state || captureInFlight || !cameraMode || isSceneInputBlocked()) return;
+    if (!state || captureInFlight || uiMode.kind !== 'CAMERA' || isSceneInputBlocked()) return;
     if (myRole() !== 'INVESTIGATOR') {
       toast('Only the Investigator can capture scene clues.', 'info');
       return;
@@ -3331,9 +3603,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const res = await gameApi.captureClue(roomId, state.currentSceneId, captureRect, photo);
       const result = String(res.captureResult || '').toUpperCase();
       if (result === 'HIT') {
-        cameraMode = false;
         const clueId = res.matchedClueId || res.unlockedClueIds?.[0] || '';
-        overlay = { type: 'photo', clueId, detail: res.detail || res.message || 'Photo evidence added.' };
+        const clue = res.state?.unlockedClues?.find((candidate: Clue) => candidate.clueId === clueId)
+          ?? state.unlockedClues.find((candidate) => candidate.clueId === clueId);
+        uiMode = { kind: 'EXPLORE' };
+        showDiscovery({
+          id: `photo:${clueId || Date.now()}`,
+          kind: 'PHOTO',
+          title: clue?.title || tr('Photographic evidence', 'Chứng cứ ảnh'),
+          detail: res.detail || res.message || tr('Photo evidence added to the case file.', 'Chứng cứ ảnh đã được thêm vào hồ sơ.'),
+          imageUrl: clue?.photoUrl,
+          clueCount: res.unlockedClueIds?.length ?? 1,
+        });
         toast(res.message || 'Photo evidence captured.', 'success');
         applyState(res.state);
         return;
@@ -3360,7 +3641,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       convTreeNodeId = res.node.nodeId;
       convTreeChoices = res.choices;
       convTreeChallenge = res.challenge ?? null;
-      overlay = { type: 'dialogue', characterId };
+      uiMode = { kind: 'DIALOGUE', characterId };
       applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');
@@ -3394,7 +3675,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   async function chooseConversation(nodeId: string, choiceId: string) {
     if (!nodeId || !choiceId || convTreeBusy) return;
-    const characterId = overlay?.type === 'dialogue' ? overlay.characterId : convCharacterId;
+    const characterId = uiMode.kind === 'DIALOGUE' ? uiMode.characterId : convCharacterId;
     if (!characterId) return;
     convTreeBusy = true;
     try {
@@ -3420,8 +3701,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       toast(res.detail || res.message, res.changed && res.unlockedClueIds?.length ? 'success' : 'info', 5000);
       applyState(res.state);
       // In tree mode a resolved challenge may open gated follow-ups; refresh the node's choices.
-      if (overlay?.type === 'dialogue' && isTreeCharacter(overlay.characterId) && convTreeNodeId) {
-        await refreshConverseNode(overlay.characterId, convTreeNodeId);
+      if (uiMode.kind === 'DIALOGUE' && isTreeCharacter(uiMode.characterId) && convTreeNodeId) {
+        await refreshConverseNode(uiMode.characterId, convTreeNodeId);
       }
     } catch (err: any) {
       toast(err.message, 'error');
@@ -3484,24 +3765,26 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   async function submitAccusation(event: Event) {
+    if (uiMode.kind !== 'ACCUSATION') return;
+    const accusation = uiMode.draft;
     const button = event.currentTarget as HTMLButtonElement;
     button.disabled = true;
     try {
       const payload = state!.mechanicsVersion >= 2
         ? {
-            culpritId: accusation!.culpritId,
-            motiveId: accusation!.motiveId,
-            methodId: accusation!.methodId,
-            evidenceLinks: Object.entries(accusation!.evidenceLinks).map(([claimType, evidenceId]) => ({ claimType, evidenceId })),
+            culpritId: accusation.culpritId,
+            motiveId: accusation.motiveId,
+            methodId: accusation.methodId,
+            evidenceLinks: Object.entries(accusation.evidenceLinks).map(([claimType, evidenceId]) => ({ claimType, evidenceId })),
             evidenceIds: [],
           }
-        : { culpritId: accusation!.culpritId, motive: '', method: '', evidenceIds: [...accusation!.evidenceIds], evidenceLinks: [] };
+        : { culpritId: accusation.culpritId, motive: '', method: '', evidenceIds: [...accusation.evidenceIds], evidenceLinks: [] };
       const result = await gameApi.accuse(roomId, payload);
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
       window.location.hash = `#/result/${roomId}`;
     } catch (err: any) {
       toast(err.message, 'error');
-      accusation = null;
+      uiMode = { kind: 'EXPLORE' };
       draw();
     }
   }

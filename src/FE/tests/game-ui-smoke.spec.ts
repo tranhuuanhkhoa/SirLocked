@@ -37,6 +37,18 @@ const smokeState = {
     },
     hotspots: [
       {
+        hotspotId: 'hotspot-note',
+        type: 'ITEM',
+        targetId: 'item-note',
+        x: 54,
+        y: 71,
+        width: 14,
+        height: 18,
+        zIndex: 2,
+        label: 'Folded Note',
+        isLocked: false,
+      },
+      {
         hotspotId: 'hotspot-witness',
         type: 'CHARACTER',
         targetId: 'char-witness',
@@ -49,7 +61,15 @@ const smokeState = {
         isLocked: false,
       },
     ],
-    items: [],
+    items: [
+      {
+        itemId: 'item-note',
+        name: 'Folded Note',
+        description: 'A note left beside the witness.',
+        inspectText: 'The handwriting matches the warning in the case file.',
+        imageUrl: '',
+      },
+    ],
     characters: [
       {
         characterId: 'char-witness',
@@ -193,6 +213,46 @@ const progressedState = {
   ],
 };
 
+const interrogatorState = {
+  ...smokeState,
+  players: [
+    { userId: 'player-1', username: 'Smoke Player', role: 'INTERROGATOR', isConnected: true },
+    { userId: 'player-2', username: 'Partner', role: 'INVESTIGATOR', isConnected: true },
+  ],
+  visibleScene: {
+    ...smokeState.visibleScene,
+    hotspots: smokeState.visibleScene.hotspots.filter((hotspot) => hotspot.type === 'CHARACTER'),
+    items: [],
+  },
+};
+
+const accusationReadyState = {
+  ...smokeState,
+  availableForAccusation: true,
+  currentSceneCanComplete: false,
+  currentObjective: 'Name the culprit and prove the case.',
+  accusationConfig: {
+    motiveOptions: [{ id: 'motive-1', label: 'Silence the witness' }],
+    methodOptions: [{ id: 'method-1', label: 'Use the hidden passage' }],
+    claimTypes: ['MOTIVE', 'METHOD', 'OPPORTUNITY'],
+  },
+  evidenceClues: [
+    { clueId: 'clue-a', title: 'Marked Letter', content: 'A letter naming the meeting place.', source: 'ITEM', isCritical: true, isEvidence: true },
+    { clueId: 'clue-b', title: 'Mud Print', content: 'A print from the hidden passage.', source: 'PHOTO', isCritical: true, isEvidence: true },
+    { clueId: 'clue-c', title: 'Broken Watch', content: 'The stopped time confirms the opportunity.', source: 'ITEM', isCritical: true, isEvidence: true },
+  ],
+};
+
+const evidenceGalleryState = {
+  ...smokeState,
+  unlockedClues: [
+    { clueId: 'clue-1', title: 'Marked Letter', content: 'A letter naming the meeting place.', source: 'ITEM', isCritical: true, isEvidence: true },
+    { clueId: 'clue-2', title: 'Mud Print', content: 'A print from the hidden passage.', source: 'PHOTO', isCritical: true, isEvidence: true },
+    { clueId: 'clue-3', title: 'Broken Watch', content: 'The stopped time confirms the opportunity.', source: 'ITEM', isCritical: true, isEvidence: true },
+    { clueId: 'clue-4', title: 'Service Map', content: 'A map showing the concealed service route.', source: 'PHOTO', isCritical: false, isEvidence: true },
+  ],
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(([id]) => {
     window.localStorage.setItem('sirlocked.token', 'smoke-token');
@@ -226,19 +286,38 @@ test.beforeEach(async ({ page }) => {
       }),
     });
   });
+  await page.route(`**/api/game/rooms/${roomId}/inspect-item`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          state: smokeState,
+          changed: true,
+          message: 'A new lead was added.',
+          detail: 'The handwriting matches the warning in the case file.',
+          unlockedClueIds: ['clue-note'],
+        },
+      }),
+    });
+  });
 });
 
-test('game screen renders canvas, HUD, inventory, dialogue, and mobile controls', async ({ page }) => {
+test('Investigator shell keeps the scene primary and reports discoveries without a modal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/#/game/${roomId}`);
 
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
-  await expect(page.locator('#game-hud-slot .game-objective')).toContainText('Talk to the witness.');
+  await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('Talk to the witness.');
+  await expect(page.locator('#game-hud-slot .scene-progress')).toContainText('Route forward available');
   await expect(page.locator('.investigation-tool-dock')).toBeVisible();
   await expect(page.locator('.mobile-movement-dock')).toBeVisible();
   await expect(page.locator('#mobile-camera-btn')).toBeVisible();
   await expect(page.locator('#mobile-inventory-btn')).toBeVisible();
+  await expect(page.locator('.context-action')).toContainText('Inspect');
+  await expect(page.locator('.context-action')).toContainText('Folded Note');
 
   await expect.poll(async () => canvasHasNonBlankPixels(canvas), {
     message: 'canvas should contain rendered scene pixels',
@@ -252,11 +331,140 @@ test('game screen renders canvas, HUD, inventory, dialogue, and mobile controls'
   await page.locator('#mobile-inventory-btn').click();
   await expect(page.locator('.inventory-drawer')).toBeVisible();
   await expect(page.locator('.inventory-drawer-slot.is-filled')).toHaveCount(1);
+  await expect(page.locator('.case-file-drawer')).toHaveCount(0);
 
   await page.locator('.close-drawer-btn').click();
   await page.locator('#mobile-interact-btn').click();
-  await expect(page.locator('.conversation-box')).toBeVisible();
-  await expect(page.locator('.conversation-choices')).toContainText('Waiting for the Interrogator');
+  await expect(page.locator('.discovery-card')).toBeVisible();
+  await expect(page.locator('.discovery-card')).toContainText('Folded Note');
+  await expect(page.locator('.overlay:not(#intro-overlay)')).toHaveCount(0);
+
+  await page.locator('#discovery-case-file-btn').click();
+  await expect(page.locator('.case-file-drawer')).toBeVisible();
+  await expect(page.locator('.inventory-drawer')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.case-file-drawer')).toHaveCount(0);
+
+  await page.locator('#case-file-btn').click();
+  await expect(page.locator('.case-file-drawer')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#case-file-btn')).toBeFocused();
+});
+
+test('Interrogator receives role-specific tools and questions in a scene-preserving side panel', async ({ page }) => {
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: interrogatorState }) });
+  });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/#/game/${roomId}`);
+  await expect(page.locator('canvas').first()).toBeVisible();
+  await expect(page.locator('#floating-camera-btn')).toHaveCount(0);
+  await expect(page.locator('#floating-bag-btn')).toHaveCount(0);
+  await expect(page.locator('#case-file-btn')).toBeVisible();
+  await expect(page.locator('.context-action')).toHaveCount(0);
+
+  const canvas = page.locator('canvas').first();
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  await canvas.click({ position: { x: canvasBox!.width * 0.63, y: canvasBox!.height * 0.81 } });
+  const dialogue = page.locator('.conversation-box');
+  await expect(dialogue).toBeVisible();
+  await expect(page.locator('.conversation-choices')).toContainText('What did you see?');
+  const dialogueBox = await dialogue.boundingBox();
+  expect(dialogueBox).not.toBeNull();
+  expect(dialogueBox!.width).toBeLessThanOrEqual(1440 * 0.4 + 2);
+  expect(dialogueBox!.height).toBeLessThanOrEqual(720);
+  await page.locator('[data-close-overlay]').click();
+  await expect(dialogue).toHaveCount(0);
+
+  await page.waitForTimeout(220);
+  const playerX = async () => page.evaluate(() => {
+    const game = (window as unknown as { __sirlockedGame?: { scene?: { getScene?: (key: string) => unknown } } }).__sirlockedGame;
+    return Number((game?.scene?.getScene?.('SirLockedPhaserScene') as { localPose?: { x?: number } } | undefined)?.localPose?.x ?? 0);
+  });
+  const beforeMove = await playerX();
+  await page.keyboard.down('d');
+  await page.waitForTimeout(260);
+  await page.keyboard.up('d');
+  await expect.poll(playerX, { message: 'Phaser movement must resume after closing dialogue' }).toBeGreaterThan(beforeMove);
+
+  const beforePassingNpc = await playerX();
+  await page.keyboard.down('a');
+  await page.waitForTimeout(800);
+  await page.keyboard.up('a');
+  const afterPassingNpc = await playerX();
+  expect(beforePassingNpc - afterPassingNpc).toBeGreaterThan(100);
+});
+
+test('final accusation appears as a ready event instead of a permanently disabled tool', async ({ page }) => {
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: accusationReadyState }) });
+  });
+
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`/#/game/${roomId}`);
+  await expect(page.locator('.final-confrontation-callout')).toContainText('Final confrontation ready');
+  await expect(page.locator('.investigation-tool-dock #accuse-btn')).toHaveCount(0);
+  await page.locator('.final-confrontation-callout').click();
+  await expect(page.locator('.overlay .modal h2')).toHaveText('Final Accusation');
+  const accusationBox = await page.locator('.accusation-modal').boundingBox();
+  expect(accusationBox).not.toBeNull();
+  expect(accusationBox!.width).toBeGreaterThan(900);
+  await expect(page.locator('.suspect-portrait')).toHaveCount(accusationReadyState.suspects.length);
+  await page.locator('[data-suspect]').first().click();
+  await page.locator('#accuse-next').click();
+  await page.locator('[data-motive]').click();
+  await page.locator('#accuse-next').click();
+  await page.locator('[data-method]').click();
+  await page.locator('#accuse-next').click();
+  await expect(page.locator('.accusation-evidence-card')).toHaveCount(3);
+  await expect(page.locator('.claim-drop-zone')).toHaveCount(3);
+  await page.locator('[data-assign-evidence="clue-a"]').dragTo(page.locator('[data-claim-drop="MOTIVE"]'));
+  await expect(page.locator('[data-claim-drop="MOTIVE"]')).toHaveClass(/is-filled/);
+  await page.locator('[data-assign-evidence="clue-b"]').click();
+  await expect(page.locator('[data-claim-drop="METHOD"]')).toHaveClass(/is-filled/);
+  await page.locator('[data-assign-evidence="clue-c"]').click();
+  await expect(page.locator('[data-claim-drop="OPPORTUNITY"]')).toHaveClass(/is-filled/);
+  await expect(page.locator('#accuse-next')).toBeEnabled();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.overlay .modal')).toHaveCount(0);
+});
+
+test('case file shows square evidence in two columns and opens a large detail view', async ({ page }) => {
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: evidenceGalleryState }) });
+  });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/#/game/${roomId}`);
+  await page.locator('#case-file-btn').click();
+  await expect(page.locator('.case-file-clue-card')).toHaveCount(4);
+  const cards = page.locator('.case-file-clue-card');
+  const cardCount = await cards.count();
+  expect(cardCount).toBe(4);
+  const firstCard = cards.nth(0);
+  const secondCard = cards.nth(1);
+  const firstBox = await firstCard.boundingBox();
+  const secondBox = await secondCard.boundingBox();
+  expect(firstBox).not.toBeNull();
+  expect(secondBox).not.toBeNull();
+  expect(Math.abs(firstBox!.y - secondBox!.y)).toBeLessThan(2);
+  const artBox = await firstCard.locator('.clue-card-art').boundingBox();
+  expect(artBox).not.toBeNull();
+  expect(Math.abs(artBox!.width - artBox!.height)).toBeLessThan(2);
+
+  await firstCard.click();
+  await expect(page.locator('.case-file-evidence-detail')).toBeVisible();
+  const detailArt = await page.locator('.evidence-detail-art').boundingBox();
+  expect(detailArt).not.toBeNull();
+  expect(Math.abs(detailArt!.width - detailArt!.height)).toBeLessThan(2);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.case-file-clue-card')).toHaveCount(4);
+  await expect(page.locator('.case-file-drawer')).toBeVisible();
 });
 
 test('locked authored scenes stay hidden until Continue applies server movement', async ({ page }) => {
@@ -275,13 +483,13 @@ test('locked authored scenes stay hidden until Continue applies server movement'
   const lockedEntries = page.locator('.map-entry:disabled').filter({ hasText: 'Unknown location' });
   await expect(lockedEntries).toHaveCount(2);
   await expect(lockedEntries).toHaveText([/Unknown location/, /Unknown location/]);
-  await page.locator('[data-close-overlay]').click();
+  await page.locator('.map-drawer .close-drawer-btn').click();
 
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   await canvas.click({ position: { x: box!.width / 2, y: box!.height - 112 } });
 
-  await expect(page.locator('#game-hud-slot .game-objective')).toContainText('Investigate the unlocked hall.');
+  await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('Investigate the unlocked hall.');
   expect(goToSceneRequests).toBe(0);
 
   await page.locator('#map-btn').click();
@@ -320,6 +528,7 @@ test('Vietnamese language applies inside gameplay overlays', async ({ page }) =>
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto(`/#/game/${roomId}`);
   await expect(page.locator('canvas').first()).toBeVisible();
+  await expect(page.locator('.scene-progress')).toContainText('Đã mở lối điều tra tiếp theo');
 
   await page.locator('#case-file-btn').click();
   await expect(page.locator('.case-file-modal h2')).toHaveText('Hồ sơ vụ án');
@@ -342,14 +551,40 @@ test('two-player presence recovers and version events coalesce to one state refe
 
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto(`/#/game/${roomId}`);
-  await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner / INT');
+  await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
+  await expect(page.locator('#game-hud-slot .game-players')).toContainText('INT');
+
+  await page.evaluate(() => {
+    const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
+    emit('PlayerPoseUpdated', { userId: 'player-2', username: 'Partner', role: 'INTERROGATOR', sceneId: 'scene-smoke', x: 920, y: 805, direction: 'right', moving: true });
+  });
+  const remoteIsMoving = () => page.evaluate(() => {
+    const game = (window as unknown as { __sirlockedGame?: { scene?: { getScene?: (key: string) => unknown } } }).__sirlockedGame;
+    const scene = game?.scene?.getScene?.('SirLockedPhaserScene') as { remotePlayers?: Map<string, { getData: (key: string) => unknown }> } | undefined;
+    return Boolean(scene?.remotePlayers?.get('player-2')?.getData('moving'));
+  });
+  await expect.poll(remoteIsMoving).toBe(true);
+  await expect.poll(remoteIsMoving, { timeout: 2500, message: 'stale remote movement must settle without changing scenes' }).toBe(false);
 
   await page.evaluate(() => {
     const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
     emit('PlayerPresenceChanged', { userId: 'player-2', isConnected: false });
   });
-  await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner / INT / OFFLINE');
+  await expect(page.locator('#game-hud-slot .game-players')).toContainText('OFFLINE');
   await expect(page.locator('#abandon-game-btn')).toBeVisible();
+
+  await page.evaluate(() => {
+    const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
+    emit('InvestigationUpdate', {
+      type: 'ITEM_FOUND',
+      actorUserId: 'player-2',
+      actorRole: 'INTERROGATOR',
+      sceneId: 'scene-smoke',
+      message: 'Partner found a new statement',
+    });
+  });
+  await expect(page.locator('.partner-activity')).toHaveText('Partner found a new statement');
+  expect(stateRequests).toBe(1);
 
   await page.evaluate(() => {
     const emit = (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR;
@@ -358,7 +593,7 @@ test('two-player presence recovers and version events coalesce to one state refe
     emit('GameStateUpdated', { version: 2 });
   });
 
-  await expect(page.locator('#game-hud-slot .game-objective')).toContainText('Investigate the unlocked hall.');
+  await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('Investigate the unlocked hall.');
   expect(stateRequests).toBe(2);
 
   await page.evaluate(() => {
@@ -371,7 +606,7 @@ test('two-player presence recovers and version events coalesce to one state refe
 test('PC game shell fits supported desktop resolutions', async ({ page }) => {
   for (const viewport of [
     { width: 1366, height: 768 },
-    { width: 1536, height: 864 },
+    { width: 1440, height: 900 },
     { width: 1920, height: 1080 },
   ]) {
     await page.setViewportSize(viewport);
@@ -381,6 +616,59 @@ test('PC game shell fits supported desktop resolutions', async ({ page }) => {
       document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(hasHorizontalOverflow).toBe(false);
   }
+});
+
+test('result screen groups verdict, score and truth without horizontal overflow', async ({ page }) => {
+  const resultRoomId = 'result-room';
+  await page.route(`**/api/game/rooms/${resultRoomId}/result`, async (route) => {
+    const row = (selectedLabel: string, correctLabel: string, isCorrect: boolean) => ({ selectedLabel, correctLabel, isCorrect });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: {
+        success: true,
+        ending: 'The detectives connect the final contradiction and expose the culprit before dawn.',
+        selectedCulpritId: 'culprit-a',
+        selectedCulpritName: 'Marta Quill',
+        correctCulpritId: 'culprit-a',
+        correctCulpritName: 'Marta Quill',
+        selectedEvidenceIds: ['clue-a', 'clue-b', 'clue-c'],
+        motive: 'Protect the hidden agreement.',
+        method: 'Enter through the service passage and remove the orchid.',
+        culpritResult: row('Marta Quill', 'Marta Quill', true),
+        motiveResult: row('Protect the agreement', 'Protect the agreement', true),
+        methodResult: row('Use the service passage', 'Use the service passage', true),
+        evidenceResults: [
+          { claimType: 'MOTIVE', selectedEvidenceTitle: 'Marked Letter', correctEvidenceTitle: 'Marked Letter', isCorrect: true },
+          { claimType: 'METHOD', selectedEvidenceTitle: 'Mud Print', correctEvidenceTitle: 'Mud Print', isCorrect: true },
+          { claimType: 'OPPORTUNITY', selectedEvidenceTitle: 'Broken Watch', correctEvidenceTitle: 'Broken Watch', isCorrect: true },
+        ],
+        scoreSummary: {
+          totalScore: 94,
+          rank: 'A',
+          evidenceCoverageScore: 40,
+          contradictionCoverageScore: 24,
+          deductionCoverageScore: 20,
+          teamworkScore: 10,
+          investigatorContribution: true,
+          interrogatorContribution: true,
+          crossRoleHandoff: true,
+          wrongEvidencePenalty: 0,
+          wrongDeductionPenalty: 0,
+          cameraMissPenalty: 0,
+        },
+      } }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/#/result/${resultRoomId}`);
+  await expect(page.locator('.result-layout')).toBeVisible();
+  await expect(page.locator('.result-verdict-panel')).toContainText('Accusation breakdown');
+  await expect(page.locator('.result-score-panel')).toContainText('Detective score');
+  await expect(page.locator('.result-comparison')).toContainText('Marta Quill');
+  const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(hasHorizontalOverflow).toBe(false);
 });
 
 async function canvasHasNonBlankPixels(canvas: Locator) {

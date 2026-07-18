@@ -58,54 +58,45 @@ export async function renderResultPage(app, roomId) {
       ${value.isCorrect ? `<span>${tr('Correct', 'Chính xác')}</span>` : `<span>${tr('Truth:', 'Sự thật:')} ${escapeHtml(value.correctLabel || value.correctEvidenceTitle || '')}</span>`}
     </div>`;
   render(app, `
-  <div class="page page-narrow result-page ${win ? 'result-win' : 'result-fail'}">
-    <div class="result-banner">${win ? tr('CASE CLOSED', 'PHÁ ÁN THÀNH CÔNG') : tr('CASE COLD', 'VỤ ÁN BẾ TẮC')}</div>
-    <h2>${win ? tr('The culprit is exposed.', 'Hung thủ đã bị vạch mặt.') : tr('The culprit walks free.', 'Hung thủ vẫn ngoài vòng pháp luật.')}</h2>
-    <p class="result-ending">${escapeHtml(result.ending)}</p>
+  <div class="page result-page ${win ? 'result-win' : 'result-fail'}">
+    <header class="result-hero">
+      <div class="result-banner">${win ? tr('CASE CLOSED', 'PHÁ ÁN THÀNH CÔNG') : tr('CASE COLD', 'VỤ ÁN BẾ TẮC')}</div>
+      <h2>${win ? tr('The culprit is exposed.', 'Hung thủ đã bị vạch mặt.') : tr('The culprit walks free.', 'Hung thủ vẫn ngoài vòng pháp luật.')}</h2>
+      <p class="result-ending">${escapeHtml(result.ending)}</p>
+    </header>
 
-    ${v2 ? `<div class="verdict-breakdown">
-      ${verdictRow(tr('Culprit', 'Hung thủ'), result.culpritResult)}
-      ${verdictRow(tr('Motive', 'Động cơ'), result.motiveResult)}
-      ${verdictRow(tr('Method', 'Phương thức'), result.methodResult)}
-      ${result.evidenceResults.map((entry) => verdictRow(`${entry.claimType} ${tr('evidence', 'chứng cứ')}`, entry)).join('')}
-    </div>` : ''}
+    <div class="result-layout ${v2 ? '' : 'is-legacy'}">
+      ${v2 ? `<section class="result-panel result-verdict-panel">
+        <div class="result-section-heading"><span>${tr('CASE REVIEW', 'TỔNG KẾT VỤ ÁN')}</span><h3>${tr('Accusation breakdown', 'Phân tích cáo buộc')}</h3></div>
+        <div class="verdict-breakdown">
+          ${verdictRow(tr('Culprit', 'Hung thủ'), result.culpritResult)}
+          ${verdictRow(tr('Motive', 'Động cơ'), result.motiveResult)}
+          ${verdictRow(tr('Method', 'Phương thức'), result.methodResult)}
+          ${result.evidenceResults.map((entry) => verdictRow(`${entry.claimType} ${tr('evidence', 'chứng cứ')}`, entry)).join('')}
+        </div>
+      </section>` : ''}
 
-    ${score ? `<div class="result-grid">
-      <div class="result-box">
-        <span class="muted small">${tr('SCORE', 'ĐIỂM')}</span>
-        <strong>${escapeHtml(String(score.totalScore))}</strong>
-        <span class="muted small">${tr('Rank', 'Hạng')} ${escapeHtml(score.rank)}</span>
-      </div>
-      <div class="result-box">
-        <span class="muted small">${tr('TEAMWORK', 'PHỐI HỢP')}</span>
-        <strong>${escapeHtml(String(score.teamworkScore))}/15</strong>
-        <span class="muted small">${teamworkFlags(score)}</span>
-      </div>
-    </div>
-    <div class="score-breakdown">
-      ${scoreBar(tr('Evidence', 'Chứng cứ'), score.evidenceCoverageScore, 40)}
-      ${scoreBar(tr('Contradictions', 'Mâu thuẫn'), score.contradictionCoverageScore, 25)}
-      ${scoreBar(tr('Deductions', 'Suy luận'), score.deductionCoverageScore, 20)}
-      ${scoreBar(tr('Teamwork', 'Phối hợp'), score.teamworkScore, 15)}
-      ${scorePenalties(score)}
-    </div>` : ''}
-
-    <div class="result-grid">
-      <div class="result-box">
-        <span class="muted small">${tr('YOUR ACCUSATION', 'CÁO BUỘC CỦA BẠN')}</span>
-        <strong>${escapeHtml(result.selectedCulpritName || result.selectedCulpritId)}</strong>
-        <span class="muted small">${result.selectedEvidenceIds.length} ${tr('piece(s) of evidence presented', 'chứng cứ đã trình bày')}</span>
-      </div>
-      <div class="result-box">
-        <span class="muted small">${tr('THE TRUTH', 'SỰ THẬT')}</span>
-        <strong>${escapeHtml(result.correctCulpritName || result.correctCulpritId)}</strong>
-        <span class="muted small">${tr('Motive:', 'Động cơ:')} ${escapeHtml(result.motive)}</span>
-        <span class="muted small">${tr('Method:', 'Phương thức:')} ${escapeHtml(result.method)}</span>
-      </div>
+      <aside class="result-panel result-score-panel">
+        <div class="result-section-heading"><span>${tr('PERFORMANCE', 'HIỆU SUẤT')}</span><h3>${tr('Detective score', 'Điểm điều tra')}</h3></div>
+        ${score ? `<div class="result-stat-grid">
+          <div class="result-box result-stat"><span class="muted small">${tr('SCORE', 'ĐIỂM')}</span><strong>${escapeHtml(String(score.totalScore))}</strong><span class="muted small">${tr('Rank', 'Hạng')} ${escapeHtml(score.rank)}</span></div>
+          <div class="result-box result-stat"><span class="muted small">${tr('TEAMWORK', 'PHỐI HỢP')}</span><strong>${escapeHtml(String(score.teamworkScore))}/15</strong><span class="muted small">${teamworkFlags(score)}</span></div>
+        </div>
+        <div class="score-breakdown">
+          ${scoreBar(tr('Evidence', 'Chứng cứ'), score.evidenceCoverageScore, 40)}
+          ${scoreBar(tr('Contradictions', 'Mâu thuẫn'), score.contradictionCoverageScore, 25)}
+          ${scoreBar(tr('Deductions', 'Suy luận'), score.deductionCoverageScore, 20)}
+          ${scoreBar(tr('Teamwork', 'Phối hợp'), score.teamworkScore, 15)}
+          ${scorePenalties(score)}
+        </div>` : `<p class="muted">${tr('No score summary was recorded for this case.', 'Vụ án này không có bảng điểm.')}</p>`}
+      </aside>
     </div>
 
-    <div class="case-actions" style="justify-content:center">
-      <a class="btn btn-primary" href="#/cases">${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>
-    </div>
+    <section class="result-comparison" aria-label="${tr('Accusation compared with the truth', 'So sánh cáo buộc và sự thật')}">
+      <div class="result-box"><span class="muted small">${tr('YOUR ACCUSATION', 'CÁO BUỘC CỦA BẠN')}</span><strong>${escapeHtml(result.selectedCulpritName || result.selectedCulpritId)}</strong><span class="muted small">${result.selectedEvidenceIds.length} ${tr('piece(s) of evidence presented', 'chứng cứ đã trình bày')}</span></div>
+      <div class="result-box result-truth-box"><span class="muted small">${tr('THE TRUTH', 'SỰ THẬT')}</span><strong>${escapeHtml(result.correctCulpritName || result.correctCulpritId)}</strong><span class="muted small"><b>${tr('Motive:', 'Động cơ:')}</b> ${escapeHtml(result.motive)}</span><span class="muted small"><b>${tr('Method:', 'Phương thức:')}</b> ${escapeHtml(result.method)}</span></div>
+    </section>
+
+    <div class="case-actions result-actions"><a class="btn btn-gold" href="#/cases">${tr('Back to cases', 'Quay lại danh sách vụ án')}</a></div>
   </div>`);
 }
