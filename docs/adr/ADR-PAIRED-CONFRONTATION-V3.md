@@ -1,6 +1,6 @@
 # ADR — Paired Confrontation V3
 
-- **Status:** Accepted for seven-day technical gate
+- **Status:** Accepted — Gate 1 PASS
 - **Date:** 2026-07-19
 - **Decision owner:** Game Director / solo developer
 - **Applies to:** `mechanicsVersion = 3` only
