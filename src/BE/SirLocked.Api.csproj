@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Content Update="SeedData\sample-case.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="SeedData\V3\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

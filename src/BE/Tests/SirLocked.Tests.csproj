@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <Content Include="..\SeedData\sample-case.json" Link="SeedData\sample-case.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\SeedData\V3\*.json" Link="SeedData\V3\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

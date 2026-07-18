@@ -36,6 +36,7 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
+builder.Services.Configure<V3LocalAuditSettings>(builder.Configuration.GetSection("V3LocalAudit"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
 {
     static bool EnvFlag(IConfiguration configuration, string key) =>
@@ -83,6 +84,7 @@ builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
 builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
+builder.Services.AddScoped<V3LocalAuditSeeder>();
 builder.Services.AddScoped<IAiCaseService, AiCaseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
@@ -273,6 +275,10 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         await db.PingAsync();
         await db.EnsureIndexesAsync();
+        if (app.Environment.IsEnvironment("V3Local"))
+        {
+            await scope.ServiceProvider.GetRequiredService<V3LocalAuditSeeder>().SeedAsync();
+        }
         var seedOptions = ResolveAdminSeedOptions(app.Configuration, app.Environment);
         if (seedOptions is not null)
         {
@@ -299,6 +305,10 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "MongoDB startup tasks failed. Check MongoDb__ConnectionString. API endpoints that need the database will fail until it is reachable.");
+        if (app.Environment.IsEnvironment("V3Local"))
+        {
+            throw;
+        }
     }
 }
 
