@@ -6,7 +6,7 @@ const requestedArgs = process.argv.slice(2);
 const playwrightArgs = [
   './node_modules/@playwright/test/cli.js',
   'test',
-  ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/v3-paired-confrontation.spec.ts']),
+  ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/v3-paired-confrontation.spec.ts', 'tests/v3-two-browser-flow.spec.ts']),
 ];
 
 let server;
