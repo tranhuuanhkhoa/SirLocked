@@ -29,6 +29,19 @@ public class GameCase
     public string Status { get; set; } = CaseStatus.Draft;
     public int MechanicsVersion { get; set; } = CaseMechanicsVersions.Legacy;
     public string GenerationMode { get; set; } = CaseGenerationModes.LegacyItem;
+    /// <summary>Server-owned generation profile. Empty for manually authored and legacy cases.</summary>
+    public string GenerationPreset { get; set; } = string.Empty;
+    /// <summary>Server-owned provenance for AI-generated cases.</summary>
+    public string SourceAiDraftId { get; set; } = string.Empty;
+    /// <summary>1 keeps legacy three-claim accusation; 2 requires the causal five-claim contract.</summary>
+    public int LogicContractVersion { get; set; } = CaseLogicContractVersions.LegacyThreeClaim;
+    public string LogicVerificationStatus { get; set; } = CaseLogicVerificationStatuses.LegacyUnverified;
+    /// <summary>Server-owned reference to the approved spoiler truth. The truth itself is never stored here.</summary>
+    public string TruthSchemaVersion { get; set; } = string.Empty;
+    public string TruthHash { get; set; } = string.Empty;
+    public string BlindReviewStatus { get; set; } = string.Empty;
+    /// <summary>Server-owned quality-gate result for AI-generated V3 cases.</summary>
+    public string AiSemanticReviewStatus { get; set; } = string.Empty;
     public int EstimatedMinutes { get; set; }
     public string CoverImageUrl { get; set; } = string.Empty;
 
@@ -45,6 +58,7 @@ public class GameCase
     public List<CaseHint> Hints { get; set; } = new();
     public List<CaseInteraction> Interactions { get; set; } = new();
     public List<CasePuzzle> Puzzles { get; set; } = new();
+    public List<AlternateRewardPath> AlternateRewardPaths { get; set; } = new();
     public FinalLogic FinalLogic { get; set; } = new();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -96,11 +110,26 @@ public static class EvidenceClaimTypes
     public const string Motive = "MOTIVE";
     public const string Method = "METHOD";
     public const string Opportunity = "OPPORTUNITY";
+    public const string Identity = "IDENTITY";
+    public const string Timeline = "TIMELINE";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Motive, Method, Opportunity
     };
+
+    public static readonly IReadOnlySet<string> Causal = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        Motive, Method, Opportunity, Identity, Timeline
+    };
+
+    public static IReadOnlySet<string> ForContract(int logicContractVersion) =>
+        logicContractVersion >= CaseLogicContractVersions.CausalFiveClaim ? Causal : All;
+
+    public static IReadOnlyList<string> OrderedForContract(int logicContractVersion) =>
+        logicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+            ? new[] { Motive, Method, Opportunity, Identity, Timeline }
+            : new[] { Motive, Method, Opportunity };
 }
 
 public static class CaseGenerationModes
@@ -111,6 +140,48 @@ public static class CaseGenerationModes
     /// </summary>
     public const string PlacementFirst = "PLACEMENT_FIRST";
     public const string CameraEmbedded = "CAMERA_EMBEDDED";
+}
+
+/// <summary>
+/// Canonical acquisition methods stored in CaseClue.SourceType/DiscoverMethod.
+/// Values remain compatible with existing case JSON and runtime routing.
+/// </summary>
+public static class EvidenceAcquisitionMethods
+{
+    public const string CameraCapture = "CAMERA_CAPTURE";
+    public const string ItemInspect = "ITEM_INSPECT";
+    public const string PuzzleResult = "PUZZLE_RESULT";
+    public const string EnvironmentInteraction = "ENVIRONMENT_INTERACTION";
+    public const string ItemUse = "ITEM_USE";
+    public const string ItemCombination = "ITEM_COMBINATION";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        CameraCapture,
+        ItemInspect,
+        PuzzleResult,
+        EnvironmentInteraction,
+        ItemUse,
+        ItemCombination
+    };
+
+    public static string Normalize(string? value) =>
+        All.FirstOrDefault(candidate => candidate.Equals(value?.Trim(), StringComparison.OrdinalIgnoreCase))
+        ?? string.Empty;
+}
+
+public static class EvidenceDiscoveryMethods
+{
+    public const string CameraCapture = "camera";
+    public const string ItemInspect = "item";
+
+    public static bool IsCamera(CaseClue clue) =>
+        string.Equals(clue.SourceType, CameraCapture, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(clue.DiscoverMethod, CameraCapture, StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsItemInspect(CaseClue clue) =>
+        string.Equals(clue.SourceType, ItemInspect, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(clue.DiscoverMethod, ItemInspect, StringComparison.OrdinalIgnoreCase);
 }
 
 public static class CaseLanguages
@@ -158,10 +229,11 @@ public static class CaseInteractionTypes
 {
     public const string UseItemOnTarget = "USE_ITEM_ON_TARGET";
     public const string CombineItems = "COMBINE_ITEMS";
+    public const string InspectEnvironment = "INSPECT_ENVIRONMENT";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        UseItemOnTarget, CombineItems
+        UseItemOnTarget, CombineItems, InspectEnvironment
     };
 }
 
@@ -174,6 +246,17 @@ public static class CasePuzzleTypes
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         CodePuzzle, SequencePuzzle, SymbolMatchPuzzle
+    };
+}
+
+public static class PuzzleProgressionRoles
+{
+    public const string Required = "REQUIRED";
+    public const string Optional = "OPTIONAL";
+    public const string Alternate = "ALTERNATE";
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        Required, Optional, Alternate
     };
 }
 
@@ -229,7 +312,7 @@ public class PlannedPlacement
 public class SceneHotspot
 {
     public string HotspotId { get; set; } = string.Empty;
-    /// <summary>ITEM or CHARACTER.</summary>
+    /// <summary>ITEM, CHARACTER, or ENVIRONMENT.</summary>
     public string Type { get; set; } = "ITEM";
     public string TargetId { get; set; } = string.Empty;
     /// <summary>Percent coordinates relative to the scene background.</summary>
@@ -405,6 +488,15 @@ public class CaseClue
     public string SourceType { get; set; } = "item";
     public string SceneId { get; set; } = string.Empty;
     public string DiscoverMethod { get; set; } = string.Empty;
+    /// <summary>
+    /// Canonical V3 acquisition method. Empty on legacy documents; validators derive it
+    /// from SourceType/DiscoverMethod and the authored unlock graph when needed.
+    /// </summary>
+    public string AcquisitionMethod { get; set; } = string.Empty;
+    /// <summary>Approved true-timeline action that caused this clue; distinct from how players discover it.</summary>
+    public string SourceActionId { get; set; } = string.Empty;
+    public List<string> SupportsConclusionIds { get; set; } = new();
+    public string IndependentSourceGroup { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
     public string VisualTextPolicy { get; set; } = ClueVisualTextPolicies.NoText;
     public string InventoryDescription { get; set; } = string.Empty;
@@ -423,6 +515,8 @@ public class CaseDialogue
     public string Answer { get; set; } = string.Empty;
     public List<string> RequiredClueIds { get; set; } = new();
     public List<string> UnlockClueIds { get; set; } = new();
+    public List<string> StatementIds { get; set; } = new();
+    public List<string> AvailableSceneIds { get; set; } = new();
 }
 
 [BsonIgnoreExtraElements]
@@ -444,6 +538,8 @@ public class ConversationNode
     public List<string> UnlockClueIds { get; set; } = new();
     public string? ChallengeId { get; set; }
     public List<ConversationChoice> Choices { get; set; } = new();
+    public List<string> StatementIds { get; set; } = new();
+    public List<string> AvailableSceneIds { get; set; } = new();
 }
 
 [BsonIgnoreExtraElements]
@@ -471,11 +567,25 @@ public static class ConversationSpeakers
 [BsonIgnoreExtraElements]
 public class EvidenceChallenge
 {
+    public int Order { get; set; }
+    public bool IsSignature { get; set; }
     public string ChallengeId { get; set; } = string.Empty;
     public string DialogueId { get; set; } = string.Empty;
     public string TestimonyFragmentId { get; set; } = string.Empty;
+    public List<string> CandidateTestimonyFragmentIds { get; set; } = new();
+    /// <summary>
+    /// V3-only testimony candidates that must be discovered before this Crack can start.
+    /// Empty keeps backward compatibility by requiring every declared candidate.
+    /// </summary>
+    public List<string> StartRequiredTestimonyFragmentIds { get; set; } = new();
     public string Prompt { get; set; } = string.Empty;
     public string CorrectEvidenceId { get; set; } = string.Empty;
+    public List<string> CandidateEvidenceIds { get; set; } = new();
+    /// <summary>
+    /// V3-only evidence candidates that must be discovered before this Crack can start.
+    /// Empty keeps backward compatibility by requiring every declared candidate.
+    /// </summary>
+    public List<string> StartRequiredEvidenceIds { get; set; } = new();
     public string SuccessResponse { get; set; } = string.Empty;
     public string FailureResponse { get; set; } = string.Empty;
     /// <summary>V3-only shared headline shown after a correct paired confrontation.</summary>
@@ -517,6 +627,18 @@ public class CasePuzzle
     public List<string> UnlockSceneIds { get; set; } = new();
     public string SuccessMessage { get; set; } = string.Empty;
     public string FailureMessage { get; set; } = string.Empty;
+    public List<string> BasedOnTruthIds { get; set; } = new();
+    public string InvestigationPurpose { get; set; } = string.Empty;
+    public List<string> RevealsConclusionIds { get; set; } = new();
+    public string ProgressionRole { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class AlternateRewardPath
+{
+    public string RewardId { get; set; } = string.Empty;
+    public List<string> ProducerIds { get; set; } = new();
+    public string Reason { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
@@ -541,6 +663,7 @@ public class DeductionChallenge
     public string SuccessResponse { get; set; } = string.Empty;
     public string FailureResponse { get; set; } = string.Empty;
     public List<string> UnlockClueIds { get; set; } = new();
+    public string ConclusionId { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]

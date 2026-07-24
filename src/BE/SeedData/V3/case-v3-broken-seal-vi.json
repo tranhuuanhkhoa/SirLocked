@@ -80,13 +80,55 @@
     { "id": "fragment-guard-round-vi", "dialogueId": "dlg-mara-statement-vi", "text": "Bảo vệ bắt đầu tuần tra ngay sau giờ đóng cửa." }
   ],
   "evidenceChallenges": [
-    { "challengeId": "challenge-broken-seal-vi", "dialogueId": "dlg-mara-statement-vi", "testimonyFragmentId": "fragment-seal-intact-vi", "prompt": "Dấu vết vật lý nào trực tiếp mâu thuẫn với lời khai đã chọn?", "correctEvidenceId": "evidence-blue-wax-vi", "successResponse": "Hai lớp sáp chồng lên nhau chứng minh gói tài liệu đã bị mở rồi niêm phong lại sau khi con dấu gốc bị phá.", "failureResponse": "Cặp này chưa tạo ra mâu thuẫn trực tiếp. Hãy kiểm tra lại dấu vết thực sự chứng minh được điều gì.", "revealTitle": "PHÁ ÁN: CON DẤU ĐÃ BỊ THAY", "unlockClueIds": ["reveal-resealed-packet-vi"] }
+    { "challengeId": "challenge-broken-seal-vi", "order": 1, "isSignature": true, "dialogueId": "dlg-mara-statement-vi", "testimonyFragmentId": "fragment-seal-intact-vi", "candidateTestimonyFragmentIds": ["fragment-seal-intact-vi", "fragment-no-bag-vi", "fragment-guard-round-vi"], "startRequiredTestimonyFragmentIds": ["fragment-seal-intact-vi", "fragment-no-bag-vi"], "prompt": "Dấu vết vật lý nào trực tiếp mâu thuẫn với lời khai đã chọn?", "correctEvidenceId": "evidence-blue-wax-vi", "candidateEvidenceIds": ["evidence-blue-wax-vi", "evidence-ticket-vi", "evidence-thread-vi"], "startRequiredEvidenceIds": ["evidence-blue-wax-vi", "evidence-ticket-vi"], "successResponse": "Hai lớp sáp chồng lên nhau chứng minh gói tài liệu đã bị mở rồi niêm phong lại sau khi con dấu gốc bị phá.", "failureResponse": "Cặp này chưa tạo ra mâu thuẫn trực tiếp. Hãy kiểm tra lại dấu vết thực sự chứng minh được điều gì.", "revealTitle": "PHÁ ÁN: CON DẤU ĐÃ BỊ THAY", "unlockClueIds": ["reveal-resealed-packet-vi"] }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-resealed-packet-vi",
+      "prompt": "Mâu thuẫn đã phá cho biết điều gì về gói hồ sơ?",
+      "requiredClueIds": ["reveal-resealed-packet-vi"],
+      "requiredChallengeIds": ["challenge-broken-seal-vi"],
+      "options": [
+        { "id": "deduction-resealed-correct-vi", "label": "Gói hồ sơ bị mở sau giờ đóng cửa rồi được niêm phong lại bằng sáp mới." },
+        { "id": "deduction-resealed-wrong-vi", "label": "Cuống vé chứng minh con dấu gốc chưa từng bị phá." }
+      ],
+      "correctOptionId": "deduction-resealed-correct-vi",
+      "successResponse": "Dấu vết vật lý và lời khai bị phá giờ tạo thành một kết luận thống nhất.",
+      "failureResponse": "Kết luận đó không giải thích được hai lớp sáp chồng lên nhau.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-resealed-packet-vi",
+      "investigatorClueId": "evidence-blue-wax-vi",
+      "interrogatorChallengeId": "challenge-broken-seal-vi",
+      "deductionId": "deduction-resealed-packet-vi",
+      "description": "Điều tra viên cung cấp dấu sáp, Thẩm vấn viên phá lời khai, rồi cả hai xác lập cách niêm phong lại."
+    }
   ],
   "finalLogic": {
     "culpritId": "char-mara-vi",
     "motive": "Thay đổi một hồ sơ được bảo vệ.",
     "method": "Mở gói tài liệu rồi dùng sáp mới giả lại con dấu ban đầu.",
     "requiredEvidenceIds": [],
+    "motiveOptions": [
+      { "id": "motive-alter-record-vi", "label": "Thay đổi một hồ sơ được bảo vệ" },
+      { "id": "motive-missed-tram-vi", "label": "Che giấu một chuyến tàu bị lỡ" }
+    ],
+    "methodOptions": [
+      { "id": "method-reseal-wax-vi", "label": "Mở gói hồ sơ rồi giả con dấu bằng sáp mới" },
+      { "id": "method-corridor-thread-vi", "label": "Thay gói hồ sơ bằng một sợi chỉ dính bùn" }
+    ],
+    "correctMotiveId": "motive-alter-record-vi",
+    "correctMethodId": "method-reseal-wax-vi",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "evidence-ticket-vi" },
+      { "claimType": "METHOD", "evidenceId": "evidence-blue-wax-vi" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "evidence-thread-vi" }
+    ],
+    "requiredDeductionIds": ["deduction-resealed-packet-vi"],
+    "requiredTeamworkChainIds": ["chain-resealed-packet-vi"],
     "winEnding": "Mâu thuẫn được ghép đôi chứng minh gói tài liệu đã bị niêm phong lại.",
     "failEnding": "Kho lưu trữ vẫn bị khóa sau một lời khai chưa được kiểm chứng."
   }

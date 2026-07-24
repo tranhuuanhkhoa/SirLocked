@@ -16,4 +16,7 @@ public abstract class BaseApiController : ControllerBase
 
     protected ActionResult<ApiResponse<T>> Ok<T>(T data, string? message = null) =>
         base.Ok(ApiResponse<T>.Ok(data, message));
+
+    protected ActionResult<ApiResponse<T>> Accepted<T>(T data, string? message = null) =>
+        base.Accepted(ApiResponse<T>.Ok(data, message));
 }

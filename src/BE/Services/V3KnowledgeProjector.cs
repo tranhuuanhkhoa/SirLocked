@@ -51,17 +51,10 @@ public static class V3KnowledgeProjector
 
         response.SharedKnowledge = BuildSharedKnowledge(state, gameCase, photoUrls);
         response.ActiveConfrontation = BuildActiveView(state.ActiveConfrontation, room, gameCase, player, photoUrls);
-        response.IsCaseComplete = HasResolvedEveryChallenge(state, gameCase);
-        ScrubLegacyKnowledge(response);
+        response.IsCaseComplete = room.Status == RoomStatus.Completed;
+        ProjectV2Knowledge(response, state, gameCase, player);
         V3SceneProjectionPolicy.Apply(response, gameCase, player);
     }
-
-    private static bool HasResolvedEveryChallenge(GameplayState state, GameCase gameCase) =>
-        gameCase.EvidenceChallenges.Count > 0
-        && gameCase.EvidenceChallenges.All(challenge =>
-            state.PairedConfrontationAttempts.Any(attempt =>
-                attempt.ChallengeId == challenge.ChallengeId
-                && attempt.Status == PairedConfrontationStatus.ResolvedCorrect));
 
     public static bool CanViewEvidencePhoto(GameRoom room, GameCase gameCase, string userId, string clueId)
     {
@@ -254,18 +247,40 @@ public static class V3KnowledgeProjector
         };
     }
 
-    private static void ScrubLegacyKnowledge(GameStateResponse response)
+    private static void ProjectV2Knowledge(
+        GameStateResponse response,
+        GameplayState state,
+        GameCase gameCase,
+        RoomPlayer player)
     {
-        response.UnlockedClueIds = new List<string>();
-        response.VisitedConversationNodeIds = new List<string>();
-        response.UnlockedClues = new List<ClueDto>();
-        response.EvidenceClues = new List<ClueDto>();
-        response.ResolvedConfrontations = new List<ResolvedConfrontationDto>();
-        response.Deductions = new List<DeductionDto>();
-        response.SolvedDeductions = new List<SolvedDeductionDto>();
+        var knownClueIds = state.ClueDiscoveries
+            .Where(discovery => discovery.DiscoveredByUserId == player.UserId
+                || discovery.SourceAction is ClueDiscoverySources.Challenge or ClueDiscoverySources.Deduction)
+            .Select(discovery => discovery.ClueId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var disclosure in state.PairedConfrontationAttempts.SelectMany(attempt => attempt.Disclosures)
+                     .Concat(state.ActiveConfrontation?.Disclosures ?? Enumerable.Empty<PairedConfrontationDisclosureRecord>()))
+            knownClueIds.Add(disclosure.EvidenceId);
+        foreach (var revealId in state.ResolvedConfrontationRecords
+                     .Select(record => gameCase.EvidenceChallenges.FirstOrDefault(challenge => challenge.ChallengeId == record.ChallengeId))
+                     .Where(challenge => challenge is not null)
+                     .SelectMany(challenge => challenge!.UnlockClueIds))
+            knownClueIds.Add(revealId);
+
+        response.UnlockedClueIds = response.UnlockedClueIds.Where(knownClueIds.Contains).ToList();
+        response.UnlockedClues = response.UnlockedClues.Where(clue => knownClueIds.Contains(clue.ClueId)).ToList();
+        response.EvidenceClues = response.UnlockedClues.Where(clue => clue.IsEvidence).ToList();
+        response.VisitedConversationNodeIds = player.Role == PlayerRole.Interrogator
+            ? response.VisitedConversationNodeIds
+            : new List<string>();
+        foreach (var deduction in response.Deductions)
+        {
+            deduction.RequiredClueIds = new List<string>();
+            deduction.RequiredChallengeIds = new List<string>();
+            deduction.MissingClueIds = new List<string>();
+            deduction.MissingChallengeIds = new List<string>();
+        }
         response.Testimonies = new List<TestimonyDto>();
         response.ActionLog = new List<ActionLogEntryDto>();
-        response.AccusationConfig = null;
-        response.AvailableForAccusation = false;
     }
 }

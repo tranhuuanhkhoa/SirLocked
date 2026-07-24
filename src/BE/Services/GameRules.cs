@@ -172,12 +172,16 @@ internal static class GameRules
             : gameCase.FinalLogic.RequiredEvidenceIds;
         var requiredDeductions = gameCase.FinalLogic.RequiredDeductionIds;
         var requiredChains = gameCase.FinalLogic.RequiredTeamworkChainIds;
+        var everyV3CrackResolved = gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            || gameCase.EvidenceChallenges.All(challenge =>
+                state.ResolvedConfrontationRecords.Any(record => record.ChallengeId == challenge.ChallengeId));
         return state.GameStatus == GameStatus.InProgress
             && (currentSceneId ?? state.CurrentSceneId) == lastScene.SceneId
             && AllScenesCompleted(gameCase, state)
             && requiredEvidenceIds.All(state.UnlockedClueIds.Contains)
             && requiredDeductions.All(id => state.SolvedDeductionRecords.Any(record => record.DeductionId == id))
-            && requiredChains.All(id => IsTeamworkChainComplete(gameCase, state, id));
+            && requiredChains.All(id => IsTeamworkChainComplete(gameCase, state, id))
+            && everyV3CrackResolved;
     }
 
     public static bool IsTeamworkChainComplete(GameCase gameCase, GameplayState state, string chainId)

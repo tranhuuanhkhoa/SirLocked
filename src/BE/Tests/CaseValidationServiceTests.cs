@@ -175,6 +175,37 @@ public class CaseValidationServiceTests
     }
 
     [Fact]
+    public void InspectEnvironmentInteraction_UsesDedicatedEnvironmentHotspot()
+    {
+        var c = LoadSampleCase();
+        var scene = c.Stages[0].Scenes[0];
+        const string interactionId = "interaction-inspect-scratches";
+        c.Interactions.Add(new CaseInteraction
+        {
+            InteractionId = interactionId,
+            Type = CaseInteractionTypes.InspectEnvironment,
+            TargetId = interactionId,
+            SuccessMessage = "The scratches reveal a recently moved cabinet.",
+            SingleUse = true
+        });
+        scene.Hotspots.Add(new SceneHotspot
+        {
+            HotspotId = "hotspot-inspect-scratches",
+            Type = "ENVIRONMENT",
+            TargetId = interactionId,
+            X = 40,
+            Y = 50,
+            Width = 8,
+            Height = 8,
+            Label = "Floor scratches"
+        });
+
+        var result = _validator.Validate(c);
+
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}")));
+    }
+
+    [Fact]
     public void PuzzleWithMissingTarget_IsRejected()
     {
         var c = LoadSampleCase();

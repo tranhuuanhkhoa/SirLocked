@@ -1,8 +1,8 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
 
 const enabled = process.env.SIRLOCKED_RUN_V3_FULL_STACK === 'true';
-const password = process.env.SIRLOCKED_V3_TEST_PASSWORD ?? '';
-const apiBaseUrl = 'http://127.0.0.1:5174';
+const password = process.env.SIRLOCKED_TEST_PASSWORD ?? '';
+const apiBaseUrl = process.env.SIRLOCKED_TEST_API_URL ?? 'http://127.0.0.1:5215';
 
 type Auth = {
   token: string;
@@ -13,9 +13,9 @@ type Auth = {
 
 type Room = { roomId: string; roomCode: string };
 
-test.describe('isolated local V3 full-stack flow', () => {
+test.describe('Crack V3 full-stack flow on the standard application host', () => {
   test.describe.configure({ mode: 'serial' });
-  test.skip(!enabled, 'Run through scripts/test-v3-local-full-stack.ps1 with isolated local Mongo.');
+  test.skip(!enabled, 'Run through scripts/test-v3-full-stack.ps1 with a temporary integration database.');
 
   let api: APIRequestContext;
   let investigatorAuth: Auth;
@@ -24,8 +24,8 @@ test.describe('isolated local V3 full-stack flow', () => {
   test.beforeAll(async () => {
     expect(password, 'The launcher must provide a process-only test password.').not.toBe('');
     api = await playwrightRequest.newContext({ baseURL: apiBaseUrl });
-    investigatorAuth = await login(api, 'audit_investigator@audit.invalid');
-    interrogatorAuth = await login(api, 'audit_interrogator@audit.invalid');
+    investigatorAuth = await login(api, 'it_investigator@tests.invalid');
+    interrogatorAuth = await login(api, 'it_interrogator@tests.invalid');
   });
 
   test.afterAll(async () => {
@@ -37,12 +37,12 @@ test.describe('isolated local V3 full-stack flow', () => {
       const room = await createStartedRoom(api, investigatorAuth, interrogatorAuth);
       await discoverPrivateKnowledge(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
       await assertServerPrivacy(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
+      await assertWrongRoleErrorIsGeneric(api, room.roomId, investigatorAuth.token);
 
       const investigator = await openPlayer(browser, room.roomId, investigatorAuth);
       const interrogator = await openPlayer(browser, room.roomId, interrogatorAuth);
       try {
         await runCrackLoop(investigator, interrogator);
-        await assertWrongRoleErrorIsGeneric(api, room.roomId, investigatorAuth.token);
       } finally {
         await investigator.context().close();
         await interrogator.context().close();
@@ -134,7 +134,9 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await interrogator.locator('#v3-crack-dismiss').click();
   await expect(investigator.locator('.v3-crack-overlay.is-incorrect')).toBeVisible();
   await investigator.locator('#v3-crack-dismiss').click();
+  await expect(investigator.locator('#accuse-btn')).toHaveCount(0);
 
+  await interrogator.locator('[data-case-tab="testimony"]').click();
   await interrogator.locator('[data-v3-start-testimony="fragment-seal-intact-en"]').first().click();
   await investigator.locator('[data-case-tab="evidence"]').click();
   await expect(investigator.locator('[data-v3-propose-evidence="evidence-blue-wax-en"]')).toBeVisible();
@@ -146,7 +148,7 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await interrogator.locator('[data-v3-edit-testimony="fragment-no-bag-en"]').click();
   await expect(investigator.locator('.v3-confirmation-state')).toContainText('You');
 
-  await interrogator.locator('[data-case-tab="contradictions"]').click();
+  await interrogator.locator('[data-case-tab="testimony"]').click();
   await interrogator.locator('[data-v3-edit-testimony="fragment-seal-intact-en"]').first().click();
   await investigator.reload();
   await expect(investigator.locator('#case-file-btn')).toBeVisible();
@@ -160,6 +162,35 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await investigator.locator('[data-v3-confirm]').click();
   await expect(investigator.locator('.v3-crack-overlay.is-correct')).toContainText('CRACKED: THE SEAL WAS REPLACED');
   await expect(interrogator.locator('.v3-crack-overlay.is-correct')).toContainText('The archive was resealed');
+  await investigator.locator('#v3-crack-dismiss').click();
+  await interrogator.locator('#v3-crack-dismiss').click();
+  await expect(investigator.locator('#accuse-btn')).toHaveCount(0);
+
+  await investigator.locator('[data-case-tab="contradictions"]').click();
+  await investigator.locator('[data-solve-deduction="deduction-resealed-packet-en"][data-option="deduction-resealed-correct-en"]').click();
+  await expect(investigator.locator('.deduction-card.is-solved')).toBeVisible();
+  await expect(investigator.locator('#accuse-btn')).toBeVisible();
+  await investigator.locator('.close-drawer-btn').click();
+
+  await investigator.locator('#accuse-btn').click();
+  await investigator.locator('[data-suspect="char-mara-en"]').click();
+  await investigator.locator('#accuse-next').click();
+  await investigator.locator('[data-motive="motive-alter-record-en"]').click();
+  await investigator.locator('#accuse-next').click();
+  await investigator.locator('[data-method="method-reseal-wax-en"]').click();
+  await investigator.locator('#accuse-next').click();
+  await assignAccusationEvidence(investigator, 'MOTIVE', 'evidence-ticket-en');
+  await assignAccusationEvidence(investigator, 'METHOD', 'evidence-blue-wax-en');
+  await assignAccusationEvidence(investigator, 'OPPORTUNITY', 'evidence-thread-en');
+  await investigator.locator('#accuse-next').click();
+  await investigator.locator('#accuse-confirm').click();
+  await expect(investigator).toHaveURL(/#\/result\//);
+  await expect(investigator.locator('.result-banner')).toContainText('CASE CLOSED');
+}
+
+async function assignAccusationEvidence(page: Page, claimType: string, evidenceId: string) {
+  await page.locator(`[data-claim-slot="${claimType}"]`).click();
+  await page.locator(`[data-assign-evidence="${evidenceId}"]`).click();
 }
 
 async function assertWrongRoleErrorIsGeneric(api: APIRequestContext, roomId: string, investigatorToken: string) {

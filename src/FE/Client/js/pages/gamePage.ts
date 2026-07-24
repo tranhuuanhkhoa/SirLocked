@@ -344,6 +344,17 @@ type GameState = {
   activeConfrontation?: ActivePairedConfrontation | null;
 };
 
+function accusationClaimLabel(claimType: string) {
+  switch (claimType) {
+    case 'MOTIVE': return tr('Motive', 'Động cơ');
+    case 'METHOD': return tr('Method', 'Phương thức');
+    case 'OPPORTUNITY': return tr('Opportunity', 'Cơ hội');
+    case 'IDENTITY': return tr('Identity', 'Danh tính');
+    case 'TIMELINE': return tr('Timeline', 'Dòng thời gian');
+    default: return claimType;
+  }
+}
+
 type HotspotClick = {
   type: string;
   target: string;
@@ -1589,7 +1600,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const role = this.state?.players.find((player) => player.userId === this.callbacks.localUserId)?.role;
     const roleAllowed = type === 'CHARACTER'
       ? role === 'INTERROGATOR'
-      : type === 'ITEM' || type === 'OBJECT' || type === 'CLUE'
+      : type === 'ITEM' || type === 'OBJECT' || type === 'CLUE' || type === 'ENVIRONMENT'
         ? role === 'INVESTIGATOR'
         : true;
     const enabled = !hotspot.isLocked && roleAllowed;
@@ -1602,7 +1613,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
           : this.callbacks.tr('Investigator action', 'Hành động của Điều tra viên');
     const actionLabel = type === 'CHARACTER'
       ? this.callbacks.tr('Question', 'Hỏi')
-      : type === 'ITEM' || type === 'OBJECT' || type === 'CLUE'
+      : type === 'ITEM' || type === 'OBJECT' || type === 'CLUE' || type === 'ENVIRONMENT'
         ? this.callbacks.tr('Inspect', 'Khám nghiệm')
         : this.callbacks.tr('Interact', 'Tương tác');
     const action: ContextAction = {
@@ -2246,11 +2257,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function isV3CaseComplete(current = state) {
-    if (!current || current.mechanicsVersion !== 3) return false;
-    if (typeof current.isCaseComplete === 'boolean') return current.isCaseComplete;
-    // Compatibility for a local V3 server that was already running before this
-    // additive field existed. Current V3 fixtures contain one paired challenge.
-    return (current.sharedKnowledge?.resolvedTruths?.length ?? 0) > 0;
+    return Boolean(current?.roomStatus === 'COMPLETED');
   }
 
   function uiModel() {
@@ -2623,11 +2630,21 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <button class="${tab === 'testimony' ? 'is-active' : ''}" data-case-tab="testimony">${tr('Testimony', 'Lời khai')}</button>
           <button class="${tab === 'contradictions' ? 'is-active' : ''}" data-case-tab="contradictions">${tr('Joint Review', 'Cùng xem xét')}</button>
         </div>`;
+      const supportingClues = state!.unlockedClues.filter((clue) => !clue.isEvidence);
+      const deductionHtml = state!.deductions.map((deduction) => `
+        <article class="deduction-card ${deduction.isSolved ? 'is-solved' : deduction.isAvailable ? 'is-available' : 'is-locked'}">
+          <div class="clue-head"><strong>${escapeHtml(deduction.prompt)}</strong><span class="chip">${deduction.isSolved ? tr('SOLVED', 'ĐÃ GIẢI') : deduction.isAvailable ? tr('READY', 'SẴN SÀNG') : tr('LOCKED', 'ĐANG KHÓA')}</span></div>
+          ${deduction.isSolved
+            ? `<blockquote>${escapeHtml(deduction.resolution ?? '')}</blockquote>`
+            : deduction.isAvailable
+              ? `<div class="deduction-options">${deduction.options.map((option) => `<button class="btn btn-ghost" data-solve-deduction="${escapeHtml(deduction.deductionId)}" data-option="${escapeHtml(option.id)}">${escapeHtml(option.label)}</button>`).join('')}</div>`
+              : `<p class="muted">${tr('Continue investigating and resolve the required Crack loops.', 'Tiếp tục điều tra và giải quyết các vòng Phá Vỡ Lời Dối cần thiết.')}</p>`}
+        </article>`).join('');
       const content = tab === 'evidence'
-        ? renderPrivateEvidencePanel(model, escapeHtml, tr)
+        ? `${renderPrivateEvidencePanel(model, escapeHtml, tr)}${supportingClues.length > 0 ? `<section class="notebook-list"><h3>${tr('Supporting leads', 'Manh mối hỗ trợ')}</h3>${supportingClues.map((clue) => `<article><strong>${escapeHtml(clue.title)}</strong><p>${escapeHtml(clue.content)}</p></article>`).join('')}</section>` : ''}`
         : tab === 'testimony'
           ? renderPrivateTestimonyPanel(model, escapeHtml, tr)
-          : renderJointReviewPanel(model, escapeHtml, tr);
+          : `${renderJointReviewPanel(model, escapeHtml, tr)}${state!.deductions.length > 0 ? `<section class="notebook-list"><h3>${tr('Deductions', 'Suy luận')}</h3>${deductionHtml}</section>` : ''}`;
       return `
         <aside class="case-file-drawer case-file-modal v3-case-file" aria-label="${tr('Private Case File', 'Hồ sơ riêng')}">
           <div class="drawer-title-row"><div><span>${tab === 'contradictions' ? tr('INTENTIONAL DISCLOSURE', 'CHIA SẺ CÓ CHỦ ĐÍCH') : tr('ROLE-PRIVATE NOTEBOOK', 'SỔ TAY RIÊNG THEO VAI')}</span><h2>${tr('Crack the Lie', 'Phá Vỡ Lời Dối')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
@@ -3122,14 +3139,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               const selectedClue = evidence.find((clue) => clue.clueId === accusation!.evidenceLinks[claim]);
               return `<div class="claim-drop-zone ${activeClaim === claim ? 'is-active' : ''} ${selectedClue ? 'is-filled' : ''}" data-claim-drop="${escapeHtml(claim)}">
                 <button class="claim-slot-button" data-claim-slot="${escapeHtml(claim)}" type="button" aria-pressed="${activeClaim === claim}">
-                  <span class="claim-slot-label">${escapeHtml(claim)}</span>
+                  <span class="claim-slot-label">${escapeHtml(accusationClaimLabel(claim))}</span>
                   <span class="claim-slot-preview ${selectedClue ? '' : 'is-empty'}">
                     ${selectedClue ? evidencePhotoMarkup(selectedClue, 'evidence-photo-thumb') : ''}
                     <span class="claim-slot-mark" aria-hidden="true">${selectedClue ? '✓' : '+'}</span>
                   </span>
                   <span class="claim-slot-copy">${selectedClue ? `<strong>${escapeHtml(selectedClue.title)}</strong>` : `<strong>${tr('Drop evidence here', 'Thả chứng cứ vào đây')}</strong>`}</span>
                 </button>
-                ${selectedClue ? `<button class="claim-slot-clear" data-clear-claim="${escapeHtml(claim)}" type="button" aria-label="${tr('Remove evidence from', 'Gỡ chứng cứ khỏi')} ${escapeHtml(claim)}">×</button>` : ''}
+                ${selectedClue ? `<button class="claim-slot-clear" data-clear-claim="${escapeHtml(claim)}" type="button" aria-label="${tr('Remove evidence from', 'Gỡ chứng cứ khỏi')} ${escapeHtml(accusationClaimLabel(claim))}">×</button>` : ''}
               </div>`;
             }).join('')}
           </section>
@@ -3139,7 +3156,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               const assignedClaim = config.claimTypes.find((claim) => accusation!.evidenceLinks[claim] === clue.clueId);
               return `<button class="accusation-evidence-card ${assignedClaim ? 'is-assigned' : ''}" data-assign-evidence="${escapeHtml(clue.clueId)}" draggable="true" type="button" aria-label="${tr('Assign evidence', 'Gán chứng cứ')}: ${escapeHtml(clue.title)}">
                 <span class="accusation-evidence-art">${evidencePhotoMarkup(clue, 'evidence-photo-thumb') || `<span class="evidence-visual-placeholder" aria-hidden="true">${initials(clue.title)}</span>`}</span>
-                <span class="accusation-evidence-copy"><strong>${escapeHtml(clue.title)}</strong><small>${assignedClaim ? `${tr('Assigned to', 'Đã gán cho')} ${escapeHtml(assignedClaim)}` : tr('Click to assign', 'Bấm để gán')}</small></span>
+                <span class="accusation-evidence-copy"><strong>${escapeHtml(clue.title)}</strong><small>${assignedClaim ? `${tr('Assigned to', 'Đã gán cho')} ${escapeHtml(accusationClaimLabel(assignedClaim))}` : tr('Click to assign', 'Bấm để gán')}</small></span>
               </button>`;
             }).join('')}</div>
           </section>
@@ -3151,11 +3168,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         const method = config.methodOptions.find((option) => option.id === accusation!.methodId);
         canContinue = true;
         body = `<div class="accusation-review">
-          <p><strong>Suspect:</strong> ${escapeHtml(culprit?.name ?? '')}</p>
-          <p><strong>Motive:</strong> ${escapeHtml(motive?.label ?? '')}</p>
-          <p><strong>Method:</strong> ${escapeHtml(method?.label ?? '')}</p>
-          ${config.claimTypes.map((claim) => `<p><strong>${escapeHtml(claim)}:</strong> ${escapeHtml(evidence.find((clue) => clue.clueId === accusation!.evidenceLinks[claim])?.title ?? '')}</p>`).join('')}
-          <p class="notice">A wrong accusation ends the case.</p>
+          <p><strong>${tr('Suspect', 'Nghi phạm')}:</strong> ${escapeHtml(culprit?.name ?? '')}</p>
+          <p><strong>${tr('Motive', 'Động cơ')}:</strong> ${escapeHtml(motive?.label ?? '')}</p>
+          <p><strong>${tr('Method', 'Phương thức')}:</strong> ${escapeHtml(method?.label ?? '')}</p>
+          ${config.claimTypes.map((claim) => `<p><strong>${escapeHtml(accusationClaimLabel(claim))}:</strong> ${escapeHtml(evidence.find((clue) => clue.clueId === accusation!.evidenceLinks[claim])?.title ?? '')}</p>`).join('')}
+          <p class="notice">${tr('A wrong accusation ends the case.', 'Cáo buộc sai sẽ kết thúc vụ án.')}</p>
         </div>`;
       }
 
@@ -3671,7 +3688,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       return;
     }
 
-    if (type !== 'ITEM' && type !== 'OBJECT' && type !== 'CLUE') {
+    if (type !== 'ITEM' && type !== 'OBJECT' && type !== 'CLUE' && type !== 'ENVIRONMENT') {
       toast(tr('This point is waiting for a case-specific interaction.', 'Điểm này đang chờ một tương tác riêng của vụ án.'), 'info');
       return;
     }
@@ -3679,6 +3696,23 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (myRole() !== 'INVESTIGATOR') {
       toast('Only the Investigator can inspect objects. Tell your partner to check it.', 'info');
       draw();
+      return;
+    }
+
+    if (type === 'ENVIRONMENT') {
+      try {
+        const res = await gameApi.activateEnvironmentInteraction(roomId, target);
+        showDiscovery({
+          id: `environment:${target}:${Date.now()}`,
+          kind: 'CLUE',
+          title: label || prettyId(target),
+          detail: res.message || tr('A useful environmental detail was uncovered.', 'Một chi tiết hiện trường hữu ích đã được phát hiện.'),
+          clueCount: res.unlockedClueIds?.length ?? 0,
+        });
+        applyState(res.state);
+      } catch (err: any) {
+        toast(err.message, 'error');
+      }
       return;
     }
 

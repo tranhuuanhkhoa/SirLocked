@@ -13,6 +13,7 @@ const evidence = {
   sceneId: 'scene-archive',
   inventoryDescription: 'The lower seal is broken beneath fresh wax.',
   narrativeMeaning: 'This can contradict an intact-seal claim.',
+  photoUrl: `/api/game/rooms/${roomId}/evidence/evidence-blue-wax/photo`,
 };
 
 const testimony = {
@@ -216,6 +217,13 @@ async function prepare(page: Page, initialState: ReturnType<typeof v3State>) {
     expect(body).not.toHaveProperty('content');
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: true }) });
   });
+  await page.route(`**/api/game/rooms/${roomId}/evidence/*/photo`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="24"><rect width="32" height="24" fill="#315d9a"/></svg>',
+    });
+  });
 }
 
 test('role-private notebooks never render partner sentinels before Joint Review', async ({ browser }) => {
@@ -225,6 +233,7 @@ test('role-private notebooks never render partner sentinels before Joint Review'
   await investigatorPage.goto(`/#/game/${roomId}`);
   await investigatorPage.locator('#case-file-btn').click();
   await expect(investigatorPage.locator('[data-private-evidence-card]')).toContainText(investigatorSecret);
+  await expect(investigatorPage.locator('.v3-private-photo')).toHaveAttribute('src', /^blob:/);
   await investigatorPage.locator('[data-case-tab="testimony"]').click();
   await expect(investigatorPage.locator('body')).not.toContainText(interrogatorSecret);
 
@@ -234,6 +243,7 @@ test('role-private notebooks never render partner sentinels before Joint Review'
   await interrogatorPage.goto(`/#/game/${roomId}`);
   await interrogatorPage.locator('#case-file-btn').click();
   await expect(interrogatorPage.locator('body')).not.toContainText(investigatorSecret);
+  await expect(interrogatorPage.locator('.v3-private-photo')).toHaveCount(0);
   await interrogatorPage.locator('[data-case-tab="testimony"]').click();
   await expect(interrogatorPage.locator('[data-private-testimony-card]')).toContainText(interrogatorSecret);
 
@@ -296,12 +306,14 @@ test('Joint Review discloses exactly the pair and correct confirmation presents 
   await page.locator('[data-case-tab="contradictions"]').click();
   await expect(page.locator('.v3-joint-review')).toContainText(interrogatorSecret);
   await expect(page.locator('.v3-joint-review')).toContainText(investigatorSecret);
+  await expect(page.locator('.v3-pair-photo')).toHaveAttribute('src', /^blob:/);
   await page.locator('[data-v3-confirm]').click();
 
   const payoff = page.locator('.v3-crack-overlay');
   await expect(payoff).toBeVisible();
   await expect(payoff).toContainText('CRACKED: THE SEAL WAS REPLACED');
   await expect(payoff).toContainText('The archive was resealed');
+  await expect(payoff.locator('.v3-crack-photo')).toHaveAttribute('src', /^blob:/);
   const box = await payoff.locator('.v3-crack-stage').boundingBox();
   expect(box).not.toBeNull();
   expect(box!.height).toBeLessThanOrEqual(728);
@@ -309,16 +321,11 @@ test('Joint Review discloses exactly the pair and correct confirmation presents 
   await page.locator('#v3-crack-dismiss').click();
   await expect(payoff).toHaveCount(0);
   const completed = page.locator('.v3-case-complete-overlay');
-  await expect(completed).toBeVisible();
-  await expect(completed).toContainText('Case complete');
-  await expect(completed).toContainText('There are no more required actions in this sandbox.');
-  await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('Case complete');
-  await expect(page.locator('#v3-complete-exit')).toHaveAttribute('href', '#/cases');
-  await expect(page.locator('#v3-complete-exit')).toContainText('Exit to case list');
-  await page.locator('#v3-complete-review').click();
   await expect(completed).toHaveCount(0);
+  await expect(page.locator('#game-hud-slot .objective-brief')).toContainText('final location');
   await expect(page.locator('.v3-shared-history')).toContainText('RESOLVED SHARED TRUTH');
   await expect(page.locator('.v3-shared-history')).toContainText(investigatorSecret);
+  await expect(page.locator('.v3-history-photo')).toHaveAttribute('src', /^blob:/);
 });
 
 test('reduced motion keeps the payoff accessible without animation', async ({ page }) => {

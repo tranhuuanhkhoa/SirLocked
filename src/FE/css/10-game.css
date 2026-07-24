@@ -621,6 +621,24 @@
   font-family: 'Source Code Pro', monospace; font-size: 0.85rem; margin-bottom: 12px;
 }
 .json-details summary { cursor: pointer; color: var(--gold-light); margin: 10px 0; }
+.v3-ai-review .table-scroll { overflow-x: auto; }
+.v3-pair-matrix th, .v3-pair-matrix td { min-width: 190px; vertical-align: top; }
+.v3-pair-matrix .v3-pair-correct {
+  background: rgb(61 153 112 / 16%);
+  outline: 1px solid rgb(99 210 151 / 55%);
+}
+.v3-pair-matrix .v3-pair-reviewer-selected {
+  outline: 2px solid rgb(99 210 151 / 78%);
+  outline-offset: -2px;
+}
+.v3-pair-matrix .v3-pair-correct.v3-pair-reviewer-selected {
+  box-shadow: inset 0 0 0 2px rgba(239, 212, 134, 0.65);
+}
+.v3-gate-list { list-style: none; padding: 0; margin: .75rem 0 0; display: grid; gap: .55rem; }
+.v3-gate-list li { padding: .65rem .75rem; border: 1px solid rgba(201,168,76,.3); border-radius: 8px; }
+.v3-gate-pass { border-color: rgb(99 210 151 / 55%) !important; }
+.v3-gate-fail { border-color: rgb(220 100 100 / 65%) !important; }
+.v3-gate-reason { max-width: 260px; margin-top: .4rem; }
 .json-editor {
   width: 100%; min-height: 420px; resize: vertical; white-space: pre; tab-size: 2;
   background: var(--charcoal); color: var(--beige); font-family: 'Source Code Pro', monospace;
@@ -648,6 +666,8 @@
   text-transform: none;
   letter-spacing: 0;
 }
+.ai-creator-direction { flex: 1 1 360px; }
+.ai-creator-direction textarea.field-input { min-height: 76px; resize: vertical; }
 .ai-language-field {
   padding: 10px 12px;
   border: 1px solid rgba(201,168,76,0.42);
@@ -679,6 +699,76 @@
 .generation-progress .muted { margin: 10px 0 0; }
 .generation-progress-error { border-color: rgba(180,70,70,0.7); }
 .generation-progress-error .generation-progress-fill { background: #b44646; }
+
+.truth-review-panel code,
+.artifact-provenance code {
+  color: var(--gold-light);
+  overflow-wrap: anywhere;
+}
+.truth-metric-grid,
+.truth-core-grid,
+.proof-coverage-grid {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.truth-metric-grid { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+.truth-metric-grid span,
+.truth-core-grid article,
+.proof-coverage-card {
+  padding: 11px 12px;
+  border: 1px solid rgba(201,168,76,0.24);
+  border-radius: 7px;
+  background: rgba(4,10,18,0.34);
+}
+.truth-metric-grid strong,
+.truth-core-grid strong {
+  display: block;
+  color: var(--gold-light);
+  font-size: 1rem;
+}
+.truth-core-grid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+.truth-core-grid article > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--beige-muted);
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.truth-review-verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+.truth-section { margin-top: 12px; }
+.truth-section > summary,
+.artifact-provenance > summary {
+  cursor: pointer;
+  color: var(--gold-light);
+}
+.truth-table { margin-top: 10px; min-width: 760px; }
+.truth-table td { vertical-align: top; }
+.proof-coverage-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.proof-coverage-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.proof-coverage-card p { margin: 8px 0; }
+.proof-coverage-card.is-covered { border-color: rgba(80,160,90,.45); }
+.proof-coverage-card.is-blocked { border-color: rgba(180,70,70,.58); }
+.truth-repair-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+.truth-repair-field textarea { resize: vertical; }
+.blind-review-panel { border-left-width: 4px; }
+.artifact-provenance { padding: 14px 16px; }
 
 /* ---------- toasts ---------- */
 #toast-root {
@@ -718,6 +808,7 @@
   .case-cover-lg { width: 100%; }
   .create-room-grid { grid-template-columns: 1fr; }
   .case-preview { flex-direction: column; }
+  .truth-metric-grid, .truth-core-grid { grid-template-columns: 1fr; }
 }
 
 /* ---------- visual refresh ---------- */
@@ -2187,6 +2278,22 @@ body.game-page-active .nav-links {
 .v3-review-cue p,
 .v3-private-empty p { color: var(--beige-muted); line-height: 1.5; }
 .v3-private-card blockquote { margin: 9px 0 14px; }
+.v3-private-photo,
+.v3-pair-photo,
+.v3-history-photo,
+.v3-crack-photo {
+  display: block;
+  width: 100%;
+  max-height: 210px;
+  margin: 10px 0;
+  border: 1px solid rgba(239,212,134,0.28);
+  border-radius: 7px;
+  background: #02050c;
+  object-fit: contain;
+}
+.v3-private-photo { max-width: 420px; }
+.v3-history-photo { max-width: 360px; }
+.v3-crack-photo { max-height: 190px; }
 .v3-private-label,
 .v3-review-heading span,
 .v3-pair-card > span,

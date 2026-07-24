@@ -74,6 +74,49 @@ public class GameplayRuleTests
     }
 
     [Fact]
+    public void V3Accusation_RequiresEveryCrackToResolve()
+    {
+        var gameCase = new GameCase
+        {
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            Stages =
+            {
+                new CaseStage
+                {
+                    StageId = "stage-final",
+                    Order = 1,
+                    Scenes = { new CaseScene { SceneId = "scene-final", Title = "Final office" } }
+                }
+            },
+            EvidenceChallenges =
+            {
+                new EvidenceChallenge { ChallengeId = "crack-1" },
+                new EvidenceChallenge { ChallengeId = "crack-2" }
+            }
+        };
+        var state = new GameplayState
+        {
+            CurrentSceneId = "scene-final",
+            GameStatus = GameStatus.InProgress,
+            CompletedSceneIds = { "scene-final" },
+            ResolvedConfrontationRecords =
+            {
+                new ResolvedConfrontationRecord { ChallengeId = "crack-1", EvidenceId = "evidence-1" }
+            }
+        };
+
+        Assert.False(GameRules.IsAccusationAvailable(gameCase, state));
+
+        state.ResolvedConfrontationRecords.Add(new ResolvedConfrontationRecord
+        {
+            ChallengeId = "crack-2",
+            EvidenceId = "evidence-2"
+        });
+
+        Assert.True(GameRules.IsAccusationAvailable(gameCase, state));
+    }
+
+    [Fact]
     public void CompletedScene_IsTreatedAsIdempotent()
     {
         var state = new GameplayState { CompletedSceneIds = new List<string> { "scene-study" } };

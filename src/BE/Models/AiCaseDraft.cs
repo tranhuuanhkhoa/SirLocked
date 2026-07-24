@@ -1,13 +1,55 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using SirLocked.Api.Services;
 
 namespace SirLocked.Api.Models;
 
 public static class AiGenerationSchemaVersions
 {
-    public const string StoryPreview = "story-preview-v2";
+    public const string StoryPreview = "story-preview-v3";
     public const string CaseLogic = "case-logic-v2";
     public const string Prompt = "ai-case-prompt-v2";
+    public const string CaseLogicV3Crack = "case-logic-v3-crack-v2";
+    public const string PromptV3Crack = "ai-case-prompt-v3-crack-v2";
+    public const string V3SemanticReview = "v3-pair-review-v2";
+    public const string CaseBlueprintV3Crack = "case-blueprint-v3-crack-v1";
+    public const string CaseTruth = CaseTruthSchemaVersions.V1;
+    public const string CaseSeed = "case-seed-v1";
+    public const string CoreTruth = "core-truth-v1";
+    public const string TrueTimeline = "true-timeline-v1";
+    public const string OpportunityMatrix = "opportunity-matrix-v1";
+    public const string TraceLedger = "trace-ledger-v2";
+    public const string StatementLedger = "statement-ledger-v2";
+    public const string ProofGraph = "proof-graph-v2";
+    public const string CaseTruthReview = CaseTruthSchemaVersions.FeasibilityReviewV1;
+    public const string BlindSolvabilityReview = CaseTruthSchemaVersions.BlindReviewV1;
+}
+
+public static class AiCaseTypes
+{
+    public const string Random = "RANDOM";
+    public const string Murder = "MURDER";
+    public const string MissingPerson = "MISSING_PERSON";
+    public const string Theft = "THEFT";
+    public const string Sabotage = "SABOTAGE";
+    public const string Fraud = "FRAUD";
+    public const string Kidnapping = "KIDNAPPING";
+
+    public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
+    {
+        Random,
+        Murder,
+        MissingPerson,
+        Theft,
+        Sabotage,
+        Fraud,
+        Kidnapping
+    };
+
+    public static string Normalize(string? caseType) =>
+        string.IsNullOrWhiteSpace(caseType) || !All.Contains(caseType.Trim())
+            ? Random
+            : caseType.Trim().ToUpperInvariant();
 }
 
 public static class AiVisualStyleDefaults
@@ -40,6 +82,7 @@ public static class AiGenerationPresets
     public const string ShortDemo = "SHORT_DEMO";
     public const string PuzzleHeavy = "PUZZLE_HEAVY";
     public const string DialogueHeavy = "DIALOGUE_HEAVY";
+    public const string CrackTheLieV3 = "CRACK_THE_LIE_V3";
 
     public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -47,7 +90,8 @@ public static class AiGenerationPresets
         FullFeature,
         ShortDemo,
         PuzzleHeavy,
-        DialogueHeavy
+        DialogueHeavy,
+        CrackTheLieV3
     };
 
     public static string Normalize(string? preset) =>
@@ -60,6 +104,9 @@ public static class AiDraftStatus
 {
     public const string GeneratingStory = "GENERATING_STORY";
     public const string StoryAwaitingApproval = "STORY_AWAITING_APPROVAL";
+    public const string GeneratingCaseTruth = "GENERATING_CASE_TRUTH";
+    public const string CaseTruthAwaitingApproval = "CASE_TRUTH_AWAITING_APPROVAL";
+    public const string CaseTruthInvalid = "CASE_TRUTH_INVALID";
     public const string GeneratingFullCase = "GENERATING_FULL_CASE";
     public const string FullLogicAwaitingApproval = "FULL_LOGIC_AWAITING_APPROVAL";
     public const string OpenAiGeneratedValid = "OPENAI_GENERATED_VALID";
@@ -87,11 +134,43 @@ public static class AiFailurePhases
 {
     public const string None = "NONE";
     public const string StoryJson = "STORY_JSON";
+    public const string CaseTruth = "CASE_TRUTH";
+    public const string BlindSolvabilityReview = "BLIND_SOLVABILITY_REVIEW";
+    public const string BlueprintJson = "BLUEPRINT_JSON";
     public const string FullLogicJson = "FULL_LOGIC_JSON";
     public const string PreAssetValidation = "PRE_ASSET_VALIDATION";
     public const string SceneLayout = "SCENE_LAYOUT";
     public const string VisualQa = "VISUAL_QA";
     public const string FinalAssets = "FINAL_ASSETS";
+    public const string V3SemanticReview = "V3_SEMANTIC_REVIEW";
+}
+
+public static class AiV3SemanticReviewStatuses
+{
+    public const string NotRun = "NOT_RUN";
+    public const string Passed = "PASSED";
+    public const string Failed = "FAILED";
+    public const string Ambiguous = "AMBIGUOUS";
+}
+
+public static class AiV3SemanticReasonCodes
+{
+    public const string DirectNegation = "DIRECT_NEGATION";
+    public const string RelatedOnly = "RELATED_ONLY";
+    public const string ActorNotIdentified = "ACTOR_NOT_IDENTIFIED";
+    public const string ScopeMismatch = "SCOPE_MISMATCH";
+    public const string InferenceRequired = "INFERENCE_REQUIRED";
+    public const string Ambiguous = "AMBIGUOUS";
+
+    public static readonly HashSet<string> All = new(StringComparer.Ordinal)
+    {
+        DirectNegation,
+        RelatedOnly,
+        ActorNotIdentified,
+        ScopeMismatch,
+        InferenceRequired,
+        Ambiguous
+    };
 }
 
 public static class AiFailureCategories
@@ -102,6 +181,29 @@ public static class AiFailureCategories
     public const string SchemaError = "SCHEMA_ERROR";
     public const string SemanticError = "SEMANTIC_ERROR";
     public const string VisualSafetyError = "VISUAL_SAFETY_ERROR";
+}
+
+public static class AiQueueStates
+{
+    public const string None = "NONE";
+    public const string Pending = "PENDING";
+    public const string Running = "RUNNING";
+    public const string RetryScheduled = "RETRY_SCHEDULED";
+}
+
+public static class AiQueuedOperations
+{
+    public const string None = "NONE";
+    public const string StoryPreview = "STORY_PREVIEW";
+    public const string CaseTruth = "CASE_TRUTH";
+    public const string TruthRepair = "TRUTH_REPAIR";
+    public const string FullLogic = "FULL_LOGIC";
+    public const string SceneLayout = "SCENE_LAYOUT";
+    public const string FinalAssets = "FINAL_ASSETS";
+    public const string RetryJson = "RETRY_JSON";
+    public const string RegenerateAssets = "REGENERATE_ASSETS";
+    public const string RegenerateFailedAssets = "REGENERATE_FAILED_ASSETS";
+    public const string ImportPublish = "IMPORT_PUBLISH";
 }
 
 [BsonIgnoreExtraElements]
@@ -118,6 +220,35 @@ public class AiCaseDraft
     public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedByRole { get; set; } = string.Empty;
     public AiStoryPreview StoryPreview { get; set; } = new();
+    /// <summary>Server-owned non-spoiler diversity contract used before story generation.</summary>
+    public AiStoryDiversityProfile StoryDiversity { get; set; } = new();
+    /// <summary>SHA-256 of the normalized preview premise, used for duplicate diagnostics.</summary>
+    public string StoryFingerprint { get; set; } = string.Empty;
+    /// <summary>Missing/1 marks drafts created before the causal truth pipeline.</summary>
+    public int LogicContractVersion { get; set; } = CaseLogicContractVersions.LegacyThreeClaim;
+    public CaseTruthPackage? CaseTruth { get; set; }
+    public string CaseTruthJson { get; set; } = string.Empty;
+    public string TruthSchemaVersion { get; set; } = string.Empty;
+    public string TruthHash { get; set; } = string.Empty;
+    /// <summary>The last fully generated truth artifact saved before validation/review.</summary>
+    public string TruthCheckpointArtifact { get; set; } = string.Empty;
+    public CaseTruthFeasibilityReview TruthReviewerResult { get; set; } = new();
+    public List<string> TruthValidationReport { get; set; } = new();
+    public CaseTruthPackage? TruthRepairCandidate { get; set; }
+    public string TruthRepairCandidateJson { get; set; } = string.Empty;
+    public string TruthRepairStatus { get; set; } = AiRepairStatus.None;
+    public List<string> TruthRepairValidationReport { get; set; } = new();
+    public string TruthRepairInstructions { get; set; } = string.Empty;
+    public CaseTruthFeasibilityReview TruthRepairReviewerResult { get; set; } = new();
+    public BlindSolvabilityReview BlindSolvabilityReview { get; set; } = new();
+    public List<AiArtifactProvenance> ArtifactProvenance { get; set; } = new();
+    public AiCaseBlueprint? CaseBlueprint { get; set; }
+    public string BlueprintJson { get; set; } = string.Empty;
+    public string BlueprintSchemaVersion { get; set; } = string.Empty;
+    public string BlueprintHash { get; set; } = string.Empty;
+    public string CrackContractHash { get; set; } = string.Empty;
+    public List<string> BlueprintValidationErrors { get; set; } = new();
+    public AiV3SemanticReview V3SemanticReview { get; set; } = new();
     public AiAssetManifest AssetManifest { get; set; } = new();
     public string GeneratedJson { get; set; } = string.Empty;
     public string CaseId { get; set; } = string.Empty;
@@ -136,6 +267,14 @@ public class AiCaseDraft
     public string FailurePhase { get; set; } = AiFailurePhases.None;
     public List<string> FailedAssetIds { get; set; } = new();
     public List<AiGenerationAttempt> GenerationAttempts { get; set; } = new();
+    /// <summary>CAS token for every authoritative workflow transition.</summary>
+    public long WorkflowVersion { get; set; }
+    public string QueuedOperation { get; set; } = AiQueuedOperations.None;
+    public string QueueState { get; set; } = AiQueueStates.None;
+    public string GenerationInputHash { get; set; } = string.Empty;
+    public DateTime? NextAttemptAt { get; set; }
+    public string LastGenerationErrorCode { get; set; } = string.Empty;
+    public int QueueAttemptCount { get; set; }
     /// <summary>Identifies the single generation run that atomically claimed this draft.</summary>
     public string GenerationRunId { get; set; } = string.Empty;
     public string GenerationPhase { get; set; } = string.Empty;
@@ -156,6 +295,57 @@ public class AiDraftSettings
     public string GenerationMode { get; set; } = CaseGenerationModes.CameraEmbedded;
     public string GenerationPreset { get; set; } = AiGenerationPresets.NormalRandom;
     public string Language { get; set; } = CaseLanguages.English;
+    public int MechanicsVersion { get; set; } = CaseMechanicsVersions.InvestigationV2;
+    public bool IncludeCrackTheLie { get; set; }
+    /// <summary>Requested crime archetype. RANDOM lets the server select a concrete type per draft.</summary>
+    public string CaseType { get; set; } = AiCaseTypes.Random;
+}
+
+[BsonIgnoreExtraElements]
+public class AiStoryDiversityProfile
+{
+    public string Seed { get; set; } = string.Empty;
+    public string RequestedCaseType { get; set; } = AiCaseTypes.Random;
+    public string CaseType { get; set; } = string.Empty;
+    public string SettingArchetype { get; set; } = string.Empty;
+    public string EraFlavor { get; set; } = string.Empty;
+    public string IncidentPattern { get; set; } = string.Empty;
+    public string EvidenceMotif { get; set; } = string.Empty;
+    public string CulpritRelationship { get; set; } = string.Empty;
+    public string MotiveArchetype { get; set; } = string.Empty;
+    public string MethodArchetype { get; set; } = string.Empty;
+    public string TwistArchetype { get; set; } = string.Empty;
+    public string InvestigationMechanic { get; set; } = string.Empty;
+    public string CoreFingerprint { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class AiV3SemanticReview
+{
+    public string Status { get; set; } = AiV3SemanticReviewStatuses.NotRun;
+    public string SchemaVersion { get; set; } = AiGenerationSchemaVersions.V3SemanticReview;
+    public List<AiV3PairEvaluation> PairEvaluations { get; set; } = new();
+    public List<AiV3CrackReview> Cracks { get; set; } = new();
+    public DateTime? ReviewedAt { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class AiV3CrackReview
+{
+    public string ChallengeId { get; set; } = string.Empty;
+    public int ExpectedPairCount { get; set; }
+    public List<AiV3PairEvaluation> PairEvaluations { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class AiV3PairEvaluation
+{
+    public string EvidenceId { get; set; } = string.Empty;
+    public string TestimonyFragmentId { get; set; } = string.Empty;
+    public bool IsValidContradiction { get; set; }
+    public string ReasonCode { get; set; } = AiV3SemanticReasonCodes.Ambiguous;
+    public string Reason { get; set; } = string.Empty;
+    public double Confidence { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -211,6 +401,7 @@ public class AiPlannedCall
     public string Type { get; set; } = string.Empty;
     public bool WouldCallApi { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public string GenerationRunId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -242,6 +433,7 @@ public class AiGenerationAttempt
     public string SchemaVersion { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string FailureCategory { get; set; } = string.Empty;
+    public string GenerationRunId { get; set; } = string.Empty;
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }
     public string ResponseSha256 { get; set; } = string.Empty;

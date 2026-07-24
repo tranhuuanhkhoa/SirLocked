@@ -2,9 +2,11 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Interfaces;
 using Xunit;
 
 namespace SirLocked.Tests;
@@ -47,6 +49,7 @@ public class AiRequestValidationTests
         Assert.Equal(AiGenerationPresets.NormalRandom, request.GenerationPreset);
         Assert.Equal(AiGenerationPresets.NormalRandom, settings.GenerationPreset);
         Assert.Equal(AiGenerationPresets.FullFeature, AiGenerationPresets.Normalize("full_feature"));
+        Assert.Equal(AiGenerationPresets.CrackTheLieV3, AiGenerationPresets.Normalize("crack_the_lie_v3"));
         Assert.Equal(AiGenerationPresets.NormalRandom, AiGenerationPresets.Normalize("unknown"));
         Assert.Equal(CaseGenerationModes.CameraEmbedded, settings.GenerationMode);
     }
@@ -73,6 +76,125 @@ public class AiRequestValidationTests
 
         Assert.False(valid);
         Assert.Contains(results, result => result.MemberNames.Contains(nameof(GenerateAiCaseRequest.Language)));
+    }
+
+    [Theory]
+    [InlineData("RANDOM", "RANDOM")]
+    [InlineData("murder", "MURDER")]
+    [InlineData("missing_person", "MISSING_PERSON")]
+    [InlineData("unknown", "RANDOM")]
+    [InlineData(null, "RANDOM")]
+    public void CaseType_NormalizesWithRandomFallback(string? input, string expected)
+    {
+        Assert.Equal(expected, AiCaseTypes.Normalize(input));
+    }
+
+    [Fact]
+    public void GenerateRequest_RejectsUnsupportedCaseType()
+    {
+        var request = new GenerateAiCaseRequest { CaseType = "ALIEN_INVASION" };
+        var results = new List<ValidationResult>();
+
+        var valid = Validator.TryValidateObject(request, new ValidationContext(request), results, validateAllProperties: true);
+
+        Assert.False(valid);
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(GenerateAiCaseRequest.CaseType)));
+    }
+
+    [Fact]
+    public void DiversityProfile_IsStableForSeedAndDistinctFromRecentStructure()
+    {
+        var first = AiStoryDiversityPolicy.Create(AiCaseTypes.Random, "draft-seed-001");
+        var replay = AiStoryDiversityPolicy.Create(AiCaseTypes.Random, "draft-seed-001");
+        var second = AiStoryDiversityPolicy.CreateDistinct(
+            AiCaseTypes.Random,
+            "draft-seed-002",
+            [first]);
+
+        Assert.Equal(first.CoreFingerprint, replay.CoreFingerprint);
+        Assert.Equal(first.CaseType, replay.CaseType);
+        Assert.Equal(64, first.CoreFingerprint.Length);
+        Assert.True(
+            AiStoryDiversityPolicy.StructuralSimilarity(first, second)
+            < AiStoryDiversityPolicy.StructuralDuplicateThreshold);
+    }
+
+    [Fact]
+    public void DuplicatePolicy_RecognizesRepeatedPremiseAndProducesPreviewFingerprint()
+    {
+        var existing = new AiStoryPreview
+        {
+            Title = "Bí Ẩn Chiếc Chuông Câm",
+            Setting = "Nhà ga Blackglass",
+            OpeningIncident = "Chiếc chuông vang lên sau giờ đóng cửa.",
+            Summary = "Hai điều tra viên phải dựng lại mốc thời gian."
+        };
+        var repeated = new AiStoryPreview
+        {
+            Title = "BÍ ẨN CHIẾC CHUÔNG CÂM",
+            Setting = "Một nhà ga khác",
+            OpeningIncident = "Một sự cố khác.",
+            Summary = "Một phần mô tả mới."
+        };
+
+        Assert.True(AiStoryDiversityPolicy.IsNearDuplicate(existing, repeated));
+        Assert.Equal(64, AiStoryDiversityPolicy.ComputeFingerprint(existing).Length);
+    }
+
+    [Fact]
+    public void StoryPreviewPrompt_ContainsLockedProfileAndStructuredHistory()
+    {
+        var request = new GenerateAiCaseRequest
+        {
+            CaseType = AiCaseTypes.Fraud,
+            Language = "vi",
+            GenerationPreset = AiGenerationPresets.ShortDemo
+        };
+        var profile = AiStoryDiversityPolicy.Create(request.CaseType, "draft-seed-current");
+        var previousProfile = AiStoryDiversityPolicy.Create(AiCaseTypes.Theft, "draft-seed-previous");
+        var history = new List<AiStoryHistoryEntry>
+        {
+            new()
+            {
+                Preview = new AiStoryPreview { Title = "The Silent Bell" },
+                Diversity = previousProfile,
+                StoryFingerprint = "old"
+            }
+        };
+
+        var prompt = AiCaseService.BuildStoryPreviewPrompt(request, profile, history);
+
+        Assert.Contains("Concrete case type: FRAUD", prompt, StringComparison.Ordinal);
+        Assert.Contains("Diversity seed: draft-seed-current", prompt, StringComparison.Ordinal);
+        Assert.Contains("The Silent Bell", prompt, StringComparison.Ordinal);
+        Assert.Contains(previousProfile.MethodArchetype, prompt, StringComparison.Ordinal);
+        Assert.Contains("Do not reuse or lightly reskin", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DraftListResponse_ExposesDiversityIdentityWithoutSpoilerAxes()
+    {
+        var draft = new AiCaseDraft
+        {
+            StoryDiversity = new AiStoryDiversityProfile
+            {
+                Seed = "draft-seed",
+                RequestedCaseType = AiCaseTypes.Random,
+                CaseType = AiCaseTypes.Murder,
+                CoreFingerprint = new string('a', 64),
+                MotiveArchetype = "secret motive",
+                MethodArchetype = "secret method",
+                TwistArchetype = "secret twist"
+            }
+        };
+
+        var response = AiDraftResponse.From(draft, includeJson: false);
+
+        Assert.Equal(AiCaseTypes.Murder, response.StoryDiversity.CaseType);
+        Assert.Equal("draft-seed", response.StoryDiversity.Seed);
+        Assert.Empty(response.StoryDiversity.MotiveArchetype);
+        Assert.Empty(response.StoryDiversity.MethodArchetype);
+        Assert.Empty(response.StoryDiversity.TwistArchetype);
     }
 
     [Fact]
@@ -138,6 +260,218 @@ public class AiRequestValidationTests
     }
 
     [Fact]
+    public void TruthStageSchemas_ConstrainCanonicalProofReferences()
+    {
+        var traceSchema = AiStrictSchemaProvider.TraceLedgerSchema();
+        var traceLedger = traceSchema["properties"]!["traceLedger"]!;
+        var traceReferences = traceLedger["items"]!["properties"]!["supportsConclusionIds"]!;
+        var allowedTraceIds = traceReferences["items"]!["enum"]!.AsArray()
+            .Select(item => item!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+
+        var proofSchema = AiStrictSchemaProvider.ProofGraphSchema();
+        var conclusions = proofSchema["properties"]!["proofGraph"]!["properties"]!["conclusions"]!;
+        var conclusionProperties = conclusions["items"]!["properties"]!;
+        var allowedConclusionIds = conclusionProperties["conclusionId"]!["enum"]!.AsArray()
+            .Select(item => item!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(1, traceReferences["minItems"]!.GetValue<int>());
+        Assert.Equal(2, traceReferences["maxItems"]!.GetValue<int>());
+        Assert.Equal(CaseTruthScopeLimits.MaxTraceEntries, traceLedger["maxItems"]!.GetValue<int>());
+        Assert.True(ProofConclusionIds.All.SetEquals(allowedTraceIds));
+        Assert.Equal(ProofConclusionIds.ByCategory.Count, conclusions["minItems"]!.GetValue<int>());
+        Assert.Equal(ProofConclusionIds.ByCategory.Count, conclusions["maxItems"]!.GetValue<int>());
+        Assert.True(ProofConclusionIds.All.SetEquals(allowedConclusionIds));
+    }
+
+    [Fact]
+    public void TruthStageSchemas_LockEveryUpstreamReferenceNamespace()
+    {
+        var budget = AiTruthGenerationBudget.For(AiGenerationPresets.ShortDemo, 2);
+        var suspects = new[] { "suspect-b", "suspect-a" };
+        var actors = new[] { "suspect-a", "suspect-b", "target" };
+        var locations = new[] { "location-a", "location-b" };
+        var events = new[] { "action-core", "event-alibi" };
+        var traces = new[] { "trace-a", "trace-b" };
+        var statements = new[] { "statement-a", "statement-b" };
+
+        var core = AiStrictSchemaProvider.CoreTruthSchema(budget, suspects);
+        var coreProperties = core["properties"]!["coreTruth"]!["properties"]!;
+        Assert.Equal(suspects.ToHashSet(StringComparer.Ordinal), EnumValues(coreProperties["culpritId"]!));
+        Assert.Equal(1, coreProperties["crimeActionIds"]!["minItems"]!.GetValue<int>());
+        Assert.Equal(budget.MaxTimelineEvents,
+            coreProperties["crimeActionIds"]!["maxItems"]!.GetValue<int>());
+
+        var timeline = AiStrictSchemaProvider.TrueTimelineSchema(budget, suspects, "target", locations);
+        var timelineProperties = timeline["properties"]!["trueTimeline"]!["items"]!["properties"]!;
+        Assert.Equal(actors.ToHashSet(StringComparer.Ordinal), EnumValues(timelineProperties["actorId"]!));
+        Assert.Equal(actors.ToHashSet(StringComparer.Ordinal), EnumValues(timelineProperties["witnessIds"]!["items"]!));
+        Assert.Equal(locations.ToHashSet(StringComparer.Ordinal), EnumValues(timelineProperties["locationId"]!));
+        Assert.Equal(2, timelineProperties["traceIds"]!["maxItems"]!.GetValue<int>());
+        Assert.Null(timelineProperties["eventId"]!["enum"]);
+
+        var opportunity = AiStrictSchemaProvider.OpportunityMatrixSchema(budget, suspects, events);
+        var opportunityProperties = opportunity["properties"]!["opportunityMatrix"]!["items"]!["properties"]!;
+        Assert.Equal(suspects.ToHashSet(StringComparer.Ordinal), EnumValues(opportunityProperties["characterId"]!));
+        Assert.Equal(events.ToHashSet(StringComparer.Ordinal), EnumValues(opportunityProperties["alibiEventIds"]!["items"]!));
+
+        var trace = AiStrictSchemaProvider.TraceLedgerSchema(budget, events, traces);
+        var traceLedger = trace["properties"]!["traceLedger"]!;
+        var traceProperties = traceLedger["items"]!["properties"]!;
+        Assert.Equal(traces.Length, traceLedger["minItems"]!.GetValue<int>());
+        Assert.Equal(traces.Length, traceLedger["maxItems"]!.GetValue<int>());
+        Assert.Equal(traces.ToHashSet(StringComparer.Ordinal), EnumValues(traceProperties["traceId"]!));
+        Assert.Equal(events.ToHashSet(StringComparer.Ordinal), EnumValues(traceProperties["sourceActionId"]!));
+
+        var statement = AiStrictSchemaProvider.StatementLedgerSchema(budget, actors, events, traces);
+        var statementProperties = statement["properties"]!["statementLedger"]!["items"]!["properties"]!;
+        Assert.Equal(actors.ToHashSet(StringComparer.Ordinal), EnumValues(statementProperties["speakerId"]!));
+        Assert.Equal(events.ToHashSet(StringComparer.Ordinal), EnumValues(statementProperties["eventIds"]!["items"]!));
+        Assert.Equal(traces.ToHashSet(StringComparer.Ordinal), EnumValues(statementProperties["contradictedByTraceIds"]!["items"]!));
+
+        var proof = AiStrictSchemaProvider.ProofGraphSchema(budget, suspects, traces, statements);
+        var conclusionProperties = proof["properties"]!["proofGraph"]!["properties"]!["conclusions"]!
+            ["items"]!["properties"]!;
+        var redHerringProperties = proof["properties"]!["redHerringLedger"]!["items"]!["properties"]!;
+        Assert.Equal(traces.ToHashSet(StringComparer.Ordinal), EnumValues(conclusionProperties["supportingTraceIds"]!["items"]!));
+        Assert.Equal(statements.ToHashSet(StringComparer.Ordinal), EnumValues(conclusionProperties["supportingStatementIds"]!["items"]!));
+        Assert.Equal(suspects.ToHashSet(StringComparer.Ordinal), EnumValues(conclusionProperties["excludesSuspectIds"]!["items"]!));
+        Assert.Equal(suspects.ToHashSet(StringComparer.Ordinal), EnumValues(redHerringProperties["suspectId"]!));
+        Assert.Equal(traces.ToHashSet(StringComparer.Ordinal), EnumValues(redHerringProperties["clearingTraceIds"]!["items"]!));
+        Assert.Equal(statements.ToHashSet(StringComparer.Ordinal), EnumValues(redHerringProperties["clearingStatementIds"]!["items"]!));
+    }
+
+    [Fact]
+    public void TruthStageSchemas_RejectEmptyMandatoryUpstreamEnums()
+    {
+        var budget = AiTruthGenerationBudget.For(AiGenerationPresets.ShortDemo, 2);
+
+        Assert.Throws<ArgumentException>(() =>
+            AiStrictSchemaProvider.TraceLedgerSchema(budget, new[] { "event-a" }, Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() =>
+            AiStrictSchemaProvider.OpportunityMatrixSchema(budget, new[] { "suspect-a" }, Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() =>
+            AiStrictSchemaProvider.ProofGraphSchema(budget, new[] { "suspect-a" }, new[] { "trace-a" }, Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void TruthEvidenceStage_HasExpandedBudgetAndOneBoundedIncompleteRetry()
+    {
+        var initial = AiCaseService.TruthStageMaxOutputTokens(AiGenerationSchemaVersions.TraceLedger);
+        var retry = AiCaseService.TruthStageRetryMaxOutputTokens(AiGenerationSchemaVersions.TraceLedger);
+        var retryPrompt = AiCaseService.BuildIncompleteTruthRetryPrompt("LOCKED INPUT", AiGenerationSchemaVersions.TraceLedger);
+
+        Assert.Equal(18000, initial);
+        Assert.True(retry > initial);
+        Assert.True(retry <= 32000);
+        Assert.Contains("max_output_tokens", retryPrompt, StringComparison.Ordinal);
+        Assert.Contains("at most 24 words", retryPrompt, StringComparison.Ordinal);
+        Assert.Contains("Return every required array entry exactly once", retryPrompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TruthCheckpoint_ResumesAtTheNextArtifact()
+    {
+        Assert.Equal(CaseTruthArtifacts.Evidence,
+            AiCaseService.NextTruthArtifact(CaseTruthArtifacts.Opportunity));
+        Assert.Equal(CaseTruthArtifacts.Statements,
+            AiCaseService.NextTruthArtifact(CaseTruthArtifacts.Evidence));
+        Assert.Null(AiCaseService.NextTruthArtifact(CaseTruthArtifacts.ProofGraph));
+        Assert.Null(AiCaseService.NextTruthArtifact(string.Empty));
+    }
+
+    [Fact]
+    public void V3StrictSchemaAddsFragmentsAndCandidateListsWithoutChangingV2Schema()
+    {
+        var v2 = AiStrictSchemaProvider.CaseLogicSchema(CaseMechanicsVersions.InvestigationV2).ToJsonString();
+        var v3 = AiStrictSchemaProvider.CaseLogicSchema(CaseMechanicsVersions.InvestigationV3PairedConfrontation).ToJsonString();
+
+        Assert.DoesNotContain("testimonyFragments", v2, StringComparison.Ordinal);
+        Assert.DoesNotContain("candidateEvidenceIds", v2, StringComparison.Ordinal);
+        Assert.DoesNotContain("candidateTestimonyFragmentIds", v2, StringComparison.Ordinal);
+        Assert.Contains("testimonyFragments", v3, StringComparison.Ordinal);
+        Assert.Contains("candidateEvidenceIds", v3, StringComparison.Ordinal);
+        Assert.Contains("candidateTestimonyFragmentIds", v3, StringComparison.Ordinal);
+        Assert.DoesNotContain("mechanicsVersion", v3, StringComparison.Ordinal);
+        Assert.DoesNotContain("generationPreset", v3, StringComparison.Ordinal);
+        Assert.DoesNotContain("runtime", v3, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void V3GenerationContractIsFixedToOneCrackLoop()
+    {
+        var contract = AiGenerationContract.For(AiGenerationPresets.CrackTheLieV3, 6);
+
+        Assert.Equal(1, contract.MinStages);
+        Assert.Equal(1, contract.MaxStages);
+        Assert.Equal(1, contract.MinScenes);
+        Assert.Equal(1, contract.MaxScenes);
+        Assert.Equal(4, contract.MinClues);
+        Assert.Equal(4, contract.MaxClues);
+        Assert.Equal(1, contract.EvidenceChallenges);
+        Assert.Equal(0, contract.Deductions);
+        Assert.Equal(0, contract.TeamworkChains);
+        Assert.Equal(0, contract.MaxPuzzles);
+        Assert.Equal(0, contract.MaxInteractions);
+    }
+
+    [Fact]
+    public void V3PromptLocksTopologyAndDoesNotAskModelForServerOwnedFields()
+    {
+        var draft = new AiCaseDraft
+        {
+            Prompt = "A compact archive contradiction.",
+            Settings = new AiDraftSettings
+            {
+                StageCount = 1,
+                MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+                GenerationMode = CaseGenerationModes.PlacementFirst,
+                GenerationPreset = AiGenerationPresets.CrackTheLieV3
+            },
+            StoryPreview = new AiStoryPreview { Title = "The Resealed Packet", Summary = "A clerk's account conflicts with a physical trace." }
+        };
+
+        var prompt = AiCaseService.BuildFullCasePrompt(draft, null, null);
+
+        Assert.Contains("Exactly one stage containing exactly one scene", prompt, StringComparison.Ordinal);
+        Assert.Contains("two CUTOUT evidence items", prompt, StringComparison.Ordinal);
+        Assert.Contains("exactly one CAMERA_CAPTURE evidence", prompt, StringComparison.Ordinal);
+        Assert.Contains("exactly two ITEM_INSPECT evidence", prompt, StringComparison.Ordinal);
+        Assert.Contains("successful camera capture", prompt, StringComparison.Ordinal);
+        Assert.Contains("Exactly one of the nine", prompt, StringComparison.Ordinal);
+        Assert.Contains("subject-neutral", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Movement, ownership", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("silently audit all nine pairs", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Never output mechanicsVersion", prompt, StringComparison.Ordinal);
+        Assert.Contains("candidateTestimonyFragmentIds", prompt, StringComparison.Ordinal);
+        Assert.Contains("correct evidence may be camera- or item-acquired", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Preserve every visually observable story state", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("empty, missing, removed", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("asset-layer rule", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void V3SemanticReviewerPromptIsBlindToTheAuthoredAnswer()
+    {
+        var gameCase = AiCaseMockFactory.CreateMockV3GeneratedLogic().ToGameCase(new AiDraftSettings
+        {
+            StageCount = 1,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            GenerationMode = CaseGenerationModes.PlacementFirst,
+            GenerationPreset = AiGenerationPresets.CrackTheLieV3
+        });
+
+        var prompt = AiV3SemanticReviewPolicy.BuildPrompt(gameCase);
+
+        Assert.Contains("not told the authored answer", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("every Cartesian-product pair exactly once", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Entity alignment", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("object moved does NOT disprove", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("If either side still allows the testimony to be true", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("correctEvidenceId", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("authored correct", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ShortDemoContract_IsCompactAndInternallyConsistent()
     {
         var contract = AiGenerationContract.For(AiGenerationPresets.ShortDemo, 2);
@@ -146,8 +480,44 @@ public class AiRequestValidationTests
         Assert.Equal(6, contract.MinClues);
         Assert.Equal(8, contract.MaxClues);
         Assert.Equal(2, contract.EvidenceChallenges);
+        Assert.Equal(1, contract.MinPuzzles);
+        Assert.Equal(1, contract.MaxPuzzles);
+        Assert.Equal(1, contract.MinInteractions);
+        Assert.Equal(1, contract.MaxInteractions);
         Assert.Contains("clues 6-8", prompt, StringComparison.Ordinal);
+        Assert.Contains("puzzles 1-1", prompt, StringComparison.Ordinal);
+        Assert.Contains("interactions 1-1", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("10-12", prompt, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(AiGenerationPresets.ShortDemo, 1, 1)]
+    [InlineData(AiGenerationPresets.NormalRandom, 1, 2)]
+    [InlineData(AiGenerationPresets.PuzzleHeavy, 1, 2)]
+    [InlineData(AiGenerationPresets.DialogueHeavy, 1, 2)]
+    [InlineData(AiGenerationPresets.FullFeature, 2, 3)]
+    public void IncludeCrackTheLie_PreservesSelectedV2PresetAndAddsItsCrackBudget(
+        string preset,
+        int minimumCracks,
+        int maximumCracks)
+    {
+        var baseContract = AiGenerationContract.For(preset, preset == AiGenerationPresets.FullFeature ? 6 : 4);
+        var settings = new AiDraftSettings
+        {
+            GenerationPreset = preset,
+            StageCount = baseContract.MinStages,
+            IncludeCrackTheLie = true,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation
+        };
+
+        var additive = AiGenerationContract.For(settings);
+
+        Assert.Equal(baseContract.MinStages, additive.MinStages);
+        Assert.Equal(baseContract.MaxStages, additive.MaxStages);
+        Assert.Equal(baseContract.Deductions, additive.Deductions);
+        Assert.Equal(baseContract.TeamworkChains, additive.TeamworkChains);
+        Assert.Equal(minimumCracks, additive.EvidenceChallenges);
+        Assert.Equal(maximumCracks, additive.MaxEvidenceChallenges);
     }
 
     [Theory]
@@ -199,6 +569,8 @@ public class AiRequestValidationTests
         Assert.Contains("Glass Meridian v3 composition", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("naturally embedded camera clues", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Never use composition words", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("every visually observable story state", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("empty, missing, removed", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("zero camera clues", prompt, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -305,6 +677,271 @@ public class AiRequestValidationTests
         Assert.Contains("one continuous full-room composition", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Do not render NPCs or CUTOUT items", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Never enlarge a clue", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BackgroundAndPlacementQaPrompts_ShareAuthoritativeEmptySceneState()
+    {
+        var scene = new CaseScene
+        {
+            SceneId = "scene-empty-gallery",
+            Title = "Phòng trưng bày",
+            Description = "Tủ kính giữa phòng đã trống không, nhưng ổ khóa vẫn nguyên vẹn.",
+            VisualDescription = "A timber exhibition hall with a central glass display enclosure and warm brass lanterns.",
+            ItemIds = { "item-maintenance-dial" }
+        };
+        var gameCase = new GameCase
+        {
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            Stages = { new CaseStage { StageId = "stage-1", Scenes = { scene } } },
+            Items =
+            {
+                new CaseItem
+                {
+                    ItemId = "item-maintenance-dial",
+                    VisualDescription = "A fixed brass three-ring maintenance dial beneath the display plinth.",
+                    RenderMode = CaseItemRenderModes.Embedded,
+                    InteractionPurpose = CaseItemInteractionPurposes.OperateMechanism,
+                    IsCollectible = false
+                }
+            },
+            Clues =
+            {
+                new CaseClue
+                {
+                    ClueId = "clue-wheel-tracks",
+                    SceneId = scene.SceneId,
+                    Source = scene.SceneId,
+                    SourceType = "camera",
+                    DiscoverMethod = "camera",
+                    VisualDescription = "Two oily wheel tracks cross the threshold over fresh silver firework ash."
+                }
+            }
+        };
+
+        var backgroundPrompt = AiCaseService.BuildBackgroundImagePrompt(new AiCaseDraft(), gameCase, scene);
+        var qaPrompt = AiCaseService.BuildPlacementPlanPrompt(gameCase, scene, null, null);
+
+        foreach (var prompt in new[] { backgroundPrompt, qaPrompt })
+        {
+            Assert.Contains("CANONICAL SCENE VISUAL CONTRACT", prompt, StringComparison.Ordinal);
+            Assert.Contains(scene.Description, prompt, StringComparison.Ordinal);
+            Assert.Contains(scene.VisualDescription, prompt, StringComparison.Ordinal);
+            Assert.Contains("item-maintenance-dial", prompt, StringComparison.Ordinal);
+            Assert.Contains("clue-wheel-tracks", prompt, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("Never fill an explicitly empty", backgroundPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("invented object inside an explicitly empty", qaPrompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BackgroundAndPlacementPrompts_ExplicitlyExcludeDeferredCutoutMentionedInStory()
+    {
+        const string redThreadName = "S\u1ee3i ch\u1ec9 \u0111\u1ecf";
+        var scene = new CaseScene
+        {
+            SceneId = "scene-gallery",
+            Title = "Silent Bell Gallery",
+            Description = $"The locked glass display is visibly empty; {redThreadName} lies beside a rain puddle.",
+            VisualDescription = "A dark stone gallery with an empty locked glass display, a rain puddle and a maintenance seam.",
+            ItemIds = { "item-red-thread", "item-maintenance-seam" }
+        };
+        var gameCase = new GameCase
+        {
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            Stages = { new CaseStage { StageId = "stage-1", Scenes = { scene } } },
+            Items =
+            {
+                new CaseItem
+                {
+                    ItemId = "item-red-thread",
+                    Name = redThreadName,
+                    VisualDescription = "A short loop of wet scarlet thread marked with black cable grease.",
+                    RenderMode = CaseItemRenderModes.Cutout
+                },
+                new CaseItem
+                {
+                    ItemId = "item-maintenance-seam",
+                    Name = "Maintenance seam",
+                    VisualDescription = "A narrow maintenance seam beneath the display plinth.",
+                    RenderMode = CaseItemRenderModes.Embedded,
+                    InteractionPurpose = CaseItemInteractionPurposes.OperateMechanism
+                }
+            },
+            Clues =
+            {
+                new CaseClue
+                {
+                    ClueId = "clue-empty-display-lock",
+                    SceneId = scene.SceneId,
+                    Source = scene.SceneId,
+                    SourceType = "camera",
+                    DiscoverMethod = "camera",
+                    VisualDescription = "An intact brass lock centered on the visibly empty glass display."
+                }
+            }
+        };
+
+        var visualContract = AiCaseService.BuildSceneVisualContract(gameCase, scene);
+        var backgroundPrompt = AiCaseService.BuildBackgroundImagePrompt(new AiCaseDraft(), gameCase, scene);
+        var qaPrompt = AiCaseService.BuildPlacementPlanPrompt(gameCase, scene, null, null);
+
+        var deferred = Assert.Single(visualContract.DeferredCutouts);
+        Assert.Equal("item-red-thread", deferred.ItemId);
+        Assert.Contains(scene.Description, backgroundPrompt, StringComparison.Ordinal);
+        Assert.Contains("item-red-thread", backgroundPrompt, StringComparison.Ordinal);
+        Assert.Contains(redThreadName, backgroundPrompt, StringComparison.Ordinal);
+        Assert.Contains("MUST BE ABSENT", backgroundPrompt, StringComparison.Ordinal);
+        Assert.Contains("leave its intended placement empty", backgroundPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("item-maintenance-seam", backgroundPrompt, StringComparison.Ordinal);
+        Assert.Contains("clue-empty-display-lock", backgroundPrompt, StringComparison.Ordinal);
+        Assert.Contains("item-red-thread", qaPrompt, StringComparison.Ordinal);
+        Assert.Contains("every listed CUTOUT must still be absent", qaPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("unexpectedCutoutItemIds", qaPrompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BackgroundQaRetry_UsesStructuredCorrectionsWithoutBooleanDump()
+    {
+        var scene = new CaseScene
+        {
+            SceneId = "scene-empty-gallery",
+            Title = "Phòng trưng bày",
+            Description = "Tủ kính giữa phòng đã trống không.",
+            VisualDescription = "A timber exhibition hall with a central glass display enclosure."
+        };
+        var gameCase = new GameCase
+        {
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            Stages = { new CaseStage { StageId = "stage-1", Scenes = { scene } } }
+        };
+        const string qaJson = """
+        {
+          "backgroundQa": {
+            "pixelArtMatch": true,
+            "prohibitedTextFound": false,
+            "prohibitedUiFound": false,
+            "duplicateEmbeddedTargetFound": false,
+            "unexpectedForegroundContentFound": false,
+            "sceneMatch": false,
+            "notes": "The central glass case contains a large rocket exhibit, but the case must be empty."
+          }
+        }
+        """;
+
+        var qaResult = AiCaseService.ParseBackgroundQa(qaJson);
+        var retryPrompt = AiCaseService.BuildBackgroundRetryPrompt(new AiCaseDraft(), gameCase, scene, qaResult);
+
+        Assert.False(qaResult.Passed);
+        Assert.Contains("MANDATORY VISUAL QA CORRECTION", retryPrompt, StringComparison.Ordinal);
+        Assert.Contains("large rocket exhibit", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(scene.Description, retryPrompt, StringComparison.Ordinal);
+        Assert.Contains("Do not fill any explicitly empty", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("sceneMatch=False", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pixelArtMatch=True", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("prohibitedTextFound=False", retryPrompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BackgroundQaRetry_TargetsDetectedCutoutWithoutQaBooleanDump()
+    {
+        const string redThreadName = "S\u1ee3i ch\u1ec9 \u0111\u1ecf";
+        var scene = new CaseScene
+        {
+            SceneId = "scene-gallery",
+            Title = "Silent Bell Gallery",
+            Description = $"The locked glass display is empty; {redThreadName} lies beside the puddle.",
+            VisualDescription = "A dark stone gallery with an empty locked glass display and a rain puddle.",
+            ItemIds = { "item-red-thread" }
+        };
+        var gameCase = new GameCase
+        {
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            Stages = { new CaseStage { StageId = "stage-1", Scenes = { scene } } },
+            Items =
+            {
+                new CaseItem
+                {
+                    ItemId = "item-red-thread",
+                    Name = redThreadName,
+                    VisualDescription = "A short loop of wet scarlet thread marked with black cable grease.",
+                    RenderMode = CaseItemRenderModes.Cutout
+                }
+            }
+        };
+        const string qaJson = """
+        {
+          "backgroundQa": {
+            "pixelArtMatch": true,
+            "prohibitedTextFound": false,
+            "prohibitedUiFound": false,
+            "duplicateEmbeddedTargetFound": false,
+            "unexpectedForegroundContentFound": true,
+            "unexpectedCutoutItemIds": ["item-red-thread"],
+            "sceneMatch": true,
+            "notes": "The room geometry is otherwise correct, but the deferred item is baked into the background."
+          }
+        }
+        """;
+
+        var qaResult = AiCaseService.ParseBackgroundQa(qaJson);
+        var retryPrompt = AiCaseService.BuildBackgroundRetryPrompt(new AiCaseDraft(), gameCase, scene, qaResult);
+
+        Assert.False(qaResult.Passed);
+        Assert.Equal(new[] { "item-red-thread" }, qaResult.UnexpectedCutoutItemIds);
+        Assert.Contains("Remove deferred CUTOUT item-red-thread", retryPrompt, StringComparison.Ordinal);
+        Assert.Contains(redThreadName, retryPrompt, StringComparison.Ordinal);
+        Assert.Contains("leave that placement empty for runtime compositing", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Apply the relevant QA correction", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pixelArtMatch=True", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("prohibitedTextFound=False", retryPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Remove every readable", retryPrompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BackgroundQaRetry_ForegroundWithoutIdsForbidsEveryDeferredCutout()
+    {
+        var scene = new CaseScene
+        {
+            SceneId = "scene-gallery",
+            Description = "A red thread lies beside the empty display.",
+            VisualDescription = "A stone gallery with an empty display.",
+            ItemIds = { "item-red-thread" }
+        };
+        var gameCase = new GameCase
+        {
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            Stages = { new CaseStage { StageId = "stage-1", Scenes = { scene } } },
+            Items =
+            {
+                new CaseItem
+                {
+                    ItemId = "item-red-thread",
+                    Name = "Red thread",
+                    VisualDescription = "A short loop of wet scarlet thread.",
+                    RenderMode = CaseItemRenderModes.Cutout
+                }
+            }
+        };
+        const string legacyQaJson = """
+        {
+          "backgroundQa": {
+            "pixelArtMatch": true,
+            "prohibitedTextFound": false,
+            "prohibitedUiFound": false,
+            "duplicateEmbeddedTargetFound": false,
+            "unexpectedForegroundContentFound": true,
+            "sceneMatch": true,
+            "notes": "A portable foreground prop is baked into the background."
+          }
+        }
+        """;
+
+        var qaResult = AiCaseService.ParseBackgroundQa(legacyQaJson);
+        var retryPrompt = AiCaseService.BuildBackgroundRetryPrompt(new AiCaseDraft(), gameCase, scene, qaResult);
+
+        Assert.Contains("Remove deferred CUTOUT item-red-thread", retryPrompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -448,4 +1085,8 @@ public class AiRequestValidationTests
         var nonCamera = contract.Validate(gameCase, settings);
         Assert.Contains(nonCamera.Errors, error => error.Code == "InvalidVisualTextPolicy" && error.RefId == clue.ClueId);
     }
+
+    private static HashSet<string> EnumValues(JsonNode schema) =>
+        schema["enum"]!.AsArray().Select(item => item!.GetValue<string>())
+            .ToHashSet(StringComparer.Ordinal);
 }

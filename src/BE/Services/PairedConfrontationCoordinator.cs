@@ -58,6 +58,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
             RequireRole(context.Player, PlayerRole.Interrogator);
             var (fragment, challenge) = RequireOwnedTestimony(context, user.Id, request.TestimonyFragmentId);
             RequireUnresolved(context.Room.GameplayState!, challenge.ChallengeId);
+            RequireGeneratedPresetReady(context, challenge);
             return PairedConfrontationRules.Start(
                 context.Room.GameplayState!,
                 request.AttemptId,
@@ -100,7 +101,11 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         ExecuteAsync(user, roomId, (context, now) =>
         {
             RequireRole(context.Player, PlayerRole.Investigator);
-            RequireOwnedEvidence(context, user.Id, request.EvidenceId);
+            var active = context.Room.GameplayState!.ActiveConfrontation;
+            var challenge = active is null
+                ? null
+                : context.Case.EvidenceChallenges.FirstOrDefault(candidate => candidate.ChallengeId == active.ChallengeId);
+            RequireOwnedEvidence(context, user.Id, request.EvidenceId, challenge);
             return PairedConfrontationRules.ProposeEvidence(
                 context.Room.GameplayState!,
                 attemptId,
@@ -303,22 +308,27 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         var fragment = owned
             ? context.Case.TestimonyFragments.FirstOrDefault(candidate => candidate.Id == fragmentId)
             : null;
-        if (fragment is null)
-        {
-            throw ApiException.NotFound(
-                "This testimony is not available.",
-                TestimonyUnavailableCode,
-                "game.confrontation.testimonyUnavailable");
-        }
+        if (fragment is null) throw TestimonyUnavailable();
 
         var challenges = context.Case.EvidenceChallenges
-            .Where(candidate => candidate.DialogueId == fragment.DialogueId)
+            .Where(candidate => candidate.CandidateTestimonyFragmentIds.Count > 0
+                ? candidate.CandidateTestimonyFragmentIds.Contains(fragment.Id, StringComparer.Ordinal)
+                : candidate.DialogueId == fragment.DialogueId)
             .ToList();
-        if (challenges.Count != 1) throw NotAvailable();
+        if (challenges.Count != 1) throw TestimonyUnavailable();
         return (fragment, challenges[0]);
     }
 
-    private static void RequireOwnedEvidence(GameplayContext context, string userId, string evidenceId)
+    private static ApiException TestimonyUnavailable() => ApiException.NotFound(
+        "This testimony is not available.",
+        TestimonyUnavailableCode,
+        "game.confrontation.testimonyUnavailable");
+
+    private static void RequireOwnedEvidence(
+        GameplayContext context,
+        string userId,
+        string evidenceId,
+        EvidenceChallenge? challenge)
     {
         var state = context.Room.GameplayState!;
         var owned = state.ClueDiscoveries.Any(discovery =>
@@ -326,7 +336,10 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         var evidence = owned
             ? context.Case.Clues.FirstOrDefault(candidate => candidate.ClueId == evidenceId && candidate.IsEvidence)
             : null;
-        if (evidence is not null) return;
+        var allowedByChallenge = challenge is not null
+            && (challenge.CandidateEvidenceIds.Count == 0
+                || challenge.CandidateEvidenceIds.Contains(evidenceId, StringComparer.Ordinal));
+        if (evidence is not null && allowedByChallenge) return;
 
         throw ApiException.NotFound(
             "This evidence is not available.",
@@ -340,6 +353,32 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         {
             throw NotAvailable();
         }
+    }
+
+    private static void RequireGeneratedPresetReady(GameplayContext context, EvidenceChallenge challenge)
+    {
+        // Legacy hand-authored V3 challenges had no candidate allowlists. Keep
+        // their dialogue-level behavior; all new AI V3 challenges use explicit
+        // dynamic candidate lists and cannot start until their configured readiness sets exist.
+        if (challenge.CandidateEvidenceIds.Count == 0
+            && challenge.CandidateTestimonyFragmentIds.Count == 0) return;
+
+        var state = context.Room.GameplayState!;
+        var requiredEvidenceIds = AiV3GenerationProfile.ResolveStartRequiredEvidenceIds(challenge);
+        var requiredTestimonyIds = AiV3GenerationProfile.ResolveStartRequiredTestimonyIds(challenge);
+        var investigatorHasEveryCandidate = requiredEvidenceIds.Count >= 2
+            && requiredEvidenceIds.All(evidenceId => state.ClueDiscoveries.Any(discovery =>
+                discovery.ClueId == evidenceId
+                && discovery.DiscoveredByRole == PlayerRole.Investigator));
+        var interrogatorHasEveryCandidate = requiredTestimonyIds.Count >= 2
+            && requiredTestimonyIds.All(fragmentId => state.TestimonyDiscoveries.Any(discovery =>
+                discovery.TestimonyFragmentId == fragmentId
+                && discovery.DiscoveredByRole == PlayerRole.Interrogator));
+
+        if (investigatorHasEveryCandidate && interrogatorHasEveryCandidate) return;
+
+        // Deliberately avoid identifying the missing private choice or its owner.
+        throw NotAvailable();
     }
 
     private static void RequireRole(RoomPlayer player, string role)

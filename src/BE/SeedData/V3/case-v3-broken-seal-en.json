@@ -80,13 +80,55 @@
     { "id": "fragment-guard-round-en", "dialogueId": "dlg-mara-statement-en", "text": "The guard began his rounds immediately after closing." }
   ],
   "evidenceChallenges": [
-    { "challengeId": "challenge-broken-seal-en", "dialogueId": "dlg-mara-statement-en", "testimonyFragmentId": "fragment-seal-intact-en", "prompt": "Which physical trace directly contradicts the selected testimony?", "correctEvidenceId": "evidence-blue-wax-en", "successResponse": "The overlapping wax layers prove the packet was opened and resealed after the original seal was broken.", "failureResponse": "That pair does not establish a direct contradiction. Recheck what the trace can actually prove.", "revealTitle": "CRACKED: THE SEAL WAS REPLACED", "unlockClueIds": ["reveal-resealed-packet-en"] }
+    { "challengeId": "challenge-broken-seal-en", "order": 1, "isSignature": true, "dialogueId": "dlg-mara-statement-en", "testimonyFragmentId": "fragment-seal-intact-en", "candidateTestimonyFragmentIds": ["fragment-seal-intact-en", "fragment-no-bag-en", "fragment-guard-round-en"], "startRequiredTestimonyFragmentIds": ["fragment-seal-intact-en", "fragment-no-bag-en"], "prompt": "Which physical trace directly contradicts the selected testimony?", "correctEvidenceId": "evidence-blue-wax-en", "candidateEvidenceIds": ["evidence-blue-wax-en", "evidence-ticket-en", "evidence-thread-en"], "startRequiredEvidenceIds": ["evidence-blue-wax-en", "evidence-ticket-en"], "successResponse": "The overlapping wax layers prove the packet was opened and resealed after the original seal was broken.", "failureResponse": "That pair does not establish a direct contradiction. Recheck what the trace can actually prove.", "revealTitle": "CRACKED: THE SEAL WAS REPLACED", "unlockClueIds": ["reveal-resealed-packet-en"] }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-resealed-packet-en",
+      "prompt": "What does the cracked testimony establish about the archive packet?",
+      "requiredClueIds": ["reveal-resealed-packet-en"],
+      "requiredChallengeIds": ["challenge-broken-seal-en"],
+      "options": [
+        { "id": "deduction-resealed-correct-en", "label": "The packet was opened after closing and resealed with fresh wax." },
+        { "id": "deduction-resealed-wrong-en", "label": "The tram ticket proves the original seal was never disturbed." }
+      ],
+      "correctOptionId": "deduction-resealed-correct-en",
+      "successResponse": "The physical trace and the cracked testimony now form one coherent conclusion.",
+      "failureResponse": "That conclusion does not account for the overlapping wax layers.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-resealed-packet-en",
+      "investigatorClueId": "evidence-blue-wax-en",
+      "interrogatorChallengeId": "challenge-broken-seal-en",
+      "deductionId": "deduction-resealed-packet-en",
+      "description": "The Investigator supplies the wax trace, the Interrogator cracks the statement, and both establish the resealing method."
+    }
   ],
   "finalLogic": {
     "culpritId": "char-mara-en",
     "motive": "To alter a protected archive record.",
     "method": "Open the packet and imitate the original seal with fresh wax.",
     "requiredEvidenceIds": [],
+    "motiveOptions": [
+      { "id": "motive-alter-record-en", "label": "Alter a protected archive record" },
+      { "id": "motive-missed-tram-en", "label": "Hide a missed tram journey" }
+    ],
+    "methodOptions": [
+      { "id": "method-reseal-wax-en", "label": "Open the packet and imitate the seal with fresh wax" },
+      { "id": "method-corridor-thread-en", "label": "Replace the packet using a muddy coat thread" }
+    ],
+    "correctMotiveId": "motive-alter-record-en",
+    "correctMethodId": "method-reseal-wax-en",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "evidence-ticket-en" },
+      { "claimType": "METHOD", "evidenceId": "evidence-blue-wax-en" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "evidence-thread-en" }
+    ],
+    "requiredDeductionIds": ["deduction-resealed-packet-en"],
+    "requiredTeamworkChainIds": ["chain-resealed-packet-en"],
     "winEnding": "The paired contradiction proves the packet was resealed.",
     "failEnding": "The archive remains sealed behind an untested statement."
   }

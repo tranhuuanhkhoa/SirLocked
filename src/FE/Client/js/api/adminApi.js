@@ -15,4 +15,5 @@ export const adminApi = {
   unpublishCase: (caseId) => patch(`/api/admin/cases/${encodeURIComponent(caseId)}/unpublish`),
   seedSample: () => post('/api/admin/cases/seed-sample?publish=true'),
   seedDemo: () => post('/api/admin/cases/seed-demo'),
+  seedCrackDemo: () => post('/api/admin/cases/seed-crack-demo'),
 };

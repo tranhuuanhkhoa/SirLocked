@@ -21,6 +21,10 @@ EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory());
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Force the static budget audit during startup so a newly-added preset cannot run
+// without an explicit, internally consistent semantic budget.
+_ = CrackGenerationBudgets.All;
+
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
 builder.Services.AddOptions<EmailSettings>()
@@ -36,7 +40,7 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
-builder.Services.Configure<V3LocalAuditSettings>(builder.Configuration.GetSection("V3LocalAudit"));
+builder.Services.Configure<AiCaseV3PresetSettings>(builder.Configuration.GetSection("AiCaseV3Preset"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
 {
     static bool EnvFlag(IConfiguration configuration, string key) =>
@@ -77,19 +81,24 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICaseValidationService, CaseValidationService>();
+builder.Services.AddScoped<ICaseTruthService, CaseTruthService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
+builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
+builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
+builder.Services.AddScoped<IAiArtifactCleanupService, AiArtifactCleanupService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
 builder.Services.AddScoped<IGameplayService, GameplayService>();
 builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
-if (builder.Configuration.GetValue<bool>("GameplayV3:PlaytestInstrumentationEnabled"))
-    builder.Services.AddSingleton<IPlaytestEventSink, MongoLocalPlaytestEventSink>();
-else
-    builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
-builder.Services.AddScoped<V3LocalAuditSeeder>();
-builder.Services.AddScoped<IAiCaseService, AiCaseService>();
+builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
+builder.Services.AddScoped<AiCaseService>();
+builder.Services.AddScoped<IAiCaseService>(services => services.GetRequiredService<AiCaseService>());
+builder.Services.AddScoped<IAiGenerationExecutor>(services => services.GetRequiredService<AiCaseService>());
+builder.Services.AddScoped<IAiAssetPipeline>(services => services.GetRequiredService<AiCaseService>());
+builder.Services.AddHostedService<AiGenerationWorker>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
@@ -279,10 +288,6 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         await db.PingAsync();
         await db.EnsureIndexesAsync();
-        if (app.Environment.IsEnvironment("V3Local"))
-        {
-            await scope.ServiceProvider.GetRequiredService<V3LocalAuditSeeder>().SeedAsync();
-        }
         var seedOptions = ResolveAdminSeedOptions(app.Configuration, app.Environment);
         if (seedOptions is not null)
         {
@@ -309,10 +314,6 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "MongoDB startup tasks failed. Check MongoDb__ConnectionString. API endpoints that need the database will fail until it is reachable.");
-        if (app.Environment.IsEnvironment("V3Local"))
-        {
-            throw;
-        }
     }
 }
 
@@ -366,3 +367,5 @@ sealed class MongoDbHealthCheck : IHealthCheck
         }
     }
 }
+
+public partial class Program;

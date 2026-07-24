@@ -29,7 +29,17 @@ public class CaseValidationService : ICaseValidationService
         }
         else if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation)
         {
+            // New V3 cases are authored as full V2 cases with an additive paired
+            // confrontation layer. Keep the retired one-scene preset valid so
+            // existing local fixtures and saved drafts remain playable.
+            if (!AiV3GenerationProfile.IsV3Preset(gameCase.GenerationPreset)
+                && !string.Equals(gameCase.GenerationMode, CaseGenerationModes.PlacementFirst, StringComparison.OrdinalIgnoreCase))
+                ValidateInvestigationV2(gameCase, result);
             ValidateInvestigationV3(gameCase, result);
+        }
+        if (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        {
+            ValidateCausalProjectionMetadata(gameCase, result, stage);
         }
 
         // Only simulate progression when the structure itself is sound; otherwise the
@@ -37,6 +47,8 @@ public class CaseValidationService : ICaseValidationService
         if (result.IsValid)
         {
             ValidatePlaythroughReachability(gameCase, result);
+            if (result.IsValid && gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+                result.Errors.AddRange(CausalStateGraphValidator.Validate(gameCase).Errors);
         }
 
         return result;
@@ -143,6 +155,10 @@ public class CaseValidationService : ICaseValidationService
         var sceneIds = c.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId).ToHashSet();
         var clueIds = c.Clues.Select(x => x.ClueId).ToHashSet();
         var dialogueIds = c.Dialogues.Select(x => x.DialogueId).ToHashSet();
+        var environmentInteractionIds = c.Interactions
+            .Where(interaction => interaction.Type.Equals(CaseInteractionTypes.InspectEnvironment, StringComparison.OrdinalIgnoreCase))
+            .Select(interaction => interaction.InteractionId)
+            .ToHashSet(StringComparer.Ordinal);
         var testimonyFragmentIds = c.TestimonyFragments.Select(x => x.Id).ToHashSet();
         var conversationNodeIds = c.ConversationNodes.Select(x => x.NodeId).ToHashSet();
         var dialogueById = c.Dialogues
@@ -179,13 +195,19 @@ public class CaseValidationService : ICaseValidationService
                     var hotspotPath = $"{scenePath}.hotspots[{h}]";
                     var type = hotspot.Type?.ToUpperInvariant();
 
-                    if (type is not ("ITEM" or "CHARACTER"))
+                    if (type is not ("ITEM" or "CHARACTER" or "ENVIRONMENT"))
                     {
-                        result.Add("InvalidValue", $"{hotspotPath}.type", "Hotspot type must be ITEM or CHARACTER.", hotspot.HotspotId);
+                        result.Add("InvalidValue", $"{hotspotPath}.type", "Hotspot type must be ITEM, CHARACTER, or ENVIRONMENT.", hotspot.HotspotId);
                     }
                     else
                     {
-                        var exists = type == "ITEM" ? itemIds.Contains(hotspot.TargetId) : characterIds.Contains(hotspot.TargetId);
+                        var exists = type switch
+                        {
+                            "ITEM" => itemIds.Contains(hotspot.TargetId),
+                            "CHARACTER" => characterIds.Contains(hotspot.TargetId),
+                            "ENVIRONMENT" => environmentInteractionIds.Contains(hotspot.TargetId),
+                            _ => false
+                        };
                         if (!exists)
                             result.Add("MissingReference", $"{hotspotPath}.targetId", $"Hotspot target {type} does not exist.", hotspot.TargetId);
                         if (type == "ITEM" && !scene.ItemIds.Contains(hotspot.TargetId))
@@ -252,8 +274,12 @@ public class CaseValidationService : ICaseValidationService
             if (!string.IsNullOrWhiteSpace(challenge.TestimonyFragmentId)
                 && !testimonyFragmentIds.Contains(challenge.TestimonyFragmentId))
                 result.Add("MissingReference", $"{path}.testimonyFragmentId", "Challenge testimony fragment does not exist.", challenge.TestimonyFragmentId);
+            foreach (var fragmentId in challenge.CandidateTestimonyFragmentIds.Where(id => !testimonyFragmentIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.candidateTestimonyFragmentIds", "Candidate testimony fragment does not exist.", fragmentId);
             if (!clueIds.Contains(challenge.CorrectEvidenceId))
                 result.Add("MissingReference", $"{path}.correctEvidenceId", "Challenge evidence clue does not exist.", challenge.CorrectEvidenceId);
+            foreach (var evidenceId in challenge.CandidateEvidenceIds.Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}.candidateEvidenceIds", "Candidate evidence clue does not exist.", evidenceId);
             foreach (var clueId in challenge.UnlockClueIds.Where(id => !clueIds.Contains(id)))
                 result.Add("MissingReference", $"{path}.unlockClueIds", "Challenge unlock clue does not exist.", clueId);
         }
@@ -386,6 +412,13 @@ public class CaseValidationService : ICaseValidationService
                 result.Add("MissingField", $"{path}.requiredItemIds", "USE_ITEM_ON_TARGET requires at least one inventory item.", interaction.InteractionId);
             if (isCombine && interaction.RequiredItemIds.Count < 2)
                 result.Add("MissingField", $"{path}.requiredItemIds", "COMBINE_ITEMS requires at least two inventory items.", interaction.InteractionId);
+            if (interaction.Type.Equals(CaseInteractionTypes.InspectEnvironment, StringComparison.OrdinalIgnoreCase))
+            {
+                if (interaction.RequiredItemIds.Count > 0)
+                    result.Add("InvalidValue", $"{path}.requiredItemIds", "INSPECT_ENVIRONMENT cannot require inventory items.", interaction.InteractionId);
+                if (!string.Equals(interaction.TargetId, interaction.InteractionId, StringComparison.Ordinal))
+                    result.Add("InvalidValue", $"{path}.targetId", "INSPECT_ENVIRONMENT targetId must equal interactionId so the public hotspot never exposes a second semantic ID.", interaction.InteractionId);
+            }
 
             AddMissingReferences(result, $"{path}.requiredItemIds", interaction.RequiredItemIds, itemIds, "Required item does not exist.");
             AddMissingReferences(result, $"{path}.unlockItemIds", interaction.UnlockItemIds, itemIds, "Unlock item does not exist.");
@@ -981,6 +1014,8 @@ public class CaseValidationService : ICaseValidationService
                     {
                         if (askedDialogues.Contains(dialogue.DialogueId)) continue;
                         if (!scene.CharacterIds.Contains(dialogue.CharacterId)) continue;
+                        if (c.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                            && !dialogue.AvailableSceneIds.Contains(scene.SceneId)) continue;
                         if (!dialogue.RequiredClueIds.All(unlockedClues.Contains)) continue;
 
                         askedDialogues.Add(dialogue.DialogueId);
@@ -1080,6 +1115,16 @@ public class CaseValidationService : ICaseValidationService
                 node.NodeId);
         }
 
+        if (c.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        {
+            foreach (var puzzle in c.Puzzles.Where(puzzle => !solvedPuzzles.Contains(puzzle.PuzzleId)))
+                result.Add("UnreachablePuzzle", $"puzzles:{puzzle.PuzzleId}", "Puzzle cannot be solved by any reachable gameplay state.", puzzle.PuzzleId);
+            foreach (var puzzle in c.Puzzles.Where(puzzle => puzzle.ProgressionRole == PuzzleProgressionRoles.Optional
+                         && puzzle.UnlockItemIds.Count == 0 && puzzle.UnlockClueIds.Count == 0
+                         && puzzle.UnlockSceneIds.Count == 0 && puzzle.RevealsConclusionIds.Count == 0))
+                result.Add("OptionalWithoutPayoff", $"puzzles:{puzzle.PuzzleId}", "Optional puzzle has no distinct investigation payoff.", puzzle.PuzzleId);
+        }
+
         foreach (var evidenceId in c.FinalLogic.RequiredEvidenceIds.Where(id => !unlockedClues.Contains(id)))
         {
             result.Add("UndiscoverableEvidence", "finalLogic.requiredEvidenceIds",
@@ -1124,6 +1169,8 @@ public class CaseValidationService : ICaseValidationService
         {
             var nodes = gameCase.ConversationNodes
                 .Where(node => node.CharacterId == characterId)
+                .Where(node => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                    || node.AvailableSceneIds.Contains(scene.SceneId))
                 .ToList();
             if (nodes.Count == 0) continue;
 
@@ -1179,7 +1226,9 @@ public class CaseValidationService : ICaseValidationService
         if (!interaction.RequiredItemIds.All(collectedItems.Contains)) return false;
         if (!interaction.RequiredClueIds.All(unlockedClues.Contains)) return false;
         if (interaction.Type.Equals(CaseInteractionTypes.CombineItems, StringComparison.OrdinalIgnoreCase)) return true;
-        if (interaction.Type.Equals(CaseInteractionTypes.UseItemOnTarget, StringComparison.OrdinalIgnoreCase)) return IsTargetInScene(scene, interaction.TargetId);
+        if (interaction.Type.Equals(CaseInteractionTypes.UseItemOnTarget, StringComparison.OrdinalIgnoreCase)
+            || interaction.Type.Equals(CaseInteractionTypes.InspectEnvironment, StringComparison.OrdinalIgnoreCase))
+            return IsTargetInScene(scene, interaction.TargetId);
         return false;
     }
 
@@ -1224,7 +1273,7 @@ public class CaseValidationService : ICaseValidationService
 
     private static void ValidateInvestigationV2(GameCase c, CaseValidationResult result)
     {
-        if (c.MechanicsVersion != CaseMechanicsVersions.InvestigationV2) return;
+        if (c.MechanicsVersion < CaseMechanicsVersions.InvestigationV2) return;
 
         var clueById = c.Clues.Where(clue => !string.IsNullOrWhiteSpace(clue.ClueId))
             .GroupBy(clue => clue.ClueId).ToDictionary(group => group.Key, group => group.First());
@@ -1232,8 +1281,11 @@ public class CaseValidationService : ICaseValidationService
         var challengeIds = c.EvidenceChallenges.Select(challenge => challenge.ChallengeId).ToHashSet();
         var deductionIds = c.Deductions.Select(deduction => deduction.DeductionId).ToHashSet();
 
-        if (c.EvidenceChallenges.Count < 2)
-            result.Add("MissingField", "evidenceChallenges", "V2 cases require at least two evidence challenges.");
+        var minimumChallenges = c.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            ? CrackGenerationBudgets.For(c.GenerationPreset).MinCracks
+            : 2;
+        if (c.EvidenceChallenges.Count < minimumChallenges)
+            result.Add("MissingField", "evidenceChallenges", $"This V2-compatible case requires at least {minimumChallenges} evidence challenge(s).");
         if (c.Deductions.Count == 0)
             result.Add("MissingField", "deductions", "Full V2 cases require at least one deduction.");
         if (c.RequiredTeamworkChains.Count == 0)
@@ -1288,8 +1340,12 @@ public class CaseValidationService : ICaseValidationService
 
         var links = c.FinalLogic.RequiredEvidenceLinks;
         var claims = links.Select(link => link.ClaimType.Trim().ToUpperInvariant()).ToList();
-        if (links.Count != 3 || claims.Distinct().Count() != 3 || !EvidenceClaimTypes.All.SetEquals(claims))
-            result.Add("InvalidValue", "finalLogic.requiredEvidenceLinks", "V2 final logic requires exactly one MOTIVE, METHOD, and OPPORTUNITY evidence link.");
+        var expectedClaims = EvidenceClaimTypes.ForContract(c.LogicContractVersion);
+        if (links.Count != expectedClaims.Count || claims.Distinct().Count() != expectedClaims.Count || !expectedClaims.SetEquals(claims))
+            result.Add("InvalidValue", "finalLogic.requiredEvidenceLinks",
+                c.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                    ? "Contract-v2 final logic requires exactly one MOTIVE, METHOD, OPPORTUNITY, IDENTITY, and TIMELINE evidence link."
+                    : "V2 final logic requires exactly one MOTIVE, METHOD, and OPPORTUNITY evidence link.");
         if (links.Select(link => link.EvidenceId).Distinct().Count() != links.Count)
             result.Add("InvalidValue", "finalLogic.requiredEvidenceLinks", "Each final claim must use a different evidence clue.");
 
@@ -1338,29 +1394,70 @@ public class CaseValidationService : ICaseValidationService
             result.Add("MissingField", "hints", "Every V2 deduction requires at least one DEDUCTION hint.", deductionId);
     }
 
+    private static void ValidateCausalProjectionMetadata(GameCase c, CaseValidationResult result, CaseValidationStage stage)
+    {
+        if (c.TruthSchemaVersion != CaseTruthSchemaVersions.V1)
+            result.Add("MissingTruthContract", "truthSchemaVersion", "Contract-v2 cases must reference case-truth-v1.");
+        if (c.LogicVerificationStatus != CaseLogicVerificationStatuses.CausalVerified)
+            result.Add("MissingTruthContract", "logicVerificationStatus", "Contract-v2 cases must be marked CAUSAL_VERIFIED by the server.");
+        if (string.IsNullOrWhiteSpace(c.TruthHash) || c.TruthHash.Length != 64)
+            result.Add("MissingTruthContract", "truthHash", "Contract-v2 cases must reference a SHA-256 truth hash.");
+        if (stage != CaseValidationStage.FullLogic && c.BlindReviewStatus != CaseTruthReviewStatuses.Passed)
+            result.Add("BlindReviewRequired", "blindReviewStatus", "Contract-v2 cases must pass blind solvability review.");
+
+        for (var i = 0; i < c.Clues.Count; i++)
+        {
+            var clue = c.Clues[i];
+            if (string.IsNullOrWhiteSpace(clue.SourceActionId))
+                result.Add("MissingCausalSource", $"clues[{i}].sourceActionId", "Contract-v2 clue must identify the true action that caused it.", clue.ClueId);
+            if (clue.SupportsConclusionIds.Count == 0)
+                result.Add("MissingProofLink", $"clues[{i}].supportsConclusionIds", "Contract-v2 clue must identify supported proof conclusions.", clue.ClueId);
+            if (string.IsNullOrWhiteSpace(clue.IndependentSourceGroup))
+                result.Add("MissingField", $"clues[{i}].independentSourceGroup", "Contract-v2 clue needs an independent source group.", clue.ClueId);
+        }
+
+        for (var i = 0; i < c.Dialogues.Count; i++)
+        {
+            var dialogue = c.Dialogues[i];
+            if (dialogue.StatementIds.Count == 0)
+                result.Add("MissingStatementLink", $"dialogues[{i}].statementIds", "Contract-v2 dialogue must project approved statements.", dialogue.DialogueId);
+            if (dialogue.AvailableSceneIds.Count == 0)
+                result.Add("MissingField", $"dialogues[{i}].availableSceneIds", "Contract-v2 dialogue must declare available scenes.", dialogue.DialogueId);
+        }
+
+        for (var i = 0; i < c.Puzzles.Count; i++)
+        {
+            var puzzle = c.Puzzles[i];
+            if (puzzle.BasedOnTruthIds.Count == 0)
+                result.Add("MissingTruthBasis", $"puzzles[{i}].basedOnTruthIds", "Contract-v2 puzzle must derive from approved truth.", puzzle.PuzzleId);
+            if (string.IsNullOrWhiteSpace(puzzle.InvestigationPurpose) || string.IsNullOrWhiteSpace(puzzle.ProgressionRole))
+                result.Add("MissingField", $"puzzles[{i}]", "Contract-v2 puzzle needs investigationPurpose and progressionRole.", puzzle.PuzzleId);
+        }
+
+        for (var i = 0; i < c.Deductions.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(c.Deductions[i].ConclusionId))
+                result.Add("MissingProofLink", $"deductions[{i}].conclusionId", "Contract-v2 deduction must reference a proof conclusion.", c.Deductions[i].DeductionId);
+        }
+    }
+
     private static void ValidateInvestigationV3(GameCase c, CaseValidationResult result)
     {
         if (c.MechanicsVersion != CaseMechanicsVersions.InvestigationV3PairedConfrontation) return;
 
-        if (c.ConversationNodes.Count > 0)
-            result.Add("InvalidValue", "conversationNodes", "V3 paired-confrontation MVP supports flat dialogue only.");
-        if (c.EvidenceChallenges.Count != 1)
-            result.Add("InvalidValue", "evidenceChallenges", "The V3 sandbox preset requires exactly one paired challenge.");
-        if (c.TestimonyFragments.Count < 3)
-            result.Add("MissingField", "testimonyFragments", "V3 paired confrontation requires at least three testimony choices.");
+        if (c.EvidenceChallenges.Count == 0)
+            result.Add("MissingField", "evidenceChallenges", "V3 requires at least one paired challenge.");
+        var usesDynamicCandidateMatrices = c.EvidenceChallenges.Any(challenge =>
+            challenge.CandidateTestimonyFragmentIds.Count > 0 || challenge.CandidateEvidenceIds.Count > 0);
+        if (!usesDynamicCandidateMatrices && c.TestimonyFragments.Count < 3)
+            result.Add("MissingField", "testimonyFragments", "Legacy V3 paired confrontation requires at least three testimony choices.");
 
         var discoverableEvidence = c.Clues.Where(clue =>
                 clue.IsEvidence
-                && clue.SourceType.Equals("item", StringComparison.OrdinalIgnoreCase)
-                && c.Items.Any(item => item.ItemId == clue.Source && item.UnlockClueIds.Contains(clue.ClueId))
-                && c.Stages.SelectMany(stage => stage.Scenes).Any(scene =>
-                    scene.ItemIds.Contains(clue.Source)
-                    && scene.Hotspots.Any(hotspot =>
-                        hotspot.Type.Equals("ITEM", StringComparison.OrdinalIgnoreCase)
-                        && hotspot.TargetId == clue.Source)))
+                && IsDiscoverableInvestigatorEvidence(c, clue))
             .ToList();
         if (discoverableEvidence.Count < 3)
-            result.Add("MissingField", "clues", "V3 paired confrontation requires at least three discoverable physical evidence choices.");
+            result.Add("MissingField", "clues", "V3 paired confrontation requires at least three evidence choices discoverable by Investigator actions.");
 
         for (var index = 0; index < c.EvidenceChallenges.Count; index++)
         {
@@ -1374,6 +1471,50 @@ public class CaseValidationService : ICaseValidationService
                 result.Add("MissingField", $"{path}.challengeId", "challengeId is required.");
             if (string.IsNullOrWhiteSpace(challenge.TestimonyFragmentId))
                 result.Add("MissingField", $"{path}.testimonyFragmentId", "V3 challenge testimonyFragmentId is required.", challenge.ChallengeId);
+            if (usesDynamicCandidateMatrices)
+            {
+                if (challenge.CandidateTestimonyFragmentIds.Count == 0 || challenge.CandidateEvidenceIds.Count == 0)
+                {
+                    result.Add("MissingField", path,
+                        "Dynamic V3 challenges require both candidateTestimonyFragmentIds and candidateEvidenceIds.",
+                        challenge.ChallengeId);
+                }
+                else
+                {
+                    if (challenge.CandidateTestimonyFragmentIds.Count is < 2 or > 4)
+                        result.Add("InvalidValue", $"{path}.candidateTestimonyFragmentIds",
+                            "Dynamic V3 challenges require 2-4 testimony choices.", challenge.ChallengeId);
+                    if (challenge.CandidateEvidenceIds.Count is < 3 or > 6)
+                        result.Add("InvalidValue", $"{path}.candidateEvidenceIds",
+                            "Dynamic V3 challenges require 3-6 evidence choices.", challenge.ChallengeId);
+                }
+            }
+            if (challenge.CandidateTestimonyFragmentIds.Count > 0)
+            {
+                if (challenge.CandidateTestimonyFragmentIds.Distinct(StringComparer.Ordinal).Count() != challenge.CandidateTestimonyFragmentIds.Count)
+                    result.Add("DuplicateId", $"{path}.candidateTestimonyFragmentIds", "Candidate testimony IDs must be unique.", challenge.ChallengeId);
+                if (!challenge.CandidateTestimonyFragmentIds.Contains(challenge.TestimonyFragmentId, StringComparer.Ordinal))
+                    result.Add("InvalidValue", $"{path}.candidateTestimonyFragmentIds", "Candidate testimony IDs must include the correct fragment.", challenge.TestimonyFragmentId);
+                foreach (var candidateId in challenge.CandidateTestimonyFragmentIds)
+                {
+                    var candidate = c.TestimonyFragments.FirstOrDefault(item => item.Id == candidateId);
+                    if (candidate is not null && candidate.DialogueId != challenge.DialogueId)
+                        result.Add("InvalidValue", $"{path}.candidateTestimonyFragmentIds", "Every candidate fragment must belong to the challenge dialogue.", candidateId);
+                }
+            }
+            if (challenge.CandidateEvidenceIds.Count > 0)
+            {
+                if (challenge.CandidateEvidenceIds.Distinct(StringComparer.Ordinal).Count() != challenge.CandidateEvidenceIds.Count)
+                    result.Add("DuplicateId", $"{path}.candidateEvidenceIds", "Candidate evidence IDs must be unique.", challenge.ChallengeId);
+                if (!challenge.CandidateEvidenceIds.Contains(challenge.CorrectEvidenceId, StringComparer.Ordinal))
+                    result.Add("InvalidValue", $"{path}.candidateEvidenceIds", "Candidate evidence IDs must include the correct evidence.", challenge.CorrectEvidenceId);
+                foreach (var candidateId in challenge.CandidateEvidenceIds)
+                {
+                    var candidate = c.Clues.FirstOrDefault(item => item.ClueId == candidateId);
+                    if (candidate is not null && !candidate.IsEvidence)
+                        result.Add("InvalidEvidenceFlag", $"{path}.candidateEvidenceIds", "Every candidate evidence clue must set isEvidence: true.", candidateId);
+                }
+            }
             if (fragment is not null && fragment.DialogueId != challenge.DialogueId)
                 result.Add("InvalidValue", $"{path}.testimonyFragmentId", "Challenge fragment must belong to the challenge dialogue.", fragment.Id);
             if (string.IsNullOrWhiteSpace(challenge.Prompt))
@@ -1389,7 +1530,7 @@ public class CaseValidationService : ICaseValidationService
             if (evidence is not null && !evidence.IsEvidence)
                 result.Add("InvalidEvidenceFlag", $"{path}.correctEvidenceId", "Challenge evidence must set isEvidence: true.", evidence.ClueId);
             if (evidence is not null && discoverableEvidence.All(candidate => candidate.ClueId != evidence.ClueId))
-                result.Add("UndiscoverableEvidence", $"{path}.correctEvidenceId", "Correct evidence must be discoverable through an Investigator item action.", evidence.ClueId);
+                result.Add("UndiscoverableEvidence", $"{path}.correctEvidenceId", "Correct evidence must be discoverable through an Investigator action.", evidence.ClueId);
 
             var circularIds = challenge.UnlockClueIds.ToHashSet(StringComparer.Ordinal);
             if (circularIds.Contains(challenge.CorrectEvidenceId))
@@ -1419,6 +1560,42 @@ public class CaseValidationService : ICaseValidationService
                 || (evidence is not null && ContainsSpoiler(challenge.FailureResponse, evidence.Title)))
                 result.Add("SecretLeak", $"{path}.failureResponse", "Failure feedback must not identify the correct evidence.", challenge.ChallengeId);
         }
+    }
+
+    private static bool IsDiscoverableInvestigatorItemEvidence(GameCase gameCase, CaseClue clue) =>
+        EvidenceDiscoveryMethods.IsItemInspect(clue)
+        && gameCase.Items.Any(item => item.ItemId == clue.Source && item.UnlockClueIds.Contains(clue.ClueId))
+        && gameCase.Stages.SelectMany(stage => stage.Scenes).Any(scene =>
+            scene.ItemIds.Contains(clue.Source)
+            && scene.Hotspots.Any(hotspot =>
+                hotspot.Type.Equals("ITEM", StringComparison.OrdinalIgnoreCase)
+                && hotspot.TargetId == clue.Source));
+
+    private static bool IsDiscoverableInvestigatorCameraEvidence(GameCase gameCase, CaseClue clue) =>
+        EvidenceDiscoveryMethods.IsCamera(clue)
+        && !string.IsNullOrWhiteSpace(clue.SceneId)
+        && gameCase.Stages.SelectMany(stage => stage.Scenes).Any(scene =>
+            scene.SceneId == clue.SceneId && clue.Source == scene.SceneId);
+
+    private static bool IsDiscoverableInvestigatorEvidence(GameCase gameCase, CaseClue clue)
+    {
+        var method = AiV3GenerationProfile.ResolveAcquisitionMethod(gameCase, clue);
+        return method switch
+        {
+            EvidenceAcquisitionMethods.CameraCapture => IsDiscoverableInvestigatorCameraEvidence(gameCase, clue),
+            EvidenceAcquisitionMethods.ItemInspect => IsDiscoverableInvestigatorItemEvidence(gameCase, clue),
+            EvidenceAcquisitionMethods.PuzzleResult => gameCase.Puzzles.Any(puzzle =>
+                puzzle.PuzzleId == clue.Source && puzzle.UnlockClueIds.Contains(clue.ClueId)),
+            EvidenceAcquisitionMethods.EnvironmentInteraction => HasInteractionSource(CaseInteractionTypes.InspectEnvironment),
+            EvidenceAcquisitionMethods.ItemUse => HasInteractionSource(CaseInteractionTypes.UseItemOnTarget),
+            EvidenceAcquisitionMethods.ItemCombination => HasInteractionSource(CaseInteractionTypes.CombineItems),
+            _ => false
+        };
+
+        bool HasInteractionSource(string type) => gameCase.Interactions.Any(interaction =>
+            interaction.InteractionId == clue.Source
+            && interaction.Type.Equals(type, StringComparison.OrdinalIgnoreCase)
+            && interaction.UnlockClueIds.Contains(clue.ClueId));
     }
 
     private static bool ContainsSpoiler(string text, string secret) =>

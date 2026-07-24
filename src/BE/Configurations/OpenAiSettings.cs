@@ -4,6 +4,7 @@ public class OpenAiSettings
 {
     public string ApiKey { get; set; } = string.Empty;
     public string LogicModel { get; set; } = "gpt-5.5";
+    public string SemanticReviewModel { get; set; } = string.Empty;
     public string ImageModel { get; set; } = "gpt-image-2";
     public string CutoutImageModel { get; set; } = "gpt-image-1.5";
     public string CharacterImageQuality { get; set; } = "high";
@@ -32,4 +33,7 @@ public class OpenAiSettings
     public bool BlocksAiCalls => AiDryRun || MockAiResponses;
     public bool BlocksAssetCalls => AiDryRun || SkipAssetGeneration || GenerateJsonOnly || ValidateOnly;
     public bool BlocksImportOrPublish => AiDryRun || DisableAutoPublish || ValidateOnly;
+    public string EffectiveSemanticReviewModel => string.IsNullOrWhiteSpace(SemanticReviewModel)
+        ? LogicModel
+        : SemanticReviewModel.Trim();
 }

@@ -98,7 +98,8 @@ public partial class GameplayService : IGameplayService
             var missingClues = hotspot?.RequiredClueIds.Where(c => !state.UnlockedClueIds.Contains(c)).ToList() ?? new List<string>();
             if (missingClues.Count > 0)
             {
-                throw ApiException.BadRequest("You cannot examine this yet. Something else must be discovered first.",
+                throw DependencyUnavailable(gameCase,
+                    "You cannot examine this yet. Something else must be discovered first.",
                     new { missingRequiredClueIds = missingClues });
             }
 
@@ -281,7 +282,8 @@ public partial class GameplayService : IGameplayService
 
             var missingItems = itemIds.Where(id => !state.CollectedItemIds.Contains(id)).ToList();
             if (missingItems.Count > 0)
-                throw ApiException.BadRequest("You can only combine items in your inventory.", new { missingItemIds = missingItems });
+                throw DependencyUnavailable(gameCase,
+                    "You can only combine items in your inventory.", new { missingItemIds = missingItems });
 
             var supplied = itemIds.ToHashSet();
             var interaction = gameCase.Interactions
@@ -353,6 +355,90 @@ public partial class GameplayService : IGameplayService
         }
     }
 
+    public async Task<GameActionResponse> ActivateEnvironmentInteractionAsync(
+        CurrentUser user,
+        string roomId,
+        string interactionId)
+    {
+        interactionId = interactionId.Trim();
+        if (string.IsNullOrWhiteSpace(interactionId))
+            throw ApiException.BadRequest("interactionId is required.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            RequireRole(player, PlayerRole.Investigator, "Only the investigator can inspect the environment.");
+
+            var interaction = gameCase.Interactions.FirstOrDefault(candidate =>
+                    candidate.InteractionId == interactionId
+                    && candidate.Type.Equals(CaseInteractionTypes.InspectEnvironment, StringComparison.OrdinalIgnoreCase))
+                ?? throw ApiException.NotFound("This environment interaction does not exist in the case.");
+            var scene = CurrentScene(gameCase, state, user.Id);
+            if (!IsTargetAvailableInScene(scene, interaction.TargetId))
+                throw ApiException.BadRequest("That environment target is not available in the current scene.");
+            if (interaction.RequiredItemIds.Count > 0)
+                throw ApiException.BadRequest("Environment inspection cannot require inventory items.");
+
+            var missingClues = interaction.RequiredClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
+            if (missingClues.Count > 0)
+                throw ApiException.BadRequest("This detail cannot be interpreted yet.");
+
+            if (state.UsedInteractionIds.Contains(interaction.InteractionId))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    InteractionId = interaction.InteractionId,
+                    Message = string.IsNullOrWhiteSpace(interaction.SuccessMessage)
+                        ? "This part of the environment was already inspected."
+                        : interaction.SuccessMessage
+                };
+            }
+
+            var effects = ApplyMechanicEffects(
+                state,
+                interaction.UnlockClueIds,
+                interaction.UnlockItemIds,
+                interaction.UnlockSceneIds,
+                Enumerable.Empty<string>(),
+                user.Id,
+                player.Role,
+                ClueDiscoverySources.Interaction);
+            if (!state.UsedInteractionIds.Contains(interaction.InteractionId))
+                state.UsedInteractionIds.Add(interaction.InteractionId);
+
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            await LogAsync(gameCase, roomId, user.Id, "INSPECT_ENVIRONMENT",
+                $"{user.FullName} inspected an environmental detail.",
+                new { interaction.InteractionId, interaction.TargetId });
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+                await NotifyNewCluesAndDialoguesAsync(
+                    roomId, gameCase, state, user, player, scene.SceneId, effects.NewClueIds, interaction.InteractionId);
+
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                InteractionId = interaction.InteractionId,
+                UnlockedClueIds = effects.NewClueIds,
+                UnlockedItemIds = effects.NewItemIds,
+                UnlockedSceneIds = effects.NewSceneIds,
+                Message = string.IsNullOrWhiteSpace(interaction.SuccessMessage)
+                    ? "A useful environmental detail was uncovered."
+                    : interaction.SuccessMessage
+            };
+        }
+    }
+
     public async Task<GameActionResponse> SolvePuzzleAsync(CurrentUser user, string roomId, SolvePuzzleRequest request)
     {
         var puzzleId = request.PuzzleId.Trim();
@@ -373,7 +459,8 @@ public partial class GameplayService : IGameplayService
             var missingItems = puzzle.RequiredItemIds.Where(id => !state.CollectedItemIds.Contains(id)).ToList();
             var missingClues = puzzle.RequiredClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
             if (missingItems.Count > 0 || missingClues.Count > 0)
-                throw ApiException.BadRequest("This puzzle is not available yet.", new { missingItemIds = missingItems, missingClueIds = missingClues });
+                throw DependencyUnavailable(gameCase,
+                    "This puzzle is not available yet.", new { missingItemIds = missingItems, missingClueIds = missingClues });
 
             if (state.SolvedPuzzleIds.Contains(puzzle.PuzzleId))
             {
@@ -666,11 +753,15 @@ public partial class GameplayService : IGameplayService
             {
                 throw ApiException.BadRequest("This character is not in the current scene.");
             }
+            if (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                && !dialogue.AvailableSceneIds.Contains(scene.SceneId))
+                throw ApiException.BadRequest("This testimony is not available in the current scene.");
 
             var missingClues = dialogue.RequiredClueIds.Where(c => !state.UnlockedClueIds.Contains(c)).ToList();
             if (missingClues.Count > 0)
             {
-                throw ApiException.BadRequest("You do not have enough information to ask this yet.",
+                throw DependencyUnavailable(gameCase,
+                    "You do not have enough information to ask this yet.",
                     new { missingRequiredClueIds = missingClues });
             }
 
@@ -750,13 +841,6 @@ public partial class GameplayService : IGameplayService
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
             RequireRole(player, PlayerRole.Interrogator, "Only the interrogator can question characters.");
-            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
-            {
-                throw ApiException.Conflict(
-                    "This conversation mode is not available for the current case.",
-                    "CONFRONTATION_NOT_AVAILABLE",
-                    "game.confrontation.notAvailable");
-            }
 
             var scene = CurrentScene(gameCase, state, user.Id);
             var ruleResult = GameplayConversationRules.Apply(
@@ -815,13 +899,18 @@ public partial class GameplayService : IGameplayService
                 await _notifier.GameStateUpdated(roomId, stateResponse.Version);
 
             var unlocked = state.UnlockedClueIds.ToHashSet();
+            var nodeDto = ConversationNodeDto.From(ruleResult.Node);
+            if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+                nodeDto.ChallengeId = null;
             return new ConverseResponse
             {
-                Node = ConversationNodeDto.From(ruleResult.Node),
+                Node = nodeDto,
                 Choices = GameplayConversationRules.VisibleChoices(ruleResult.Node, state)
                     .Select(choice => ConversationChoiceDto.From(choice, unlocked))
                     .ToList(),
-                Challenge = GameplayConversationRules.BuildChallengeDto(gameCase, state, ruleResult.Node.ChallengeId),
+                Challenge = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                    ? null
+                    : GameplayConversationRules.BuildChallengeDto(gameCase, state, ruleResult.Node.ChallengeId),
                 UnlockedClueIds = ruleResult.UnlockedClueIds.ToList(),
                 State = stateResponse,
                 Changed = ruleResult.Changed
@@ -1087,7 +1176,8 @@ public partial class GameplayService : IGameplayService
             var missingClues = deduction.RequiredClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
             var missingChallenges = deduction.RequiredChallengeIds.Where(id => !resolvedChallengeIds.Contains(id)).ToList();
             if (missingClues.Count > 0 || missingChallenges.Count > 0)
-                throw ApiException.BadRequest("This deduction is not available yet.", new { missingClues, missingChallenges });
+                throw DependencyUnavailable(gameCase,
+                    "This deduction is not available yet.", new { missingClues, missingChallenges });
 
             var ruleResult = GameplayV2Rules.ApplyDeduction(
                 state, deduction, request.OptionId, user.Id, player.Role ?? string.Empty, DateTime.UtcNow);
@@ -1172,7 +1262,7 @@ public partial class GameplayService : IGameplayService
 
                 if (!CaseValidationService.IsConditionSatisfied(scene.CompleteCondition, inspected, unlocked, asked))
                 {
-                    throw ApiException.BadRequest("Scene requirements are not complete.", new
+                    throw DependencyUnavailable(gameCase, "Scene requirements are not complete.", new
                     {
                         missing = new MissingRequirementsDto
                         {
@@ -1502,6 +1592,8 @@ public partial class GameplayService : IGameplayService
 
         var newlyAvailableDialogues = gameCase.Dialogues
             .Where(dialogue => !state.AskedDialogueIds.Contains(dialogue.DialogueId))
+            .Where(dialogue => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                || dialogue.AvailableSceneIds.Contains(sceneId))
             .Where(dialogue => dialogue.RequiredClueIds.Count > 0 && dialogue.RequiredClueIds.All(state.UnlockedClueIds.Contains))
             .Where(dialogue => dialogue.RequiredClueIds.Any(newClueIds.Contains))
             .ToList();
@@ -1524,6 +1616,8 @@ public partial class GameplayService : IGameplayService
 
         var newlyAvailableConversationNodes = gameCase.ConversationNodes
             .Where(node => !state.VisitedConversationNodeIds.Contains(node.NodeId))
+            .Where(node => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                || node.AvailableSceneIds.Contains(sceneId))
             .Where(node => node.RequiredClueIds.Count > 0 && node.RequiredClueIds.All(state.UnlockedClueIds.Contains))
             .Where(node => node.RequiredClueIds.Any(newClueIds.Contains))
             .ToList();
@@ -1673,6 +1767,11 @@ public partial class GameplayService : IGameplayService
             "ACTION_BLOCKED_BY_CONFRONTATION",
             "game.confrontation.actionBlocked");
     }
+
+    private static ApiException DependencyUnavailable(GameCase gameCase, string message, object details) =>
+        gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            ? ApiException.BadRequest(message)
+            : ApiException.BadRequest(message, details);
 
     private static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {

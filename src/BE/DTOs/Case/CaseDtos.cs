@@ -10,6 +10,13 @@ public class CaseSummaryResponse
     public string Summary { get; set; } = string.Empty;
     public string Language { get; set; } = CaseLanguages.English;
     public string Status { get; set; } = string.Empty;
+    public int MechanicsVersion { get; set; }
+    public int LogicContractVersion { get; set; }
+    public string LogicVerificationStatus { get; set; } = CaseLogicVerificationStatuses.LegacyUnverified;
+    public string GenerationMode { get; set; } = string.Empty;
+    public string GenerationPreset { get; set; } = string.Empty;
+    public string AiSemanticReviewStatus { get; set; } = string.Empty;
+    public bool HasSourceAiDraft { get; set; }
     public int EstimatedMinutes { get; set; }
     public string CoverImageUrl { get; set; } = string.Empty;
     public int StageCount { get; set; }
@@ -27,6 +34,13 @@ public class CaseSummaryResponse
         Summary = c.Summary,
         Language = CaseLanguages.Normalize(c.Language),
         Status = c.Status,
+        MechanicsVersion = c.MechanicsVersion,
+        LogicContractVersion = c.LogicContractVersion,
+        LogicVerificationStatus = c.LogicVerificationStatus,
+        GenerationMode = c.GenerationMode,
+        GenerationPreset = c.GenerationPreset,
+        AiSemanticReviewStatus = c.AiSemanticReviewStatus,
+        HasSourceAiDraft = !string.IsNullOrWhiteSpace(c.SourceAiDraftId),
         EstimatedMinutes = c.EstimatedMinutes,
         CoverImageUrl = c.CoverImageUrl,
         StageCount = c.Stages.Count,
@@ -54,6 +68,13 @@ public class CasePublicDetailResponse : CaseSummaryResponse
             Summary = summary.Summary,
             Language = summary.Language,
             Status = summary.Status,
+            MechanicsVersion = summary.MechanicsVersion,
+            LogicContractVersion = summary.LogicContractVersion,
+            LogicVerificationStatus = summary.LogicVerificationStatus,
+            GenerationMode = summary.GenerationMode,
+            GenerationPreset = summary.GenerationPreset,
+            AiSemanticReviewStatus = summary.AiSemanticReviewStatus,
+            HasSourceAiDraft = summary.HasSourceAiDraft,
             EstimatedMinutes = summary.EstimatedMinutes,
             CoverImageUrl = summary.CoverImageUrl,
             StageCount = summary.StageCount,

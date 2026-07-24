@@ -31,7 +31,9 @@ function cardHtml(c) {
         <div class="case-meta">
           <span class="chip">${escapeHtml(String(c.estimatedMinutes))} phút</span>
           <span class="chip">${c.totalPlays} lượt chơi</span>
-          ${c.mechanicsVersion >= 2 ? '<span class="chip chip-gold">V2</span>' : ''}
+          ${c.mechanicsVersion === 3
+            ? '<span class="chip chip-gold">V3 · Crack</span>'
+            : c.mechanicsVersion === 2 ? '<span class="chip chip-gold">V2</span>' : ''}
         </div>
         <div class="ws-teaser-row">${teaser}</div>
         <div class="case-actions">

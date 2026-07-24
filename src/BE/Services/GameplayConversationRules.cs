@@ -34,6 +34,8 @@ public static class GameplayConversationRules
     {
         var characterNodes = gameCase.ConversationNodes
             .Where(node => node.CharacterId == request.CharacterId)
+            .Where(node => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                || node.AvailableSceneIds.Contains(scene.SceneId))
             .ToList();
         if (gameCase.MechanicsVersion < CaseMechanicsVersions.InvestigationV2 || characterNodes.Count == 0)
             throw ApiException.BadRequest("This case has no conversation tree.");
@@ -229,6 +231,9 @@ public static class GameplayConversationRules
     {
         var dialogue = gameCase.Dialogues.FirstOrDefault(item => item.DialogueId == challenge.DialogueId);
         if (dialogue is null || !scene.CharacterIds.Contains(dialogue.CharacterId))
+            return false;
+        if (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+            && !dialogue.AvailableSceneIds.Contains(scene.SceneId))
             return false;
 
         return askedDialogueIds.Contains(dialogue.DialogueId)

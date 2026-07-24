@@ -21,7 +21,7 @@ public static class V3SceneProjectionPolicy
             : CloneRuntime(sourceRuntime, investigator);
         response.VisibleScene.Hotspots = response.VisibleScene.Hotspots
             .Where(hotspot => investigator
-                ? hotspot.Type.Equals("ITEM", StringComparison.OrdinalIgnoreCase)
+                ? !hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase)
                 : interrogator && hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase))
             .Select(SanitizeHotspot)
             .ToList();
@@ -31,32 +31,51 @@ public static class V3SceneProjectionPolicy
         response.VisibleScene.AvailableDialogues = interrogator
             ? response.VisibleScene.AvailableDialogues.Select(SanitizeDialogue).ToList()
             : new List<SceneDialogueDto>();
-        response.VisibleScene.ConversationTreeCharacterIds = new List<string>();
-        response.VisibleScene.ConversationTranscript = new List<ConversationTranscriptEntryDto>();
-        response.VisibleScene.Puzzles = new List<ScenePuzzleDto>();
+        response.VisibleScene.ConversationTreeCharacterIds = interrogator
+            ? response.VisibleScene.ConversationTreeCharacterIds
+            : new List<string>();
+        response.VisibleScene.ConversationTranscript = interrogator
+            ? response.VisibleScene.ConversationTranscript
+            : new List<ConversationTranscriptEntryDto>();
+        response.VisibleScene.Puzzles = investigator
+            ? response.VisibleScene.Puzzles
+            : new List<ScenePuzzleDto>();
 
-        if (response.IsCaseComplete)
-        {
-            // A completed V3 sandbox is a terminal review state. Keep scene visuals,
-            // but remove action surfaces so an exhausted NPC cannot look like the next step.
-            response.VisibleScene.Hotspots = new List<HotspotDto>();
-            response.VisibleScene.AvailableDialogues = new List<SceneDialogueDto>();
-        }
-
-        response.InspectedItemIds = investigator ? response.InspectedItemIds : new List<string>();
-        response.CollectedItemIds = investigator ? response.CollectedItemIds : new List<string>();
-        response.CapturedClueIds = investigator ? response.CapturedClueIds : new List<string>();
+        var itemIds = gameCase.Items.Select(item => item.ItemId).ToHashSet(StringComparer.Ordinal);
+        var clueIds = gameCase.Clues.Select(clue => clue.ClueId).ToHashSet(StringComparer.Ordinal);
+        var dialogueIds = gameCase.Dialogues.Select(dialogue => dialogue.DialogueId).ToHashSet(StringComparer.Ordinal);
+        var interactionIds = gameCase.Interactions.Select(interaction => interaction.InteractionId).ToHashSet(StringComparer.Ordinal);
+        var puzzleIds = gameCase.Puzzles.Select(puzzle => puzzle.PuzzleId).ToHashSet(StringComparer.Ordinal);
+        response.InspectedItemIds = investigator
+            ? response.InspectedItemIds.Where(itemIds.Contains).ToList()
+            : new List<string>();
+        response.CollectedItemIds = investigator
+            ? response.CollectedItemIds.Where(itemIds.Contains).ToList()
+            : new List<string>();
+        response.CapturedClueIds = investigator
+            ? response.CapturedClueIds.Where(clueIds.Contains).ToList()
+            : new List<string>();
         response.CollectedItems = investigator ? response.CollectedItems : new List<SceneItemDto>();
-        response.AskedDialogueIds = interrogator ? response.AskedDialogueIds : new List<string>();
-        response.UsedInteractionIds = new List<string>();
-        response.SolvedPuzzleIds = new List<string>();
+        response.AskedDialogueIds = interrogator
+            ? response.AskedDialogueIds.Where(dialogueIds.Contains).ToList()
+            : new List<string>();
+        response.UsedInteractionIds = investigator
+            ? response.UsedInteractionIds.Where(interactionIds.Contains).ToList()
+            : new List<string>();
+        response.SolvedPuzzleIds = investigator
+            ? response.SolvedPuzzleIds.Where(puzzleIds.Contains).ToList()
+            : new List<string>();
         response.SelectedEvidenceIds = new List<string>();
         response.CurrentSceneMissingRequirements = new MissingRequirementsDto();
-        response.CurrentObjective = BuildObjective(
-            gameCase.Language,
-            player.Role,
-            response.ActiveConfrontation,
-            response.IsCaseComplete);
+        if (response.ActiveConfrontation is not null)
+        {
+            response.CurrentObjective = BuildObjective(
+                gameCase.Language,
+                gameCase.GenerationPreset,
+                player.Role,
+                response.ActiveConfrontation,
+                false);
+        }
     }
 
     private static HotspotDto SanitizeHotspot(HotspotDto hotspot) => new()
@@ -82,7 +101,7 @@ public static class V3SceneProjectionPolicy
         Question = dialogue.Question,
         IsLocked = dialogue.IsLocked,
         IsAsked = dialogue.IsAsked,
-        Answer = null,
+        Answer = dialogue.IsAsked ? dialogue.Answer : null,
         RequiredClueIds = new List<string>(),
         MissingClueIds = new List<string>(),
         EvidenceChallenges = new List<EvidenceChallengeDto>()
@@ -116,9 +135,7 @@ public static class V3SceneProjectionPolicy
                 RequireCaptureCenterInside = source.CameraRules.RequireCaptureCenterInside
             }
             : new CameraRules(),
-        // The first V3 slice is one-scene. Transition identifiers stay closed until
-        // a later V3 content gate defines their audience explicitly.
-        Transitions = new List<TransitionZone>()
+        Transitions = source.Transitions.Select(Clone).ToList()
     };
 
     private static ItemPlacement Clone(ItemPlacement value) => new()
@@ -163,6 +180,15 @@ public static class V3SceneProjectionPolicy
         Reason = string.Empty
     };
 
+    private static TransitionZone Clone(TransitionZone value) => new()
+    {
+        TransitionId = value.TransitionId,
+        TargetSceneId = value.TargetSceneId,
+        Label = value.Label,
+        Hotspot = Clone(value.Hotspot)!,
+        Depth = value.Depth
+    };
+
     private static RuntimePoint Clone(RuntimePoint value) => new()
     {
         X = value.X,
@@ -186,6 +212,7 @@ public static class V3SceneProjectionPolicy
 
     private static string BuildObjective(
         string language,
+        string generationPreset,
         string? role,
         PairedConfrontationViewDto? active,
         bool isCaseComplete)
@@ -210,6 +237,13 @@ public static class V3SceneProjectionPolicy
             return active.ConfirmedByMe
                 ? vi ? "Đã xác nhận. Hãy chờ đồng đội xác nhận cùng phiên bản." : "Confirmed. Wait for your partner to confirm this revision."
                 : vi ? "Cùng xem lại cặp thông tin rồi xác nhận hoặc chỉnh sửa." : "Review the pair together, then confirm or edit.";
+        }
+
+        if (AiV3GenerationProfile.IsV3Preset(generationPreset))
+        {
+            return role == PlayerRole.Investigator
+                ? vi ? "Chụp ảnh chi tiết ẩn trong hiện trường và kiểm tra cả hai vật chứng." : "Photograph the hidden scene detail and inspect both physical evidence items."
+                : vi ? "Hỏi nhân chứng và ghi lại cả ba mảnh lời khai trước khi đối chất." : "Question the witness and record all three testimony fragments before confronting the claim.";
         }
 
         return role == PlayerRole.Investigator

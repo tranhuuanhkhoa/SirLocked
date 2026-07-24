@@ -201,29 +201,53 @@ All routes require `ADMIN`.
 | `PATCH` | `/api/admin/cases/{caseId}/unpublish` | none | `CaseSummaryResponse` |
 | `POST` | `/api/admin/cases/seed-sample?publish=true` | none | `CaseSummaryResponse` |
 | `POST` | `/api/admin/cases/seed-demo` | none | `CaseSummaryResponse[]` |
+| `POST` | `/api/admin/cases/seed-crack-demo` | none | `CaseSummaryResponse[]`; validates, upserts and publishes only the bundled EN/VI Crack case IDs |
 
 ## AI Case Drafts
 
 | Method | Route | Auth | Body/Query | Data |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/admin/ai-cases` | `ADMIN` or `VIP` | `{ "prompt": "", "stageCount": 4, "difficulty": "medium" }`; `prompt` is optional | `AiDraftResponse` with `storyPreview` |
-| `POST` | `/api/admin/ai-cases/{draftId}/approve` | `ADMIN` or `VIP` | none | `AiDraftResponse` with `publishedCase` |
-| `GET` | `/api/admin/ai-cases` | `ADMIN` | none | `AiDraftResponse[]` without generated JSON |
-| `GET` | `/api/admin/ai-cases/{draftId}` | `ADMIN` | none | `AiDraftResponse` with generated JSON |
+| `GET` | `/api/admin/ai-cases/capabilities` | `ADMIN` or `VIP` | none | feature flags plus `crackBudgets` keyed by preset |
+| `POST` | `/api/admin/ai-cases` | `ADMIN` or `VIP` | generation request | `202 Accepted`; pending `AiDraftResponse` |
+| `POST` | `/api/admin/ai-cases/{draftId}/approve` | `ADMIN` or owning `VIP` | none | `202 Accepted`; queues immutable truth generation |
+| `POST` | `/api/admin/ai-cases/{draftId}/approve-truth` | `ADMIN` or owning `VIP` | none | `202 Accepted`; queues truth-backed gameplay projection |
+| `POST` | `/api/admin/ai-cases/{draftId}/approve-full-logic` | `ADMIN` or owning `VIP` | none | `202 Accepted`; queues layout generation |
+| `POST` | `/api/admin/ai-cases/{draftId}/approve-scene-layout` | `ADMIN` or owning `VIP` | none | `202 Accepted`; queues final assets |
+| `POST` | `/api/admin/ai-cases/{draftId}/retry-json` | `ADMIN` or owning `VIP` | none | `202 Accepted`; resumes from checkpoint |
+| `GET` | `/api/admin/ai-cases` | `ADMIN` or `VIP` | none | admins see all drafts; VIP sees only owned drafts; spoilers omitted |
+| `GET` | `/api/admin/ai-cases/{draftId}` | `ADMIN` or owning `VIP` | none | detailed `AiDraftResponse` |
+| `POST` | `/api/admin/ai-cases/artifacts/cleanup?apply=false&olderThanDays=30` | `ADMIN` | query | cleanup report; dry-run unless `apply=true` |
 | `POST` | `/api/admin/ai-cases/{draftId}/import?overwrite=false` | `ADMIN` | query | `CaseSummaryResponse` |
 | `POST` | `/api/admin/ai-cases/{draftId}/publish?overwrite=false` | `ADMIN` | query | `CaseSummaryResponse` |
+
+For generated Crack cases, `candidateTestimonyFragmentIds × candidateEvidenceIds`
+defines the semantic Cartesian product. Counts are dynamic (2–4 testimony and
+3–6 evidence) and constrained by the selected preset's per-Crack and per-case
+pair budgets. Empty `startRequired*` lists retain the legacy fallback to all
+candidates; populated lists are readiness subsets and must contain the authored
+correct pair.
 
 AI statuses:
 
 - `GENERATED_INVALID`
 - `GENERATING_STORY`
 - `STORY_AWAITING_APPROVAL`
+- `GENERATING_CASE_TRUTH`
+- `CASE_TRUTH_AWAITING_APPROVAL`
+- `CASE_TRUTH_INVALID`
 - `GENERATING_FULL_CASE`
-- `OPENAI_GENERATED_VALID`
-- `GENERATING_ASSETS`
-- `ASSETS_GENERATED`
+- `FULL_LOGIC_AWAITING_APPROVAL`
+- `GENERATING_SCENE_LAYOUT`
+- `SCENE_LAYOUT_AWAITING_APPROVAL`
+- `GENERATING_FINAL_ASSETS`
+- `READY_TO_PUBLISH`
 - `IMPORTED`
 - `PUBLISHED`
+
+`AiDraftResponse` also exposes `workflowVersion`, `queuedOperation`,
+`queueState`, `generationInputHash`, `nextAttemptAt`, and
+`lastGenerationErrorCode`. Bundle references are relative and never reveal an
+absolute server path.
 
 ## Health
 
@@ -279,4 +303,5 @@ Movement/sync design details are documented in `PLAYER_MOVEMENT_SYSTEM.md` and `
 | `404` | Missing room, case, item, dialogue, draft, or result |
 | `409` | Conflict such as duplicate email, full room, duplicate role, concurrent state write |
 | `422` | Valid JSON payload that cannot be parsed/processed as a valid case |
+| `202` | AI operation accepted into the durable Mongo queue |
 | `502` | OpenAI/provider failure |

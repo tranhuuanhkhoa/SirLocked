@@ -23,6 +23,8 @@ You can start from `ai-game-docs/.env.example`.
 ```env
 MongoDb__ConnectionString=mongodb://localhost:27017
 MongoDb__DatabaseName=SirLockedDb
+GameplayV3__Enabled=true
+AiCaseV3Preset__Enabled=true
 Email__FrontendUrl=http://localhost:5173
 Cors__AllowedOrigins__0=http://localhost:5173
 Swagger__Enabled=false
@@ -102,29 +104,63 @@ Public registration creates `PLAYER` accounts. Admins can promote a non-admin us
 11. Complete scenes/stages until final accusation is available.
 12. Submit a culprit and evidence to reach win/fail result.
 
+To install the two bundled Crack cases into the configured main database, log in
+as an admin and use **Seed Crack cases**, or call
+`POST /api/admin/cases/seed-crack-demo`. The operation validates, upserts, and
+publishes only `case-v3-broken-seal-en` and `case-v3-broken-seal-vi`; it is never
+run automatically at API startup and does not migrate existing V2 cases.
+
 For a code-synced Vietnamese map of the current AI case creation, room, realtime,
 and gameplay flows, see
 [`ai-game-docs/CURRENT_CASE_AND_GAME_FLOW_VI.md`](ai-game-docs/CURRENT_CASE_AND_GAME_FLOW_VI.md).
 
 ## AI Case Creator
 
-The AI flow uses explicit review gates:
+The AI flow uses explicit review gates backed by a durable Mongo queue:
 
 1. Create and approve a spoiler-free story preview.
-2. Generate and approve the hidden culprit logic and full case JSON.
-3. Generate and approve scene backgrounds, clue regions, and placement metadata.
-4. Generate final portraits, sprites, item assets, and runtime metadata.
-5. An admin imports and publishes the validated case.
+2. Generate and approve the immutable CaseTruthPackage (seed, timeline,
+   opportunity matrix, evidence, statements, and five canonical conclusions).
+3. Project the approved truth into full case JSON and pass blind solvability review.
+   A V2 preset with `includeCrackTheLie=true` produces mechanics version 3,
+   generates a budgeted case/Crack blueprint, reviews every dynamic Cartesian
+   testimony/evidence pair, and locks the reviewed contract with a conformance
+   hash before full JSON generation.
+4. Generate and approve scene backgrounds, clue regions, and placement metadata.
+5. Generate final portraits, sprites, item assets, and runtime metadata.
+6. An admin imports and publishes the validated case.
 
-The culprit and final logic are first generated after story approval. Generated
+Generation, approval, and retry endpoints return 202 Accepted after atomically
+queueing work. A hosted worker claims a 20-minute lease, heartbeats every two
+minutes, resumes from saved checkpoints after restart, and retries transient
+provider failures after 15 seconds, 60 seconds, and 5 minutes. VIP users can
+reload and continue only their own drafts; import/publish remains admin-only.
+
+Truth budgets are derived once from preset and stage count and shared by the
+prompt, strict JSON Schema, deterministic validator, and review UI. Generated
 bundles are written under `src/BE/GeneratedCaseJson/`, and generated image assets
 under `src/FE/public/assets/ai-generated/`; both are ignored by git.
+
+Artifact cleanup is dry-run by default:
+
+```powershell
+./scripts/cleanup-ai-artifacts.ps1 -Token '<admin-jwt>'
+./scripts/cleanup-ai-artifacts.ps1 -Token '<admin-jwt>' -Apply
+```
+
+Only failed, unpublished drafts older than 30 days are candidates. Active,
+ready, imported, and published drafts are always protected.
 
 ## Verification
 
 ```powershell
 dotnet test SirLocked.sln
+./scripts/test-v3-mongo.ps1
+./scripts/test-v3-full-stack.ps1
 cd src/FE
 npm run typecheck
 npm run build
 ```
+
+Mongo integration and full-stack scripts only accept a loopback MongoDB server.
+Each run creates a unique `sirlocked_it_<guid>` database and drops it in `finally`.

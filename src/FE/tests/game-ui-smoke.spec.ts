@@ -243,6 +243,19 @@ const accusationReadyState = {
   ],
 };
 
+const causalAccusationReadyState = {
+  ...accusationReadyState,
+  accusationConfig: {
+    ...accusationReadyState.accusationConfig,
+    claimTypes: ['MOTIVE', 'METHOD', 'OPPORTUNITY', 'IDENTITY', 'TIMELINE'],
+  },
+  evidenceClues: [
+    ...accusationReadyState.evidenceClues,
+    { clueId: 'clue-d', title: 'Unique Fiber', content: 'The fiber links the culprit to the crime action.', source: 'PHOTO', isCritical: true, isEvidence: true },
+    { clueId: 'clue-e', title: 'Station Clock', content: 'The clock reconstructs the exact crime window.', source: 'PHOTO', isCritical: true, isEvidence: true },
+  ],
+};
+
 const evidenceGalleryState = {
   ...smokeState,
   unlockedClues: [
@@ -431,6 +444,30 @@ test('final accusation appears as a ready event instead of a permanently disable
   await expect(page.locator('#accuse-next')).toBeEnabled();
   await page.keyboard.press('Escape');
   await expect(page.locator('.overlay .modal')).toHaveCount(0);
+});
+
+test('causal contract renders and requires all five accusation claims', async ({ page }) => {
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: causalAccusationReadyState }) });
+  });
+
+  await page.goto(`/#/game/${roomId}`);
+  await page.locator('.final-confrontation-callout').click();
+  await page.locator('[data-suspect]').click();
+  await page.locator('#accuse-next').click();
+  await page.locator('[data-motive]').click();
+  await page.locator('#accuse-next').click();
+  await page.locator('[data-method]').click();
+  await page.locator('#accuse-next').click();
+
+  await expect(page.locator('.claim-drop-zone')).toHaveCount(5);
+  await expect(page.locator('[data-claim-drop="IDENTITY"]')).toContainText('Identity');
+  await expect(page.locator('[data-claim-drop="TIMELINE"]')).toContainText('Timeline');
+  for (const clueId of ['clue-a', 'clue-b', 'clue-c', 'clue-d', 'clue-e']) {
+    await page.locator(`[data-assign-evidence="${clueId}"]`).click();
+  }
+  await expect(page.locator('#accuse-next')).toBeEnabled();
 });
 
 test('case file shows square evidence in two columns and opens a large detail view', async ({ page }) => {

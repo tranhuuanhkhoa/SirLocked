@@ -11,6 +11,17 @@ namespace SirLocked.Api.Services;
 /// </summary>
 public static class CaseAutoRepair
 {
+    /// <summary>
+    /// Contract-v2 safe repair: fills presentation metadata only. It never changes sources,
+    /// unlocks, requirements, evidence flags, culprit, proof, or progression semantics.
+    /// </summary>
+    public static List<string> RepairMechanicalMetadata(GameCase c)
+    {
+        var fixes = new List<string>();
+        NormalizeVisualMetadata(c, fixes);
+        return fixes;
+    }
+
     public static List<string> Repair(GameCase c)
     {
         var fixes = new List<string>();

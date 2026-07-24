@@ -19,6 +19,7 @@ Plans 007-011 were written against the current local gameplay worktree, which ha
 | 009 | Restore authored scene progression | P1 | L | 007 | DONE - approved in `advisor/009-authored-scene-progression` at `62fec91` |
 | 010 | Correct OR objective projection | P1 | M | 009, 008 | DONE - approved in `advisor/010-or-objective-projection` at `b4be257` |
 | 011 | Partition auth rate limits by client | P1 | S | - | TODO - owner deferred until public/staging deployment topology is available |
+| 012 | Enforce canonical AI truth references | P1 | M | - | DONE - approved in `advisor/012-canonical-truth-references` at `ae4a3a5` |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale).
 
@@ -31,6 +32,7 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 - Execute 010 after 009 and the approved 008 baseline because it touches `GameRules` and `GameStateBuilder`; preserve authored progression and captured-photo visibility while centralizing condition evaluation.
 - Plan 008 is logically independent of progression, but its execution baseline follows 009 because both edit `GameplayService`; preserve 009's caller-only continuation behavior. Plan 011 remains independent.
 - Do not execute Plan 011 before public/staging deployment details are known. It needs realistic verification of `RemoteIpAddress`, trusted proxy/forwarded-header configuration, and per-client partition behavior in the deployed topology.
+- Plan 012 is independent of gameplay plans 007-011. Execute it before generating another live AI case; it changes only the CaseTruth prompt/schema/validator boundary and preserves the truth-v1/GameCase shapes.
 
 ## Findings considered and deferred
 

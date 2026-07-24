@@ -1,31 +1,43 @@
 import { adminApi } from '../api/adminApi.js';
+import { aiCaseApi } from '../api/aiCaseApi.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
+import { isV3, v3PublishGate } from './adminV3Gates.js';
 
 export async function renderAdminCasesPage(app) {
   render(app, `<div class="page"><p class="muted">${tr('Loading cases…', 'Đang tải vụ án…')}</p></div>`);
 
   let cases;
+  let capabilities = null;
   try {
     cases = await adminApi.cases();
+    capabilities = await aiCaseApi.capabilities().catch(() => null);
   } catch (err) {
     render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
     return;
   }
 
-  const rows = cases.map((c) => `
+  const rows = cases.map((c) => {
+    const gate = v3PublishGate(c, capabilities);
+    const publishControl = c.status === 'PUBLISHED'
+      ? `<button class="btn btn-ghost btn-sm" data-unpublish="${escapeHtml(c.caseId)}">${tr('Unpublish', 'Gỡ xuất bản')}</button>`
+      : gate.canPublish
+        ? `<button class="btn btn-primary btn-sm" data-publish="${escapeHtml(c.caseId)}">${tr('Publish', 'Xuất bản')}</button>`
+        : `<button class="btn btn-ghost btn-sm" disabled title="${escapeHtml(gate.reason)}">${tr('Publish blocked', 'Chưa thể xuất bản')}</button>`;
+    return `
     <tr>
       <td><a href="#/admin/cases/${encodeURIComponent(c.caseId)}">${escapeHtml(c.title)}</a><br>
-          <span class="muted small">${escapeHtml(c.caseId)}</span></td>
+          <span class="muted small">${escapeHtml(c.caseId)}</span>
+          ${isV3(c) ? `<br><span class="chip chip-gold">V3 · Crack</span>${c.hasSourceAiDraft ? ` <span class="chip ${c.aiSemanticReviewStatus === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(c.aiSemanticReviewStatus || 'NOT_RUN')}</span>` : ''}` : ''}</td>
       <td><span class="chip ${c.status === 'PUBLISHED' ? 'chip-ok' : ''}">${c.status}</span></td>
       <td class="muted small">${c.stageCount} ${tr('stages', 'giai đoạn')} · ${c.sceneCount} ${tr('scenes', 'hiện trường')} · ${c.clueCount} ${tr('clues', 'manh mối')}</td>
       <td>
-        ${c.status === 'PUBLISHED'
-          ? `<button class="btn btn-ghost btn-sm" data-unpublish="${escapeHtml(c.caseId)}">${tr('Unpublish', 'Gỡ xuất bản')}</button>`
-          : `<button class="btn btn-primary btn-sm" data-publish="${escapeHtml(c.caseId)}">${tr('Publish', 'Xuất bản')}</button>`}
+        ${publishControl}
+        ${c.status !== 'PUBLISHED' && !gate.canPublish ? `<div class="muted small v3-gate-reason">${escapeHtml(gate.reason)}</div>` : ''}
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   render(app, `
   <div class="page">
@@ -53,7 +65,7 @@ export async function renderAdminCasesPage(app) {
           toast(`Case ${label}.`, 'success');
           renderAdminCasesPage(app);
         } catch (err) {
-          toast(err.message, 'error');
+          toast(err.errors?.code ? `${err.errors.code}: ${err.message}` : err.message, 'error');
           btn.disabled = false;
         }
       }));

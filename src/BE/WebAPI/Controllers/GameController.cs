@@ -31,6 +31,10 @@ public class GameController : BaseApiController
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> CombineItems(string roomId, [FromBody] CombineItemsRequest request) =>
         Ok(await _gameplayService.CombineItemsAsync(Caller, roomId, request));
 
+    [HttpPost("interactions/{interactionId}/activate")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> ActivateEnvironmentInteraction(string roomId, string interactionId) =>
+        Ok(await _gameplayService.ActivateEnvironmentInteractionAsync(Caller, roomId, interactionId));
+
     [HttpPost("solve-puzzle")]
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> SolvePuzzle(string roomId, [FromBody] SolvePuzzleRequest request) =>
         Ok(await _gameplayService.SolvePuzzleAsync(Caller, roomId, request));

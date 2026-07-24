@@ -1,11 +1,17 @@
 import { get, post, put } from './http.js';
 
 export const aiCaseApi = {
-  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en') =>
-    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language }),
+  capabilities: () => get('/api/admin/ai-cases/capabilities'),
+  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM') =>
+    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType }),
   replaceJson: (draftId, caseJson, storyPreview = null) =>
     put(`/api/admin/ai-cases/${draftId}/case-json`, { caseJson, storyPreview }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),
+  approveTruth: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-truth`),
+  repairTruth: (draftId, repairInstructions = '') =>
+    post(`/api/admin/ai-cases/${draftId}/repair-truth`, { repairInstructions }),
+  acceptTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/accept-truth-repair`),
+  rejectTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/reject-truth-repair`),
   approveFullLogic: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-full-logic`),
   approveSceneLayout: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-scene-layout`),
   continueDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/continue`),

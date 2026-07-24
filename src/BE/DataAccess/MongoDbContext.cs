@@ -23,10 +23,6 @@ public class MongoDbContext
     public MongoDbContext(IOptions<MongoDbSettings> options)
     {
         Settings = options.Value;
-        if (Settings.AuditSafetyMode)
-        {
-            V3LocalMongoSafetyGuard.EnsureSafe(Settings);
-        }
         var clientSettings = MongoClientSettings.FromConnectionString(Settings.ConnectionString);
         if (clientSettings.UseTls)
         {
@@ -54,7 +50,6 @@ public class MongoDbContext
     public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
     public IMongoCollection<CaseReview> Reviews => Database.GetCollection<CaseReview>(Settings.ReviewsCollectionName);
     public IMongoCollection<WeeklyFeature> WeeklyFeatures => Database.GetCollection<WeeklyFeature>(Settings.WeeklyFeaturesCollectionName);
-    public IMongoCollection<PlaytestEventRecord> PlaytestEvents => Database.GetCollection<PlaytestEventRecord>(Settings.PlaytestEventsCollectionName);
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -102,7 +97,18 @@ public class MongoDbContext
         await AiCaseDrafts.Indexes.CreateManyAsync(new[]
         {
             new CreateIndexModel<AiCaseDraft>(Builders<AiCaseDraft>.IndexKeys.Ascending(d => d.Status)),
-            new CreateIndexModel<AiCaseDraft>(Builders<AiCaseDraft>.IndexKeys.Descending(d => d.CreatedAt))
+            new CreateIndexModel<AiCaseDraft>(Builders<AiCaseDraft>.IndexKeys.Descending(d => d.CreatedAt)),
+            new CreateIndexModel<AiCaseDraft>(Builders<AiCaseDraft>.IndexKeys
+                    .Ascending(d => d.QueueState)
+                    .Ascending(d => d.NextAttemptAt)
+                    .Ascending(d => d.GenerationClaimedAt),
+                new CreateIndexOptions { Name = "ix_aiCaseDrafts_queueState_nextAttemptAt_claimedAt" }),
+            new CreateIndexModel<AiCaseDraft>(
+                Builders<AiCaseDraft>.IndexKeys
+                    .Ascending(d => d.CreatedByUserId)
+                    .Ascending(d => d.Settings.Language)
+                    .Descending(d => d.CreatedAt),
+                new CreateIndexOptions { Name = "ix_aiCaseDrafts_creator_language_createdAt" })
         }, ct);
 
         await AiGenerationLogs.Indexes.CreateManyAsync(new[]

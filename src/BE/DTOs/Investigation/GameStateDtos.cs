@@ -26,6 +26,12 @@ public class CombineItemsRequest
     public List<string> ItemIds { get; set; } = new();
 }
 
+public class ActivateEnvironmentInteractionRequest
+{
+    [Required]
+    public string InteractionId { get; set; } = string.Empty;
+}
+
 public class SolvePuzzleRequest
 {
     [Required]
@@ -505,8 +511,8 @@ public class GameStateResponse
     public MissingRequirementsDto CurrentSceneMissingRequirements { get; set; } = new();
     public string CurrentObjective { get; set; } = string.Empty;
     /// <summary>
-    /// True when every V3 paired-confrontation challenge has been resolved correctly.
-    /// V1/V2 keep the default false value and their completion contract is unchanged.
+    /// True only when the room has completed its normal final-accusation/result flow.
+    /// Resolving one or all Crack challenges never completes a V3 case by itself.
     /// </summary>
     public bool IsCaseComplete { get; set; }
     public VisibleSceneDto VisibleScene { get; set; } = new();

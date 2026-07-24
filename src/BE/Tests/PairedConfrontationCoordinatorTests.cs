@@ -21,6 +21,7 @@ public sealed class PairedConfrontationCoordinatorTests
     {
         var playtestEvents = new RecordingPlaytestEventSink();
         var harness = CreateHarness(enabled: true, playtestEvents);
+        EnableCandidateMatrix(harness);
 
         var started = await harness.Coordinator.StartAsync(
             User("int"), "room-1", new StartPairedConfrontationRequest
@@ -107,6 +108,175 @@ public sealed class PairedConfrontationCoordinatorTests
     }
 
     [Fact]
+    public async Task CandidateAllowlistsRejectOwnedButExcludedChoicesWithGenericUnavailableCodes()
+    {
+        var harness = CreateHarness(enabled: true);
+        var challenge = Assert.Single(harness.Case.EvidenceChallenges);
+        EnableCandidateMatrix(harness);
+        harness.Case.TestimonyFragments.Add(new TestimonyFragment
+        {
+            Id = "fragment-excluded",
+            DialogueId = "dialogue-1",
+            Text = "Owned but not part of this matrix."
+        });
+        harness.Case.Clues.Add(new CaseClue { ClueId = "evidence-excluded", IsEvidence = true });
+        harness.Room.GameplayState!.TestimonyDiscoveries.Add(new TestimonyDiscoveryRecord
+        {
+            TestimonyFragmentId = "fragment-excluded",
+            DialogueId = "dialogue-1",
+            DiscoveredByUserId = "int",
+            DiscoveredByRole = PlayerRole.Interrogator
+        });
+        harness.Room.GameplayState.ClueDiscoveries.Add(new ClueDiscoveryRecord
+        {
+            ClueId = "evidence-excluded",
+            DiscoveredByUserId = "inv",
+            DiscoveredByRole = PlayerRole.Investigator
+        });
+
+        var testimonyError = await Assert.ThrowsAsync<ApiException>(() => harness.Coordinator.StartAsync(
+            User("int"), "room-1", new StartPairedConfrontationRequest
+            {
+                AttemptId = AttemptId,
+                TestimonyFragmentId = "fragment-excluded"
+            }));
+        AssertError(testimonyError, 404, PairedConfrontationCoordinator.TestimonyUnavailableCode);
+
+        var started = await harness.Coordinator.StartAsync(
+            User("int"), "room-1", new StartPairedConfrontationRequest
+            {
+                AttemptId = AttemptId,
+                TestimonyFragmentId = "fragment-correct"
+            });
+        var evidenceError = await Assert.ThrowsAsync<ApiException>(() => harness.Coordinator.SubmitEvidenceAsync(
+            User("inv"), "room-1", AttemptId, new SubmitPairedEvidenceRequest
+            {
+                EvidenceId = "evidence-excluded",
+                ExpectedRevision = started.Revision
+            }));
+        AssertError(evidenceError, 404, PairedConfrontationCoordinator.EvidenceUnavailableCode);
+    }
+
+    [Fact]
+    public async Task AllEightWrongCandidatePairsResolveIncorrectWithoutUnlockingReveal()
+    {
+        var evidenceIds = new[] { "evidence-correct", "evidence-wrong-a", "evidence-wrong-b" };
+        var fragmentIds = new[] { "fragment-correct", "fragment-wrong-a", "fragment-wrong-b" };
+        var wrongPairs = evidenceIds.SelectMany(evidenceId => fragmentIds.Select(fragmentId => (evidenceId, fragmentId)))
+            .Where(pair => pair.evidenceId != "evidence-correct" || pair.fragmentId != "fragment-correct")
+            .ToList();
+
+        Assert.Equal(8, wrongPairs.Count);
+        foreach (var (evidenceId, fragmentId) in wrongPairs)
+        {
+            var harness = CreateHarness(enabled: true);
+            EnableCandidateMatrix(harness);
+            var attemptId = Guid.NewGuid().ToString();
+            var started = await harness.Coordinator.StartAsync(User("int"), "room-1", new StartPairedConfrontationRequest
+            {
+                AttemptId = attemptId,
+                TestimonyFragmentId = fragmentId
+            });
+            var paired = await harness.Coordinator.SubmitEvidenceAsync(User("inv"), "room-1", attemptId, new SubmitPairedEvidenceRequest
+            {
+                EvidenceId = evidenceId,
+                ExpectedRevision = started.Revision
+            });
+            await harness.Coordinator.ConfirmAsync(User("inv"), "room-1", attemptId, new PairedConfrontationRevisionRequest
+            {
+                ExpectedRevision = paired.Revision
+            });
+            var resolved = await harness.Coordinator.ConfirmAsync(User("int"), "room-1", attemptId, new PairedConfrontationRevisionRequest
+            {
+                ExpectedRevision = paired.Revision
+            });
+
+            Assert.Equal(PairedConfrontationStatus.ResolvedIncorrect, resolved.Status);
+            Assert.Empty(harness.Room.GameplayState!.UnlockedClueIds);
+            Assert.Empty(harness.Room.GameplayState.ResolvedConfrontationRecords);
+            Assert.Single(harness.Room.GameplayState.PairedConfrontationAttempts);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyV3WithoutCandidateListsStillFindsChallengeByDialogue()
+    {
+        var harness = CreateHarness(enabled: true);
+
+        var started = await harness.Coordinator.StartAsync(User("int"), "room-1", new StartPairedConfrontationRequest
+        {
+            AttemptId = AttemptId,
+            TestimonyFragmentId = "fragment-correct"
+        });
+
+        Assert.Equal(PairedConfrontationStatus.CollectingProposals, started.Status);
+        Assert.Empty(Assert.Single(harness.Case.EvidenceChallenges).CandidateTestimonyFragmentIds);
+    }
+
+    [Fact]
+    public async Task EmptyReadinessListsFallbackToAllCandidateChoices()
+    {
+        var harness = CreateHarness(enabled: true);
+        EnableCandidateMatrix(harness);
+        harness.Case.GenerationPreset = AiGenerationPresets.CrackTheLieV3;
+        harness.Room.GameplayState!.ClueDiscoveries.RemoveAll(discovery =>
+            discovery.ClueId == "evidence-wrong-b");
+
+        var blocked = await Assert.ThrowsAsync<ApiException>(() => harness.Coordinator.StartAsync(
+            User("int"), "room-1", new StartPairedConfrontationRequest
+            {
+                AttemptId = AttemptId,
+                TestimonyFragmentId = "fragment-correct"
+            }));
+
+        AssertError(blocked, 409, PairedConfrontationRules.NotAvailableCode);
+        Assert.DoesNotContain("evidence-wrong-b", blocked.Message, StringComparison.Ordinal);
+
+        harness.Room.GameplayState.ClueDiscoveries.Add(new ClueDiscoveryRecord
+        {
+            ClueId = "evidence-wrong-b",
+            DiscoveredByUserId = "inv",
+            DiscoveredByRole = PlayerRole.Investigator
+        });
+
+        var started = await harness.Coordinator.StartAsync(
+            User("int"), "room-1", new StartPairedConfrontationRequest
+            {
+                AttemptId = AttemptId,
+                TestimonyFragmentId = "fragment-correct"
+            });
+
+        Assert.Equal(PairedConfrontationStatus.CollectingProposals, started.Status);
+    }
+
+    [Fact]
+    public async Task RequiredSubsetOpensCrackWhileOptionalCandidatesRemainUndiscovered()
+    {
+        var harness = CreateHarness(enabled: true);
+        EnableCandidateMatrix(harness);
+        harness.Case.GenerationPreset = AiGenerationPresets.NormalRandom;
+        var challenge = Assert.Single(harness.Case.EvidenceChallenges);
+        challenge.StartRequiredEvidenceIds = ["evidence-correct", "evidence-wrong-a"];
+        challenge.StartRequiredTestimonyFragmentIds = ["fragment-correct", "fragment-wrong-a"];
+        harness.Room.GameplayState!.ClueDiscoveries.RemoveAll(discovery => discovery.ClueId == "evidence-wrong-b");
+        harness.Room.GameplayState.TestimonyDiscoveries.RemoveAll(discovery =>
+            discovery.TestimonyFragmentId == "fragment-wrong-b");
+
+        var started = await harness.Coordinator.StartAsync(
+            User("int"), "room-1", new StartPairedConfrontationRequest
+            {
+                AttemptId = AttemptId,
+                TestimonyFragmentId = "fragment-correct"
+            });
+
+        Assert.Equal(PairedConfrontationStatus.CollectingProposals, started.Status);
+        Assert.DoesNotContain(harness.Room.GameplayState.ClueDiscoveries,
+            discovery => discovery.ClueId == "evidence-wrong-b");
+        Assert.DoesNotContain(harness.Room.GameplayState.TestimonyDiscoveries,
+            discovery => discovery.TestimonyFragmentId == "fragment-wrong-b");
+    }
+
+    [Fact]
     public async Task OptimisticConflict_ReloadsAuthoritativeStateAndRetriesOnce()
     {
         var firstRoom = BuildRoom();
@@ -152,7 +322,7 @@ public sealed class PairedConfrontationCoordinatorTests
             playtestEvents ?? new NoOpPlaytestEventSink(),
             TimeProvider.System,
             Options.Create(new GameplayV3Settings { Enabled = enabled }));
-        return new Harness(coordinator, room, persistence, notifier);
+        return new Harness(coordinator, room, gameCase, persistence, notifier);
     }
 
     private static GameRoom BuildRoom() => new()
@@ -218,6 +388,39 @@ public sealed class PairedConfrontationCoordinatorTests
 
     private static CurrentUser User(string id) => new(id, id, "PLAYER");
 
+    private static void EnableCandidateMatrix(Harness harness)
+    {
+        var challenge = Assert.Single(harness.Case.EvidenceChallenges);
+        challenge.CandidateEvidenceIds = new List<string>
+        {
+            "evidence-correct", "evidence-wrong-a", "evidence-wrong-b"
+        };
+        challenge.CandidateTestimonyFragmentIds = new List<string>
+        {
+            "fragment-correct", "fragment-wrong-a", "fragment-wrong-b"
+        };
+        harness.Case.Clues.AddRange(new[]
+        {
+            new CaseClue { ClueId = "evidence-wrong-a", IsEvidence = true },
+            new CaseClue { ClueId = "evidence-wrong-b", IsEvidence = true }
+        });
+        harness.Case.TestimonyFragments.AddRange(new[]
+        {
+            new TestimonyFragment { Id = "fragment-wrong-a", DialogueId = "dialogue-1", Text = "Wrong claim A" },
+            new TestimonyFragment { Id = "fragment-wrong-b", DialogueId = "dialogue-1", Text = "Wrong claim B" }
+        });
+        harness.Room.GameplayState!.ClueDiscoveries.AddRange(new[]
+        {
+            new ClueDiscoveryRecord { ClueId = "evidence-wrong-a", DiscoveredByUserId = "inv", DiscoveredByRole = PlayerRole.Investigator },
+            new ClueDiscoveryRecord { ClueId = "evidence-wrong-b", DiscoveredByUserId = "inv", DiscoveredByRole = PlayerRole.Investigator }
+        });
+        harness.Room.GameplayState.TestimonyDiscoveries.AddRange(new[]
+        {
+            new TestimonyDiscoveryRecord { TestimonyFragmentId = "fragment-wrong-a", DialogueId = "dialogue-1", DiscoveredByUserId = "int", DiscoveredByRole = PlayerRole.Interrogator },
+            new TestimonyDiscoveryRecord { TestimonyFragmentId = "fragment-wrong-b", DialogueId = "dialogue-1", DiscoveredByUserId = "int", DiscoveredByRole = PlayerRole.Interrogator }
+        });
+    }
+
     private static void AssertError(ApiException exception, int status, string code)
     {
         Assert.Equal(status, exception.StatusCode);
@@ -229,6 +432,7 @@ public sealed class PairedConfrontationCoordinatorTests
     private sealed record Harness(
         PairedConfrontationCoordinator Coordinator,
         GameRoom Room,
+        GameCase Case,
         RecordingPersistence Persistence,
         RecordingNotifier Notifier);
 

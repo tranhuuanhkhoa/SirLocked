@@ -25,9 +25,19 @@ public sealed class InvestigationV3CaseValidationTests
         Assert.Equal(3, gameCase.MechanicsVersion);
         Assert.Equal(3, gameCase.Clues.Count(clue => clue.IsEvidence));
         Assert.Equal(3, gameCase.TestimonyFragments.Count);
-        Assert.Single(gameCase.EvidenceChallenges);
+        var challenge = Assert.Single(gameCase.EvidenceChallenges);
+        Assert.Equal(3, challenge.CandidateEvidenceIds.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(3, challenge.CandidateTestimonyFragmentIds.Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains(challenge.CorrectEvidenceId, challenge.CandidateEvidenceIds);
+        Assert.Contains(challenge.TestimonyFragmentId, challenge.CandidateTestimonyFragmentIds);
         Assert.Empty(gameCase.ConversationNodes);
-        Assert.Empty(gameCase.Deductions);
+        var deduction = Assert.Single(gameCase.Deductions);
+        Assert.Contains(challenge.ChallengeId, deduction.RequiredChallengeIds);
+        var chain = Assert.Single(gameCase.RequiredTeamworkChains);
+        Assert.Equal(challenge.ChallengeId, chain.InterrogatorChallengeId);
+        Assert.Contains(deduction.DeductionId, gameCase.FinalLogic.RequiredDeductionIds);
+        Assert.Contains(chain.ChainId, gameCase.FinalLogic.RequiredTeamworkChainIds);
+        Assert.Equal(3, gameCase.FinalLogic.RequiredEvidenceLinks.Count);
         Assert.Empty(gameCase.Puzzles);
     }
 
@@ -50,7 +60,7 @@ public sealed class InvestigationV3CaseValidationTests
     }
 
     [Fact]
-    public void V3Validator_RejectsSpoilerFeedbackConversationTreesAndCircularReveal()
+    public void V3Validator_RejectsSpoilerFeedbackAndCircularRevealWhileAllowingConversationTrees()
     {
         var gameCase = Load("case-v3-broken-seal-en.json");
         var challenge = Assert.Single(gameCase.EvidenceChallenges);
@@ -66,14 +76,15 @@ public sealed class InvestigationV3CaseValidationTests
         var validation = new CaseValidationService().Validate(gameCase);
 
         Assert.Contains(validation.Errors, error => error.Code == "SecretLeak");
-        Assert.Contains(validation.Errors, error => error.Path == "conversationNodes");
+        Assert.DoesNotContain(validation.Errors, error => error.Path == "conversationNodes"
+            && error.Message.Contains("not support", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(validation.Errors, error =>
             error.Path.EndsWith("unlockClueIds", StringComparison.Ordinal)
             && error.Message.Contains("own confrontation", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void PublicInvestigationStateDtos_DoNotExposeCorrectEvidenceId()
+    public void PublicInvestigationStateDtos_DoNotExposeAnswerOrCandidateIds()
     {
         var dtoProperties = typeof(GameStateResponse).Assembly.GetTypes()
             .Where(type => type.IsPublic
@@ -84,6 +95,10 @@ public sealed class InvestigationV3CaseValidationTests
 
         Assert.DoesNotContain(dtoProperties, name =>
             name.Equals("CorrectEvidenceId", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(dtoProperties, name =>
+            name.Equals("CandidateEvidenceIds", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(dtoProperties, name =>
+            name.Equals("CandidateTestimonyFragmentIds", StringComparison.OrdinalIgnoreCase));
     }
 
     private static GameCase Load(string fileName)

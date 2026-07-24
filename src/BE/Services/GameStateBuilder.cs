@@ -38,10 +38,14 @@ public class GameStateBuilder : IGameStateBuilder
 
         var sceneDialogues = gameCase.Dialogues
             .Where(d => scene.CharacterIds.Contains(d.CharacterId))
+            .Where(d => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                || d.AvailableSceneIds.Contains(scene.SceneId))
             .Select(d => SceneDialogueDto.From(d, unlocked, state.AskedDialogueIds.Contains(d.DialogueId)))
             .ToList();
         var conversationTreeCharacterIds = gameCase.ConversationNodes
             .Where(node => scene.CharacterIds.Contains(node.CharacterId))
+            .Where(node => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                || node.AvailableSceneIds.Contains(scene.SceneId))
             .Select(node => node.CharacterId)
             .Distinct()
             .ToList();
@@ -210,12 +214,7 @@ public class GameStateBuilder : IGameStateBuilder
                         .Select(option => new AccusationOptionDto { Id = option.Id, Label = option.Label }).ToList(),
                     MethodOptions = gameCase.FinalLogic.MethodOptions
                         .Select(option => new AccusationOptionDto { Id = option.Id, Label = option.Label }).ToList(),
-                    ClaimTypes = new List<string>
-                    {
-                        EvidenceClaimTypes.Motive,
-                        EvidenceClaimTypes.Method,
-                        EvidenceClaimTypes.Opportunity
-                    }
+                    ClaimTypes = EvidenceClaimTypes.OrderedForContract(gameCase.LogicContractVersion).ToList()
                 }
                 : null,
             Suspects = gameCase.Characters.Select(CaseCharacterDto.From).ToList(),
@@ -322,9 +321,14 @@ public class GameStateBuilder : IGameStateBuilder
                 .Count(id => state.SolvedDeductionRecords.All(record => record.DeductionId != id));
             var missingChains = gameCase.FinalLogic.RequiredTeamworkChainIds
                 .Count(id => !GameRules.IsTeamworkChainComplete(gameCase, state, id));
+            var missingCracks = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                ? gameCase.EvidenceChallenges.Count(challenge => state.ResolvedConfrontationRecords.All(record =>
+                    record.ChallengeId != challenge.ChallengeId))
+                : 0;
 
             var finalParts = new List<string>();
             if (missingEvidence > 0) finalParts.Add($"secure {missingEvidence} more piece(s) of key evidence");
+            if (missingCracks > 0) finalParts.Add($"crack {missingCracks} more contradiction(s) with your partner");
             if (missingChains > 0) finalParts.Add($"resolve {missingChains} more confrontation chain(s) with your partner");
             if (missingDeductions > 0) finalParts.Add($"solve {missingDeductions} more deduction(s)");
 

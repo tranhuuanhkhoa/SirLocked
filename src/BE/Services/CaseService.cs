@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Case;
@@ -11,6 +13,12 @@ namespace SirLocked.Api.Services;
 
 public class CaseService : ICaseService
 {
+    private static readonly string[] CrackDemoFiles =
+    [
+        "case-v3-broken-seal-en.json",
+        "case-v3-broken-seal-vi.json"
+    ];
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         ReadCommentHandling = JsonCommentHandling.Skip,
@@ -22,17 +30,20 @@ public class CaseService : ICaseService
     private readonly ICaseValidationService _validator;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<CaseService> _logger;
+    private readonly GameplayV3Settings _gameplayV3Settings;
 
     public CaseService(
         MongoDbContext db,
         CaseCache cache,
         ICaseValidationService validator,
+        IOptions<GameplayV3Settings> gameplayV3Settings,
         IWebHostEnvironment env,
         ILogger<CaseService> logger)
     {
         _db = db;
         _cache = cache;
         _validator = validator;
+        _gameplayV3Settings = gameplayV3Settings.Value;
         _env = env;
         _logger = logger;
     }
@@ -99,9 +110,20 @@ public class CaseService : ICaseService
         return new CaseValidationResponse { IsValid = result.IsValid, Errors = result.Errors };
     }
 
-    public async Task<CaseSummaryResponse> ImportJsonAsync(JsonElement caseJson, bool overwrite)
+    public async Task<CaseSummaryResponse> ImportJsonAsync(JsonElement caseJson, bool overwrite, bool preserveServerMetadata = false)
     {
         var gameCase = ParseCase(caseJson);
+        if (!preserveServerMetadata)
+        {
+            gameCase.GenerationPreset = string.Empty;
+            gameCase.SourceAiDraftId = string.Empty;
+            gameCase.AiSemanticReviewStatus = string.Empty;
+            gameCase.LogicContractVersion = CaseLogicContractVersions.LegacyThreeClaim;
+            gameCase.LogicVerificationStatus = CaseLogicVerificationStatuses.LegacyUnverified;
+            gameCase.TruthSchemaVersion = string.Empty;
+            gameCase.TruthHash = string.Empty;
+            gameCase.BlindReviewStatus = string.Empty;
+        }
         return await UpsertValidatedAsync(gameCase, overwrite, forceDraft: true);
     }
 
@@ -109,8 +131,40 @@ public class CaseService : ICaseService
     {
         var gameCase = await GetCaseAsync(caseId);
 
+        if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            && !_gameplayV3Settings.Enabled)
+            throw ApiException.Conflict(
+                "V3 gameplay is not enabled for publishing.",
+                "V3_NOT_ENABLED",
+                "game.confrontation.disabled");
+        if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            && !string.IsNullOrWhiteSpace(gameCase.SourceAiDraftId))
+        {
+            if (gameCase.GenerationMode != CaseGenerationModes.CameraEmbedded
+                || gameCase.MechanicsVersion != CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                || string.IsNullOrWhiteSpace(gameCase.SourceAiDraftId)
+                || gameCase.AiSemanticReviewStatus != AiV3SemanticReviewStatuses.Passed)
+                throw ApiException.Conflict(
+                    "The AI-generated V3 case has not passed its canonical semantic review gate.",
+                    "AI_V3_SEMANTIC_REVIEW_REQUIRED",
+                    "ai.v3Preset.semanticReviewRequired");
+        }
+        if (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+            && !string.IsNullOrWhiteSpace(gameCase.SourceAiDraftId)
+            && (gameCase.TruthSchemaVersion != CaseTruthSchemaVersions.V1
+                || string.IsNullOrWhiteSpace(gameCase.TruthHash)
+                || gameCase.LogicVerificationStatus != CaseLogicVerificationStatuses.CausalVerified
+                || gameCase.BlindReviewStatus != CaseTruthReviewStatuses.Passed))
+            throw ApiException.Conflict(
+                "The AI case has not passed its immutable truth and blind-solvability gates.",
+                "AI_CASE_TRUTH_REVIEW_REQUIRED",
+                "ai.caseTruth.reviewRequired");
+
         // Never publish a case that no longer passes deterministic validation.
         var validation = _validator.Validate(gameCase);
+        if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            && !string.IsNullOrWhiteSpace(gameCase.SourceAiDraftId))
+            validation.Errors.AddRange(AiV3GenerationProfile.Validate(gameCase).Errors);
         if (!validation.IsValid)
         {
             throw ApiException.Unprocessable("Case validation failed; it cannot be published.", validation.Errors);
@@ -148,6 +202,18 @@ public class CaseService : ICaseService
             caseId: "case-demo-opera-diamond");
         await UpsertValidatedAsync(demo, overwrite: true, forceDraft: false);
         results.Add(await PublishAsync(demo.CaseId));
+        return results;
+    }
+
+    public async Task<List<CaseSummaryResponse>> SeedCrackDemoAsync()
+    {
+        var results = new List<CaseSummaryResponse>(CrackDemoFiles.Length);
+        foreach (var fileName in CrackDemoFiles)
+        {
+            var gameCase = LoadBundledCrackCase(fileName);
+            await UpsertValidatedAsync(gameCase, overwrite: true, forceDraft: true);
+            results.Add(await PublishAsync(gameCase.CaseId));
+        }
         return results;
     }
 
@@ -218,6 +284,30 @@ public class CaseService : ICaseService
         }
 
         return ParseCase(File.ReadAllText(path));
+    }
+
+    private GameCase LoadBundledCrackCase(string fileName)
+    {
+        if (!CrackDemoFiles.Contains(fileName, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException($"Unsupported Crack demo fixture '{fileName}'.");
+        }
+
+        var candidates = new[]
+        {
+            Path.Combine(_env.ContentRootPath, "SeedData", "V3", fileName),
+            Path.Combine(AppContext.BaseDirectory, "SeedData", "V3", fileName)
+        };
+        var path = candidates.FirstOrDefault(File.Exists)
+            ?? throw ApiException.NotFound($"Crack demo fixture '{fileName}' was not found.");
+        var gameCase = ParseCase(File.ReadAllText(path));
+        var expectedCaseId = Path.GetFileNameWithoutExtension(fileName);
+        if (!string.Equals(gameCase.CaseId, expectedCaseId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Crack demo fixture '{fileName}' declared unexpected caseId '{gameCase.CaseId}'.");
+        }
+        return gameCase;
     }
 
     private string? FindUpwards(string relativePath)

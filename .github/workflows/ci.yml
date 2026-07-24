@@ -62,6 +62,11 @@ jobs:
           dotnet-version: 9.0.x
       - name: Build API
         run: dotnet build src/BE/SirLocked.Api.csproj --configuration Release
+      - name: Run Mongo concurrency and queue integration tests
+        env:
+          SIRLOCKED_RUN_MONGO_IT: 'true'
+          SIRLOCKED_TEST_MONGO_CONNECTION_STRING: mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000
+        run: dotnet test src/BE/IntegrationTests/SirLocked.IntegrationTests.csproj --configuration Release
       - name: Start API
         run: |
           dotnet run --project src/BE/SirLocked.Api.csproj --configuration Release --no-build --urls http://127.0.0.1:5215 > api.log 2>&1 &

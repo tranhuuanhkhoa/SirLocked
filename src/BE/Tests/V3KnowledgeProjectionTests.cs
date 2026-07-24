@@ -182,10 +182,8 @@ public class V3KnowledgeProjectionTests
         Assert.Single(response.PrivateTestimonies);
         Assert.Equal("fragment-int", response.PrivateTestimonies[0].TestimonyFragmentId);
         Assert.Empty(response.PrivateEvidence);
-        Assert.True(response.IsCaseComplete);
-        Assert.Equal("Case complete. The final contradiction is cracked and the truth is shared.", response.CurrentObjective);
-        Assert.Empty(response.VisibleScene.Hotspots);
-        Assert.Empty(response.VisibleScene.AvailableDialogues);
+        Assert.False(response.IsCaseComplete);
+        Assert.Equal("Continue the investigation.", response.CurrentObjective);
         Assert.Equal(V3KnowledgeProjector.ResolvedSharedTruth, truth.Status);
         Assert.Equal("The timeline is broken.", truth.Feedback);
         Assert.Equal("The broken seal", truth.RevealTitle);
@@ -224,7 +222,57 @@ public class V3KnowledgeProjectionTests
         V3KnowledgeProjector.Apply(response, room, gameCase, "int");
 
         Assert.False(response.IsCaseComplete);
-        Assert.Equal("Question the witness and record claims that can be tested.", response.CurrentObjective);
+        Assert.Equal("Continue the investigation.", response.CurrentObjective);
+    }
+
+    [Fact]
+    public void AdditiveV3Projection_PreservesV2PuzzlesDeductionsAndFinalAccusation()
+    {
+        var gameCase = Case();
+        gameCase.Puzzles.Add(new CasePuzzle { PuzzleId = "puzzle-public" });
+        var room = Room();
+        var investigator = FullResponse(gameCase);
+        investigator.VisibleScene.Puzzles.Add(new ScenePuzzleDto
+        {
+            PuzzleId = "puzzle-public",
+            Prompt = "Align the mechanism."
+        });
+        investigator.Deductions.Add(new DeductionDto
+        {
+            DeductionId = "deduction-public",
+            Prompt = "Which chain explains the evidence?",
+            RequiredClueIds = { "private-dependency" },
+            MissingClueIds = { "private-dependency" },
+            IsAvailable = true
+        });
+        investigator.AvailableForAccusation = true;
+        investigator.AccusationConfig = new AccusationConfigDto
+        {
+            MotiveOptions = { new AccusationOptionDto { Id = "motive-a", Label = "Protect the archive" } }
+        };
+
+        V3KnowledgeProjector.Apply(investigator, room, gameCase, "inv");
+
+        Assert.Single(investigator.VisibleScene.Puzzles);
+        var deduction = Assert.Single(investigator.Deductions);
+        Assert.True(deduction.IsAvailable);
+        Assert.Empty(deduction.RequiredClueIds);
+        Assert.Empty(deduction.MissingClueIds);
+        Assert.True(investigator.AvailableForAccusation);
+        Assert.NotNull(investigator.AccusationConfig);
+
+        var interrogator = FullResponse(gameCase);
+        interrogator.VisibleScene.Puzzles.Add(new ScenePuzzleDto { PuzzleId = "puzzle-public" });
+        interrogator.Deductions.Add(new DeductionDto { DeductionId = "deduction-public", IsAvailable = true });
+        interrogator.AvailableForAccusation = true;
+        interrogator.AccusationConfig = investigator.AccusationConfig;
+
+        V3KnowledgeProjector.Apply(interrogator, room, gameCase, "int");
+
+        Assert.Empty(interrogator.VisibleScene.Puzzles);
+        Assert.Single(interrogator.Deductions);
+        Assert.True(interrogator.AvailableForAccusation);
+        Assert.NotNull(interrogator.AccusationConfig);
     }
 
     [Fact]
@@ -403,6 +451,7 @@ public class V3KnowledgeProjectionTests
     private static GameStateResponse FullResponse(GameCase gameCase) => new()
     {
         MechanicsVersion = gameCase.MechanicsVersion,
+        CurrentObjective = "Continue the investigation.",
         UnlockedClueIds = gameCase.Clues.Select(clue => clue.ClueId).ToList(),
         UsedInteractionIds = { InvSecret },
         SolvedPuzzleIds = { IntSecret },

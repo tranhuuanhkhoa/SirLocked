@@ -87,6 +87,15 @@ export type PairedConfrontationViewModel = {
 type Escape = (value: string) => string;
 type Translate = (english: string, vietnamese: string) => string;
 
+export function renderV3EvidencePhoto(
+  evidence: PrivateEvidence | null | undefined,
+  escape: Escape,
+  className: string,
+): string {
+  if (!evidence?.photoUrl) return '';
+  return `<img class="${className}" data-auth-image="${escape(evidence.photoUrl)}" alt="${escape(`Captured evidence: ${evidence.title}`)}">`;
+}
+
 export function buildPairedConfrontationViewModel(
   state: PairedConfrontationState,
   role: string | null,
@@ -150,6 +159,7 @@ export function renderPrivateEvidencePanel(
       <span class="v3-private-label">${model.disclosedEvidenceIds.has(evidence.clueId)
         ? tr('SHARED BEFORE · INVESTIGATOR', 'ĐÃ CHIA SẺ · ĐIỀU TRA VIÊN')
         : tr('PRIVATE · INVESTIGATOR', 'RIÊNG · ĐIỀU TRA VIÊN')}</span>
+      ${renderV3EvidencePhoto(evidence, escape, 'v3-private-photo')}
       <h3>${escape(evidence.title)}</h3>
       <p>${escape(evidence.inventoryDescription || evidence.content)}</p>
       <button class="btn btn-gold btn-sm" data-v3-propose-evidence="${escape(evidence.clueId)}" ${canPropose ? '' : 'disabled'}>
@@ -212,7 +222,7 @@ export function renderJointReviewPanel(
       <div class="v3-pair-grid">
         <article class="v3-pair-card testimony"><span>${tr('TESTIMONY', 'LỜI KHAI')}</span><blockquote>${escape(active.testimony?.text ?? '')}</blockquote></article>
         <div class="v3-pair-link" aria-hidden="true">×</div>
-        <article class="v3-pair-card evidence"><span>${tr('EVIDENCE', 'CHỨNG CỨ')}</span><h4>${escape(active.evidence?.title ?? '')}</h4><p>${escape(active.evidence?.inventoryDescription || active.evidence?.content || '')}</p></article>
+        <article class="v3-pair-card evidence"><span>${tr('EVIDENCE', 'CHỨNG CỨ')}</span>${renderV3EvidencePhoto(active.evidence, escape, 'v3-pair-photo')}<h4>${escape(active.evidence?.title ?? '')}</h4><p>${escape(active.evidence?.inventoryDescription || active.evidence?.content || '')}</p></article>
       </div>
       <div class="v3-confirmation-state">
         <span class="${active.confirmedByMe ? 'is-confirmed' : ''}">${active.confirmedByMe ? '✓' : '○'} ${tr('You', 'Bạn')}</span>
@@ -233,6 +243,7 @@ export function renderJointReviewPanel(
     : `<section class="v3-shared-history"><h3>${tr('Shared attempts', 'Các lượt thử đã chia sẻ')}</h3>${history.map((pair) => `
         <article class="v3-history-pair ${pair.status === 'RESOLVED_SHARED_TRUTH' ? 'is-truth' : ''}">
           <span>${escape(pair.status.replaceAll('_', ' '))} · r${pair.revision}</span>
+          ${renderV3EvidencePhoto(pair.evidence, escape, 'v3-history-photo')}
           <strong>${escape(pair.evidence.title)}</strong>
           <blockquote>${escape(pair.testimony.text)}</blockquote>
           ${pair.feedback ? `<p>${escape(pair.feedback)}</p>` : ''}

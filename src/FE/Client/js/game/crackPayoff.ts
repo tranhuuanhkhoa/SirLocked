@@ -1,4 +1,4 @@
-import type { DisclosedPair, PairedConfrontationState } from './pairedConfrontation.js';
+import { renderV3EvidencePhoto, type DisclosedPair, type PairedConfrontationState } from './pairedConfrontation.js';
 
 type Escape = (value: string) => string;
 type Translate = (english: string, vietnamese: string) => string;
@@ -17,7 +17,7 @@ export function renderCrackPayoff(
       <div class="v3-crack-pair">
         <article><span>${tr('TESTIMONY', 'LỜI KHAI')}</span><blockquote>${escape(pair.testimony.text)}</blockquote></article>
         <div class="v3-crack-stamp" aria-hidden="true">${correct ? 'CRACK' : '×'}</div>
-        <article><span>${tr('EVIDENCE', 'CHỨNG CỨ')}</span><h3>${escape(pair.evidence.title)}</h3><p>${escape(pair.evidence.inventoryDescription || pair.evidence.content)}</p></article>
+        <article><span>${tr('EVIDENCE', 'CHỨNG CỨ')}</span>${renderV3EvidencePhoto(pair.evidence, escape, 'v3-crack-photo')}<h3>${escape(pair.evidence.title)}</h3><p>${escape(pair.evidence.inventoryDescription || pair.evidence.content)}</p></article>
       </div>
       <h2 id="v3-crack-title">${escape(correct ? pair.revealTitle || tr('The lie is broken', 'Lời dối trá đã bị phá') : tr('Not enough to break the statement', 'Chưa đủ để phá lời khai'))}</h2>
       ${pair.feedback ? `<p class="v3-crack-feedback">${escape(pair.feedback)}</p>` : ''}

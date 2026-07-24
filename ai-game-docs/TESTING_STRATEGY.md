@@ -1,13 +1,13 @@
 # Testing Strategy
 
-Last synced with code: 2026-07-18.
+Last synced with code: 2026-07-23.
 
 ## Test Layers
 
 | Layer | Current coverage |
 | --- | --- |
 | Backend unit tests | xUnit tests for complete condition and case validation |
-| Backend integration/smoke | `scripts/e2e_smoke.py` exercises auth, admin seed/publish, room flow, gameplay, accusation, AI mock; GitHub Actions runs it against MongoDB |
+| Backend integration/smoke | `WebApplicationFactory<Program>` runs the mock HTTP AI flow with fake auth/OpenAI; `scripts/test-v3-mongo.ps1` covers Mongo CAS, queue claims, stale completion and gameplay concurrency in isolated databases |
 | Frontend static checks | `npm run typecheck`, `npm run build` in GitHub Actions |
 | Frontend browser smoke | Playwright smoke coverage for the gameplay UI; manual QA remains required for Phaser rendering and realtime interaction |
 
@@ -26,6 +26,28 @@ cd src/FE
 npm run typecheck
 npm run build
 ```
+
+With a loopback MongoDB listening on `27017`, run the isolated Mongo and real
+two-browser Crack flows from the repository root:
+
+```powershell
+./scripts/test-v3-mongo.ps1
+./scripts/test-v3-full-stack.ps1
+```
+
+Both scripts create a unique `sirlocked_it_<guid>` database and always drop it
+in `finally`. The safety guard lives in the integration/test tooling and rejects
+SRV, remote hosts, and database names without the test prefix.
+
+CI runs the Mongo integration project with `SIRLOCKED_RUN_MONGO_IT=true`
+against its Mongo service. Tests never call live OpenAI or image APIs. The local
+Mongo script performs a dependency preflight and fails clearly instead of
+silently passing when MongoDB is unavailable.
+
+Dynamic Crack regression coverage includes 2T×3E, 3T×4E, and 4T×6E browser
+matrices; unit coverage additionally checks 2T×6E, 3T×6E, 4T×4E, incomplete or
+duplicate Cartesian reviews, readiness subsets, per-Crack/per-case budgets,
+blueprint drift, and the 24-pair review batching boundary.
 
 With backend running at `http://localhost:5215`:
 
@@ -91,7 +113,6 @@ The Python smoke test:
 
 ## Gaps
 
-- No automated SignalR reconnect test.
-- The API smoke test uses a real MongoDB service in CI, but the xUnit suite has no reusable MongoDB integration fixture.
+- No automated full SignalR transport reconnect test beyond version/refetch browser coverage.
 - No load/performance test.
 - No visual regression testing for Phaser/canvas.

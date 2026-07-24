@@ -43,8 +43,11 @@ public static class GameplayV2Rules
 
         var claims = request.EvidenceLinks.Select(link => link.ClaimType.Trim().ToUpperInvariant()).ToList();
         var evidenceIds = request.EvidenceLinks.Select(link => link.EvidenceId).ToList();
-        if (request.EvidenceLinks.Count != 3 || claims.Distinct().Count() != 3 || !EvidenceClaimTypes.All.SetEquals(claims))
-            return "Submit exactly one MOTIVE, METHOD, and OPPORTUNITY evidence link.";
+        var expectedClaims = EvidenceClaimTypes.ForContract(gameCase.LogicContractVersion);
+        if (request.EvidenceLinks.Count != expectedClaims.Count || claims.Distinct().Count() != expectedClaims.Count || !expectedClaims.SetEquals(claims))
+            return gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                ? "Submit exactly one MOTIVE, METHOD, OPPORTUNITY, IDENTITY, and TIMELINE evidence link."
+                : "Submit exactly one MOTIVE, METHOD, and OPPORTUNITY evidence link.";
         if (evidenceIds.Distinct().Count() != evidenceIds.Count)
             return "Each accusation claim must use different evidence.";
         if (evidenceIds.Any(id => !state.UnlockedClueIds.Contains(id)

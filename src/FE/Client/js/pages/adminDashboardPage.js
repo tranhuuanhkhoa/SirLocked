@@ -49,6 +49,7 @@ export async function renderAdminDashboardPage(app) {
       <div class="case-actions">
         <button class="btn btn-primary" id="seed-sample">${tr('Seed + publish sample case', 'Tạo và xuất bản vụ án mẫu')}</button>
         <button class="btn btn-ghost" id="seed-demo">${tr('Seed demo cases', 'Tạo các vụ án demo')}</button>
+        <button class="btn btn-ghost" id="seed-crack-demo">${tr('Seed Crack cases', 'Tạo các vụ án Crack')}</button>
         <a class="btn btn-ghost" href="#/admin/cases">${tr('Manage cases', 'Quản lý vụ án')}</a>
         <a class="btn btn-ghost" href="#/admin/ai">${tr('AI case creator', 'Tạo vụ án AI')}</a>
       </div>
@@ -77,6 +78,17 @@ export async function renderAdminDashboardPage(app) {
     try {
       const seeded = await adminApi.seedDemo();
       toast(`${seeded.length} demo case(s) seeded and published.`, 'success');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    e.target.disabled = false;
+  });
+
+  app.querySelector('#seed-crack-demo').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      const seeded = await adminApi.seedCrackDemo();
+      toast(`${seeded.length} Crack case(s) seeded and published.`, 'success');
     } catch (err) {
       toast(err.message, 'error');
     }

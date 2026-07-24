@@ -4,6 +4,60 @@ using SirLocked.Api.Models;
 
 namespace SirLocked.Api.Services;
 
+public sealed record CrackGenerationBudget(
+    int MinCracks,
+    int MaxCracks,
+    int MinTestimonies,
+    int MaxTestimonies,
+    int MinEvidence,
+    int MaxEvidence,
+    int TargetTestimonies,
+    int TargetEvidence,
+    int MaxPairsPerCrack,
+    int MaxPairsPerCase)
+{
+    public void EnsureValid(string preset)
+    {
+        if (MinCracks < 1 || MaxCracks < MinCracks
+            || MinTestimonies < 2 || MaxTestimonies < MinTestimonies
+            || MinEvidence < 3 || MaxEvidence < MinEvidence
+            || TargetTestimonies < MinTestimonies || TargetTestimonies > MaxTestimonies
+            || TargetEvidence < MinEvidence || TargetEvidence > MaxEvidence
+            || MaxPairsPerCrack < MinTestimonies * MinEvidence
+            || MaxPairsPerCase < MinCracks * MinTestimonies * MinEvidence)
+        {
+            throw new InvalidOperationException($"Crack generation budget for {preset} is invalid.");
+        }
+    }
+}
+
+public static class CrackGenerationBudgets
+{
+    private static readonly IReadOnlyDictionary<string, CrackGenerationBudget> Values =
+        new Dictionary<string, CrackGenerationBudget>(StringComparer.Ordinal)
+        {
+            [AiGenerationPresets.ShortDemo] = new(1, 1, 2, 4, 3, 6, 2, 3, 12, 12),
+            [AiGenerationPresets.NormalRandom] = new(1, 2, 2, 4, 3, 6, 3, 3, 18, 30),
+            [AiGenerationPresets.PuzzleHeavy] = new(1, 2, 2, 4, 3, 6, 2, 4, 18, 30),
+            [AiGenerationPresets.DialogueHeavy] = new(1, 2, 2, 4, 3, 6, 4, 3, 18, 30),
+            [AiGenerationPresets.FullFeature] = new(2, 3, 2, 4, 3, 6, 3, 5, 24, 60),
+            [AiGenerationPresets.CrackTheLieV3] = new(1, 1, 3, 3, 3, 3, 3, 3, 9, 9)
+        };
+
+    static CrackGenerationBudgets()
+    {
+        foreach (var (preset, budget) in Values) budget.EnsureValid(preset);
+        var missing = AiGenerationPresets.All.Where(preset => !Values.ContainsKey(preset)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"Missing Crack generation budgets: {string.Join(", ", missing)}.");
+    }
+
+    public static CrackGenerationBudget For(string? preset) =>
+        Values[AiGenerationPresets.Normalize(preset)];
+
+    public static IReadOnlyDictionary<string, CrackGenerationBudget> All => Values;
+}
+
 public sealed record AiGenerationContract(
     int MinStages,
     int MaxStages,
@@ -22,7 +76,8 @@ public sealed record AiGenerationContract(
     int MaxPuzzles,
     int MinInteractions,
     int MaxInteractions,
-    int MinConversationCharacters = 0)
+    int MinConversationCharacters = 0,
+    int MaxEvidenceChallenges = -1)
 {
     private static readonly Regex UnsafeVisualTerms = new(
         @"\b(bulletin board|duty board|notice board|signage|sign|label|ledger|manifest|telegram|document|paper|readable|written|writing|letters?|numbers?|text|annotation|caption|screen|monitor|camera display|user interface|ui overlay|clock numerals?|initials?|notation)\b",
@@ -45,7 +100,8 @@ public sealed record AiGenerationContract(
         var normalized = AiGenerationPresets.Normalize(preset);
         return normalized switch
         {
-            AiGenerationPresets.ShortDemo => new(2, 2, 2, 3, 4, 4, 6, 8, 6, 8, 2, 1, 1, 0, 1, 0, 1),
+            AiGenerationPresets.CrackTheLieV3 => new(1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 0, 0, 0, 0, 0, 0),
+            AiGenerationPresets.ShortDemo => new(2, 2, 2, 3, 4, 4, 6, 8, 6, 8, 2, 1, 1, 1, 1, 1, 1),
             AiGenerationPresets.PuzzleHeavy => new(5, 6, 5, 6, 4, 5, 9, 12, 6, 10, 2, 1, 1, 3, 3, 2, 4),
             AiGenerationPresets.DialogueHeavy => new(5, 6, 5, 6, 5, 5, 10, 12, 12, 16, 3, 2, 1, 0, 1, 0, 2, 3),
             AiGenerationPresets.FullFeature => new(6, 6, 6, 6, 5, 5, 10, 12, 12, 16, 3, 2, 2, 3, 3, 2, 4),
@@ -56,9 +112,20 @@ public sealed record AiGenerationContract(
         };
     }
 
+    public static AiGenerationContract For(AiDraftSettings settings)
+    {
+        var contract = For(settings.GenerationPreset, settings.StageCount);
+        if (!settings.IncludeCrackTheLie) return contract;
+        var budget = CrackGenerationBudgets.For(settings.GenerationPreset);
+        return contract with { EvidenceChallenges = budget.MinCracks, MaxEvidenceChallenges = budget.MaxCracks };
+    }
+
     public string PromptRequirements() =>
         $"Stages {MinStages}-{MaxStages}; total scenes {MinScenes}-{MaxScenes}; characters {MinCharacters}-{MaxCharacters}; " +
-        $"clues {MinClues}-{MaxClues}; dialogues {MinDialogues}-{MaxDialogues}; exactly {EvidenceChallenges} evidenceChallenges, " +
+        $"clues {MinClues}-{MaxClues}; dialogues {MinDialogues}-{MaxDialogues}; " +
+        (MaxEvidenceChallenges > 0 && MaxEvidenceChallenges != EvidenceChallenges
+            ? $"{EvidenceChallenges}-{MaxEvidenceChallenges} evidenceChallenges, "
+            : $"exactly {EvidenceChallenges} evidenceChallenges, ") +
         $"{Deductions} deductions and {TeamworkChains} requiredTeamworkChains; puzzles {MinPuzzles}-{MaxPuzzles}; " +
         $"interactions {MinInteractions}-{MaxInteractions}; conversation trees must cover at least {MinConversationCharacters} distinct characters.";
 
@@ -73,7 +140,8 @@ public sealed record AiGenerationContract(
         AddRange(result, "items", gameCase.Items.Count, 0, 8);
         AddRange(result, "clues", gameCase.Clues.Count, MinClues, MaxClues);
         AddRange(result, "dialogues", gameCase.Dialogues.Count, MinDialogues, MaxDialogues);
-        AddRange(result, "evidenceChallenges", gameCase.EvidenceChallenges.Count, EvidenceChallenges, EvidenceChallenges);
+        AddRange(result, "evidenceChallenges", gameCase.EvidenceChallenges.Count, EvidenceChallenges,
+            MaxEvidenceChallenges > 0 ? MaxEvidenceChallenges : EvidenceChallenges);
         AddRange(result, "deductions", gameCase.Deductions.Count, Deductions, Deductions);
         AddRange(result, "requiredTeamworkChains", gameCase.RequiredTeamworkChains.Count, TeamworkChains, TeamworkChains);
         AddRange(result, "puzzles", gameCase.Puzzles.Count, MinPuzzles, MaxPuzzles);
@@ -87,7 +155,7 @@ public sealed record AiGenerationContract(
                 if (gameCase.Puzzles.Count(puzzle => puzzle.Type.Equals(type, StringComparison.OrdinalIgnoreCase)) != 1)
                     result.Add("PresetContract", "puzzles", $"{preset} requires exactly one {type}.");
             }
-            foreach (var type in CaseInteractionTypes.All)
+            foreach (var type in new[] { CaseInteractionTypes.UseItemOnTarget, CaseInteractionTypes.CombineItems })
             {
                 if (!gameCase.Interactions.Any(interaction => interaction.Type.Equals(type, StringComparison.OrdinalIgnoreCase)))
                     result.Add("PresetContract", "interactions", $"{preset} requires at least one {type}.");
@@ -101,6 +169,7 @@ public sealed record AiGenerationContract(
         ValidateVisualSafety(gameCase, result);
         if (CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese)
             ValidateVietnamese(gameCase, result);
+        result.Errors.AddRange(AiV3GenerationProfile.Validate(gameCase).Errors);
 
         return result;
     }
