@@ -184,7 +184,17 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await assignAccusationEvidence(investigator, 'OPPORTUNITY', 'evidence-thread-en');
   await investigator.locator('#accuse-next').click();
   await investigator.locator('#accuse-confirm').click();
+
+  // A V3 accusation is a proposal, not a verdict. Writing it counts as the author's confirmation,
+  // so the case only closes once the Interrogator agrees to the same revision.
+  await expect(investigator.locator('[data-accusation-attempt]')).toContainText('Mara Vale');
+  await expect(investigator.locator('#accusation-confirm')).toBeDisabled();
+  await expect(interrogator.locator('[data-accusation-attempt]')).toContainText('Mara Vale');
+  await interrogator.locator('#accusation-confirm').click();
+
+  await expect(interrogator).toHaveURL(/#\/result\//);
   await expect(investigator).toHaveURL(/#\/result\//);
+  await expect(interrogator.locator('.result-banner')).toContainText('CASE CLOSED');
   await expect(investigator.locator('.result-banner')).toContainText('CASE CLOSED');
 }
 

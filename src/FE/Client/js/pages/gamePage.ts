@@ -42,6 +42,12 @@ import {
   type PrivateTestimony,
 } from '../game/pairedConfrontation.js';
 import { newestTerminalPair, renderCrackPayoff, renderV3CaseComplete } from '../game/crackPayoff.js';
+import {
+  accusationRevisionKey,
+  buildAccusationConsensusModel,
+  renderAccusationConsensus,
+  type AccusationProposal,
+} from '../game/accusationConsensus.js';
 
 type RoomPlayer = {
   userId: string;
@@ -342,6 +348,7 @@ type GameState = {
     resolvedTruths: DisclosedPair[];
   };
   activeConfrontation?: ActivePairedConfrontation | null;
+  activeAccusation?: AccusationProposal | null;
 };
 
 function accusationClaimLabel(claimType: string) {
@@ -1766,6 +1773,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let waitingStartedAt: number | null = null;
   let crackPayoffShownAt: number | null = null;
   let caseCompleteDismissed = false;
+  // The `attemptId:revision` this client has actually looked at; a partner's edit invalidates it.
+  let acknowledgedAccusationKey: string | null = null;
+  let amendedAccusation: { attemptId: string; expectedRevision: number } | null = null;
+  let accusationCommandInFlight = false;
 
   type UiPlaytestEvent =
     | 'ReconnectRestored'
@@ -2077,6 +2088,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       }
     }
     rememberAskableDialogues(fresh);
+    rememberAccusationRevision(fresh);
     state = fresh;
     if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
     if (fresh.availableForAccusation && !finalReadyAnnounced) {
@@ -2123,6 +2135,24 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         convAutoRefreshPending = false;
       }
     }, 0);
+  }
+
+  // A proposal is acknowledged the first time we see it; only a later edit forces a re-read.
+  function rememberAccusationRevision(fresh: GameState) {
+    const proposal = fresh.activeAccusation;
+    if (!proposal) {
+      acknowledgedAccusationKey = null;
+      return;
+    }
+    const seenThisAttempt = acknowledgedAccusationKey?.startsWith(`${proposal.attemptId}:`) ?? false;
+    if (!seenThisAttempt) {
+      acknowledgedAccusationKey = accusationRevisionKey(proposal);
+      return;
+    }
+    if (acknowledgedAccusationKey !== accusationRevisionKey(proposal)
+      && !(proposal.confirmedUserIds ?? []).includes(me.userId)) {
+      toast(tr('Your partner edited the accusation.', 'Đồng đội đã sửa cáo buộc.'), 'info', 5000);
+    }
   }
 
   function clueKey(snapshot: GameState | null | undefined) {
@@ -2330,7 +2360,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const showCaseComplete = caseComplete
       && !crackPayoffPair
       && !caseCompleteDismissed;
-    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${accusationConsensusPanel()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
 
     const sceneNeedsUpdate = appliedStateVersion !== state.version
       || appliedSceneId !== state.currentSceneId
@@ -3236,6 +3266,61 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     </div>`;
   }
 
+  // Joint review of the standing proposal. The accusation modal owns drafting; this owns agreeing.
+  function accusationConsensusPanel() {
+    const proposal = state!.activeAccusation;
+    if (!proposal || uiMode.kind === 'ACCUSATION') return '';
+
+    const partner = state!.players.find((player) => player.userId !== me.userId);
+    const model = buildAccusationConsensusModel({
+      proposal,
+      localUserId: me.userId,
+      rows: accusationSummaryRows(proposal),
+      proposerName: state!.players.find((player) => player.userId === proposal.proposedByUserId)?.username
+        ?? tr('Your partner', 'Đồng đội'),
+      partnerName: partner?.username ?? tr('Partner', 'Đồng đội'),
+      acknowledgedKey: acknowledgedAccusationKey,
+    });
+    return renderAccusationConsensus(model, escapeHtml, tr);
+  }
+
+  function accusationSummaryRows(proposal: AccusationProposal) {
+    const rows = [{
+      label: tr('Suspect', 'Nghi phạm'),
+      value: state!.suspects.find((suspect) => suspect.characterId === proposal.culpritId)?.name ?? proposal.culpritId,
+    }];
+    const config = state!.accusationConfig;
+    if (config) {
+      rows.push({
+        label: tr('Motive', 'Động cơ'),
+        value: config.motiveOptions.find((option) => option.id === proposal.motiveId)?.label ?? proposal.motiveId ?? '',
+      });
+      rows.push({
+        label: tr('Method', 'Phương thức'),
+        value: config.methodOptions.find((option) => option.id === proposal.methodId)?.label ?? proposal.methodId ?? '',
+      });
+    }
+    // A claim your partner backed with a clue only they found arrives without its id on purpose.
+    const undisclosed = tr('Evidence only your partner has seen', 'Chứng cứ chỉ đồng đội đã thấy');
+    const clueTitle = (evidenceId: string | null | undefined) =>
+      (evidenceId
+        ? state!.evidenceClues.find((clue) => clue.clueId === evidenceId)?.title
+          ?? state!.unlockedClues.find((clue) => clue.clueId === evidenceId)?.title
+          ?? evidenceId
+        : undisclosed);
+    // This modal stands between the pair and the end of the case; it must never fail to render.
+    for (const link of proposal.evidenceLinks ?? []) {
+      rows.push({
+        label: accusationClaimLabel(link.claimType),
+        value: link.isUndisclosed ? undisclosed : clueTitle(link.evidenceId),
+      });
+    }
+    for (const evidenceId of proposal.evidenceIds ?? []) {
+      rows.push({ label: tr('Evidence', 'Chứng cứ'), value: clueTitle(evidenceId) });
+    }
+    return rows;
+  }
+
   function optionPicker(options: AccusationOption[], selectedId: string | null, kind: 'motive' | 'method') {
     return `<div class="accusation-options">${options.map((option) => `
       <button class="option-row ${selectedId === option.id ? 'is-selected' : ''}" data-${kind}="${escapeHtml(option.id)}">${escapeHtml(option.label)}</button>`).join('')}</div>`;
@@ -3391,6 +3476,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       'map-btn',
     ));
     app.querySelector('#accuse-btn')?.addEventListener('click', () => {
+      // A standing proposal owns the accusation; drafting a rival one would only be refused.
+      if (state!.activeAccusation) {
+        setUiMode({ kind: 'EXPLORE' }, 'accuse-btn');
+        return;
+      }
+      amendedAccusation = null;
       setUiMode({ kind: 'ACCUSATION', draft: { step: 1, culpritId: null, motiveId: null, methodId: null, evidenceIds: new Set(), evidenceLinks: {}, activeClaimType: null } }, 'accuse-btn');
     });
     app.querySelector('#discovery-case-file-btn')?.addEventListener('click', () => {
@@ -3554,6 +3645,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         else accusation.evidenceIds.delete(evidenceId);
       }));
     app.querySelector('#accuse-cancel')?.addEventListener('pointerdown', (event) => {
+      amendedAccusation = null;
       uiMode = { kind: 'EXPLORE' };
       dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
     });
@@ -3571,6 +3663,27 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       draw();
     });
     app.querySelector('#accuse-confirm')?.addEventListener('click', submitAccusation);
+
+    app.querySelector('#accusation-confirm')?.addEventListener('click', () => {
+      const proposal = state!.activeAccusation;
+      if (!proposal) return;
+      runAccusationCommand(() => gameApi.confirmAccusation(roomId, proposal.attemptId, {
+        expectedRevision: proposal.revision,
+      }));
+    });
+    app.querySelector('#accusation-cancel')?.addEventListener('click', () => {
+      const proposal = state!.activeAccusation;
+      if (!proposal) return;
+      runAccusationCommand(() => gameApi.cancelAccusation(roomId, proposal.attemptId, {
+        expectedRevision: proposal.revision,
+      }));
+    });
+    app.querySelector('#accusation-amend')?.addEventListener('click', openAccusationAmendment);
+    app.querySelector('#accusation-review')?.addEventListener('click', () => {
+      if (!state!.activeAccusation) return;
+      acknowledgedAccusationKey = accusationRevisionKey(state!.activeAccusation);
+      draw();
+    });
   }
 
   function bindMobileMovementControls() {
@@ -4035,24 +4148,105 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     const accusation = uiMode.draft;
     const button = event.currentTarget as HTMLButtonElement;
     button.disabled = true;
+    const payload = state!.mechanicsVersion >= 2
+      ? {
+          culpritId: accusation.culpritId,
+          motiveId: accusation.motiveId,
+          methodId: accusation.methodId,
+          evidenceLinks: Object.entries(accusation.evidenceLinks).map(([claimType, evidenceId]) => ({ claimType, evidenceId })),
+          evidenceIds: [],
+        }
+      : { culpritId: accusation.culpritId, motive: '', method: '', evidenceIds: [...accusation.evidenceIds], evidenceLinks: [] };
+    const amend = amendedAccusation;
     try {
-      const payload = state!.mechanicsVersion >= 2
-        ? {
-            culpritId: accusation.culpritId,
-            motiveId: accusation.motiveId,
-            methodId: accusation.methodId,
-            evidenceLinks: Object.entries(accusation.evidenceLinks).map(([claimType, evidenceId]) => ({ claimType, evidenceId })),
-            evidenceIds: [],
-          }
-        : { culpritId: accusation.culpritId, motive: '', method: '', evidenceIds: [...accusation.evidenceIds], evidenceLinks: [] };
-      const result = await gameApi.accuse(roomId, payload);
-      sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
-      window.location.hash = `#/result/${roomId}`;
+      if (amend) {
+        await applyAccusationCommand(gameApi.amendAccusation(roomId, amend.attemptId, {
+          ...payload,
+          expectedRevision: amend.expectedRevision,
+        }));
+        return;
+      }
+      if (state!.mechanicsVersion >= 3) {
+        await applyAccusationCommand(gameApi.proposeAccusation(roomId, payload));
+        return;
+      }
+      await finishUnilateralAccusation(payload);
     } catch (err: any) {
-      toast(err.message, 'error');
+      // The server decides whether this case needs consensus; follow it rather than guessing.
+      // Both directions must be recoverable, because Accusation__RequireConsensus can force either
+      // behaviour on any mechanics version and the version guess above is only a first attempt.
+      const code = err?.errors?.code;
+      if (code === 'ACCUSATION_CONSENSUS_REQUIRED' || code === 'ACCUSATION_CONSENSUS_NOT_REQUIRED') {
+        try {
+          if (code === 'ACCUSATION_CONSENSUS_REQUIRED') {
+            await applyAccusationCommand(gameApi.proposeAccusation(roomId, payload));
+          } else {
+            await finishUnilateralAccusation(payload);
+          }
+          return;
+        } catch (routedErr: any) {
+          toast(routedErr.message, 'error');
+        }
+      } else {
+        toast(err.message, 'error');
+      }
+      amendedAccusation = null;
       uiMode = { kind: 'EXPLORE' };
       draw();
     }
+  }
+
+  async function finishUnilateralAccusation(payload: unknown) {
+    const result = await gameApi.accuse(roomId, payload);
+    sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
+    window.location.hash = `#/result/${roomId}`;
+  }
+
+  // Every consensus command answers with the authoritative state, so the client never patches its own.
+  async function applyAccusationCommand(command: Promise<any>) {
+    const response = await command;
+    amendedAccusation = null;
+    uiMode = { kind: 'EXPLORE' };
+    if (response?.accusation) acknowledgedAccusationKey = accusationRevisionKey(response.accusation);
+    if (response?.result) {
+      sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(response.result));
+    }
+    applyState(response.state);
+  }
+
+  async function runAccusationCommand(command: () => Promise<any>) {
+    if (accusationCommandInFlight) return;
+    accusationCommandInFlight = true;
+    try {
+      await applyAccusationCommand(command());
+    } catch (err: any) {
+      toast(err.message, 'error');
+      // A stale revision means the partner edited it; the refetched state carries the new one.
+      queueStateRefetch();
+    } finally {
+      accusationCommandInFlight = false;
+    }
+  }
+
+  function openAccusationAmendment() {
+    const proposal = state!.activeAccusation;
+    if (!proposal) return;
+    amendedAccusation = { attemptId: proposal.attemptId, expectedRevision: proposal.revision };
+    setUiMode({
+      kind: 'ACCUSATION',
+      draft: {
+        step: 1,
+        culpritId: proposal.culpritId,
+        motiveId: proposal.motiveId ?? null,
+        methodId: proposal.methodId ?? null,
+        evidenceIds: new Set(proposal.evidenceIds ?? []),
+        // Claims backed by evidence this player cannot see start empty; they must cite their own.
+        evidenceLinks: Object.fromEntries((proposal.evidenceLinks ?? [])
+          .filter((link) => Boolean(link.evidenceId))
+          .map((link) => [link.claimType, link.evidenceId as string])),
+        activeClaimType: null,
+      },
+    }, 'accusation-amend');
   }
 
   function prettyId(id: string) {

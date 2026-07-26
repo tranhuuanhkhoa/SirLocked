@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -48,6 +49,13 @@ builder.Services.AddOptions<JwtSettings>()
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
+builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
+builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
+// Resolved here rather than bound from configuration so the Development-only guard sits next to the
+// admin-seed guard below, where anyone auditing startup can see both bypasses in one place.
+builder.Services.Configure<AuthSettings>(settings =>
+    settings.AutoVerifyRegistrations =
+        AuthSettings.ResolveAutoVerifyRegistrations(builder.Configuration, builder.Environment));
 builder.Services.Configure<AiCaseV3PresetSettings>(builder.Configuration.GetSection("AiCaseV3Preset"));
 builder.Services.PostConfigure<OpenAiSettings>(settings =>
 {
@@ -98,9 +106,42 @@ builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
-builder.Services.AddScoped<IGameplayService, GameplayService>();
+// One instance per request serves both roles: the consensus coordinator resolves a case through the
+// very same service that owns the unilateral route.
+builder.Services.AddScoped<GameplayService>();
+builder.Services.AddScoped<IGameplayService>(services => services.GetRequiredService<GameplayService>());
+builder.Services.AddScoped<IAccusationResolver>(services => services.GetRequiredService<GameplayService>());
 builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
-builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
+builder.Services.AddScoped<IAccusationConsensusCoordinator, AccusationConsensusCoordinator>();
+// Telemetry follows the existing V3 gates; there is no separate on/off flag. When either gate is
+// closed the no-op sink stays registered and nothing is written.
+var gameplayV3Settings = builder.Configuration.GetSection("GameplayV3").Get<GameplayV3Settings>() ?? new GameplayV3Settings();
+var playtestInstrumentationEnabled = gameplayV3Settings.Enabled && gameplayV3Settings.PlaytestInstrumentationEnabled;
+var generatedDevelopmentPseudonymKey = false;
+if (playtestInstrumentationEnabled)
+{
+    var playtestSettings = builder.Configuration.GetSection("Playtest").Get<PlaytestSettings>() ?? new PlaytestSettings();
+    var pseudonymKey = playtestSettings.PseudonymKey;
+    if (!PlaytestSettings.IsPseudonymKeyValid(pseudonymKey))
+    {
+        if (!builder.Environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(
+                $"Playtest__PseudonymKey must be configured and at least {PlaytestSettings.MinimumPseudonymKeyLength} characters long when GameplayV3__PlaytestInstrumentationEnabled is true.");
+        }
+        // Local audit runs may start without a key; pseudonyms then only correlate within one process.
+        pseudonymKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        generatedDevelopmentPseudonymKey = true;
+    }
+    builder.Services.AddSingleton(new PlaytestPseudonymizer(pseudonymKey));
+    builder.Services.AddSingleton<IPlaytestEventStore, MongoPlaytestEventStore>();
+    builder.Services.AddSingleton<IPlaytestEventSink, MongoPlaytestEventSink>();
+}
+else
+{
+    builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
+}
+builder.Services.AddScoped<PlaytestSummaryService>();
 builder.Services.AddScoped<AiCaseService>();
 builder.Services.AddScoped<IAiCaseService>(services => services.GetRequiredService<AiCaseService>());
 builder.Services.AddScoped<IAiGenerationExecutor>(services => services.GetRequiredService<AiCaseService>());
@@ -146,6 +187,20 @@ builder.Services.AddRateLimiter(options =>
         config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         config.QueueLimit = 0;
     });
+
+    // Telemetry là ghi thật vào Mongo; UI chỉ phát vài sự kiện mỗi phút nên cửa sổ theo từng người
+    // dùng đủ rộng cho luồng hợp lệ mà không cho một client lặp vô hạn thổi phồng collection.
+    options.AddPolicy("playtest-events", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 120,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
 
     // Trả về 429 với message rõ ràng
     options.OnRejected = async (context, token) =>
@@ -294,6 +349,11 @@ app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    if (generatedDevelopmentPseudonymKey)
+    {
+        logger.LogWarning(
+            "Playtest__PseudonymKey is not configured; a per-process random key was generated. Playtest pseudonyms will not line up across restarts.");
+    }
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();

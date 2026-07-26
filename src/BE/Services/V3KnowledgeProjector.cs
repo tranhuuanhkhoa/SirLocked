@@ -52,7 +52,8 @@ public static class V3KnowledgeProjector
         response.SharedKnowledge = BuildSharedKnowledge(state, gameCase, photoUrls);
         response.ActiveConfrontation = BuildActiveView(state.ActiveConfrontation, room, gameCase, player, photoUrls);
         response.IsCaseComplete = room.Status == RoomStatus.Completed;
-        ProjectV2Knowledge(response, state, gameCase, player);
+        var knownClueIds = ProjectV2Knowledge(response, state, gameCase, player);
+        ProjectActiveAccusation(response, knownClueIds);
         V3SceneProjectionPolicy.Apply(response, gameCase, player);
     }
 
@@ -247,7 +248,26 @@ public static class V3KnowledgeProjector
         };
     }
 
-    private static void ProjectV2Knowledge(
+    /// <summary>
+    /// A standing proposal is shared knowledge, but its evidence ids are not automatically granted:
+    /// the proposer may cite a clue only they discovered. Those ids are replaced with a placeholder so
+    /// the partner still reviews the full shape of the accusation — every claim, in order — without
+    /// receiving a semantic id the paired-confrontation disclosure path never handed them.
+    /// </summary>
+    private static void ProjectActiveAccusation(GameStateResponse response, IReadOnlySet<string> knownClueIds)
+    {
+        if (response.ActiveAccusation is not { } proposal) return;
+
+        proposal.EvidenceIds = proposal.EvidenceIds.Where(knownClueIds.Contains).ToList();
+        foreach (var link in proposal.EvidenceLinks
+                     .Where(link => link.EvidenceId is null || !knownClueIds.Contains(link.EvidenceId)))
+        {
+            link.EvidenceId = null;
+            link.IsUndisclosed = true;
+        }
+    }
+
+    private static IReadOnlySet<string> ProjectV2Knowledge(
         GameStateResponse response,
         GameplayState state,
         GameCase gameCase,
@@ -282,5 +302,6 @@ public static class V3KnowledgeProjector
         }
         response.Testimonies = new List<TestimonyDto>();
         response.ActionLog = new List<ActionLogEntryDto>();
+        return knownClueIds;
     }
 }

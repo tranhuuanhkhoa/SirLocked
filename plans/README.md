@@ -23,6 +23,38 @@ Plans 007-011 were written against the current local gameplay worktree, which ha
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale).
 
+## Next roadmap (013+)
+
+Plans 013 and above are specified in [`ROADMAP_2026-07-27_VI.md`](ROADMAP_2026-07-27_VI.md), written at commit `af3da77` against a verified baseline (backend build clean, 529/529 tests pass, frontend typecheck pass). Each row below gets its own plan file, written from the roadmap section of the same number, before implementation starts.
+
+| Plan | Title | Phase | Priority | Effort | Depends on | Status |
+|------|-------|-------|----------|--------|------------|--------|
+| 013 | [Persist playtest telemetry](013-persist-playtest-telemetry.md) | P0 | P0 | M | - | DONE - Mongo round-trip and index integration tests written but not executed; no MongoDB available in the execution environment |
+| 014 | [Run the three-pair V3 playtest gate](014-run-v3-playtest-gate.md) | P0 | P0 | S | 013 | TODO |
+| 015 | [Accusation consensus between both players](015-accusation-consensus.md) | P1 | P0 | L | 016 (soft) | DONE - two-browser E2E passes; Mongo exactly-once integration test written but not executed, no MongoDB available in the execution environment |
+| 016 | [Lock room terminal-state transitions](016-lock-room-terminal-transitions.md) | P1 | P0 | S | - | DONE - Mongo integration test for the start race written but not executed; no MongoDB available in the execution environment |
+| 017 | AI cost ledger, quota and circuit breaker | P1 | P0 | L | - | TODO |
+| 018 | Session hardening and security headers (absorbs 011) | P1 | P0 | L | - | TODO |
+| 019 | Save/resume match and pin case revisions | P1 | P0 | M/L | 016 | TODO |
+| 020 | Invite link, QR and join-by-URL | P2 | P1 | S/M | - | TODO |
+| 021 | Solo prologue with a scripted companion bot | P2 | P0 | XL | 013, 015 | TODO |
+| 022 | Contextual clue pings | P2 | P1 | M | 013 | TODO |
+| 023 | Host migration and disconnect continuation | P2 | P1 | M/L | 016, 019 | TODO |
+| 024 | Quick match and opt-in public rooms | P2 | P1 | M | 020, 023 | TODO |
+| 025 | Audio system | P3 | P1 | M/L | - | TODO |
+| 026 | Accessibility center | P3 | P1 | M/L | - | TODO |
+| 027 | Difficulty/assist mode and hint rework | P3 | P1 | M | 013 | TODO |
+| 028 | Asset manifest and per-case packaging | P3 | P0 | L | - | TODO |
+| 029 | Split gamePage, lazy Phaser, CI bundle budgets | P3 | P1 | L | 028 | TODO |
+| 030 | Admin case authoring and preview simulator | P3 | P1 | XL | 019 | TODO |
+| 031 | Observability | P4 | P1 | L | - | TODO |
+| 032 | Full CI/CD | P4 | P1 | L | - | TODO |
+| 033 | Data lifecycle and privacy controls | P4 | P1 | M/L | - | TODO |
+| 034 | UGC/AI moderation workflow | P4 | P1 | L | - | TODO |
+| 035 | Desktop/Steam packaging | P4 | P2 | XL | 028 | TODO |
+
+Plan 011 stays open in the table above only as a historical row; its scope is now executed as part of plan 018.
+
 ## Dependency notes
 
 - Plans 001-004 are independent and can be done in any order.

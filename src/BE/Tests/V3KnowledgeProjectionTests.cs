@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SirLocked.Api.DTOs.Investigation;
+using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
@@ -348,6 +349,65 @@ public class V3KnowledgeProjectionTests
             Assert.Empty(dialogue.MissingClueIds);
             Assert.Empty(dialogue.EvidenceChallenges);
         });
+    }
+
+    /// <summary>
+    /// A standing proposal is reviewed by both detectives, but it must not become a side channel for
+    /// clue ids the partner never earned. Evidence the pair disclosed through a confrontation stays
+    /// readable; a private discovery cited in the same proposal arrives as an undisclosed claim.
+    /// </summary>
+    [Fact]
+    public void ActiveAccusation_KeepsSharedEvidenceIdsAndWithholdsThePrivateOnes()
+    {
+        var gameCase = CaseWithUnrelatedSecrets();
+        var room = Room();
+        var state = room.GameplayState!;
+        Discover(state, "evidence-inv", "inv", PlayerRole.Investigator);
+        Discover(state, "evidence-unrelated", "inv", PlayerRole.Investigator);
+        DiscoverTestimony(state, "fragment-int", "dialogue-int", "int");
+        PairedConfrontationRules.Start(
+            state, "attempt-1", "challenge-1", "fragment-int", "int", PlayerRole.Interrogator, Now);
+        PairedConfrontationRules.ProposeEvidence(
+            state, "attempt-1", "evidence-inv", "inv", PlayerRole.Investigator, 1, Now.AddMinutes(1));
+        state.ActiveAccusation = new AccusationProposalState
+        {
+            AttemptId = "accusation-1",
+            Status = AccusationProposalStatus.AwaitingConfirmation,
+            Revision = 1,
+            ProposedByUserId = "inv",
+            ProposedByRole = PlayerRole.Investigator,
+            CulpritId = "npc-1",
+            EvidenceIds = { "evidence-unrelated" },
+            EvidenceLinks =
+            {
+                new SelectedEvidenceLink { ClaimType = "METHOD", EvidenceId = "evidence-inv" },
+                new SelectedEvidenceLink { ClaimType = "MOTIVE", EvidenceId = "evidence-unrelated" }
+            }
+        };
+
+        var investigator = WithActiveAccusation(FullResponse(gameCase), state);
+        var interrogator = WithActiveAccusation(FullResponse(gameCase), state);
+        V3KnowledgeProjector.Apply(investigator, room, gameCase, "inv");
+        V3KnowledgeProjector.Apply(interrogator, room, gameCase, "int");
+
+        Assert.DoesNotContain("evidence-unrelated", JsonSerializer.Serialize(interrogator));
+        Assert.Equal(2, interrogator.ActiveAccusation!.EvidenceLinks.Count);
+        Assert.Empty(interrogator.ActiveAccusation.EvidenceIds);
+        var shared = interrogator.ActiveAccusation.EvidenceLinks.Single(link => link.ClaimType == "METHOD");
+        var withheld = interrogator.ActiveAccusation.EvidenceLinks.Single(link => link.ClaimType == "MOTIVE");
+        Assert.Equal("evidence-inv", shared.EvidenceId);
+        Assert.False(shared.IsUndisclosed);
+        Assert.Null(withheld.EvidenceId);
+        Assert.True(withheld.IsUndisclosed);
+        // The proposer keeps the full proposal; nothing they earned is hidden back from them.
+        Assert.All(investigator.ActiveAccusation!.EvidenceLinks, link => Assert.False(link.IsUndisclosed));
+        Assert.Equal("evidence-unrelated", Assert.Single(investigator.ActiveAccusation.EvidenceIds));
+    }
+
+    private static GameStateResponse WithActiveAccusation(GameStateResponse response, GameplayState state)
+    {
+        response.ActiveAccusation = AccusationProposalDto.From(state.ActiveAccusation!);
+        return response;
     }
 
     private static GameCase Case() => new()

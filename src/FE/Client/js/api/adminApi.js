@@ -16,4 +16,13 @@ export const adminApi = {
   seedSample: () => post('/api/admin/cases/seed-sample?publish=true'),
   seedDemo: () => post('/api/admin/cases/seed-demo'),
   seedCrackDemo: () => post('/api/admin/cases/seed-crack-demo'),
+
+  // 404 while playtest instrumentation is off; callers hide the panel instead of surfacing an error.
+  playtestSummary: (from, to) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const query = params.toString();
+    return get(`/api/admin/playtest/summary${query ? `?${query}` : ''}`);
+  },
 };

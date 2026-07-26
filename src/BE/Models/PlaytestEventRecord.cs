@@ -26,7 +26,16 @@ public enum PlaytestEventType
     WaitingStarted,
     WaitingEnded,
     RevealDisplayed,
-    RevealDismissed
+    RevealDismissed,
+    // Appended, never inserted: stored documents keep the string name, and the numeric order
+    // stays stable for anything that still reads the enum positionally.
+    SceneCompleted,
+    StageCompleted,
+    HintUsed,
+    AccusationProposed,
+    AccusationAmended,
+    AccusationConfirmed,
+    AccusationCancelled
 }
 
 [BsonIgnoreExtraElements]

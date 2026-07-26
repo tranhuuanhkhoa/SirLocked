@@ -232,6 +232,38 @@ public class GameProgressionRuleTests
         Assert.Equal("scene-a", state.PlayerSceneIds["teammate"]);
     }
 
+    /// <summary>
+    /// Both detectives cross the same boundary, but a stage only ends once. StageCompleted telemetry
+    /// is gated on <c>CompletedNow &amp;&amp; CrossesStage</c>, so the second crossing must not qualify or
+    /// the median gap between stages collapses to zero.
+    /// </summary>
+    [Fact]
+    public void Continue_BothPlayersCrossSameStageBoundary_OnlyTheFirstReportsCompletedNow()
+    {
+        var gameCase = BuildCase();
+        var state = new GameplayState
+        {
+            CurrentStageId = "stage-1",
+            CurrentSceneId = "scene-b",
+            VisitedSceneIds = { "scene-a", "scene-b" },
+            UnlockedSceneIds = { "scene-a", "scene-b" },
+            CompletedSceneIds = { "scene-a" },
+            PlayerSceneIds = new Dictionary<string, string>
+            {
+                ["caller"] = "scene-b",
+                ["teammate"] = "scene-b"
+            }
+        };
+
+        var first = GameRules.ApplySceneContinuation(gameCase, state, "caller", "scene-b");
+        var second = GameRules.ApplySceneContinuation(gameCase, state, "teammate", "scene-b");
+
+        Assert.True(first.CrossesStage);
+        Assert.True(first.CompletedNow);
+        Assert.True(second.CrossesStage);
+        Assert.False(second.CompletedNow);
+    }
+
     [Fact]
     public void Continue_FinalScene_CompletesWithoutMovingCaller()
     {

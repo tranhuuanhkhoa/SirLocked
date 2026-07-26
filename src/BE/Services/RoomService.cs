@@ -12,6 +12,12 @@ namespace SirLocked.Api.Services;
 public class RoomService : IRoomService
 {
     public const int MaxPlayers = 2;
+    /// <summary>Refusal for a COMPLETED/ABANDONED room; kept distinct from "already started" so FE can end the flow.</summary>
+    public const string RoomEndedMessage = "This room has already ended and cannot be reused.";
+    public const string RoomEndedLeaveMessage = "This room has already ended.";
+    public const string RoomEndedCode = "ROOM_ENDED";
+    public const string RoomEndedMessageKey = "room.ended";
+    public const string GameAlreadyStartedMessage = "The game has already started.";
     public static readonly TimeSpan DisconnectGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly MongoDbContext _db;
@@ -142,12 +148,21 @@ public class RoomService : IRoomService
             {
                 throw ApiException.BadRequest("You cannot leave a game that is in progress.");
             }
+            if (RoomLifecycle.IsTerminal(room.Status))
+            {
+                // Leaving a finished room must not drop it back to WAITING and resurrect it.
+                throw ApiException.Conflict(RoomEndedLeaveMessage, RoomEndedCode, RoomEndedMessageKey);
+            }
 
             room.Players.RemoveAll(p => p.UserId == user.Id);
 
             if (room.Players.Count == 0)
             {
-                var deleted = await _db.Rooms.DeleteOneAsync(r => r.Id == roomId && r.LobbyVersion == room.LobbyVersion);
+                var deleteFilter = Builders<GameRoom>.Filter.And(
+                    Builders<GameRoom>.Filter.Eq(r => r.Id, roomId),
+                    Builders<GameRoom>.Filter.In(r => r.Status, RoomLifecycle.LobbyStatuses),
+                    Builders<GameRoom>.Filter.Eq(r => r.LobbyVersion, room.LobbyVersion));
+                var deleted = await _db.Rooms.DeleteOneAsync(deleteFilter);
                 if (deleted.DeletedCount == 0)
                 {
                     if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
@@ -161,8 +176,8 @@ public class RoomService : IRoomService
                 room.HostUserId = room.Players[0].UserId;
             }
 
-            room.Status = RoomStatus.Waiting;
-            if (!await TrySaveLobbyAsync(room))
+            RecomputeLobbyStatus(room);
+            if (!await TrySaveLobbyAsync(room, RoomLifecycle.LobbyStatuses))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
                 continue;
@@ -196,7 +211,8 @@ public class RoomService : IRoomService
 
             player.Role = role;
             player.IsReady = false; // changing role resets readiness
-            if (!await TrySaveLobbyAsync(room))
+            RecomputeLobbyStatus(room);
+            if (!await TrySaveLobbyAsync(room, RoomLifecycle.LobbyStatuses))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
                 continue;
@@ -268,10 +284,8 @@ public class RoomService : IRoomService
             }
 
             player.IsReady = isReady;
-            room.Status = room.Players.Count == MaxPlayers && room.Players.All(p => p.IsReady)
-                ? RoomStatus.Ready
-                : RoomStatus.Waiting;
-            if (!await TrySaveLobbyAsync(room))
+            RecomputeLobbyStatus(room);
+            if (!await TrySaveLobbyAsync(room, RoomLifecycle.LobbyStatuses))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
                 continue;
@@ -295,13 +309,13 @@ public class RoomService : IRoomService
             {
                 throw ApiException.Forbidden("Only the host can start the game.");
             }
-            if (room.Status == RoomStatus.InProgress)
+            if (!RoomLifecycle.AllowsLobbyMutation(room.Status))
             {
-                throw ApiException.Conflict("The game has already started.");
-            }
-            if (room.Status == RoomStatus.Completed)
-            {
-                throw ApiException.BadRequest("This room is already completed.");
+                // Refused before any GameplayState is built, so a terminal room keeps its finished run.
+                // WAITING is deliberately allowed through: the "not everyone is ready" case below gives a
+                // far more useful message than a status conflict. READY stays the only status that can
+                // actually commit a start, enforced by the StartableStatuses filter on the write.
+                throw NotLobbyConflict(room.Status);
             }
 
             var notReady = room.Players.Where(p => !p.IsReady || string.IsNullOrEmpty(p.Role))
@@ -335,7 +349,8 @@ public class RoomService : IRoomService
                 StartedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            if (!await TrySaveLobbyAsync(room))
+            // READY is the only startable stored status, so two concurrent starts cannot both commit.
+            if (!await TrySaveLobbyAsync(room, RoomLifecycle.StartableStatuses))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
                 continue;
@@ -347,7 +362,8 @@ public class RoomService : IRoomService
         }
     }
 
-    private async Task<GameRoom> RequireRoomAsync(string roomId)
+    /// <summary>Virtual so lifecycle guards can be exercised against an in-memory room without MongoDB.</summary>
+    protected virtual async Task<GameRoom> RequireRoomAsync(string roomId)
     {
         var room = await _db.Rooms.Find(r => r.Id == roomId).FirstOrDefaultAsync();
         return room ?? throw ApiException.NotFound("Room not found.");
@@ -359,21 +375,40 @@ public class RoomService : IRoomService
 
     private static void RequireLobby(GameRoom room)
     {
-        if (room.Status is RoomStatus.InProgress or RoomStatus.Completed)
+        if (!RoomLifecycle.AllowsLobbyMutation(room.Status))
         {
-            throw ApiException.Conflict("The game has already started.");
+            throw NotLobbyConflict(room.Status);
         }
     }
 
-    private async Task<bool> TrySaveLobbyAsync(GameRoom room)
+    private static ApiException NotLobbyConflict(string status) =>
+        RoomLifecycle.IsTerminal(status)
+            ? ApiException.Conflict(RoomEndedMessage, RoomEndedCode, RoomEndedMessageKey)
+            : ApiException.Conflict(GameAlreadyStartedMessage);
+
+    /// <summary>
+    /// The stored status must stay derivable from the players, otherwise a role change that clears
+    /// readiness leaves the room claiming READY while nobody is ready.
+    /// </summary>
+    private static void RecomputeLobbyStatus(GameRoom room) =>
+        room.Status = room.Players.Count == MaxPlayers && room.Players.All(p => p.IsReady)
+            ? RoomStatus.Ready
+            : RoomStatus.Waiting;
+
+    /// <summary>Virtual so lifecycle guards can be exercised against an in-memory room without MongoDB.</summary>
+    protected virtual async Task<bool> TrySaveLobbyAsync(GameRoom room, IReadOnlyCollection<string> expectedStatuses)
     {
         var expectedVersion = room.LobbyVersion;
         room.LobbyVersion = expectedVersion + 1;
         room.UpdatedAt = DateTime.UtcNow;
 
-        var result = await _db.Rooms.ReplaceOneAsync(
-            r => r.Id == room.Id && r.LobbyVersion == expectedVersion,
-            room);
+        // Status sits in the filter next to LobbyVersion: two requests that agree on the version can
+        // still disagree on the transition, and a room that turned terminal must not be revived.
+        var filter = Builders<GameRoom>.Filter.And(
+            Builders<GameRoom>.Filter.Eq(r => r.Id, room.Id),
+            Builders<GameRoom>.Filter.In(r => r.Status, expectedStatuses),
+            Builders<GameRoom>.Filter.Eq(r => r.LobbyVersion, expectedVersion));
+        var result = await _db.Rooms.ReplaceOneAsync(filter, room);
         if (result.ModifiedCount == 0)
         {
             room.LobbyVersion = expectedVersion;

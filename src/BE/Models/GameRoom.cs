@@ -77,6 +77,10 @@ public class GameplayState
     public PairedConfrontationState? ActiveConfrontation { get; set; }
     /// <summary>Terminal V3 attempts retained for disclosure, retries and exactly-once outcomes.</summary>
     public List<PairedConfrontationAttemptRecord> PairedConfrontationAttempts { get; set; } = new();
+    /// <summary>The single mutable final-accusation proposal awaiting consensus, or null when none is open.</summary>
+    public AccusationProposalState? ActiveAccusation { get; set; }
+    /// <summary>Terminal accusation proposals retained for history, retries and exactly-once outcomes.</summary>
+    public List<AccusationProposalState> AccusationAttempts { get; set; } = new();
     public string GameStatus { get; set; } = Enums.GameStatus.InProgress;
     /// <summary>
     /// Authoritative completion data used to recreate the denormalized game result when its write fails.
@@ -170,6 +174,30 @@ public class PlayerConfrontationConfirmation
     public string Role { get; set; } = string.Empty;
     public int Revision { get; set; }
     public DateTime ConfirmedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// One final-accusation proposal. Unlike a paired confrontation the whole proposal belongs to a
+/// single author; the partner reviews it as a block, so there is no collecting phase.
+/// </summary>
+[BsonIgnoreExtraElements]
+public class AccusationProposalState
+{
+    public string AttemptId { get; set; } = string.Empty;
+    [BsonRepresentation(BsonType.String)]
+    public AccusationProposalStatus Status { get; set; } = AccusationProposalStatus.AwaitingConfirmation;
+    public int Revision { get; set; } = 1;
+    public string ProposedByUserId { get; set; } = string.Empty;
+    public string ProposedByRole { get; set; } = string.Empty;
+    public string CulpritId { get; set; } = string.Empty;
+    public string? MotiveId { get; set; }
+    public string? MethodId { get; set; }
+    public List<string> EvidenceIds { get; set; } = new();
+    public List<SelectedEvidenceLink> EvidenceLinks { get; set; } = new();
+    /// <summary>Confirmations are bound to <see cref="Revision"/>; an amend clears every earlier one.</summary>
+    public List<PlayerConfrontationConfirmation> Confirmations { get; set; } = new();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 [BsonIgnoreExtraElements]

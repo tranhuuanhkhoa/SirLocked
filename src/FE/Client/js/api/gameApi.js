@@ -35,5 +35,9 @@ export const gameApi = {
   completeStage: (roomId) => post(`/api/game/rooms/${roomId}/complete-stage`),
   goToScene: (roomId, sceneId) => post(`/api/game/rooms/${roomId}/go-to-scene`, { sceneId }),
   accuse: (roomId, payload) => post(`/api/game/rooms/${roomId}/accuse`, payload),
+  proposeAccusation: (roomId, payload) => post(`/api/game/rooms/${roomId}/accusation`, payload),
+  amendAccusation: (roomId, attemptId, payload) => put(`/api/game/rooms/${roomId}/accusation/${attemptId}`, payload),
+  confirmAccusation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/accusation/${attemptId}/confirm`, payload),
+  cancelAccusation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/accusation/${attemptId}/cancel`, payload),
   result: (roomId) => get(`/api/game/rooms/${roomId}/result`),
 };

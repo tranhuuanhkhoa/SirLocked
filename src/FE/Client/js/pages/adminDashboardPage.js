@@ -3,6 +3,67 @@ import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
 
+function formatDuration(ms) {
+  const total = Math.round(Number(ms) || 0);
+  if (total < 1000) return `${total} ms`;
+  const seconds = Math.round(total / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+/** Playtest card markup, or an empty string when instrumentation is off. */
+function playtestSection(summary) {
+  if (!summary) return '';
+
+  const waiting = summary.waitingMsByRole || {};
+  const outcomes = summary.confrontationOutcomes || {};
+  const tiers = Object.entries(summary.hintCountByTier || {});
+  const imbalance = summary.waitingImbalancePct == null
+    ? tr('not comparable yet', 'chưa so sánh được')
+    : `${Number(summary.waitingImbalancePct).toFixed(1)}%`;
+
+  const cards = [
+    [tr('Sessions', 'Phiên chơi'), String(summary.sessionCount ?? 0)],
+    [tr('Investigator waiting', 'Điều tra viên chờ'), formatDuration(waiting.INVESTIGATOR)],
+    [tr('Interrogator waiting', 'Thẩm vấn viên chờ'), formatDuration(waiting.INTERROGATOR)],
+    [tr('Waiting imbalance', 'Chênh lệch thời gian chờ'), imbalance],
+    [
+      tr('Confrontations', 'Đối chất'),
+      `${outcomes.ResolvedCorrect ?? 0} ${tr('correct', 'đúng')}`
+      + ` · ${outcomes.ResolvedIncorrect ?? 0} ${tr('wrong', 'sai')}`
+      + ` · ${outcomes.Cancelled ?? 0} ${tr('cancelled', 'đã hủy')}`,
+    ],
+    [
+      tr('Median stage time', 'Trung vị thời gian mỗi chặng'),
+      summary.medianStageMs == null ? '—' : formatDuration(summary.medianStageMs),
+    ],
+    [
+      tr('Hints by tier', 'Gợi ý theo bậc'),
+      tiers.length ? tiers.map(([tier, count]) => `T${tier}×${count}`).join(' · ') : '—',
+    ],
+  ].map(([label, value]) => `
+    <div class="stat-card"><span class="muted small">${label}</span><strong>${escapeHtml(String(value))}</strong></div>`).join('');
+
+  // The read side caps how many events one summary folds, so an over-wide window degrades visibly
+  // instead of pulling an unbounded collection into the API process.
+  const counted = escapeHtml(String(summary.eventCount ?? 0));
+  const truncated = summary.isTruncated
+    ? `<p class="notice">${tr(
+      `Only the first ${counted} events in this range were counted. Narrow the range for exact numbers.`,
+      `Chỉ ${counted} sự kiện đầu tiên trong khoảng này được tính. Hãy thu hẹp khoảng thời gian để có số chính xác.`,
+    )}</p>`
+    : '';
+
+  return `
+    <h3 class="section-title">${tr('Playtest telemetry', 'Đo đạc phiên chơi thử')}</h3>
+    <p class="muted small">${tr(
+      'Hashed per-room signals from V3 sessions only; no room, player, or case identifiers are stored.',
+      'Tín hiệu đã băm theo từng phòng, chỉ từ các ván V3; không lưu định danh phòng, người chơi hay vụ án.',
+    )}</p>
+    ${truncated}
+    <div class="stat-grid">${cards}</div>`;
+}
+
 export async function renderAdminDashboardPage(app) {
   render(app, `<div class="page"><p class="muted">${tr('Loading dashboard…', 'Đang tải bảng điều khiển…')}</p></div>`);
 
@@ -13,6 +74,14 @@ export async function renderAdminDashboardPage(app) {
   } catch (err) {
     render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
     return;
+  }
+
+  // Telemetry is opt-in; a 404/403 means the gate is closed, so the card is simply absent.
+  let playtest = null;
+  try {
+    playtest = await adminApi.playtestSummary();
+  } catch {
+    playtest = null;
   }
 
   const statCards = [
@@ -55,6 +124,7 @@ export async function renderAdminDashboardPage(app) {
       </div>
     </div>
     <div class="stat-grid">${statCards}</div>
+    ${playtestSection(playtest)}
     <h3 class="section-title">${tr('Users', 'Người dùng')}</h3>
     <table class="admin-table">
       <thead><tr><th>${tr('Name', 'Tên')}</th><th>Email</th><th>${tr('Role', 'Vai trò')}</th><th>${tr('Status', 'Trạng thái')}</th><th></th></tr></thead>

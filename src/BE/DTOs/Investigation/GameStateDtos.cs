@@ -537,6 +537,11 @@ public class GameStateResponse
     public SharedKnowledgeDto SharedKnowledge { get; set; } = new();
     /// <summary>Caller-safe view of the single active V3 confrontation.</summary>
     public PairedConfrontationViewDto? ActiveConfrontation { get; set; }
+    /// <summary>
+    /// The final-accusation proposal awaiting the pair's confirmation, or null when none is open.
+    /// Its contents are shared by design: this is the step where both detectives read one decision.
+    /// </summary>
+    public Submission.AccusationProposalDto? ActiveAccusation { get; set; }
 }
 
 public class GameActionResponse

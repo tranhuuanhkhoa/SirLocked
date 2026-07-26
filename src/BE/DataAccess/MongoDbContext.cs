@@ -9,6 +9,10 @@ namespace SirLocked.Api.DataAccess;
 
 public class MongoDbContext
 {
+    public const string PlaytestSessionTimestampIndexName = "ix_playtestEvents_session_timestamp";
+    public const string PlaytestTypeTimestampIndexName = "ix_playtestEvents_type_timestamp";
+    public const string PlaytestTtlIndexName = "ttl_playtestEvents_timestamp";
+
     static MongoDbContext()
     {
         // Store documents in camelCase to match ai-game-docs/DATABASE_SCHEMA.md.
@@ -20,9 +24,10 @@ public class MongoDbContext
         ConventionRegistry.Register("sirlocked", pack, _ => true);
     }
 
-    public MongoDbContext(IOptions<MongoDbSettings> options)
+    public MongoDbContext(IOptions<MongoDbSettings> options, IOptions<PlaytestSettings>? playtestOptions = null)
     {
         Settings = options.Value;
+        PlaytestSettings = playtestOptions?.Value ?? new PlaytestSettings();
         var clientSettings = MongoClientSettings.FromConnectionString(Settings.ConnectionString);
         if (clientSettings.UseTls)
         {
@@ -38,6 +43,7 @@ public class MongoDbContext
     }
 
     public MongoDbSettings Settings { get; }
+    public PlaytestSettings PlaytestSettings { get; }
     public IMongoDatabase Database { get; }
 
     public IMongoCollection<User> Users => Database.GetCollection<User>(Settings.UsersCollectionName);
@@ -50,6 +56,7 @@ public class MongoDbContext
     public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
     public IMongoCollection<CaseReview> Reviews => Database.GetCollection<CaseReview>(Settings.ReviewsCollectionName);
     public IMongoCollection<WeeklyFeature> WeeklyFeatures => Database.GetCollection<WeeklyFeature>(Settings.WeeklyFeaturesCollectionName);
+    public IMongoCollection<PlaytestEventRecord> PlaytestEvents => Database.GetCollection<PlaytestEventRecord>(Settings.PlaytestEventsCollectionName);
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -141,7 +148,50 @@ public class MongoDbContext
                     .Ascending(w => w.IsActive),
                 new CreateIndexOptions { Name = "ix_weeklyFeatures_type_isActive" }),
             cancellationToken: ct);
+
+        await EnsurePlaytestEventIndexesAsync(ct);
     }
+
+    /// <summary>
+    /// Lookup indexes plus the TTL that enforces PlaytestSettings.RetentionDays. Telemetry is
+    /// observability, never an invariant: this runs in the noncritical group so a failure here
+    /// is logged by Program without blocking startup.
+    /// </summary>
+    private async Task EnsurePlaytestEventIndexesAsync(CancellationToken ct)
+    {
+        await PlaytestEvents.Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<PlaytestEventRecord>(
+                Builders<PlaytestEventRecord>.IndexKeys
+                    .Ascending(e => e.SessionPseudonym)
+                    .Ascending(e => e.Timestamp),
+                new CreateIndexOptions { Name = PlaytestSessionTimestampIndexName }),
+            new CreateIndexModel<PlaytestEventRecord>(
+                Builders<PlaytestEventRecord>.IndexKeys
+                    .Ascending(e => e.EventType)
+                    .Ascending(e => e.Timestamp),
+                new CreateIndexOptions { Name = PlaytestTypeTimestampIndexName })
+        }, ct);
+
+        var retention = TimeSpan.FromDays(Math.Max(1, PlaytestSettings.RetentionDays));
+        var ttl = new CreateIndexModel<PlaytestEventRecord>(
+            Builders<PlaytestEventRecord>.IndexKeys.Ascending(e => e.Timestamp),
+            new CreateIndexOptions { Name = PlaytestTtlIndexName, ExpireAfter = retention });
+        try
+        {
+            await PlaytestEvents.Indexes.CreateOneAsync(ttl, cancellationToken: ct);
+        }
+        catch (MongoCommandException exception) when (IsIndexOptionsConflict(exception))
+        {
+            // RetentionDays changed since the index was created; recreate it so the stored
+            // documents actually expire on the configured schedule.
+            await PlaytestEvents.Indexes.DropOneAsync(PlaytestTtlIndexName, ct);
+            await PlaytestEvents.Indexes.CreateOneAsync(ttl, cancellationToken: ct);
+        }
+    }
+
+    private static bool IsIndexOptionsConflict(MongoCommandException exception) =>
+        exception.Code == 85 || string.Equals(exception.CodeName, "IndexOptionsConflict", StringComparison.Ordinal);
 
     private async Task EnsureGameResultIndexesAsync(CancellationToken ct)
     {

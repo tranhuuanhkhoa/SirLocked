@@ -1,4 +1,7 @@
+using SirLocked.Api.DTOs.Investigation;
+using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using Xunit;
 
@@ -155,6 +158,45 @@ public class GameStateProjectionTests
         Assert.DoesNotContain("choose one", objective);
         Assert.Contains("examine 1 more piece(s) of physical evidence", objective);
         Assert.Contains("uncover 1 more clue(s)", objective);
+    }
+
+    [Fact]
+    public void AccusationProjection_IsAbsentUntilAProposalExists()
+    {
+        var withoutProposal = BuildState("scene-1");
+
+        // The absent-proposal contract lives in the projection itself, not in a caller-side ternary,
+        // so this exercises the same call GameStateBuilder makes rather than restating it.
+        Assert.Null(withoutProposal.ActiveAccusation);
+        Assert.Null(AccusationProposalDto.From(withoutProposal.ActiveAccusation));
+    }
+
+    [Fact]
+    public void AccusationProjection_ExposesOnlyTheConfirmationsBindingTheCurrentRevision()
+    {
+        var proposal = new AccusationProposalState
+        {
+            AttemptId = "attempt-1",
+            Revision = 2,
+            ProposedByUserId = "inv",
+            ProposedByRole = PlayerRole.Investigator,
+            CulpritId = "char-1",
+            MotiveId = "motive-1",
+            MethodId = "method-1",
+            EvidenceLinks = { new SelectedEvidenceLink { ClaimType = "MOTIVE", EvidenceId = "clue-1" } },
+            Confirmations =
+            {
+                new PlayerConfrontationConfirmation { UserId = "inv", Revision = 1 },
+                new PlayerConfrontationConfirmation { UserId = "int", Revision = 1 },
+                new PlayerConfrontationConfirmation { UserId = "int", Revision = 2 }
+            }
+        };
+
+        var projected = Assert.IsType<AccusationProposalDto>(AccusationProposalDto.From(proposal));
+
+        Assert.Equal(new[] { "int" }, projected.ConfirmedUserIds);
+        Assert.Equal(2, projected.Revision);
+        Assert.Equal("clue-1", Assert.Single(projected.EvidenceLinks).EvidenceId);
     }
 
     private static GameCase BuildCase(CaseScene scene) => new()

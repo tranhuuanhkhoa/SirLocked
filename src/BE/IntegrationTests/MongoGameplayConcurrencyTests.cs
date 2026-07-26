@@ -2,11 +2,18 @@ using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Net;
+using System.Text.Json;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
+using SirLocked.Api.DTOs;
+using SirLocked.Api.DTOs.Case;
+using SirLocked.Api.DTOs.Investigation;
+using SirLocked.Api.DTOs.Room;
+using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Interfaces;
 using Xunit;
 
 namespace SirLocked.IntegrationTests;
@@ -69,6 +76,152 @@ public sealed class MongoGameplayConcurrencyTests
             Assert.False(retry.Changed);
             Assert.Single(authoritative.GameplayState.PairedConfrontationAttempts);
             Assert.Single(authoritative.GameplayState.UnlockedClueIds);
+        }
+        finally
+        {
+            TestMongoSafetyGuard.EnsureSafe(settings);
+            await client.DropDatabaseAsync(settings.DatabaseName);
+        }
+    }
+
+    [Fact]
+    public async Task ConcurrentStarts_CommitExactlyOneGameplayState()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable(RunEnvironmentVariable),
+                "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var settings = NewSettings();
+        TestMongoSafetyGuard.EnsureSafe(settings);
+        var db = new MongoDbContext(Options.Create(settings));
+        var client = new MongoClient(settings.ConnectionString);
+
+        try
+        {
+            await db.PingAsync();
+            var room = BuildStartableRoom();
+            await db.Rooms.InsertOneAsync(room);
+
+            var host = new CurrentUser(room.HostUserId, "Host", UserRole.Player);
+            var service = new RoomService(db, new StubCaseService(), new SilentNotifier());
+            var outcomes = await Task.WhenAll(
+                TryStartAsync(service, host, room.Id),
+                TryStartAsync(service, host, room.Id));
+
+            Assert.Single(outcomes, outcome => outcome.Started);
+            var rejected = Assert.Single(outcomes, outcome => !outcome.Started);
+            Assert.Equal(409, rejected.Failure!.StatusCode);
+
+            var authoritative = await db.Rooms.Find(candidate => candidate.Id == room.Id).FirstAsync();
+            Assert.Equal(RoomStatus.InProgress, authoritative.Status);
+            Assert.NotNull(authoritative.GameplayState);
+            Assert.Equal(1, authoritative.GameplayState!.Version);
+            Assert.Equal("scene-1", authoritative.GameplayState.CurrentSceneId);
+        }
+        finally
+        {
+            TestMongoSafetyGuard.EnsureSafe(settings);
+            await client.DropDatabaseAsync(settings.DatabaseName);
+        }
+    }
+
+    [Fact]
+    public async Task StartOnAbandonedRoom_IsRefusedAndKeepsTheFinishedGameplayState()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable(RunEnvironmentVariable),
+                "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var settings = NewSettings();
+        TestMongoSafetyGuard.EnsureSafe(settings);
+        var db = new MongoDbContext(Options.Create(settings));
+        var client = new MongoClient(settings.ConnectionString);
+        var endedAt = new DateTime(2026, 7, 20, 10, 0, 0, DateTimeKind.Utc);
+
+        try
+        {
+            await db.PingAsync();
+            var room = BuildStartableRoom();
+            room.Status = RoomStatus.Abandoned;
+            room.GameplayState = new GameplayState
+            {
+                CurrentStageId = "stage-1",
+                CurrentSceneId = "scene-9",
+                Version = 11,
+                GameStatus = GameStatus.Failed,
+                CompletedAt = endedAt
+            };
+            await db.Rooms.InsertOneAsync(room);
+
+            var host = new CurrentUser(room.HostUserId, "Host", UserRole.Player);
+            var service = new RoomService(db, new StubCaseService(), new SilentNotifier());
+
+            var failure = await Assert.ThrowsAsync<ApiException>(() => service.StartAsync(host, room.Id));
+
+            Assert.Equal(409, failure.StatusCode);
+            Assert.Equal(RoomService.RoomEndedMessage, failure.Message);
+            var authoritative = await db.Rooms.Find(candidate => candidate.Id == room.Id).FirstAsync();
+            Assert.Equal(RoomStatus.Abandoned, authoritative.Status);
+            Assert.Equal(11, authoritative.GameplayState!.Version);
+            Assert.Equal(endedAt, authoritative.GameplayState.CompletedAt);
+            Assert.Equal("scene-9", authoritative.GameplayState.CurrentSceneId);
+        }
+        finally
+        {
+            TestMongoSafetyGuard.EnsureSafe(settings);
+            await client.DropDatabaseAsync(settings.DatabaseName);
+        }
+    }
+
+    [Fact]
+    public async Task JoinOnAbandonedRoom_StaysRefused()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable(RunEnvironmentVariable),
+                "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var settings = NewSettings();
+        TestMongoSafetyGuard.EnsureSafe(settings);
+        var db = new MongoDbContext(Options.Create(settings));
+        var client = new MongoClient(settings.ConnectionString);
+
+        try
+        {
+            await db.PingAsync();
+            var room = BuildStartableRoom();
+            room.Status = RoomStatus.Abandoned;
+            room.Players.RemoveAt(1); // a free slot is what would make an unguarded join succeed
+            await db.Rooms.InsertOneAsync(room);
+            var newcomer = new User
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                FullName = "Newcomer",
+                Email = "newcomer@example.com",
+                IsEmailVerified = true
+            };
+            await db.Users.InsertOneAsync(newcomer);
+
+            var service = new RoomService(db, new StubCaseService(), new SilentNotifier());
+            var failure = await Assert.ThrowsAsync<ApiException>(() => service.JoinAsync(
+                new CurrentUser(newcomer.Id, newcomer.FullName, UserRole.Player),
+                room.RoomCode));
+
+            Assert.Equal(409, failure.StatusCode);
+            var authoritative = await db.Rooms.Find(candidate => candidate.Id == room.Id).FirstAsync();
+            Assert.Equal(RoomStatus.Abandoned, authoritative.Status);
+            Assert.Single(authoritative.Players);
         }
         finally
         {
@@ -346,6 +499,87 @@ public sealed class MongoGameplayConcurrencyTests
                 new() { UserId = "int", Role = PlayerRole.Interrogator }
             }
         };
+    }
+
+    private static GameRoom BuildStartableRoom() => new()
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        RoomCode = "STARTR",
+        CaseId = "case-start-race",
+        HostUserId = "host-1",
+        Status = RoomStatus.Ready,
+        Players = new List<RoomPlayer>
+        {
+            new() { UserId = "host-1", Username = "Host", Role = PlayerRole.Investigator, IsReady = true },
+            new() { UserId = "guest-1", Username = "Guest", Role = PlayerRole.Interrogator, IsReady = true }
+        }
+    };
+
+    private static async Task<StartOutcome> TryStartAsync(RoomService service, CurrentUser user, string roomId)
+    {
+        try
+        {
+            await service.StartAsync(user, roomId);
+            return new StartOutcome(true, null);
+        }
+        catch (ApiException failure)
+        {
+            return new StartOutcome(false, failure);
+        }
+    }
+
+    private sealed record StartOutcome(bool Started, ApiException? Failure);
+
+    private sealed class StubCaseService : ICaseService
+    {
+        public Task<GameCase> GetCaseAsync(string caseId) => Task.FromResult(new GameCase
+        {
+            CaseId = caseId,
+            Title = "Start Race",
+            Status = CaseStatus.Published,
+            Stages = new List<CaseStage>
+            {
+                new()
+                {
+                    StageId = "stage-1",
+                    Order = 1,
+                    Scenes = new List<CaseScene> { new() { SceneId = "scene-1" } }
+                }
+            }
+        });
+
+        public Task<GameCase?> FindCaseAsync(string caseId) => throw new NotSupportedException();
+        public Task<List<CaseSummaryResponse>> GetPublishedAsync() => throw new NotSupportedException();
+        public Task<CasePublicDetailResponse> GetPublicDetailAsync(string caseId) => throw new NotSupportedException();
+        public Task<List<CaseSummaryResponse>> GetAllForAdminAsync() => throw new NotSupportedException();
+        public CaseValidationResponse ValidateJson(JsonElement caseJson) => throw new NotSupportedException();
+        public Task<CaseSummaryResponse> ImportJsonAsync(JsonElement caseJson, bool overwrite, bool preserveServerMetadata = false) => throw new NotSupportedException();
+        public Task<CaseSummaryResponse> PublishAsync(string caseId) => throw new NotSupportedException();
+        public Task<CaseSummaryResponse> UnpublishAsync(string caseId) => throw new NotSupportedException();
+        public Task<CaseSummaryResponse> SeedSampleAsync(bool publish) => throw new NotSupportedException();
+        public Task<List<CaseSummaryResponse>> SeedDemoAsync() => throw new NotSupportedException();
+        public Task<List<CaseSummaryResponse>> SeedCrackDemoAsync() => throw new NotSupportedException();
+        public GameCase ParseCase(JsonElement caseJson) => throw new NotSupportedException();
+        public GameCase ParseCase(string caseJson) => throw new NotSupportedException();
+    }
+
+    private sealed class SilentNotifier : IGameNotifier
+    {
+        public Task PlayerJoined(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
+        public Task PlayerLeft(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
+        public Task RolesUpdated(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
+        public Task ReadyUpdated(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
+        public Task GameStarted(string roomId, RoomResponse room) => Task.CompletedTask;
+        public Task GameStateUpdated(string roomId, long version) => Task.CompletedTask;
+        public Task ItemFound(string roomId, string itemId, string userId, long version) => Task.CompletedTask;
+        public Task ClueUnlocked(string roomId, string clueId, string? sourceId, string userId, long version) => Task.CompletedTask;
+        public Task DialogueAnswered(string roomId, string dialogueId, string userId, long version) => Task.CompletedTask;
+        public Task EvidencePresented(string roomId, string dialogueId, string evidenceId, string userId, long version) => Task.CompletedTask;
+        public Task InvestigationUpdate(string roomId, InvestigationUpdateDto update) => Task.CompletedTask;
+        public Task SceneChanged(string roomId, string previousSceneId, string currentSceneId, string userId, long version) => Task.CompletedTask;
+        public Task StageChanged(string roomId, string previousStageId, string currentStageId, string previousSceneId, string currentSceneId, bool isFinalStageCompleted, string userId, long version) => Task.CompletedTask;
+        public Task GameCompleted(string roomId, GameResultResponse result) => Task.CompletedTask;
+        public Task SystemMessage(string roomId, string message) => Task.CompletedTask;
     }
 
     private static void ResolveWithSecondConfirmation(GameRoom room) =>

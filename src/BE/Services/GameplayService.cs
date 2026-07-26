@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Investigation;
@@ -10,7 +12,7 @@ using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.Services;
 
-public partial class GameplayService : IGameplayService
+public partial class GameplayService : IGameplayService, IAccusationResolver
 {
     private readonly MongoDbContext _db;
     private readonly IGameplayContextLoader _contextLoader;
@@ -20,6 +22,7 @@ public partial class GameplayService : IGameplayService
     private readonly IEvidencePhotoService _evidencePhotos;
     private readonly IGameResultStore _gameResults;
     private readonly IPlaytestEventSink _playtestEvents;
+    private readonly AccusationSettings _accusationSettings;
     private readonly ILogger<GameplayService> _logger;
 
     public GameplayService(
@@ -31,6 +34,7 @@ public partial class GameplayService : IGameplayService
         IEvidencePhotoService evidencePhotos,
         IGameResultStore gameResults,
         IPlaytestEventSink playtestEvents,
+        IOptions<AccusationSettings> accusationSettings,
         ILogger<GameplayService> logger)
     {
         _db = db;
@@ -41,6 +45,7 @@ public partial class GameplayService : IGameplayService
         _evidencePhotos = evidencePhotos;
         _gameResults = gameResults;
         _playtestEvents = playtestEvents;
+        _accusationSettings = accusationSettings.Value;
         _logger = logger;
     }
 
@@ -1107,6 +1112,8 @@ public partial class GameplayService : IGameplayService
             if (hints.Count == 0) throw ApiException.NotFound("No hint is available for this target.");
 
             var selected = hints.FirstOrDefault(h => !state.UsedHintIds.Contains(h.HintId)) ?? hints[^1];
+            // Tier is the 1-based escalation step within the ordered hint chain, never a hint id.
+            var hintTier = hints.IndexOf(selected) + 1;
             var isNew = !state.UsedHintIds.Contains(selected.HintId);
             if (!isNew)
             {
@@ -1145,6 +1152,13 @@ public partial class GameplayService : IGameplayService
             }
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                await _playtestEvents.RecordAsync(
+                    roomId, user.Id, player.Role ?? string.Empty,
+                    PlaytestEventType.HintUsed, stateResponse.Version,
+                    count: hintTier);
+            }
             return new HintResponse
             {
                 State = stateResponse,
@@ -1248,7 +1262,7 @@ public partial class GameplayService : IGameplayService
     {
         for (var attempt = 0; ; attempt++)
         {
-            var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
             RequireNoActiveConfrontation(state);
             var scene = CurrentScene(gameCase, state, user.Id);
@@ -1328,12 +1342,33 @@ public partial class GameplayService : IGameplayService
 
             var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
             await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            if (transition.CompletedNow
+                && gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation)
+            {
+                await _playtestEvents.RecordAsync(
+                    roomId, user.Id, player.Role ?? string.Empty,
+                    PlaytestEventType.SceneCompleted, stateResponse.Version,
+                    count: state.CompletedSceneIds.Count);
+                // A stage ends exactly once per room: on the first completion of its last scene.
+                // Gating on CompletedNow keeps the partner's own crossing from doubling the event and
+                // collapsing the median gap between stages to zero.
+                if (transition.CrossesStage)
+                {
+                    await _playtestEvents.RecordAsync(
+                        roomId, user.Id, player.Role ?? string.Empty,
+                        PlaytestEventType.StageCompleted, stateResponse.Version,
+                        count: StageIndex(gameCase, transition.CurrentStageId));
+                }
+            }
             var message = nextScene is null
                 ? $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete."
                 : $"Continued to {nextScene.Title}.";
             return new GameActionResponse { State = stateResponse, Changed = true, Message = message };
         }
     }
+
+    private static int StageIndex(GameCase gameCase, string stageId) =>
+        gameCase.Stages.OrderBy(stage => stage.Order).ToList().FindIndex(stage => stage.StageId == stageId);
 
     public async Task<GameActionResponse> CompleteStageAsync(CurrentUser user, string roomId)
     {
@@ -1367,9 +1402,12 @@ public partial class GameplayService : IGameplayService
                 new { incompleteSceneIds = incomplete });
         }
 
+        // This endpoint only confirms; it mutates nothing and either player may call it any number of
+        // times. StageCompleted is emitted from the scene transition that actually closes the stage.
+        var completedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
         return new GameActionResponse
         {
-            State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+            State = completedState,
             Changed = false,
             Message = "Stage is complete."
         };
@@ -1434,11 +1472,44 @@ public partial class GameplayService : IGameplayService
         var state = room.GameplayState!;
         RequireNoActiveConfrontation(state);
 
+        // Where the team decides together, one detective may not end the case for both.
+        if (AccusationConsensusRules.RequiresConsensus(gameCase, _accusationSettings.RequireConsensus))
+        {
+            throw ApiException.Conflict(
+                "This case needs both detectives to agree. Propose the accusation at /accusation and let your partner confirm it.",
+                AccusationConsensusRules.ConsensusRequiredCode,
+                "game.accusation.consensusRequired");
+        }
+
         var playerSceneId = state.PlayerSceneIds.GetValueOrDefault(user.Id, state.CurrentSceneId);
         if (!GameRules.IsAccusationAvailable(gameCase, state, playerSceneId))
         {
             throw ApiException.BadRequest("The final accusation is not available yet. Reach the final scene and gather all required evidence first.");
         }
+
+        return await ResolveAccusationCoreAsync(room, gameCase, user, request);
+    }
+
+    /// <summary>
+    /// Closes the case for an accusation whose right to be made has already been established, and is
+    /// the only place that does so: the unilateral route and the two-player consensus route share it
+    /// verbatim, so both produce byte-identical results and exactly one persisted <see cref="GameResult"/>.
+    /// </summary>
+    public Task<GameResultResponse> ResolveAccusationAsync(
+        GameRoom room,
+        GameCase gameCase,
+        CurrentUser actor,
+        AccuseRequest request) =>
+        ResolveAccusationCoreAsync(room, gameCase, actor, request);
+
+    private async Task<GameResultResponse> ResolveAccusationCoreAsync(
+        GameRoom room,
+        GameCase gameCase,
+        CurrentUser user,
+        AccuseRequest request)
+    {
+        var state = room.GameplayState!;
+        var roomId = room.Id;
 
         if (gameCase.Characters.All(c => c.CharacterId != request.CulpritId))
         {

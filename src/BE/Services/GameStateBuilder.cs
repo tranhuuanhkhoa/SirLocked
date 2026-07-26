@@ -4,6 +4,7 @@ using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.DTOs.Investigation;
 using SirLocked.Api.DTOs.Room;
+using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
@@ -149,6 +150,7 @@ public class GameStateBuilder : IGameStateBuilder
             WrongPuzzleCount = state.WrongPuzzleCount,
             GameStatus = state.GameStatus,
             AvailableForAccusation = GameRules.IsAccusationAvailable(gameCase, state, scene.SceneId),
+            ActiveAccusation = AccusationProposalDto.From(state.ActiveAccusation),
             CurrentSceneCanComplete = canCompleteScene,
             CurrentSceneMissingRequirements = missingRequirements,
             CurrentObjective = BuildObjective(gameCase, state, scene, currentSceneProgress, unlocked),

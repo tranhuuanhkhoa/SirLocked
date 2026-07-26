@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
@@ -29,7 +30,9 @@ public sealed class PlaytestEventsController : BaseApiController
         _settings = settings.Value;
     }
 
+    // Each accepted call is one persisted document, so the write side carries its own per-user window.
     [HttpPost]
+    [EnableRateLimiting("playtest-events")]
     public async Task<ActionResult<ApiResponse<bool>>> Record(
         string roomId,
         [FromBody] RecordUiPlaytestEventRequest request,

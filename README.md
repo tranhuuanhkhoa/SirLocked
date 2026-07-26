@@ -24,6 +24,11 @@ You can start from `ai-game-docs/.env.example`.
 MongoDb__ConnectionString=mongodb://localhost:27017
 MongoDb__DatabaseName=SirLockedDb
 GameplayV3__Enabled=true
+GameplayV3__PlaytestInstrumentationEnabled=false
+Playtest__PseudonymKey=replace-with-at-least-32-characters
+Playtest__RetentionDays=30
+# Unset follows the case mechanics version; true/false forces it everywhere.
+Accusation__RequireConsensus=
 AiCaseV3Preset__Enabled=true
 Email__FrontendUrl=http://localhost:5173
 Cors__AllowedOrigins__0=http://localhost:5173
@@ -44,6 +49,35 @@ OpenAI__TimeoutSeconds=900
 `OpenAI__ApiKey` is required for the AI case creator. Keep real keys in local `.env` files or deployment secrets only.
 Swagger is always available in `Development`; outside Development it is disabled unless `Swagger__Enabled=true` is explicitly configured.
 The case cache is process-local and intended for the current single-instance deployment. Use a distributed cache or coordinated invalidation before scaling the API to multiple instances.
+
+### Playtest telemetry
+
+Playtest telemetry is off by default. It is written only when `GameplayV3__Enabled` **and** `GameplayV3__PlaytestInstrumentationEnabled` are both `true`, and only for cases running the V3 paired-confrontation mechanics; otherwise the no-op sink stays registered and nothing is stored.
+
+- No raw identifiers are persisted. Rooms become `sessionPseudonym` and players become `userHash`, both HMAC-SHA256 values keyed by `Playtest__PseudonymKey`. The user hash is salted with the room, so the same person in two rooms cannot be linked.
+- `Playtest__PseudonymKey` must be at least 32 characters. Outside `Development` the API refuses to start without it; in `Development` a random per-process key is generated and a warning is logged.
+- Documents live in the `playtestEvents` collection and are deleted automatically by a TTL index after `Playtest__RetentionDays` days (default 30). Keep this at or below 90 days.
+- Aggregates are readable by admins at `GET /api/admin/playtest/summary?from=&to=` (UTC ISO, defaults to the last 7 days, maximum 90); the endpoint returns 404 while instrumentation is off. A summary folds at most 200,000 events; past that it answers `isTruncated: true` with `eventCount` so a wide window degrades instead of loading an unbounded result set.
+- `POST /api/game/rooms/{roomId}/playtest-events` is limited to 120 accepted calls per minute per user; the UI emits far fewer, and the cap keeps a looping client from inflating the collection.
+
+### Accusation consensus
+
+The final accusation is the one decision that ends the match, so on V3 cases it takes both detectives. One player writes the whole proposal and the other reviews it as a block:
+
+- `POST /api/game/rooms/{roomId}/accusation` opens a proposal. Writing it counts as its author's confirmation.
+- `PUT /api/game/rooms/{roomId}/accusation/{attemptId}` amends it. The revision increments, every earlier confirmation is voided, and the editor becomes the only confirmer of the new revision.
+- `POST /api/game/rooms/{roomId}/accusation/{attemptId}/confirm` agrees to a revision. Every command carries `expectedRevision`; confirming a revision that has since been edited returns 409 `ACCUSATION_STALE_REVISION` instead of silently agreeing to something else. Confirming twice is a harmless retry.
+- `POST /api/game/rooms/{roomId}/accusation/{attemptId}/cancel` withdraws the proposal and lets either player start a new one.
+
+The case ends the moment both players have confirmed the same revision. That final confirmation and the completed room are written together under the existing `gameplayState.version` check, so two simultaneous confirmations still produce exactly one `gameResults` document; the losing request gets a coded 409.
+
+A proposal is reviewed by both players, but its evidence ids still respect the V3 knowledge boundary. A claim backed by a clue only the proposer discovered reaches the partner with `evidenceId: null` and `isUndisclosed: true`, so the partner sees the full shape of the accusation without being handed an id the paired-confrontation disclosure path never gave them.
+
+`Accusation__RequireConsensus` decides who is subject to this. Leave it unset (the default) to follow the case: V3 cases require consensus and published V1/V2 cases keep the single-player `POST /accuse`. Set it to `true` or `false` to force one behaviour on every mechanics version. Both routes stay reachable from the UI: `POST /accuse` answers 409 `ACCUSATION_CONSENSUS_REQUIRED` while consensus applies, the consensus routes answer 409 `ACCUSATION_CONSENSUS_NOT_REQUIRED` while it does not, and the client follows whichever code it gets. Whether an accusation is *correct*, and how it scores, is unchanged.
+
+```env
+Accusation__RequireConsensus=true
+```
 
 ## Run Locally
 
