@@ -14,6 +14,7 @@ using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
@@ -86,6 +87,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private readonly ICaseService _caseService;
     private readonly ICaseValidationService _validator;
     private readonly ICaseTruthService _truthService;
+    private readonly IGameplayProjectionPlanner _projectionPlanner;
+    private readonly IProjectionContentSchemaFactory _projectionSchemaFactory;
+    private readonly IGameCaseProjectionCompiler _projectionCompiler;
+    private readonly IProjectionGraphValidator _projectionGraphValidator;
     private readonly IAiOpenAiClient _openAiClient;
     private readonly IAiCaseExportService _exportService;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -102,6 +107,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         ICaseService caseService,
         ICaseValidationService validator,
         ICaseTruthService truthService,
+        IGameplayProjectionPlanner projectionPlanner,
+        IProjectionContentSchemaFactory projectionSchemaFactory,
+        IGameCaseProjectionCompiler projectionCompiler,
+        IProjectionGraphValidator projectionGraphValidator,
         IAiOpenAiClient openAiClient,
         IAiCaseExportService exportService,
         IHttpClientFactory httpClientFactory,
@@ -116,6 +125,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         _caseService = caseService;
         _validator = validator;
         _truthService = truthService;
+        _projectionPlanner = projectionPlanner;
+        _projectionSchemaFactory = projectionSchemaFactory;
+        _projectionCompiler = projectionCompiler;
+        _projectionGraphValidator = projectionGraphValidator;
         _openAiClient = openAiClient;
         _exportService = exportService;
         _httpClientFactory = httpClientFactory;
@@ -189,6 +202,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var mechanicsVersion = request.IncludeCrackTheLie
             ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
             : CaseMechanicsVersions.InvestigationV2;
+        var plannedTargetKind = CaseTargetAllocationPolicy.ForCaseType(storyDiversity.CaseType);
 
         var draft = new AiCaseDraft
         {
@@ -207,6 +221,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 CaseType = request.CaseType
             },
             StoryDiversity = storyDiversity,
+            PlannedTargetKind = plannedTargetKind,
             Status = AiDraftStatus.GeneratingStory,
             Provider = ProviderName,
             CreatedByUserId = user.Id,
@@ -310,12 +325,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
 
             var storyFingerprint = AiStoryDiversityPolicy.ComputeFingerprint(preview);
+            var plannedTargetKind = CaseTargetAllocationPolicy.ForCaseType(storyDiversity.CaseType);
 
             var update = Builders<AiCaseDraft>.Update
                 .Set(d => d.Status, AiDraftStatus.StoryAwaitingApproval)
                 .Set(d => d.StoryPreview, preview)
                 .Set(d => d.StoryDiversity, storyDiversity)
                 .Set(d => d.StoryFingerprint, storyFingerprint)
+                .Set(d => d.PlannedTargetKind, plannedTargetKind)
                 .Set(d => d.ValidationErrors, new List<string>())
                 .Set(d => d.UpdatedAt, DateTime.UtcNow);
             await UpdateActiveRunAsync(draft, update);
@@ -586,7 +603,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         if (draft.Status == AiDraftStatus.CaseTruthInvalid)
         {
-            return await RepairTruthAsync(user, draftId, new RepairCaseTruthRequest());
+            throw ApiException.Conflict(
+                "Invalid case truth requires an explicit scoped repair.",
+                "CASE_TRUTH_REPAIR_REQUIRED",
+                "ai.caseTruth.repairRequired");
         }
 
         if (draft.Status == AiDraftStatus.GeneratingFullCase)
@@ -625,6 +645,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         if (draft.Status == AiDraftStatus.GeneratedInvalid
             && draft.FailurePhase is AiFailurePhases.BlueprintJson or AiFailurePhases.FullLogicJson
+                or AiFailurePhases.ProjectionContentJson or AiFailurePhases.ProjectionCompile
+                or AiFailurePhases.ProjectionConformance
                 or AiFailurePhases.PreAssetValidation or AiFailurePhases.V3SemanticReview
                 or AiFailurePhases.BlindSolvabilityReview)
         {
@@ -817,7 +839,11 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.Status, AiDraftStatus.GeneratingFullCase)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
 
-            if (AiV3GenerationProfile.IsV3(draft) && !AiV3GenerationProfile.IsV3Preset(draft.Settings.GenerationPreset))
+            draft = await EnsureProjectionPlanAsync(draft);
+
+            if (draft.ProjectionPlan is null
+                && AiV3GenerationProfile.IsV3(draft)
+                && !AiV3GenerationProfile.IsV3Preset(draft.Settings.GenerationPreset))
             {
                 var prepared = await EnsureReviewedBlueprintAsync(draft);
                 if (prepared is null)
@@ -828,30 +854,32 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             var rawJson = await GenerateJsonWithOpenAiAsync(
                 draft.Id,
                 "GenerateFullCaseJson",
-                BuildFullCasePrompt(draft),
+                BuildFullLogicRequestPrompt(draft),
                 maxOutputTokens: MaxFullCaseOutputTokens(draft),
                 CaseLogicSchemaVersion(draft),
                 CaseLogicSchema(draft),
                 attemptNumber: 1,
-                mockResponseFactory: () => AiCaseMockFactory.BuildMockFullCaseJson(draft),
+                mockResponseFactory: () => BuildFullLogicMockJson(draft),
                 generationRunId: draft.GenerationRunId);
 
             var (gameCase, validation) = await ParseRepairValidateAsync(draft, rawJson);
             if (!validation.IsValid)
             {
                 await RecordValidationAttemptAsync(draft, "GenerateFullCaseJson", 1, rawJson, validation);
-                var feedback = string.Join("\n", validation.Errors.Take(25).Select(e => $"- {e.Code} at {e.Path}: {e.Message}"));
+                var feedback = draft.CaseTruth is not null
+                    ? BuildProjectionRepairFeedback(draft.CaseTruth, gameCase, validation)
+                    : FormatValidation(validation);
                 var retryJson = await GenerateJsonWithOpenAiAsync(
                     draft.Id,
                     "RepairFullCaseJson",
-                    BuildFullCasePrompt(draft,
-                        $"The previous JSON failed deterministic validation:\n{feedback}\nReturn the full corrected object while preserving all valid IDs, culprit, stage order and evidence links.",
+                    BuildFullLogicRequestPrompt(draft,
+                        $"The previous JSON failed deterministic validation:\n{feedback}\nReturn the full corrected object while preserving all unrelated valid IDs, stage order and evidence links.",
                         rawJson),
                     maxOutputTokens: MaxFullCaseOutputTokens(draft),
                     CaseLogicSchemaVersion(draft),
                     CaseLogicSchema(draft),
                     attemptNumber: 2,
-                    mockResponseFactory: () => AiCaseMockFactory.BuildMockFullCaseJson(draft),
+                    mockResponseFactory: () => BuildFullLogicMockJson(draft),
                     generationRunId: draft.GenerationRunId);
                 (gameCase, validation) = await ParseRepairValidateAsync(draft, retryJson);
                 if (!validation.IsValid)
@@ -861,8 +889,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             if (!validation.IsValid)
             {
                 var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
-                await SaveInvalidAttemptAsync(draft, invalidJson, errors, AiFailurePhases.FullLogicJson);
+                var errors = ValidationMessages(validation);
+                await SaveInvalidAttemptAsync(draft, invalidJson, errors, FullLogicFailurePhase(draft, validation));
                 var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
                 return AiDraftResponse.From(failed);
             }
@@ -888,7 +916,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                         var semanticRepairJson = await GenerateJsonWithOpenAiAsync(
                             draft.Id,
                             "RepairV3SemanticLogic",
-                            BuildFullCasePrompt(
+                            BuildFullLogicRequestPrompt(
                                 draft,
                                 AiV3SemanticReviewPolicy.BuildRepairFeedback(gameCase, review),
                                 failedCheckpoint),
@@ -896,7 +924,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                             CaseLogicSchemaVersion(draft),
                             CaseLogicSchema(draft),
                             attemptNumber: semanticRepairAttempt,
-                            mockResponseFactory: () => AiCaseMockFactory.BuildMockFullCaseJson(draft),
+                            mockResponseFactory: () => BuildFullLogicMockJson(draft),
                             generationRunId: draft.GenerationRunId);
                         var (semanticRepairCase, semanticRepairValidation) =
                             await ParseRepairValidateAsync(draft, semanticRepairJson);
@@ -909,10 +937,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                                 semanticRepairJson,
                                 semanticRepairValidation);
                             var invalidJson = JsonSerializer.Serialize(semanticRepairCase, PrettyJson);
-                            var errors = semanticRepairValidation.Errors
-                                .Select(error => $"{error.Code} {error.Path}: {error.Message}")
-                                .ToList();
-                            await SaveInvalidAttemptAsync(draft, invalidJson, errors, AiFailurePhases.FullLogicJson);
+                            var errors = ValidationMessages(semanticRepairValidation);
+                            await SaveInvalidAttemptAsync(draft, invalidJson, errors, FullLogicFailurePhase(draft, semanticRepairValidation));
                             return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
                         }
 
@@ -942,50 +968,27 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                         return AiDraftResponse.From(failed);
                     }
                 }
+
+                if (draft.ProjectionPlan is not null
+                    && review.Status == AiV3SemanticReviewStatuses.Passed)
+                {
+                    var acceptedContent = JsonSerializer.Deserialize<GameplayProjectionContent>(
+                        draft.ProjectionContentJson, PrettyJson)
+                        ?? throw ApiException.Unprocessable("The reviewed V3 projection content is empty.");
+                    var crackContent = BuildAcceptedV3CrackContent(draft.ProjectionPlan, acceptedContent);
+                    draft.V3CrackContentJson = ProjectionCanonicalizer.Canonicalize(crackContent);
+                    draft.V3CrackContentHash = Sha256(draft.V3CrackContentJson);
+                }
             }
 
             if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
             {
                 var blindReview = await ReviewBlindSolvabilityAsync(draft, gameCase);
-                var blindValidation = _truthService.ValidateBlindReview(draft.CaseTruth!, blindReview);
-                if (!blindValidation.IsValid)
-                {
-                    var failedCheckpoint = JsonSerializer.Serialize(gameCase, PrettyJson);
-                    var blindRepairJson = await GenerateJsonWithOpenAiAsync(
-                        draft.Id,
-                        "RepairBlindSolvabilityProjection",
-                        BuildFullCasePrompt(draft,
-                            $"Blind solvability failed. Regenerate only evidence/dialogue/puzzle projection; never change locked truth.\n{FormatValidation(blindValidation)}",
-                            failedCheckpoint),
-                        maxOutputTokens: MaxFullCaseOutputTokens(draft),
-                        CaseLogicSchemaVersion(draft),
-                        CaseLogicSchema(draft),
-                        attemptNumber: await NextGenerationAttemptNumberAsync(draft.Id, CaseLogicSchemaVersion(draft)),
-                        mockResponseFactory: () => AiCaseMockFactory.BuildMockFullCaseJson(draft),
-                        generationRunId: draft.GenerationRunId);
-                    var (blindRepairCase, blindRepairDeterministic) = await ParseRepairValidateAsync(draft, blindRepairJson);
-                    if (blindRepairDeterministic.IsValid)
-                    {
-                        gameCase = blindRepairCase;
-                        blindReview = await ReviewBlindSolvabilityAsync(draft, gameCase);
-                        blindValidation = _truthService.ValidateBlindReview(draft.CaseTruth!, blindReview);
-                    }
-                    else
-                    {
-                        blindValidation.Errors.AddRange(blindRepairDeterministic.Errors);
-                    }
-                }
+                var blindValidation = ValidateGeneratedBlindReview(draft.CaseTruth!, blindReview);
                 draft.BlindSolvabilityReview = blindReview;
                 if (!blindValidation.IsValid)
-                {
-                    var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                    await SaveInvalidAttemptAsync(draft, invalidJson, ValidationMessages(blindValidation), AiFailurePhases.BlindSolvabilityReview);
-                    await _db.AiCaseDrafts.UpdateOneAsync(ActiveRunFilter(draft), Builders<AiCaseDraft>.Update
-                        .Set(item => item.BlindSolvabilityReview, blindReview)
-                        .Set(item => item.UpdatedAt, DateTime.UtcNow));
-                    return AiDraftResponse.From(await _db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync());
-                }
-                gameCase.BlindReviewStatus = CaseTruthReviewStatuses.Passed;
+                    LogAdvisoryBlindReview(draft.Id, blindReview, blindValidation);
+                gameCase.BlindReviewStatus = AdvisoryReviewStatus(blindReview.Status);
             }
 
             var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
@@ -1013,6 +1016,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.V3SemanticReview, draft.V3SemanticReview)
                     .Set(d => d.BlindSolvabilityReview, draft.BlindSolvabilityReview)
                     .Set(d => d.ArtifactProvenance, draft.ArtifactProvenance)
+                    .Set(d => d.ProjectionContentJson, draft.ProjectionContentJson)
+                    .Set(d => d.ProjectionContentHash, draft.ProjectionContentHash)
+                    .Set(d => d.ProjectionBuildMode, draft.ProjectionPlan is null
+                        ? ProjectionBuildModes.LegacyFullJson
+                        : ProjectionBuildModes.AiCompiled)
+                    .Set(d => d.ProjectionCompilerVersion, draft.ProjectionPlan?.CompilerVersion ?? string.Empty)
+                    .Set(d => d.V3CrackContentJson, draft.V3CrackContentJson)
+                    .Set(d => d.V3CrackContentHash, draft.V3CrackContentHash)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow);
             await UpdateActiveRunAsync(draft, successUpdate);
 
@@ -1024,9 +1035,102 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
         catch (ApiException ex)
         {
-            await MarkDraftFailedAsync(draft, ex.Message, AiFailurePhases.FullLogicJson);
+            await MarkDraftFailedAsync(
+                draft,
+                ex.Message,
+                draft.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                    ? AiFailurePhases.FullLogicJson
+                    : draft.ProjectionPlan is null
+                        ? AiFailurePhases.ProjectionConformance
+                        : AiFailurePhases.ProjectionContentJson,
+                validationErrors: ApiExceptionValidationMessages(ex));
             throw;
         }
+    }
+
+    private async Task<AiCaseDraft> EnsureProjectionPlanAsync(AiCaseDraft draft)
+    {
+        if (draft.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+            || draft.CaseTruth is null)
+            return draft;
+
+        // Drafts that already entered the old full-JSON/blueprint pipeline remain resumable there.
+        if (draft.ProjectionPlan is null
+            && (!string.IsNullOrWhiteSpace(draft.GeneratedJson)
+                || !string.IsNullOrWhiteSpace(draft.BlueprintJson)
+                || draft.CaseBlueprint is not null))
+        {
+            draft.ProjectionBuildMode = ProjectionBuildModes.LegacyFullJson;
+            await UpdateActiveRunAsync(
+                draft,
+                Builders<AiCaseDraft>.Update
+                    .Set(item => item.ProjectionBuildMode, ProjectionBuildModes.LegacyFullJson)
+                    .Set(item => item.UpdatedAt, DateTime.UtcNow));
+            return draft;
+        }
+
+        var truthHash = _truthService.ComputeHash(draft.CaseTruth);
+        var settingsHash = ProjectionCanonicalizer.HashObject(draft.Settings);
+        if (draft.ProjectionPlan is not null)
+        {
+            var canonicalHash = ProjectionCanonicalizer.ComputePlanHash(draft.ProjectionPlan);
+            if (!string.Equals(draft.ProjectionPlan.PlanHash, canonicalHash, StringComparison.Ordinal)
+                || !string.Equals(draft.ProjectionPlanHash, canonicalHash, StringComparison.Ordinal)
+                || !string.Equals(draft.ProjectionPlan.TruthHash, truthHash, StringComparison.Ordinal)
+                || !string.Equals(draft.ProjectionPlan.SettingsHash, settingsHash, StringComparison.Ordinal))
+            {
+                throw ApiException.Conflict(
+                    "The persisted projection plan is stale or has been modified.",
+                    "AI_PROJECTION_PLAN_STALE",
+                    "ai.projection.planStale");
+            }
+            return draft;
+        }
+
+        GameplayProjectionPlan plan;
+        try
+        {
+            plan = _projectionPlanner.Build(draft, draft.CaseTruth);
+        }
+        catch (ProjectionPlanningException ex)
+        {
+            throw ApiException.Unprocessable(
+                "Approved truth cannot satisfy the selected gameplay preset.",
+                ex.Errors);
+        }
+
+        var planJson = ProjectionCanonicalizer.Canonicalize(plan);
+        var crackContractHash = AiV3GenerationProfile.IsV3(draft)
+            ? ProjectionCanonicalizer.HashObject(plan.Challenges)
+            : draft.CrackContractHash;
+        var update = Builders<AiCaseDraft>.Update
+            .Set(item => item.ProjectionPlan, plan)
+            .Set(item => item.ProjectionPlanJson, planJson)
+            .Set(item => item.ProjectionPlanSchemaVersion, plan.SchemaVersion)
+            .Set(item => item.ProjectionPlanHash, plan.PlanHash)
+            .Set(item => item.ProjectionCompilerVersion, plan.CompilerVersion)
+            .Set(item => item.ProjectionBuildMode, ProjectionBuildModes.AiCompiled)
+            .Set(item => item.CrackContractHash, crackContractHash)
+            .Set(item => item.UpdatedAt, DateTime.UtcNow);
+        await UpdateActiveRunAsync(draft, update);
+
+        draft.ProjectionPlan = plan;
+        draft.ProjectionPlanJson = planJson;
+        draft.ProjectionPlanSchemaVersion = plan.SchemaVersion;
+        draft.ProjectionPlanHash = plan.PlanHash;
+        draft.ProjectionCompilerVersion = plan.CompilerVersion;
+        draft.ProjectionBuildMode = ProjectionBuildModes.AiCompiled;
+        draft.CrackContractHash = crackContractHash;
+        _logger.LogInformation(
+            "Projection plan ready for draft {DraftId}; hash={PlanHashPrefix}, compiler={CompilerVersion}, scenes={SceneCount}, clues={ClueCount}, dialogues={DialogueCount}, challenges={ChallengeCount}.",
+            draft.Id,
+            plan.PlanHash[..Math.Min(12, plan.PlanHash.Length)],
+            plan.CompilerVersion,
+            plan.Scenes.Count,
+            plan.Clues.Count,
+            plan.Dialogues.Count,
+            plan.Challenges.Count);
+        return draft;
     }
 
     private async Task<AiCaseDraft?> EnsureReviewedBlueprintAsync(AiCaseDraft draft, bool forceRepair = false)
@@ -1084,7 +1188,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var validation = AiCaseBlueprintPolicy.Validate(blueprint, draft.Settings);
         if (!validation.IsValid)
         {
-            var errors = validation.Errors.Select(error => $"{error.Code} {error.Path}: {error.Message}").ToList();
+            var errors = ValidationMessages(validation);
             await SaveBlueprintFailureAsync(draft, rawBlueprint, errors, AiFailurePhases.BlueprintJson, null);
             return null;
         }
@@ -1265,9 +1369,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             fullLogicValidation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
         if (draft.CaseTruth is not null)
             fullLogicValidation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
+        if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
+            fullLogicValidation.Errors.AddRange(_projectionGraphValidator
+                .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+        fullLogicValidation.Deduplicate();
         if (!fullLogicValidation.IsValid)
         {
-            var errors = fullLogicValidation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
+            var errors = ValidationMessages(fullLogicValidation);
             await SaveInvalidAttemptAsync(draft, preAssetJson, errors, AiFailurePhases.PreAssetValidation);
             var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
             return AiDraftResponse.From(failed);
@@ -1278,6 +1386,20 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             await RecordPlannedSceneLayoutCallsAsync(draft.Id, gameCase);
             if (_settings.MockAiResponses && _settings.SkipAssetGeneration)
             {
+                ApplyDeterministicMockSceneLayout(gameCase);
+                preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+                var mockLayoutValidation = _validator.ValidateSceneLayout(gameCase);
+                if (!mockLayoutValidation.IsValid)
+                {
+                    var errors = ValidationMessages(mockLayoutValidation);
+                    await SaveInvalidAttemptAsync(
+                        draft,
+                        preAssetJson,
+                        errors,
+                        AiFailurePhases.SceneLayout);
+                    return AiDraftResponse.From(
+                        await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
+                }
                 if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
                     RecordArtifactProvenance(draft, CaseTruthArtifacts.Layout, preAssetJson);
                 var mockFolder = _exportService.Export(draft, gameCase, preAssetJson, 0);
@@ -1418,13 +1540,15 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             validation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
+        if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
+            validation.Errors.AddRange(_projectionGraphValidator
+                .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+        validation.Deduplicate();
 
         if (!validation.IsValid)
         {
             var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-            var errors = validation.Errors
-                .Select(error => $"{error.Code} {error.Path}: {error.Message}")
-                .ToList();
+            var errors = ValidationMessages(validation);
             await SaveInvalidAttemptAsync(
                 draft,
                 invalidJson,
@@ -1449,10 +1573,21 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
         var hasRepairCheckpoint = !string.IsNullOrWhiteSpace(draft.GeneratedJson)
-                                  || !string.IsNullOrWhiteSpace(draft.BlueprintJson);
+                                  || !string.IsNullOrWhiteSpace(draft.BlueprintJson)
+                                  || (draft.ProjectionPlan is not null
+                                      && !string.IsNullOrWhiteSpace(draft.ProjectionPlanHash));
+        if (draft.Status == AiDraftStatus.GeneratedInvalid
+            && draft.FailurePhase == AiFailurePhases.ProjectionConformance
+            && !hasRepairCheckpoint
+            && draft.CaseTruth is not null)
+        {
+            return await RouteProjectionFailureToTruthRepairAsync(user, draft);
+        }
         if (draft.Status != AiDraftStatus.GeneratedInvalid || !hasRepairCheckpoint)
             throw ApiException.BadRequest("Only a failed draft with a saved JSON checkpoint can be repaired.");
         if (draft.FailurePhase is not (AiFailurePhases.BlueprintJson or AiFailurePhases.FullLogicJson
+            or AiFailurePhases.ProjectionContentJson or AiFailurePhases.ProjectionCompile
+            or AiFailurePhases.ProjectionConformance
             or AiFailurePhases.PreAssetValidation or AiFailurePhases.V3SemanticReview
             or AiFailurePhases.BlindSolvabilityReview))
             throw ApiException.BadRequest("This failure is not a JSON-generation failure. Regenerate the failed assets instead.");
@@ -1464,6 +1599,62 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             AiQueuedOperations.RetryJson,
             "FULL_LOGIC_RETRY");
         return AiDraftResponse.From(queued.Draft);
+    }
+
+    private async Task<AiDraftResponse> RouteProjectionFailureToTruthRepairAsync(
+        CurrentUser user,
+        AiCaseDraft draft)
+    {
+        var validation = ValidateTruthForGameplay(
+            draft,
+            draft.CaseTruth!,
+            TruthBudgetForDraft(draft));
+        if (validation.IsValid)
+        {
+            // The persisted failure may predate a planner fix. Re-run from the approved
+            // truth without pretending that a nonexistent JSON checkpoint can be repaired.
+            var queued = await _workflow.EnqueueAsync(
+                draft,
+                [AiDraftStatus.GeneratedInvalid],
+                AiDraftStatus.GeneratingFullCase,
+                AiQueuedOperations.FullLogic,
+                "FULL_LOGIC_RETRY");
+            return AiDraftResponse.From(queued.Draft);
+        }
+
+        var messages = ValidationMessages(validation);
+        var repairPlan = _truthService.PlanRepair(validation.Errors);
+        var routed = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
+            item => item.Id == draft.Id
+                && item.WorkflowVersion == draft.WorkflowVersion
+                && item.Status == AiDraftStatus.GeneratedInvalid
+                && item.QueueState == AiQueueStates.None,
+            Builders<AiCaseDraft>.Update
+                .Set(item => item.Status, AiDraftStatus.CaseTruthInvalid)
+                .Set(item => item.FailurePhase, AiFailurePhases.CaseTruth)
+                .Set(item => item.TruthValidationReport, messages)
+                .Set(item => item.ValidationErrors, messages)
+                .Set(item => item.TruthRepairRecommendedArtifact, repairPlan.RegenerateFromArtifact)
+                .Set(item => item.TruthRepairFromArtifact, string.Empty)
+                .Set(item => item.TruthRepairReasonCodes, repairPlan.ReasonCodes)
+                .Set(item => item.ProjectionPlan, null)
+                .Set(item => item.ProjectionPlanJson, string.Empty)
+                .Set(item => item.ProjectionPlanSchemaVersion, string.Empty)
+                .Set(item => item.ProjectionPlanHash, string.Empty)
+                .Set(item => item.ProjectionContentJson, string.Empty)
+                .Set(item => item.ProjectionContentHash, string.Empty)
+                .Set(item => item.ProjectionCompilerVersion, string.Empty)
+                .Set(item => item.ProjectionBuildMode, string.Empty)
+                .Inc(item => item.WorkflowVersion, 1)
+                .Set(item => item.UpdatedAt, DateTime.UtcNow),
+            new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After });
+        if (routed is null)
+            throw ApiException.Conflict(
+                "The draft changed before projection recovery could start.",
+                "AI_WORKFLOW_CONFLICT",
+                "ai.workflow.conflict");
+
+        return await RepairTruthAsync(user, routed.Id, new RepairCaseTruthRequest());
     }
 
     private async Task<AiDraftResponse> RetryJsonCoreAsync(AiCaseDraft draft)
@@ -1486,7 +1677,45 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         if (deterministicRepair is not null)
             return deterministicRepair;
 
+        var checkpointJson = draft.ProjectionPlan is not null
+                             && !string.IsNullOrWhiteSpace(draft.ProjectionContentJson)
+            ? draft.ProjectionContentJson
+            : draft.GeneratedJson;
         var feedback = string.Join("\n", draft.ValidationErrors.Take(25).Select(error => $"- {error}"));
+        if (draft.ProjectionPlan is null
+            && draft.CaseTruth is not null
+            && !string.IsNullOrWhiteSpace(checkpointJson))
+        {
+            try
+            {
+                var failedCase = JsonSerializer.Deserialize<GameCase>(
+                    StripMarkdownFences(checkpointJson),
+                    PrettyJson);
+                if (failedCase is not null)
+                {
+                    NormalizeGeneratedCausalProjection(draft, failedCase);
+                    checkpointJson = JsonSerializer.Serialize(failedCase, PrettyJson);
+                    var projectionValidation = _truthService.ValidateProjection(draft.CaseTruth, failedCase);
+                    projectionValidation.Deduplicate();
+                    feedback = BuildProjectionRepairFeedback(
+                        draft.CaseTruth,
+                        failedCase,
+                        projectionValidation);
+                    var otherErrors = draft.ValidationErrors
+                        .Where(error => !projectionValidation.Errors.Any(item =>
+                            error.StartsWith($"{item.Code} {item.Path}", StringComparison.Ordinal)))
+                        .Take(20)
+                        .ToList();
+                    if (otherErrors.Count > 0)
+                        feedback += "\nOther deterministic errors:\n"
+                            + string.Join("\n", otherErrors.Select(error => $"- {error}"));
+                }
+            }
+            catch (JsonException)
+            {
+                // Keep the persisted text feedback; ParseRepairValidateAsync will report corrupt JSON precisely.
+            }
+        }
         var repairInstructions = $"Repair the saved checkpoint using these validation errors:\n{feedback}\nPreserve all unrelated valid IDs, culprit, stage order and evidence links.";
         if (draft.FailurePhase == AiFailurePhases.V3SemanticReview)
         {
@@ -1508,14 +1737,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var repairedJson = await GenerateJsonWithOpenAiAsync(
             draft.Id,
             "RetryFullCaseJson",
-            BuildFullCasePrompt(draft,
+            BuildFullLogicRequestPrompt(draft,
                 repairInstructions,
-                draft.GeneratedJson),
+                checkpointJson),
             MaxFullCaseOutputTokens(draft),
             schemaVersion,
             CaseLogicSchema(draft),
             attemptNumber,
-            mockResponseFactory: () => AiCaseMockFactory.BuildMockFullCaseJson(draft),
+            mockResponseFactory: () => BuildFullLogicMockJson(draft),
             generationRunId: draft.GenerationRunId);
 
         var (gameCase, validation) = await ParseRepairValidateAsync(draft, repairedJson);
@@ -1523,8 +1752,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         {
             await RecordValidationAttemptAsync(draft, "RetryFullCaseJson", attemptNumber, repairedJson, validation);
             var invalidJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-            var errors = validation.Errors.Select(error => $"{error.Code} {error.Path}: {error.Message}").ToList();
-            await SaveInvalidAttemptAsync(draft, invalidJson, errors, AiFailurePhases.FullLogicJson);
+            var errors = ValidationMessages(validation);
+            await SaveInvalidAttemptAsync(draft, invalidJson, errors, FullLogicFailurePhase(draft, validation));
             return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
         }
 
@@ -1543,20 +1772,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 await SaveV3SemanticReviewAsync(draft, review);
                 return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
             }
+            if (draft.ProjectionPlan is not null)
+            {
+                var acceptedContent = JsonSerializer.Deserialize<GameplayProjectionContent>(
+                    draft.ProjectionContentJson, PrettyJson)
+                    ?? throw ApiException.Unprocessable("The reviewed V3 projection content is empty.");
+                var crackContent = BuildAcceptedV3CrackContent(draft.ProjectionPlan, acceptedContent);
+                draft.V3CrackContentJson = ProjectionCanonicalizer.Canonicalize(crackContent);
+                draft.V3CrackContentHash = Sha256(draft.V3CrackContentJson);
+            }
         }
 
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
         {
             var blindReview = await ReviewBlindSolvabilityAsync(draft, gameCase);
-            var blindValidation = _truthService.ValidateBlindReview(draft.CaseTruth!, blindReview);
+            var blindValidation = ValidateGeneratedBlindReview(draft.CaseTruth!, blindReview);
             draft.BlindSolvabilityReview = blindReview;
             if (!blindValidation.IsValid)
-            {
-                var reviewedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                await SaveInvalidAttemptAsync(draft, reviewedJson, ValidationMessages(blindValidation), AiFailurePhases.BlindSolvabilityReview);
-                return AiDraftResponse.From(await _db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync());
-            }
-            gameCase.BlindReviewStatus = CaseTruthReviewStatuses.Passed;
+                LogAdvisoryBlindReview(draft.Id, blindReview, blindValidation);
+            gameCase.BlindReviewStatus = AdvisoryReviewStatus(blindReview.Status);
         }
 
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
@@ -1572,6 +1806,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 .Set(d => d.FailedAssetIds, new List<string>())
                 .Set(d => d.BlindSolvabilityReview, draft.BlindSolvabilityReview)
                 .Set(d => d.V3SemanticReview, draft.V3SemanticReview)
+                .Set(d => d.ProjectionContentJson, draft.ProjectionContentJson)
+                .Set(d => d.ProjectionContentHash, draft.ProjectionContentHash)
+                .Set(d => d.ProjectionBuildMode, draft.ProjectionPlan is null
+                    ? ProjectionBuildModes.LegacyFullJson
+                    : ProjectionBuildModes.AiCompiled)
+                .Set(d => d.ProjectionCompilerVersion, draft.ProjectionPlan?.CompilerVersion ?? string.Empty)
+                .Set(d => d.V3CrackContentJson, draft.V3CrackContentJson)
+                .Set(d => d.V3CrackContentHash, draft.V3CrackContentHash)
                 .Set(d => d.UpdatedAt, DateTime.UtcNow));
         return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
     }
@@ -1605,15 +1847,20 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         validation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
+        if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
+            validation.Errors.AddRange(_projectionGraphValidator
+                .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+        validation.Deduplicate();
         if (!validation.IsValid) return null;
 
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
         {
             var blindReview = await ReviewBlindSolvabilityAsync(draft, gameCase);
-            var blindValidation = _truthService.ValidateBlindReview(draft.CaseTruth!, blindReview);
-            if (!blindValidation.IsValid) return null;
+            var blindValidation = ValidateGeneratedBlindReview(draft.CaseTruth!, blindReview);
             draft.BlindSolvabilityReview = blindReview;
-            gameCase.BlindReviewStatus = CaseTruthReviewStatuses.Passed;
+            if (!blindValidation.IsValid)
+                LogAdvisoryBlindReview(draft.Id, blindReview, blindValidation);
+            gameCase.BlindReviewStatus = AdvisoryReviewStatus(blindReview.Status);
         }
 
         gameCase.AiSemanticReviewStatus = AiV3SemanticReviewStatuses.Passed;
@@ -1661,6 +1908,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         ApplyTruthServerOwnedFields(draft, gameCase);
         if (draft.CaseBlueprint is not null)
             AiCaseBlueprintPolicy.ApplyLockedCrackContract(draft.CaseBlueprint, gameCase);
+        gameCase.ProjectionSchemaVersion = string.Empty;
+        gameCase.ProjectionPlanHash = string.Empty;
+        gameCase.ProjectionCompilerVersion = string.Empty;
+        gameCase.ProjectionBuildMode = ProjectionBuildModes.ManualFullJson;
         gameCase.Language = CaseLanguages.Normalize(gameCase.Language);
         gameCase.ArtStyle = AiVisualStyleDefaults.ArtStyle;
         gameCase.SubStyle = AiVisualStyleDefaults.SubStyle;
@@ -1674,6 +1925,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             validation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
+        validation.Deduplicate();
         if (!validation.IsValid)
         {
             throw ApiException.BadRequest(string.Join("\n", validation.Errors.Take(20)
@@ -1700,14 +1952,28 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
         {
             var blindReview = await ReviewBlindSolvabilityAsync(draft, gameCase);
-            var blindValidation = _truthService.ValidateBlindReview(draft.CaseTruth!, blindReview);
-            if (!blindValidation.IsValid)
-                throw ApiException.Unprocessable("Replacement projection failed blind solvability review.", blindValidation.Errors);
+            var blindValidation = ValidateGeneratedBlindReview(draft.CaseTruth!, blindReview);
             draft.BlindSolvabilityReview = blindReview;
-            gameCase.BlindReviewStatus = CaseTruthReviewStatuses.Passed;
+            if (!blindValidation.IsValid)
+                LogAdvisoryBlindReview(draft.Id, blindReview, blindValidation);
+            gameCase.BlindReviewStatus = AdvisoryReviewStatus(blindReview.Status);
         }
 
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        foreach (var artifact in draft.ArtifactProvenance
+                     .Where(item => item.Artifact == CaseTruthArtifacts.Projection))
+            artifact.IsStale = true;
+        if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        {
+            draft.ArtifactProvenance.Add(new AiArtifactProvenance
+            {
+                Artifact = CaseTruthArtifacts.Projection,
+                InputHash = draft.TruthHash,
+                OutputHash = Sha256(normalizedJson),
+                IsStale = false,
+                GeneratedAt = DateTime.UtcNow
+            });
+        }
         var updateParts = new List<UpdateDefinition<AiCaseDraft>>
         {
             Builders<AiCaseDraft>.Update.Set(d => d.Status, AiDraftStatus.FullLogicAwaitingApproval),
@@ -1726,6 +1992,19 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             Builders<AiCaseDraft>.Update.Set(d => d.RepairStatus, string.Empty),
             Builders<AiCaseDraft>.Update.Set(d => d.V3SemanticReview, draft.V3SemanticReview),
             Builders<AiCaseDraft>.Update.Set(d => d.BlindSolvabilityReview, draft.BlindSolvabilityReview),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionPlan, null),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionPlanJson, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionPlanSchemaVersion, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionPlanHash, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionContentJson, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionContentHash, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionCompilerVersion, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.ProjectionBuildMode, ProjectionBuildModes.ManualFullJson),
+            Builders<AiCaseDraft>.Update.Set(d => d.V3CrackContentJson, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.V3CrackContentHash, string.Empty),
+            Builders<AiCaseDraft>.Update.Set(d => d.CrackContractHash,
+                draft.CaseBlueprint is null ? string.Empty : draft.CrackContractHash),
+            Builders<AiCaseDraft>.Update.Set(d => d.ArtifactProvenance, draft.ArtifactProvenance),
             Builders<AiCaseDraft>.Update.Set(d => d.Settings.Language, gameCase.Language),
             Builders<AiCaseDraft>.Update.Set(d => d.UpdatedAt, DateTime.UtcNow)
         };
@@ -1796,10 +2075,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var validation = _validator.Validate(gameCase);
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
+        if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
+            validation.Errors.AddRange(_projectionGraphValidator
+                .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+        validation.Deduplicate();
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
         {
-            var errors = validation.Errors.Select(e => $"{e.Code} {e.Path}: {e.Message}").ToList();
+            var errors = ValidationMessages(validation);
             await SaveInvalidAttemptAsync(draft, normalizedJson, errors, AiFailurePhases.FinalAssets);
             throw ApiException.BadRequest("Final asset generation produced an invalid case runtime.");
         }
@@ -1873,12 +2156,21 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             throw ApiException.BadRequest("AI draft cannot be published directly. Approve full logic and scene layout first.");
         }
         RequireApprovedTruth(draft);
-        if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
-            && draft.BlindSolvabilityReview.Status != CaseTruthReviewStatuses.Passed)
-            throw ApiException.Conflict(
-                "The gameplay projection has not passed blind solvability review.",
-                "BLIND_SOLVABILITY_REVIEW_REQUIRED",
-                "ai.caseTruth.blindReviewRequired");
+        if (draft.ProjectionPlan is not null)
+        {
+            var currentTruthHash = _truthService.ComputeHash(draft.CaseTruth!);
+            var currentSettingsHash = ProjectionCanonicalizer.HashObject(draft.Settings);
+            var currentPlanHash = ProjectionCanonicalizer.ComputePlanHash(draft.ProjectionPlan);
+            if (draft.ProjectionPlan.SchemaVersion != GameplayProjectionVersions.Plan
+                || draft.ProjectionPlan.TruthHash != currentTruthHash
+                || draft.ProjectionPlan.SettingsHash != currentSettingsHash
+                || draft.ProjectionPlan.PlanHash != currentPlanHash
+                || draft.ProjectionPlanHash != currentPlanHash)
+                throw ApiException.Conflict(
+                    "The projection plan is stale and cannot be imported or published.",
+                    "AI_PROJECTION_PLAN_STALE",
+                    "ai.projection.planStale");
+        }
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
         {
             var requiredArtifacts = new[]
@@ -1898,6 +2190,30 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
 
         var isV3 = AiV3GenerationProfile.IsV3(draft);
+        V3CrackContent? acceptedCrackContent = null;
+        if (isV3 && draft.ProjectionPlan is not null)
+        {
+            try
+            {
+                acceptedCrackContent = JsonSerializer.Deserialize<V3CrackContent>(
+                    draft.V3CrackContentJson, PrettyJson);
+            }
+            catch (JsonException)
+            {
+                // Report the artifact-level gate below without exposing spoiler content.
+            }
+            var crackErrors = acceptedCrackContent is null
+                ? new List<string> { "Accepted V3 Crack content is missing or invalid." }
+                : ValidateAcceptedV3CrackContent(draft.ProjectionPlan, acceptedCrackContent);
+            if (string.IsNullOrWhiteSpace(draft.V3CrackContentJson)
+                || draft.V3CrackContentHash != Sha256(draft.V3CrackContentJson)
+                || draft.CrackContractHash != ProjectionCanonicalizer.HashObject(draft.ProjectionPlan.Challenges)
+                || crackErrors.Count > 0)
+                throw ApiException.Conflict(
+                    "The reviewed V3 Crack artifact is stale and cannot be imported or published.",
+                    "AI_V3_CRACK_ARTIFACT_STALE",
+                    "ai.v3Preset.crackArtifactStale");
+        }
         if (isV3 && draft.V3SemanticReview.Status != AiV3SemanticReviewStatuses.Passed)
             throw ApiException.Conflict(
                 "The V3 pair matrix has not passed semantic review.",
@@ -1938,9 +2254,24 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             var gameCase = _caseService.ParseCase(draft.GeneratedJson);
             AiV3GenerationProfile.ApplyServerOwnedFields(draft, gameCase, includeReviewStatus: true);
             ApplyTruthServerOwnedFields(draft, gameCase, includeBlindStatus: true);
+            if (acceptedCrackContent is not null)
+            {
+                var crackErrors = ValidateAcceptedV3CrackContent(
+                    draft.ProjectionPlan!,
+                    acceptedCrackContent,
+                    gameCase);
+                if (crackErrors.Count > 0)
+                    throw ApiException.Unprocessable(
+                        "Compiled case no longer matches the reviewed V3 Crack content.",
+                        crackErrors);
+            }
             if (draft.CaseTruth is not null)
             {
                 var conformance = _truthService.ValidateProjection(draft.CaseTruth, gameCase);
+                if (draft.ProjectionPlan is not null)
+                    conformance.Errors.AddRange(_projectionGraphValidator
+                        .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+                conformance.Deduplicate();
                 if (!conformance.IsValid)
                     throw ApiException.Unprocessable("Gameplay projection no longer conforms to the approved truth.", conformance.Errors);
             }
@@ -2010,18 +2341,183 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? 28000
             : 18000;
 
-    private static string CaseLogicSchemaVersion(AiCaseDraft draft) =>
-        AiV3GenerationProfile.IsV3(draft)
+    private string CaseLogicSchemaVersion(AiCaseDraft draft) =>
+        draft.ProjectionPlan is not null
+            ? GameplayProjectionVersions.Content
+            : AiV3GenerationProfile.IsV3(draft)
             ? AiGenerationSchemaVersions.CaseLogicV3Crack
             : AiGenerationSchemaVersions.CaseLogic;
 
     private static string CaseLogicPromptVersion(AiCaseDraft draft) =>
-        AiV3GenerationProfile.IsV3(draft)
+        draft.ProjectionPlan is not null
+            ? GameplayProjectionVersions.Prompt
+            : AiV3GenerationProfile.IsV3(draft)
             ? AiGenerationSchemaVersions.PromptV3Crack
             : AiGenerationSchemaVersions.Prompt;
 
-    private static JsonObject CaseLogicSchema(AiCaseDraft draft) =>
-        AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion);
+    private JsonObject CaseLogicSchema(AiCaseDraft draft) =>
+        draft.ProjectionPlan is not null
+            ? _projectionSchemaFactory.Build(draft.ProjectionPlan)
+            : draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+              && draft.CaseTruth is not null
+            ? AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion, draft.CaseTruth)
+            : AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion);
+
+    private string BuildFullLogicRequestPrompt(
+        AiCaseDraft draft,
+        string? correction = null,
+        string? previousJson = null)
+    {
+        if (draft.ProjectionPlan is null)
+            return BuildFullCasePrompt(draft, correction, previousJson);
+
+        var prompt = new StringBuilder()
+            .AppendLine("Fill the supplied projection slots.")
+            .AppendLine("Do not create, remove, rename, reorder, or remap IDs.")
+            .AppendLine("Write only player-facing presentation content.")
+            .AppendLine("Every locked field must be copied exactly.")
+            .AppendLine($"Language: {CaseLanguages.Normalize(draft.Settings.Language)}.")
+            .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
+            .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
+            .AppendLine("Projection plan:")
+            .AppendLine(draft.ProjectionPlanJson);
+        if (AiV3GenerationProfile.IsV3(draft))
+            prompt.AppendLine("For each Crack dialogue, write 45-100 words; every 5-25 word testimony fragment must be a distinct exact substring of that dialogue answer.");
+        if (!string.IsNullOrWhiteSpace(correction))
+            prompt.AppendLine("Correction request:").AppendLine(correction);
+        if (!string.IsNullOrWhiteSpace(previousJson))
+            prompt.AppendLine("Previous projection content:").AppendLine(previousJson);
+        return prompt.ToString();
+    }
+
+    private string BuildFullLogicMockJson(AiCaseDraft draft) =>
+        draft.ProjectionPlan is null
+            ? AiCaseMockFactory.BuildMockFullCaseJson(draft)
+            : JsonSerializer.Serialize(ProjectionContentMockFactory.Build(draft.ProjectionPlan), PrettyJson);
+
+    private static V3CrackContent BuildAcceptedV3CrackContent(
+        GameplayProjectionPlan plan,
+        GameplayProjectionContent content)
+    {
+        var crackClueIds = plan.Challenges.Values.SelectMany(item => item.CandidateEvidenceIds)
+            .Concat(plan.Skeleton.EvidenceChallenges.SelectMany(item => item.UnlockClueIds))
+            .ToHashSet(StringComparer.Ordinal);
+        return new V3CrackContent
+        {
+            PlanHash = plan.PlanHash,
+            Clues = content.Clues
+                .Where(item => crackClueIds.Contains(item.Key))
+                .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal),
+            Dialogues = content.Dialogues,
+            TestimonyFragments = content.TestimonyFragments,
+            EvidenceChallenges = content.EvidenceChallenges,
+            ConversationNodes = content.ConversationNodes
+        };
+    }
+
+    private static List<string> ValidateAcceptedV3CrackContent(
+        GameplayProjectionPlan plan,
+        V3CrackContent content,
+        GameCase? gameCase = null)
+    {
+        var errors = new List<string>();
+        var expectedClueIds = plan.Challenges.Values.SelectMany(item => item.CandidateEvidenceIds)
+            .Concat(plan.Skeleton.EvidenceChallenges.SelectMany(item => item.UnlockClueIds))
+            .ToHashSet(StringComparer.Ordinal);
+        static void Exact(
+            ICollection<string> target,
+            string path,
+            IEnumerable<string> expected,
+            IEnumerable<string> actual)
+        {
+            var expectedSet = expected.ToHashSet(StringComparer.Ordinal);
+            var actualSet = actual.ToHashSet(StringComparer.Ordinal);
+            if (!expectedSet.SetEquals(actualSet))
+                target.Add($"{path} slot set differs from the reviewed Crack contract.");
+        }
+
+        if (content.SchemaVersion != GameplayProjectionVersions.V3CrackContent
+            || content.PlanHash != plan.PlanHash)
+            errors.Add("V3 Crack content metadata does not match the active projection plan.");
+        Exact(errors, "clues", expectedClueIds, content.Clues.Keys);
+        Exact(errors, "dialogues", plan.Dialogues.Keys, content.Dialogues.Keys);
+        Exact(errors, "testimonyFragments", plan.TestimonyFragments.Keys, content.TestimonyFragments.Keys);
+        Exact(errors, "evidenceChallenges", plan.Challenges.Keys, content.EvidenceChallenges.Keys);
+        Exact(errors, "conversationNodes", plan.ConversationNodes.Keys, content.ConversationNodes.Keys);
+
+        foreach (var (id, clue) in content.Clues)
+        {
+            if (!plan.Clues.TryGetValue(id, out var slot)
+                || clue.ClueId != id || clue.TraceId != slot.TraceId
+                || clue.SceneId != slot.SceneId || clue.SourceActionId != slot.SourceActionId
+                || !clue.SupportsConclusionIds.SequenceEqual(slot.SupportsConclusionIds, StringComparer.Ordinal))
+                errors.Add($"Reviewed Crack clue '{id}' changed locked provenance.");
+            var compiled = gameCase?.Clues.FirstOrDefault(item => item.ClueId == id);
+            if (compiled is not null
+                && (compiled.Title != clue.Title || compiled.Content != clue.Content
+                    || compiled.VisualDescription != clue.VisualDescription
+                    || compiled.InventoryDescription != clue.InventoryDescription
+                    || compiled.NarrativeMeaning != clue.NarrativeMeaning))
+                errors.Add($"Compiled Crack clue '{id}' differs from reviewed content.");
+        }
+        foreach (var (id, dialogue) in content.Dialogues)
+        {
+            if (!plan.Dialogues.TryGetValue(id, out var slot)
+                || dialogue.DialogueId != id || dialogue.CharacterId != slot.CharacterId
+                || !dialogue.StatementIds.SequenceEqual(slot.StatementIds, StringComparer.Ordinal))
+                errors.Add($"Reviewed Crack dialogue '{id}' changed locked provenance.");
+            var compiled = gameCase?.Dialogues.FirstOrDefault(item => item.DialogueId == id);
+            if (compiled is not null
+                && (compiled.Question != dialogue.Question || compiled.Answer != dialogue.Answer))
+                errors.Add($"Compiled Crack dialogue '{id}' differs from reviewed content.");
+        }
+        foreach (var (id, fragment) in content.TestimonyFragments)
+        {
+            if (fragment.FragmentId != id)
+                errors.Add($"Reviewed testimony fragment '{id}' changed identity.");
+            var compiled = gameCase?.TestimonyFragments.FirstOrDefault(item => item.Id == id);
+            if (compiled is not null && compiled.Text != fragment.Text)
+                errors.Add($"Compiled testimony fragment '{id}' differs from reviewed content.");
+        }
+        foreach (var (id, challenge) in content.EvidenceChallenges)
+        {
+            if (challenge.ChallengeId != id)
+                errors.Add($"Reviewed evidence challenge '{id}' changed identity.");
+            var compiled = gameCase?.EvidenceChallenges.FirstOrDefault(item => item.ChallengeId == id);
+            if (compiled is not null
+                && (compiled.Prompt != challenge.Prompt
+                    || compiled.SuccessResponse != challenge.SuccessResponse
+                    || compiled.FailureResponse != challenge.FailureResponse
+                    || compiled.RevealTitle != challenge.RevealTitle))
+                errors.Add($"Compiled evidence challenge '{id}' differs from reviewed content.");
+        }
+        foreach (var (id, node) in content.ConversationNodes)
+        {
+            if (node.NodeId != id)
+                errors.Add($"Reviewed conversation node '{id}' changed identity.");
+            var compiled = gameCase?.ConversationNodes.FirstOrDefault(item => item.NodeId == id);
+            if (compiled is not null
+                && (!compiled.Lines.Select(item => item.Text).SequenceEqual(node.Lines, StringComparer.Ordinal)
+                    || compiled.Choices.Any(choice =>
+                        !node.ChoiceLabels.TryGetValue(choice.ChoiceId, out var label)
+                        || choice.Label != label)))
+                errors.Add($"Compiled conversation node '{id}' differs from reviewed content.");
+        }
+        return errors;
+    }
+
+    private static string FullLogicFailurePhase(
+        AiCaseDraft draft,
+        CaseValidationResult validation)
+    {
+        if (draft.ProjectionPlan is null) return AiFailurePhases.FullLogicJson;
+        return validation.Errors.Any(error =>
+                error.Code is "PROJECTION_CONTENT_MISMATCH"
+                    or "ProjectionSlotMismatch"
+                    or "ProjectionCompileMetadataMismatch")
+            ? AiFailurePhases.ProjectionCompile
+            : AiFailurePhases.ProjectionConformance;
+    }
 
     private async Task<AiV3SemanticReview> ReviewV3LogicAsync(
         AiCaseDraft draft,
@@ -2157,19 +2653,69 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         rawJson = StripMarkdownFences(rawJson);
 
         GameCase gameCase;
+        var compiledProjection = draft.ProjectionPlan is not null;
         try
         {
-            var generated = JsonSerializer.Deserialize<GeneratedCaseLogic>(rawJson, PrettyJson)
-                ?? throw ApiException.Unprocessable("The generated case logic was empty.");
-            gameCase = generated.ToGameCase(draft.Settings);
+            if (compiledProjection)
+            {
+                var duplicatePaths = ProjectionCanonicalizer.FindDuplicatePropertyPaths(rawJson);
+                if (duplicatePaths.Count > 0)
+                    throw new ProjectionCompilationException(duplicatePaths
+                        .Select(path => $"PROJECTION_DUPLICATE_PROPERTY {path}.").ToList());
+                var content = JsonSerializer.Deserialize<GameplayProjectionContent>(rawJson, PrettyJson)
+                    ?? throw ApiException.Unprocessable("The generated projection content was empty.");
+                if (AiV3GenerationProfile.IsV3(draft)
+                    && draft.V3SemanticReview.Status == AiV3SemanticReviewStatuses.Passed
+                    && !string.IsNullOrWhiteSpace(draft.V3CrackContentJson))
+                {
+                    var acceptedCrack = JsonSerializer.Deserialize<V3CrackContent>(
+                        draft.V3CrackContentJson, PrettyJson)
+                        ?? throw ApiException.Unprocessable("The accepted V3 Crack content is empty.");
+                    if (acceptedCrack.SchemaVersion != GameplayProjectionVersions.V3CrackContent
+                        || acceptedCrack.PlanHash != draft.ProjectionPlan!.PlanHash)
+                        throw ApiException.Unprocessable("The accepted V3 Crack content does not match the active projection plan.");
+                    foreach (var (id, clue) in acceptedCrack.Clues)
+                        content.Clues[id] = clue;
+                    content.Dialogues = acceptedCrack.Dialogues;
+                    content.TestimonyFragments = acceptedCrack.TestimonyFragments;
+                    content.EvidenceChallenges = acceptedCrack.EvidenceChallenges;
+                    content.ConversationNodes = acceptedCrack.ConversationNodes;
+                }
+                // Runs after the Crack merge so reviewed content saved before the locked slots left
+                // the strict schema is completed the same way as a fresh generation.
+                ProjectionContentLocks.Apply(draft.ProjectionPlan!, content);
+                draft.ProjectionContentJson = ProjectionCanonicalizer.Canonicalize(content);
+                draft.ProjectionContentHash = Sha256(draft.ProjectionContentJson);
+                gameCase = _projectionCompiler.Compile(draft.ProjectionPlan!, content, draft.Settings);
+            }
+            else
+            {
+                var generated = JsonSerializer.Deserialize<GeneratedCaseLogic>(rawJson, PrettyJson)
+                    ?? throw ApiException.Unprocessable("The generated case logic was empty.");
+                gameCase = generated.ToGameCase(draft.Settings);
+                if (string.IsNullOrWhiteSpace(gameCase.ProjectionBuildMode))
+                    gameCase.ProjectionBuildMode = ProjectionBuildModes.LegacyFullJson;
+            }
             AiV3GenerationProfile.ApplyServerOwnedFields(draft, gameCase, resetGeneratedAssets: true);
             ApplyTruthServerOwnedFields(draft, gameCase);
-            if (draft.CaseBlueprint is not null)
+            if (!compiledProjection && draft.CaseBlueprint is not null)
                 AiCaseBlueprintPolicy.ApplyLockedCrackContract(draft.CaseBlueprint, gameCase);
+        }
+        catch (ProjectionCompilationException ex)
+        {
+            gameCase = draft.ProjectionPlan!.Skeleton;
+            var failed = new CaseValidationResult();
+            foreach (var error in ex.Errors)
+                failed.Add("PROJECTION_CONTENT_MISMATCH", "$.projectionContent", error);
+            return (gameCase, failed);
         }
         catch (Exception ex) when (ex is JsonException or ApiException)
         {
-            await SaveInvalidAttemptAsync(draft, rawJson, new List<string> { ex.Message });
+            await SaveInvalidAttemptAsync(
+                draft,
+                rawJson,
+                new List<string> { ex.Message },
+                compiledProjection ? AiFailurePhases.ProjectionContentJson : AiFailurePhases.FullLogicJson);
             throw ApiException.Unprocessable("The generated case JSON could not be parsed.", new { draftId = draft.Id });
         }
 
@@ -2180,10 +2726,17 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         NormalizeVisualMetadata(gameCase);
         var fixes = new List<string>();
-        if (AiV3GenerationProfile.IsV3(draft))
+        if (!compiledProjection && AiV3GenerationProfile.IsV3(draft))
             AiV3GenerationProfile.NormalizePresentation(gameCase);
-        if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        if (compiledProjection)
+        {
+            // Structural fields are already canonical and are never normalized on the compiled path.
+        }
+        else if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        {
+            NormalizeGeneratedCausalProjection(draft, gameCase);
             fixes = CaseAutoRepair.RepairMechanicalMetadata(gameCase);
+        }
         else if (!AiV3GenerationProfile.IsV3(draft))
             fixes = CaseAutoRepair.Repair(gameCase);
         await LogCaseAutoRepairAsync(draft, fixes);
@@ -2195,6 +2748,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             validation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim && draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
+        if (compiledProjection && draft.CaseTruth is not null)
+            validation.Errors.AddRange(_projectionGraphValidator
+                .Validate(draft.CaseTruth, draft.ProjectionPlan!, gameCase).Errors);
+        validation.Deduplicate();
         return (gameCase, validation);
     }
 
@@ -2202,7 +2759,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     {
         AiV3GenerationProfile.ApplyServerOwnedFields(draft, gameCase, includeReviewStatus: true);
         ApplyTruthServerOwnedFields(draft, gameCase, includeBlindStatus: true);
-        if (draft.CaseBlueprint is not null)
+        if (draft.ProjectionPlan is null
+            && draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+            NormalizeGeneratedCausalProjection(draft, gameCase);
+        if (draft.ProjectionPlan is null && draft.CaseBlueprint is not null)
             AiCaseBlueprintPolicy.ApplyLockedCrackContract(draft.CaseBlueprint, gameCase);
         gameCase.Language = CaseLanguages.Normalize(draft.Settings.Language ?? gameCase.Language);
         gameCase.ArtStyle = AiVisualStyleDefaults.ArtStyle;
@@ -2216,13 +2776,29 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         NormalizeVisualMetadata(gameCase);
 
         var fixes = new List<string>();
-        if (AiV3GenerationProfile.IsV3(draft))
+        if (draft.ProjectionPlan is null && AiV3GenerationProfile.IsV3(draft))
             AiV3GenerationProfile.NormalizePresentation(gameCase);
-        if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        if (draft.ProjectionPlan is not null)
+        {
+            // Compiled projection structure is immutable across later workflow phases.
+        }
+        else if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
             fixes = CaseAutoRepair.RepairMechanicalMetadata(gameCase);
         else if (!AiV3GenerationProfile.IsV3(draft))
             fixes = CaseAutoRepair.Repair(gameCase);
         await LogCaseAutoRepairAsync(draft, fixes);
+    }
+
+    private void NormalizeGeneratedCausalProjection(AiCaseDraft draft, GameCase gameCase)
+    {
+        if (draft.CaseTruth is null) return;
+        var corrections = CausalProjectionNormalizer.NormalizeGenerated(draft.CaseTruth, gameCase);
+        if (corrections.Count == 0) return;
+        _logger.LogInformation(
+            "CausalProjectionNormalized DraftId={DraftId} CorrectionCodes={CorrectionCodes} CorrectionCount={CorrectionCount}",
+            draft.Id,
+            corrections.Select(correction => correction.Code).Distinct(StringComparer.Ordinal).ToArray(),
+            corrections.Count);
     }
 
     private static void NormalizeVisualMetadata(GameCase gameCase)
@@ -2296,8 +2872,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var containsSpoilers = !step.Contains("StoryPreview", StringComparison.OrdinalIgnoreCase);
         var loggedPrompt = containsSpoilers ? $"[REDACTED SPOILER PROMPT: {step}]" : prompt;
         await HeartbeatGenerationAsync(draftId, generationRunId);
-        var promptVersion = schemaVersion == AiGenerationSchemaVersions.CaseLogicV3Crack
-            || schemaVersion == AiGenerationSchemaVersions.V3SemanticReview
+        var promptVersion = schemaVersion == GameplayProjectionVersions.Content
+            ? GameplayProjectionVersions.Prompt
+            : schemaVersion == AiGenerationSchemaVersions.CaseLogicV3Crack
+              || schemaVersion == AiGenerationSchemaVersions.V3SemanticReview
                 ? AiGenerationSchemaVersions.PromptV3Crack
                 : AiGenerationSchemaVersions.Prompt;
         if (_settings.BlocksAiCalls)
@@ -2550,6 +3128,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - Diversity seed: {{diversity.Seed}} (identifier only; never print or incorporate it into story text)
         - Requested case type: {{diversity.RequestedCaseType}}
         - Concrete case type: {{diversity.CaseType}}
+        - Target kind: {{CaseTargetAllocationPolicy.ForCaseType(diversity.CaseType)}} (server-owned; a CHARACTER is a person, an ASSET is a non-person target)
         - Setting archetype: {{diversity.SettingArchetype}}
         - Era flavor: {{diversity.EraFlavor}}
         - Incident pattern: {{diversity.IncidentPattern}}
@@ -2689,6 +3268,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "winEnding": "...", "failEnding": "..." }
         }
         """;
+        var requiredEvidenceLinksRequirement =
+            draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                ? "- finalLogic.requiredEvidenceLinks must contain exactly five distinct entries: MOTIVE, METHOD, OPPORTUNITY, IDENTITY, and TIMELINE. Every evidenceId must reference an isEvidence clue discoverable before accusation."
+                : "- finalLogic.requiredEvidenceLinks must contain exactly one MOTIVE, one METHOD, and one OPPORTUNITY entry. Their three evidenceId values must be distinct, isEvidence clues, and discoverable before accusation.";
+        var idNamespaceRequirement =
+            draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                ? "- IDs and values in the JSON shape example are placeholders, never authoritative truth values. Copy every truth-owned sceneId/locationId and characterId exactly from the locked projection map, regardless of prefix. Use case-, stage-, item-, clue-, dialogue-, and hotspot- prefixes only for newly created gameplay-owned IDs. Never use a generic \"id\" field."
+                : "- Use id prefixes: caseId \"case-\", stageId \"stage-\", sceneId \"scene-\", characterId \"char-\", itemId \"item-\", clueId \"clue-\", dialogueId \"dlg-\", hotspotId \"hotspot-\". Never use a generic \"id\" field.";
 
         var basePrompt = $"""
         The creator approved this spoiler-free story preview:
@@ -2717,7 +3304,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - Each stage contains 1 or 2 scenes; follow the preset stage and total-scene bounds above.
         - Language, fixed pixel style, mechanicsVersion, generationMode, status, timestamps, runtime and asset URLs are server-owned and are not part of your output schema.
         - Follow the strict JSON schema supplied with this request. Use empty arrays and empty strings for optional mechanics instead of inventing properties.
-        - Use id prefixes: caseId "case-", stageId "stage-", sceneId "scene-", characterId "char-", itemId "item-", clueId "clue-", dialogueId "dlg-", hotspotId "hotspot-". Never use a generic "id" field.
+        {idNamespaceRequirement}
         - All IDs must be unique and every referenced ID must exist.
         - Final and required environmental evidence should use discoverMethod/sourceType "camera", sceneId for the room containing it, and source equal to that same sceneId.
         - Every camera clue must include visualDescription, inventoryDescription, narrativeMeaning, hintLevel, tags and relatedCharacterIds.
@@ -2762,7 +3349,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - Create at least one requiredTeamworkChain. chainId must use prefix "chain-" and connect one investigator clue, one interrogator challenge, and one deduction.
         - Create at least one SCENE hint per scene, one CONFRONTATION hint per challenge, and one DEDUCTION hint per deduction.
         - finalLogic must have at least three motiveOptions and three methodOptions with unique IDs and valid correctMotiveId/correctMethodId.
-        - finalLogic.requiredEvidenceLinks must contain exactly one MOTIVE, one METHOD, and one OPPORTUNITY entry. Their three evidenceId values must be distinct, isEvidence clues, and discoverable before accusation.
+        {requiredEvidenceLinksRequirement}
         - finalLogic.requiredDeductionIds must reference the required deduction(s), and finalLogic.requiredTeamworkChainIds must reference the required teamwork chain(s).
         - conversationNodes are OPTIONAL. If you include them for a character, build a small branching tree: exactly one isRoot node, root has at least one topic choice, depth is at most root -> topic -> one follow-up. Every node MUST offer at least one choice with nextNodeId null (a way back to root / end), and follow-up nodes' choices must all use nextNodeId null. nodeId/choiceId unique; nextNodeId and challengeId must reference real same-character nodes/challenges. lines use speaker "NPC" or "DETECTIVE". Do not leave a node without a return choice. Characters without conversationNodes keep using flat dialogues.
         - The culprit must be one of the characters. Include at least one red herring clue with isRedHerring true.
@@ -3639,6 +4226,62 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             nextScene,
             new SceneRuntime { Width = RuntimeWidth, Height = RuntimeHeight });
         return plan;
+    }
+
+    private static void ApplyDeterministicMockSceneLayout(GameCase gameCase)
+    {
+        var scenes = gameCase.Stages
+            .OrderBy(stage => stage.Order)
+            .SelectMany(stage => stage.Scenes)
+            .ToList();
+        for (var sceneIndex = 0; sceneIndex < scenes.Count; sceneIndex++)
+        {
+            var scene = scenes[sceneIndex];
+            var cameraClues = gameCase.Clues
+                .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
+                .ToList();
+            var supplied = new ScenePlacementPlan
+            {
+                SceneId = scene.SceneId,
+                Width = RuntimeWidth,
+                Height = RuntimeHeight,
+                FloorY = 720,
+                WalkableArea = new RuntimeBox
+                {
+                    X = 0,
+                    Y = 480,
+                    Width = RuntimeWidth,
+                    Height = 240
+                },
+                ClueZones = cameraClues.Select((clue, index) => new ClueZone
+                {
+                    ClueId = clue.ClueId,
+                    Label = clue.Title,
+                    Bounds = new RuntimeBox
+                    {
+                        X = 220 + (index % 4) * 300,
+                        Y = 260 + (index / 4) * 150,
+                        Width = 120,
+                        Height = 90
+                    },
+                    Shape = "rect",
+                    Visibility = "medium",
+                    DetectionDifficulty = "medium",
+                    DetectionStatus = "FOUND",
+                    Confidence = 0.95,
+                    Source = "mock-layout",
+                    IsFallback = false,
+                    Reason = "Deterministic no-provider layout used by the mock workflow."
+                }).ToList()
+            };
+            scene.PlacementPlan = ParseAndSanitizePlacementPlan(
+                JsonSerializer.Serialize(supplied, PrettyJson),
+                gameCase,
+                scene,
+                sceneIndex == 0 ? null : scenes[sceneIndex - 1],
+                sceneIndex == scenes.Count - 1 ? null : scenes[sceneIndex + 1]);
+            scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
+        }
     }
 
     private static List<ClueZone> SanitizeClueZones(List<ClueZone>? supplied, GameCase gameCase, CaseScene scene)
@@ -5127,13 +5770,21 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         AiCaseDraft draft,
         string error,
         string? failurePhase = null,
-        IEnumerable<string>? failedAssetIds = null)
+        IEnumerable<string>? failedAssetIds = null,
+        IEnumerable<string>? validationErrors = null)
     {
+        var persistedErrors = validationErrors?
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.Ordinal)
+            .ToList() ?? new List<string>();
+        if (persistedErrors.Count == 0)
+            persistedErrors.Add(error);
+
         var updates = new List<UpdateDefinition<AiCaseDraft>>
         {
             Builders<AiCaseDraft>.Update
             .Set(d => d.Status, AiDraftStatus.GeneratedInvalid)
-            .Set(d => d.ValidationErrors, new List<string> { error })
+            .Set(d => d.ValidationErrors, persistedErrors)
             .Set(d => d.UpdatedAt, DateTime.UtcNow)
         };
         if (!string.IsNullOrWhiteSpace(failurePhase))
@@ -5148,6 +5799,15 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         if (result.MatchedCount == 0)
             _logger.LogWarning("Stale AI run {RunId} could not mark draft {DraftId} failed.",
                 draft.GenerationRunId, draft.Id);
+    }
+
+    private static IEnumerable<string> ApiExceptionValidationMessages(ApiException exception)
+    {
+        if (exception.Errors is IEnumerable<CaseValidationError> validationErrors)
+            return ValidationMessages(validationErrors);
+        if (exception.Errors is IEnumerable<string> stringErrors)
+            return stringErrors;
+        return [exception.Message];
     }
 
     private async Task SaveInvalidAttemptAsync(AiCaseDraft draft, string rawJson, List<string> errors, string failurePhase = AiFailurePhases.FullLogicJson)
@@ -5165,6 +5825,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             .Set(d => d.LastGenerationErrorCode, "AI_GENERATION_INVALID")
             .Set(d => d.FailurePhase, failurePhase)
             .Set(d => d.FailedAssetIds, IsAssetFailurePhase(failurePhase) ? draft.FailedAssetIds : new List<string>())
+            .Set(d => d.ProjectionContentJson, draft.ProjectionContentJson)
+            .Set(d => d.ProjectionContentHash, draft.ProjectionContentHash)
+            .Set(d => d.ProjectionBuildMode, draft.ProjectionBuildMode)
+            .Set(d => d.ProjectionCompilerVersion, draft.ProjectionCompilerVersion)
+            .Set(d => d.V3SemanticReview, draft.V3SemanticReview)
+            .Set(d => d.V3CrackContentJson, draft.V3CrackContentJson)
+            .Set(d => d.V3CrackContentHash, draft.V3CrackContentHash)
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
         await UpdateActiveRunAsync(draft, update);
     }

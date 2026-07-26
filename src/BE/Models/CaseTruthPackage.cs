@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace SirLocked.Api.Models;
@@ -17,8 +18,25 @@ public static class CaseLogicVerificationStatuses
 public static class CaseTruthSchemaVersions
 {
     public const string V1 = "case-truth-v1";
+    public const string V2 = "case-truth-v2";
     public const string FeasibilityReviewV1 = "case-truth-feasibility-review-v1";
+    public const string FeasibilityReviewV2 = "case-truth-feasibility-review-v2";
     public const string BlindReviewV1 = "case-blind-solvability-review-v1";
+    public const string BlindReviewV2 = "case-blind-solvability-review-v2";
+}
+
+public static class CaseTargetKinds
+{
+    public const string Character = "CHARACTER";
+    public const string Asset = "ASSET";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        Character, Asset
+    };
+
+    public static bool IsAsset(CoreCaseTruth truth) =>
+        truth.TargetKind == Asset;
 }
 
 public static class CaseTruthReviewStatuses
@@ -27,6 +45,33 @@ public static class CaseTruthReviewStatuses
     public const string Passed = "PASSED";
     public const string Failed = "FAILED";
     public const string Ambiguous = "AMBIGUOUS";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        NotRun, Passed, Failed, Ambiguous
+    };
+}
+
+public static class CaseTruthReviewFindingCodes
+{
+    public const string TimelineFeasibility = "TIMELINE_FEASIBILITY";
+    public const string TravelFeasibility = "TRAVEL_FEASIBILITY";
+    public const string PhysicalCausality = "PHYSICAL_CAUSALITY";
+    public const string WitnessObservability = "WITNESS_OBSERVABILITY";
+    public const string AlibiSupport = "ALIBI_SUPPORT";
+    public const string OpportunityConsistency = "OPPORTUNITY_CONSISTENCY";
+    public const string TracePersistence = "TRACE_PERSISTENCE";
+    public const string MissingCausalAntecedent = "MISSING_CAUSAL_ANTECEDENT";
+    public const string ProofScope = "PROOF_SCOPE";
+    public const string SolutionAmbiguity = "SOLUTION_AMBIGUITY";
+    public const string Other = "OTHER";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        TimelineFeasibility, TravelFeasibility, PhysicalCausality, WitnessObservability,
+        AlibiSupport, OpportunityConsistency, TracePersistence, MissingCausalAntecedent,
+        ProofScope, SolutionAmbiguity, Other
+    };
 }
 
 public static class CaseTruthScopeLimits
@@ -128,6 +173,9 @@ public sealed class CoreCaseTruth
 {
     public string CulpritId { get; set; } = string.Empty;
     public string TargetId { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [BsonIgnoreIfDefault]
+    public string TargetKind { get; set; } = string.Empty;
     public string Motive { get; set; } = string.Empty;
     public string Method { get; set; } = string.Empty;
     public List<string> PreparationActionIds { get; set; } = new();
@@ -239,6 +287,15 @@ public sealed class RedHerringLedgerEntry
 }
 
 [BsonIgnoreExtraElements]
+public sealed class CaseTruthReviewFinding
+{
+    public string FindingId { get; set; } = string.Empty;
+    public string Code { get; set; } = CaseTruthReviewFindingCodes.Other;
+    public List<string> RelatedIds { get; set; } = new();
+    public string Message { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
 public sealed class CaseTruthFeasibilityReview
 {
     public string Status { get; set; } = CaseTruthReviewStatuses.NotRun;
@@ -247,7 +304,9 @@ public sealed class CaseTruthFeasibilityReview
     public bool TimelineFeasible { get; set; }
     public bool PhysicalCausalityFeasible { get; set; }
     public bool UniqueSolution { get; set; }
+    /// <summary>Legacy V1 reviewer messages. New reviewer calls return Findings instead.</summary>
     public List<string> Issues { get; set; } = new();
+    public List<CaseTruthReviewFinding> Findings { get; set; } = new();
     public DateTime? ReviewedAt { get; set; }
 }
 
@@ -263,7 +322,9 @@ public sealed class BlindSolvabilityReview
     public List<string> EvidenceChainIds { get; set; } = new();
     public bool UniqueSolution { get; set; }
     public double Confidence { get; set; }
+    /// <summary>Legacy V1 reviewer messages. New reviewer calls return Findings instead.</summary>
     public List<string> Issues { get; set; } = new();
+    public List<CaseTruthReviewFinding> Findings { get; set; } = new();
     public DateTime? ReviewedAt { get; set; }
 }
 

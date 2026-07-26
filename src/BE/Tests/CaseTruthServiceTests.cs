@@ -43,6 +43,179 @@ public sealed class CaseTruthServiceTests
     }
 
     [Fact]
+    public void GeneratedProjectionNormalizer_RepairsOnlyUniquelyTruthDerivedFields()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        var canonicalBefore = _service.Canonicalize(truth);
+        var hashBefore = _service.ComputeHash(truth);
+        gameCase.FinalLogic.CulpritId = "char-wrong";
+        gameCase.FinalLogic.Motive = "Wrong motive";
+        gameCase.FinalLogic.Method = "Wrong method";
+        var clue = gameCase.Clues[0];
+        var expectedTrace = truth.TraceLedger.Single(trace =>
+            trace.SourceActionId == clue.SourceActionId
+            && trace.IndependentSourceGroup == clue.IndependentSourceGroup);
+        clue.SceneId = "scene-wrong";
+        clue.SupportsConclusionIds.Clear();
+        var dialogue = gameCase.Dialogues[0];
+        var mismatchedStatement = truth.StatementLedger.First(statement =>
+            statement.SpeakerId != dialogue.CharacterId);
+        dialogue.StatementIds = new List<string> { mismatchedStatement.StatementId };
+
+        var corrections = CausalProjectionNormalizer.NormalizeGenerated(truth, gameCase);
+
+        Assert.Equal(truth.CoreTruth.CulpritId, gameCase.FinalLogic.CulpritId);
+        Assert.Equal(truth.CoreTruth.Motive, gameCase.FinalLogic.Motive);
+        Assert.Equal(truth.CoreTruth.Method, gameCase.FinalLogic.Method);
+        Assert.Equal(expectedTrace.LocationId, clue.SceneId);
+        Assert.Equal(expectedTrace.SupportsConclusionIds, clue.SupportsConclusionIds);
+        Assert.Equal(new[] { mismatchedStatement.StatementId }, dialogue.StatementIds);
+        Assert.Contains(corrections, item => item.Code == "LOCKED_FINAL_CULPRIT");
+        Assert.Contains(corrections, item => item.Code == "CLUE_SCENE_FROM_SOURCE_ACTION");
+        Assert.Contains(corrections, item => item.Code == "CLUE_PROOF_LINKS_FROM_UNIQUE_TRACE");
+        Assert.Equal(canonicalBefore, _service.Canonicalize(truth));
+        Assert.Equal(hashBefore, _service.ComputeHash(truth));
+    }
+
+    [Fact]
+    public void GeneratedProjectionNormalizer_DoesNotGuessAmbiguousTraceMetadata()
+    {
+        var truth = ValidTruth();
+        var source = truth.TrueTimeline[0];
+        var traces = truth.TraceLedger.Where(trace => trace.SourceActionId == source.EventId).Take(2).ToList();
+        if (traces.Count < 2)
+        {
+            var clone = JsonSerializer.Deserialize<TraceLedgerEntry>(
+                JsonSerializer.Serialize(truth.TraceLedger.First(), JsonOptions),
+                JsonOptions)!;
+            clone.TraceId = "trace-ambiguous-second";
+            clone.SourceActionId = source.EventId;
+            clone.LocationId = source.LocationId;
+            clone.IndependentSourceGroup = "ambiguous-second-group";
+            truth.TraceLedger.Add(clone);
+        }
+        var gameCase = new GameCase
+        {
+            FinalLogic = new FinalLogic
+            {
+                CulpritId = truth.CoreTruth.CulpritId,
+                Motive = truth.CoreTruth.Motive,
+                Method = truth.CoreTruth.Method
+            },
+            Clues =
+            {
+                new CaseClue
+                {
+                    ClueId = "clue-ambiguous",
+                    SourceActionId = source.EventId,
+                    SceneId = "wrong-scene"
+                }
+            }
+        };
+
+        CausalProjectionNormalizer.NormalizeGenerated(truth, gameCase);
+
+        Assert.Equal(source.LocationId, gameCase.Clues[0].SceneId);
+        Assert.Empty(gameCase.Clues[0].IndependentSourceGroup);
+        Assert.Empty(gameCase.Clues[0].SupportsConclusionIds);
+    }
+
+    [Fact]
+    public void ProjectionValidation_RequiresEveryUsedTruthLocationAsScene()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        var usedLocation = truth.TrueTimeline.Select(item => item.LocationId)
+            .First(location => gameCase.Stages.SelectMany(stage => stage.Scenes)
+                .Any(scene => scene.SceneId == location));
+        foreach (var stage in gameCase.Stages)
+            stage.Scenes.RemoveAll(scene => scene.SceneId == usedLocation);
+
+        var result = _service.ValidateProjection(truth, gameCase);
+
+        Assert.Contains(result.Errors, error => error.Code == "MissingTruthLocationScene"
+            && error.RefId == usedLocation);
+    }
+
+    [Fact]
+    public void ProjectionRepairFeedback_IncludesExactSceneProofAndSpeakerMappings()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        var clue = gameCase.Clues[0];
+        var expectedScene = truth.TrueTimeline.Single(item => item.EventId == clue.SourceActionId).LocationId;
+        clue.SceneId = "scene-wrong";
+        clue.SupportsConclusionIds.Clear();
+        var dialogue = gameCase.Dialogues[0];
+        var wrongStatement = truth.StatementLedger.First(item => item.SpeakerId != dialogue.CharacterId);
+        dialogue.StatementIds = new List<string> { wrongStatement.StatementId };
+        gameCase.FinalLogic.Method = "Wrong method";
+        var validation = _service.ValidateProjection(truth, gameCase);
+
+        var feedback = AiCaseService.BuildProjectionRepairFeedback(truth, gameCase, validation);
+
+        Assert.Contains($"[ref: {clue.ClueId}]", feedback, StringComparison.Ordinal);
+        Assert.Contains($"expected sceneId={JsonSerializer.Serialize(expectedScene)}", feedback, StringComparison.Ordinal);
+        Assert.Contains("actual supportsConclusionIds=", feedback, StringComparison.Ordinal);
+        Assert.Contains("allowed supportsConclusionIds=", feedback, StringComparison.Ordinal);
+        Assert.Contains($"[ref: {wrongStatement.StatementId}]", feedback, StringComparison.Ordinal);
+        Assert.Contains("actual statementIds=", feedback, StringComparison.Ordinal);
+        Assert.Contains("allowed statementIds=", feedback, StringComparison.Ordinal);
+        Assert.Contains("Expected exact locked value=", feedback, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LamGiangRegression_NormalizationLeavesOnlyAmbiguousSpeakerRepair()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        gameCase.FinalLogic.CulpritId = "char-wrong";
+        gameCase.FinalLogic.Method = "Wrong method";
+        foreach (var clue in gameCase.Clues.Take(6))
+            clue.SceneId = "scene-wrong";
+        var missingProofClue = gameCase.Clues[3];
+        missingProofClue.SupportsConclusionIds.Clear();
+        foreach (var dialogue in gameCase.Dialogues.Take(2))
+        {
+            var wrong = truth.StatementLedger.First(statement =>
+                statement.SpeakerId != dialogue.CharacterId);
+            dialogue.StatementIds = new List<string> { wrong.StatementId };
+        }
+
+        var before = _service.ValidateProjection(truth, gameCase);
+        CausalProjectionNormalizer.NormalizeGenerated(truth, gameCase);
+        var after = _service.ValidateProjection(truth, gameCase);
+
+        Assert.Contains(before.Errors, error => error.Code == "TruthConformance"
+            && error.Path is "finalLogic.culpritId" or "finalLogic.method");
+        Assert.True(before.Errors.Count(error => error.Code == "TraceLocationMismatch") >= 6);
+        Assert.Contains(before.Errors, error => error.Code == "MissingProofLink"
+            && error.RefId == missingProofClue.ClueId);
+        Assert.DoesNotContain(after.Errors, error => error.Code == "TruthConformance"
+            && error.Path is "finalLogic.culpritId" or "finalLogic.motive" or "finalLogic.method");
+        Assert.DoesNotContain(after.Errors, error => error.Code == "TraceLocationMismatch"
+            && gameCase.Clues.Take(6).Any(clue => clue.ClueId == error.RefId));
+        Assert.DoesNotContain(after.Errors, error => error.Code == "MissingProofLink"
+            && error.RefId == missingProofClue.ClueId);
+        Assert.True(after.Errors.Count(error => error.Code == "StatementSpeakerMismatch") >= 2);
+    }
+
+    [Fact]
+    public void ProjectionValidationErrors_AreDeduplicatedByCodePathAndReference()
+    {
+        var result = new SirLocked.Api.DTOs.Case.CaseValidationResult();
+        result.Add("MissingProofLink", "clues[3].supportsConclusionIds", "First message.", "clue-four");
+        result.Add("MissingProofLink", "clues[3].supportsConclusionIds", "Second message.", "clue-four");
+        result.Add("MissingProofLink", "clues[4].supportsConclusionIds", "Different path.", "clue-five");
+
+        result.Deduplicate();
+
+        Assert.Equal(2, result.Errors.Count);
+        Assert.Single(result.Errors, error => error.Path == "clues[3].supportsConclusionIds");
+    }
+
+    [Fact]
     public void IndependentStageArtifacts_AssembleIntoOneValidTruthPackage()
     {
         var draft = new AiCaseDraft { Settings = new AiDraftSettings { Difficulty = "medium" } };
@@ -164,6 +337,48 @@ public sealed class CaseTruthServiceTests
         var detailResponse = SirLocked.Api.DTOs.Ai.AiDraftResponse.From(draft, includeJson: true);
         Assert.Single(detailResponse.ArtifactProvenance);
         Assert.Equal(CaseTruthArtifacts.CoreTruth, detailResponse.ArtifactProvenance[0].Artifact);
+        Assert.NotNull(detailResponse.TruthRepairPlan);
+        Assert.Equal(CaseTruthArtifacts.CoreTruth,
+            detailResponse.TruthRepairPlan.RecommendedStartArtifact);
+    }
+
+    [Fact]
+    public void FailedAdvisoryTruthReview_DoesNotBlockDeterministicallyValidDraft()
+    {
+        var truth = ValidTruth();
+        var draft = new AiCaseDraft
+        {
+            Status = AiDraftStatus.CaseTruthAwaitingApproval,
+            CaseTruth = truth,
+            TruthSchemaVersion = truth.SchemaVersion,
+            TruthHash = _service.ComputeHash(truth),
+            TruthReviewerResult = new CaseTruthFeasibilityReview
+            {
+                SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV2,
+                Status = CaseTruthReviewStatuses.Failed,
+                Confidence = 0.97,
+                TimelineFeasible = false,
+                PhysicalCausalityFeasible = false,
+                UniqueSolution = false,
+                Findings =
+                {
+                    new CaseTruthReviewFinding
+                    {
+                        FindingId = "advisory-only",
+                        Code = CaseTruthReviewFindingCodes.PhysicalCausality,
+                        Message = "A subjective feasibility concern."
+                    }
+                }
+            }
+        };
+
+        var response = SirLocked.Api.DTOs.Ai.AiDraftResponse.From(draft, includeJson: true);
+
+        Assert.True(response.CanContinue);
+        Assert.True(response.TruthReviewIsAdvisory);
+        Assert.True(response.BlindReviewIsAdvisory);
+        Assert.Empty(response.TruthValidationReport);
+        Assert.Equal(CaseTruthReviewStatuses.Failed, response.TruthReviewerResult!.Status);
     }
 
     [Fact]
@@ -233,6 +448,86 @@ public sealed class CaseTruthServiceTests
     }
 
     [Fact]
+    public void TimelineStage_RejectsWitnessWhosePresenceOnlyTouchesEventBoundary()
+    {
+        var truth = ValidTruth();
+        var location = truth.CaseSeed.LocationIds[0];
+        var actor = truth.CaseSeed.SuspectIds[0];
+        var witness = truth.CaseSeed.SuspectIds[1];
+        truth.TrueTimeline.Add(new TrueTimelineEvent
+        {
+            EventId = "event-boundary-witnessed",
+            ActorId = actor,
+            LocationId = location,
+            StartMinute = 500,
+            EndMinute = 501,
+            TravelFromPreviousMinutes = 500,
+            Action = "The actor performs a witnessed action.",
+            WitnessIds = { witness },
+            WitnessObservations =
+            {
+                new WitnessObservation
+                {
+                    WitnessId = witness,
+                    Mode = "SIGHT",
+                    LineOfSightOrHearingClear = true,
+                    ObservableDetail = "The witness sees the action."
+                }
+            }
+        });
+        truth.TrueTimeline.Add(new TrueTimelineEvent
+        {
+            EventId = "event-witness-leaves-at-boundary",
+            ActorId = witness,
+            LocationId = location,
+            StartMinute = 499,
+            EndMinute = 500,
+            TravelFromPreviousMinutes = 500,
+            Action = "The witness leaves before the action begins."
+        });
+
+        var result = _service.ValidateTimelineReferences(truth, AiTruthGenerationBudget.Maximum);
+
+        Assert.Contains(result.Errors, error => error.Code == "WitnessNotObservable"
+            && error.RefId == witness);
+    }
+
+    [Fact]
+    public void TraceStage_RejectsCreatorDifferentFromSourceActionActor()
+    {
+        var truth = ValidTruth();
+        var trace = truth.TraceLedger[0];
+        var source = truth.TrueTimeline.Single(item => item.EventId == trace.SourceActionId);
+        trace.CreatedByCharacterId = truth.CaseSeed.SuspectIds.First(id => id != source.ActorId);
+
+        var result = _service.ValidateTraceArtifact(truth);
+
+        Assert.Contains(result.Errors, error => error.Code == "TraceActorMismatch"
+            && error.RefId == trace.TraceId);
+    }
+
+    [Fact]
+    public void StatementStage_RejectsSourcelessStatementAndMissingIndependentCoverage()
+    {
+        var truth = ValidTruth();
+        var statement = truth.StatementLedger[0];
+        statement.EventIds.Clear();
+        statement.KnowledgeSourceIds.Clear();
+        foreach (var trace in truth.TraceLedger)
+            trace.SupportsConclusionIds.Remove(ProofConclusionIds.Motive);
+        foreach (var item in truth.StatementLedger)
+            item.SupportsConclusionIds.Remove(ProofConclusionIds.Motive);
+        statement.SupportsConclusionIds.Add(ProofConclusionIds.Motive);
+
+        var result = _service.ValidateStatementArtifact(truth);
+
+        Assert.Contains(result.Errors, error => error.Code == "InvalidKnowledge"
+            && error.RefId == statement.StatementId);
+        Assert.Contains(result.Errors, error => error.Code == "InsufficientIndependentProof"
+            && error.RefId == ProofConclusionIds.Motive);
+    }
+
+    [Fact]
     public void OpportunityMatrix_RejectsSecondSuspectWhoStillFitsCompleteChain()
     {
         var truth = ValidTruth();
@@ -291,6 +586,25 @@ public sealed class CaseTruthServiceTests
 
         Assert.True(result.IsValid, Messages(result.Errors));
         Assert.Equal(EvidenceClaimTypes.Causal.Count, gameCase.FinalLogic.RequiredEvidenceLinks.Count);
+    }
+
+    [Fact]
+    public void AdvisoryBlindReviewStatus_DoesNotFailDeterministicMetadataGate()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        gameCase.LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim;
+        gameCase.LogicVerificationStatus = CaseLogicVerificationStatuses.CausalVerified;
+        gameCase.TruthSchemaVersion = truth.SchemaVersion;
+        gameCase.TruthHash = _service.ComputeHash(truth);
+        gameCase.BlindReviewStatus = CaseTruthReviewStatuses.Failed;
+
+        var advisory = new CaseValidationService().ValidateSceneLayout(gameCase);
+        Assert.DoesNotContain(advisory.Errors, error => error.Code == "BlindReviewMetadataInvalid");
+
+        gameCase.BlindReviewStatus = "UNKNOWN";
+        var invalidMetadata = new CaseValidationService().ValidateSceneLayout(gameCase);
+        Assert.Contains(invalidMetadata.Errors, error => error.Code == "BlindReviewMetadataInvalid");
     }
 
     [Fact]
@@ -355,6 +669,87 @@ public sealed class CaseTruthServiceTests
         Assert.DoesNotContain(CaseTruthArtifacts.Timeline, plan.StaleArtifacts);
         Assert.Contains(CaseTruthArtifacts.Projection, plan.StaleArtifacts);
         Assert.Contains(CaseTruthArtifacts.Assets, plan.StaleArtifacts);
+    }
+
+    [Fact]
+    public void IdentityTraceFailure_RepairsFromEvidenceInsteadOfProofGraph()
+    {
+        var truth = ValidTruth();
+        var eligibleTraceIds = truth.TraceLedger
+            .Where(trace => trace.CreatedByCharacterId == truth.CoreTruth.CulpritId
+                && truth.CoreTruth.CrimeActionIds.Contains(trace.SourceActionId)
+                && trace.SupportsConclusionIds.Contains(ProofConclusionIds.Identity))
+            .Select(trace => trace.TraceId)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.NotEmpty(eligibleTraceIds);
+
+        foreach (var trace in truth.TraceLedger.Where(trace => eligibleTraceIds.Contains(trace.TraceId)))
+            trace.SupportsConclusionIds.RemoveAll(id => id == ProofConclusionIds.Identity);
+        var identity = truth.ProofGraph.Conclusions
+            .Single(conclusion => conclusion.ConclusionId == ProofConclusionIds.Identity);
+        identity.SupportingTraceIds.RemoveAll(eligibleTraceIds.Contains);
+
+        var validation = _service.Validate(truth);
+        var plan = _service.PlanRepair(validation.Errors);
+
+        Assert.Contains(validation.Errors, error => error.Code == "MissingIdentityTrace"
+            && error.Path == "traceLedger");
+        Assert.Equal(CaseTruthArtifacts.Evidence, plan.RegenerateFromArtifact);
+        Assert.Contains(CaseTruthArtifacts.ProofGraph, plan.StaleArtifacts);
+    }
+
+    [Fact]
+    public void ProofGraphValidation_RejectsMissingReciprocalIdentityEdgeWithoutMutation()
+    {
+        var truth = ValidTruth();
+        var eligibleTrace = truth.TraceLedger.First(trace =>
+            trace.CreatedByCharacterId == truth.CoreTruth.CulpritId
+            && truth.CoreTruth.CrimeActionIds.Contains(trace.SourceActionId)
+            && trace.SupportsConclusionIds.Contains(ProofConclusionIds.Identity));
+        var identity = truth.ProofGraph.Conclusions.Single(conclusion =>
+            conclusion.ConclusionId == ProofConclusionIds.Identity);
+        identity.SupportingTraceIds.Remove(eligibleTrace.TraceId);
+        Assert.Contains(_service.Validate(truth).Errors, error =>
+            error.Code is "MissingIdentityEvidence" or "ProofLinkMismatch");
+
+        var validation = _service.Validate(truth);
+
+        Assert.DoesNotContain(eligibleTrace.TraceId, identity.SupportingTraceIds);
+        Assert.Contains(validation.Errors, error =>
+            error.Code is "MissingIdentityEvidence" or "ProofLinkMismatch");
+    }
+
+    [Fact]
+    public void ProofGraphValidation_DoesNotInventIdentityEvidence()
+    {
+        var truth = ValidTruth();
+        foreach (var trace in truth.TraceLedger)
+            trace.SupportsConclusionIds.RemoveAll(id => id == ProofConclusionIds.Identity);
+        var identity = truth.ProofGraph.Conclusions.Single(conclusion =>
+            conclusion.ConclusionId == ProofConclusionIds.Identity);
+        var originalLinks = identity.SupportingTraceIds.ToList();
+
+        Assert.Equal(originalLinks, identity.SupportingTraceIds);
+        Assert.Contains(_service.Validate(truth).Errors, error => error.Code == "MissingIdentityTrace");
+    }
+
+    [Fact]
+    public void Timeline_RequiresIdentityTraceToBePlannedOnCulpritCrimeAction()
+    {
+        var truth = ValidTruth();
+        foreach (var crimeAction in truth.TrueTimeline
+                     .Where(item => truth.CoreTruth.CrimeActionIds.Contains(item.EventId)))
+            crimeAction.TraceIds.Clear();
+
+        var validation = _service.ValidateTimelineReferences(
+            truth,
+            AiTruthGenerationBudget.For(new AiDraftSettings()));
+
+        Assert.Contains(validation.Errors, error => error.Code == "MissingIdentityTracePlan"
+            && error.Path == "trueTimeline.traceIds");
+        Assert.Equal(
+            CaseTruthArtifacts.Timeline,
+            _service.PlanRepair(validation.Errors).RegenerateFromArtifact);
     }
 
     [Fact]
@@ -475,7 +870,7 @@ public sealed class CaseTruthServiceTests
     }
 
     [Fact]
-    public async Task TimelineGeneration_RepairsNamespaceMismatchOnceBeforeDownstream()
+    public async Task TimelineGeneration_DoesNotAutoRepairNamespaceMismatch()
     {
         var truth = ValidTruth();
         var validTimeline = new GeneratedTimelineArtifact
@@ -507,13 +902,12 @@ public sealed class CaseTruthServiceTests
             });
         if (result.Validation.IsValid) downstreamCalls++;
 
-        Assert.True(result.Validation.IsValid, Messages(result.Validation.Errors));
-        Assert.Equal(2, result.Attempts);
-        Assert.Equal(2, attempts);
-        Assert.Equal(1, downstreamCalls);
+        Assert.False(result.Validation.IsValid);
+        Assert.Equal(1, result.Attempts);
+        Assert.Equal(1, attempts);
+        Assert.Equal(0, downstreamCalls);
         Assert.Equal(coreId, truth.CoreTruth.CrimeActionIds[0]);
-        Assert.Contains(coreId, corrections[1], StringComparison.Ordinal);
-        Assert.Contains("Copy every distinct core action ID verbatim", corrections[1], StringComparison.Ordinal);
+        Assert.Single(corrections);
     }
 
     [Fact]
@@ -546,10 +940,39 @@ public sealed class CaseTruthServiceTests
         if (result.Validation.IsValid) downstreamCalls++;
 
         Assert.False(result.Validation.IsValid);
-        Assert.Equal(2, result.Attempts);
-        Assert.Equal(2, attempts);
+        Assert.Equal(1, result.Attempts);
+        Assert.Equal(1, attempts);
         Assert.Equal(0, downstreamCalls);
         Assert.Contains(result.Validation.Errors, error => error.Code == "MissingCoreTimelineEvent");
+    }
+
+    [Fact]
+    public async Task TruthArtifactGeneration_DoesNotAutoRepairSemanticFailure()
+    {
+        var attempts = 0;
+        var corrections = new List<string>();
+
+        var result = await AiCaseService.GenerateTruthArtifactWithScopedRepairAsync(
+            correction =>
+            {
+                corrections.Add(correction);
+                return Task.FromResult(++attempts == 1 ? "invalid" : "valid");
+            },
+            value =>
+            {
+                var validation = new SirLocked.Api.DTOs.Case.CaseValidationResult();
+                if (value == "invalid")
+                    validation.Add("TraceActorMismatch", "traceLedger[0].createdByCharacterId",
+                        "Trace creator differs from source actor.", "trace-a");
+                return validation;
+            },
+            CaseTruthArtifacts.Evidence);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Equal(1, result.Attempts);
+        Assert.Equal(1, attempts);
+        Assert.Single(corrections);
+        Assert.Contains(result.Validation.Errors, error => error.Code == "TraceActorMismatch");
     }
 
     [Fact]
@@ -681,6 +1104,36 @@ public sealed class CaseTruthServiceTests
         Assert.Contains("must be reciprocal", prompt, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthArtifacts.Evidence)]
+    [InlineData(CaseTruthArtifacts.ProofGraph)]
+    public void TruthStagePrompt_LocksIdentityEvidenceAtItsOwningStages(string artifact)
+    {
+        var truth = ValidTruth();
+        var draft = new AiCaseDraft
+        {
+            StoryPreview = new AiStoryPreview { Title = "Identity invariant", Summary = "Test" },
+            Settings = new AiDraftSettings()
+        };
+
+        var prompt = AiCaseService.BuildTruthStagePrompt(draft, artifact, truth, string.Empty);
+
+        Assert.Contains("HARD IDENTITY INVARIANT", prompt, StringComparison.Ordinal);
+        Assert.Contains(truth.CoreTruth.CulpritId, prompt, StringComparison.Ordinal);
+        Assert.Contains(truth.CoreTruth.CrimeActionIds[0], prompt, StringComparison.Ordinal);
+        if (artifact == CaseTruthArtifacts.Evidence)
+            Assert.Contains(ProofConclusionIds.Identity, prompt, StringComparison.Ordinal);
+        if (artifact == CaseTruthArtifacts.ProofGraph)
+        {
+            var eligibleTrace = truth.TraceLedger.First(trace =>
+                trace.CreatedByCharacterId == truth.CoreTruth.CulpritId
+                && truth.CoreTruth.CrimeActionIds.Contains(trace.SourceActionId)
+                && trace.SupportsConclusionIds.Contains(ProofConclusionIds.Identity));
+            Assert.Contains(eligibleTrace.TraceId, prompt, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void TimelinePromptAndValidator_BoundTruthTraceScopeByPreset()
     {
@@ -717,7 +1170,7 @@ public sealed class CaseTruthServiceTests
         var validation = _service.Validate(truth);
 
         Assert.Equal(14, AiCaseService.TruthTraceBudget(draft));
-        Assert.Contains("no more than 14 trace IDs total", prompt, StringComparison.Ordinal);
+        Assert.Contains("between 5 and 14 distinct trace IDs total", prompt, StringComparison.Ordinal);
         Assert.Contains(validation.Errors, error => error.Code == "TruthScopeExceeded");
     }
 
@@ -740,7 +1193,296 @@ public sealed class CaseTruthServiceTests
 
         var result = _service.ValidateBlindReview(truth, review);
 
-        Assert.Contains(result.Errors, error => error.Code == "BlindReviewFailed");
+        Assert.Contains(result.Errors, error => error.Code == "BlindReviewConfidenceLow");
+    }
+
+    [Fact]
+    public void FailedHighConfidenceCausalityReview_IsRejectedAndRoutesRepairFromTimeline()
+    {
+        var review = new CaseTruthFeasibilityReview
+        {
+            SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV2,
+            Status = CaseTruthReviewStatuses.Failed,
+            Confidence = 0.96,
+            TimelineFeasible = true,
+            PhysicalCausalityFeasible = false,
+            UniqueSolution = true,
+            Findings =
+            {
+                new CaseTruthReviewFinding
+                {
+                    FindingId = "finding-clock-reset",
+                    Code = CaseTruthReviewFindingCodes.PhysicalCausality,
+                    RelatedIds = { "action-clock-reset", "trace-seven-minute-delay" },
+                    Message = "The reset removes the mechanism required for the later delay."
+                }
+            }
+        };
+
+        var validation = _service.ValidateFeasibilityReview(review);
+        var plan = CaseTruthRepairPolicy.PlanReview(review);
+        var feedback = AiCaseService.BuildTruthReviewFeedback(review);
+
+        Assert.Contains(validation.Errors, error => error.Code == "TruthReviewStatusFailed");
+        Assert.Contains(validation.Errors, error => error.Code == "TruthCausalityBlocked");
+        Assert.DoesNotContain(validation.Errors, error => error.Code == "TruthReviewConfidenceLow");
+        Assert.Equal(CaseTruthArtifacts.Timeline, plan.RegenerateFromArtifact);
+        Assert.Contains(CaseTruthReviewFindingCodes.PhysicalCausality, plan.ReasonCodes);
+        Assert.Contains("confidence=0.96", feedback, StringComparison.Ordinal);
+        Assert.Contains("action-clock-reset", feedback, StringComparison.Ordinal);
+        Assert.Contains("The reset removes the mechanism", feedback, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FailedV2Review_RequiresFindingButPersistedV1DoesNot()
+    {
+        var v2 = new CaseTruthFeasibilityReview
+        {
+            SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV2,
+            Status = CaseTruthReviewStatuses.Failed,
+            Confidence = 0.90,
+            TimelineFeasible = false,
+            PhysicalCausalityFeasible = true,
+            UniqueSolution = true
+        };
+        var v1 = new CaseTruthFeasibilityReview
+        {
+            SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV1,
+            Status = CaseTruthReviewStatuses.Failed,
+            Confidence = 0.90,
+            TimelineFeasible = false,
+            PhysicalCausalityFeasible = true,
+            UniqueSolution = true,
+            Issues = { "Legacy issue." }
+        };
+
+        Assert.Contains(_service.ValidateFeasibilityReview(v2).Errors,
+            error => error.Code == "MissingReviewFindings");
+        Assert.DoesNotContain(_service.ValidateFeasibilityReview(v1).Errors,
+            error => error.Code == "MissingReviewFindings");
+    }
+
+    [Theory]
+    [InlineData(CaseTruthReviewFindingCodes.TimelineFeasibility, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.TravelFeasibility, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.PhysicalCausality, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.WitnessObservability, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.AlibiSupport, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.MissingCausalAntecedent, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.Other, CaseTruthArtifacts.Timeline)]
+    [InlineData(CaseTruthReviewFindingCodes.OpportunityConsistency, CaseTruthArtifacts.Opportunity)]
+    [InlineData(CaseTruthReviewFindingCodes.SolutionAmbiguity, CaseTruthArtifacts.Opportunity)]
+    [InlineData(CaseTruthReviewFindingCodes.TracePersistence, CaseTruthArtifacts.Evidence)]
+    [InlineData(CaseTruthReviewFindingCodes.ProofScope, CaseTruthArtifacts.Evidence)]
+    public void ReviewRepairPolicy_MapsFindingToEarliestArtifact(string code, string expected)
+    {
+        var review = new CaseTruthFeasibilityReview
+        {
+            Status = CaseTruthReviewStatuses.Failed,
+            Findings = { new CaseTruthReviewFinding { Code = code } }
+        };
+
+        Assert.Equal(expected, CaseTruthRepairPolicy.PlanReview(review).RegenerateFromArtifact);
+    }
+
+    [Fact]
+    public void ReviewRepairPolicy_UsesEarliestFindingAndConservativeLegacyFallback()
+    {
+        var review = new CaseTruthFeasibilityReview
+        {
+            SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV2,
+            Status = CaseTruthReviewStatuses.Failed,
+            Findings =
+            {
+                new CaseTruthReviewFinding { Code = CaseTruthReviewFindingCodes.ProofScope },
+                new CaseTruthReviewFinding { Code = CaseTruthReviewFindingCodes.OpportunityConsistency },
+                new CaseTruthReviewFinding { Code = CaseTruthReviewFindingCodes.TravelFeasibility }
+            }
+        };
+        var legacy = new CaseTruthFeasibilityReview
+        {
+            SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV1,
+            Status = CaseTruthReviewStatuses.Failed,
+            Issues = { "Legacy prose-only issue." }
+        };
+
+        Assert.Equal(CaseTruthArtifacts.Timeline,
+            CaseTruthRepairPolicy.PlanReview(review).RegenerateFromArtifact);
+        var legacyPlan = CaseTruthRepairPolicy.PlanReview(legacy);
+        Assert.Equal(CaseTruthArtifacts.Timeline, legacyPlan.RegenerateFromArtifact);
+        Assert.Contains("LEGACY_REVIEW_FALLBACK", legacyPlan.ReasonCodes);
+        Assert.Contains("Legacy prose-only issue.", AiCaseService.BuildTruthReviewFeedback(legacy), StringComparison.Ordinal);
+        Assert.True(CaseTruthRepairPolicy.IsAtOrBefore(CaseTruthArtifacts.CoreTruth, CaseTruthArtifacts.Timeline));
+        Assert.False(CaseTruthRepairPolicy.IsAtOrBefore(CaseTruthArtifacts.Evidence, CaseTruthArtifacts.Timeline));
+
+        var deterministic = CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.CoreTruth);
+        deterministic.ReasonCodes.Add("MissingCoreTimelineEvent");
+        var semantic = CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.Timeline);
+        semantic.ReasonCodes.Add(CaseTruthReviewFindingCodes.PhysicalCausality);
+        var combined = CaseTruthRepairPolicy.Earliest(deterministic, semantic);
+        Assert.Equal(CaseTruthArtifacts.CoreTruth, combined.RegenerateFromArtifact);
+        Assert.Contains("MissingCoreTimelineEvent", combined.ReasonCodes);
+        Assert.Contains(CaseTruthReviewFindingCodes.PhysicalCausality, combined.ReasonCodes);
+    }
+
+    [Fact]
+    public void PersistedV1Review_StillDeserializesAndDoesNotRequireStructuredFindings()
+    {
+        const string json = """
+            {
+              "schemaVersion": "case-truth-feasibility-review-v1",
+              "status": "FAILED",
+              "confidence": 0.91,
+              "timelineFeasible": false,
+              "physicalCausalityFeasible": true,
+              "uniqueSolution": true,
+              "issues": ["A legacy timeline issue."]
+            }
+            """;
+        var review = JsonSerializer.Deserialize<CaseTruthFeasibilityReview>(json, JsonOptions)!;
+
+        var validation = _service.ValidateFeasibilityReview(review);
+
+        Assert.Equal(CaseTruthSchemaVersions.FeasibilityReviewV1, review.SchemaVersion);
+        Assert.Contains("A legacy timeline issue.", review.Issues);
+        Assert.DoesNotContain(validation.Errors, error => error.Code is "InvalidReviewSchema" or "MissingReviewFindings");
+        Assert.Contains(validation.Errors, error => error.Code == "TruthTimelineBlocked");
+    }
+
+    [Fact]
+    public void VerifiedSelfReportedAlibi_RequiresObjectiveCorroboration()
+    {
+        var truth = ValidTruth();
+        var characterId = truth.CaseSeed.SuspectIds.First(id => id != truth.CoreTruth.CulpritId);
+        var opportunity = truth.OpportunityMatrix.Single(item => item.CharacterId == characterId);
+        var alibi = new TrueTimelineEvent
+        {
+            EventId = "event-self-reported-alibi",
+            ActorId = characterId,
+            LocationId = truth.CaseSeed.LocationIds[0],
+            StartMinute = 220,
+            EndMinute = 225,
+            TravelFromPreviousMinutes = 0,
+            Action = "The suspect claims to have remained alone in the archive."
+        };
+        truth.TrueTimeline.Add(alibi);
+        opportunity.AlibiEventIds.Add(alibi.EventId);
+        opportunity.AlibiVerified = true;
+
+        var unsupported = _service.Validate(truth);
+
+        Assert.Contains(unsupported.Errors, error => error.Code == "UncorroboratedAlibi"
+            && error.Path == $"opportunityMatrix[{truth.OpportunityMatrix.IndexOf(opportunity)}].alibiEventIds"
+            && error.RefId == alibi.EventId);
+
+        alibi.TraceIds.Add("trace-alibi-register");
+        truth.TraceLedger.Add(new TraceLedgerEntry
+        {
+            TraceId = "trace-alibi-register",
+            SourceActionId = alibi.EventId,
+            CreatedByCharacterId = characterId,
+            CreatedAtMinute = 223,
+            LocationId = alibi.LocationId,
+            PhysicalCause = "The suspect signs a bound register during the alibi event.",
+            PersistenceReason = "The bound register remains in supervised custody.",
+            Proves = "The signature was made during the recorded interval.",
+            DoesNotProve = "It does not establish the crime method.",
+            IndependentSourceGroup = "archive-register",
+            SupportsConclusionIds = { ProofConclusionIds.Opportunity }
+        });
+
+        var corroborated = _service.Validate(truth);
+
+        Assert.DoesNotContain(corroborated.Errors, error => error.Code == "UncorroboratedAlibi"
+            && error.RefId == alibi.EventId);
+    }
+
+    [Fact]
+    public void OpportunityPrompt_DefinesAvailabilityAsWholeCrimeActionWindow()
+    {
+        var draft = new AiCaseDraft
+        {
+            StoryPreview = new AiStoryPreview { Title = "Clock case", Summary = "Test" },
+            Settings = new AiDraftSettings()
+        };
+
+        var prompt = AiCaseService.BuildTruthStagePrompt(
+            draft,
+            CaseTruthArtifacts.Opportunity,
+            ValidTruth(),
+            string.Empty);
+
+        Assert.Contains("interval in which that suspect could execute the complete locked crime-action chain", prompt,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not the character's full presence schedule", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ContractV2FullCasePrompt_UsesFiveClaimsAndExactProjectionMapWithoutReviewerOutput()
+    {
+        var truth = ValidTruth();
+        var draft = new AiCaseDraft
+        {
+            LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            Settings = new AiDraftSettings { GenerationPreset = AiGenerationPresets.ShortDemo },
+            StoryPreview = new AiStoryPreview { Title = "Lam Giang", Summary = "Test" },
+            CaseTruth = truth,
+            CaseTruthJson = _service.Canonicalize(truth),
+            TruthReviewerResult = new CaseTruthFeasibilityReview
+            {
+                Status = CaseTruthReviewStatuses.Passed,
+                Confidence = 0.91,
+                Issues = { "private reviewer text must not enter the projection prompt" }
+            }
+        };
+
+        var prompt = AiCaseService.BuildFullCasePrompt(draft);
+
+        Assert.Contains("exactly five distinct entries: MOTIVE, METHOD, OPPORTUNITY, IDENTITY, and TIMELINE",
+            prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("exactly one MOTIVE, one METHOD, and one OPPORTUNITY entry",
+            prompt, StringComparison.Ordinal);
+        Assert.Contains("LOCKED PROJECTION MAP", prompt, StringComparison.Ordinal);
+        Assert.Contains(truth.TrueTimeline[0].EventId, prompt, StringComparison.Ordinal);
+        Assert.Contains(truth.StatementLedger[0].StatementId, prompt, StringComparison.Ordinal);
+        Assert.Contains(truth.ProofGraph.Conclusions[0].ConclusionId, prompt, StringComparison.Ordinal);
+        Assert.Contains("Copy every truth-owned sceneId/locationId and characterId exactly",
+            prompt, StringComparison.Ordinal);
+        Assert.Contains("JSON shape example are placeholders, never authoritative truth values",
+            prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("sceneId \"scene-\", characterId \"char-\"",
+            prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("private reviewer text", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BlindReviewFindings_AlwaysPlanGameplayProjectionAndEnterRepairFeedback()
+    {
+        var review = new BlindSolvabilityReview
+        {
+            SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
+            Status = CaseTruthReviewStatuses.Ambiguous,
+            Confidence = 0.88,
+            UniqueSolution = false,
+            Findings =
+            {
+                new CaseTruthReviewFinding
+                {
+                    FindingId = "blind-ambiguous-clue",
+                    Code = CaseTruthReviewFindingCodes.SolutionAmbiguity,
+                    RelatedIds = { "clue-clock-face" },
+                    Message = "The visible clue chain permits two suspects."
+                }
+            }
+        };
+
+        var plan = CaseTruthRepairPolicy.PlanBlindReview(review);
+        var feedback = AiCaseService.BuildBlindReviewFeedback(review);
+
+        Assert.Equal(CaseTruthArtifacts.Projection, plan.RegenerateFromArtifact);
+        Assert.Contains(CaseTruthReviewFindingCodes.SolutionAmbiguity, plan.ReasonCodes);
+        Assert.Contains("clue-clock-face", feedback, StringComparison.Ordinal);
+        Assert.Contains("permits two suspects", feedback, StringComparison.Ordinal);
     }
 
     private static CaseTruthPackage ValidTruth()

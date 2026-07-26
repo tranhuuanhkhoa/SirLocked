@@ -8,6 +8,7 @@ using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
@@ -123,6 +124,10 @@ public class CaseService : ICaseService
             gameCase.TruthSchemaVersion = string.Empty;
             gameCase.TruthHash = string.Empty;
             gameCase.BlindReviewStatus = string.Empty;
+            gameCase.ProjectionSchemaVersion = string.Empty;
+            gameCase.ProjectionPlanHash = string.Empty;
+            gameCase.ProjectionCompilerVersion = string.Empty;
+            gameCase.ProjectionBuildMode = string.Empty;
         }
         return await UpsertValidatedAsync(gameCase, overwrite, forceDraft: true);
     }
@@ -151,14 +156,13 @@ public class CaseService : ICaseService
         }
         if (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
             && !string.IsNullOrWhiteSpace(gameCase.SourceAiDraftId)
-            && (gameCase.TruthSchemaVersion != CaseTruthSchemaVersions.V1
+            && (gameCase.TruthSchemaVersion is not (CaseTruthSchemaVersions.V1 or CaseTruthSchemaVersions.V2)
                 || string.IsNullOrWhiteSpace(gameCase.TruthHash)
-                || gameCase.LogicVerificationStatus != CaseLogicVerificationStatuses.CausalVerified
-                || gameCase.BlindReviewStatus != CaseTruthReviewStatuses.Passed))
+                || gameCase.LogicVerificationStatus != CaseLogicVerificationStatuses.CausalVerified))
             throw ApiException.Conflict(
-                "The AI case has not passed its immutable truth and blind-solvability gates.",
-                "AI_CASE_TRUTH_REVIEW_REQUIRED",
-                "ai.caseTruth.reviewRequired");
+                "The AI case has not passed its immutable deterministic truth gate.",
+                "AI_CASE_TRUTH_REQUIRED",
+                "ai.caseTruth.required");
 
         // Never publish a case that no longer passes deterministic validation.
         var validation = _validator.Validate(gameCase);

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SirLocked.Api.Configurations;
@@ -11,6 +12,7 @@ using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Projection;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
 using SirLocked.Api.WebAPI.Hubs;
@@ -24,6 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Force the static budget audit during startup so a newly-added preset cannot run
 // without an explicit, internally consistent semantic budget.
 _ = CrackGenerationBudgets.All;
+ProjectionCapacityPolicy.EnsureAllContractsValid();
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
@@ -36,7 +39,12 @@ builder.Services.AddOptions<EmailSettings>()
                           && string.IsNullOrEmpty(uri.Fragment),
         "Email__FrontendUrl must be an absolute HTTP or HTTPS URL.")
     .ValidateOnStart();
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddOptions<JwtSettings>()
+    .Bind(builder.Configuration.GetSection("Jwt"))
+    .Validate(
+        settings => JwtSettings.IsSecretValid(settings.Secret),
+        "Jwt__Secret must be configured and at least 32 characters long.")
+    .ValidateOnStart();
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
@@ -66,12 +74,6 @@ builder.Services.PostConfigure<OpenAiSettings>(settings =>
 });
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 
-var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
-if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
-{
-    throw new InvalidOperationException("Jwt__Secret must be configured and at least 32 characters long.");
-}
-
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CaseCache>();
@@ -82,6 +84,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICaseValidationService, CaseValidationService>();
 builder.Services.AddScoped<ICaseTruthService, CaseTruthService>();
+builder.Services.AddScoped<IProjectionReadinessAnalyzer, ProjectionReadinessAnalyzer>();
+builder.Services.AddScoped<IGameplayProjectionPlanner, GameplayProjectionPlanner>();
+builder.Services.AddScoped<IProjectionContentSchemaFactory, ProjectionContentSchemaFactory>();
+builder.Services.AddScoped<IGameCaseProjectionCompiler, GameCaseProjectionCompiler>();
+builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
 builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
@@ -222,8 +229,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.SignInScheme = "External";
         options.SaveTokens = true;
     })
-    .AddJwtBearer(options =>
+    .AddJwtBearer();
+
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtSettings>>((options, configuredJwt) =>
     {
+        var jwtSettings = configuredJwt.Value;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

@@ -8,8 +8,8 @@ export const aiCaseApi = {
     put(`/api/admin/ai-cases/${draftId}/case-json`, { caseJson, storyPreview }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),
   approveTruth: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-truth`),
-  repairTruth: (draftId, repairInstructions = '') =>
-    post(`/api/admin/ai-cases/${draftId}/repair-truth`, { repairInstructions }),
+  repairTruth: (draftId, repairInstructions = '', repairFromArtifact = null) =>
+    post(`/api/admin/ai-cases/${draftId}/repair-truth`, { repairInstructions, repairFromArtifact }),
   acceptTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/accept-truth-repair`),
   rejectTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/reject-truth-repair`),
   approveFullLogic: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-full-logic`),

@@ -22,12 +22,14 @@ internal static class CausalStateGraphValidator
         var initial = new SearchState();
         initial.UnlockedScenes.Add(scenes[0].SceneId);
         initial.VisitedScenes.Add(scenes[0].SceneId);
-        var queue = new Queue<SearchState>();
+        var queue = new PriorityQueue<SearchState, int>();
         var visited = new HashSet<string>(StringComparer.Ordinal) { initial.Signature() };
         var reachablePuzzles = new HashSet<string>(StringComparer.Ordinal);
-        queue.Enqueue(initial);
+        queue.Enqueue(initial, 0);
         var winFound = false;
         var limitReached = false;
+        var optionalPuzzleCount = gameCase.Puzzles.Count(item =>
+            item.ProgressionRole == PuzzleProgressionRoles.Optional);
 
         while (queue.Count > 0)
         {
@@ -37,11 +39,15 @@ internal static class CausalStateGraphValidator
                 break;
             }
             var state = queue.Dequeue();
-            if (IsWin(gameCase, state)) winFound = true;
+            if (IsWin(gameCase, state))
+            {
+                winFound = true;
+                if (reachablePuzzles.Count >= optionalPuzzleCount) break;
+            }
             foreach (var next in Expand(gameCase, scenes, state, reachablePuzzles))
             {
                 var signature = next.Signature();
-                if (visited.Add(signature)) queue.Enqueue(next);
+                if (visited.Add(signature)) queue.Enqueue(next, -ProgressScore(next));
             }
         }
 
@@ -54,6 +60,18 @@ internal static class CausalStateGraphValidator
             result.Add("UnreachableOptionalMechanic", "stateGraph", "Optional puzzle is unreachable in every explored path.", puzzle.PuzzleId);
         return result;
     }
+
+    private static int ProgressScore(SearchState state) =>
+        state.CompletedScenes.Count * 10_000
+        + state.VisitedScenes.Count * 1_000
+        + state.Deductions.Count * 200
+        + state.Challenges.Count * 150
+        + state.Puzzles.Count * 100
+        + state.Clues.Count * 20
+        + state.Dialogues.Count * 10
+        + state.ConversationNodes.Count * 10
+        + state.Interactions.Count * 5
+        + state.InspectedItems.Count;
 
     private static IEnumerable<SearchState> Expand(
         GameCase gameCase,

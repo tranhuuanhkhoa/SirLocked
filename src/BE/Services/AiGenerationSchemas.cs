@@ -107,6 +107,64 @@ public sealed class GeneratedProofArtifact
     public List<RedHerringLedgerEntry> RedHerringLedger { get; set; } = new();
 }
 
+/// <summary>
+/// Deterministic guard for the subset of JSON Schema that OpenAI accepts with <c>strict: true</c>.
+/// Every schema this project sends is validated by tests, because an unsupported keyword only
+/// surfaces as an <c>invalid_json_schema</c> HTTP error at request time and mock-mode runs never
+/// exercise it.
+/// </summary>
+public static class AiStrictSchemaLinter
+{
+    public static IReadOnlyList<string> Validate(JsonNode? schema)
+    {
+        var violations = new List<string>();
+        Visit(schema, "$", violations);
+        return violations;
+    }
+
+    private static void Visit(JsonNode? node, string path, ICollection<string> violations)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                Inspect(obj, path, violations);
+                foreach (var (name, child) in obj) Visit(child, $"{path}.{name}", violations);
+                break;
+            case JsonArray array:
+                for (var index = 0; index < array.Count; index++)
+                    Visit(array[index], $"{path}[{index}]", violations);
+                break;
+        }
+    }
+
+    private static void Inspect(JsonObject schema, string path, ICollection<string> violations)
+    {
+        if (schema.ContainsKey("const"))
+        {
+            var type = schema["type"] is JsonValue value && value.TryGetValue<string>(out var name)
+                ? name
+                : string.Empty;
+            if (string.IsNullOrEmpty(type))
+                violations.Add($"{path}: const requires an explicit scalar type.");
+            else if (type != "string")
+                violations.Add($"{path}: const is only supported on string schemas, not '{type}'.");
+        }
+        if (schema["enum"] is JsonArray enumValues && enumValues.Count == 0)
+            violations.Add($"{path}: enum cannot be empty.");
+        if (schema["properties"] is not JsonObject properties) return;
+
+        if (schema["additionalProperties"] is not JsonValue additional
+            || !additional.TryGetValue<bool>(out var allowed) || allowed)
+            violations.Add($"{path}: strict object schemas must set additionalProperties to false.");
+        var required = schema["required"] is JsonArray requiredNames
+            ? requiredNames.Select(item => item?.GetValue<string>() ?? string.Empty)
+                .ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
+        foreach (var missing in properties.Select(pair => pair.Key).Where(key => !required.Contains(key)))
+            violations.Add($"{path}: property '{missing}' must be listed in required.");
+    }
+}
+
 public static class AiStrictSchemaProvider
 {
     private static readonly NullabilityInfoContext Nullability = new();
@@ -131,6 +189,59 @@ public static class AiStrictSchemaProvider
     public static JsonObject CaseLogicSchema(int mechanicsVersion) =>
         BuildObjectSchema(typeof(GeneratedCaseLogic), mechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation);
 
+    public static JsonObject CaseLogicSchema(int mechanicsVersion, CaseTruthPackage truth)
+    {
+        var schema = CaseLogicSchema(mechanicsVersion);
+        var locations = RequiredEnumValues(truth.CaseSeed.LocationIds, "truth location IDs");
+        var events = RequiredEnumValues(
+            CaseTruthReferenceContract.TimelineEventIds(truth.TrueTimeline),
+            "truth timeline event IDs");
+        var conclusions = RequiredEnumValues(
+            truth.ProofGraph.Conclusions.Select(item => item.ConclusionId),
+            "truth conclusion IDs");
+        var sourceGroups = RequiredEnumValues(
+            truth.TraceLedger.Select(item => item.IndependentSourceGroup),
+            "truth independent source groups");
+        var statements = RequiredEnumValues(
+            truth.StatementLedger.Select(item => item.StatementId),
+            "truth statement IDs");
+        var truthIds = RequiredEnumValues(
+            events
+                .Concat(truth.TraceLedger.Select(item => item.TraceId))
+                .Concat(statements)
+                .Concat(conclusions),
+            "truth projection IDs");
+        var properties = schema["properties"]!.AsObject();
+
+        properties["stages"]!["items"]!["properties"]!["scenes"]!["items"]!["properties"]!["sceneId"] =
+            StringEnumSchema(locations);
+
+        var clueProperties = properties["clues"]!["items"]!["properties"]!.AsObject();
+        clueProperties["sceneId"] = StringEnumSchema(locations);
+        clueProperties["sourceActionId"] = StringEnumSchema(events);
+        clueProperties["independentSourceGroup"] = StringEnumSchema(sourceGroups);
+        clueProperties["supportsConclusionIds"]!["minItems"] = 1;
+        clueProperties["supportsConclusionIds"]!["maxItems"] = 2;
+        clueProperties["supportsConclusionIds"]!["items"] = StringEnumSchema(conclusions);
+
+        ConstrainStatementProjection(properties["dialogues"]!, locations, statements);
+        ConstrainStatementProjection(properties["conversationNodes"]!, locations, statements);
+
+        var puzzleProperties = properties["puzzles"]!["items"]!["properties"]!.AsObject();
+        puzzleProperties["basedOnTruthIds"]!["minItems"] = 1;
+        puzzleProperties["basedOnTruthIds"]!["items"] = StringEnumSchema(truthIds);
+        puzzleProperties["revealsConclusionIds"]!["items"] = StringEnumSchema(conclusions);
+
+        var deductionProperties = properties["deductions"]!["items"]!["properties"]!.AsObject();
+        deductionProperties["conclusionId"] = StringEnumSchema(conclusions);
+
+        var finalProperties = properties["finalLogic"]!["properties"]!.AsObject();
+        finalProperties["culpritId"] = StringEnumSchema([truth.CoreTruth.CulpritId]);
+        finalProperties["motive"] = StringEnumSchema([truth.CoreTruth.Motive]);
+        finalProperties["method"] = StringEnumSchema([truth.CoreTruth.Method]);
+        return schema;
+    }
+
     public static JsonObject V3SemanticReviewSchema() =>
         BuildObjectSchema(typeof(GeneratedV3SemanticReview), includeV3Fields: true);
 
@@ -149,11 +260,23 @@ public static class AiStrictSchemaProvider
     public static JsonObject StatementLedgerSchema() => StatementLedgerSchema(AiTruthGenerationBudget.Maximum);
     public static JsonObject ProofGraphSchema() => ProofGraphSchema(AiTruthGenerationBudget.Maximum);
 
-    public static JsonObject CaseSeedSchema(AiTruthGenerationBudget budget)
+    public static JsonObject CaseSeedSchema(AiTruthGenerationBudget budget) =>
+        CaseSeedSchema(budget, minSuspects: 2, minLocations: 1);
+
+    public static JsonObject CaseSeedSchema(
+        AiTruthGenerationBudget budget,
+        int minSuspects,
+        int minLocations,
+        int? exactSuspects = null)
     {
         var schema = TruthSchema(typeof(GeneratedCaseSeedArtifact), budget);
-        SetArrayBounds(schema, ["caseSeed", "suspectIds"], 2, budget.MaxSuspects);
-        SetArrayBounds(schema, ["caseSeed", "locationIds"], 1, budget.MaxLocations);
+        var suspectMinimum = exactSuspects ?? minSuspects;
+        var suspectMaximum = exactSuspects ?? budget.MaxSuspects;
+        SetArrayBounds(schema, ["caseSeed", "suspectIds"],
+            Math.Clamp(suspectMinimum, 2, budget.MaxSuspects),
+            Math.Clamp(suspectMaximum, 2, budget.MaxSuspects));
+        SetArrayBounds(schema, ["caseSeed", "locationIds"],
+            Math.Clamp(minLocations, 1, budget.MaxLocations), budget.MaxLocations);
         SetArrayBounds(schema, ["caseSeed", "locationGraph"], 0,
             budget.MaxLocations * Math.Max(0, budget.MaxLocations - 1));
         return schema;
@@ -164,12 +287,16 @@ public static class AiStrictSchemaProvider
 
     public static JsonObject CoreTruthSchema(
         AiTruthGenerationBudget budget,
-        IEnumerable<string> suspectIds)
+        IEnumerable<string> suspectIds,
+        string? lockedTargetKind = null)
     {
         var suspects = RequiredEnumValues(suspectIds, nameof(suspectIds));
         var schema = CoreTruthSchema(budget);
         var properties = schema["properties"]!["coreTruth"]!["properties"]!.AsObject();
         properties["culpritId"] = StringEnumSchema(suspects);
+        properties["targetKind"] = string.IsNullOrWhiteSpace(lockedTargetKind)
+            ? StringEnumSchema(CaseTargetKinds.All)
+            : ConstSchema(lockedTargetKind);
         SetArrayBounds(schema, ["coreTruth", "preparationActionIds"], 0, budget.MaxTimelineEvents);
         SetArrayBounds(schema, ["coreTruth", "crimeActionIds"], 1, budget.MaxTimelineEvents);
         SetArrayBounds(schema, ["coreTruth", "concealmentActionIds"], 0, budget.MaxTimelineEvents);
@@ -189,8 +316,24 @@ public static class AiStrictSchemaProvider
         IEnumerable<string> suspectIds,
         string targetId,
         IEnumerable<string> locationIds)
+        => TrueTimelineSchema(
+            budget,
+            suspectIds,
+            targetId,
+            CaseTargetKinds.Character,
+            locationIds);
+
+    public static JsonObject TrueTimelineSchema(
+        AiTruthGenerationBudget budget,
+        IEnumerable<string> suspectIds,
+        string targetId,
+        string targetKind,
+        IEnumerable<string> locationIds)
     {
-        var actors = RequiredEnumValues(suspectIds.Append(targetId), "timeline actor IDs");
+        var actorIds = CaseTargetKinds.IsAsset(new CoreCaseTruth { TargetKind = targetKind })
+            ? suspectIds
+            : suspectIds.Append(targetId);
+        var actors = RequiredEnumValues(actorIds, "timeline actor IDs");
         var locations = RequiredEnumValues(locationIds, nameof(locationIds));
         var schema = TrueTimelineSchema(budget);
         var properties = schema["properties"]!["trueTimeline"]!["items"]!["properties"]!.AsObject();
@@ -254,6 +397,8 @@ public static class AiStrictSchemaProvider
         var schema = ConstrainProofReferences(
             TruthSchema(typeof(GeneratedStatementArtifact), budget), "statementLedger");
         SetArrayBounds(schema, ["statementLedger"], 1, budget.MaxStatements);
+        var properties = schema["properties"]!["statementLedger"]!["items"]!["properties"]!.AsObject();
+        properties["knowledgeSourceIds"]!["minItems"] = 1;
         return schema;
     }
 
@@ -273,6 +418,7 @@ public static class AiStrictSchemaProvider
         properties["eventIds"]!["items"] = StringEnumSchema(events);
         properties["knowledgeSourceIds"]!["items"] = StringEnumSchema(knowledge);
         properties["contradictedByTraceIds"]!["items"] = StringEnumSchema(traces);
+        properties["contradictedByTraceIds"]!["maxItems"] = 1;
         return schema;
     }
 
@@ -282,7 +428,7 @@ public static class AiStrictSchemaProvider
             TruthSchema(typeof(GeneratedProofArtifact), budget));
         SetArrayBounds(schema, ["proofGraph", "conclusions"],
             budget.ProofConclusionCount, budget.ProofConclusionCount);
-        SetArrayBounds(schema, ["redHerringLedger"], 0, Math.Max(0, budget.MaxSuspects - 1));
+        SetArrayBounds(schema, ["redHerringLedger"], 0, budget.MaxRedHerrings);
         return schema;
     }
 
@@ -298,21 +444,64 @@ public static class AiStrictSchemaProvider
         var schema = ProofGraphSchema(budget);
         var conclusionProperties = schema["properties"]!["proofGraph"]!["properties"]!["conclusions"]!
             ["items"]!["properties"]!.AsObject();
+        conclusionProperties["supportingTraceIds"]!["minItems"] = 1;
         conclusionProperties["supportingTraceIds"]!["items"] = StringEnumSchema(traces);
         conclusionProperties["supportingStatementIds"]!["items"] = StringEnumSchema(statements);
         conclusionProperties["excludesSuspectIds"]!["items"] = StringEnumSchema(suspects);
         var redHerringProperties = schema["properties"]!["redHerringLedger"]!["items"]!["properties"]!.AsObject();
         redHerringProperties["suspectId"] = StringEnumSchema(suspects);
         redHerringProperties["clearingTraceIds"]!["items"] = StringEnumSchema(traces);
+        redHerringProperties["clearingTraceIds"]!["maxItems"] = 1;
         redHerringProperties["clearingStatementIds"]!["items"] = StringEnumSchema(statements);
         return schema;
     }
 
-    public static JsonObject CaseTruthFeasibilityReviewSchema() =>
-        BuildObjectSchema(typeof(CaseTruthFeasibilityReview), includeV3Fields: true);
+    public static JsonObject CaseTruthFeasibilityReviewSchema()
+    {
+        var schema = BuildObjectSchema(typeof(CaseTruthFeasibilityReview), includeV3Fields: true);
+        ConstrainReviewEnvelope(schema, CaseTruthSchemaVersions.FeasibilityReviewV2);
+        return schema;
+    }
 
-    public static JsonObject BlindSolvabilityReviewSchema() =>
-        BuildObjectSchema(typeof(BlindSolvabilityReview), includeV3Fields: true);
+    public static JsonObject BlindSolvabilityReviewSchema()
+    {
+        var schema = BuildObjectSchema(typeof(BlindSolvabilityReview), includeV3Fields: true);
+        ConstrainReviewEnvelope(schema, CaseTruthSchemaVersions.BlindReviewV2);
+        var properties = schema["properties"]!.AsObject();
+        properties["evidenceChainIds"]!["minItems"] = ProofConclusionCategories.All.Count;
+        return schema;
+    }
+
+    private static void ConstrainReviewEnvelope(JsonObject schema, string schemaVersion)
+    {
+        var properties = schema["properties"]!.AsObject();
+        properties["status"] = StringEnumSchema(
+            [CaseTruthReviewStatuses.Passed, CaseTruthReviewStatuses.Failed, CaseTruthReviewStatuses.Ambiguous]);
+        properties["schemaVersion"] = StringEnumSchema([schemaVersion]);
+        properties["confidence"]!["minimum"] = 0;
+        properties["confidence"]!["maximum"] = 1;
+        properties["issues"]!["maxItems"] = 0;
+        properties["findings"]!["maxItems"] = 24;
+
+        var findingProperties = properties["findings"]!["items"]!["properties"]!.AsObject();
+        findingProperties["findingId"]!["maxLength"] = 80;
+        findingProperties["code"] = StringEnumSchema(CaseTruthReviewFindingCodes.All);
+        findingProperties["relatedIds"]!["maxItems"] = 12;
+        findingProperties["relatedIds"]!["items"]!["maxLength"] = AiTruthGenerationBudget.Maximum.MaxIdLength;
+        findingProperties["message"]!["maxLength"] = 800;
+    }
+
+    private static void ConstrainStatementProjection(
+        JsonNode ledgerSchema,
+        IReadOnlyCollection<string> locations,
+        IReadOnlyCollection<string> statements)
+    {
+        var properties = ledgerSchema["items"]!["properties"]!.AsObject();
+        properties["statementIds"]!["minItems"] = 1;
+        properties["statementIds"]!["items"] = StringEnumSchema(statements);
+        properties["availableSceneIds"]!["minItems"] = 1;
+        properties["availableSceneIds"]!["items"] = StringEnumSchema(locations);
+    }
 
     private static JsonObject BuildObjectSchema(Type type, bool includeV3Fields)
     {
@@ -418,6 +607,7 @@ public static class AiStrictSchemaProvider
         var conclusionProperties = conclusions["items"]!["properties"]!.AsObject();
         conclusionProperties["conclusionId"] = StringEnumSchema(ProofConclusionIds.All);
         conclusionProperties["category"] = StringEnumSchema(ProofConclusionCategories.All);
+        conclusionProperties["supportingTraceIds"]!["minItems"] = 1;
         return schema;
     }
 
@@ -475,6 +665,12 @@ public static class AiStrictSchemaProvider
         ["type"] = "string",
         ["enum"] = new JsonArray(values.OrderBy(value => value, StringComparer.Ordinal)
             .Select(value => (JsonNode?)JsonValue.Create(value)).ToArray())
+    };
+
+    private static JsonObject ConstSchema(string value) => new()
+    {
+        ["type"] = "string",
+        ["const"] = value
     };
 
     private static IReadOnlyList<string> RequiredEnumValues(IEnumerable<string> values, string parameterName)

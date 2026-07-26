@@ -40,6 +40,11 @@ public class GameCase
     public string TruthSchemaVersion { get; set; } = string.Empty;
     public string TruthHash { get; set; } = string.Empty;
     public string BlindReviewStatus { get; set; } = string.Empty;
+    /// <summary>Server-owned audit reference for backend-compiled gameplay projections.</summary>
+    public string ProjectionSchemaVersion { get; set; } = string.Empty;
+    public string ProjectionPlanHash { get; set; } = string.Empty;
+    public string ProjectionCompilerVersion { get; set; } = string.Empty;
+    public string ProjectionBuildMode { get; set; } = string.Empty;
     /// <summary>Server-owned quality-gate result for AI-generated V3 cases.</summary>
     public string AiSemanticReviewStatus { get; set; } = string.Empty;
     public int EstimatedMinutes { get; set; }
@@ -687,6 +692,8 @@ public class AccusationOption
 public class RequiredEvidenceLink
 {
     public string ClaimType { get; set; } = string.Empty;
+    /// <summary>Required for causal contract-v2 cases; empty on legacy three-claim cases.</summary>
+    public string ConclusionId { get; set; } = string.Empty;
     public string EvidenceId { get; set; } = string.Empty;
 }
 

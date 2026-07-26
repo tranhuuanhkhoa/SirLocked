@@ -244,6 +244,55 @@ public sealed class MongoGameplayConcurrencyTests
         }
     }
 
+    [Fact]
+    public async Task MongoQueue_RetriesOneBenignVersionDriftWhenGenerationInputsAreUnchanged()
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable(RunEnvironmentVariable), "true", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var settings = NewSettings();
+        TestMongoSafetyGuard.EnsureSafe(settings);
+        var db = new MongoDbContext(Options.Create(settings));
+        var client = new MongoClient(settings.ConnectionString);
+        try
+        {
+            await db.PingAsync();
+            var draft = new AiCaseDraft
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                Status = AiDraftStatus.GeneratedInvalid,
+                FailurePhase = AiFailurePhases.ProjectionContentJson,
+                WorkflowVersion = 13,
+                ProjectionPlanHash = new string('a', 64),
+                TruthHash = new string('b', 64)
+            };
+            await db.AiCaseDrafts.InsertOneAsync(draft);
+            var observed = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync();
+            await db.AiCaseDrafts.UpdateOneAsync(
+                item => item.Id == draft.Id,
+                Builders<AiCaseDraft>.Update
+                    .Inc(item => item.WorkflowVersion, 1)
+                    .Set(item => item.UpdatedAt, DateTime.UtcNow));
+
+            var queued = await new AiDraftWorkflowCoordinator(db, TimeProvider.System).EnqueueAsync(
+                observed,
+                [AiDraftStatus.GeneratedInvalid],
+                AiDraftStatus.GeneratingFullCase,
+                AiQueuedOperations.RetryJson,
+                "FULL_LOGIC_RETRY");
+
+            Assert.True(queued.Acquired);
+            Assert.Equal(15, queued.Draft.WorkflowVersion);
+            Assert.Equal(AiQueueStates.Pending, queued.Draft.QueueState);
+            Assert.Equal(AiQueuedOperations.RetryJson, queued.Draft.QueuedOperation);
+        }
+        finally
+        {
+            TestMongoSafetyGuard.EnsureSafe(settings);
+            await client.DropDatabaseAsync(settings.DatabaseName);
+        }
+    }
+
     private static MongoDbSettings NewSettings() => new()
     {
         ConnectionString = Environment.GetEnvironmentVariable("SIRLOCKED_TEST_MONGO_CONNECTION_STRING")

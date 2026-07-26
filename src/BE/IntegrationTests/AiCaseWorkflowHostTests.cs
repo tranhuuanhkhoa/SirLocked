@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -23,6 +25,9 @@ namespace SirLocked.IntegrationTests;
 
 public sealed class AiCaseWorkflowHostTests
 {
+    private const string DefaultAdminId = "507f1f77bcf86cd799439011";
+    private const string VipOwnerId = "507f1f77bcf86cd799439012";
+
     [Fact]
     public async Task VipDraftList_ReturnsOnlyOwnedDraftsAfterReload()
     {
@@ -34,23 +39,24 @@ public sealed class AiCaseWorkflowHostTests
 
         await using var factory = new AiWorkflowFactory();
         var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-UserId", "vip-owner");
+        client.DefaultRequestHeaders.Add("X-Test-UserId", VipOwnerId);
         client.DefaultRequestHeaders.Add("X-Test-Role", UserRole.Vip);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+        await InsertActiveUserAsync(db, VipOwnerId, UserRole.Vip);
         await db.AiCaseDrafts.InsertManyAsync(
         [
             new AiCaseDraft
             {
                 Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
-                CreatedByUserId = "vip-owner",
+                CreatedByUserId = VipOwnerId,
                 CreatedByRole = UserRole.Vip,
                 Status = AiDraftStatus.StoryAwaitingApproval
             },
             new AiCaseDraft
             {
                 Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
-                CreatedByUserId = "different-owner",
+                CreatedByUserId = "507f1f77bcf86cd799439013",
                 CreatedByRole = UserRole.Vip,
                 Status = AiDraftStatus.StoryAwaitingApproval
             }
@@ -60,7 +66,7 @@ public sealed class AiCaseWorkflowHostTests
             "/api/admin/ai-cases");
 
         Assert.Single(envelope!.Data!);
-        Assert.Equal("vip-owner", envelope.Data![0].CreatedByUserId);
+        Assert.Equal(VipOwnerId, envelope.Data![0].CreatedByUserId);
     }
 
     [Fact]
@@ -77,6 +83,7 @@ public sealed class AiCaseWorkflowHostTests
         using var scope = factory.Services.CreateScope();
         var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+        await InsertActiveUserAsync(db, DefaultAdminId, UserRole.Admin);
         var folder = Path.Combine(
             environment.ContentRootPath,
             "GeneratedCaseJson",
@@ -117,6 +124,13 @@ public sealed class AiCaseWorkflowHostTests
             return;
 
         await using var factory = new AiWorkflowFactory();
+        using (var scope = factory.Services.CreateScope())
+        {
+            await InsertActiveUserAsync(
+                scope.ServiceProvider.GetRequiredService<MongoDbContext>(),
+                DefaultAdminId,
+                UserRole.Admin);
+        }
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
@@ -144,7 +158,9 @@ public sealed class AiCaseWorkflowHostTests
             queued.DraftId,
             AiDraftStatus.CaseTruthAwaitingApproval,
             AiDraftStatus.CaseTruthInvalid);
-        Assert.Equal(AiDraftStatus.CaseTruthAwaitingApproval, truth.Status);
+        Assert.True(
+            truth.Status == AiDraftStatus.CaseTruthAwaitingApproval,
+            $"Truth status {truth.Status}: {string.Join(" | ", truth.TruthValidationReport)}");
         Assert.NotNull(truth.CaseTruth);
         Assert.True(truth.CaseTruth!.TraceLedger.Count <= 10);
 
@@ -155,7 +171,12 @@ public sealed class AiCaseWorkflowHostTests
             queued.DraftId,
             AiDraftStatus.FullLogicAwaitingApproval,
             AiDraftStatus.GeneratedInvalid);
-        Assert.Equal(AiDraftStatus.FullLogicAwaitingApproval, fullLogic.Status);
+        Assert.True(
+            fullLogic.Status == AiDraftStatus.FullLogicAwaitingApproval,
+            $"Full logic status {fullLogic.Status}, phase {fullLogic.FailurePhase}, "
+            + $"last error {fullLogic.LastGenerationErrorCode}: "
+            + string.Join(" | ", fullLogic.ValidationErrors.Concat(
+                fullLogic.GenerationAttempts.SelectMany(attempt => attempt.ValidationErrors))));
 
         var approveFullLogic = await client.PostAsync(
             $"/api/admin/ai-cases/{queued.DraftId}/approve-full-logic",
@@ -182,7 +203,9 @@ public sealed class AiCaseWorkflowHostTests
         var publish = await client.PostAsync(
             $"/api/admin/ai-cases/{queued.DraftId}/publish?overwrite=true",
             null);
-        Assert.Equal(HttpStatusCode.OK, publish.StatusCode);
+        Assert.True(
+            publish.StatusCode == HttpStatusCode.OK,
+            $"Publish returned {publish.StatusCode}: {await publish.Content.ReadAsStringAsync()}");
         Assert.Equal(0, factory.OpenAiClient.CallCount);
     }
 
@@ -205,6 +228,17 @@ public sealed class AiCaseWorkflowHostTests
         throw new TimeoutException($"Draft {draftId} did not reach {string.Join('/', terminalStatuses)}.");
     }
 
+    private static Task InsertActiveUserAsync(MongoDbContext db, string id, string role) =>
+        db.Users.InsertOneAsync(new User
+        {
+            Id = id,
+            FullName = "Integration User",
+            Email = $"{id}@integration.test",
+            Role = role,
+            Status = UserStatus.Active,
+            IsEmailVerified = true
+        });
+
     private sealed class AiWorkflowFactory : WebApplicationFactory<Program>
     {
         private readonly string _connectionString =
@@ -216,6 +250,11 @@ public sealed class AiCaseWorkflowHostTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+            builder.ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+            });
             builder.ConfigureAppConfiguration((_, configuration) =>
             {
                 configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -224,11 +263,21 @@ public sealed class AiCaseWorkflowHostTests
                     ["MongoDb:DatabaseName"] = _databaseName,
                     ["MOCK_AI_RESPONSES"] = "true",
                     ["SKIP_ASSET_GENERATION"] = "true",
-                    ["Jwt:Secret"] = "integration-test-secret-with-at-least-32-characters"
+                    ["Jwt:Secret"] = "integration-test-secret-with-at-least-32-characters",
+                    ["Google:ClientId"] = "integration-test-google-client",
+                    ["Google:ClientSecret"] = "integration-test-google-secret"
                 });
             });
             builder.ConfigureTestServices(services =>
             {
+                services.AddDataProtection().UseEphemeralDataProtectionProvider();
+                services.PostConfigure<GoogleOptions>(
+                    GoogleDefaults.AuthenticationScheme,
+                    options =>
+                    {
+                        options.ClientId = "integration-test-google-client";
+                        options.ClientSecret = "integration-test-google-secret";
+                    });
                 services.AddSingleton(OpenAiClient);
                 services.AddScoped<IAiOpenAiClient>(provider => provider.GetRequiredService<FakeOpenAiClient>());
                 services.AddAuthentication(options =>
@@ -276,7 +325,7 @@ public sealed class AiCaseWorkflowHostTests
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            var userId = Request.Headers["X-Test-UserId"].FirstOrDefault() ?? "integration-admin";
+            var userId = Request.Headers["X-Test-UserId"].FirstOrDefault() ?? DefaultAdminId;
             var role = Request.Headers["X-Test-Role"].FirstOrDefault() ?? UserRole.Admin;
             var identity = new ClaimsIdentity(
                 [

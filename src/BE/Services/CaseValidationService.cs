@@ -1,6 +1,7 @@
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
@@ -1396,14 +1397,39 @@ public class CaseValidationService : ICaseValidationService
 
     private static void ValidateCausalProjectionMetadata(GameCase c, CaseValidationResult result, CaseValidationStage stage)
     {
-        if (c.TruthSchemaVersion != CaseTruthSchemaVersions.V1)
-            result.Add("MissingTruthContract", "truthSchemaVersion", "Contract-v2 cases must reference case-truth-v1.");
+        if (c.TruthSchemaVersion is not (CaseTruthSchemaVersions.V1 or CaseTruthSchemaVersions.V2))
+            result.Add("MissingTruthContract", "truthSchemaVersion",
+                "Contract-v2 cases must reference a supported case-truth schema.");
         if (c.LogicVerificationStatus != CaseLogicVerificationStatuses.CausalVerified)
             result.Add("MissingTruthContract", "logicVerificationStatus", "Contract-v2 cases must be marked CAUSAL_VERIFIED by the server.");
         if (string.IsNullOrWhiteSpace(c.TruthHash) || c.TruthHash.Length != 64)
             result.Add("MissingTruthContract", "truthHash", "Contract-v2 cases must reference a SHA-256 truth hash.");
-        if (stage != CaseValidationStage.FullLogic && c.BlindReviewStatus != CaseTruthReviewStatuses.Passed)
-            result.Add("BlindReviewRequired", "blindReviewStatus", "Contract-v2 cases must pass blind solvability review.");
+        if (stage != CaseValidationStage.FullLogic
+            && !CaseTruthReviewStatuses.All.Contains(c.BlindReviewStatus))
+            result.Add("BlindReviewMetadataInvalid", "blindReviewStatus",
+                "Contract-v2 cases must record a recognized advisory blind-review status.");
+        if (c.ProjectionBuildMode == ProjectionBuildModes.AiCompiled)
+        {
+            if (c.ProjectionSchemaVersion != GameplayProjectionVersions.Plan
+                || c.ProjectionCompilerVersion != GameplayProjectionVersions.Compiler
+                || c.ProjectionPlanHash.Length != 64)
+                result.Add("ProjectionMetadataMismatch", "projectionPlanHash", "Compiled cases must reference the exact projection plan schema, compiler, and SHA-256 hash.");
+        }
+        else if (c.ProjectionBuildMode == ProjectionBuildModes.ManualFullJson
+                 && (!string.IsNullOrWhiteSpace(c.ProjectionSchemaVersion)
+                     || !string.IsNullOrWhiteSpace(c.ProjectionPlanHash)
+                     || !string.IsNullOrWhiteSpace(c.ProjectionCompilerVersion)))
+            result.Add("ProjectionMetadataMismatch", "projectionBuildMode", "Manual full JSON cases cannot claim compiler-owned plan metadata.");
+        else if (!string.IsNullOrWhiteSpace(c.ProjectionBuildMode)
+                 && c.ProjectionBuildMode is not (ProjectionBuildModes.LegacyFullJson
+                     or ProjectionBuildModes.ManualFullJson
+                     or ProjectionBuildModes.AiCompiled))
+            result.Add("InvalidValue", "projectionBuildMode", "Unknown projection build mode.");
+
+        foreach (var link in c.FinalLogic.RequiredEvidenceLinks.Where(link =>
+                     string.IsNullOrWhiteSpace(link.ConclusionId)))
+            result.Add("MissingProofLink", "finalLogic.requiredEvidenceLinks.conclusionId",
+                "Contract-v2 final evidence must identify its exact proof conclusion.", link.EvidenceId);
 
         for (var i = 0; i < c.Clues.Count; i++)
         {

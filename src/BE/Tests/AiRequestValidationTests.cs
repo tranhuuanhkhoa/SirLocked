@@ -260,6 +260,54 @@ public class AiRequestValidationTests
     }
 
     [Fact]
+    public void TruthAwareCaseSchema_LocksProjectionNamespacesWithoutChangingLegacySchema()
+    {
+        var draft = new AiCaseDraft
+        {
+            LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            Settings = new AiDraftSettings()
+        };
+        var truth = JsonSerializer.Deserialize<CaseTruthPackage>(
+            AiCaseMockFactory.BuildMockTruthPackageJson(draft),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+        var schema = AiStrictSchemaProvider.CaseLogicSchema(
+            CaseMechanicsVersions.InvestigationV2,
+            truth);
+        var properties = schema["properties"]!;
+        var clue = properties["clues"]!["items"]!["properties"]!;
+        var dialogue = properties["dialogues"]!["items"]!["properties"]!;
+        var scene = properties["stages"]!["items"]!["properties"]!["scenes"]!
+            ["items"]!["properties"]!;
+        var finalLogic = properties["finalLogic"]!["properties"]!;
+        var legacy = AiStrictSchemaProvider.CaseLogicSchema();
+        var v3 = AiStrictSchemaProvider.CaseLogicSchema(
+            CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            truth).ToJsonString();
+
+        Assert.Equal(truth.CaseSeed.LocationIds.ToHashSet(StringComparer.Ordinal),
+            EnumValues(scene["sceneId"]!));
+        Assert.Equal(truth.CaseSeed.LocationIds.ToHashSet(StringComparer.Ordinal),
+            EnumValues(clue["sceneId"]!));
+        Assert.Equal(CaseTruthReferenceContract.TimelineEventIds(truth.TrueTimeline)
+                .ToHashSet(StringComparer.Ordinal),
+            EnumValues(clue["sourceActionId"]!));
+        Assert.Equal(truth.ProofGraph.Conclusions.Select(item => item.ConclusionId)
+                .ToHashSet(StringComparer.Ordinal),
+            EnumValues(clue["supportsConclusionIds"]!["items"]!));
+        Assert.Equal(1, clue["supportsConclusionIds"]!["minItems"]!.GetValue<int>());
+        Assert.Equal(1, dialogue["statementIds"]!["minItems"]!.GetValue<int>());
+        Assert.Equal(new[] { truth.CoreTruth.CulpritId }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(finalLogic["culpritId"]!));
+        Assert.Equal(new[] { truth.CoreTruth.Motive }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(finalLogic["motive"]!));
+        Assert.Equal(new[] { truth.CoreTruth.Method }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(finalLogic["method"]!));
+        Assert.Null(legacy["properties"]!["clues"]!["items"]!["properties"]!["sceneId"]!["enum"]);
+        Assert.Contains("testimonyFragments", v3, StringComparison.Ordinal);
+        Assert.Contains("candidateTestimonyFragmentIds", v3, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TruthStageSchemas_ConstrainCanonicalProofReferences()
     {
         var traceSchema = AiStrictSchemaProvider.TraceLedgerSchema();
@@ -281,6 +329,43 @@ public class AiRequestValidationTests
         Assert.Equal(ProofConclusionIds.ByCategory.Count, conclusions["minItems"]!.GetValue<int>());
         Assert.Equal(ProofConclusionIds.ByCategory.Count, conclusions["maxItems"]!.GetValue<int>());
         Assert.True(ProofConclusionIds.All.SetEquals(allowedConclusionIds));
+    }
+
+    [Fact]
+    public void FeasibilityReviewV2Schema_LocksEnvelopeAndStructuredFindingCodes()
+    {
+        var schema = AiStrictSchemaProvider.CaseTruthFeasibilityReviewSchema();
+        var properties = schema["properties"]!;
+        var findingProperties = properties["findings"]!["items"]!["properties"]!;
+
+        Assert.Equal(
+            new[] { CaseTruthReviewStatuses.Passed, CaseTruthReviewStatuses.Failed, CaseTruthReviewStatuses.Ambiguous }
+                .ToHashSet(StringComparer.Ordinal),
+            EnumValues(properties["status"]!));
+        Assert.Equal(
+            new[] { CaseTruthSchemaVersions.FeasibilityReviewV2 }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(properties["schemaVersion"]!));
+        Assert.Equal(0, properties["confidence"]!["minimum"]!.GetValue<int>());
+        Assert.Equal(1, properties["confidence"]!["maximum"]!.GetValue<int>());
+        Assert.Equal(0, properties["issues"]!["maxItems"]!.GetValue<int>());
+        Assert.Equal(
+            CaseTruthReviewFindingCodes.All,
+            EnumValues(findingProperties["code"]!));
+    }
+
+    [Fact]
+    public void BlindReviewV2Schema_UsesStructuredFindingsAndGameplayProjectionVersion()
+    {
+        var schema = AiStrictSchemaProvider.BlindSolvabilityReviewSchema();
+        var properties = schema["properties"]!;
+
+        Assert.Equal(
+            new[] { CaseTruthSchemaVersions.BlindReviewV2 }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(properties["schemaVersion"]!));
+        Assert.Equal(ProofConclusionCategories.All.Count,
+            properties["evidenceChainIds"]!["minItems"]!.GetValue<int>());
+        Assert.Equal(CaseTruthReviewFindingCodes.All,
+            EnumValues(properties["findings"]!["items"]!["properties"]!["code"]!));
     }
 
     [Fact]
@@ -326,6 +411,7 @@ public class AiRequestValidationTests
         var statementProperties = statement["properties"]!["statementLedger"]!["items"]!["properties"]!;
         Assert.Equal(actors.ToHashSet(StringComparer.Ordinal), EnumValues(statementProperties["speakerId"]!));
         Assert.Equal(events.ToHashSet(StringComparer.Ordinal), EnumValues(statementProperties["eventIds"]!["items"]!));
+        Assert.Equal(1, statementProperties["knowledgeSourceIds"]!["minItems"]!.GetValue<int>());
         Assert.Equal(traces.ToHashSet(StringComparer.Ordinal), EnumValues(statementProperties["contradictedByTraceIds"]!["items"]!));
 
         var proof = AiStrictSchemaProvider.ProofGraphSchema(budget, suspects, traces, statements);

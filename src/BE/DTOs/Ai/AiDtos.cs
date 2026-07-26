@@ -3,6 +3,7 @@ using System.Text.Json;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.DTOs.Ai;
 
@@ -53,16 +54,24 @@ public class AiDraftResponse
     public AiStoryDiversityProfile StoryDiversity { get; set; } = new();
     public string StoryFingerprint { get; set; } = string.Empty;
     public int LogicContractVersion { get; set; }
+    public string ProjectionPlanSchemaVersion { get; set; } = string.Empty;
+    public string ProjectionPlanHash { get; set; } = string.Empty;
+    public string ProjectionCompilerVersion { get; set; } = string.Empty;
+    public string ProjectionBuildMode { get; set; } = string.Empty;
+    public bool HasProjectionPlan { get; set; }
     public AiCaseTruthSummaryResponse? TruthSummary { get; set; }
     /// <summary>Spoiler payload; returned only by the single-draft admin/VIP detail endpoint.</summary>
     public CaseTruthPackage? CaseTruth { get; set; }
     public CaseTruthFeasibilityReview? TruthReviewerResult { get; set; }
+    public bool TruthReviewIsAdvisory { get; set; } = true;
     public List<string> TruthValidationReport { get; set; } = new();
     public CaseTruthPackage? TruthRepairCandidate { get; set; }
     public string TruthRepairStatus { get; set; } = string.Empty;
     public List<string> TruthRepairValidationReport { get; set; } = new();
     public CaseTruthFeasibilityReview? TruthRepairReviewerResult { get; set; }
+    public AiTruthRepairPlanResponse? TruthRepairPlan { get; set; }
     public BlindSolvabilityReview? BlindSolvabilityReview { get; set; }
+    public bool BlindReviewIsAdvisory { get; set; } = true;
     /// <summary>Dependency hashes for the single-draft review screen; omitted from list responses.</summary>
     public List<AiArtifactProvenance> ArtifactProvenance { get; set; } = new();
     public AiBlueprintSummaryResponse? BlueprintSummary { get; set; }
@@ -123,18 +132,24 @@ public class AiDraftResponse
             },
         StoryFingerprint = d.StoryFingerprint,
         LogicContractVersion = d.LogicContractVersion,
+        ProjectionPlanSchemaVersion = d.ProjectionPlanSchemaVersion,
+        ProjectionPlanHash = d.ProjectionPlanHash,
+        ProjectionCompilerVersion = d.ProjectionCompilerVersion,
+        ProjectionBuildMode = d.ProjectionBuildMode,
+        HasProjectionPlan = d.ProjectionPlan is not null
+                            && !string.IsNullOrWhiteSpace(d.ProjectionPlanHash),
         TruthSummary = d.CaseTruth is null ? null : new AiCaseTruthSummaryResponse
         {
             SchemaVersion = d.TruthSchemaVersion,
             TruthHash = d.TruthHash,
             TimelineEventCount = d.CaseTruth.TrueTimeline.Count,
-            MaxTimelineEvents = AiTruthGenerationBudget.For(d.Settings).MaxTimelineEvents,
+            MaxTimelineEvents = TruthBudget(d).MaxTimelineEvents,
             TraceCount = d.CaseTruth.TraceLedger.Count,
-            MaxTraces = AiTruthGenerationBudget.For(d.Settings).MaxTraces,
+            MaxTraces = TruthBudget(d).MaxTraces,
             StatementCount = d.CaseTruth.StatementLedger.Count,
-            MaxStatements = AiTruthGenerationBudget.For(d.Settings).MaxStatements,
-            MaxSuspects = AiTruthGenerationBudget.For(d.Settings).MaxSuspects,
-            MaxLocations = AiTruthGenerationBudget.For(d.Settings).MaxLocations,
+            MaxStatements = TruthBudget(d).MaxStatements,
+            MaxSuspects = TruthBudget(d).MaxSuspects,
+            MaxLocations = TruthBudget(d).MaxLocations,
             ProofConclusionCount = d.CaseTruth.ProofGraph.Conclusions.Count,
             ReviewerStatus = d.TruthReviewerResult.Status,
             ReviewerConfidence = d.TruthReviewerResult.Confidence,
@@ -142,13 +157,18 @@ public class AiDraftResponse
         },
         CaseTruth = includeJson ? d.CaseTruth : null,
         TruthReviewerResult = includeJson && d.CaseTruth is not null ? d.TruthReviewerResult : null,
+        TruthReviewIsAdvisory = true,
         TruthValidationReport = includeJson ? d.TruthValidationReport : new List<string>(),
         TruthRepairCandidate = includeJson ? d.TruthRepairCandidate : null,
         TruthRepairStatus = d.TruthRepairStatus,
         TruthRepairValidationReport = includeJson ? d.TruthRepairValidationReport : new List<string>(),
         TruthRepairReviewerResult = includeJson && d.TruthRepairCandidate is not null ? d.TruthRepairReviewerResult : null,
+        TruthRepairPlan = includeJson && d.CaseTruth is not null
+            ? AiTruthRepairPlanResponse.From(d)
+            : null,
         BlindSolvabilityReview = includeJson && d.BlindSolvabilityReview.Status != CaseTruthReviewStatuses.NotRun
             ? d.BlindSolvabilityReview : null,
+        BlindReviewIsAdvisory = true,
         ArtifactProvenance = includeJson ? d.ArtifactProvenance : new List<AiArtifactProvenance>(),
         BlueprintSummary = d.CaseBlueprint is null ? null : new AiBlueprintSummaryResponse
         {
@@ -203,6 +223,11 @@ public class AiDraftResponse
         CreatedAt = d.CreatedAt
     };
 
+    private static AiTruthGenerationBudget TruthBudget(AiCaseDraft draft) =>
+        CaseTargetKinds.All.Contains(draft.PlannedTargetKind)
+            ? AiTruthGenerationBudget.ForProjection(draft.Settings)
+            : AiTruthGenerationBudget.For(draft.Settings);
+
     private static bool HasStoryPreview(AiStoryPreview? preview) =>
         preview is not null
         && (!string.IsNullOrWhiteSpace(preview.Title)
@@ -231,7 +256,6 @@ public class AiDraftResponse
         if (d.Status == AiDraftStatus.CaseTruthAwaitingApproval)
         {
             return d.CaseTruth is not null
-                && d.TruthReviewerResult.Status == CaseTruthReviewStatuses.Passed
                 && d.TruthValidationReport.Count == 0;
         }
 
@@ -243,6 +267,22 @@ public class AiDraftResponse
         if (d.Status == AiDraftStatus.GeneratedInvalid
             && d.FailurePhase is AiFailurePhases.BlueprintJson or AiFailurePhases.V3SemanticReview
             && !string.IsNullOrWhiteSpace(d.BlueprintJson))
+        {
+            return true;
+        }
+
+        if (d.Status == AiDraftStatus.GeneratedInvalid
+            && d.FailurePhase == AiFailurePhases.ProjectionConformance
+            && d.CaseTruth is not null)
+        {
+            return true;
+        }
+
+        if (d.Status == AiDraftStatus.GeneratedInvalid
+            && d.FailurePhase is AiFailurePhases.ProjectionContentJson
+                or AiFailurePhases.ProjectionCompile
+            && d.ProjectionPlan is not null
+            && !string.IsNullOrWhiteSpace(d.ProjectionPlanHash))
         {
             return true;
         }
@@ -326,6 +366,43 @@ public class RepairCaseTruthRequest
 {
     [MaxLength(2000)]
     public string? RepairInstructions { get; set; }
+
+    [MaxLength(40)]
+    public string? RepairFromArtifact { get; set; }
+}
+
+public sealed class AiTruthRepairPlanResponse
+{
+    public string RecommendedStartArtifact { get; set; } = string.Empty;
+    public string SelectedStartArtifact { get; set; } = string.Empty;
+    public List<string> ReasonCodes { get; set; } = new();
+    public List<string> InvalidArtifacts { get; set; } = new();
+    public List<string> StaleArtifacts { get; set; } = new();
+
+    public static AiTruthRepairPlanResponse From(AiCaseDraft draft)
+    {
+        var plan = draft.TruthReviewerResult.Status is CaseTruthReviewStatuses.Failed
+            or CaseTruthReviewStatuses.Ambiguous
+            ? CaseTruthRepairPolicy.PlanReview(draft.TruthReviewerResult)
+            : draft.TruthReviewerResult.Status == CaseTruthReviewStatuses.Passed
+                ? CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.CoreTruth)
+                : CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.Timeline);
+        var recommended = CaseTruthRepairPolicy.IsTruthArtifact(draft.TruthRepairRecommendedArtifact)
+            ? draft.TruthRepairRecommendedArtifact
+            : plan.RegenerateFromArtifact;
+        if (recommended != plan.RegenerateFromArtifact)
+            plan = CaseTruthRepairPolicy.BuildPlan(recommended);
+        if (draft.TruthRepairReasonCodes.Count > 0)
+            plan.ReasonCodes = draft.TruthRepairReasonCodes.ToList();
+        return new AiTruthRepairPlanResponse
+        {
+            RecommendedStartArtifact = recommended,
+            SelectedStartArtifact = draft.TruthRepairFromArtifact,
+            ReasonCodes = plan.ReasonCodes,
+            InvalidArtifacts = plan.InvalidArtifacts,
+            StaleArtifacts = plan.StaleArtifacts
+        };
+    }
 }
 
 public class ReplaceAiDraftJsonRequest

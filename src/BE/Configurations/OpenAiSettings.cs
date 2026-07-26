@@ -28,6 +28,7 @@ public class OpenAiSettings
     public bool DisableAutoPublish { get; set; }
     public bool GenerateJsonOnly { get; set; }
     public bool ValidateOnly { get; set; }
+    public bool EnableBlindSolvabilityReview { get; set; }
 
     public bool HasApiKey => !string.IsNullOrWhiteSpace(ApiKey);
     public bool BlocksAiCalls => AiDryRun || MockAiResponses;

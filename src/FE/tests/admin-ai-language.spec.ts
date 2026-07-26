@@ -115,6 +115,49 @@ test('Vietnamese admin AI creator localizes presets and causal workflow guidance
   await expect(page.locator('#ai-preset-help')).toContainText('Vụ án gọn');
 });
 
+test('queued premise appears as soon as polling reaches story approval without reloading', async ({ page }) => {
+  await page.unroute('**/api/admin/ai-cases');
+  const queuedDraft = {
+    draftId: 'draft-poll',
+    provider: 'OpenAI',
+    status: 'GENERATING_STORY',
+    queueState: 'RUNNING',
+    settings: { generationPreset: 'NORMAL_RANDOM', language: 'en' },
+  };
+  const completedDraft = {
+    ...queuedDraft,
+    status: 'STORY_AWAITING_APPROVAL',
+    queueState: 'NONE',
+    storyPreview: {
+      title: 'The Premise Appears Without Reload',
+      summary: 'Polling returned a completed premise.',
+      setting: 'Riverside theatre',
+      openingIncident: 'A sealed prop case disappears.',
+      tone: 'Fair-play mystery',
+      playerPromise: 'Follow physical evidence.',
+    },
+  };
+  const ok = (data: unknown, status = 200) => ({
+    status,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data }),
+  });
+
+  await page.route('**/api/admin/ai-cases', async (route) => {
+    if (route.request().method() === 'POST') await route.fulfill(ok(queuedDraft, 202));
+    else await route.fulfill(ok([]));
+  });
+  await page.route('**/api/admin/ai-cases/draft-poll', async (route) => {
+    await route.fulfill(ok(completedDraft));
+  });
+
+  await page.goto('/#/admin/ai');
+  await page.locator('#quick-create-btn').click();
+
+  await expect(page.getByRole('heading', { name: 'The Premise Appears Without Reload' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Approve story preview' })).toBeVisible();
+});
+
 test('failed drafts expose phase-specific retry actions and endpoints', async ({ page }) => {
   await page.unroute('**/api/admin/ai-cases');
   const drafts = [
@@ -178,11 +221,32 @@ test('causal truth review renders structured gates and forwards scoped repair in
     redHerringLedger: [{ redHerringId: 'red-1', suspectId: 'suspect-b', suspiciousReason: 'Owned a similar vial.', innocentExplanation: 'The vial contained medicine.', clearingTraceIds: ['trace-a'], clearingStatementIds: [] }],
   };
   const baseDraft = {
-    draftId: 'draft-truth', provider: 'OpenAI', status: 'CASE_TRUTH_AWAITING_APPROVAL', logicContractVersion: 2,
+    draftId: 'draft-truth', provider: 'OpenAI', status: 'CASE_TRUTH_INVALID', logicContractVersion: 2,
     caseTitle: 'The Poisoned Study', settings: { generationPreset: 'SHORT_DEMO', language: 'en' }, canContinue: true,
-    truthSummary: { schemaVersion: 'case-truth-v1', truthHash: 'a'.repeat(64), timelineEventCount: 1, traceCount: 2, statementCount: 1, proofConclusionCount: 5, reviewerStatus: 'PASSED', reviewerConfidence: .94, validationErrorCount: 0 },
+    truthSummary: { schemaVersion: 'case-truth-v1', truthHash: 'a'.repeat(64), timelineEventCount: 1, traceCount: 2, statementCount: 1, proofConclusionCount: 5, reviewerStatus: 'FAILED', reviewerConfidence: .96, validationErrorCount: 1 },
     caseTruth,
-    truthReviewerResult: { status: 'PASSED', confidence: .94, timelineFeasible: true, physicalCausalityFeasible: true, uniqueSolution: true, issues: [] },
+    truthReviewerResult: {
+      schemaVersion: 'case-truth-feasibility-review-v2',
+      status: 'FAILED',
+      confidence: .96,
+      timelineFeasible: true,
+      physicalCausalityFeasible: false,
+      uniqueSolution: true,
+      issues: [],
+      findings: [{
+        findingId: 'finding-clock-reset',
+        code: 'PHYSICAL_CAUSALITY',
+        relatedIds: ['event-2', 'trace-a'],
+        message: 'The reset removes the mechanism required for the later delay.',
+      }],
+    },
+    truthRepairPlan: {
+      recommendedStartArtifact: 'TIMELINE',
+      selectedStartArtifact: '',
+      reasonCodes: ['PHYSICAL_CAUSALITY'],
+      invalidArtifacts: ['TIMELINE'],
+      staleArtifacts: ['OPPORTUNITY', 'EVIDENCE', 'STATEMENTS', 'PROOF_GRAPH'],
+    },
     artifactProvenance: [
       { artifact: 'CORE_TRUTH', inputHash: '1'.repeat(64), outputHash: '2'.repeat(64), isStale: false, generatedAt: '2026-07-22T10:00:00Z' },
       { artifact: 'GAMEPLAY_PROJECTION', inputHash: '2'.repeat(64), outputHash: '3'.repeat(64), isStale: false, generatedAt: '2026-07-22T10:01:00Z' },
@@ -198,14 +262,36 @@ test('causal truth review renders structured gates and forwards scoped repair in
     await route.fulfill(ok(currentDraft));
   });
   await page.route('**/api/admin/ai-cases/draft-truth/accept-truth-repair', async (route) => {
-    currentDraft = { ...currentDraft, truthRepairStatus: 'ACCEPTED', truthRepairCandidate: null };
+    currentDraft = {
+      ...currentDraft,
+      status: 'CASE_TRUTH_AWAITING_APPROVAL',
+      canContinue: true,
+      truthSummary: { ...currentDraft.truthSummary, validationErrorCount: 0 },
+      truthRepairStatus: 'ACCEPTED',
+      truthRepairCandidate: null,
+      truthReviewerResult: {
+        schemaVersion: 'case-truth-feasibility-review-v2',
+        status: 'FAILED',
+        confidence: .94,
+        timelineFeasible: true,
+        physicalCausalityFeasible: false,
+        uniqueSolution: true,
+        issues: [],
+        findings: [{
+          findingId: 'advisory-causality',
+          code: 'PHYSICAL_CAUSALITY',
+          relatedIds: ['event-2'],
+          message: 'Advisory concern that does not override deterministic validation.',
+        }],
+      },
+    };
     await route.fulfill(ok(currentDraft));
   });
   await page.route('**/api/admin/ai-cases/draft-truth/approve-truth', async (route) => {
     currentDraft = {
       ...currentDraft,
       status: 'FULL_LOGIC_AWAITING_APPROVAL',
-      blindSolvabilityReview: { status: 'PASSED', culpritId: 'suspect-a', motive: 'Hide the forged will', method: 'Poisoned tea', timelineSummary: 'The tea was poisoned between minute 20 and 24.', evidenceChainIds: ['clue-1', 'clue-2', 'clue-3', 'clue-4', 'clue-5'], uniqueSolution: true, confidence: .91, issues: [] },
+      blindSolvabilityReview: { status: 'FAILED', culpritId: 'suspect-a', motive: 'Hide the forged will', method: 'Poisoned tea', timelineSummary: 'The tea was poisoned between minute 20 and 24.', evidenceChainIds: ['clue-1', 'clue-2', 'clue-3', 'clue-4', 'clue-5'], uniqueSolution: false, confidence: .64, issues: [], findings: [{ findingId: 'advisory-blind', code: 'SOLUTION_AMBIGUITY', relatedIds: ['clue-5'], message: 'Advisory ambiguity.' }] },
     };
     await route.fulfill(ok(currentDraft));
   });
@@ -216,18 +302,30 @@ test('causal truth review renders structured gates and forwards scoped repair in
   await expect(page.locator('[data-proof-coverage] .proof-coverage-card')).toHaveCount(5);
   await expect(page.locator('[data-truth-review]')).toContainText('Poison residue entered the cup');
   await expect(page.locator('[data-artifact-provenance]')).toContainText('CORE_TRUTH');
+  await expect(page.locator('[data-truth-review]')).toContainText('Reviewer confidence: 96%');
+  await expect(page.locator('[data-truth-review]')).toContainText('PHYSICAL_CAUSALITY');
+  await expect(page.locator('[data-truth-review]')).toHaveClass(/notice-bad/);
+  await expect(page.locator('[data-review-finding-group="TIMELINE"]')).toContainText('event-2');
+  await expect(page.locator('[data-truth-repair-plan]')).toContainText('Recommended repair start: TIMELINE');
+  await expect(page.locator('[data-truth-repair-scope]')).toHaveValue('TIMELINE');
 
   await page.locator('[data-truth-repair-instructions]').fill('Repair the witness timing only.');
   const repairRequest = page.waitForRequest((request) => request.url().endsWith('/repair-truth'));
   await page.getByRole('button', { name: 'Create scoped repair' }).click();
-  expect((await repairRequest).postDataJSON()).toEqual({ repairInstructions: 'Repair the witness timing only.' });
+  expect((await repairRequest).postDataJSON()).toEqual({
+    repairInstructions: 'Repair the witness timing only.',
+    repairFromArtifact: 'TIMELINE',
+  });
   await expect(page.getByRole('button', { name: 'Accept truth repair' })).toBeVisible();
   await page.getByRole('button', { name: 'Accept truth repair' }).click();
+  await expect(page.locator('[data-truth-review]')).toContainText('Advisory AI review');
+  await expect(page.locator('#ai-output').getByRole('button', { name: 'Approve case truth' })).toBeVisible();
 
   const approveRequest = page.waitForRequest((request) => request.url().endsWith('/approve-truth'));
   await page.locator('#ai-output').getByRole('button', { name: 'Approve case truth' }).click();
   await approveRequest;
-  await expect(page.locator('[data-blind-review]')).toContainText('91%');
+  await expect(page.locator('[data-blind-review]')).toContainText('Advisory blind solvability review');
+  await expect(page.locator('[data-blind-review]')).toContainText('64%');
   await expect(page.locator('[data-blind-review]')).toContainText('clue-5');
 });
 

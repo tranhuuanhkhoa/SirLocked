@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
@@ -14,11 +15,23 @@ public sealed class CaseTruthService : ICaseTruthService
     {
         WriteIndented = false
     };
+    private readonly IProjectionReadinessAnalyzer _readinessAnalyzer;
+
+    public CaseTruthService(IProjectionReadinessAnalyzer? readinessAnalyzer = null)
+    {
+        _readinessAnalyzer = readinessAnalyzer ?? new ProjectionReadinessAnalyzer();
+    }
 
     public string Canonicalize(CaseTruthPackage truth)
     {
         var node = JsonSerializer.SerializeToNode(truth, JsonOptions)
             ?? throw new InvalidOperationException("Case truth could not be serialized.");
+        if (node is JsonObject root
+            && root["coreTruth"] is JsonObject coreTruth
+            && string.IsNullOrWhiteSpace(coreTruth["targetKind"]?.GetValue<string>()))
+        {
+            coreTruth.Remove("targetKind");
+        }
         return SortNode(node).ToJsonString(JsonOptions);
     }
 
@@ -31,8 +44,9 @@ public sealed class CaseTruthService : ICaseTruthService
     public CaseValidationResult Validate(CaseTruthPackage truth, AiTruthGenerationBudget budget)
     {
         var result = new CaseValidationResult();
-        if (truth.SchemaVersion != CaseTruthSchemaVersions.V1)
-            result.Add("InvalidTruthSchema", "schemaVersion", $"schemaVersion must be '{CaseTruthSchemaVersions.V1}'.");
+        if (truth.SchemaVersion is not (CaseTruthSchemaVersions.V1 or CaseTruthSchemaVersions.V2))
+            result.Add("InvalidTruthSchema", "schemaVersion",
+                $"schemaVersion must be '{CaseTruthSchemaVersions.V1}' or '{CaseTruthSchemaVersions.V2}'.");
 
         var seed = truth.CaseSeed;
         Require(result, seed.CrimeType, "caseSeed.crimeType");
@@ -63,7 +77,7 @@ public sealed class CaseTruthService : ICaseTruthService
         ValidateCoreTruth(truth, result, eventById);
         ValidatePlannedTraceIds(truth, budget, result);
         ValidateTimeline(truth, result, eventById, traceById);
-        ValidateOpportunities(truth, result, eventById, opportunityByCharacter);
+        ValidateOpportunities(truth, result, eventById, opportunityByCharacter, traceById);
         ValidateTraces(truth, result, eventById, conclusionById);
         ValidateStatements(truth, result, eventById, traceById, conclusionById);
         ValidateProofGraph(truth, result, traceById, statementById);
@@ -80,15 +94,113 @@ public sealed class CaseTruthService : ICaseTruthService
         var eventById = UniqueBy(result, "trueTimeline", truth.TrueTimeline, item => item.EventId);
         ValidateCoreTruth(truth, result, eventById);
         ValidatePlannedTraceIds(truth, budget, result);
+        var plannedTraceById = truth.TrueTimeline
+            .SelectMany(item => item.TraceIds)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(id => id, id => new TraceLedgerEntry { TraceId = id }, StringComparer.Ordinal);
+        ValidateTimeline(truth, result, eventById, plannedTraceById);
         return result;
+    }
+
+    public CaseValidationResult ValidateTraceArtifact(CaseTruthPackage truth)
+    {
+        var result = new CaseValidationResult();
+        var eventById = UniqueBy(result, "trueTimeline", truth.TrueTimeline, item => item.EventId);
+        UniqueBy(result, "traceLedger", truth.TraceLedger, item => item.TraceId);
+        ValidateTraces(truth, result, eventById, CanonicalConclusionIndex());
+        result.Errors.AddRange(_readinessAnalyzer.MatchFinalEvidence(truth).Validation.Errors);
+        result.Deduplicate();
+        return result;
+    }
+
+    public CaseValidationResult ValidateStatementArtifact(CaseTruthPackage truth)
+    {
+        var result = new CaseValidationResult();
+        var eventById = UniqueBy(result, "trueTimeline", truth.TrueTimeline, item => item.EventId);
+        var traceById = UniqueBy(result, "traceLedger", truth.TraceLedger, item => item.TraceId);
+        UniqueBy(result, "statementLedger", truth.StatementLedger, item => item.StatementId);
+        ValidateStatements(truth, result, eventById, traceById, CanonicalConclusionIndex());
+        ValidateAvailableProofCoverage(truth, result);
+        return result;
+    }
+
+    public CaseValidationResult ValidateStatementArtifact(
+        CaseTruthPackage truth,
+        AiGenerationContract contract)
+    {
+        var result = ValidateStatementArtifact(truth);
+        result.Errors.AddRange(_readinessAnalyzer.AllocateDialogues(truth, contract).Validation.Errors);
+        result.Deduplicate();
+        return result;
+    }
+
+    public CaseValidationResult ValidateStatementArtifact(
+        CaseTruthPackage truth,
+        AiDraftSettings settings)
+    {
+        var result = ValidateStatementArtifact(truth, AiGenerationContract.For(settings));
+        var capacity = _readinessAnalyzer.AnalyzeCapacity(settings);
+        var contradictionTraceIds = truth.StatementLedger
+            .SelectMany(item => item.ContradictedByTraceIds)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (contradictionTraceIds.Count > capacity.MaxChallengeSlots)
+        {
+            result.Add(
+                "ProjectionContradictionBudget",
+                "statementLedger.contradictedByTraceIds",
+                $"Statements use {contradictionTraceIds.Count} contradiction traces but the preset allows {capacity.MaxChallengeSlots} challenge sources.");
+        }
+        result.Deduplicate();
+        return result;
+    }
+
+    private static IReadOnlyDictionary<string, ProofConclusion> CanonicalConclusionIndex() =>
+        ProofConclusionIds.ByCategory.ToDictionary(
+            pair => pair.Value,
+            pair => new ProofConclusion { ConclusionId = pair.Value, Category = pair.Key },
+            StringComparer.Ordinal);
+
+    private static void ValidateAvailableProofCoverage(CaseTruthPackage truth, CaseValidationResult result)
+    {
+        foreach (var conclusionId in ProofConclusionIds.All)
+        {
+            var groups = truth.TraceLedger
+                .Where(item => item.SupportsConclusionIds.Contains(conclusionId))
+                .Select(item => item.IndependentSourceGroup)
+                .Concat(truth.StatementLedger
+                    .Where(item => item.SupportsConclusionIds.Contains(conclusionId))
+                    .Select(item => item.IndependentSourceGroup))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            if (groups.Count < 2)
+                result.Add(
+                    "InsufficientIndependentProof",
+                    "statementLedger.supportsConclusionIds",
+                    "Evidence and statements must provide at least two independent source groups for every locked proof conclusion.",
+                    conclusionId);
+        }
     }
 
     public CaseValidationResult ValidateProjection(CaseTruthPackage truth, GameCase gameCase)
     {
         var result = new CaseValidationResult();
-        var truthValidation = Validate(truth, AiTruthGenerationBudget.For(
-            gameCase.GenerationPreset,
-            Math.Max(1, gameCase.Stages.Count)));
+        var truthBudget = gameCase.ProjectionBuildMode == ProjectionBuildModes.AiCompiled
+            ? AiTruthGenerationBudget.ForProjection(new AiDraftSettings
+            {
+                GenerationPreset = gameCase.GenerationPreset,
+                StageCount = Math.Max(1, gameCase.Stages.Count),
+                MechanicsVersion = gameCase.MechanicsVersion,
+                IncludeCrackTheLie =
+                    gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
+            })
+            : AiTruthGenerationBudget.For(
+                gameCase.GenerationPreset,
+                Math.Max(1, gameCase.Stages.Count));
+        var truthValidation = Validate(truth, truthBudget);
         result.Errors.AddRange(truthValidation.Errors);
         if (!truthValidation.IsValid) return result;
 
@@ -118,6 +230,12 @@ public sealed class CaseTruthService : ICaseTruthService
             .Concat(conclusions.Keys)
             .ToHashSet(StringComparer.Ordinal);
         var sceneIds = gameCase.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId).ToHashSet(StringComparer.Ordinal);
+        foreach (var locationId in truth.TrueTimeline.Select(item => item.LocationId)
+                     .Concat(truth.TraceLedger.Select(item => item.LocationId))
+                     .Distinct(StringComparer.Ordinal)
+                     .Where(locationId => !sceneIds.Contains(locationId)))
+            result.Add("MissingTruthLocationScene", "stages[].scenes[].sceneId",
+                "Every truth location used by an event or trace must be projected as a gameplay scene.", locationId);
 
         for (var i = 0; i < gameCase.Clues.Count; i++)
         {
@@ -233,8 +351,21 @@ public sealed class CaseTruthService : ICaseTruthService
         {
             if (!clueById.TryGetValue(link.EvidenceId, out var clue)) continue;
             var category = link.ClaimType.Trim().ToUpperInvariant();
-            if (!clue.SupportsConclusionIds.Any(id => conclusions.TryGetValue(id, out var conclusion) && conclusion.Category == category))
-                result.Add("ClaimOverreach", "finalLogic.requiredEvidenceLinks", "Selected evidence is not linked to a conclusion in this claim category.", link.EvidenceId);
+            if (string.IsNullOrWhiteSpace(link.ConclusionId))
+            {
+                result.Add("MissingProofLink", "finalLogic.requiredEvidenceLinks.conclusionId",
+                    "Contract-v2 final evidence must name its exact approved conclusion.", link.EvidenceId);
+                continue;
+            }
+            if (!conclusions.TryGetValue(link.ConclusionId, out var conclusion)
+                || !string.Equals(conclusion.Category, category, StringComparison.Ordinal))
+            {
+                result.Add("ClaimOverreach", "finalLogic.requiredEvidenceLinks.conclusionId",
+                    "Final evidence conclusion does not exist in the requested claim category.", link.EvidenceId);
+                continue;
+            }
+            if (!clue.SupportsConclusionIds.Contains(link.ConclusionId, StringComparer.Ordinal))
+                result.Add("ClaimOverreach", "finalLogic.requiredEvidenceLinks", "Selected evidence does not support the exact final conclusion.", link.EvidenceId);
         }
 
         ValidateProjectionRewardUniqueness(gameCase, result);
@@ -259,6 +390,8 @@ public sealed class CaseTruthService : ICaseTruthService
                 $"Trace ledger cannot exceed {CaseTruthScopeLimits.MaxTraceEntries} entries.");
         AddBudgetError(result, "statementLedger", truth.StatementLedger.Count,
             budget.MaxStatements, "statements");
+        AddBudgetError(result, "redHerringLedger", truth.RedHerringLedger.Count,
+            budget.MaxRedHerrings, "red herrings");
 
         if (truth.OpportunityMatrix.Count != truth.CaseSeed.SuspectIds.Count)
         {
@@ -334,21 +467,54 @@ public sealed class CaseTruthService : ICaseTruthService
     public CaseValidationResult ValidateFeasibilityReview(CaseTruthFeasibilityReview review)
     {
         var result = new CaseValidationResult();
-        if (review.SchemaVersion != CaseTruthSchemaVersions.FeasibilityReviewV1)
+        if (review.SchemaVersion is not (CaseTruthSchemaVersions.FeasibilityReviewV1
+            or CaseTruthSchemaVersions.FeasibilityReviewV2))
             result.Add("InvalidReviewSchema", "truthReview.schemaVersion", "Unexpected truth review schema.");
-        if (review.Status != CaseTruthReviewStatuses.Passed || !review.TimelineFeasible
-            || !review.PhysicalCausalityFeasible || !review.UniqueSolution || review.Confidence < 0.80)
-            result.Add("TruthReviewFailed", "truthReview", "Independent feasibility review must pass with a unique solution and confidence >= 0.80.");
+        if (review.Status is not (CaseTruthReviewStatuses.Passed
+            or CaseTruthReviewStatuses.Failed
+            or CaseTruthReviewStatuses.Ambiguous))
+            result.Add("InvalidReviewStatus", "truthReview.status", "Truth reviewer returned an unknown status.");
+        else if (review.Status != CaseTruthReviewStatuses.Passed)
+            result.Add("TruthReviewStatusFailed", "truthReview.status", "Independent feasibility review did not pass.");
+        if (!review.TimelineFeasible)
+            result.Add("TruthTimelineBlocked", "truthReview.timelineFeasible", "Independent review found the locked timeline infeasible.");
+        if (!review.PhysicalCausalityFeasible)
+            result.Add("TruthCausalityBlocked", "truthReview.physicalCausalityFeasible", "Independent review found unsupported physical causality.");
+        if (!review.UniqueSolution)
+            result.Add("TruthSolutionNotUnique", "truthReview.uniqueSolution", "Independent review did not find exactly one solution.");
+        if (review.Confidence is < 0 or > 1)
+            result.Add("InvalidReviewConfidence", "truthReview.confidence", "Review confidence must be between 0 and 1.");
+        else if (review.Status == CaseTruthReviewStatuses.Passed && review.Confidence < 0.80)
+            result.Add("TruthReviewConfidenceLow", "truthReview.confidence", "A passing review requires confidence >= 0.80.");
+        if (review.Status == CaseTruthReviewStatuses.Passed && review.Findings.Count > 0)
+            result.Add("TruthReviewHasBlockingFindings", "truthReview.findings", "A passing review cannot contain blocking findings.");
+        if (review.SchemaVersion == CaseTruthSchemaVersions.FeasibilityReviewV2
+            && review.Status is (CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous)
+            && review.Findings.Count == 0)
+            result.Add("MissingReviewFindings", "truthReview.findings", "A failed or ambiguous V2 review must explain at least one finding.");
         return result;
     }
 
     public CaseValidationResult ValidateBlindReview(CaseTruthPackage truth, BlindSolvabilityReview review)
     {
         var result = new CaseValidationResult();
-        if (review.SchemaVersion != CaseTruthSchemaVersions.BlindReviewV1)
+        if (review.SchemaVersion is not (CaseTruthSchemaVersions.BlindReviewV1
+            or CaseTruthSchemaVersions.BlindReviewV2))
             result.Add("InvalidReviewSchema", "blindReview.schemaVersion", "Unexpected blind review schema.");
-        if (review.Status != CaseTruthReviewStatuses.Passed || !review.UniqueSolution || review.Confidence < 0.80)
-            result.Add("BlindReviewFailed", "blindReview", "Blind reviewer must find one solution with confidence >= 0.80.");
+        if (review.Status != CaseTruthReviewStatuses.Passed)
+            result.Add("BlindReviewStatusFailed", "blindReview.status", "Blind reviewer did not pass the projection.");
+        if (!review.UniqueSolution)
+            result.Add("BlindReviewSolutionNotUnique", "blindReview.uniqueSolution", "Blind reviewer did not find exactly one solution.");
+        if (review.Confidence is < 0 or > 1)
+            result.Add("InvalidReviewConfidence", "blindReview.confidence", "Review confidence must be between 0 and 1.");
+        else if (review.Status == CaseTruthReviewStatuses.Passed && review.Confidence < 0.80)
+            result.Add("BlindReviewConfidenceLow", "blindReview.confidence", "A passing blind review requires confidence >= 0.80.");
+        if (review.Status == CaseTruthReviewStatuses.Passed && review.Findings.Count > 0)
+            result.Add("BlindReviewHasBlockingFindings", "blindReview.findings", "A passing blind review cannot contain blocking findings.");
+        if (review.SchemaVersion == CaseTruthSchemaVersions.BlindReviewV2
+            && review.Status is (CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous)
+            && review.Findings.Count == 0)
+            result.Add("MissingReviewFindings", "blindReview.findings", "A failed or ambiguous V2 blind review must explain at least one finding.");
         if (review.CulpritId != truth.CoreTruth.CulpritId)
             result.Add("BlindReviewMismatch", "blindReview.culpritId", "Blind reviewer did not infer the approved culprit.");
         if (!SameText(review.Motive, truth.CoreTruth.Motive))
@@ -391,31 +557,58 @@ public sealed class CaseTruthService : ICaseTruthService
 
     public CaseTruthRepairPlan PlanRepair(IEnumerable<CaseValidationError> errors)
     {
-        var paths = errors.Select(error => error.Path).ToList();
-        string from;
-        if (paths.Any(path => path.StartsWith("caseSeed", StringComparison.Ordinal) || path == "schemaVersion")) from = CaseTruthArtifacts.CaseSeed;
-        else if (paths.Any(path => path.StartsWith("coreTruth", StringComparison.Ordinal))) from = CaseTruthArtifacts.CoreTruth;
-        else if (paths.Any(path => path.StartsWith("trueTimeline", StringComparison.Ordinal))) from = CaseTruthArtifacts.Timeline;
-        else if (paths.Any(path => path.StartsWith("opportunityMatrix", StringComparison.Ordinal))) from = CaseTruthArtifacts.Opportunity;
-        else if (paths.Any(path => path.StartsWith("traceLedger", StringComparison.Ordinal))) from = CaseTruthArtifacts.Evidence;
-        else if (paths.Any(path => path.StartsWith("statementLedger", StringComparison.Ordinal))) from = CaseTruthArtifacts.Statements;
-        else if (paths.Any(path => path.StartsWith("proofGraph", StringComparison.Ordinal)
-            || path.StartsWith("redHerringLedger", StringComparison.Ordinal))) from = CaseTruthArtifacts.ProofGraph;
-        else from = CaseTruthArtifacts.Projection;
+        var errorList = errors.ToList();
+        var mappedPlans = errorList
+            .Select(error => CaseTruthRepairPolicy.BuildPlan(RepairArtifactFor(error)))
+            .ToArray();
+        var truthPlans = mappedPlans
+            .Where(item => CaseTruthRepairPolicy.IsTruthArtifact(item.RegenerateFromArtifact))
+            .ToArray();
+        var plan = truthPlans.Length > 0
+            ? CaseTruthRepairPolicy.Earliest(truthPlans)
+            : CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.Projection);
+        plan.ReasonCodes = errorList.Select(error => error.Code)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        return plan;
+    }
 
-        var order = new[]
-        {
-            CaseTruthArtifacts.CaseSeed, CaseTruthArtifacts.CoreTruth, CaseTruthArtifacts.Timeline, CaseTruthArtifacts.Opportunity,
-            CaseTruthArtifacts.Evidence, CaseTruthArtifacts.Statements, CaseTruthArtifacts.ProofGraph,
-            CaseTruthArtifacts.Projection, CaseTruthArtifacts.Layout, CaseTruthArtifacts.Assets
-        };
-        var index = Array.IndexOf(order, from);
-        return new CaseTruthRepairPlan
-        {
-            RegenerateFromArtifact = from,
-            InvalidArtifacts = { from },
-            StaleArtifacts = order.Skip(Math.Max(index + 1, 0)).ToList()
-        };
+    private static string RepairArtifactFor(CaseValidationError error)
+    {
+        if (error.Code == "ProjectionCharacterCount")
+            return CaseTruthArtifacts.CaseSeed;
+        if (error.Code == "InsufficientPlannedFinalTraces")
+            return CaseTruthArtifacts.Timeline;
+        if (error.Code is "ProjectionMissingConclusionTrace"
+            or "ProjectionFinalEvidenceDiversity"
+            or "MissingIdentityTrace")
+            return CaseTruthArtifacts.Evidence;
+        if (error.Code is "ProjectionStatementSceneUnavailable"
+            or "ProjectionDialogueBudget"
+            or "ProjectionContradictionBudget"
+            or "ProjectionClueBudget")
+            return CaseTruthArtifacts.Statements;
+        if (error.Code is "ProjectionRedHerringClosureBudget"
+            or "ProjectionRedHerringBudget")
+            return CaseTruthArtifacts.ProofGraph;
+
+        var path = error.Path ?? string.Empty;
+        if (path.StartsWith("caseSeed", StringComparison.Ordinal) || path == "schemaVersion")
+            return CaseTruthArtifacts.CaseSeed;
+        if (path.StartsWith("coreTruth", StringComparison.Ordinal))
+            return CaseTruthArtifacts.CoreTruth;
+        if (path.StartsWith("trueTimeline", StringComparison.Ordinal))
+            return CaseTruthArtifacts.Timeline;
+        if (path.StartsWith("opportunityMatrix", StringComparison.Ordinal))
+            return CaseTruthArtifacts.Opportunity;
+        if (path.StartsWith("traceLedger", StringComparison.Ordinal))
+            return CaseTruthArtifacts.Evidence;
+        if (path.StartsWith("statementLedger", StringComparison.Ordinal))
+            return CaseTruthArtifacts.Statements;
+        if (path.StartsWith("proofGraph", StringComparison.Ordinal)
+            || path.StartsWith("redHerringLedger", StringComparison.Ordinal))
+            return CaseTruthArtifacts.ProofGraph;
+        return CaseTruthArtifacts.Projection;
     }
 
     private static void ValidateCoreTruth(CaseTruthPackage truth, CaseValidationResult result,
@@ -428,6 +621,25 @@ public sealed class CaseTruthService : ICaseTruthService
         Require(result, core.Method, "coreTruth.method");
         if (!truth.CaseSeed.SuspectIds.Contains(core.CulpritId))
             result.Add("MissingReference", "coreTruth.culpritId", "Culprit must be one of the locked suspects.", core.CulpritId);
+        if (truth.CaseSeed.SuspectIds.Contains(core.TargetId))
+            result.Add("TargetIsSuspect", "coreTruth.targetId",
+                "Target must have a stable ID distinct from every suspect.", core.TargetId);
+        if (truth.SchemaVersion == CaseTruthSchemaVersions.V2)
+        {
+            if (!CaseTargetKinds.All.Contains(core.TargetKind))
+                result.Add("InvalidTargetKind", "coreTruth.targetKind",
+                    "targetKind must be CHARACTER or ASSET.", core.TargetKind);
+            if (CaseTargetKinds.IsAsset(core))
+            {
+                if (truth.TrueTimeline.Any(item =>
+                        item.ActorId == core.TargetId || item.WitnessIds.Contains(core.TargetId, StringComparer.Ordinal))
+                    || truth.StatementLedger.Any(item => item.SpeakerId == core.TargetId))
+                {
+                    result.Add("AssetTargetUsedAsCharacter", "coreTruth.targetId",
+                        "An ASSET target cannot be a timeline actor, witness, or statement speaker.", core.TargetId);
+                }
+            }
+        }
         ValidateCoreActionList(result, "coreTruth.preparationActionIds", core.PreparationActionIds);
         ValidateCoreActionList(result, "coreTruth.crimeActionIds", core.CrimeActionIds);
         ValidateCoreActionList(result, "coreTruth.concealmentActionIds", core.ConcealmentActionIds);
@@ -470,8 +682,9 @@ public sealed class CaseTruthService : ICaseTruthService
             result.Add("DuplicateId", "trueTimeline.traceIds", "A planned trace ID must be declared exactly once.", id);
         var distinctCount = CaseTruthReferenceContract.PlannedTraceIds(truth.TrueTimeline)
             .Count(id => !string.IsNullOrWhiteSpace(id));
-        if (distinctCount == 0)
-            result.Add("MissingField", "trueTimeline.traceIds", "Timeline must plan at least one causal trace.");
+        if (distinctCount < ProofConclusionIds.ByCategory.Count)
+            result.Add("InsufficientPlannedFinalTraces", "trueTimeline.traceIds",
+                $"Timeline must plan at least {ProofConclusionIds.ByCategory.Count} distinct causal traces for the five final claims.");
         if (distinctCount > budget.MaxTraces)
             result.Add("TRUTH_BUDGET_EXCEEDED", "trueTimeline.traceIds",
                 $"Timeline plans {distinctCount} traces; this preset allows at most {budget.MaxTraces}.");
@@ -529,11 +742,22 @@ public sealed class CaseTruthService : ICaseTruthService
         foreach (var item in truth.TrueTimeline)
         foreach (var observation in item.WitnessObservations.Where(value => !item.WitnessIds.Contains(value.WitnessId)))
             result.Add("WitnessNotObservable", "trueTimeline.witnessObservations", "Witness observation must correspond to a declared witness.", observation.WitnessId);
+
+        var hasIdentityTracePlan = truth.CoreTruth.CrimeActionIds.Any(actionId =>
+            eventById.TryGetValue(actionId, out var action)
+            && action.ActorId == truth.CoreTruth.CulpritId
+            && action.TraceIds.Any(id => !string.IsNullOrWhiteSpace(id)));
+        if (!hasIdentityTracePlan)
+            result.Add(
+                "MissingIdentityTracePlan",
+                "trueTimeline.traceIds",
+                "At least one culprit crime action must plan a trace capable of identifying its actor.");
     }
 
     private static void ValidateOpportunities(CaseTruthPackage truth, CaseValidationResult result,
         IReadOnlyDictionary<string, TrueTimelineEvent> eventById,
-        IReadOnlyDictionary<string, CharacterOpportunity> opportunityByCharacter)
+        IReadOnlyDictionary<string, CharacterOpportunity> opportunityByCharacter,
+        IReadOnlyDictionary<string, TraceLedgerEntry> traceById)
     {
         foreach (var suspect in truth.CaseSeed.SuspectIds.Where(id => !opportunityByCharacter.ContainsKey(id)))
             result.Add("MissingOpportunity", "opportunityMatrix", "Every suspect needs an opportunity row.", suspect);
@@ -550,6 +774,19 @@ public sealed class CaseTruthService : ICaseTruthService
                 result.Add("InvalidAlibi", $"{path}.alibiEventIds", "Alibi event does not place this character at the event.", id);
             if (item.AlibiVerified && item.AlibiEventIds.Count == 0)
                 result.Add("InvalidAlibi", path, "A verified alibi requires at least one timeline event.", item.CharacterId);
+            if (item.AlibiVerified)
+            {
+                foreach (var id in item.AlibiEventIds.Where(eventById.ContainsKey))
+                {
+                    var alibi = eventById[id];
+                    var independentlyCorroborated = alibi.ActorId != item.CharacterId
+                        || alibi.WitnessIds.Any(witnessId => witnessId != item.CharacterId)
+                        || traceById.Values.Any(trace => trace.SourceActionId == id);
+                    if (!independentlyCorroborated)
+                        result.Add("UncorroboratedAlibi", $"{path}.alibiEventIds",
+                            "A verified alibi requires another observable actor or a causal trace linked to the alibi event.", id);
+                }
+            }
         }
 
         if (!opportunityByCharacter.TryGetValue(truth.CoreTruth.CulpritId, out var culprit)) return;
@@ -602,6 +839,16 @@ public sealed class CaseTruthService : ICaseTruthService
             if (categories.Count > 2)
                 result.Add("ClaimOverreach", $"{path}.supportsConclusionIds", "One physical trace cannot independently prove more than two claim categories.", trace.TraceId);
         }
+
+        var hasIdentityTrace = truth.TraceLedger.Any(trace =>
+            trace.CreatedByCharacterId == truth.CoreTruth.CulpritId
+            && truth.CoreTruth.CrimeActionIds.Contains(trace.SourceActionId)
+            && trace.SupportsConclusionIds.Contains(ProofConclusionIds.Identity));
+        if (!hasIdentityTrace)
+            result.Add(
+                "MissingIdentityTrace",
+                "traceLedger",
+                "At least one IDENTITY trace must be created by the culprit during a locked crime action.");
     }
 
     private static void ValidateStatements(CaseTruthPackage truth, CaseValidationResult result,

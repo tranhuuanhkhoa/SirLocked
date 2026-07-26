@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
@@ -43,7 +44,7 @@ internal static class AiCaseMockFactory
             return JsonSerializer.Serialize(new BlindSolvabilityReview
             {
                 Status = CaseTruthReviewStatuses.Passed,
-                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV1,
+                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
                 CulpritId = "char-culprit",
                 Motive = "Protect a secret debt recorded in the stolen ledger.",
                 Method = "Use a copied key during the stopped-clock window and conceal the ledger.",
@@ -87,11 +88,37 @@ internal static class AiCaseMockFactory
     internal static string BuildMockTruthPackageJson(AiCaseDraft draft)
     {
         var settings = draft.Settings ?? new AiDraftSettings();
+        var contract = AiGenerationContract.For(settings);
+        var targetKind = CaseTargetAllocationPolicy.Resolve(draft);
+        var usesProjectionContract = CaseTargetKinds.All.Contains(draft.PlannedTargetKind);
+        var budget = usesProjectionContract
+            ? AiTruthGenerationBudget.ForProjection(settings)
+            : AiTruthGenerationBudget.For(settings);
         var mock = MockCaseFactory.Create("A safe mock AI case for dry-run validation", 4, "medium");
         ConvertMockCaseToCameraEmbedded(mock);
+        var traceCount = Math.Min(budget.MaxTraces, mock.Clues.Count);
         var culpritId = mock.FinalLogic.CulpritId;
-        var suspects = mock.Characters.Select(item => item.CharacterId).ToList();
-        var locations = mock.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.SceneId).ToList();
+        var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(contract, targetKind);
+        var suspects = mock.Characters
+            .Select(item => item.CharacterId)
+            .OrderBy(id => id == culpritId ? 0 : 1)
+            .ThenBy(id => id, StringComparer.Ordinal)
+            .Take(requiredSuspects)
+            .ToList();
+        while (usesProjectionContract && suspects.Count < requiredSuspects)
+            suspects.Add($"char-mock-suspect-{suspects.Count + 1}");
+        var requiredLocations = Math.Clamp(
+            Math.Max(
+                Math.Max(settings.StageCount, contract.MinScenes),
+                (int)Math.Ceiling(traceCount / 2d)),
+            contract.MinScenes,
+            contract.MaxScenes);
+        var locations = mock.Stages.SelectMany(stage => stage.Scenes)
+            .Select(scene => scene.SceneId)
+            .Take(requiredLocations)
+            .ToList();
+        while (usesProjectionContract && locations.Count < requiredLocations)
+            locations.Add($"scene-mock-location-{locations.Count + 1}");
         var crimeLocation = locations.First();
         const string crimeActionId = "action-crime";
         var categories = ProofConclusionCategories.All.ToList();
@@ -103,7 +130,7 @@ internal static class AiCaseMockFactory
         }).ToList();
         var truth = new CaseTruthPackage
         {
-            SchemaVersion = CaseTruthSchemaVersions.V1,
+            SchemaVersion = CaseTruthSchemaVersions.V2,
             CaseSeed = new CaseSeed
             {
                 CrimeType = "theft",
@@ -121,7 +148,8 @@ internal static class AiCaseMockFactory
             CoreTruth = new CoreCaseTruth
             {
                 CulpritId = culpritId,
-                TargetId = "stolen-ledger",
+                TargetId = targetKind == CaseTargetKinds.Character ? "char-target" : "stolen-ledger",
+                TargetKind = targetKind,
                 Motive = "Protect a secret debt recorded in the stolen ledger.",
                 Method = "Use a copied key during the stopped-clock window and conceal the ledger.",
                 CrimeActionIds = actionByLocation.Select(item => item.ActionId).ToList(),
@@ -138,6 +166,31 @@ internal static class AiCaseMockFactory
             RequiredAccessIds = { "archive-key" }, RequiredToolIds = { "copied-key" },
             RequiredKnowledgeIds = { "clock-window" }
         }).ToList();
+        var statementEventBySpeaker = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [culpritId] = crimeActionId
+        };
+        var presenceStart = actionByLocation.Max(item => item.Start) + 30;
+        foreach (var (speakerId, index) in suspects
+                     .Distinct(StringComparer.Ordinal)
+                     .Select((id, index) => (id, index)))
+        {
+            var eventId = $"event-statement-presence-{index + 1}";
+            truth.TrueTimeline.Add(new TrueTimelineEvent
+            {
+                EventId = eventId,
+                ActorId = speakerId,
+                LocationId = crimeLocation,
+                StartMinute = presenceStart + index * 15,
+                EndMinute = presenceStart + 10 + index * 15,
+                TravelFromPreviousMinutes = speakerId == culpritId
+                    && actionByLocation[^1].Location != crimeLocation
+                    ? 5
+                    : 0,
+                Action = "Visits the archive later and can provide a scene-grounded statement."
+            });
+            statementEventBySpeaker[speakerId] = eventId;
+        }
 
         truth.OpportunityMatrix = suspects.Select(id => new CharacterOpportunity
         {
@@ -153,6 +206,14 @@ internal static class AiCaseMockFactory
             EliminationReason = id == culpritId ? "Causal trace chain identifies this suspect." : "No identity trace connects this suspect to the crime action."
         }).ToList();
 
+        var statementCount = Math.Clamp(
+            Math.Max(categories.Count, contract.MinDialogues),
+            1,
+            budget.MaxStatements);
+        var statementSpeakers = Enumerable.Range(0, statementCount)
+            .Select(index => suspects[index % suspects.Count])
+            .ToList();
+
         truth.ProofGraph.Conclusions = categories.Select((category, index) => new ProofConclusion
         {
             ConclusionId = ProofConclusionIds.ForCategory(category),
@@ -165,11 +226,11 @@ internal static class AiCaseMockFactory
                 ProofConclusionCategories.Identity => "Only the culprit is physically connected to the copied-key crime action.",
                 _ => "The stopped-clock interval fixes the crime between minute 30 and minute 40."
             },
-            SupportingTraceIds = Enumerable.Range(0, mock.Clues.Count)
+            SupportingTraceIds = Enumerable.Range(0, traceCount)
                 .Where(traceIndex => categories[traceIndex % categories.Count] == category)
                 .Select(traceIndex => $"trace-{traceIndex + 1}")
                 .ToList(),
-            SupportingStatementIds = mock.Dialogues.Select((_, statementIndex) => new
+            SupportingStatementIds = Enumerable.Range(0, statementCount).Select(statementIndex => new
                 {
                     Id = $"statement-{statementIndex + 1}",
                     Category = categories[statementIndex % categories.Count]
@@ -180,11 +241,11 @@ internal static class AiCaseMockFactory
             ExcludesSuspectIds = suspects.Where(id => id != culpritId).ToList()
         }).ToList();
 
-        truth.TraceLedger = Enumerable.Range(0, mock.Clues.Count).Select(traceIndex =>
+        truth.TraceLedger = Enumerable.Range(0, traceCount).Select(traceIndex =>
         {
             var index = traceIndex + 1;
             var category = categories[traceIndex % categories.Count];
-            var clueScene = mock.Clues[(index - 1) % mock.Clues.Count].SceneId;
+            var clueScene = locations[traceIndex % locations.Count];
             var sourceAction = actionByLocation.FirstOrDefault(item => item.Location == clueScene) ?? actionByLocation[0];
             return new TraceLedgerEntry
             {
@@ -201,12 +262,14 @@ internal static class AiCaseMockFactory
         foreach (var timelineEvent in truth.TrueTimeline)
             timelineEvent.TraceIds = truth.TraceLedger.Where(trace => trace.SourceActionId == timelineEvent.EventId).Select(trace => trace.TraceId).ToList();
 
-        truth.StatementLedger = mock.Dialogues.Select((dialogue, index) => new StatementLedgerEntry
+        truth.StatementLedger = statementSpeakers.Select((speakerId, index) => new StatementLedgerEntry
         {
-            StatementId = $"statement-{index + 1}", SpeakerId = dialogue.CharacterId,
+            StatementId = $"statement-{index + 1}", SpeakerId = speakerId,
             TruthStatus = index == 0 ? StatementTruthStatuses.Misleading : StatementTruthStatuses.True,
-            Content = dialogue.Answer,
-            EventIds = { crimeActionId }, KnowledgeSourceIds = { crimeActionId },
+            Content = index == 0
+                ? "The speaker gives a misleading account of the archive visit."
+                : "The speaker truthfully corroborates one part of the causal sequence.",
+            EventIds = { statementEventBySpeaker[speakerId] }, KnowledgeSourceIds = { crimeActionId },
             ReasonForLie = index == 0 ? "The speaker hides an embarrassing but non-culpable private action." : string.Empty,
             ContradictedByTraceIds = index == 0 ? new List<string> { "trace-1" } : new List<string>(),
             IndependentSourceGroup = $"statement-source-{index + 1}",
@@ -219,7 +282,7 @@ internal static class AiCaseMockFactory
             RedHerringId = "red-herring-1", SuspectId = innocent,
             SuspiciousReason = "The suspect concealed a private visit near the archive.",
             InnocentExplanation = "The visit concerned a personal debt and did not enter the crime scene.",
-            ClearingTraceIds = { "trace-10" }
+            ClearingTraceIds = { $"trace-{traceCount}" }
         });
         return JsonSerializer.Serialize(truth, PrettyJson);
     }
@@ -247,7 +310,7 @@ internal static class AiCaseMockFactory
     internal static CaseTruthFeasibilityReview BuildMockTruthReview() => new()
     {
         Status = CaseTruthReviewStatuses.Passed,
-        SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV1,
+        SchemaVersion = CaseTruthSchemaVersions.FeasibilityReviewV2,
         Confidence = 0.95,
         TimelineFeasible = true,
         PhysicalCausalityFeasible = true,
@@ -258,7 +321,7 @@ internal static class AiCaseMockFactory
     internal static BlindSolvabilityReview BuildMockBlindReview(CaseTruthPackage truth, GameCase gameCase) => new()
     {
         Status = CaseTruthReviewStatuses.Passed,
-        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV1,
+        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
         CulpritId = truth.CoreTruth.CulpritId,
         Motive = truth.CoreTruth.Motive,
         Method = truth.CoreTruth.Method,
@@ -294,6 +357,7 @@ internal static class AiCaseMockFactory
         {
             var dialogue = generated.Dialogues[index];
             var statement = truth.StatementLedger[index % truth.StatementLedger.Count];
+            dialogue.CharacterId = statement.SpeakerId;
             dialogue.StatementIds = new List<string> { statement.StatementId };
             var scene = scenes.FirstOrDefault(item => item.CharacterIds.Contains(dialogue.CharacterId)) ?? scenes.First();
             if (!scene.CharacterIds.Contains(dialogue.CharacterId)) scene.CharacterIds.Add(dialogue.CharacterId);
@@ -330,7 +394,12 @@ internal static class AiCaseMockFactory
             {
                 var conclusion = conclusions.First(item => item.Category == claim);
                 var evidence = evidenceByClaim[claim];
-                return new RequiredEvidenceLink { ClaimType = claim, EvidenceId = evidence.ClueId };
+                return new RequiredEvidenceLink
+                {
+                    ClaimType = claim,
+                    ConclusionId = conclusion.ConclusionId,
+                    EvidenceId = evidence.ClueId
+                };
             }).ToList();
         generated.FinalLogic.RequiredEvidenceIds = generated.FinalLogic.RequiredEvidenceLinks.Select(item => item.EvidenceId).ToList();
     }

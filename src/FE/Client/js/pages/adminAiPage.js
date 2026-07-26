@@ -13,9 +13,10 @@ const STATUS_SCENE_LAYOUT_AWAITING_APPROVAL = 'SCENE_LAYOUT_AWAITING_APPROVAL';
 const STATUS_READY_TO_PUBLISH = 'READY_TO_PUBLISH';
 const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
-const TERMINAL_STATUSES = new Set([STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
+const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
 const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED']);
 const isTerminalDraft = (draft) => TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState);
+const TRUTH_ARTIFACT_ORDER = ['CASE_SEED', 'CORE_TRUTH', 'TIMELINE', 'OPPORTUNITY', 'EVIDENCE', 'STATEMENTS', 'PROOF_GRAPH'];
 const PRESETS = {
   NORMAL_RANDOM: {
     label: 'Normal random',
@@ -166,7 +167,7 @@ const PROGRESS_STATES = {
   CASE_TRUTH_INVALID: {
     percent: 42,
     title: ['Case truth blocked', 'Sự thật vụ án bị chặn'],
-    detail: ['The truth failed deterministic or independent feasibility review.', 'Sự thật không vượt qua validator hoặc reviewer khả thi độc lập.'],
+    detail: ['The truth failed deterministic validation.', 'Sự thật không vượt qua validator tất định.'],
   },
   GENERATING_FULL_CASE: {
     percent: 55,
@@ -176,7 +177,7 @@ const PROGRESS_STATES = {
   OPENAI_GENERATED_VALID: {
     percent: 64,
     title: ['Gameplay projection validated', 'Gameplay đã được xác thực'],
-    detail: ['The truth-backed investigation passed deterministic validation and blind review.', 'Vụ án dựa trên truth đã vượt qua validator và blind review.'],
+    detail: ['The truth-backed investigation passed deterministic validation; advisory review was recorded.', 'Vụ án đã vượt qua validator tất định; đánh giá AI được lưu dưới dạng tham khảo.'],
   },
   FULL_LOGIC_AWAITING_APPROVAL: {
     percent: 66,
@@ -284,10 +285,23 @@ export async function renderAdminAiPage(app) {
     return !isV3Draft(d) || d.v3SemanticReview?.status === 'PASSED';
   }
 
+  function truthReviewPassed(d) {
+    const review = d.truthReviewerResult;
+    return review?.status === 'PASSED'
+      && review.timelineFeasible === true
+      && review.physicalCausalityFeasible === true
+      && review.uniqueSolution === true
+      && Number(review.confidence || 0) >= 0.8
+      && !(review.findings?.length);
+  }
+
   function continueButton(d, style = 'btn-primary') {
-    if (d.status === STATUS_GENERATED_INVALID && ['BLUEPRINT_JSON', 'FULL_LOGIC_JSON', 'PRE_ASSET_VALIDATION', 'V3_SEMANTIC_REVIEW', 'BLIND_SOLVABILITY_REVIEW'].includes(d.failurePhase)) {
+    if (d.status === STATUS_GENERATED_INVALID && ['BLUEPRINT_JSON', 'FULL_LOGIC_JSON', 'PROJECTION_CONTENT_JSON', 'PROJECTION_COMPILE', 'PROJECTION_CONFORMANCE', 'PRE_ASSET_VALIDATION', 'V3_SEMANTIC_REVIEW', 'BLIND_SOLVABILITY_REVIEW'].includes(d.failurePhase)) {
       const label = d.failurePhase === 'V3_SEMANTIC_REVIEW' ? tr('Regenerate V3 logic', 'Tạo lại logic V3')
-        : d.failurePhase === 'BLIND_SOLVABILITY_REVIEW' ? tr('Regenerate projection', 'Tạo lại gameplay') : tr('Retry JSON repair', 'Thử sửa JSON lại');
+        : d.failurePhase === 'BLIND_SOLVABILITY_REVIEW' ? tr('Regenerate projection', 'Tạo lại gameplay')
+        : d.failurePhase === 'PROJECTION_CONFORMANCE' && !d.hasGeneratedJson
+          ? tr('Repair truth for preset', 'Sửa truth theo cấu hình')
+          : tr('Retry JSON repair', 'Thử sửa JSON lại');
       return `<button class="btn ${style} btn-sm" type="button" data-retry-json="${escapeHtml(d.draftId)}">${label}</button>`;
     }
     if (d.status === STATUS_GENERATED_INVALID && d.failurePhase === 'VISUAL_QA') {
@@ -297,7 +311,9 @@ export async function renderAdminAiPage(app) {
       return `<button class="btn ${style} btn-sm" type="button" data-approve-story="${escapeHtml(d.draftId)}">${tr('Approve story preview', 'Duyệt tiền đề')}</button>`;
     }
     if (d.status === STATUS_TRUTH_AWAITING_APPROVAL) {
-      return `<button class="btn ${style} btn-sm" type="button" data-approve-truth="${escapeHtml(d.draftId)}">${tr('Approve case truth', 'Duyệt sự thật vụ án')}</button>`;
+      return d.canContinue
+        ? `<button class="btn ${style} btn-sm" type="button" data-approve-truth="${escapeHtml(d.draftId)}">${tr('Approve case truth', 'Duyệt sự thật vụ án')}</button>`
+        : '';
     }
     if (d.status === STATUS_TRUTH_INVALID) {
       return `<button class="btn ${style} btn-sm" type="button" data-repair-truth="${escapeHtml(d.draftId)}">${tr('Repair scoped truth', 'Sửa truth theo phạm vi')}</button>`;
@@ -424,12 +440,13 @@ export async function renderAdminAiPage(app) {
     const published = d.publishedCase || d.importedCaseId || d.status === STATUS_PUBLISHED;
     const caseId = d.publishedCase?.caseId || d.importedCaseId || d.caseId;
     const resumeAction = continueButton(d);
-    const cannotResume = d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published;
+    const cannotResume = d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published && !d.canContinue;
     return `
     <div class="notice ${statusOk ? 'notice-ok' : 'notice-bad'}">
       <strong>${escapeHtml(d.caseTitle || preview?.title || d.caseId || tr('AI draft', 'Bản nháp AI'))}</strong> - ${escapeHtml(statusLabel(d.status))} (${escapeHtml(d.provider)})
       <br><span class="muted small">${tr('Preset', 'Cấu hình')}: ${escapeHtml(presetLabel(d.settings?.generationPreset))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</span>
       ${d.storyDiversity?.seed ? `<br><span class="muted small">Diversity seed: <code>${escapeHtml(d.storyDiversity.seed)}</code>${d.storyDiversity?.coreFingerprint ? ` · Core: <code>${escapeHtml(d.storyDiversity.coreFingerprint.slice(0, 12))}</code>` : ''}${d.storyFingerprint ? ` · Preview: <code>${escapeHtml(d.storyFingerprint.slice(0, 12))}</code>` : ''}</span>` : ''}
+      ${d.hasProjectionPlan ? `<br><span class="muted small">Projection: ${escapeHtml(d.projectionPlanSchemaVersion)} · <code>${escapeHtml((d.projectionPlanHash || '').slice(0, 12))}</code> · ${escapeHtml(d.projectionCompilerVersion)} · ${escapeHtml(d.projectionBuildMode)}</span>` : d.projectionBuildMode ? `<br><span class="muted small">Build mode: ${escapeHtml(d.projectionBuildMode)}</span>` : ''}
       ${d.jsonFolderPath ? `<br><span class="muted small">Bundle: ${escapeHtml(d.jsonFolderPath)}</span>` : ''}
       ${d.assetManifest?.assetRootUrl
         ? `<br><span class="muted small">Assets: ${escapeHtml(d.assetManifest.assetRootUrl)} (${d.assetManifest.assets?.length ?? 0})</span>`
@@ -441,7 +458,10 @@ export async function renderAdminAiPage(app) {
         ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
         : ''}
       ${cannotResume
-        ? '<p class="muted small">This failed draft has no saved case JSON checkpoint, so continuing would regenerate it. Create a new case after fixing the billing issue.</p>'
+        ? `<p class="muted small">${tr(
+            'This draft has no recoverable checkpoint for its current failure. Review the validation details, then create a new case if the source artifact cannot be repaired.',
+            'Bản nháp không có checkpoint có thể phục hồi cho lỗi hiện tại. Hãy xem chi tiết validation; chỉ tạo case mới nếu artifact nguồn không thể sửa.'
+          )}</p>`
         : ''}
       ${published && caseId
         ? `<div class="case-actions">
@@ -493,17 +513,57 @@ export async function renderAdminAiPage(app) {
     return localizedPair(labels[category]) || category;
   }
 
+  function reviewFindings(review) {
+    if (review?.findings?.length) return review.findings;
+    return (review?.issues || []).map((message, index) => ({
+      findingId: `legacy-${index + 1}`,
+      code: 'LEGACY_REVIEW_ISSUE',
+      relatedIds: [],
+      message,
+    }));
+  }
+
+  function truthRepairScopeOptions(plan) {
+    const recommended = plan?.recommendedStartArtifact || 'TIMELINE';
+    const recommendedIndex = TRUTH_ARTIFACT_ORDER.indexOf(recommended);
+    const allowed = recommendedIndex >= 0
+      ? TRUTH_ARTIFACT_ORDER.slice(0, recommendedIndex + 1)
+      : TRUTH_ARTIFACT_ORDER.slice(0, 3);
+    const selected = plan?.selectedStartArtifact || recommended;
+    return allowed.map((artifact) =>
+      `<option value="${artifact}" ${artifact === selected ? 'selected' : ''}>${artifact}${artifact === recommended ? ' (recommended)' : ''}</option>`).join('');
+  }
+
+  function findingArtifact(code) {
+    if (code === 'OPPORTUNITY_CONSISTENCY' || code === 'SOLUTION_AMBIGUITY') return 'OPPORTUNITY';
+    if (code === 'TRACE_PERSISTENCE' || code === 'PROOF_SCOPE') return 'EVIDENCE';
+    return 'TIMELINE';
+  }
+
+  function renderReviewFindingGroups(findings) {
+    const groups = new Map();
+    for (const finding of findings) {
+      const artifact = findingArtifact(finding.code);
+      if (!groups.has(artifact)) groups.set(artifact, []);
+      groups.get(artifact).push(finding);
+    }
+    return [...groups.entries()].map(([artifact, items]) =>
+      `<section data-review-finding-group="${artifact}"><h4>${artifact}</h4><ul>${items.map((finding) => `<li><span class="chip chip-bad">${escapeHtml(finding.code || 'OTHER')}</span> ${escapeHtml(finding.message || '')}${finding.relatedIds?.length ? `<br><span class="muted small">${truthValues(finding.relatedIds)}</span>` : ''}</li>`).join('')}</ul></section>`).join('');
+  }
+
   function truthPanel(d) {
     const summary = d.truthSummary;
     if (!summary) return '';
     const truth = d.caseTruth;
     const review = d.truthReviewerResult;
-    const reviewPassed = review?.status === 'PASSED' && Number(review?.confidence || 0) >= 0.8;
+    const reviewPassed = truthReviewPassed(d);
+    const findings = reviewFindings(review);
+    const repairPlan = d.truthRepairPlan;
     const candidateReady = d.truthRepairStatus === 'CANDIDATE_READY' && d.truthRepairCandidate;
     const core = truth?.coreTruth;
     const conclusions = truth?.proofGraph?.conclusions || [];
-    return `<section class="notice ${reviewPassed && !summary.validationErrorCount ? 'notice-ok' : 'notice-bad'} truth-review-panel" data-truth-review>
-      <div class="page-head"><h3>${tr('Immutable case truth (spoiler)', 'Sự thật vụ án bất biến (có spoiler)')}</h3><span class="chip ${reviewPassed ? 'chip-ok' : 'chip-bad'}">${escapeHtml(review?.status || summary.reviewerStatus || 'NOT_RUN')}</span></div>
+    return `<section class="notice ${!summary.validationErrorCount ? 'notice-ok' : 'notice-bad'} truth-review-panel" data-truth-review>
+      <div class="page-head"><h3>${tr('Immutable case truth (spoiler)', 'Sự thật vụ án bất biến (có spoiler)')}</h3><span class="chip ${reviewPassed ? 'chip-ok' : ''}">${tr('Advisory', 'Tham khảo')}: ${escapeHtml(review?.status || summary.reviewerStatus || 'NOT_RUN')}</span></div>
       <p class="muted small">Schema ${escapeHtml(summary.schemaVersion || '')} · SHA-256 <code>${escapeHtml(summary.truthHash || '')}</code></p>
       <div class="truth-metric-grid">
         <span><strong>${summary.timelineEventCount}/${summary.maxTimelineEvents || '?'}</strong>${tr('timeline events', 'sự kiện')}</span>
@@ -511,12 +571,12 @@ export async function renderAdminAiPage(app) {
         <span><strong>${summary.statementCount}/${summary.maxStatements || '?'}</strong>${tr('statements', 'lời khai')}</span>
         <span><strong>${summary.proofConclusionCount}</strong>${tr('proof conclusions', 'kết luận')}</span>
       </div>
-      ${review ? `<div class="truth-review-verdicts">
-        <strong>${tr('Independent feasibility', 'Khả thi độc lập')}: ${(Number(review.confidence || 0) * 100).toFixed(0)}%</strong>
+      ${review ? `<p class="muted small"><strong>${tr('Advisory AI review', 'Đánh giá AI tham khảo')}:</strong> ${tr('Findings do not block approval when deterministic validation passes.', 'Các phát hiện không chặn phê duyệt khi validator tất định đã pass.')}</p><div class="truth-review-verdicts">
+        <strong>${tr('Reviewer confidence', 'Độ tin cậy của reviewer')}: ${(Number(review.confidence || 0) * 100).toFixed(0)}%</strong>
         <span class="chip ${review.timelineFeasible ? 'chip-ok' : 'chip-bad'}">${tr('Timeline', 'Thời gian')} ${review.timelineFeasible ? 'PASS' : 'BLOCK'}</span>
         <span class="chip ${review.physicalCausalityFeasible ? 'chip-ok' : 'chip-bad'}">${tr('Causality', 'Nhân quả')} ${review.physicalCausalityFeasible ? 'PASS' : 'BLOCK'}</span>
         <span class="chip ${review.uniqueSolution ? 'chip-ok' : 'chip-bad'}">${tr('Unique solution', 'Nghiệm duy nhất')} ${review.uniqueSolution ? 'PASS' : 'BLOCK'}</span>
-      </div>${review.issues?.length ? `<ul>${review.issues.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}` : ''}
+      </div>${findings.length ? `<div class="truth-validation-errors"><strong>${tr('Advisory reviewer findings', 'Phát hiện tham khảo từ reviewer')}</strong>${renderReviewFindingGroups(findings)}</div>` : ''}` : ''}
       ${d.truthValidationReport?.length ? `<div class="truth-validation-errors"><strong>${tr('Validation report', 'Báo cáo validation')}</strong><ul>${d.truthValidationReport.slice(0, 20).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>` : ''}
       ${truth && core ? `<div class="truth-core-grid">
         <article><span>${tr('Culprit', 'Thủ phạm')}</span><strong>${escapeHtml(core.culpritId)}</strong></article>
@@ -529,7 +589,7 @@ export async function renderAdminAiPage(app) {
         <tbody>${(truth.trueTimeline || []).map((event) => `<tr><td><strong>${event.startMinute}–${event.endMinute}</strong><br><span class="muted small">${escapeHtml(event.eventId)}</span></td><td>${escapeHtml(event.actorId)}<br><span class="muted small">${escapeHtml(event.locationId)}</span></td><td>${escapeHtml(event.action)}${event.travelFromPreviousMinutes ? `<br><span class="muted small">${tr('Travel', 'Di chuyển')}: ${event.travelFromPreviousMinutes}m</span>` : ''}</td><td>${truthValues(event.witnessIds)}<br><span class="muted small">${truthValues(event.traceIds)}</span></td></tr>`).join('')}</tbody></table></div>
       </details>
       <details class="truth-section" open><summary>${tr('Opportunity matrix', 'Ma trận cơ hội')} (${truth.opportunityMatrix?.length || 0})</summary>
-        <div class="table-scroll"><table class="admin-table truth-table"><thead><tr><th>${tr('Suspect', 'Nghi phạm')}</th><th>${tr('Window', 'Khoảng thời gian')}</th><th>${tr('Capability', 'Năng lực')}</th><th>${tr('Alibi / elimination', 'Ngoại phạm / loại trừ')}</th></tr></thead>
+        <div class="table-scroll"><table class="admin-table truth-table"><thead><tr><th>${tr('Suspect', 'Nghi phạm')}</th><th>${tr('Crime-opportunity window', 'Khoảng cơ hội phạm tội')}</th><th>${tr('Capability', 'Năng lực')}</th><th>${tr('Alibi / elimination', 'Ngoại phạm / loại trừ')}</th></tr></thead>
         <tbody>${(truth.opportunityMatrix || []).map((entry) => `<tr><td><strong>${escapeHtml(entry.characterId)}</strong><br><span class="chip ${entry.identityLinkedToCrime ? 'chip-bad' : 'chip-ok'}">${entry.identityLinkedToCrime ? tr('IDENTITY LINK', 'CÓ LIÊN KẾT') : tr('NO IDENTITY LINK', 'KHÔNG LIÊN KẾT')}</span></td><td>${entry.availableFromMinute}–${entry.availableToMinute}<br><span class="muted small">${entry.hasMotive ? tr('Has motive', 'Có động cơ') : tr('No proven motive', 'Chưa có động cơ')}</span></td><td><span class="muted small">${tr('Access', 'Quyền truy cập')}: ${truthValues(entry.accessIds)}<br>${tr('Tools', 'Công cụ')}: ${truthValues(entry.toolIds)}<br>${tr('Knowledge', 'Kiến thức')}: ${truthValues(entry.knowledgeIds)}</span></td><td><span class="chip ${entry.alibiVerified ? 'chip-ok' : ''}">${entry.alibiVerified ? tr('VERIFIED', 'ĐÃ XÁC MINH') : tr('UNVERIFIED', 'CHƯA XÁC MINH')}</span><br>${truthValues(entry.alibiEventIds)}<br><span class="muted small">${escapeHtml(entry.eliminationReason || '—')}</span></td></tr>`).join('')}</tbody></table></div>
       </details>
       <details class="truth-section"><summary>${tr('Causal trace ledger', 'Sổ dấu vết nhân quả')} (${truth.traceLedger?.length || 0})</summary>
@@ -549,7 +609,8 @@ export async function renderAdminAiPage(app) {
       </details>
       ${truth.redHerringLedger?.length ? `<details class="truth-section"><summary>${tr('Red herrings and clearing evidence', 'Nghi binh và chứng cứ giải oan')} (${truth.redHerringLedger.length})</summary><div class="proof-coverage-grid">${truth.redHerringLedger.map((entry) => `<article class="proof-coverage-card"><strong>${escapeHtml(entry.suspectId)}</strong><p>${escapeHtml(entry.suspiciousReason)}</p><small>${tr('Innocent explanation', 'Giải thích vô tội')}: ${escapeHtml(entry.innocentExplanation)}<br>${tr('Clearing evidence', 'Chứng cứ giải oan')}: ${truthValues([...(entry.clearingTraceIds || []), ...(entry.clearingStatementIds || [])])}</small></article>`).join('')}</div></details>` : ''}
       <details class="json-details"><summary>${tr('Open spoiler truth JSON', 'Mở JSON truth có spoiler')}</summary><pre class="json-view">${escapeHtml(JSON.stringify(truth, null, 2))}</pre></details>` : ''}
-      ${d.status === STATUS_TRUTH_AWAITING_APPROVAL || d.status === STATUS_TRUTH_INVALID ? `<label class="truth-repair-field"><span>${tr('Scoped repair instructions', 'Yêu cầu sửa theo phạm vi')}</span><textarea class="field-input" rows="2" maxlength="2000" data-truth-repair-instructions="${escapeHtml(d.draftId)}" placeholder="${tr('Describe the invalid causal artifact; valid upstream truth will remain locked.', 'Mô tả artifact nhân quả bị lỗi; truth upstream hợp lệ vẫn được khóa.')}"></textarea></label><div class="case-actions">
+      ${repairPlan ? `<p class="muted small" data-truth-repair-plan><strong>${tr('Recommended repair start', 'Điểm bắt đầu sửa được khuyến nghị')}:</strong> ${escapeHtml(repairPlan.recommendedStartArtifact || 'TIMELINE')} · ${tr('Reasons', 'Lý do')}: ${truthValues(repairPlan.reasonCodes)} · ${tr('Stale downstream', 'Downstream cần tạo lại')}: ${truthValues(repairPlan.staleArtifacts)}</p>` : ''}
+      ${d.status === STATUS_TRUTH_AWAITING_APPROVAL || d.status === STATUS_TRUTH_INVALID ? `<label class="truth-repair-field"><span>${tr('Repair start artifact', 'Artifact bắt đầu sửa')}</span><select class="field-input" data-truth-repair-scope="${escapeHtml(d.draftId)}">${truthRepairScopeOptions(repairPlan)}</select><small class="muted">${tr('You may start earlier than recommended, never later.', 'Có thể bắt đầu sớm hơn khuyến nghị, không được bắt đầu muộn hơn.')}</small></label><label class="truth-repair-field"><span>${tr('Scoped repair instructions', 'Yêu cầu sửa theo phạm vi')}</span><textarea class="field-input" rows="2" maxlength="2000" data-truth-repair-instructions="${escapeHtml(d.draftId)}" placeholder="${tr('Describe the invalid causal artifact; valid upstream truth will remain locked.', 'Mô tả artifact nhân quả bị lỗi; truth upstream hợp lệ vẫn được khóa.')}"></textarea></label><div class="case-actions">
         <button class="btn btn-ghost btn-sm" type="button" data-repair-truth="${escapeHtml(d.draftId)}">${tr('Create scoped repair', 'Tạo bản sửa theo phạm vi')}</button>
         ${candidateReady ? `<button class="btn btn-primary btn-sm" type="button" data-accept-truth-repair="${escapeHtml(d.draftId)}">${tr('Accept truth repair', 'Chấp nhận bản sửa truth')}</button>
           <button class="btn btn-ghost btn-sm" type="button" data-reject-truth-repair="${escapeHtml(d.draftId)}">${tr('Reject truth repair', 'Từ chối bản sửa truth')}</button>` : ''}
@@ -562,10 +623,15 @@ export async function renderAdminAiPage(app) {
   function blindReviewPanel(d) {
     const review = d.blindSolvabilityReview;
     if (!review) return '';
-    const passed = review.status === 'PASSED' && review.uniqueSolution && Number(review.confidence || 0) >= 0.8;
-    return `<section class="notice ${passed ? 'notice-ok' : 'notice-bad'} blind-review-panel" data-blind-review>
-      <div class="page-head"><h3>${tr('Blind solvability review', 'Đánh giá khả năng giải mù')}</h3><span class="chip ${passed ? 'chip-ok' : 'chip-bad'}">${escapeHtml(review.status || 'NOT_RUN')} · ${(Number(review.confidence || 0) * 100).toFixed(0)}%</span></div>
+    const findings = reviewFindings(review);
+    const passed = review.status === 'PASSED'
+      && review.uniqueSolution
+      && Number(review.confidence || 0) >= 0.8
+      && findings.length === 0;
+    return `<section class="notice ${passed ? 'notice-ok' : ''} blind-review-panel" data-blind-review>
+      <div class="page-head"><h3>${tr('Advisory blind solvability review', 'Đánh giá khả năng giải mù (tham khảo)')}</h3><span class="chip ${passed ? 'chip-ok' : ''}">${escapeHtml(review.status || 'NOT_RUN')}</span></div>
       <p>${tr('The reviewer only received information collectible before accusation; truth metadata and the final answer were removed.', 'Reviewer chỉ nhận thông tin người chơi có thể thu thập trước cáo buộc; metadata truth và đáp án cuối đã bị loại bỏ.')}</p>
+      <p><strong>${tr('Reviewer confidence', 'Độ tin cậy của reviewer')}:</strong> ${(Number(review.confidence || 0) * 100).toFixed(0)}%</p>
       <div class="truth-core-grid">
         <article><span>${tr('Inferred culprit', 'Thủ phạm suy ra')}</span><strong>${escapeHtml(review.culpritId || '—')}</strong></article>
         <article><span>${tr('Unique solution', 'Nghiệm duy nhất')}</span><strong>${review.uniqueSolution ? 'PASS' : 'BLOCK'}</strong></article>
@@ -574,7 +640,7 @@ export async function renderAdminAiPage(app) {
       </div>
       <p><strong>${tr('Timeline reconstruction', 'Tái dựng dòng thời gian')}:</strong> ${escapeHtml(review.timelineSummary || '—')}</p>
       <p><strong>${tr('Evidence chain', 'Chuỗi chứng cứ')}:</strong> ${truthValues(review.evidenceChainIds)}</p>
-      ${review.issues?.length ? `<ul>${review.issues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join('')}</ul>` : ''}
+      ${findings.length ? `<ul>${findings.map((finding) => `<li><strong>${escapeHtml(finding.code)}</strong>${finding.relatedIds?.length ? ` [${finding.relatedIds.map(escapeHtml).join(', ')}]` : ''}: ${escapeHtml(finding.message)}</li>`).join('')}</ul>` : ''}
     </section>`;
   }
 
@@ -1046,7 +1112,9 @@ export async function renderAdminAiPage(app) {
         .find((field) => field.dataset.truthRepairInstructions === draftId);
       const instructions = instructionField?.value?.trim()
         || 'Repair only the invalid causal artifact and preserve every valid upstream fact.';
-      const draft = await aiCaseApi.repairTruth(draftId, instructions);
+      const scopeField = [...app.querySelectorAll('[data-truth-repair-scope]')]
+        .find((field) => field.dataset.truthRepairScope === draftId);
+      const draft = await aiCaseApi.repairTruth(draftId, instructions, scopeField?.value || null);
       if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
       draw(draft);
       if (!isTerminalDraft(draft)) {

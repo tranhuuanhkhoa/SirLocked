@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Models;
 
@@ -13,16 +14,16 @@ public static class AiGenerationSchemaVersions
     public const string PromptV3Crack = "ai-case-prompt-v3-crack-v2";
     public const string V3SemanticReview = "v3-pair-review-v2";
     public const string CaseBlueprintV3Crack = "case-blueprint-v3-crack-v1";
-    public const string CaseTruth = CaseTruthSchemaVersions.V1;
-    public const string CaseSeed = "case-seed-v1";
-    public const string CoreTruth = "core-truth-v1";
+    public const string CaseTruth = CaseTruthSchemaVersions.V2;
+    public const string CaseSeed = "case-seed-v2";
+    public const string CoreTruth = "core-truth-v3";
     public const string TrueTimeline = "true-timeline-v1";
     public const string OpportunityMatrix = "opportunity-matrix-v1";
     public const string TraceLedger = "trace-ledger-v2";
     public const string StatementLedger = "statement-ledger-v2";
     public const string ProofGraph = "proof-graph-v2";
-    public const string CaseTruthReview = CaseTruthSchemaVersions.FeasibilityReviewV1;
-    public const string BlindSolvabilityReview = CaseTruthSchemaVersions.BlindReviewV1;
+    public const string CaseTruthReview = CaseTruthSchemaVersions.FeasibilityReviewV2;
+    public const string BlindSolvabilityReview = CaseTruthSchemaVersions.BlindReviewV2;
 }
 
 public static class AiCaseTypes
@@ -138,6 +139,9 @@ public static class AiFailurePhases
     public const string BlindSolvabilityReview = "BLIND_SOLVABILITY_REVIEW";
     public const string BlueprintJson = "BLUEPRINT_JSON";
     public const string FullLogicJson = "FULL_LOGIC_JSON";
+    public const string ProjectionContentJson = "PROJECTION_CONTENT_JSON";
+    public const string ProjectionCompile = "PROJECTION_COMPILE";
+    public const string ProjectionConformance = "PROJECTION_CONFORMANCE";
     public const string PreAssetValidation = "PRE_ASSET_VALIDATION";
     public const string SceneLayout = "SCENE_LAYOUT";
     public const string VisualQa = "VISUAL_QA";
@@ -230,6 +234,8 @@ public class AiCaseDraft
     public string CaseTruthJson { get; set; } = string.Empty;
     public string TruthSchemaVersion { get; set; } = string.Empty;
     public string TruthHash { get; set; } = string.Empty;
+    /// <summary>Server-owned target semantics allocated before truth generation.</summary>
+    public string PlannedTargetKind { get; set; } = string.Empty;
     /// <summary>The last fully generated truth artifact saved before validation/review.</summary>
     public string TruthCheckpointArtifact { get; set; } = string.Empty;
     public CaseTruthFeasibilityReview TruthReviewerResult { get; set; } = new();
@@ -239,9 +245,22 @@ public class AiCaseDraft
     public string TruthRepairStatus { get; set; } = AiRepairStatus.None;
     public List<string> TruthRepairValidationReport { get; set; } = new();
     public string TruthRepairInstructions { get; set; } = string.Empty;
+    public string TruthRepairRecommendedArtifact { get; set; } = string.Empty;
+    public string TruthRepairFromArtifact { get; set; } = string.Empty;
+    public List<string> TruthRepairReasonCodes { get; set; } = new();
     public CaseTruthFeasibilityReview TruthRepairReviewerResult { get; set; } = new();
     public BlindSolvabilityReview BlindSolvabilityReview { get; set; } = new();
     public List<AiArtifactProvenance> ArtifactProvenance { get; set; } = new();
+    public GameplayProjectionPlan? ProjectionPlan { get; set; }
+    public string ProjectionPlanJson { get; set; } = string.Empty;
+    public string ProjectionPlanSchemaVersion { get; set; } = string.Empty;
+    public string ProjectionPlanHash { get; set; } = string.Empty;
+    public string ProjectionContentJson { get; set; } = string.Empty;
+    public string ProjectionContentHash { get; set; } = string.Empty;
+    public string ProjectionBuildMode { get; set; } = string.Empty;
+    public string ProjectionCompilerVersion { get; set; } = string.Empty;
+    public string V3CrackContentJson { get; set; } = string.Empty;
+    public string V3CrackContentHash { get; set; } = string.Empty;
     public AiCaseBlueprint? CaseBlueprint { get; set; }
     public string BlueprintJson { get; set; } = string.Empty;
     public string BlueprintSchemaVersion { get; set; } = string.Empty;

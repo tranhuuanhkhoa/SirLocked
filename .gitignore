@@ -29,6 +29,10 @@ tmp/
 
 # Local tooling (portable MongoDB etc.)
 .tools/
+.grapuco/
+
+# Editor scratch files
+docs/diagrams/.$*.bkp
 
 # MongoDB / DB dumps
 *.dump

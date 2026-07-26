@@ -120,8 +120,31 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         if (current.QueuedOperation == operation
             && current.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled)
             return new AiGenerationClaim(current, false);
+
+        // A worker completion or harmless metadata update can advance the version
+        // between the endpoint read and this CAS. Retry once only when every input
+        // that controls generation is unchanged and there is still no active queue.
+        var currentInputHash = ComputeGenerationInputHash(current, phase);
+        if (expectedStatuses.Contains(current.Status, StringComparer.Ordinal)
+            && current.QueueState is "" or AiQueueStates.None
+            && string.Equals(currentInputHash, inputHash, StringComparison.Ordinal))
+        {
+            var refreshedFilter = Builders<AiCaseDraft>.Filter.And(
+                Builders<AiCaseDraft>.Filter.Eq(item => item.Id, current.Id),
+                ObservedVersionFilter(current),
+                Builders<AiCaseDraft>.Filter.In(item => item.Status, expectedStatuses),
+                Builders<AiCaseDraft>.Filter.Not(
+                    Builders<AiCaseDraft>.Filter.In(item => item.QueueState,
+                        [AiQueueStates.Pending, AiQueueStates.Running, AiQueueStates.RetryScheduled])));
+            var refreshed = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
+                refreshedFilter,
+                update,
+                new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After },
+                cancellationToken);
+            if (refreshed is not null) return new AiGenerationClaim(refreshed, true);
+        }
         throw ApiException.Conflict(
-            $"AI draft changed from workflow version {observedDraft.WorkflowVersion} before '{operation}' could be queued.",
+            $"AI draft changed from workflow version {observedDraft.WorkflowVersion} to {current.WorkflowVersion} before '{operation}' could be queued.",
             "AI_WORKFLOW_CONFLICT",
             "ai.workflow.conflict");
     }
@@ -286,8 +309,8 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
                 .Set(item => item.GenerationClaimedAt, now)
                 .Set(item => item.UpdatedAt, now),
             cancellationToken: cancellationToken);
-        if (result.ModifiedCount > 0) draft.GenerationClaimedAt = now;
-        return result.ModifiedCount > 0;
+        if (result.MatchedCount > 0) draft.GenerationClaimedAt = now;
+        return result.MatchedCount > 0;
     }
 
     private static string ComputeGenerationInputHash(AiCaseDraft draft, string phase)
@@ -299,8 +322,12 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             draft.Settings,
             draft.StoryPreview,
             draft.StoryFingerprint,
+            draft.PlannedTargetKind,
             draft.TruthHash,
             draft.BlueprintHash,
+            draft.ProjectionPlanHash,
+            draft.ProjectionContentHash,
+            draft.V3CrackContentHash,
             GeneratedJsonHash = string.IsNullOrWhiteSpace(draft.GeneratedJson)
                 ? string.Empty
                 : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(draft.GeneratedJson)))
