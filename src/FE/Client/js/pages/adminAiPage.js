@@ -16,6 +16,10 @@ const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
 const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
 const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED']);
 const isTerminalDraft = (draft) => TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState);
+// A queued or running draft still carries the failurePhase/validationErrors of the attempt before
+// it, so the UI must not present them as the outcome of the run that is currently in flight.
+const isGeneratingDraft = (draft) => ACTIVE_QUEUE_STATES.has(draft?.queueState)
+  || String(draft?.status || '').startsWith('GENERATING_');
 const TRUTH_ARTIFACT_ORDER = ['CASE_SEED', 'CORE_TRUTH', 'TIMELINE', 'OPPORTUNITY', 'EVIDENCE', 'STATEMENTS', 'PROOF_GRAPH'];
 const PRESETS = {
   NORMAL_RANDOM: {
@@ -351,7 +355,7 @@ export async function renderAdminAiPage(app) {
       <td>${escapeHtml(title)}<br><span class="muted small">${escapeHtml(prompt.slice(0, 70))}</span></td>
       <td><span class="chip">${escapeHtml(d.provider)}</span></td>
       <td><span class="chip">${escapeHtml(preset)}</span>${effectiveCaseType ? ` <span class="chip">${escapeHtml(caseTypeLabel(effectiveCaseType))}</span>` : ''}${isV3Draft(d) ? ` <span class="chip ${d.v3SemanticReview?.status === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(d.v3SemanticReview?.status || 'NOT_RUN')}</span>` : ''}<br><span class="muted small">${escapeHtml(language)}</span></td>
-      <td><span class="chip ${isSuccessStatus(d.status) ? 'chip-ok' : 'chip-bad'}">${escapeHtml(statusLabel(d.status))}</span></td>
+      <td><span class="chip ${isGeneratingDraft(d) ? '' : isSuccessStatus(d.status) ? 'chip-ok' : 'chip-bad'}">${escapeHtml(statusLabel(d.status))}</span></td>
       <td>
         <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">${tr('View', 'Xem')}</button>
         ${continueButton(d)}
@@ -434,15 +438,30 @@ export async function renderAdminAiPage(app) {
     bind();
   }
 
+  function failureBlock(d, generating) {
+    const phase = d.failurePhase && d.failurePhase !== 'NONE'
+      ? `<span class="muted small">Failure phase: ${escapeHtml(d.failurePhase)}${d.failedAssetIds?.length ? ` · Failed assets: ${d.failedAssetIds.map(escapeHtml).join(', ')}` : ''}</span>`
+      : '';
+    const errors = d.validationErrors?.length
+      ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
+      : '';
+    if (!phase && !errors) return '';
+    if (!generating) return `${phase ? `<br>${phase}` : ''}${errors}`;
+    return `<details class="truth-section" data-previous-attempt><summary>${tr(
+      'Result of the previous attempt', 'Kết quả lần chạy trước'
+    )}</summary>${phase}${errors}</details>`;
+  }
+
   function draftDetail(d) {
     const preview = d.storyPreview;
     const statusOk = isSuccessStatus(d.status);
     const published = d.publishedCase || d.importedCaseId || d.status === STATUS_PUBLISHED;
     const caseId = d.publishedCase?.caseId || d.importedCaseId || d.caseId;
     const resumeAction = continueButton(d);
-    const cannotResume = d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published && !d.canContinue;
+    const generating = isGeneratingDraft(d);
+    const cannotResume = !generating && d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published && !d.canContinue;
     return `
-    <div class="notice ${statusOk ? 'notice-ok' : 'notice-bad'}">
+    <div class="notice ${generating ? '' : statusOk ? 'notice-ok' : 'notice-bad'}">
       <strong>${escapeHtml(d.caseTitle || preview?.title || d.caseId || tr('AI draft', 'Bản nháp AI'))}</strong> - ${escapeHtml(statusLabel(d.status))} (${escapeHtml(d.provider)})
       <br><span class="muted small">${tr('Preset', 'Cấu hình')}: ${escapeHtml(presetLabel(d.settings?.generationPreset))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</span>
       ${d.storyDiversity?.seed ? `<br><span class="muted small">Diversity seed: <code>${escapeHtml(d.storyDiversity.seed)}</code>${d.storyDiversity?.coreFingerprint ? ` · Core: <code>${escapeHtml(d.storyDiversity.coreFingerprint.slice(0, 12))}</code>` : ''}${d.storyFingerprint ? ` · Preview: <code>${escapeHtml(d.storyFingerprint.slice(0, 12))}</code>` : ''}</span>` : ''}
@@ -451,12 +470,7 @@ export async function renderAdminAiPage(app) {
       ${d.assetManifest?.assetRootUrl
         ? `<br><span class="muted small">Assets: ${escapeHtml(d.assetManifest.assetRootUrl)} (${d.assetManifest.assets?.length ?? 0})</span>`
         : ''}
-      ${d.failurePhase && d.failurePhase !== 'NONE'
-        ? `<br><span class="muted small">Failure phase: ${escapeHtml(d.failurePhase)}${d.failedAssetIds?.length ? ` · Failed assets: ${d.failedAssetIds.map(escapeHtml).join(', ')}` : ''}</span>`
-        : ''}
-      ${d.validationErrors?.length
-        ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
-        : ''}
+      ${failureBlock(d, generating)}
       ${cannotResume
         ? `<p class="muted small">${tr(
             'This draft has no recoverable checkpoint for its current failure. Review the validation details, then create a new case if the source artifact cannot be repaired.',

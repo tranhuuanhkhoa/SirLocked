@@ -32,7 +32,7 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
                     ("truthLocationId", Const(slot.TruthLocationId)),
                     ("title", Text(160)),
                     ("description", Text(1000)),
-                    ("visualDescription", Text(1200))));
+                    ("visualDescription", AsciiText(1200))));
             }))),
             ("characters", SlotMap(skeleton.Characters.Select(character =>
                 (character.CharacterId, Object(
@@ -40,14 +40,14 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
                     ("name", Text(120)),
                     ("role", Text(160)),
                     ("description", Text(800)),
-                    ("visualDescription", Text(1000))))))),
+                    ("visualDescription", AsciiText(1000))))))),
             ("items", SlotMap(skeleton.Items.Select(item =>
                 (item.ItemId, Object(
                     ("itemId", Const(item.ItemId)),
                     ("name", Text(120)),
                     ("description", Text(600)),
                     ("inspectText", Text(600)),
-                    ("visualDescription", Text(800)),
+                    ("visualDescription", AsciiText(800)),
                     ("interactionReason", Text(500))))))),
             ("clues", SlotMap(skeleton.Clues.Select(clue =>
             {
@@ -59,7 +59,7 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
                     ("sourceActionId", Const(slot.SourceActionId)),
                     ("title", Text(160)),
                     ("content", Text(800)),
-                    ("visualDescription", Text(800)),
+                    ("visualDescription", AsciiText(800)),
                     ("inventoryDescription", Text(600)),
                     ("narrativeMeaning", Text(800))));
             }))),
@@ -168,6 +168,18 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
         ["minLength"] = 1,
         ["maxLength"] = maximum
     };
+
+    /// <summary>
+    /// Art direction consumed by the image pipeline. It must stay printable English/ASCII even when
+    /// the case language is Vietnamese, so the pattern enforces what
+    /// <c>AiGenerationContract.ValidateSafeVisualText</c> checks deterministically.
+    /// </summary>
+    private static JsonObject AsciiText(int maximum)
+    {
+        var schema = Text(maximum);
+        schema["pattern"] = "^[ -~]+$";
+        return schema;
+    }
 
     private static JsonObject Const(string value) => new()
     {

@@ -335,6 +335,47 @@ public sealed class ProjectionPipelineTests
     }
 
     [Fact]
+    public void Schema_ForcesAsciiArtDirection()
+    {
+        // Vietnamese cases still need English/ASCII visualDescription, because
+        // AiGenerationContract.ValidateSafeVisualText rejects anything above U+007F.
+        var (draft, truth) = BuildDraft();
+        draft.Settings.Language = CaseLanguages.Vietnamese;
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var schema = new ProjectionContentSchemaFactory().Build(plan);
+
+        foreach (var group in new[] { "scenes", "characters", "items", "clues" })
+        {
+            var slots = schema["properties"]![group]!["properties"]!.AsObject();
+            Assert.NotEmpty(slots);
+            foreach (var (id, slot) in slots)
+            {
+                var visual = slot!["properties"]!["visualDescription"];
+                Assert.NotNull(visual);
+                Assert.Equal("^[ -~]+$", visual!["pattern"]!.GetValue<string>());
+            }
+        }
+
+        Assert.Empty(AiStrictSchemaLinter.Validate(schema));
+    }
+
+    [Fact]
+    public void MockContent_KeepsArtDirectionAscii()
+    {
+        var (draft, truth) = BuildDraft();
+        draft.Settings.Language = CaseLanguages.Vietnamese;
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var content = ProjectionContentMockFactory.Build(plan);
+
+        var visuals = content.Scenes.Values.Select(item => item.VisualDescription)
+            .Concat(content.Characters.Values.Select(item => item.VisualDescription))
+            .Concat(content.Items.Values.Select(item => item.VisualDescription))
+            .Concat(content.Clues.Values.Select(item => item.VisualDescription));
+        foreach (var visual in visuals)
+            Assert.DoesNotContain(visual, value => value > (char)127);
+    }
+
+    [Fact]
     public void Locks_RestorePlanOwnedSlots_SoSchemaShapedContentCompiles()
     {
         var (draft, truth) = BuildDraft();

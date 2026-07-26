@@ -124,19 +124,16 @@ public static class AiV3SemanticReviewPolicy
             {
                 errors.Add($"AI_V3_NO_VALID_PAIR [{challenge.ChallengeId}]: The authored pair was rejected: {authored?.Reason ?? "no reviewer reason"}");
             }
-            else if (valid.Count > 1)
+            else if (authored is null || !authored.IsValidContradiction)
             {
-                errors.Add($"AI_V3_MULTIPLE_VALID_PAIRS [{challenge.ChallengeId}]: {valid.Count} pairs directly contradict their selected claims; exactly one is required.");
-            }
-            else if (valid[0].EvidenceId != challenge.CorrectEvidenceId
-                     || valid[0].TestimonyFragmentId != challenge.TestimonyFragmentId)
-            {
-                errors.Add($"AI_V3_AUTHORED_PAIR_MISMATCH [{challenge.ChallengeId}]: The reviewer selected {valid[0].EvidenceId} + {valid[0].TestimonyFragmentId}; authored pair reason: {authored?.Reason ?? "no reviewer reason"}");
+                errors.Add($"AI_V3_AUTHORED_PAIR_MISMATCH [{challenge.ChallengeId}]: The reviewer accepted "
+                           + $"{string.Join(", ", valid.Select(item => $"{item.EvidenceId} + {item.TestimonyFragmentId}"))} "
+                           + $"but not the authored pair; authored pair reason: {authored?.Reason ?? "no reviewer reason"}");
             }
         }
         return errors.Count > 0
             ? errors
-            : ["AI_V3_SEMANTIC_REVIEW_REQUIRED: The declared pair was not the unique valid contradiction."];
+            : ["AI_V3_SEMANTIC_REVIEW_REQUIRED: The declared pair was not accepted as a real contradiction."];
     }
 
     public static string BuildRepairFeedback(GameCase gameCase, AiV3SemanticReview review)
@@ -170,8 +167,8 @@ public static class AiV3SemanticReviewPolicy
             - Prefer a subject-neutral physical claim about an observable object state or event, such as "the trolley never left the room" or "the seal remained intact".
             - If a claim names an actor (for example "I did not move it"), the evidence must independently identify that exact actor performing the action. Movement, ownership, assignment, proximity, opportunity, or timing is not actor identification.
             - Make the correct evidence content and narrativeMeaning explicitly establish the negation of the exact fragment with matching object, place, and time scope.
-            - Make every distractor pair compatible: the evidence and selected claim must both still be able to be true together.
-            - Internally audit the complete dynamic Cartesian product before returning JSON. Exactly the authored pair must pass; do not output the audit table.
+            - Prefer distractor pairs that stay compatible: the evidence and selected claim should both still be able to be true together.
+            - Internally audit the complete dynamic Cartesian product before returning JSON. The authored pair must pass; other pairs may also contradict when the story genuinely implies it. Do not output the audit table.
             Preserve unrelated valid case structure and IDs where possible, but change fragment/evidence wording and the authored pair IDs when needed for logical correctness.
             """;
     }

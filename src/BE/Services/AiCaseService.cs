@@ -897,88 +897,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
             if (AiV3GenerationProfile.IsV3(draft))
             {
-                var review = draft.CaseBlueprint is not null
-                    && draft.V3SemanticReview.Status == AiV3SemanticReviewStatuses.Passed
-                    ? draft.V3SemanticReview
-                    : await ReviewV3LogicAsync(draft, gameCase);
-                draft.V3SemanticReview = review;
-                gameCase.AiSemanticReviewStatus = review.Status;
-                if (review.Status != AiV3SemanticReviewStatuses.Passed)
-                {
-                    var originallyReviewedCase = gameCase;
-                    var originalReview = review;
-                    var failedCheckpoint = JsonSerializer.Serialize(gameCase, PrettyJson);
-                    try
-                    {
-                        var semanticRepairAttempt = await NextGenerationAttemptNumberAsync(
-                            draft.Id,
-                            CaseLogicSchemaVersion(draft));
-                        var semanticRepairJson = await GenerateJsonWithOpenAiAsync(
-                            draft.Id,
-                            "RepairV3SemanticLogic",
-                            BuildFullLogicRequestPrompt(
-                                draft,
-                                AiV3SemanticReviewPolicy.BuildRepairFeedback(gameCase, review),
-                                failedCheckpoint),
-                            maxOutputTokens: MaxFullCaseOutputTokens(draft),
-                            CaseLogicSchemaVersion(draft),
-                            CaseLogicSchema(draft),
-                            attemptNumber: semanticRepairAttempt,
-                            mockResponseFactory: () => BuildFullLogicMockJson(draft),
-                            generationRunId: draft.GenerationRunId);
-                        var (semanticRepairCase, semanticRepairValidation) =
-                            await ParseRepairValidateAsync(draft, semanticRepairJson);
-                        if (!semanticRepairValidation.IsValid)
-                        {
-                            await RecordValidationAttemptAsync(
-                                draft,
-                                "RepairV3SemanticLogic",
-                                semanticRepairAttempt,
-                                semanticRepairJson,
-                                semanticRepairValidation);
-                            var invalidJson = JsonSerializer.Serialize(semanticRepairCase, PrettyJson);
-                            var errors = ValidationMessages(semanticRepairValidation);
-                            await SaveInvalidAttemptAsync(draft, invalidJson, errors, FullLogicFailurePhase(draft, semanticRepairValidation));
-                            return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
-                        }
-
-                        gameCase = semanticRepairCase;
-                        review = await ReviewV3LogicAsync(draft, gameCase);
-                        draft.V3SemanticReview = review;
-                        gameCase.AiSemanticReviewStatus = review.Status;
-                    }
-                    catch (ApiException ex)
-                    {
-                        gameCase = originallyReviewedCase;
-                        review = originalReview;
-                        draft.V3SemanticReview = originalReview;
-                        _logger.LogWarning(
-                            ex,
-                            "Bounded V3 semantic repair failed for draft {DraftId}; preserving the reviewed checkpoint.",
-                            draft.Id);
-                    }
-
-                    if (review.Status != AiV3SemanticReviewStatuses.Passed)
-                    {
-                        var reviewedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                        var reviewErrors = AiV3SemanticReviewPolicy.Errors(gameCase, review);
-                        await SaveInvalidAttemptAsync(draft, reviewedJson, reviewErrors, AiFailurePhases.V3SemanticReview);
-                        await SaveV3SemanticReviewAsync(draft, review);
-                        var failed = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
-                        return AiDraftResponse.From(failed);
-                    }
-                }
-
-                if (draft.ProjectionPlan is not null
-                    && review.Status == AiV3SemanticReviewStatuses.Passed)
-                {
-                    var acceptedContent = JsonSerializer.Deserialize<GameplayProjectionContent>(
-                        draft.ProjectionContentJson, PrettyJson)
-                        ?? throw ApiException.Unprocessable("The reviewed V3 projection content is empty.");
-                    var crackContent = BuildAcceptedV3CrackContent(draft.ProjectionPlan, acceptedContent);
-                    draft.V3CrackContentJson = ProjectionCanonicalizer.Canonicalize(crackContent);
-                    draft.V3CrackContentHash = Sha256(draft.V3CrackContentJson);
-                }
+                var gate = await ApplyV3SemanticGateAsync(draft, gameCase);
+                if (gate.Failed)
+                    return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
+                gameCase = gate.Case;
             }
 
             if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
@@ -1759,28 +1681,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         if (AiV3GenerationProfile.IsV3(draft))
         {
-            var review = draft.CaseBlueprint is not null
-                && draft.V3SemanticReview.Status == AiV3SemanticReviewStatuses.Passed
-                ? draft.V3SemanticReview
-                : await ReviewV3LogicAsync(draft, gameCase);
-            draft.V3SemanticReview = review;
-            gameCase.AiSemanticReviewStatus = review.Status;
-            if (review.Status != AiV3SemanticReviewStatuses.Passed)
-            {
-                var reviewedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                await SaveInvalidAttemptAsync(draft, reviewedJson, AiV3SemanticReviewPolicy.Errors(gameCase, review), AiFailurePhases.V3SemanticReview);
-                await SaveV3SemanticReviewAsync(draft, review);
+            var gate = await ApplyV3SemanticGateAsync(draft, gameCase);
+            if (gate.Failed)
                 return AiDraftResponse.From(await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync());
-            }
-            if (draft.ProjectionPlan is not null)
-            {
-                var acceptedContent = JsonSerializer.Deserialize<GameplayProjectionContent>(
-                    draft.ProjectionContentJson, PrettyJson)
-                    ?? throw ApiException.Unprocessable("The reviewed V3 projection content is empty.");
-                var crackContent = BuildAcceptedV3CrackContent(draft.ProjectionPlan, acceptedContent);
-                draft.V3CrackContentJson = ProjectionCanonicalizer.Canonicalize(crackContent);
-                draft.V3CrackContentHash = Sha256(draft.V3CrackContentJson);
-            }
+            gameCase = gate.Case;
         }
 
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
@@ -1821,9 +1725,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private async Task<AiDraftResponse?> TryRestoreReviewedCheckpointAsync(AiCaseDraft draft)
     {
         if (!AiV3GenerationProfile.IsV3(draft)
-            || draft.CaseBlueprint is null
-            || draft.V3SemanticReview.Status != AiV3SemanticReviewStatuses.Passed
-            || string.IsNullOrWhiteSpace(draft.GeneratedJson))
+            || string.IsNullOrWhiteSpace(draft.GeneratedJson)
+            || (draft.V3SemanticReview.Cracks.Count == 0
+                && draft.V3SemanticReview.PairEvaluations.Count == 0))
         {
             return null;
         }
@@ -1840,11 +1744,19 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         if (gameCase is null) return null;
 
+        // The reviewer's per-pair verdicts stay meaningful even when the aggregate rule changes, so
+        // re-scoring the stored matrix promotes a saved checkpoint instead of paying to regenerate
+        // content that already passed every deterministic gate.
+        var reScoredReview = AiV3GenerationProfile.EvaluateReview(gameCase, draft.V3SemanticReview);
+        if (reScoredReview.Status != AiV3SemanticReviewStatuses.Passed) return null;
+        draft.V3SemanticReview = reScoredReview;
+
         await ApplyCaseAutoRepairAsync(draft, gameCase);
         var validation = _validator.ValidateFullLogic(gameCase);
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
-        validation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
+        if (draft.CaseBlueprint is not null)
+            validation.Errors.AddRange(AiCaseBlueprintPolicy.ValidateConformance(draft.CaseBlueprint, gameCase).Errors);
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
         if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
@@ -1863,12 +1775,42 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             gameCase.BlindReviewStatus = AdvisoryReviewStatus(blindReview.Status);
         }
 
+        if (draft.ProjectionPlan is not null && !string.IsNullOrWhiteSpace(draft.ProjectionContentJson))
+        {
+            var acceptedContent = JsonSerializer.Deserialize<GameplayProjectionContent>(
+                draft.ProjectionContentJson, PrettyJson);
+            if (acceptedContent is not null)
+            {
+                var crackContent = BuildAcceptedV3CrackContent(draft.ProjectionPlan, acceptedContent);
+                draft.V3CrackContentJson = ProjectionCanonicalizer.Canonicalize(crackContent);
+                draft.V3CrackContentHash = Sha256(draft.V3CrackContentJson);
+            }
+        }
+
         gameCase.AiSemanticReviewStatus = AiV3SemanticReviewStatuses.Passed;
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
+        // The publish gate requires a fresh GAMEPLAY_PROJECTION row, so a restored checkpoint has to
+        // stamp provenance exactly like a generated one.
+        foreach (var artifact in draft.ArtifactProvenance
+                     .Where(item => item.Artifact == CaseTruthArtifacts.Projection))
+            artifact.IsStale = true;
+        if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
+        {
+            draft.ArtifactProvenance.RemoveAll(item => item.Artifact == CaseTruthArtifacts.Projection);
+            draft.ArtifactProvenance.Add(new AiArtifactProvenance
+            {
+                Artifact = CaseTruthArtifacts.Projection,
+                InputHash = draft.TruthHash,
+                OutputHash = Sha256(normalizedJson),
+                IsStale = false,
+                GeneratedAt = DateTime.UtcNow
+            });
+        }
         await UpdateActiveRunAsync(
             draft,
             Builders<AiCaseDraft>.Update
                 .Set(item => item.Status, AiDraftStatus.FullLogicAwaitingApproval)
+                .Set(item => item.ArtifactProvenance, draft.ArtifactProvenance)
                 .Set(item => item.GeneratedJson, normalizedJson)
                 .Set(item => item.CaseId, gameCase.CaseId)
                 .Set(item => item.CaseTitle, gameCase.Title)
@@ -1876,6 +1818,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 .Set(item => item.FailurePhase, AiFailurePhases.None)
                 .Set(item => item.FailedAssetIds, new List<string>())
                 .Set(item => item.V3SemanticReview, draft.V3SemanticReview)
+                .Set(item => item.V3CrackContentJson, draft.V3CrackContentJson)
+                .Set(item => item.V3CrackContentHash, draft.V3CrackContentHash)
                 .Set(item => item.BlindSolvabilityReview, draft.BlindSolvabilityReview)
                 .Set(item => item.UpdatedAt, DateTime.UtcNow));
         await LogGenerationAsync(
@@ -1884,7 +1828,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "RetryFullCaseJson:DeterministicCheckpoint",
             "RESTORED",
             string.Empty,
-            "Applied server-owned fields and the reviewed Crack contract without an OpenAI request.",
+            "Re-scored the stored semantic review and applied server-owned fields without an OpenAI request.",
             null);
         return AiDraftResponse.From(await _db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync());
     }
@@ -2170,6 +2114,32 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     "The projection plan is stale and cannot be imported or published.",
                     "AI_PROJECTION_PLAN_STALE",
                     "ai.projection.planStale");
+
+            // The checks above already prove the projection is derived from the approved truth, which
+            // is strictly stronger evidence than the provenance row. Stamp a missing row instead of
+            // forcing a paid regeneration to recreate bookkeeping a restored checkpoint never wrote.
+            if (!string.IsNullOrWhiteSpace(draft.GeneratedJson)
+                && draft.ArtifactProvenance.All(item =>
+                    item.Artifact != CaseTruthArtifacts.Projection || item.IsStale))
+            {
+                draft.ArtifactProvenance.RemoveAll(item => item.Artifact == CaseTruthArtifacts.Projection);
+                draft.ArtifactProvenance.Add(new AiArtifactProvenance
+                {
+                    Artifact = CaseTruthArtifacts.Projection,
+                    InputHash = draft.TruthHash,
+                    OutputHash = Sha256(draft.GeneratedJson),
+                    IsStale = false,
+                    GeneratedAt = DateTime.UtcNow
+                });
+                await _db.AiCaseDrafts.UpdateOneAsync(
+                    item => item.Id == draft.Id,
+                    Builders<AiCaseDraft>.Update
+                        .Set(item => item.ArtifactProvenance, draft.ArtifactProvenance)
+                        .Set(item => item.UpdatedAt, DateTime.UtcNow));
+                _logger.LogInformation(
+                    "Stamped a missing GAMEPLAY_PROJECTION provenance row for draft {DraftId}; the plan hash still matches the approved truth.",
+                    draft.Id);
+            }
         }
         if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
         {
@@ -2377,6 +2347,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             .AppendLine("Write only player-facing presentation content.")
             .AppendLine("Every locked field must be copied exactly.")
             .AppendLine($"Language: {CaseLanguages.Normalize(draft.Settings.Language)}.")
+            .AppendLine("Write every player-facing string in that language with full diacritics, but keep every "
+                        + "visualDescription in printable English/ASCII: it is art direction for the image "
+                        + "pipeline, never shown to players.")
+            .AppendLine(VisualArtDirectionRules)
             .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
             .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
             .AppendLine("Projection plan:")
@@ -2389,6 +2363,22 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             prompt.AppendLine("Previous projection content:").AppendLine(previousJson);
         return prompt.ToString();
     }
+
+    /// <summary>
+    /// The art-direction contract that <see cref="AiGenerationContract"/> enforces deterministically.
+    /// The legacy full-case prompt states these rules inline; the projection prompt must repeat them or
+    /// every generated case fails visual-safety validation.
+    /// </summary>
+    private const string VisualArtDirectionRules = """
+        Art direction rules for every visualDescription:
+        - Describe only architecture, materials, lighting, surfaces, shape, colour, wear, damage and position.
+        - Never mention text, writing, letters, numbers, labels, signage, tags, notation, documents, paper,
+          ledgers, screens or anything readable. Do not mention them even to state that none are present:
+          the words themselves are rejected, so a phrase like "no visible text" fails validation.
+        - Never mention NPCs or photographic composition. Camera-evidence art direction must describe the
+          scene-scale environmental detail where it naturally sits; never use macro, close-up, zoom, inset,
+          callout, framed-detail, montage or split-screen framing.
+        """;
 
     private string BuildFullLogicMockJson(AiCaseDraft draft) =>
         draft.ProjectionPlan is null
@@ -2517,6 +2507,103 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     or "ProjectionCompileMetadataMismatch")
             ? AiFailurePhases.ProjectionCompile
             : AiFailurePhases.ProjectionConformance;
+    }
+
+    private sealed record V3SemanticGateResult(GameCase Case, bool Failed);
+
+    /// <summary>
+    /// Reviews the Cartesian pair matrix, then spends one bounded repair when it does not pass.
+    /// Both first generation and retry-from-checkpoint go through here, so a retry is never a single
+    /// unassisted shot at a gate the model rarely clears on the first try.
+    /// </summary>
+    private async Task<V3SemanticGateResult> ApplyV3SemanticGateAsync(AiCaseDraft draft, GameCase gameCase)
+    {
+        var review = draft.CaseBlueprint is not null
+            && draft.V3SemanticReview.Status == AiV3SemanticReviewStatuses.Passed
+            ? draft.V3SemanticReview
+            : await ReviewV3LogicAsync(draft, gameCase);
+        draft.V3SemanticReview = review;
+        gameCase.AiSemanticReviewStatus = review.Status;
+        if (review.Status != AiV3SemanticReviewStatuses.Passed)
+        {
+            var originallyReviewedCase = gameCase;
+            var originalReview = review;
+            var failedCheckpoint = JsonSerializer.Serialize(gameCase, PrettyJson);
+            try
+            {
+                var semanticRepairAttempt = await NextGenerationAttemptNumberAsync(
+                    draft.Id,
+                    CaseLogicSchemaVersion(draft));
+                var semanticRepairJson = await GenerateJsonWithOpenAiAsync(
+                    draft.Id,
+                    "RepairV3SemanticLogic",
+                    BuildFullLogicRequestPrompt(
+                        draft,
+                        AiV3SemanticReviewPolicy.BuildRepairFeedback(gameCase, review),
+                        failedCheckpoint),
+                    maxOutputTokens: MaxFullCaseOutputTokens(draft),
+                    CaseLogicSchemaVersion(draft),
+                    CaseLogicSchema(draft),
+                    attemptNumber: semanticRepairAttempt,
+                    mockResponseFactory: () => BuildFullLogicMockJson(draft),
+                    generationRunId: draft.GenerationRunId);
+                var (semanticRepairCase, semanticRepairValidation) =
+                    await ParseRepairValidateAsync(draft, semanticRepairJson);
+                if (!semanticRepairValidation.IsValid)
+                {
+                    await RecordValidationAttemptAsync(
+                        draft,
+                        "RepairV3SemanticLogic",
+                        semanticRepairAttempt,
+                        semanticRepairJson,
+                        semanticRepairValidation);
+                    await SaveInvalidAttemptAsync(
+                        draft,
+                        JsonSerializer.Serialize(semanticRepairCase, PrettyJson),
+                        ValidationMessages(semanticRepairValidation),
+                        FullLogicFailurePhase(draft, semanticRepairValidation));
+                    return new V3SemanticGateResult(semanticRepairCase, true);
+                }
+
+                gameCase = semanticRepairCase;
+                review = await ReviewV3LogicAsync(draft, gameCase);
+                draft.V3SemanticReview = review;
+                gameCase.AiSemanticReviewStatus = review.Status;
+            }
+            catch (ApiException ex)
+            {
+                gameCase = originallyReviewedCase;
+                review = originalReview;
+                draft.V3SemanticReview = originalReview;
+                _logger.LogWarning(
+                    ex,
+                    "Bounded V3 semantic repair failed for draft {DraftId}; preserving the reviewed checkpoint.",
+                    draft.Id);
+            }
+
+            if (review.Status != AiV3SemanticReviewStatuses.Passed)
+            {
+                await SaveInvalidAttemptAsync(
+                    draft,
+                    JsonSerializer.Serialize(gameCase, PrettyJson),
+                    AiV3SemanticReviewPolicy.Errors(gameCase, review),
+                    AiFailurePhases.V3SemanticReview);
+                await SaveV3SemanticReviewAsync(draft, review);
+                return new V3SemanticGateResult(gameCase, true);
+            }
+        }
+
+        if (draft.ProjectionPlan is not null
+            && review.Status == AiV3SemanticReviewStatuses.Passed)
+        {
+            var acceptedContent = JsonSerializer.Deserialize<GameplayProjectionContent>(
+                draft.ProjectionContentJson, PrettyJson)
+                ?? throw ApiException.Unprocessable("The reviewed V3 projection content is empty.");
+            var crackContent = BuildAcceptedV3CrackContent(draft.ProjectionPlan, acceptedContent);
+            draft.V3CrackContentJson = ProjectionCanonicalizer.Canonicalize(crackContent);
+            draft.V3CrackContentHash = Sha256(draft.V3CrackContentJson);
+        }
+        return new V3SemanticGateResult(gameCase, false);
     }
 
     private async Task<AiV3SemanticReview> ReviewV3LogicAsync(

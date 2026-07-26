@@ -277,10 +277,12 @@ public static class AiV3GenerationProfile
                 continue;
             }
 
-            var valid = crack.PairEvaluations.Where(item => item.IsValidContradiction).ToList();
-            if (valid.Count != 1
-                || valid[0].EvidenceId != challenge.CorrectEvidenceId
-                || valid[0].TestimonyFragmentId != challenge.TestimonyFragmentId)
+            // A real investigation can have several traces that refute the same lie, so extra valid
+            // pairs are tolerated. The requirement is only that the authored answer is genuinely one
+            // of them; a Crack whose declared pair does not contradict anything is still rejected.
+            if (!crack.PairEvaluations.Any(item => item.IsValidContradiction
+                    && item.EvidenceId == challenge.CorrectEvidenceId
+                    && item.TestimonyFragmentId == challenge.TestimonyFragmentId))
                 failed = true;
         }
 

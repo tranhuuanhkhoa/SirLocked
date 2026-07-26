@@ -166,15 +166,38 @@ public sealed class AiV3GenerationProfileTests
     }
 
     [Fact]
-    public void SemanticReviewFailsWhenASecondPairIsAlsoValid()
+    public void SemanticReviewPassesWhenASecondPairIsAlsoValid()
     {
+        // A real trace can refute more than one claim, so extra valid pairs are tolerated as long as
+        // the authored answer is genuinely one of them.
         var gameCase = CreateCanonicalCase();
         var review = CreateReview(gameCase);
         review.PairEvaluations.First(item => !item.IsValidContradiction).IsValidContradiction = true;
 
         var evaluated = AiV3GenerationProfile.EvaluateReview(gameCase, review);
 
+        Assert.Equal(AiV3SemanticReviewStatuses.Passed, evaluated.Status);
+        Assert.DoesNotContain(
+            AiV3SemanticReviewPolicy.Errors(gameCase, evaluated),
+            error => error.StartsWith("AI_V3_AUTHORED_PAIR_MISMATCH", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SemanticReviewFailsWhenOnlyANonAuthoredPairIsValid()
+    {
+        var gameCase = CreateCanonicalCase();
+        var challenge = Assert.Single(gameCase.EvidenceChallenges);
+        var review = CreateReview(gameCase);
+        foreach (var evaluation in review.PairEvaluations)
+            evaluation.IsValidContradiction = evaluation.EvidenceId != challenge.CorrectEvidenceId
+                || evaluation.TestimonyFragmentId != challenge.TestimonyFragmentId;
+
+        var evaluated = AiV3GenerationProfile.EvaluateReview(gameCase, review);
+
         Assert.Equal(AiV3SemanticReviewStatuses.Failed, evaluated.Status);
+        Assert.Contains(
+            AiV3SemanticReviewPolicy.Errors(gameCase, evaluated),
+            error => error.StartsWith("AI_V3_AUTHORED_PAIR_MISMATCH", StringComparison.Ordinal));
     }
 
     [Fact]
