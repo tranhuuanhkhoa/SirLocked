@@ -23,13 +23,20 @@ public class AuthService : IAuthService
     private readonly JwtSettings _jwt;
     private readonly ILogger<AuthService> _logger;
     private readonly IEmailService _email;
+    private readonly AuthSettings _auth;
 
-    public AuthService(MongoDbContext db, IOptions<JwtSettings> jwt, ILogger<AuthService> logger, IEmailService email)
+    public AuthService(
+        MongoDbContext db,
+        IOptions<JwtSettings> jwt,
+        ILogger<AuthService> logger,
+        IEmailService email,
+        IOptions<AuthSettings> auth)
     {
         _db = db;
         _jwt = jwt.Value;
         _logger = logger;
         _email = email;
+        _auth = auth.Value;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -41,6 +48,9 @@ public class AuthService : IAuthService
             throw ApiException.Conflict("An account with this email already exists.");
         }
 
+        // Development-only: skips the inbox round trip so API smoke tests can reach gameplay.
+        // AuthSettings resolves this to false outside Development regardless of configuration.
+        var autoVerify = _auth.AutoVerifyRegistrations;
         var verificationToken = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
 
         var user = new User
@@ -50,9 +60,9 @@ public class AuthService : IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Role = UserRole.Player,
             Status = UserStatus.Active,
-            EmailVerificationToken = verificationToken,
-            EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(24),
-            IsEmailVerified = false
+            EmailVerificationToken = autoVerify ? null : verificationToken,
+            EmailVerificationTokenExpiry = autoVerify ? null : DateTime.UtcNow.AddHours(24),
+            IsEmailVerified = autoVerify
         };
 
         try
@@ -65,13 +75,16 @@ public class AuthService : IAuthService
         }
 
         // Gửi email xác minh (không chặn đăng ký nếu gửi lỗi)
-        try
+        if (!autoVerify)
         {
-            await _email.SendVerificationEmailAsync(user.Email, user.FullName, verificationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+            try
+            {
+                await _email.SendVerificationEmailAsync(user.Email, user.FullName, verificationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+            }
         }
 
         return await BuildAuthResponseAndSaveRefreshToken(user);

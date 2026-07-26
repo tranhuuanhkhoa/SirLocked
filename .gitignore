@@ -46,3 +46,7 @@ desktop.ini
 # Logs
 *.log
 logs/
+
+# Playwright run artifacts
+src/FE/test-results/
+src/FE/playwright-report/

@@ -55,6 +55,9 @@ jobs:
       MongoDb__DatabaseName: SirLockedCi
       MOCK_AI_RESPONSES: 'true'
       SKIP_ASSET_GENERATION: 'true'
+      # Room creation requires a verified email. The smoke test only speaks the public API and has no
+      # inbox, so registrations are auto-verified here. AuthSettings ignores this outside Development.
+      Auth__AutoVerifyRegistrations: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
