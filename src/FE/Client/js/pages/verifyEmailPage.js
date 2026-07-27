@@ -45,7 +45,7 @@ export async function renderVerifyEmailPage(app) {
     // Nếu đang đăng nhập thì mở khóa game ngay
     if (session.isLoggedIn()) session.setEmailVerified();
 
-    const goHref = session.isLoggedIn() ? '#/cases' : '#/login';
+    const goHref = session.isLoggedIn() ? '#/menu' : '#/login';
     const goText = session.isLoggedIn() ? 'Vào game ngay' : 'Đăng nhập';
     stateEl.innerHTML = `
       <div style="font-size:48px;margin-bottom:8px">✅</div>

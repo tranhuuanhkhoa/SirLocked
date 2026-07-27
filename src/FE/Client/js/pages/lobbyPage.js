@@ -9,10 +9,22 @@ import { tr } from '../services/i18n.js';
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'ABANDONED']);
 const ROOM_ENDED_CODE = 'ROOM_ENDED';
 
+// The two roles are the asymmetric core of the game, so they carry a portrait
+// and an accent colour of their own — `modifier` selects both in CSS. Sprites
+// are the existing walk sheets; frame 0 is the front-facing idle pose.
 const ROLES = [
-  { id: 'INVESTIGATOR', title: 'Investigator', viTitle: 'Điều tra viên', blurb: 'Examines the scene: inspects items and gathers physical evidence.', viBlurb: 'Khám nghiệm hiện trường: kiểm tra vật phẩm và thu thập chứng cứ vật lý.' },
-  { id: 'INTERROGATOR', title: 'Interrogator', viTitle: 'Thẩm vấn viên', blurb: 'Questions suspects: asks dialogue and exposes contradictions.', viBlurb: 'Thẩm vấn nghi phạm: đặt câu hỏi và vạch ra mâu thuẫn.' },
+  { id: 'INVESTIGATOR', modifier: 'inv', title: 'Investigator', viTitle: 'Điều tra viên', blurb: 'Examines the scene: inspects items and gathers physical evidence.', viBlurb: 'Khám nghiệm hiện trường: kiểm tra vật phẩm và thu thập chứng cứ vật lý.' },
+  { id: 'INTERROGATOR', modifier: 'int', title: 'Interrogator', viTitle: 'Thẩm vấn viên', blurb: 'Questions suspects: asks dialogue and exposes contradictions.', viBlurb: 'Thẩm vấn nghi phạm: đặt câu hỏi và vạch ra mâu thuẫn.' },
 ];
+
+// Decorative only; the taken state is also carried by text and the disabled attribute.
+const LOCK_ICON = `
+  <svg class="role-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <rect x="4" y="10.5" width="16" height="11" rx="1.5"></rect>
+    <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"></path>
+    <circle cx="12" cy="16" r="1.4"></circle>
+  </svg>`;
 
 export async function renderLobbyPage(app, roomId) {
   render(app, `<div class="page"><p class="muted">${tr('Loading lobby…', 'Đang tải phòng chờ…')}</p></div>`);
@@ -105,26 +117,32 @@ export async function renderLobbyPage(app, roomId) {
       const mine = my?.role === role.id;
       const blocked = takenBy && takenBy.userId !== me.userId;
       return `
-      <button class="role-card ${mine ? 'is-mine' : ''} ${blocked ? 'is-taken' : ''}"
+      <button class="role-card card role-card--${role.modifier} ${mine ? 'is-mine' : ''} ${blocked ? 'is-taken' : ''}"
               data-role="${role.id}" ${blocked ? 'disabled' : ''}>
-        <strong>${tr(role.title, role.viTitle)}</strong>
-        <p>${tr(role.blurb, role.viBlurb)}</p>
-        ${blocked ? `<span class="muted small">${tr('Taken by', 'Đã được chọn bởi')} ${escapeHtml(takenBy.username)}</span>` : ''}
-        ${mine ? `<span class="chip chip-gold">${tr('YOUR ROLE', 'VAI CỦA BẠN')}</span>` : ''}
+        <span class="role-portrait" aria-hidden="true"></span>
+        <span class="role-body">
+          <strong class="role-name">${tr(role.title, role.viTitle)}</strong>
+          <p>${tr(role.blurb, role.viBlurb)}</p>
+          ${blocked ? `<span class="muted small role-taken-by">${tr('Taken by', 'Đã được chọn bởi')} ${escapeHtml(takenBy.username)}</span>` : ''}
+          ${mine ? `<span class="chip chip-gold">${tr('YOUR ROLE', 'VAI CỦA BẠN')}</span>` : ''}
+        </span>
+        ${blocked ? `<span class="role-lock">${LOCK_ICON}</span>` : ''}
       </button>`;
     }).join('');
 
     render(app, `
-    <div class="page page-narrow">
+    <div class="page page-narrow page-board lobby-page">
       <div class="lobby-head">
-        <h2>${tr('Room Lobby', 'Phòng chờ')}</h2>
-        <div class="room-code-box">
-          <span class="muted small">${tr('ROOM CODE', 'MÃ PHÒNG')}</span>
+        <div class="lobby-title">
+          <h2>${tr('Room Lobby', 'Phòng chờ')}</h2>
+          <p class="muted">${tr('Case:', 'Vụ án:')} <strong>${escapeHtml(room.caseTitle)}</strong> — ${tr('waiting for two ready detectives.', 'đang chờ hai thám tử sẵn sàng.')}</p>
+        </div>
+        <div class="room-code-box panel panel--inset">
+          <span class="muted small room-code-label">${tr('ROOM CODE', 'MÃ PHÒNG')}</span>
           <strong class="room-code">${escapeHtml(room.roomCode)}</strong>
           <button class="btn btn-ghost btn-sm" id="copy-code">${tr('Copy', 'Sao chép')}</button>
         </div>
       </div>
-      <p class="muted">${tr('Case:', 'Vụ án:')} <strong>${escapeHtml(room.caseTitle)}</strong> — ${tr('waiting for two ready detectives.', 'đang chờ hai thám tử sẵn sàng.')}</p>
 
       <h3 class="section-title">${tr('Detectives', 'Thám tử')} (${room.players.length}/2)</h3>
       <div class="lobby-players">${playerRows}</div>
@@ -141,7 +159,11 @@ export async function renderLobbyPage(app, roomId) {
       </div>
     </div>`);
 
-    qs('#copy-code', app)?.addEventListener('click', async () => {
+    qs('#copy-code', app)?.addEventListener('click', async (event) => {
+      // Visual acknowledgement only — no new copy, no string change.
+      const button = event.currentTarget;
+      button.classList.add('is-copied');
+      window.setTimeout(() => button.classList.remove('is-copied'), 1200);
       try {
         await navigator.clipboard.writeText(room.roomCode);
         toast('Room code copied.', 'success');

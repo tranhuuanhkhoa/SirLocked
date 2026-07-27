@@ -6,7 +6,7 @@ import { languageSwitchMarkup, tr } from '../services/i18n.js';
 
 export async function renderLoginPage(app) {
   if (session.isLoggedIn()) {
-    window.location.hash = session.isAdmin() ? '#/admin' : session.isVip() ? '#/admin/ai' : '#/cases';
+    window.location.hash = session.isAdmin() ? '#/admin' : '#/menu';
     return;
   }
 
@@ -89,7 +89,7 @@ export async function renderLoginPage(app) {
       const auth = await action(data);
       session.save(auth);
       toast(`Welcome, ${auth.user.fullName}.`, 'success');
-      window.location.hash = auth.user.role === 'ADMIN' ? '#/admin' : auth.user.role === 'VIP' ? '#/admin/ai' : '#/cases';
+      window.location.hash = auth.user.role === 'ADMIN' ? '#/admin' : '#/menu';
     } catch (err) {
       toast(err.message, 'error');
     } finally {

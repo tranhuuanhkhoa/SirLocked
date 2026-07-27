@@ -31,7 +31,7 @@ export async function renderCreateRoomPage(app) {
 
     const preview = selected ? `
       <div class="case-preview">
-        <div class="case-cover case-cover-lg" style="${placeholderStyle(selected.caseId)}">
+        <div class="case-cover case-cover-lg card-media" style="${placeholderStyle(selected.caseId)}">
           <img src="${escapeHtml(selected.coverImageUrl)}" alt="" onerror="this.remove()">
           <span class="case-cover-title">${escapeHtml(selected.title)}</span>
         </div>

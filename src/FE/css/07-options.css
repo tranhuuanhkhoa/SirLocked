@@ -50,8 +50,13 @@
     border: 0.5px solid rgba(201,168,76,0.25);
     color: var(--beige-muted); font-family: 'Playfair Display', serif;
     font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      color var(--m-fast) var(--ease-out),
+      background var(--m-fast) var(--ease-out),
+      border-color var(--m-fast) var(--ease-out),
+      transform var(--m-fast) var(--ease-out);
   }
+  .quality-btn:active { transform: translateY(var(--press-shift)); }
   .quality-btn.active {
     background: var(--purple); border-color: var(--gold); color: var(--white);
   }
@@ -64,8 +69,14 @@
     color: var(--beige-muted); font-family: 'Playfair Display', serif;
     font-size: 13px; letter-spacing: 1px; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 6px;
-    transition: all 0.2s; text-align: center;
+    text-align: center;
+    transition:
+      color var(--m-fast) var(--ease-out),
+      background var(--m-fast) var(--ease-out),
+      border-color var(--m-fast) var(--ease-out),
+      transform var(--m-fast) var(--ease-out);
   }
+  .lang-btn:active { transform: translateY(var(--press-shift)); }
   .lang-btn.active {
     border-color: var(--gold); background: rgba(201,168,76,0.08); color: var(--gold);
   }
@@ -104,8 +115,21 @@
   }
 
   /* Animations */
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .screen.active > * { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(var(--enter-shift)); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Opt-in only, and released once it has played: `forwards` used to leave a
+     transform on every screen child for the life of the page. */
+  @media (prefers-reduced-motion: no-preference) {
+    .screen.active > * { animation: fadeIn var(--m-base) var(--ease-out); }
+  }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen.active > * { animation: none; }
+  .quality-btn,
+  .lang-btn { transition: none; }
+  .quality-btn:active,
+  .lang-btn:active { transform: none; }
+}
 
   /* Select */
   select {

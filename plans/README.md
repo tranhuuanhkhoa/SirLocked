@@ -52,6 +52,7 @@ Plans 013 and above are specified in [`ROADMAP_2026-07-27_VI.md`](ROADMAP_2026-0
 | 033 | Data lifecycle and privacy controls | P4 | P1 | M/L | - | TODO |
 | 034 | UGC/AI moderation workflow | P4 | P1 | L | - | TODO |
 | 035 | Desktop/Steam packaging | P4 | P2 | XL | 028 | TODO |
+| 036 | [Make the UI read as a game — surface system and screen pass](036-game-ui-design-system.md) | P3 | P1 | L | - | TODO |
 
 Plan 011 stays open in the table above only as a historical row; its scope is now executed as part of plan 018.
 

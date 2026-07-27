@@ -16,6 +16,15 @@ export function tr(english, vietnamese) {
   return uiLanguage() === 'vi' ? vietnamese : english;
 }
 
+/**
+ * Picks the English singular or plural form for a count. Vietnamese has no
+ * plural inflection, so callers pass the single Vietnamese noun straight to
+ * `tr()`: `tr(plural(n, 'scene', 'scenes'), 'hiện trường')`.
+ */
+export function plural(count, one, many) {
+  return Math.abs(Number(count)) === 1 ? one : many;
+}
+
 export function languageSwitchMarkup(className = '') {
   const active = uiLanguage();
   return `

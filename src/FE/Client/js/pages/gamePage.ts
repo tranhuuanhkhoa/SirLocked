@@ -2571,7 +2571,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
 
     return `
-      <div class="inventory-drawer">
+      <div class="inventory-drawer panel panel--dossier">
         <div class="inventory-drawer-header">
           <span>${tr('Bag', 'Túi đồ')}</span>
           <button class="btn btn-ghost btn-sm ${combineMode ? 'is-active' : ''}" id="combine-mode-btn">${combineMode ? tr('Combining', 'Đang kết hợp') : tr('Combine', 'Kết hợp')}</button>
@@ -2596,17 +2596,30 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       : (vi
         ? 'Bạn là Thẩm vấn viên: hỏi nhân chứng, đưa chứng cứ và tìm mâu thuẫn.'
         : 'You are the Interrogator: question witnesses, present evidence, and expose contradictions.');
+    // Presentation only: the movement keys are wrapped in key caps so the step
+    // reads like a briefing sheet. Concatenated textContent is unchanged.
+    const cap = (key: string) => `<kbd class="key-cap">${key}</kbd>`;
+    const steps = vi
+      ? [
+        `Dùng ${cap('A')}/${cap('D')} để di chuyển trái/phải`,
+        'Nhấp vật thể hoặc nhân vật để tương tác',
+        'Chia sẻ chứng cứ qua Case File và phối hợp với đồng đội',
+        'Hoàn thành suy luận trước khi đưa ra cáo buộc cuối',
+      ]
+      : [
+        `Use ${cap('A')}/${cap('D')} to move left and right`,
+        'Click an object or character to interact',
+        'Share evidence through the Case File and coordinate with your partner',
+        'Complete deductions before the final accusation',
+      ];
     return `
     <div class="overlay" id="intro-overlay">
-      <div class="modal">
-        <h2>${escapeHtml(state!.caseTitle)}</h2>
-        <p>${escapeHtml(state!.caseSummary)}</p>
-        <p class="muted">${roleGuide}</p>
+      <div class="modal panel panel--dossier intro-dossier">
+        <h2 class="intro-title">${escapeHtml(state!.caseTitle)}</h2>
+        <p class="intro-premise">${escapeHtml(state!.caseSummary)}</p>
+        <p class="intro-role" data-role="${escapeHtml(role ?? '')}">${roleGuide}</p>
         <ol class="tutorial-steps">
-          <li>${vi ? 'Dùng A/D để di chuyển trái/phải' : 'Use A/D to move left and right'}</li>
-          <li>${vi ? 'Nhấp vật thể hoặc nhân vật để tương tác' : 'Click an object or character to interact'}</li>
-          <li>${vi ? 'Chia sẻ chứng cứ qua Case File và phối hợp với đồng đội' : 'Share evidence through the Case File and coordinate with your partner'}</li>
-          <li>${vi ? 'Hoàn thành suy luận trước khi đưa ra cáo buộc cuối' : 'Complete deductions before the final accusation'}</li>
+          ${steps.map((step) => `<li><span class="tutorial-step-copy">${step}</span></li>`).join('')}
         </ol>
         <button class="btn btn-gold btn-block" id="intro-dismiss">${vi ? 'Bắt đầu điều tra' : 'Enter the scene'}</button>
       </div>
@@ -2676,7 +2689,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           ? renderPrivateTestimonyPanel(model, escapeHtml, tr)
           : `${renderJointReviewPanel(model, escapeHtml, tr)}${state!.deductions.length > 0 ? `<section class="notebook-list"><h3>${tr('Deductions', 'Suy luận')}</h3>${deductionHtml}</section>` : ''}`;
       return `
-        <aside class="case-file-drawer case-file-modal v3-case-file" aria-label="${tr('Private Case File', 'Hồ sơ riêng')}">
+        <aside class="case-file-drawer case-file-modal v3-case-file panel panel--dossier" aria-label="${tr('Private Case File', 'Hồ sơ riêng')}">
           <div class="drawer-title-row"><div><span>${tab === 'contradictions' ? tr('INTENTIONAL DISCLOSURE', 'CHIA SẺ CÓ CHỦ ĐÍCH') : tr('ROLE-PRIVATE NOTEBOOK', 'SỔ TAY RIÊNG THEO VAI')}</span><h2>${tr('Crack the Lie', 'Phá Vỡ Lời Dối')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
           ${tabs}
           ${content}
@@ -2732,7 +2745,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
               </article>`).join('')}
           </div>`;
     return `
-    <aside class="case-file-drawer case-file-modal" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
+    <aside class="case-file-drawer case-file-modal panel panel--dossier" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
         <div class="drawer-title-row"><div><span>${tr('Shared investigation', 'Điều tra chung')}</span><h2>${tr('Case File', 'Hồ sơ vụ án')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
         ${tabs}
         ${content}
@@ -2741,7 +2754,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
   function mapOverlay() {
     return `
-    <aside class="case-file-drawer map-drawer" aria-label="${tr('Investigation Map', 'Bản đồ điều tra')}">
+    <aside class="case-file-drawer map-drawer panel panel--dossier" aria-label="${tr('Investigation Map', 'Bản đồ điều tra')}">
         <div class="drawer-title-row"><div><span>${tr('Shared investigation', 'Điều tra chung')}</span><h2>${tr('Investigation Map', 'Bản đồ điều tra')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
         <p class="muted">${tr('Move through places the investigation has already opened.', 'Di chuyển giữa các địa điểm đã được mở trong quá trình điều tra.')}</p>
         <div class="map-list">${state!.sceneMap.map((s) => `
@@ -3093,7 +3106,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
 
     return `
     <div class="overlay dialogue-overlay">
-      <div class="conversation-box">
+      <div class="conversation-box panel panel--dossier">
         <aside class="conv-portrait-col">
           <div class="conv-portrait" style="${placeholderStyle(character.characterId)}">
             ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" onerror="this.remove()">` : ''}

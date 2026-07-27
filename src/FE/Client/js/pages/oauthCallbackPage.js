@@ -26,7 +26,7 @@ export async function renderOAuthCallbackPage(app) {
     session.save({ token, refreshToken, refreshTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), user });
 
     toast(`Chào mừng, ${user.fullName}!`, 'success');
-    window.location.hash = user.role === 'ADMIN' ? '#/admin' : '#/cases';
+    window.location.hash = user.role === 'ADMIN' ? '#/admin' : '#/menu';
   } catch {
     session.clear();
     toast('Đăng nhập Google thất bại.', 'error');

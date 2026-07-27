@@ -1,0 +1,331 @@
+/* ==========================================================================
+   _motion — the motion and feedback budget for Sir Locked
+   Plan 036, Phase 8.
+
+   Loaded LAST, after 10-game.css. That position is deliberate: a control can
+   be given a response without editing the sheet that paints it, so this pass
+   touches no colour, no size and no layout. Every declaration below is a
+   transition, an animation, or a transform that only exists while a pointer
+   or the keyboard is on the element.
+
+   Durations come from _tokens.css; no new duration is invented here.
+     --m-fast    120ms   hover, press, focus     -> every interactive element
+     --m-base    200ms   panel open/close, screen change
+     --m-slow    320ms   overlay in and out
+     --m-breathe 2600ms  waiting pulse (declared in 09-app.css)
+
+   Two rules hold for everything in this file:
+     1. no `transition: all` — property lists are explicit, so layout is never
+        animated by accident;
+     2. every @keyframes animation sits inside
+        `@media (prefers-reduced-motion: no-preference)` and has a matching
+        `reduce` block that switches it back off.
+   ========================================================================== */
+
+:root {
+  /* Screen change rises by this much. One value, used once. */
+  --enter-shift: 8px;
+  /* Breathing floor for a waiting state: dim, never invisible, so the text
+     stays readable and Playwright still sees a visible element. */
+  --breathe-floor: 0.5;
+}
+
+/* ==========================================================================
+   1. Interaction response — everything clickable answers within --m-fast
+   ==========================================================================
+   Baseline only. Any control that already declares a richer transition
+   (`.btn`, `.card`, `.case-card`, `.conv-choice`, ...) wins on specificity
+   and keeps its own; this fills the gaps those sheets never covered. */
+
+a,
+.nav-brand,
+.ws-review-link,
+.discovery-case-link {
+  transition:
+    color var(--m-fast) var(--ease-out),
+    border-color var(--m-fast) var(--ease-out),
+    text-decoration-color var(--m-fast) var(--ease-out);
+}
+
+button,
+summary,
+[role="button"],
+[role="tab"] {
+  transition:
+    color var(--m-fast) var(--ease-out),
+    background var(--m-fast) var(--ease-out),
+    border-color var(--m-fast) var(--ease-out),
+    box-shadow var(--m-fast) var(--ease-out);
+}
+
+/* --- tabs and filter rows: the active plate should arrive, not snap ------ */
+.form-tab,
+.ws-tab,
+.ws-lb-tab,
+.ws-detail-tab,
+.case-file-tabs button,
+.ui-language-option {
+  transition:
+    color var(--m-fast) var(--ease-out),
+    background var(--m-fast) var(--ease-out),
+    border-color var(--m-fast) var(--ease-out),
+    box-shadow var(--m-fast) var(--ease-out);
+}
+
+/* --- chips: static metadata plates stay still, interactive ones respond -- */
+.chip {
+  transition:
+    color var(--m-fast) var(--ease-out),
+    background var(--m-fast) var(--ease-out),
+    border-color var(--m-fast) var(--ease-out);
+}
+
+/* --- fields: the border is the whole feedback channel on a dark form ---- */
+input,
+select,
+textarea,
+.field-input,
+.room-code-input {
+  transition:
+    border-color var(--m-fast) var(--ease-out),
+    background var(--m-fast) var(--ease-out),
+    box-shadow var(--m-fast) var(--ease-out);
+}
+
+/* --- rows and cards that act as one big button ------------------------- */
+.case-select-row,
+.lobby-player,
+.suspect-card,
+.char-card,
+.room-card,
+.stat-card,
+.ws-badge-card,
+.map-entry,
+.claim-slot-button,
+.accusation-evidence-card,
+.case-file-clue-card,
+.deduction-card,
+.discovery-card,
+.v3-pair-card,
+.v3-private-card {
+  transition:
+    border-color var(--m-fast) var(--ease-out),
+    background var(--m-fast) var(--ease-out),
+    box-shadow var(--m-fast) var(--ease-out),
+    transform var(--m-fast) var(--ease-out);
+}
+
+/* --- overlays and drawers open on the panel duration, not the fast one -- */
+.overlay,
+.modal,
+.case-file-drawer,
+.inventory-drawer,
+.dialogue-box,
+.dialogue-overlay,
+.detail-panel,
+.ws-detail-panel {
+  transition:
+    opacity var(--m-base) var(--ease-out),
+    transform var(--m-base) var(--ease-out);
+}
+
+/* --- progress and meters read as movement, so they get --m-slow -------- */
+.ws-review-bar-fill,
+.generation-progress-fill {
+  transition: width var(--m-slow) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a,
+  .nav-brand,
+  .ws-review-link,
+  .discovery-case-link,
+  button,
+  summary,
+  [role="button"],
+  [role="tab"],
+  .form-tab,
+  .ws-tab,
+  .ws-lb-tab,
+  .ws-detail-tab,
+  .case-file-tabs button,
+  .ui-language-option,
+  .chip,
+  input,
+  select,
+  textarea,
+  .field-input,
+  .room-code-input,
+  .case-select-row,
+  .lobby-player,
+  .suspect-card,
+  .char-card,
+  .room-card,
+  .stat-card,
+  .ws-badge-card,
+  .map-entry,
+  .claim-slot-button,
+  .accusation-evidence-card,
+  .case-file-clue-card,
+  .deduction-card,
+  .discovery-card,
+  .v3-pair-card,
+  .v3-private-card,
+  .overlay,
+  .modal,
+  .case-file-drawer,
+  .inventory-drawer,
+  .dialogue-box,
+  .dialogue-overlay,
+  .detail-panel,
+  .ws-detail-panel,
+  .ws-review-bar-fill,
+  .generation-progress-fill {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   2. Press and lift — the two transforms in the system
+   ==========================================================================
+   A press nudges down by --press-shift, a hovered card lifts by
+   --hover-lift and picks up --e-3. Both tokens come from _primitives.css so
+   the depth of the gesture is the same everywhere. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .case-select-row:active,
+  .suspect-card:active,
+  .char-card:active,
+  .map-entry:active,
+  .claim-slot-button:active,
+  .accusation-evidence-card:active,
+  .case-file-clue-card:active,
+  .ui-language-option:active,
+  .form-tab:active,
+  .ws-tab:active {
+    transform: translateY(var(--press-shift));
+  }
+
+  /* Case and role plates lift off the desk on hover. --e-3 is the same
+     elevation .card already uses, restated here for the tiles that are not
+     built on .card. */
+  .ws-badge-card:hover,
+  .room-card:hover,
+  .v3-pair-card:hover,
+  .v3-private-card:hover {
+    transform: translateY(var(--hover-lift));
+    box-shadow: var(--e-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-select-row:active,
+  .suspect-card:active,
+  .char-card:active,
+  .map-entry:active,
+  .claim-slot-button:active,
+  .accusation-evidence-card:active,
+  .case-file-clue-card:active,
+  .ui-language-option:active,
+  .form-tab:active,
+  .ws-tab:active,
+  .ws-badge-card:hover,
+  .room-card:hover,
+  .v3-pair-card:hover,
+  .v3-private-card:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   3. Screen change — fade in and rise 8px over --m-base
+   ==========================================================================
+   Scoped to the meta screens (`.page`, `.auth-screen`) on purpose. The
+   gameplay shell is `.point-game`, and a transform on its ancestor would
+   turn that element into the containing block for every `position: fixed`
+   HUD layer and overlay inside it. Those screens get their own entrances
+   from the drawer/overlay keyframes in 10-game.css instead. */
+
+@media (prefers-reduced-motion: no-preference) {
+  #app > .page,
+  #app > .auth-screen {
+    /* No fill mode on purpose. `both` / `forwards` would leave
+       `transform: translateY(0)` applied for the life of the screen, and a
+       held transform makes the element a containing block for any
+       `position: fixed` descendant. The entrance has to end completely. */
+    animation: screen-enter var(--m-base) var(--ease-out);
+  }
+}
+
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-shift));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app > .page,
+  #app > .auth-screen {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   4. Waiting — a held state breathes so it does not read as a hung client
+   ==========================================================================
+   Three places make a player wait on someone else: the lobby roster before
+   the partner is ready, the paired-confrontation confirmation row, and the
+   accusation-consensus notice. All three dim to --breathe-floor and back,
+   never to zero, so the text stays readable throughout. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .v3-waiting,
+  .v3-confirmation-state span:not(.is-confirmed) {
+    animation: waiting-breathe var(--m-breathe) var(--ease-in-out) infinite;
+  }
+}
+
+@keyframes waiting-breathe {
+  0%,
+  100% { opacity: 1; }
+  50% { opacity: var(--breathe-floor); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-waiting,
+  .v3-confirmation-state span:not(.is-confirmed) {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   5. Toast — slides in from the right, then leaves on its own
+   ==========================================================================
+   The arrival and the exit are one transition on `.toast` / `.toast-show`
+   (10-game.css §15); `Client/js/utils/toast.js` flips the class and removes
+   the node. Nothing here changes that contract — it only makes sure the
+   plate is placed with no motion when motion is refused, so a toast never
+   sits invisible at `opacity: 0` waiting for a transition that will not
+   run. */
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none;
+    transform: none;
+  }
+
+  .toast,
+  .toast-show {
+    opacity: 1;
+  }
+
+  .scene-intro-toast {
+    animation: none;
+    opacity: 1;
+  }
+}

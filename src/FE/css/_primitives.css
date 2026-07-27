@@ -1,0 +1,524 @@
+/* ==========================================================================
+   _primitives — the shared surface layer for Sir Locked
+   Plan 036, Phase 2.
+
+   Load order: _tokens.css -> 00-base.css (reset) -> _primitives.css ->
+   09-app.css -> 10-game.css.
+
+   Because the screen stylesheets still load AFTER this file, every rule here
+   loses to them on any property they already declare. That is deliberate for
+   this phase: the primitives exist, nothing is re-skinned yet. As each screen
+   is migrated in the later phases, the matching block in 09-app.css /
+   10-game.css is deleted and the primitive below takes over unchanged.
+
+   Naming is by FUNCTION, never by screen:
+     .surface / .panel / .card   the only boxes in the app
+     .btn / .chip / .field       the only controls
+     .stack / .cluster / .grid-auto   the only layout utilities
+
+   Rules for anything added here later:
+     - no bare px outside the :root block, no bare colour, no new hue
+     - spacing from --s-*, type from --t-*, radius from --r-*, depth from --e-*
+     - a fifth panel variant is a signal to re-read the four below, not to add
+   ========================================================================== */
+
+:root {
+  /* Primitive-local tokens. Kept here so no bare px or colour leaks into a
+     rule body; the art direction still comes entirely from _tokens.css. */
+  --bw: 1px;                 /* the one hairline width in the system */
+  --bw-thick: 2px;           /* focus ring, dossier top rule */
+  --ring-offset: 2px;
+
+  /* --press-shift / --hover-lift moved to _tokens.css in phase 8: the motion
+     sheet and main.html both need them, and only index.html loads this file. */
+
+  --e-inset: inset 0 1px 3px rgba(0, 0, 0, 0.45); /* --e-1 turned inward */
+
+  --panel-warm: color-mix(in srgb, var(--charcoal) 62%, var(--panel));
+  --panel-sunken: color-mix(in srgb, var(--ink) 72%, var(--navy2));
+
+  --dossier-fold: var(--s-5); /* size of the folded top-right corner */
+  --blur-glass: 10px;
+
+  --grid-col: 320px;          /* default .grid-auto track floor */
+
+  --btn-min-h: 40px;
+  --btn-pad-y: var(--s-2);
+  --btn-pad-x: var(--s-4);
+  --btn-fill: linear-gradient(180deg, var(--gold-light), var(--gold));
+  --btn-fill-hover: linear-gradient(180deg, var(--white), var(--gold-light));
+  /* Disabled is a FLAT slate plate, never dimmed gold. A gold button at 45%
+     opacity on navy reads as olive, which is why the lobby buttons looked
+     switched off while they were live. Enabled keeps its full gold. */
+  --btn-off-bg: var(--charcoal2);
+  --btn-off-line: var(--line);
+  --btn-off-ink: var(--beige-muted);
+}
+
+/* ==========================================================================
+   1. Surfaces
+   ========================================================================== */
+
+.surface,
+.panel,
+.card {
+  position: relative;
+  background: var(--panel);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--beige);
+}
+
+.panel {
+  padding: var(--s-5);
+  box-shadow: var(--e-2);
+}
+
+/* --- dossier: the case-file motif. Folded top-right corner, brass rule,
+       warmer paper, uppercase tab label. This is the surface that makes the
+       app read as a game rather than a document. ------------------------- */
+.panel--dossier {
+  background: var(--panel-warm);
+  border-color: var(--line-strong);
+  border-top: var(--bw-thick) solid var(--gold-dim);
+  border-radius: var(--r-sm);
+  padding-top: var(--s-6);
+  box-shadow: var(--e-2);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--dossier-fold)) 0,
+    100% var(--dossier-fold),
+    100% 100%,
+    0 100%
+  );
+}
+
+/* the underside of the folded corner */
+.panel--dossier::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--dossier-fold);
+  height: var(--dossier-fold);
+  background: linear-gradient(225deg, transparent 50%, var(--gold-dim) 50%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* the tab label strip that runs along the top of a file */
+.panel--dossier > .panel-label {
+  position: absolute;
+  top: var(--s-3);
+  left: var(--s-5);
+  right: calc(var(--dossier-fold) + var(--s-3));
+}
+
+.panel-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--gold);
+  line-height: var(--lh-tight);
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: var(--t-xl);
+  line-height: var(--lh-tight);
+  color: var(--white);
+}
+
+/* --- glass: nav and anything that floats over the 221B backdrop --------- */
+.panel--glass {
+  background: var(--fog);
+  border-color: var(--line);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(120%);
+  backdrop-filter: blur(var(--blur-glass)) saturate(120%);
+  box-shadow: var(--e-1);
+}
+
+/* --- rail: fixed to an edge of the viewport, so no rounded corners ------ */
+.panel--rail {
+  border-radius: 0;
+  border-color: transparent;
+  border-bottom-color: var(--line);
+  background: var(--panel-strong);
+  box-shadow: var(--e-1);
+}
+
+/* --- inset: a well inside another surface ------------------------------ */
+.panel--inset {
+  background: var(--panel-sunken);
+  border-color: var(--line);
+  box-shadow: var(--e-inset);
+}
+
+/* ==========================================================================
+   2. Card — surface with media / body / foot. Case cards, role cards.
+   ========================================================================== */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--e-2);
+  transition:
+    border-color var(--m-fast) var(--ease-out),
+    box-shadow var(--m-fast) var(--ease-out),
+    transform var(--m-fast) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--e-3);
+  transform: translateY(var(--hover-lift));
+}
+
+.card:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: var(--e-glow);
+}
+
+.card-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--ink);
+  flex: none;
+}
+
+.card-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+}
+
+.card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: auto;
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--bw) solid var(--line);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: var(--t-xl);
+  line-height: var(--lh-tight);
+  color: var(--white);
+}
+
+.card-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--lines, 2);
+  line-clamp: var(--lines, 2);
+  overflow: hidden;
+  font-size: var(--t-base);
+  line-height: var(--lh-snug);
+  color: var(--beige-muted);
+}
+
+/* ==========================================================================
+   3. Layout — the only three utilities in the system
+   ========================================================================== */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap, var(--s-4));
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap, var(--s-3));
+}
+
+.grid-auto {
+  display: grid;
+  gap: var(--gap, var(--s-5));
+  grid-template-columns: repeat(auto-fill, minmax(var(--col, var(--grid-col)), 1fr));
+}
+
+/* ==========================================================================
+   4. Buttons — existing names, rebuilt on tokens, five states each.
+
+   Rest and hover reproduce what 09-app.css / 10-game.css already render, so
+   nothing shifts while those files are still loaded. :active, :focus-visible
+   and :disabled are the three states the old rules never covered, and they do
+   take effect now — that is the point of the disabled fix.
+   ========================================================================== */
+
+.btn {
+  font-family: var(--font-body);
+  font-size: var(--t-base);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  color: var(--beige);
+  background: transparent;
+  border: var(--bw) solid transparent;
+  border-radius: var(--r-md);
+  padding: var(--btn-pad-y) var(--btn-pad-x);
+  min-height: var(--btn-min-h);
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    background var(--m-fast) var(--ease-out),
+    border-color var(--m-fast) var(--ease-out),
+    color var(--m-fast) var(--ease-out),
+    box-shadow var(--m-fast) var(--ease-out),
+    transform var(--m-fast) var(--ease-out);
+}
+
+/* --- variants ---------------------------------------------------------- */
+/* .btn-primary and .btn-gold are the same brass plate; 10-game.css already
+   collapsed them, this records that rather than reintroducing a split. */
+.btn-primary,
+.btn-gold {
+  background: var(--btn-fill);
+  border-color: var(--gold-light);
+  color: var(--ink);
+}
+
+.btn-secondary {
+  background: var(--charcoal);
+  border-color: var(--line);
+  color: var(--beige);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--gold-light);
+}
+
+.btn-sm {
+  min-height: auto;
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--t-sm);
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* --- state 2: hover ---------------------------------------------------- */
+.btn-primary:hover:not(:disabled),
+.btn-gold:hover:not(:disabled) {
+  background: var(--btn-fill-hover);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--charcoal2);
+  border-color: var(--line-strong);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  color: var(--white);
+}
+
+/* --- state 3: active --------------------------------------------------- */
+.btn:active:not(:disabled) {
+  transform: translateY(var(--press-shift));
+  box-shadow: var(--e-1);
+}
+
+/* --- state 4: focus-visible. Must survive a navy background AND a gold
+       button face, hence the dark separator ring inside the offset. ------ */
+.btn:focus-visible {
+  outline: var(--bw-thick) solid var(--gold-light);
+  outline-offset: var(--ring-offset);
+  box-shadow: 0 0 0 var(--ring-offset) var(--ink);
+}
+
+/* --- state 5: disabled. Flat plate, not dimmed gold. ------------------- */
+.btn:disabled {
+  background: var(--btn-off-bg);
+  border-color: var(--btn-off-line);
+  color: var(--btn-off-ink);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Bridge, delete together with `09-app.css` line 57 (`.btn:disabled
+   { opacity: .45 }`). That rule loads after this file and would dim the flat
+   plate back into the same mud the plate exists to remove, so one extra
+   attribute step of specificity restores full opacity. */
+.btn:disabled[disabled] {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   5. Fields — label + control + hint + error.
+   Reuses .field-group / .field-label / .field-input so no markup or test
+   selector has to move.
+   ========================================================================== */
+
+.field,
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+}
+
+.field-label {
+  display: block;
+  color: var(--beige-muted);
+  font-size: var(--t-sm);
+  margin-bottom: var(--s-1);
+}
+
+.field-input {
+  display: block;
+  width: 100%;
+  margin-top: 0;
+  padding: var(--s-2) var(--s-3);
+  background: var(--charcoal);
+  color: var(--white);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-md);
+  font-family: var(--font-body);
+  font-size: var(--t-base);
+}
+
+.field-hint {
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  color: var(--beige-muted);
+}
+
+.field-error {
+  font-size: var(--t-xs);
+  line-height: var(--lh-snug);
+  color: var(--copper);
+}
+
+.field-error:empty {
+  display: none;
+}
+
+/* ==========================================================================
+   6. Chips — existing names on tokens, plus the stat and role variants.
+   ========================================================================== */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: var(--t-xs);
+  letter-spacing: var(--tracking-label);
+  background: color-mix(in srgb, var(--beige) 7%, transparent);
+  color: var(--beige);
+  white-space: nowrap;
+}
+
+.chip-gold {
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+  border-color: var(--line-strong);
+  color: var(--gold-light);
+}
+
+.chip-ok {
+  background: color-mix(in srgb, var(--teal) 18%, transparent);
+  border-color: color-mix(in srgb, var(--teal) 46%, transparent);
+  color: var(--teal);
+}
+
+.chip-bad {
+  background: color-mix(in srgb, var(--copper) 18%, transparent);
+  border-color: color-mix(in srgb, var(--copper) 46%, transparent);
+  color: var(--copper);
+}
+
+.chip-role {
+  background: var(--purple);
+  border-color: var(--purple2);
+  color: var(--white);
+}
+
+/* Compound selectors: `.chip` is redefined further down the cascade by the
+   screen files, so a single-class modifier here would lose to it. */
+.chip.chip--role-inv {
+  background: color-mix(in srgb, var(--role-investigator) 18%, transparent);
+  border-color: color-mix(in srgb, var(--role-investigator) 52%, transparent);
+  color: var(--role-investigator);
+}
+
+.chip.chip--role-int {
+  background: color-mix(in srgb, var(--role-interrogator) 18%, transparent);
+  border-color: color-mix(in srgb, var(--role-interrogator) 52%, transparent);
+  color: var(--role-interrogator);
+}
+
+/* metadata as a readable label/value plate instead of a grey pill */
+.chip.chip--stat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: transparent;
+  border-color: var(--line);
+  white-space: normal;
+}
+
+.chip-stat-label {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--beige-muted);
+  line-height: var(--lh-tight);
+}
+
+.chip-stat-value {
+  font-family: var(--font-display);
+  font-size: var(--t-lg);
+  line-height: var(--lh-tight);
+  color: var(--beige);
+}
+
+/* ==========================================================================
+   7. Reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .surface,
+  .panel,
+  .card,
+  .btn,
+  .chip,
+  .field-input {
+    transition: none;
+  }
+
+  .card:hover,
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+}

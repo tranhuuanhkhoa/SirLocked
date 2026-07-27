@@ -20,15 +20,15 @@ function cardHtml(c) {
     ? `<span class="ws-teaser">${pct(c.wrongCulpritRate)} đội buộc tội nhầm</span>`
     : '<span class="ws-teaser ws-teaser-empty">Chưa có lượt chơi nào</span>';
   return `
-    <article class="case-card ws-card">
-      <div class="case-cover" style="${placeholderStyle(c.caseId)}">
+    <article class="case-card card panel--dossier ws-card">
+      <div class="case-cover card-media" style="${placeholderStyle(c.caseId)}">
         ${c.coverImageUrl ? `<img src="${escapeHtml(c.coverImageUrl)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
         <span class="case-cover-title">${escapeHtml(c.title)}</span>
       </div>
-      <div class="case-body">
+      <div class="case-body card-body">
         <div class="ws-card-by muted small">Tác giả: ${escapeHtml(c.author)}</div>
-        <p class="case-summary">${escapeHtml(c.summary)}</p>
-        <div class="case-meta">
+        <p class="case-summary card-text">${escapeHtml(c.summary)}</p>
+        <div class="case-meta cluster">
           <span class="chip">${escapeHtml(String(c.estimatedMinutes))} phút</span>
           <span class="chip">${c.totalPlays} lượt chơi</span>
           ${c.mechanicsVersion === 3
@@ -36,10 +36,10 @@ function cardHtml(c) {
             : c.mechanicsVersion === 2 ? '<span class="chip chip-gold">V2</span>' : ''}
         </div>
         <div class="ws-teaser-row">${teaser}</div>
-        <div class="case-actions">
-          <button class="btn btn-primary btn-sm" data-create="${escapeHtml(c.caseId)}">Chơi</button>
-          <a class="btn btn-ghost btn-sm" href="#/workshop/${encodeURIComponent(c.caseId)}">Thống kê</a>
-        </div>
+      </div>
+      <div class="case-actions card-foot">
+        <button class="btn btn-primary btn-sm" data-create="${escapeHtml(c.caseId)}">Chơi</button>
+        <a class="btn btn-ghost btn-sm" href="#/workshop/${encodeURIComponent(c.caseId)}">Thống kê</a>
       </div>
     </article>`;
 }
@@ -97,7 +97,7 @@ export async function renderWorkshopPage(app) {
     }
     const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
     render(resultsEl, `
-      <div class="case-grid">${items.map(cardHtml).join('')}</div>
+      <div class="case-grid grid-auto">${items.map(cardHtml).join('')}</div>
       ${totalPages > 1 ? `
         <div class="ws-pagination">
           <button class="btn btn-ghost btn-sm" type="button" data-page="prev" ${data.page <= 1 ? 'disabled' : ''}>← Trước</button>

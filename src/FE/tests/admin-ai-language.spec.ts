@@ -30,6 +30,17 @@ test.beforeEach(async ({ page }) => {
     });
   });
 
+  // Keep the dashboard test isolated from whichever local API happens to be
+  // running behind Vite. A real 401 here clears the mocked session before the
+  // dashboard finishes rendering; telemetry is optional in this suite.
+  await page.route('**/api/admin/playtest/summary', async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: 'Telemetry disabled in UI smoke tests.' }),
+    });
+  });
+
   await page.route('**/api/admin/ai-cases', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({

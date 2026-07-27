@@ -1,0 +1,110 @@
+/* ==========================================================================
+   _tokens — design tokens for Sir Locked (this file)
+   Plan 036, Phase 1. Loaded FIRST, before every other stylesheet.
+
+   Rules for everything downstream:
+     - no bare pixel values, no bare colours, no invented box
+     - spacing comes from the step scale, type from the type scale
+     - z-index has exactly six tiers, plus -1 (decor behind content)
+       and 1 (local stacking inside an isolated component)
+
+   Art direction is fixed: navy / gold / beige, Playfair + Crimson + Source
+   Code Pro. This file records it, it does not change it.
+   ========================================================================== */
+
+:root {
+  /* ---- palette: moved verbatim out of 00-base, not duplicated ---- */
+  --navy: #07111f;
+  --navy2: #0b1b2d;
+  --charcoal: #142235;
+  --charcoal2: #1a2c42;
+  --ink: #050a12;
+  --gold: #c7a24b;
+  --gold-light: #efd486;
+  --gold-dim: #8a6e2e;
+  --copper: #b66b4d;
+  --teal: #4f9a9a;
+  --beige: #eee4d2;
+  --beige-muted: #a99d8d;
+  --purple: #44336f;
+  --purple2: #5b4792;
+  --white: #fbf6ed;
+  --fog: rgba(7,17,31,0.88);
+  --panel: rgba(10, 25, 43, 0.88);
+  --panel-strong: rgba(10, 25, 43, 0.96);
+  --line: rgba(239, 212, 134, 0.18);
+  --line-strong: rgba(239, 212, 134, 0.42);
+  --shadow-lg: 0 22px 70px rgba(0, 0, 0, 0.42);
+  --app-nav-height: 48px;
+
+  /* ---- role colours: derived from the palette above, no new hue ---- */
+  --role-investigator: var(--teal);   /* observation, crime scene */
+  --role-interrogator: var(--copper); /* confrontation, people */
+
+  /* ---- spacing: 4-step scale. Need 13, take 12 or 16. No exceptions. ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* ---- type: 1.25 major third, root 16 ---- */
+  --t-xs: 12px;
+  --t-sm: 14px;
+  --t-base: 16px;
+  --t-lg: 20px;
+  --t-xl: 25px;
+  --t-2xl: 31px;
+  --t-3xl: 39px;
+  --t-4xl: 49px;
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-normal: 1.6;
+
+  --tracking-label: 0.08em;    /* uppercase case-file labels */
+  --tracking-wordmark: 0.18em; /* SIR LOCKED wordmark, room codes */
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Crimson Text', Georgia, serif;
+  --font-mono: 'Source Code Pro', ui-monospace, monospace;
+
+  /* ---- radius: SHARP. Game UI is not a SaaS dashboard. ---- */
+  --r-sm: 2px;
+  --r-md: 4px;
+  --r-lg: 8px;
+  --r-pill: 999px; /* chips and round avatars only, never a panel */
+
+  /* ---- elevation: four levels, no more ---- */
+  --e-1: 0 1px 2px rgba(0,0,0,.40);
+  --e-2: 0 4px 16px rgba(0,0,0,.45);
+  --e-3: 0 12px 40px rgba(0,0,0,.50);
+  --e-glow: 0 0 0 1px var(--line-strong), 0 0 24px rgba(199,162,75,.15);
+
+  /* ---- motion: three durations, two curves ---- */
+  --m-fast: 120ms;  /* hover, press, focus */
+  --m-base: 200ms;  /* panel open and close, tab change */
+  --m-slow: 320ms;  /* screen transition, overlay in and out */
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-in-out: cubic-bezier(.4,0,.2,1);
+
+  /* The two gesture depths. They belong with the durations rather than with
+     the primitives, because _motion.css and both HTML entry points need them
+     and only index.html loads _primitives.css. */
+  --press-shift: 1px;   /* :active nudge, downward */
+  --hover-lift: -2px;   /* card hover lift, upward */
+
+  /* ---- z-index: six tiers, replacing the 25 loose values ---- */
+  --z-base: 0;      /* ordinary content */
+  --z-raised: 10;   /* hovered card, in-flow dropdown */
+  --z-sticky: 100;  /* nav, sticky toolbars */
+  --z-hud: 200;     /* HUD layered over the canvas */
+  --z-overlay: 300; /* drawer, modal, dialogue */
+  --z-toast: 400;   /* toast, system notice */
+  /* Alias so either vocabulary resolves; same tier as --z-overlay, not a 7th. */
+  --z-modal: 300;
+}
