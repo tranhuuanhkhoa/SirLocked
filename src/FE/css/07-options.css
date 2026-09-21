@@ -1,0 +1,148 @@
+﻿/* ===== SCREEN 5: OPTIONS ===== */
+  #s-options {
+    flex-direction: column; align-items: center;
+    background:
+      radial-gradient(ellipse at 70% 20%, rgba(59,45,110,0.2) 0%, transparent 40%),
+      var(--navy);
+    padding: 80px 48px 60px;
+  }
+  .options-wrap { width: 100%; max-width: 900px; margin: 0 auto; }
+  .options-title-wrap { margin-bottom: 36px; }
+  .options-title { font-size: 26px; }
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .options-section { margin-bottom: 32px; }
+  .options-section-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-top: 2px solid rgba(201,168,76,0.25);
+    padding-top: 16px;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+  }
+  .slider-label { font-size: 15px; color: var(--beige); min-width: 160px; }
+  .slider-track {
+    flex: 1; position: relative; height: 4px;
+    background: rgba(201,168,76,0.15); border-radius: 2px;
+  }
+  .slider-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--gold); border-radius: 2px;
+  }
+  .slider-thumb {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold); border: 2px solid var(--charcoal);
+    box-shadow: 0 0 8px rgba(201,168,76,0.4);
+    cursor: pointer;
+  }
+  .slider-val { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 13px; min-width: 36px; text-align: right; }
+  .slider-input { flex: 1; }
+  .quality-row { display: flex; gap: 8px; }
+  .quality-btn {
+    flex: 1; padding: 10px; background: var(--navy);
+    border: 0.5px solid rgba(201,168,76,0.25);
+    color: var(--beige-muted); font-family: 'Playfair Display', serif;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+    transition:
+      color var(--m-fast) var(--ease-out),
+      background var(--m-fast) var(--ease-out),
+      border-color var(--m-fast) var(--ease-out),
+      transform var(--m-fast) var(--ease-out);
+  }
+  .quality-btn:active { transform: translateY(var(--press-shift)); }
+  .quality-btn.active {
+    background: var(--purple); border-color: var(--gold); color: var(--white);
+  }
+  .quality-row--spaced { margin-bottom: 28px; }
+  .quality-btn:hover:not(.active) { border-color: var(--gold-dim); color: var(--beige); }
+  .lang-row { display: flex; gap: 12px; }
+  .lang-btn {
+    flex: 1; padding: 16px 12px; background: var(--navy2);
+    border: 1px solid rgba(201,168,76,0.2);
+    color: var(--beige-muted); font-family: 'Playfair Display', serif;
+    font-size: 13px; letter-spacing: 1px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    text-align: center;
+    transition:
+      color var(--m-fast) var(--ease-out),
+      background var(--m-fast) var(--ease-out),
+      border-color var(--m-fast) var(--ease-out),
+      transform var(--m-fast) var(--ease-out);
+  }
+  .lang-btn:active { transform: translateY(var(--press-shift)); }
+  .lang-btn.active {
+    border-color: var(--gold); background: rgba(201,168,76,0.08); color: var(--gold);
+  }
+  .lang-btn:hover:not(.active) { border-color: var(--gold-dim); color: var(--beige); }
+  .lang-flag { font-size: 24px; }
+  .options-btns { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 8px; }
+  .options-btns .btn-primary { max-width: 320px; }
+  .options-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(201,168,76,0.2), transparent);
+    margin: 32px 0;
+  }
+  .save-settings-btn { max-width: 320px; }
+  .reset-link { font-size: 13px; color: var(--beige-muted); font-style: italic; cursor: pointer; background: none; border: none; }
+  .reset-link:hover { color: var(--gold); }
+
+  /* Wax seal */
+  .wax-seal {
+    position: absolute; bottom: 40px; right: 40px; opacity: 0.06;
+    width: 80px; height: 80px;
+  }
+
+  /* Range input custom */
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    background: rgba(201,168,76,0.15); border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold); cursor: pointer; border: 2px solid var(--charcoal);
+    box-shadow: 0 0 8px rgba(201,168,76,0.4);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold); cursor: pointer; border: 2px solid var(--charcoal);
+  }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(var(--enter-shift)); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Opt-in only, and released once it has played: `forwards` used to leave a
+     transform on every screen child for the life of the page. */
+  @media (prefers-reduced-motion: no-preference) {
+    .screen.active > * { animation: fadeIn var(--m-base) var(--ease-out); }
+  }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen.active > * { animation: none; }
+  .quality-btn,
+  .lang-btn { transition: none; }
+  .quality-btn:active,
+  .lang-btn:active { transform: none; }
+}
+
+  /* Select */
+  select {
+    width: 100%; padding: 10px 14px;
+    background: var(--navy2);
+    border: 0.5px solid rgba(201,168,76,0.3);
+    border-left: 2px solid var(--gold-dim);
+    color: var(--beige); font-family: 'Crimson Text', serif; font-size: 15px;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+  }
+  select option { background: var(--charcoal); }
+
+  

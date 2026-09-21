@@ -1,0 +1,145 @@
+/* ===== HAMBURGER MENU ===== */
+  .nav-hamburger {
+    display: none; flex-direction: column; gap: var(--s-1);
+    background: none; border: none; cursor: pointer; padding: var(--s-1);
+  }
+  .nav-hamburger span {
+    display: block; width: var(--burger-w); height: var(--rule-thick);
+    background: var(--gold);
+    /* Only the two properties that actually change on `.open`. `all` also
+       animated width and height, which made the bars swell mid-flip. */
+    transition:
+      transform var(--m-base) var(--ease-in-out),
+      opacity var(--m-base) var(--ease-in-out);
+  }
+  .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+  .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* The bars still cross into an X under reduce; they just arrive instantly. */
+@media (prefers-reduced-motion: reduce) {
+  .nav-hamburger span { transition: none; }
+}
+
+  .nav-mobile-menu {
+    display: none; position: fixed; top: var(--s-7); left: 0; right: 0; z-index: 99;
+    background: var(--panel-strong);
+    border-bottom: var(--rule) solid var(--gold-dim);
+    flex-direction: column; padding: var(--s-2) 0;
+  }
+  .nav-mobile-menu.open { display: flex; }
+  .nav-mobile-menu .nav-tab {
+    width: 100%; text-align: left; padding: var(--s-3) var(--s-5);
+    border-radius: 0; font-size: var(--t-xs); letter-spacing: var(--tracking-wordmark);
+    border-bottom: var(--rule) solid var(--line);
+  }
+  .nav-mobile-menu .nav-tab.active {
+    background: var(--gold-wash); border: none;
+    border-left: var(--marker-rail) solid var(--gold);
+  }
+
+  /* ===== TABLET: ≤ 900px ===== */
+  @media (max-width: 900px) {
+    /* Nav */
+    .nav-tabs { display: none; }
+    .nav-hamburger { display: flex; }
+    .nav { padding: 0 var(--s-4); }
+
+    /* Auth - stack vertically */
+    #s-auth { flex-direction: column; }
+    .auth-left {
+      width: 100%; height: 260px; min-height: unset;
+      flex-shrink: 0;
+    }
+    .auth-left-overlay {
+      background: linear-gradient(to bottom, transparent 40%, rgba(10,22,40,0.9) 100%);
+    }
+    .auth-right {
+      width: 100%; border-left: none;
+      border-top: var(--rule) solid var(--gold-dim);
+      padding: var(--s-6) var(--s-5) var(--s-6);
+    }
+    .auth-form-wrap { max-width: 100%; }
+    .auth-logo h1 { font-size: var(--t-lg); letter-spacing: var(--tracking-wordmark); }
+
+    /* How to play */
+    #s-play { padding: var(--s-8) var(--s-4) var(--s-7); }
+    .how-grid { grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+    .page-title { font-size: var(--t-xl); letter-spacing: var(--tracking-wordmark); }
+    .evidence-board { padding: var(--s-4); }
+    .board-items { gap: var(--s-2); }
+
+    /* Create room */
+    #s-create { padding: var(--s-8) var(--s-4) var(--s-7); }
+    .room-card { padding: var(--s-5) var(--s-5); }
+
+    /* Options */
+    #s-options { padding: var(--s-8) var(--s-5) var(--s-7); }
+    #s-options > div > div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+    .slider-label { min-width: 130px; font-size: var(--t-sm); }
+  }
+
+  /* ===== MOBILE: ≤ 600px ===== */
+  @media (max-width: 600px) {
+    /* Nav */
+    .nav-logo { font-size: var(--t-sm); letter-spacing: var(--tracking-wordmark); }
+    .nav-logo svg { width: 18px; height: 18px; }
+
+    /* Auth */
+    .auth-left { height: 220px; }
+    .auth-right { padding: var(--s-5) var(--s-4) var(--s-6); }
+    .auth-logo h1 { font-size: var(--t-lg); letter-spacing: var(--tracking-wordmark); }
+    .auth-logo p { font-size: var(--t-xs); }
+    .field-input { font-size: var(--t-sm); padding: var(--s-2) var(--s-3); }
+    .tab-row { margin-bottom: var(--s-4); }
+
+    /* How to play */
+    #s-play { padding: var(--s-8) var(--s-3) var(--s-6); }
+    .how-grid { grid-template-columns: 1fr; gap: var(--s-3); }
+    .how-card-illo { height: 120px; }
+    .how-card-body { padding: var(--s-3); }
+    .how-card-title { font-size: var(--t-sm); }
+    .page-title { font-size: var(--t-lg); letter-spacing: var(--tracking-wordmark); }
+    .page-subtitle { font-size: var(--t-sm); }
+    .evidence-board { padding: var(--s-4); }
+    .board-pin { font-size: var(--t-xs); padding: var(--s-2) var(--s-2); }
+
+    /* Create room */
+    #s-create { padding: var(--s-8) var(--s-3) var(--s-6); }
+    .room-card { padding: var(--s-5) var(--s-4); }
+    .card-title { font-size: var(--t-base); letter-spacing: var(--tracking-wordmark); }
+    .room-code-value { font-size: var(--t-xl); letter-spacing: var(--tracking-wordmark); }
+    .diff-btn { font-size: var(--t-xs); padding: var(--s-2) var(--s-1); letter-spacing: var(--tracking-label); }
+
+    /* Join room */
+    #s-join { padding: var(--s-8) var(--s-3) var(--s-6); }
+    .join-title { font-size: var(--t-lg); letter-spacing: var(--tracking-wordmark); }
+    .code-input { font-size: var(--t-xl); letter-spacing: var(--tracking-wordmark); padding: var(--s-3); }
+    .code-input::placeholder { font-size: var(--t-lg); }
+
+    /* Options */
+    #s-options { padding: var(--s-8) var(--s-3) var(--s-6); }
+    .slider-row { flex-wrap: wrap; gap: var(--s-2); }
+    .slider-label { min-width: unset; width: 100%; font-size: var(--t-sm); }
+    .slider-row input[type=range] { flex: 1; }
+    .quality-btn { font-size: var(--t-xs); letter-spacing: var(--tracking-label); padding: var(--s-2) var(--s-1); }
+    .lang-btn { padding: var(--s-3) var(--s-2); font-size: var(--t-xs); }
+    .lang-flag { font-size: var(--t-lg); }
+    .options-section-label { font-size: var(--t-xs); }
+
+    /* Global buttons on mobile */
+    .btn-primary { font-size: var(--t-xs); letter-spacing: var(--tracking-wordmark); padding: var(--s-3); }
+    .btn-secondary { font-size: var(--t-xs); }
+  }
+
+  /* ===== SMALL MOBILE: ≤ 380px ===== */
+  @media (max-width: 380px) {
+    .auth-left { height: 180px; }
+    .auth-logo h1 { font-size: var(--t-base); letter-spacing: var(--tracking-wordmark); }
+    .room-code-value { font-size: var(--t-xl); letter-spacing: var(--tracking-wordmark); }
+    .code-input { font-size: var(--t-lg); letter-spacing: var(--tracking-wordmark); }
+    .join-title { font-size: var(--t-base); }
+    .how-grid { gap: var(--s-2); }
+  }

@@ -1,0 +1,227 @@
+/* ===== SCREEN 1: AUTH ===== */
+  #s-auth {
+    flex-direction: row;
+  }
+  .auth-left {
+    width: 55%; position: relative; overflow: hidden;
+    background: var(--navy);
+    display: flex; align-items: stretch; justify-content: center;
+  }
+  .auth-left-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: center center;
+  }
+  .auth-left-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to right, transparent 55%, rgba(10,22,40,0.85) 100%),
+                linear-gradient(to top, rgba(10,22,40,0.4) 0%, transparent 30%);
+  }
+  .auth-ready-wrap {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    padding: 0 0 var(--s-6);
+    align-self: flex-end;
+    width: 100%;
+  }
+  .auth-ready-badge {
+    font-family: var(--font-display);
+    color: var(--gold);
+    font-size: var(--t-xs);
+    letter-spacing: var(--tracking-wordmark);
+    text-shadow: 0 0 20px rgba(201,168,76,0.6);
+    background: rgba(10,15,25,0.5);
+    display: inline-block;
+    padding: var(--s-1) var(--s-4);
+    border: var(--rule) solid var(--line);
+  }
+  .auth-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(59,45,110,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%),
+      linear-gradient(to bottom, #060e1a 0%, #0d1e35 100%);
+  }
+  .auth-scene {
+    position: relative; z-index: 2; width: 100%; padding: 0 var(--s-6) 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .door-frame {
+    width: var(--scene-w); margin: 0 auto;
+    background: linear-gradient(to bottom, #1a0e06, #0d0804);
+    border: 3px solid #2a1a0a;
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    padding: 0;
+    position: relative;
+    box-shadow: 0 0 60px var(--gold-wash), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  .door-arch {
+    background: #0d0804;
+    border-radius: var(--r-pill) 50% 0 0 / var(--r-lg) var(--r-lg) 0 0;
+    height: 20px; margin-bottom: -2px;
+    border: 3px solid #2a1a0a; border-bottom: none;
+  }
+  .door-number {
+    position: absolute; top: var(--s-3); left: 50%; transform: translateX(-50%);
+    font-family: var(--font-display);
+    color: var(--gold); font-size: var(--t-xs); letter-spacing: var(--tracking-wordmark);
+    background: rgba(0,0,0,0.6); padding: var(--s-1) var(--s-2);
+    border: var(--rule) solid var(--gold-dim);
+  }
+  .door-panel {
+    width: 100%; height: var(--scene-h);
+    background: linear-gradient(135deg, #1a0e06 0%, #0d0804 50%, #140a04 100%);
+    position: relative; overflow: hidden;
+  }
+  .door-panel::before {
+    content: '221B';
+    position: absolute; top: var(--s-4); left: 50%; transform: translateX(-50%);
+    font-family: var(--font-display);
+    color: var(--gold); font-size: var(--t-base); letter-spacing: var(--tracking-wordmark);
+    text-shadow: 0 0 12px var(--line-strong);
+  }
+  .characters-row {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: center; align-items: flex-end; gap: var(--s-2);
+  }
+  .char-svg { position: relative; }
+
+  /* Detective SVG character */
+  .detective-figure {
+    width: 90px; height: 200px; position: relative;
+  }
+  .doctor-figure {
+    width: 80px; height: 185px; position: relative;
+  }
+
+  .lamp-glow {
+    position: absolute; top: var(--s-4); right: var(--s-5);
+    width: 8px; height: 8px; background: var(--gold-light);
+    border-radius: var(--r-pill);
+    box-shadow: 0 0 20px 12px var(--line), 0 0 40px 20px var(--gold-wash);
+  }
+  .stone-wall {
+    position: absolute; inset: 0; z-index: 0;
+    background-image: repeating-linear-gradient(
+      0deg, transparent, transparent 28px, rgba(201,168,76,0.04) 28px, rgba(201,168,76,0.04) 29px
+    ), repeating-linear-gradient(
+      90deg, transparent, transparent 48px, rgba(201,168,76,0.03) 48px, rgba(201,168,76,0.03) 49px
+    );
+  }
+  .fog-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0; height: var(--skyline-h);
+    background: linear-gradient(to top, rgba(10,15,25,0.7) 0%, transparent 100%);
+    z-index: 1;
+  }
+  .auth-game-title {
+    text-align: center; padding: var(--s-5) 0 var(--s-4);
+    position: relative; z-index: 3;
+  }
+  .auth-game-title h2 {
+    font-family: var(--font-display);
+    color: var(--gold); font-size: var(--t-lg); letter-spacing: var(--tracking-wordmark);
+    text-shadow: 0 0 20px var(--line);
+  }
+  .auth-game-title p {
+    font-style: italic; color: var(--beige-muted); font-size: var(--t-sm); margin-top: var(--s-1);
+  }
+
+  .auth-right {
+    width: 45%; background: var(--charcoal);
+    border-left: var(--rule) solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--s-6);
+  }
+  .auth-form-wrap {
+    width: 100%; max-width: var(--form-max);
+  }
+  .auth-logo {
+    text-align: center; margin-bottom: var(--s-5);
+  }
+  .auth-logo h1 {
+    font-family: var(--font-display);
+    color: var(--gold); font-size: var(--t-xl); letter-spacing: var(--tracking-wordmark);
+  }
+  .auth-logo p {
+    font-style: italic; color: var(--beige-muted); font-size: var(--t-xs); margin-top: var(--s-1);
+  }
+  .gold-divider {
+    width: 100%; height: var(--rule);
+    background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+    margin: var(--s-4) 0;
+  }
+  .tab-row {
+    display: flex; border: var(--rule) solid var(--gold-dim); border-radius: var(--r-md); overflow: hidden; margin-bottom: var(--s-5);
+  }
+  .form-tab {
+    flex: 1; padding: var(--s-2); background: transparent; border: none;
+    font-family: var(--font-display); font-size: var(--t-xs);
+    letter-spacing: var(--tracking-wordmark); text-transform: uppercase; cursor: pointer;
+    color: var(--beige-muted);
+    transition:
+      color var(--m-fast) var(--ease-out),
+      background var(--m-fast) var(--ease-out),
+      border-color var(--m-fast) var(--ease-out);
+  }
+  .form-tab.active {
+    background: var(--gold-wash); color: var(--gold);
+    border-bottom: var(--rule-thick) solid var(--gold);
+  }
+  .form-panel[hidden] { display: none; }
+  .field-group { margin-bottom: var(--s-4); }
+  .field-label {
+    display: block; font-size: var(--t-xs); letter-spacing: var(--tracking-wordmark);
+    text-transform: uppercase; color: var(--gold-dim); margin-bottom: var(--s-1);
+    font-family: var(--font-display);
+  }
+  .field-input {
+    width: 100%; padding: var(--s-2) var(--s-3);
+    background: var(--navy2);
+    border: var(--rule) solid var(--line);
+    border-left: var(--rule-thick) solid var(--gold-dim);
+    color: var(--beige); font-family: var(--font-body); font-size: var(--t-sm);
+    outline: none;
+    transition:
+      border-color var(--m-fast) var(--ease-out),
+      box-shadow var(--m-fast) var(--ease-out);
+  }
+  .field-input:focus { border-left-color: var(--gold); border-color: var(--line-strong); }
+  .field-input::placeholder { color: var(--beige-muted); font-style: italic; }
+  .btn-primary {
+    width: 100%; padding: var(--s-3);
+    background: var(--navy); border: var(--rule-thick) solid var(--gold);
+    color: var(--gold); font-family: var(--font-display);
+    font-size: var(--t-xs); letter-spacing: var(--tracking-wordmark); text-transform: uppercase;
+    cursor: pointer; margin-top: var(--s-2);
+    transition:
+      color var(--m-fast) var(--ease-out),
+      background var(--m-fast) var(--ease-out),
+      border-color var(--m-fast) var(--ease-out),
+      box-shadow var(--m-fast) var(--ease-out),
+      transform var(--m-fast) var(--ease-out);
+  }
+  .btn-primary:hover {
+    background: var(--gold-wash); color: var(--gold-light);
+    box-shadow: 0 0 20px var(--gold-wash-strong);
+  }
+  .btn-primary:active { transform: translateY(var(--press-shift)); }
+  .btn-primary:focus-visible { outline: var(--rule-thick) solid var(--gold-light); outline-offset: var(--rule-thick); }
+  .auth-link {
+    text-align: center; margin-top: var(--s-4);
+    font-size: var(--t-xs); color: var(--beige-muted);
+  }
+  .auth-link a { color: var(--gold); text-decoration: none; }
+  .forgot { text-align: center; margin-top: var(--s-2); }
+  .forgot a { font-size: var(--t-xs); color: var(--beige-muted); font-style: italic; text-decoration: none; }
+
+/* Motion off when motion is refused. The three controls above are the whole
+   interactive surface of this screen, so nothing else needs a reset here. */
+@media (prefers-reduced-motion: reduce) {
+  .form-tab,
+  .field-input,
+  .btn-primary { transition: none; }
+
+  .btn-primary:active { transform: none; }
+}
+
+  

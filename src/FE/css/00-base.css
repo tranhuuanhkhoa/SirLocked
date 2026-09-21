@@ -1,0 +1,13 @@
+/* Reset + document body only. Design tokens live in _tokens (loaded first). */
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background:
+      linear-gradient(180deg, rgba(7,17,31,0.9), rgba(5,10,18,0.98)),
+      url('/assets/images/221b-baker-street.jpg') center / cover fixed;
+    font-family: 'Crimson Text', Georgia, serif;
+    color: var(--beige);
+    min-height: 100vh;
+    text-rendering: optimizeLegibility;
+  }

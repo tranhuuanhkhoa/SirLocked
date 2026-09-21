@@ -1,0 +1,23 @@
+{
+  "name": "sirlocked-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test:ui": "node ./tests/run-ui-smoke.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^8.0.7",
+    "lucide": "^1.20.0",
+    "phaser": "^4.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "typescript": "^6.0.3",
+    "vite": "^6.3.5"
+  }
+}

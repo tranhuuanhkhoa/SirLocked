@@ -1,0 +1,1 @@
+document.getElementById('app').innerHTML = `<section class="page" style="max-width:760px;margin:10vh auto"><h1>SIR LOCKED</h1><p>Hai thám tử. Một vụ án bí ẩn.</p><p>Ngày 1: nền ứng dụng đã sẵn sàng. Chức năng tài khoản được bàn giao ngày 2.</p><a href="/health" target="_blank">Kiểm tra kết nối backend</a></section>`;
