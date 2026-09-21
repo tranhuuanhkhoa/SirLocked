@@ -319,6 +319,7 @@ public partial class AiCaseService
             await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
         }
 
+        await UploadAssetsToCloudinaryAsync(draft, gameCase, manifest, caseSlug);
         return manifest;
     }
 }

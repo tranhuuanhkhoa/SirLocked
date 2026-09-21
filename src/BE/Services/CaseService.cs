@@ -85,6 +85,11 @@ public class CaseService : ICaseService
 
     public GameCase ParseCase(string caseJson)
     {
+        if (string.IsNullOrWhiteSpace(caseJson))
+        {
+            throw ApiException.BadRequest("Case JSON is empty.");
+        }
+
         GameCase? parsed;
         try
         {
@@ -98,6 +103,32 @@ public class CaseService : ICaseService
         if (parsed is null)
         {
             throw ApiException.BadRequest("Case JSON is empty.");
+        }
+
+        // System.Text.Json permits explicit null values for collection properties.
+        // Reject those at the input boundary with a field-level validation error
+        // instead of allowing a later validator/serializer dereference to become 500.
+        var missingCollections = new List<string>();
+        if (parsed.Stages is null) missingCollections.Add("stages");
+        if (parsed.Characters is null) missingCollections.Add("characters");
+        if (parsed.Items is null) missingCollections.Add("items");
+        if (parsed.Clues is null) missingCollections.Add("clues");
+        if (parsed.Dialogues is null) missingCollections.Add("dialogues");
+        if (parsed.ConversationNodes is null) missingCollections.Add("conversationNodes");
+        if (parsed.TestimonyFragments is null) missingCollections.Add("testimonyFragments");
+        if (parsed.EvidenceChallenges is null) missingCollections.Add("evidenceChallenges");
+        if (parsed.Deductions is null) missingCollections.Add("deductions");
+        if (parsed.RequiredTeamworkChains is null) missingCollections.Add("requiredTeamworkChains");
+        if (parsed.Hints is null) missingCollections.Add("hints");
+        if (parsed.Interactions is null) missingCollections.Add("interactions");
+        if (parsed.Puzzles is null) missingCollections.Add("puzzles");
+        if (parsed.AlternateRewardPaths is null) missingCollections.Add("alternateRewardPaths");
+        if (parsed.FinalLogic is null) missingCollections.Add("finalLogic");
+        if (missingCollections.Count > 0)
+        {
+            throw ApiException.Unprocessable(
+                "Case JSON contains null collection fields.",
+                missingCollections.Select(field => new { field, code = "REQUIRED_COLLECTION" }).ToList());
         }
 
         parsed.Id = string.Empty; // never trust incoming _id
@@ -240,6 +271,22 @@ public class CaseService : ICaseService
             if (!overwrite)
             {
                 throw ApiException.Conflict($"A case with caseId '{gameCase.CaseId}' already exists. Use overwrite to replace it.");
+            }
+
+            // A room stores only the caseId and resolves the definition at runtime.
+            // Replacing a published/in-progress definition would therefore mutate an
+            // active session underneath its players.  Publish a new caseId instead.
+            var activeRoom = await _db.Rooms.Find(room =>
+                    room.CaseId == gameCase.CaseId
+                    && (room.Status == RoomStatus.Waiting || room.Status == RoomStatus.InProgress))
+                .Limit(1)
+                .FirstOrDefaultAsync();
+            if (activeRoom is not null)
+            {
+                throw ApiException.Conflict(
+                    $"Case '{gameCase.CaseId}' is referenced by active room '{activeRoom.RoomCode}'. Import it under a new caseId after that room finishes.",
+                    "CASE_IMMUTABLE_WHILE_ACTIVE",
+                    "case.immutableWhileActive");
             }
 
             gameCase.Id = existing.Id;

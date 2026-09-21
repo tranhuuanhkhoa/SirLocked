@@ -95,6 +95,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private readonly IAiCaseExportService _exportService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenAiSettings _settings;
+    private readonly AiQuotaSettings _quota;
+    private readonly CloudinarySettings _cloudinary;
     private readonly AiCaseV3PresetSettings _v3PresetSettings;
     private readonly GameplayV3Settings _gameplayV3Settings;
     private readonly IWebHostEnvironment _env;
@@ -115,6 +117,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         IAiCaseExportService exportService,
         IHttpClientFactory httpClientFactory,
         IOptions<OpenAiSettings> settings,
+        IOptions<AiQuotaSettings> quota,
+        IOptions<CloudinarySettings> cloudinary,
         IOptions<AiCaseV3PresetSettings> v3PresetSettings,
         IOptions<GameplayV3Settings> gameplayV3Settings,
         IWebHostEnvironment env,
@@ -133,6 +137,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         _exportService = exportService;
         _httpClientFactory = httpClientFactory;
         _settings = settings.Value;
+        _quota = quota.Value;
+        _cloudinary = cloudinary.Value;
         _v3PresetSettings = v3PresetSettings.Value;
         _gameplayV3Settings = gameplayV3Settings.Value;
         _env = env;
@@ -161,7 +167,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             StringComparer.Ordinal)
     };
 
-    public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request)
+    public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request, string? idempotencyKey = null)
     {
         request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
         if (AiV3GenerationProfile.IsV3Preset(request.GenerationPreset))
@@ -180,6 +186,18 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     "ai.v3Preset.disabled");
         }
         ApplyPresetDefaults(request);
+
+        var normalizedIdempotencyKey = NormalizeIdempotencyKey(idempotencyKey);
+        if (!string.IsNullOrWhiteSpace(normalizedIdempotencyKey))
+        {
+            var existingByKey = await _db.AiCaseDrafts
+                .Find(draft => draft.CreatedByUserId == user.Id
+                    && draft.IdempotencyKey == normalizedIdempotencyKey)
+                .FirstOrDefaultAsync();
+            if (existingByKey is not null)
+                return AiDraftResponse.From(existingByKey, includeJson: false);
+        }
+
         EnsureOpenAiConfigured();
         var creatorPrompt = request.Prompt?.Trim() ?? string.Empty;
         var draftId = ObjectId.GenerateNewId().ToString();
@@ -203,6 +221,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
             : CaseMechanicsVersions.InvestigationV2;
         var plannedTargetKind = CaseTargetAllocationPolicy.ForCaseType(storyDiversity.CaseType);
+        var reservedBudget = await ReserveAiAdmissionAsync(user, normalizedIdempotencyKey);
 
         var draft = new AiCaseDraft
         {
@@ -230,6 +249,11 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             WorkflowVersion = 1,
             QueuedOperation = AiQueuedOperations.StoryPreview,
             QueueState = AiQueueStates.Pending,
+            IdempotencyKey = string.IsNullOrWhiteSpace(normalizedIdempotencyKey) ? null : normalizedIdempotencyKey,
+            QuotaDay = VietnamQuotaDay(DateTime.UtcNow),
+            ReservedBudgetUsd = reservedBudget,
+            ActiveQuotaKey = reservedBudget > 0m ? user.Id : null,
+            DailyQuotaKey = reservedBudget > 0m ? $"{user.Id}:{VietnamQuotaDay(DateTime.UtcNow)}" : null,
             GenerationPhase = "STORY_PREVIEW",
             GenerationInputHash = Sha256(JsonSerializer.Serialize(new
             {
@@ -243,7 +267,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }, CompactJson)),
             NextAttemptAt = DateTime.UtcNow
         };
-        await _db.AiCaseDrafts.InsertOneAsync(draft);
+        try
+        {
+            await _db.AiCaseDrafts.InsertOneAsync(draft);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        {
+            await ReleaseAiReservationAsync(reservedBudget);
+            if (!string.IsNullOrWhiteSpace(normalizedIdempotencyKey))
+            {
+                var existing = await _db.AiCaseDrafts
+                    .Find(item => item.CreatedByUserId == user.Id && item.IdempotencyKey == normalizedIdempotencyKey)
+                    .FirstOrDefaultAsync();
+                if (existing is not null) return AiDraftResponse.From(existing, includeJson: false);
+            }
+            throw ApiException.Conflict(
+                "The AI quota was claimed by another request. Continue or cancel the existing draft before creating another.",
+                "AI_QUOTA_RACE",
+                "ai.quota.concurrentCreate");
+        }
         return AiDraftResponse.From(draft, includeJson: false);
     }
 
@@ -2083,6 +2125,49 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         return AiDraftResponse.From(draft);
     }
 
+    public async Task<AiDraftResponse> CancelDraftAsync(CurrentUser user, string draftId)
+    {
+        var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureDraftAccess(user, draft);
+
+        if (draft.Status is AiDraftStatus.Published or AiDraftStatus.Imported)
+            throw ApiException.Conflict("A published or imported draft cannot be cancelled.");
+        if (draft.Status == AiDraftStatus.Cancelled)
+            return AiDraftResponse.From(draft, includeJson: false);
+
+        var now = DateTime.UtcNow;
+        var reservedBudget = draft.ReservedBudgetUsd;
+        // A queued draft that has never been claimed has not made an upstream
+        // request. Once a worker has claimed it, keep the reservation as spent
+        // because cancellation cannot prove that no provider call was started.
+        var chargeReservation = draft.GenerationClaimedAt is not null || draft.GenerationAttempts.Count > 0;
+        var cancelled = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
+            item => item.Id == draft.Id
+                && item.WorkflowVersion == draft.WorkflowVersion
+                && item.Status != AiDraftStatus.Published
+                && item.Status != AiDraftStatus.Imported
+                && item.Status != AiDraftStatus.Cancelled,
+            Builders<AiCaseDraft>.Update
+                .Set(item => item.Status, AiDraftStatus.Cancelled)
+                .Set(item => item.QueueState, AiQueueStates.Cancelled)
+                .Set(item => item.QueuedOperation, AiQueuedOperations.None)
+                .Set(item => item.GenerationRunId, string.Empty)
+                .Set(item => item.GenerationClaimedAt, null)
+                .Set(item => item.NextAttemptAt, null)
+                .Set(item => item.ActiveQuotaKey, null)
+                .Set(item => item.ReservedBudgetUsd, 0m)
+                .Set(item => item.CancelledAt, now)
+                .Set(item => item.CancelledByUserId, user.Id)
+                .Inc(item => item.WorkflowVersion, 1)
+                .Set(item => item.UpdatedAt, now),
+            new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After });
+        if (cancelled is null)
+            throw ApiException.Conflict("The draft changed before cancellation could be committed.");
+        await SettleAiReservationAsync(reservedBudget, chargeReservation);
+        return AiDraftResponse.From(cancelled, includeJson: false);
+    }
+
     public async Task<CaseSummaryResponse> ImportDraftAsync(CurrentUser user, string draftId, bool overwrite, bool publish)
     {
         EnsureAdmin(user);
@@ -2249,6 +2334,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite, preserveServerMetadata: true);
             if (publish) summary = await _caseService.PublishAsync(summary.CaseId);
 
+            var reservedBudget = draft.ReservedBudgetUsd;
             var completed = await _db.AiCaseDrafts.UpdateOneAsync(
                 d => d.Id == draftId
                     && d.WorkflowVersion == draft.WorkflowVersion
@@ -2263,10 +2349,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.GenerationRunId, string.Empty)
                     .Set(d => d.GenerationInputHash, string.Empty)
                     .Set(d => d.GenerationClaimedAt, null)
+                    .Set(d => d.ActiveQuotaKey, null)
+                    .Set(d => d.ReservedBudgetUsd, 0m)
                     .Inc(d => d.WorkflowVersion, 1)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
             if (completed.MatchedCount == 0)
                 throw ApiException.Conflict("The draft changed before import completion could be committed.");
+            await SettleAiReservationAsync(reservedBudget, charge: true);
             return summary;
         }
         catch
@@ -3016,6 +3105,11 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 attemptRecorded = true;
                 await LogGenerationAsync(draftId, ProviderName, step, "FAILED", loggedPrompt,
                     containsSpoilers ? "[REDACTED SPOILER RESPONSE]" : body, $"HTTP {response.StatusCode}");
+                // Client errors, refusals and schema failures are permanent for this
+                // input.  Preserve retryable upstream failures as 502 so the durable
+                // worker can retry them according to its backoff policy.
+                if (response.StatusCode is >= 400 and < 500 && response.StatusCode is not 408 and not 429)
+                    throw ApiException.Unprocessable($"OpenAI rejected the request with HTTP {response.StatusCode}.");
                 throw ApiException.BadGateway($"OpenAI request failed with HTTP {response.StatusCode}.");
             }
 
@@ -3046,11 +3140,11 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             attemptRecorded = true;
 
             if (category == AiFailureCategories.Incomplete)
-                throw ApiException.BadGateway($"OpenAI response was incomplete: {envelope.IncompleteReason}.");
+                throw ApiException.Unprocessable($"OpenAI response was incomplete: {envelope.IncompleteReason}.");
             if (category == AiFailureCategories.Refusal)
-                throw ApiException.BadGateway($"OpenAI refused the structured case request: {envelope.Refusal}");
+                throw ApiException.Unprocessable($"OpenAI refused the structured case request: {envelope.Refusal}");
             if (category == AiFailureCategories.SchemaError)
-                throw ApiException.BadGateway("OpenAI returned no structured JSON output.");
+                throw ApiException.Unprocessable("OpenAI returned no structured JSON output.");
 
             var content = envelope.Content;
             await LogGenerationAsync(draftId, ProviderName, step, "SUCCESS", loggedPrompt,
@@ -5791,6 +5885,163 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         {
             throw ApiException.Forbidden("Only admins can perform this AI case operation.");
         }
+    }
+
+    private async Task<decimal> ReserveAiAdmissionAsync(CurrentUser user, string? idempotencyKey)
+    {
+        // Mock/dry-run generation never makes a paid upstream call, so it remains
+        // usable in local development without a production budget.
+        if (_settings.BlocksAiCalls) return 0m;
+        if (!_quota.Enabled)
+        {
+            throw ApiException.Conflict(
+                "AI case creation is disabled until AiQuota is explicitly enabled.",
+                "AI_QUOTA_UNCONFIGURED",
+                "ai.quota.unconfigured");
+        }
+
+        if (!_cloudinary.Enabled
+            || string.IsNullOrWhiteSpace(_cloudinary.CloudName)
+            || string.IsNullOrWhiteSpace(_cloudinary.ApiKey)
+            || string.IsNullOrWhiteSpace(_cloudinary.ApiSecret))
+        {
+            throw ApiException.Conflict(
+                "AI case creation is disabled until Cloudinary asset storage is configured.",
+                "AI_ASSET_STORAGE_UNCONFIGURED",
+                "ai.assetStorage.unconfigured");
+        }
+
+        if (_quota.MaxActiveDraftsPerUser <= 0
+            || _quota.MaxCasesPerUserPerDay <= 0
+            || _quota.EstimatedCaseCostUsd <= 0m
+            || _quota.GlobalBudgetUsd <= 0m)
+        {
+            throw ApiException.Conflict(
+                "AI case creation is disabled until AiQuota limits and budget are configured.",
+                "AI_QUOTA_UNCONFIGURED",
+                "ai.quota.unconfigured");
+        }
+
+        var activeStatuses = new[]
+        {
+            AiDraftStatus.GeneratingStory, AiDraftStatus.StoryAwaitingApproval,
+            AiDraftStatus.GeneratingCaseTruth, AiDraftStatus.CaseTruthAwaitingApproval,
+            AiDraftStatus.CaseTruthInvalid, AiDraftStatus.GeneratingFullCase,
+            AiDraftStatus.FullLogicAwaitingApproval, AiDraftStatus.OpenAiGeneratedValid,
+            AiDraftStatus.GeneratingSceneLayout, AiDraftStatus.SceneLayoutAwaitingApproval,
+            AiDraftStatus.GeneratingFinalAssets, AiDraftStatus.ReadyToPublish,
+            AiDraftStatus.GeneratingAssets, AiDraftStatus.AssetsGenerated,
+            AiDraftStatus.GeneratedInvalid
+        };
+        var activeCount = await _db.AiCaseDrafts.CountDocumentsAsync(
+            Builders<AiCaseDraft>.Filter.And(
+                Builders<AiCaseDraft>.Filter.Eq(item => item.CreatedByUserId, user.Id),
+                Builders<AiCaseDraft>.Filter.Ne(item => item.ActiveQuotaKey, null),
+                Builders<AiCaseDraft>.Filter.In(item => item.Status, activeStatuses)));
+        if (activeCount >= _quota.MaxActiveDraftsPerUser)
+        {
+            throw ApiException.Conflict(
+                "You already have an AI case draft in progress. Continue or cancel it before creating another.",
+                "AI_ACTIVE_DRAFT_LIMIT",
+                "ai.quota.activeDraftLimit");
+        }
+
+        var quotaDay = VietnamQuotaDay(DateTime.UtcNow);
+        var dailyCount = await _db.AiCaseDrafts.CountDocumentsAsync(
+            item => item.CreatedByUserId == user.Id
+                && item.QuotaDay == quotaDay
+                && item.DailyQuotaKey != null);
+        if (dailyCount >= _quota.MaxCasesPerUserPerDay)
+        {
+            throw ApiException.Conflict(
+                "You have reached today's AI case creation limit.",
+                "AI_DAILY_LIMIT",
+                "ai.quota.dailyLimit");
+        }
+
+        var now = DateTime.UtcNow;
+        try
+        {
+            await _db.AiBudgetLedger.UpdateOneAsync(
+                item => item.Id == AiBudgetLedger.GlobalId,
+                Builders<AiBudgetLedger>.Update
+                    .SetOnInsert(item => item.Id, AiBudgetLedger.GlobalId)
+                    .SetOnInsert(item => item.LimitUsd, _quota.GlobalBudgetUsd)
+                    .SetOnInsert(item => item.UpdatedAt, now),
+                new UpdateOptions { IsUpsert = true });
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        {
+            // Another admission initialized the singleton concurrently; the
+            // conditional reservation below remains the authoritative operation.
+        }
+
+        var available = new BsonDocumentFilterDefinition<AiBudgetLedger>(new BsonDocument
+        {
+            { "_id", AiBudgetLedger.GlobalId },
+            { "$expr", new BsonDocument("$and", new BsonArray
+                {
+                    new BsonDocument("$eq", new BsonArray { "$limitUsd", BsonDecimal128.Create(_quota.GlobalBudgetUsd) }),
+                    new BsonDocument("$lte", new BsonArray
+                    {
+                        new BsonDocument("$add", new BsonArray { "$reservedUsd", "$spentUsd", BsonDecimal128.Create(_quota.EstimatedCaseCostUsd) }),
+                        "$limitUsd"
+                    })
+                }) }
+        });
+        var reserved = await _db.AiBudgetLedger.FindOneAndUpdateAsync(
+            available,
+            Builders<AiBudgetLedger>.Update
+                .Inc(item => item.ReservedUsd, _quota.EstimatedCaseCostUsd)
+                .Set(item => item.UpdatedAt, now),
+            new FindOneAndUpdateOptions<AiBudgetLedger> { ReturnDocument = ReturnDocument.After });
+        if (reserved is null)
+        {
+            throw ApiException.Conflict(
+                "The shared AI budget is exhausted.",
+                "AI_GLOBAL_BUDGET_EXHAUSTED",
+                "ai.quota.budgetExhausted");
+        }
+
+        return _quota.EstimatedCaseCostUsd;
+    }
+
+    private async Task ReleaseAiReservationAsync(decimal amount)
+    {
+        await SettleAiReservationAsync(amount, charge: false);
+    }
+
+    private async Task SettleAiReservationAsync(decimal amount, bool charge)
+    {
+        if (amount <= 0m) return;
+        var update = Builders<AiBudgetLedger>.Update
+            .Inc(item => item.ReservedUsd, -amount)
+            .Set(item => item.UpdatedAt, DateTime.UtcNow);
+        if (charge)
+        {
+            update = update.Inc(item => item.SpentUsd, amount);
+        }
+
+        var settled = await _db.AiBudgetLedger.UpdateOneAsync(
+            item => item.Id == AiBudgetLedger.GlobalId && item.ReservedUsd >= amount,
+            update);
+        if (settled.MatchedCount == 0)
+        {
+            _logger.LogWarning(
+                "AI budget reservation reconciliation found no matching reservation for {Amount} USD (charge={Charge}).",
+                amount,
+                charge);
+        }
+    }
+
+    private static string NormalizeIdempotencyKey(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? string.Empty : key.Trim().Length > 128 ? key.Trim()[..128] : key.Trim();
+
+    private static string VietnamQuotaDay(DateTime utc)
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(
+            OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, zone).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static void EnsureDraftAccess(CurrentUser user, AiCaseDraft draft)

@@ -31,7 +31,7 @@ internal static class RoomLifecycle
         (RoomStatus.Ready, RoomStatus.Ready),           // lobby write that does not change readiness
         (RoomStatus.Ready, RoomStatus.InProgress),      // host starts
         (RoomStatus.InProgress, RoomStatus.Completed),  // accusation resolved
-        (RoomStatus.InProgress, RoomStatus.Abandoned)   // host abandons after the grace period
+        (RoomStatus.InProgress, RoomStatus.Abandoned)   // remaining member abandons after the grace period
     };
 
     internal static bool IsTerminal(string status) => Terminal.Contains(status);

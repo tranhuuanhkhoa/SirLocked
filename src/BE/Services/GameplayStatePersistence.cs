@@ -36,8 +36,17 @@ public sealed class GameplayStatePersistence : IGameplayStatePersistence
 
         var filter = Builders<GameRoom>.Filter.And(
             Builders<GameRoom>.Filter.Eq(candidate => candidate.Id, room.Id),
-            Builders<GameRoom>.Filter.Eq("gameplayState.version", expectedVersion));
-        var result = await _db.Rooms.ReplaceOneAsync(filter, room, cancellationToken: cancellationToken);
+            Builders<GameRoom>.Filter.Eq("gameplayState.version", expectedVersion),
+            Builders<GameRoom>.Filter.In(candidate => candidate.Status,
+                [RoomStatus.InProgress, RoomStatus.Completed]));
+        // Update only the authoritative gameplay fields. Replacing the whole room with
+        // a stale snapshot can erase a presence change written by SignalR or a lobby
+        // metadata update that raced this gameplay command.
+        var update = Builders<GameRoom>.Update
+            .Set(candidate => candidate.GameplayState, state)
+            .Set(candidate => candidate.Status, room.Status)
+            .Set(candidate => candidate.UpdatedAt, now);
+        var result = await _db.Rooms.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
         if (result.ModifiedCount != 0) return true;
 
         state.Version = expectedVersion;

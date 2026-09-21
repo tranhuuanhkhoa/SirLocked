@@ -7,7 +7,8 @@ namespace SirLocked.Api.Services.Interfaces;
 public interface IAiCaseService
 {
     AiCaseCapabilitiesResponse GetCapabilities();
-    Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request);
+    Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request, string? idempotencyKey = null);
+    Task<AiDraftResponse> CancelDraftAsync(CurrentUser user, string draftId);
     Task<AiDraftResponse> ApproveDraftAsync(CurrentUser user, string draftId);
     Task<AiDraftResponse> ApproveTruthAsync(CurrentUser user, string draftId);
     Task<AiDraftResponse> RepairTruthAsync(CurrentUser user, string draftId, RepairCaseTruthRequest request);

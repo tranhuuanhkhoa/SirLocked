@@ -53,6 +53,7 @@ public class MongoDbContext
     public IMongoCollection<GameActionLog> ActionLogs => Database.GetCollection<GameActionLog>(Settings.ActionLogsCollectionName);
     public IMongoCollection<AiCaseDraft> AiCaseDrafts => Database.GetCollection<AiCaseDraft>(Settings.AiCaseDraftsCollectionName);
     public IMongoCollection<AiGenerationLog> AiGenerationLogs => Database.GetCollection<AiGenerationLog>(Settings.AiGenerationLogsCollectionName);
+    public IMongoCollection<AiBudgetLedger> AiBudgetLedger => Database.GetCollection<AiBudgetLedger>("aiBudgetLedger");
     public IMongoCollection<EvidencePhoto> EvidencePhotos => Database.GetCollection<EvidencePhoto>(Settings.EvidencePhotosCollectionName);
     public IMongoCollection<CaseReview> Reviews => Database.GetCollection<CaseReview>(Settings.ReviewsCollectionName);
     public IMongoCollection<WeeklyFeature> WeeklyFeatures => Database.GetCollection<WeeklyFeature>(Settings.WeeklyFeaturesCollectionName);
@@ -116,6 +117,38 @@ public class MongoDbContext
                     .Ascending(d => d.Settings.Language)
                     .Descending(d => d.CreatedAt),
                 new CreateIndexOptions { Name = "ix_aiCaseDrafts_creator_language_createdAt" })
+            ,new CreateIndexModel<AiCaseDraft>(
+                Builders<AiCaseDraft>.IndexKeys
+                    .Ascending(d => d.CreatedByUserId)
+                    .Ascending(d => d.IdempotencyKey),
+                new CreateIndexOptions<AiCaseDraft>
+                {
+                    Name = "ux_aiCaseDrafts_creator_idempotency",
+                    Unique = true,
+                    PartialFilterExpression = Builders<AiCaseDraft>.Filter.And(
+                        Builders<AiCaseDraft>.Filter.Exists(d => d.IdempotencyKey, true),
+                        Builders<AiCaseDraft>.Filter.Ne(d => d.IdempotencyKey, string.Empty))
+                })
+            ,new CreateIndexModel<AiCaseDraft>(
+                Builders<AiCaseDraft>.IndexKeys.Ascending(d => d.ActiveQuotaKey),
+                new CreateIndexOptions<AiCaseDraft>
+                {
+                    Name = "ux_aiCaseDrafts_activeQuotaKey",
+                    Unique = true,
+                    PartialFilterExpression = Builders<AiCaseDraft>.Filter.And(
+                        Builders<AiCaseDraft>.Filter.Exists(d => d.ActiveQuotaKey, true),
+                        Builders<AiCaseDraft>.Filter.Ne(d => d.ActiveQuotaKey, string.Empty))
+                })
+            ,new CreateIndexModel<AiCaseDraft>(
+                Builders<AiCaseDraft>.IndexKeys.Ascending(d => d.DailyQuotaKey),
+                new CreateIndexOptions<AiCaseDraft>
+                {
+                    Name = "ux_aiCaseDrafts_dailyQuotaKey",
+                    Unique = true,
+                    PartialFilterExpression = Builders<AiCaseDraft>.Filter.And(
+                        Builders<AiCaseDraft>.Filter.Exists(d => d.DailyQuotaKey, true),
+                        Builders<AiCaseDraft>.Filter.Ne(d => d.DailyQuotaKey, string.Empty))
+                })
         }, ct);
 
         await AiGenerationLogs.Indexes.CreateManyAsync(new[]

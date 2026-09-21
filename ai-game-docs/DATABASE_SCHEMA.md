@@ -1,6 +1,6 @@
 # Database Schema
 
-Last synced with code: 2026-06-12.
+Last synced with code: 2026-09-20.
 
 MongoDB documents use camelCase element names through the global MongoDB convention pack in `MongoDbContext`.
 
@@ -15,6 +15,7 @@ MongoDB documents use camelCase element names through the global MongoDB convent
 | `gameActionLogs` | `ActionLogs` | Gameplay audit/action feed | compound `roomId`, descending `createdAt` |
 | `aiCaseDrafts` | `AiCaseDrafts` | AI/mock generated drafts | `status`, descending `createdAt` |
 | `aiGenerationLogs` | `AiGenerationLogs` | Provider diagnostics | compound `draftId`, descending `createdAt` |
+| `aiBudgetLedger` | `AiBudgetLedger` | Atomic global AI reservation/spend ceiling | singleton `_id=global` |
 
 `roomChatMessages` and `generatedAssets` exist as configuration names but are not used by current services.
 
@@ -28,10 +29,23 @@ MongoDB documents use camelCase element names through the global MongoDB convent
   "passwordHash": "bcrypt",
   "role": "PLAYER",
   "status": "ACTIVE",
+  "authorizationVersion": 3,
+  "refreshTokenHash": "sha256",
   "createdAt": "2026-06-12T00:00:00Z",
   "updatedAt": "2026-06-12T00:00:00Z"
 }
 ```
+
+Published case content is immutable while a room is `WAITING` or
+`IN_PROGRESS`; an import that would replace it is rejected with
+`CASE_IMMUTABLE_WHILE_ACTIVE`. New authored content must use a new `caseId`.
+
+AI drafts carry `idempotencyKey`, `quotaDay`, `activeQuotaKey`,
+`dailyQuotaKey`, and `reservedBudgetUsd`. The active key is cleared when a
+draft is cancelled or imported; the daily key remains to enforce one accepted
+create per user and Vietnam calendar day. `aiBudgetLedger` atomically tracks
+`reservedUsd`, `spentUsd`, and the configured `limitUsd` before a paid provider
+call is admitted.
 
 Roles:
 

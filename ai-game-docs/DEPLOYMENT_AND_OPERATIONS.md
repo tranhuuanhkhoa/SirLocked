@@ -1,6 +1,6 @@
 # Deployment And Operations
 
-Last synced with code: 2026-06-14.
+Last synced with code: 2026-09-20.
 
 ## Local Requirements
 
@@ -29,9 +29,13 @@ Required for AI case creation:
 - `OpenAI__BaseUrl`
 - `OpenAI__TimeoutSeconds`
 
-Optional:
+Required for public AI generation:
 
-- Cloudinary settings, currently unused by code.
+- `Cloudinary__Enabled=true`, `Cloudinary__CloudName`, `Cloudinary__ApiKey`, and `Cloudinary__ApiSecret`
+- `AiQuota__Enabled=true`, `AiQuota__MaxActiveDraftsPerUser=1`, and `AiQuota__MaxCasesPerUserPerDay=1`
+- `AiQuota__EstimatedCaseCostUsd` and `AiQuota__GlobalBudgetUsd` set by the operator; paid admission is refused when they are missing or exhausted
+- SMTP host, port, sender, username, and password; production startup validation refuses incomplete SMTP configuration
+- `TrustedProxies__0` (and additional entries) only for known HTTPS reverse proxies
 
 The backend loads repo-root `.env` through `EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory())`.
 
@@ -81,7 +85,10 @@ On startup the API:
 - creates indexes,
 - seeds default admin if no admin exists.
 
-MongoDB startup task failures are logged but do not stop the host.
+In Development, MongoDB startup failures can remain degraded for local work. In
+Production, the API refuses to start until MongoDB is reachable and indexes are
+ensured, unless `MongoDb__AllowDegradedStartup=true` is explicitly set for a
+controlled maintenance window.
 
 ## Run Frontend
 
@@ -121,7 +128,11 @@ Generated AI image assets are written under:
 src/FE/public/assets/ai-generated/
 ```
 
-These folders are excluded from source control. For production, replace local file writes with durable asset storage such as object storage or Cloudinary.
+These folders are excluded from source control. For production, generated case
+assets are uploaded by the API to Cloudinary with stable case-scoped public IDs;
+published cases store secure URLs and do not depend on the source checkout at
+runtime. Evidence photos captured by players remain behind the authenticated
+MongoDB-backed endpoint.
 
 ## Production Notes
 

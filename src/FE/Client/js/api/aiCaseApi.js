@@ -1,9 +1,15 @@
 import { get, post, put } from './http.js';
 
+const newIdempotencyKey = () => typeof globalThis.crypto?.randomUUID === 'function'
+  ? globalThis.crypto.randomUUID()
+  : `ai-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export const aiCaseApi = {
   capabilities: () => get('/api/admin/ai-cases/capabilities'),
-  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM') =>
-    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType }),
+  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM', idempotencyKey = newIdempotencyKey()) =>
+    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType }, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
   replaceJson: (draftId, caseJson, storyPreview = null) =>
     put(`/api/admin/ai-cases/${draftId}/case-json`, { caseJson, storyPreview }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),

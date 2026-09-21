@@ -35,8 +35,8 @@ async function tryRefreshToken() {
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
-export async function apiFetch(method, path, body, _retry = true) {
-  const headers = { 'Content-Type': 'application/json' };
+export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}) {
+  const headers = { 'Content-Type': 'application/json', ...extraHeaders };
   const token = session.token();
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -62,7 +62,7 @@ export async function apiFetch(method, path, body, _retry = true) {
     // Token hết hạn → thử refresh rồi retry 1 lần
     if (response.status === 401 && session.isLoggedIn() && _retry && session.isRefreshTokenValid()) {
       const refreshed = await tryRefreshToken();
-      if (refreshed) return apiFetch(method, path, body, false);
+      if (refreshed) return apiFetch(method, path, body, false, extraHeaders);
     }
     if (response.status === 401 && session.isLoggedIn()) {
       session.clear();
@@ -116,6 +116,6 @@ export async function apiFetchBlob(path) {
 }
 
 export const get = (path) => apiFetch('GET', path);
-export const post = (path, body) => apiFetch('POST', path, body ?? {});
+export const post = (path, body, options = {}) => apiFetch('POST', path, body ?? {}, true, options.headers ?? {});
 export const put = (path, body) => apiFetch('PUT', path, body ?? {});
 export const patch = (path, body) => apiFetch('PATCH', path, body ?? {});

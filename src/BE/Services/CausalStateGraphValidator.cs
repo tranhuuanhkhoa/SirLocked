@@ -42,7 +42,13 @@ internal static class CausalStateGraphValidator
             if (IsWin(gameCase, state))
             {
                 winFound = true;
-                if (reachablePuzzles.Count >= optionalPuzzleCount) break;
+                // reachablePuzzles also contains required puzzles.  Compare only the
+                // optional subset so a required puzzle cannot make this search stop
+                // before every optional branch has been explored.
+                var reachableOptionalPuzzleCount = gameCase.Puzzles.Count(puzzle =>
+                    puzzle.ProgressionRole == PuzzleProgressionRoles.Optional
+                    && reachablePuzzles.Contains(puzzle.PuzzleId));
+                if (reachableOptionalPuzzleCount >= optionalPuzzleCount) break;
             }
             foreach (var next in Expand(gameCase, scenes, state, reachablePuzzles))
             {

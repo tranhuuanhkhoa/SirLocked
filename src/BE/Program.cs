@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
+using System.Net;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -24,6 +26,15 @@ EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory());
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    foreach (var value in builder.Configuration.GetSection("TrustedProxies").Get<string[]>() ?? [])
+    {
+        if (IPAddress.TryParse(value, out var address)) options.KnownProxies.Add(address);
+    }
+});
+
 // Force the static budget audit during startup so a newly-added preset cannot run
 // without an explicit, internally consistent semantic budget.
 _ = CrackGenerationBudgets.All;
@@ -39,6 +50,13 @@ builder.Services.AddOptions<EmailSettings>()
                           && string.IsNullOrEmpty(uri.Query)
                           && string.IsNullOrEmpty(uri.Fragment),
         "Email__FrontendUrl must be an absolute HTTP or HTTPS URL.")
+    .Validate(settings => builder.Environment.IsDevelopment()
+                          || (!string.IsNullOrWhiteSpace(settings.SmtpHost)
+                              && settings.SmtpPort is > 0 and < 65536
+                              && !string.IsNullOrWhiteSpace(settings.SenderEmail)
+                              && !string.IsNullOrWhiteSpace(settings.Username)
+                              && !string.IsNullOrWhiteSpace(settings.Password)),
+        "Production requires SMTP host, port, sender, username and password.")
     .ValidateOnStart();
 builder.Services.AddOptions<JwtSettings>()
     .Bind(builder.Configuration.GetSection("Jwt"))
@@ -81,6 +99,7 @@ builder.Services.PostConfigure<OpenAiSettings>(settings =>
     settings.ValidateOnly |= EnvFlag(builder.Configuration, "VALIDATE_ONLY");
 });
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
+builder.Services.Configure<AiQuotaSettings>(builder.Configuration.GetSection("AiQuota"));
 
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddMemoryCache();
@@ -162,31 +181,37 @@ builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 builder.Services.AddRateLimiter(options =>
 {
     // 5 lần login / 1 phút / 1 IP
-    options.AddFixedWindowLimiter("login", config =>
-    {
-        config.PermitLimit = 5;
-        config.Window = TimeSpan.FromMinutes(1);
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 0;
-    });
+    options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
 
     // 3 lần đăng ký / 5 phút / 1 IP — chống tạo tài khoản rác
-    options.AddFixedWindowLimiter("register", config =>
-    {
-        config.PermitLimit = 3;
-        config.Window = TimeSpan.FromMinutes(5);
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 0;
-    });
+    options.AddPolicy("register", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromMinutes(5),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
 
     // 3 lần gửi mail (forgot/resend) / 5 phút / 1 IP — chống dội bom email
-    options.AddFixedWindowLimiter("email", config =>
-    {
-        config.PermitLimit = 3;
-        config.Window = TimeSpan.FromMinutes(5);
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 0;
-    });
+    options.AddPolicy("email", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromMinutes(5),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
 
     // Telemetry là ghi thật vào Mongo; UI chỉ phát vài sự kiện mỗi phút nên cửa sổ theo từng người
     // dùng đủ rộng cho luồng hợp lệ mà không cho một client lặp vô hạn thổi phồng collection.
@@ -326,6 +351,7 @@ var app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseForwardedHeaders();
 app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
@@ -344,8 +370,10 @@ app.MapHub<GameHub>("/hubs/game");
 app.MapHealthChecks("/health");
 app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 
-// Startup tasks: indexes + admin seed. Connectivity failures are logged without stopping
-// the host, but a result-index invariant failure must abort before endpoints can serve.
+// Startup tasks: indexes + admin seed. A production process must not advertise a
+// healthy API while Mongo/index bootstrap is unavailable. Development keeps the
+// historical degraded-start option; production can opt in explicitly with
+// MongoDb__AllowDegradedStartup only for a controlled maintenance scenario.
 using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
@@ -384,7 +412,13 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "MongoDB startup tasks failed. Check MongoDb__ConnectionString. API endpoints that need the database will fail until it is reachable.");
+        if (!app.Environment.IsDevelopment()
+            && !app.Configuration.GetValue<bool>("MongoDb:AllowDegradedStartup"))
+        {
+            logger.LogCritical(ex, "MongoDB startup tasks failed; refusing to start without verified connectivity and indexes.");
+            throw;
+        }
+        logger.LogError(ex, "MongoDB startup tasks failed in degraded development mode. Check MongoDb__ConnectionString.");
     }
 }
 

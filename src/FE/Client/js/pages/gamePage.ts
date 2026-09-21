@@ -1765,6 +1765,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let sceneIntroActive = true; // Show on initial load
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
   let stateRefetchPromise: Promise<void> | null = null;
+  let stateRefetchRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  let stateRefetchRetryCount = 0;
   let requestedStateVersion = 0;
   let pairedCommandInFlight = false;
   let crackPayoffPair: DisclosedPair | null = null;
@@ -1874,15 +1876,35 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     requestedStateVersion = Math.max(requestedStateVersion, version);
     if (stateRefetchPromise) return;
 
+    const requestedVersion = requestedStateVersion;
     stateRefetchPromise = Promise.resolve()
       .then(async () => {
         requestedStateVersion = 0;
         await refetch();
+        stateRefetchRetryCount = 0;
       })
-      .catch((err: any) => console.warn('State refetch failed', err))
+      .catch((err: any) => {
+        requestedStateVersion = Math.max(requestedStateVersion, requestedVersion);
+        stateRefetchRetryCount += 1;
+        console.warn('State refetch failed', err);
+        if (stateRefetchRetryCount <= 5 && !stopped) {
+          const delay = Math.min(8000, 500 * 2 ** (stateRefetchRetryCount - 1));
+          if (stateRefetchRetryTimer) clearTimeout(stateRefetchRetryTimer);
+          stateRefetchRetryTimer = setTimeout(() => {
+            stateRefetchRetryTimer = null;
+            queueStateRefetch(requestedStateVersion);
+          }, delay);
+        } else if (!stopped) {
+          toast(tr('Connection restored, but the room state could not be loaded. Try again.', 'Đã kết nối lại nhưng chưa tải được trạng thái phòng. Hãy thử lại.'), 'error', 7000);
+        }
+      })
       .finally(() => {
         stateRefetchPromise = null;
-        if (requestedStateVersion > (state?.version ?? 0)) queueStateRefetch(requestedStateVersion);
+        // A failed request already has an exponential retry timer. Do not start
+        // a second request from finally while that timer is pending.
+        if (!stateRefetchRetryTimer && requestedStateVersion > (state?.version ?? 0)) {
+          queueStateRefetch(requestedStateVersion);
+        }
       });
   }
 
@@ -2108,6 +2130,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       window.location.hash = `#/result/${roomId}`;
       return;
     }
+    if (state.roomStatus === 'ABANDONED') {
+      destroyPhaser();
+      render(app, `<div class="page"><div class="empty-state"><h2>${escapeHtml(tr('Room ended', 'Phòng đã kết thúc'))}</h2><p>${escapeHtml(tr('This game was abandoned after the reconnect grace period expired.', 'Trận đấu đã bị hủy sau khi hết thời gian chờ kết nối lại.'))}</p><a class="btn btn-gold" href="#/cases">${escapeHtml(tr('Back to cases', 'Quay lại danh sách vụ án'))}</a></div></div>`);
+      return;
+    }
     for (const itemId of [...combineSelection]) {
       if (!fresh.collectedItemIds.includes(itemId)) combineSelection.delete(itemId);
     }
@@ -2249,6 +2276,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       }
       draw();
     },
+    RoomStateVersion: ({ version }: { version: number }) => {
+      if (Number.isFinite(version) && version > (state?.version ?? 0)) {
+        queueStateRefetch(version);
+      }
+    },
     GameCompleted: (result: unknown) => {
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
       window.location.hash = `#/result/${roomId}`;
@@ -2260,12 +2292,19 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       toast('Reconnected. Syncing the room...', 'info');
       queueStateRefetch();
     },
+    onClose: () => {
+      if (!stopped) toast(tr('Connection lost. Trying to reconnect…', 'Mất kết nối. Đang thử kết nối lại…'), 'info', 5000);
+    },
   });
 
   try {
     state = await gameApi.state(roomId);
     if (state?.roomStatus === 'COMPLETED') {
       window.location.hash = `#/result/${roomId}`;
+      return () => hub.stop();
+    }
+    if (state?.roomStatus === 'ABANDONED') {
+      applyState(state);
       return () => hub.stop();
     }
     await hub.start();
@@ -2552,7 +2591,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     for (const item of state!.collectedItems ?? []) itemsById.set(item.itemId, item);
     const collected = state!.collectedItemIds.map((id) => itemsById.get(id) ?? { itemId: id, name: prettyId(id), imageUrl: '' });
     
-    const totalSlots = 12;
+    const totalSlots = Math.max(12, collected.length);
     const slots = [];
     for (let i = 0; i < totalSlots; i++) {
       const item = collected[i];
@@ -4273,6 +4312,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     stopped = true;
     if (convTimer) { clearInterval(convTimer); convTimer = null; }
     if (crackPayoffTimer) { clearTimeout(crackPayoffTimer); crackPayoffTimer = null; }
+    if (stateRefetchRetryTimer) { clearTimeout(stateRefetchRetryTimer); stateRefetchRetryTimer = null; }
     window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
     for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);

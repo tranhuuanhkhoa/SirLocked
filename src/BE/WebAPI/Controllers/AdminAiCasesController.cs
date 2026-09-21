@@ -39,9 +39,16 @@ public class AdminAiCasesController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> CreatePreview([FromBody] GenerateAiCaseRequest request)
     {
-        var draft = await _aiCaseService.CreatePreviewAsync(Caller, request);
+        var idempotencyKey = Request.Headers.TryGetValue("Idempotency-Key", out var header)
+            ? header.ToString()
+            : null;
+        var draft = await _aiCaseService.CreatePreviewAsync(Caller, request, idempotencyKey);
         return Accepted(draft, "Story preview generation was queued.");
     }
+
+    [HttpPost("{draftId}/cancel")]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> Cancel(string draftId) =>
+        Ok(await _aiCaseService.CancelDraftAsync(Caller, draftId), "AI case generation was cancelled.");
 
     [HttpPost("{draftId}/approve")]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> Approve(string draftId) =>

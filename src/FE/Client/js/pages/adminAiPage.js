@@ -927,6 +927,9 @@ export async function renderAdminAiPage(app) {
       const language = selectedLanguage;
       const version = ++runVersion;
       let activeDraftId = null;
+      const idempotencyKey = typeof globalThis.crypto?.randomUUID === 'function'
+        ? globalThis.crypto.randomUUID()
+        : `ai-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       runStartedAt = Date.now();
       button.disabled = true;
       button.textContent = tr('Creating case...', 'Đang tạo vụ án...');
@@ -942,7 +945,8 @@ export async function renderAdminAiPage(app) {
           presetKey,
           language,
           Boolean(crackToggle?.checked),
-          selectedCaseType);
+          selectedCaseType,
+          idempotencyKey);
         activeDraftId = previewDraft.draftId;
         if (disposed || version !== runVersion) return;
         updateProgress(previewDraft.status);

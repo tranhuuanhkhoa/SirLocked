@@ -14,6 +14,7 @@ public class EvidencePhotoService : IEvidencePhotoService
 {
     public const long MaxUploadBytes = 1_000_000;
     private const int MaxDimension = 640;
+    private const long MaxDecodedPixels = 4_000_000;
     private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "image/png",
@@ -45,6 +46,19 @@ public class EvidencePhotoService : IEvidencePhotoService
         try
         {
             await using var input = photo.OpenReadStream();
+            // Identify reads the image header before allocating the decoded pixel
+            // buffer. Reject decompression-bomb dimensions even when the compressed
+            // upload is below the byte limit.
+            var metadata = await Image.IdentifyAsync(input, cancellationToken);
+            if (metadata is null || metadata.Width <= 0 || metadata.Height <= 0)
+            {
+                throw ApiException.BadRequest("The captured photo has invalid dimensions.");
+            }
+            if ((long)metadata.Width * metadata.Height > MaxDecodedPixels)
+            {
+                throw ApiException.BadRequest("The captured photo has too many pixels to process.");
+            }
+            input.Position = 0;
             using var image = await Image.LoadAsync(input, cancellationToken);
             if (image.Width <= 0 || image.Height <= 0)
             {

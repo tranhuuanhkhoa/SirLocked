@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -11,6 +12,9 @@ namespace SirLocked.Api.WebAPI.Hubs;
 public class GameHub : Hub
 {
     private static readonly TimeSpan ReconnectGracePeriod = TimeSpan.FromSeconds(30);
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> ActiveConnections = new();
+    private static readonly ConcurrentDictionary<string, long> LastPoseTicks = new();
+    private static readonly TimeSpan PoseInterval = TimeSpan.FromMilliseconds(50);
     private readonly MongoDbContext _db;
 
     public GameHub(MongoDbContext db) => _db = db;
@@ -33,7 +37,11 @@ public class GameHub : Hub
         JoinedRooms().Add(roomId);
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomId));
         var connectedAt = DateTime.UtcNow;
-        await SetPresenceAsync(roomId, userId!, true, connectedAt);
+        var becameOnline = RegisterConnection(roomId, userId!, Context.ConnectionId);
+        if (becameOnline)
+        {
+            await SetPresenceAsync(roomId, userId!, true, connectedAt);
+        }
         await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
         {
             roomId,
@@ -41,6 +49,13 @@ public class GameHub : Hub
             isConnected = true,
             changedAt = connectedAt,
             graceEndsAt = (DateTime?)null
+        });
+        // The initial GET can race the JoinRoom call. Return the authoritative
+        // version so the client can reconcile only when it actually missed state.
+        await Clients.Caller.SendAsync("RoomStateVersion", new
+        {
+            roomId,
+            version = room.GameplayState?.Version ?? 0
         });
     }
 
@@ -54,21 +69,12 @@ public class GameHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomGroup(roomId));
         Context.Items.Remove(RoomPlayerItemKey(roomId));
         JoinedRooms().Remove(roomId);
-    }
-
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        foreach (var roomId in JoinedRooms())
+        if (UnregisterConnection(roomId, Context.UserIdentifier, Context.ConnectionId))
         {
             var disconnectedAt = DateTime.UtcNow;
             if (!string.IsNullOrWhiteSpace(Context.UserIdentifier))
                 await SetPresenceAsync(roomId, Context.UserIdentifier, false, disconnectedAt);
-            await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseLeft", new
-            {
-                roomId,
-                userId = Context.UserIdentifier
-            });
-            await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
+            await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
             {
                 roomId,
                 userId = Context.UserIdentifier,
@@ -76,6 +82,33 @@ public class GameHub : Hub
                 changedAt = disconnectedAt,
                 graceEndsAt = disconnectedAt.Add(ReconnectGracePeriod)
             });
+        }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        foreach (var roomId in JoinedRooms())
+        {
+            var disconnectedAt = DateTime.UtcNow;
+            var becameOffline = UnregisterConnection(roomId, Context.UserIdentifier, Context.ConnectionId);
+            if (becameOffline && !string.IsNullOrWhiteSpace(Context.UserIdentifier))
+                await SetPresenceAsync(roomId, Context.UserIdentifier, false, disconnectedAt);
+            await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseLeft", new
+            {
+                roomId,
+                userId = Context.UserIdentifier
+            });
+            if (becameOffline)
+            {
+                await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
+                {
+                    roomId,
+                    userId = Context.UserIdentifier,
+                    isConnected = false,
+                    changedAt = disconnectedAt,
+                    graceEndsAt = disconnectedAt.Add(ReconnectGracePeriod)
+                });
+            }
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -90,6 +123,15 @@ public class GameHub : Hub
             return;
         }
 
+        var nowTicks = DateTime.UtcNow.Ticks;
+        var poseKey = $"{roomId}:{player.UserId}";
+        var previousTicks = LastPoseTicks.GetOrAdd(poseKey, 0);
+        if (nowTicks - previousTicks < PoseInterval.Ticks)
+        {
+            return;
+        }
+        LastPoseTicks[poseKey] = nowTicks;
+        if (!double.IsFinite(pose.X) || !double.IsFinite(pose.Y)) return;
         var x = Math.Clamp(pose.X, 0, 5000);
         var y = Math.Clamp(pose.Y, 0, 5000);
         var direction = string.Equals(pose.Direction, "left", StringComparison.OrdinalIgnoreCase) ? "left" : "right";
@@ -144,6 +186,32 @@ public class GameHub : Hub
         return _db.Rooms.UpdateOneAsync(
             room => room.Id == roomId && room.Players.Any(player => player.UserId == userId),
             update);
+    }
+
+    private static bool RegisterConnection(string roomId, string userId, string connectionId)
+    {
+        var connections = ActiveConnections.GetOrAdd($"{roomId}:{userId}", _ => new ConcurrentDictionary<string, byte>());
+        lock (connections)
+        {
+            var wasEmpty = connections.IsEmpty;
+            connections[connectionId] = 0;
+            return wasEmpty;
+        }
+    }
+
+    private static bool UnregisterConnection(string roomId, string? userId, string connectionId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return false;
+        var key = $"{roomId}:{userId}";
+        if (!ActiveConnections.TryGetValue(key, out var connections)) return false;
+        lock (connections)
+        {
+            connections.TryRemove(connectionId, out _);
+            if (!connections.IsEmpty) return false;
+            ActiveConnections.TryRemove(key, out _);
+            LastPoseTicks.TryRemove(key, out _);
+            return true;
+        }
     }
 
     private HashSet<string> JoinedRooms()

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -74,7 +75,8 @@ public class AuthService : IAuthService
             throw ApiException.Conflict("An account with this email already exists.");
         }
 
-        // Gửi email xác minh (không chặn đăng ký nếu gửi lỗi)
+        // Do not issue a successful onboarding response when the verification
+        // message could not be delivered.
         if (!autoVerify)
         {
             try
@@ -84,6 +86,9 @@ public class AuthService : IAuthService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+                throw ex is ApiException apiException
+                    ? apiException
+                    : ApiException.BadGateway("Verification email delivery failed.");
             }
         }
 
@@ -124,7 +129,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
-        var user = await _db.Users.Find(u => u.RefreshToken == request.RefreshToken).FirstOrDefaultAsync()
+        var tokenHash = HashRefreshToken(request.RefreshToken);
+        var user = await _db.Users.Find(u => u.RefreshTokenHash == tokenHash || u.RefreshToken == request.RefreshToken).FirstOrDefaultAsync()
             ?? throw ApiException.Unauthorized("Invalid refresh token.");
 
         if (user.RefreshTokenExpiry < DateTime.UtcNow)
@@ -133,7 +139,7 @@ public class AuthService : IAuthService
         if (user.Status != UserStatus.Active)
             throw ApiException.Forbidden("This account is locked or deleted.");
 
-        return await BuildAuthResponseAndSaveRefreshToken(user);
+        return await BuildAuthResponseAndSaveRefreshToken(user, tokenHash);
     }
 
     public async Task<AuthResponse> GoogleLoginAsync(string email, string fullName)
@@ -177,6 +183,7 @@ public class AuthService : IAuthService
         var update = Builders<User>.Update
             .Set(u => u.RefreshToken, null)
             .Set(u => u.RefreshTokenExpiry, null)
+            .Set(u => u.RefreshTokenHash, null)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
     }
@@ -207,6 +214,9 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send reset email to {Email}", email);
+            throw ex is ApiException apiException
+                ? apiException
+                : ApiException.BadGateway("Password reset email delivery failed.");
         }
 
         return new { message = "If this email exists, a reset code has been sent." };
@@ -226,6 +236,8 @@ public class AuthService : IAuthService
             .Set(u => u.ResetPasswordTokenExpiry, null)
             .Set(u => u.RefreshToken, null)
             .Set(u => u.RefreshTokenExpiry, null)
+            .Set(u => u.RefreshTokenHash, null)
+            .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
     }
@@ -254,6 +266,9 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+            throw ex is ApiException apiException
+                ? apiException
+                : ApiException.BadGateway("Verification email delivery failed.");
         }
 
         return new { message = "A verification code has been sent to your email." };
@@ -294,6 +309,8 @@ public class AuthService : IAuthService
             .Set(u => u.PasswordHash, newHash)
             .Set(u => u.RefreshToken, null)
             .Set(u => u.RefreshTokenExpiry, null)
+            .Set(u => u.RefreshTokenHash, null)
+            .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
 
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
@@ -322,7 +339,7 @@ public class AuthService : IAuthService
         _logger.LogInformation("Seeded admin account {Email}.", admin.Email);
     }
 
-    private async Task<AuthResponse> BuildAuthResponseAndSaveRefreshToken(User user)
+    private async Task<AuthResponse> BuildAuthResponseAndSaveRefreshToken(User user, string? expectedRefreshTokenHash = null)
     {
         var expiresAt = DateTime.UtcNow.AddHours(_jwt.ExpiryHours);
         var claims = new[]
@@ -330,7 +347,8 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim(User.AuthorizationVersionClaim, user.AuthorizationVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
@@ -345,10 +363,20 @@ public class AuthService : IAuthService
         var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
         var update = Builders<User>.Update
-            .Set(u => u.RefreshToken, refreshToken)
+            .Set(u => u.RefreshToken, null)
+            .Set(u => u.RefreshTokenHash, HashRefreshToken(refreshToken))
             .Set(u => u.RefreshTokenExpiry, refreshTokenExpiry)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
-        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+        var filter = expectedRefreshTokenHash is null
+            ? Builders<User>.Filter.Eq(u => u.Id, user.Id)
+            : Builders<User>.Filter.And(
+                Builders<User>.Filter.Eq(u => u.Id, user.Id),
+                Builders<User>.Filter.Or(
+                    Builders<User>.Filter.Eq(u => u.RefreshTokenHash, expectedRefreshTokenHash),
+                    Builders<User>.Filter.Eq(u => u.RefreshToken, user.RefreshToken)));
+        var saved = await _db.Users.UpdateOneAsync(filter, update);
+        if (expectedRefreshTokenHash is not null && saved.MatchedCount != 1)
+            throw ApiException.Unauthorized("Refresh token has already been used. Please sign in again.");
 
         return new AuthResponse
         {
@@ -373,6 +401,9 @@ public class AuthService : IAuthService
     };
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static string HashRefreshToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
 }
 
 public sealed record AdminSeedOptions(string Email, string Password, string FullName);

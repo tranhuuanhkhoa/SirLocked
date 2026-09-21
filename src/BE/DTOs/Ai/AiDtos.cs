@@ -106,6 +106,10 @@ public class AiDraftResponse
     public string GenerationInputHash { get; set; } = string.Empty;
     public DateTime? NextAttemptAt { get; set; }
     public string LastGenerationErrorCode { get; set; } = string.Empty;
+    public string? IdempotencyKey { get; set; }
+    public decimal ReservedBudgetUsd { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public bool CanCancel { get; set; }
     public AiCostReport CostReport { get; set; } = new();
     public string? ImportedCaseId { get; set; }
     public CaseSummaryResponse? PublishedCase { get; set; }
@@ -213,6 +217,10 @@ public class AiDraftResponse
         GenerationInputHash = d.GenerationInputHash,
         NextAttemptAt = d.NextAttemptAt,
         LastGenerationErrorCode = d.LastGenerationErrorCode,
+        IdempotencyKey = d.IdempotencyKey,
+        ReservedBudgetUsd = d.ReservedBudgetUsd,
+        CancelledAt = d.CancelledAt,
+        CanCancel = d.Status is not (AiDraftStatus.Published or AiDraftStatus.Imported or AiDraftStatus.Cancelled),
         CostReport = new AiCostReport
         {
             DryRun = d.PlannedCalls.Any(call => !call.WouldCallApi),

@@ -120,6 +120,7 @@ public static class AiDraftStatus
     public const string GeneratedInvalid = "GENERATED_INVALID";
     public const string Imported = "IMPORTED";
     public const string Published = "PUBLISHED";
+    public const string Cancelled = "CANCELLED";
 }
 
 public static class AiRepairStatus
@@ -193,6 +194,7 @@ public static class AiQueueStates
     public const string Pending = "PENDING";
     public const string Running = "RUNNING";
     public const string RetryScheduled = "RETRY_SCHEDULED";
+    public const string Cancelled = "CANCELLED";
 }
 
 public static class AiQueuedOperations
@@ -301,6 +303,18 @@ public class AiCaseDraft
     public DateTime? GenerationClaimedAt { get; set; }
     /// <summary>Set when the draft has been imported into gameCases.</summary>
     public string? ImportedCaseId { get; set; }
+    [BsonIgnoreIfNull]
+    public string? IdempotencyKey { get; set; }
+    public string QuotaDay { get; set; } = string.Empty;
+    /// <summary>Unique while a paid draft is active; cleared on cancellation/import.</summary>
+    [BsonIgnoreIfNull]
+    public string? ActiveQuotaKey { get; set; }
+    /// <summary>Unique per creator/day; retained after completion so cancellation does not refund the daily create.</summary>
+    [BsonIgnoreIfNull]
+    public string? DailyQuotaKey { get; set; }
+    public decimal ReservedBudgetUsd { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public string CancelledByUserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -411,6 +425,10 @@ public class AiGeneratedAsset
     public int? NormalizedHeight { get; set; }
     public bool? HasAlpha { get; set; }
     public string ProcessingStatus { get; set; } = string.Empty;
+    public string CloudinaryAssetId { get; set; } = string.Empty;
+    public string CloudinaryPublicId { get; set; } = string.Empty;
+    public int? CloudinaryVersion { get; set; }
+    public string SecureUrl { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]

@@ -58,7 +58,18 @@ public partial class AiCaseService
                         .Set(item => item.UpdatedAt, DateTime.UtcNow));
                 draft.PlannedTargetKind = plannedTargetKind;
             }
-            var truth = await GenerateTruthStagesAsync(draft, persistCheckpoints: true);
+            // Ordinary retry/resume continues from the last persisted artifact.  This
+            // prevents a worker crash after a paid stage from regenerating the seed and
+            // every downstream artifact on the next lease.
+            var resumeArtifact = draft.TruthCheckpointArtifact == CaseTruthArtifacts.ProofGraph
+                && draft.CaseTruth is not null
+                ? "__TRUTH_CHECKPOINT_COMPLETE__"
+                : NextTruthArtifact(draft.TruthCheckpointArtifact);
+            var truth = await GenerateTruthStagesAsync(
+                draft,
+                checkpoint: draft.CaseTruth,
+                regenerateFromArtifact: resumeArtifact,
+                persistCheckpoints: true);
             var budget = TruthBudgetForDraft(draft);
             var validation = ValidateTruthForGameplay(draft, truth, budget);
 
@@ -385,7 +396,9 @@ public partial class AiCaseService
             CaseTruthArtifacts.Opportunity, CaseTruthArtifacts.Evidence, CaseTruthArtifacts.Statements,
             CaseTruthArtifacts.ProofGraph
         };
-        var start = regenerateFromArtifact is null ? 0 : Array.IndexOf(order, regenerateFromArtifact);
+        var start = regenerateFromArtifact == "__TRUTH_CHECKPOINT_COMPLETE__"
+            ? order.Length
+            : regenerateFromArtifact is null ? 0 : Array.IndexOf(order, regenerateFromArtifact);
         if (start < 0) start = order.Length - 1;
 
         string StageCorrection(int index) => index >= start ? correction ?? string.Empty : string.Empty;

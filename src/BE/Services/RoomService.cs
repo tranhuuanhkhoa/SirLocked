@@ -154,6 +154,7 @@ public class RoomService : IRoomService
                 throw ApiException.Conflict(RoomEndedLeaveMessage, RoomEndedCode, RoomEndedMessageKey);
             }
 
+            room.PendingRemovedPlayerId = user.Id;
             room.Players.RemoveAll(p => p.UserId == user.Id);
 
             if (room.Players.Count == 0)
@@ -179,9 +180,11 @@ public class RoomService : IRoomService
             RecomputeLobbyStatus(room);
             if (!await TrySaveLobbyAsync(room, RoomLifecycle.LobbyStatuses))
             {
+                room.PendingRemovedPlayerId = null;
                 if (attempt >= 1) throw ApiException.Conflict("The room changed; please retry.");
                 continue;
             }
+            room.PendingRemovedPlayerId = null;
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
             var response = RoomResponse.From(room, gameCase.Title);
@@ -228,8 +231,7 @@ public class RoomService : IRoomService
     public async Task<RoomResponse> AbandonAsync(CurrentUser user, string roomId)
     {
         var room = await RequireRoomAsync(roomId);
-        if (room.HostUserId != user.Id)
-            throw ApiException.Forbidden("Only the host can abandon an interrupted game.");
+        RequireMember(room, user.Id);
         if (room.Status != RoomStatus.InProgress || room.GameplayState is null)
             throw ApiException.BadRequest("Only a game in progress can be abandoned.");
 
@@ -240,17 +242,29 @@ public class RoomService : IRoomService
             throw ApiException.Conflict("Wait 30 seconds for your teammate to reconnect before abandoning the game.");
 
         PairedConfrontationRules.CancelForAbandon(room.GameplayState, user.Id, now);
+        if (room.GameplayState.ActiveAccusation is { } accusation)
+        {
+            accusation.Status = AccusationProposalStatus.Cancelled;
+            accusation.UpdatedAt = now;
+            room.GameplayState.AccusationAttempts.Add(accusation);
+            room.GameplayState.ActiveAccusation = null;
+        }
 
         var result = await _db.Rooms.UpdateOneAsync(
             candidate => candidate.Id == roomId
-                && candidate.HostUserId == user.Id
                 && candidate.Status == RoomStatus.InProgress
-                && candidate.GameplayState!.Version == room.GameplayState.Version,
+                && candidate.GameplayState!.Version == room.GameplayState.Version
+                && candidate.Players.Any(player => player.UserId != user.Id
+                    && !player.IsConnected
+                    && player.DisconnectedAt != null
+                    && player.DisconnectedAt <= now.Subtract(DisconnectGracePeriod)),
             Builders<GameRoom>.Update
                 .Set(candidate => candidate.Status, RoomStatus.Abandoned)
                 .Set(candidate => candidate.GameplayState!.GameStatus, GameStatus.Failed)
                 .Set(candidate => candidate.GameplayState!.ActiveConfrontation, room.GameplayState.ActiveConfrontation)
                 .Set(candidate => candidate.GameplayState!.PairedConfrontationAttempts, room.GameplayState.PairedConfrontationAttempts)
+                .Set(candidate => candidate.GameplayState!.ActiveAccusation, room.GameplayState.ActiveAccusation)
+                .Set(candidate => candidate.GameplayState!.AccusationAttempts, room.GameplayState.AccusationAttempts)
                 .Set(candidate => candidate.GameplayState!.CompletedAt, now)
                 .Set(candidate => candidate.GameplayState!.UpdatedAt, now)
                 .Set(candidate => candidate.UpdatedAt, now)
@@ -266,7 +280,7 @@ public class RoomService : IRoomService
         if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation)
             await _notifier.GameStateUpdated(roomId, room.GameplayState.Version);
         else
-            await _notifier.SystemMessage(roomId, "The host abandoned the game after the reconnect grace period expired.");
+            await _notifier.SystemMessage(roomId, "The game was abandoned after the reconnect grace period expired.");
         return RoomResponse.From(room, gameCase.Title);
     }
 
@@ -408,7 +422,39 @@ public class RoomService : IRoomService
             Builders<GameRoom>.Filter.Eq(r => r.Id, room.Id),
             Builders<GameRoom>.Filter.In(r => r.Status, expectedStatuses),
             Builders<GameRoom>.Filter.Eq(r => r.LobbyVersion, expectedVersion));
-        var result = await _db.Rooms.ReplaceOneAsync(filter, room);
+        // Lobby actions only change role/readiness/player membership. Update those
+        // fields in place so a concurrent SignalR presence write and the embedded
+        // gameplay state are preserved. LeaveAsync supplies a transient marker so
+        // the removed member is pulled atomically without replacing the array.
+        var update = Builders<GameRoom>.Update
+            .Set(r => r.Status, room.Status)
+            .Set(r => r.HostUserId, room.HostUserId)
+            .Set(r => r.LobbyVersion, room.LobbyVersion)
+            .Set(r => r.UpdatedAt, room.UpdatedAt);
+        if (room.GameplayState is not null)
+        {
+            update = update.Set(r => r.GameplayState, room.GameplayState);
+        }
+        if (!string.IsNullOrWhiteSpace(room.PendingRemovedPlayerId))
+        {
+            update = update.PullFilter(
+                r => r.Players,
+                player => player.UserId == room.PendingRemovedPlayerId);
+        }
+        else
+        {
+            for (var index = 0; index < room.Players.Count; index++)
+            {
+                var player = room.Players[index];
+                update = update
+                    .Set($"Players.{index}.UserId", player.UserId)
+                    .Set($"Players.{index}.Username", player.Username)
+                    .Set($"Players.{index}.Role", player.Role)
+                    .Set($"Players.{index}.IsReady", player.IsReady);
+            }
+        }
+
+        var result = await _db.Rooms.UpdateOneAsync(filter, update);
         if (result.ModifiedCount == 0)
         {
             room.LobbyVersion = expectedVersion;

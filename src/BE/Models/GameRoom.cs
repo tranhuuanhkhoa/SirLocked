@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using SirLocked.Api.Models.Enums;
+using System.Text.Json.Serialization;
 
 namespace SirLocked.Api.Models;
 
@@ -15,6 +16,10 @@ public class GameRoom
     public string CaseId { get; set; } = string.Empty;
     public string HostUserId { get; set; } = string.Empty;
     public List<RoomPlayer> Players { get; set; } = new();
+    /// <summary>Transient marker used by the lobby writer to remove one player without replacing presence fields.</summary>
+    [BsonIgnore]
+    [JsonIgnore]
+    public string? PendingRemovedPlayerId { get; set; }
     public string Status { get; set; } = RoomStatus.Waiting;
     /// <summary>Optimistic-concurrency version for lobby mutations before gameplay starts.</summary>
     public long LobbyVersion { get; set; } = 1;

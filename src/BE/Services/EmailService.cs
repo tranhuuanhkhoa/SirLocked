@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Options;
 using SirLocked.Api.Configurations;
+using SirLocked.Api.DTOs;
 using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.Services;
@@ -66,8 +67,8 @@ public class EmailService : IEmailService
     {
         if (string.IsNullOrWhiteSpace(_settings.Username) || string.IsNullOrWhiteSpace(_settings.Password))
         {
-            _logger.LogWarning("Email not sent — SMTP credentials not configured. To: {To}, Subject: {Subject}", toEmail, subject);
-            return;
+            _logger.LogError("Email delivery is not configured. To: {To}, Subject: {Subject}", toEmail, subject);
+            throw ApiException.BadGateway("Email delivery is not configured.");
         }
 
         using var message = new MailMessage

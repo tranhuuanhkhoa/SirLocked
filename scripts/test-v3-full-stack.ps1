@@ -9,7 +9,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$apiProject = Join-Path $repoRoot 'src/BE/SirLocked.API.csproj'
+$apiProject = Join-Path $repoRoot 'src/BE/SirLocked.Api.csproj'
 $apiContentRoot = Join-Path $repoRoot 'src/BE'
 $frontendRoot = Join-Path $repoRoot 'src/FE'
 $seederProject = Join-Path $repoRoot 'tools/FullStackTestSeeder/FullStackTestSeeder.csproj'

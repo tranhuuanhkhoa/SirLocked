@@ -2,6 +2,7 @@ using System.Security.Claims;
 using MongoDB.Driver;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 
 namespace SirLocked.Api.WebAPI.Middlewares;
@@ -22,6 +23,13 @@ public class UserStatusMiddleware
             if (user is null || user.Status != UserStatus.Active)
             {
                 throw ApiException.Forbidden("This account is locked or no longer exists.");
+            }
+
+            var versionClaim = context.User.FindFirstValue(User.AuthorizationVersionClaim);
+            if (long.TryParse(versionClaim, out var issuedVersion)
+                && issuedVersion != user.AuthorizationVersion)
+            {
+                throw ApiException.Unauthorized("Your session is no longer valid. Please sign in again.");
             }
         }
 

@@ -64,6 +64,7 @@ public class AdminService : IAdminService
 
         var update = Builders<Models.User>.Update
             .Set(u => u.Status, status)
+            .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
 
@@ -97,6 +98,7 @@ public class AdminService : IAdminService
 
         var update = Builders<Models.User>.Update
             .Set(u => u.Role, role)
+            .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
 
