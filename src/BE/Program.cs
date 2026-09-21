@@ -1,0 +1,18 @@
+using SirLocked.Api.Configurations;
+using SirLocked.Api.DataAccess;
+using SirLocked.Api.WebAPI.Extensions;
+using SirLocked.Api.WebAPI.Middlewares;
+EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory());
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173").AllowAnyHeader().AllowAnyMethod()));
+var app = builder.Build();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseCors();
+app.MapGet("/live", () => Results.Ok(new {status="ok"}));
+app.MapGet("/health", async (MongoDbContext db) => { try { await db.PingAsync(); return Results.Text("Healthy"); } catch { return Results.StatusCode(503); } });
+app.Run();
+public partial class Program;
