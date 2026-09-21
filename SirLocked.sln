@@ -1,0 +1,5 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SirLocked.Api", "src\BE\SirLocked.Api.csproj", "{5EF53B9F-0BB2-4041-8EDB-167606174A71}"
+EndProject
+Global
+EndGlobal
