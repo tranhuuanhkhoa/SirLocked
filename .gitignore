@@ -1,0 +1,52 @@
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+src/BE/appsettings.Development.json
+src/BE/appsettings.Production.json
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.nupkg
+*.snupkg
+TestResults/
+publish/
+
+# Node / React
+node_modules/
+dist/
+.vite/
+*.local
+
+# Generated case JSON (may contain AI output)
+src/BE/GeneratedCaseJson/
+src/FE/public/assets/ai-generated/
+tmp/
+
+# Local tooling (portable MongoDB etc.)
+.tools/
+.grapuco/
+
+# Editor scratch files
+docs/diagrams/.$*.bkp
+
+# MongoDB / DB dumps
+*.dump
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Playwright run artifacts
+src/FE/test-results/
+src/FE/playwright-report/
