@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sunburst winding key">
+  <defs><linearGradient id="b" x2="1" y2="1"><stop stop-color="#fff0a0"/><stop offset=".25" stop-color="#c9862f"/><stop offset=".55" stop-color="#6e351e"/><stop offset=".78" stop-color="#efc455"/><stop offset="1" stop-color="#5b2d20"/></linearGradient><filter id="t"><feTurbulence baseFrequency=".7" numOctaves="2" seed="3" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter></defs>
+  <g transform="rotate(-38 256 256)" fill="url(#b)" stroke="#3b211c" stroke-width="18" stroke-linejoin="round" filter="url(#t)">
+    <path d="M256 34l29 74 79-36-17 84 86 2-62 59 65 55-86 8 23 82-81-30-23 77-35-72-75 39 11-83-86 5 57-64-69-50 85-15-29-80 83 24z"/>
+    <circle cx="256" cy="190" r="72" fill="#33231f"/><circle cx="256" cy="190" r="37" fill="none" stroke="#e8bd54"/>
+    <rect x="229" y="252" width="54" height="190" rx="18"/>
+    <path d="M229 409h-60v66h67v-35h47v-31z"/>
+  </g>
+</svg>
