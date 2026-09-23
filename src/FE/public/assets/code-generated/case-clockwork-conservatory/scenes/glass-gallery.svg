@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Bellweather glass gallery">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#071720"/><stop offset="1" stop-color="#315154"/></linearGradient>
+    <linearGradient id="floor" x2="0" y2="1"><stop stop-color="#63513f"/><stop offset="1" stop-color="#201c1d"/></linearGradient>
+    <linearGradient id="brass"><stop stop-color="#f0ca64"/><stop offset=".45" stop-color="#8a4e27"/><stop offset=".7" stop-color="#dfaa47"/><stop offset="1" stop-color="#48251c"/></linearGradient>
+    <filter id="texture"><feTurbulence baseFrequency=".42" numOctaves="2" seed="4" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter>
+    <radialGradient id="lamp"><stop stop-color="#ffd978" stop-opacity=".7"/><stop offset="1" stop-color="#ffd978" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1160" cy="160" r="95" fill="#e8d8a2" opacity=".85"/>
+  <g stroke="#73908a" stroke-width="12" fill="#132b31" opacity=".92">
+    <path d="M0 500V210Q400-110 800 210Q1200-110 1600 210V500"/>
+    <path d="M0 235h1600M260 70v430M520 70v430M800 70v430M1080 70v430M1340 70v430"/>
+    <path d="M0 210l260 290M260 70l260 430M520 70l280 430M800 210l280 290M1080 70l260 430M1340 70l260 430"/>
+  </g>
+  <rect y="500" width="1600" height="400" fill="url(#floor)"/>
+  <path d="M0 585h1600M0 720h1600M200 500L60 900M520 500l-70 400M840 500l20 400M1160 500l100 400M1460 500l140 340" stroke="#a58a68" stroke-width="5" opacity=".55"/>
+  <g filter="url(#texture)">
+    <rect x="585" y="390" width="390" height="245" rx="22" fill="#262127" stroke="url(#brass)" stroke-width="18"/>
+    <rect x="640" y="430" width="280" height="145" rx="12" fill="#0d1718" stroke="#74452a" stroke-width="9"/>
+    <path d="M780 420l32 62 69 10-50 48 12 68-63-32-63 32 12-68-50-48 69-10z" fill="none" stroke="#d3a645" stroke-width="9" opacity=".9"/>
+    <text x="780" y="615" text-anchor="middle" fill="#a98a52" font-family="Georgia,serif" font-size="24">SUNSTONE DISPLAY</text>
+    <g transform="translate(780 275)">
+      <circle r="120" fill="#1c1b20" stroke="url(#brass)" stroke-width="18"/>
+      <circle r="82" fill="#d8c89b" stroke="#573321" stroke-width="7"/>
+      <path d="M0 0L-38-55M0 0L58 18" stroke="#902a28" stroke-width="10" stroke-linecap="round"/>
+      <circle r="11" fill="#d7a442"/>
+    </g>
+    <g fill="#193c36" stroke="#0d211f" stroke-width="7">
+      <path d="M65 690q30-170 110-90q10-160 90-50q70-20 64 140z"/>
+      <path d="M1260 690q15-180 95-90q42-160 100-38q100-36 90 128z"/>
+    </g>
+  </g>
+  <circle cx="250" cy="610" r="160" fill="url(#lamp)"/><circle cx="1320" cy="520" r="180" fill="url(#lamp)"/>
+  <!-- camera clue: stopped pocket watch -->
+  <g transform="translate(770 674) rotate(-12)" filter="url(#texture)">
+    <circle r="55" fill="#d6d0b4" stroke="#6f6c61" stroke-width="12"/>
+    <path d="M0-43v12M43 0H31M0 43V31M-43 0h12" stroke="#2f3333" stroke-width="7"/>
+    <path d="M0 0L-28-25M0 0L31 20" stroke="#842c2b" stroke-width="8" stroke-linecap="round"/>
+    <circle r="8" fill="#b58733"/>
+    <path d="M44-30q45-55 90-5" fill="none" stroke="#86b9c8" stroke-width="8"/>
+  </g>
+  <!-- camera clue: cobalt oil on east latch -->
+  <g transform="translate(1435 445)" filter="url(#texture)">
+    <rect x="-55" y="-28" width="110" height="56" rx="12" fill="url(#brass)" stroke="#3d271f" stroke-width="7"/>
+    <path d="M-28-10q35-16 66 9q-35 5-60 20" fill="none" stroke="#176ca1" stroke-width="18" stroke-linecap="round"/>
+    <path d="M15-22l25 38" stroke="#b9d8dc" stroke-width="4"/>
+  </g>
+  <path d="M1515 420v350" stroke="#d5a247" stroke-width="12"/><path d="M1515 600l55 40-55 40" fill="#d5a247"/>
+</svg>
