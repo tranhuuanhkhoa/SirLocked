@@ -1,4 +1,13 @@
 import { renderLoginPage } from './pages/loginPage.js';
+import { renderCasesPage } from './pages/casesPage.js';
+import { renderCaseDetailPage } from './pages/caseDetailPage.js';
+import { renderCreateRoomPage } from './pages/createRoomPage.js';
+import { renderJoinRoomPage } from './pages/joinRoomPage.js';
+import { renderLobbyPage } from './pages/lobbyPage.js';
+import { renderAdminDashboardPage } from './pages/adminDashboardPage.js';
+import { renderAdminCasesPage } from './pages/adminCasesPage.js';
+import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
+import { renderAdminImportPage } from './pages/adminImportPage.js';
 import { renderOAuthCallbackPage } from './pages/oauthCallbackPage.js';
 import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
 import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
@@ -12,9 +21,18 @@ const routes = [
   { pattern: /^#\/verify-email/, page: renderVerifyEmailPage, anonymous: true },
   { pattern: /^#\/reset-password/, page: renderResetPasswordPage, anonymous: true },
   { pattern: /^#\/verify-notice$/, page: renderVerifyNoticePage },
+  { pattern: /^#\/cases$/, page: renderCasesPage },
+  { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
+  { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
+  { pattern: /^#\/join$/, page: renderJoinRoomPage, requiresVerified: true },
+  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true },
+  { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
+  { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
+  { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
+  { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
 ];
 
-const day = 2;
+const day = 3;
 let cleanup = null;
 const links = [['#/home','Trang chính'],['#/login','Tài khoản']];
 if (day>=3) links.push(['#/cases','Vụ án'],['#/create-room','Tạo phòng'],['#/join','Vào phòng']);
