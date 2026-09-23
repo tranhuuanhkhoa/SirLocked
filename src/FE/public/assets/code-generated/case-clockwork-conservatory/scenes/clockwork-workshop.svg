@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Clockwork workshop">
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#172a2b"/><stop offset="1" stop-color="#382726"/></linearGradient>
+    <linearGradient id="wood"><stop stop-color="#7d4b31"/><stop offset=".5" stop-color="#3b2422"/><stop offset="1" stop-color="#895335"/></linearGradient>
+    <linearGradient id="brass"><stop stop-color="#f0cb67"/><stop offset=".4" stop-color="#885025"/><stop offset=".7" stop-color="#d69a39"/><stop offset="1" stop-color="#48251c"/></linearGradient>
+    <radialGradient id="lamp"><stop stop-color="#ffd26d" stop-opacity=".75"/><stop offset="1" stop-color="#ffd26d" stop-opacity="0"/></radialGradient>
+    <filter id="texture"><feTurbulence baseFrequency=".5" numOctaves="2" seed="21" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#wall)"/>
+  <g fill="#172327" stroke="#8c6b45" stroke-width="12">
+    <rect x="80" y="85" width="360" height="420"/><rect x="1160" y="70" width="350" height="435"/>
+  </g>
+  <g fill="#a37b45" stroke="#39271f" stroke-width="7" filter="url(#texture)">
+    <circle cx="190" cy="185" r="70"/><circle cx="345" cy="180" r="52"/><circle cx="265" cy="330" r="100"/>
+    <circle cx="1280" cy="170" r="74"/><circle cx="1410" cy="230" r="92"/><circle cx="1275" cy="365" r="70"/>
+  </g>
+  <g fill="#172327" stroke="#d7ad54" stroke-width="7"><circle cx="190" cy="185" r="27"/><circle cx="345" cy="180" r="20"/><circle cx="265" cy="330" r="35"/><circle cx="1280" cy="170" r="28"/><circle cx="1410" cy="230" r="34"/><circle cx="1275" cy="365" r="25"/></g>
+  <rect y="700" width="1600" height="200" fill="#211a1a"/><path d="M0 700h1600M0 795h1600M250 700l-40 200M600 700l-10 200M950 700l25 200M1320 700l55 200" stroke="#75513a" stroke-width="6"/>
+  <g filter="url(#texture)">
+    <rect x="470" y="550" width="570" height="170" rx="15" fill="url(#wood)" stroke="#241818" stroke-width="14"/>
+    <rect x="515" y="690" width="45" height="170" fill="#3a2522"/><rect x="955" y="690" width="45" height="170" fill="#3a2522"/>
+    <rect x="610" y="352" width="315" height="275" rx="30" fill="#171719" stroke="url(#brass)" stroke-width="18"/>
+    <circle cx="768" cy="465" r="92" fill="#d4c194" stroke="#643822" stroke-width="11"/>
+    <circle cx="768" cy="465" r="28" fill="url(#brass)"/>
+    <path d="M768 375v42M858 465h-42M768 555v-42M678 465h42" stroke="#652d28" stroke-width="14"/>
+    <path d="M728 575h80l-40-68z" fill="#c99235" stroke="#47251d" stroke-width="8"/>
+    <g fill="#d9b455" stroke="#48271d" stroke-width="6"><circle cx="685" cy="575" r="28"/><circle cx="850" cy="575" r="28"/></g>
+    <rect x="638" y="600" width="260" height="34" rx="8" fill="#3e2520" stroke="#ad7733" stroke-width="6"/>
+  </g>
+  <circle cx="760" cy="300" r="330" fill="url(#lamp)"/>
+  <g transform="translate(1060 180)" stroke="url(#brass)" fill="none" stroke-width="9"><ellipse rx="95" ry="28"/><ellipse rx="55" ry="112" transform="rotate(25)"/><ellipse rx="55" ry="112" transform="rotate(-25)"/><circle r="18" fill="#d59a3a"/></g>
+  <path d="M15 600l65-45v90z" fill="#d5a247"/>
+</svg>
