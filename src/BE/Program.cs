@@ -18,6 +18,7 @@ using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Projection;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
+using SirLocked.Api.WebAPI.Hubs;
 using SirLocked.Api.WebAPI.Middlewares;
 
 // Load repo-root .env (Section__Key format) so local config works out of the box.
@@ -102,6 +103,7 @@ builder.Services.Configure<AiQuotaSettings>(builder.Configuration.GetSection("Ai
 
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<CaseCache>();
 builder.Services.AddSingleton<FrontendRedirects>();
 builder.Services.AddSingleton(TimeProvider.System);
 
@@ -114,9 +116,14 @@ builder.Services.AddScoped<IGameplayProjectionPlanner, GameplayProjectionPlanner
 builder.Services.AddScoped<IProjectionContentSchemaFactory, ProjectionContentSchemaFactory>();
 builder.Services.AddScoped<IGameCaseProjectionCompiler, GameCaseProjectionCompiler>();
 builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>();
+builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
 // One instance per request serves both roles: the consensus coordinator resolves a case through the
 // very same service that owns the unilateral route.
 var generatedDevelopmentPseudonymKey = false;
+builder.Services.AddScoped<PlaytestSummaryService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IGameNotifier, GameNotifier>();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -306,6 +313,7 @@ app.UseAuthorization();
 app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();
+app.MapHub<GameHub>("/hubs/game");
 app.MapHealthChecks("/health");
 app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 
