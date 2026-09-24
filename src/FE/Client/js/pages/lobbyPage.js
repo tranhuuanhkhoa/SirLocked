@@ -154,7 +154,7 @@ export async function renderLobbyPage(app, roomId) {
         <button class="btn ${my?.isReady ? 'btn-ghost' : 'btn-primary'}" id="ready-btn" ${my?.role ? '' : 'disabled title="Pick a role first"'}>
           ${my?.isReady ? tr('Cancel ready', 'Hủy sẵn sàng') : tr('Ready up', 'Sẵn sàng')}
         </button>
-        ${isHost ? `<button class="btn btn-gold" id="start-btn" disabled ${bothReady ? '' : `disabled title="${tr('Both players must pick different roles and ready up', 'Cả hai người phải chọn vai khác nhau và sẵn sàng')}"`}>${tr('Start investigation', 'Bắt đầu điều tra')}</button>` : `<span class="muted small">${tr('The host starts the game when everyone is ready.', 'Chủ phòng sẽ bắt đầu khi mọi người đã sẵn sàng.')}</span>`}
+        ${isHost ? `<button class="btn btn-gold" id="start-btn" ${bothReady ? '' : `disabled title="${tr('Both players must pick different roles and ready up', 'Cả hai người phải chọn vai khác nhau và sẵn sàng')}"`}>${tr('Start investigation', 'Bắt đầu điều tra')}</button>` : `<span class="muted small">${tr('The host starts the game when everyone is ready.', 'Chủ phòng sẽ bắt đầu khi mọi người đã sẵn sàng.')}</span>`}
         <button class="btn btn-ghost" id="leave-btn">${tr('Leave room', 'Rời phòng')}</button>
       </div>
     </div>`);
