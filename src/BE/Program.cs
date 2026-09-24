@@ -118,12 +118,24 @@ builder.Services.AddScoped<IGameCaseProjectionCompiler, GameCaseProjectionCompil
 builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
+builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
+builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
 // One instance per request serves both roles: the consensus coordinator resolves a case through the
 // very same service that owns the unilateral route.
+builder.Services.AddScoped<GameplayService>();
+builder.Services.AddScoped<IGameplayService>(services => services.GetRequiredService<GameplayService>());
+builder.Services.AddScoped<IAccusationResolver>(services => services.GetRequiredService<GameplayService>());
 var generatedDevelopmentPseudonymKey = false;
+builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
 builder.Services.AddScoped<PlaytestSummaryService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
+builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
+builder.Services.AddScoped<IGameResultStore, MongoGameResultStore>();
+builder.Services.AddScoped<IWorkshopService, WorkshopService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IBadgeService, BadgeService>();
 
 builder.Services.AddRateLimiter(options =>
 {
