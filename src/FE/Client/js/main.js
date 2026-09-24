@@ -4,6 +4,7 @@ import { renderCaseDetailPage } from './pages/caseDetailPage.js';
 import { renderCreateRoomPage } from './pages/createRoomPage.js';
 import { renderJoinRoomPage } from './pages/joinRoomPage.js';
 import { renderLobbyPage } from './pages/lobbyPage.js';
+import { renderResultPage } from './pages/resultPage.js';
 import { renderAdminDashboardPage } from './pages/adminDashboardPage.js';
 import { renderAdminCasesPage } from './pages/adminCasesPage.js';
 import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
@@ -26,13 +27,20 @@ const routes = [
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
   { pattern: /^#\/join$/, page: renderJoinRoomPage, requiresVerified: true },
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true },
+  {
+    pattern: /^#\/game\/([^/]+)$/,
+    page: async (...args) => (await import('./pages/gamePage.ts')).renderGamePage(...args),
+    requiresVerified: true,
+    game: true,
+  },
+  { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
   { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
   { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
   { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
 ];
 
-const day = 3;
+const day = 4;
 let cleanup = null;
 const links = [['#/home','Trang chính'],['#/login','Tài khoản']];
 if (day>=3) links.push(['#/cases','Vụ án'],['#/create-room','Tạo phòng'],['#/join','Vào phòng']);
