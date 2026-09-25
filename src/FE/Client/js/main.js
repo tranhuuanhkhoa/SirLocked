@@ -40,7 +40,7 @@ const routes = [
   { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
 ];
 
-const day = 4;
+const day = 5;
 let cleanup = null;
 const links = [['#/home','Trang chính'],['#/login','Tài khoản']];
 if (day>=3) links.push(['#/cases','Vụ án'],['#/create-room','Tạo phòng'],['#/join','Vào phòng']);
