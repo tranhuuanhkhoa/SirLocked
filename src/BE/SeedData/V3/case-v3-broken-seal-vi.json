@@ -1,0 +1,135 @@
+{
+  "caseId": "case-v3-broken-seal-vi",
+  "title": "Con Dấu Bị Phá",
+  "summary": "Đối chiếu lời khai của thủ kho với dấu vết vật lý trên một hồ sơ đã bị niêm phong lại.",
+  "language": "vi",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "generationMode": "PLACEMENT_FIRST",
+  "estimatedMinutes": 10,
+  "coverImageUrl": "/assets/scenes/owners-office.png",
+  "stages": [
+    {
+      "stageId": "stage-archive-vi",
+      "title": "Kiểm Tra Kho Lưu Trữ",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-archive-vi",
+          "title": "Văn Phòng Lưu Trữ Thành Phố",
+          "backgroundUrl": "/assets/scenes/owners-office.png",
+          "description": "Một văn phòng hồ sơ đã đóng cửa, có gói tài liệu được niêm phong lại, vé bỏ đi, sợi chỉ dính bùn và thủ kho Mara Vale.",
+          "itemIds": ["item-blue-wax-vi", "item-ticket-vi", "item-thread-vi"],
+          "characterIds": ["char-mara-vi"],
+          "hotspots": [
+            { "hotspotId": "hotspot-wax-vi", "type": "ITEM", "targetId": "item-blue-wax-vi", "x": 24, "y": 58, "width": 9, "height": 10, "zIndex": 5, "label": "Vệt sáp xanh", "requiredClueIds": [] },
+            { "hotspotId": "hotspot-ticket-vi", "type": "ITEM", "targetId": "item-ticket-vi", "x": 48, "y": 64, "width": 8, "height": 9, "zIndex": 5, "label": "Cuống vé", "requiredClueIds": [] },
+            { "hotspotId": "hotspot-thread-vi", "type": "ITEM", "targetId": "item-thread-vi", "x": 69, "y": 60, "width": 8, "height": 9, "zIndex": 5, "label": "Sợi chỉ dính bùn", "requiredClueIds": [] },
+            { "hotspotId": "hotspot-mara-vi", "type": "CHARACTER", "targetId": "char-mara-vi", "x": 77, "y": 29, "width": 12, "height": 42, "zIndex": 6, "label": "Mara Vale", "requiredClueIds": [] }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": { "x": 80, "y": 610, "width": 1440, "height": 180 },
+            "spawnPoints": {
+              "default": { "x": 190, "y": 720, "anchor": "bottom-center", "direction": "right" }
+            },
+            "itemPlacements": [
+              { "itemId": "item-blue-wax-vi", "asset": "/assets/items/letter.png", "position": { "x": 430, "y": 610, "anchor": "bottom-center" }, "size": { "width": 92, "height": 72 }, "hotspot": { "x": 365, "y": 525, "width": 130, "height": 110 }, "anchor": "bottom-center", "depth": 5 },
+              { "itemId": "item-ticket-vi", "asset": "/assets/items/pawn-ticket.png", "position": { "x": 780, "y": 655, "anchor": "bottom-center" }, "size": { "width": 86, "height": 66 }, "hotspot": { "x": 720, "y": 575, "width": 120, "height": 100 }, "anchor": "bottom-center", "depth": 5 },
+              { "itemId": "item-thread-vi", "asset": "/assets/items/makeup-kit.png", "position": { "x": 1080, "y": 620, "anchor": "bottom-center" }, "size": { "width": 78, "height": 64 }, "hotspot": { "x": 1020, "y": 545, "width": 120, "height": 100 }, "anchor": "bottom-center", "depth": 5 }
+            ],
+            "characterPlacements": [
+              { "characterId": "char-mara-vi", "asset": "/assets/characters/mona-sprite.png", "position": { "x": 1290, "y": 720, "anchor": "bottom-center" }, "size": { "width": 150, "height": 310 }, "hotspot": { "x": 1200, "y": 380, "width": 180, "height": 350 }, "anchor": "bottom-center", "direction": "left", "depth": 6 }
+            ],
+            "clueZones": [],
+            "cameraRules": { "captureRectWidth": 180, "captureRectHeight": 140, "minClueCoverage": 0.45, "nearMissCoverage": 0.22, "requireCaptureCenterInside": true },
+            "transitions": []
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": ["item-blue-wax-vi", "item-ticket-vi", "item-thread-vi"],
+            "requiredClueIds": [],
+            "requiredDialogueIds": ["dlg-mara-statement-vi"]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    { "characterId": "char-mara-vi", "name": "Mara Vale", "role": "Thủ kho lưu trữ", "imageUrl": "/assets/characters/mona-sprite.png", "description": "Người phụ trách đóng cửa và niêm phong kho lưu trữ." }
+  ],
+  "items": [
+    { "itemId": "item-blue-wax-vi", "name": "Vệt sáp xanh", "description": "Một mảng sáp niêm phong xanh bị bong ở mép gói tài liệu.", "inspectText": "Hai lớp sáp chồng lên nhau. Lớp dưới đã vỡ; một lớp xanh còn mới được ép lên sau đó.", "imageUrl": "/assets/items/letter.png", "unlockClueIds": ["evidence-blue-wax-vi"], "isCollectible": true },
+    { "itemId": "item-ticket-vi", "name": "Cuống vé", "description": "Một vé tàu điện của tuyến buổi tối.", "inspectText": "Vé được bấm lúc 20:42. Nó thu hẹp dòng thời gian nhưng không chứng minh ai đã mở hồ sơ.", "imageUrl": "/assets/items/pawn-ticket.png", "unlockClueIds": ["evidence-ticket-vi"], "isCollectible": true },
+    { "itemId": "item-thread-vi", "name": "Sợi chỉ dính bùn", "description": "Một sợi chỉ tối màu bám bùn khô.", "inspectText": "Sợi chỉ giống xơ áo từ hành lang công cộng. Có thể chỉ là nhiễm chéo, không chứng minh việc niêm phong lại.", "imageUrl": "/assets/items/makeup-kit.png", "unlockClueIds": ["evidence-thread-vi"], "isCollectible": true }
+  ],
+  "clues": [
+    { "clueId": "evidence-blue-wax-vi", "title": "Hai lớp sáp xanh", "content": "Con dấu gốc của gói tài liệu đã bị phá rồi được phủ bằng một lớp sáp xanh thứ hai.", "isCritical": true, "isEvidence": true, "isRedHerring": false, "source": "item-blue-wax-vi", "sourceType": "item", "discoverMethod": "item", "sceneId": "scene-archive-vi", "inventoryDescription": "Hai lớp sáp cho thấy gói tài liệu đã bị mở và niêm phong lại.", "narrativeMeaning": "Dấu vết này trực tiếp mâu thuẫn với lời khai con dấu còn nguyên.", "hintLevel": 2, "tags": ["seal", "physical"], "relatedCharacterIds": ["char-mara-vi"] },
+    { "clueId": "evidence-ticket-vi", "title": "Cuống vé 20:42", "content": "Một cuống vé đặt một hành khách chưa rõ danh tính trên tuyến tàu buổi tối.", "isCritical": false, "isEvidence": true, "isRedHerring": true, "source": "item-ticket-vi", "sourceType": "item", "discoverMethod": "item", "sceneId": "scene-archive-vi", "inventoryDescription": "Manh mối dòng thời gian hợp lý nhưng không liên hệ trực tiếp với con dấu.", "narrativeMeaning": "Có thể tạo suy đoán nhưng không phá được lời khai.", "hintLevel": 1, "tags": ["timeline"], "relatedCharacterIds": ["char-mara-vi"] },
+    { "clueId": "evidence-thread-vi", "title": "Sợi chỉ áo dính bùn", "content": "Một sợi xơ từ hành lang mắc dưới bàn lưu trữ.", "isCritical": false, "isEvidence": true, "isRedHerring": true, "source": "item-thread-vi", "sourceType": "item", "discoverMethod": "item", "sceneId": "scene-archive-vi", "inventoryDescription": "Sợi xơ có thể bị mang vào từ hành lang công cộng.", "narrativeMeaning": "Nó gợi ý có người qua lại nhưng không chứng minh hồ sơ bị mở.", "hintLevel": 1, "tags": ["fiber"], "relatedCharacterIds": ["char-mara-vi"] },
+    { "clueId": "reveal-resealed-packet-vi", "title": "Hồ sơ đã bị niêm phong lại", "content": "Ai đó đã mở gói tài liệu sau giờ đóng cửa rồi dùng sáp xanh mới để giả con dấu ban đầu.", "isCritical": true, "isEvidence": false, "isRedHerring": false, "source": "dlg-mara-statement-vi", "sourceType": "dialogue", "discoverMethod": "dialogue", "sceneId": "scene-archive-vi", "inventoryDescription": "Sự thật chung: gói hồ sơ đã bị mở và niêm phong lại.", "narrativeMeaning": "Mâu thuẫn biến hai chi tiết riêng thành một kết luận chung.", "hintLevel": 3, "tags": ["reveal"], "relatedCharacterIds": ["char-mara-vi"] }
+  ],
+  "dialogues": [
+    { "dialogueId": "dlg-mara-statement-vi", "characterId": "char-mara-vi", "question": "Hãy kể lại lúc cô đóng kho lưu trữ.", "answer": "Tôi rời đi lúc 21:00. Con dấu vẫn nguyên, tôi không mang túi và không quay lại sau khi bảo vệ bắt đầu tuần tra.", "requiredClueIds": [], "unlockClueIds": [] }
+  ],
+  "testimonyFragments": [
+    { "id": "fragment-seal-intact-vi", "dialogueId": "dlg-mara-statement-vi", "text": "Tôi rời đi lúc 21:00. Con dấu vẫn nguyên và tôi không quay lại." },
+    { "id": "fragment-no-bag-vi", "dialogueId": "dlg-mara-statement-vi", "text": "Tôi không mang theo túi khi rời kho lưu trữ." },
+    { "id": "fragment-guard-round-vi", "dialogueId": "dlg-mara-statement-vi", "text": "Bảo vệ bắt đầu tuần tra ngay sau giờ đóng cửa." }
+  ],
+  "evidenceChallenges": [
+    { "challengeId": "challenge-broken-seal-vi", "order": 1, "isSignature": true, "dialogueId": "dlg-mara-statement-vi", "testimonyFragmentId": "fragment-seal-intact-vi", "candidateTestimonyFragmentIds": ["fragment-seal-intact-vi", "fragment-no-bag-vi", "fragment-guard-round-vi"], "startRequiredTestimonyFragmentIds": ["fragment-seal-intact-vi", "fragment-no-bag-vi"], "prompt": "Dấu vết vật lý nào trực tiếp mâu thuẫn với lời khai đã chọn?", "correctEvidenceId": "evidence-blue-wax-vi", "candidateEvidenceIds": ["evidence-blue-wax-vi", "evidence-ticket-vi", "evidence-thread-vi"], "startRequiredEvidenceIds": ["evidence-blue-wax-vi", "evidence-ticket-vi"], "successResponse": "Hai lớp sáp chồng lên nhau chứng minh gói tài liệu đã bị mở rồi niêm phong lại sau khi con dấu gốc bị phá.", "failureResponse": "Cặp này chưa tạo ra mâu thuẫn trực tiếp. Hãy kiểm tra lại dấu vết thực sự chứng minh được điều gì.", "revealTitle": "PHÁ ÁN: CON DẤU ĐÃ BỊ THAY", "unlockClueIds": ["reveal-resealed-packet-vi"] }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-resealed-packet-vi",
+      "prompt": "Mâu thuẫn đã phá cho biết điều gì về gói hồ sơ?",
+      "requiredClueIds": ["reveal-resealed-packet-vi"],
+      "requiredChallengeIds": ["challenge-broken-seal-vi"],
+      "options": [
+        { "id": "deduction-resealed-correct-vi", "label": "Gói hồ sơ bị mở sau giờ đóng cửa rồi được niêm phong lại bằng sáp mới." },
+        { "id": "deduction-resealed-wrong-vi", "label": "Cuống vé chứng minh con dấu gốc chưa từng bị phá." }
+      ],
+      "correctOptionId": "deduction-resealed-correct-vi",
+      "successResponse": "Dấu vết vật lý và lời khai bị phá giờ tạo thành một kết luận thống nhất.",
+      "failureResponse": "Kết luận đó không giải thích được hai lớp sáp chồng lên nhau.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-resealed-packet-vi",
+      "investigatorClueId": "evidence-blue-wax-vi",
+      "interrogatorChallengeId": "challenge-broken-seal-vi",
+      "deductionId": "deduction-resealed-packet-vi",
+      "description": "Điều tra viên cung cấp dấu sáp, Thẩm vấn viên phá lời khai, rồi cả hai xác lập cách niêm phong lại."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-mara-vi",
+    "motive": "Thay đổi một hồ sơ được bảo vệ.",
+    "method": "Mở gói tài liệu rồi dùng sáp mới giả lại con dấu ban đầu.",
+    "requiredEvidenceIds": [],
+    "motiveOptions": [
+      { "id": "motive-alter-record-vi", "label": "Thay đổi một hồ sơ được bảo vệ" },
+      { "id": "motive-missed-tram-vi", "label": "Che giấu một chuyến tàu bị lỡ" }
+    ],
+    "methodOptions": [
+      { "id": "method-reseal-wax-vi", "label": "Mở gói hồ sơ rồi giả con dấu bằng sáp mới" },
+      { "id": "method-corridor-thread-vi", "label": "Thay gói hồ sơ bằng một sợi chỉ dính bùn" }
+    ],
+    "correctMotiveId": "motive-alter-record-vi",
+    "correctMethodId": "method-reseal-wax-vi",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "evidence-ticket-vi" },
+      { "claimType": "METHOD", "evidenceId": "evidence-blue-wax-vi" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "evidence-thread-vi" }
+    ],
+    "requiredDeductionIds": ["deduction-resealed-packet-vi"],
+    "requiredTeamworkChainIds": ["chain-resealed-packet-vi"],
+    "winEnding": "Mâu thuẫn được ghép đôi chứng minh gói tài liệu đã bị niêm phong lại.",
+    "failEnding": "Kho lưu trữ vẫn bị khóa sau một lời khai chưa được kiểm chứng."
+  }
+}

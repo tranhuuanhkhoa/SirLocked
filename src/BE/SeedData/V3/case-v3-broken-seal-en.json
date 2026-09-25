@@ -1,0 +1,135 @@
+{
+  "caseId": "case-v3-broken-seal-en",
+  "title": "The Broken Seal",
+  "summary": "Compare a clerk's account with physical traces left on a resealed archive packet.",
+  "language": "en",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "generationMode": "PLACEMENT_FIRST",
+  "estimatedMinutes": 10,
+  "coverImageUrl": "/assets/scenes/owners-office.png",
+  "stages": [
+    {
+      "stageId": "stage-archive-en",
+      "title": "Archive Review",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-archive-en",
+          "title": "Municipal Archive Office",
+          "backgroundUrl": "/assets/scenes/owners-office.png",
+          "description": "A closed records office containing a resealed packet, discarded ticket, loose thread, and clerk Mara Vale.",
+          "itemIds": ["item-blue-wax-en", "item-ticket-en", "item-thread-en"],
+          "characterIds": ["char-mara-en"],
+          "hotspots": [
+            { "hotspotId": "hotspot-wax-en", "type": "ITEM", "targetId": "item-blue-wax-en", "x": 24, "y": 58, "width": 9, "height": 10, "zIndex": 5, "label": "Blue wax smear", "requiredClueIds": [] },
+            { "hotspotId": "hotspot-ticket-en", "type": "ITEM", "targetId": "item-ticket-en", "x": 48, "y": 64, "width": 8, "height": 9, "zIndex": 5, "label": "Ticket stub", "requiredClueIds": [] },
+            { "hotspotId": "hotspot-thread-en", "type": "ITEM", "targetId": "item-thread-en", "x": 69, "y": 60, "width": 8, "height": 9, "zIndex": 5, "label": "Muddy thread", "requiredClueIds": [] },
+            { "hotspotId": "hotspot-mara-en", "type": "CHARACTER", "targetId": "char-mara-en", "x": 77, "y": 29, "width": 12, "height": 42, "zIndex": 6, "label": "Mara Vale", "requiredClueIds": [] }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": { "x": 80, "y": 610, "width": 1440, "height": 180 },
+            "spawnPoints": {
+              "default": { "x": 190, "y": 720, "anchor": "bottom-center", "direction": "right" }
+            },
+            "itemPlacements": [
+              { "itemId": "item-blue-wax-en", "asset": "/assets/items/letter.png", "position": { "x": 430, "y": 610, "anchor": "bottom-center" }, "size": { "width": 92, "height": 72 }, "hotspot": { "x": 365, "y": 525, "width": 130, "height": 110 }, "anchor": "bottom-center", "depth": 5 },
+              { "itemId": "item-ticket-en", "asset": "/assets/items/pawn-ticket.png", "position": { "x": 780, "y": 655, "anchor": "bottom-center" }, "size": { "width": 86, "height": 66 }, "hotspot": { "x": 720, "y": 575, "width": 120, "height": 100 }, "anchor": "bottom-center", "depth": 5 },
+              { "itemId": "item-thread-en", "asset": "/assets/items/makeup-kit.png", "position": { "x": 1080, "y": 620, "anchor": "bottom-center" }, "size": { "width": 78, "height": 64 }, "hotspot": { "x": 1020, "y": 545, "width": 120, "height": 100 }, "anchor": "bottom-center", "depth": 5 }
+            ],
+            "characterPlacements": [
+              { "characterId": "char-mara-en", "asset": "/assets/characters/mona-sprite.png", "position": { "x": 1290, "y": 720, "anchor": "bottom-center" }, "size": { "width": 150, "height": 310 }, "hotspot": { "x": 1200, "y": 380, "width": 180, "height": 350 }, "anchor": "bottom-center", "direction": "left", "depth": 6 }
+            ],
+            "clueZones": [],
+            "cameraRules": { "captureRectWidth": 180, "captureRectHeight": 140, "minClueCoverage": 0.45, "nearMissCoverage": 0.22, "requireCaptureCenterInside": true },
+            "transitions": []
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": ["item-blue-wax-en", "item-ticket-en", "item-thread-en"],
+            "requiredClueIds": [],
+            "requiredDialogueIds": ["dlg-mara-statement-en"]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    { "characterId": "char-mara-en", "name": "Mara Vale", "role": "Archive clerk", "imageUrl": "/assets/characters/mona-sprite.png", "description": "The clerk responsible for closing and sealing the archive." }
+  ],
+  "items": [
+    { "itemId": "item-blue-wax-en", "name": "Blue wax smear", "description": "A flaked patch of blue sealing wax on the packet edge.", "inspectText": "Two wax layers overlap. The lower layer is broken; a warmer blue layer was pressed over it later.", "imageUrl": "/assets/items/letter.png", "unlockClueIds": ["evidence-blue-wax-en"], "isCollectible": true },
+    { "itemId": "item-ticket-en", "name": "Ticket stub", "description": "A tram ticket from the evening route.", "inspectText": "The ticket was punched at 20:42. It narrows a timeline but does not prove who opened the archive.", "imageUrl": "/assets/items/pawn-ticket.png", "unlockClueIds": ["evidence-ticket-en"], "isCollectible": true },
+    { "itemId": "item-thread-en", "name": "Muddy thread", "description": "A dark thread carrying dried mud.", "inspectText": "The thread resembles a coat fiber from the public corridor. It is plausible contamination, not proof of resealing.", "imageUrl": "/assets/items/makeup-kit.png", "unlockClueIds": ["evidence-thread-en"], "isCollectible": true }
+  ],
+  "clues": [
+    { "clueId": "evidence-blue-wax-en", "title": "Overlapping blue wax", "content": "The packet's original seal was broken and covered by a second application of blue wax.", "isCritical": true, "isEvidence": true, "isRedHerring": false, "source": "item-blue-wax-en", "sourceType": "item", "discoverMethod": "item", "sceneId": "scene-archive-en", "inventoryDescription": "Two layers show that the packet was opened and resealed.", "narrativeMeaning": "This directly contradicts a claim that the seal remained intact.", "hintLevel": 2, "tags": ["seal", "physical"], "relatedCharacterIds": ["char-mara-en"] },
+    { "clueId": "evidence-ticket-en", "title": "20:42 ticket stub", "content": "A ticket places an unknown traveler on the evening tram route.", "isCritical": false, "isEvidence": true, "isRedHerring": true, "source": "item-ticket-en", "sourceType": "item", "discoverMethod": "item", "sceneId": "scene-archive-en", "inventoryDescription": "A plausible timeline clue without a direct link to the seal.", "narrativeMeaning": "It can support speculation but cannot crack the statement.", "hintLevel": 1, "tags": ["timeline"], "relatedCharacterIds": ["char-mara-en"] },
+    { "clueId": "evidence-thread-en", "title": "Muddy coat thread", "content": "A corridor fiber was caught below the archive desk.", "isCritical": false, "isEvidence": true, "isRedHerring": true, "source": "item-thread-en", "sourceType": "item", "discoverMethod": "item", "sceneId": "scene-archive-en", "inventoryDescription": "A transferable fiber from a public corridor.", "narrativeMeaning": "It suggests traffic but not an opened packet.", "hintLevel": 1, "tags": ["fiber"], "relatedCharacterIds": ["char-mara-en"] },
+    { "clueId": "reveal-resealed-packet-en", "title": "The archive was resealed", "content": "Someone opened the packet after closing time and applied fresh blue wax to imitate the original seal.", "isCritical": true, "isEvidence": false, "isRedHerring": false, "source": "dlg-mara-statement-en", "sourceType": "dialogue", "discoverMethod": "dialogue", "sceneId": "scene-archive-en", "inventoryDescription": "Shared truth: the archive packet was opened and resealed.", "narrativeMeaning": "The contradiction converts two private details into a shared conclusion.", "hintLevel": 3, "tags": ["reveal"], "relatedCharacterIds": ["char-mara-en"] }
+  ],
+  "dialogues": [
+    { "dialogueId": "dlg-mara-statement-en", "characterId": "char-mara-en", "question": "Walk me through the archive closing.", "answer": "I left at 21:00. The seal remained intact, I carried no bag, and I never returned after the guard began his rounds.", "requiredClueIds": [], "unlockClueIds": [] }
+  ],
+  "testimonyFragments": [
+    { "id": "fragment-seal-intact-en", "dialogueId": "dlg-mara-statement-en", "text": "I left at 21:00. The seal remained intact, and I never returned." },
+    { "id": "fragment-no-bag-en", "dialogueId": "dlg-mara-statement-en", "text": "I carried no bag when I left the archive." },
+    { "id": "fragment-guard-round-en", "dialogueId": "dlg-mara-statement-en", "text": "The guard began his rounds immediately after closing." }
+  ],
+  "evidenceChallenges": [
+    { "challengeId": "challenge-broken-seal-en", "order": 1, "isSignature": true, "dialogueId": "dlg-mara-statement-en", "testimonyFragmentId": "fragment-seal-intact-en", "candidateTestimonyFragmentIds": ["fragment-seal-intact-en", "fragment-no-bag-en", "fragment-guard-round-en"], "startRequiredTestimonyFragmentIds": ["fragment-seal-intact-en", "fragment-no-bag-en"], "prompt": "Which physical trace directly contradicts the selected testimony?", "correctEvidenceId": "evidence-blue-wax-en", "candidateEvidenceIds": ["evidence-blue-wax-en", "evidence-ticket-en", "evidence-thread-en"], "startRequiredEvidenceIds": ["evidence-blue-wax-en", "evidence-ticket-en"], "successResponse": "The overlapping wax layers prove the packet was opened and resealed after the original seal was broken.", "failureResponse": "That pair does not establish a direct contradiction. Recheck what the trace can actually prove.", "revealTitle": "CRACKED: THE SEAL WAS REPLACED", "unlockClueIds": ["reveal-resealed-packet-en"] }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-resealed-packet-en",
+      "prompt": "What does the cracked testimony establish about the archive packet?",
+      "requiredClueIds": ["reveal-resealed-packet-en"],
+      "requiredChallengeIds": ["challenge-broken-seal-en"],
+      "options": [
+        { "id": "deduction-resealed-correct-en", "label": "The packet was opened after closing and resealed with fresh wax." },
+        { "id": "deduction-resealed-wrong-en", "label": "The tram ticket proves the original seal was never disturbed." }
+      ],
+      "correctOptionId": "deduction-resealed-correct-en",
+      "successResponse": "The physical trace and the cracked testimony now form one coherent conclusion.",
+      "failureResponse": "That conclusion does not account for the overlapping wax layers.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-resealed-packet-en",
+      "investigatorClueId": "evidence-blue-wax-en",
+      "interrogatorChallengeId": "challenge-broken-seal-en",
+      "deductionId": "deduction-resealed-packet-en",
+      "description": "The Investigator supplies the wax trace, the Interrogator cracks the statement, and both establish the resealing method."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-mara-en",
+    "motive": "To alter a protected archive record.",
+    "method": "Open the packet and imitate the original seal with fresh wax.",
+    "requiredEvidenceIds": [],
+    "motiveOptions": [
+      { "id": "motive-alter-record-en", "label": "Alter a protected archive record" },
+      { "id": "motive-missed-tram-en", "label": "Hide a missed tram journey" }
+    ],
+    "methodOptions": [
+      { "id": "method-reseal-wax-en", "label": "Open the packet and imitate the seal with fresh wax" },
+      { "id": "method-corridor-thread-en", "label": "Replace the packet using a muddy coat thread" }
+    ],
+    "correctMotiveId": "motive-alter-record-en",
+    "correctMethodId": "method-reseal-wax-en",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "evidence-ticket-en" },
+      { "claimType": "METHOD", "evidenceId": "evidence-blue-wax-en" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "evidence-thread-en" }
+    ],
+    "requiredDeductionIds": ["deduction-resealed-packet-en"],
+    "requiredTeamworkChainIds": ["chain-resealed-packet-en"],
+    "winEnding": "The paired contradiction proves the packet was resealed.",
+    "failEnding": "The archive remains sealed behind an untested statement."
+  }
+}
