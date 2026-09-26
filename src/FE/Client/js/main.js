@@ -5,14 +5,21 @@ import { renderCreateRoomPage } from './pages/createRoomPage.js';
 import { renderJoinRoomPage } from './pages/joinRoomPage.js';
 import { renderLobbyPage } from './pages/lobbyPage.js';
 import { renderResultPage } from './pages/resultPage.js';
+import { renderWorkshopPage } from './pages/workshopPage.js';
+import { renderWorkshopCasePage } from './pages/workshopCasePage.js';
+import { renderDetectivePage } from './pages/detectivePage.js';
 import { renderAdminDashboardPage } from './pages/adminDashboardPage.js';
 import { renderAdminCasesPage } from './pages/adminCasesPage.js';
 import { renderAdminCaseDetailPage } from './pages/adminCaseDetailPage.js';
 import { renderAdminImportPage } from './pages/adminImportPage.js';
+import { renderAdminAiPage } from './pages/adminAiPage.js';
+import { renderChallengePage } from './pages/challengePage.js';
+import { renderWeeklyAdminPage } from './pages/weeklyAdminPage.js';
 import { renderOAuthCallbackPage } from './pages/oauthCallbackPage.js';
 import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
 import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
 import { renderVerifyNoticePage } from './pages/verifyNoticePage.js';
+import { renderTitleMenuPage } from './pages/titleMenuPage.js';
 import { session } from './services/session.js';
 import { authApi } from './api/authApi.js';
 import { setUiLanguage, uiLanguage } from './services/i18n.js';
@@ -22,8 +29,12 @@ const routes = [
   { pattern: /^#\/verify-email/, page: renderVerifyEmailPage, anonymous: true },
   { pattern: /^#\/reset-password/, page: renderResetPasswordPage, anonymous: true },
   { pattern: /^#\/verify-notice$/, page: renderVerifyNoticePage },
+  { pattern: /^#\/menu$/, page: renderTitleMenuPage, titleMenu: true },
   { pattern: /^#\/cases$/, page: renderCasesPage },
   { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
+  { pattern: /^#\/workshop$/, page: renderWorkshopPage },
+  { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
+  { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
   { pattern: /^#\/join$/, page: renderJoinRoomPage, requiresVerified: true },
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true },
@@ -34,13 +45,17 @@ const routes = [
     game: true,
   },
   { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
+  { pattern: /^#\/detective$/, page: renderDetectivePage },
+  { pattern: /^#\/detective\/([^/]+)$/, page: renderDetectivePage },
+  { pattern: /^#\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true },
   { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
   { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
   { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
+  { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
 ];
 
-const day = 5;
+const day = 6;
 let cleanup = null;
 const links = [['#/home','Trang chính'],['#/login','Tài khoản']];
 if (day>=3) links.push(['#/cases','Vụ án'],['#/create-room','Tạo phòng'],['#/join','Vào phòng']);
