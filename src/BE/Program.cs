@@ -117,6 +117,10 @@ builder.Services.AddScoped<IProjectionContentSchemaFactory, ProjectionContentSch
 builder.Services.AddScoped<IGameCaseProjectionCompiler, GameCaseProjectionCompiler>();
 builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>();
 builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
+builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
+builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
+builder.Services.AddScoped<IAiArtifactCleanupService, AiArtifactCleanupService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
@@ -128,9 +132,40 @@ builder.Services.AddScoped<IGameplayService>(services => services.GetRequiredSer
 builder.Services.AddScoped<IAccusationResolver>(services => services.GetRequiredService<GameplayService>());
 builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
 builder.Services.AddScoped<IAccusationConsensusCoordinator, AccusationConsensusCoordinator>();
+// Telemetry follows the existing V3 gates; there is no separate on/off flag. When either gate is
+// closed the no-op sink stays registered and nothing is written.
+var gameplayV3Settings = builder.Configuration.GetSection("GameplayV3").Get<GameplayV3Settings>() ?? new GameplayV3Settings();
+var playtestInstrumentationEnabled = gameplayV3Settings.Enabled && gameplayV3Settings.PlaytestInstrumentationEnabled;
 var generatedDevelopmentPseudonymKey = false;
-builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
+if (playtestInstrumentationEnabled)
+{
+    var playtestSettings = builder.Configuration.GetSection("Playtest").Get<PlaytestSettings>() ?? new PlaytestSettings();
+    var pseudonymKey = playtestSettings.PseudonymKey;
+    if (!PlaytestSettings.IsPseudonymKeyValid(pseudonymKey))
+    {
+        if (!builder.Environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(
+                $"Playtest__PseudonymKey must be configured and at least {PlaytestSettings.MinimumPseudonymKeyLength} characters long when GameplayV3__PlaytestInstrumentationEnabled is true.");
+        }
+        // Local audit runs may start without a key; pseudonyms then only correlate within one process.
+        pseudonymKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        generatedDevelopmentPseudonymKey = true;
+    }
+    builder.Services.AddSingleton(new PlaytestPseudonymizer(pseudonymKey));
+    builder.Services.AddSingleton<IPlaytestEventStore, MongoPlaytestEventStore>();
+    builder.Services.AddSingleton<IPlaytestEventSink, MongoPlaytestEventSink>();
+}
+else
+{
+    builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
+}
 builder.Services.AddScoped<PlaytestSummaryService>();
+builder.Services.AddScoped<AiCaseService>();
+builder.Services.AddScoped<IAiCaseService>(services => services.GetRequiredService<AiCaseService>());
+builder.Services.AddScoped<IAiGenerationExecutor>(services => services.GetRequiredService<AiCaseService>());
+builder.Services.AddScoped<IAiAssetPipeline>(services => services.GetRequiredService<AiCaseService>());
+builder.Services.AddHostedService<AiGenerationWorker>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
@@ -141,6 +176,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
+builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddRateLimiter(options =>
 {
