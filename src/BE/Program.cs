@@ -126,6 +126,8 @@ builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>(
 builder.Services.AddScoped<GameplayService>();
 builder.Services.AddScoped<IGameplayService>(services => services.GetRequiredService<GameplayService>());
 builder.Services.AddScoped<IAccusationResolver>(services => services.GetRequiredService<GameplayService>());
+builder.Services.AddScoped<IPairedConfrontationCoordinator, PairedConfrontationCoordinator>();
+builder.Services.AddScoped<IAccusationConsensusCoordinator, AccusationConsensusCoordinator>();
 var generatedDevelopmentPseudonymKey = false;
 builder.Services.AddSingleton<IPlaytestEventSink, NoOpPlaytestEventSink>();
 builder.Services.AddScoped<PlaytestSummaryService>();
@@ -134,8 +136,11 @@ builder.Services.AddScoped<IGameNotifier, GameNotifier>();
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
 builder.Services.AddScoped<IGameResultStore, MongoGameResultStore>();
 builder.Services.AddScoped<IWorkshopService, WorkshopService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
+builder.Services.AddScoped<IWeeklyService, WeeklyService>();
 
 builder.Services.AddRateLimiter(options =>
 {
