@@ -1,0 +1,880 @@
+{
+  "caseId": "case-week2-manor",
+  "title": "The Locked Manor Ledger",
+  "summary": "A financier dies inside a locked study after dinner. The investigation moves from the study to the servants' corridor, pantry, balcony route, and final confrontation to prove who poisoned the drink and staged the locked room.",
+  "status": "DRAFT",
+  "mechanicsVersion": 2,
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/cases/locked-manor.jpg",
+  "stages": [
+    {
+      "stageId": "stage-locked-study",
+      "title": "Death in the Locked Study",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-study",
+          "title": "Victim's Study",
+          "backgroundUrl": "/assets/scenes/study.jpg",
+          "description": "A locked study with a cold fireplace, scattered papers, and the victim's final drink on the desk.",
+          "itemIds": [
+            "item-bitter-glass",
+            "item-burned-ledger",
+            "item-study-lock"
+          ],
+          "characterIds": [
+            "char-detective",
+            "char-edgar"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-bitter-glass",
+              "type": "ITEM",
+              "targetId": "item-bitter-glass",
+              "x": 46,
+              "y": 61,
+              "width": 8,
+              "height": 10,
+              "label": "Crystal glass",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-burned-ledger",
+              "type": "ITEM",
+              "targetId": "item-burned-ledger",
+              "x": 32,
+              "y": 68,
+              "width": 11,
+              "height": 9,
+              "label": "Burned page",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-study-lock",
+              "type": "ITEM",
+              "targetId": "item-study-lock",
+              "x": 78,
+              "y": 44,
+              "width": 7,
+              "height": 14,
+              "label": "Study lock",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-bitter-glass",
+              "item-burned-ledger",
+              "item-study-lock"
+            ],
+            "requiredClueIds": [
+              "clue-poisoned-drink",
+              "clue-hidden-debt",
+              "clue-staged-lock"
+            ],
+            "requiredDialogueIds": [
+              "dlg-edgar-alibi"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-servants-timeline",
+      "title": "The Servants' Timeline",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-servants-corridor",
+          "title": "Servants' Corridor",
+          "backgroundUrl": "/assets/scenes/corridor.jpg",
+          "description": "A narrow service corridor records who moved between kitchen and study before the alarm.",
+          "itemIds": [
+            "item-tea-tray",
+            "item-servant-log",
+            "item-dismissal-letter"
+          ],
+          "characterIds": [
+            "char-ada",
+            "char-constable"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-tea-tray",
+              "type": "ITEM",
+              "targetId": "item-tea-tray",
+              "x": 52,
+              "y": 66,
+              "width": 10,
+              "height": 8,
+              "label": "Silver tea tray",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-servant-log",
+              "type": "ITEM",
+              "targetId": "item-servant-log",
+              "x": 24,
+              "y": 49,
+              "width": 9,
+              "height": 11,
+              "label": "Servants' log",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-dismissal-letter",
+              "type": "ITEM",
+              "targetId": "item-dismissal-letter",
+              "x": 67,
+              "y": 58,
+              "width": 8,
+              "height": 8,
+              "label": "Folded letter",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-tea-tray",
+              "item-servant-log"
+            ],
+            "requiredClueIds": [
+              "clue-drink-prepared-before-lock",
+              "clue-ada-called-away"
+            ],
+            "requiredDialogueIds": [
+              "dlg-ada-tray",
+              "dlg-constable-log"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-pantry",
+          "title": "Kitchen Pantry",
+          "backgroundUrl": "/assets/scenes/pantry.jpg",
+          "description": "A dim pantry full of jars, polished utensils, and one bottle hidden too carefully.",
+          "itemIds": [
+            "item-poison-bottle",
+            "item-cleaned-spoon"
+          ],
+          "characterIds": [
+            "char-ada",
+            "char-constable"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-poison-bottle",
+              "type": "ITEM",
+              "targetId": "item-poison-bottle",
+              "x": 58,
+              "y": 43,
+              "width": 7,
+              "height": 10,
+              "label": "Hidden bottle",
+              "requiredClueIds": [
+                "clue-ada-called-away"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-cleaned-spoon",
+              "type": "ITEM",
+              "targetId": "item-cleaned-spoon",
+              "x": 40,
+              "y": 70,
+              "width": 9,
+              "height": 7,
+              "label": "Cleaned spoon",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-poison-bottle",
+              "item-cleaned-spoon"
+            ],
+            "requiredClueIds": [
+              "clue-poison-source",
+              "clue-cleaned-evidence"
+            ],
+            "requiredDialogueIds": [
+              "dlg-constable-poison"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-balcony-contradiction",
+      "title": "The Balcony Contradiction",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-south-balcony",
+          "title": "South Balcony",
+          "backgroundUrl": "/assets/scenes/balcony.jpg",
+          "description": "Rainwater gathers on the balcony rail, where the locked-room illusion begins to fail.",
+          "itemIds": [
+            "item-muddy-footprint",
+            "item-edgar-cufflink"
+          ],
+          "characterIds": [
+            "char-mira",
+            "char-edgar"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-muddy-footprint",
+              "type": "ITEM",
+              "targetId": "item-muddy-footprint",
+              "x": 48,
+              "y": 78,
+              "width": 14,
+              "height": 8,
+              "label": "Muddy footprint",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-edgar-cufflink",
+              "type": "ITEM",
+              "targetId": "item-edgar-cufflink",
+              "x": 65,
+              "y": 71,
+              "width": 7,
+              "height": 6,
+              "label": "Torn cufflink",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-muddy-footprint",
+              "item-edgar-cufflink"
+            ],
+            "requiredClueIds": [
+              "clue-balcony-entry",
+              "clue-edgar-cufflink",
+              "clue-mira-witness"
+            ],
+            "requiredDialogueIds": [
+              "dlg-mira-noise",
+              "dlg-edgar-cufflink"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-final-confrontation",
+      "title": "Final Confrontation",
+      "order": 4,
+      "scenes": [
+        {
+          "sceneId": "scene-accusation-room",
+          "title": "Accusation Room",
+          "backgroundUrl": "/assets/scenes/accusation-room.jpg",
+          "description": "All suspects gather while the evidence chain is placed on the table.",
+          "itemIds": [
+            "item-burned-ledger",
+            "item-poison-bottle",
+            "item-edgar-cufflink"
+          ],
+          "characterIds": [
+            "char-detective",
+            "char-ada",
+            "char-mira",
+            "char-edgar"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-final-ledger",
+              "type": "ITEM",
+              "targetId": "item-burned-ledger",
+              "x": 39,
+              "y": 66,
+              "width": 10,
+              "height": 8,
+              "label": "Ledger evidence",
+              "requiredClueIds": [
+                "clue-hidden-debt"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-final-poison",
+              "type": "ITEM",
+              "targetId": "item-poison-bottle",
+              "x": 52,
+              "y": 66,
+              "width": 8,
+              "height": 8,
+              "label": "Poison bottle",
+              "requiredClueIds": [
+                "clue-poison-source"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-final-cufflink",
+              "type": "ITEM",
+              "targetId": "item-edgar-cufflink",
+              "x": 63,
+              "y": 66,
+              "width": 7,
+              "height": 7,
+              "label": "Cufflink",
+              "requiredClueIds": [
+                "clue-edgar-cufflink"
+              ]
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-burned-ledger",
+              "item-poison-bottle",
+              "item-edgar-cufflink"
+            ],
+            "requiredClueIds": [
+              "clue-hidden-debt",
+              "clue-poison-source",
+              "clue-balcony-entry",
+              "clue-edgar-cufflink"
+            ],
+            "requiredDialogueIds": [
+              "dlg-final-contradiction"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-detective",
+      "name": "Detective Vale",
+      "role": "Lead detective",
+      "imageUrl": "/assets/characters/detective-vale.png",
+      "description": "A methodical investigator who keeps the case focused on evidence."
+    },
+    {
+      "characterId": "char-ada",
+      "name": "Ada Blackwood",
+      "role": "Housekeeper and red herring suspect",
+      "imageUrl": "/assets/characters/ada-blackwood.png",
+      "description": "A loyal housekeeper hiding a dismissal letter."
+    },
+    {
+      "characterId": "char-mira",
+      "name": "Mira Lane",
+      "role": "Niece and reluctant witness",
+      "imageUrl": "/assets/characters/mira-lane.png",
+      "description": "The victim's niece, afraid that her inheritance motive will make her look guilty."
+    },
+    {
+      "characterId": "char-edgar",
+      "name": "Edgar Voss",
+      "role": "Business partner and true culprit",
+      "imageUrl": "/assets/characters/edgar-voss.png",
+      "description": "A polished business partner hiding debt and a broken alibi."
+    },
+    {
+      "characterId": "char-constable",
+      "name": "Constable Reed",
+      "role": "Timeline witness",
+      "imageUrl": "/assets/characters/constable-reed.png",
+      "description": "A constable who tracks corridor movement and pantry access."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-bitter-glass",
+      "name": "Bitter Crystal Glass",
+      "description": "A half-empty glass with a bitter almond scent and a wiped rim.",
+      "inspectText": "The victim drank from this glass before the room was locked. The rim was wiped, but the almond scent remains.",
+      "imageUrl": "/assets/items/bitter-glass.png",
+      "unlockClueIds": [
+        "clue-poisoned-drink"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-burned-ledger",
+      "name": "Burned Ledger Page",
+      "description": "A burned page showing Edgar's hidden debt to the victim.",
+      "inspectText": "The surviving numbers point to Edgar's collapsing account.",
+      "imageUrl": "/assets/items/burned-ledger.png",
+      "unlockClueIds": [
+        "clue-hidden-debt"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-study-lock",
+      "name": "Scratched Study Lock",
+      "description": "The study lock is scratched from the inside, as if staged after death.",
+      "inspectText": "The scratches are fresh and too deliberate, suggesting someone staged the locked room.",
+      "imageUrl": "/assets/items/study-lock.png",
+      "unlockClueIds": [
+        "clue-staged-lock"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-tea-tray",
+      "name": "Silver Tea Tray",
+      "description": "The tray Ada prepared before being called away from the corridor.",
+      "inspectText": "The tray was prepared before the victim entered the study, leaving a window for tampering.",
+      "imageUrl": "/assets/items/tea-tray.png",
+      "unlockClueIds": [
+        "clue-drink-prepared-before-lock"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-servant-log",
+      "name": "Servants' Log",
+      "description": "A corridor log showing Ada left before the victim drank.",
+      "inspectText": "Ada was called away at the exact time the drink sat unattended.",
+      "imageUrl": "/assets/items/servant-log.png",
+      "unlockClueIds": [
+        "clue-ada-called-away"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-dismissal-letter",
+      "name": "Dismissal Letter",
+      "description": "A letter proving the victim planned to dismiss Ada after years of service.",
+      "inspectText": "Ada had a motive to resent the victim, but the letter alone proves only embarrassment.",
+      "imageUrl": "/assets/items/dismissal-letter.png",
+      "unlockClueIds": [
+        "clue-ada-dismissal-red-herring"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-poison-bottle",
+      "name": "Bitter Almond Bottle",
+      "description": "A small poison bottle hidden behind pantry jars.",
+      "inspectText": "The residue matches the smell from the victim's glass.",
+      "imageUrl": "/assets/items/poison-bottle.png",
+      "unlockClueIds": [
+        "clue-poison-source"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-cleaned-spoon",
+      "name": "Cleaned Silver Spoon",
+      "description": "A spoon scrubbed clean but still carrying a faint chemical smell.",
+      "inspectText": "Someone cleaned this too carefully after preparing the drink.",
+      "imageUrl": "/assets/items/cleaned-spoon.png",
+      "unlockClueIds": [
+        "clue-cleaned-evidence"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-muddy-footprint",
+      "name": "Muddy Balcony Footprint",
+      "description": "A wet footprint on the balcony matching a gentleman's evening shoe.",
+      "inspectText": "The footprint is fresh from tonight's rain.",
+      "imageUrl": "/assets/items/muddy-footprint.png",
+      "unlockClueIds": [
+        "clue-balcony-entry"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-edgar-cufflink",
+      "name": "Torn Voss Cufflink",
+      "description": "A torn cufflink engraved with Edgar's initials, found near the balcony rail.",
+      "inspectText": "The metal is bent and wet with fresh mud.",
+      "imageUrl": "/assets/items/edgar-cufflink.png",
+      "unlockClueIds": [
+        "clue-edgar-cufflink"
+      ],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-poisoned-drink",
+      "title": "Poisoned Drink",
+      "content": "The victim was poisoned before the study was locked.",
+      "isCritical": true,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-bitter-glass",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-hidden-debt",
+      "title": "Hidden Debt",
+      "content": "Edgar owed the victim enough money to lose his firm.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-burned-ledger",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-staged-lock",
+      "title": "Staged Locked Room",
+      "content": "The lock scratches imply the locked-room scene was staged after death.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-study-lock",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-drink-prepared-before-lock",
+      "title": "Drink Prepared Before Lock",
+      "content": "The poisoned glass was prepared before the victim entered the study.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-tea-tray",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-ada-called-away",
+      "title": "Ada Called Away",
+      "content": "Ada left the tray unattended before the victim drank.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-servant-log",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-ada-dismissal-red-herring",
+      "title": "Ada's Dismissal",
+      "content": "Ada had a motive to resent the victim, but it does not prove murder.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-dismissal-letter",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-poison-source",
+      "title": "Poison Source",
+      "content": "The pantry bottle matches the bitter almond smell in the glass.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-poison-bottle",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-cleaned-evidence",
+      "title": "Cleaned Evidence",
+      "content": "Someone tried to remove traces from the spoon after the tray was prepared.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-cleaned-spoon",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-balcony-entry",
+      "title": "Balcony Entry",
+      "content": "The culprit used the balcony to enter or leave while preserving the locked-room illusion.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-muddy-footprint",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-edgar-cufflink",
+      "title": "Edgar's Cufflink",
+      "content": "Edgar's cufflink was torn at the balcony route despite his denial.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-edgar-cufflink",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-mira-witness",
+      "title": "Mira's Witness Statement",
+      "content": "Mira heard movement outside the balcony but hid it to protect her inheritance claim.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-mira-noise",
+      "sourceType": "dialogue"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-detective-cause",
+      "characterId": "char-detective",
+      "question": "What killed him?",
+      "answer": "The almond scent points to poison, not a simple collapse.",
+      "requiredClueIds": [
+        "clue-poisoned-drink"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-edgar-alibi",
+      "characterId": "char-edgar",
+      "question": "Where were you after dinner?",
+      "answer": "I remained in the drawing room until the alarm.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-ada-tray",
+      "characterId": "char-ada",
+      "question": "Who prepared the drink?",
+      "answer": "I prepared the tray, but I was called away before he touched it.",
+      "requiredClueIds": [
+        "clue-poisoned-drink"
+      ],
+      "unlockClueIds": [
+        "clue-drink-prepared-before-lock"
+      ]
+    },
+    {
+      "dialogueId": "dlg-ada-dismissal",
+      "characterId": "char-ada",
+      "question": "Why hide the letter?",
+      "answer": "He planned to dismiss me. I was ashamed, not murderous.",
+      "requiredClueIds": [
+        "clue-ada-dismissal-red-herring"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-constable-log",
+      "characterId": "char-constable",
+      "question": "Does the servants' log support Ada?",
+      "answer": "The log shows Ada was away from the tray long enough for someone else to tamper with it.",
+      "requiredClueIds": [
+        "clue-drink-prepared-before-lock"
+      ],
+      "unlockClueIds": [
+        "clue-ada-called-away"
+      ]
+    },
+    {
+      "dialogueId": "dlg-constable-poison",
+      "characterId": "char-constable",
+      "question": "Who had pantry access?",
+      "answer": "Ada, Edgar, and Mira passed through, but Edgar was unaccounted for during the pantry gap.",
+      "requiredClueIds": [
+        "clue-poison-source"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-mira-noise",
+      "characterId": "char-mira",
+      "question": "What did you hear near the balcony?",
+      "answer": "A scrape outside the study window, but I feared being blamed for wanting the inheritance.",
+      "requiredClueIds": [
+        "clue-staged-lock"
+      ],
+      "unlockClueIds": [
+        "clue-mira-witness"
+      ]
+    },
+    {
+      "dialogueId": "dlg-edgar-cufflink",
+      "characterId": "char-edgar",
+      "question": "Why was your cufflink on the balcony?",
+      "answer": "It must have fallen there days ago.",
+      "requiredClueIds": [
+        "clue-edgar-cufflink"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-detective-cufflink-mud",
+      "characterId": "char-detective",
+      "question": "Could the cufflink be old?",
+      "answer": "No. The mud is still wet from tonight's rain.",
+      "requiredClueIds": [
+        "clue-edgar-cufflink",
+        "clue-balcony-entry"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-edgar-debt",
+      "characterId": "char-edgar",
+      "question": "Why burn the ledger?",
+      "answer": "I was desperate. The debt would ruin me, but that proves panic, not murder.",
+      "requiredClueIds": [
+        "clue-hidden-debt"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-final-contradiction",
+      "characterId": "char-detective",
+      "question": "What breaks Edgar's alibi?",
+      "answer": "The poisoned drink, pantry source, wet balcony trace, cufflink, and debt form one chain.",
+      "requiredClueIds": [
+        "clue-poisoned-drink",
+        "clue-poison-source",
+        "clue-balcony-entry",
+        "clue-edgar-cufflink",
+        "clue-hidden-debt"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "conversationNodes": [
+    {
+      "nodeId": "conv-mira-root",
+      "characterId": "char-mira",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "lines": [
+        { "speaker": "NPC", "text": "You again, detective. Ask what you must, but quietly." }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        { "choiceId": "conv-mira-topic-night", "label": "Where were you the night Edgar fell ill?", "requiredClueIds": [], "nextNodeId": "conv-mira-night" },
+        { "choiceId": "conv-mira-topic-leave", "label": "That will be all for now.", "requiredClueIds": [], "nextNodeId": null }
+      ]
+    },
+    {
+      "nodeId": "conv-mira-night",
+      "characterId": "char-mira",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "lines": [
+        { "speaker": "NPC", "text": "On the south balcony, watching the garden." },
+        { "speaker": "NPC", "text": "I heard a glass break below, then hurried footsteps." }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        { "choiceId": "conv-mira-follow-steps", "label": "Whose footsteps?", "requiredClueIds": [], "nextNodeId": "conv-mira-steps" },
+        { "choiceId": "conv-mira-night-back", "label": "I understand.", "requiredClueIds": [], "nextNodeId": null }
+      ]
+    },
+    {
+      "nodeId": "conv-mira-steps",
+      "characterId": "char-mira",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "lines": [
+        { "speaker": "NPC", "text": "I cannot say for certain. Lighter than Edgar's, I think." },
+        { "speaker": "DETECTIVE", "text": "Light enough for a servant, perhaps." }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        { "choiceId": "conv-mira-return", "label": "Thank you, Mira.", "requiredClueIds": [], "nextNodeId": null }
+      ]
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-edgar-cufflink",
+      "dialogueId": "dlg-edgar-cufflink",
+      "prompt": "Edgar says the cufflink fell there days ago. Which evidence disproves that claim?",
+      "correctEvidenceId": "clue-balcony-entry",
+      "successResponse": "The fresh rain-soaked footprint proves the balcony trace was made tonight.",
+      "failureResponse": "That evidence does not establish when the cufflink reached the balcony.",
+      "unlockClueIds": ["clue-mira-witness"]
+    },
+    {
+      "challengeId": "challenge-edgar-debt",
+      "dialogueId": "dlg-edgar-debt",
+      "prompt": "Edgar denies that the debt gave him a reason to kill. Which evidence ties the debt to the crime?",
+      "correctEvidenceId": "clue-hidden-debt",
+      "successResponse": "The burned ledger establishes that financial ruin gave Edgar a direct motive.",
+      "failureResponse": "That evidence does not establish Edgar's financial motive.",
+      "unlockClueIds": ["clue-staged-lock"]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-edgar-chain",
+      "prompt": "Which chain proves Edgar had motive, method, and the opportunity to stage the locked room?",
+      "requiredClueIds": [
+        "clue-poison-source",
+        "clue-balcony-entry",
+        "clue-hidden-debt"
+      ],
+      "requiredChallengeIds": [
+        "challenge-edgar-cufflink",
+        "challenge-edgar-debt"
+      ],
+      "options": [
+        { "id": "deduce-edgar-poison-balcony", "label": "Edgar used debt as motive, pantry poison as method, and the balcony route as opportunity" },
+        { "id": "deduce-ada-tray", "label": "Ada poisoned the tray after being dismissed" },
+        { "id": "deduce-mira-inheritance", "label": "Mira used the balcony to protect her inheritance" }
+      ],
+      "correctOptionId": "deduce-edgar-poison-balcony",
+      "successResponse": "The evidence chain now connects Edgar's motive, poison method, and balcony opportunity.",
+      "failureResponse": "That theory leaves at least one part of the chain unsupported.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-edgar-final",
+      "investigatorClueId": "clue-poison-source",
+      "interrogatorChallengeId": "challenge-edgar-cufflink",
+      "deductionId": "deduction-edgar-chain",
+      "description": "The investigator finds the poison source, the interrogator breaks Edgar's balcony testimony, and the team resolves the final chain."
+    }
+  ],
+  "hints": [
+    { "hintId": "hint-study-1", "contextType": "SCENE", "targetId": "scene-study", "order": 1, "text": "Start with the victim's glass and the marks around the study lock." },
+    { "hintId": "hint-corridor-1", "contextType": "SCENE", "targetId": "scene-servants-corridor", "order": 1, "text": "Check the servants' timeline before deciding who handled the tray." },
+    { "hintId": "hint-pantry-1", "contextType": "SCENE", "targetId": "scene-pantry", "order": 1, "text": "Look for a substance that matches the scent on the victim's glass." },
+    { "hintId": "hint-balcony-1", "contextType": "SCENE", "targetId": "scene-south-balcony", "order": 1, "text": "Tonight's rain can distinguish an old trace from a fresh one." },
+    { "hintId": "hint-accusation-1", "contextType": "SCENE", "targetId": "scene-accusation-room", "order": 1, "text": "Connect motive, method, and access before making the accusation." },
+    { "hintId": "hint-edgar-cufflink-1", "contextType": "CONFRONTATION", "targetId": "challenge-edgar-cufflink", "order": 1, "text": "Use evidence that proves when someone crossed the balcony." },
+    { "hintId": "hint-edgar-debt-1", "contextType": "CONFRONTATION", "targetId": "challenge-edgar-debt", "order": 1, "text": "Use the financial record that Edgar tried to destroy." },
+    { "hintId": "hint-deduction-edgar-chain-1", "contextType": "DEDUCTION", "targetId": "deduction-edgar-chain", "order": 1, "text": "The final chain needs one motive clue, one method clue, and one opportunity clue." }
+  ],
+  "finalLogic": {
+    "culpritId": "char-edgar",
+    "motive": "Hidden debt and fear of financial ruin.",
+    "method": "Edgar poisoned the drink while the tray was unattended, then used the balcony route to stage the locked-room death.",
+    "requiredEvidenceIds": [
+      "clue-hidden-debt",
+      "clue-poison-source",
+      "clue-drink-prepared-before-lock",
+      "clue-balcony-entry",
+      "clue-edgar-cufflink"
+    ],
+    "motiveOptions": [
+      { "id": "motive-debt", "label": "Hidden debt and fear of financial ruin" },
+      { "id": "motive-inheritance", "label": "A dispute over the family inheritance" },
+      { "id": "motive-dismissal", "label": "Revenge for a planned dismissal" }
+    ],
+    "methodOptions": [
+      { "id": "method-poison-balcony", "label": "Poison the unattended drink, then use the balcony to stage the locked room" },
+      { "id": "method-direct-attack", "label": "Attack the victim after forcing the study lock" },
+      { "id": "method-servant-accomplice", "label": "Use a servant accomplice to poison the tray" }
+    ],
+    "correctMotiveId": "motive-debt",
+    "correctMethodId": "method-poison-balcony",
+    "requiredEvidenceLinks": [
+      { "claimType": "MOTIVE", "evidenceId": "clue-hidden-debt" },
+      { "claimType": "METHOD", "evidenceId": "clue-poison-source" },
+      { "claimType": "OPPORTUNITY", "evidenceId": "clue-balcony-entry" }
+    ],
+    "requiredDeductionIds": [
+      "deduction-edgar-chain"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-edgar-final"
+    ],
+    "winEnding": "Edgar's alibi collapses under the chain of poison, debt, and balcony evidence. The locked-room illusion is exposed.",
+    "failEnding": "The accusation lacks the proof needed to break the locked-room illusion, and the true culprit escapes suspicion."
+  }
+}

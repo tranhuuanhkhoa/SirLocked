@@ -1,0 +1,14 @@
+{
+  "culpritId": "char-crispin-hale",
+  "motive": "Crispin Hale feared the patron\u0027s scheduled review would expose mishandled trust accounts and end his position before the new trust was signed.",
+  "method": "Hale prepared the astronomical clock so its alarm weight would strike the patron at the appointed minute, removed gear number nineteen to confuse the clock evidence, left the workshop, pulled the door latch shut with waxed thread to create a locked-room illusion, then broke the window from inside during the confusion to suggest an alley intruder. He hid the missing gear in his folio, expecting the staged window to draw attention away from him.",
+  "requiredEvidenceIds": [
+    "clue-weight-shaped-injury",
+    "clue-thread-marked-latch",
+    "clue-ledger-threatened-secretary",
+    "clue-glass-cut-drawn-curtain",
+    "clue-gear-in-secretary-folio"
+  ],
+  "winEnding": "The players identify Crispin Hale and explain the full chain: motive in the ledger, mechanical death by the alarm weight, false locking by thread, false escape by broken window, and the missing gear hidden in the secretary\u0027s folio. Reed closes the workshop door on a tidy, solved parlor puzzle.",
+  "failEnding": "The staged window and locked-room claim remain persuasive enough to scatter suspicion among the suspects. Reed keeps the workshop sealed for further inquiry, but the clean solution slips out of reach for now."
+}

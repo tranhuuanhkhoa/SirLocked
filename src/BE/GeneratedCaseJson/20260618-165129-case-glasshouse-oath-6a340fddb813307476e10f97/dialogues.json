@@ -1,0 +1,131 @@
+[
+  {
+    "dialogueId": "dlg-1",
+    "characterId": "char-livia-marrow",
+    "question": "What did your uncle intend to announce at the midnight viewing?",
+    "answer": "Only the orchid\u0027s bloom, I thought. Uncle enjoyed ceremony. If there was another announcement, he kept it from me, as he kept most approvals.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-2",
+    "characterId": "char-livia-marrow",
+    "question": "Several people mention a Glasshouse Oath. What is it?",
+    "answer": "An old family phrase. A promise to protect the collection and not disgrace Bellweather. Reverend Pike says repeating it now will only wound the living.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-3",
+    "characterId": "char-marta-quill",
+    "question": "Who could operate the glasshouse vents and lamps?",
+    "answer": "Any fool can pull a chain if shown where it hangs. Knowing which chain matters is another thing. I checked the vents at half-eleven; they were sound then.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-4",
+    "characterId": "char-halden-pike",
+    "question": "Why are you so certain this was an accident?",
+    "answer": "Because grief seeks villains when it cannot bear chance. Professor Marrow was old, the glass was treacherous, and no good comes from dragging sacred family vows into public mud.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-5",
+    "characterId": "char-cassian-voss",
+    "question": "Where were you when the lamps failed?",
+    "answer": "In the pump room by the north windows, alone with a glass of the most sulfurous water in England. I saw no one of consequence pass toward Bellweather.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-6",
+    "characterId": "char-silas-fen",
+    "question": "Your debts make the vanished orchid convenient. Did you arrange a buyer?",
+    "answer": "A dealer hears offers. Hearing is not stealing, and stealing is not murder. I meant to bid on cuttings when Marrow\u0027s vanity cooled.",
+    "requiredClueIds": [
+      "clue-5"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-7",
+    "characterId": "char-halden-pike",
+    "question": "Why are the chapel charity hampers dusted with the same gray mineral powder found at the glasshouse?",
+    "answer": "The hampers were packed from the spring stores. I carried some, yes, but only before the viewing. Charity leaves dust on honest sleeves.",
+    "requiredClueIds": [
+      "clue-7"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-8",
+    "characterId": "char-silas-fen",
+    "question": "Could the orchid be sold quickly?",
+    "answer": "Not whole. Too famous. A smuggler would divide it, ruin it, and still attract every customs man from here to Calais. The journal may be worth more than the plant to the right enemy.",
+    "requiredClueIds": [
+      "clue-3"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-9",
+    "characterId": "char-livia-marrow",
+    "question": "Did inheriting Bellweather solve your difficulties?",
+    "answer": "It multiplies them. I asked a solicitor how to keep the estate intact, not how to sell it. Uncle never believed I would choose duty without being forced.",
+    "requiredClueIds": [
+      "clue-9"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-10",
+    "characterId": "char-cassian-voss",
+    "question": "Was your feud with Professor Marrow serious enough to steal his journal?",
+    "answer": "His classifications were infuriating and often correct. I wanted to defeat him in print, not rummage through his drawers like a housebreaker.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-11",
+    "characterId": "char-livia-marrow",
+    "question": "The blotter names Reverend Pike and trustee sales. Did your uncle discuss this?",
+    "answer": "No. That is, not plainly. He told me some promises rot if kept in darkness, but he never said Pike\u0027s name to me.",
+    "requiredClueIds": [
+      "clue-8"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-12",
+    "characterId": "char-marta-quill",
+    "question": "Who knew the old cellar hatch still opened into the glasshouse service way?",
+    "answer": "I knew, Marrow knew, and Reverend Pike knew from blessing the old orchid house after the fever year. Silas could guess; Voss would never soil his cuffs unless fame required it.",
+    "requiredClueIds": [
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-13",
+    "characterId": "char-silas-fen",
+    "question": "The orchid and journal were hidden in the cellar. Is this your crate?",
+    "answer": "No dealer hides a prize under its owner\u0027s house with a chapel seal on it. If I had stolen that plant, it would already be three counties away and nameless.",
+    "requiredClueIds": [
+      "clue-12"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-14",
+    "characterId": "char-halden-pike",
+    "question": "How do you explain chapel wax, cassock fiber, and the hidden crate below the orchid house?",
+    "answer": "Bellweather is full of old chapel things. Wax travels on hands; fibers travel on air. As for the crate, I beg you to consider what scandal will do to Livia and to every servant here.",
+    "requiredClueIds": [
+      "clue-11",
+      "clue-12"
+    ],
+    "unlockClueIds": []
+  }
+]

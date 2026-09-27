@@ -1,0 +1,1547 @@
+﻿{
+    "id":  "",
+    "caseId":  "case-bell-beneath-blackglass",
+    "status":  "DRAFT",
+    "mechanicsVersion":  2,
+    "generationMode":  "CAMERA_EMBEDDED",
+    "estimatedMinutes":  90,
+    "stages":  [
+                   {
+                       "stageId":  "stage-1",
+                       "order":  1,
+                       "scenes":  [
+                                      {
+                                          "sceneId":  "scene-1",
+                                          "backgroundUrl":  "",
+                                          "itemIds":  [
+
+                                                      ],
+                                          "characterIds":  [
+                                                               "char-rook",
+                                                               "char-quill"
+                                                           ],
+                                          "hotspots":  [
+                                                           {
+                                                               "hotspotId":  "hotspot-rook-scene-1",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-rook",
+                                                               "x":  27,
+                                                               "y":  55,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-quill-scene-1",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-quill",
+                                                               "x":  76,
+                                                               "y":  56,
+                                                               "width":  11,
+                                                               "height":  18,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           }
+                                                       ],
+                                          "placementPlan":  null,
+                                          "runtime":  null,
+                                          "completeCondition":  {
+                                                                    "logic":  "AND",
+                                                                    "requiredItemIds":  [
+
+                                                                                        ],
+                                                                    "requiredClueIds":  [
+                                                                                            "clue-clock-brake"
+                                                                                        ],
+                                                                    "requiredDialogueIds":  [
+                                                                                                "dlg-rook-clock",
+                                                                                                "dlg-quill-recording"
+                                                                                            ]
+                                                                },
+                                          "description":  "Căn phòng niêm kín của Vale chứa một sai lệch đồng hồ được đồng bộ, thiết bị chiếu bị xáo trộn và những nhân chứng đã tranh cãi về điều xảy ra trong lúc mất điện.",
+                                          "visualDescription":  "Sealed circular Victorian projection chamber with blank clock faces stopped at one matching hand angle, one exposed brass gear bearing a fresh crescent scrape, dark optical machinery, wet black stone and cold eclipse light.",
+                                          "title":  "Phòng Chiếu"
+                                      }
+                                  ],
+                       "title":  "Chín Mươi Giây Trong Bóng Tối"
+                   },
+                   {
+                       "stageId":  "stage-2",
+                       "order":  2,
+                       "scenes":  [
+                                      {
+                                          "sceneId":  "scene-2",
+                                          "backgroundUrl":  "",
+                                          "itemIds":  [
+                                                          "item-tide-key"
+                                                      ],
+                                          "characterIds":  [
+                                                               "char-flint"
+                                                           ],
+                                          "hotspots":  [
+                                                           {
+                                                               "hotspotId":  "hotspot-tide-key",
+                                                               "type":  "ITEM",
+                                                               "targetId":  "item-tide-key",
+                                                               "x":  68,
+                                                               "y":  72,
+                                                               "width":  8,
+                                                               "height":  7,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-flint-scene-2",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-flint",
+                                                               "x":  34,
+                                                               "y":  51,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           }
+                                                       ],
+                                          "placementPlan":  null,
+                                          "runtime":  null,
+                                          "completeCondition":  {
+                                                                    "logic":  "AND",
+                                                                    "requiredItemIds":  [
+                                                                                            "item-tide-key"
+                                                                                        ],
+                                                                    "requiredClueIds":  [
+                                                                                            "clue-tide-authorization"
+                                                                                        ],
+                                                                    "requiredDialogueIds":  [
+                                                                                                "dlg-flint-tides",
+                                                                                                "dlg-flint-seal"
+                                                                                            ]
+                                                                },
+                                          "description":  "Khi thủy triều rút, hồ sơ tòa thị chính hé lộ ai có thể thay đổi tuyến đường và tín hiệu của Veymar trong lúc Vale biến mất.",
+                                          "visualDescription":  "Partly flooded stone archive vault at low tide, a brass sluice control carrying the Wren crest, an erased rectangular salt stain, a small hourglass insert and wet route grooves leading toward the cliff wall.",
+                                          "title":  "Kho Lưu Trữ Ngập Nước"
+                                      }
+                                  ],
+                       "title":  "Mệnh Lệnh Của Thủy Triều"
+                   },
+                   {
+                       "stageId":  "stage-3",
+                       "order":  3,
+                       "scenes":  [
+                                      {
+                                          "sceneId":  "scene-3",
+                                          "backgroundUrl":  "",
+                                          "itemIds":  [
+                                                          "item-lens-half"
+                                                      ],
+                                          "characterIds":  [
+                                                               "char-mara"
+                                                           ],
+                                          "hotspots":  [
+                                                           {
+                                                               "hotspotId":  "hotspot-lens-half",
+                                                               "type":  "ITEM",
+                                                               "targetId":  "item-lens-half",
+                                                               "x":  61,
+                                                               "y":  67,
+                                                               "width":  7,
+                                                               "height":  7,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-mara-scene-3",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-mara",
+                                                               "x":  28,
+                                                               "y":  53,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           }
+                                                       ],
+                                          "placementPlan":  null,
+                                          "runtime":  null,
+                                          "completeCondition":  {
+                                                                    "logic":  "AND",
+                                                                    "requiredItemIds":  [
+                                                                                            "item-lens-half"
+                                                                                        ],
+                                                                    "requiredClueIds":  [
+                                                                                            "clue-vale-model"
+                                                                                        ],
+                                                                    "requiredDialogueIds":  [
+                                                                                                "dlg-mara-model",
+                                                                                                "dlg-mara-father"
+                                                                                            ]
+                                                                },
+                                          "description":  "Một mô hình đài thiên văn sai lệch cùng lời khai dè dặt của Mara Vale phơi bày kế hoạch có từ trước vụ biến mất của cha cô.",
+                                          "visualDescription":  "Vale manor study centered on a large architectural observatory model with one removable chamber wall left ajar, exposing a narrow hidden shaft and three distinctive pencil pinholes arranged like Mara's triangular brooch.",
+                                          "title":  "Dinh Thự Vale"
+                                      }
+                                  ],
+                       "title":  "Mô Hình Dối Trá"
+                   },
+                   {
+                       "stageId":  "stage-4",
+                       "order":  4,
+                       "scenes":  [
+                                      {
+                                          "sceneId":  "scene-4",
+                                          "backgroundUrl":  "",
+                                          "itemIds":  [
+                                                          "item-prism-half"
+                                                      ],
+                                          "characterIds":  [
+                                                               "char-wren",
+                                                               "char-quill"
+                                                           ],
+                                          "hotspots":  [
+                                                           {
+                                                               "hotspotId":  "hotspot-prism-half",
+                                                               "type":  "ITEM",
+                                                               "targetId":  "item-prism-half",
+                                                               "x":  48,
+                                                               "y":  73,
+                                                               "width":  7,
+                                                               "height":  7,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-wren-scene-4",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-wren",
+                                                               "x":  25,
+                                                               "y":  51,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-quill-scene-4",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-quill",
+                                                               "x":  78,
+                                                               "y":  54,
+                                                               "width":  11,
+                                                               "height":  18,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           }
+                                                       ],
+                                          "placementPlan":  null,
+                                          "runtime":  null,
+                                          "completeCondition":  {
+                                                                    "logic":  "AND",
+                                                                    "requiredItemIds":  [
+                                                                                            "item-prism-half"
+                                                                                        ],
+                                                                    "requiredClueIds":  [
+
+                                                                                        ],
+                                                                    "requiredDialogueIds":  [
+                                                                                                "dlg-wren-factory",
+                                                                                                "dlg-quill-copy",
+                                                                                                "dlg-wren-interface"
+                                                                                            ]
+                                                                },
+                                          "description":  "Nhà máy đổ nát nối các cơ cấu của đài thiên văn với tài sản nhà Wren và kỹ thuật bị đánh cắp của một ảo thuật gia.",
+                                          "visualDescription":  "Abandoned optical factory floor with rusted brass lathes, broken prism jigs, dark glass furnaces, Wren crest cast into structural ironwork and a small jagged prism fragment resting alone on a worn workbench.",
+                                          "title":  "Tầng Quang Học Bỏ Hoang"
+                                      }
+                                  ],
+                       "title":  "Xưởng Lantern"
+                   },
+                   {
+                       "stageId":  "stage-5",
+                       "order":  5,
+                       "scenes":  [
+                                      {
+                                          "sceneId":  "scene-5",
+                                          "backgroundUrl":  "",
+                                          "itemIds":  [
+                                                          "item-service-console"
+                                                      ],
+                                          "characterIds":  [
+                                                               "char-rook"
+                                                           ],
+                                          "hotspots":  [
+                                                           {
+                                                               "hotspotId":  "hotspot-service-console",
+                                                               "type":  "ITEM",
+                                                               "targetId":  "item-service-console",
+                                                               "x":  52,
+                                                               "y":  48,
+                                                               "width":  16,
+                                                               "height":  17,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-rook-scene-5",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-rook",
+                                                               "x":  22,
+                                                               "y":  57,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           }
+                                                       ],
+                                          "placementPlan":  null,
+                                          "runtime":  null,
+                                          "completeCondition":  {
+                                                                    "logic":  "AND",
+                                                                    "requiredItemIds":  [
+
+                                                                                        ],
+                                                                    "requiredClueIds":  [
+                                                                                            "clue-service-shaft",
+                                                                                            "clue-calibrated-optic",
+                                                                                            "clue-corrected-time",
+                                                                                            "clue-transit-sequence",
+                                                                                            "clue-illusion-overlay"
+                                                                                        ],
+                                                                    "requiredDialogueIds":  [
+                                                                                                "dlg-rook-console"
+                                                                                            ]
+                                                                },
+                                          "description":  "Một bàn điều khiển bí mật vận hành phanh đồng hồ, bức tường xoay, hệ thống chiếu và lối xuống hầm dưới của căn phòng.",
+                                          "visualDescription":  "Blackglass engineering rotunda dominated by one wall-integrated brass service console with a forked keyway, blank clock wheel, four color-coded transit levers and paired geometric sockets, plus a sealed rotating wall seam.",
+                                          "title":  "Sảnh Tròn Kỹ Thuật Blackglass"
+                                      }
+                                  ],
+                       "title":  "Cỗ Máy Dưới Tiếng Chuông"
+                   },
+                   {
+                       "stageId":  "stage-6",
+                       "order":  6,
+                       "scenes":  [
+                                      {
+                                          "sceneId":  "scene-6",
+                                          "backgroundUrl":  "",
+                                          "itemIds":  [
+
+                                                      ],
+                                          "characterIds":  [
+                                                               "char-wren",
+                                                               "char-mara"
+                                                           ],
+                                          "hotspots":  [
+                                                           {
+                                                               "hotspotId":  "hotspot-wren-scene-6",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-wren",
+                                                               "x":  72,
+                                                               "y":  52,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+                                                                                       "clue-wren-access"
+                                                                                   ]
+                                                           },
+                                                           {
+                                                               "hotspotId":  "hotspot-mara-scene-6",
+                                                               "type":  "CHARACTER",
+                                                               "targetId":  "char-mara",
+                                                               "x":  25,
+                                                               "y":  55,
+                                                               "width":  12,
+                                                               "height":  19,
+                                                               "zIndex":  1,
+                                                               "label":  "",
+                                                               "requiredClueIds":  [
+
+                                                                                   ]
+                                                           }
+                                                       ],
+                                          "placementPlan":  null,
+                                          "runtime":  null,
+                                          "completeCondition":  {
+                                                                    "logic":  "AND",
+                                                                    "requiredItemIds":  [
+
+                                                                                        ],
+                                                                    "requiredClueIds":  [
+                                                                                            "clue-undercroft-hush-draft"
+                                                                                        ],
+                                                                    "requiredDialogueIds":  [
+                                                                                                "dlg-mara-confession",
+                                                                                                "dlg-wren-final"
+                                                                                            ]
+                                                                },
+                                          "description":  "Bên dưới căn phòng, công tác chuẩn bị cuối cùng của kẻ chủ mưu và hồ sơ còn sót lại về vụ bê bối năm xưa đang chờ được tái dựng.",
+                                          "visualDescription":  "Cold projection undercroft with a restraint ring, torn blank vellum bearing an embossed Wren crest, fresh black optical grease holding a distinctive signet impression and a narrow mechanical lift beneath heavy arches.",
+                                          "title":  "Hầm Chiếu"
+                                      }
+                                  ],
+                       "title":  "Lời Giải Của Tiếng Chuông"
+                   }
+               ],
+    "characters":  [
+                       {
+                           "characterId":  "char-rook",
+                           "name":  "Dr. Elian Rook",
+                           "imageUrl":  "",
+                           "description":  "Một nhà thiên văn lỗi lạc đã tháo một bộ phận đồng hồ trước khi các nhân chứng bị thẩm vấn.",
+                           "visualDescription":  "Middle-aged thin stern man, long angular face, narrow tired eyes, swept-back iron-gray hair, deep teal astronomer coat with brass fasteners, dark waistcoat, ink-stained gloves, distinctive crescent clock-governor pin.",
+                           "role":  "Giám đốc Đài thiên văn Blackglass"
+                       },
+                       {
+                           "characterId":  "char-mara",
+                           "name":  "Mara Vale",
+                           "imageUrl":  "",
+                           "description":  "Một nữ sử gia kiến trúc nghiêm nghị từng giúp cha nghiên cứu những không gian không được ghi chép của Blackglass.",
+                           "visualDescription":  "Tall sharp-featured woman in her late thirties, lean upright build, high cheekbones, black hair in a severe braided bun, oxblood historian coat over charcoal field clothes, rolled plans case, distinctive silver drafting compass brooch.",
+                           "role":  "Con gái xa cách của Alaric Vale"
+                       },
+                       {
+                           "characterId":  "char-flint",
+                           "name":  "Captain Sera Flint",
+                           "imageUrl":  "",
+                           "description":  "Người phụ trách cổng thủy triều, đường ven vách đá, tín hiệu cảng và những hồ sơ được cho là bảo mật của chúng.",
+                           "visualDescription":  "Older strong harbor captain, broad shoulders and weathered square face, cropped steel-white hair, sun-darkened skin, navy greatcoat with brass captain bars, heavy sea boots, rope-scarred hands, distinctive tide-gauge whistle.",
+                           "role":  "Cảng trưởng kiêm điều phối viên nhật thực"
+                       },
+                       {
+                           "characterId":  "char-quill",
+                           "name":  "Jonas Quill",
+                           "imageUrl":  "",
+                           "description":  "Một kỹ sư trẻ đậm chất sân khấu; kỹ thuật trình chiếu bị đánh cắp của anh giải thích một phần điều tưởng như bất khả thi.",
+                           "visualDescription":  "Young theatrical mechanical illusionist, slim agile build, expressive oval face, tousled auburn hair, plum tailcoat with teal lining, tool harness and compact brass projector pieces, distinctive star-shaped lens monocle worn above one eye.",
+                           "role":  "Ảo thuật gia của dạ tiệc"
+                       },
+                       {
+                           "characterId":  "char-wren",
+                           "name":  "Councilor Bram Wren",
+                           "imageUrl":  "",
+                           "description":  "Một chính khách lớn tuổi có vẻ tận tụy, nhưng gia sản nhà ông bắt đầu từ thảm họa đã khiến Blackglass đóng cửa.",
+                           "visualDescription":  "Older stocky councilor, heavy rounded build, broad jowled face, neatly parted silver hair and trimmed mustache, expensive black council coat with burgundy sash, gold signet ring, distinctive Wren crest chain and guarded smile.",
+                           "role":  "Nghị viên thành phố kiêm ủy viên đài thiên văn"
+                       }
+                   ],
+    "items":  [
+                  {
+                      "itemId":  "item-tide-key",
+                      "imageUrl":  "",
+                      "unlockClueIds":  [
+
+                                        ],
+                      "isCollectible":  true,
+                      "isInteractivePuzzleObject":  true,
+                      "interactionPurpose":  "unlock-door",
+                      "name":  "Chìa Khóa Thủy Triều Bằng Đồng",
+                      "inspectText":  "Răng chìa khớp với chuẩn kỹ thuật từng dùng cho cả cổng thủy triều lẫn máy móc Blackglass đời đầu.",
+                      "renderMode":  "CUTOUT",
+                      "description":  "Một chìa khóa cảng có hai ngạnh, được tìm thấy cạnh bộ điều khiển cổng lưu trữ.",
+                      "visualDescription":  "A genuinely small palm-sized forked brass harbor service key, worn teeth, compact bow, salt patina, isolated complete object, no machinery or console attached.",
+                      "interactionReason":  "Người chơi phải tra đúng chìa khóa cảng vào ổ khóa của bàn điều khiển kỹ thuật."
+                  },
+                  {
+                      "itemId":  "item-lens-half",
+                      "imageUrl":  "",
+                      "unlockClueIds":  [
+
+                                        ],
+                      "isCollectible":  true,
+                      "isInteractivePuzzleObject":  true,
+                      "interactionPurpose":  "combine-item",
+                      "name":  "Nửa Thấu Kính Tiêu Sắc",
+                      "inspectText":  "Một rãnh hiệu chuẩn hình chữ W chạy qua cạnh gãy của mảnh kính.",
+                      "renderMode":  "CUTOUT",
+                      "description":  "Một mảnh vỡ của cụm quang học lắp ghép, được giấu trong mô hình đài thiên văn sai lệch.",
+                      "visualDescription":  "One small palm-sized broken achromatic lens fragment only, irregular jagged fracture edge with a precise W-shaped calibration notch crossing the break, brass rim remnant, visibly incomplete; never a full lens frame, optical device or complete instrument.",
+                      "interactionReason":  "Người chơi phải ghép mảnh thấu kính này với nửa lăng kính tương ứng."
+                  },
+                  {
+                      "itemId":  "item-prism-half",
+                      "imageUrl":  "",
+                      "unlockClueIds":  [
+
+                                        ],
+                      "isCollectible":  true,
+                      "isInteractivePuzzleObject":  true,
+                      "interactionPurpose":  "combine-item",
+                      "name":  "Nửa Lăng Kính Chiếu",
+                      "inspectText":  "Cạnh gãy và rãnh hình chữ W của nó khớp với mảnh thấu kính từ Dinh thự Vale.",
+                      "renderMode":  "CUTOUT",
+                      "description":  "Một mảnh quang học tương ứng được tìm thấy giữa các bàn thợ của Lantern Works.",
+                      "visualDescription":  "One small palm-sized broken projection-prism fragment only, irregular jagged fracture edge and exact W-shaped notch matching another missing piece, faint spectral glint, visibly incomplete; never a full prism assembly, projector frame or complete instrument.",
+                      "interactionReason":  "Người chơi phải ghép lăng kính này với mảnh thấu kính để lộ dấu hiệu chuẩn chung."
+                  },
+                  {
+                      "itemId":  "item-service-console",
+                      "imageUrl":  "",
+                      "unlockClueIds":  [
+
+                                        ],
+                      "isCollectible":  false,
+                      "isInteractivePuzzleObject":  true,
+                      "interactionPurpose":  "operate-mechanism",
+                      "name":  "Bàn Điều Khiển Kỹ Thuật Blackglass",
+                      "inspectText":  "Nó có ổ khóa hai ngạnh, vòng mã đồng hồ, ray trình tự vận chuyển và các phiến biểu tượng theo cặp.",
+                      "renderMode":  "EMBEDDED",
+                      "description":  "Một bàn điều khiển bằng đồng có khóa, vận hành hệ thống máy móc bí mật của phòng chiếu.",
+                      "visualDescription":  "Large built-in Victorian brass service console integrated into the rotunda wall, forked keyway, blank clock wheel, four color-coded transit levers and paired geometric sockets, drawn exactly once as part of the architecture.",
+                      "interactionReason":  "Người chơi phải mở khóa và vận hành các bộ điều khiển cơ khí hữu hạn của bàn máy."
+                  }
+              ],
+    "clues":  [
+                  {
+                      "clueId":  "clue-clock-brake",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "scene-1",
+                      "sourceType":  "camera",
+                      "sceneId":  "scene-1",
+                      "discoverMethod":  "camera",
+                      "visualDescription":  "Several blank clock faces show identical stopped hand angles while one exposed brass gear carries a bright crescent-shaped scrape.",
+                      "visualTextPolicy":  "NO_TEXT",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "time",
+                                   "mechanism",
+                                   "method"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-rook",
+                                                  "char-wren"
+                                              ],
+                      "title":  "Vết Phanh Đồng Bộ",
+                      "content":  "Mỗi chiếc đồng hồ dừng lại đều có một vết xước hình lưỡi liềm còn mới tại cùng vị trí bánh răng; mặt số thiên văn đã bị hãm bằng cơ khí, không phải do mất điện.",
+                      "narrativeMeaning":  "Một cơ cấu trung tâm đã cố ý dừng các đồng hồ để tạo ra thời điểm bất khả thi và che giấu chuyển động của căn phòng.",
+                      "inventoryDescription":  "Ảnh chụp các kim đồng hồ đồng bộ và những vết phanh mới trùng khớp."
+                  },
+                  {
+                      "clueId":  "clue-tide-authorization",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "scene-2",
+                      "sourceType":  "camera",
+                      "sceneId":  "scene-2",
+                      "discoverMethod":  "camera",
+                      "visualDescription":  "A brass tide control bears a raised Wren crest, an erased rectangular salt stain and a small hourglass insert beside a freshly moved route lever.",
+                      "visualTextPolicy":  "NO_TEXT",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "opportunity",
+                                   "tide",
+                                   "authorization"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-flint",
+                                                  "char-wren"
+                                              ],
+                      "title":  "Lệnh Điều Tiết Thủy Triều Của Wren",
+                      "content":  "Bảng cổng trong kho lưu trữ cho thấy mục ghi của Flint đã bị xóa và thay bằng lệnh của ủy viên Wren, cho phép đổi tuyến ven vách đá trong chín mươi giây.",
+                      "narrativeMeaning":  "Wren có cơ hội hành chính để cô lập đài thiên văn và đồng bộ tuyến tẩu thoát.",
+                      "inventoryDescription":  "Ảnh chụp lệnh điều tiết thủy triều đã bị sửa, mang gia huy Wren."
+                  },
+                  {
+                      "clueId":  "clue-vale-model",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "scene-3",
+                      "sourceType":  "camera",
+                      "sceneId":  "scene-3",
+                      "discoverMethod":  "camera",
+                      "visualDescription":  "The model's projection chamber wall sits ajar, exposing a narrow shaft and three pencil pinholes arranged like Mara's distinctive triangular brooch.",
+                      "visualTextPolicy":  "NO_TEXT",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "architecture",
+                                   "hidden-route",
+                                   "contradiction"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-mara"
+                                              ],
+                      "title":  "Trục Bí Mật Trong Mô Hình Của Vale",
+                      "content":  "Mô hình của Vale có một bức tường tháo rời và trục được phác bằng bút chì nhưng không xuất hiện trong bản vẽ chính thức; chữ viết tắt của Mara đánh dấu chỗ sửa.",
+                      "narrativeMeaning":  "Mara và Vale đã biết về lối đi kín trước buổi xem thử và định lợi dụng nó.",
+                      "inventoryDescription":  "Ảnh chụp trục bí mật và chữ viết tắt của Mara Vale trên mô hình đã sửa."
+                  },
+                  {
+                      "clueId":  "clue-undercroft-hush-draft",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "scene-6",
+                      "sourceType":  "camera",
+                      "sceneId":  "scene-6",
+                      "discoverMethod":  "camera",
+                      "visualDescription":  "Torn blank vellum with an embossed Wren crest lies beside a restraint ring; fresh black grease holds the councilor's distinctive signet impression.",
+                      "visualTextPolicy":  "NO_TEXT",
+                      "hintLevel":  3,
+                      "tags":  [
+                                   "motive",
+                                   "culprit",
+                                   "late-evidence"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-wren"
+                                              ],
+                      "title":  "Bản Thỏa Thuận Bịt Miệng Mới Của Wren",
+                      "content":  "Một bản bồi thường bị xé hứa trả tiền để Vale im lặng, còn lớp mỡ quang học mới cạnh vòng trói mang dấu nhẫn của Bram Wren.",
+                      "narrativeMeaning":  "Wren đích thân chuẩn bị nơi bắt cóc để ngăn Vale chứng minh nhà Wren gây ra vụ bê bối ban đầu.",
+                      "inventoryDescription":  "Ảnh chụp nối thỏa thuận bịt miệng và dấu nhẫn Wren trực tiếp với nơi giam giữ đã được chuẩn bị."
+                  },
+                  {
+                      "clueId":  "clue-service-shaft",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "interaction-use-tide-key",
+                      "sourceType":  "interaction",
+                      "sceneId":  "scene-5",
+                      "discoverMethod":  "interaction",
+                      "visualDescription":  "The console lock retracts as the blank wall rotates to expose a narrow descending shaft.",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "route",
+                                   "mechanism"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-flint",
+                                                  "char-wren"
+                                              ],
+                      "title":  "Trục Kỹ Thuật Đã Mở",
+                      "content":  "Chìa khóa thủy triều mở bàn điều khiển và giải phóng bức tường xoay nối phòng chiếu với hầm dưới.",
+                      "narrativeMeaning":  "Vale có thể bị đưa khỏi căn phòng khóa kín mà không cần qua cửa ra vào hay cửa sổ.",
+                      "inventoryDescription":  "Chìa khóa cảng đã mở lối kỹ thuật bí mật của Blackglass."
+                  },
+                  {
+                      "clueId":  "clue-calibrated-optic",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "interaction-combine-optics",
+                      "sourceType":  "interaction",
+                      "sceneId":  "scene-5",
+                      "discoverMethod":  "interaction",
+                      "visualDescription":  "The joined optical pieces reveal a complete W-shaped calibration scale aligned for the Blackglass projector.",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "optics",
+                                   "contradiction",
+                                   "method"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-wren",
+                                                  "char-quill"
+                                              ],
+                      "title":  "Cụm Quang Học Hiệu Chuẩn Wren",
+                      "content":  "Thấu kính và lăng kính sau khi ghép thành một bộ phận máy chiếu Blackglass, khắc dấu hiệu chuẩn của xưởng Wren.",
+                      "narrativeMeaning":  "Nhà máy của Wren đã cung cấp hệ thống chiếu bí mật, trái với lời ông phủ nhận rằng quang cụ của họ có thể lắp vào Blackglass.",
+                      "inventoryDescription":  "Một cụm quang học máy chiếu được tái tạo, do Lantern Works thuộc nhà Wren hiệu chuẩn."
+                  },
+                  {
+                      "clueId":  "clue-corrected-time",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "puzzle-clock-code",
+                      "sourceType":  "puzzle",
+                      "sceneId":  "scene-5",
+                      "discoverMethod":  "puzzle",
+                      "visualDescription":  "The code wheel settles on 2347 and releases a hidden correction plate.",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "time",
+                                   "cipher"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-rook",
+                                                  "char-flint",
+                                                  "char-wren"
+                                              ],
+                      "title":  "Thời Điểm Nhật Thực Chính Xác",
+                      "content":  "Mã đồng hồ cho thấy thời điểm mất điện thật là 23:47, sớm hơn mười bốn phút so với màn hiển thị thiên văn đã dàn dựng.",
+                      "narrativeMeaning":  "Giờ đồng hồ giả đã che giấu một đợt đổi tuyến thủy triều theo lịch và tạo ra lời khai sai lệch về thời gian.",
+                      "inventoryDescription":  "Thời điểm mất điện thật là 23:47."
+                  },
+                  {
+                      "clueId":  "clue-transit-sequence",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "puzzle-transit-sequence",
+                      "sourceType":  "puzzle",
+                      "sceneId":  "scene-5",
+                      "discoverMethod":  "puzzle",
+                      "visualDescription":  "Four brass indicators lock into a timed route from wall to platform to bell to seal.",
+                      "hintLevel":  3,
+                      "tags":  [
+                                   "sequence",
+                                   "timeline",
+                                   "method"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-wren"
+                                              ],
+                      "title":  "Trình Tự Vận Chuyển Chín Mươi Giây",
+                      "content":  "Trình tự trên bàn điều khiển cho thấy tường mở, sàn phòng hạ xuống, chuông vang và tường đóng lại trong vòng chín mươi giây.",
+                      "narrativeMeaning":  "Vụ biến mất là một quy trình vận chuyển cơ khí có tính giờ, không chỉ là ảo ảnh.",
+                      "inventoryDescription":  "Trình tự cơ khí chứng minh việc đưa người khỏi phòng khóa kín vừa khít khoảng thời gian nhân chứng quan sát."
+                  },
+                  {
+                      "clueId":  "clue-illusion-overlay",
+                      "isCritical":  false,
+                      "isEvidence":  true,
+                      "isRedHerring":  true,
+                      "source":  "puzzle-symbol-overlay",
+                      "sourceType":  "puzzle",
+                      "sceneId":  "scene-5",
+                      "discoverMethod":  "puzzle",
+                      "visualDescription":  "Paired symbols illuminate a plate depicting projected footprints and a speaking portrait.",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "red-herring",
+                                   "illusion",
+                                   "recording"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-quill",
+                                                  "char-wren"
+                                              ],
+                      "title":  "Lớp Chiếu Phủ Của Quill",
+                      "content":  "Các biểu tượng khớp nhau hé lộ một lớp chiếu phủ sao chép từ Quill, dùng để tạo dấu chân đứng yên và lời cảnh báo của nhà thiên văn đã chết.",
+                      "narrativeMeaning":  "Kỹ thuật của Quill tạo ra màn đánh lạc hướng, nhưng không thể di chuyển Vale hay vận hành tuyến thủy triều.",
+                      "inventoryDescription":  "Một kỹ thuật ảo ảnh bị đánh cắp giải thích dấu chân và bóng ma được ghi lại."
+                  },
+                  {
+                      "clueId":  "clue-flint-override",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "dlg-flint-seal",
+                      "sourceType":  "dialogue",
+                      "sceneId":  "scene-2",
+                      "discoverMethod":  "dialogue",
+                      "visualDescription":  "Flint identifies Wren’s authorization and the emergency privilege attached to it.",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "testimony",
+                                   "opportunity"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-flint",
+                                                  "char-wren"
+                                              ],
+                      "title":  "Lời Thừa Nhận Của Flint",
+                      "content":  "Khi đối chất bằng lệnh điều tiết, Flint thừa nhận Wren đã viện đặc quyền khẩn cấp của ủy viên và ra lệnh bà che giấu việc đổi tuyến cho đến sau dạ tiệc.",
+                      "narrativeMeaning":  "Hồ sơ thủy triều bị sửa là mệnh lệnh cố ý của Wren, không phải hoạt động thường lệ ở cảng.",
+                      "inventoryDescription":  "Flint thừa nhận Wren đích thân ra lệnh đổi tuyến trong chín mươi giây."
+                  },
+                  {
+                      "clueId":  "clue-mara-plan",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "dlg-mara-father",
+                      "sourceType":  "dialogue",
+                      "sceneId":  "scene-3",
+                      "discoverMethod":  "dialogue",
+                      "visualDescription":  "Mara explains her annotations and Vale’s limited plan for using the undocumented shaft.",
+                      "hintLevel":  2,
+                      "tags":  [
+                                   "lesser-crime",
+                                   "plan",
+                                   "motive"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-mara"
+                                              ],
+                      "title":  "Kế Nghi Binh Của Vale",
+                      "content":  "Mara thừa nhận cô đã giúp Vale lên kế hoạch biến mất giả trong chốc lát để dụ kẻ đã thay thế hồ sơ gốc của đài thiên văn lộ diện.",
+                      "narrativeMeaning":  "Kẻ thủ ác đã cướp lấy kế hoạch của Vale sau khi biết chuyện, biến màn kịch thành vụ bắt cóc.",
+                      "inventoryDescription":  "Vale định thực hiện một màn nghi binh có kiểm soát, không phải biến mất kéo dài."
+                  },
+                  {
+                      "clueId":  "clue-wren-access",
+                      "isCritical":  true,
+                      "isEvidence":  true,
+                      "isRedHerring":  false,
+                      "source":  "dlg-wren-interface",
+                      "sourceType":  "dialogue",
+                      "sceneId":  "scene-4",
+                      "discoverMethod":  "dialogue",
+                      "visualDescription":  "Wren acknowledges the calibration mark and the surviving family access privilege.",
+                      "hintLevel":  3,
+                      "tags":  [
+                                   "access",
+                                   "contradiction",
+                                   "means"
+                               ],
+                      "relatedCharacterIds":  [
+                                                  "char-wren"
+                                              ],
+                      "title":  "Quyền Tiếp Cận Quang Học Của Wren",
+                      "content":  "Trước cụm quang học được tái tạo, Wren buộc phải thừa nhận gia đình ông vẫn giữ các phiến hiệu chuẩn và quyền tiếp cận không hạn chế vào hệ thống kỹ thuật Blackglass.",
+                      "narrativeMeaning":  "Wren nói dối về mối liên hệ giữa nhà máy và Blackglass, đồng thời có phương tiện để chuẩn bị cơ cấu.",
+                      "inventoryDescription":  "Wren vừa có kiến thức kỹ thuật vừa có quyền tiếp cận máy móc bí mật."
+                  }
+              ],
+    "dialogues":  [
+                      {
+                          "dialogueId":  "dlg-rook-clock",
+                          "characterId":  "char-rook",
+                          "requiredClueIds":  [
+                                                  "clue-clock-brake"
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Tại sao ông tháo một bộ phận của đồng hồ thiên văn?",
+                          "answer":  "Tôi tháo bộ điều tốc sau khi thấy vết phanh mới. Tôi sợ lần kích hoạt thứ hai sẽ phá hủy bằng chứng rằng mọi chiếc đồng hồ đều bị dừng từ trung tâm."
+                      },
+                      {
+                          "dialogueId":  "dlg-quill-recording",
+                          "characterId":  "char-quill",
+                          "requiredClueIds":  [
+
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Anh có thể tái tạo giọng nói của nhà thiên văn đã chết không?",
+                          "answer":  "Nếu có chuẩn bị thì được. Nhưng dấu chân và giọng nói đã dùng hình học lớp phủ bị đánh cắp từ màn trình diễn nhật thực riêng của tôi."
+                      },
+                      {
+                          "dialogueId":  "dlg-flint-tides",
+                          "characterId":  "char-flint",
+                          "requiredClueIds":  [
+
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Những tuyến nào được mở trong lúc mất điện?",
+                          "answer":  "Theo hồ sơ, cống ven vách đá đã đóng. Bảng thủy triều phải chứng minh không có hoạt động cảng nào được cấp phép."
+                      },
+                      {
+                          "dialogueId":  "dlg-flint-seal",
+                          "characterId":  "char-flint",
+                          "requiredClueIds":  [
+                                                  "clue-tide-authorization"
+                                              ],
+                          "unlockClueIds":  [
+                                                "clue-flint-override"
+                                            ],
+                          "question":  "Bà nói chỉ con dấu của bà mới cho phép đổi tuyến. Vậy bà giải thích mục ghi này thế nào?",
+                          "answer":  "Wren đã viện đặc quyền khẩn cấp của các ủy viên. Ông ta ra lệnh dọn tuyến trong chín mươi giây và bắt tôi giấu bản ghi trùng."
+                      },
+                      {
+                          "dialogueId":  "dlg-mara-model",
+                          "characterId":  "char-mara",
+                          "requiredClueIds":  [
+                                                  "clue-vale-model"
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Tại sao mô hình này có một trục không xuất hiện trong bản vẽ chính thức?",
+                          "answer":  "Cha tôi tìm thấy nhắc đến một khoang bảo trì. Tôi dựng lại nó, nhưng chúng tôi chưa từng chứng minh bức tường thật vẫn còn di chuyển."
+                      },
+                      {
+                          "dialogueId":  "dlg-mara-father",
+                          "characterId":  "char-mara",
+                          "requiredClueIds":  [
+                                                  "clue-vale-model"
+                                              ],
+                          "unlockClueIds":  [
+                                                "clue-mara-plan"
+                                            ],
+                          "question":  "Chữ viết tắt chứng minh cô biết lối đi. Vale đã lên kế hoạch gì?",
+                          "answer":  "Một màn nghi binh chín mươi giây. Ông định vào trục, nghe ngóng kẻ thù rồi trở lại. Có người đã ngăn ông quay về."
+                      },
+                      {
+                          "dialogueId":  "dlg-wren-factory",
+                          "characterId":  "char-wren",
+                          "requiredClueIds":  [
+
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Tại sao gia đình ông vẫn giữ Lantern Works?",
+                          "answer":  "Vì tình cảm và trách nhiệm công dân. Những dụng cụ lỗi thời ở đó không còn liên hệ vận hành nào với Blackglass."
+                      },
+                      {
+                          "dialogueId":  "dlg-quill-copy",
+                          "characterId":  "char-quill",
+                          "requiredClueIds":  [
+
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Ai có thể sao chép kỹ thuật trình chiếu của anh?",
+                          "answer":  "Một ủy viên đã kiểm tra thiết bị của tôi trước dạ tiệc. Wren gọi đó là rà soát an toàn và tự tay cầm các phiến căn chỉnh."
+                      },
+                      {
+                          "dialogueId":  "dlg-wren-interface",
+                          "characterId":  "char-wren",
+                          "requiredClueIds":  [
+
+                                              ],
+                          "unlockClueIds":  [
+                                                "clue-wren-access"
+                                            ],
+                          "question":  "Quang cụ Lantern Works có thể vận hành máy chiếu của đài thiên văn không?",
+                          "answer":  "Không thể. Hiệu chuẩn không tương thích, và gia đình tôi đã từ bỏ mọi đặc quyền kỹ thuật từ nhiều thập kỷ trước."
+                      },
+                      {
+                          "dialogueId":  "dlg-rook-console",
+                          "characterId":  "char-rook",
+                          "requiredClueIds":  [
+                                                  "clue-service-shaft"
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Bàn điều khiển này vận hành những hệ thống nào?",
+                          "answer":  "Phanh trung tâm, tường xoay của căn phòng, sàn vận chuyển, chuông và máy chiếu. Giải được các bộ điều khiển thì toàn bộ vụ biến mất sẽ có mốc thời gian."
+                      },
+                      {
+                          "dialogueId":  "dlg-mara-confession",
+                          "characterId":  "char-mara",
+                          "requiredClueIds":  [
+                                                  "clue-illusion-overlay",
+                                                  "clue-mara-plan"
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Cha cô trông đợi tìm thấy gì dưới căn phòng?",
+                          "answer":  "Lời thú nhận gốc chứng minh các ủy viên Wren gây ra những cái chết năm xưa rồi đổ tội cho các nhà thiên văn. Ông tin Bram đã đề nghị tiền bịt miệng để lấy lại nó."
+                      },
+                      {
+                          "dialogueId":  "dlg-wren-final",
+                          "characterId":  "char-wren",
+                          "requiredClueIds":  [
+                                                  "clue-undercroft-hush-draft",
+                                                  "clue-wren-access"
+                                              ],
+                          "unlockClueIds":  [
+
+                                            ],
+                          "question":  "Tại sao dấu nhẫn của ông lại nằm cạnh vòng trói?",
+                          "answer":  "Vale đã ép tôi phải hành động. Một cái tên bị hủy hoại có thể kéo theo hội đồng Veymar và sinh kế của nửa thành phố."
+                      }
+                  ],
+    "conversationNodes":  [
+                              {
+                                  "nodeId":  "conv-rook-root",
+                                  "characterId":  "char-rook",
+                                  "isRoot":  true,
+                                  "requiredClueIds":  [
+
+                                                      ],
+                                  "lines":  [
+                                                {
+                                                    "speaker":  "NPC",
+                                                    "text":  "Blackglass được thiết kế để biến thiên văn học thành sân khấu. Chính điều đó khiến các hệ thống bí mật của nó dễ bị lợi dụng."
+                                                }
+                                            ],
+                                  "unlockClueIds":  [
+
+                                                    ],
+                                  "challengeId":  null,
+                                  "choices":  [
+                                                  {
+                                                      "choiceId":  "conv-rook-topic",
+                                                      "label":  "Hỏi về những chiếc đồng hồ đã dừng",
+                                                      "requiredClueIds":  [
+                                                                              "clue-clock-brake"
+                                                                          ],
+                                                      "nextNodeId":  "conv-rook-clock-node"
+                                                  },
+                                                  {
+                                                      "choiceId":  "conv-rook-leave",
+                                                      "label":  "Rời đi",
+                                                      "requiredClueIds":  [
+
+                                                                          ],
+                                                      "nextNodeId":  null
+                                                  }
+                                              ]
+                              },
+                              {
+                                  "nodeId":  "conv-rook-clock-node",
+                                  "characterId":  "char-rook",
+                                  "isRoot":  false,
+                                  "requiredClueIds":  [
+                                                          "clue-clock-brake"
+                                                      ],
+                                  "lines":  [
+                                                {
+                                                    "speaker":  "NPC",
+                                                    "text":  "Những vết xước giống hệt nhau nghĩa là một phanh từ xa đã chặn mọi bộ truyền đồng hồ cùng lúc. Thời gian hiển thị đã được dàn dựng."
+                                                }
+                                            ],
+                                  "unlockClueIds":  [
+
+                                                    ],
+                                  "challengeId":  null,
+                                  "choices":  [
+                                                  {
+                                                      "choiceId":  "conv-rook-clock-end",
+                                                      "label":  "Trở lại điều tra",
+                                                      "requiredClueIds":  [
+
+                                                                          ],
+                                                      "nextNodeId":  null
+                                                  }
+                                              ]
+                              },
+                              {
+                                  "nodeId":  "conv-wren-root",
+                                  "characterId":  "char-wren",
+                                  "isRoot":  true,
+                                  "requiredClueIds":  [
+
+                                                      ],
+                                  "lines":  [
+                                                {
+                                                    "speaker":  "NPC",
+                                                    "text":  "Gia đình tôi đã tài trợ cho Veymar qua nhiều thế hệ. Những cáo buộc cũ không nên che mờ sự phụng sự hiện tại."
+                                                }
+                                            ],
+                                  "unlockClueIds":  [
+
+                                                    ],
+                                  "challengeId":  null,
+                                  "choices":  [
+                                                  {
+                                                      "choiceId":  "conv-wren-topic",
+                                                      "label":  "Hỏi về quyền tiếp cận Lantern Works",
+                                                      "requiredClueIds":  [
+
+                                                                          ],
+                                                      "nextNodeId":  "conv-wren-access-node"
+                                                  },
+                                                  {
+                                                      "choiceId":  "conv-wren-leave",
+                                                      "label":  "Rời đi",
+                                                      "requiredClueIds":  [
+
+                                                                          ],
+                                                      "nextNodeId":  null
+                                                  }
+                                              ]
+                              },
+                              {
+                                  "nodeId":  "conv-wren-access-node",
+                                  "characterId":  "char-wren",
+                                  "isRoot":  false,
+                                  "requiredClueIds":  [
+
+                                                      ],
+                                  "lines":  [
+                                                {
+                                                    "speaker":  "NPC",
+                                                    "text":  "Các phiến của nhà máy chỉ là di vật nghi lễ. Không thứ gì ở đó có thể vận hành Blackglass."
+                                                }
+                                            ],
+                                  "unlockClueIds":  [
+
+                                                    ],
+                                  "challengeId":  null,
+                                  "choices":  [
+                                                  {
+                                                      "choiceId":  "conv-wren-access-end",
+                                                      "label":  "Kết thúc thẩm vấn",
+                                                      "requiredClueIds":  [
+
+                                                                          ],
+                                                      "nextNodeId":  null
+                                                  }
+                                              ]
+                              }
+                          ],
+    "evidenceChallenges":  [
+                               {
+                                   "challengeId":  "challenge-flint-seal",
+                                   "dialogueId":  "dlg-flint-seal",
+                                   "correctEvidenceId":  "clue-tide-authorization",
+                                   "unlockClueIds":  [
+                                                         "clue-flint-override"
+                                                     ],
+                                   "successResponse":  "Lệnh mang tên Wren buộc Flint thừa nhận việc đổi tuyến bị che giấu.",
+                                   "failureResponse":  "Hãy tìm hồ sơ ghi rõ ai đã ra lệnh đổi tuyến.",
+                                   "prompt":  "Bằng chứng nào bác bỏ lời Flint rằng không có lệnh đổi tuyến?"
+                               },
+                               {
+                                   "challengeId":  "challenge-mara-route",
+                                   "dialogueId":  "dlg-mara-father",
+                                   "correctEvidenceId":  "clue-vale-model",
+                                   "unlockClueIds":  [
+                                                         "clue-mara-plan"
+                                                     ],
+                                   "successResponse":  "Chữ viết tắt trên mô hình đã sửa phơi bày màn nghi binh Vale định thực hiện.",
+                                   "failureResponse":  "Hãy tìm một vật thể kiến trúc có dấu riêng của Mara.",
+                                   "prompt":  "Bằng chứng nào chứng minh Mara biết lối đi bí mật trước buổi xem thử?"
+                               },
+                               {
+                                   "challengeId":  "challenge-wren-optics",
+                                   "dialogueId":  "dlg-wren-interface",
+                                   "correctEvidenceId":  "clue-calibrated-optic",
+                                   "unlockClueIds":  [
+                                                         "clue-wren-access"
+                                                     ],
+                                   "successResponse":  "Cụm quang học đã ghép buộc Wren thừa nhận quyền tiếp cận kỹ thuật.",
+                                   "failureResponse":  "Hãy tái tạo hai mảnh quang học và kiểm tra dấu hiệu chuẩn.",
+                                   "prompt":  "Bằng chứng nào mâu thuẫn với lời Wren rằng quang cụ nhà máy không tương thích?"
+                               }
+                           ],
+    "deductions":  [
+                       {
+                           "deductionId":  "deduction-locked-room-method",
+                           "prompt":  "Chuỗi sự kiện nào giải thích cách Vale rời phòng chiếu khóa kín trong chín mươi giây?",
+                           "requiredClueIds":  [
+                                                   "clue-clock-brake",
+                                                   "clue-service-shaft",
+                                                   "clue-corrected-time",
+                                                   "clue-transit-sequence"
+                                               ],
+                           "requiredChallengeIds":  [
+                                                        "challenge-flint-seal"
+                                                    ],
+                           "options":  [
+                                           {
+                                               "id":  "deduce-method-shaft",
+                                               "label":  "Phanh trung tâm dàn dựng thời gian, còn tường xoay và sàn máy đưa Vale xuống hầm."
+                                           },
+                                           {
+                                               "id":  "deduce-method-window",
+                                               "label":  "Vale thoát qua cửa sổ bị niêm kín trong lúc đồng hồ hỏng tự nhiên."
+                                           },
+                                           {
+                                               "id":  "deduce-method-illusion",
+                                               "label":  "Vale chưa từng bước vào; Quill đã chiếu toàn bộ hình ảnh của ông."
+                                           }
+                                       ],
+                           "correctOptionId":  "deduce-method-shaft",
+                           "successResponse":  "Phanh đồng hồ và trình tự vận chuyển tái dựng cách Vale bị đưa khỏi căn phòng khóa kín.",
+                           "failureResponse":  "Hãy tách màn đánh lạc hướng bằng hình chiếu khỏi bộ máy thực sự di chuyển Vale.",
+                           "unlockClueIds":  [
+
+                                             ]
+                       },
+                       {
+                           "deductionId":  "deduction-hijacked-feint",
+                           "prompt":  "Chuỗi sự kiện nào xác định cách kế hoạch của Vale biến thành một vụ bắt cóc?",
+                           "requiredClueIds":  [
+                                                   "clue-mara-plan",
+                                                   "clue-calibrated-optic",
+                                                   "clue-wren-access",
+                                                   "clue-undercroft-hush-draft"
+                                               ],
+                           "requiredChallengeIds":  [
+                                                        "challenge-mara-route",
+                                                        "challenge-wren-optics"
+                                                    ],
+                           "options":  [
+                                           {
+                                               "id":  "deduce-feint-hijacked",
+                                               "label":  "Wren biết màn nghi binh của Vale, sao chép lớp phủ của Quill, đổi hướng cơ cấu rồi giam Vale bên dưới."
+                                           },
+                                           {
+                                               "id":  "deduce-feint-mara",
+                                               "label":  "Mara bắt cóc Vale để thừa kế gia sản và đổ tội cho các ủy viên đài thiên văn."
+                                           },
+                                           {
+                                               "id":  "deduce-feint-rook",
+                                               "label":  "Rook bịa ra lối đi bí mật sau vụ biến mất để bảo vệ chức giám đốc."
+                                           }
+                                       ],
+                           "correctOptionId":  "deduce-feint-hijacked",
+                           "successResponse":  "Vale lên kế hoạch cho ảo ảnh mở đầu, nhưng Wren đã biến nó thành một vụ bắt cóc thật.",
+                           "failureResponse":  "Hãy xác định ai có quang cụ sao chép, quyền tiếp cận kỹ thuật và lý do để bịt miệng Vale.",
+                           "unlockClueIds":  [
+
+                                             ]
+                       }
+                   ],
+    "requiredTeamworkChains":  [
+                                   {
+                                       "chainId":  "chain-clock-and-tide",
+                                       "investigatorClueId":  "clue-tide-authorization",
+                                       "interrogatorChallengeId":  "challenge-flint-seal",
+                                       "deductionId":  "deduction-locked-room-method",
+                                       "description":  "Một điều tra viên chụp lệnh đã bị sửa, người còn lại đối chất Flint và ghép việc đổi tuyến vào dòng thời gian cơ khí."
+                                   },
+                                   {
+                                       "chainId":  "chain-optic-and-access",
+                                       "investigatorClueId":  "clue-calibrated-optic",
+                                       "interrogatorChallengeId":  "challenge-wren-optics",
+                                       "deductionId":  "deduction-hijacked-feint",
+                                       "description":  "Một điều tra viên tái tạo cụm quang học, người còn lại dùng nó phá lời phủ nhận của Wren và xác lập quyền tiếp cận của ông ta."
+                                   }
+                               ],
+    "hints":  [
+                  {
+                      "hintId":  "hint-scene-1",
+                      "contextType":  "SCENE",
+                      "targetId":  "scene-1",
+                      "order":  1,
+                      "text":  "Hãy so sánh các bánh răng lộ ra, không chỉ thời gian trên mặt đồng hồ."
+                  },
+                  {
+                      "hintId":  "hint-scene-2",
+                      "contextType":  "SCENE",
+                      "targetId":  "scene-2",
+                      "order":  1,
+                      "text":  "Kiểm tra bảng lệnh xem có nét chữ nào bên dưới mục ghi chính thức."
+                  },
+                  {
+                      "hintId":  "hint-scene-3",
+                      "contextType":  "SCENE",
+                      "targetId":  "scene-3",
+                      "order":  1,
+                      "text":  "So sánh bức tường phòng chiếu trong mô hình với các bản vẽ còn lại."
+                  },
+                  {
+                      "hintId":  "hint-scene-4",
+                      "contextType":  "SCENE",
+                      "targetId":  "scene-4",
+                      "order":  1,
+                      "text":  "Tìm trên bàn quang học một mảnh khớp với mảnh từ Dinh thự Vale."
+                  },
+                  {
+                      "hintId":  "hint-scene-5",
+                      "contextType":  "SCENE",
+                      "targetId":  "scene-5",
+                      "order":  1,
+                      "text":  "Mở bàn điều khiển, tái tạo cụm quang học rồi giải các bộ điều khiển từ thời gian đến biểu tượng."
+                  },
+                  {
+                      "hintId":  "hint-scene-6",
+                      "contextType":  "SCENE",
+                      "targetId":  "scene-6",
+                      "order":  1,
+                      "text":  "Chụp thỏa thuận và dấu mới cạnh vòng trói trong cùng một bức ảnh."
+                  },
+                  {
+                      "hintId":  "hint-challenge-flint",
+                      "contextType":  "CONFRONTATION",
+                      "targetId":  "challenge-flint-seal",
+                      "order":  1,
+                      "text":  "Dùng hồ sơ đã bị sửa có gia huy của một ủy viên."
+                  },
+                  {
+                      "hintId":  "hint-challenge-mara",
+                      "contextType":  "CONFRONTATION",
+                      "targetId":  "challenge-mara-route",
+                      "order":  1,
+                      "text":  "Chữ viết tắt của Mara nằm trên mô hình vật lý của lối đi bí mật."
+                  },
+                  {
+                      "hintId":  "hint-challenge-wren",
+                      "contextType":  "CONFRONTATION",
+                      "targetId":  "challenge-wren-optics",
+                      "order":  1,
+                      "text":  "Lời tuyên bố không tương thích của Wren sụp đổ khi hai mảnh quang học được ghép lại."
+                  },
+                  {
+                      "hintId":  "hint-deduction-method",
+                      "contextType":  "DEDUCTION",
+                      "targetId":  "deduction-locked-room-method",
+                      "order":  1,
+                      "text":  "Ảo ảnh giải thích thứ người ta nhìn thấy; trình tự trên bàn điều khiển giải thích chuyển động."
+                  },
+                  {
+                      "hintId":  "hint-deduction-feint",
+                      "contextType":  "DEDUCTION",
+                      "targetId":  "deduction-hijacked-feint",
+                      "order":  1,
+                      "text":  "Vale chỉ định rời đi chín mươi giây, vì vậy hãy xác định ai có thể ngăn ông quay lại."
+                  }
+              ],
+    "interactions":  [
+                         {
+                             "interactionId":  "interaction-combine-optics",
+                             "type":  "COMBINE_ITEMS",
+                             "targetId":  "item-lens-half",
+                             "requiredItemIds":  [
+                                                     "item-lens-half",
+                                                     "item-prism-half"
+                                                 ],
+                             "requiredClueIds":  [
+
+                                                 ],
+                             "unlockItemIds":  [
+
+                                               ],
+                             "unlockClueIds":  [
+                                                   "clue-calibrated-optic"
+                                               ],
+                             "unlockSceneIds":  [
+
+                                                ],
+                             "consumeItemIds":  [
+                                                    "item-lens-half",
+                                                    "item-prism-half"
+                                                ],
+                             "singleUse":  true,
+                             "failureMessage":  "Những mảnh này không tạo thành một cụm quang học hoàn chỉnh.",
+                             "successMessage":  "Hai mảnh khóa khít vào nhau và lộ dấu hiệu chuẩn Wren."
+                         },
+                         {
+                             "interactionId":  "interaction-use-tide-key",
+                             "type":  "USE_ITEM_ON_TARGET",
+                             "targetId":  "item-service-console",
+                             "requiredItemIds":  [
+                                                     "item-tide-key"
+                                                 ],
+                             "requiredClueIds":  [
+
+                                                 ],
+                             "unlockItemIds":  [
+
+                                               ],
+                             "unlockClueIds":  [
+                                                   "clue-service-shaft"
+                                               ],
+                             "unlockSceneIds":  [
+
+                                                ],
+                             "consumeItemIds":  [
+
+                                                ],
+                             "singleUse":  true,
+                             "failureMessage":  "Bàn điều khiển cần một chìa kỹ thuật Veymar đời đầu có hai ngạnh.",
+                             "successMessage":  "Chìa khóa thủy triều xoay, bức tường kỹ thuật bí mật cũng xoay mở."
+                         }
+                     ],
+    "puzzles":  [
+                    {
+                        "puzzleId":  "puzzle-clock-code",
+                        "type":  "CODE_PUZZLE",
+                        "targetId":  "item-service-console",
+                        "options":  [
+                                        "2319",
+                                        "2333",
+                                        "2347",
+                                        "0001"
+                                    ],
+                        "correctCode":  "2347",
+                        "correctSequence":  [
+
+                                            ],
+                        "requiredItemIds":  [
+
+                                            ],
+                        "requiredClueIds":  [
+                                                "clue-clock-brake",
+                                                "clue-tide-authorization",
+                                                "clue-service-shaft"
+                                            ],
+                        "unlockItemIds":  [
+
+                                          ],
+                        "unlockClueIds":  [
+                                              "clue-corrected-time"
+                                          ],
+                        "unlockSceneIds":  [
+
+                                           ],
+                        "successMessage":  "Bàn điều khiển hiện thời điểm mất điện đã được hiệu chỉnh.",
+                        "prompt":  "Nhập thời điểm mất điện thật dựa trên vết phanh đồng hồ và lệnh điều tiết thủy triều.",
+                        "failureMessage":  "Vòng mã bật về vị trí cũ với một tiếng kim loại."
+                    },
+                    {
+                        "puzzleId":  "puzzle-transit-sequence",
+                        "type":  "SEQUENCE_PUZZLE",
+                        "targetId":  "item-service-console",
+                        "options":  [
+                                        "wall",
+                                        "platform",
+                                        "bell",
+                                        "seal",
+                                        "projector"
+                                    ],
+                        "correctCode":  "",
+                        "correctSequence":  [
+                                                "wall",
+                                                "platform",
+                                                "bell",
+                                                "seal"
+                                            ],
+                        "requiredItemIds":  [
+
+                                            ],
+                        "requiredClueIds":  [
+                                                "clue-corrected-time",
+                                                "clue-service-shaft"
+                                            ],
+                        "unlockItemIds":  [
+
+                                          ],
+                        "unlockClueIds":  [
+                                              "clue-transit-sequence"
+                                          ],
+                        "unlockSceneIds":  [
+
+                                           ],
+                        "successMessage":  "Bàn điều khiển tái diễn hành trình chín mươi giây.",
+                        "prompt":  "Sắp xếp các cơ cấu của căn phòng theo trình tự vận hành trong chín mươi giây.",
+                        "failureMessage":  "Cơ cấu mắc kẹt trước khi hoàn tất lộ trình."
+                    },
+                    {
+                        "puzzleId":  "puzzle-symbol-overlay",
+                        "type":  "SYMBOL_MATCH_PUZZLE",
+                        "targetId":  "item-service-console",
+                        "options":  [
+                                        "bell-star",
+                                        "footprint-wave",
+                                        "portrait-moon",
+                                        "shaft-anchor",
+                                        "clock-sun",
+                                        "gate-eye"
+                                    ],
+                        "correctCode":  "",
+                        "correctSequence":  [
+                                                "bell-star",
+                                                "footprint-wave",
+                                                "portrait-moon"
+                                            ],
+                        "requiredItemIds":  [
+
+                                            ],
+                        "requiredClueIds":  [
+                                                "clue-calibrated-optic",
+                                                "clue-transit-sequence"
+                                            ],
+                        "unlockItemIds":  [
+
+                                          ],
+                        "unlockClueIds":  [
+                                              "clue-illusion-overlay"
+                                          ],
+                        "unlockSceneIds":  [
+
+                                           ],
+                        "successMessage":  "Các phiến khớp nhau làm lộ lớp chiếu phủ bị sao chép.",
+                        "prompt":  "Ghép từng biểu tượng đài thiên văn với biểu tượng trình chiếu tương ứng của Lantern Works.",
+                        "failureMessage":  "Các phiến biểu tượng tối đi rồi nhả ra."
+                    }
+                ],
+    "finalLogic":  {
+                       "culpritId":  "char-wren",
+                       "motive":  "Bram Wren bắt cóc Vale để ngăn bằng chứng cho thấy gia đình Wren gây ra thảm họa Blackglass ban đầu và dựng nên gia sản từ việc che đậy.",
+                       "method":  "Wren cướp lấy màn nghi binh của Vale, dùng hiệu ứng chiếu sao chép và phanh đồng hồ trung tâm để đánh lạc hướng, rồi đổi hướng tường xoay cùng sàn máy để giam Vale dưới hầm.",
+                       "requiredEvidenceIds":  [
+                                                   "clue-clock-brake",
+                                                   "clue-tide-authorization",
+                                                   "clue-undercroft-hush-draft"
+                                               ],
+                       "motiveOptions":  [
+                                             {
+                                                 "id":  "motive-suppress-scandal",
+                                                 "label":  "Bịt miệng Vale trước khi ông phơi bày trách nhiệm của nhà Wren trong thảm họa ban đầu."
+                                             },
+                                             {
+                                                 "id":  "motive-steal-estate",
+                                                 "label":  "Ép Mara từ bỏ quyền kiểm soát gia sản Vale."
+                                             },
+                                             {
+                                                 "id":  "motive-destroy-observatory",
+                                                 "label":  "Làm mất uy tín ngành thiên văn và đóng cửa vĩnh viễn Đài thiên văn Blackglass."
+                                             }
+                                         ],
+                       "methodOptions":  [
+                                             {
+                                                 "id":  "method-hijacked-mechanism",
+                                                 "label":  "Cướp màn nghi binh của Vale, dàn dựng đồng hồ và hình chiếu rồi chuyển sàn bí mật xuống hầm."
+                                             },
+                                             {
+                                                 "id":  "method-window-escape",
+                                                 "label":  "Đưa Vale qua một cửa sổ ven vách đá được tháo niêm phong tạm thời trong lúc mất điện."
+                                             },
+                                             {
+                                                 "id":  "method-total-projection",
+                                                 "label":  "Chiếu hình ảnh giả của Vale bước vào trong khi Vale thật ở nơi khác."
+                                             }
+                                         ],
+                       "correctMotiveId":  "motive-suppress-scandal",
+                       "correctMethodId":  "method-hijacked-mechanism",
+                       "requiredEvidenceLinks":  [
+                                                     {
+                                                         "claimType":  "MOTIVE",
+                                                         "evidenceId":  "clue-undercroft-hush-draft"
+                                                     },
+                                                     {
+                                                         "claimType":  "METHOD",
+                                                         "evidenceId":  "clue-clock-brake"
+                                                     },
+                                                     {
+                                                         "claimType":  "OPPORTUNITY",
+                                                         "evidenceId":  "clue-tide-authorization"
+                                                     }
+                                                 ],
+                       "requiredDeductionIds":  [
+                                                    "deduction-locked-room-method",
+                                                    "deduction-hijacked-feint"
+                                                ],
+                       "requiredTeamworkChainIds":  [
+                                                        "chain-clock-and-tide",
+                                                        "chain-optic-and-access"
+                                                    ],
+                       "winEnding":  "SirLocked tái dựng hành trình chín mươi giây và vạch mặt Wren trước khi thủy triều nhật thực tràn vào hầm. Vale được cứu sống, Flint mở tuyến đường bị niêm kín và lời thú nhận gốc của Blackglass được công bố.",
+                       "failEnding":  "Lời buộc tội không nối được động cơ, máy móc và quyền tiếp cận. Wren niêm kín hầm khi thủy triều dâng, hủy lời thú nhận còn sót lại và biến vụ mất tích của Vale thành một trò lừa riêng đầy liều lĩnh."
+                   },
+    "createdAt":  "2026-07-13T18:37:26.6431318Z",
+    "updatedAt":  "2026-07-13T18:37:26.6431318Z",
+    "art_style":  "pixel_art",
+    "character_style":  "chibi",
+    "language":  "vi",
+    "sub_style":  "high_detail_pixel",
+    "summary":  "Vào đêm trước nhật thực thủy triều ở Veymar, nhà bảo trợ Alaric Vale biến mất khỏi phòng chiếu bị khóa kín của Đài thiên văn Blackglass. SirLocked và cộng sự phải lần theo bộ máy đồng hồ tưởng như bất khả thi, hồ sơ thủy triều mâu thuẫn, lời khai bị chôn vùi và một âm mưu bắt nguồn từ thảm họa năm xưa của đài thiên văn.",
+    "title":  "Tiếng Chuông Dưới Blackglass",
+    "coverImageUrl":  ""
+}
