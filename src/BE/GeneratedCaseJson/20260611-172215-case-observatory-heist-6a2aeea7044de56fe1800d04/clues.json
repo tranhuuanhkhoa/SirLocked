@@ -1,0 +1,102 @@
+[
+  {
+    "clueId": "clue-1",
+    "title": "Oil on glass",
+    "content": "The glass shards have traces of machine oil, suggesting a tool was used.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-1",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-2",
+    "title": "Footprint size",
+    "content": "The footprint is size 12, which matches Janitor Moore\u0027s shoes (he wears size 12 work boots).",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-2",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-3",
+    "title": "Notched lockpick",
+    "content": "The lockpick set has a notch on one pick, indicating it was custom-made.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-3",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-4",
+    "title": "Lipstick and almonds",
+    "content": "The coffee cup has a deep red lipstick and almond scent. Assistant Kim wears that shade and uses almond-scented lotion.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": true,
+    "source": "item-4",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-5",
+    "title": "Timeline inconsistency",
+    "content": "Visitor Chen signed in at 7pm, but the theft was at 7:30pm. He had time to reach the vault if he went quickly.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-5",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-6",
+    "title": "Sailor\u0027s knot",
+    "content": "The knot on the rope is a bowline, commonly used by sailors. Visitor Chen was a sailor before coming here.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-6",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-7",
+    "title": "Chemical stain",
+    "content": "The cloth fragment has a chemical stain that matches the cleaning solvent used by Janitor Moore.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-7",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-8",
+    "title": "Alibi check",
+    "content": "Dr. Vega claimed he was in his office, but the security camera shows him near the vault at 7:25pm.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-3",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-9",
+    "title": "Motive financial",
+    "content": "Dr. Vega had significant gambling debts and needed money urgently.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "dlg-1",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-10",
+    "title": "Motive revenge",
+    "content": "Janitor Moore was fired from his previous job for theft and holds a grudge against the wealthy.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": true,
+    "source": "dlg-2",
+    "sourceType": "dialogue"
+  }
+]

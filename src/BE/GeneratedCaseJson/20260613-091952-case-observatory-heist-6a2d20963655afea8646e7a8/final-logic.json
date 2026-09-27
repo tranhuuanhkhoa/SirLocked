@@ -1,0 +1,11 @@
+{
+  "culpritId": "char-assistant",
+  "motive": "Gambling debts and resentment towards the curator for refusing a loan.",
+  "method": "Used a duplicate key (from earlier copying) to unlock the vault during the storm. Used a pry bar from his toolbox to break the lock when the electronic system failed. Hid the sapphire in the telescope mount and escaped via rope from the roof.",
+  "requiredEvidenceIds": [
+    "clue-sapphire-found",
+    "clue-assistant-motive"
+  ],
+  "winEnding": "You confront Marcus with the evidence. He confesses, and the sapphire is returned. Justice prevails.",
+  "failEnding": "Without enough evidence, the culprit escapes in the storm. The sapphire is lost forever."
+}
