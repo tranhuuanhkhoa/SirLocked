@@ -1,0 +1,139 @@
+[
+  {
+    "dialogueId": "dlg-1",
+    "characterId": "char-1",
+    "question": "Who had official access to the unveiling platform before the bell rang?",
+    "answer": "Maribel says municipal staff, Venn, and accredited press were allowed on the platform after dawn. She stresses that the crowd ropes were guarded, but admits the press pen stood only a few feet from Venn\u2019s speaking mark.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-2",
+    "characterId": "char-4",
+    "question": "Where were you when Venn vanished?",
+    "answer": "Tomas smiles nervously and says he remained in the press pen the entire time, sketching the crowd reaction to the bell. He insists the fog was so thick that he noticed nothing useful.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-3",
+    "characterId": "char-1",
+    "question": "Do you recognize the blue wax on the platform rail?",
+    "answer": "Maribel says blue sealing wax is used on Harbor Commission certificates, which makes it look damning for her office. When pressed, she admits the newspapers also received blue-waxed proof bundles for the official illustrated supplement.",
+    "requiredClueIds": [
+      "clue-3"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-4",
+    "characterId": "char-5",
+    "question": "Could anyone have entered the tower without your key?",
+    "answer": "Edda says her tower key never left her belt on the day of the ceremony. However, she remembers permitting Tomas inside weeks earlier to draw the bell and old stair for a newspaper feature.",
+    "requiredClueIds": [
+      "clue-4"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-5",
+    "characterId": "char-2",
+    "question": "Do the tower footprints belong to you?",
+    "answer": "Jonah laughs grimly and says they likely came from an old salvage survey, when half the harbor wore boots like his. He points out that fresh brine on a rope matters more than theatrical old footprints.",
+    "requiredClueIds": [
+      "clue-6"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-6",
+    "characterId": "char-5",
+    "question": "Who would bring brass pulleys into a condemned chapel?",
+    "answer": "Edda says chapel repairs use iron, never bright brass. Brass pocket pulleys are common among stagehands, printers, and illustrators who hang backdrops or drying lines.",
+    "requiredClueIds": [
+      "clue-5"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-7",
+    "characterId": "char-3",
+    "question": "Why would Alaric scratch out his own speech?",
+    "answer": "Celia says Alaric was torn between civic duty and fear. He planned to announce that the western sluice was unsafe, then lost nerve, then changed his mind again. She believes he would not willingly disappear before making the correction.",
+    "requiredClueIds": [
+      "clue-2"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-8",
+    "characterId": "char-1",
+    "question": "Did you know there was a hatch under the platform?",
+    "answer": "Maribel first claims it was boarded over weeks ago. When shown the revised plan, she concedes Venn changed the access route without fully briefing her, which explains her panic but not the bell mechanism.",
+    "requiredClueIds": [
+      "clue-7"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-9",
+    "characterId": "char-3",
+    "question": "What does the access ledger say about Tomas Reed?",
+    "answer": "Celia notes that Tomas had every drawing a careful plotter would need: the chapel elevations, the quay cutaways, and permission to sketch places the public never saw. She also says Alaric thought Tomas was merely a harmless artist.",
+    "requiredClueIds": [
+      "clue-8"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-10",
+    "characterId": "char-2",
+    "question": "Could a diver\u2019s barrow have made the warehouse tracks?",
+    "answer": "Jonah says no. His barrow has wide iron wheels that crush grit flat. The marks by C-7 are too narrow and paired too neatly, like a folding artist\u2019s cart or portable press stand.",
+    "requiredClueIds": [
+      "clue-10"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-11",
+    "characterId": "char-4",
+    "question": "Why is newspaper wrapping caught in the blue wax on warehouse C-7?",
+    "answer": "Tomas says newspapers reuse string, wax, and wrapping by the armful, so the scrap proves nothing. He then adds that he never went near C-7, contradicting the fact that his work materials match the lock and tracks.",
+    "requiredClueIds": [
+      "clue-9",
+      "clue-10"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-12",
+    "characterId": "char-5",
+    "question": "What does the cut cord beneath the quay tell us?",
+    "answer": "Edda identifies the cord\u2019s route as the old chapel drain, long forgotten except by people who studied the tower closely. She says the bell could be made to toll from below when the tide fell enough to leave the drain clear.",
+    "requiredClueIds": [
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-13",
+    "characterId": "char-4",
+    "question": "How did your sketchbook show the tower interior during the ceremony?",
+    "answer": "Tomas first calls it a memory sketch, then falters when the timed page shows the bell rope already tied with the remote cord. He cannot explain how he drew a hidden arrangement he claimed never to notice.",
+    "requiredClueIds": [
+      "clue-12"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-14",
+    "characterId": "char-1",
+    "question": "What happens if the evidence is presented now?",
+    "answer": "Maribel says the city will have to halt the opening and search every low-tide chamber. She admits Venn\u2019s warning about the western sluice must be heard, but insists the abduction must be separated from the quay\u2019s engineering scandal.",
+    "requiredClueIds": [
+      "clue-12"
+    ],
+    "unlockClueIds": []
+  }
+]

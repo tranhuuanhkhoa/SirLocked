@@ -1,0 +1,140 @@
+[
+  {
+    "dialogueId": "dlg-constable-opening",
+    "characterId": "char-constable-reed",
+    "question": "What do we know before we start touching things?",
+    "answer": "The patron arrived for a private appointment, the alarm bell rang once, and Mr. Hale called for help. He said the door was locked, and the broken window seemed to explain an escape. We should prove each part, not assume it.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-caretaker-first-at-door",
+    "characterId": "char-nora-bell",
+    "question": "Who first said the workshop door was locked?",
+    "answer": "Mr. Hale did. I was coming from the arcade lamp cupboard when he shouted that the handle would not give. I only tried it after he had already made a great point of saying so.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-secretary-reported-lock"
+    ]
+  },
+  {
+    "dialogueId": "dlg-caretaker-on-ringing",
+    "characterId": "char-nora-bell",
+    "question": "Did you hear anything before the alarm?",
+    "answer": "Only the clocks settling and one sharp clack from the big mechanism. Then the alarm bell rang. I did not hear a window break until people were already rushing about.",
+    "requiredClueIds": [
+      "clue-clock-stopped-at-alarm"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-secretary-timeline",
+    "characterId": "char-crispin-hale",
+    "question": "Where were you when the alarm rang?",
+    "answer": "In the shuttered arcade, arranging my employer\u0027s carriage papers. I heard the alarm, found the workshop locked, and saw the broken window. I never touched that monstrous clock.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-apprentice-on-gear",
+    "characterId": "char-eliza-vane",
+    "question": "Would a missing gear make you suspect an expert?",
+    "answer": "Not necessarily. Pendlewick labeled the service parts like a schoolroom cupboard. Anyone who could read the tray numbers could remove the right gear if they had seen the clock opened.",
+    "requiredClueIds": [
+      "clue-empty-gear-socket"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-secretary-on-ledger",
+    "characterId": "char-crispin-hale",
+    "question": "Why was your name underlined in the patron\u0027s appointment ledger?",
+    "answer": "Routine bookkeeping. My employer disliked loose ends. It was not an accusation, and I had no reason to fear a review of accounts.",
+    "requiredClueIds": [
+      "clue-ledger-threatened-secretary"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-apprentice-on-blueprint",
+    "characterId": "char-eliza-vane",
+    "question": "What does your old blueprint tell us about the alarm?",
+    "answer": "The calendar train and alarm release are separate. Remove the gear, and the face can freeze, but the weighted alarm arm can still drop. The stopped clock is not proof the mechanism was harmless.",
+    "requiredClueIds": [
+      "clue-blueprint-gear-note"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-caretaker-on-ladder",
+    "characterId": "char-nora-bell",
+    "question": "Did you move the repair ladder tonight?",
+    "answer": "No. I sweep floors, not high panels. If there is fresh oil on that rung, someone climbed after the clock was opened, and they were not doing my chores.",
+    "requiredClueIds": [
+      "clue-oil-on-ladder"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-secretary-on-repair-nook",
+    "characterId": "char-crispin-hale",
+    "question": "Were you in the repair nook this evening?",
+    "answer": "Certainly not. I would not know one tin of clock oil from another. My business was with papers, not ladders, trays, or greasy little wheels.",
+    "requiredClueIds": [
+      "clue-oil-on-ladder"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-constable-on-latch",
+    "characterId": "char-constable-reed",
+    "question": "Could the door have been locked after someone left?",
+    "answer": "Yes. With a waxed thread looped around that latch, a person outside could pull it into place and slip the thread away. The room only looked sealed.",
+    "requiredClueIds": [
+      "clue-thread-marked-latch"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-caretaker-on-window",
+    "characterId": "char-nora-bell",
+    "question": "Does the alley footprint prove an intruder escaped?",
+    "answer": "I would not trust it. The alley dust takes prints from anyone passing the arcade. A single tidy mark is too neat, and I saw no trail of glass outside when I first looked.",
+    "requiredClueIds": [
+      "clue-alley-footprint"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-secretary-on-window",
+    "characterId": "char-crispin-hale",
+    "question": "You said the broken window explained the escape. How, if the curtain was already drawn?",
+    "answer": "I... only meant it appeared that way at a glance. In the confusion, anyone might mistake glass and a draft for an escape route. I cannot be expected to inspect curtains while my employer lay dead.",
+    "requiredClueIds": [
+      "clue-glass-cut-drawn-curtain"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-apprentice-on-folio-gear",
+    "characterId": "char-eliza-vane",
+    "question": "Could the gear in Hale\u0027s folio be an innocent spare?",
+    "answer": "No. Number nineteen belongs in that clock or in the numbered tray, not among account papers. And the oil on it is fresh service oil, not old display tarnish.",
+    "requiredClueIds": [
+      "clue-gear-in-secretary-folio"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-constable-final-check",
+    "characterId": "char-constable-reed",
+    "question": "What accusation would the evidence support?",
+    "answer": "The fair accusation is that the killer staged the locked room with thread, staged the window to suggest an intruder, used the clock\u0027s alarm weight as the means, and hid the missing gear among private papers.",
+    "requiredClueIds": [
+      "clue-thread-marked-latch",
+      "clue-glass-cut-drawn-curtain",
+      "clue-gear-in-secretary-folio"
+    ],
+    "unlockClueIds": []
+  }
+]

@@ -1,0 +1,1570 @@
+{
+  "caseId": "case-lumiere-murder",
+  "title": "The Gaslight Curtain Call",
+  "summary": "On the opening night of the Grand Lumiere Theater, lead actress Celeste Duval is found dead in her dressing room, poisoned by cyanide in her makeup. Sherlock Holmes and Dr Watson must interrogate four suspects, uncover hidden motives, and reveal the truth before the final curtain falls.",
+  "status": "DRAFT",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/cases/lumiere-murder.png",
+  "stages": [
+    {
+      "stageId": "stage-dressing-room",
+      "title": "The Dressing Room",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-dressing-room",
+          "title": "Celeste's Dressing Room",
+          "backgroundUrl": "/assets/scenes/dressing-room.png",
+          "description": "A plush dressing room dimly lit by warm gaslight sconces on the left, with a large ornate mirror and vanity table against the back wall center-right. A red velvet chaise lounge sits against the left wall under a framed playbill; Celeste's body is slumped on it. On the vanity, a makeup kit lies open; a small writing desk with a drawer stands right. The overall mood is rich crimson and gold, with deep shadows.",
+          "itemIds": [
+            "item-celeste-body",
+            "item-makeup-kit",
+            "item-threatening-letter"
+          ],
+          "characterIds": [],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-body",
+              "type": "ITEM",
+              "targetId": "item-celeste-body",
+              "x": 12,
+              "y": 45,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Examine Body",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-makeup",
+              "type": "ITEM",
+              "targetId": "item-makeup-kit",
+              "x": 55,
+              "y": 48,
+              "width": 9,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Inspect Makeup Kit",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-letter",
+              "type": "ITEM",
+              "targetId": "item-threatening-letter",
+              "x": 75,
+              "y": 50,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Read Letter",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-celeste-body",
+              "item-makeup-kit",
+              "item-threatening-letter"
+            ],
+            "requiredClueIds": [],
+            "requiredDialogueIds": []
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 630,
+              "width": 1600,
+              "height": 135
+            },
+            "spawnPoints": {
+              "default": {
+                "x": 260,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 260,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 340,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-celeste-body",
+                "asset": "/assets/items/body.png",
+                "position": {
+                  "x": 256,
+                  "y": 495,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 128,
+                  "height": 90
+                },
+                "hotspot": {
+                  "x": 192,
+                  "y": 405,
+                  "width": 128,
+                  "height": 90
+                },
+                "reservedSlot": {
+                  "x": 192,
+                  "y": 405,
+                  "width": 128,
+                  "height": 90
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              },
+              {
+                "itemId": "item-makeup-kit",
+                "asset": "/assets/items/makeup-kit.png",
+                "position": {
+                  "x": 952,
+                  "y": 540,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 108
+                },
+                "hotspot": {
+                  "x": 880,
+                  "y": 432,
+                  "width": 144,
+                  "height": 108
+                },
+                "reservedSlot": {
+                  "x": 880,
+                  "y": 432,
+                  "width": 144,
+                  "height": 108
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              },
+              {
+                "itemId": "item-threatening-letter",
+                "asset": "/assets/items/letter.png",
+                "position": {
+                  "x": 1280,
+                  "y": 558,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 108
+                },
+                "hotspot": {
+                  "x": 1200,
+                  "y": 450,
+                  "width": 160,
+                  "height": 108
+                },
+                "reservedSlot": {
+                  "x": 1200,
+                  "y": 450,
+                  "width": 160,
+                  "height": 108
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              }
+            ],
+            "characterPlacements": [],
+            "transitions": [
+              {
+                "transitionId": "exit-dressing-to-backstage",
+                "targetSceneId": "scene-backstage-hallway",
+                "label": "Backstage Hallway",
+                "hotspot": {
+                  "x": 1388,
+                  "y": 640,
+                  "width": 168,
+                  "height": 54
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-backstage-interrogations",
+      "title": "Backstage Interrogations",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-backstage-hallway",
+          "title": "Backstage Hallway",
+          "backgroundUrl": "/assets/scenes/backstage-hallway.png",
+          "description": "A narrow corridor flanked by props tables and a corkboard on the left wall. Mona Reeves leans against the far wall near the corkboard; Victor Crane paces by a costume rack on the right. Gaslight flickers from overhead, casting long shadows on crates and posters.",
+          "itemIds": [
+            "item-love-letter",
+            "item-scratched-photo"
+          ],
+          "characterIds": [
+            "char-mona",
+            "char-victor"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-loveletter",
+              "type": "ITEM",
+              "targetId": "item-love-letter",
+              "x": 12,
+              "y": 55,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Love Letter",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-photo",
+              "type": "ITEM",
+              "targetId": "item-scratched-photo",
+              "x": 38,
+              "y": 40,
+              "width": 7,
+              "height": 9,
+              "zIndex": 1,
+              "label": "Scratched Photograph",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-mona",
+              "type": "CHARACTER",
+              "targetId": "char-mona",
+              "x": 25,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Mona Reeves",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-victor-hall",
+              "type": "CHARACTER",
+              "targetId": "char-victor",
+              "x": 65,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Victor Crane",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-love-letter",
+              "item-scratched-photo"
+            ],
+            "requiredClueIds": [],
+            "requiredDialogueIds": [
+              "dlg-mona-whereabouts",
+              "dlg-victor-alibi"
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 630,
+              "width": 1600,
+              "height": 135
+            },
+            "spawnPoints": {
+              "default": {
+                "x": 220,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 220,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 300,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-love-letter",
+                "asset": "/assets/items/love-letter.png",
+                "position": {
+                  "x": 256,
+                  "y": 585,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 128,
+                  "height": 90
+                },
+                "hotspot": {
+                  "x": 192,
+                  "y": 495,
+                  "width": 128,
+                  "height": 90
+                },
+                "reservedSlot": {
+                  "x": 192,
+                  "y": 495,
+                  "width": 128,
+                  "height": 90
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              },
+              {
+                "itemId": "item-scratched-photo",
+                "asset": "/assets/items/scratched-photo.png",
+                "position": {
+                  "x": 664,
+                  "y": 441,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 112,
+                  "height": 81
+                },
+                "hotspot": {
+                  "x": 608,
+                  "y": 360,
+                  "width": 112,
+                  "height": 81
+                },
+                "reservedSlot": {
+                  "x": 608,
+                  "y": 360,
+                  "width": 112,
+                  "height": 81
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mona",
+                "position": {
+                  "x": 472,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 400,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 400,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 702
+              },
+              {
+                "characterId": "char-victor",
+                "position": {
+                  "x": 1112,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 1040,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 1040,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 702
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "exit-backstage-to-dressing",
+                "targetSceneId": "scene-dressing-room",
+                "label": "Celeste's Dressing Room",
+                "hotspot": {
+                  "x": 36,
+                  "y": 640,
+                  "width": 190,
+                  "height": 54
+                }
+              },
+              {
+                "transitionId": "exit-backstage-to-office",
+                "targetSceneId": "scene-owners-office",
+                "label": "Owner's Office",
+                "hotspot": {
+                  "x": 1374,
+                  "y": 640,
+                  "width": 190,
+                  "height": 54
+                }
+              }
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-owners-office",
+          "title": "Theater Owner's Office",
+          "backgroundUrl": "/assets/scenes/owners-office.png",
+          "description": "A stately office dominated by a large mahogany desk centre, piled with papers and a ledger. A key rack beside the door on the left holds a spare dressing room key. Eleanor Hart sits behind the desk, cast in the warm glow of a desk lamp, her expression composed yet guarded. Heavy drapes frame a window behind her.",
+          "itemIds": [
+            "item-ledger",
+            "item-spare-key"
+          ],
+          "characterIds": [
+            "char-eleanor"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-ledger",
+              "type": "ITEM",
+              "targetId": "item-ledger",
+              "x": 40,
+              "y": 50,
+              "width": 9,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Account Ledger",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-key",
+              "type": "ITEM",
+              "targetId": "item-spare-key",
+              "x": 10,
+              "y": 45,
+              "width": 6,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Spare Key",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-eleanor-office",
+              "type": "CHARACTER",
+              "targetId": "char-eleanor",
+              "x": 52,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Eleanor Hart",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-ledger",
+              "item-spare-key"
+            ],
+            "requiredClueIds": [],
+            "requiredDialogueIds": [
+              "dlg-eleanor-alibi",
+              "dlg-eleanor-finances"
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 630,
+              "width": 1600,
+              "height": 135
+            },
+            "spawnPoints": {
+              "default": {
+                "x": 300,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 300,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 380,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-ledger",
+                "asset": "/assets/items/ledger.png",
+                "position": {
+                  "x": 712,
+                  "y": 558,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 108
+                },
+                "hotspot": {
+                  "x": 640,
+                  "y": 450,
+                  "width": 144,
+                  "height": 108
+                },
+                "reservedSlot": {
+                  "x": 640,
+                  "y": 450,
+                  "width": 144,
+                  "height": 108
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              },
+              {
+                "itemId": "item-spare-key",
+                "asset": "/assets/items/key.png",
+                "position": {
+                  "x": 208,
+                  "y": 477,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 96,
+                  "height": 72
+                },
+                "hotspot": {
+                  "x": 160,
+                  "y": 405,
+                  "width": 96,
+                  "height": 72
+                },
+                "reservedSlot": {
+                  "x": 160,
+                  "y": 405,
+                  "width": 96,
+                  "height": 72
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-eleanor",
+                "position": {
+                  "x": 904,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 832,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 832,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 702
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "exit-office-to-backstage",
+                "targetSceneId": "scene-backstage-hallway",
+                "label": "Backstage Hallway",
+                "hotspot": {
+                  "x": 36,
+                  "y": 640,
+                  "width": 190,
+                  "height": 54
+                }
+              },
+              {
+                "transitionId": "exit-office-to-props",
+                "targetSceneId": "scene-props-room",
+                "label": "Props Room",
+                "hotspot": {
+                  "x": 1374,
+                  "y": 640,
+                  "width": 190,
+                  "height": 54
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-final-act",
+      "title": "The Final Act",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-props-room",
+          "title": "Props Room",
+          "backgroundUrl": "/assets/scenes/props-room.png",
+          "description": "A cluttered workspace lined with shelves of dusty bottles, theatrical props, and a workbench under a flickering gas lamp. Samuel Briggs stands by the shelves, meticulously arranging props; Victor Crane leans against the workbench, arms crossed, a pawn ticket on the bench. A cyanide bottle sits among prop bottles on the centre shelf.",
+          "itemIds": [
+            "item-cyanide-bottle",
+            "item-pawn-ticket"
+          ],
+          "characterIds": [
+            "char-samuel",
+            "char-victor"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-cyanide",
+              "type": "ITEM",
+              "targetId": "item-cyanide-bottle",
+              "x": 28,
+              "y": 40,
+              "width": 7,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Cyanide Bottle",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-ticket",
+              "type": "ITEM",
+              "targetId": "item-pawn-ticket",
+              "x": 68,
+              "y": 55,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Pawn Ticket",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-samuel",
+              "type": "CHARACTER",
+              "targetId": "char-samuel",
+              "x": 15,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Samuel Briggs",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-victor-props",
+              "type": "CHARACTER",
+              "targetId": "char-victor",
+              "x": 55,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Victor Crane",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-cyanide-bottle",
+              "item-pawn-ticket"
+            ],
+            "requiredClueIds": [],
+            "requiredDialogueIds": [
+              "dlg-victor-temper",
+              "dlg-samuel-access"
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 630,
+              "width": 1600,
+              "height": 135
+            },
+            "spawnPoints": {
+              "default": {
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 560,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 640,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-cyanide-bottle",
+                "asset": "/assets/items/cyanide-bottle.png",
+                "position": {
+                  "x": 504,
+                  "y": 450,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 112,
+                  "height": 90
+                },
+                "hotspot": {
+                  "x": 448,
+                  "y": 360,
+                  "width": 112,
+                  "height": 90
+                },
+                "reservedSlot": {
+                  "x": 448,
+                  "y": 360,
+                  "width": 112,
+                  "height": 90
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              },
+              {
+                "itemId": "item-pawn-ticket",
+                "asset": "/assets/items/pawn-ticket.png",
+                "position": {
+                  "x": 1152,
+                  "y": 585,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 128,
+                  "height": 90
+                },
+                "hotspot": {
+                  "x": 1088,
+                  "y": 495,
+                  "width": 128,
+                  "height": 90
+                },
+                "reservedSlot": {
+                  "x": 1088,
+                  "y": 495,
+                  "width": 128,
+                  "height": 90
+                },
+                "anchor": "bottom-center",
+                "depth": 12
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-samuel",
+                "position": {
+                  "x": 312,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 240,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 240,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 702
+              },
+              {
+                "characterId": "char-victor",
+                "position": {
+                  "x": 952,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 880,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 880,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 702
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "exit-props-to-office",
+                "targetSceneId": "scene-owners-office",
+                "label": "Owner's Office",
+                "hotspot": {
+                  "x": 36,
+                  "y": 640,
+                  "width": 190,
+                  "height": 54
+                }
+              },
+              {
+                "transitionId": "exit-props-to-lobby",
+                "targetSceneId": "scene-theater-lobby",
+                "label": "Theater Lobby",
+                "hotspot": {
+                  "x": 1374,
+                  "y": 640,
+                  "width": 190,
+                  "height": 54
+                }
+              }
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-theater-lobby",
+          "title": "Theater Lobby",
+          "backgroundUrl": "/assets/scenes/lobby.png",
+          "description": "The grand lobby, with chandeliers dimmed, red velvet curtains, and a ticket booth on the left. All four suspects stand together under the soft glow of a single gaslight: Mona near the refreshments table, Victor by the main doors, Samuel beside a decorative column, Eleanor centre stage. The walkway spans the lobby from left to right.",
+          "itemIds": [],
+          "characterIds": [
+            "char-mona",
+            "char-victor",
+            "char-samuel",
+            "char-eleanor"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-mona-lobby",
+              "type": "CHARACTER",
+              "targetId": "char-mona",
+              "x": 10,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Mona Reeves",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-victor-lobby",
+              "type": "CHARACTER",
+              "targetId": "char-victor",
+              "x": 75,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Victor Crane",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-samuel-lobby",
+              "type": "CHARACTER",
+              "targetId": "char-samuel",
+              "x": 35,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Samuel Briggs",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-eleanor-lobby",
+              "type": "CHARACTER",
+              "targetId": "char-eleanor",
+              "x": 55,
+              "y": 46,
+              "width": 9,
+              "height": 32,
+              "zIndex": 1,
+              "label": "Eleanor Hart",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [],
+            "requiredDialogueIds": [
+              "dlg-eleanor-accusation"
+            ]
+          },
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 720,
+            "walkableArea": {
+              "x": 0,
+              "y": 630,
+              "width": 1600,
+              "height": 135
+            },
+            "spawnPoints": {
+              "default": {
+                "x": 380,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 380,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 460,
+                "y": 720,
+                "anchor": "bottom-center",
+                "direction": "right"
+              }
+            },
+            "itemPlacements": [],
+            "characterPlacements": [
+              {
+                "characterId": "char-mona",
+                "position": {
+                  "x": 232,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 160,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 160,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 702
+              },
+              {
+                "characterId": "char-victor",
+                "position": {
+                  "x": 1272,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 1200,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 1200,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 702
+              },
+              {
+                "characterId": "char-samuel",
+                "position": {
+                  "x": 632,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 560,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 560,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "right",
+                "depth": 702
+              },
+              {
+                "characterId": "char-eleanor",
+                "position": {
+                  "x": 952,
+                  "y": 702,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 144,
+                  "height": 288
+                },
+                "hotspot": {
+                  "x": 880,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "reservedSlot": {
+                  "x": 880,
+                  "y": 414,
+                  "width": 144,
+                  "height": 288
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 702
+              }
+            ],
+            "transitions": [
+              {
+                "transitionId": "exit-lobby-to-office",
+                "targetSceneId": "scene-owners-office",
+                "label": "Owner's Office",
+                "hotspot": {
+                  "x": 32,
+                  "y": 492,
+                  "width": 190,
+                  "height": 54
+                }
+              },
+              {
+                "transitionId": "exit-lobby-to-props",
+                "targetSceneId": "scene-props-room",
+                "label": "Props Room",
+                "hotspot": {
+                  "x": 1378,
+                  "y": 492,
+                  "width": 190,
+                  "height": 54
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-mona",
+      "name": "Mona Reeves",
+      "role": "Understudy",
+      "imageUrl": "/assets/characters/mona-portrait.png",
+      "description": "Young and hungry for the spotlight, Mona has long resented Celeste's stardom."
+    },
+    {
+      "characterId": "char-victor",
+      "name": "Victor Crane",
+      "role": "Stage Director",
+      "imageUrl": "/assets/characters/victor-portrait.png",
+      "description": "Brash and quick-tempered, Victor is drowning in gambling debts and blames Celeste for his professional woes."
+    },
+    {
+      "characterId": "char-samuel",
+      "name": "Samuel Briggs",
+      "role": "Props Master",
+      "imageUrl": "/assets/characters/samuel-portrait.png",
+      "description": "Quiet and devoted, Samuel harbors an unrequited love for Celeste, spending his days crafting the perfect props."
+    },
+    {
+      "characterId": "char-eleanor",
+      "name": "Eleanor Hart",
+      "role": "Theater Owner",
+      "imageUrl": "/assets/characters/eleanor-portrait.png",
+      "description": "Elegant yet visibly strained, Eleanor has been embezzling funds to keep the theater afloat and will do anything to protect her secret."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-celeste-body",
+      "name": "Celeste's Body",
+      "description": "The lifeless form of the leading lady, still in costume, a strange fibre caught in her fingernail.",
+      "inspectText": "Her cyanotic lips and the faint scent of bitter almonds hint at cyanide. A distinctive lavender silk fibre with a tiny 'E' monogram clings to her glove.",
+      "imageUrl": "/assets/items/body.png",
+      "unlockClueIds": [
+        "clue-glove-fibers"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-makeup-kit",
+      "name": "Makeup Kit",
+      "description": "An open case of theatrical cosmetics, the foundation powder spilled across the vanity.",
+      "inspectText": "The powder has a faint chemical smell and a gritty residue. Tests indicate cyanide mixed in.",
+      "imageUrl": "/assets/items/makeup-kit.png",
+      "unlockClueIds": [
+        "clue-cyanide-in-powder"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-threatening-letter",
+      "name": "Threatening Letter",
+      "description": "An unsigned note found in the writing desk, full of venom.",
+      "inspectText": "The handwriting is shaky but elegant: 'You don't deserve that role. Stay out of the spotlight or you'll regret it.' The paper has traces of cheap stationery.",
+      "imageUrl": "/assets/items/letter.png",
+      "unlockClueIds": [
+        "clue-red-herring-letter"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-love-letter",
+      "name": "Love Letter",
+      "description": "A heartfelt, unopened letter from Samuel to Celeste, tucked among props.",
+      "inspectText": "Samuel's neat script confesses his deep admiration, careful not to overstep, but clearly pining.",
+      "imageUrl": "/assets/items/love-letter.png",
+      "unlockClueIds": [
+        "clue-samuel-love"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-scratched-photo",
+      "name": "Scratched Photograph",
+      "description": "A cast photo pinned on the corkboard, Celeste's face scratched out violently.",
+      "inspectText": "Mona's handwriting on the back reads 'Break a leg, darling.' The photo is torn in frustration.",
+      "imageUrl": "/assets/items/scratched-photo.png",
+      "unlockClueIds": [
+        "clue-mona-jealous"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-ledger",
+      "name": "Account Ledger",
+      "description": "The theater's financial ledger, its columns of numbers clearly tampered with.",
+      "inspectText": "Entries show large sums diverted to a personal account under Eleanor Hart's name, alongside fake receipts.",
+      "imageUrl": "/assets/items/ledger.png",
+      "unlockClueIds": [
+        "clue-embezzlement-ledger"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-spare-key",
+      "name": "Spare Dressing Room Key",
+      "description": "A key labeled 'Dressing Room 1' on the rack in Eleanor's office.",
+      "inspectText": "Engraved with the theater's crest; it opens Celeste's dressing room without needing the master.",
+      "imageUrl": "/assets/items/key.png",
+      "unlockClueIds": [
+        "clue-eleanor-access"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-cyanide-bottle",
+      "name": "Cyanide Bottle",
+      "description": "An unmarked bottle of 'rat poison' among prop bottles, smelling of almonds.",
+      "inspectText": "The label is faded, but the contents are pure potassium cyanide, and a small amount is missing.",
+      "imageUrl": "/assets/items/cyanide-bottle.png",
+      "unlockClueIds": [
+        "clue-cyanide-source"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-pawn-ticket",
+      "name": "Pawn Ticket",
+      "description": "A crumpled ticket from a gambling den, found on the workbench.",
+      "inspectText": "Signed by Victor Crane, the ticket shows a desperate bet placed the night before the murder.",
+      "imageUrl": "/assets/items/pawn-ticket.png",
+      "unlockClueIds": [
+        "clue-victor-debt"
+      ],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-glove-fibers",
+      "title": "Monogrammed Glove Fiber",
+      "content": "A lavender silk fibre with an embroidered 'E' caught in Celeste's nail, matching Eleanor's signature gloves.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-celeste-body",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-cyanide-in-powder",
+      "title": "Cyanide in Foundation",
+      "content": "The makeup powder tested positive for potassium cyanide, the poison that killed Celeste.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-makeup-kit",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-cyanide-source",
+      "title": "Missing Cyanide",
+      "content": "A bottle of rat poison in the props room is missing a dose; analysis matches the poison in the makeup.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-cyanide-bottle",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-embezzlement-ledger",
+      "title": "Forged Accounts",
+      "content": "Eleanor has been embezzling funds and creating fake receipts; Celeste discovered this and threatened exposure.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-ledger",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-red-herring-letter",
+      "title": "Jealous Threat",
+      "content": "An unsigned letter threatening Celeste, written by Mona out of bitterness, but unrelated to the murder.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-threatening-letter",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-samuel-love",
+      "title": "Unrequited Love",
+      "content": "Samuel harbored a secret infatuation with Celeste, shown in his unsent letter.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-love-letter",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-mona-jealous",
+      "title": "Mona's Grudge",
+      "content": "A photograph with Celeste defaced reveals Mona's intense jealousy, but she claims it was just venting.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-scratched-photo",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-eleanor-access",
+      "title": "Private Access",
+      "content": "Eleanor kept a spare key to Celeste's dressing room, giving her unrestricted access.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-spare-key",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-victor-debt",
+      "title": "Desperate Debts",
+      "content": "Victor's pawn ticket reveals staggering gambling debts that Celeste's success might have solved.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-pawn-ticket",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-mona-wrote-letter",
+      "title": "Mona's Confession",
+      "content": "When confronted, Mona admits writing the threat but swears she never poisoned anyone.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-mona-letter",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-victor-alibi-broken",
+      "title": "Victor's Alibi Crumbles",
+      "content": "Victor confesses his debts and a heated argument with Celeste the night before, but denies murder.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-victor-debt",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-samuel-alibi-broken",
+      "title": "Samuel's Secret",
+      "content": "Samuel admits his love and says he was near the dressing room at the time, but only to watch her.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-samuel-love-letter",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-eleanor-lies",
+      "title": "Eleanor's Denials",
+      "content": "Eleanor claims the ledger is planted, but her answers are evasive; she is clearly lying.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-eleanor-ledger",
+      "sourceType": "dialogue"
+    },
+    {
+      "clueId": "clue-eleanor-confession",
+      "title": "Full Confession",
+      "content": "Eleanor breaks down and admits: she poisoned Celeste to prevent exposure of her fraud.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dlg-eleanor-accusation",
+      "sourceType": "dialogue"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-mona-whereabouts",
+      "characterId": "char-mona",
+      "question": "Miss Reeves, can you account for your whereabouts before the curtain call?",
+      "answer": "I was in my dressing room, rehearsing lines. I'm always ready in case the lead falters.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-mona-relationship",
+      "characterId": "char-mona",
+      "question": "What was your relationship with Celeste?",
+      "answer": "She was the golden girl, I was just the understudy. I envied her, but I never wished her dead.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-mona-letter",
+      "characterId": "char-mona",
+      "question": "We found this threatening letter. It's your handwriting, isn't it?",
+      "answer": "Fine, I wrote it! I was angry she'd been chosen over me again. But I swear I didn't poison her.",
+      "requiredClueIds": [
+        "clue-red-herring-letter"
+      ],
+      "unlockClueIds": [
+        "clue-mona-wrote-letter"
+      ]
+    },
+    {
+      "dialogueId": "dlg-victor-alibi",
+      "characterId": "char-victor",
+      "question": "Director Crane, where were you this evening?",
+      "answer": "In the wings, shouting at the lighting crew. The performance was a mess.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-victor-temper",
+      "characterId": "char-victor",
+      "question": "Did you argue with Celeste recently?",
+      "answer": "She was impossible! Always demanding. We argued, but that's just theater. I didn't kill her.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-victor-debt",
+      "characterId": "char-victor",
+      "question": "These pawn tickets show you have serious gambling debts. Did Celeste threaten to expose you?",
+      "answer": "My debts are none of your concern! But yes, I needed money. She knew... but she didn't have proof. Still, I never laid a hand on her.",
+      "requiredClueIds": [
+        "clue-victor-debt"
+      ],
+      "unlockClueIds": [
+        "clue-victor-alibi-broken"
+      ]
+    },
+    {
+      "dialogueId": "dlg-samuel-access",
+      "characterId": "char-samuel",
+      "question": "Mr. Briggs, you had access to the props. Did you see anything strange?",
+      "answer": "I'm always in the props room or backstage. I saw Victor pacing, but nothing with the makeup.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-samuel-feelings",
+      "characterId": "char-samuel",
+      "question": "Were you close to Miss Duval?",
+      "answer": "She was... very kind to me. I made a special prop for her once. I admired her greatly.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-samuel-love-letter",
+      "characterId": "char-samuel",
+      "question": "We found this letter you wrote her. You were in love with her, weren't you?",
+      "answer": "Yes, I loved her! But she never knew. I would never hurt her. I was in the wings that night, just to catch a glimpse of her... then I heard the scream.",
+      "requiredClueIds": [
+        "clue-samuel-love"
+      ],
+      "unlockClueIds": [
+        "clue-samuel-alibi-broken"
+      ]
+    },
+    {
+      "dialogueId": "dlg-eleanor-alibi",
+      "characterId": "char-eleanor",
+      "question": "Mrs. Hart, where were you during the preparation?",
+      "answer": "I was in my office going over the accounts. This production has been a financial strain, but I've managed.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-eleanor-finances",
+      "characterId": "char-eleanor",
+      "question": "How are the theater's finances holding up?",
+      "answer": "We've had better seasons, but we'll rebound. The show must go on, as they say.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-eleanor-ledger",
+      "characterId": "char-eleanor",
+      "question": "This ledger shows forged entries and money diverted to your personal accounts. Care to explain?",
+      "answer": "That... that is a lie! Someone has tampered with those books. Perhaps the killer planted it to frame me.",
+      "requiredClueIds": [
+        "clue-embezzlement-ledger"
+      ],
+      "unlockClueIds": [
+        "clue-eleanor-lies"
+      ]
+    },
+    {
+      "dialogueId": "dlg-eleanor-key",
+      "characterId": "char-eleanor",
+      "question": "We found a spare key to Celeste's dressing room in your office. Did you use it that night?",
+      "answer": "I keep keys to all rooms for safety. I certainly didn't use it for nefarious purposes. The killer could have stolen it.",
+      "requiredClueIds": [
+        "clue-eleanor-access"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-eleanor-accusation",
+      "characterId": "char-eleanor",
+      "question": "Eleanor Hart, we have proof: the cyanide powder, the glove fibres, the embezzlement, and the poison source. You poisoned Celeste to save yourself.",
+      "answer": "You've backed me into a corner. Very well. Celeste found my secret and threatened to go to the authorities. I couldn't let her destroy everything I'd built. I slipped the cyanide into her foundation. The poison did the rest.",
+      "requiredClueIds": [
+        "clue-cyanide-in-powder",
+        "clue-glove-fibers",
+        "clue-embezzlement-ledger",
+        "clue-cyanide-source"
+      ],
+      "unlockClueIds": [
+        "clue-eleanor-confession"
+      ]
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-eleanor",
+    "motive": "Financial fraud exposed by Celeste, who threatened to report Eleanor's embezzlement.",
+    "method": "Cyanide powder mixed into Celeste's makeup foundation, applied minutes before curtain.",
+    "requiredEvidenceIds": [
+      "clue-cyanide-in-powder",
+      "clue-glove-fibers",
+      "clue-embezzlement-ledger",
+      "clue-cyanide-source"
+    ],
+    "winEnding": "With Eleanor's confession and the evidence laid bare, Holmes and Watson ensure justice, and the Lumiere Theatre's dark secret is unveiled.",
+    "failEnding": "Without all the evidence, Eleanor's guilt remains obscured, and an innocent may be wrongfully accused as the Gaslight Curtain falls."
+  }
+}

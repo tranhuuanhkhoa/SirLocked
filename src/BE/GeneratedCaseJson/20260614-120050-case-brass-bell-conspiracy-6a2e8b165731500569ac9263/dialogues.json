@@ -1,0 +1,131 @@
+[
+  {
+    "dialogueId": "dlg-1",
+    "characterId": "char-2",
+    "question": "Where were you when the bell rang?",
+    "answer": "On the market platform, or near enough. My last tune had just finished and people were still clapping. All right, perhaps the clapping was earlier than I said, but I never went into the bellhouse.",
+    "requiredClueIds": [],
+    "unlockClueIds": [
+      "clue-2"
+    ]
+  },
+  {
+    "dialogueId": "dlg-2",
+    "characterId": "char-1",
+    "question": "Why were you waiting near the customs scale tonight?",
+    "answer": "The tidewarden promised to review the pearl ledger after the festival. My buyers distrust Gullmarsh duties, and a clean audit protects my business. I wanted the book opened, not stolen.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-3",
+    "characterId": "char-3",
+    "question": "What did you do after the brass bell rang?",
+    "answer": "I kept order, naturally. I was by the customs awning with the mayor when the first shout went up, then I came straight to the office and found the room overturned.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-4",
+    "characterId": "char-3",
+    "question": "Who could have made a print with office tide boots?",
+    "answer": "The tidewarden, myself, or anyone bold enough to open our cupboard. The boots are for emergency work. In festival confusion, I suppose many hands could have found them.",
+    "requiredClueIds": [
+      "clue-3"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-5",
+    "characterId": "char-1",
+    "question": "Who had a key fitting the ledger chain?",
+    "answer": "The tidewarden kept one. His assistant kept the duplicate for duty mornings. Merchants like me signed beside the ledger, but we were never allowed to unchain it ourselves.",
+    "requiredClueIds": [
+      "clue-4"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-6",
+    "characterId": "char-4",
+    "question": "Could the bell ring twelve times with no one pulling the rope?",
+    "answer": "Since the restoration, yes. The striker has a maintenance release. Wedge it, delay it, and the bell will speak after the hand that set it has gone elsewhere.",
+    "requiredClueIds": [
+      "clue-5"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-7",
+    "characterId": "char-2",
+    "question": "Why was your ribbon torn near the pier?",
+    "answer": "Edda asked me to move a music stand away from the office door because it blocked the tidewarden\u2019s path. My sash caught on a crate. I lied because I feared everyone would make me the villain.",
+    "requiredClueIds": [
+      "clue-1",
+      "clue-2"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-8",
+    "characterId": "char-5",
+    "question": "You had debts and tar on your cuffs. Did you enter the bellhouse?",
+    "answer": "I patched oyster boats until my knuckles cramped. Yes, I owe coin. No, I do not steal ledgers I cannot sell, and I do not ring sacred bells for theater.",
+    "requiredClueIds": [],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-9",
+    "characterId": "char-5",
+    "question": "Does this tarred rag prove you handled the bell mechanism?",
+    "answer": "That is bellhouse restoration pitch, not my black hull tar. Half the pier has touched it since the town polished that bell for Founders\u2019 Tide.",
+    "requiredClueIds": [
+      "clue-7"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-10",
+    "characterId": "char-4",
+    "question": "What did you see on the causeway after the bell rang?",
+    "answer": "A blue lantern, low and hurried, crossing toward the lighthouse while the town stared at the pier. I thought the bell was warning us. Now I know the color was not a keeper\u2019s lamp.",
+    "requiredClueIds": [
+      "clue-8",
+      "clue-9"
+    ],
+    "unlockClueIds": [
+      "clue-12"
+    ]
+  },
+  {
+    "dialogueId": "dlg-11",
+    "characterId": "char-3",
+    "question": "Could someone have crossed to the lighthouse during the alarm?",
+    "answer": "In that weather? Unwise. Besides, I was in the market crowd. If Oren saw a lantern, it was some old reflection or fisherman\u2019s trick of the rain.",
+    "requiredClueIds": [
+      "clue-8"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-12",
+    "characterId": "char-3",
+    "question": "Why was the ledger hidden in your satchel?",
+    "answer": "I meant to bring it back before dawn. The tidewarden found the altered entries too soon, and I panicked. I locked him in the dry store with water and a lamp, then set the bell to gather witnesses away from me.",
+    "requiredClueIds": [
+      "clue-10",
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  },
+  {
+    "dialogueId": "dlg-13",
+    "characterId": "char-1",
+    "question": "Did the altered entries benefit you?",
+    "answer": "No. The false duties made my shipments look unstable, which is why I demanded the audit. The missing tidewarden was going to expose the hand that balanced those numbers, not mine.",
+    "requiredClueIds": [
+      "clue-11"
+    ],
+    "unlockClueIds": []
+  }
+]

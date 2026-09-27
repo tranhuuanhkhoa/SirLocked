@@ -1,0 +1,59 @@
+﻿<!-- SCREEN 1: AUTH -->
+<div class="screen active" id="s-auth">
+  <div class="auth-left">
+    <img class="auth-left-img" src="assets/images/221b-baker-street.jpg" alt="221B Baker Street">
+    <div class="auth-left-overlay"></div>
+    <div class="auth-ready-wrap">
+      <div class="auth-ready-badge">THE GAME IS READY</div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-form-wrap">
+      <div class="auth-logo">
+        <h1>SIR LOCKED</h1>
+        <p>The Mystery Awaits</p>
+      </div>
+      <div class="gold-divider"></div>
+      <div class="tab-row">
+        <button class="form-tab active" id="tab-login" onclick="switchTab('login')">Đăng nhập</button>
+        <button class="form-tab" id="tab-register" onclick="switchTab('register')">Đăng ký</button>
+      </div>
+
+      <div id="form-login">
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" placeholder="thám.tử@sirlocked.vn">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Mật khẩu</label>
+          <input class="field-input" type="password" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" onclick="showScreen('play', document.querySelectorAll('.nav-tab')[1])">Đăng nhập</button>
+        <div class="forgot"><a href="#">Quên mật khẩu?</a></div>
+        <div class="auth-link">Chưa có tài khoản? <a href="#" onclick="switchTab('register')">Đăng ký ngay</a></div>
+      </div>
+
+      <div id="form-register" class="form-panel" hidden>
+        <div class="field-group">
+          <label class="field-label">Tên đăng nhập</label>
+          <input class="field-input" type="text" placeholder="Detective_Holmes">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" placeholder="thám.tử@sirlocked.vn">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Mật khẩu</label>
+          <input class="field-input" type="password" placeholder="••••••••">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Xác nhận mật khẩu</label>
+          <input class="field-input" type="password" placeholder="••••••••">
+        </div>
+        <button class="btn-primary">Đăng ký</button>
+        <div class="auth-link">Đã có tài khoản? <a href="#" onclick="switchTab('login')">Đăng nhập</a></div>
+      </div>
+    </div>
+  </div>
+</div>

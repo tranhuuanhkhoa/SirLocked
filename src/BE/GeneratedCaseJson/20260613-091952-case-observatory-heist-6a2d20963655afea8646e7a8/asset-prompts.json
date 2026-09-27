@@ -1,0 +1,108 @@
+{
+  "visualStyle": "cinematic detective",
+  "cover": {
+    "target": "/assets/cases/observatory-heist.jpg",
+    "prompt": "cinematic detective cover for: The Observatory Heist. During a violent thunderstorm, a priceless sapphire was stolen from the locked observatory vault. The detective must interrogate the staff, examine clues, and find the culprit before the storm ends."
+  },
+  "backgrounds": [
+    {
+      "sceneId": "scene-1",
+      "target": "/assets/scenes/observatory-entrance.jpg",
+      "prompt": "cinematic detective background, Observatory Entrance: Rain lashes against the grand entrance. The vault door is ajar, and the sapphire is gone. The staff huddle nervously."
+    },
+    {
+      "sceneId": "scene-2",
+      "target": "/assets/scenes/vault-room.jpg",
+      "prompt": "cinematic detective background, Vault Room: The vault interior is dark, lit only by emergency lights. The empty pedestal where the sapphire once sat is covered in dust."
+    },
+    {
+      "sceneId": "scene-3",
+      "target": "/assets/scenes/curator-office.jpg",
+      "prompt": "cinematic detective background, Curator\u0027s Office: A cozy office filled with star charts. The curator seems anxious."
+    },
+    {
+      "sceneId": "scene-4",
+      "target": "/assets/scenes/workshop.jpg",
+      "prompt": "cinematic detective background, Assistant\u0027s Workshop: A cluttered workshop with tools and a half-finished telescope."
+    },
+    {
+      "sceneId": "scene-5",
+      "target": "/assets/scenes/rooftop-observatory.jpg",
+      "prompt": "cinematic detective background, Rooftop Observatory: The storm rages above. The telescope dome is open. A figure lurks in the shadows."
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-curator",
+      "target": "/assets/characters/curator.jpg",
+      "prompt": "cinematic detective character portrait, Dr. Evelyn Starling, Curator: Elderly curator, obsessed with the sapphire\u0027s history. Known for her strict security."
+    },
+    {
+      "characterId": "char-assistant",
+      "target": "/assets/characters/assistant.jpg",
+      "prompt": "cinematic detective character portrait, Marcus Webb, Research Assistant: Young, ambitious assistant. Has a background in engineering and access to all areas."
+    },
+    {
+      "characterId": "char-security",
+      "target": "/assets/characters/security.jpg",
+      "prompt": "cinematic detective character portrait, Victor Stone, Security Guard: Veteran guard, on duty during the heist. Known for his strict adherence to protocol."
+    },
+    {
+      "characterId": "char-meteorologist",
+      "target": "/assets/characters/meteorologist.jpg",
+      "prompt": "cinematic detective character portrait, Dr. Iris Gale, Meteorologist: Visiting scientist studying the storm. Not officially part of staff but present that night."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-broken-lock",
+      "target": "/assets/items/broken-lock.jpg",
+      "prompt": "cinematic detective evidence close-up, Broken Lock: The vault\u0027s electronic lock is smashed, wires exposed."
+    },
+    {
+      "itemId": "item-footprint",
+      "target": "/assets/items/footprint.jpg",
+      "prompt": "cinematic detective evidence close-up, Muddy Footprint: A large, distinct footprint near the vault entrance."
+    },
+    {
+      "itemId": "item-torn-cloth",
+      "target": "/assets/items/torn-cloth.jpg",
+      "prompt": "cinematic detective evidence close-up, Torn Cloth: A piece of blue wool fabric caught on the vault door hinge."
+    },
+    {
+      "itemId": "item-sapphire-box",
+      "target": "/assets/items/sapphire-box.jpg",
+      "prompt": "cinematic detective evidence close-up, Empty Jewel Box: The velvet-lined box that held the sapphire."
+    },
+    {
+      "itemId": "item-keys",
+      "target": "/assets/items/keys.jpg",
+      "prompt": "cinematic detective evidence close-up, Spare Keys: A set of spare keys to the vault, kept in the curator\u0027s desk."
+    },
+    {
+      "itemId": "item-umbrella",
+      "target": "/assets/items/umbrella.jpg",
+      "prompt": "cinematic detective evidence close-up, Wet Umbrella: A wet umbrella in the curator\u0027s office."
+    },
+    {
+      "itemId": "item-gloves",
+      "target": "/assets/items/gloves.jpg",
+      "prompt": "cinematic detective evidence close-up, Leather Gloves: A pair of leather work gloves, found in the workshop."
+    },
+    {
+      "itemId": "item-toolbox",
+      "target": "/assets/items/toolbox.jpg",
+      "prompt": "cinematic detective evidence close-up, Toolbox: A metal toolbox with various tools."
+    },
+    {
+      "itemId": "item-sapphire-stolen",
+      "target": "/assets/items/sapphire-stolen.jpg",
+      "prompt": "cinematic detective evidence close-up, Stolen Sapphire: The missing sapphire, hidden in a telescope mount."
+    },
+    {
+      "itemId": "item-rope",
+      "target": "/assets/items/rope.jpg",
+      "prompt": "cinematic detective evidence close-up, Climbing Rope: A long rope tied to the dome\u0027s railing."
+    }
+  ]
+}

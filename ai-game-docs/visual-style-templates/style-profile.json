@@ -1,0 +1,203 @@
+{
+  "style_profile": {
+    "style_id": "detective_visual_novel_2d_001",
+    "style_name": "2D Detective Visual Novel Comic Style",
+    "description": "A semi-realistic 2D detective visual novel illustration style for AI-generated game assets, combining comic illustration, point-and-click adventure presentation, and classic British mystery atmosphere.",
+    "use_case": [
+      "character portraits",
+      "scene illustrations",
+      "dialogue CGs",
+      "character selection screen",
+      "evidence/item illustrations",
+      "background illustrations",
+      "UI-integrated game images"
+    ],
+    "visual_style": {
+      "medium": "digital illustration",
+      "genre": [
+        "detective mystery",
+        "visual novel",
+        "point-and-click adventure",
+        "comic narrative game"
+      ],
+      "art_style": "semi-realistic 2D comic",
+      "rendering_style": "clean hand-drawn illustration with soft cel shading",
+      "inspirations": [
+        "classic detective game UI",
+        "Sherlock Holmes inspired character design",
+        "comic book illustration",
+        "interactive narrative game screen"
+      ],
+      "linework": {
+        "type": "clean black outlines",
+        "thickness": "moderate",
+        "detail_level": "detailed facial contours and clothing folds",
+        "finish": "sharp and readable"
+      },
+      "shading": {
+        "type": "soft cel shading",
+        "shadow_style": "painted shadows with subtle gradients",
+        "highlight_style": "controlled soft highlights"
+      },
+      "texture": {
+        "surface": "subtle paper/comic texture",
+        "background_texture": "slightly grainy",
+        "overall_feel": "polished but illustrated"
+      }
+    },
+    "mood_and_atmosphere": {
+      "primary_mood": "mysterious",
+      "secondary_moods": [
+        "serious",
+        "intelligent",
+        "classic",
+        "cinematic",
+        "investigative"
+      ],
+      "setting_feel": "classic British detective mystery",
+      "narrative_tone": "thoughtful and suspenseful"
+    },
+    "color_palette": {
+      "main_colors": [
+        "dark navy",
+        "charcoal gray",
+        "muted beige",
+        "brown",
+        "deep purple",
+        "warm gold"
+      ],
+      "tone": "dark, vintage, mysterious, cinematic",
+      "contrast": "medium-high",
+      "saturation": "muted",
+      "usage_notes": {
+        "backgrounds": "primarily dark navy, gray, beige, and brown",
+        "character_accents": "deep purple and muted neutrals",
+        "ui_highlights": "warm gold and soft white"
+      }
+    },
+    "lighting": {
+      "type": "soft cinematic lighting",
+      "direction": "front-lit and slightly side-lit",
+      "mood": "mysterious but clear",
+      "clarity": "faces and key story elements remain readable",
+      "highlight_focus": [
+        "door number",
+        "title text",
+        "important costume accents",
+        "interactive UI emphasis"
+      ]
+    },
+    "composition": {
+      "camera_angle": "front-facing medium shot",
+      "framing": "characters centered and clearly readable",
+      "layout_style": "visual novel / character selection screen",
+      "depth": "slight depth separation between foreground characters and background",
+      "balance": "symmetrical or near-symmetrical for UI friendliness",
+      "border": "thin decorative frame around the image"
+    },
+    "background_style": {
+      "setting": "old London apartment entrance",
+      "location_details": [
+        "door number 221B",
+        "vintage door knocker",
+        "stone wall",
+        "narrow entrance",
+        "old city street influence"
+      ],
+      "environment_style": "classic London mystery setting",
+      "detail_level": "moderately detailed, readable, atmospheric",
+      "background_priority": "supports characters without overpowering them"
+    },
+    "character_style": {
+      "anatomy": "semi-realistic proportions",
+      "face_style": "expressive, cleanly drawn, slightly stylized",
+      "expression_clarity": "high",
+      "pose_style": "confident, readable, story-relevant",
+      "costume_style": "classic detective-era British fashion with distinctive silhouettes",
+      "character_readability": "high silhouette clarity for gameplay"
+    },
+    "ui_design": {
+      "interface_type": "visual novel selection UI",
+      "integration_level": "image and UI designed together as one screen",
+      "text_style": {
+        "font_family": "serif",
+        "font_color": [
+          "gold",
+          "white"
+        ],
+        "effects": [
+          "slight shadow"
+        ]
+      },
+      "title_position": "top center",
+      "labels": "character role labels placed near each character",
+      "button_style": {
+        "shape": "rectangular",
+        "fill_color": "dark blue",
+        "border": "white border",
+        "text_style": "bold white text"
+      },
+      "example_button_text": "CHON"
+    },
+    "asset_rules": {
+      "portrait_images": {
+        "focus": "character upper body or medium shot",
+        "background": "simple or lightly contextual",
+        "priority": "expression, outfit, identity clarity"
+      },
+      "scene_images": {
+        "focus": "storytelling composition",
+        "background": "more detailed environmental context",
+        "priority": "mood, clues, character interaction"
+      },
+      "item_images": {
+        "focus": "clean presentation of evidence or tools",
+        "background": "minimal or subtle textured backdrop",
+        "priority": "readability and object detail"
+      },
+      "ui_screens": {
+        "focus": "character or scene plus integrated interface",
+        "priority": "clean layout and interactive readability"
+      }
+    },
+    "quality_targets": {
+      "detail_level": "highly detailed",
+      "image_clarity": "sharp",
+      "blur": "no blur",
+      "readability": "high",
+      "consistency_goal": "consistent character rendering, lighting, and color palette across all generated assets"
+    },
+    "prompt_keywords": [
+      "2D semi-realistic detective visual novel",
+      "comic illustration",
+      "clean line art",
+      "soft cel shading",
+      "classic British mystery",
+      "Sherlock-inspired atmosphere",
+      "old London apartment entrance",
+      "muted vintage palette",
+      "cinematic soft lighting",
+      "point-and-click adventure style",
+      "decorative UI frame",
+      "gold serif title",
+      "high detail",
+      "sharp focus",
+      "no blur"
+    ],
+    "negative_prompt": [
+      "photorealistic",
+      "3D render",
+      "anime with exaggerated proportions",
+      "low detail",
+      "messy line art",
+      "overly bright colors",
+      "neon palette",
+      "blurry image",
+      "distorted anatomy",
+      "crowded composition",
+      "modern sci-fi setting",
+      "flat lighting"
+    ],
+    "base_prompt_template": "A 2D semi-realistic detective visual novel illustration in a comic style, with clean black line art, soft cel shading, subtle paper texture, muted vintage colors, and cinematic soft lighting. The atmosphere is mysterious, classic, and serious, inspired by British detective stories. Composition is front-facing and UI-friendly, with clear character readability, slight depth, and a decorative frame. Backgrounds should evoke an old London mystery setting, while characters should look intelligent, expressive, and sharply designed. Highly detailed, sharp, no blur."
+  }
+}
