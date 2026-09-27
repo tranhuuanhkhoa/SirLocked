@@ -1,0 +1,48 @@
+﻿<!-- SCREEN 3: CREATE ROOM -->
+<div class="screen" id="s-create">
+  <div class="room-card">
+    <div class="corner-tl"></div>
+    <div class="corner-br"></div>
+    <div class="card-title">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#c9a84c" stroke-width="1.5">
+        <rect x="3" y="5" width="14" height="12" rx="2"/><path d="M7 5V4a3 3 0 016 0v1"/>
+        <circle cx="10" cy="11" r="1.5" fill="#c9a84c"/>
+      </svg>
+      TẠO PHÒNG MỚI
+    </div>
+    <div class="gold-divider"></div>
+
+    <div class="field-group">
+      <label class="field-label">Tên phòng</label>
+      <input class="field-input" type="text" placeholder="Vụ án bí ẩn..." id="room-name">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Chọn vụ án</label>
+      <select>
+        <option>Vụ án trang thư bí ẩn</option>
+        <option>Nghi phạm số 7</option>
+        <option>Bóng tối Baker Street</option>
+        <option>Án mạng trên tàu hỏa</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Độ khó</label>
+      <div class="diff-row">
+        <button class="diff-btn" onclick="setDiff(this)">DỄ</button>
+        <button class="diff-btn active" onclick="setDiff(this)">THƯỜNG</button>
+        <button class="diff-btn" onclick="setDiff(this)">KHÓ</button>
+      </div>
+    </div>
+
+    <div class="room-code-box">
+      <div class="room-code-label">Mã phòng của bạn</div>
+      <div class="room-code-value">SL7K2M</div>
+      <div class="share-hint">📋 Chia sẻ mã này cho đồng đội</div>
+    </div>
+
+    <button class="btn-primary" onclick="showScreen('join', document.querySelectorAll('.nav-tab')[3])">TẠO PHÒNG</button>
+    <button class="btn-secondary">HUỶ</button>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+{
+  "culpritId": "char-edgar",
+  "motive": "Hidden debt and fear of financial ruin.",
+  "method": "Edgar poisoned the drink while the tray was unattended, then used the balcony route to stage the locked-room death.",
+  "evidenceIds": [
+    "clue-hidden-debt",
+    "clue-poison-source",
+    "clue-drink-prepared-before-lock",
+    "clue-balcony-entry",
+    "clue-edgar-cufflink"
+  ]
+}

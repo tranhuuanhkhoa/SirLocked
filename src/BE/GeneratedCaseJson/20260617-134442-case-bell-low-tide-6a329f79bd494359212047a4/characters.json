@@ -1,0 +1,37 @@
+[
+  {
+    "characterId": "char-1",
+    "name": "Maribel Quince",
+    "role": "Deputy Harbor Commissioner",
+    "imageUrl": "/assets/characters/maribel-quince.png",
+    "description": "Ambitious, controlled, and publicly devoted to the Tideglass Quay opening. A scandal could ruin her career, which makes her both helpful and guarded."
+  },
+  {
+    "characterId": "char-2",
+    "name": "Jonah Pike",
+    "role": "Retired Diver",
+    "imageUrl": "/assets/characters/jonah-pike.png",
+    "description": "A salt-stiffened veteran of underwater salvage who speaks in omens but notices practical details others miss. His old quarrels with harbor engineers make him an easy suspect."
+  },
+  {
+    "characterId": "char-3",
+    "name": "Celia Venn",
+    "role": "Alaric Venn\u2019s Estranged Sister",
+    "imageUrl": "/assets/characters/celia-venn.png",
+    "description": "Sharp, wounded, and more informed than she first admits. She argued with Alaric over a sealed family ledger shortly before he disappeared."
+  },
+  {
+    "characterId": "char-4",
+    "name": "Tomas Reed",
+    "role": "Newspaper Illustrator",
+    "imageUrl": "/assets/characters/tomas-reed.png",
+    "description": "A charming sketch artist assigned to capture the unveiling for the morning edition. He arrived early, drew constantly, and claims his drawings prove he saw nothing unusual."
+  },
+  {
+    "characterId": "char-5",
+    "name": "Edda Krail",
+    "role": "Chapel Caretaker",
+    "imageUrl": "/assets/characters/edda-krail.png",
+    "description": "Keeper of the condemned chapel\u2019s keys and habits. She resents the city\u2019s neglect of the tower and insists no living hand could have entered it without her knowing."
+  }
+]
