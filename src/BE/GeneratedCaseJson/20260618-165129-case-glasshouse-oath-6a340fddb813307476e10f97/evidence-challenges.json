@@ -1,0 +1,24 @@
+[
+  {
+    "challengeId": "challenge-1",
+    "dialogueId": "dlg-5",
+    "prompt": "Which evidence contradicts Voss\u0027s claim that he saw no one of consequence pass toward Bellweather?",
+    "correctEvidenceId": "clue-2",
+    "successResponse": "Voss stiffens and concedes the gray trace matters. He admits seeing a gray-dusted figure move from the pump corridor toward the estate shortly after midnight.",
+    "failureResponse": "Voss dismisses the point as gossip dressed as deduction. A stronger physical trace is needed to make him amend his account.",
+    "unlockClueIds": [
+      "clue-6"
+    ]
+  },
+  {
+    "challengeId": "challenge-2",
+    "dialogueId": "dlg-11",
+    "prompt": "Which evidence proves Livia knows more about the oath and Pike\u0027s trustee trouble than she first admitted?",
+    "correctEvidenceId": "clue-8",
+    "successResponse": "Livia\u0027s composure breaks. She admits the oath was being used to silence talk of trustee sales and that her uncle meant to expose the truth.",
+    "failureResponse": "Livia retreats into family propriety. Her denial needs to be tested against the professor\u0027s own surviving trace.",
+    "unlockClueIds": [
+      "clue-10"
+    ]
+  }
+]

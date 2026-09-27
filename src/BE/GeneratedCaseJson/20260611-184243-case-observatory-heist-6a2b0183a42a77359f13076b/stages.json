@@ -1,0 +1,246 @@
+[
+  {
+    "stageId": "stage-1",
+    "title": "The Crime Scene",
+    "order": 1,
+    "scenes": [
+      {
+        "sceneId": "scene-1",
+        "title": "Observatory Main Hall",
+        "backgroundUrl": "/assets/scenes/main-hall.jpg",
+        "description": "The main hall of the observatory is dimly lit by emergency lights. The glass display case that held the Starfire Diamond is shattered. A thunderclap echoes outside.",
+        "itemIds": [
+          "item-1",
+          "item-2"
+        ],
+        "characterIds": [
+          "char-1",
+          "char-2"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-1",
+            "type": "ITEM",
+            "targetId": "item-1",
+            "x": 40,
+            "y": 50,
+            "width": 10,
+            "height": 12,
+            "zIndex": 1,
+            "label": "Shattered Case",
+            "requiredClueIds": []
+          },
+          {
+            "hotspotId": "hotspot-2",
+            "type": "ITEM",
+            "targetId": "item-2",
+            "x": 60,
+            "y": 70,
+            "width": 8,
+            "height": 10,
+            "zIndex": 1,
+            "label": "Footprint",
+            "requiredClueIds": []
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-1",
+            "item-2"
+          ],
+          "requiredClueIds": [
+            "clue-1",
+            "clue-2"
+          ],
+          "requiredDialogueIds": [
+            "dlg-1"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "stageId": "stage-2",
+    "title": "Suspect Interviews",
+    "order": 2,
+    "scenes": [
+      {
+        "sceneId": "scene-2",
+        "title": "Office of Dr. Vega",
+        "backgroundUrl": "/assets/scenes/office-vega.jpg",
+        "description": "Dr. Vega\u0027s office is cluttered with star charts and books. A window is slightly open, letting in rain.",
+        "itemIds": [
+          "item-3",
+          "item-4"
+        ],
+        "characterIds": [
+          "char-3"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-3",
+            "type": "ITEM",
+            "targetId": "item-3",
+            "x": 30,
+            "y": 40,
+            "width": 10,
+            "height": 8,
+            "zIndex": 1,
+            "label": "Wet Umbrella",
+            "requiredClueIds": []
+          },
+          {
+            "hotspotId": "hotspot-4",
+            "type": "ITEM",
+            "targetId": "item-4",
+            "x": 70,
+            "y": 60,
+            "width": 12,
+            "height": 10,
+            "zIndex": 1,
+            "label": "Note",
+            "requiredClueIds": [
+              "clue-2"
+            ]
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-3",
+            "item-4"
+          ],
+          "requiredClueIds": [
+            "clue-3",
+            "clue-4"
+          ],
+          "requiredDialogueIds": [
+            "dlg-2",
+            "dlg-3"
+          ]
+        }
+      },
+      {
+        "sceneId": "scene-3",
+        "title": "Library",
+        "backgroundUrl": "/assets/scenes/library.jpg",
+        "description": "The library has shelves of astronomy books. A map on the table shows escape routes.",
+        "itemIds": [
+          "item-5",
+          "item-6"
+        ],
+        "characterIds": [
+          "char-4"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-5",
+            "type": "ITEM",
+            "targetId": "item-5",
+            "x": 50,
+            "y": 30,
+            "width": 8,
+            "height": 10,
+            "zIndex": 1,
+            "label": "Map with Marks",
+            "requiredClueIds": [
+              "clue-3"
+            ]
+          },
+          {
+            "hotspotId": "hotspot-6",
+            "type": "ITEM",
+            "targetId": "item-6",
+            "x": 20,
+            "y": 80,
+            "width": 10,
+            "height": 8,
+            "zIndex": 1,
+            "label": "Gloves",
+            "requiredClueIds": []
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-5",
+            "item-6"
+          ],
+          "requiredClueIds": [
+            "clue-5",
+            "clue-6"
+          ],
+          "requiredDialogueIds": [
+            "dlg-4"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "stageId": "stage-3",
+    "title": "Confrontation",
+    "order": 3,
+    "scenes": [
+      {
+        "sceneId": "scene-4",
+        "title": "Rooftop Telescope Deck",
+        "backgroundUrl": "/assets/scenes/rooftop.jpg",
+        "description": "The rooftop deck is exposed to the storm. The telescope is covered with a tarp. A glint of something metallic catches your eye.",
+        "itemIds": [
+          "item-7",
+          "item-8"
+        ],
+        "characterIds": [
+          "char-5"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-7",
+            "type": "ITEM",
+            "targetId": "item-7",
+            "x": 45,
+            "y": 55,
+            "width": 10,
+            "height": 12,
+            "zIndex": 1,
+            "label": "Crowbar",
+            "requiredClueIds": [
+              "clue-5"
+            ]
+          },
+          {
+            "hotspotId": "hotspot-8",
+            "type": "ITEM",
+            "targetId": "item-8",
+            "x": 80,
+            "y": 40,
+            "width": 8,
+            "height": 10,
+            "zIndex": 1,
+            "label": "Gem Fragment",
+            "requiredClueIds": [
+              "clue-6"
+            ]
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-7",
+            "item-8"
+          ],
+          "requiredClueIds": [
+            "clue-7",
+            "clue-8"
+          ],
+          "requiredDialogueIds": [
+            "dlg-5",
+            "dlg-6"
+          ]
+        }
+      }
+    ]
+  }
+]

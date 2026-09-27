@@ -1,0 +1,542 @@
+{
+  "id": "",
+  "caseId": "case-observatory-heist",
+  "title": "The Midnight Observatory Heist",
+  "summary": "During a fierce thunderstorm, a priceless gem is stolen from the Hilltop Observatory. Players must investigate the scene, question suspects, and piece together clues to identify the thief.",
+  "status": "DRAFT",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/cases/observatory-heist.jpg",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "title": "The Crime Scene",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-1",
+          "title": "Observatory Main Hall",
+          "backgroundUrl": "/assets/scenes/main-hall.jpg",
+          "description": "The main hall of the observatory is dimly lit by emergency lights. The glass display case that held the Starfire Diamond is shattered. A thunderclap echoes outside.",
+          "itemIds": [
+            "item-1",
+            "item-2"
+          ],
+          "characterIds": [
+            "char-1",
+            "char-2"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-1",
+              "type": "ITEM",
+              "targetId": "item-1",
+              "x": 40,
+              "y": 50,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Shattered Case",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-2",
+              "type": "ITEM",
+              "targetId": "item-2",
+              "x": 60,
+              "y": 70,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Footprint",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-1",
+              "item-2"
+            ],
+            "requiredClueIds": [
+              "clue-1",
+              "clue-2"
+            ],
+            "requiredDialogueIds": [
+              "dlg-1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2",
+      "title": "Suspect Interviews",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-2",
+          "title": "Office of Dr. Vega",
+          "backgroundUrl": "/assets/scenes/office-vega.jpg",
+          "description": "Dr. Vega\u0027s office is cluttered with star charts and books. A window is slightly open, letting in rain.",
+          "itemIds": [
+            "item-3",
+            "item-4"
+          ],
+          "characterIds": [
+            "char-3"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-3",
+              "type": "ITEM",
+              "targetId": "item-3",
+              "x": 30,
+              "y": 40,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Wet Umbrella",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-4",
+              "type": "ITEM",
+              "targetId": "item-4",
+              "x": 70,
+              "y": 60,
+              "width": 12,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Note",
+              "requiredClueIds": [
+                "clue-2"
+              ]
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-3",
+              "item-4"
+            ],
+            "requiredClueIds": [
+              "clue-3",
+              "clue-4"
+            ],
+            "requiredDialogueIds": [
+              "dlg-2",
+              "dlg-3"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-3",
+          "title": "Library",
+          "backgroundUrl": "/assets/scenes/library.jpg",
+          "description": "The library has shelves of astronomy books. A map on the table shows escape routes.",
+          "itemIds": [
+            "item-5",
+            "item-6"
+          ],
+          "characterIds": [
+            "char-4"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-5",
+              "type": "ITEM",
+              "targetId": "item-5",
+              "x": 50,
+              "y": 30,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Map with Marks",
+              "requiredClueIds": [
+                "clue-3"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-6",
+              "type": "ITEM",
+              "targetId": "item-6",
+              "x": 20,
+              "y": 80,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Gloves",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-5",
+              "item-6"
+            ],
+            "requiredClueIds": [
+              "clue-5",
+              "clue-6"
+            ],
+            "requiredDialogueIds": [
+              "dlg-4"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3",
+      "title": "Confrontation",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-4",
+          "title": "Rooftop Telescope Deck",
+          "backgroundUrl": "/assets/scenes/rooftop.jpg",
+          "description": "The rooftop deck is exposed to the storm. The telescope is covered with a tarp. A glint of something metallic catches your eye.",
+          "itemIds": [
+            "item-7",
+            "item-8"
+          ],
+          "characterIds": [
+            "char-5"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-7",
+              "type": "ITEM",
+              "targetId": "item-7",
+              "x": 45,
+              "y": 55,
+              "width": 10,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Crowbar",
+              "requiredClueIds": [
+                "clue-5"
+              ]
+            },
+            {
+              "hotspotId": "hotspot-8",
+              "type": "ITEM",
+              "targetId": "item-8",
+              "x": 80,
+              "y": 40,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Gem Fragment",
+              "requiredClueIds": [
+                "clue-6"
+              ]
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-7",
+              "item-8"
+            ],
+            "requiredClueIds": [
+              "clue-7",
+              "clue-8"
+            ],
+            "requiredDialogueIds": [
+              "dlg-5",
+              "dlg-6"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-1",
+      "name": "Dr. Vega",
+      "role": "Astronomer",
+      "imageUrl": "/assets/characters/dr-vega.jpg",
+      "description": "The head astronomer, a meticulous woman in her 50s. She seems nervous."
+    },
+    {
+      "characterId": "char-2",
+      "name": "Janitor Miller",
+      "role": "Janitor",
+      "imageUrl": "/assets/characters/janitor-miller.jpg",
+      "description": "The janitor, a gruff man in his 60s. He was mopping near the hall."
+    },
+    {
+      "characterId": "char-3",
+      "name": "Professor Reed",
+      "role": "Visiting Scholar",
+      "imageUrl": "/assets/characters/professor-reed.jpg",
+      "description": "A visiting professor from a rival university, interested in the gem."
+    },
+    {
+      "characterId": "char-4",
+      "name": "Technician Kim",
+      "role": "Technician",
+      "imageUrl": "/assets/characters/technician-kim.jpg",
+      "description": "A young technician who maintains the observatory equipment. He has a limp."
+    },
+    {
+      "characterId": "char-5",
+      "name": "Security Guard",
+      "role": "Security",
+      "imageUrl": "/assets/characters/security-guard.jpg",
+      "description": "The night security guard, a burly man with a flashlight. He claims to have seen nothing."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "name": "Shattered Glass Case",
+      "description": "The display case is broken, with glass shards scattered around.",
+      "inspectText": "The glass is thick, but shattered cleanly. A small cloth fragment is caught on a shard.",
+      "imageUrl": "/assets/items/shattered-case.jpg",
+      "unlockClueIds": [
+        "clue-1"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-2",
+      "name": "Muddy Footprint",
+      "description": "A clear footprint leading away from the case, size 10.",
+      "inspectText": "The footprint is deep, suggesting a heavy person. It is made of reddish clay.",
+      "imageUrl": "/assets/items/footprint.jpg",
+      "unlockClueIds": [
+        "clue-2"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-3",
+      "name": "Wet Umbrella",
+      "description": "A black umbrella, still wet, leaning against the desk.",
+      "inspectText": "The umbrella is wet, but the floor around it is dry. It must have been brought inside recently.",
+      "imageUrl": "/assets/items/wet-umbrella.jpg",
+      "unlockClueIds": [
+        "clue-3"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-4",
+      "name": "Note",
+      "description": "A handwritten note on Dr. Vega\u0027s desk.",
+      "inspectText": "The note reads: \u0027Meet me at midnight. Bring the key.\u0027 It is signed with a \u0027V\u0027.",
+      "imageUrl": "/assets/items/note.jpg",
+      "unlockClueIds": [
+        "clue-4"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-5",
+      "name": "Map with Marks",
+      "description": "A map of the observatory with a route marked in red from the main hall to the roof.",
+      "inspectText": "The red line goes through the library and ends at the rooftop. There is a small smudge of red clay near the roof exit.",
+      "imageUrl": "/assets/items/map.jpg",
+      "unlockClueIds": [
+        "clue-5"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-6",
+      "name": "Pair of Gloves",
+      "description": "A pair of leather gloves, found under a chair.",
+      "inspectText": "The gloves are worn, but the right glove has a small tear on the index finger. There is a faint smell of metal polish.",
+      "imageUrl": "/assets/items/gloves.jpg",
+      "unlockClueIds": [
+        "clue-6"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-7",
+      "name": "Crowbar",
+      "description": "A crowbar hidden behind a vent on the roof.",
+      "inspectText": "The crowbar is clean, but the tip matches the pry marks on the display case. A hair is caught in the hinge.",
+      "imageUrl": "/assets/items/crowbar.jpg",
+      "unlockClueIds": [
+        "clue-7"
+      ],
+      "isCollectible": false
+    },
+    {
+      "itemId": "item-8",
+      "name": "Gem Fragment",
+      "description": "A small fragment of the Starfire Diamond, caught in a crevice.",
+      "inspectText": "The fragment is a deep blue. It must have broken off during the theft.",
+      "imageUrl": "/assets/items/gem-fragment.jpg",
+      "unlockClueIds": [
+        "clue-8"
+      ],
+      "isCollectible": false
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-1",
+      "title": "Cloth Fragment",
+      "content": "A small piece of blue fabric, likely from a lab coat.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-1",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-2",
+      "title": "Red Clay",
+      "content": "The footprint contains red clay, which is found only near the rooftop garden.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-2",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-3",
+      "title": "Umbrella Dry Floor",
+      "content": "The umbrella is wet, but the floor is dry, indicating it was brought inside after the rain started, possibly by someone who went out during the storm.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-3",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-4",
+      "title": "Midnight Meeting",
+      "content": "The note says \u0027Meet me at midnight. Bring the key.\u0027 The key likely opens the display case.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-4",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-5",
+      "title": "Map Route",
+      "content": "The map shows a route from the main hall to the roof. The red clay smudge matches the footprint clay.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-5",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-6",
+      "title": "Torn Glove",
+      "content": "The torn glove suggests the thief might have injured their finger. The metal polish smell indicates handling of metal objects.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "item-6",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-7",
+      "title": "Crowbar Hair",
+      "content": "A hair caught on the crowbar. It is black and short, possibly from the security guard.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-7",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-8",
+      "title": "Gem Fragment Match",
+      "content": "The fragment matches the missing gem. It was found on the roof, suggesting the thief went there.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-8",
+      "sourceType": "item"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-1",
+      "characterId": "char-1",
+      "question": "Dr. Vega, where were you when the theft occurred?",
+      "answer": "I was in my office reviewing star charts. I heard the alarm but thought it was thunder.",
+      "requiredClueIds": [],
+      "unlockClueIds": [
+        "clue-4"
+      ]
+    },
+    {
+      "dialogueId": "dlg-2",
+      "characterId": "char-3",
+      "question": "Professor Reed, what brings you here?",
+      "answer": "I was invited to study the gem. I was in the library reading when the alarm went off.",
+      "requiredClueIds": [
+        "clue-3"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-3",
+      "characterId": "char-3",
+      "question": "Did you see anyone suspicious?",
+      "answer": "I saw the janitor near the main hall around 11:45. He seemed to be in a hurry.",
+      "requiredClueIds": [
+        "clue-4"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-4",
+      "characterId": "char-4",
+      "question": "Technician Kim, why were you in the library?",
+      "answer": "I was fixing a bookshelf. I noticed the map on the table but didn\u0027t touch it.",
+      "requiredClueIds": [
+        "clue-5"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-5",
+      "characterId": "char-5",
+      "question": "Security Guard, did you hear anything?",
+      "answer": "I was making rounds. I heard a crash from the main hall but by the time I got there, the gem was gone.",
+      "requiredClueIds": [
+        "clue-7"
+      ],
+      "unlockClueIds": [
+        "clue-8"
+      ]
+    },
+    {
+      "dialogueId": "dlg-6",
+      "characterId": "char-5",
+      "question": "Why is your hair on the crowbar?",
+      "answer": "I... I must have leaned against it earlier. I didn\u0027t steal anything!",
+      "requiredClueIds": [
+        "clue-7",
+        "clue-8"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-5",
+    "motive": "The security guard needed money to pay off gambling debts.",
+    "method": "He used a crowbar to break the case, wore gloves, and escaped through the roof. The red clay on his shoes matched the rooftop garden.",
+    "requiredEvidenceIds": [
+      "clue-7",
+      "clue-8"
+    ],
+    "winEnding": "You present the crowbar with the guard\u0027s hair and the gem fragment. The guard confesses, and the gem is recovered.",
+    "failEnding": "You accuse the wrong person. The real thief escapes, and the gem is lost forever."
+  },
+  "createdAt": "2026-06-11T18:42:43.7413105Z",
+  "updatedAt": "2026-06-11T18:42:43.7413106Z"
+}
