@@ -1,0 +1,2011 @@
+[
+  {
+    "sceneId": "scene-1",
+    "title": "Lantern Market",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/scenes/scene-1.png",
+    "description": "Founders\u2019 Tide lanterns swing over crowded stalls as townsfolk argue about the twelve impossible bell strokes. A torn ribbon lies near the musicians\u2019 awning, and the first stories already disagree.",
+    "itemIds": [
+      "item-1"
+    ],
+    "characterIds": [
+      "char-1",
+      "char-2"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-1",
+        "type": "ITEM",
+        "targetId": "item-1",
+        "x": 38,
+        "y": 68,
+        "width": 8,
+        "height": 6,
+        "zIndex": 1,
+        "label": "Torn festival ribbon",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-2",
+        "type": "CHARACTER",
+        "targetId": "char-1",
+        "x": 70,
+        "y": 49,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Maren Quill",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-3",
+        "type": "CHARACTER",
+        "targetId": "char-2",
+        "x": 24,
+        "y": 47,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Lio Fen",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-1",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-1",
+          "x": 252,
+          "y": 606,
+          "width": 87,
+          "height": 29,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "visible cobblestone floor at the front-left edge of the striped musicians\u0027 awning",
+          "lighting": "low warm amber spill from the nearby stall lanterns, mixed with cool teal night fill across the stones",
+          "perspective": "side-on pixel-art market view with a slight top-down angle, so the ribbon lies flat on the cobblestone plane",
+          "depth": 7,
+          "reason": "A torn festival ribbon can plausibly be snagged or dropped beside the musicians\u0027 awning, and this exact floor patch is visible, clear, and close to the awning supports. Verification: Cutout is much wider than the draft box; adjusted scale to match ribbon aspect while keeping it flat on the same visible cobblestone patch."
+        },
+        {
+          "type": "npc",
+          "id": "char-1",
+          "x": 1260,
+          "y": 720,
+          "width": 113,
+          "height": 248,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible cobblestone floor in front of the right-side market shelves and counter",
+          "lighting": "warm amber lantern light from the hanging and stall lamps, with cool teal night fill from the harbor background",
+          "perspective": "side-on pixel-art market view with a slight top-down angle visible in the cobblestone floor planes",
+          "depth": 12,
+          "reason": "The pearl merchant fits beside the more formal right-side stall and shelving, leaving the player spawn area clear while standing on unobstructed visible floor. Verification: Full-body sprite aspect matches the planned size closely, with feet correctly landing on the right-side cobblestone floor."
+        },
+        {
+          "type": "npc",
+          "id": "char-2",
+          "x": 330,
+          "y": 710,
+          "width": 114,
+          "height": 230,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "visible cobblestone floor beneath the striped musicians\u0027 awning at the left market stall",
+          "lighting": "warm amber lantern light from the awning lamps and overhead lanterns, with cool teal night shadows behind the stalls",
+          "perspective": "side-on pixel-art market view with a slight top-down angle visible in the cobblestone floor planes",
+          "depth": 11,
+          "reason": "The festival musician belongs near the striped awning and small stall area, with feet placed on the clear cobblestones and no overlap with the player spawn points. Verification: Musician cutout is slightly wider than planned due to pose and instrument; adjusted width while keeping feet on the same left awning floor area."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "Tidewarden\u2019s Ledger Office",
+          "hotspot": {
+            "x": 0,
+            "y": 158,
+            "width": 86,
+            "height": 432
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-1",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-1.png",
+          "position": {
+            "x": 252,
+            "y": 606,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 87,
+            "height": 29
+          },
+          "hotspot": {
+            "x": 208.5,
+            "y": 591.5,
+            "width": 87,
+            "height": 29
+          },
+          "reservedSlot": {
+            "x": 208.5,
+            "y": 591.5,
+            "width": 87,
+            "height": 29
+          },
+          "anchor": "center",
+          "depth": 7
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-1",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-1-scene-1-sprite.png",
+          "position": {
+            "x": 1260,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 113,
+            "height": 248
+          },
+          "hotspot": {
+            "x": 1203.5,
+            "y": 472,
+            "width": 113,
+            "height": 248
+          },
+          "reservedSlot": {
+            "x": 1203.5,
+            "y": 472,
+            "width": 113,
+            "height": 248
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 12
+        },
+        {
+          "characterId": "char-2",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-2-scene-1-sprite.png",
+          "position": {
+            "x": 330,
+            "y": 710,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 114,
+            "height": 230
+          },
+          "hotspot": {
+            "x": 273,
+            "y": 480,
+            "width": 114,
+            "height": 230
+          },
+          "reservedSlot": {
+            "x": 273,
+            "y": 480,
+            "width": 114,
+            "height": 230
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 11
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "Tidewarden\u2019s Ledger Office",
+          "hotspot": {
+            "x": 0,
+            "y": 158,
+            "width": 86,
+            "height": 432
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-1"
+      ],
+      "requiredClueIds": [
+        "clue-1",
+        "clue-2"
+      ],
+      "requiredDialogueIds": [
+        "dlg-1",
+        "dlg-2"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-2",
+    "title": "Tidewarden\u2019s Ledger Office",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/scenes/scene-2.png",
+    "description": "Beside the customs scale, the tidewarden\u2019s office is damp, overturned, and oddly tidy where force should have left damage. The missing ledger\u2019s chain hangs from the desk like a question mark.",
+    "itemIds": [
+      "item-2",
+      "item-3"
+    ],
+    "characterIds": [
+      "char-3",
+      "char-1"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-4",
+        "type": "ITEM",
+        "targetId": "item-2",
+        "x": 31,
+        "y": 76,
+        "width": 10,
+        "height": 7,
+        "zIndex": 1,
+        "label": "Wet footprint",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-5",
+        "type": "ITEM",
+        "targetId": "item-3",
+        "x": 58,
+        "y": 54,
+        "width": 9,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Empty ledger chain",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-6",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 78,
+        "y": 47,
+        "width": 10,
+        "height": 19,
+        "zIndex": 1,
+        "label": "Edda Vale",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-7",
+        "type": "CHARACTER",
+        "targetId": "char-1",
+        "x": 18,
+        "y": 50,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Maren Quill",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-2",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-2",
+          "x": 310,
+          "y": 647,
+          "width": 110,
+          "height": 62,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "damp wooden floorboards beside the customs scale base and nearby puddle stains",
+          "lighting": "low warm reflections from the left window and lamp glinting across the wet floorboards",
+          "perspective": "flat object seen from a slight top-down angle on the receding plank floor",
+          "depth": 15,
+          "reason": "The wet footprint mold physically belongs on the floor where damp impressions and water stains are visible, away from the walking spawn area. Verification: Aspect corrected for the wider footprint mold cutout while remaining on the same damp floorboard slot beside the scale base."
+        },
+        {
+          "type": "item",
+          "id": "item-3",
+          "x": 981,
+          "y": 506,
+          "width": 44,
+          "height": 169,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "front edge of the central counting desk, hanging from the brass ring below the desktop",
+          "lighting": "muted amber highlights from the left lamps catching the brass, with dark desk-shadow behind it",
+          "perspective": "vertical hanging object on a front-facing desk in the same straight-on room perspective",
+          "depth": 10,
+          "reason": "The empty ledger chain is described as hanging from the desk, and this exact visible desk-front ring and dangling space matches that attachment point. Verification: Aspect corrected for the tall narrow chain cutout; it still aligns with the desk-front brass ring and dangling space."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 820,
+          "y": 720,
+          "width": 105,
+          "height": 300,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "visible wooden floorboards in front of the counting desk, left of the hanging ledger chain",
+          "lighting": "warm amber light from the left window and wall lamps, with cooler green-blue shadows on the right side",
+          "perspective": "straight-on office interior with slight top-down view of the floorboards receding toward the back wall",
+          "depth": 13,
+          "reason": "Edda Vale belongs close to the tidewarden\u0027s desk and records area, while this floor position keeps the player spawn area and the ledger-chain item clear. Verification: Full-body sprite fits the planned floor position with feet on the floor and remains clear of the ledger chain area."
+        },
+        {
+          "type": "npc",
+          "id": "char-1",
+          "x": 1390,
+          "y": 720,
+          "width": 120,
+          "height": 300,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible wooden floorboards in front of the tall account cabinet on the right",
+          "lighting": "dim warm light from the left window and lamps, fading into deeper green-brown shadow near the right cabinet",
+          "perspective": "straight-on office interior with slight top-down floor visibility and horizontal floorboard perspective",
+          "depth": 14,
+          "reason": "Maren Quill can stand near stored records and valuables without blocking the door, desk chain, or player spawn points. Verification: Width slightly increased to match the fuller cutout silhouette while keeping her feet on the same floor position near the right cabinet."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-1",
+          "targetSceneId": "scene-1",
+          "label": "Lantern Market",
+          "hotspot": {
+            "x": 420,
+            "y": 128,
+            "width": 190,
+            "height": 452
+          },
+          "depth": 3
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Locked Bellhouse",
+          "hotspot": {
+            "x": 31,
+            "y": 47,
+            "width": 122,
+            "height": 405
+          },
+          "depth": 2
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-2",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-2.png",
+          "position": {
+            "x": 310,
+            "y": 647,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 110,
+            "height": 62
+          },
+          "hotspot": {
+            "x": 255,
+            "y": 616,
+            "width": 110,
+            "height": 62
+          },
+          "reservedSlot": {
+            "x": 255,
+            "y": 616,
+            "width": 110,
+            "height": 62
+          },
+          "anchor": "center",
+          "depth": 15
+        },
+        {
+          "itemId": "item-3",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-3.png",
+          "position": {
+            "x": 981,
+            "y": 506,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 44,
+            "height": 169
+          },
+          "hotspot": {
+            "x": 959,
+            "y": 421.5,
+            "width": 44,
+            "height": 169
+          },
+          "reservedSlot": {
+            "x": 959,
+            "y": 421.5,
+            "width": 44,
+            "height": 169
+          },
+          "anchor": "center",
+          "depth": 10
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-3",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-3-scene-2-sprite.png",
+          "position": {
+            "x": 820,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 105,
+            "height": 300
+          },
+          "hotspot": {
+            "x": 767.5,
+            "y": 420,
+            "width": 105,
+            "height": 300
+          },
+          "reservedSlot": {
+            "x": 767.5,
+            "y": 420,
+            "width": 105,
+            "height": 300
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 13
+        },
+        {
+          "characterId": "char-1",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-1-scene-2-sprite.png",
+          "position": {
+            "x": 1390,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 120,
+            "height": 300
+          },
+          "hotspot": {
+            "x": 1330,
+            "y": 420,
+            "width": 120,
+            "height": 300
+          },
+          "reservedSlot": {
+            "x": 1330,
+            "y": 420,
+            "width": 120,
+            "height": 300
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 14
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-1",
+          "targetSceneId": "scene-1",
+          "label": "Lantern Market",
+          "hotspot": {
+            "x": 420,
+            "y": 128,
+            "width": 190,
+            "height": 452
+          },
+          "depth": 3
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Locked Bellhouse",
+          "hotspot": {
+            "x": 31,
+            "y": 47,
+            "width": 122,
+            "height": 405
+          },
+          "depth": 2
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-2",
+        "item-3"
+      ],
+      "requiredClueIds": [
+        "clue-3",
+        "clue-4"
+      ],
+      "requiredDialogueIds": [
+        "dlg-3",
+        "dlg-4",
+        "dlg-5"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-3",
+    "title": "Locked Bellhouse",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/scenes/scene-3.png",
+    "description": "Above Gullmarsh Pier, the restored brass bell hangs in a salt-dusted chamber. The door was locked, the keeper absent, and yet the bell called the whole harbor awake.",
+    "itemIds": [
+      "item-4",
+      "item-5"
+    ],
+    "characterIds": [
+      "char-4",
+      "char-2"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-8",
+        "type": "ITEM",
+        "targetId": "item-4",
+        "x": 45,
+        "y": 62,
+        "width": 8,
+        "height": 14,
+        "zIndex": 1,
+        "label": "Bell rope",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-9",
+        "type": "ITEM",
+        "targetId": "item-5",
+        "x": 61,
+        "y": 38,
+        "width": 7,
+        "height": 7,
+        "zIndex": 1,
+        "label": "Clockwork striker pin",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-10",
+        "type": "CHARACTER",
+        "targetId": "char-4",
+        "x": 21,
+        "y": 49,
+        "width": 10,
+        "height": 19,
+        "zIndex": 1,
+        "label": "Oren Brack",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-11",
+        "type": "CHARACTER",
+        "targetId": "char-2",
+        "x": 80,
+        "y": 51,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Lio Fen",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-3",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-4",
+          "x": 875,
+          "y": 529,
+          "width": 28,
+          "height": 192,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "visible pull line hanging from the underside of the brass fog bell down toward the floor",
+          "lighting": "warm golden reflections from the brass bell with cool backlight from the central arched opening",
+          "perspective": "nearly frontal hanging vertical object within the side-on room perspective",
+          "depth": 8,
+          "reason": "The dry bell rope physically belongs directly beneath the bell mouth where the visible pull line already descends from the clapper area. Verification: Accepted with slight right alignment and taller, narrower scaling to match the rope cutout on the existing hanging pull line."
+        },
+        {
+          "type": "item",
+          "id": "item-5",
+          "x": 814,
+          "y": 392,
+          "width": 56,
+          "height": 42,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "dark striker and clapper bracket visible under the brass bell mouth",
+          "lighting": "warm reflected light from the bell with shadowed underside contrast",
+          "perspective": "frontal detail on the bell mechanism, slightly above eye level in the room composition",
+          "depth": 9,
+          "reason": "A small maintenance pin wedged near the restored striker fits on the visible mechanism just under the bell lip without overlapping the hanging rope. Verification: Accepted with minor width correction for the striker pin aspect; it remains seated on the bell mechanism under the brass lip."
+        },
+        {
+          "type": "npc",
+          "id": "char-4",
+          "x": 1115,
+          "y": 720,
+          "width": 138,
+          "height": 285,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible wooden plank floor in front of the right wall cabinets and ladder",
+          "lighting": "cool blue daylight from the right and center arched windows with warm reflected brass tones from the bell",
+          "perspective": "side-on pixel-art interior with a slight top-down view of the wooden floorboards",
+          "depth": 14,
+          "reason": "Oren Brack is placed close to the bell mechanism and ladder side of the chamber, leaving the central walking lane and both player spawn points clear. Verification: Accepted; feet sit on the wooden floor and the corrected width matches Oren Brack\u0027s full-body cutout in the original right-side slot."
+        },
+        {
+          "type": "npc",
+          "id": "char-2",
+          "x": 390,
+          "y": 720,
+          "width": 109,
+          "height": 260,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "visible wooden plank floor in front of the low left workbench, clear of the door and player spawn positions",
+          "lighting": "cool blue daylight from the arched windows with warm amber fill from the left wall lantern and brass bell highlights",
+          "perspective": "side-on pixel-art interior with a slight top-down view of the wooden floorboards",
+          "depth": 13,
+          "reason": "Lio Fen can stand nervously near the side workbench without blocking the central bell rope, the door transition, or the player spawn area. Verification: Accepted; feet align to the floor and the sprite fits the original left workbench area without blocking the walkway."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "Tidewarden\u2019s Ledger Office",
+          "hotspot": {
+            "x": 45,
+            "y": 286,
+            "width": 128,
+            "height": 424
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Boatwright\u2019s Shed",
+          "hotspot": {
+            "x": 680,
+            "y": 586,
+            "width": 150,
+            "height": 62
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-4",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-4.png",
+          "position": {
+            "x": 875,
+            "y": 529,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 28,
+            "height": 192
+          },
+          "hotspot": {
+            "x": 861,
+            "y": 433,
+            "width": 28,
+            "height": 192
+          },
+          "reservedSlot": {
+            "x": 861,
+            "y": 433,
+            "width": 28,
+            "height": 192
+          },
+          "anchor": "center",
+          "depth": 8
+        },
+        {
+          "itemId": "item-5",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-5.png",
+          "position": {
+            "x": 814,
+            "y": 392,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 56,
+            "height": 42
+          },
+          "hotspot": {
+            "x": 786,
+            "y": 371,
+            "width": 56,
+            "height": 42
+          },
+          "reservedSlot": {
+            "x": 786,
+            "y": 371,
+            "width": 56,
+            "height": 42
+          },
+          "anchor": "center",
+          "depth": 9
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-4",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-4-scene-3-sprite.png",
+          "position": {
+            "x": 1115,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 138,
+            "height": 285
+          },
+          "hotspot": {
+            "x": 1046,
+            "y": 435,
+            "width": 138,
+            "height": 285
+          },
+          "reservedSlot": {
+            "x": 1046,
+            "y": 435,
+            "width": 138,
+            "height": 285
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 14
+        },
+        {
+          "characterId": "char-2",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-2-scene-3-sprite.png",
+          "position": {
+            "x": 390,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 109,
+            "height": 260
+          },
+          "hotspot": {
+            "x": 335.5,
+            "y": 460,
+            "width": 109,
+            "height": 260
+          },
+          "reservedSlot": {
+            "x": 335.5,
+            "y": 460,
+            "width": 109,
+            "height": 260
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 13
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "Tidewarden\u2019s Ledger Office",
+          "hotspot": {
+            "x": 45,
+            "y": 286,
+            "width": 128,
+            "height": 424
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Boatwright\u2019s Shed",
+          "hotspot": {
+            "x": 680,
+            "y": 586,
+            "width": 150,
+            "height": 62
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-4",
+        "item-5"
+      ],
+      "requiredClueIds": [
+        "clue-5",
+        "clue-6"
+      ],
+      "requiredDialogueIds": [
+        "dlg-6",
+        "dlg-7"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-4",
+    "title": "Boatwright\u2019s Shed",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/scenes/scene-4.png",
+    "description": "Tar fumes, scraped hulls, and unpaid invoices make Tess Rill look convenient for suspicion. The material evidence, however, may tell a more precise story than the gossip does.",
+    "itemIds": [
+      "item-6"
+    ],
+    "characterIds": [
+      "char-5",
+      "char-3"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-12",
+        "type": "ITEM",
+        "targetId": "item-6",
+        "x": 52,
+        "y": 71,
+        "width": 9,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Tarred caulking rag",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-13",
+        "type": "CHARACTER",
+        "targetId": "char-5",
+        "x": 30,
+        "y": 49,
+        "width": 11,
+        "height": 19,
+        "zIndex": 1,
+        "label": "Tess Rill",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-14",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 74,
+        "y": 50,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Edda Vale",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-4",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-6",
+          "x": 365,
+          "y": 500,
+          "width": 66,
+          "height": 44,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "lower-left wooden workbench top beneath the wall hooks and beside the open doorway",
+          "lighting": "warm side light from the open left doorway catches the bench surface, with dark shed shadows under the tabletop",
+          "perspective": "slightly top-down side view, showing the horizontal bench top as a narrow visible surface",
+          "depth": 7,
+          "reason": "A tarred caulking rag physically belongs on the boatwright\u0027s workbench where tools and pitch-stained materials would be handled. Verification: Actual rag cutout is wider and flatter; slight aspect correction keeps it centered on the same lower-left workbench top."
+        },
+        {
+          "type": "npc",
+          "id": "char-5",
+          "x": 895,
+          "y": 720,
+          "width": 116,
+          "height": 280,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "open wooden plank floor directly in front of the unfinished central boat hull",
+          "lighting": "warm daylight from the large left doorway and small windows, with amber highlights from upper-left and deeper shadows falling to the right",
+          "perspective": "side-on cutaway shed interior with a slight top-down view of the plank floor",
+          "depth": 14,
+          "reason": "Tess belongs beside the scraped hull and caulking work, while this floor position keeps the player spawn area clear and leaves the left workbench visible. Verification: Full-body Tess sprite fits the planned floor slot with feet on the floor; width lightly corrected to match the cutout aspect."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 1260,
+          "y": 720,
+          "width": 110,
+          "height": 265,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "open wooden plank floor in front of the right-side work table and stair structure",
+          "lighting": "dim amber interior light with the strongest illumination entering from the left doorway and windows, leaving this right side in softer shadow",
+          "perspective": "side-on cutaway shed interior with a slight top-down view of the plank floor",
+          "depth": 15,
+          "reason": "Edda can stand apart near the shed exits and stairs, suggesting official observation without blocking the central hull, item placement, or player spawns. Verification: Edda sprite aspect already matches the plan and her feet sit correctly on the right-side plank floor."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "Old Lighthouse Causeway",
+          "hotspot": {
+            "x": 24,
+            "y": 208,
+            "width": 198,
+            "height": 392
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Locked Bellhouse",
+          "hotspot": {
+            "x": 1306,
+            "y": 112,
+            "width": 132,
+            "height": 140
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-6",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-6.png",
+          "position": {
+            "x": 365,
+            "y": 500,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 66,
+            "height": 44
+          },
+          "hotspot": {
+            "x": 332,
+            "y": 478,
+            "width": 66,
+            "height": 44
+          },
+          "reservedSlot": {
+            "x": 332,
+            "y": 478,
+            "width": 66,
+            "height": 44
+          },
+          "anchor": "center",
+          "depth": 7
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-5",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-5-scene-4-sprite.png",
+          "position": {
+            "x": 895,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 116,
+            "height": 280
+          },
+          "hotspot": {
+            "x": 837,
+            "y": 440,
+            "width": 116,
+            "height": 280
+          },
+          "reservedSlot": {
+            "x": 837,
+            "y": 440,
+            "width": 116,
+            "height": 280
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 14
+        },
+        {
+          "characterId": "char-3",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-3-scene-4-sprite.png",
+          "position": {
+            "x": 1260,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 110,
+            "height": 265
+          },
+          "hotspot": {
+            "x": 1205,
+            "y": 455,
+            "width": 110,
+            "height": 265
+          },
+          "reservedSlot": {
+            "x": 1205,
+            "y": 455,
+            "width": 110,
+            "height": 265
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 15
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "Old Lighthouse Causeway",
+          "hotspot": {
+            "x": 24,
+            "y": 208,
+            "width": 198,
+            "height": 392
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Locked Bellhouse",
+          "hotspot": {
+            "x": 1306,
+            "y": 112,
+            "width": 132,
+            "height": 140
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-6"
+      ],
+      "requiredClueIds": [
+        "clue-7"
+      ],
+      "requiredDialogueIds": [
+        "dlg-8",
+        "dlg-9"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-5",
+    "title": "Old Lighthouse Causeway",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/scenes/scene-5.png",
+    "description": "At low tide, slick stones appear between the harbor and the aging lighthouse. The causeway offers a narrow window for anyone willing to cross in darkness.",
+    "itemIds": [
+      "item-7",
+      "item-8"
+    ],
+    "characterIds": [
+      "char-4",
+      "char-3"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-15",
+        "type": "ITEM",
+        "targetId": "item-7",
+        "x": 41,
+        "y": 66,
+        "width": 10,
+        "height": 7,
+        "zIndex": 1,
+        "label": "Tide chart slate",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-16",
+        "type": "ITEM",
+        "targetId": "item-8",
+        "x": 62,
+        "y": 73,
+        "width": 6,
+        "height": 5,
+        "zIndex": 1,
+        "label": "Blue lantern shard",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-17",
+        "type": "CHARACTER",
+        "targetId": "char-4",
+        "x": 18,
+        "y": 51,
+        "width": 10,
+        "height": 19,
+        "zIndex": 1,
+        "label": "Oren Brack",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-18",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 78,
+        "y": 50,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Edda Vale",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-5",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-7",
+          "x": 266,
+          "y": 588,
+          "width": 88,
+          "height": 66,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "flat top of the wooden crate beside the barrel under the left harbor lamps",
+          "lighting": "strong warm amber lantern light from the nearby left wall and street lamps, with surrounding cool night shadows",
+          "perspective": "slightly top-down view of foreground props, showing the crate top as a usable horizontal surface",
+          "depth": 8,
+          "reason": "A chalk tide slate would naturally be left on the dry crate outside the harbor buildings where tidewardens and boatwrights can consult it. Verification: Aspect corrected to match the slate cutout while staying centered on the planned crate-top slot."
+        },
+        {
+          "type": "item",
+          "id": "item-8",
+          "x": 996,
+          "y": 612,
+          "width": 60,
+          "height": 36,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "wet exposed stones at the beginning of the low-tide causeway leading toward the lighthouse",
+          "lighting": "cool moonlight reflected from the water, with faint warm highlights from the lighthouse windows",
+          "perspective": "mid-ground causeway stones recede toward the lighthouse in a side-on view with slight top-down ground visibility",
+          "depth": 10,
+          "reason": "The blue glass shard is placed between the slick causeway stones where tidewater would reveal small fragments at low tide. Verification: Aspect corrected to match the blue shard cutout; placement remains on the same causeway stones."
+        },
+        {
+          "type": "npc",
+          "id": "char-4",
+          "x": 1245,
+          "y": 720,
+          "width": 127,
+          "height": 252,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible foreground cobblestone quay beside the right-hand chain bollard and causeway approach",
+          "lighting": "cool moonlight and lighthouse glow from the center-right, with weaker warm spill from the harbor lamps on the left",
+          "perspective": "side-on pixel-art harbor view with slight top-down visibility on the cobblestone ground; foreground figures are larger than the distant lighthouse",
+          "depth": 15,
+          "reason": "The retired keeper belongs near the lighthouse approach, and this foreground floor position is unobstructed and does not block the causeway transition hotspot. Verification: Width adjusted to match Oren\u0027s full-body cutout aspect with feet still on the quay floor."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 840,
+          "y": 720,
+          "width": 129,
+          "height": 232,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible foreground cobblestone quay just right of the player spawn area",
+          "lighting": "mixed warm amber lantern light from the left buildings with cool moonlight from the open sky and water",
+          "perspective": "side-on pixel-art harbor view with slight top-down visibility on the cobblestone ground; horizon around the mid-background",
+          "depth": 14,
+          "reason": "This open stretch of quay is visible, walkable, and clear of the spawn points while letting Edda face arriving investigators from the harbor side. Verification: Scale adjusted to match Edda\u0027s taller cutout aspect while keeping her feet on the original floor position."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Boatwright\u2019s Shed",
+          "hotspot": {
+            "x": 18,
+            "y": 430,
+            "width": 104,
+            "height": 218
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-6",
+          "targetSceneId": "scene-6",
+          "label": "Lighthouse Lantern Store",
+          "hotspot": {
+            "x": 1018,
+            "y": 350,
+            "width": 320,
+            "height": 168
+          },
+          "depth": 21
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-7",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-7.png",
+          "position": {
+            "x": 266,
+            "y": 588,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 88,
+            "height": 66
+          },
+          "hotspot": {
+            "x": 222,
+            "y": 555,
+            "width": 88,
+            "height": 66
+          },
+          "reservedSlot": {
+            "x": 222,
+            "y": 555,
+            "width": 88,
+            "height": 66
+          },
+          "anchor": "center",
+          "depth": 8
+        },
+        {
+          "itemId": "item-8",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-8.png",
+          "position": {
+            "x": 996,
+            "y": 612,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 60,
+            "height": 36
+          },
+          "hotspot": {
+            "x": 966,
+            "y": 594,
+            "width": 60,
+            "height": 36
+          },
+          "reservedSlot": {
+            "x": 966,
+            "y": 594,
+            "width": 60,
+            "height": 36
+          },
+          "anchor": "center",
+          "depth": 10
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-4",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-4-scene-5-sprite.png",
+          "position": {
+            "x": 1245,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 127,
+            "height": 252
+          },
+          "hotspot": {
+            "x": 1181.5,
+            "y": 468,
+            "width": 127,
+            "height": 252
+          },
+          "reservedSlot": {
+            "x": 1181.5,
+            "y": 468,
+            "width": 127,
+            "height": 252
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 15
+        },
+        {
+          "characterId": "char-3",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-3-scene-5-sprite.png",
+          "position": {
+            "x": 840,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 129,
+            "height": 232
+          },
+          "hotspot": {
+            "x": 775.5,
+            "y": 488,
+            "width": 129,
+            "height": 232
+          },
+          "reservedSlot": {
+            "x": 775.5,
+            "y": 488,
+            "width": 129,
+            "height": 232
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 14
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Boatwright\u2019s Shed",
+          "hotspot": {
+            "x": 18,
+            "y": 430,
+            "width": 104,
+            "height": 218
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-6",
+          "targetSceneId": "scene-6",
+          "label": "Lighthouse Lantern Store",
+          "hotspot": {
+            "x": 1018,
+            "y": 350,
+            "width": 320,
+            "height": 168
+          },
+          "depth": 21
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-7",
+        "item-8"
+      ],
+      "requiredClueIds": [
+        "clue-8",
+        "clue-9",
+        "clue-12"
+      ],
+      "requiredDialogueIds": [
+        "dlg-10",
+        "dlg-11"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-6",
+    "title": "Lighthouse Lantern Store",
+    "backgroundUrl": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/scenes/scene-6.png",
+    "description": "Behind warped shelving in the lighthouse lantern store, the trail ends among oilskins, spare lenses, and the sound of the tide returning over the causeway stones.",
+    "itemIds": [
+      "item-9"
+    ],
+    "characterIds": [
+      "char-3",
+      "char-1"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-19",
+        "type": "ITEM",
+        "targetId": "item-9",
+        "x": 49,
+        "y": 59,
+        "width": 11,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Recovered pearl ledger",
+        "requiredClueIds": [
+          "clue-8",
+          "clue-9",
+          "clue-12"
+        ]
+      },
+      {
+        "hotspotId": "hotspot-20",
+        "type": "CHARACTER",
+        "targetId": "char-3",
+        "x": 72,
+        "y": 50,
+        "width": 10,
+        "height": 19,
+        "zIndex": 1,
+        "label": "Edda Vale",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-21",
+        "type": "CHARACTER",
+        "targetId": "char-1",
+        "x": 25,
+        "y": 51,
+        "width": 10,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Maren Quill",
+        "requiredClueIds": []
+      }
+    ],
+    "placementPlan": {
+      "sceneId": "scene-6",
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "placements": [
+        {
+          "type": "item",
+          "id": "item-9",
+          "x": 928,
+          "y": 501,
+          "width": 126,
+          "height": 77,
+          "anchor": "center",
+          "facing": "left",
+          "surface": "top of the low wooden crate tucked into the bottom bay beneath the hanging oilskins, behind the central shelving",
+          "lighting": "dim amber lantern light with soft highlights from the left window, partially shaded by the surrounding shelves and coats",
+          "perspective": "slightly top-down shelf perspective, with the satchel lying flat on the crate top inside the recessed shelving bay",
+          "depth": 7,
+          "reason": "The oilskin-wrapped ledger belongs hidden on this recessed crate behind the warped store shelving and beneath the oilskins, matching the clue location without floating or blocking the floor. Verification: Ledger aspect needed slightly taller; centered remains on the same recessed crate top beneath the hanging oilskins without floating."
+        },
+        {
+          "type": "npc",
+          "id": "char-3",
+          "x": 1200,
+          "y": 720,
+          "width": 124.8,
+          "height": 264,
+          "anchor": "bottom-center",
+          "facing": "left",
+          "surface": "visible wooden plank floor at the base of the staircase, just right of the central aisle",
+          "lighting": "warm left-side window light and hanging lantern glow catch left edges, with cooler dark shadows against the stair and right shelving",
+          "perspective": "side-on painted interior with slight downward floor perspective; vertical figures align to the floor plank horizon",
+          "depth": 13,
+          "reason": "Edda is placed on clear floor beside the stair base, away from the spawns and facing Maren as if calmly blocking or explaining access to the store and causeway. Verification: Edda\u0027s cutout is wider than planned; feet still sit on the same plank floor position at the stair base facing left."
+        },
+        {
+          "type": "npc",
+          "id": "char-1",
+          "x": 1060,
+          "y": 720,
+          "width": 112,
+          "height": 285,
+          "anchor": "bottom-center",
+          "facing": "right",
+          "surface": "visible wooden plank floor in the open aisle in front of the central oilskin shelving",
+          "lighting": "warm light enters from the arched window on the left and mixes with amber lantern glow, leaving stronger shadows toward the right side",
+          "perspective": "side-on painted interior with a slight downward view of the floor planks and shelf tops",
+          "depth": 12,
+          "reason": "Maren stands clear of the player spawn area in the central aisle, with her feet on unobstructed floor and enough open space to face the other NPC near the stair side. Verification: Maren\u0027s sprite matches the planned scale and her feet align cleanly with the floor in the central aisle facing right."
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "Old Lighthouse Causeway",
+          "hotspot": {
+            "x": 96,
+            "y": 61,
+            "width": 124,
+            "height": 416
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 540,
+        "width": 1600,
+        "height": 250
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-9",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/items/item-9.png",
+          "position": {
+            "x": 928,
+            "y": 501,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 126,
+            "height": 77
+          },
+          "hotspot": {
+            "x": 865,
+            "y": 462.5,
+            "width": 126,
+            "height": 77
+          },
+          "reservedSlot": {
+            "x": 865,
+            "y": 462.5,
+            "width": 126,
+            "height": 77
+          },
+          "anchor": "center",
+          "depth": 7
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-3",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-3-scene-6-sprite.png",
+          "position": {
+            "x": 1200,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 124.8,
+            "height": 264
+          },
+          "hotspot": {
+            "x": 1137.6,
+            "y": 456,
+            "width": 124.8,
+            "height": 264
+          },
+          "reservedSlot": {
+            "x": 1137.6,
+            "y": 456,
+            "width": 124.8,
+            "height": 264
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": 13
+        },
+        {
+          "characterId": "char-1",
+          "asset": "/assets/ai-generated/v3-placement-first/case-brass-bell-conspiracy/characters/char-1-scene-6-sprite.png",
+          "position": {
+            "x": 1060,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 112,
+            "height": 285
+          },
+          "hotspot": {
+            "x": 1004,
+            "y": 435,
+            "width": 112,
+            "height": 285
+          },
+          "reservedSlot": {
+            "x": 1004,
+            "y": 435,
+            "width": 112,
+            "height": 285
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": 12
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-5",
+          "targetSceneId": "scene-5",
+          "label": "Old Lighthouse Causeway",
+          "hotspot": {
+            "x": 96,
+            "y": 61,
+            "width": 124,
+            "height": 416
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-9"
+      ],
+      "requiredClueIds": [
+        "clue-10",
+        "clue-11"
+      ],
+      "requiredDialogueIds": [
+        "dlg-12",
+        "dlg-13"
+      ]
+    }
+  }
+]

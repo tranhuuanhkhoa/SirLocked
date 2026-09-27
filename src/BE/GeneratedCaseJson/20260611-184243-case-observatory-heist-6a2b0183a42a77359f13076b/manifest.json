@@ -1,0 +1,13 @@
+{
+  "draftId": "6a2b0183a42a77359f13076b",
+  "caseId": "case-observatory-heist",
+  "title": "The Midnight Observatory Heist",
+  "provider": "Deepseek",
+  "prompt": "A jewel heist during a thunderstorm at the observatory",
+  "settings": {
+    "stageCount": 3,
+    "difficulty": "medium",
+    "visualStyle": "cinematic detective"
+  },
+  "generatedAt": "2026-06-11T18:42:43.7917889Z"
+}

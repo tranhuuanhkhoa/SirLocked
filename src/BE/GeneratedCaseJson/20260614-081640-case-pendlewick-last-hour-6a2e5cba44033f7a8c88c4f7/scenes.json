@@ -1,0 +1,1186 @@
+[
+  {
+    "sceneId": "scene-1",
+    "title": "Main Workshop",
+    "backgroundUrl": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-1.png",
+    "description": "Dusty benches crowd the warm-lit room. The patron lies near Pendlewick\u0027s grand astronomical clock, while the locked front door and silent mechanisms make the workshop feel like a puzzle box.",
+    "itemIds": [
+      "item-body",
+      "item-astronomical-clock",
+      "item-door-latch"
+    ],
+    "characterIds": [
+      "char-constable-reed",
+      "char-nora-bell"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-body",
+        "type": "ITEM",
+        "targetId": "item-body",
+        "x": 54,
+        "y": 72,
+        "width": 13,
+        "height": 10,
+        "zIndex": 1,
+        "label": "Patron\u0027s Body",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-astronomical-clock",
+        "type": "ITEM",
+        "targetId": "item-astronomical-clock",
+        "x": 62,
+        "y": 43,
+        "width": 14,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Stopped Astronomical Clock",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-door-latch",
+        "type": "ITEM",
+        "targetId": "item-door-latch",
+        "x": 18,
+        "y": 48,
+        "width": 7,
+        "height": 10,
+        "zIndex": 1,
+        "label": "Front Door Latch",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-constable-reed-scene-1",
+        "type": "CHARACTER",
+        "targetId": "char-constable-reed",
+        "x": 31,
+        "y": 63,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Constable Reed",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-nora-bell-scene-1",
+        "type": "CHARACTER",
+        "targetId": "char-nora-bell",
+        "x": 78,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Nora Bell",
+        "requiredClueIds": []
+      }
+    ],
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 560,
+        "width": 1600,
+        "height": 280
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-body",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-body.png",
+          "position": {
+            "x": 1055,
+            "y": 684,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 230,
+            "height": 112
+          },
+          "hotspot": {
+            "x": 940,
+            "y": 628,
+            "width": 230,
+            "height": 112
+          },
+          "reservedSlot": {
+            "x": 940,
+            "y": 628,
+            "width": 230,
+            "height": 112
+          },
+          "anchor": "center",
+          "depth": 9
+        },
+        {
+          "itemId": "item-astronomical-clock",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-astronomical-clock.png",
+          "position": {
+            "x": 1030,
+            "y": 332,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 260,
+            "height": 245
+          },
+          "hotspot": {
+            "x": 900,
+            "y": 210,
+            "width": 260,
+            "height": 245
+          },
+          "reservedSlot": {
+            "x": 900,
+            "y": 210,
+            "width": 260,
+            "height": 245
+          },
+          "anchor": "center",
+          "depth": 6
+        },
+        {
+          "itemId": "item-door-latch",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-door-latch.png",
+          "position": {
+            "x": 1328,
+            "y": 567,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 44,
+            "height": 64
+          },
+          "hotspot": {
+            "x": 1306,
+            "y": 535,
+            "width": 44,
+            "height": 64
+          },
+          "reservedSlot": {
+            "x": 1306,
+            "y": 535,
+            "width": 44,
+            "height": 64
+          },
+          "anchor": "center",
+          "depth": 12
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-constable-reed",
+          "position": {
+            "x": 760,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 712,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 712,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": null
+        },
+        {
+          "characterId": "char-nora-bell",
+          "position": {
+            "x": 1228,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 1180,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 1180,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "Display Alcove",
+          "hotspot": {
+            "x": 1420,
+            "y": 150,
+            "width": 120,
+            "height": 250
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-body",
+        "item-astronomical-clock",
+        "item-door-latch"
+      ],
+      "requiredClueIds": [
+        "clue-clock-stopped-at-alarm",
+        "clue-empty-gear-socket",
+        "clue-weight-shaped-injury",
+        "clue-thread-marked-latch",
+        "clue-secretary-reported-lock"
+      ],
+      "requiredDialogueIds": [
+        "dlg-constable-opening",
+        "dlg-caretaker-first-at-door"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-2",
+    "title": "Display Alcove",
+    "backgroundUrl": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-2.png",
+    "description": "Finished clocks gleam in glass cases. Client cards, appointment notes, and an old apprentice drawing make this alcove feel more orderly than the crime scene.",
+    "itemIds": [
+      "item-appointment-ledger",
+      "item-apprentice-blueprint"
+    ],
+    "characterIds": [
+      "char-eliza-vane",
+      "char-crispin-hale"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-appointment-ledger",
+        "type": "ITEM",
+        "targetId": "item-appointment-ledger",
+        "x": 38,
+        "y": 59,
+        "width": 10,
+        "height": 7,
+        "zIndex": 1,
+        "label": "Appointment Ledger",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-apprentice-blueprint",
+        "type": "ITEM",
+        "targetId": "item-apprentice-blueprint",
+        "x": 67,
+        "y": 55,
+        "width": 12,
+        "height": 8,
+        "zIndex": 1,
+        "label": "Old Mechanism Blueprint",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-eliza-vane-scene-2",
+        "type": "CHARACTER",
+        "targetId": "char-eliza-vane",
+        "x": 23,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Eliza Vane",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-crispin-hale-scene-2",
+        "type": "CHARACTER",
+        "targetId": "char-crispin-hale",
+        "x": 82,
+        "y": 63,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Crispin Hale",
+        "requiredClueIds": []
+      }
+    ],
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 560,
+        "width": 1600,
+        "height": 280
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-appointment-ledger",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-appointment-ledger.png",
+          "position": {
+            "x": 1390,
+            "y": 578,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 110,
+            "height": 78
+          },
+          "hotspot": {
+            "x": 1335,
+            "y": 539,
+            "width": 110,
+            "height": 78
+          },
+          "reservedSlot": {
+            "x": 1335,
+            "y": 539,
+            "width": 110,
+            "height": 78
+          },
+          "anchor": "center",
+          "depth": 8
+        },
+        {
+          "itemId": "item-apprentice-blueprint",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-apprentice-blueprint.png",
+          "position": {
+            "x": 690,
+            "y": 564,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 118,
+            "height": 82
+          },
+          "hotspot": {
+            "x": 631,
+            "y": 523,
+            "width": 118,
+            "height": 82
+          },
+          "reservedSlot": {
+            "x": 631,
+            "y": 523,
+            "width": 118,
+            "height": 82
+          },
+          "anchor": "center",
+          "depth": 8
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-eliza-vane",
+          "position": {
+            "x": 840,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 792,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 792,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        },
+        {
+          "characterId": "char-crispin-hale",
+          "position": {
+            "x": 1190,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 1142,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 1142,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-1",
+          "targetSceneId": "scene-1",
+          "label": "Main Workshop",
+          "hotspot": {
+            "x": 240,
+            "y": 350,
+            "width": 130,
+            "height": 330
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Rear Repair Nook",
+          "hotspot": {
+            "x": 1530,
+            "y": 560,
+            "width": 70,
+            "height": 220
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-appointment-ledger",
+        "item-apprentice-blueprint"
+      ],
+      "requiredClueIds": [
+        "clue-ledger-threatened-secretary",
+        "clue-blueprint-gear-note"
+      ],
+      "requiredDialogueIds": [
+        "dlg-secretary-timeline",
+        "dlg-apprentice-on-gear",
+        "dlg-secretary-on-ledger"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-3",
+    "title": "Rear Repair Nook",
+    "backgroundUrl": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-3.png",
+    "description": "A cramped repair corner holds spare parts, oil tins, and a narrow ladder. The practical clutter shows who recently moved through the workshop after the lamps were lit.",
+    "itemIds": [
+      "item-ladder",
+      "item-numbered-parts-tray"
+    ],
+    "characterIds": [
+      "char-eliza-vane",
+      "char-nora-bell",
+      "char-crispin-hale"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-ladder",
+        "type": "ITEM",
+        "targetId": "item-ladder",
+        "x": 28,
+        "y": 49,
+        "width": 10,
+        "height": 20,
+        "zIndex": 1,
+        "label": "Narrow Repair Ladder",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-numbered-parts-tray",
+        "type": "ITEM",
+        "targetId": "item-numbered-parts-tray",
+        "x": 57,
+        "y": 61,
+        "width": 12,
+        "height": 7,
+        "zIndex": 1,
+        "label": "Numbered Parts Tray",
+        "requiredClueIds": [
+          "clue-empty-gear-socket"
+        ]
+      },
+      {
+        "hotspotId": "hotspot-eliza-vane-scene-3",
+        "type": "CHARACTER",
+        "targetId": "char-eliza-vane",
+        "x": 18,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Eliza Vane",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-nora-bell-scene-3",
+        "type": "CHARACTER",
+        "targetId": "char-nora-bell",
+        "x": 76,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Nora Bell",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-crispin-hale-scene-3",
+        "type": "CHARACTER",
+        "targetId": "char-crispin-hale",
+        "x": 88,
+        "y": 63,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Crispin Hale",
+        "requiredClueIds": []
+      }
+    ],
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 560,
+        "width": 1600,
+        "height": 280
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-ladder",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-ladder.png",
+          "position": {
+            "x": 950,
+            "y": 405,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 118,
+            "height": 405
+          },
+          "hotspot": {
+            "x": 891,
+            "y": 110,
+            "width": 118,
+            "height": 590
+          },
+          "reservedSlot": {
+            "x": 891,
+            "y": 110,
+            "width": 118,
+            "height": 590
+          },
+          "anchor": "center",
+          "depth": 6
+        },
+        {
+          "itemId": "item-numbered-parts-tray",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-numbered-parts-tray.png",
+          "position": {
+            "x": 330,
+            "y": 526,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 112,
+            "height": 42
+          },
+          "hotspot": {
+            "x": 274,
+            "y": 505,
+            "width": 112,
+            "height": 42
+          },
+          "reservedSlot": {
+            "x": 274,
+            "y": 505,
+            "width": 112,
+            "height": 42
+          },
+          "anchor": "center",
+          "depth": 9
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-eliza-vane",
+          "position": {
+            "x": 760,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 712,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 712,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        },
+        {
+          "characterId": "char-nora-bell",
+          "position": {
+            "x": 455,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 407,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 407,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "right",
+          "depth": null
+        },
+        {
+          "characterId": "char-crispin-hale",
+          "position": {
+            "x": 1125,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 1077,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 1077,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-2",
+          "targetSceneId": "scene-2",
+          "label": "Display Alcove",
+          "hotspot": {
+            "x": 0,
+            "y": 330,
+            "width": 72,
+            "height": 250
+          },
+          "depth": 22
+        },
+        {
+          "transitionId": "transition-scene-4",
+          "targetSceneId": "scene-4",
+          "label": "Broken Window Corner",
+          "hotspot": {
+            "x": 1532,
+            "y": 330,
+            "width": 68,
+            "height": 250
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-ladder",
+        "item-numbered-parts-tray"
+      ],
+      "requiredClueIds": [
+        "clue-oil-on-ladder",
+        "clue-numbered-gear-missing"
+      ],
+      "requiredDialogueIds": [
+        "dlg-apprentice-on-blueprint",
+        "dlg-caretaker-on-ladder",
+        "dlg-secretary-on-repair-nook"
+      ]
+    }
+  },
+  {
+    "sceneId": "scene-4",
+    "title": "Broken Window Corner",
+    "backgroundUrl": "/assets/ai-generated/case-pendlewick-last-hour/scenes/scene-4.png",
+    "description": "Cold air seeps through a cracked pane above the alley. The glass, curtain cord, and one carefully guarded folio decide whether the obvious escape route is real or staged.",
+    "itemIds": [
+      "item-broken-window",
+      "item-curtain-cord",
+      "item-secretary-folio"
+    ],
+    "characterIds": [
+      "char-constable-reed",
+      "char-eliza-vane",
+      "char-nora-bell",
+      "char-crispin-hale"
+    ],
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-broken-window",
+        "type": "ITEM",
+        "targetId": "item-broken-window",
+        "x": 70,
+        "y": 35,
+        "width": 13,
+        "height": 14,
+        "zIndex": 1,
+        "label": "Broken Window",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-curtain-cord",
+        "type": "ITEM",
+        "targetId": "item-curtain-cord",
+        "x": 62,
+        "y": 49,
+        "width": 5,
+        "height": 17,
+        "zIndex": 1,
+        "label": "Curtain Cord",
+        "requiredClueIds": [
+          "clue-alley-footprint"
+        ]
+      },
+      {
+        "hotspotId": "hotspot-secretary-folio",
+        "type": "ITEM",
+        "targetId": "item-secretary-folio",
+        "x": 84,
+        "y": 66,
+        "width": 9,
+        "height": 7,
+        "zIndex": 1,
+        "label": "Secretary\u0027s Folio",
+        "requiredClueIds": [
+          "clue-glass-cut-drawn-curtain",
+          "clue-ledger-threatened-secretary"
+        ]
+      },
+      {
+        "hotspotId": "hotspot-constable-reed-scene-4",
+        "type": "CHARACTER",
+        "targetId": "char-constable-reed",
+        "x": 19,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Constable Reed",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-eliza-vane-scene-4",
+        "type": "CHARACTER",
+        "targetId": "char-eliza-vane",
+        "x": 35,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Eliza Vane",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-nora-bell-scene-4",
+        "type": "CHARACTER",
+        "targetId": "char-nora-bell",
+        "x": 49,
+        "y": 64,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Nora Bell",
+        "requiredClueIds": []
+      },
+      {
+        "hotspotId": "hotspot-crispin-hale-scene-4",
+        "type": "CHARACTER",
+        "targetId": "char-crispin-hale",
+        "x": 91,
+        "y": 63,
+        "width": 9,
+        "height": 18,
+        "zIndex": 1,
+        "label": "Crispin Hale",
+        "requiredClueIds": []
+      }
+    ],
+    "runtime": {
+      "width": 1600,
+      "height": 900,
+      "floorY": 720,
+      "walkableArea": {
+        "x": 0,
+        "y": 560,
+        "width": 1600,
+        "height": 280
+      },
+      "spawnPoints": {
+        "INVESTIGATOR": {
+          "direction": "right",
+          "x": 560,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "INTERROGATOR": {
+          "direction": "right",
+          "x": 660,
+          "y": 720,
+          "anchor": "bottom-center"
+        },
+        "default": {
+          "direction": "right",
+          "x": 610,
+          "y": 720,
+          "anchor": "bottom-center"
+        }
+      },
+      "itemPlacements": [
+        {
+          "itemId": "item-broken-window",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-broken-window.png",
+          "position": {
+            "x": 382,
+            "y": 198,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 312,
+            "height": 396
+          },
+          "hotspot": {
+            "x": 226,
+            "y": 0,
+            "width": 312,
+            "height": 396
+          },
+          "reservedSlot": {
+            "x": 226,
+            "y": 0,
+            "width": 312,
+            "height": 396
+          },
+          "anchor": "center",
+          "depth": 4
+        },
+        {
+          "itemId": "item-curtain-cord",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-curtain-cord.png",
+          "position": {
+            "x": 178,
+            "y": 255,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 66,
+            "height": 190
+          },
+          "hotspot": {
+            "x": 145,
+            "y": 160,
+            "width": 66,
+            "height": 190
+          },
+          "reservedSlot": {
+            "x": 145,
+            "y": 160,
+            "width": 66,
+            "height": 190
+          },
+          "anchor": "center",
+          "depth": 6
+        },
+        {
+          "itemId": "item-secretary-folio",
+          "asset": "/assets/ai-generated/case-pendlewick-last-hour/items/item-secretary-folio.png",
+          "position": {
+            "x": 1130,
+            "y": 392,
+            "anchor": "center"
+          },
+          "size": {
+            "width": 112,
+            "height": 62
+          },
+          "hotspot": {
+            "x": 1074,
+            "y": 361,
+            "width": 112,
+            "height": 62
+          },
+          "reservedSlot": {
+            "x": 1074,
+            "y": 361,
+            "width": 112,
+            "height": 62
+          },
+          "anchor": "center",
+          "depth": 8
+        }
+      ],
+      "characterPlacements": [
+        {
+          "characterId": "char-constable-reed",
+          "position": {
+            "x": 760,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 712,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 712,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        },
+        {
+          "characterId": "char-eliza-vane",
+          "position": {
+            "x": 910,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 862,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 862,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        },
+        {
+          "characterId": "char-nora-bell",
+          "position": {
+            "x": 1330,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 1282,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 1282,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        },
+        {
+          "characterId": "char-crispin-hale",
+          "position": {
+            "x": 1170,
+            "y": 720,
+            "anchor": "bottom-center"
+          },
+          "size": {
+            "width": 96,
+            "height": 220
+          },
+          "hotspot": {
+            "x": 1122,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "reservedSlot": {
+            "x": 1122,
+            "y": 500,
+            "width": 96,
+            "height": 220
+          },
+          "anchor": "bottom-center",
+          "direction": "left",
+          "depth": null
+        }
+      ],
+      "transitions": [
+        {
+          "transitionId": "transition-scene-3",
+          "targetSceneId": "scene-3",
+          "label": "Rear Repair Nook",
+          "hotspot": {
+            "x": 18,
+            "y": 365,
+            "width": 110,
+            "height": 170
+          },
+          "depth": 22
+        }
+      ]
+    },
+    "completeCondition": {
+      "logic": "AND",
+      "requiredItemIds": [
+        "item-broken-window",
+        "item-curtain-cord",
+        "item-secretary-folio"
+      ],
+      "requiredClueIds": [
+        "clue-alley-footprint",
+        "clue-glass-cut-drawn-curtain",
+        "clue-gear-in-secretary-folio"
+      ],
+      "requiredDialogueIds": [
+        "dlg-constable-on-latch",
+        "dlg-secretary-on-window",
+        "dlg-constable-final-check"
+      ]
+    }
+  }
+]
