@@ -1,0 +1,299 @@
+[
+  {
+    "clueId": "clue-1",
+    "title": "Glass Fallen the Wrong Way",
+    "content": "The largest display shards lie outward from the orchid pedestal rather than inward from the roofline, suggesting the shattered panes were disturbed after the orchid was already handled.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-1",
+    "sourceType": "camera",
+    "sceneId": "scene-1",
+    "discoverMethod": "camera",
+    "visualDescription": "A crescent of long glass shards fans away from the empty pedestal across the tiled walkway, with smaller safety fragments still clinging to the upper frame.",
+    "inventoryDescription": "Photograph of glass shards fanning outward from the orchid display.",
+    "narrativeMeaning": "The scene was staged to look like a chaotic accident, but the break pattern does not match a simple fall from above.",
+    "hintLevel": 2,
+    "tags": [
+      "method",
+      "staging",
+      "glasshouse"
+    ],
+    "relatedCharacterIds": [
+      "char-marta-quill",
+      "char-halden-pike"
+    ]
+  },
+  {
+    "clueId": "clue-2",
+    "title": "Gray Mineral Footprint by the Service Door",
+    "content": "A pale gray footprint at the glasshouse service door contains mineral grit unlike the black greenhouse soil. It matches powder used around the pump room charity hampers and chapel stores.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-1",
+    "sourceType": "camera",
+    "sceneId": "scene-1",
+    "discoverMethod": "camera",
+    "visualDescription": "A partial boot print in damp condensation beside the service door, its sole packed with light gray grit rather than dark potting soil.",
+    "inventoryDescription": "Photograph of a gray mineral footprint at the service door.",
+    "narrativeMeaning": "Someone entered or left through the service way after passing through an area connected to the mineral springs or chapel stores.",
+    "hintLevel": 2,
+    "tags": [
+      "opportunity",
+      "trace",
+      "timeline"
+    ],
+    "relatedCharacterIds": [
+      "char-halden-pike",
+      "char-cassian-voss"
+    ]
+  },
+  {
+    "clueId": "clue-3",
+    "title": "Dry Ring on the Orchid Pedestal",
+    "content": "The pedestal is wet with lamp-mist except for a dry circular ring where the orchid pot sat. The ring has sharply dried edges, meaning the pot was removed several minutes before the lamps failed.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-1",
+    "sourceType": "camera",
+    "sceneId": "scene-1",
+    "discoverMethod": "camera",
+    "visualDescription": "An empty marble pedestal with beads of moisture everywhere except a clean dry circle at the center, its edge visibly crisp under returning lamplight.",
+    "inventoryDescription": "Photograph of the dry pot ring on the wet orchid pedestal.",
+    "narrativeMeaning": "The orchid theft was not a spontaneous act during the darkness; it began before the public blackout.",
+    "hintLevel": 2,
+    "tags": [
+      "timeline",
+      "orchid",
+      "method"
+    ],
+    "relatedCharacterIds": [
+      "char-silas-fen",
+      "char-halden-pike"
+    ]
+  },
+  {
+    "clueId": "clue-4",
+    "title": "Green Tying Twine on the Vent Latch",
+    "content": "A strand of green gardener\u0027s twine is caught on the vent latch, seeming to implicate Marta. The strand is brittle and sun-faded, likely from an old plant tie rather than tonight\u0027s work.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "scene-1",
+    "sourceType": "camera",
+    "sceneId": "scene-1",
+    "discoverMethod": "camera",
+    "visualDescription": "A faded green fiber snagged on a brass vent latch above the broken display area, dry and frayed at both ends.",
+    "inventoryDescription": "Photograph of old green twine snagged on the vent latch.",
+    "narrativeMeaning": "It points suspiciously toward the gardener at first, but its age makes it a misleading trace rather than proof.",
+    "hintLevel": 1,
+    "tags": [
+      "red-herring",
+      "marta",
+      "vent"
+    ],
+    "relatedCharacterIds": [
+      "char-marta-quill"
+    ]
+  },
+  {
+    "clueId": "clue-5",
+    "title": "Silas Fen\u0027s Debt Telegram",
+    "content": "A telegram tucked beside a pump room saucer demands payment from Silas by dawn and mentions a foreign buyer seeking \u0027night stock of exceptional rarity.\u0027",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "scene-2",
+    "sourceType": "camera",
+    "sceneId": "scene-2",
+    "discoverMethod": "camera",
+    "visualDescription": "A folded telegram under a mineral-water saucer, with the words \u0027payment by dawn\u0027 and \u0027foreign buyer\u0027 visible through damp paper.",
+    "inventoryDescription": "Photograph of Silas Fen\u0027s urgent debt telegram.",
+    "narrativeMeaning": "Silas had a powerful motive to steal the orchid, but the document alone does not place him inside the glasshouse at the decisive time.",
+    "hintLevel": 1,
+    "tags": [
+      "red-herring",
+      "motive",
+      "silas"
+    ],
+    "relatedCharacterIds": [
+      "char-silas-fen"
+    ]
+  },
+  {
+    "clueId": "clue-6",
+    "title": "Voss Saw a Gray-Dusted Figure",
+    "content": "Pressed on his pump room alibi, Dr. Voss admits he saw a gray-dusted figure pass from the corridor toward Bellweather just after midnight, but he kept silent to avoid being drawn into scandal.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-5",
+    "sourceType": "dialogue",
+    "sceneId": "scene-2",
+    "discoverMethod": "dialogue",
+    "visualDescription": "No physical photograph; this clue is recorded as SirLocked\u0027s interview note after confronting Voss.",
+    "inventoryDescription": "Interview note: Voss saw a gray-dusted figure heading toward the estate.",
+    "narrativeMeaning": "The footprint trace corresponds to a witnessed movement, tightening the timeline around the service route.",
+    "hintLevel": 2,
+    "tags": [
+      "testimony",
+      "opportunity",
+      "timeline"
+    ],
+    "relatedCharacterIds": [
+      "char-cassian-voss",
+      "char-halden-pike"
+    ]
+  },
+  {
+    "clueId": "clue-7",
+    "title": "Chapel Charity Hampers with Mineral Powder",
+    "content": "The pump room charity hampers are dusted with pale mineral powder from spring-salt wrappings. Their labels show Reverend Pike was arranging delivery through the chapel vestry shortly before midnight.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-2",
+    "sourceType": "camera",
+    "sceneId": "scene-2",
+    "discoverMethod": "camera",
+    "visualDescription": "Stacked wicker hampers marked for the chapel vestry, their handles and nearby floor dusted with the same pale gray powder seen in the glasshouse print.",
+    "inventoryDescription": "Photograph of mineral-dusted chapel charity hampers.",
+    "narrativeMeaning": "The gray powder is tied to Pike\u0027s movements, not to ordinary garden work.",
+    "hintLevel": 2,
+    "tags": [
+      "trace",
+      "pike",
+      "pump-room"
+    ],
+    "relatedCharacterIds": [
+      "char-halden-pike"
+    ]
+  },
+  {
+    "clueId": "clue-8",
+    "title": "Blotter Impression Naming Pike",
+    "content": "The professor\u0027s desk blotter preserves a reversed impression: \u0027Pike trustee sales... Oath clause void if concealed.\u0027 Marrow had evidence connecting Pike to improper sales from the Bellweather collection.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-3",
+    "sourceType": "camera",
+    "sceneId": "scene-3",
+    "discoverMethod": "camera",
+    "visualDescription": "A green leather blotter under angled light, showing faint reversed words pressed into the surface beside an empty rectangle where a journal had lain.",
+    "inventoryDescription": "Photograph of the blotter impression naming Pike and the oath clause.",
+    "narrativeMeaning": "This supplies a concealed motive: the professor was preparing to expose Pike\u0027s abuse of his trustee position.",
+    "hintLevel": 3,
+    "tags": [
+      "motive",
+      "journal",
+      "oath"
+    ],
+    "relatedCharacterIds": [
+      "char-halden-pike",
+      "char-livia-marrow"
+    ]
+  },
+  {
+    "clueId": "clue-9",
+    "title": "Livia\u0027s Lawyer Appointment",
+    "content": "A calendar entry and rain-spotted calling card show Livia had already arranged to meet a solicitor about refusing immediate sale of Bellweather, undermining the idea that she urgently killed for inheritance.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-3",
+    "sourceType": "camera",
+    "sceneId": "scene-3",
+    "discoverMethod": "camera",
+    "visualDescription": "A desk calendar opened to the following morning with \u0027Harrow \u0026 Vale, estate restraint\u0027 written beside a solicitor\u0027s damp calling card.",
+    "inventoryDescription": "Photograph of Livia\u0027s solicitor appointment.",
+    "narrativeMeaning": "Livia had inheritance concerns, but her documented plan points to preserving the estate rather than profiting from murder.",
+    "hintLevel": 1,
+    "tags": [
+      "alibi",
+      "inheritance",
+      "livia"
+    ],
+    "relatedCharacterIds": [
+      "char-livia-marrow"
+    ]
+  },
+  {
+    "clueId": "clue-10",
+    "title": "Livia Reveals the Oath\u0027s Silence",
+    "content": "After being confronted with the blotter, Livia admits the household swore not to discuss the old Glasshouse Oath: a trustee scandal could strip Bellweather\u0027s private collection and expose years of quiet sales.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-11",
+    "sourceType": "dialogue",
+    "sceneId": "scene-3",
+    "discoverMethod": "dialogue",
+    "visualDescription": "No physical photograph; this clue is recorded as an interview note after confronting Livia with the blotter.",
+    "inventoryDescription": "Interview note: Livia explains why the oath frightened the household.",
+    "narrativeMeaning": "The oath was not sentimental family folklore; it was a legal and social threat to whoever had exploited the collection.",
+    "hintLevel": 2,
+    "tags": [
+      "oath",
+      "motive",
+      "testimony"
+    ],
+    "relatedCharacterIds": [
+      "char-livia-marrow",
+      "char-halden-pike"
+    ]
+  },
+  {
+    "clueId": "clue-11",
+    "title": "Chapel Wax and Cassock Fiber on the Service Hatch",
+    "content": "The cellar-side service hatch bears fresh chapel taper wax and a black wool fiber consistent with Reverend Pike\u0027s cassock. The hatch gives direct access to the glasshouse service door and lamp control line.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-4",
+    "sourceType": "camera",
+    "sceneId": "scene-4",
+    "discoverMethod": "camera",
+    "visualDescription": "A low iron hatch with a smear of amber candle wax on the latch plate and a short black wool fiber caught in a splinter near the pull chain.",
+    "inventoryDescription": "Photograph of chapel wax and black fiber on the cellar service hatch.",
+    "narrativeMeaning": "This is the strongest late physical link between Pike and the hidden route used to stage the blackout and move the orchid.",
+    "hintLevel": 3,
+    "tags": [
+      "method",
+      "opportunity",
+      "pike",
+      "cellar"
+    ],
+    "relatedCharacterIds": [
+      "char-halden-pike"
+    ]
+  },
+  {
+    "clueId": "clue-12",
+    "title": "Hidden Crate with Orchid and Journal",
+    "content": "Behind old propagation frames is a ventilated crate containing the missing orchid and Marrow\u0027s research journal. The crate is sealed with a chapel-office paper band bearing Pike\u0027s impression.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "scene-4",
+    "sourceType": "camera",
+    "sceneId": "scene-4",
+    "discoverMethod": "camera",
+    "visualDescription": "A slatted crate tucked behind dusty frames, with pale orchid petals visible through the vents and a broken paper band stamped with the chapel office seal.",
+    "inventoryDescription": "Photograph of the hidden orchid crate and missing journal.",
+    "narrativeMeaning": "The stolen object and the motive document were hidden together by someone with chapel materials and access.",
+    "hintLevel": 3,
+    "tags": [
+      "culprit",
+      "orchid",
+      "journal",
+      "pike"
+    ],
+    "relatedCharacterIds": [
+      "char-halden-pike",
+      "char-silas-fen"
+    ]
+  }
+]

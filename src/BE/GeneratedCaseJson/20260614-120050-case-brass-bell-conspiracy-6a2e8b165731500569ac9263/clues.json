@@ -1,0 +1,122 @@
+[
+  {
+    "clueId": "clue-1",
+    "title": "Musician\u2019s Ribbon Snag",
+    "content": "The torn ribbon points suspicion toward Lio Fen, but the snagged tear suggests it was caught while someone hurried past rather than used in the office struggle.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "item-1",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-2",
+    "title": "Lio\u2019s Set Ended Early",
+    "content": "Lio\u2019s final tune ended well before the bell rang, contradicting his first claim that he was continuously onstage during the alarm.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-1",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-3",
+    "title": "Office Boot Print",
+    "content": "The wet footprint was made by official harbor-issue tide boots from the office, meaning the print could have been staged by someone with routine access.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-2",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-4",
+    "title": "Ledger Chain Was Unlocked",
+    "content": "The pearl ledger was not ripped free. Its clasp was opened with a fitting duplicate key and then relocked, narrowing opportunity to trusted office holders.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-3",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-5",
+    "title": "Bell Rope Untouched",
+    "content": "The bell did not ring by hand. The main rope shows no sign of recent pulling, weakening every alibi based only on not being seen inside the bellhouse at the moment of the strokes.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-4",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-6",
+    "title": "Delayed Striker Mechanism",
+    "content": "The restored striker was rigged with a wax-held maintenance pin so it would release later and ring twelve times automatically in the locked bellhouse.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-5",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-7",
+    "title": "Wrong Tar for Tess",
+    "content": "The pitch connected to the bellhouse came from public restoration supplies, not Tess Rill\u2019s boatyard stock. Her tar-stained cuffs are suspicious but not proof of the bell plot.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "item-6",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-8",
+    "title": "Causeway Window",
+    "content": "The tide exposed a brief route to the lighthouse immediately after the alarm, giving the culprit a way to hide the ledger and possibly the tidewarden while the town gathered at the pier.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-7",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-9",
+    "title": "Assistant\u2019s Blue Lantern Glass",
+    "content": "The blue shard on the causeway matches assistant tidewarden signal glass, placing Edda\u2019s official equipment on the hidden route when she claimed to be away from the shore.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-8",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-10",
+    "title": "Ledger in Edda\u2019s Satchel",
+    "content": "The missing ledger was hidden inside an oilskin satchel marked with Edda Vale\u2019s initials, behind lighthouse shelving reachable during the low-tide window.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-9",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-11",
+    "title": "Altered Entries in Edda\u2019s Hand",
+    "content": "The ledger\u2019s falsified pearl-duty entries match Edda\u2019s handwriting and office ink, revealing why the ledger had to vanish before the tidewarden\u2019s audit.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-9",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-12",
+    "title": "Oren Saw the Blue Lantern",
+    "content": "Oren saw a blue signal lantern crossing the causeway after the bell rang. He mistook it for a warning at first, but the color identifies assistant tidewarden equipment.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-10",
+    "sourceType": "dialogue"
+  }
+]

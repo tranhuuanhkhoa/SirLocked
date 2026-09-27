@@ -1,0 +1,460 @@
+{
+  "id": "",
+  "caseId": "case-observatory-heist",
+  "title": "The Observatory Heist",
+  "summary": "A priceless diamond is stolen during a thunderstorm at the Grand Observatory. Players must investigate the scene, interrogate suspects, and uncover the truth.",
+  "status": "DRAFT",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/cases/observatory-heist.jpg",
+  "stages": [
+    {
+      "stageId": "stage-1",
+      "title": "The Crime Scene",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-1",
+          "title": "Observatory Main Hall",
+          "backgroundUrl": "/assets/scenes/observatory-main.jpg",
+          "description": "The main hall of the observatory, with a shattered glass display case that once held the Starfire Diamond. Rain pounds against the windows.",
+          "itemIds": [
+            "item-1",
+            "item-2"
+          ],
+          "characterIds": [
+            "char-1",
+            "char-2"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-1",
+              "type": "ITEM",
+              "targetId": "item-1",
+              "x": 30,
+              "y": 50,
+              "width": 10,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Broken glass",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-2",
+              "type": "ITEM",
+              "targetId": "item-2",
+              "x": 70,
+              "y": 40,
+              "width": 8,
+              "height": 12,
+              "zIndex": 1,
+              "label": "Footprint",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-1",
+              "item-2"
+            ],
+            "requiredClueIds": [
+              "clue-1",
+              "clue-2"
+            ],
+            "requiredDialogueIds": [
+              "dlg-1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2",
+      "title": "Interviews and Evidence",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-2",
+          "title": "Director\u0027s Office",
+          "backgroundUrl": "/assets/scenes/director-office.jpg",
+          "description": "A cluttered office with books and papers. The observatory director, Dr. Aris, paces nervously.",
+          "itemIds": [
+            "item-3"
+          ],
+          "characterIds": [
+            "char-3"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-3",
+              "type": "ITEM",
+              "targetId": "item-3",
+              "x": 50,
+              "y": 60,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Wet umbrella",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-3"
+            ],
+            "requiredClueIds": [
+              "clue-3"
+            ],
+            "requiredDialogueIds": [
+              "dlg-2"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-3",
+          "title": "Security Room",
+          "backgroundUrl": "/assets/scenes/security-room.jpg",
+          "description": "A small room with monitors showing camera feeds. The security guard, Mike, is reviewing footage.",
+          "itemIds": [
+            "item-4"
+          ],
+          "characterIds": [
+            "char-4"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-4",
+              "type": "ITEM",
+              "targetId": "item-4",
+              "x": 40,
+              "y": 30,
+              "width": 12,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Security log",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-4"
+            ],
+            "requiredClueIds": [
+              "clue-4"
+            ],
+            "requiredDialogueIds": [
+              "dlg-3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3",
+      "title": "The Final Confrontation",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-4",
+          "title": "Telescope Dome",
+          "backgroundUrl": "/assets/scenes/telescope-dome.jpg",
+          "description": "The large dome housing the main telescope. A faint smell of ozone lingers.",
+          "itemIds": [
+            "item-5",
+            "item-6"
+          ],
+          "characterIds": [
+            "char-5"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-5",
+              "type": "ITEM",
+              "targetId": "item-5",
+              "x": 20,
+              "y": 70,
+              "width": 8,
+              "height": 10,
+              "zIndex": 1,
+              "label": "Burnt wire",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-6",
+              "type": "ITEM",
+              "targetId": "item-6",
+              "x": 80,
+              "y": 50,
+              "width": 10,
+              "height": 8,
+              "zIndex": 1,
+              "label": "Glove",
+              "requiredClueIds": []
+            }
+          ],
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-5",
+              "item-6"
+            ],
+            "requiredClueIds": [
+              "clue-5",
+              "clue-6"
+            ],
+            "requiredDialogueIds": [
+              "dlg-4"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-1",
+      "name": "Dr. Elara Voss",
+      "role": "Astronomer",
+      "imageUrl": "/assets/characters/elara.jpg",
+      "description": "A brilliant but secretive astronomer who was working late."
+    },
+    {
+      "characterId": "char-2",
+      "name": "Mike Briggs",
+      "role": "Security Guard",
+      "imageUrl": "/assets/characters/mike.jpg",
+      "description": "The observatory\u0027s security guard, known for his strict adherence to protocol."
+    },
+    {
+      "characterId": "char-3",
+      "name": "Dr. Aris Thorne",
+      "role": "Director",
+      "imageUrl": "/assets/characters/aris.jpg",
+      "description": "The observatory director, a meticulous man with a temper."
+    },
+    {
+      "characterId": "char-4",
+      "name": "Lena Park",
+      "role": "Janitor",
+      "imageUrl": "/assets/characters/lena.jpg",
+      "description": "A quiet janitor who was cleaning the main hall before the heist."
+    },
+    {
+      "characterId": "char-5",
+      "name": "Detective Cole",
+      "role": "Detective",
+      "imageUrl": "/assets/characters/cole.jpg",
+      "description": "A seasoned detective who arrives to solve the case."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-1",
+      "name": "Broken glass shards",
+      "description": "Shattered glass from the display case.",
+      "inspectText": "The glass has a clean break, possibly cut with a glass cutter.",
+      "imageUrl": "/assets/items/glass.jpg",
+      "unlockClueIds": [
+        "clue-1"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-2",
+      "name": "Muddy footprint",
+      "description": "A footprint near the display case.",
+      "inspectText": "The footprint is large, size 11, with a distinct tread pattern.",
+      "imageUrl": "/assets/items/footprint.jpg",
+      "unlockClueIds": [
+        "clue-2"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-3",
+      "name": "Wet umbrella",
+      "description": "An umbrella in the director\u0027s office, still wet.",
+      "inspectText": "The umbrella has a small tear and mud on the tip.",
+      "imageUrl": "/assets/items/umbrella.jpg",
+      "unlockClueIds": [
+        "clue-3"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-4",
+      "name": "Security log",
+      "description": "A log of entries for the night.",
+      "inspectText": "The log shows a gap from 9:30 to 10:00 PM, when the guard was supposedly on patrol.",
+      "imageUrl": "/assets/items/log.jpg",
+      "unlockClueIds": [
+        "clue-4"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-5",
+      "name": "Burnt electrical wire",
+      "description": "A short piece of wire with scorch marks.",
+      "inspectText": "The wire appears to have been cut and then burnt with a lighter.",
+      "imageUrl": "/assets/items/wire.jpg",
+      "unlockClueIds": [
+        "clue-5"
+      ],
+      "isCollectible": true
+    },
+    {
+      "itemId": "item-6",
+      "name": "Leather glove",
+      "description": "A single glove, slightly charred.",
+      "inspectText": "The glove has a burn mark on the index finger, consistent with handling a hot wire.",
+      "imageUrl": "/assets/items/glove.jpg",
+      "unlockClueIds": [
+        "clue-6"
+      ],
+      "isCollectible": true
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-1",
+      "title": "Glass cutter marks",
+      "content": "The glass was cut with a professional glass cutter, not broken by force.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-1",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-2",
+      "title": "Shoe print match",
+      "content": "The footprint matches the shoes of Dr. Voss, who claimed she never left the lab.",
+      "isCritical": false,
+      "isEvidence": false,
+      "isRedHerring": true,
+      "source": "item-2",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-3",
+      "title": "Umbrella mud",
+      "content": "The mud on the umbrella matches the soil from the garden outside the observatory, not the building interior.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-3",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-4",
+      "title": "Log gap",
+      "content": "The security log has a 30-minute gap during which the alarm was disabled.",
+      "isCritical": false,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-4",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-5",
+      "title": "Tampered alarm wire",
+      "content": "The burnt wire is from the alarm system, deliberately cut to disable it.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-5",
+      "sourceType": "item"
+    },
+    {
+      "clueId": "clue-6",
+      "title": "Glove with burn",
+      "content": "The glove has a burn pattern matching the burnt wire, suggesting the wearer cut the wire.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-6",
+      "sourceType": "item"
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-1",
+      "characterId": "char-1",
+      "question": "Where were you during the heist?",
+      "answer": "I was in my lab analyzing star charts. I didn\u0027t hear anything because of the thunder.",
+      "requiredClueIds": [],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-2",
+      "characterId": "char-3",
+      "question": "Did you see anyone suspicious?",
+      "answer": "No, but I noticed Dr. Voss\u0027s shoes were muddy earlier. She claims she was inside all night.",
+      "requiredClueIds": [
+        "clue-2"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-3",
+      "characterId": "char-4",
+      "question": "What were you doing at the time?",
+      "answer": "I was cleaning the main hall until about 9:30, then I took a break. The guard was in his room.",
+      "requiredClueIds": [
+        "clue-4"
+      ],
+      "unlockClueIds": [
+        "clue-7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-4",
+      "characterId": "char-5",
+      "question": "What do you make of the burnt wire?",
+      "answer": "It\u0027s clear the alarm was sabotaged. The glove suggests the culprit is someone who works with electronics.",
+      "requiredClueIds": [
+        "clue-5",
+        "clue-6"
+      ],
+      "unlockClueIds": []
+    },
+    {
+      "dialogueId": "dlg-5",
+      "characterId": "char-2",
+      "question": "Why was there a gap in the log?",
+      "answer": "I was making rounds. I didn\u0027t think to log it. But someone must have disabled the alarm during that window.",
+      "requiredClueIds": [
+        "clue-4"
+      ],
+      "unlockClueIds": [
+        "clue-8"
+      ]
+    },
+    {
+      "dialogueId": "dlg-6",
+      "characterId": "char-1",
+      "question": "Your shoes match the footprint. Explain.",
+      "answer": "I stepped outside for air during the storm. I didn\u0027t want to admit it because I wasn\u0027t supposed to leave my post.",
+      "requiredClueIds": [
+        "clue-2"
+      ],
+      "unlockClueIds": []
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-3",
+    "motive": "Dr. Aris Thorne was desperate for money to pay off gambling debts and planned to sell the diamond.",
+    "method": "He used his knowledge of the observatory to cut the alarm wire during a thunderstorm, used a glass cutter to break the case, and took the diamond. He left a muddy footprint but covered his tracks by blaming Dr. Voss. The burnt wire and glove are key evidence linking him to the sabotage.",
+    "requiredEvidenceIds": [
+      "clue-5",
+      "clue-6"
+    ],
+    "winEnding": "You present the burnt wire and glove to Dr. Aris, who confesses. The diamond is recovered from his office safe.",
+    "failEnding": "Without enough evidence, the case goes cold. The diamond is never found."
+  },
+  "createdAt": "2026-06-11T18:39:08.2425452Z",
+  "updatedAt": "2026-06-11T18:39:08.2425452Z"
+}

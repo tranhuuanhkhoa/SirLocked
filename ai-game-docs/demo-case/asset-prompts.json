@@ -1,0 +1,545 @@
+{
+  "caseId": "case-lumiere-murder",
+  "title": "The Gaslight Curtain Call",
+  "generatedAt": "2026-06-12T16:44:17.599Z",
+  "styleGuide": {
+    "styleName": "chibi-pixel-adventure",
+    "base": "2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red).",
+    "lighting": "warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom",
+    "camera": "single fixed side-view camera at standing eye level, flat orthographic feel, no perspective distortion",
+    "frame": {
+      "width": 1600,
+      "height": 900
+    },
+    "walkwayPx": {
+      "yTopPx": 630,
+      "yBottomPx": 765
+    }
+  },
+  "workflow": {
+    "step1": "generate ONE scene background first (dressing room), iterate until clean: no people, no painted-in props on the empty surfaces, no text/boxes",
+    "step2": "use the approved background as a style-reference input image for the remaining 4 scenes so every scene shares the same palette, camera and lighting (Nano Banana accepts reference images)",
+    "step3": "after a background is final, overlay the reservedSlots/npcGaps rectangles from this file on top of it and compare: if a furniture surface drifted away from its slot rectangle, update the hotspot x/y in case.json (percent coords) and re-import the case - do NOT regenerate the image to chase coordinates",
+    "step4": "item overlay sprites and character sprites are generated independently; they only need to match style and lighting direction, the engine places them by coordinates",
+    "coordinateRule": "pixel coordinates in this file are compositor/renderer metadata ONLY - never paste them into an image prompt, the model will paint the rectangles and labels into the picture"
+  },
+  "compositing": {
+    "frame": {
+      "width": 1600,
+      "height": 900
+    },
+    "rule1": "background layer is generated with reserved slots left empty; item overlay sprites are composited into reservedSlots rectangles by coordinates",
+    "rule2": "NPC chibi sprites (chroma green removed) are placed by the renderer at npcGaps rectangles; dialogue popups use the large dialoguePortrait image",
+    "rule3": "Sherlock and Watson walk horizontally inside the walkway band; all layers must share the same camera angle, lighting direction (upper-left key) and art style",
+    "rule4": "no generated object may intrude into a reserved slot or NPC gap"
+  },
+  "cover": {
+    "generator": "google-nano-banana",
+    "target": "/assets/cases/lumiere-murder.png",
+    "sizePx": {
+      "width": 1200,
+      "height": 675
+    },
+    "prompt": "Game cover illustration for \"The Gaslight Curtain Call\": On the opening night of the Grand Lumiere Theater, lead actress Celeste Duval is found dead in her dressing room, poisoned by cyanide in her makeup. Sherlock Holmes and Dr Watson must interrogate four suspects, uncover hidden motives, and reveal the truth before the final curtain falls. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom. A dramatic view of the Grand Lumiere Theater stage with the curtain half-drawn, title space left clear at the top third. No text."
+  },
+  "backgrounds": [
+    {
+      "sceneId": "scene-dressing-room",
+      "generator": "google-nano-banana",
+      "target": "/assets/scenes/dressing-room.png",
+      "sizePx": {
+        "width": 1600,
+        "height": 900
+      },
+      "layers": {
+        "backgroundLayer": "this image: fixed set dressing only, reserved slots left empty, walkway clear",
+        "overlayItemLayer": "composited later from /assets/items sprites at the reserved slot coordinates",
+        "characterLayer": "player + NPC sprites composited at runtime by the Phaser renderer"
+      },
+      "reservedSlots": [
+        {
+          "slotForItemId": "item-celeste-body",
+          "label": "Examine Body",
+          "x": 192,
+          "y": 405,
+          "width": 128,
+          "height": 90
+        },
+        {
+          "slotForItemId": "item-makeup-kit",
+          "label": "Inspect Makeup Kit",
+          "x": 880,
+          "y": 432,
+          "width": 144,
+          "height": 108
+        },
+        {
+          "slotForItemId": "item-threatening-letter",
+          "label": "Read Letter",
+          "x": 1200,
+          "y": 450,
+          "width": 160,
+          "height": 108
+        }
+      ],
+      "npcGaps": [],
+      "walkwayPx": {
+        "yTopPx": 630,
+        "yBottomPx": 765
+      },
+      "prompt": "Wide 2D side-scrolling adventure game interior set for \"Celeste's Dressing Room\" in the Grand Lumiere Theater. single fixed side-view camera at standing eye level, flat orthographic feel, no perspective distortion. 16:9 widescreen frame. warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom. Painted pixel-art hybrid environment that matches chibi pixel characters. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). SET DESCRIPTION: A plush Victorian dressing room dimly lit by warm gaslight sconces on the left wall. A large ornate gilt mirror and a vanity table with a completely bare tabletop stand against the back wall center-right. An empty red velvet chaise lounge sits against the left wall beneath a framed theater playbill. A small writing desk with a closed drawer and a bare top stands on the right. Rich crimson wallpaper, gold trim, deep shadows. STRICT RULES: This is an empty stage set. The room is completely unoccupied - absolutely no people, no characters, no figures, no bodies, no silhouettes, no animals anywhere in the image. Do not place any small portable props (no makeup kit, no letters, no papers, no vials, no photographs) on the bare surfaces - those arrive later as separate sprites. The furniture surfaces on the far left, center, right of the frame each keep a completely bare, empty area with nothing standing on it. The strip of floor running across the entire foreground of the room stays completely open and empty - flat floorboards or carpet only, no furniture standing on it. Render absolutely no text, no letters, no numbers, no labels, no captions, no boxes, no rectangles, no outlines, no highlight frames, no markers, no arrows, no UI elements, no grid lines and no watermark anywhere in the image."
+    },
+    {
+      "sceneId": "scene-backstage-hallway",
+      "generator": "google-nano-banana",
+      "target": "/assets/scenes/backstage-hallway.png",
+      "sizePx": {
+        "width": 1600,
+        "height": 900
+      },
+      "layers": {
+        "backgroundLayer": "this image: fixed set dressing only, reserved slots left empty, walkway clear",
+        "overlayItemLayer": "composited later from /assets/items sprites at the reserved slot coordinates",
+        "characterLayer": "player + NPC sprites composited at runtime by the Phaser renderer"
+      },
+      "reservedSlots": [
+        {
+          "slotForItemId": "item-love-letter",
+          "label": "Love Letter",
+          "x": 192,
+          "y": 495,
+          "width": 128,
+          "height": 90
+        },
+        {
+          "slotForItemId": "item-scratched-photo",
+          "label": "Scratched Photograph",
+          "x": 608,
+          "y": 360,
+          "width": 112,
+          "height": 81
+        }
+      ],
+      "npcGaps": [
+        {
+          "characterId": "char-mona",
+          "characterName": "Mona Reeves",
+          "x": 400,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        },
+        {
+          "characterId": "char-victor",
+          "characterName": "Victor Crane",
+          "x": 1040,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        }
+      ],
+      "walkwayPx": {
+        "yTopPx": 630,
+        "yBottomPx": 765
+      },
+      "prompt": "Wide 2D side-scrolling adventure game interior set for \"Backstage Hallway\" in the Grand Lumiere Theater. single fixed side-view camera at standing eye level, flat orthographic feel, no perspective distortion. 16:9 widescreen frame. warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom. Painted pixel-art hybrid environment that matches chibi pixel characters. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). SET DESCRIPTION: A narrow backstage corridor. Empty props tables and a blank corkboard line the left wall; a costume rack with hanging Victorian costumes stands on the right. Wooden crates and faded theater posters along the walls. Overhead gaslight casts long shadows down the corridor. STRICT RULES: This is an empty stage set. The room is completely unoccupied - absolutely no people, no characters, no figures, no bodies, no silhouettes, no animals anywhere in the image. Do not place any small portable props (no makeup kit, no letters, no papers, no vials, no photographs) on the bare surfaces - those arrive later as separate sprites. The furniture surfaces on the far left, center of the frame each keep a completely bare, empty area with nothing standing on it. Keep open floor space clear of furniture at the left, right of the frame. The strip of floor running across the entire foreground of the room stays completely open and empty - flat floorboards or carpet only, no furniture standing on it. Render absolutely no text, no letters, no numbers, no labels, no captions, no boxes, no rectangles, no outlines, no highlight frames, no markers, no arrows, no UI elements, no grid lines and no watermark anywhere in the image."
+    },
+    {
+      "sceneId": "scene-owners-office",
+      "generator": "google-nano-banana",
+      "target": "/assets/scenes/owners-office.png",
+      "sizePx": {
+        "width": 1600,
+        "height": 900
+      },
+      "layers": {
+        "backgroundLayer": "this image: fixed set dressing only, reserved slots left empty, walkway clear",
+        "overlayItemLayer": "composited later from /assets/items sprites at the reserved slot coordinates",
+        "characterLayer": "player + NPC sprites composited at runtime by the Phaser renderer"
+      },
+      "reservedSlots": [
+        {
+          "slotForItemId": "item-ledger",
+          "label": "Account Ledger",
+          "x": 640,
+          "y": 450,
+          "width": 144,
+          "height": 108
+        },
+        {
+          "slotForItemId": "item-spare-key",
+          "label": "Spare Key",
+          "x": 160,
+          "y": 405,
+          "width": 96,
+          "height": 72
+        }
+      ],
+      "npcGaps": [
+        {
+          "characterId": "char-eleanor",
+          "characterName": "Eleanor Hart",
+          "x": 832,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        }
+      ],
+      "walkwayPx": {
+        "yTopPx": 630,
+        "yBottomPx": 765
+      },
+      "prompt": "Wide 2D side-scrolling adventure game interior set for \"Theater Owner's Office\" in the Grand Lumiere Theater. single fixed side-view camera at standing eye level, flat orthographic feel, no perspective distortion. 16:9 widescreen frame. warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom. Painted pixel-art hybrid environment that matches chibi pixel characters. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). SET DESCRIPTION: A stately Victorian office dominated by a large mahogany desk in the center with a bare, empty desktop. An empty key rack hangs beside the door on the left wall. A brass desk lamp glows warmly at the desk corner. Heavy drapes frame a tall window behind the desk; bookshelves and framed certificates line the side walls. STRICT RULES: This is an empty stage set. The room is completely unoccupied - absolutely no people, no characters, no figures, no bodies, no silhouettes, no animals anywhere in the image. Do not place any small portable props (no makeup kit, no letters, no papers, no vials, no photographs) on the bare surfaces - those arrive later as separate sprites. The furniture surfaces on the center, far left of the frame each keep a completely bare, empty area with nothing standing on it. Keep open floor space clear of furniture at the center of the frame. The strip of floor running across the entire foreground of the room stays completely open and empty - flat floorboards or carpet only, no furniture standing on it. Render absolutely no text, no letters, no numbers, no labels, no captions, no boxes, no rectangles, no outlines, no highlight frames, no markers, no arrows, no UI elements, no grid lines and no watermark anywhere in the image."
+    },
+    {
+      "sceneId": "scene-props-room",
+      "generator": "google-nano-banana",
+      "target": "/assets/scenes/props-room.png",
+      "sizePx": {
+        "width": 1600,
+        "height": 900
+      },
+      "layers": {
+        "backgroundLayer": "this image: fixed set dressing only, reserved slots left empty, walkway clear",
+        "overlayItemLayer": "composited later from /assets/items sprites at the reserved slot coordinates",
+        "characterLayer": "player + NPC sprites composited at runtime by the Phaser renderer"
+      },
+      "reservedSlots": [
+        {
+          "slotForItemId": "item-cyanide-bottle",
+          "label": "Cyanide Bottle",
+          "x": 448,
+          "y": 360,
+          "width": 112,
+          "height": 90
+        },
+        {
+          "slotForItemId": "item-pawn-ticket",
+          "label": "Pawn Ticket",
+          "x": 1088,
+          "y": 495,
+          "width": 128,
+          "height": 90
+        }
+      ],
+      "npcGaps": [
+        {
+          "characterId": "char-samuel",
+          "characterName": "Samuel Briggs",
+          "x": 240,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        },
+        {
+          "characterId": "char-victor",
+          "characterName": "Victor Crane",
+          "x": 880,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        }
+      ],
+      "walkwayPx": {
+        "yTopPx": 630,
+        "yBottomPx": 765
+      },
+      "prompt": "Wide 2D side-scrolling adventure game interior set for \"Props Room\" in the Grand Lumiere Theater. single fixed side-view camera at standing eye level, flat orthographic feel, no perspective distortion. 16:9 widescreen frame. warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom. Painted pixel-art hybrid environment that matches chibi pixel characters. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). SET DESCRIPTION: A cluttered theater props workshop lined with shelves of dusty prop bottles, masks and theatrical props. A sturdy wooden workbench with a bare, clear top stands beneath a flickering gas lamp. One middle shelf section is left conspicuously empty. Tools hang on the wall; the room feels dusty and warm. STRICT RULES: This is an empty stage set. The room is completely unoccupied - absolutely no people, no characters, no figures, no bodies, no silhouettes, no animals anywhere in the image. Do not place any small portable props (no makeup kit, no letters, no papers, no vials, no photographs) on the bare surfaces - those arrive later as separate sprites. The furniture surfaces on the left, right of the frame each keep a completely bare, empty area with nothing standing on it. Keep open floor space clear of furniture at the far left, center of the frame. The strip of floor running across the entire foreground of the room stays completely open and empty - flat floorboards or carpet only, no furniture standing on it. Render absolutely no text, no letters, no numbers, no labels, no captions, no boxes, no rectangles, no outlines, no highlight frames, no markers, no arrows, no UI elements, no grid lines and no watermark anywhere in the image."
+    },
+    {
+      "sceneId": "scene-theater-lobby",
+      "generator": "google-nano-banana",
+      "target": "/assets/scenes/lobby.png",
+      "sizePx": {
+        "width": 1600,
+        "height": 900
+      },
+      "layers": {
+        "backgroundLayer": "this image: fixed set dressing only, reserved slots left empty, walkway clear",
+        "overlayItemLayer": "composited later from /assets/items sprites at the reserved slot coordinates",
+        "characterLayer": "player + NPC sprites composited at runtime by the Phaser renderer"
+      },
+      "reservedSlots": [],
+      "npcGaps": [
+        {
+          "characterId": "char-mona",
+          "characterName": "Mona Reeves",
+          "x": 160,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        },
+        {
+          "characterId": "char-victor",
+          "characterName": "Victor Crane",
+          "x": 1200,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        },
+        {
+          "characterId": "char-samuel",
+          "characterName": "Samuel Briggs",
+          "x": 560,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        },
+        {
+          "characterId": "char-eleanor",
+          "characterName": "Eleanor Hart",
+          "x": 880,
+          "y": 414,
+          "width": 144,
+          "height": 288
+        }
+      ],
+      "walkwayPx": {
+        "yTopPx": 630,
+        "yBottomPx": 765
+      },
+      "prompt": "Wide 2D side-scrolling adventure game interior set for \"Theater Lobby\" in the Grand Lumiere Theater. single fixed side-view camera at standing eye level, flat orthographic feel, no perspective distortion. 16:9 widescreen frame. warm gaslight illumination, key light from the upper-left, soft amber wall sconces, gentle vignette at frame top and bottom. Painted pixel-art hybrid environment that matches chibi pixel characters. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). SET DESCRIPTION: The grand theater lobby with dimmed crystal chandeliers, red velvet curtains and gilded columns. A ticket booth stands on the left; a refreshments table with a bare top near the left-center; tall main entrance doors on the right; a decorative column right-of-center. Soft glow of a single gaslight, polished marble floor open across the entire foreground. STRICT RULES: This is an empty stage set. The room is completely unoccupied - absolutely no people, no characters, no figures, no bodies, no silhouettes, no animals anywhere in the image. Do not place any small portable props (no makeup kit, no letters, no papers, no vials, no photographs) on the bare surfaces - those arrive later as separate sprites. Keep open floor space clear of furniture at the far left, right, left, center of the frame. The strip of floor running across the entire foreground of the room stays completely open and empty - flat floorboards or carpet only, no furniture standing on it. Render absolutely no text, no letters, no numbers, no labels, no captions, no boxes, no rectangles, no outlines, no highlight frames, no markers, no arrows, no UI elements, no grid lines and no watermark anywhere in the image."
+    }
+  ],
+  "itemOverlays": [
+    {
+      "itemId": "item-celeste-body",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/body.png",
+      "sceneId": "scene-dressing-room",
+      "targetSlotPx": {
+        "x": 192,
+        "y": 405,
+        "width": 128,
+        "height": 90
+      },
+      "prompt": "Single isolated game prop sprite: Celeste's Body. The lifeless form of the leading lady, still in costume, a strange fibre caught in her fingernail. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-makeup-kit",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/makeup-kit.png",
+      "sceneId": "scene-dressing-room",
+      "targetSlotPx": {
+        "x": 880,
+        "y": 432,
+        "width": 144,
+        "height": 108
+      },
+      "prompt": "Single isolated game prop sprite: Makeup Kit. An open case of theatrical cosmetics, the foundation powder spilled across the vanity. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-threatening-letter",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/letter.png",
+      "sceneId": "scene-dressing-room",
+      "targetSlotPx": {
+        "x": 1200,
+        "y": 450,
+        "width": 160,
+        "height": 108
+      },
+      "prompt": "Single isolated game prop sprite: Threatening Letter. An unsigned note found in the writing desk, full of venom. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-love-letter",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/love-letter.png",
+      "sceneId": "scene-backstage-hallway",
+      "targetSlotPx": {
+        "x": 192,
+        "y": 495,
+        "width": 128,
+        "height": 90
+      },
+      "prompt": "Single isolated game prop sprite: Love Letter. A heartfelt, unopened letter from Samuel to Celeste, tucked among props. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-scratched-photo",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/scratched-photo.png",
+      "sceneId": "scene-backstage-hallway",
+      "targetSlotPx": {
+        "x": 608,
+        "y": 360,
+        "width": 112,
+        "height": 81
+      },
+      "prompt": "Single isolated game prop sprite: Scratched Photograph. A cast photo pinned on the corkboard, Celeste's face scratched out violently. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-ledger",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/ledger.png",
+      "sceneId": "scene-owners-office",
+      "targetSlotPx": {
+        "x": 640,
+        "y": 450,
+        "width": 144,
+        "height": 108
+      },
+      "prompt": "Single isolated game prop sprite: Account Ledger. The theater's financial ledger, its columns of numbers clearly tampered with. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-spare-key",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/key.png",
+      "sceneId": "scene-owners-office",
+      "targetSlotPx": {
+        "x": 160,
+        "y": 405,
+        "width": 96,
+        "height": 72
+      },
+      "prompt": "Single isolated game prop sprite: Spare Dressing Room Key. A key labeled 'Dressing Room 1' on the rack in Eleanor's office. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-cyanide-bottle",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/cyanide-bottle.png",
+      "sceneId": "scene-props-room",
+      "targetSlotPx": {
+        "x": 448,
+        "y": 360,
+        "width": 112,
+        "height": 90
+      },
+      "prompt": "Single isolated game prop sprite: Cyanide Bottle. An unmarked bottle of 'rat poison' among prop bottles, smelling of almonds. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    },
+    {
+      "itemId": "item-pawn-ticket",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/items/pawn-ticket.png",
+      "sceneId": "scene-props-room",
+      "targetSlotPx": {
+        "x": 1088,
+        "y": 495,
+        "width": 128,
+        "height": 90
+      },
+      "prompt": "Single isolated game prop sprite: Pawn Ticket. A crumpled ticket from a gambling den, found on the workbench. Fully transparent background (PNG with alpha). Same fixed side-view eye-level camera as the scene sets, same warm gaslight key light from the upper-left, same chibi pixel adventure art style: clean dark outline, flat cel shading, crisp pixel edges, no anti-aliasing. No floor, no cast shadow outside the object silhouette, no text. The object must stay readable when scaled down small. Render no text, no labels, no boxes, no watermark."
+    }
+  ],
+  "characterArt": [
+    {
+      "characterId": "char-mona",
+      "name": "Mona Reeves",
+      "inSceneSprite": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/mona-sprite.png",
+        "sizePx": {
+          "width": 256,
+          "height": 384
+        },
+        "chromaKey": "#00FF00",
+        "prompt": "Full-body chibi pixel game sprite of Mona Reeves, Understudy: Young and hungry for the spotlight, Mona has long resented Celeste's stardom. Standing idle, side-view, facing left. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). Victorian gaslight-era costume. Centered, whole body inside frame, feet near the bottom edge. SOLID UNIFORM CHROMA-KEY GREEN BACKGROUND (#00FF00), no ground line, no shadows, no props, no text."
+      },
+      "dialoguePortrait": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/mona-portrait.png",
+        "sizePx": {
+          "width": 512,
+          "height": 512
+        },
+        "prompt": "Large pixel-art dialogue portrait of Mona Reeves, Understudy: Young and hungry for the spotlight, Mona has long resented Celeste's stardom. Waist-up, three-quarter view facing left, detailed pixel shading, warm gaslight rim light from the upper-left, dark muted theater backdrop with soft vignette. Same chibi-inspired stylization as the in-scene sprites but with slightly more realistic proportions for close-up readability. Crisp pixel edges, no anti-aliasing, no text, no frame."
+      }
+    },
+    {
+      "characterId": "char-victor",
+      "name": "Victor Crane",
+      "inSceneSprite": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/victor-sprite.png",
+        "sizePx": {
+          "width": 256,
+          "height": 384
+        },
+        "chromaKey": "#00FF00",
+        "prompt": "Full-body chibi pixel game sprite of Victor Crane, Stage Director: Brash and quick-tempered, Victor is drowning in gambling debts and blames Celeste for his professional woes. Standing idle, side-view, facing left. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). Victorian gaslight-era costume. Centered, whole body inside frame, feet near the bottom edge. SOLID UNIFORM CHROMA-KEY GREEN BACKGROUND (#00FF00), no ground line, no shadows, no props, no text."
+      },
+      "dialoguePortrait": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/victor-portrait.png",
+        "sizePx": {
+          "width": 512,
+          "height": 512
+        },
+        "prompt": "Large pixel-art dialogue portrait of Victor Crane, Stage Director: Brash and quick-tempered, Victor is drowning in gambling debts and blames Celeste for his professional woes. Waist-up, three-quarter view facing left, detailed pixel shading, warm gaslight rim light from the upper-left, dark muted theater backdrop with soft vignette. Same chibi-inspired stylization as the in-scene sprites but with slightly more realistic proportions for close-up readability. Crisp pixel edges, no anti-aliasing, no text, no frame."
+      }
+    },
+    {
+      "characterId": "char-samuel",
+      "name": "Samuel Briggs",
+      "inSceneSprite": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/samuel-sprite.png",
+        "sizePx": {
+          "width": 256,
+          "height": 384
+        },
+        "chromaKey": "#00FF00",
+        "prompt": "Full-body chibi pixel game sprite of Samuel Briggs, Props Master: Quiet and devoted, Samuel harbors an unrequited love for Celeste, spending his days crafting the perfect props. Standing idle, side-view, facing left. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). Victorian gaslight-era costume. Centered, whole body inside frame, feet near the bottom edge. SOLID UNIFORM CHROMA-KEY GREEN BACKGROUND (#00FF00), no ground line, no shadows, no props, no text."
+      },
+      "dialoguePortrait": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/samuel-portrait.png",
+        "sizePx": {
+          "width": 512,
+          "height": 512
+        },
+        "prompt": "Large pixel-art dialogue portrait of Samuel Briggs, Props Master: Quiet and devoted, Samuel harbors an unrequited love for Celeste, spending his days crafting the perfect props. Waist-up, three-quarter view facing left, detailed pixel shading, warm gaslight rim light from the upper-left, dark muted theater backdrop with soft vignette. Same chibi-inspired stylization as the in-scene sprites but with slightly more realistic proportions for close-up readability. Crisp pixel edges, no anti-aliasing, no text, no frame."
+      }
+    },
+    {
+      "characterId": "char-eleanor",
+      "name": "Eleanor Hart",
+      "inSceneSprite": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/eleanor-sprite.png",
+        "sizePx": {
+          "width": 256,
+          "height": 384
+        },
+        "chromaKey": "#00FF00",
+        "prompt": "Full-body chibi pixel game sprite of Eleanor Hart, Theater Owner: Elegant yet visibly strained, Eleanor has been embezzling funds to keep the theater afloat and will do anything to protect her secret. Standing idle, side-view, facing left. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). Victorian gaslight-era costume. Centered, whole body inside frame, feet near the bottom edge. SOLID UNIFORM CHROMA-KEY GREEN BACKGROUND (#00FF00), no ground line, no shadows, no props, no text."
+      },
+      "dialoguePortrait": {
+        "generator": "google-nano-banana",
+        "target": "/assets/characters/eleanor-portrait.png",
+        "sizePx": {
+          "width": 512,
+          "height": 512
+        },
+        "prompt": "Large pixel-art dialogue portrait of Eleanor Hart, Theater Owner: Elegant yet visibly strained, Eleanor has been embezzling funds to keep the theater afloat and will do anything to protect her secret. Waist-up, three-quarter view facing left, detailed pixel shading, warm gaslight rim light from the upper-left, dark muted theater backdrop with soft vignette. Same chibi-inspired stylization as the in-scene sprites but with slightly more realistic proportions for close-up readability. Crisp pixel edges, no anti-aliasing, no text, no frame."
+      }
+    }
+  ],
+  "playerSprites": [
+    {
+      "role": "INTERROGATOR",
+      "name": "Sherlock Holmes",
+      "look": "tall lean young detective, sharp focused face, tousled dark brown hair under a brown deerstalker cap, long dark charcoal inverness overcoat, a deep plum-purple wool scarf around the neck",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/players/holmes.png",
+      "sizePx": {
+        "width": 256,
+        "height": 448
+      },
+      "facing": "right (the engine mirrors the sprite horizontally for left movement)",
+      "prompt": "Single full-body chibi pixel video-game character sprite of Sherlock Holmes: tall lean young detective, sharp focused face, tousled dark brown hair under a brown deerstalker cap, long dark charcoal inverness overcoat, a deep plum-purple wool scarf around the neck. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). Side profile view, facing right, mid-stride walking pose (one foot forward) so it reads as walking. Whole body inside the frame, head to feet, feet near the bottom edge, character vertically centered. Fully transparent background (PNG alpha), no ground line, no cast shadow, no text, no labels, no frame, no border. Same warm upper-left key light and muted Victorian gaslight palette as the game scenes."
+    },
+    {
+      "role": "INVESTIGATOR",
+      "name": "Dr John Watson",
+      "look": "shorter sturdy older doctor, neat grey hair, trimmed grey moustache, kind determined face, dark navy field jacket with a brown fur collar over a buttoned shirt, leather wristwatch",
+      "generator": "gpt-image-transparent",
+      "target": "/assets/players/watson.png",
+      "sizePx": {
+        "width": 256,
+        "height": 448
+      },
+      "facing": "right (the engine mirrors the sprite horizontally for left movement)",
+      "prompt": "Single full-body chibi pixel video-game character sprite of Dr John Watson: shorter sturdy older doctor, neat grey hair, trimmed grey moustache, kind determined face, dark navy field jacket with a brown fur collar over a buttoned shirt, leather wristwatch. 2D cozy detective adventure game, chibi pixel art style: characters with oversized heads (about 40% of total height), short stubby bodies, large expressive eyes, clean dark outlines, flat cel shading with two tone steps, crisp pixel edges (nearest-neighbor look, no anti-aliasing, no blur), muted Victorian gaslight-era palette (deep teal, warm sepia, brass gold, oxblood red). Side profile view, facing right, mid-stride walking pose (one foot forward) so it reads as walking. Whole body inside the frame, head to feet, feet near the bottom edge, character vertically centered. Fully transparent background (PNG alpha), no ground line, no cast shadow, no text, no labels, no frame, no border. Same warm upper-left key light and muted Victorian gaslight palette as the game scenes."
+    }
+  ]
+}

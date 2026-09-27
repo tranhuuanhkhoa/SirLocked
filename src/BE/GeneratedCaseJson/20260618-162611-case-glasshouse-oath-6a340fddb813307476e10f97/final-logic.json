@@ -1,0 +1,64 @@
+{
+  "culpritId": "char-halden-pike",
+  "motive": "Reverend Pike had secretly profited from improper trustee sales of Bellweather specimens. Professor Marrow\u0027s missing journal and planned announcement would expose the fraud and void the protective silence of the Glasshouse Oath.",
+  "method": "Pike removed the orchid before the lamps failed, used the old cellar service hatch to reach the glasshouse lamp control line, staged the shattering glass as an accident during the darkness, and hid the orchid with Marrow\u0027s journal in a chapel-sealed crate below the old orchid house.",
+  "requiredEvidenceIds": [
+    "clue-2",
+    "clue-3",
+    "clue-8",
+    "clue-11",
+    "clue-12"
+  ],
+  "motiveOptions": [
+    {
+      "id": "motive-1",
+      "label": "To prevent Marrow from exposing Pike\u0027s trustee sales and the legal danger hidden inside the Glasshouse Oath."
+    },
+    {
+      "id": "motive-2",
+      "label": "To help Livia inherit Bellweather before Marrow could disinherit her."
+    },
+    {
+      "id": "motive-3",
+      "label": "To sell the orchid to a foreign buyer and pay private gambling debts."
+    }
+  ],
+  "methodOptions": [
+    {
+      "id": "method-1",
+      "label": "Remove the orchid before the blackout, enter by the cellar hatch, interrupt the lamps, stage the glass break, and hide the orchid with the journal."
+    },
+    {
+      "id": "method-2",
+      "label": "Break the roof panes from outside during the storm, causing an accidental fall while stealing the orchid afterward."
+    },
+    {
+      "id": "method-3",
+      "label": "Poison the professor with orchid pollen, then scatter glass to conceal the true cause."
+    }
+  ],
+  "correctMotiveId": "motive-1",
+  "correctMethodId": "method-1",
+  "requiredEvidenceLinks": [
+    {
+      "claimType": "MOTIVE",
+      "evidenceId": "clue-8"
+    },
+    {
+      "claimType": "METHOD",
+      "evidenceId": "clue-11"
+    },
+    {
+      "claimType": "OPPORTUNITY",
+      "evidenceId": "clue-2"
+    }
+  ],
+  "requiredDeductionIds": [
+    "deduction-1"
+  ],
+  "requiredTeamworkChainIds": [
+    "chain-1"
+  ],
+  "winEnding": "SirLocked lays the photographs in order: the early-dry pedestal ring, the gray service-door print, the blotter naming Pike, and the chapel-marked cellar hatch. Pike\u0027s appeal to silence collapses when the hidden crate reveals both orchid and journal. The professor\u0027s death is no longer a sad accident but a staged crime born of trustee fraud and fear. Livia releases the Glasshouse Oath to lawful scrutiny, Marta returns the orchid to controlled care, and Veyrbridge learns that some vows protect truth only when they are finally spoken aloud.",
+  "failEnding": "The accusation falters around gossip and obvious motives. Silas\u0027s debts and Marta\u0027s access muddy the account, allowing Pike to urge discretion until the inquiry cools. The orchid survives in hiding for a time, but Marrow\u0027s journal disappears again, and the Glasshouse Oath remains a polished phrase covering an unpruned lie."
+}

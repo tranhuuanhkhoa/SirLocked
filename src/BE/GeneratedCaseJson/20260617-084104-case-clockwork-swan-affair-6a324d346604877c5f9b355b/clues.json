@@ -1,0 +1,122 @@
+[
+  {
+    "clueId": "clue-1",
+    "title": "The Swan Accuses Orin",
+    "content": "The public message names Orin Vale, but the pressure marks suggest a prearranged writing action rather than a genuine prophecy or spontaneous accusation.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "item-1",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-2",
+    "title": "Blackout from the Security Alcove",
+    "content": "The lamps were cut from a concealed lever near the hired security post, not by a general power failure elsewhere in the house.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-2",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-3",
+    "title": "Lady Quince\u0027s Financial Peril",
+    "content": "Lady Quince had a strong reason to dread a failed demonstration, making her appear suspicious, but the ledger also supports her presence in public view during the crucial minute.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "item-3",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-4",
+    "title": "Locked Room Faked by Wire",
+    "content": "The workroom was not proof that the inventor vanished alone; the latch could be set from the corridor after someone removed him through another route.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-4",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-5",
+    "title": "Removable Message Cylinder",
+    "content": "The swan\u0027s writing was governed by a removable cylinder, so a forged accusation could be installed before the demonstration by someone with access or a duplicate part.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-5",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-6",
+    "title": "Pip\u0027s Oil Rag Is Misleading",
+    "content": "Pip handled the swan earlier, but the oil timing points to scheduled maintenance rather than the blackout interval.",
+    "isCritical": false,
+    "isEvidence": true,
+    "isRedHerring": true,
+    "source": "item-6",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-7",
+    "title": "The Message Could Not Be Composed Live",
+    "content": "Professor Morcant confirms that the swan cannot reason, improvise, or identify a culprit; it can only execute mechanical instructions prepared in advance.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-3",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-8",
+    "title": "Rusk Claims the Canal Gate Stayed Locked",
+    "content": "Captain Fen states that no one used the private canal gate during the blackout and that he personally checked it afterward.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-5",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-9",
+    "title": "Security Bootprint at the Hatch",
+    "content": "A canal-security bootprint links the service hatch to recent dock use, contradicting the claim that the gate remained untouched.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-7",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-10",
+    "title": "Officer\u0027s Lock-Knot on the Rope",
+    "content": "The rope was tied with a canal officer\u0027s silent-launch knot, indicating an official boat or officer\u0027s hand was involved in the inventor\u0027s removal.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-8",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-11",
+    "title": "R. Fen Ordered a Blank Cylinder",
+    "content": "A blank swan cylinder was ordered in Captain Fen\u0027s name before the gala, providing the means to install the false accusation against Orin.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-9",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-12",
+    "title": "The Inventor\u0027s Ledger Names Fen",
+    "content": "The hidden ledger gives Fen a motive: the inventor had documented a canal-security smuggling scheme and intended to expose it once his investors were assembled.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-10",
+    "sourceType": "item"
+  }
+]

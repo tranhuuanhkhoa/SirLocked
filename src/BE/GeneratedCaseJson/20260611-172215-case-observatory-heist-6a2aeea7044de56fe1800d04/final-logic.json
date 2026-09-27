@@ -1,0 +1,12 @@
+{
+  "culpritId": "char-1",
+  "motive": "Dr. Vega had gambling debts and needed the diamond to pay them off.",
+  "method": "Dr. Vega used a custom lockpick to open the vault, smashed the glass with a tool (leaving oil), and escaped through the roof using a rope. He left a wet footprint because of the rain.",
+  "requiredEvidenceIds": [
+    "clue-3",
+    "clue-7",
+    "clue-8"
+  ],
+  "winEnding": "You present the evidence: the custom lockpick, the chemical stain matching his uniform, and the security footage. Dr. Vega confesses. Justice is served.",
+  "failEnding": "You accuse the wrong person. The real culprit escapes with the diamond. The case remains unsolved."
+}
