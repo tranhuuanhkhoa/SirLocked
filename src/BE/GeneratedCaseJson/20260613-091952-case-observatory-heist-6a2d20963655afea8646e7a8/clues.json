@@ -1,0 +1,122 @@
+[
+  {
+    "clueId": "clue-lock-tampered",
+    "title": "Lock Tampered With",
+    "content": "The lock was forced open with a pry bar, not a key. The storm\u0027s electrical surge may have disabled the alarm.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-broken-lock",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-footprint-large",
+    "title": "Large Footprint",
+    "content": "The footprint is size 12, consistent with the assistant\u0027s work boots.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-footprint",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-cloth-wool",
+    "title": "Wool Cloth",
+    "content": "The torn cloth is from a blue wool uniform, like the security guard\u0027s coat.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": true,
+    "source": "item-torn-cloth",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-box-dust",
+    "title": "Dust Pattern",
+    "content": "The dust in the box is undisturbed except for a clean circle exactly the size of the sapphire. It wasn\u0027t moved recently.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-sapphire-box",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-keys-copy",
+    "title": "Duplicate Key",
+    "content": "The master key is missing. The assistant recently asked the curator for access to make a copy for \u0027emergency\u0027.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-keys",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-umbrella-dry",
+    "title": "Umbrella Contradiction",
+    "content": "The curator claimed she didn\u0027t go out, but her umbrella is wet. She must have lied.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": true,
+    "source": "item-umbrella",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-gloves-mud",
+    "title": "Muddy Gloves",
+    "content": "The gloves have mud matching the footprint\u0027s mud. They also have traces of metal shavings.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-gloves",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-toolbox-prybar",
+    "title": "Missing Pry Bar",
+    "content": "A heavy pry bar is missing from the assistant\u0027s toolbox. It could have been used to break the lock.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-toolbox",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-sapphire-found",
+    "title": "Sapphire Recovered",
+    "content": "The sapphire was hidden in the telescope mount on the rooftop. Only someone with knowledge of the observatory would know that spot.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "item-sapphire-stolen",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-rope-used",
+    "title": "Rope Used",
+    "content": "The rope is tied to the dome railing and shows signs of recent climbing. The thief escaped via the roof during the storm.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "item-rope",
+    "sourceType": "item"
+  },
+  {
+    "clueId": "clue-assistant-motive",
+    "title": "Assistant\u0027s Motive",
+    "content": "The assistant had gambling debts and needed money. He was overheard arguing with the curator about a loan.",
+    "isCritical": true,
+    "isEvidence": true,
+    "isRedHerring": false,
+    "source": "dlg-assistant-2",
+    "sourceType": "dialogue"
+  },
+  {
+    "clueId": "clue-security-alibi",
+    "title": "Security Alibi",
+    "content": "The security guard was checking the perimeter when the alarm went off. His log shows he was at the east gate at the time of the heist.",
+    "isCritical": false,
+    "isEvidence": false,
+    "isRedHerring": false,
+    "source": "dlg-security-1",
+    "sourceType": "dialogue"
+  }
+]

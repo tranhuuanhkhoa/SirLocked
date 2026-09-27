@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/FE/package-lock.json
+      - name: Restore backend
+        run: dotnet restore SirLocked.sln
+      - name: Test backend
+        run: dotnet test SirLocked.sln --configuration Release --no-restore
+      - name: Install frontend dependencies
+        working-directory: src/FE
+        run: npm ci
+      - name: Typecheck frontend
+        working-directory: src/FE
+        run: npm run typecheck
+      - name: Build frontend
+        working-directory: src/FE
+        run: npm run build
+
+  api-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      Jwt__Secret: ci-only-secret-with-at-least-32-characters
+      MongoDb__ConnectionString: mongodb://127.0.0.1:27017
+      MongoDb__DatabaseName: SirLockedCi
+      MOCK_AI_RESPONSES: 'true'
+      SKIP_ASSET_GENERATION: 'true'
+      # Room creation requires a verified email. The smoke test only speaks the public API and has no
+      # inbox, so registrations are auto-verified here. AuthSettings ignores this outside Development.
+      Auth__AutoVerifyRegistrations: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build API
+        run: dotnet build src/BE/SirLocked.Api.csproj --configuration Release
+      - name: Run Mongo concurrency and queue integration tests
+        env:
+          SIRLOCKED_RUN_MONGO_IT: 'true'
+          SIRLOCKED_TEST_MONGO_CONNECTION_STRING: mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000
+        run: dotnet test src/BE/IntegrationTests/SirLocked.IntegrationTests.csproj --configuration Release
+      - name: Start API
+        run: |
+          dotnet run --project src/BE/SirLocked.Api.csproj --configuration Release --no-build --urls http://127.0.0.1:5215 > api.log 2>&1 &
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:5215/live > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat api.log
+          exit 1
+      - name: Run API gameplay smoke test
+        run: python scripts/e2e_smoke.py --base http://127.0.0.1:5215
+      - name: Upload API log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-log
+          path: api.log

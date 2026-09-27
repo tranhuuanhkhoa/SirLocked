@@ -1,0 +1,36 @@
+{
+  "roomId": "6a2d6a15185c96db4e786e4c",
+  "roomCode": "59YQP2",
+  "screenshots": [
+    {
+      "sceneId": "scene-dressing-room",
+      "title": "Celeste's Dressing Room",
+      "file": "01-scene-dressing-room.png",
+      "currentSceneCanComplete": false
+    },
+    {
+      "sceneId": "scene-backstage-hallway",
+      "title": "Backstage Hallway",
+      "file": "02-scene-backstage-hallway.png",
+      "currentSceneCanComplete": false
+    },
+    {
+      "sceneId": "scene-owners-office",
+      "title": "Theater Owner's Office",
+      "file": "03-scene-owners-office.png",
+      "currentSceneCanComplete": false
+    },
+    {
+      "sceneId": "scene-props-room",
+      "title": "Props Room",
+      "file": "04-scene-props-room.png",
+      "currentSceneCanComplete": false
+    },
+    {
+      "sceneId": "scene-theater-lobby",
+      "title": "Theater Lobby",
+      "file": "05-scene-theater-lobby.png",
+      "currentSceneCanComplete": false
+    }
+  ]
+}

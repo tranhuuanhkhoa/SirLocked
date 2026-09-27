@@ -1,0 +1,90 @@
+[
+  {
+    "itemId": "item-1",
+    "name": "Shattered Glass Case",
+    "description": "The display case is broken, with glass shards scattered around.",
+    "inspectText": "The glass is thick, but shattered cleanly. A small cloth fragment is caught on a shard.",
+    "imageUrl": "/assets/items/shattered-case.jpg",
+    "unlockClueIds": [
+      "clue-1"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-2",
+    "name": "Muddy Footprint",
+    "description": "A clear footprint leading away from the case, size 10.",
+    "inspectText": "The footprint is deep, suggesting a heavy person. It is made of reddish clay.",
+    "imageUrl": "/assets/items/footprint.jpg",
+    "unlockClueIds": [
+      "clue-2"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-3",
+    "name": "Wet Umbrella",
+    "description": "A black umbrella, still wet, leaning against the desk.",
+    "inspectText": "The umbrella is wet, but the floor around it is dry. It must have been brought inside recently.",
+    "imageUrl": "/assets/items/wet-umbrella.jpg",
+    "unlockClueIds": [
+      "clue-3"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-4",
+    "name": "Note",
+    "description": "A handwritten note on Dr. Vega\u0027s desk.",
+    "inspectText": "The note reads: \u0027Meet me at midnight. Bring the key.\u0027 It is signed with a \u0027V\u0027.",
+    "imageUrl": "/assets/items/note.jpg",
+    "unlockClueIds": [
+      "clue-4"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-5",
+    "name": "Map with Marks",
+    "description": "A map of the observatory with a route marked in red from the main hall to the roof.",
+    "inspectText": "The red line goes through the library and ends at the rooftop. There is a small smudge of red clay near the roof exit.",
+    "imageUrl": "/assets/items/map.jpg",
+    "unlockClueIds": [
+      "clue-5"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-6",
+    "name": "Pair of Gloves",
+    "description": "A pair of leather gloves, found under a chair.",
+    "inspectText": "The gloves are worn, but the right glove has a small tear on the index finger. There is a faint smell of metal polish.",
+    "imageUrl": "/assets/items/gloves.jpg",
+    "unlockClueIds": [
+      "clue-6"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-7",
+    "name": "Crowbar",
+    "description": "A crowbar hidden behind a vent on the roof.",
+    "inspectText": "The crowbar is clean, but the tip matches the pry marks on the display case. A hair is caught in the hinge.",
+    "imageUrl": "/assets/items/crowbar.jpg",
+    "unlockClueIds": [
+      "clue-7"
+    ],
+    "isCollectible": false
+  },
+  {
+    "itemId": "item-8",
+    "name": "Gem Fragment",
+    "description": "A small fragment of the Starfire Diamond, caught in a crevice.",
+    "inspectText": "The fragment is a deep blue. It must have broken off during the theft.",
+    "imageUrl": "/assets/items/gem-fragment.jpg",
+    "unlockClueIds": [
+      "clue-8"
+    ],
+    "isCollectible": false
+  }
+]

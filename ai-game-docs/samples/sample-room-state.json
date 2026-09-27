@@ -1,0 +1,108 @@
+{
+  "roomId": "room-demo-001",
+  "roomCode": "MANOR1",
+  "caseId": "case-week2-manor",
+  "caseTitle": "The Locked Manor Ledger",
+  "caseSummary": "A financier dies inside a locked study after dinner.",
+  "roomStatus": "IN_PROGRESS",
+  "currentStageId": "stage-locked-study",
+  "currentSceneId": "scene-study",
+  "version": 2,
+  "players": [
+    {
+      "userId": "user-host",
+      "username": "Investigator Vale",
+      "role": "INVESTIGATOR",
+      "isReady": true
+    },
+    {
+      "userId": "user-guest",
+      "username": "Interrogator Reed",
+      "role": "INTERROGATOR",
+      "isReady": true
+    }
+  ],
+  "visitedSceneIds": [
+    "scene-study"
+  ],
+  "inspectedItemIds": [
+    "item-bitter-glass"
+  ],
+  "collectedItemIds": [
+    "item-bitter-glass"
+  ],
+  "unlockedClueIds": [
+    "clue-poisoned-drink"
+  ],
+  "askedDialogueIds": [],
+  "completedSceneIds": [],
+  "completedStageIds": [],
+  "selectedEvidenceIds": [],
+  "gameStatus": "IN_PROGRESS",
+  "availableForAccusation": false,
+  "currentObjective": "Investigate Victim's Study: examine 2 more piece(s) of physical evidence, ask 1 more question(s), uncover 2 more clue(s).",
+  "visibleScene": {
+    "sceneId": "scene-study",
+    "title": "Victim's Study",
+    "description": "A locked study with a cold fireplace, scattered papers, and the victim's final drink on the desk.",
+    "backgroundUrl": "/assets/scenes/study.jpg",
+    "hotspots": [
+      {
+        "hotspotId": "hotspot-bitter-glass",
+        "type": "ITEM",
+        "targetId": "item-bitter-glass",
+        "x": 46,
+        "y": 61,
+        "width": 8,
+        "height": 10,
+        "zIndex": 1,
+        "label": "Crystal glass",
+        "requiredClueIds": [],
+        "isLocked": false,
+        "missingClueIds": []
+      }
+    ],
+    "items": [
+      {
+        "itemId": "item-bitter-glass",
+        "name": "Bitter Crystal Glass",
+        "description": "A half-empty glass with a bitter almond scent and a wiped rim.",
+        "imageUrl": "/assets/items/bitter-glass.png",
+        "isInspected": true,
+        "inspectText": "The victim drank from this glass before the room was locked. The rim was wiped, but the almond scent remains."
+      }
+    ],
+    "characters": [],
+    "availableDialogues": []
+  },
+  "sceneMap": [
+    {
+      "sceneId": "scene-study",
+      "title": "Victim's Study",
+      "isCurrent": true,
+      "isVisited": true,
+      "isCompleted": false
+    }
+  ],
+  "unlockedClues": [
+    {
+      "clueId": "clue-poisoned-drink",
+      "title": "Poisoned Drink",
+      "content": "The victim was poisoned before the study was locked.",
+      "isCritical": true,
+      "isEvidence": false,
+      "source": "item-bitter-glass",
+      "sourceType": "item"
+    }
+  ],
+  "evidenceClues": [],
+  "suspects": [],
+  "actionLog": [
+    {
+      "actionType": "INSPECT_ITEM",
+      "message": "Investigator Vale inspected Bitter Crystal Glass.",
+      "userId": "user-host",
+      "createdAt": "2026-06-12T00:00:00Z"
+    }
+  ]
+}

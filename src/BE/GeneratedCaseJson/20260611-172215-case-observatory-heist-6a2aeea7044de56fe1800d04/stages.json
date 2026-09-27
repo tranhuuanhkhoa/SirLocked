@@ -1,0 +1,204 @@
+[
+  {
+    "stageId": "stage-1",
+    "title": "Crime Scene Investigation",
+    "order": 1,
+    "scenes": [
+      {
+        "sceneId": "scene-1",
+        "title": "The Vault Room",
+        "backgroundUrl": "/assets/scenes/vault-room.jpg",
+        "description": "The vault door is wide open. The diamond is missing. Rain hammers against the dome above. You see a broken glass case, a wet footprint, and a strange tool on the floor.",
+        "itemIds": [
+          "item-1",
+          "item-2",
+          "item-3"
+        ],
+        "characterIds": [
+          "char-1",
+          "char-2"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-1",
+            "type": "ITEM",
+            "targetId": "item-1",
+            "x": 30,
+            "y": 50,
+            "width": 10,
+            "height": 10,
+            "zIndex": 1,
+            "label": "Broken glass",
+            "requiredClueIds": []
+          },
+          {
+            "hotspotId": "hotspot-2",
+            "type": "ITEM",
+            "targetId": "item-2",
+            "x": 60,
+            "y": 70,
+            "width": 8,
+            "height": 12,
+            "zIndex": 1,
+            "label": "Wet footprint",
+            "requiredClueIds": []
+          },
+          {
+            "hotspotId": "hotspot-3",
+            "type": "ITEM",
+            "targetId": "item-3",
+            "x": 45,
+            "y": 80,
+            "width": 6,
+            "height": 6,
+            "zIndex": 1,
+            "label": "Lockpick set",
+            "requiredClueIds": []
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-1",
+            "item-2",
+            "item-3"
+          ],
+          "requiredClueIds": [
+            "clue-1",
+            "clue-2",
+            "clue-3"
+          ],
+          "requiredDialogueIds": []
+        }
+      }
+    ]
+  },
+  {
+    "stageId": "stage-2",
+    "title": "Interviews and Alibis",
+    "order": 2,
+    "scenes": [
+      {
+        "sceneId": "scene-2",
+        "title": "Observatory Lounge",
+        "backgroundUrl": "/assets/scenes/lounge.jpg",
+        "description": "The suspects are gathered. Dr. Vega looks nervous, Janitor Moore is defensive, and Visitor Chen seems calm. A coffee cup sits on the table.",
+        "itemIds": [
+          "item-4",
+          "item-5"
+        ],
+        "characterIds": [
+          "char-3",
+          "char-4",
+          "char-5"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-4",
+            "type": "ITEM",
+            "targetId": "item-4",
+            "x": 20,
+            "y": 40,
+            "width": 8,
+            "height": 10,
+            "zIndex": 1,
+            "label": "Coffee cup",
+            "requiredClueIds": []
+          },
+          {
+            "hotspotId": "hotspot-5",
+            "type": "ITEM",
+            "targetId": "item-5",
+            "x": 75,
+            "y": 30,
+            "width": 10,
+            "height": 8,
+            "zIndex": 1,
+            "label": "Visitor log",
+            "requiredClueIds": []
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-4",
+            "item-5"
+          ],
+          "requiredClueIds": [
+            "clue-4",
+            "clue-5"
+          ],
+          "requiredDialogueIds": [
+            "dlg-1",
+            "dlg-2",
+            "dlg-3"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "stageId": "stage-3",
+    "title": "The Final Deduction",
+    "order": 3,
+    "scenes": [
+      {
+        "sceneId": "scene-3",
+        "title": "Roof Access",
+        "backgroundUrl": "/assets/scenes/roof.jpg",
+        "description": "The storm has passed. You find a wet rope and a small cloth fragment near the roof hatch. A faint trail leads away.",
+        "itemIds": [
+          "item-6",
+          "item-7"
+        ],
+        "characterIds": [
+          "char-4"
+        ],
+        "hotspots": [
+          {
+            "hotspotId": "hotspot-6",
+            "type": "ITEM",
+            "targetId": "item-6",
+            "x": 50,
+            "y": 60,
+            "width": 8,
+            "height": 15,
+            "zIndex": 1,
+            "label": "Rope",
+            "requiredClueIds": [
+              "clue-2"
+            ]
+          },
+          {
+            "hotspotId": "hotspot-7",
+            "type": "ITEM",
+            "targetId": "item-7",
+            "x": 70,
+            "y": 40,
+            "width": 6,
+            "height": 6,
+            "zIndex": 1,
+            "label": "Cloth fragment",
+            "requiredClueIds": [
+              "clue-4"
+            ]
+          }
+        ],
+        "completeCondition": {
+          "logic": "AND",
+          "requiredItemIds": [
+            "item-6",
+            "item-7"
+          ],
+          "requiredClueIds": [
+            "clue-6",
+            "clue-7"
+          ],
+          "requiredDialogueIds": [
+            "dlg-4"
+          ]
+        }
+      }
+    ]
+  }
+]
