@@ -32,6 +32,22 @@ public sealed class DialogueAllocationSlot
     public List<string> AvailableSceneIds { get; set; } = new();
 }
 
+internal static class ProjectionProofClosure
+{
+    public static IEnumerable<ProofConclusion> FinalConclusions(CaseTruthPackage truth) =>
+        truth.ProofGraph.Conclusions.Where(conclusion =>
+            EvidenceClaimTypes.OrderedForContract(CaseLogicContractVersions.CausalFiveClaim)
+                .Contains(conclusion.Category, StringComparer.Ordinal));
+
+    public static IEnumerable<string> TraceIds(CaseTruthPackage truth) =>
+        FinalConclusions(truth).SelectMany(conclusion => conclusion.SupportingTraceIds)
+            .Distinct(StringComparer.Ordinal);
+
+    public static IEnumerable<string> StatementIds(CaseTruthPackage truth) =>
+        FinalConclusions(truth).SelectMany(conclusion => conclusion.SupportingStatementIds)
+            .Distinct(StringComparer.Ordinal);
+}
+
 public sealed class ProjectionReadinessAnalyzer : IProjectionReadinessAnalyzer
 {
     public ProjectionCapacity AnalyzeCapacity(AiDraftSettings settings) =>
@@ -128,6 +144,7 @@ public sealed class ProjectionReadinessAnalyzer : IProjectionReadinessAnalyzer
             .Where(item => item.ContradictedByTraceIds.Count > 0)
             .Select(item => item.StatementId)
             .Concat(truth.RedHerringLedger.SelectMany(item => item.ClearingStatementIds))
+            .Concat(ProjectionProofClosure.StatementIds(truth))
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
@@ -135,7 +152,14 @@ public sealed class ProjectionReadinessAnalyzer : IProjectionReadinessAnalyzer
         foreach (var statementId in mandatoryIds)
         {
             if (!statementById.TryGetValue(statementId, out var statement))
+            {
+                result.Validation.Add(
+                    "ProjectionMissingRequiredStatement",
+                    "statementLedger",
+                    "A statement required by a final proof, contradiction, or clearing claim is missing. Preserve every approved proposition when restoring its sources.",
+                    statementId);
                 continue;
+            }
             var group = CreateGroup(statement, timelineById, sceneIndexes);
             if (group.AvailableSceneIds.Count == 0)
             {
@@ -191,7 +215,7 @@ public sealed class ProjectionReadinessAnalyzer : IProjectionReadinessAnalyzer
             result.Validation.Add(
                 "ProjectionDialogueBudget",
                 "statementLedger",
-                $"Truth closure needs {groups.Count} compatible dialogue groups but the preset allows {contract.MaxDialogues}.");
+                $"Truth closure needs {groups.Count} compatible dialogue groups but the preset allows {contract.MaxDialogues}. Consolidate compatible testimony or choose a larger preset; preserve every approved proposition and its supporting facts instead of deleting proof links.");
         }
 
         if (groups.Count == 0 && contract.MinDialogues > 0)

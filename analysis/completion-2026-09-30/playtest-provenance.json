@@ -1,0 +1,10 @@
+{
+  "sourcePath": "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\analysis\\completion-2026-09-30\\case.json",
+  "sourceSha256": "569c9fd034575b75549907b7700729cf8f8d8cb1b4bea6c76440f14c3aa37f71",
+  "derivedCasePath": "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\tmp\\crack-full-stack-2bb0e974cc7a41cf802a090421e549f2\\playable-case.json",
+  "transformation": "Production ApplyDeterministicMockSceneLayout plus existing local placeholder art; test-only ID, timestamps and published status in loopback temporary DB.",
+  "contentRewritten": false,
+  "providerCalls": 0,
+  "databaseName": "sirlocked_it_2bb0e974cc7a41cf802a090421e549f2",
+  "validationPassed": true
+}

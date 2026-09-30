@@ -316,9 +316,11 @@ public sealed class ProjectionPipelineTests
     {
         // OpenAI strict schemas reject const on arrays, so these slots are never requested from the
         // model; ProjectionContentLocks restores them from the plan instead.
-        var (draft, truth) = BuildDraft();
+        var (draft, truth) = BuildDraft(AiGenerationPresets.PuzzleHeavy, 5);
         var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
         var schema = new ProjectionContentSchemaFactory().Build(plan);
+
+        Assert.NotEmpty(plan.Puzzles);
 
         var clueSchema = schema["properties"]!["clues"]!["properties"]![plan.Clues.First().Key]!;
         Assert.Null(clueSchema["properties"]!["supportsConclusionIds"]);
@@ -339,7 +341,7 @@ public sealed class ProjectionPipelineTests
     {
         // Vietnamese cases still need English/ASCII visualDescription, because
         // AiGenerationContract.ValidateSafeVisualText rejects anything above U+007F.
-        var (draft, truth) = BuildDraft();
+        var (draft, truth) = BuildDraft(AiGenerationPresets.PuzzleHeavy, 5);
         draft.Settings.Language = CaseLanguages.Vietnamese;
         var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
         var schema = new ProjectionContentSchemaFactory().Build(plan);
@@ -362,10 +364,12 @@ public sealed class ProjectionPipelineTests
     [Fact]
     public void MockContent_KeepsArtDirectionAscii()
     {
-        var (draft, truth) = BuildDraft();
+        var (draft, truth) = BuildDraft(AiGenerationPresets.PuzzleHeavy, 5);
         draft.Settings.Language = CaseLanguages.Vietnamese;
         var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
         var content = ProjectionContentMockFactory.Build(plan);
+
+        Assert.NotEmpty(content.Items);
 
         var visuals = content.Scenes.Values.Select(item => item.VisualDescription)
             .Concat(content.Characters.Values.Select(item => item.VisualDescription))
@@ -378,9 +382,11 @@ public sealed class ProjectionPipelineTests
     [Fact]
     public void Locks_RestorePlanOwnedSlots_SoSchemaShapedContentCompiles()
     {
-        var (draft, truth) = BuildDraft();
+        var (draft, truth) = BuildDraft(AiGenerationPresets.PuzzleHeavy, 5);
         var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
         var content = ProjectionContentMockFactory.Build(plan);
+
+        Assert.NotEmpty(content.Puzzles);
 
         // Exactly what the model now returns: every locked array absent.
         foreach (var clue in content.Clues.Values) clue.SupportsConclusionIds = new List<string>();
@@ -401,6 +407,11 @@ public sealed class ProjectionPipelineTests
             Assert.Equal(slot.SupportsConclusionIds, content.Clues[id].SupportsConclusionIds);
         foreach (var (id, slot) in plan.Dialogues)
             Assert.Equal(slot.StatementIds, content.Dialogues[id].StatementIds);
+        foreach (var (id, slot) in plan.Puzzles)
+        {
+            Assert.Equal(slot.BasedOnTruthIds, content.Puzzles[id].BasedOnTruthIds);
+            Assert.Equal(slot.RevealsConclusionIds, content.Puzzles[id].RevealsConclusionIds);
+        }
     }
 
     [Fact]
@@ -510,6 +521,150 @@ public sealed class ProjectionPipelineTests
         Assert.Equal(
             plan.Skeleton.FinalLogic.RequiredEvidenceLinks.Select(link => (link.ClaimType, link.ConclusionId, link.EvidenceId)),
             gameCase.FinalLogic.RequiredEvidenceLinks.Select(link => (link.ClaimType, link.ConclusionId, link.EvidenceId)));
+    }
+
+    [Theory]
+    [InlineData(AiGenerationPresets.ShortDemo, 2, false)]
+    [InlineData(AiGenerationPresets.ShortDemo, 2, true)]
+    [InlineData(AiGenerationPresets.NormalRandom, 4, false)]
+    [InlineData(AiGenerationPresets.NormalRandom, 4, true)]
+    public void CompactProjection_HasNoForcedPuzzlesOrUnusedItems_AndRemainsSolvable(
+        string preset, int stageCount, bool includeV3)
+    {
+        var (draft, truth) = BuildDraft(preset, stageCount, includeV3);
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var gameCase = new GameCaseProjectionCompiler().Compile(
+            plan, ProjectionContentMockFactory.Build(plan), draft.Settings);
+
+        Assert.Empty(gameCase.Puzzles);
+        Assert.All(gameCase.Interactions, interaction => Assert.NotEmpty(interaction.UnlockClueIds));
+        Assert.DoesNotContain(gameCase.Items, item => item.ItemId.StartsWith("item-projection-", StringComparison.Ordinal));
+        Assert.All(gameCase.Items, item => Assert.NotEmpty(item.UnlockClueIds));
+
+        AssertValidProjection(draft, truth, plan, gameCase);
+    }
+
+    [Theory]
+    [InlineData(AiGenerationPresets.PuzzleHeavy, 5, false)]
+    [InlineData(AiGenerationPresets.PuzzleHeavy, 5, true)]
+    [InlineData(AiGenerationPresets.FullFeature, 6, false)]
+    [InlineData(AiGenerationPresets.FullFeature, 6, true)]
+    public void FeatureProjection_PreservesPresetMechanics_WithoutUnusedSyntheticItems(
+        string preset, int stageCount, bool includeV3)
+    {
+        var (draft, truth) = BuildDraft(preset, stageCount, includeV3);
+        if (includeV3)
+        {
+            var secondStatement = truth.StatementLedger.First(statement => statement.ContradictedByTraceIds.Count == 0);
+            var firstContradictionTraceId = truth.StatementLedger.SelectMany(statement => statement.ContradictedByTraceIds).First();
+            var secondTrace = truth.TraceLedger.First(trace => trace.TraceId != firstContradictionTraceId);
+            secondStatement.ContradictedByTraceIds.Add(secondTrace.TraceId);
+            secondStatement.TruthStatus = StatementTruthStatuses.False;
+            secondStatement.ReasonForLie = "Protecting a private but non-culpable action.";
+            draft.TruthHash = _truthService.ComputeHash(truth);
+        }
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var gameCase = new GameCaseProjectionCompiler().Compile(
+            plan, ProjectionContentMockFactory.Build(plan), draft.Settings);
+        var generatedItems = gameCase.Items.Where(item =>
+            item.ItemId.StartsWith("item-projection-", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(3, gameCase.Puzzles.Count);
+        Assert.Equal(includeV3 ? 3 : 2, gameCase.Interactions.Count);
+        Assert.Equal(7, generatedItems.Count);
+        Assert.All(generatedItems, item => Assert.True(
+            gameCase.Interactions.Any(interaction => interaction.TargetId == item.ItemId
+                || interaction.RequiredItemIds.Contains(item.ItemId)
+                || interaction.UnlockItemIds.Contains(item.ItemId))
+            || gameCase.Puzzles.Any(puzzle => puzzle.TargetId == item.ItemId)));
+        Assert.All(gameCase.Puzzles, puzzle => Assert.NotEmpty(puzzle.UnlockClueIds));
+        Assert.All(gameCase.Interactions, interaction => Assert.True(
+            interaction.UnlockClueIds.Count + interaction.UnlockItemIds.Count > 0));
+
+        AssertValidProjection(draft, truth, plan, gameCase);
+    }
+
+    private void AssertValidProjection(
+        AiCaseDraft draft, CaseTruthPackage truth, GameplayProjectionPlan plan, GameCase gameCase)
+    {
+        var result = new ProjectionGraphValidator(_truthService).Validate(truth, plan, gameCase);
+        result.Errors.AddRange(new CaseValidationService().ValidateFullLogic(gameCase).Errors);
+        result.Errors.AddRange(AiGenerationContract.For(draft.Settings).Validate(gameCase, draft.Settings).Errors);
+        result.Errors.AddRange(_truthService.ValidateProjection(truth, gameCase).Errors);
+        result.Deduplicate();
+        Assert.True(result.IsValid, string.Join("\n", result.Errors.Select(
+            error => $"{error.Code} {error.Path}: {error.Message}")));
+    }
+
+    [Fact]
+    public void FinalProofClosure_PreservesSecondaryAlibiTraceAndLateSupportingStatement()
+    {
+        var (draft, truth, supportingTraceId, supportingStatementId) = BuildMultiSourceProofDraft();
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var gameCase = new GameCaseProjectionCompiler().Compile(
+            plan, ProjectionContentMockFactory.Build(plan), draft.Settings);
+        var finalEvidenceTraceIds = plan.FinalLogic.EvidenceLinks
+            .Select(link => plan.Clues[link.EvidenceId].TraceId).ToHashSet(StringComparer.Ordinal);
+
+        Assert.DoesNotContain(supportingTraceId, finalEvidenceTraceIds);
+        Assert.Contains(plan.Clues.Values, clue => clue.TraceId == supportingTraceId);
+        Assert.Contains(plan.Dialogues.Values, dialogue => dialogue.StatementIds.Contains(supportingStatementId));
+        Assert.All(truth.ProofGraph.Conclusions.SelectMany(conclusion => conclusion.SupportingTraceIds), traceId =>
+            Assert.Contains(plan.Clues.Values, clue => clue.TraceId == traceId));
+        Assert.All(truth.ProofGraph.Conclusions.SelectMany(conclusion => conclusion.SupportingStatementIds), statementId =>
+            Assert.Contains(plan.Dialogues.Values, dialogue => dialogue.StatementIds.Contains(statementId)));
+        AssertValidProjection(draft, truth, plan, gameCase);
+    }
+
+    [Fact]
+    public void FinalProofClosure_RejectsTraceOverflowBeforeCompilationAndRepairsTimeline()
+    {
+        var (draft, truth, supportingTraceId, _) = BuildMultiSourceProofDraft();
+        var additionalTrace = JsonSerializer.Deserialize<TraceLedgerEntry>(
+            JsonSerializer.Serialize(truth.TraceLedger.Single(trace => trace.TraceId == supportingTraceId), JsonOptions), JsonOptions)!;
+        additionalTrace.TraceId = "trace-third-independent-alibi";
+        additionalTrace.IndependentSourceGroup = "third-independent-alibi-source";
+        truth.TraceLedger.Add(additionalTrace);
+        truth.TrueTimeline.Single(timelineEvent => timelineEvent.EventId == additionalTrace.SourceActionId)
+            .TraceIds.Add(additionalTrace.TraceId);
+        truth.ProofGraph.Conclusions.Single(conclusion => conclusion.ConclusionId == ProofConclusionIds.Opportunity)
+            .SupportingTraceIds.Add(additionalTrace.TraceId);
+        draft.TruthHash = _truthService.ComputeHash(truth);
+        var planner = new GameplayProjectionPlanner(_truthService);
+
+        var validation = planner.ValidateProjectability(draft, truth);
+        var budgetError = Assert.Single(validation.Errors, error => error.Code == "ProjectionProofClosureBudget");
+
+        Assert.Contains("preserve every approved proposition", budgetError.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(CaseTruthArtifacts.Timeline, _truthService.PlanRepair(validation.Errors).RegenerateFromArtifact);
+        Assert.Throws<ProjectionPlanningException>(() => planner.Build(draft, truth));
+        Assert.Equal(7, truth.TraceLedger.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FinalProofClosure_RejectsPersistedPlanWithDroppedSupportingSource(bool dropStatement)
+    {
+        var (draft, truth, supportingTraceId, supportingStatementId) = BuildMultiSourceProofDraft();
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var gameCase = new GameCaseProjectionCompiler().Compile(
+            plan, ProjectionContentMockFactory.Build(plan), draft.Settings);
+        if (dropStatement)
+        {
+            foreach (var dialogue in plan.Dialogues.Values)
+                dialogue.StatementIds.Remove(supportingStatementId);
+        }
+        else
+        {
+            var clueId = plan.Clues.Single(pair => pair.Value.TraceId == supportingTraceId).Key;
+            plan.Clues.Remove(clueId);
+        }
+
+        var result = new ProjectionGraphValidator(_truthService).Validate(truth, plan, gameCase);
+
+        Assert.Contains(result.Errors, error => error.Code == "ProjectionTruthClosure"
+            && error.RefId == (dropStatement ? supportingStatementId : supportingTraceId));
     }
 
     [Fact]
@@ -623,6 +778,9 @@ public sealed class ProjectionPipelineTests
         validation.Deduplicate();
 
         Assert.Equal(2, plan.Challenges.Count);
+        Assert.Contains(gameCase.Interactions, interaction =>
+            interaction.Type == CaseInteractionTypes.InspectEnvironment
+            && interaction.UnlockClueIds.Count > 0);
         Assert.Equal(1, gameCase.EvidenceChallenges.Count(challenge =>
             challenge.CandidateEvidenceIds.Any(id =>
                 AiV3GenerationProfile.ResolveAcquisitionMethod(
@@ -716,6 +874,7 @@ public sealed class ProjectionPipelineTests
             IndependentSourceGroup = $"statement-group-{index:00}",
             SupportsConclusionIds = { ProofConclusionIds.Timeline }
         }).ToList();
+        RelinkStatementProofSources(truth);
         var contract = AiGenerationContract.For(AiGenerationPresets.ShortDemo, 2);
 
         var allocation = new ProjectionReadinessAnalyzer().AllocateDialogues(truth, contract);
@@ -734,7 +893,6 @@ public sealed class ProjectionPipelineTests
         var (_, truth) = BuildDraft();
         var speakers = truth.CaseSeed.SuspectIds.Take(3).ToList();
         var scenes = truth.CaseSeed.LocationIds.Take(3).ToList();
-        var traceId = truth.TraceLedger[0].TraceId;
         truth.RedHerringLedger.Clear();
         truth.StatementLedger.Clear();
         var index = 0;
@@ -756,22 +914,23 @@ public sealed class ProjectionPipelineTests
             {
                 StatementId = $"statement-dialogue-budget-{index:00}",
                 SpeakerId = speaker,
-                TruthStatus = StatementTruthStatuses.False,
+                TruthStatus = StatementTruthStatuses.True,
                 Content = $"Statement {index}.",
                 EventIds = { eventId },
                 KnowledgeSourceIds = { eventId },
-                ReasonForLie = "Protect a private interest.",
-                ContradictedByTraceIds = { traceId },
                 IndependentSourceGroup = $"statement-budget-group-{index:00}",
                 SupportsConclusionIds = { ProofConclusionIds.Timeline }
             });
         }
+        RelinkStatementProofSources(truth);
         var contract = AiGenerationContract.For(AiGenerationPresets.ShortDemo, 2);
 
         var allocation = new ProjectionReadinessAnalyzer().AllocateDialogues(truth, contract);
 
         Assert.Contains(allocation.Validation.Errors, error =>
             error.Code == "ProjectionDialogueBudget");
+        Assert.Equal(CaseTruthArtifacts.Statements,
+            _truthService.PlanRepair(allocation.Validation.Errors).RegenerateFromArtifact);
         Assert.DoesNotContain(allocation.Slots, slot => slot.StatementIds.Count > 1);
     }
 
@@ -833,6 +992,7 @@ public sealed class ProjectionPipelineTests
             IndependentSourceGroup = $"challenge-statement-group-{index:00}",
             SupportsConclusionIds = { ProofConclusionIds.Timeline }
         }).ToList();
+        RelinkStatementProofSources(truth);
         draft.TruthHash = _truthService.ComputeHash(truth);
 
         var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
@@ -874,7 +1034,46 @@ public sealed class ProjectionPipelineTests
             string.Join("\n", _truthService.Validate(truth).Errors.Select(error => error.Message)));
     }
 
-    private (AiCaseDraft Draft, CaseTruthPackage Truth) BuildDraft()
+    private (AiCaseDraft Draft, CaseTruthPackage Truth, string SupportingTraceId, string SupportingStatementId)
+        BuildMultiSourceProofDraft()
+    {
+        var (draft, truth) = BuildDraft(AiGenerationPresets.ShortDemo, 2, true);
+        truth.RedHerringLedger.Clear();
+        var supportingTrace = truth.TraceLedger.Last();
+        var originalTraceId = supportingTrace.TraceId;
+        supportingTrace.TraceId = "trace-hector-independent-alibi";
+        supportingTrace.SupportsConclusionIds = [ProofConclusionIds.Opportunity];
+        supportingTrace.Proves = "A second independent witness remained at the entrance throughout the crime interval.";
+        foreach (var timelineEvent in truth.TrueTimeline)
+            timelineEvent.TraceIds = timelineEvent.TraceIds.Select(id => id == originalTraceId ? supportingTrace.TraceId : id).ToList();
+        foreach (var conclusion in truth.ProofGraph.Conclusions)
+            conclusion.SupportingTraceIds.Remove(originalTraceId);
+        truth.ProofGraph.Conclusions.Single(conclusion => conclusion.ConclusionId == ProofConclusionIds.Opportunity)
+            .SupportingTraceIds.Add(supportingTrace.TraceId);
+        var supportingStatement = JsonSerializer.Deserialize<StatementLedgerEntry>(
+            JsonSerializer.Serialize(truth.StatementLedger.Last(), JsonOptions), JsonOptions)!;
+        supportingStatement.StatementId = "statement-late-independent-alibi";
+        supportingStatement.SupportsConclusionIds = [ProofConclusionIds.Opportunity];
+        supportingStatement.IndependentSourceGroup = "late-independent-alibi-statement";
+        supportingStatement.Content = "I can account for the second witness remaining at the entrance during the entire interval.";
+        truth.StatementLedger.Add(supportingStatement);
+        RelinkStatementProofSources(truth);
+        draft.TruthHash = _truthService.ComputeHash(truth);
+        return (draft, truth, supportingTrace.TraceId, supportingStatement.StatementId);
+    }
+
+    private static void RelinkStatementProofSources(CaseTruthPackage truth)
+    {
+        foreach (var conclusion in truth.ProofGraph.Conclusions)
+            conclusion.SupportingStatementIds = truth.StatementLedger
+                .Where(statement => statement.SupportsConclusionIds.Contains(conclusion.ConclusionId))
+                .Select(statement => statement.StatementId).ToList();
+    }
+
+    private (AiCaseDraft Draft, CaseTruthPackage Truth) BuildDraft(
+        string preset = AiGenerationPresets.NormalRandom,
+        int stageCount = 4,
+        bool includeV3 = false)
     {
         var draft = new AiCaseDraft
         {
@@ -883,10 +1082,13 @@ public sealed class ProjectionPipelineTests
             PlannedTargetKind = CaseTargetKinds.Asset,
             Settings = new AiDraftSettings
             {
-                StageCount = 4,
+                StageCount = stageCount,
                 Difficulty = "medium",
-                GenerationPreset = AiGenerationPresets.NormalRandom,
-                MechanicsVersion = CaseMechanicsVersions.InvestigationV2,
+                GenerationPreset = preset,
+                MechanicsVersion = includeV3
+                    ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                    : CaseMechanicsVersions.InvestigationV2,
+                IncludeCrackTheLie = includeV3,
                 Language = CaseLanguages.English
             }
         };

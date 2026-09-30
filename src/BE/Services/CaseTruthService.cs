@@ -86,6 +86,64 @@ public sealed class CaseTruthService : ICaseTruthService
         return result;
     }
 
+    public CaseValidationResult ValidateRepairPrefix(CaseTruthPackage truth, AiTruthGenerationBudget budget,
+        AiDraftSettings settings, string exclusiveArtifact)
+    {
+        var boundary = Array.IndexOf(CaseTruthRepairPolicy.OrderedArtifacts, exclusiveArtifact);
+        if (boundary is < 0 or > 6)
+            throw new ArgumentException("Repair prefix must end at a truth artifact.", nameof(exclusiveArtifact));
+        if (boundary == 0) return new CaseValidationResult();
+
+        var prefix = JsonSerializer.Deserialize<CaseTruthPackage>(
+            JsonSerializer.Serialize(truth, JsonOptions), JsonOptions)!;
+        if (boundary <= 1) prefix.CoreTruth = new();
+        if (boundary <= 2) prefix.TrueTimeline.Clear();
+        if (boundary <= 3) prefix.OpportunityMatrix.Clear();
+        if (boundary <= 4)
+        {
+            // Before EVIDENCE only planned trace identities exist. These placeholders
+            // validate timeline references; no physical evidence claims are approved here.
+            prefix.TraceLedger = prefix.TrueTimeline.SelectMany(action => action.TraceIds.Select(id =>
+                new TraceLedgerEntry { TraceId = id, SourceActionId = action.EventId }))
+                .GroupBy(trace => trace.TraceId, StringComparer.Ordinal).Select(group => group.First()).ToList();
+        }
+        if (boundary <= 5) prefix.StatementLedger.Clear();
+        prefix.RedHerringLedger.Clear();
+        // Downstream graph content is deliberately excluded. The fixed conclusion IDs
+        // let earlier ledgers validate their declarations without stale reciprocal links.
+        prefix.ProofGraph = new ProofGraph
+        {
+            Conclusions = ProofConclusionIds.ByCategory.Select(pair => new ProofConclusion
+            {
+                Category = pair.Key,
+                ConclusionId = pair.Value,
+                SupportingTraceIds = prefix.TraceLedger
+                    .Where(trace => trace.SupportsConclusionIds.Contains(pair.Value, StringComparer.Ordinal))
+                    .Select(trace => trace.TraceId).ToList(),
+                SupportingStatementIds = prefix.StatementLedger
+                    .Where(statement => statement.SupportsConclusionIds.Contains(pair.Value, StringComparer.Ordinal))
+                    .Select(statement => statement.StatementId).ToList()
+            }).ToList()
+        };
+        static int StageOf(string path) => path.Split('.', '[')[0] switch
+        {
+            "schemaVersion" or "caseSeed" => 0,
+            "coreTruth" => 1,
+            "trueTimeline" => 2,
+            "opportunityMatrix" => 3,
+            "traceLedger" => 4,
+            "statementLedger" => 5,
+            "proofGraph" or "redHerringLedger" => 6,
+            _ => 0
+        };
+        var result = new CaseValidationResult();
+        result.Errors.AddRange(Validate(prefix, budget).Errors.Where(error => StageOf(error.Path) < boundary));
+        if (boundary > 4) result.Errors.AddRange(ValidateTraceArtifact(prefix).Errors);
+        if (boundary > 5) result.Errors.AddRange(ValidateStatementArtifact(prefix, settings).Errors);
+        result.Deduplicate();
+        return result;
+    }
+
     public CaseValidationResult ValidateTimelineReferences(
         CaseTruthPackage truth,
         AiTruthGenerationBudget budget)
@@ -130,7 +188,31 @@ public sealed class CaseTruthService : ICaseTruthService
         AiGenerationContract contract)
     {
         var result = ValidateStatementArtifact(truth);
-        result.Errors.AddRange(_readinessAnalyzer.AllocateDialogues(truth, contract).Validation.Errors);
+        // ProofGraph is generated after statements and may still belong to the saved
+        // checkpoint. Allocate the current ledger's declared proof sources here;
+        // full validation checks reciprocal graph links once that stage is rebuilt.
+        var statementStage = new CaseTruthPackage
+        {
+            SchemaVersion = truth.SchemaVersion,
+            CaseSeed = truth.CaseSeed,
+            CoreTruth = truth.CoreTruth,
+            TrueTimeline = truth.TrueTimeline,
+            OpportunityMatrix = truth.OpportunityMatrix,
+            TraceLedger = truth.TraceLedger,
+            StatementLedger = truth.StatementLedger,
+            ProofGraph = new ProofGraph
+            {
+                Conclusions = ProofConclusionIds.ByCategory.Select(pair => new ProofConclusion
+                {
+                    Category = pair.Key,
+                    ConclusionId = pair.Value,
+                    SupportingStatementIds = truth.StatementLedger
+                        .Where(statement => statement.SupportsConclusionIds.Contains(pair.Value, StringComparer.Ordinal))
+                        .Select(statement => statement.StatementId).ToList()
+                }).ToList()
+            }
+        };
+        result.Errors.AddRange(_readinessAnalyzer.AllocateDialogues(statementStage, contract).Validation.Errors);
         result.Deduplicate();
         return result;
     }
@@ -495,15 +577,27 @@ public sealed class CaseTruthService : ICaseTruthService
         return result;
     }
 
-    public CaseValidationResult ValidateBlindReview(CaseTruthPackage truth, BlindSolvabilityReview review)
+    public CaseValidationResult ValidateBlindReview(CaseTruthPackage truth, BlindSolvabilityReview review) =>
+        ValidateBlindReview(truth, new GameCase(), review, validateEvidence: false);
+
+    public CaseValidationResult ValidateBlindReview(CaseTruthPackage truth, GameCase gameCase, BlindSolvabilityReview review) =>
+        ValidateBlindReview(truth, gameCase, review, validateEvidence: true);
+
+    private CaseValidationResult ValidateBlindReview(
+        CaseTruthPackage truth,
+        GameCase gameCase,
+        BlindSolvabilityReview review,
+        bool validateEvidence)
     {
         var result = new CaseValidationResult();
         if (review.SchemaVersion is not (CaseTruthSchemaVersions.BlindReviewV1
-            or CaseTruthSchemaVersions.BlindReviewV2))
+            or CaseTruthSchemaVersions.BlindReviewV2
+            or CaseTruthSchemaVersions.BlindReviewV3))
             result.Add("InvalidReviewSchema", "blindReview.schemaVersion", "Unexpected blind review schema.");
-        if (review.Status != CaseTruthReviewStatuses.Passed)
-            result.Add("BlindReviewStatusFailed", "blindReview.status", "Blind reviewer did not pass the projection.");
-        if (!review.UniqueSolution)
+        var passed = review.Status == CaseTruthReviewStatuses.Passed;
+        if (!passed && review.Status is not (CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous))
+            result.Add("InvalidReviewStatus", "blindReview.status", "Blind review status is not supported.");
+        if (passed && !review.UniqueSolution)
             result.Add("BlindReviewSolutionNotUnique", "blindReview.uniqueSolution", "Blind reviewer did not find exactly one solution.");
         if (review.Confidence is < 0 or > 1)
             result.Add("InvalidReviewConfidence", "blindReview.confidence", "Review confidence must be between 0 and 1.");
@@ -511,21 +605,85 @@ public sealed class CaseTruthService : ICaseTruthService
             result.Add("BlindReviewConfidenceLow", "blindReview.confidence", "A passing blind review requires confidence >= 0.80.");
         if (review.Status == CaseTruthReviewStatuses.Passed && review.Findings.Count > 0)
             result.Add("BlindReviewHasBlockingFindings", "blindReview.findings", "A passing blind review cannot contain blocking findings.");
-        if (review.SchemaVersion == CaseTruthSchemaVersions.BlindReviewV2
+        if (review.SchemaVersion is CaseTruthSchemaVersions.BlindReviewV2 or CaseTruthSchemaVersions.BlindReviewV3
             && review.Status is (CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous)
             && review.Findings.Count == 0)
-            result.Add("MissingReviewFindings", "blindReview.findings", "A failed or ambiguous V2 blind review must explain at least one finding.");
-        if (review.CulpritId != truth.CoreTruth.CulpritId)
+            result.Add("MissingReviewFindings", "blindReview.findings", "A failed or ambiguous blind review must explain at least one finding.");
+        if (passed && review.CulpritId != truth.CoreTruth.CulpritId)
             result.Add("BlindReviewMismatch", "blindReview.culpritId", "Blind reviewer did not infer the approved culprit.");
-        if (!SameText(review.Motive, truth.CoreTruth.Motive))
+        if (passed && !SameText(review.Motive, truth.CoreTruth.Motive))
             result.Add("BlindReviewMismatch", "blindReview.motive", "Blind reviewer did not infer the approved motive.");
-        if (!SameText(review.Method, truth.CoreTruth.Method))
+        if (passed && !SameText(review.Method, truth.CoreTruth.Method))
             result.Add("BlindReviewMismatch", "blindReview.method", "Blind reviewer did not infer the approved method.");
-        if (string.IsNullOrWhiteSpace(review.TimelineSummary))
+        if (passed && string.IsNullOrWhiteSpace(review.TimelineSummary))
             result.Add("BlindReviewMismatch", "blindReview.timelineSummary", "Blind reviewer did not reconstruct a crime timeline.");
-        if (review.EvidenceChainIds.Count < ProofConclusionCategories.All.Count)
+        if (review.SchemaVersion == CaseTruthSchemaVersions.BlindReviewV3 && validateEvidence)
+            ValidateBlindClaimProofs(truth, gameCase, review, result);
+        else if (review.EvidenceChainIds.Count < ProofConclusionCategories.All.Count)
             result.Add("BlindReviewInsufficientProof", "blindReview.evidenceChainIds", "Blind reviewer must identify an evidence chain covering all five claims.");
         return result;
+    }
+
+    private static void ValidateBlindClaimProofs(
+        CaseTruthPackage truth,
+        GameCase gameCase,
+        BlindSolvabilityReview review,
+        CaseValidationResult result)
+    {
+        var expected = ProofConclusionCategories.All;
+        var proofs = review.ClaimProofs;
+        var duplicateClaims = proofs
+            .GroupBy(item => item.ClaimType.Trim().ToUpperInvariant(), StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+        foreach (var duplicate in duplicateClaims)
+            result.Add("BlindReviewDuplicateClaimProof", "blindReview.claimProofs", "Each claim type may appear only once.", duplicate);
+
+        var clueById = gameCase.Clues.ToDictionary(item => item.ClueId, StringComparer.Ordinal);
+        var conclusionByCategory = truth.ProofGraph.Conclusions
+            .Where(item => !string.IsNullOrWhiteSpace(item.Category))
+            .ToDictionary(item => item.Category.Trim().ToUpperInvariant(), item => item.ConclusionId, StringComparer.Ordinal);
+        foreach (var proof in proofs)
+        {
+            var claim = proof.ClaimType.Trim().ToUpperInvariant();
+            if (!expected.Contains(claim))
+            {
+                result.Add("BlindReviewUnknownClaimType", "blindReview.claimProofs.claimType", "Claim type is not part of the five-claim contract.", claim);
+                continue;
+            }
+            if (proof.EvidenceIds.Count == 0)
+                result.Add("BlindReviewMissingClaimEvidence", $"blindReview.claimProofs[{claim}].evidenceIds", "Every claim requires at least one player-visible clue.", claim);
+            if (string.IsNullOrWhiteSpace(proof.Reasoning))
+                result.Add("BlindReviewMissingClaimReasoning", $"blindReview.claimProofs[{claim}].reasoning", "Every claim requires a concise explanation.", claim);
+            if (proof.EvidenceIds.Distinct(StringComparer.Ordinal).Count() != proof.EvidenceIds.Count)
+                result.Add("BlindReviewDuplicateEvidence", $"blindReview.claimProofs[{claim}].evidenceIds", "A clue may not be repeated within one claim.", claim);
+
+            conclusionByCategory.TryGetValue(claim, out var conclusionId);
+            foreach (var evidenceId in proof.EvidenceIds)
+            {
+                if (!clueById.TryGetValue(evidenceId, out var clue))
+                {
+                    result.Add("BlindReviewUnknownEvidence", $"blindReview.claimProofs[{claim}].evidenceIds", "Evidence ID is not player-visible in this projection.", evidenceId);
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(conclusionId)
+                    || !clue.SupportsConclusionIds.Contains(conclusionId, StringComparer.Ordinal))
+                    result.Add("BlindReviewEvidenceDoesNotSupportClaim", $"blindReview.claimProofs[{claim}].evidenceIds", "The cited clue is not linked to the approved conclusion for this claim.", evidenceId);
+            }
+        }
+
+        var actual = proofs.Select(item => item.ClaimType.Trim().ToUpperInvariant()).ToHashSet(StringComparer.Ordinal);
+        if (review.Status == CaseTruthReviewStatuses.Passed)
+        {
+            foreach (var missing in expected.Where(item => !actual.Contains(item)))
+                result.Add("BlindReviewMissingClaimProof", "blindReview.claimProofs", "A passing review must cover every approved claim.", missing);
+        }
+
+        var visibleIds = gameCase.Clues.Select(item => item.ClueId).ToHashSet(StringComparer.Ordinal);
+        var flattened = proofs.SelectMany(item => item.EvidenceIds).Where(visibleIds.Contains).Distinct(StringComparer.Ordinal).ToList();
+        if (review.EvidenceChainIds.Count > 0 && !review.EvidenceChainIds.ToHashSet(StringComparer.Ordinal).SetEquals(flattened))
+            result.Add("BlindReviewEvidenceChainMismatch", "blindReview.evidenceChainIds", "Legacy evidenceChainIds must match the claim proof evidence union.");
     }
 
     public JsonObject BuildBlindPlayerKnowledge(GameCase gameCase)
@@ -980,7 +1138,12 @@ public sealed class CaseTruthService : ICaseTruthService
         {
             if (!opportunityByCharacter.TryGetValue(suspect, out var item)) continue;
             var fitsWindow = actions.All(action => action.StartMinute >= item.AvailableFromMinute && action.EndMinute <= item.AvailableToMinute);
-            var stillFits = item.HasMotive && item.IdentityLinkedToCrime && !item.AlibiVerified && fitsWindow
+            var hasExculpatoryAlibi = item.AlibiVerified && item.AlibiEventIds.Any(id =>
+                eventById.TryGetValue(id, out var alibi)
+                && (alibi.ActorId == suspect || alibi.WitnessIds.Contains(suspect, StringComparer.Ordinal))
+                && actions.Any(action => alibi.LocationId != action.LocationId
+                    && alibi.StartMinute < action.EndMinute && alibi.EndMinute > action.StartMinute));
+            var stillFits = item.HasMotive && item.IdentityLinkedToCrime && !hasExculpatoryAlibi && fitsWindow
                 && requiredAccess.IsSubsetOf(item.AccessIds)
                 && requiredTools.IsSubsetOf(item.ToolIds)
                 && requiredKnowledge.IsSubsetOf(item.KnowledgeIds);

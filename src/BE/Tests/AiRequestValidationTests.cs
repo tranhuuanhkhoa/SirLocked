@@ -369,6 +369,49 @@ public class AiRequestValidationTests
     }
 
     [Fact]
+    public void BlindReviewV3Schema_UsesClaimProofsByConclusionCategory()
+    {
+        var schema = AiStrictSchemaProvider.BlindSolvabilityReviewV3Schema();
+        var properties = schema["properties"]!;
+
+        Assert.Equal(
+            new[] { CaseTruthSchemaVersions.BlindReviewV3 }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(properties["schemaVersion"]!));
+        Assert.Equal(0,
+            properties["claimProofs"]!["minItems"]!.GetValue<int>());
+        Assert.Equal(ProofConclusionCategories.All.Count,
+            properties["claimProofs"]!["maxItems"]!.GetValue<int>());
+        Assert.Equal(ProofConclusionCategories.All,
+            EnumValues(properties["claimProofs"]!["items"]!["properties"]!["claimType"]!));
+        Assert.DoesNotContain("evidenceChainIds",
+            schema["required"]!.AsArray().Select(item => item!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void CreativeConstraints_AreNormalizedIntoTheFingerprintAndRejectUnknownIds()
+    {
+        var profile = AiStoryDiversityPolicy.Create(AiCaseTypes.Murder, "creative-lock-seed");
+        var before = profile.CoreFingerprint;
+
+        AiStoryDiversityPolicy.ApplyCreativeConstraints(profile, new AiCreativeConstraints
+        {
+            SettingId = "railway",
+            ToneId = "tense",
+            InvestigationMechanicId = "timeline"
+        });
+
+        Assert.Equal("railway", profile.CreativeConstraints.SettingId);
+        Assert.Equal("tense", profile.CreativeConstraints.ToneId);
+        Assert.Equal("timeline", profile.CreativeConstraints.InvestigationMechanicId);
+        Assert.NotEqual(before, profile.CoreFingerprint);
+        Assert.Contains("railway", profile.SettingArchetype, StringComparison.OrdinalIgnoreCase);
+        Assert.Throws<ArgumentException>(() => AiStoryDiversityPolicy.NormalizeConstraints(new AiCreativeConstraints
+        {
+            ToneId = "unknown-tone"
+        }));
+    }
+
+    [Fact]
     public void TruthStageSchemas_LockEveryUpstreamReferenceNamespace()
     {
         var budget = AiTruthGenerationBudget.For(AiGenerationPresets.ShortDemo, 2);
@@ -566,13 +609,13 @@ public class AiRequestValidationTests
         Assert.Equal(6, contract.MinClues);
         Assert.Equal(8, contract.MaxClues);
         Assert.Equal(2, contract.EvidenceChallenges);
-        Assert.Equal(1, contract.MinPuzzles);
+        Assert.Equal(0, contract.MinPuzzles);
         Assert.Equal(1, contract.MaxPuzzles);
-        Assert.Equal(1, contract.MinInteractions);
+        Assert.Equal(0, contract.MinInteractions);
         Assert.Equal(1, contract.MaxInteractions);
         Assert.Contains("clues 6-8", prompt, StringComparison.Ordinal);
-        Assert.Contains("puzzles 1-1", prompt, StringComparison.Ordinal);
-        Assert.Contains("interactions 1-1", prompt, StringComparison.Ordinal);
+        Assert.Contains("puzzles 0-1", prompt, StringComparison.Ordinal);
+        Assert.Contains("interactions 0-1", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("10-12", prompt, StringComparison.Ordinal);
     }
 

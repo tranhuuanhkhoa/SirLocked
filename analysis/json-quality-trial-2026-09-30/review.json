@@ -1,0 +1,47 @@
+{
+  "reviewType": "manual_multi_agent_review",
+  "candidateAccepted": false,
+  "providerReviewerStatus": "NOT_RUN",
+  "decision": "Keep the original checkpoint and gameplay JSON; stop paid generation.",
+  "improvements": [
+    "A signed document now explicitly connects Edwin, the inheritance interest and the original deed.",
+    "The timeline explains the scenery-collapse trigger and the soft-wax antecedent.",
+    "Verified innocent alibis now use empty opportunity intervals.",
+    "Timeline conclusions use relative order and observable clock records instead of hidden event timestamps."
+  ],
+  "findings": [
+    {
+      "priority": 1,
+      "code": "METHOD_EVIDENCE_GAP",
+      "path": "coreTruth.method",
+      "detail": "The required final method includes substituting blank paper for the deed and removing the relic as a decoy. The candidate's METHOD sources establish only the prepared scenery collapse. The swap, removal and concealment events have no planned traces or witness observations, and the statement ledger does not establish them.",
+      "nextRepairScope": "TIMELINE",
+      "direction": "Reserve evidence slots for the actual theft method and its observable outcome; consolidate redundant alibi traces while retaining corroboration. Do not weaken the final proposition merely to make validation pass."
+    },
+    {
+      "priority": 1,
+      "code": "ProofLinkMismatch",
+      "path": "proofGraph.conclusions[2].supportingTraceIds",
+      "refId": "trace_mabel_clock_punched_ticket_roll_proves_continuous_booth_presence",
+      "detail": "The graph uses this trace for OPPORTUNITY, but the trace only declares TIMELINE support. Fixing this reciprocal edge alone does not fix the missing theft-method evidence."
+    },
+    {
+      "priority": 2,
+      "code": "DEPENDENT_MOTIVE_SOURCES",
+      "path": "proofGraph.conclusions[0]",
+      "detail": "Edwin's signed note and Edwin's statement repeating its content use different source-group labels but depend on the same person and claim. Motive is more observable, but the metadata overstates independent corroboration."
+    },
+    {
+      "priority": 1,
+      "code": "PROJECTION_SOURCE_DROPPING",
+      "path": "proofGraph.conclusions[2]",
+      "detail": "The conclusion excludes three suspects using multiple records. Prior projection selection could omit Hector's supporting trace after choosing one representative per final category. This is a separate application defect; retaining all linked sources or rejecting an over-budget projection is required."
+    }
+  ],
+  "limits": [
+    "This is one existing fictional case, not a model comparison or a reliability benchmark.",
+    "The original JSON remains the active checkpoint; the candidate is an invalid diagnostic artifact.",
+    "No images, import or publication were performed.",
+    "Repair currently starts from the active checkpoint, not from an invalid repair candidate; a proof-graph-only retry would not preserve the new candidate's upstream changes."
+  ]
+}

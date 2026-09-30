@@ -65,6 +65,7 @@ public class GameCase
     public List<CasePuzzle> Puzzles { get; set; } = new();
     public List<AlternateRewardPath> AlternateRewardPaths { get; set; } = new();
     public FinalLogic FinalLogic { get; set; } = new();
+    public CasePresentation? Presentation { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -453,6 +454,7 @@ public class TransitionZone
 [BsonIgnoreExtraElements]
 public class CaseCharacter
 {
+    public CharacterVisualPresentation? Presentation { get; set; }
     public string CharacterId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;

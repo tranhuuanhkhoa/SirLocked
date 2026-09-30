@@ -1,5 +1,7 @@
 # Plan 036: Make the UI Read As a Game — Surface System and Screen Pass
 
+> **Cập nhật 23/09/2026:** source đã vượt baseline này: surface system có trong code, gameplay có VN dialogue, persistent presenter và cinematic controls. Đợt hiện tại không làm lại toàn bộ 9 màn hoặc xác nhận mọi metric CSS lịch sử. Đối chiếu [cinematic implementation](../docs/CINEMATIC_PRESENTATION_VI.md) trước khi tiếp tục phần còn lại.
+
 > **Executor instructions**: Follow this plan step by step. Run every verification command and confirm the expected result before moving to the next step. If a STOP condition occurs, stop and report.
 >
 > **Drift check (run first)**: `git diff --stat 30ddc5c..HEAD -- src/FE/css src/FE/index.html src/FE/main.html src/FE/Client/js/pages src/FE/Client/js/utils src/FE/tests`

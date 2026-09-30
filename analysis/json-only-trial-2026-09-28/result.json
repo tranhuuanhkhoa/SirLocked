@@ -1,0 +1,20 @@
+{
+  "DraftId": "6aba793fa941714af5247263",
+  "Status": "FULL_LOGIC_AWAITING_APPROVAL",
+  "QueueState": "NONE",
+  "Phase": "FULL_LOGIC",
+  "LastErrorCode": "",
+  "JsonSaved": true,
+  "ValidationErrors": 0,
+  "TruthValidationErrors": 0,
+  "V3Review": "PASSED",
+  "TruthRepairStatus": "ACCEPTED",
+  "TruthRepairValidationErrors": 0,
+  "Calls": 12,
+  "KnownCostUsd": 1.039414,
+  "ReservedUsd": 0,
+  "UnknownCalls": 0,
+  "NonTextCalls": 0,
+  "MaxBudgetUsd": 5,
+  "ArtifactDirectory": "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\analysis\\json-only-trial-2026-09-28"
+}

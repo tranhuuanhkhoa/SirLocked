@@ -100,6 +100,20 @@ builder.Services.PostConfigure<OpenAiSettings>(settings =>
 });
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.Configure<AiQuotaSettings>(builder.Configuration.GetSection("AiQuota"));
+builder.Services.Configure<AiUsageSettings>(builder.Configuration.GetSection("AiUsage"));
+builder.Services.AddScoped<AiUsageAccounting>();
+builder.Services.AddScoped<IAiUsageAccounting>(services => services.GetRequiredService<AiUsageAccounting>());
+builder.Services.AddScoped<IAiRecordedUsageReconciler>(services => services.GetRequiredService<AiUsageAccounting>());
+builder.Services.AddHostedService<AiUsageReconciliationWorker>();
+builder.Services.Configure<PresentationVideoSettings>(builder.Configuration.GetSection("PresentationVideo"));
+builder.Services.AddSingleton<IPresentationStore, MongoPresentationStore>();
+builder.Services.AddScoped<PresentationService>();
+builder.Services.AddScoped<PresentationVideoProcessor>();
+builder.Services.AddHostedService<PresentationVideoWorker>();
+builder.Services.AddHttpClient<IPresentationVideoProvider, XaiPresentationVideoProvider>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
+builder.Services.AddHttpClient<IPresentationMediaStorage, CloudinaryPresentationMediaStorage>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
 
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddMemoryCache();
@@ -122,6 +136,8 @@ builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
 builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
 builder.Services.AddScoped<IAiArtifactCleanupService, AiArtifactCleanupService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<RoomDisconnectTimeoutService>();
+builder.Services.AddHostedService<RoomDisconnectTimeoutWorker>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
@@ -301,14 +317,7 @@ var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettin
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddCookie("External")
-    .AddGoogle(options =>
-    {
-        options.ClientId = googleSettings.ClientId;
-        options.ClientSecret = googleSettings.ClientSecret;
-        options.CallbackPath = "/signin-google";
-        options.SignInScheme = "External";
-        options.SaveTokens = true;
-    })
+    .AddGoogle(options => GoogleAuthenticationSetup.Configure(options, googleSettings))
     .AddJwtBearer();
 
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
@@ -352,7 +361,6 @@ var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseForwardedHeaders();
-app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
@@ -362,6 +370,8 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger
 
 app.UseCors();
 app.UseAuthentication();
+// User-partitioned policies need the authenticated identity; login policies still use the IP.
+app.UseRateLimiter();
 app.UseAuthorization();
 app.UseMiddleware<UserStatusMiddleware>();
 

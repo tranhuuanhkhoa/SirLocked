@@ -3,6 +3,7 @@ import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
+import { activeRoomDestination } from '../services/roomInvites.js';
 
 /**
  * A metadata stat, presented as a value + label plate instead of a grey pill.
@@ -16,13 +17,38 @@ const stat = (value, label) => `
           </span>`;
 
 export async function renderCasesPage(app) {
-  render(app, `<div class="page"><p class="muted">${tr('Loading published cases…', 'Đang tải các vụ án…')}</p></div>`);
+  render(app, `
+    <div class="page page-board stack">
+      <div class="page-head">
+        <h2>${tr('Published Cases', 'Vụ án đã xuất bản')}</h2>
+        <div class="case-actions"><a class="btn btn-ghost" href="#/join">${tr('Have a room code?', 'Đã có mã phòng?')}</a></div>
+      </div>
+      <section class="stack" aria-labelledby="active-rooms-heading">
+        <h3 class="section-title" id="active-rooms-heading">${tr('Continue a game', 'Tiếp tục ván đang chơi')}</h3>
+        <div id="active-rooms-list" aria-live="polite"><p class="muted">${tr('Loading your rooms…', 'Đang tải phòng của bạn…')}</p></div>
+      </section>
+      <div id="published-cases-list"><p class="muted">${tr('Loading published cases…', 'Đang tải các vụ án…')}</p></div>
+    </div>`);
+  const caseList = app.querySelector('#published-cases-list');
+  const roomList = app.querySelector('#active-rooms-list');
+  // A slow/unavailable room lookup must not prevent browsing published cases.
+  void roomApi.mine().then((response) => {
+    const rooms = (Array.isArray(response) ? response : []).filter((room) => activeRoomDestination(room));
+    render(roomList, rooms.length ? `<div class="case-select-list">${rooms.map((room) => `
+      <a class="case-select-row" data-resume-room="${escapeHtml(room.roomId)}" href="${escapeHtml(activeRoomDestination(room))}">
+        <span><strong>${escapeHtml(room.caseTitle)}</strong>
+          <small class="muted">${escapeHtml(room.roomCode)} · ${room.players?.length ?? 0}/2 · ${room.status === 'IN_PROGRESS' ? tr('In progress', 'Đang điều tra') : tr('Lobby', 'Phòng chờ')}</small></span>
+        <span class="chip chip-gold">${room.status === 'IN_PROGRESS' ? tr('Resume', 'Tiếp tục') : tr('Return to lobby', 'Về phòng chờ')}</span>
+      </a>`).join('')}</div>` : `<p class="muted">${tr('No active rooms. Create a room or join your partner.', 'Chưa có ván đang chơi. Hãy tạo phòng hoặc vào cùng đồng đội.')}</p>`);
+  }).catch(() => {
+    render(roomList, `<p class="muted">${tr('Your rooms could not be loaded. You can still join with a room code.', 'Chưa tải được phòng của bạn. Bạn vẫn có thể vào phòng bằng mã.')}</p>`);
+  });
 
   let cases = [];
   try {
     cases = await caseApi.published();
   } catch (err) {
-    render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
+    render(caseList, `<div class="empty-state">${escapeHtml(err.message)}</div>`);
     return;
   }
 
@@ -54,26 +80,20 @@ export async function renderCasesPage(app) {
   // a corner of an empty grid.
   const solo = cases.length === 1;
 
-  render(app, `
-  <div class="page page-board">
-    <div class="page-head">
-      <h2>${tr('Published Cases', 'Vụ án đã xuất bản')}</h2>
-      <div class="case-actions">
-        <a class="btn btn-ghost" href="#/join">${tr('Have a room code?', 'Đã có mã phòng?')}</a>
-      </div>
-    </div>
+  render(caseList, `
     ${cases.length === 0
       ? `<div class="empty-state">${tr('No cases are published yet. Ask an admin to publish a case.', 'Chưa có vụ án nào được xuất bản. Hãy yêu cầu quản trị viên xuất bản một vụ án.')}</div>`
       : `<div class="case-board${solo ? ' is-solo' : ''}">
           <div class="case-grid grid-auto${solo ? ' is-solo' : ''}">${cards}</div>
         </div>`}
-  </div>`);
+  `);
 
   app.querySelectorAll('[data-create]').forEach((button) =>
     button.addEventListener('click', async () => {
       button.disabled = true;
       try {
         const room = await roomApi.create(button.dataset.create);
+        if (!app.isConnected) return;
         toast(`Room ${room.roomCode} created.`, 'success');
         window.location.hash = `#/lobby/${room.roomId}`;
       } catch (err) {

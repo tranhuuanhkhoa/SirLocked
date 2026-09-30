@@ -328,7 +328,8 @@ public static class AiStrictSchemaProvider
         IEnumerable<string> suspectIds,
         string targetId,
         string targetKind,
-        IEnumerable<string> locationIds)
+        IEnumerable<string> locationIds,
+        IEnumerable<string>? coreActionIds = null)
     {
         var actorIds = CaseTargetKinds.IsAsset(new CoreCaseTruth { TargetKind = targetKind })
             ? suspectIds
@@ -336,6 +337,13 @@ public static class AiStrictSchemaProvider
         var actors = RequiredEnumValues(actorIds, "timeline actor IDs");
         var locations = RequiredEnumValues(locationIds, nameof(locationIds));
         var schema = TrueTimelineSchema(budget);
+        if (coreActionIds is not null)
+        {
+            var requiredEvents = RequiredEnumValues(coreActionIds, nameof(coreActionIds));
+            if (requiredEvents.Count > budget.MaxTimelineEvents)
+                throw new ArgumentException("Core action IDs exceed the timeline event budget.", nameof(coreActionIds));
+            SetArrayBounds(schema, ["trueTimeline"], requiredEvents.Count, budget.MaxTimelineEvents);
+        }
         var properties = schema["properties"]!["trueTimeline"]!["items"]!["properties"]!.AsObject();
         properties["actorId"] = StringEnumSchema(actors);
         properties["locationId"] = StringEnumSchema(locations);
@@ -469,6 +477,31 @@ public static class AiStrictSchemaProvider
         ConstrainReviewEnvelope(schema, CaseTruthSchemaVersions.BlindReviewV2);
         var properties = schema["properties"]!.AsObject();
         properties["evidenceChainIds"]!["minItems"] = ProofConclusionCategories.All.Count;
+        return schema;
+    }
+
+    public static JsonObject BlindSolvabilityReviewV3Schema()
+    {
+        var schema = BuildObjectSchema(typeof(BlindSolvabilityReview), includeV3Fields: true);
+        ConstrainReviewEnvelope(schema, CaseTruthSchemaVersions.BlindReviewV3);
+        var properties = schema["properties"]!.AsObject();
+        var required = schema["required"]!.AsArray();
+        for (var i = required.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(required[i]?.GetValue<string>(), "evidenceChainIds", StringComparison.Ordinal))
+            {
+                required.RemoveAt(i);
+            }
+        }
+        // FAILED/AMBIGUOUS reviews may return only the claims they could support;
+        // PASSED coverage is enforced by the server validator below.
+        properties["claimProofs"]!["minItems"] = 0;
+        properties["claimProofs"]!["maxItems"] = ProofConclusionCategories.All.Count;
+        var claimProperties = properties["claimProofs"]!["items"]!["properties"]!.AsObject();
+        claimProperties["claimType"] = StringEnumSchema(ProofConclusionCategories.All);
+        claimProperties["evidenceIds"]!["minItems"] = 1;
+        claimProperties["evidenceIds"]!["maxItems"] = 8;
+        claimProperties["reasoning"]!["maxLength"] = 800;
         return schema;
     }
 

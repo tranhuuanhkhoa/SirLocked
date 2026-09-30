@@ -1,6 +1,8 @@
 import { gameApi } from '../api/gameApi.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
+import { session } from '../services/session.js';
+import { CutsceneController } from '../game/cutsceneController.js';
 
 const scoreBar = (label, value, max) => `
   <div class="score-row">
@@ -99,4 +101,11 @@ export async function renderResultPage(app, roomId) {
 
     <div class="case-actions result-actions"><a class="btn btn-gold" href="#/cases">${tr('Back to cases', 'Quay lại danh sách vụ án')}</a></div>
   </div>`);
+  const cinematicHost = document.createElement('div');
+  app.append(cinematicHost);
+  const cutscenes = new CutsceneController(roomId, session.user()?.userId ?? 'guest');
+  cutscenes.update(cinematicHost, result.presentation, ['ENDING']);
+  const handleKey = (event) => cutscenes.handleKey(event);
+  window.addEventListener('keydown', handleKey);
+  return () => { window.removeEventListener('keydown', handleKey); cutscenes.dispose(); };
 }

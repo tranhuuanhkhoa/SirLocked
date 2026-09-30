@@ -136,11 +136,12 @@ public static class AiV3SemanticReviewPolicy
             : ["AI_V3_SEMANTIC_REVIEW_REQUIRED: The declared pair was not accepted as a real contradiction."];
     }
 
-    public static string BuildRepairFeedback(GameCase gameCase, AiV3SemanticReview review)
+    public static string BuildRepairFeedback(GameCase gameCase, AiV3SemanticReview review, IReadOnlySet<string>? challengeIds = null)
     {
         var sections = new List<string>();
         foreach (var challenge in gameCase.EvidenceChallenges)
         {
+            if (challengeIds is not null && !challengeIds.Contains(challenge.ChallengeId)) continue;
             var crack = review.Cracks.SingleOrDefault(item => item.ChallengeId == challenge.ChallengeId);
             if (crack is null) continue;
             var authored = crack.PairEvaluations.SingleOrDefault(item =>
@@ -169,7 +170,9 @@ public static class AiV3SemanticReviewPolicy
             - Make the correct evidence content and narrativeMeaning explicitly establish the negation of the exact fragment with matching object, place, and time scope.
             - Prefer distractor pairs that stay compatible: the evidence and selected claim should both still be able to be true together.
             - Internally audit the complete dynamic Cartesian product before returning JSON. The authored pair must pass; other pairs may also contradict when the story genuinely implies it. Do not output the audit table.
-            Preserve unrelated valid case structure and IDs where possible, but change fragment/evidence wording and the authored pair IDs when needed for logical correctness.
+            {(challengeIds is null
+                ? "Preserve unrelated valid case structure and IDs where possible, but change fragment/evidence wording and the authored pair IDs when needed for logical correctness."
+                : "Preserve every locked ID and authored pair. Change only wording in the supplied patch slots; all other slots and read-only candidates remain immutable. If approved facts cannot support a fixed binding, retain truthful prose and let validation fail; never invent causality or remap the binding.")}
             """;
     }
 }

@@ -1,12 +1,18 @@
 import { authApi } from '../api/authApi.js';
 import { session } from '../services/session.js';
-import { render, qs } from '../utils/dom.js';
+import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { languageSwitchMarkup, tr } from '../services/i18n.js';
+import { pendingRoomInvite } from '../services/roomInvites.js';
+import { googleLoginUrl } from '../../../config/apiUrls.js';
 
 export async function renderLoginPage(app) {
-  if (session.isLoggedIn()) {
-    window.location.hash = session.isAdmin() ? '#/admin' : '#/menu';
+  const errorCode = new URLSearchParams(window.location.hash.split('?')[1] || '').get('error');
+  const googleError = !errorCode ? '' : errorCode === 'google_cancelled'
+    ? tr('Google sign-in was cancelled. Try again below, or sign in with your email and password.', 'Đăng nhập Google đã bị hủy. Bạn có thể thử lại bên dưới hoặc đăng nhập bằng email và mật khẩu.')
+    : tr('Google sign-in could not be completed. Choose Continue with Google below to start a new sign-in attempt.', 'Không thể hoàn tất đăng nhập Google. Bấm Đăng nhập với Google bên dưới để bắt đầu lại.');
+  if (session.isLoggedIn() && !googleError) {
+    window.location.hash = pendingRoomInvite() || (session.isAdmin() ? '#/admin' : '#/menu');
     return;
   }
 
@@ -19,6 +25,7 @@ export async function renderLoginPage(app) {
         <p>${tr('The Mystery Awaits', 'Bí ẩn đang chờ đợi')}</p>
       </div>
       <div class="gold-divider"></div>
+      ${googleError ? `<p class="notice notice-bad" role="alert">${escapeHtml(googleError)}</p>` : ''}
       <div class="tab-row">
         <button class="form-tab active" data-tab="login">${tr('Log in', 'Đăng nhập')}</button>
         <button class="form-tab" data-tab="register">${tr('Register', 'Đăng ký')}</button>
@@ -63,13 +70,15 @@ export async function renderLoginPage(app) {
       </form>
 
       <div class="gold-divider" style="margin:16px 0"></div>
-      <a href="/api/auth/google" class="btn btn-block"
+      <a href="${escapeHtml(googleLoginUrl(import.meta.env.DEV, import.meta.env.VITE_API_URL))}" class="btn btn-block" id="google-login"
          style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;text-decoration:none;padding:10px;border-radius:6px;font-weight:600">
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         ${tr('Continue with Google', 'Đăng nhập với Google')}
       </a>
 
-      <p class="auth-hint">${tr('Two detectives. One locked case.', 'Hai thám tử. Một vụ án bí ẩn.')}</p>
+      <p class="auth-hint">${pendingRoomInvite()
+        ? tr('Sign in or register to join your partner. Your invitation is saved while you verify your email.', 'Đăng nhập hoặc đăng ký để vào cùng đồng đội. Lời mời được giữ trong lúc bạn xác minh email.')
+        : tr('Two detectives. One locked case.', 'Hai thám tử. Một vụ án bí ẩn.')}</p>
     </div>
   </div>`);
 
@@ -87,9 +96,10 @@ export async function renderLoginPage(app) {
     try {
       const data = new FormData(form);
       const auth = await action(data);
+      if (!app.isConnected) return;
       session.save(auth);
       toast(`Welcome, ${auth.user.fullName}.`, 'success');
-      window.location.hash = auth.user.role === 'ADMIN' ? '#/admin' : '#/menu';
+      window.location.hash = pendingRoomInvite() || (auth.user.role === 'ADMIN' ? '#/admin' : '#/menu');
     } catch (err) {
       toast(err.message, 'error');
     } finally {
@@ -119,9 +129,10 @@ export async function renderLoginPage(app) {
     try {
       const d = new FormData(form);
       const auth = await authApi.register(d.get('fullName'), d.get('email'), d.get('password'));
+      if (!app.isConnected) return;
       session.save(auth);
       // Chưa xác minh → đưa sang trang nhắc kiểm tra email (không vào game ngay)
-      window.location.hash = '#/verify-notice';
+      window.location.hash = session.isEmailVerified() ? (pendingRoomInvite() || '#/menu') : '#/verify-notice';
     } catch (err) {
       toast(err.message, 'error');
     } finally {

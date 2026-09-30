@@ -23,6 +23,7 @@ public static class CaseTruthSchemaVersions
     public const string FeasibilityReviewV2 = "case-truth-feasibility-review-v2";
     public const string BlindReviewV1 = "case-blind-solvability-review-v1";
     public const string BlindReviewV2 = "case-blind-solvability-review-v2";
+    public const string BlindReviewV3 = "case-blind-solvability-review-v3";
 }
 
 public static class CaseTargetKinds
@@ -49,6 +50,24 @@ public static class CaseTruthReviewStatuses
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         NotRun, Passed, Failed, Ambiguous
+    };
+}
+
+public static class BlindReviewAssessmentStatuses
+{
+    public const string NotRun = "NOT_RUN";
+    public const string Disabled = "DISABLED";
+    public const string Unavailable = "UNAVAILABLE";
+    public const string Passed = "PASSED";
+    public const string Failed = "FAILED";
+    public const string Ambiguous = "AMBIGUOUS";
+    public const string Invalid = "INVALID";
+    public const string Stale = "STALE";
+    public const string LegacyUnverified = "LEGACY_UNVERIFIED";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        NotRun, Disabled, Unavailable, Passed, Failed, Ambiguous, Invalid, Stale, LegacyUnverified
     };
 }
 
@@ -320,12 +339,40 @@ public sealed class BlindSolvabilityReview
     public string Method { get; set; } = string.Empty;
     public string TimelineSummary { get; set; } = string.Empty;
     public List<string> EvidenceChainIds { get; set; } = new();
+    public List<BlindClaimProof> ClaimProofs { get; set; } = new();
     public bool UniqueSolution { get; set; }
     public double Confidence { get; set; }
     /// <summary>Legacy V1 reviewer messages. New reviewer calls return Findings instead.</summary>
     public List<string> Issues { get; set; } = new();
     public List<CaseTruthReviewFinding> Findings { get; set; } = new();
     public DateTime? ReviewedAt { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public sealed class BlindClaimProof
+{
+    public string ClaimType { get; set; } = string.Empty;
+    public List<string> EvidenceIds { get; set; } = new();
+    public string Reasoning { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public sealed class BlindReviewValidationError
+{
+    public string Code { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public List<string> RelatedIds { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public sealed class BlindReviewAssessment
+{
+    public string Status { get; set; } = BlindReviewAssessmentStatuses.NotRun;
+    public List<BlindReviewValidationError> ValidationErrors { get; set; } = new();
+    public DateTime? EvaluatedAt { get; set; }
+    public string InputHash { get; set; } = string.Empty;
+    public string ValidatorVersion { get; set; } = "blind-review-validator-v1";
 }
 
 [BsonIgnoreExtraElements]

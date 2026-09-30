@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "ai-case-benchmark-v1",
+  "mode": "live",
+  "model": "configured-baseline",
+  "promptVersion": "ai-case-prompt-v2",
+  "validatorVersion": "blind-review-validator-v1",
+  "compilerVersion": "projection-compiler-current",
+  "corpusHash": "2ed436c74f1cdba825f63e87f203942872116f497a2057b057c635de1af75aa6",
+  "status": "BLOCKED",
+  "budgetUsd": 5,
+  "completed": 0,
+  "total": 12,
+  "reason": "Set SIRLOCKED_BENCHMARK_BASE_URL and SIRLOCKED_BENCHMARK_TOKEN. No provider call was attempted.",
+  "calls": 0,
+  "knownCostUsd": null,
+  "unknownCalls": 0,
+  "samples": []
+}

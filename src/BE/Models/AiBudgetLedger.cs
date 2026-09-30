@@ -14,5 +14,8 @@ public sealed class AiBudgetLedger
     public decimal ReservedUsd { get; set; }
     public decimal SpentUsd { get; set; }
     public decimal LimitUsd { get; set; }
+    // Only unsettled calls stay here. Atomic removal and $inc make duplicate settlement harmless.
+    public Dictionary<string, decimal> CallReservations { get; set; } = new();
+    public Dictionary<string, AiDraftUsageTotal> DraftUsage { get; set; } = new();
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

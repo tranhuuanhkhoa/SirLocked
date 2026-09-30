@@ -1,6 +1,7 @@
 import { get, post } from './http.js';
 
 export const roomApi = {
+  mine: () => get('/api/rooms/mine'),
   create: (caseId) => post('/api/rooms', { caseId }),
   join: (roomCode) => post('/api/rooms/join', { roomCode }),
   get: (roomId) => get(`/api/rooms/${roomId}`),

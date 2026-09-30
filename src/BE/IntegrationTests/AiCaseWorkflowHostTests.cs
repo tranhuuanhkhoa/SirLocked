@@ -10,9 +10,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
@@ -23,10 +25,45 @@ using Xunit;
 
 namespace SirLocked.IntegrationTests;
 
-public sealed class AiCaseWorkflowHostTests
+public sealed partial class AiCaseWorkflowHostTests
 {
     private const string DefaultAdminId = "507f1f77bcf86cd799439011";
     private const string VipOwnerId = "507f1f77bcf86cd799439012";
+
+    [Fact]
+    public async Task PlaytestRateLimit_IsIndependentPerAuthenticatedUser()
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("SIRLOCKED_RUN_MONGO_IT"), "true", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await using var factory = new AiWorkflowFactory();
+        using var first = factory.CreateClient();
+        using var second = factory.CreateClient();
+        first.DefaultRequestHeaders.Add("X-Test-UserId", DefaultAdminId);
+        second.DefaultRequestHeaders.Add("X-Test-UserId", VipOwnerId);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+        await InsertActiveUserAsync(db, DefaultAdminId, UserRole.Player);
+        await InsertActiveUserAsync(db, VipOwnerId, UserRole.Player);
+        const string route = "/api/game/rooms/507f1f77bcf86cd799439099/playtest-events";
+
+        // Invalid input runs through the real auth/limiter pipeline but cannot store telemetry.
+        // Both clients share TestServer's network identity, so an IP fallback would collide.
+        for (var i = 0; i < 120; i++)
+        {
+            using var response = await first.PostAsJsonAsync(route, new { });
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+        using var exhausted = await first.PostAsJsonAsync(route, new { });
+        Assert.Equal(HttpStatusCode.TooManyRequests, exhausted.StatusCode);
+        using var independent = await second.PostAsJsonAsync(route, new { });
+        Assert.Equal(HttpStatusCode.BadRequest, independent.StatusCode);
+
+        second.DefaultRequestHeaders.Remove("X-Test-UserId");
+        second.DefaultRequestHeaders.Add("X-Test-UserId", DefaultAdminId);
+        using var sameUser = await second.PostAsJsonAsync(route, new { });
+        Assert.Equal(HttpStatusCode.TooManyRequests, sameUser.StatusCode);
+    }
 
     [Fact]
     public async Task VipDraftList_ReturnsOnlyOwnedDraftsAfterReload()
@@ -246,9 +283,14 @@ public sealed class AiCaseWorkflowHostTests
             ?? "mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000";
         private readonly string _databaseName = $"sirlocked_it_{Guid.NewGuid():N}";
         public FakeOpenAiClient OpenAiClient { get; } = new();
+        public bool DisableBackgroundWorkers { get; init; }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            TestMongoSafetyGuard.EnsureSafe(new MongoDbSettings
+            {
+                ConnectionString = _connectionString, DatabaseName = _databaseName
+            });
             builder.UseEnvironment("Testing");
             builder.ConfigureLogging(logging =>
             {
@@ -265,12 +307,24 @@ public sealed class AiCaseWorkflowHostTests
                     ["SKIP_ASSET_GENERATION"] = "true",
                     ["Jwt:Secret"] = "integration-test-secret-with-at-least-32-characters",
                     ["Google:ClientId"] = "integration-test-google-client",
-                    ["Google:ClientSecret"] = "integration-test-google-secret"
+                    ["Google:ClientSecret"] = "integration-test-google-secret",
+                    // Testing intentionally keeps non-Development startup validation enabled.
+                    // Synthetic settings make the fixture independent of machine/repo email config.
+                    ["Email:SmtpHost"] = "127.0.0.1",
+                    ["Email:SmtpPort"] = "1",
+                    ["Email:SenderEmail"] = "integration@example.invalid",
+                    ["Email:Username"] = "integration-only",
+                    ["Email:Password"] = "unused-integration-placeholder",
+                    ["Email:FrontendUrl"] = "http://127.0.0.1:5173"
                 });
             });
             builder.ConfigureTestServices(services =>
             {
+                if (DisableBackgroundWorkers)
+                    services.RemoveAll<Microsoft.Extensions.Hosting.IHostedService>();
                 services.AddDataProtection().UseEphemeralDataProtectionProvider();
+                services.RemoveAll<IEmailService>();
+                services.AddSingleton<IEmailService, UnexpectedEmailService>();
                 services.PostConfigure<GoogleOptions>(
                     GoogleDefaults.AuthenticationScheme,
                     options =>
@@ -294,8 +348,21 @@ public sealed class AiCaseWorkflowHostTests
         public override async ValueTask DisposeAsync()
         {
             await base.DisposeAsync();
+            TestMongoSafetyGuard.EnsureSafe(new MongoDbSettings
+            {
+                ConnectionString = _connectionString, DatabaseName = _databaseName
+            });
             await new MongoClient(_connectionString).DropDatabaseAsync(_databaseName);
         }
+    }
+
+    private sealed class UnexpectedEmailService : IEmailService
+    {
+        public Task SendVerificationEmailAsync(string toEmail, string fullName, string token) =>
+            throw new InvalidOperationException("AI workflow tests must not send verification email.");
+
+        public Task SendPasswordResetEmailAsync(string toEmail, string fullName, string token) =>
+            throw new InvalidOperationException("AI workflow tests must not send password reset email.");
     }
 
     private sealed class FakeOpenAiClient : IAiOpenAiClient

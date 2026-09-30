@@ -289,19 +289,20 @@ public class ScenePuzzleDto
     {
         var missingItems = puzzle.RequiredItemIds.Where(id => !collectedItems.Contains(id)).ToList();
         var missingClues = puzzle.RequiredClueIds.Where(id => !unlockedClues.Contains(id)).ToList();
+        var locked = missingItems.Count > 0 || missingClues.Count > 0;
         return new ScenePuzzleDto
         {
             PuzzleId = puzzle.PuzzleId,
             Type = puzzle.Type,
             TargetId = puzzle.TargetId,
-            Prompt = puzzle.Prompt,
-            Options = puzzle.Options,
+            Prompt = locked ? string.Empty : puzzle.Prompt,
+            Options = locked ? new() : puzzle.Options,
             AnswerLength = puzzle.Type.Equals(CasePuzzleTypes.CodePuzzle, StringComparison.OrdinalIgnoreCase)
                 ? 1
                 : Math.Max(1, puzzle.CorrectSequence.Count),
             RequiredItemIds = puzzle.RequiredItemIds,
             RequiredClueIds = puzzle.RequiredClueIds,
-            IsLocked = missingItems.Count > 0 || missingClues.Count > 0,
+            IsLocked = locked,
             IsSolved = solvedPuzzles.Contains(puzzle.PuzzleId),
             MissingItemIds = missingItems,
             MissingClueIds = missingClues
@@ -478,6 +479,7 @@ public class ActionLogEntryDto
 
 public class GameStateResponse
 {
+    public GamePresentationDto? Presentation { get; set; }
     public string RoomId { get; set; } = string.Empty;
     public string RoomCode { get; set; } = string.Empty;
     public string HostUserId { get; set; } = string.Empty;

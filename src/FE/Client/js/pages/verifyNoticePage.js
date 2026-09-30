@@ -2,6 +2,7 @@ import { authApi } from '../api/authApi.js';
 import { session } from '../services/session.js';
 import { render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { pendingRoomInvite } from '../services/roomInvites.js';
 
 export async function renderVerifyNoticePage(app) {
   const user = session.user();
@@ -21,6 +22,7 @@ export async function renderVerifyNoticePage(app) {
         </p>
         <p style="color:#8899aa;font-size:12px;margin-top:10px">Không thấy email? Kiểm tra cả mục <b>Spam / Quảng cáo</b>.</p>
 
+        ${pendingRoomInvite() ? '<p class="muted small" id="saved-room-invite">Lời mời vào phòng đã được lưu. Sau khi xác minh email, bạn có thể tiếp tục tới phòng được mời.</p>' : ''}
         <div id="resend-result" style="margin-top:14px"></div>
         <button class="btn btn-ghost btn-block" id="btn-resend" style="margin-top:14px">Gửi lại email xác minh</button>
         <p style="text-align:center;margin-top:12px">

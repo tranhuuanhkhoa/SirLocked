@@ -6,16 +6,16 @@ const newIdempotencyKey = () => typeof globalThis.crypto?.randomUUID === 'functi
 
 export const aiCaseApi = {
   capabilities: () => get('/api/admin/ai-cases/capabilities'),
-  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM', idempotencyKey = newIdempotencyKey()) =>
-    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType }, {
+  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM', idempotencyKey = newIdempotencyKey(), creativeConstraints = null) =>
+    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType, creativeConstraints }, {
       headers: { 'Idempotency-Key': idempotencyKey },
     }),
   replaceJson: (draftId, caseJson, storyPreview = null) =>
     put(`/api/admin/ai-cases/${draftId}/case-json`, { caseJson, storyPreview }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),
   approveTruth: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-truth`),
-  repairTruth: (draftId, repairInstructions = '', repairFromArtifact = null) =>
-    post(`/api/admin/ai-cases/${draftId}/repair-truth`, { repairInstructions, repairFromArtifact }),
+  repairTruth: (draftId, repairInstructions = '', repairFromArtifact = null, useRepairCandidate = false) =>
+    post(`/api/admin/ai-cases/${draftId}/repair-truth`, { repairInstructions, repairFromArtifact, ...(useRepairCandidate ? { useRepairCandidate: true } : {}) }),
   acceptTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/accept-truth-repair`),
   rejectTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/reject-truth-repair`),
   approveFullLogic: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-full-logic`),
@@ -29,6 +29,7 @@ export const aiCaseApi = {
   regenerateFailedAssets: (draftId) => post(`/api/admin/ai-cases/${draftId}/regenerate-failed-assets`),
   drafts: () => get('/api/admin/ai-cases'),
   draft: (draftId) => get(`/api/admin/ai-cases/${draftId}`),
+  cancelDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/cancel`),
   importDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/import?overwrite=${overwrite}`),
   publishDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/publish?overwrite=${overwrite}`),
 };

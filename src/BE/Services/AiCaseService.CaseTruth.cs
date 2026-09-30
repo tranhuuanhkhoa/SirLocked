@@ -99,6 +99,13 @@ public partial class AiCaseService
                 .Set(item => item.TruthRepairCandidate, null)
                 .Set(item => item.TruthRepairCandidateJson, string.Empty)
                 .Set(item => item.TruthRepairStatus, AiRepairStatus.None)
+                .Set(item => item.TruthRepairInput, null)
+                .Set(item => item.TruthRepairInputHash, string.Empty)
+                .Set(item => item.TruthRepairUseCandidate, false)
+                .Set(item => item.TruthRepairOriginalFromArtifact, string.Empty)
+                .Set(item => item.TruthRepairCandidateHash, string.Empty)
+                .Set(item => item.TruthRepairBaseHash, string.Empty)
+                .Set(item => item.TruthRepairFailedArtifact, string.Empty)
                 .Set(item => item.TruthRepairRecommendedArtifact, string.Empty)
                 .Set(item => item.TruthRepairFromArtifact, string.Empty)
                 .Set(item => item.TruthRepairReasonCodes, new List<string>())
@@ -146,10 +153,11 @@ public partial class AiCaseService
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
-        if (draft.Status is not (AiDraftStatus.CaseTruthAwaitingApproval or AiDraftStatus.CaseTruthInvalid))
-            throw ApiException.BadRequest("Truth repair is available only at the case-truth approval gate.");
+        EnsureTruthRepairGate(draft);
         if (draft.TruthRepairStatus == AiRepairStatus.CandidateReady)
             throw ApiException.BadRequest("Accept or reject the pending truth repair candidate first.");
+        if (request.UseRepairCandidate)
+            AiTruthRepairCandidatePolicy.ValidateSavedCandidate(draft, _truthService);
         draft.PlannedTargetKind = CaseTargetAllocationPolicy.Resolve(draft);
         if (draft.CaseTruth is null || string.IsNullOrWhiteSpace(draft.CaseTruthJson))
         {
@@ -168,11 +176,13 @@ public partial class AiCaseService
         }
 
         var instructions = request.RepairInstructions?.Trim() ?? string.Empty;
-        var currentValidation = ValidateTruthForGameplay(
-            draft,
-            draft.CaseTruth,
-            TruthBudgetForDraft(draft));
-        var recommendedPlan = DetermineTruthRepairPlan(draft, currentValidation);
+        var repairInput = request.UseRepairCandidate ? draft.TruthRepairCandidate! : draft.CaseTruth;
+        var currentValidation = request.UseRepairCandidate
+            ? AiTruthRepairCandidatePolicy.ValidateCandidate(draft, repairInput, _truthService, _projectionPlanner)
+            : ValidateTruthForGameplay(draft, repairInput, TruthBudgetForDraft(draft));
+        var recommendedPlan = request.UseRepairCandidate
+            ? AiTruthRepairCandidatePolicy.Plan(_truthService, currentValidation, draft.TruthRepairReviewerResult)
+            : DetermineTruthRepairPlan(draft, currentValidation);
         var recommended = recommendedPlan.RegenerateFromArtifact;
         var requested = CaseTruthRepairPolicy.Normalize(request.RepairFromArtifact);
         if (!string.IsNullOrWhiteSpace(requested)
@@ -186,6 +196,13 @@ public partial class AiCaseService
                 $"Truth repair cannot start after recommended artifact {recommended}.",
                 new ApiErrorDetails("UNSAFE_TRUTH_REPAIR_SCOPE", "ai.caseTruth.unsafeRepairScope"));
         var selected = string.IsNullOrWhiteSpace(requested) ? recommended : requested;
+        if (request.UseRepairCandidate)
+            AiTruthRepairCandidatePolicy.ValidateReusedUpstream(repairInput, selected, _truthService,
+                _truthService.ValidateRepairPrefix(repairInput, TruthBudgetForDraft(draft), draft.Settings, selected));
+        var originalScope = request.UseRepairCandidate
+            ? CaseTruthRepairPolicy.Earliest(CaseTruthRepairPolicy.BuildPlan(selected),
+                CaseTruthRepairPolicy.BuildPlan(AiTruthRepairCandidatePolicy.OriginalScope(draft))).RegenerateFromArtifact
+            : selected;
         var stored = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
             item => item.Id == draft.Id
                 && item.WorkflowVersion == draft.WorkflowVersion
@@ -197,6 +214,18 @@ public partial class AiCaseService
                 .Set(item => item.TruthRepairRecommendedArtifact, recommended)
                 .Set(item => item.TruthRepairFromArtifact, selected)
                 .Set(item => item.TruthRepairReasonCodes, recommendedPlan.ReasonCodes)
+                .Set(item => item.TruthRepairUseCandidate, request.UseRepairCandidate)
+                .Set(item => item.TruthRepairInput, request.UseRepairCandidate ? repairInput : null)
+                .Set(item => item.TruthRepairInputHash, request.UseRepairCandidate ? _truthService.ComputeHash(repairInput) : string.Empty)
+                .Set(item => item.TruthRepairOriginalFromArtifact, originalScope)
+                .Set(item => item.TruthRepairBaseHash, _truthService.ComputeHash(draft.CaseTruth))
+                .Set(item => item.TruthRepairFailedArtifact, request.UseRepairCandidate ? draft.TruthRepairFailedArtifact : string.Empty)
+                .Set(item => item.TruthRepairCandidate, request.UseRepairCandidate ? draft.TruthRepairCandidate : null)
+                .Set(item => item.TruthRepairCandidateJson, request.UseRepairCandidate ? draft.TruthRepairCandidateJson : string.Empty)
+                .Set(item => item.TruthRepairCandidateHash, request.UseRepairCandidate ? _truthService.ComputeHash(repairInput) : string.Empty)
+                .Set(item => item.TruthRepairStatus, request.UseRepairCandidate ? AiRepairStatus.CandidateInvalid : AiRepairStatus.None)
+                .Set(item => item.TruthRepairValidationReport, request.UseRepairCandidate ? draft.TruthRepairValidationReport : new List<string>())
+                .Set(item => item.TruthRepairReviewerResult, request.UseRepairCandidate ? draft.TruthRepairReviewerResult : new CaseTruthFeasibilityReview())
                 .Inc(item => item.WorkflowVersion, 1)
                 .Set(item => item.UpdatedAt, DateTime.UtcNow),
             new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After });
@@ -218,25 +247,45 @@ public partial class AiCaseService
     {
         if (draft.CaseTruth is null)
             throw ApiException.Conflict("The draft has no truth checkpoint to repair.");
+        var repairInput = draft.TruthRepairUseCandidate ? draft.TruthRepairInput : draft.CaseTruth;
+        if (repairInput is null || (draft.TruthRepairUseCandidate && string.IsNullOrWhiteSpace(draft.TruthRepairInputHash)))
+            throw ApiException.Conflict("The repair input snapshot is missing.",
+                "AI_TRUTH_REPAIR_CANDIDATE_STALE", "ai.caseTruth.repairCandidateStale");
+        if (draft.TruthRepairUseCandidate)
+            AiTruthRepairCandidatePolicy.ValidateSnapshot(draft, repairInput, draft.TruthRepairInputHash,
+                draft.TruthRepairOriginalFromArtifact, _truthService);
         var instructions = draft.TruthRepairInstructions;
         var budget = TruthBudgetForDraft(draft);
-        var currentValidation = ValidateTruthForGameplay(draft, draft.CaseTruth, budget);
-        var recommendedPlan = DetermineTruthRepairPlan(draft, currentValidation);
+        var currentValidation = draft.TruthRepairUseCandidate
+            ? AiTruthRepairCandidatePolicy.ValidateCandidate(draft, repairInput, _truthService, _projectionPlanner)
+            : ValidateTruthForGameplay(draft, repairInput, budget);
+        var recommendedPlan = draft.TruthRepairUseCandidate
+            ? AiTruthRepairCandidatePolicy.Plan(_truthService, currentValidation, draft.TruthRepairReviewerResult)
+            : DetermineTruthRepairPlan(draft, currentValidation);
         var selected = CaseTruthRepairPolicy.Normalize(draft.TruthRepairFromArtifact);
         var fromArtifact = CaseTruthRepairPolicy.IsAtOrBefore(selected, recommendedPlan.RegenerateFromArtifact)
             ? selected
             : recommendedPlan.RegenerateFromArtifact;
+        if (draft.TruthRepairUseCandidate)
+            AiTruthRepairCandidatePolicy.ValidateReusedUpstream(repairInput, fromArtifact, _truthService,
+                _truthService.ValidateRepairPrefix(repairInput, budget, draft.Settings, fromArtifact));
         var feedback = currentValidation.IsValid
-            ? BuildTruthReviewFeedback(draft.TruthReviewerResult)
+            ? BuildTruthReviewFeedback(draft.TruthRepairUseCandidate ? draft.TruthRepairReviewerResult : draft.TruthReviewerResult)
             : FormatValidation(currentValidation);
-        var candidate = await GenerateTruthStagesAsync(draft, draft.CaseTruth, fromArtifact, $"""
+        CaseValidationResult? failedStageValidation = null;
+        var failedArtifact = string.Empty;
+        var candidate = await GenerateTruthStagesAsync(draft, repairInput, fromArtifact, $"""
             Create one scoped repair candidate starting at artifact {fromArtifact}.
             Preserve every valid upstream field exactly. Never relax a validator and never change unrelated truth.
             Admin direction: {instructions}
             Blocking validation and independent-review feedback:
             {feedback}
-            """);
-        var validation = ValidateTruthForGameplay(draft, candidate, budget);
+            """, reportValidationFailure: (artifact, result) =>
+            {
+                failedArtifact = artifact;
+                failedStageValidation = result;
+            });
+        var validation = failedStageValidation ?? ValidateTruthForGameplay(draft, candidate, budget);
         var review = validation.IsValid
             ? await ReviewTruthFeasibilityAsync(draft, candidate)
             : new CaseTruthFeasibilityReview();
@@ -252,7 +301,12 @@ public partial class AiCaseService
             Builders<AiCaseDraft>.Update
                 .Set(item => item.TruthRepairCandidate, candidate)
                 .Set(item => item.TruthRepairCandidateJson, _truthService.Canonicalize(candidate))
+                .Set(item => item.TruthRepairCandidateHash, _truthService.ComputeHash(candidate))
+                .Set(item => item.TruthRepairInput, null)
+                .Set(item => item.TruthRepairInputHash, string.Empty)
+                .Set(item => item.TruthRepairUseCandidate, false)
                 .Set(item => item.TruthRepairStatus, status)
+                .Set(item => item.TruthRepairFailedArtifact, failedArtifact)
                 .Set(item => item.TruthRepairValidationReport, ValidationMessages(validation))
                 .Set(item => item.TruthRepairReviewerResult, review)
                 .Set(item => item.TruthRepairRecommendedArtifact, recommendedPlan.RegenerateFromArtifact)
@@ -268,12 +322,13 @@ public partial class AiCaseService
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
-        if (draft.Status is not (AiDraftStatus.CaseTruthAwaitingApproval or AiDraftStatus.CaseTruthInvalid))
-            throw ApiException.BadRequest("Truth repair can be accepted only at the case-truth gate.");
-        if (draft.QueueState == AiQueueStates.Running)
-            throw ApiException.Conflict("A generation operation is currently running for this draft.");
+        EnsureTruthRepairGate(draft);
         if (draft.TruthRepairStatus != AiRepairStatus.CandidateReady || draft.TruthRepairCandidate is null)
             throw ApiException.BadRequest("There is no valid truth repair candidate to accept.");
+        if (!string.IsNullOrWhiteSpace(draft.TruthRepairCandidateHash)
+            || !string.IsNullOrWhiteSpace(draft.TruthRepairBaseHash))
+            AiTruthRepairCandidatePolicy.ValidateSnapshot(draft, draft.TruthRepairCandidate,
+                draft.TruthRepairCandidateHash, draft.TruthRepairOriginalFromArtifact, _truthService);
         var validation = ValidateTruthForGameplay(
             draft,
             draft.TruthRepairCandidate,
@@ -297,8 +352,10 @@ public partial class AiCaseService
             item => item.Id == draft.Id
                 && item.WorkflowVersion == draft.WorkflowVersion
                 && (item.Status == AiDraftStatus.CaseTruthAwaitingApproval
-                    || item.Status == AiDraftStatus.CaseTruthInvalid)
-                && item.QueueState != AiQueueStates.Running
+                    || item.Status == AiDraftStatus.CaseTruthInvalid
+                    || item.Status == AiDraftStatus.FullLogicAwaitingApproval)
+                && item.QueueState == AiQueueStates.None
+                && (item.ImportedCaseId == null || item.ImportedCaseId == string.Empty)
                 && item.TruthRepairStatus == AiRepairStatus.CandidateReady,
             Builders<AiCaseDraft>.Update
                 .Set(item => item.Status, AiDraftStatus.CaseTruthAwaitingApproval)
@@ -306,20 +363,54 @@ public partial class AiCaseService
                 .Set(item => item.CaseTruthJson, canonical)
                 .Set(item => item.TruthSchemaVersion, truth.SchemaVersion)
                 .Set(item => item.TruthHash, hash)
+                .Set(item => item.TruthCheckpointArtifact, CaseTruthArtifacts.ProofGraph)
                 .Set(item => item.TruthReviewerResult, draft.TruthRepairReviewerResult)
                 .Set(item => item.TruthValidationReport, new List<string>())
                 .Set(item => item.TruthRepairCandidate, null)
                 .Set(item => item.TruthRepairCandidateJson, string.Empty)
                 .Set(item => item.TruthRepairStatus, AiRepairStatus.Accepted)
+                .Set(item => item.TruthRepairFailedArtifact, string.Empty)
+                .Set(item => item.TruthRepairBaseHash, string.Empty)
+                .Set(item => item.TruthRepairCandidateHash, string.Empty)
+                .Set(item => item.TruthRepairInput, null)
+                .Set(item => item.TruthRepairInputHash, string.Empty)
+                .Set(item => item.TruthRepairUseCandidate, false)
+                .Set(item => item.TruthRepairOriginalFromArtifact, string.Empty)
                 .Set(item => item.TruthRepairValidationReport, new List<string>())
                 .Set(item => item.TruthRepairRecommendedArtifact, string.Empty)
                 .Set(item => item.TruthRepairFromArtifact, string.Empty)
                 .Set(item => item.TruthRepairReasonCodes, new List<string>())
                 .Set(item => item.GeneratedJson, string.Empty)
+                .Set(item => item.OriginalGeneratedJson, string.Empty)
+                .Set(item => item.RepairedCandidateJson, string.Empty)
+                .Set(item => item.RepairStatus, AiRepairStatus.None)
+                .Set(item => item.RepairInstructions, string.Empty)
+                .Set(item => item.RepairValidationReport, new List<string>())
+                .Set(item => item.ValidationErrors, new List<string>())
                 .Set(item => item.CaseBlueprint, null)
                 .Set(item => item.BlueprintJson, string.Empty)
+                .Set(item => item.BlueprintSchemaVersion, string.Empty)
+                .Set(item => item.BlueprintHash, string.Empty)
+                .Set(item => item.BlueprintValidationErrors, new List<string>())
+                .Set(item => item.CrackContractHash, string.Empty)
+                .Set(item => item.ProjectionPlan, null)
+                .Set(item => item.ProjectionPlanJson, string.Empty)
+                .Set(item => item.ProjectionPlanHash, string.Empty)
+                .Set(item => item.ProjectionPlanSchemaVersion, string.Empty)
+                .Set(item => item.ProjectionContentSchemaVersion, string.Empty)
+                .Set(item => item.ProjectionContentJson, string.Empty)
+                .Set(item => item.ProjectionContentHash, string.Empty)
+                .Set(item => item.ProjectionBuildMode, string.Empty)
+                .Set(item => item.ProjectionCompilerVersion, string.Empty)
+                .Set(item => item.V3CrackContentJson, string.Empty)
+                .Set(item => item.V3CrackContentHash, string.Empty)
+                .Set(item => item.V3SemanticReview, new AiV3SemanticReview())
                 .Set(item => item.BlindSolvabilityReview, new BlindSolvabilityReview())
+                .Set(item => item.BlindReviewAssessment, new BlindReviewAssessment())
                 .Set(item => item.AssetManifest, new AiAssetManifest())
+                .Set(item => item.FailedAssetIds, new List<string>())
+                .Set(item => item.FailurePhase, AiFailurePhases.None)
+                .Set(item => item.LastGenerationErrorCode, string.Empty)
                 .Set(item => item.CaseId, string.Empty)
                 .Set(item => item.CaseTitle, string.Empty)
                 .Set(item => item.JsonFilePath, string.Empty)
@@ -348,20 +439,26 @@ public partial class AiCaseService
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
-        if (draft.Status is not (AiDraftStatus.CaseTruthAwaitingApproval or AiDraftStatus.CaseTruthInvalid))
-            throw ApiException.BadRequest("Truth repair can be rejected only at the case-truth gate.");
-        if (draft.QueueState == AiQueueStates.Running)
-            throw ApiException.Conflict("A generation operation is currently running for this draft.");
+        EnsureTruthRepairGate(draft);
         var rejected = await _db.AiCaseDrafts.UpdateOneAsync(
             item => item.Id == draft.Id
                 && item.WorkflowVersion == draft.WorkflowVersion
                 && (item.Status == AiDraftStatus.CaseTruthAwaitingApproval
-                    || item.Status == AiDraftStatus.CaseTruthInvalid)
-                && item.QueueState != AiQueueStates.Running,
+                    || item.Status == AiDraftStatus.CaseTruthInvalid
+                    || item.Status == AiDraftStatus.FullLogicAwaitingApproval)
+                && item.QueueState == AiQueueStates.None
+                && (item.ImportedCaseId == null || item.ImportedCaseId == string.Empty),
             Builders<AiCaseDraft>.Update
                 .Set(item => item.TruthRepairCandidate, null)
                 .Set(item => item.TruthRepairCandidateJson, string.Empty)
                 .Set(item => item.TruthRepairStatus, AiRepairStatus.Rejected)
+                .Set(item => item.TruthRepairFailedArtifact, string.Empty)
+                .Set(item => item.TruthRepairBaseHash, string.Empty)
+                .Set(item => item.TruthRepairCandidateHash, string.Empty)
+                .Set(item => item.TruthRepairInput, null)
+                .Set(item => item.TruthRepairInputHash, string.Empty)
+                .Set(item => item.TruthRepairUseCandidate, false)
+                .Set(item => item.TruthRepairOriginalFromArtifact, string.Empty)
                 .Set(item => item.TruthRepairValidationReport, new List<string>())
                 .Set(item => item.TruthRepairReviewerResult, new CaseTruthFeasibilityReview())
                 .Inc(item => item.WorkflowVersion, 1)
@@ -374,12 +471,33 @@ public partial class AiCaseService
         return AiDraftResponse.From(await _db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync());
     }
 
+    private static void EnsureTruthRepairGate(AiCaseDraft draft)
+    {
+        if (draft.Status is not (AiDraftStatus.CaseTruthAwaitingApproval
+                or AiDraftStatus.CaseTruthInvalid or AiDraftStatus.FullLogicAwaitingApproval)
+            || !string.IsNullOrWhiteSpace(draft.ImportedCaseId))
+            throw ApiException.BadRequest("Truth repair is available only at an unpublished truth or gameplay approval gate.");
+        if (draft.QueueState != AiQueueStates.None)
+            throw ApiException.Conflict("Wait for the queued generation operation before changing truth repair.",
+                "AI_WORKFLOW_CONFLICT", "ai.workflow.conflict");
+    }
+
+    private static void EnsureNoPendingTruthRepair(AiCaseDraft draft)
+    {
+        if (draft.TruthRepairStatus == AiRepairStatus.CandidateReady
+            || (draft.QueuedOperation == AiQueuedOperations.TruthRepair
+                && draft.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled))
+            throw ApiException.Conflict("Accept or reject the pending truth repair before continuing gameplay.",
+                "AI_TRUTH_REPAIR_PENDING", "ai.caseTruth.repairPending");
+    }
+
     private async Task<CaseTruthPackage> GenerateTruthStagesAsync(
         AiCaseDraft draft,
         CaseTruthPackage? checkpoint = null,
         string? regenerateFromArtifact = null,
         string? correction = null,
-        bool persistCheckpoints = false)
+        bool persistCheckpoints = false,
+        Action<string, CaseValidationResult>? reportValidationFailure = null)
     {
         var budget = TruthBudgetForDraft(draft);
         var gameplayContract = AiGenerationContract.For(draft.Settings);
@@ -400,6 +518,7 @@ public partial class AiCaseService
             ? order.Length
             : regenerateFromArtifact is null ? 0 : Array.IndexOf(order, regenerateFromArtifact);
         if (start < 0) start = order.Length - 1;
+        ClearInvalidatedTruthArtifacts(truth, start);
 
         string StageCorrection(int index) => index >= start ? correction ?? string.Empty : string.Empty;
         if (start <= 0)
@@ -427,15 +546,7 @@ public partial class AiCaseService
         }
         if (start <= 2)
         {
-            var suspectIds = RequireTruthReferenceIds(truth.CaseSeed.SuspectIds, "caseSeed.suspectIds");
-            var locationIds = RequireTruthReferenceIds(truth.CaseSeed.LocationIds, "caseSeed.locationIds");
-            var targetId = RequireTruthReferenceIds([truth.CoreTruth.TargetId], "coreTruth.targetId").Single();
-            var schema = AiStrictSchemaProvider.TrueTimelineSchema(
-                budget,
-                suspectIds,
-                targetId,
-                truth.CoreTruth.TargetKind,
-                locationIds);
+            var schema = BuildTrueTimelineSchema(truth, budget);
             var timelineResult = await GenerateTimelineWithReferenceRepairAsync(
                 async activeCorrection => await GenerateTruthStageAsync<GeneratedTimelineArtifact>(
                     draft, "BuildTrueTimeline", AiGenerationSchemaVersions.TrueTimeline,
@@ -459,6 +570,7 @@ public partial class AiCaseService
                     timelineResult.Validation.IsValid ? 36 : 24);
             if (!timelineResult.Validation.IsValid)
             {
+                reportValidationFailure?.Invoke(CaseTruthArtifacts.Timeline, timelineResult.Validation);
                 if (!persistCheckpoints)
                     return truth;
                 throw ApiException.Unprocessable(
@@ -511,6 +623,7 @@ public partial class AiCaseService
                     traceValidation.IsValid ? 60 : 48);
             if (!traceValidation.IsValid)
             {
+                reportValidationFailure?.Invoke(CaseTruthArtifacts.Evidence, traceValidation);
                 if (!persistCheckpoints)
                     return truth;
                 throw ApiException.Unprocessable(
@@ -555,6 +668,7 @@ public partial class AiCaseService
                     statementResult.Validation.IsValid ? 72 : 60);
             if (!statementResult.Validation.IsValid)
             {
+                reportValidationFailure?.Invoke(CaseTruthArtifacts.Statements, statementResult.Validation);
                 if (!persistCheckpoints)
                     return truth;
                 throw ApiException.Unprocessable(
@@ -598,6 +712,7 @@ public partial class AiCaseService
                     proofResult.Validation.IsValid ? 84 : 72);
             if (!proofResult.Validation.IsValid)
             {
+                reportValidationFailure?.Invoke(CaseTruthArtifacts.ProofGraph, proofResult.Validation);
                 if (!persistCheckpoints)
                     return truth;
                 throw ApiException.Unprocessable(
@@ -606,6 +721,21 @@ public partial class AiCaseService
             }
         }
         return truth;
+    }
+
+    internal static void ClearInvalidatedTruthArtifacts(CaseTruthPackage truth, int start)
+    {
+        if (start <= 0) truth.CaseSeed = new();
+        if (start <= 1) truth.CoreTruth = new();
+        if (start <= 2) truth.TrueTimeline = new();
+        if (start <= 3) truth.OpportunityMatrix = new();
+        if (start <= 4) truth.TraceLedger = new();
+        if (start <= 5) truth.StatementLedger = new();
+        if (start <= 6)
+        {
+            truth.ProofGraph = new();
+            truth.RedHerringLedger = new();
+        }
     }
 
     internal sealed record TruthArtifactGenerationResult<T>(
@@ -658,6 +788,27 @@ public partial class AiCaseService
         return ids;
     }
 
+    internal static JsonObject BuildTrueTimelineSchema(CaseTruthPackage truth, AiTruthGenerationBudget budget)
+    {
+        var coreActionIds = RequireTruthReferenceIds(
+            CaseTruthReferenceContract.CoreActionIds(truth.CoreTruth), "coreTruth.actionIds");
+        if (coreActionIds.Count > budget.MaxTimelineEvents)
+        {
+            var validation = new CaseValidationResult();
+            validation.Add("TRUTH_BUDGET_EXCEEDED", "coreTruth.actionIds",
+                $"The {coreActionIds.Count} distinct core actions cannot fit within {budget.MaxTimelineEvents} timeline events. Regenerate core truth with fewer actions.");
+            throw ApiException.Unprocessable("Core actions exceed the timeline event budget.", validation.Errors);
+        }
+
+        return AiStrictSchemaProvider.TrueTimelineSchema(
+            budget,
+            RequireTruthReferenceIds(truth.CaseSeed.SuspectIds, "caseSeed.suspectIds"),
+            RequireTruthReferenceIds([truth.CoreTruth.TargetId], "coreTruth.targetId").Single(),
+            truth.CoreTruth.TargetKind,
+            RequireTruthReferenceIds(truth.CaseSeed.LocationIds, "caseSeed.locationIds"),
+            coreActionIds);
+    }
+
     internal static CaseValidationResult ValidateGeneratedTraceSet(
         IReadOnlyCollection<TraceLedgerEntry> traces,
         IReadOnlyCollection<string> plannedTraceIds)
@@ -682,7 +833,7 @@ public partial class AiCaseService
         int progress)
     {
         var canonical = _truthService.Canonicalize(truth);
-        await UpdateActiveRunAsync(draft, Builders<AiCaseDraft>.Update
+        await UpdateActiveRunAsync(draft, ClearSavedTruthRepairCandidate()
             .Set(item => item.CaseTruth, truth)
             .Set(item => item.CaseTruthJson, canonical)
             .Set(item => item.TruthSchemaVersion, truth.SchemaVersion)
@@ -691,6 +842,21 @@ public partial class AiCaseService
             .Set(item => item.GenerationProgress, progress)
             .Set(item => item.UpdatedAt, DateTime.UtcNow));
     }
+
+    private static UpdateDefinition<AiCaseDraft> ClearSavedTruthRepairCandidate() =>
+        Builders<AiCaseDraft>.Update
+            .Set(item => item.TruthRepairCandidate, null)
+            .Set(item => item.TruthRepairCandidateJson, string.Empty)
+            .Set(item => item.TruthRepairStatus, AiRepairStatus.None)
+            .Set(item => item.TruthRepairReviewerResult, new CaseTruthFeasibilityReview())
+            .Set(item => item.TruthRepairValidationReport, new List<string>())
+            .Set(item => item.TruthRepairInput, null)
+            .Set(item => item.TruthRepairInputHash, string.Empty)
+            .Set(item => item.TruthRepairUseCandidate, false)
+            .Set(item => item.TruthRepairOriginalFromArtifact, string.Empty)
+            .Set(item => item.TruthRepairCandidateHash, string.Empty)
+            .Set(item => item.TruthRepairBaseHash, string.Empty)
+            .Set(item => item.TruthRepairFailedArtifact, string.Empty);
 
     internal static string? NextTruthArtifact(string? completedArtifact) => completedArtifact switch
     {
@@ -813,6 +979,40 @@ public partial class AiCaseService
         var eligibleIdentityTraceList = eligibleIdentityTraceIds.Count == 0
             ? "(none; Evidence must be regenerated)"
             : string.Join(", ", eligibleIdentityTraceIds);
+        var mandatoryActionIds = CaseTruthReferenceContract.CoreActionIds(truth.CoreTruth)
+            .Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+        var timelineSlotContract = artifact == CaseTruthArtifacts.Timeline
+            ? $"""
+              MANDATORY TIMELINE SLOT CONTRACT:
+              Reserve {mandatoryActionIds.Count} of {budget.MaxTimelineEvents} event slots first, one for each distinct core action ID below.
+              Exact required eventIds: {JsonSerializer.Serialize(mandatoryActionIds, CompactJson)}
+              At most {Math.Max(0, budget.MaxTimelineEvents - mandatoryActionIds.Count)} auxiliary event slots remain for witnesses, alibis, and causal antecedents.
+              Reuse an existing event only when its actor, place, and interval genuinely cover that observation.
+              Remove unnecessary auxiliary events before omitting any mandatory ID; never combine two core IDs into one event.
+              """
+            : string.Empty;
+        var proofScopeContract = artifact switch
+        {
+            CaseTruthArtifacts.CoreTruth => "Choose a motive whose full personal stake can be demonstrated by concrete facts: what this culprit stands to gain or lose, how the target affects that stake, and why the culprit knows it. A theft target alone does not establish a motive. Keep distinct core actions compact enough to leave timeline slots for witnesses and necessary causal antecedents.",
+            CaseTruthArtifacts.Timeline => $"MOTIVE PROOF PLAN: plan an observable source for the culprit's personal stake and its connection to the target in the locked motive ({truth.CoreTruth.Motive}); a trace of removal alone is insufficient. Any document or record used for that link needs a physically consistent origin and observable content. Include the mechanism and triggering conditions for delayed effects; preparation alone cannot silently stand in for a later collapse or interruption. Timeline timestamps describe hidden truth; an exact minute becomes provable only through an explicit clock observation, contemporaneous record, or equally precise source.",
+            CaseTruthArtifacts.Opportunity => "A verified alibi excludes the crime chain only if its observed interval prevents a required crime action at another location; an alibi before or after the crime, boundary-only contact, or presence at the crime location is not exculpatory. When no complete-chain opportunity exists, use the empty interval availableFromMinute = availableToMinute = 0 and explain the physical exclusion. Do not copy the global crime window into every suspect's availability.",
+            CaseTruthArtifacts.Evidence => "PROOF SCOPE: MOTIVE evidence must expose the culprit's personal gain or loss and the target's effect on it, not merely identify what was stolen. State the observable contents of a relevant document or trace without inventing facts absent from the locked timeline. Respect doesNotProve: a source that does not explain why the culprit wanted the target cannot by itself establish that reason. createdAtMinute and event start/end values are hidden truth metadata, not observations proving exact times. Only claim exact minutes supported by an observable timing source; otherwise prove ordering or a bounded interval.",
+            CaseTruthArtifacts.Statements => "PROOF SCOPE: a motive statement must have a locked knowledge source for the personal stake and its connection to the target; a denial or minimization of the theft does not establish that stake. A speaker may report exact minutes only through an explicit timing observation or record in their knowledge sources. Hidden timeline timestamps alone do not give a witness that knowledge.",
+            CaseTruthArtifacts.ProofGraph => "PROOF SCOPE: each proposition must stay within what its cited traces and statements actually demonstrate, including every doesNotProve limitation. MOTIVE must connect the culprit's personal gain or loss to the target; evidence of substitution or removal alone does not prove inheritance, debt, revenge, or intent. TIMELINE must use relative order or bounded intervals unless the cited observable sources establish exact minutes. Never treat hidden truth timestamps as player-observable evidence, and never invent a missing supporting fact.",
+            _ => string.Empty
+        };
+        var methodEvidenceContract = artifact switch
+        {
+            CaseTruthArtifacts.Timeline => $"METHOD PROOF PLAN: reserve observable evidence for the decisive crime actions and outcome in the locked method ({truth.CoreTruth.Method}), including any substitution, removal, or concealment it asserts. Evidence of a distraction or preparation alone cannot establish the crime method. Within the existing trace budget, prioritize that crime evidence over redundant alibi traces; not every event needs its own trace.",
+            CaseTruthArtifacts.Evidence => "METHOD PROOF: distinguish what a trace proves about the actual crime or its outcome from what it proves only about a distraction or preparation. Do not label a preparation trace as proof of an unobserved substitution, removal, or concealment. Use only planned traces and locked facts.",
+            CaseTruthArtifacts.Statements => "METHOD PROOF: use independently known locked events to corroborate the actual crime and its outcome. An admission of triggering a distraction or a denial of touching a lock does not establish what was substituted, removed, or concealed.",
+            CaseTruthArtifacts.ProofGraph => "METHOD PROOF: test the cited sources against every decisive assertion in coreTruth.method. A proposition that proves only the distraction leaves the locked crime method unsupported; do not hide that gap by narrowing the METHOD proposition or treating an unsupported action as established.",
+            _ => string.Empty
+        };
+        var sourceIndependenceContract = artifact is CaseTruthArtifacts.Timeline
+            or CaseTruthArtifacts.Evidence or CaseTruthArtifacts.Statements or CaseTruthArtifacts.ProofGraph
+            ? "SOURCE INDEPENDENCE: plan genuinely separate origins for corroboration within the existing budgets. Repeating, quoting, or admitting the contents of the same document or dependent account does not create another independent source. Such dependent evidence and statements must retain the same independentSourceGroup; never satisfy the two-group requirement by renaming the group. A separate firsthand observation can supply independent support only for facts the observer actually perceived. Follow knowledgeSourceIds and sourceActionId to distinguish that observation from repetition."
+            : string.Empty;
         var instruction = artifact switch
         {
             CaseTruthArtifacts.CaseSeed => $"Lock crime type, era, technology constraints, difficulty, duration, exactly {CaseTargetAllocationPolicy.RequiredSuspects(gameplayContract, CaseTargetAllocationPolicy.Resolve(draft))} stable suspect IDs, location IDs, and a complete travel-time graph. The server has locked target kind {CaseTargetAllocationPolicy.Resolve(draft)}; do not add the target to suspectIds. Do not choose a culprit yet.",
@@ -823,6 +1023,21 @@ public partial class AiCaseService
             CaseTruthArtifacts.Statements => $"Create statements only from locked events and knowledge sources. eventIds must copy exact timeline eventIds, case-sensitively, and should identify directly discussed events. For every eventId, the speakerId must be that event's actorId or one of its witnessIds so the speaker is physically present at the projected scene. Every statement must contain at least one knowledgeSourceIds entry naming the exact event or trace that gives the speaker that knowledge. Each contradictedByTraceIds array contains at most one exact trace-ledger ID, and the complete ledger may use at most {ProjectionCapacityPolicy.For(draft.Settings).MaxChallengeSlots} distinct contradiction trace IDs. Mark TRUE/FALSE/MISLEADING, provide a reason for every lie, independent source group, and one or two IDs from the locked proof-ID contract below. Across upstream traces plus these statements, every one of the five locked conclusion IDs must have at least two distinct independent source groups; generate compact corroborating statements for any missing category. GAMEPLAY DIALOGUE BUDGET: the projection allows {gameplayContract.MinDialogues}-{gameplayContract.MaxDialogues} dialogue slots. Statements that carry contradictions must either stay within that limit or share the same speaker and at least one referenced event location so the backend can group them without changing truth.",
             _ => $"Build exactly five proof conclusions using the locked ID/category pairs below, plus at most {budget.MaxRedHerrings} red-herring ledger entries. supportingTraceIds and clearingTraceIds must copy exact locked trace-ledger IDs; supportingStatementIds and clearingStatementIds must copy exact locked statement-ledger IDs; excluded and red-herring suspect IDs must copy exact locked suspect IDs. Every conclusion must contain at least one supportingTraceId. Each red herring may use at most one clearingTraceId and must reuse an existing proof-linked trace whenever possible. Aggregate all relevant support under those five conclusions; cover each category with at least two independent source groups; eliminate every other suspect; every red herring needs clearing evidence. HARD IDENTITY INVARIANT: the {ProofConclusionIds.Identity} conclusion must include at least one of these eligible culprit crime-action traces in supportingTraceIds: {eligibleIdentityTraceList}."
         };
+        var lockedProofSources = artifact == CaseTruthArtifacts.ProofGraph
+            ? "EXACT REVERSE-LINK MAP: copy these complete arrays for each conclusion without adding or omitting a source. "
+              + "The sources are already locked; write propositions within their actual proof limits. "
+              + JsonSerializer.Serialize(ProofConclusionIds.ByCategory.Select(pair => new
+              {
+                  category = pair.Key,
+                  conclusionId = pair.Value,
+                  supportingTraceIds = truth.TraceLedger
+                      .Where(trace => trace.SupportsConclusionIds.Contains(pair.Value, StringComparer.Ordinal))
+                      .Select(trace => trace.TraceId).Distinct(StringComparer.Ordinal).ToArray(),
+                  supportingStatementIds = truth.StatementLedger
+                      .Where(statement => statement.SupportsConclusionIds.Contains(pair.Value, StringComparer.Ordinal))
+                      .Select(statement => statement.StatementId).Distinct(StringComparer.Ordinal).ToArray()
+              }), CompactJson)
+            : string.Empty;
         var proofIdContract = artifact is CaseTruthArtifacts.Evidence
             or CaseTruthArtifacts.Statements
             or CaseTruthArtifacts.ProofGraph
@@ -842,7 +1057,21 @@ public partial class AiCaseService
         return $"""
             You are producing only the {artifact} artifact of {CaseTruthSchemaVersions.V2}.
             {instruction}
+            {timelineSlotContract}
+            {proofScopeContract}
+            {methodEvidenceContract}
+            {sourceIndependenceContract}
+            ALIBI COVERAGE: for every innocent excluded by OPPORTUNITY, carry their actual locked witness
+            observation into an explicit trace or statement linked to that conclusion. Check each innocent
+            separately: two independent groups about other people do not corroborate this person's alibi.
+            A witness describing others is not independent support for that witness's own location.
+            Prefer one compact statement covering multiple events the speaker actually observed; include
+            every relevant eventId and knowledgeSourceId, without inventing observations or timestamps.
             {proofIdContract}
+            {lockedProofSources}
+            PROJECTION SOURCE CLOSURE: every trace and statement supporting a final conclusion must reach gameplay.
+            All proof-linked, contradiction and red-herring-clearing statements count toward the same dialogue budget.
+            Group compatible statements by the same speaker and shared referenced scene; never drop a supporting fact to fit.
             All upstream JSON is immutable. Never rewrite, rename, or reinterpret upstream IDs or facts.
             HARD GENERATION BUDGET: suspects <= {budget.MaxSuspects}; locations <= {budget.MaxLocations};
             timeline events <= {budget.MaxTimelineEvents}; traces <= {budget.MaxTraces}; statements <= {budget.MaxStatements}; red herrings <= {budget.MaxRedHerrings};
@@ -970,6 +1199,13 @@ public partial class AiCaseService
                 Check retained physical mechanisms after resets, covert actions overlapping another actor at the same
                 location, trace persistence for the stated elapsed time/environment, antecedents for altered records,
                 objectively corroborated alibis, and whether IDENTITY evidence actually identifies an actor.
+                Check that METHOD sources establish the decisive crime actions and outcome in coreTruth.method,
+                not only a distraction or preparation. A narrower METHOD proposition cannot conceal missing proof
+                of the locked substitution, removal, or concealment. Report unsupported claims as PROOF_SCOPE.
+                Assess source independence from causal and knowledge dependencies, not distinct group labels:
+                a document and a statement merely repeating or admitting its contents are one dependent source.
+                Follow sourceActionId and knowledgeSourceIds; separately observed firsthand facts may be independent.
+                Report insufficient independent corroboration as PROOF_SCOPE without demanding a nonsuspect witness.
                 Return findings without proposing story changes.
 
                 LOCKED TRUTH:
@@ -1033,7 +1269,11 @@ public partial class AiCaseService
         var raw = await GenerateJsonWithOpenAiAsync(
             draft.Id, "ReviewBlindSolvability", $"""
                 Act as a blind detective-game solver. Use only the player-visible information below.
-                Infer culpritId, the exact motive and method strings, a concrete crime timeline, and a five-claim evidence chain.
+                Infer culpritId, the exact motive and method strings, and a concrete crime timeline.
+                For PASSED, return exactly one claimProofs entry for each of MOTIVE, METHOD, OPPORTUNITY, IDENTITY, and TIMELINE.
+                For FAILED or AMBIGUOUS, return only the claimProofs entries you can support and explain the missing or conflicting claims in findings.
+                Each claimProofs entry must cite one or more player-visible clue IDs and explain the inference from those clues.
+                The server will derive evidenceChainIds from the claim proof union; do not repeat that list in your response.
                 Do not assume hidden truth, success text, red-herring flags, or final answer metadata.
                 PASSED requires exactly one reasonable solution and confidence >= 0.80.
                 Confidence measures confidence in your verdict, not a solvability score. Return legacy issues as [].
@@ -1044,7 +1284,7 @@ public partial class AiCaseService
                 {playerKnowledge}
                 """, 5000,
             AiGenerationSchemaVersions.BlindSolvabilityReview,
-            AiStrictSchemaProvider.BlindSolvabilityReviewSchema(),
+            AiStrictSchemaProvider.BlindSolvabilityReviewV3Schema(),
             await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.BlindSolvabilityReview),
             mockResponseFactory: () => JsonSerializer.Serialize(AiCaseMockFactory.BuildMockBlindReview(draft.CaseTruth, gameCase), PrettyJson),
             generationRunId: draft.GenerationRunId);
@@ -1052,7 +1292,7 @@ public partial class AiCaseService
             ?? new BlindSolvabilityReview
             {
                 Status = CaseTruthReviewStatuses.Failed,
-                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
+                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3,
                 Findings =
                 {
                     new CaseTruthReviewFinding
@@ -1064,6 +1304,11 @@ public partial class AiCaseService
                 }
             };
         review.ReviewedAt = DateTime.UtcNow;
+        if (review.SchemaVersion == CaseTruthSchemaVersions.BlindReviewV3)
+            review.EvidenceChainIds = review.ClaimProofs
+                .SelectMany(item => item.EvidenceIds)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
         return review;
     }
 
@@ -1086,7 +1331,7 @@ public partial class AiCaseService
     private static BlindSolvabilityReview UnavailableBlindReview(string message) => new()
     {
         Status = CaseTruthReviewStatuses.NotRun,
-        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
+        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3,
         ReviewedAt = DateTime.UtcNow,
         Findings =
         {
@@ -1102,7 +1347,7 @@ public partial class AiCaseService
     private static BlindSolvabilityReview DisabledBlindReview() => new()
     {
         Status = CaseTruthReviewStatuses.NotRun,
-        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
+        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3,
         ReviewedAt = DateTime.UtcNow
     };
 
@@ -1129,35 +1374,8 @@ public partial class AiCaseService
     private CaseValidationResult ValidateTruthForGameplay(
         AiCaseDraft draft,
         CaseTruthPackage truth,
-        AiTruthGenerationBudget budget)
-    {
-        var validation = _truthService.Validate(truth, budget);
-        if (!validation.IsValid)
-            return validation;
-
-        validation.Errors.AddRange(_projectionPlanner.ValidateProjectability(draft, truth).Errors);
-        if (!validation.IsValid)
-            return validation;
-
-        // The planner also owns stable distractor and acquisition allocation. Building it
-        // here is pure and catches those late projectability failures before truth approval.
-        try
-        {
-            _projectionPlanner.Build(draft, truth);
-        }
-        catch (ProjectionPlanningException ex)
-        {
-            foreach (var error in ex.Errors)
-            {
-                var path = error.Contains("challenge", StringComparison.OrdinalIgnoreCase)
-                    ? "statementLedger"
-                    : "trueTimeline.traceIds";
-                validation.Add("ProjectionAllocationFailure", path, error);
-            }
-        }
-        validation.Deduplicate();
-        return validation;
-    }
+        AiTruthGenerationBudget budget) =>
+        AiTruthRepairCandidatePolicy.ValidateForGameplay(draft, truth, budget, _truthService, _projectionPlanner);
 
     private static AiTruthGenerationBudget TruthBudgetForDraft(AiCaseDraft draft) =>
         CaseTargetKinds.All.Contains(draft.PlannedTargetKind)
@@ -1172,14 +1390,20 @@ public partial class AiCaseService
         gameCase.LogicVerificationStatus = CaseLogicVerificationStatuses.CausalVerified;
         gameCase.TruthSchemaVersion = draft.TruthSchemaVersion;
         gameCase.TruthHash = draft.TruthHash;
-        gameCase.BlindReviewStatus = includeBlindStatus ? draft.BlindSolvabilityReview.Status : CaseTruthReviewStatuses.NotRun;
+        gameCase.BlindReviewStatus = includeBlindStatus
+            ? draft.BlindReviewAssessment.Status == BlindReviewAssessmentStatuses.Passed
+                ? CaseTruthReviewStatuses.Passed
+                : draft.BlindReviewAssessment.Status is BlindReviewAssessmentStatuses.Failed or BlindReviewAssessmentStatuses.Ambiguous
+                    ? draft.BlindReviewAssessment.Status
+                    : CaseTruthReviewStatuses.NotRun
+            : CaseTruthReviewStatuses.NotRun;
     }
 
     private async Task SaveInvalidTruthAsync(AiCaseDraft draft, CaseTruthPackage truth, string canonical, string hash,
         CaseValidationResult validation, CaseTruthFeasibilityReview? review = null)
     {
         var repairPlan = _truthService.PlanRepair(validation.Errors);
-        await UpdateActiveRunAsync(draft, Builders<AiCaseDraft>.Update
+        await UpdateActiveRunAsync(draft, ClearSavedTruthRepairCandidate()
             .Set(item => item.Status, AiDraftStatus.CaseTruthInvalid)
             .Set(item => item.CaseTruth, truth)
             .Set(item => item.CaseTruthJson, canonical)
@@ -1418,16 +1642,8 @@ public partial class AiCaseService
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-    private CaseTruthRepairPlan DetermineTruthRepairPlan(AiCaseDraft draft, CaseValidationResult validation)
-    {
-        if (!validation.IsValid)
-            return _truthService.PlanRepair(validation.Errors);
-        var resumableArtifact = NextTruthArtifact(draft.TruthCheckpointArtifact);
-        if (resumableArtifact is not null) return CaseTruthRepairPolicy.BuildPlan(resumableArtifact);
-        if (draft.TruthReviewerResult.Status is CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous)
-            return CaseTruthRepairPolicy.PlanReview(draft.TruthReviewerResult);
-        return CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.CoreTruth);
-    }
+    private CaseTruthRepairPlan DetermineTruthRepairPlan(AiCaseDraft draft, CaseValidationResult validation) =>
+        AiTruthRepairCandidatePolicy.PlanCurrent(draft, _truthService, validation);
 
     internal static string BuildTruthReviewFeedback(CaseTruthFeasibilityReview review)
     {
@@ -1467,18 +1683,78 @@ public partial class AiCaseService
         return result;
     }
 
-    private CaseValidationResult ValidateGeneratedBlindReview(CaseTruthPackage truth, BlindSolvabilityReview review)
+    private CaseValidationResult ValidateGeneratedBlindReview(
+        CaseTruthPackage truth,
+        GameCase gameCase,
+        BlindSolvabilityReview review)
     {
         if (!_settings.EnableBlindSolvabilityReview)
             return new CaseValidationResult();
 
-        var result = _truthService.ValidateBlindReview(truth, review);
-        if (review.SchemaVersion != CaseTruthSchemaVersions.BlindReviewV2
+        var result = _truthService.ValidateBlindReview(truth, gameCase, review);
+        if (review.SchemaVersion != CaseTruthSchemaVersions.BlindReviewV3
             && !result.Errors.Any(error => error.Code == "InvalidReviewSchema"))
             result.Add("InvalidReviewSchema", "blindReview.schemaVersion",
-                "New blind reviews must use case-blind-solvability-review-v2.");
+                "New blind reviews must use case-blind-solvability-review-v3.");
         return result;
     }
+
+    private BlindReviewAssessment EvaluateBlindReview(
+        AiCaseDraft draft,
+        GameCase gameCase,
+        BlindSolvabilityReview review)
+    {
+        var playerKnowledge = _truthService.BuildBlindPlayerKnowledge(gameCase).ToJsonString(PrettyJson);
+        var assessment = new BlindReviewAssessment
+        {
+            EvaluatedAt = DateTime.UtcNow,
+            InputHash = Sha256($"{draft.TruthHash}:{playerKnowledge}"),
+            ValidatorVersion = "blind-review-validator-v1"
+        };
+
+        if (!_settings.EnableBlindSolvabilityReview)
+        {
+            assessment.Status = BlindReviewAssessmentStatuses.Disabled;
+            return assessment;
+        }
+
+        if (review.Status == CaseTruthReviewStatuses.NotRun)
+        {
+            assessment.Status = review.Findings.Count > 0
+                ? BlindReviewAssessmentStatuses.Unavailable
+                : BlindReviewAssessmentStatuses.NotRun;
+            assessment.ValidationErrors = review.Findings.Select(ToBlindReviewValidationError).ToList();
+            return assessment;
+        }
+
+        var validation = ValidateGeneratedBlindReview(draft.CaseTruth!, gameCase, review);
+        assessment.ValidationErrors = validation.Errors.Select(error => new BlindReviewValidationError
+        {
+            Code = error.Code,
+            Path = error.Path,
+            Message = error.Message,
+            RelatedIds = error.RefId is null ? new List<string>() : [error.RefId]
+        }).ToList();
+        if (review.SchemaVersion != CaseTruthSchemaVersions.BlindReviewV3)
+            assessment.Status = BlindReviewAssessmentStatuses.LegacyUnverified;
+        else if (!validation.IsValid)
+            assessment.Status = BlindReviewAssessmentStatuses.Invalid;
+        else if (review.Status == CaseTruthReviewStatuses.Passed)
+            assessment.Status = BlindReviewAssessmentStatuses.Passed;
+        else if (review.Status == CaseTruthReviewStatuses.Ambiguous)
+            assessment.Status = BlindReviewAssessmentStatuses.Ambiguous;
+        else
+            assessment.Status = BlindReviewAssessmentStatuses.Failed;
+        return assessment;
+    }
+
+    private static BlindReviewValidationError ToBlindReviewValidationError(CaseTruthReviewFinding finding) => new()
+    {
+        Code = finding.Code,
+        Path = "blindReview.findings",
+        Message = finding.Message,
+        RelatedIds = finding.RelatedIds.ToList()
+    };
 
     private void LogAdvisoryTruthReview(string draftId, CaseTruthFeasibilityReview review, string selectedScope)
     {

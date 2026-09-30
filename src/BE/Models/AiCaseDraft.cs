@@ -23,7 +23,7 @@ public static class AiGenerationSchemaVersions
     public const string StatementLedger = "statement-ledger-v2";
     public const string ProofGraph = "proof-graph-v2";
     public const string CaseTruthReview = CaseTruthSchemaVersions.FeasibilityReviewV2;
-    public const string BlindSolvabilityReview = CaseTruthSchemaVersions.BlindReviewV2;
+    public const string BlindSolvabilityReview = CaseTruthSchemaVersions.BlindReviewV3;
 }
 
 public static class AiCaseTypes
@@ -251,11 +251,24 @@ public class AiCaseDraft
     public string TruthRepairFromArtifact { get; set; } = string.Empty;
     public List<string> TruthRepairReasonCodes { get; set; } = new();
     public CaseTruthFeasibilityReview TruthRepairReviewerResult { get; set; } = new();
+    /// <summary>Immutable input for an explicitly requested continuation of an invalid candidate.</summary>
+    public CaseTruthPackage? TruthRepairInput { get; set; }
+    public string TruthRepairInputHash { get; set; } = string.Empty;
+    public bool TruthRepairUseCandidate { get; set; }
+    /// <summary>Earliest artifact changed by this candidate's repair chain; earlier artifacts stay locked to CaseTruth.</summary>
+    public string TruthRepairOriginalFromArtifact { get; set; } = string.Empty;
+    public string TruthRepairCandidateHash { get; set; } = string.Empty;
+    public string TruthRepairBaseHash { get; set; } = string.Empty;
+    /// <summary>The stage whose deterministic validation stopped the latest candidate generation.</summary>
+    public string TruthRepairFailedArtifact { get; set; } = string.Empty;
     public BlindSolvabilityReview BlindSolvabilityReview { get; set; } = new();
+    public BlindReviewAssessment BlindReviewAssessment { get; set; } = new();
     public List<AiArtifactProvenance> ArtifactProvenance { get; set; } = new();
     public GameplayProjectionPlan? ProjectionPlan { get; set; }
     public string ProjectionPlanJson { get; set; } = string.Empty;
     public string ProjectionPlanSchemaVersion { get; set; } = string.Empty;
+    // Empty on historical drafts: preserve their v1 model response contract on resume.
+    public string ProjectionContentSchemaVersion { get; set; } = string.Empty;
     public string ProjectionPlanHash { get; set; } = string.Empty;
     public string ProjectionContentJson { get; set; } = string.Empty;
     public string ProjectionContentHash { get; set; } = string.Empty;
@@ -332,6 +345,19 @@ public class AiDraftSettings
     public bool IncludeCrackTheLie { get; set; }
     /// <summary>Requested crime archetype. RANDOM lets the server select a concrete type per draft.</summary>
     public string CaseType { get; set; } = AiCaseTypes.Random;
+    public AiCreativeConstraints CreativeConstraints { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class AiCreativeConstraints
+{
+    public string SettingId { get; set; } = string.Empty;
+    public string ToneId { get; set; } = string.Empty;
+    public string InvestigationMechanicId { get; set; } = string.Empty;
+
+    public bool IsEmpty => string.IsNullOrWhiteSpace(SettingId)
+        && string.IsNullOrWhiteSpace(ToneId)
+        && string.IsNullOrWhiteSpace(InvestigationMechanicId);
 }
 
 [BsonIgnoreExtraElements]
@@ -350,6 +376,7 @@ public class AiStoryDiversityProfile
     public string TwistArchetype { get; set; } = string.Empty;
     public string InvestigationMechanic { get; set; } = string.Empty;
     public string CoreFingerprint { get; set; } = string.Empty;
+    public AiCreativeConstraints CreativeConstraints { get; set; } = new();
 }
 
 [BsonIgnoreExtraElements]
@@ -360,6 +387,23 @@ public class AiV3SemanticReview
     public List<AiV3PairEvaluation> PairEvaluations { get; set; } = new();
     public List<AiV3CrackReview> Cracks { get; set; } = new();
     public DateTime? ReviewedAt { get; set; }
+    public List<AiV3SemanticBatchCheckpoint> BatchCheckpoints { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class AiV3SemanticBatchCheckpoint
+{
+    public string BatchKey { get; set; } = string.Empty;
+    public List<string> ChallengeIds { get; set; } = new();
+    public string Status { get; set; } = AiV3SemanticReviewStatuses.NotRun;
+    /// <summary>Stable local correlation key for the paid attempt reserved by this checkpoint.</summary>
+    public string AttemptId { get; set; } = string.Empty;
+    /// <summary>Provider response/request ID when the response is known; remains empty when unresolved.</summary>
+    public string CallId { get; set; } = string.Empty;
+    public int AttemptNumber { get; set; }
+    public int AttemptCount { get; set; }
+    public string ResultJson { get; set; } = string.Empty;
+    public DateTime? UpdatedAt { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -473,6 +517,8 @@ public class AiGenerationAttempt
     public string GenerationRunId { get; set; } = string.Empty;
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }
+    public int CachedInputTokens { get; set; }
+    public int ReasoningTokens { get; set; }
     public string ResponseSha256 { get; set; } = string.Empty;
     public string RawResponsePath { get; set; } = string.Empty;
     public List<string> ValidationErrors { get; set; } = new();

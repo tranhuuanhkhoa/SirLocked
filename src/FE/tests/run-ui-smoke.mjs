@@ -9,12 +9,17 @@ const viteArgs = [
   './node_modules/vite/bin/vite.js',
   '--host', parsedBaseUrl.hostname,
   '--port', parsedBaseUrl.port || '5173',
+  '--strictPort',
 ];
 const requestedArgs = process.argv.slice(2);
+const outputArgs = requestedArgs.some((arg) => arg === '--output' || arg.startsWith('--output='))
+  ? []
+  : [`--output=test-results/run-${Date.now()}-${process.pid}`];
 const playwrightArgs = [
   './node_modules/@playwright/test/cli.js',
   'test',
-  ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/admin-ai-language.spec.ts', 'tests/v3-paired-confrontation.spec.ts', 'tests/v3-two-browser-flow.spec.ts']),
+  ...outputArgs,
+  ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/route-lifecycle.spec.ts', 'tests/invites-resume.spec.ts', 'tests/auth-refresh.spec.ts', 'tests/google-login.spec.ts', 'tests/admin-ai-language.spec.ts', 'tests/admin-ai-creation-errors.spec.ts', 'tests/admin-ai-truth-repair.spec.ts', 'tests/presentation-admin.spec.ts', 'tests/admin-v3-case-gates.spec.ts', 'tests/v3-accusation-consensus.spec.ts', 'tests/v3-paired-confrontation.spec.ts', 'tests/v3-two-browser-flow.spec.ts']),
 ];
 
 let server;

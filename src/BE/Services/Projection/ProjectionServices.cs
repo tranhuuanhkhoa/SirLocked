@@ -30,14 +30,15 @@ public interface IProjectionGraphValidator
 
 /// <summary>
 /// Restores the plan-owned slot values that the strict content schema does not ask the model for.
-/// Only fields whose single valid answer already lives in the plan are written; slot membership,
-/// identity strings and player-facing prose stay exactly as generated so the compiler's conformance
-/// checks keep their teeth.
+/// Only fields whose single valid answer already lives in the plan are written. V2 wire content
+/// omits scalar identities too; map membership and player-facing prose remain model-owned.
+/// Legacy v1 scalar identities remain untouched so historical conformance checks are preserved.
 /// </summary>
 public static class ProjectionContentLocks
 {
     public static void Apply(GameplayProjectionPlan plan, GameplayProjectionContent content)
     {
+        ProjectionWireContract.RestoreScalarLocks(plan, content);
         foreach (var (id, clue) in content.Clues)
         {
             if (!plan.Clues.TryGetValue(id, out var slot)) continue;

@@ -124,6 +124,66 @@ public class GameplayRuleTests
         Assert.False(GameRules.IsSceneAlreadyCompleted(state, "scene-other"));
     }
 
+    [Theory]
+    [InlineData(CaseMechanicsVersions.InvestigationV2)]
+    [InlineData(CaseMechanicsVersions.InvestigationV3PairedConfrontation)]
+    public void CausalAccusation_RequiresEveryRequiredPuzzle(int mechanicsVersion)
+    {
+        var (gameCase, state) = CompletedCaseWithPuzzles(
+            CaseLogicContractVersions.CausalFiveClaim, mechanicsVersion);
+        state.SolvedPuzzleIds.Add("puzzle-required-a");
+        state.SolvedPuzzleIds.Add("puzzle-unrelated");
+
+        Assert.False(GameRules.IsAccusationAvailable(gameCase, state));
+
+        state.SolvedPuzzleIds.Add("puzzle-required-b");
+
+        Assert.True(GameRules.IsAccusationAvailable(gameCase, state));
+        Assert.DoesNotContain("puzzle-optional", state.SolvedPuzzleIds);
+        Assert.DoesNotContain("puzzle-alternate", state.SolvedPuzzleIds);
+    }
+
+    [Theory]
+    [InlineData(CaseMechanicsVersions.Legacy)]
+    [InlineData(CaseMechanicsVersions.InvestigationV2)]
+    [InlineData(CaseMechanicsVersions.InvestigationV3PairedConfrontation)]
+    public void LegacyContractAccusation_DoesNotAddPuzzleRequirement(int mechanicsVersion)
+    {
+        var (gameCase, state) = CompletedCaseWithPuzzles(
+            CaseLogicContractVersions.LegacyThreeClaim, mechanicsVersion);
+
+        Assert.Empty(state.SolvedPuzzleIds);
+        Assert.True(GameRules.IsAccusationAvailable(gameCase, state));
+    }
+
+    private static (GameCase Case, GameplayState State) CompletedCaseWithPuzzles(
+        int logicContractVersion, int mechanicsVersion) =>
+        (new GameCase
+        {
+            LogicContractVersion = logicContractVersion,
+            MechanicsVersion = mechanicsVersion,
+            Stages =
+            {
+                new CaseStage
+                {
+                    StageId = "stage-final", Order = 1,
+                    Scenes = { new CaseScene { SceneId = "scene-final" } }
+                }
+            },
+            Puzzles =
+            {
+                new CasePuzzle { PuzzleId = "puzzle-required-a", ProgressionRole = PuzzleProgressionRoles.Required },
+                new CasePuzzle { PuzzleId = "puzzle-required-b", ProgressionRole = PuzzleProgressionRoles.Required },
+                new CasePuzzle { PuzzleId = "puzzle-optional", ProgressionRole = PuzzleProgressionRoles.Optional },
+                new CasePuzzle { PuzzleId = "puzzle-alternate", ProgressionRole = PuzzleProgressionRoles.Alternate }
+            }
+        }, new GameplayState
+        {
+            CurrentSceneId = "scene-final",
+            GameStatus = GameStatus.InProgress,
+            CompletedSceneIds = { "scene-final" }
+        });
+
     [Fact]
     public void StageCompletion_RequiresEverySceneInStage()
     {

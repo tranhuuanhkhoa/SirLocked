@@ -1,15 +1,18 @@
 import * as signalR from '@microsoft/signalr';
 import { session } from './session.js';
+import { createRoomConnectionLifecycle } from './roomConnectionLifecycle.js';
 
 /**
  * Creates a SignalR connection bound to a room group.
  * Reconnect policy (API_SPEC.md): on reconnect, rejoin the room group and let the
  * caller refetch GET /api/game/rooms/{roomId}/state to replace local state.
  */
-export function createRoomConnection(roomId, handlers = {}, { onReconnected, onClose } = {}) {
+export function createRoomConnection(roomId, handlers = {}, { onReconnected, onClose, onStatusChange } = {}) {
+  let stopped = false;
   if (window.__sirlockedNoSignalR === true) {
     const localHandlers = { ...handlers };
-    window.__sirlockedEmitSignalR = (event, payload) => localHandlers[event]?.(payload);
+    const emit = (event, payload) => { if (!stopped) localHandlers[event]?.(payload); };
+    window.__sirlockedEmitSignalR = emit;
     return {
       connection: {
         state: 'Connected',
@@ -18,8 +21,13 @@ export function createRoomConnection(roomId, handlers = {}, { onReconnected, onC
         onclose: () => {},
         onreconnected: () => {},
       },
-      async start() {},
-      async stop() {},
+      async start() { if (!stopped) onStatusChange?.('connected'); },
+      async restart() { if (!stopped) { onStatusChange?.('connected'); onReconnected?.(); } },
+      async stop() {
+        stopped = true;
+        if (window.__sirlockedEmitSignalR === emit) delete window.__sirlockedEmitSignalR;
+      },
+      async sendPing(kind) { await this.connection.invoke('SendPing', roomId, kind); },
     };
   }
 
@@ -30,32 +38,19 @@ export function createRoomConnection(roomId, handlers = {}, { onReconnected, onC
     .build();
 
   for (const [event, handler] of Object.entries(handlers)) {
-    connection.on(event, handler);
+    connection.on(event, (payload) => { if (!stopped) handler(payload); });
   }
 
-  connection.onreconnected(async () => {
-    try {
-      await connection.invoke('JoinRoom', roomId);
-    } catch {
-      /* JoinRoom failure surfaces through RoomError */
-    }
-    onReconnected?.();
-  });
-
-  if (onClose) connection.onclose(onClose);
+  const lifecycle = createRoomConnectionLifecycle(connection, roomId, { onReconnected, onClose, onStatusChange });
 
   return {
     connection,
-    async start() {
-      await connection.start();
-      await connection.invoke('JoinRoom', roomId);
+    async sendPing(kind) {
+      if (!['DISCOVERY', 'COMPARE', 'WAITING'].includes(kind)) throw new Error('Invalid team ping.');
+      await connection.invoke('SendPing', roomId, kind);
     },
-    async stop() {
-      try {
-        await connection.stop();
-      } catch {
-        /* already stopped */
-      }
-    },
+    start: lifecycle.start,
+    restart: lifecycle.restart,
+    async stop() { stopped = true; await lifecycle.stop(); },
   };
 }

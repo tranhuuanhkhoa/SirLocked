@@ -210,7 +210,7 @@ internal static class CausalStateGraphValidator
         if (gameCase.FinalLogic.RequiredDeductionIds.Any(id => !state.Deductions.Contains(id))) return false;
         if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
             && gameCase.EvidenceChallenges.Any(item => !state.Challenges.Contains(item.ChallengeId))) return false;
-        if (gameCase.Puzzles.Any(item => item.ProgressionRole == PuzzleProgressionRoles.Required && !state.Puzzles.Contains(item.PuzzleId))) return false;
+        if (!GameRules.AreRequiredPuzzlesSolved(gameCase, state.Puzzles)) return false;
         return gameCase.FinalLogic.RequiredTeamworkChainIds.All(id =>
         {
             var chain = gameCase.RequiredTeamworkChains.FirstOrDefault(item => item.ChainId == id);

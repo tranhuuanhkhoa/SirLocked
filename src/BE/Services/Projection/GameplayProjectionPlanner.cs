@@ -6,7 +6,7 @@ using MongoDB.Bson;
 
 namespace SirLocked.Api.Services.Projection;
 
-public sealed class GameplayProjectionPlanner : IGameplayProjectionPlanner
+public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlanner
 {
     private readonly ICaseTruthService _truthService;
     private readonly IProjectionReadinessAnalyzer _readinessAnalyzer;
@@ -104,11 +104,19 @@ public sealed class GameplayProjectionPlanner : IGameplayProjectionPlanner
                 $"Truth uses {truth.RedHerringLedger.Count} red herrings but the preset allows {capacity.MaxRedHerringSlots}.");
         if (finalEvidence.Validation.IsValid)
         {
+            var proofTraceIds = ProjectionProofClosure.TraceIds(truth).ToHashSet(StringComparer.Ordinal);
+            foreach (var missingTraceId in proofTraceIds.Where(id => truth.TraceLedger.All(trace => trace.TraceId != id)))
+                result.Add("ProjectionMissingRequiredTrace", "traceLedger",
+                    "A trace required by a final proposition is missing. Restore the evidence without weakening the approved proposition.", missingTraceId);
             var requiredTraceIds = truth.RedHerringLedger.SelectMany(item => item.ClearingTraceIds)
                 .Concat(truth.StatementLedger.SelectMany(item => item.ContradictedByTraceIds))
                 .Concat(finalEvidence.EvidenceByCategory.Values.Select(item => item.TraceId))
+                .Concat(proofTraceIds)
                 .ToHashSet(StringComparer.Ordinal);
-            if (requiredTraceIds.Count > capacity.BaseTraceCapacity)
+            if (proofTraceIds.Count > capacity.BaseTraceCapacity)
+                result.Add("ProjectionProofClosureBudget", "trueTimeline.traceIds",
+                    $"Final propositions require {proofTraceIds.Count} distinct traces but the preset allows {capacity.BaseTraceCapacity} base traces. Consolidate physical evidence from the timeline or choose a larger preset; preserve every approved proposition and all of its supporting facts, never delete proof links merely to fit the budget.");
+            else if (requiredTraceIds.Count > capacity.BaseTraceCapacity)
             {
                 var hasRedHerringTrace = truth.RedHerringLedger.Any(item => item.ClearingTraceIds.Count > 0);
                 result.Add(
@@ -251,10 +259,9 @@ public sealed class GameplayProjectionPlanner : IGameplayProjectionPlanner
 
         CreateV3EvidenceSources(skeleton, truth, clueByTrace, contract);
         CreateDialogues(skeleton, dialogueAllocation);
+        CreateInvestigativeMechanics(skeleton, truth, contract, clueByTrace);
         CreateChallenges(skeleton, truth, clueByTrace, contract, challengeStatementIds);
         FillClueBudget(skeleton, truth, contract.MinClues);
-        CreatePuzzles(skeleton, truth, contract, characters[0]);
-        CreateInteractions(skeleton, contract);
         CreateDeductionsAndTeamwork(skeleton, truth, contract);
         CreateHints(skeleton);
         CreateFinalLogic(skeleton, truth);
@@ -332,6 +339,7 @@ public sealed class GameplayProjectionPlanner : IGameplayProjectionPlanner
 
         foreach (var category in EvidenceClaimTypes.OrderedForContract(CaseLogicContractVersions.CausalFiveClaim))
             Add(finalEvidence[category].TraceId);
+        foreach (var traceId in ProjectionProofClosure.TraceIds(truth)) Add(traceId);
         foreach (var trace in truth.TraceLedger)
         {
             if (selected.Count >= minimum) break;
@@ -617,96 +625,6 @@ public sealed class GameplayProjectionPlanner : IGameplayProjectionPlanner
             var trace = truth.TraceLedger[index % truth.TraceLedger.Count];
             skeleton.Clues.Add(CreateTraceClue(trace, $"clue-{trace.TraceId}-view-{index + 1:00}"));
             index++;
-        }
-    }
-
-    private static void CreatePuzzles(
-        GameCase skeleton,
-        CaseTruthPackage truth,
-        AiGenerationContract contract,
-        string targetCharacterId)
-    {
-        var count = AiGenerationPresets.Normalize(skeleton.GenerationPreset) switch
-        {
-            AiGenerationPresets.NormalRandom => 1,
-            AiGenerationPresets.DialogueHeavy => 0,
-            _ => contract.MinPuzzles
-        };
-        var types = new[]
-        {
-            CasePuzzleTypes.CodePuzzle,
-            CasePuzzleTypes.SequencePuzzle,
-            CasePuzzleTypes.SymbolMatchPuzzle
-        };
-        for (var index = 0; index < count; index++)
-        {
-            var conclusion = truth.ProofGraph.Conclusions[index % truth.ProofGraph.Conclusions.Count];
-            skeleton.Puzzles.Add(new CasePuzzle
-            {
-                PuzzleId = $"puzzle-{index + 1:00}",
-                Type = types[index % types.Length],
-                TargetId = targetCharacterId,
-                CorrectCode = index % types.Length == 0 ? "314" : string.Empty,
-                Options = index % types.Length == 0 ? new() : ["alpha", "beta", "gamma"],
-                CorrectSequence = index % types.Length == 0 ? new() : ["alpha", "gamma"],
-                BasedOnTruthIds = { conclusion.ConclusionId },
-                RevealsConclusionIds = { conclusion.ConclusionId },
-                ProgressionRole = PuzzleProgressionRoles.Required
-            });
-        }
-    }
-
-    private static void CreateInteractions(GameCase skeleton, AiGenerationContract contract)
-    {
-        var targetCount = AiGenerationPresets.Normalize(skeleton.GenerationPreset) switch
-        {
-            AiGenerationPresets.NormalRandom => 1,
-            AiGenerationPresets.DialogueHeavy => 0,
-            _ => contract.MinInteractions
-        };
-        var count = Math.Max(0, targetCount - skeleton.Interactions.Count);
-        if (count == 0) return;
-        var scene = skeleton.Stages.SelectMany(stage => stage.Scenes).First();
-        var itemIds = Enumerable.Range(1, Math.Max(3, count + 1))
-            .Select(index => $"item-projection-{index:00}")
-            .ToList();
-        foreach (var (itemId, index) in itemIds.Select((value, index) => (value, index)))
-        {
-            var target = index == itemIds.Count - 1;
-            skeleton.Items.Add(new CaseItem
-            {
-                ItemId = itemId,
-                RenderMode = target ? CaseItemRenderModes.Embedded : CaseItemRenderModes.Cutout,
-                IsCollectible = !target,
-                IsInteractivePuzzleObject = true,
-                InteractionPurpose = target
-                    ? CaseItemInteractionPurposes.OperateMechanism
-                    : CaseItemInteractionPurposes.CombineItem
-            });
-            scene.ItemIds.Add(itemId);
-            scene.Hotspots.Add(new SceneHotspot
-            {
-                HotspotId = $"hotspot-{scene.SceneId}-{itemId}",
-                Type = "ITEM",
-                TargetId = itemId,
-                X = 20 + index * 10,
-                Y = 65,
-                Width = 7,
-                Height = 9,
-                ZIndex = 4
-            });
-        }
-        for (var index = 0; index < count; index++)
-        {
-            var combine = index % 2 == 1;
-            skeleton.Interactions.Add(new CaseInteraction
-            {
-                InteractionId = $"interaction-{index + 1:00}",
-                Type = combine ? CaseInteractionTypes.CombineItems : CaseInteractionTypes.UseItemOnTarget,
-                TargetId = combine ? string.Empty : itemIds[^1],
-                RequiredItemIds = combine ? itemIds.Take(2).ToList() : [itemIds[0]],
-                SingleUse = true
-            });
         }
     }
 

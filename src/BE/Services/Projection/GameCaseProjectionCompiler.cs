@@ -12,6 +12,8 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         GameplayProjectionContent content,
         AiDraftSettings settings)
     {
+        if (content.SchemaVersion == ProjectionWireContract.CompactVersion)
+            ProjectionContentLocks.Apply(plan, content);
         var errors = ValidateEnvelope(plan, content);
         if (errors.Count > 0) throw new ProjectionCompilationException(errors);
 
@@ -49,11 +51,13 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         foreach (var item in gameCase.Items)
         {
             var value = content.Items[item.ItemId];
-            item.Name = value.Name;
-            item.Description = value.Description;
-            item.InspectText = value.InspectText;
+            // Mechanic instructions belong to the same plan as their prerequisites
+            // and answers; narrative generation must not invent a different task.
+            if (string.IsNullOrWhiteSpace(item.Name)) item.Name = value.Name;
+            if (string.IsNullOrWhiteSpace(item.Description)) item.Description = value.Description;
+            if (string.IsNullOrWhiteSpace(item.InspectText)) item.InspectText = value.InspectText;
             item.VisualDescription = value.VisualDescription;
-            item.InteractionReason = value.InteractionReason;
+            if (string.IsNullOrWhiteSpace(item.InteractionReason)) item.InteractionReason = value.InteractionReason;
             foreach (var hotspot in gameCase.Stages.SelectMany(stage => stage.Scenes)
                          .SelectMany(scene => scene.Hotspots)
                          .Where(hotspot => hotspot.TargetId == item.ItemId))
@@ -110,16 +114,16 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         foreach (var puzzle in gameCase.Puzzles)
         {
             var value = content.Puzzles[puzzle.PuzzleId];
-            puzzle.Prompt = value.Prompt;
-            puzzle.InvestigationPurpose = value.InvestigationPurpose;
-            puzzle.SuccessMessage = value.SuccessMessage;
-            puzzle.FailureMessage = value.FailureMessage;
+            if (string.IsNullOrWhiteSpace(puzzle.Prompt)) puzzle.Prompt = value.Prompt;
+            if (string.IsNullOrWhiteSpace(puzzle.InvestigationPurpose)) puzzle.InvestigationPurpose = value.InvestigationPurpose;
+            if (string.IsNullOrWhiteSpace(puzzle.SuccessMessage)) puzzle.SuccessMessage = value.SuccessMessage;
+            if (string.IsNullOrWhiteSpace(puzzle.FailureMessage)) puzzle.FailureMessage = value.FailureMessage;
         }
         foreach (var interaction in gameCase.Interactions)
         {
             var value = content.Interactions[interaction.InteractionId];
-            interaction.SuccessMessage = value.SuccessMessage;
-            interaction.FailureMessage = value.FailureMessage;
+            if (string.IsNullOrWhiteSpace(interaction.SuccessMessage)) interaction.SuccessMessage = value.SuccessMessage;
+            if (string.IsNullOrWhiteSpace(interaction.FailureMessage)) interaction.FailureMessage = value.FailureMessage;
         }
         foreach (var deduction in gameCase.Deductions)
         {
@@ -155,7 +159,7 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         GameplayProjectionContent content)
     {
         var errors = new List<string>();
-        if (content.SchemaVersion != GameplayProjectionVersions.Content)
+        if (content.SchemaVersion != GameplayProjectionVersions.Content && content.SchemaVersion != ProjectionWireContract.CompactVersion)
             errors.Add($"PROJECTION_CONTENT_SCHEMA expected {GameplayProjectionVersions.Content}.");
         if (content.PlanHash != plan.PlanHash)
             errors.Add("PROJECTION_PLAN_HASH content does not reference the persisted plan.");
@@ -387,7 +391,7 @@ public static class ProjectionContentMockFactory
                     return claim;
                 }).ToList();
                 content.Dialogues[group.Key].Answer = T(
-                    $"{string.Join(' ', claims)} I remained beside the western arch, recorded each change immediately, and did not leave my position until the final sound faded beyond the closed service passage that night.",
+                    $"{string.Join(' ', claims)} I remained beside the western arch, recorded each change immediately, and did not leave my position until the final sound faded beyond the closed service passage that night. I checked my observations again before answering.",
                     $"{string.Join(' ', claims)} Tôi ở cạnh vòm phía tây, ghi lại từng thay đổi ngay lập tức và không rời vị trí cho đến khi âm thanh cuối cùng tắt sau lối đi đã đóng.");
             }
         }

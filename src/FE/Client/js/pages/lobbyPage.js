@@ -4,6 +4,7 @@ import { createRoomConnection } from '../services/signalrClient.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
+import { roomInviteUrl } from '../services/roomInvites.js';
 
 // The server owns the room lifecycle; the lobby only reacts to the status/code it is told.
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'ABANDONED']);
@@ -26,16 +27,21 @@ const LOCK_ICON = `
     <circle cx="12" cy="16" r="1.4"></circle>
   </svg>`;
 
-export async function renderLobbyPage(app, roomId) {
+export async function renderLobbyPage(app, roomId, { signal } = {}) {
+  if (signal?.aborted) return;
   render(app, `<div class="page"><p class="muted">${tr('Loading lobby…', 'Đang tải phòng chờ…')}</p></div>`);
 
   let room;
   let leaving = false;
   let endedMessage = null;
+  let disposed = false;
   const me = session.user();
 
   const refresh = async () => {
-    room = await roomApi.get(roomId);
+    if (disposed) return;
+    const fresh = await roomApi.get(roomId);
+    if (disposed) return;
+    room = fresh;
     if (room.status === 'IN_PROGRESS') {
       window.location.hash = `#/game/${roomId}`;
       return;
@@ -46,6 +52,7 @@ export async function renderLobbyPage(app, roomId) {
   // A terminal room is a dead end: show what the server said and offer the way out
   // instead of leaving the player clicking buttons that can only fail.
   const handleActionError = (err) => {
+    if (disposed) return;
     if (err?.errors?.code === ROOM_ENDED_CODE) {
       endedMessage = err.message;
       draw();
@@ -55,21 +62,30 @@ export async function renderLobbyPage(app, roomId) {
   };
 
   const hub = createRoomConnection(roomId, {
-    PlayerJoined: ({ room: r }) => { room = r; draw(); toast('Your partner joined the room.', 'info'); },
-    PlayerLeft: ({ room: r }) => { room = r; draw(); toast('A player left the room.', 'info'); },
-    RolesUpdated: ({ room: r }) => { room = r; draw(); },
-    ReadyUpdated: ({ room: r }) => { room = r; draw(); },
-    GameStarted: () => { window.location.hash = `#/game/${roomId}`; },
-    RoomError: ({ message }) => toast(message, 'error'),
+    PlayerJoined: ({ room: r }) => { if (disposed) return; room = r; draw(); toast('Your partner joined the room.', 'info'); },
+    PlayerLeft: ({ room: r }) => { if (disposed) return; room = r; draw(); toast('A player left the room.', 'info'); },
+    RolesUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
+    ReadyUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
+    GameStarted: () => { if (!disposed) window.location.hash = `#/game/${roomId}`; },
+    RoomError: ({ message }) => { if (!disposed) toast(message, 'error'); },
   }, { onReconnected: () => refresh().catch(() => {}) });
+
+  const cleanup = () => {
+    if (disposed) return;
+    disposed = true;
+    signal?.removeEventListener('abort', cleanup);
+    return hub.stop();
+  };
+  signal?.addEventListener('abort', cleanup, { once: true });
 
   try {
     await refresh();
-    if (!room) return undefined;
+    if (disposed || !room || room.status === 'IN_PROGRESS') return cleanup;
     await hub.start();
   } catch (err) {
+    if (disposed) return cleanup;
     render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
-    return () => hub.stop();
+    return cleanup;
   }
 
   function drawEnded(message) {
@@ -89,7 +105,7 @@ export async function renderLobbyPage(app, roomId) {
   }
 
   function draw() {
-    if (!room || leaving) return;
+    if (disposed || !room || leaving) return;
     if (endedMessage) {
       drawEnded(endedMessage);
       return;
@@ -144,6 +160,15 @@ export async function renderLobbyPage(app, roomId) {
         </div>
       </div>
 
+      <section class="stack" aria-labelledby="room-invite-heading">
+        <label class="field-label" id="room-invite-heading" for="room-invite-link">${tr('Invite your partner', 'Mời đồng đội')}</label>
+        <input class="field-input" id="room-invite-link" type="url" readonly value="${escapeHtml(roomInviteUrl(room.roomCode))}">
+        <div class="cluster">
+          <button class="btn btn-ghost btn-sm" id="copy-invite" type="button">${tr('Copy invite link', 'Sao chép liên kết mời')}</button>
+          <span class="muted small">${tr('Your partner can sign in, then choose to join.', 'Đồng đội đăng nhập rồi bấm vào phòng.')}</span>
+        </div>
+      </section>
+
       <h3 class="section-title">${tr('Detectives', 'Thám tử')} (${room.players.length}/2)</h3>
       <div class="lobby-players">${playerRows}</div>
 
@@ -158,6 +183,19 @@ export async function renderLobbyPage(app, roomId) {
         <button class="btn btn-ghost" id="leave-btn">${tr('Leave room', 'Rời phòng')}</button>
       </div>
     </div>`);
+
+    qs('#copy-invite', app)?.addEventListener('click', async () => {
+      const input = qs('#room-invite-link', app);
+      try {
+        await navigator.clipboard.writeText(input.value);
+        if (!disposed) toast(tr('Invite link copied.', 'Đã sao chép liên kết mời.'), 'success');
+      } catch {
+        if (disposed) return;
+        input.focus();
+        input.select();
+        toast(tr('Select and copy the invite link above.', 'Hãy sao chép liên kết đã chọn ở trên.'), 'info');
+      }
+    });
 
     qs('#copy-code', app)?.addEventListener('click', async (event) => {
       // Visual acknowledgement only — no new copy, no string change.
@@ -195,7 +233,7 @@ export async function renderLobbyPage(app, roomId) {
       e.target.disabled = true;
       try {
         await roomApi.start(roomId);
-        window.location.hash = `#/game/${roomId}`;
+        if (!disposed) window.location.hash = `#/game/${roomId}`;
       } catch (err) {
         handleActionError(err);
         draw();
@@ -209,9 +247,9 @@ export async function renderLobbyPage(app, roomId) {
       } catch {
         /* leaving anyway */
       }
-      window.location.hash = '#/cases';
+      if (!disposed) window.location.hash = '#/cases';
     });
   }
 
-  return () => hub.stop();
+  return cleanup;
 }

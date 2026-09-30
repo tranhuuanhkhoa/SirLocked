@@ -10,6 +10,8 @@ public interface ICaseTruthService
     string ComputeHash(CaseTruthPackage truth);
     CaseValidationResult Validate(CaseTruthPackage truth);
     CaseValidationResult Validate(CaseTruthPackage truth, AiTruthGenerationBudget budget);
+    CaseValidationResult ValidateRepairPrefix(CaseTruthPackage truth, AiTruthGenerationBudget budget,
+        AiDraftSettings settings, string exclusiveArtifact);
     CaseValidationResult ValidateTimelineReferences(CaseTruthPackage truth, AiTruthGenerationBudget budget);
     CaseValidationResult ValidateTraceArtifact(CaseTruthPackage truth);
     CaseValidationResult ValidateStatementArtifact(CaseTruthPackage truth);
@@ -18,6 +20,7 @@ public interface ICaseTruthService
     CaseValidationResult ValidateProjection(CaseTruthPackage truth, GameCase gameCase);
     CaseValidationResult ValidateFeasibilityReview(CaseTruthFeasibilityReview review);
     CaseValidationResult ValidateBlindReview(CaseTruthPackage truth, BlindSolvabilityReview review);
+    CaseValidationResult ValidateBlindReview(CaseTruthPackage truth, GameCase gameCase, BlindSolvabilityReview review);
     JsonObject BuildBlindPlayerKnowledge(GameCase gameCase);
     CaseTruthRepairPlan PlanRepair(IEnumerable<CaseValidationError> errors);
 }

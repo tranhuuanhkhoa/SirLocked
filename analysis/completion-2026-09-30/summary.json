@@ -1,0 +1,22 @@
+{
+  "DraftId": "6aba793fa941714af5247263",
+  "Title": "Hạ Màn Tại Kho Hải Âu",
+  "Status": "FULL_LOGIC_AWAITING_APPROVAL",
+  "QueueState": "NONE",
+  "TruthReview": "PASSED",
+  "TruthReviewConfidence": 0.93,
+  "V3Review": "PASSED",
+  "BlindReview": "NOT_RUN",
+  "ValidationErrors": 0,
+  "TruthValidationErrors": 0,
+  "CostUsd": 3.15643,
+  "ThisCompletionCostUsd": 1.499791,
+  "RemainingUsd": 1.84357,
+  "Calls": 30,
+  "ReservationUsd": 0.0,
+  "UnknownCalls": 0,
+  "ImageCalls": 0,
+  "Published": false,
+  "Imported": false,
+  "SourceSha256": "569C9FD034575B75549907B7700729CF8F8D8CB1B4BEA6C76440F14C3AA37F71"
+}

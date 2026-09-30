@@ -93,7 +93,15 @@ public class MongoDbContext
                 new CreateIndexOptions { Unique = true, Name = "ux_rooms_roomCode" }),
             new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.CaseId)),
             new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.HostUserId)),
-            new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.Status))
+            new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys.Ascending(r => r.Status)),
+            new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys
+                .Ascending("players.userId").Ascending(r => r.Status)
+                .Descending(r => r.UpdatedAt).Descending(r => r.CreatedAt).Descending(r => r.Id),
+                new CreateIndexOptions { Name = "ix_rooms_player_status_updatedAt" }),
+            new CreateIndexModel<GameRoom>(Builders<GameRoom>.IndexKeys
+                .Ascending(r => r.Status).Ascending("players.isConnected")
+                .Ascending(r => r.GameplayState!.StartedAt).Ascending("players.disconnectedAt"),
+                new CreateIndexOptions { Name = "ix_rooms_disconnect_timeout" })
         }, ct);
 
         await ActionLogs.Indexes.CreateManyAsync(new[]
@@ -126,8 +134,8 @@ public class MongoDbContext
                     Name = "ux_aiCaseDrafts_creator_idempotency",
                     Unique = true,
                     PartialFilterExpression = Builders<AiCaseDraft>.Filter.And(
-                        Builders<AiCaseDraft>.Filter.Exists(d => d.IdempotencyKey, true),
-                        Builders<AiCaseDraft>.Filter.Ne(d => d.IdempotencyKey, string.Empty))
+                        Builders<AiCaseDraft>.Filter.Type(d => d.IdempotencyKey, BsonType.String),
+                        Builders<AiCaseDraft>.Filter.Gt(d => d.IdempotencyKey, string.Empty))
                 })
             ,new CreateIndexModel<AiCaseDraft>(
                 Builders<AiCaseDraft>.IndexKeys.Ascending(d => d.ActiveQuotaKey),
@@ -136,8 +144,8 @@ public class MongoDbContext
                     Name = "ux_aiCaseDrafts_activeQuotaKey",
                     Unique = true,
                     PartialFilterExpression = Builders<AiCaseDraft>.Filter.And(
-                        Builders<AiCaseDraft>.Filter.Exists(d => d.ActiveQuotaKey, true),
-                        Builders<AiCaseDraft>.Filter.Ne(d => d.ActiveQuotaKey, string.Empty))
+                        Builders<AiCaseDraft>.Filter.Type(d => d.ActiveQuotaKey, BsonType.String),
+                        Builders<AiCaseDraft>.Filter.Gt(d => d.ActiveQuotaKey, string.Empty))
                 })
             ,new CreateIndexModel<AiCaseDraft>(
                 Builders<AiCaseDraft>.IndexKeys.Ascending(d => d.DailyQuotaKey),
@@ -146,8 +154,8 @@ public class MongoDbContext
                     Name = "ux_aiCaseDrafts_dailyQuotaKey",
                     Unique = true,
                     PartialFilterExpression = Builders<AiCaseDraft>.Filter.And(
-                        Builders<AiCaseDraft>.Filter.Exists(d => d.DailyQuotaKey, true),
-                        Builders<AiCaseDraft>.Filter.Ne(d => d.DailyQuotaKey, string.Empty))
+                        Builders<AiCaseDraft>.Filter.Type(d => d.DailyQuotaKey, BsonType.String),
+                        Builders<AiCaseDraft>.Filter.Gt(d => d.DailyQuotaKey, string.Empty))
                 })
         }, ct);
 
@@ -155,6 +163,16 @@ public class MongoDbContext
         {
             new CreateIndexModel<AiGenerationLog>(Builders<AiGenerationLog>.IndexKeys
                 .Ascending(l => l.DraftId).Descending(l => l.CreatedAt))
+        }, ct);
+
+        await Database.GetCollection<AiUsageEvent>("aiUsageEvents").Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<AiUsageEvent>(Builders<AiUsageEvent>.IndexKeys
+                .Ascending(item => item.State).Ascending(item => item.UpdatedAt),
+                new CreateIndexOptions { Name = "ix_aiUsageEvents_state_updatedAt" }),
+            new CreateIndexModel<AiUsageEvent>(Builders<AiUsageEvent>.IndexKeys
+                .Ascending(item => item.Lease.DraftId).Ascending(item => item.State).Ascending(item => item.UpdatedAt),
+                new CreateIndexOptions { Name = "ix_aiUsageEvents_draft_state_updatedAt" })
         }, ct);
 
         await EvidencePhotos.Indexes.CreateOneAsync(

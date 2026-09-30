@@ -22,6 +22,10 @@ public class RoomsController : BaseApiController
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Join([FromBody] JoinRoomRequest request) =>
         Ok(await _roomService.JoinAsync(Caller, request.RoomCode), "Joined room.");
 
+    [HttpGet("mine")]
+    public async Task<ActionResult<ApiResponse<List<RoomResponse>>>> Mine(CancellationToken cancellationToken) =>
+        Ok(await _roomService.GetMineAsync(CallerId, cancellationToken));
+
     [HttpGet("{roomId}")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Get(string roomId) =>
         Ok(await _roomService.GetAsync(CallerId, roomId));

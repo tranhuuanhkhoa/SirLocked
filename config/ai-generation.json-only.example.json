@@ -1,0 +1,37 @@
+{
+  "OpenAI": {
+    "LogicModel": "gpt-5.6-sol",
+    "SemanticReviewModel": "",
+    "AiDryRun": false,
+    "MockAiResponses": false,
+    "GenerateJsonOnly": true,
+    "SkipAssetGeneration": true,
+    "DisableAutoPublish": true,
+    "EnableBlindSolvabilityReview": false
+  },
+  "Cloudinary": { "Enabled": false },
+  "PresentationVideo": { "Enabled": false },
+  "AiQuota": {
+    "Enabled": true,
+    "MaxActiveDraftsPerUser": 1,
+    "MaxCasesPerUserPerDay": 1,
+    "EstimatedCaseCostUsd": 5,
+    "GlobalBudgetUsd": 5
+  },
+  "AiUsage": {
+    "PriceVersion": "openai-standard-2026-09-28",
+    "MaxDraftUsd": 5,
+    "MaxTextRequestBytes": 100000,
+    "MaxTextOutputTokens": 28000,
+    "Models": {
+      "gpt-5.6-sol": {
+        "InputPerMillionUsd": 4,
+        "CachedInputPerMillionUsd": 0.4,
+        "CacheWritePerMillionUsd": 5,
+        "OutputPerMillionUsd": 20,
+        "ImageInputPerMillionUsd": 4,
+        "ReservationUsd": 2
+      }
+    }
+  }
+}

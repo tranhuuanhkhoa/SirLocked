@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
@@ -39,6 +41,8 @@ public class GenerateAiCaseRequest
     /// Kept for backward-compatible clients. The server always applies the fixed SirLocked visual contract.
     /// </summary>
     public string VisualStyle { get; set; } = AiVisualStyleDefaults.PixelDetectiveTheme;
+
+    public AiCreativeConstraints CreativeConstraints { get; set; } = new();
 }
 
 public class AiDraftResponse
@@ -70,8 +74,10 @@ public class AiDraftResponse
     public List<string> TruthRepairValidationReport { get; set; } = new();
     public CaseTruthFeasibilityReview? TruthRepairReviewerResult { get; set; }
     public AiTruthRepairPlanResponse? TruthRepairPlan { get; set; }
+    public AiTruthRepairPlanResponse? TruthRepairCandidatePlan { get; set; }
     public BlindSolvabilityReview? BlindSolvabilityReview { get; set; }
     public bool BlindReviewIsAdvisory { get; set; } = true;
+    public BlindReviewAssessment? BlindReviewAssessment { get; set; }
     /// <summary>Dependency hashes for the single-draft review screen; omitted from list responses.</summary>
     public List<AiArtifactProvenance> ArtifactProvenance { get; set; } = new();
     public AiBlueprintSummaryResponse? BlueprintSummary { get; set; }
@@ -132,7 +138,8 @@ public class AiDraftResponse
                 Seed = d.StoryDiversity.Seed,
                 RequestedCaseType = d.StoryDiversity.RequestedCaseType,
                 CaseType = d.StoryDiversity.CaseType,
-                CoreFingerprint = d.StoryDiversity.CoreFingerprint
+                CoreFingerprint = d.StoryDiversity.CoreFingerprint,
+                CreativeConstraints = d.StoryDiversity.CreativeConstraints
             },
         StoryFingerprint = d.StoryFingerprint,
         LogicContractVersion = d.LogicContractVersion,
@@ -170,9 +177,17 @@ public class AiDraftResponse
         TruthRepairPlan = includeJson && d.CaseTruth is not null
             ? AiTruthRepairPlanResponse.From(d)
             : null,
+        TruthRepairCandidatePlan = includeJson && d.TruthRepairCandidate is not null
+            ? AiTruthRepairPlanResponse.FromCandidate(d)
+            : null,
         BlindSolvabilityReview = includeJson && d.BlindSolvabilityReview.Status != CaseTruthReviewStatuses.NotRun
             ? d.BlindSolvabilityReview : null,
         BlindReviewIsAdvisory = true,
+        BlindReviewAssessment = includeJson
+            || d.BlindReviewAssessment.Status != BlindReviewAssessmentStatuses.NotRun
+            || (d.BlindSolvabilityReview.Status != CaseTruthReviewStatuses.NotRun
+                && d.BlindSolvabilityReview.SchemaVersion != CaseTruthSchemaVersions.BlindReviewV3)
+            ? BlindReviewAssessmentForResponse(d) : null,
         ArtifactProvenance = includeJson ? d.ArtifactProvenance : new List<AiArtifactProvenance>(),
         BlueprintSummary = d.CaseBlueprint is null ? null : new AiBlueprintSummaryResponse
         {
@@ -230,6 +245,36 @@ public class AiDraftResponse
         PublishedCase = publishedCase,
         CreatedAt = d.CreatedAt
     };
+
+    private static BlindReviewAssessment BlindReviewAssessmentForResponse(AiCaseDraft draft)
+    {
+        var projection = draft.ArtifactProvenance.LastOrDefault(item => item.Artifact == CaseTruthArtifacts.Projection);
+        var outputHashChanged = projection is not null
+            && !string.IsNullOrWhiteSpace(projection.OutputHash)
+            && !string.IsNullOrWhiteSpace(draft.GeneratedJson)
+            && !string.Equals(projection.OutputHash, Sha256(draft.GeneratedJson), StringComparison.Ordinal);
+        var status = draft.BlindReviewAssessment.Status;
+        if (status == BlindReviewAssessmentStatuses.NotRun
+            && draft.BlindSolvabilityReview.Status != CaseTruthReviewStatuses.NotRun
+            && draft.BlindSolvabilityReview.SchemaVersion != CaseTruthSchemaVersions.BlindReviewV3)
+            status = BlindReviewAssessmentStatuses.LegacyUnverified;
+        if (status != BlindReviewAssessmentStatuses.Stale
+            && (projection?.IsStale == true || outputHashChanged))
+            status = BlindReviewAssessmentStatuses.Stale;
+        if (status == draft.BlindReviewAssessment.Status)
+            return draft.BlindReviewAssessment;
+        return new BlindReviewAssessment
+        {
+            Status = status,
+            ValidationErrors = draft.BlindReviewAssessment.ValidationErrors,
+            EvaluatedAt = draft.BlindReviewAssessment.EvaluatedAt,
+            InputHash = draft.BlindReviewAssessment.InputHash,
+            ValidatorVersion = draft.BlindReviewAssessment.ValidatorVersion
+        };
+    }
+
+    private static string Sha256(string value) => Convert.ToHexString(
+        SHA256.HashData(Encoding.UTF8.GetBytes(value ?? string.Empty))).ToLowerInvariant();
 
     private static AiTruthGenerationBudget TruthBudget(AiCaseDraft draft) =>
         CaseTargetKinds.All.Contains(draft.PlannedTargetKind)
@@ -343,11 +388,27 @@ public sealed class AiBlueprintSummaryResponse
 
 public sealed class AiCaseCapabilitiesResponse
 {
+    public List<AiCreationBlockerResponse> CreationBlockers { get; set; } = new();
+    public List<AiCreationBlockerResponse> V3CreationBlockers { get; set; } = new();
+    public bool CanCreateDraft => CreationBlockers.Count == 0;
     public bool AiCaseV3PresetEnabled { get; set; }
     public bool GameplayV3Enabled { get; set; }
     public Dictionary<string, CrackGenerationBudgetResponse> CrackBudgets { get; set; } = new(StringComparer.Ordinal);
-    public bool CanCreateV3Draft => AiCaseV3PresetEnabled;
+    public bool CanCreateV3Draft => AiCaseV3PresetEnabled && CanCreateDraft && V3CreationBlockers.Count == 0;
     public bool CanPublishV3 => AiCaseV3PresetEnabled && GameplayV3Enabled;
+    public List<AiCreativeOptionResponse> CreativeSettings { get; set; } = new();
+    public List<AiCreativeOptionResponse> CreativeTones { get; set; } = new();
+    public List<AiCreativeOptionResponse> CreativeInvestigationMechanics { get; set; } = new();
+}
+
+public sealed record AiCreationBlockerResponse(string Code, string Message, string MessageKey);
+
+public sealed class AiCreativeOptionResponse
+{
+    public string Id { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string LabelEn { get; set; } = string.Empty;
+    public string LabelVi { get; set; } = string.Empty;
 }
 
 public sealed class CrackGenerationBudgetResponse
@@ -372,6 +433,8 @@ public class RepairFullLogicRequest
 
 public class RepairCaseTruthRequest
 {
+    public bool UseRepairCandidate { get; set; }
+
     [MaxLength(2000)]
     public string? RepairInstructions { get; set; }
 
@@ -387,25 +450,39 @@ public sealed class AiTruthRepairPlanResponse
     public List<string> InvalidArtifacts { get; set; } = new();
     public List<string> StaleArtifacts { get; set; } = new();
 
+    public static AiTruthRepairPlanResponse FromCandidate(AiCaseDraft draft)
+    {
+        var truthService = new CaseTruthService();
+        var validation = AiTruthRepairCandidatePolicy.ValidateCandidate(draft, draft.TruthRepairCandidate!, truthService,
+            new Services.Projection.GameplayProjectionPlanner(truthService));
+        var plan = AiTruthRepairCandidatePolicy.Plan(truthService, validation, draft.TruthRepairReviewerResult);
+        return new AiTruthRepairPlanResponse
+        {
+            RecommendedStartArtifact = plan.RegenerateFromArtifact,
+            ReasonCodes = plan.ReasonCodes,
+            InvalidArtifacts = plan.InvalidArtifacts,
+            StaleArtifacts = plan.StaleArtifacts
+        };
+    }
+
     public static AiTruthRepairPlanResponse From(AiCaseDraft draft)
     {
-        var plan = draft.TruthReviewerResult.Status is CaseTruthReviewStatuses.Failed
-            or CaseTruthReviewStatuses.Ambiguous
-            ? CaseTruthRepairPolicy.PlanReview(draft.TruthReviewerResult)
-            : draft.TruthReviewerResult.Status == CaseTruthReviewStatuses.Passed
-                ? CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.CoreTruth)
-                : CaseTruthRepairPolicy.BuildPlan(CaseTruthArtifacts.Timeline);
-        var recommended = CaseTruthRepairPolicy.IsTruthArtifact(draft.TruthRepairRecommendedArtifact)
-            ? draft.TruthRepairRecommendedArtifact
-            : plan.RegenerateFromArtifact;
-        if (recommended != plan.RegenerateFromArtifact)
-            plan = CaseTruthRepairPolicy.BuildPlan(recommended);
-        if (draft.TruthRepairReasonCodes.Count > 0)
-            plan.ReasonCodes = draft.TruthRepairReasonCodes.ToList();
+        // Stored recommendation/scope describe the most recent repair request, which
+        // may have used a different candidate. The current-truth action must use the
+        // same fresh validation and reviewer plan as its endpoint.
+        var truthService = new CaseTruthService();
+        var validation = draft.CaseTruth is null ? new CaseValidationResult()
+            : AiTruthRepairCandidatePolicy.ValidateForGameplay(draft, draft.CaseTruth,
+                AiTruthRepairCandidatePolicy.Budget(draft), truthService,
+                new Services.Projection.GameplayProjectionPlanner(truthService));
+        var plan = AiTruthRepairCandidatePolicy.PlanCurrent(draft, truthService, validation);
+        var recommended = plan.RegenerateFromArtifact;
+        var selected = CaseTruthRepairPolicy.IsAtOrBefore(draft.TruthRepairFromArtifact, recommended)
+            ? draft.TruthRepairFromArtifact : recommended;
         return new AiTruthRepairPlanResponse
         {
             RecommendedStartArtifact = recommended,
-            SelectedStartArtifact = draft.TruthRepairFromArtifact,
+            SelectedStartArtifact = selected,
             ReasonCodes = plan.ReasonCodes,
             InvalidArtifacts = plan.InvalidArtifacts,
             StaleArtifacts = plan.StaleArtifacts
@@ -436,6 +513,8 @@ public class AiGenerationAttemptSummary
     public string FailureCategory { get; set; } = string.Empty;
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }
+    public int CachedInputTokens { get; set; }
+    public int ReasoningTokens { get; set; }
     public List<string> ValidationErrors { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 
@@ -450,6 +529,8 @@ public class AiGenerationAttemptSummary
         FailureCategory = attempt.FailureCategory,
         InputTokens = attempt.InputTokens,
         OutputTokens = attempt.OutputTokens,
+        CachedInputTokens = attempt.CachedInputTokens,
+        ReasoningTokens = attempt.ReasoningTokens,
         ValidationErrors = attempt.ValidationErrors,
         CreatedAt = attempt.CreatedAt
     };

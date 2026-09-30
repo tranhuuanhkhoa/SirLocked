@@ -1,35 +1,5 @@
 import { session } from '../services/session.js';
-
-let isRefreshing = false;
-let refreshPromise = null;
-
-async function tryRefreshToken() {
-  if (isRefreshing) return refreshPromise;
-
-  isRefreshing = true;
-  refreshPromise = (async () => {
-    try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: session.refreshToken() }),
-      });
-      if (!res.ok) throw new Error('Refresh failed');
-      const payload = await res.json();
-      session.save(payload.data);
-      return true;
-    } catch {
-      session.clear();
-      window.location.hash = '#/login';
-      return false;
-    } finally {
-      isRefreshing = false;
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
-}
+import { authSnapshot, canRetryForAccount, expireSessionIfCurrent, isPublicAuthRequest, refreshAfterUnauthorized } from '../services/authRefresh.js';
 
 /**
  * Shared API client. All backend responses use the { success, message, data, errors }
@@ -37,7 +7,8 @@ async function tryRefreshToken() {
  */
 export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}) {
   const headers = { 'Content-Type': 'application/json', ...extraHeaders };
-  const token = session.token();
+  const requestSession = authSnapshot();
+  const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -59,14 +30,15 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
   }
 
   if (!response.ok) {
-    // Token hết hạn → thử refresh rồi retry 1 lần
-    if (response.status === 401 && session.isLoggedIn() && _retry && session.isRefreshTokenValid()) {
-      const refreshed = await tryRefreshToken();
-      if (refreshed) return apiFetch(method, path, body, false, extraHeaders);
-    }
-    if (response.status === 401 && session.isLoggedIn()) {
-      session.clear();
-      window.location.hash = '#/login';
+    if (response.status === 401 && token && !isPublicAuthRequest(path)) {
+      if (_retry) {
+        const refreshed = await refreshAfterUnauthorized(requestSession);
+        if (refreshed && canRetryForAccount(requestSession)) {
+          return apiFetch(method, path, body, false, extraHeaders);
+        }
+      } else {
+        expireSessionIfCurrent(requestSession);
+      }
     }
     throw {
       status: response.status,
@@ -106,11 +78,12 @@ export async function apiFetchForm(path, formData) {
   return payload?.data;
 }
 
-export async function apiFetchBlob(path) {
+/** @param {string} path @param {AbortSignal} [signal] */
+export async function apiFetchBlob(path, signal) {
   const headers = {};
   const token = session.token();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(path, { headers });
+  const response = await fetch(path, { headers, signal });
   if (!response.ok) throw new Error(`Image request failed (${response.status}).`);
   return response.blob();
 }

@@ -1,0 +1,48 @@
+{
+  "OpenAI": {
+    "LogicModel": "gpt-5.6-sol",
+    "SemanticReviewModel": "",
+    "ImageModel": "gpt-image-2",
+    "CutoutImageModel": "gpt-image-1.5"
+  },
+  "Cloudinary": {
+    "Enabled": true
+  },
+  "AiQuota": {
+    "Enabled": true,
+    "MaxActiveDraftsPerUser": 1,
+    "MaxCasesPerUserPerDay": 1,
+    "EstimatedCaseCostUsd": 10,
+    "GlobalBudgetUsd": 10
+  },
+  "AiUsage": {
+    "PriceVersion": "openai-standard-2026-09-28",
+    "MaxDraftUsd": 10,
+    "Models": {
+      "gpt-5.6-sol": {
+        "InputPerMillionUsd": 4,
+        "CachedInputPerMillionUsd": 0.4,
+        "CacheWritePerMillionUsd": 5,
+        "OutputPerMillionUsd": 20,
+        "ImageInputPerMillionUsd": 4,
+        "ReservationUsd": 2
+      },
+      "gpt-image-2": {
+        "InputPerMillionUsd": 2.5,
+        "CachedInputPerMillionUsd": 0.625,
+        "OutputPerMillionUsd": 0,
+        "ImageInputPerMillionUsd": 4,
+        "ImageOutputPerMillionUsd": 15,
+        "ReservationUsd": 1
+      },
+      "gpt-image-1.5": {
+        "InputPerMillionUsd": 5,
+        "CachedInputPerMillionUsd": 1.25,
+        "OutputPerMillionUsd": 10,
+        "ImageInputPerMillionUsd": 8,
+        "ImageOutputPerMillionUsd": 32,
+        "ReservationUsd": 1
+      }
+    }
+  }
+}

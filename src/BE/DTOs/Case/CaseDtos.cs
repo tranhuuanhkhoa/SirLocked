@@ -91,6 +91,7 @@ public class CasePublicDetailResponse : CaseSummaryResponse
 
 public class CaseCharacterDto
 {
+    public SirLocked.Api.DTOs.Investigation.CharacterPresentationDto? Presentation { get; set; }
     public string CharacterId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
@@ -99,6 +100,15 @@ public class CaseCharacterDto
 
     public static CaseCharacterDto From(CaseCharacter c) => new()
     {
+        Presentation = c.Presentation?.SpriteSheet is not { } sheet ? null : new()
+        {
+            SpriteSheet = new()
+            {
+                Url = sheet.Url, FrameWidth = sheet.FrameWidth, FrameHeight = sheet.FrameHeight,
+                FrameCount = sheet.FrameCount, Fps = sheet.Fps, IdleFrames = sheet.IdleFrames.ToList(),
+                AnchorX = sheet.AnchorX, AnchorY = sheet.AnchorY
+            }
+        },
         CharacterId = c.CharacterId,
         Name = c.Name,
         Role = c.Role,
