@@ -73,6 +73,7 @@ public sealed class AiCaseExportService : IAiCaseExportService
                 truthReviewer = draft.TruthReviewerResult,
                 truthValidation = draft.TruthValidationReport,
                 blindSolvabilityReview = draft.BlindSolvabilityReview,
+                blindReviewAssessment = draft.BlindReviewAssessment,
                 artifactProvenance = draft.ArtifactProvenance
             });
         }

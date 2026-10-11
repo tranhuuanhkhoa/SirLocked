@@ -44,12 +44,18 @@ internal static class AiCaseMockFactory
             return JsonSerializer.Serialize(new BlindSolvabilityReview
             {
                 Status = CaseTruthReviewStatuses.Passed,
-                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
+                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3,
                 CulpritId = "char-culprit",
                 Motive = "Protect a secret debt recorded in the stolen ledger.",
                 Method = "Use a copied key during the stopped-clock window and conceal the ledger.",
                 TimelineSummary = "The culprit stopped the clock, entered the archive, removed the ledger, and left physical traces.",
                 EvidenceChainIds = { "clue-1", "clue-2", "clue-3", "clue-4", "clue-5" },
+                ClaimProofs = ProofConclusionCategories.All.Select((claim, index) => new BlindClaimProof
+                {
+                    ClaimType = claim,
+                    EvidenceIds = [$"clue-{index + 1}"],
+                    Reasoning = $"The visible clue supports the {claim.ToLowerInvariant()} claim."
+                }).ToList(),
                 UniqueSolution = true,
                 Confidence = 0.95,
                 Issues = new List<string>()
@@ -321,12 +327,20 @@ internal static class AiCaseMockFactory
     internal static BlindSolvabilityReview BuildMockBlindReview(CaseTruthPackage truth, GameCase gameCase) => new()
     {
         Status = CaseTruthReviewStatuses.Passed,
-        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2,
+        SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3,
         CulpritId = truth.CoreTruth.CulpritId,
         Motive = truth.CoreTruth.Motive,
         Method = truth.CoreTruth.Method,
         TimelineSummary = "The player-visible evidence reconstructs the complete crime window.",
         EvidenceChainIds = gameCase.FinalLogic.RequiredEvidenceLinks.Select(item => item.EvidenceId).ToList(),
+        ClaimProofs = gameCase.FinalLogic.RequiredEvidenceLinks
+            .GroupBy(item => item.ClaimType.Trim().ToUpperInvariant(), StringComparer.Ordinal)
+            .Select(group => new BlindClaimProof
+            {
+                ClaimType = group.Key,
+                EvidenceIds = group.Select(item => item.EvidenceId).Distinct(StringComparer.Ordinal).ToList(),
+                Reasoning = $"The player-visible clue chain supports the approved {group.Key.ToLowerInvariant()} claim."
+            }).ToList(),
         UniqueSolution = true,
         Confidence = 0.95,
         Issues = new List<string>()
