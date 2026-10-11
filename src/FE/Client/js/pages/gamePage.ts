@@ -1,12 +1,20 @@
 import Phaser from 'phaser';
 import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
-import { roomApi } from '../api/roomApi.js';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
+import { createStateRefetcher } from '../services/stateRefetcher.js';
+import { createRoleGuide, roleGuideSteps } from '../game/roleGuide.js';
+import '../../../css/game-recovery.css';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr, uiLanguage } from '../services/i18n.js';
+import { DialoguePresenter } from '../game/dialoguePresenter.js';
+import { CutsceneController } from '../game/cutsceneController.js';
+import { idleFrameAt, usableSpriteSheet } from '../game/npcAnimator.js';
+import type { CharacterPresentation, CasePresentation } from '../game/presentationMedia.js';
+import { createAudioController, renderAudioControls, bindAudioControls } from '../game/audioController.js';
+import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import {
   PLAYER_FRAME,
   PLAYER_SHEETS,
@@ -30,6 +38,8 @@ import {
   renderDiscoveryCard,
   renderFinalConfrontationCallout,
   renderGameHud,
+  reconnectWait,
+  renderReconnectWait,
 } from '../game/gameShell.js';
 import {
   buildPairedConfrontationViewModel,
@@ -55,6 +65,7 @@ type RoomPlayer = {
   role: string;
   isConnected: boolean;
   disconnectedAt?: string | null;
+  reconnectGraceEndsAt?: string | null;
 };
 
 type Hotspot = {
@@ -164,6 +175,7 @@ type SceneCharacter = {
   role: string;
   imageUrl: string;
   description: string;
+  presentation?: CharacterPresentation;
 };
 
 type SceneDialogue = {
@@ -306,6 +318,7 @@ type MissingRequirements = {
 };
 
 type GameState = {
+  presentation?: CasePresentation;
   roomId: string;
   roomCode: string;
   hostUserId: string;
@@ -415,9 +428,14 @@ type SceneFrame = {
 };
 
 class SirLockedPhaserScene extends Phaser.Scene {
+  private sceneRenderKey = '';
+  private npcAnimations: { body: Phaser.GameObjects.Image; sheet: NonNullable<CharacterPresentation['spriteSheet']>; phase: number; lastFrame: number }[] = [];
+  private npcBreathing: { body: Phaser.GameObjects.Image; scaleX: number; scaleY: number; phase: number }[] = [];
+  private reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private callbacks: PhaserCallbacks;
   private state: GameState | null = null;
   private selectedInventoryItemId: string | null = null;
+  private inventorySelectionLabel: Phaser.GameObjects.Text | null = null;
   private ready = false;
   private loadingTextureKeys = new Set<string>();
   private attemptedTextureKeys = new Set<string>();
@@ -501,6 +519,14 @@ class SirLockedPhaserScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.ready) return;
     this.animatePlayers(time);
+    for (const animation of this.npcAnimations) {
+      const frame = this.reducedMotion.matches ? 0 : idleFrameAt(animation.sheet, time, animation.phase);
+      if (animation.lastFrame !== frame) { animation.body.setFrame(`npc-frame-${frame}`); animation.lastFrame = frame; }
+    }
+    for (const idle of this.npcBreathing) {
+      const breath = this.reducedMotion.matches ? 1 : 1 + Math.sin((time + idle.phase) / 900) * .007;
+      idle.body.setScale(idle.scaleX, idle.scaleY * breath);
+    }
     this.interpolateRemotePlayers(delta);
     this.updateDebugPointerText();
     if (this.keys.F2 && Phaser.Input.Keyboard.JustDown(this.keys.F2)) {
@@ -551,13 +577,22 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   updateGameState(state: GameState, selectedInventoryItemId: string | null) {
+    const renderKey = JSON.stringify([state.currentSceneId, state.visibleScene, state.inspectedItemIds,
+      state.collectedItemIds, state.sceneMap, state.completedSceneIds, state.currentSceneCanComplete,
+      state.players.map((player) => [player.userId, player.username, player.role]),
+      state.visibleScene.characters.map((character) => this.callbacks.newDialogueCount(character.characterId))]);
+    const changed = renderKey !== this.sceneRenderKey;
+    this.sceneRenderKey = renderKey;
     this.state = state;
+    const selectionChanged = this.selectedInventoryItemId !== selectedInventoryItemId;
     this.selectedInventoryItemId = selectedInventoryItemId;
-    if (this.ready) this.refreshCameraOverlay();
+    if (this.ready && changed) this.draw();
+    else if (this.ready && selectionChanged) this.drawInventoryHint(this.scale.width, this.scale.height);
   }
 
   setSceneInteractionEnabled(enabled: boolean) {
     const wasEnabled = this.sceneInteractionEnabled;
+    if (wasEnabled === enabled) return;
     this.sceneInteractionEnabled = enabled;
     if (wasEnabled !== enabled) {
       this.mobileMoveX = 0;
@@ -580,6 +615,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   setCameraMode(enabled: boolean) {
+    if (this.cameraMode === enabled) return;
     this.cameraMode = enabled;
     if (enabled) {
       this.sceneInteractionEnabled = false;
@@ -638,6 +674,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (!this.ready || !this.state) return;
 
     this.children.removeAll(true);
+    this.inventorySelectionLabel = null;
+    this.npcAnimations = [];
+    this.npcBreathing = [];
     this.remotePlayers.clear();
     this.localPlayer = null;
     this.promptText = null;
@@ -923,6 +962,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const newlyUnlocked = this.callbacks.newDialogueCount(character.characterId);
 
     const spriteUrls = [
+      usableSpriteSheet(character.presentation?.spriteSheet) ? character.presentation!.spriteSheet!.url : '',
       playableAssetUrl(placement?.asset),
       sceneCharacterSpriteUrl(character, this.state?.currentSceneId),
       characterSpriteUrl(character),
@@ -935,18 +975,39 @@ class SirLockedPhaserScene extends Phaser.Scene {
     let body: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
     if (spriteKey && this.textures.exists(spriteKey)) {
       body = this.add.image(0, 0, spriteKey)
-        .setOrigin(0.5, 1)
-        .setInteractive({ useHandCursor: true });
+        .setOrigin(0.5, 1);
       (body as Phaser.GameObjects.Image).setDisplaySize(npcW, npcH);
       (body as Phaser.GameObjects.Image).setFlipX(placement?.direction === 'right');
+      const sheet = character.presentation?.spriteSheet;
+      if (usableSpriteSheet(sheet) && spriteUrl === sheet!.url) {
+        const texture = this.textures.get(spriteKey);
+        const source = texture.getSourceImage() as { width?: number; height?: number };
+        const columns = Math.floor((source.width || 0) / sheet!.frameWidth);
+        const rows = Math.floor((source.height || 0) / sheet!.frameHeight);
+        if (columns > 0 && columns * rows >= sheet!.frameCount) {
+          for (let frame = 0; frame < sheet!.frameCount; frame++) {
+            if (!texture.has(`npc-frame-${frame}`)) texture.add(`npc-frame-${frame}`, 0,
+              frame % columns * sheet!.frameWidth, Math.floor(frame / columns) * sheet!.frameHeight,
+              sheet!.frameWidth, sheet!.frameHeight);
+          }
+          (body as Phaser.GameObjects.Image).setFrame('npc-frame-0').setDisplaySize(npcW, npcH)
+            .setOrigin(Number.isFinite(sheet!.anchorX) ? Phaser.Math.Clamp(sheet!.anchorX!, 0, 1) : 0.5,
+              Number.isFinite(sheet!.anchorY) ? Phaser.Math.Clamp(sheet!.anchorY!, 0, 1) : 1);
+          this.npcAnimations.push({ body: body as Phaser.GameObjects.Image, sheet: sheet!,
+            phase: [...character.characterId].reduce((sum, char) => sum + char.charCodeAt(0), 0) * 19, lastFrame: 0 });
+        }
+      }
+      if (!this.npcAnimations.some((animation) => animation.body === body)) {
+        this.npcBreathing.push({ body: body as Phaser.GameObjects.Image, scaleX: body.scaleX,
+          scaleY: body.scaleY, phase: [...character.characterId].reduce((sum, char) => sum + char.charCodeAt(0), 0) * 19 });
+      }
     } else {
       for (const url of spriteUrls) {
         this.queueTexture(`npc:${character.characterId}:${url}`, url);
       }
       body = this.add.rectangle(0, 0, npcW, npcH, this.colorFromId(character.characterId, 0x3a2a55), 0.6)
         .setOrigin(0.5, 1)
-        .setStrokeStyle(1, 0xc9a84c, 0.4)
-        .setInteractive({ useHandCursor: true });
+        .setStrokeStyle(1, 0xc9a84c, 0.4);
     }
 
     const initialText = this.add.text(0, -npcH / 2, initials(character.name), {
@@ -975,7 +1036,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
         fontStyle: 'bold',
       }).setOrigin(0.5);
       newBadge = this.add.container(0, 0, [badgeBg, badgeText]);
-      this.tweens.add({
+      if (!this.reducedMotion.matches) this.tweens.add({
         targets: newBadge,
         scale: { from: 0.92, to: 1.08 },
         duration: 900,
@@ -986,11 +1047,12 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
 
     const open = () => this.callbacks.onCharacter(character.characterId);
-    body.on('pointerdown', open);
-    body.on('pointerover', () => { if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
-    body.on('pointerout', () => { if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
+    const interactionZone = this.add.zone(0, -npcH / 2, npcW, npcH).setInteractive({ useHandCursor: true });
+    interactionZone.on('pointerdown', open);
+    interactionZone.on('pointerover', () => { if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
+    interactionZone.on('pointerout', () => { if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
 
-    group.add(newBadge ? [shadow, body, initialText, name, newBadge] : [shadow, body, initialText, name]);
+    group.add(newBadge ? [shadow, body, initialText, name, newBadge, interactionZone] : [shadow, body, initialText, name, interactionZone]);
   }
 
   private drawPlayers() {
@@ -1187,8 +1249,17 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private drawInventoryHint(width: number, height: number) {
-    if (!this.selectedInventoryItemId) return;
-    this.add.text(width / 2, height - 158, `Using: ${this.prettyId(this.selectedInventoryItemId)}`, {
+    if (!this.selectedInventoryItemId) {
+      this.inventorySelectionLabel?.destroy();
+      this.inventorySelectionLabel = null;
+      return;
+    }
+    const text = `Using: ${this.prettyId(this.selectedInventoryItemId)}`;
+    if (this.inventorySelectionLabel) {
+      this.inventorySelectionLabel.setText(text).setPosition(width / 2, height - 158);
+      return;
+    }
+    this.inventorySelectionLabel = this.add.text(width / 2, height - 158, text, {
       fontFamily: 'Crimson Text, serif',
       fontSize: '17px',
       color: '#f4dc8f',
@@ -1730,11 +1801,23 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
 }
 
-export async function renderGamePage(app: HTMLElement, roomId: string) {
+export async function renderGamePage(app: HTMLElement, roomId: string, { signal }: { signal?: AbortSignal } = {}) {
+  if (signal?.aborted) return () => {};
   render(app, '<div class="page"><p class="muted">Opening the Phaser case file...</p></div>');
 
   const me = session.user();
   const introKey = `sirlocked.intro.${roomId}`;
+  const audio = createAudioController();
+  const unlockAudio = () => audio.unlock();
+  window.addEventListener('pointerdown', unlockAudio, { once: true });
+  window.addEventListener('keydown', unlockAudio, { once: true });
+  let disposeAudioControls: (() => void) | undefined;
+  let disposePingControls: (() => void) | undefined;
+  let partnerPingTimer: ReturnType<typeof setTimeout> | undefined;
+  const dialoguePresenter = new DialoguePresenter(() => closeUiMode());
+  const cutscenes = new CutsceneController(roomId, me.userId, () => {
+    if (!stopped) { audio.setDialogueActive(cutscenes.active || uiMode.kind === 'DIALOGUE'); syncPhaserInputState(); }
+  });
   const hostId = `phaser-game-${roomId.replace(/[^a-z0-9_-]/gi, '')}`;
 
   let state: GameState | null = null;
@@ -1760,14 +1843,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   let discoveryNotice: DiscoveryNotice | null = null;
   let discoveryTimer: ReturnType<typeof setTimeout> | null = null;
   let partnerActivityTimer: ReturnType<typeof setTimeout> | null = null;
+  let reconnectWaitTimer: ReturnType<typeof setInterval> | null = null;
+  let requestedReconnectDeadline: number | null = null;
   let returnFocusId: string | null = null;
   let finalReadyAnnounced = false;
   let sceneIntroActive = true; // Show on initial load
   let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
-  let stateRefetchPromise: Promise<void> | null = null;
-  let stateRefetchRetryTimer: ReturnType<typeof setTimeout> | null = null;
-  let stateRefetchRetryCount = 0;
-  let requestedStateVersion = 0;
+  let connectionStatus = 'connecting';
+  let stateSyncStatus = 'idle';
+  let syncRecoveryActive = false;
+  let roleGuide: ReturnType<typeof createRoleGuide> | null = null;
   let pairedCommandInFlight = false;
   let crackPayoffPair: DisclosedPair | null = null;
   let crackPayoffTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1822,8 +1907,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   type ConvLine = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
   let convCharacterId: string | null = null;
   let convLog: ConvLine[] = [];
-  let convRevealedCount = 0; // lines [0, convRevealedCount) are shown instantly; the rest type out
-  let convTimer: ReturnType<typeof setInterval> | null = null;
   // Conversation tree (Phase C) — current node/choices for the open tree NPC (Interrogator only).
   let convTreeNodeId: string | null = null;
   let convTreeChoices: ConversationChoice[] = [];
@@ -1839,6 +1922,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   const handleKeydown = (e: KeyboardEvent) => {
     if (stopped || !state) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (cutscenes.handleKey(e)) return;
+    if (uiMode.kind === 'DIALOGUE' && dialoguePresenter.handleKey(e)) return;
 
     if (e.key === 'Escape') {
       if (crackPayoffPair) {
@@ -1869,43 +1954,122 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   };
   window.addEventListener('keydown', handleKeydown);
 
-  const refetch = async () => applyState(await gameApi.state(roomId));
+  const stateRefetcher = createStateRefetcher({
+    fetchState: () => gameApi.state(roomId),
+    applyState,
+    getVersion: () => state?.version ?? 0,
+    onStatusChange: (status: string) => {
+      stateSyncStatus = status;
+      if (status === 'retrying' || status === 'failed') syncRecoveryActive = true;
+      if (status === 'idle') syncRecoveryActive = false;
+      renderRecoveryStatus();
+    },
+  });
+  const queueStateRefetch = (version = 0) => stateRefetcher.queue(version);
 
-  function queueStateRefetch(version = 0) {
-    if (version > 0 && state && version <= state.version) return;
-    requestedStateVersion = Math.max(requestedStateVersion, version);
-    if (stateRefetchPromise) return;
+  function renderReconnectWaitStatus() {
+    if (stopped || !state) return;
+    const slot = app.querySelector<HTMLElement>('#game-reconnect-wait-slot');
+    if (!slot) return;
+    const waiting = state.roomStatus === 'IN_PROGRESS' ? reconnectWait(state.players) : null;
+    if (!waiting) {
+      slot.replaceChildren();
+      delete slot.dataset.waitKey;
+      if (reconnectWaitTimer) clearInterval(reconnectWaitTimer);
+      reconnectWaitTimer = null;
+      requestedReconnectDeadline = null;
+      return;
+    }
+    const key = `${waiting.deadline}:${waiting.seconds === 0}:${uiLanguage()}`;
+    if (slot.dataset.waitKey !== key) {
+      slot.dataset.waitKey = key;
+      slot.innerHTML = renderReconnectWait(waiting, tr);
+    }
+    const timer = slot.querySelector('#game-reconnect-countdown');
+    if (timer && waiting.seconds !== null) {
+      timer.textContent = `${Math.floor(waiting.seconds / 60).toString().padStart(2, '0')}:${(waiting.seconds % 60).toString().padStart(2, '0')}`;
+    }
+    reconnectWaitTimer ??= setInterval(renderReconnectWaitStatus, 1000);
+    // The clock only prompts one authoritative refresh per deadline. It never
+    // ends the room; the server may have accepted a reconnect just before it.
+    if (waiting.seconds === 0 && waiting.deadline !== requestedReconnectDeadline) {
+      requestedReconnectDeadline = waiting.deadline;
+      queueStateRefetch();
+    }
+  }
 
-    const requestedVersion = requestedStateVersion;
-    stateRefetchPromise = Promise.resolve()
-      .then(async () => {
-        requestedStateVersion = 0;
-        await refetch();
-        stateRefetchRetryCount = 0;
-      })
-      .catch((err: any) => {
-        requestedStateVersion = Math.max(requestedStateVersion, requestedVersion);
-        stateRefetchRetryCount += 1;
-        console.warn('State refetch failed', err);
-        if (stateRefetchRetryCount <= 5 && !stopped) {
-          const delay = Math.min(8000, 500 * 2 ** (stateRefetchRetryCount - 1));
-          if (stateRefetchRetryTimer) clearTimeout(stateRefetchRetryTimer);
-          stateRefetchRetryTimer = setTimeout(() => {
-            stateRefetchRetryTimer = null;
-            queueStateRefetch(requestedStateVersion);
-          }, delay);
-        } else if (!stopped) {
-          toast(tr('Connection restored, but the room state could not be loaded. Try again.', 'Đã kết nối lại nhưng chưa tải được trạng thái phòng. Hãy thử lại.'), 'error', 7000);
-        }
-      })
-      .finally(() => {
-        stateRefetchPromise = null;
-        // A failed request already has an exponential retry timer. Do not start
-        // a second request from finally while that timer is pending.
-        if (!stateRefetchRetryTimer && requestedStateVersion > (state?.version ?? 0)) {
-          queueStateRefetch(requestedStateVersion);
-        }
-      });
+  function renderRecoveryStatus() {
+    if (stopped) return;
+    const slot = app.querySelector<HTMLElement>('#game-recovery-slot');
+    if (!slot) return;
+    const disconnected = connectionStatus === 'disconnected';
+    const connecting = connectionStatus === 'connecting' || connectionStatus === 'reconnecting';
+    const failed = stateSyncStatus === 'failed';
+    const visible = disconnected || connecting || syncRecoveryActive;
+    const key = `${connectionStatus}:${stateSyncStatus}:${visible}:${uiLanguage()}`;
+    if (slot.dataset.recoveryKey === key) return;
+    slot.dataset.recoveryKey = key;
+    if (!visible) { slot.replaceChildren(); return; }
+    const message = disconnected
+      ? tr('Connection lost. Reconnect to sync with your partner.', 'Đã mất kết nối. Kết nối lại để đồng bộ với đồng đội.')
+      : connecting
+        ? tr('Reconnecting to your partner…', 'Đang kết nối lại với đồng đội…')
+        : failed
+          ? tr('The latest room state could not be loaded. Try again.', 'Chưa tải được trạng thái mới nhất của phòng. Hãy thử lại.')
+          : tr('Restoring the latest room state…', 'Đang khôi phục trạng thái mới nhất của phòng…');
+    slot.innerHTML = `<aside class="game-recovery panel panel--dossier" role="status" aria-live="polite">
+      <span>${escapeHtml(message)}</span>
+      <button class="btn btn-gold" id="game-recovery-retry" type="button" ${!disconnected && (connecting || !failed) ? 'disabled' : ''}>${disconnected ? tr('Reconnect', 'Kết nối lại') : tr('Try again', 'Thử lại')}</button>
+    </aside>`;
+    slot.querySelector('#game-recovery-retry')?.addEventListener('click', () => {
+      if (stopped) return;
+      if (connectionStatus === 'disconnected') void hub.restart().catch(() => {});
+      else stateRefetcher.retry();
+    });
+  }
+
+  function getRoleGuide() {
+    const role = myRole();
+    if (!role || stopped) return null;
+    roleGuide ??= createRoleGuide({ storage: window.localStorage, roomId, userId: me.userId, role });
+    return roleGuide;
+  }
+
+  function recordGuideAction(action: string) {
+    if (getRoleGuide()?.record(action)) renderRoleGuide();
+  }
+
+  function renderRoleGuide() {
+    if (stopped) return;
+    const slot = app.querySelector<HTMLElement>('#game-role-guide-slot');
+    const guide = getRoleGuide();
+    if (!slot || !guide) return;
+    const progress = guide.snapshot();
+    const key = `${progress.completed.join(',')}:${progress.dismissed}:${uiLanguage()}`;
+    if (slot.dataset.guideKey === key) return;
+    slot.dataset.guideKey = key;
+    const steps = roleGuideSteps(myRole(), tr);
+    const nextStep = steps.find((step) => !progress.completed.includes(step.id))?.id;
+    slot.innerHTML = `<details class="role-guide-controls" ${progress.dismissed ? '' : 'open'}>
+      <summary>${tr('Help', 'Hướng dẫn')} <span data-guide-progress aria-live="polite">${progress.completed.length}/3</span></summary>
+      <section class="role-guide-panel" aria-label="${tr('Your role guide', 'Hướng dẫn vai trò của bạn')}">
+        <strong>${myRole() === 'INVESTIGATOR' ? tr('Investigator', 'Điều tra viên') : tr('Interrogator', 'Thẩm vấn viên')}</strong>
+        <ol>${steps.map((step) => `<li class="${progress.completed.includes(step.id) ? 'is-complete' : ''}" ${step.id === nextStep ? 'aria-current="step"' : ''}>
+          <strong>${escapeHtml(step.title)} ${progress.completed.includes(step.id) ? `<span>— ${tr('Done', 'Đã làm')}</span>` : ''}</strong><p>${escapeHtml(step.text)}</p>
+        </li>`).join('')}</ol>
+        <p class="role-guide-note">${tr('Only your own actions check off these steps. You can keep playing with this guide open.', 'Chỉ thao tác của chính bạn mới đánh dấu các bước. Bạn vẫn chơi bình thường khi mở hướng dẫn.')}</p>
+        <button class="btn btn-ghost" type="button" data-guide-dismiss>${tr('Close guide', 'Đóng hướng dẫn')}</button>
+      </section>
+    </details>`;
+    const details = slot.querySelector<HTMLDetailsElement>('details')!;
+    details.addEventListener('toggle', () => {
+      if (!stopped && details.isConnected) guide.setDismissed(!details.open);
+    });
+    slot.querySelector('[data-guide-dismiss]')?.addEventListener('click', () => {
+      guide.setDismissed(true);
+      details.open = false;
+      details.querySelector<HTMLElement>('summary')?.focus();
+    });
   }
 
   function currentAskableDialogues(fresh = state) {
@@ -2019,6 +2183,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     if (triggerId) returnFocusId = triggerId;
     uiMode = next;
+    if (next.kind === 'CASE_FILE' && next.section !== 'map') recordGuideAction('notebook');
     if (next.kind !== 'INVENTORY') {
       combineMode = false;
       combineSelection.clear();
@@ -2061,13 +2226,35 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         </main>
         <div id="scene-intro-slot"></div>
         <div id="game-transient-slot"></div>
+        <div id="game-dialogue-slot"></div>
+        <div id="game-cutscene-slot"></div>
+        <div id="game-coop-tools" class="game-coop-tools">${renderPingControls(tr)}${renderAudioControls(audio.getSettings(), tr)}<div id="game-role-guide-slot"></div></div>
+        <div id="partner-ping-slot"></div>
+        <div id="game-recovery-slot"></div>
       </div>`);
     shellMounted = true;
     mountPhaser();
+    disposeAudioControls = bindAudioControls(app, audio);
+    disposePingControls = bindPingControls(app, async (kind) => {
+      await hub.sendPing(kind);
+      if (kind === 'COMPARE') recordGuideAction('compare');
+    });
   }
 
   function applyState(fresh: GameState) {
-    if (!fresh || (state && fresh.version < state.version)) return;
+    if (stopped || !fresh || (state && fresh.version < state.version)) return;
+    if (fresh.roomStatus === 'COMPLETED') {
+      state = fresh;
+      void cleanupGamePage();
+      window.location.hash = `#/result/${roomId}`;
+      return;
+    }
+    if (fresh.roomStatus === 'ABANDONED') {
+      state = fresh;
+      void cleanupGamePage();
+      render(app, `<div class="page"><div class="empty-state"><h2>${escapeHtml(tr('Room ended', 'Phòng đã kết thúc'))}</h2><p>${escapeHtml(tr('This room is no longer active. Games end automatically when a detective stays offline for 5 minutes.', 'Phòng này không còn hoạt động. Ván chơi tự kết thúc khi một thám tử mất kết nối liên tục 5 phút.'))}</p><a class="btn btn-gold" href="#/cases">${escapeHtml(tr('Back to cases', 'Quay lại danh sách vụ án'))}</a></div></div>`);
+      return;
+    }
     const isNewScene = state && state.currentSceneId !== fresh.currentSceneId;
     const previousClueKey = clueKey(state);
     const freshClueKey = clueKey(fresh);
@@ -2091,6 +2278,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       const previousKey = previousTerminal ? `${previousTerminal.attemptId}:${previousTerminal.revision}:${previousTerminal.status}` : '';
       const freshKey = freshTerminal ? `${freshTerminal.attemptId}:${freshTerminal.revision}:${freshTerminal.status}` : '';
       if (freshTerminal && freshKey !== previousKey) {
+        audio.play('reveal');
         crackPayoffPair = freshTerminal;
         crackPayoffShownAt = performance.now();
         recordV3UiEvent('RevealDisplayed', undefined);
@@ -2112,6 +2300,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     rememberAskableDialogues(fresh);
     rememberAccusationRevision(fresh);
     state = fresh;
+    audio.setScene(fresh.currentSceneId);
     if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
     if (fresh.availableForAccusation && !finalReadyAnnounced) {
       finalReadyAnnounced = true;
@@ -2119,21 +2308,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     
     if (isNewScene) {
+      audio.play('scene');
       sceneIntroActive = true;
       if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
       sceneIntroTimeout = setTimeout(() => {
         sceneIntroActive = false;
         draw();
       }, 3000);
-    }
-    if (state.roomStatus === 'COMPLETED') {
-      window.location.hash = `#/result/${roomId}`;
-      return;
-    }
-    if (state.roomStatus === 'ABANDONED') {
-      destroyPhaser();
-      render(app, `<div class="page"><div class="empty-state"><h2>${escapeHtml(tr('Room ended', 'Phòng đã kết thúc'))}</h2><p>${escapeHtml(tr('This game was abandoned after the reconnect grace period expired.', 'Trận đấu đã bị hủy sau khi hết thời gian chờ kết nối lại.'))}</p><a class="btn btn-gold" href="#/cases">${escapeHtml(tr('Back to cases', 'Quay lại danh sách vụ án'))}</a></div></div>`);
-      return;
     }
     for (const itemId of [...combineSelection]) {
       if (!fresh.collectedItemIds.includes(itemId)) combineSelection.delete(itemId);
@@ -2187,6 +2368,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function showDiscovery(notice: DiscoveryNotice) {
+    audio.play('discovery');
     discoveryNotice = notice;
     if (discoveryTimer) clearTimeout(discoveryTimer);
     discoveryTimer = setTimeout(() => {
@@ -2216,6 +2398,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   const hub = createRoomConnection(roomId, {
+    TeamPing: (payload: TeamPing) => {
+      if (payload.senderUserId === me.userId) return;
+      const slot = app.querySelector<HTMLElement>('#partner-ping-slot');
+      if (!slot) return;
+      slot.innerHTML = renderPartnerPing(payload, tr);
+      if (!slot.innerHTML) return;
+      audio.play('ping');
+      if (partnerPingTimer) clearTimeout(partnerPingTimer);
+      partnerPingTimer = setTimeout(() => { slot.innerHTML = ''; }, Math.max(0, Math.min(8000, Date.parse(payload.expiresAt) - Date.now())));
+    },
     GameStateUpdated: ({ version }: { version: number }) => {
       queueStateRefetch(version);
     },
@@ -2268,9 +2460,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       playerPoses.delete(userId);
       phaserScene?.removeRemotePose(userId);
     },
-    PlayerPresenceChanged: ({ userId, isConnected }: { userId: string; isConnected: boolean }) => {
+    PlayerPresenceChanged: ({ userId, isConnected, changedAt, graceEndsAt }: { userId: string; isConnected: boolean; changedAt?: string; graceEndsAt?: string | null }) => {
+      if (stopped) return;
       const player = state?.players.find((entry) => entry.userId === userId);
-      if (player) player.isConnected = isConnected;
+      if (player) {
+        player.isConnected = isConnected;
+        player.disconnectedAt = isConnected ? null : (changedAt || player.disconnectedAt);
+        player.reconnectGraceEndsAt = isConnected ? null : (graceEndsAt || player.reconnectGraceEndsAt);
+      }
       if (userId !== me.userId) {
         toast(isConnected ? 'Your partner reconnected.' : 'Your partner disconnected. Waiting for reconnect...', isConnected ? 'success' : 'info', 5000);
       }
@@ -2282,43 +2479,53 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       }
     },
     GameCompleted: (result: unknown) => {
+      if (stopped) return;
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
       window.location.hash = `#/result/${roomId}`;
     },
     RoomError: ({ message }: { message: string }) => toast(message, 'error'),
   }, {
     onReconnected: () => {
+      if (stopped) return;
       poseErrorShown = false;
       toast('Reconnected. Syncing the room...', 'info');
-      queueStateRefetch();
+      stateRefetcher.retry();
     },
-    onClose: () => {
-      if (!stopped) toast(tr('Connection lost. Trying to reconnect…', 'Mất kết nối. Đang thử kết nối lại…'), 'info', 5000);
+    onStatusChange: (status: string) => {
+      connectionStatus = status;
+      renderRecoveryStatus();
     },
   });
 
+  signal?.addEventListener('abort', cleanupGamePage, { once: true });
   try {
     state = await gameApi.state(roomId);
+    if (stopped) return cleanupGamePage;
     if (state?.roomStatus === 'COMPLETED') {
       window.location.hash = `#/result/${roomId}`;
-      return () => hub.stop();
+      return cleanupGamePage;
     }
     if (state?.roomStatus === 'ABANDONED') {
       applyState(state);
-      return () => hub.stop();
+      return cleanupGamePage;
     }
     await hub.start();
-    if (stopped || !state) return () => hub.stop();
+    if (stopped || !state) return cleanupGamePage;
     recordV3UiEvent('ReconnectRestored');
     sceneIntroTimeout = setTimeout(() => { sceneIntroActive = false; draw(); }, 3000);
     draw();
   } catch (err: any) {
+    if (stopped) return cleanupGamePage;
     if (err.message?.includes('not started')) {
       window.location.hash = `#/lobby/${roomId}`;
-      return undefined;
+      return cleanupGamePage;
     }
-    render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
-    return () => hub.stop();
+    if (state) draw(); // Keep the saved scene visible with an explicit reconnect action.
+    else {
+      render(app, `<div class="page"><div class="empty-state"><p role="alert">${escapeHtml(err.message)}</p><button class="btn btn-gold" id="game-load-retry">${tr('Try again', 'Thử lại')}</button></div></div>`);
+      app.querySelector('#game-load-retry')?.addEventListener('click', () => window.location.reload());
+    }
+    return cleanupGamePage;
   }
 
   function myRole() {
@@ -2366,15 +2573,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   function draw() {
     if (stopped || !state) return;
     mountShell();
+    app.querySelector('.point-game-phaser')?.classList.toggle('is-dialogue', uiMode.kind === 'DIALOGUE');
+    audio.setDialogueActive(uiMode.kind === 'DIALOGUE' || cutscenes.active);
     if (uiMode.kind !== 'DIALOGUE') resetConversation();
     const model = uiModel();
     const scene = state.visibleScene;
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
-      const canAbandon = state.hostUserId === me.userId
-        && state.players.some((player) => player.userId !== me.userId && player.isConnected === false);
-      hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, canAbandon, tr);
+      hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, tr);
     }
+    renderReconnectWaitStatus();
+    renderRecoveryStatus();
+    renderRoleGuide();
 
     const introSlot = app.querySelector('#scene-intro-slot');
     if (introSlot) {
@@ -2400,6 +2610,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       && !crackPayoffPair
       && !caseCompleteDismissed;
     if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${accusationConsensusPanel()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
+    if (uiMode.kind === 'DIALOGUE') dialogueOverlay(uiMode.characterId);
+    else dialoguePresenter.clear();
+    const cinematicHost = app.querySelector<HTMLElement>('#game-cutscene-slot');
+    if (cinematicHost && sessionStorage.getItem(introKey)) cutscenes.update(cinematicHost, state.presentation, ['INTRO', 'REVEAL']);
 
     const sceneNeedsUpdate = appliedStateVersion !== state.version
       || appliedSceneId !== state.currentSceneId
@@ -2412,8 +2626,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
     syncPhaserInputState();
     bind();
-    if (crackPayoffPair) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-crack-dismiss')?.focus());
-    else if (showCaseComplete) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-complete-review')?.focus());
+    if (!cutscenes.active && crackPayoffPair) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-crack-dismiss')?.focus());
+    else if (!cutscenes.active && showCaseComplete) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-complete-review')?.focus());
     createIcons({
       icons: {
         Camera,
@@ -2425,12 +2639,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       },
     });
     hydrateEvidenceImages();
-    hydrateDialogueTypewriter();
   }
 
   function mountPhaser() {
     if (!state) return;
-    const host = document.getElementById(hostId);
+    const host = app.querySelector<HTMLElement>(`#${hostId}`);
     if (!host) return;
 
     phaserScene = new SirLockedPhaserScene({
@@ -2666,7 +2879,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function overlayHtml() {
-    if (uiMode.kind === 'DIALOGUE') return dialogueOverlay(uiMode.characterId);
+    if (uiMode.kind === 'DIALOGUE') return '';
     if (uiMode.kind === 'PUZZLE' && uiMode.view === 'LOCKED') return puzzleOverlay(uiMode.label, uiMode.message);
     if (uiMode.kind === 'PUZZLE' && uiMode.view === 'SOLVE') return puzzleSolveOverlay(uiMode.puzzleId);
     return '';
@@ -2713,6 +2926,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           <button class="${tab === 'contradictions' ? 'is-active' : ''}" data-case-tab="contradictions">${tr('Joint Review', 'Cùng xem xét')}</button>
         </div>`;
       const supportingClues = state!.unlockedClues.filter((clue) => !clue.isEvidence);
+      const resolvedTruths = state!.sharedKnowledge?.resolvedTruths ?? [];
+      const recap = resolvedTruths.length ? `<section class="truth-recap"><h3>${tr('What we have established', 'Sự thật đã xác lập')}</h3>${resolvedTruths.map((pair) => `<article><strong>${escapeHtml(pair.revealTitle || pair.evidence.title)}</strong>${pair.reveals.map((reveal) => `<p>${escapeHtml(reveal.content)}</p>`).join('')}</article>`).join('')}</section>` : '';
       const deductionHtml = state!.deductions.map((deduction) => `
         <article class="deduction-card ${deduction.isSolved ? 'is-solved' : deduction.isAvailable ? 'is-available' : 'is-locked'}">
           <div class="clue-head"><strong>${escapeHtml(deduction.prompt)}</strong><span class="chip">${deduction.isSolved ? tr('SOLVED', 'ĐÃ GIẢI') : deduction.isAvailable ? tr('READY', 'SẴN SÀNG') : tr('LOCKED', 'ĐANG KHÓA')}</span></div>
@@ -2726,7 +2941,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
         ? `${renderPrivateEvidencePanel(model, escapeHtml, tr)}${supportingClues.length > 0 ? `<section class="notebook-list"><h3>${tr('Supporting leads', 'Manh mối hỗ trợ')}</h3>${supportingClues.map((clue) => `<article><strong>${escapeHtml(clue.title)}</strong><p>${escapeHtml(clue.content)}</p></article>`).join('')}</section>` : ''}`
         : tab === 'testimony'
           ? renderPrivateTestimonyPanel(model, escapeHtml, tr)
-          : `${renderJointReviewPanel(model, escapeHtml, tr)}${state!.deductions.length > 0 ? `<section class="notebook-list"><h3>${tr('Deductions', 'Suy luận')}</h3>${deductionHtml}</section>` : ''}`;
+          : `${renderJointReviewPanel(model, escapeHtml, tr)}${recap}${state!.deductions.length > 0 ? `<section class="notebook-list"><h3>${tr('Deductions', 'Suy luận')}</h3>${deductionHtml}</section>` : ''}`;
       return `
         <aside class="case-file-drawer case-file-modal v3-case-file panel panel--dossier" aria-label="${tr('Private Case File', 'Hồ sơ riêng')}">
           <div class="drawer-title-row"><div><span>${tab === 'contradictions' ? tr('INTENTIONAL DISCLOSURE', 'CHIA SẺ CÓ CHỦ ĐÍCH') : tr('ROLE-PRIVATE NOTEBOOK', 'SỔ TAY RIÊNG THEO VAI')}</span><h2>${tr('Crack the Lie', 'Phá Vỡ Lời Dối')}</h2></div><button class="close-drawer-btn" type="button" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button></div>
@@ -2943,10 +3158,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function resetConversation() {
-    if (convTimer) { clearInterval(convTimer); convTimer = null; }
     convCharacterId = null;
     convLog = [];
-    convRevealedCount = 0;
     convTreeNodeId = null;
     convTreeChoices = [];
     convTreeChallenge = null;
@@ -2987,63 +3200,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     return lines;
   }
 
-  function hydrateDialogueTypewriter() {
-    if (convTimer) { clearInterval(convTimer); convTimer = null; }
-    if (uiMode.kind !== 'DIALOGUE') return;
-    const logEl = app.querySelector<HTMLElement>('.conv-scroll');
-    logEl?.scrollTo({ top: logEl.scrollHeight });
-    const pending = Array.from(app.querySelectorAll<HTMLElement>('.conv-text.is-typing'));
-    if (pending.length === 0) { convRevealedCount = convLog.length; return; }
-    let idx = 0;
-    let charCount = 0;
-    convTimer = setInterval(() => {
-      const el = pending[idx];
-      if (!el) {
-        if (convTimer) clearInterval(convTimer);
-        convTimer = null;
-        convRevealedCount = convLog.length;
-        return;
-      }
-      const full = el.getAttribute('data-full') ?? '';
-      charCount += 1;
-      el.textContent = full.slice(0, charCount);
-      if (logEl) logEl.scrollTop = logEl.scrollHeight;
-      if (charCount >= full.length) {
-        el.classList.remove('is-typing');
-        idx += 1;
-        charCount = 0;
-      }
-    }, 16);
-  }
-
-  function conversationLogHtml(characterName: string) {
-    if (convLog.length === 0) {
-      return '<p class="conv-empty muted small">Choose a topic below to begin questioning.</p>';
-    }
-    // Group consecutive lines from the same speaker into a single turn (one label,
-    // one bubble with multiple lines). The flat index is preserved per line so the
-    // typewriter still reveals only the newest lines.
-    type Turn = { speaker: 'SIRLOCKED' | 'NPC'; lines: { text: string; index: number }[] };
-    const turns: Turn[] = [];
-    convLog.forEach((line, index) => {
-      const last = turns[turns.length - 1];
-      if (last && last.speaker === line.speaker) last.lines.push({ text: line.text, index });
-      else turns.push({ speaker: line.speaker, lines: [{ text: line.text, index }] });
-    });
-    return turns.map((turn) => {
-      const speaker = turn.speaker === 'SIRLOCKED' ? 'SirLocked' : characterName;
-      const cls = turn.speaker === 'SIRLOCKED' ? 'conv-turn conv-mine' : 'conv-turn conv-npc';
-      const bubble = turn.lines.map((l) => {
-        const typing = l.index >= convRevealedCount;
-        return `<p class="conv-text ${typing ? 'is-typing' : ''}" data-full="${escapeHtml(l.text)}">${typing ? '' : escapeHtml(l.text)}</p>`;
-      }).join('');
-      return `<div class="${cls}">
-          <div class="conv-speaker">${escapeHtml(speaker)}</div>
-          <div class="conv-bubble">${bubble}</div>
-        </div>`;
-    }).join('');
-  }
-
   function renderChallengePanel(challenge: EvidenceChallenge, role: string | null | undefined) {
     return `
       <section class="evidence-challenge conv-challenge">
@@ -3066,13 +3222,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (!character) return '';
     const role = myRole();
     const dialogues = state!.visibleScene.availableDialogues.filter((d) => d.characterId === characterId);
-    const imageUrl = characterPortraitUrl(character);
 
     const freshOpen = convCharacterId !== characterId;
     if (freshOpen) convCharacterId = characterId;
     convLog = buildConversation(characterId);
-    if (freshOpen) convRevealedCount = convLog.length; // existing history shows instantly
-    else convRevealedCount = Math.min(convRevealedCount, convLog.length); // newly added lines type out
 
     const tree = isTreeCharacter(characterId);
     let topicsHtml: string;
@@ -3143,41 +3296,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       challengeHtml = activeChallenges.map((challenge) => renderChallengePanel(challenge, role)).join('');
     }
 
-    return `
-    <div class="overlay dialogue-overlay">
-      <div class="conversation-box panel panel--dossier">
-        <aside class="conv-portrait-col">
-          <div class="conv-portrait" style="${placeholderStyle(character.characterId)}">
-            ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" onerror="this.remove()">` : ''}
-            <span>${initials(character.name)}</span>
-          </div>
-          <div class="conv-portrait-caption">
-            <strong>${escapeHtml(character.name)}</strong>
-            <span>${escapeHtml(character.role)}</span>
-          </div>
-        </aside>
-        <div class="conv-main">
-          <header class="conv-header">
-            <div class="conv-header-top">
-              <span class="conv-section-label">${tr('Witness interview', 'Thẩm vấn nhân chứng')}</span>
-              ${role !== 'INTERROGATOR'
-                ? `<span class="conv-badge">${tr('Viewing testimony — Interrogator controls questioning.', 'Chỉ xem lời khai — Thẩm vấn viên điều khiển cuộc hỏi.')}</span>`
-                : ''}
-            </div>
-            <p class="conv-desc">${escapeHtml(character.description)}</p>
-          </header>
-          <div class="conv-scroll">
-            <div class="conversation-log">${conversationLogHtml(character.name)}</div>
-            ${challengeHtml ? `<div class="conversation-challenges">${challengeHtml}</div>` : ''}
-            ${newLeadHtml}
-            <div class="conversation-choices">${topicsHtml}</div>
-          </div>
-          <footer class="conv-footer">
-            <button class="btn btn-gold" data-close-overlay>${tr('Leave', 'Rời đi')}</button>
-          </footer>
-        </div>
-      </div>
-    </div>`;
+    const host = app.querySelector<HTMLElement>('#game-dialogue-slot');
+    if (host) dialoguePresenter.update(host, { character, lines: convLog, topicsHtml, challengeHtml,
+      newLeadHtml, readonly: role !== 'INTERROGATOR' });
+    return '';
   }
 
   function accusationModal() {
@@ -3379,7 +3501,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
   }
 
   function isSceneInputBlocked() {
-    return isScenePanelOpen(uiMode) ||
+    return cutscenes.active || isScenePanelOpen(uiMode) ||
       !sessionStorage.getItem(introKey) ||
       Date.now() < sceneInputBlockedUntil;
   }
@@ -3401,21 +3523,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     if (!phaserScene) return;
     const blocked = isSceneInputBlocked();
     const cameraEnabled = isCameraMode(uiMode) && !blocked;
-    phaserScene.setSceneInteractionEnabled(!blocked);
+    phaserScene.setSceneInteractionEnabled(!blocked && !cameraEnabled);
     phaserScene.setCameraMode(cameraEnabled);
   }
 
   function bind() {
-    app.querySelector('#abandon-game-btn')?.addEventListener('click', async () => {
-      try {
-        await roomApi.abandon(roomId);
-        toast('Game abandoned.', 'info');
-        window.location.hash = '#/cases';
-      } catch (err: any) {
-        toast(err.message, 'error');
-      }
-    });
     app.querySelectorAll('.overlay').forEach((layer) => {
+      if (layer.hasAttribute('data-events-bound')) return;
+      layer.setAttribute('data-events-bound', 'true');
       ['pointerdown', 'pointerup', 'click'].forEach((eventName) => {
         layer.addEventListener(eventName, (event) => {
           if (!(event.target instanceof Element) || !event.target.closest('.modal, .dialogue-box, .conversation-box')) {
@@ -3564,7 +3679,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     });
 
     app.querySelectorAll('[data-dialogue]').forEach((button) =>
-      button.addEventListener('click', async () => {
+      { if (button.hasAttribute('data-events-bound')) return; button.setAttribute('data-events-bound', 'true'); button.addEventListener('click', async () => {
         if (myRole() !== 'INTERROGATOR') {
           toast('Only the Interrogator can ask questions.', 'info');
           return;
@@ -3576,29 +3691,32 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
           const dialogueId = askButton.dataset.dialogue;
           clearNewDialogue(dialogueId);
           const res = await gameApi.askDialogue(roomId, dialogueId);
+          if (stopped) return;
+          recordGuideAction('ask');
+          audio.play('dialogue');
           if (res.changed && res.unlockedClueIds.length > 0) toast(res.message, 'success');
           applyState(res.state); // log rebuilds deterministically from state
         } catch (err: any) {
           toast(err.message, 'error');
         }
-      }));
+      }); });
 
-    app.querySelectorAll('[data-converse-choice]').forEach((button) => button.addEventListener('click', async () => {
+    app.querySelectorAll('[data-converse-choice]').forEach((button) => { if (button.hasAttribute('data-events-bound')) return; button.setAttribute('data-events-bound', 'true'); button.addEventListener('click', async () => {
       if (myRole() !== 'INTERROGATOR') {
         toast('Only the Interrogator can ask questions.', 'info');
         return;
       }
       const target = button as HTMLElement;
       await chooseConversation(target.dataset.converseNode ?? '', target.dataset.converseChoice ?? '');
-    }));
+    }); });
 
-    app.querySelectorAll('[data-present-challenge]').forEach((button) => button.addEventListener('click', async () => {
+    app.querySelectorAll('[data-present-challenge]').forEach((button) => { if (button.hasAttribute('data-events-bound')) return; button.setAttribute('data-events-bound', 'true'); button.addEventListener('click', async () => {
       const target = button as HTMLElement;
       await presentEvidence(target.dataset.presentChallenge ?? '', target.dataset.presentEvidence ?? '');
-    }));
-    app.querySelectorAll('[data-challenge-hint]').forEach((button) => button.addEventListener('click', async () => {
+    }); });
+    app.querySelectorAll('[data-challenge-hint]').forEach((button) => { if (button.hasAttribute('data-events-bound')) return; button.setAttribute('data-events-bound', 'true'); button.addEventListener('click', async () => {
       await requestHint('CONFRONTATION', (button as HTMLElement).dataset.challengeHint ?? '');
-    }));
+    }); });
     app.querySelectorAll('[data-deduction-hint]').forEach((button) => button.addEventListener('click', async () => {
       await requestHint('DEDUCTION', (button as HTMLElement).dataset.deductionHint ?? '');
     }));
@@ -3884,6 +4002,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     try {
       const item = state!.visibleScene.items.find((candidate) => candidate.itemId === target);
       const res = await gameApi.inspectItem(roomId, target);
+      if (stopped) return;
+      recordGuideAction('inspect');
       showDiscovery({
         id: `item:${target}:${Date.now()}`,
         kind: 'ITEM',
@@ -3972,7 +4092,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     try {
       const res = await gameApi.captureClue(roomId, state.currentSceneId, captureRect, photo);
       const result = String(res.captureResult || '').toUpperCase();
+      if (stopped) return;
       if (result === 'HIT') {
+        recordGuideAction('photo');
         const clueId = res.matchedClueId || res.unlockedClueIds?.[0] || '';
         const clue = res.state?.unlockedClues?.find((candidate: Clue) => candidate.clueId === clueId)
           ?? state.unlockedClues.find((candidate) => candidate.clueId === clueId);
@@ -4050,6 +4172,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     convTreeBusy = true;
     try {
       const res: ConverseResponse = await gameApi.converse(roomId, { characterId, nodeId, choiceId });
+      if (stopped) return;
+      recordGuideAction('ask');
       convTreeNodeId = res.node.nodeId;
       convTreeChoices = res.choices;
       convTreeChallenge = res.challenge ?? null;
@@ -4079,11 +4203,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     }
   }
 
-  async function runPairedCommand(command: () => Promise<any>, openJointReview = true) {
+  async function runPairedCommand(command: () => Promise<any>, openJointReview = true, contributes = false) {
     if (pairedCommandInFlight) return;
     pairedCommandInFlight = true;
     try {
       const response = await command();
+      if (stopped) return;
+      if (contributes) recordGuideAction('compare');
       applyState(response.state);
       if (openJointReview) {
         setUiMode({ kind: 'CASE_FILE', section: 'contradictions' });
@@ -4102,7 +4228,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     await runPairedCommand(() => gameApi.startPairedConfrontation(roomId, {
       attemptId: crypto.randomUUID(),
       testimonyFragmentId,
-    }));
+    }), true, true);
   }
 
   async function editPairedTestimony(testimonyFragmentId: string) {
@@ -4111,7 +4237,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     await runPairedCommand(() => gameApi.editPairedTestimony(roomId, active.attemptId, {
       testimonyFragmentId,
       expectedRevision: active.revision,
-    }));
+    }), true, true);
   }
 
   async function submitPairedEvidence(evidenceId: string) {
@@ -4120,7 +4246,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
     await runPairedCommand(() => gameApi.submitPairedEvidence(roomId, active.attemptId, {
       evidenceId,
       expectedRevision: active.revision,
-    }));
+    }), true, true);
   }
 
   async function confirmPairedConfrontation() {
@@ -4308,15 +4434,30 @@ export async function renderGamePage(app: HTMLElement, roomId: string) {
       .replace(/\b\w/g, (m) => m.toUpperCase());
   }
 
-  return () => {
+  function cleanupGamePage() {
+    if (stopped) return;
     stopped = true;
-    if (convTimer) { clearInterval(convTimer); convTimer = null; }
+    signal?.removeEventListener('abort', cleanupGamePage);
+    stateRefetcher.dispose();
+    audio.dispose();
+    disposeAudioControls?.();
+    disposePingControls?.();
+    if (partnerPingTimer) clearTimeout(partnerPingTimer);
+    window.removeEventListener('pointerdown', unlockAudio);
+    window.removeEventListener('keydown', unlockAudio);
+    dialoguePresenter.dispose();
+    cutscenes.dispose();
     if (crackPayoffTimer) { clearTimeout(crackPayoffTimer); crackPayoffTimer = null; }
-    if (stateRefetchRetryTimer) { clearTimeout(stateRefetchRetryTimer); stateRefetchRetryTimer = null; }
+    if (discoveryTimer) clearTimeout(discoveryTimer);
+    if (partnerActivityTimer) clearTimeout(partnerActivityTimer);
+    if (reconnectWaitTimer) clearInterval(reconnectWaitTimer);
+    reconnectWaitTimer = null;
+    if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
     window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
     for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);
     evidencePhotoObjectUrls.clear();
     return hub.stop();
-  };
+  }
+  return cleanupGamePage;
 }

@@ -6,13 +6,17 @@ AI-assisted cooperative detective game MVP.
 
 - Backend: ASP.NET Core Web API, MongoDB, JWT, SignalR
 - Frontend: Vite JavaScript SPA, with Phaser 4 + TypeScript for the gameplay renderer
-- AI case generation: OpenAI-only preview approval flow, with automatic validation and publishing
+- AI case generation: OpenAI preview/truth approval flow, validation and publishing; optional xAI cinematic videos
+
+## Cinematic presentation
+
+Visual-novel dialogue, NPC idle, independent cutscenes, audio, recap and cooperative pings are available with legacy-case fallbacks. Optional xAI generation is off by default and requires explicit budget/pricing configuration. Paid text/image calls also require configured usage reservations. See [setup, authoring, cost accounting and verification](docs/CINEMATIC_PRESENTATION_VI.md).
 
 ## Requirements
 
 - .NET SDK 9
 - Node.js 20+
-- Docker Desktop, or a local MongoDB instance
+- Access to the MongoDB instance configured in `.env` (local or remote). Docker Desktop or a local MongoDB installation is only needed when using a local database.
 
 ## Configuration
 
@@ -39,7 +43,7 @@ Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
 OpenAI__ApiKey=
-OpenAI__LogicModel=gpt-5.5
+OpenAI__LogicModel=gpt-5.6-sol
 OpenAI__ImageModel=gpt-image-2
 OpenAI__CutoutImageModel=gpt-image-1.5
 OpenAI__BaseUrl=https://api.openai.com/v1
@@ -47,6 +51,7 @@ OpenAI__TimeoutSeconds=900
 ```
 
 `OpenAI__ApiKey` is required for the AI case creator. Keep real keys in local `.env` files or deployment secrets only.
+Paid case creation also requires AI quota and dated model prices. Cloudinary storage is required when generating images; JSON-only testing can leave it disabled. See [AI case setup and repair workflow](docs/AI_CASE_SETUP_VI.md) and the [5 USD JSON-only configuration example](config/ai-generation.json-only.example.json).
 Swagger is always available in `Development`; outside Development it is disabled unless `Swagger__Enabled=true` is explicitly configured.
 The case cache is process-local and intended for the current single-instance deployment. Use a distributed cache or coordinated invalidation before scaling the API to multiple instances.
 
@@ -81,11 +86,15 @@ Accusation__RequireConsensus=true
 
 ## Run Locally
 
-Start MongoDB:
+To run the project with your existing database and accounts, keep the repository-root `.env` configuration and start the backend and frontend below. The backend connects to the database specified by `MongoDb__ConnectionString` and `MongoDb__DatabaseName`.
+
+If `.env` points to a local MongoDB instance, start that instance first. For the repository's Docker setup:
 
 ```powershell
 docker compose up -d
 ```
+
+Skip this step when `.env` already points to a reachable remote database; Docker and local MongoDB are not required for that configuration.
 
 Run the backend:
 
@@ -96,7 +105,7 @@ dotnet run
 
 Backend default URL: `http://localhost:5215`
 
-Run the frontend:
+Run the frontend in another terminal, starting from the repository root:
 
 ```powershell
 cd src/FE
@@ -105,6 +114,12 @@ npm run dev
 ```
 
 Frontend default URL: `http://localhost:5173`
+
+### Optional isolated Windows demo
+
+For a separate demo with portable MongoDB, two seeded V3 cases, two player accounts and no paid AI calls, run `./scripts/start-local-demo.ps1` from the repository root. Open [the isolated demo](http://127.0.0.1:5174); its API uses port `5216` and MongoDB uses port `27020`. These defaults keep the normal project's `5173`/`5215` ports and browser sessions separate. The demo uses its own database and preserves the existing `.env`.
+
+Stop only the demo with `./scripts/stop-local-demo.ps1`. See [Vietnamese demo and release instructions](docs/LOCAL_DEMO_VI.md).
 
 ## Demo Account
 
@@ -147,6 +162,14 @@ run automatically at API startup and does not migrate existing V2 cases.
 For a code-synced Vietnamese map of the current AI case creation, room, realtime,
 and gameplay flows, see
 [`ai-game-docs/CURRENT_CASE_AND_GAME_FLOW_VI.md`](ai-game-docs/CURRENT_CASE_AND_GAME_FLOW_VI.md).
+
+### Disconnection timeout
+
+During an active match, either player's continuous disconnection starts a five-minute reconnect window. Rejoining before the deadline cancels that player's countdown; a later disconnection starts a new window. Closing one tab does not disconnect a player who still has another room connection.
+
+The server automatically ends expired rooms as `ABANDONED` with a failed game state, even if both players are offline. A background check runs every five seconds; the client countdown is informational and waits for the server's final state. Returning after the deadline cannot reopen the match. Waiting lobbies and already completed games are unaffected.
+
+Disconnect timestamps are stored in MongoDB. Presence tracking currently assumes one API instance: an abrupt API crash can leave a previously online player marked online until they reconnect. Multi-instance or crash-reconciled presence needs connection leases before scaling out.
 
 ## AI Case Creator
 

@@ -17,7 +17,7 @@ function shortRole(role: string) {
   return role || '—';
 }
 
-export function renderGameHud(model: GameUiModel, caseTitle: string, localUserId: string, canAbandon: boolean, tr: Translate) {
+export function renderGameHud(model: GameUiModel, caseTitle: string, localUserId: string, tr: Translate) {
   const progressLabel = model.sceneProgressState === 'COMPLETE'
     ? tr('Location investigated', 'Đã điều tra xong địa điểm')
     : model.sceneProgressState === 'READY'
@@ -46,8 +46,39 @@ export function renderGameHud(model: GameUiModel, caseTitle: string, localUserId
     <aside class="coop-presence" aria-label="${tr('Detective team', 'Đội điều tra')}">
       <div class="game-players">${players}</div>
       ${activity}
-      ${canAbandon ? `<button id="abandon-game-btn" class="btn btn-ghost btn-sm" type="button">${tr('Abandon after reconnect timeout', 'Rời ván sau thời gian chờ kết nối lại')}</button>` : ''}
+      <div id="game-reconnect-wait-slot"></div>
     </aside>`;
+}
+
+type PresencePlayer = {
+  isConnected: boolean;
+  disconnectedAt?: string | null;
+  reconnectGraceEndsAt?: string | null;
+};
+
+export function reconnectWait(players: PresencePlayer[], now = Date.now()) {
+  const offline = players.filter((player) => player.isConnected === false);
+  if (!offline.length) return null;
+  const deadlines = offline.map((player) => {
+    const explicit = Date.parse(player.reconnectGraceEndsAt ?? '');
+    if (Number.isFinite(explicit)) return explicit;
+    const disconnectedAt = Date.parse(player.disconnectedAt ?? '');
+    return Number.isFinite(disconnectedAt) ? disconnectedAt + 5 * 60_000 : NaN;
+  }).filter(Number.isFinite);
+  const deadline = deadlines.length ? Math.min(...deadlines) : null;
+  return { deadline, seconds: deadline === null ? null : Math.max(0, Math.ceil((deadline - now) / 1000)) };
+}
+
+export function renderReconnectWait(wait: NonNullable<ReturnType<typeof reconnectWait>>, tr: Translate) {
+  const message = wait.seconds === 0
+    ? tr('Reconnect time elapsed. Waiting for the server to confirm the room status…', 'Đã hết thời gian kết nối lại. Đang chờ máy chủ xác nhận trạng thái phòng…')
+    : tr('Waiting for a detective to reconnect. The game ends automatically after 5 minutes continuously offline.', 'Đang chờ thám tử kết nối lại. Ván chơi tự kết thúc sau 5 phút mất kết nối liên tục.');
+  return `<div class="reconnect-wait" id="game-reconnect-wait">
+    <p role="status">${html(message)}</p>
+    ${wait.seconds === null
+      ? `<p class="muted small">${tr('Syncing the reconnect deadline…', 'Đang đồng bộ hạn kết nối lại…')}</p>`
+      : `<p>${tr('Time to reconnect', 'Thời gian kết nối lại')}: <strong role="timer" aria-live="off" id="game-reconnect-countdown"></strong></p>`}
+  </div>`;
 }
 
 export function renderContextAction(model: GameUiModel, tr: Translate) {
