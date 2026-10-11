@@ -48,6 +48,7 @@ public class EvidenceClaimResult
 
 public class GameResultResponse
 {
+    public SirLocked.Api.DTOs.Investigation.GamePresentationDto? Presentation { get; set; }
     public string RoomId { get; set; } = string.Empty;
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;

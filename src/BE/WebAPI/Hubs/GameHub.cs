@@ -3,23 +3,50 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Driver;
+using MongoDB.Bson;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services;
 
 namespace SirLocked.Api.WebAPI.Hubs;
 
 [Authorize]
 public class GameHub : Hub
 {
-    private static readonly TimeSpan ReconnectGracePeriod = TimeSpan.FromSeconds(30);
-    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> ActiveConnections = new();
+    private static readonly RoomPresenceTracker Presence = new();
     private static readonly ConcurrentDictionary<string, long> LastPoseTicks = new();
     private static readonly TimeSpan PoseInterval = TimeSpan.FromMilliseconds(50);
     private readonly MongoDbContext _db;
+    private readonly RoomDisconnectTimeoutService _disconnectTimeout;
+    private readonly ILogger<GameHub> _logger;
+    private static readonly CooperativePingPolicy PingPolicy = new();
 
-    public GameHub(MongoDbContext db) => _db = db;
+    public GameHub(MongoDbContext db, RoomDisconnectTimeoutService disconnectTimeout, ILogger<GameHub> logger)
+    {
+        _db = db;
+        _disconnectTimeout = disconnectTimeout;
+        _logger = logger;
+    }
 
     public static string RoomGroup(string roomId) => $"room-{roomId}";
+
+    public async Task SendPing(string roomId, string kind)
+    {
+        if (!ObjectId.TryParse(roomId, out _) || !CooperativePingPolicy.IsKind(kind))
+            throw new HubException("Invalid team ping.");
+        var userId = Context.UserIdentifier;
+        // Fresh membership/status read: cached presence is insufficient after a player leaves a room.
+        var room = await _db.Rooms.Find(r => r.Id == roomId).FirstOrDefaultAsync(Context.ConnectionAborted);
+        if (!CooperativePingPolicy.CanSend(room, userId, kind))
+            throw new HubException("Team pings are available only to members of an active match.");
+        var now = DateTime.UtcNow;
+        if (!PingPolicy.TryAcquire(roomId, userId!, now))
+            throw new HubException("Please wait three seconds before sending another ping.");
+        await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("TeamPing", new
+        {
+            roomId, kind, senderUserId = userId, expiresAt = now.Add(CooperativePingPolicy.Lifetime)
+        }, Context.ConnectionAborted);
+    }
 
     /// <summary>Clients call this after connect and after every reconnect, then refetch room/game state.</summary>
     public async Task JoinRoom(string roomId)
@@ -34,22 +61,16 @@ public class GameHub : Hub
         }
 
         Context.Items[RoomPlayerItemKey(roomId)] = player;
-        JoinedRooms().Add(roomId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomId));
-        var connectedAt = DateTime.UtcNow;
-        var becameOnline = RegisterConnection(roomId, userId!, Context.ConnectionId);
-        if (becameOnline)
-        {
-            await SetPresenceAsync(roomId, userId!, true, connectedAt);
-        }
-        await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
-        {
-            roomId,
-            userId,
-            isConnected = true,
-            changedAt = connectedAt,
-            graceEndsAt = (DateTime?)null
-        });
+        JoinedRooms().TryAdd(roomId, 0);
+        await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomId), Context.ConnectionAborted);
+        await Presence.TryRegisterAsync(
+            roomId, userId!, Context.ConnectionId,
+            transition => TryPersistAndNotifyOnlineAsync(roomId, userId!, transition),
+            async now => !await _disconnectTimeout.ExpireRoomIfNeededAsync(roomId, now, Context.ConnectionAborted),
+            Context.ConnectionAborted);
+        // The deadline check may have ended the room. A returning player must still receive
+        // its terminal version and refetch the ended state instead of reviving the match.
+        room = await _db.Rooms.Find(candidate => candidate.Id == roomId).FirstOrDefaultAsync() ?? room;
         // The initial GET can race the JoinRoom call. Return the authoritative
         // version so the client can reconcile only when it actually missed state.
         await Clients.Caller.SendAsync("RoomStateVersion", new
@@ -61,54 +82,27 @@ public class GameHub : Hub
 
     public async Task LeaveRoom(string roomId)
     {
-        await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseLeft", new
-        {
-            roomId,
-            userId = Context.UserIdentifier
-        });
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomGroup(roomId));
         Context.Items.Remove(RoomPlayerItemKey(roomId));
-        JoinedRooms().Remove(roomId);
-        if (UnregisterConnection(roomId, Context.UserIdentifier, Context.ConnectionId))
-        {
-            var disconnectedAt = DateTime.UtcNow;
-            if (!string.IsNullOrWhiteSpace(Context.UserIdentifier))
-                await SetPresenceAsync(roomId, Context.UserIdentifier, false, disconnectedAt);
-            await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
-            {
-                roomId,
-                userId = Context.UserIdentifier,
-                isConnected = false,
-                changedAt = disconnectedAt,
-                graceEndsAt = disconnectedAt.Add(ReconnectGracePeriod)
-            });
-        }
+        JoinedRooms().TryRemove(roomId, out _);
+        await UnregisterPresenceAsync(roomId);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        foreach (var roomId in JoinedRooms())
+        foreach (var roomId in JoinedRooms().Keys)
         {
-            var disconnectedAt = DateTime.UtcNow;
-            var becameOffline = UnregisterConnection(roomId, Context.UserIdentifier, Context.ConnectionId);
-            if (becameOffline && !string.IsNullOrWhiteSpace(Context.UserIdentifier))
-                await SetPresenceAsync(roomId, Context.UserIdentifier, false, disconnectedAt);
-            await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseLeft", new
+            try
             {
-                roomId,
-                userId = Context.UserIdentifier
-            });
-            if (becameOffline)
-            {
-                await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
-                {
-                    roomId,
-                    userId = Context.UserIdentifier,
-                    isConnected = false,
-                    changedAt = disconnectedAt,
-                    graceEndsAt = disconnectedAt.Add(ReconnectGracePeriod)
-                });
+                await UnregisterPresenceAsync(roomId);
             }
+            catch (Exception error)
+            {
+                // Clean the other joined rooms even when one persistence/notification failed.
+                _logger.LogWarning(error, "Could not persist disconnected presence for room {RoomId}.", roomId);
+            }
+            Context.Items.Remove(RoomPlayerItemKey(roomId));
+            JoinedRooms().TryRemove(roomId, out _);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -188,43 +182,68 @@ public class GameHub : Hub
             update);
     }
 
-    private static bool RegisterConnection(string roomId, string userId, string connectionId)
+    private Task UnregisterPresenceAsync(string roomId)
     {
-        var connections = ActiveConnections.GetOrAdd($"{roomId}:{userId}", _ => new ConcurrentDictionary<string, byte>());
-        lock (connections)
-        {
-            var wasEmpty = connections.IsEmpty;
-            connections[connectionId] = 0;
-            return wasEmpty;
-        }
+        var userId = Context.UserIdentifier;
+        return string.IsNullOrWhiteSpace(userId)
+            ? Task.CompletedTask
+            : Presence.UnregisterAsync(roomId, userId, Context.ConnectionId,
+                transition => PersistAndNotifyPresenceAsync(roomId, userId, transition));
     }
 
-    private static bool UnregisterConnection(string roomId, string? userId, string connectionId)
+    private async Task PersistAndNotifyPresenceAsync(string roomId, string userId, RoomPresenceTransition transition)
     {
-        if (string.IsNullOrWhiteSpace(userId)) return false;
-        var key = $"{roomId}:{userId}";
-        if (!ActiveConnections.TryGetValue(key, out var connections)) return false;
-        lock (connections)
-        {
-            connections.TryRemove(connectionId, out _);
-            if (!connections.IsEmpty) return false;
-            ActiveConnections.TryRemove(key, out _);
-            LastPoseTicks.TryRemove(key, out _);
-            return true;
-        }
+        await SetPresenceAsync(roomId, userId, transition.IsConnected, transition.ChangedAt);
+        await NotifyPresenceAsync(roomId, userId, transition);
     }
 
-    private HashSet<string> JoinedRooms()
+    private async Task<bool> TryPersistAndNotifyOnlineAsync(string roomId, string userId, RoomPresenceTransition transition)
+    {
+        var result = await _db.Rooms.UpdateOneAsync(
+            RoomPresenceWriteRules.ReconnectFilter(roomId, userId),
+            Builders<GameRoom>.Update
+                .Set("Players.$.IsConnected", true)
+                .Set("Players.$.LastConnectedAt", transition.ChangedAt)
+                .Unset("Players.$.DisconnectedAt"));
+        if (result.MatchedCount == 0)
+        {
+            // The deadline may have elapsed while the preliminary check was in flight.
+            // No online event is emitted; JoinRoom still sends the terminal state version.
+            await _disconnectTimeout.ExpireRoomIfNeededAsync(roomId, DateTime.UtcNow);
+            return false;
+        }
+        await NotifyPresenceAsync(roomId, userId, transition);
+        return true;
+    }
+
+    private async Task NotifyPresenceAsync(string roomId, string userId, RoomPresenceTransition transition)
+    {
+        if (!transition.IsConnected)
+        {
+            LastPoseTicks.TryRemove($"{roomId}:{userId}", out _);
+            // Closing one tab must not remove the avatar belonging to another live tab.
+            await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPoseLeft", new { roomId, userId });
+        }
+        await Clients.Group(RoomGroup(roomId)).SendAsync("PlayerPresenceChanged", new
+        {
+            roomId,
+            userId,
+            isConnected = transition.IsConnected,
+            changedAt = transition.ChangedAt,
+            graceEndsAt = transition.IsConnected ? (DateTime?)null : transition.ChangedAt.Add(RoomService.DisconnectGracePeriod)
+        });
+    }
+
+    private ConcurrentDictionary<string, byte> JoinedRooms()
     {
         const string key = "joined-rooms";
-        if (Context.Items.TryGetValue(key, out var rooms) && rooms is HashSet<string> roomSet)
+        lock (Context.Items)
         {
+            if (Context.Items.TryGetValue(key, out var rooms) && rooms is ConcurrentDictionary<string, byte> existing) return existing;
+            var roomSet = new ConcurrentDictionary<string, byte>();
+            Context.Items[key] = roomSet;
             return roomSet;
         }
-
-        roomSet = new HashSet<string>();
-        Context.Items[key] = roomSet;
-        return roomSet;
     }
 }
 
