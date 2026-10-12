@@ -68,6 +68,8 @@ public sealed class GeneratedCaseLogic
         MechanicsVersion = settings.MechanicsVersion,
         GenerationMode = settings.GenerationMode,
         GenerationPreset = settings.GenerationPreset,
+        ShortDemoProfileVersion = AiGenerationPresets.Normalize(settings.GenerationPreset) == AiGenerationPresets.ShortDemo
+            ? settings.ShortDemoProfileVersion : 0,
         EstimatedMinutes = EstimatedMinutes,
         CoverImageUrl = string.Empty,
         Stages = Stages,
@@ -178,6 +180,7 @@ public static class AiStrictSchemaProvider
             },
             [typeof(CaseCharacter)] = new(StringComparer.Ordinal) { nameof(CaseCharacter.ImageUrl) },
             [typeof(CaseItem)] = new(StringComparer.Ordinal) { nameof(CaseItem.ImageUrl) },
+            [typeof(ConversationNode)] = new(StringComparer.Ordinal) { nameof(ConversationNode.SourceDialogueId) },
             [typeof(CaseTruthFeasibilityReview)] = new(StringComparer.Ordinal) { nameof(CaseTruthFeasibilityReview.ReviewedAt) },
             [typeof(BlindSolvabilityReview)] = new(StringComparer.Ordinal) { nameof(BlindSolvabilityReview.ReviewedAt) }
         };

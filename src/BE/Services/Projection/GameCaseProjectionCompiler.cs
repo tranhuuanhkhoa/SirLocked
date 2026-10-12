@@ -106,8 +106,13 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         foreach (var node in gameCase.ConversationNodes)
         {
             var value = content.ConversationNodes[node.NodeId];
-            for (var index = 0; index < node.Lines.Count; index++)
-                node.Lines[index].Text = value.Lines[index];
+            // Source-linked leaves quote the approved ledger. Model prose cannot
+            // replace the account whose exact provenance and reward are locked.
+            if (string.IsNullOrWhiteSpace(node.SourceDialogueId))
+                for (var index = 0; index < node.Lines.Count; index++)
+                    node.Lines[index].Text = value.Lines[index];
+            else
+                node.Lines = ProjectionConversationPresentation.SourceLines(node, gameCase.TestimonyFragments);
             foreach (var choice in node.Choices)
                 choice.Label = value.ChoiceLabels[choice.ChoiceId];
         }
