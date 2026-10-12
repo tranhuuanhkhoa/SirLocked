@@ -133,13 +133,24 @@ public class AuthService : IAuthService
         var user = await _db.Users.Find(u => u.RefreshTokenHash == tokenHash || u.RefreshToken == request.RefreshToken).FirstOrDefaultAsync()
             ?? throw ApiException.Unauthorized("Invalid refresh token.");
 
-        if (user.RefreshTokenExpiry < DateTime.UtcNow)
+        return await CompleteRefreshAsync(user, tokenHash);
+    }
+
+    // The read and the rotation are separate so every write must recheck the session snapshot.
+    // Integration tests use this boundary to exercise deterministic concurrent reads.
+    internal Task<AuthResponse> CompleteRefreshAsync(User snapshot, string tokenHash)
+    {
+        EnsureRefreshSessionIsActive(snapshot, DateTime.UtcNow);
+        return BuildAuthResponseAndSaveRefreshToken(snapshot, tokenHash);
+    }
+
+    internal static void EnsureRefreshSessionIsActive(User user, DateTime now)
+    {
+        if (user.RefreshTokenExpiry is not DateTime expiry || expiry <= now)
             throw ApiException.Unauthorized("Refresh token has expired. Please log in again.");
 
         if (user.Status != UserStatus.Active)
             throw ApiException.Forbidden("This account is locked or deleted.");
-
-        return await BuildAuthResponseAndSaveRefreshToken(user, tokenHash);
     }
 
     public async Task<AuthResponse> GoogleLoginAsync(string email, string fullName)
@@ -369,11 +380,7 @@ public class AuthService : IAuthService
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         var filter = expectedRefreshTokenHash is null
             ? Builders<User>.Filter.Eq(u => u.Id, user.Id)
-            : Builders<User>.Filter.And(
-                Builders<User>.Filter.Eq(u => u.Id, user.Id),
-                Builders<User>.Filter.Or(
-                    Builders<User>.Filter.Eq(u => u.RefreshTokenHash, expectedRefreshTokenHash),
-                    Builders<User>.Filter.Eq(u => u.RefreshToken, user.RefreshToken)));
+            : RefreshRotationFilter(user, expectedRefreshTokenHash, DateTime.UtcNow);
         var saved = await _db.Users.UpdateOneAsync(filter, update);
         if (expectedRefreshTokenHash is not null && saved.MatchedCount != 1)
             throw ApiException.Unauthorized("Refresh token has already been used. Please sign in again.");
@@ -386,6 +393,30 @@ public class AuthService : IAuthService
             RefreshTokenExpiry = refreshTokenExpiry,
             User = ToUserResponse(user)
         };
+    }
+
+    private static FilterDefinition<User> RefreshRotationFilter(User snapshot, string tokenHash, DateTime now)
+    {
+        var filters = Builders<User>.Filter;
+        // Legacy accounts can lack authorizationVersion in Mongo; their deserialized version is zero.
+        var version = filters.Eq(u => u.AuthorizationVersion, snapshot.AuthorizationVersion);
+        if (snapshot.AuthorizationVersion == 0)
+            version |= filters.Exists(u => u.AuthorizationVersion, false);
+
+        var token = filters.Eq(u => u.RefreshTokenHash, tokenHash);
+        if (string.IsNullOrEmpty(snapshot.RefreshTokenHash) && !string.IsNullOrWhiteSpace(snapshot.RefreshToken))
+        {
+            // Migrate a nonempty legacy token once. Never compare a null legacy token:
+            // null also matches sessions whose hash was rotated or revoked after our read.
+            token = filters.Eq(u => u.RefreshToken, snapshot.RefreshToken)
+                & (filters.Eq(u => u.RefreshTokenHash, null) | filters.Eq(u => u.RefreshTokenHash, ""));
+        }
+
+        return filters.Eq(u => u.Id, snapshot.Id)
+            & filters.Eq(u => u.Status, UserStatus.Active)
+            & version
+            & filters.Gt(u => u.RefreshTokenExpiry, now)
+            & token;
     }
 
     private static UserResponse ToUserResponse(User user) => new()

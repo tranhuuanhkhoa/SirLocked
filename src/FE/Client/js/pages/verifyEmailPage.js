@@ -1,6 +1,7 @@
 import { authApi } from '../api/authApi.js';
 import { session } from '../services/session.js';
 import { render, qs } from '../utils/dom.js';
+import { pendingRoomInvite } from '../services/roomInvites.js';
 
 export async function renderVerifyEmailPage(app) {
   const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
@@ -45,8 +46,9 @@ export async function renderVerifyEmailPage(app) {
     // Nếu đang đăng nhập thì mở khóa game ngay
     if (session.isLoggedIn()) session.setEmailVerified();
 
-    const goHref = session.isLoggedIn() ? '#/menu' : '#/login';
-    const goText = session.isLoggedIn() ? 'Vào game ngay' : 'Đăng nhập';
+    const invite = pendingRoomInvite();
+    const goHref = session.isLoggedIn() ? (invite || '#/menu') : '#/login';
+    const goText = session.isLoggedIn() ? (invite ? 'Tiếp tục tới phòng được mời' : 'Vào game ngay') : 'Đăng nhập';
     stateEl.innerHTML = `
       <div style="font-size:48px;margin-bottom:8px">✅</div>
       <h2 style="color:#7ecf7e;margin:0 0 8px">Xác minh thành công!</h2>

@@ -241,6 +241,29 @@ public sealed class ProjectionGraphValidator : IProjectionGraphValidator
 
         foreach (var (id, slot) in plan.Puzzles)
         {
+            var expectedPuzzle = plan.Skeleton.Puzzles.FirstOrDefault(item => item.PuzzleId == id);
+            if (expectedPuzzle is null)
+            {
+                result.Add("ProjectionPuzzleOrphan", $"projectionPlan.puzzles.{id}",
+                    "Puzzle slot has no matching planned mechanic.", id);
+                continue;
+            }
+            var actualPuzzle = gameCase.Puzzles.FirstOrDefault(item => item.PuzzleId == id);
+            if (actualPuzzle is not null && (actualPuzzle.TargetId != expectedPuzzle.TargetId
+                || actualPuzzle.Type != expectedPuzzle.Type
+                || actualPuzzle.ProgressionRole != expectedPuzzle.ProgressionRole
+                || actualPuzzle.CorrectCode != expectedPuzzle.CorrectCode
+                || !actualPuzzle.BasedOnTruthIds.SequenceEqual(expectedPuzzle.BasedOnTruthIds, StringComparer.Ordinal)
+                || !actualPuzzle.RevealsConclusionIds.SequenceEqual(expectedPuzzle.RevealsConclusionIds, StringComparer.Ordinal)
+                || !actualPuzzle.Options.SequenceEqual(expectedPuzzle.Options, StringComparer.Ordinal)
+                || !actualPuzzle.CorrectSequence.SequenceEqual(expectedPuzzle.CorrectSequence, StringComparer.Ordinal)
+                || !actualPuzzle.RequiredItemIds.SequenceEqual(expectedPuzzle.RequiredItemIds, StringComparer.Ordinal)
+                || !actualPuzzle.RequiredClueIds.SequenceEqual(expectedPuzzle.RequiredClueIds, StringComparer.Ordinal)
+                || !actualPuzzle.UnlockItemIds.SequenceEqual(expectedPuzzle.UnlockItemIds, StringComparer.Ordinal)
+                || !actualPuzzle.UnlockClueIds.SequenceEqual(expectedPuzzle.UnlockClueIds, StringComparer.Ordinal)
+                || !actualPuzzle.UnlockSceneIds.SequenceEqual(expectedPuzzle.UnlockSceneIds, StringComparer.Ordinal)))
+                result.Add("ProjectionDependencyMismatch", $"puzzles.{id}",
+                    "Compiled puzzle changed its planned answer, prerequisites, target, or rewards.", id);
             foreach (var truthId in slot.BasedOnTruthIds.Where(truthId =>
                          !events.ContainsKey(truthId) && !traces.ContainsKey(truthId)
                          && !statements.ContainsKey(truthId) && !conclusions.ContainsKey(truthId)))
@@ -331,6 +354,7 @@ public sealed class ProjectionGraphValidator : IProjectionGraphValidator
             .ToHashSet(StringComparer.Ordinal);
         var requiredTraceIds = truth.StatementLedger.SelectMany(item => item.ContradictedByTraceIds)
             .Concat(truth.RedHerringLedger.SelectMany(item => item.ClearingTraceIds))
+            .Concat(ProjectionProofClosure.TraceIds(truth))
             .Concat(plan.FinalLogic.EvidenceLinks
                 .Where(link => plan.Clues.ContainsKey(link.EvidenceId))
                 .Select(link => plan.Clues[link.EvidenceId].TraceId))
@@ -343,9 +367,10 @@ public sealed class ProjectionGraphValidator : IProjectionGraphValidator
             .Where(item => item.ContradictedByTraceIds.Count > 0)
             .Select(item => item.StatementId)
             .Concat(truth.RedHerringLedger.SelectMany(item => item.ClearingStatementIds))
+            .Concat(ProjectionProofClosure.StatementIds(truth))
             .Distinct(StringComparer.Ordinal);
         foreach (var statementId in requiredStatementIds.Where(id => !projectedStatementIds.Contains(id)))
-            result.Add("ProjectionTruthClosure", "projectionPlan.dialogues", "A contradiction or clearing statement was not projected.", statementId);
+            result.Add("ProjectionTruthClosure", "projectionPlan.dialogues", "A required final proof, contradiction, or clearing statement was not projected.", statementId);
 
         result.Errors.AddRange(CausalStateGraphValidator.Validate(gameCase).Errors);
         result.Deduplicate();
