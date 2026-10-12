@@ -4,6 +4,7 @@ import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
 import { isV3, v3PublishGate } from './adminV3Gates.js';
+import { mountPresentationEditor, presentationPlaceholder } from './adminPresentation.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_TRUTH_AWAITING_APPROVAL = 'CASE_TRUTH_AWAITING_APPROVAL';
@@ -13,9 +14,10 @@ const STATUS_SCENE_LAYOUT_AWAITING_APPROVAL = 'SCENE_LAYOUT_AWAITING_APPROVAL';
 const STATUS_READY_TO_PUBLISH = 'READY_TO_PUBLISH';
 const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
-const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID]);
+const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID, 'CANCELLED']);
 const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED']);
-const isTerminalDraft = (draft) => TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState);
+const isTerminalDraft = (draft) => draft?.status === 'CANCELLED'
+  || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState));
 // A queued or running draft still carries the failurePhase/validationErrors of the attempt before
 // it, so the UI must not present them as the outcome of the run that is currently in flight.
 const isGeneratingDraft = (draft) => ACTIVE_QUEUE_STATES.has(draft?.queueState)
@@ -74,6 +76,31 @@ const CASE_TYPES = {
   KIDNAPPING: ['Kidnapping', 'Bắt cóc'],
 };
 
+const CREATIVE_SETTINGS = {
+  manor: ['Isolated manor', 'Trang viên biệt lập'],
+  railway: ['Rain-soaked railway', 'Ga xe lửa trong mưa'],
+  theatre: ['Riverside theatre', 'Nhà hát ven sông'],
+  clockmakers: ['Clockmakers district', 'Khu thợ đồng hồ'],
+  museum: ['Private museum', 'Bảo tàng tư nhân'],
+  hotel: ['Grand hotel', 'Khách sạn lớn'],
+  harbor: ['Harbor warehouse', 'Kho cảng'],
+  observatory: ['Mountain observatory', 'Đài quan sát trên núi'],
+};
+const CREATIVE_TONES = {
+  classic_mystery: ['Classic mystery', 'Bí ẩn cổ điển'],
+  tense: ['Tense', 'Căng thẳng'],
+  melancholic: ['Melancholic', 'U buồn'],
+  light_humor: ['Light humor', 'Hài nhẹ'],
+};
+const CREATIVE_MECHANICS = {
+  timeline: ['Timeline reconstruction', 'Đối chiếu dòng thời gian'],
+  physical_trace: ['Physical trace', 'Dấu vết vật lý'],
+  object_switch: ['Object switch', 'Hoán đổi vật thể'],
+  access_opportunity: ['Access and opportunity', 'Quyền tiếp cận và cơ hội'],
+  observability: ['Sight and sound observability', 'Khả năng quan sát'],
+  custody: ['Document custody', 'Chuỗi bàn giao tài liệu'],
+};
+
 function caseTypeLabel(caseType) {
   const labels = CASE_TYPES[caseType];
   return labels ? tr(labels[0], labels[1]) : (caseType || tr('Legacy / unknown', 'Case cũ / chưa xác định'));
@@ -123,6 +150,7 @@ function reasonLabel(code) {
 }
 
 const STATUS_LABELS = {
+  CANCELLED: ['Cancelled', 'Đã hủy'],
   GENERATING_STORY: ['Generating story', 'Đang tạo tiền đề'],
   STORY_AWAITING_APPROVAL: ['Story awaiting approval', 'Chờ duyệt tiền đề'],
   GENERATING_CASE_TRUTH: ['Generating case truth', 'Đang tạo sự thật vụ án'],
@@ -147,7 +175,41 @@ function statusLabel(status) {
   return localizedPair(STATUS_LABELS[status]) || status || tr('Unknown', 'Không xác định');
 }
 
+const CREATION_ERROR_LABELS = {
+  AI_PROVIDER_UNCONFIGURED: ['AI generation is not configured on the server. Ask the administrator to configure the provider.', 'Máy chủ chưa cấu hình dịch vụ tạo AI. Hãy nhờ quản trị viên cấu hình nhà cung cấp.'],
+  AI_QUOTA_UNCONFIGURED: ['AI creation limits and budget have not been enabled and configured. Ask the administrator to finish the AI setup.', 'Hạn mức và ngân sách tạo AI chưa được bật và cấu hình. Hãy nhờ quản trị viên hoàn tất thiết lập AI.'],
+  AI_ASSET_STORAGE_UNCONFIGURED: ['AI asset storage is not configured. Ask the administrator to configure Cloudinary.', 'Kho lưu tài nguyên AI chưa được cấu hình. Hãy nhờ quản trị viên cấu hình Cloudinary.'],
+  AI_USAGE_PRICE_REQUIRED: ['AI model pricing and per-call cost reservations are missing. Ask the administrator to complete the cost settings.', 'Chưa cấu hình giá mô hình AI và khoản dự trù cho mỗi lần gọi. Hãy nhờ quản trị viên hoàn tất thiết lập chi phí.'],
+  AI_REQUEST_BUDGET_LIMIT: ['This request exceeds the trial size or output limit. No AI request was sent; review the saved draft before changing the limits.', 'Yêu cầu vượt giới hạn kích thước hoặc lượng đầu ra của đợt thử. Chưa gửi yêu cầu tới AI; hãy kiểm tra bản nháp đã lưu trước khi đổi giới hạn.'],
+  AI_TRUTH_REPAIR_PENDING: ['Review and accept or reject the pending truth repair before continuing with gameplay or assets.', 'Hãy kiểm tra và chấp nhận hoặc từ chối bản sửa truth đang chờ trước khi tiếp tục gameplay hoặc tài nguyên.'],
+  AI_WORKFLOW_CONFLICT: ['This draft is running or has changed. Refresh its details before trying again.', 'Bản nháp đang chạy hoặc đã thay đổi. Hãy tải lại chi tiết trước khi thử lại.'],
+  AI_TRUTH_REPAIR_CANDIDATE_UNAVAILABLE: ['This repair candidate is no longer available. Refresh the draft before continuing.', 'Bản sửa này không còn khả dụng. Hãy tải lại bản nháp trước khi tiếp tục.'],
+  AI_TRUTH_REPAIR_CANDIDATE_STALE: ['The current truth changed after this candidate was created. Create a new repair from the current truth.', 'Sự thật hiện tại đã thay đổi sau khi tạo bản sửa này. Hãy tạo bản sửa mới từ sự thật hiện tại.'],
+  AI_TRUTH_REPAIR_CANDIDATE_UPSTREAM_INVALID: ['Earlier candidate artifacts still need repair. Choose an earlier repair scope.', 'Phần trước của bản sửa vẫn còn lỗi. Hãy chọn phạm vi sửa bắt đầu sớm hơn.'],
+  UNSAFE_TRUTH_REPAIR_SCOPE: ['Choose the recommended repair scope or an earlier one so every affected artifact can be repaired.', 'Hãy chọn phạm vi sửa được khuyến nghị hoặc sớm hơn để sửa đủ các phần bị ảnh hưởng.'],
+  AI_ACTIVE_DRAFT_LIMIT: ['An existing draft is using your active-draft limit. Continue it or cancel it in Recent AI drafts before creating another.', 'Bản nháp hiện tại đang chiếm giới hạn bản nháp hoạt động. Hãy tiếp tục hoặc hủy nó trong Bản nháp AI gần đây trước khi tạo vụ án khác.'],
+  AI_DAILY_LIMIT: ["You have reached today's creation limit. Continue an existing draft or try again after the daily limit resets; cancellation does not reset this limit.", 'Bạn đã đạt giới hạn tạo vụ án hôm nay. Hãy tiếp tục bản nháp hiện có hoặc thử lại khi hạn mức ngày được đặt lại; hủy bản nháp không đặt lại hạn mức này.'],
+  AI_GLOBAL_BUDGET_EXHAUSTED: ['The remaining AI budget cannot cover this request. Ask the administrator to review usage and the configured budget.', 'Ngân sách AI còn lại không đủ cho yêu cầu này. Hãy nhờ quản trị viên kiểm tra mức sử dụng và ngân sách đã cấu hình.'],
+  AI_V3_PRESET_DISABLED: ['Crack the Lie generation is disabled. Uncheck it or ask the administrator to enable it.', 'Tính năng tạo Phá Vỡ Lời Dối đang tắt. Hãy bỏ chọn tính năng này hoặc nhờ quản trị viên bật.'],
+};
+
+function aiErrorText(error) {
+  const code = error?.code || error?.errors?.code;
+  if (CREATION_ERROR_LABELS[code]) return localizedPair(CREATION_ERROR_LABELS[code]);
+  if (error?.status === 0) return tr('Cannot reach the server. Check the connection, then try again.', 'Không thể kết nối máy chủ. Hãy kiểm tra kết nối rồi thử lại.');
+  if (error?.status === 401) return tr('Your session has expired. Sign in again before continuing.', 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại trước khi tiếp tục.');
+  if (error?.status === 403) return tr('Your account does not have permission for this AI operation.', 'Tài khoản của bạn không có quyền thực hiện thao tác AI này.');
+  if (error?.status === 404) return tr('This draft is no longer available. Refresh the draft list.', 'Bản nháp này không còn khả dụng. Hãy tải lại danh sách bản nháp.');
+  if (error?.status >= 500) return tr('The server could not complete this AI request. Your entered settings are preserved; try again after the server recovers.', 'Máy chủ chưa thể xử lý yêu cầu AI này. Các thiết lập đã nhập được giữ lại; hãy thử lại khi máy chủ hoạt động ổn định.');
+  return error?.message || tr('The AI request could not be completed. Please try again.', 'Không thể hoàn tất yêu cầu AI. Vui lòng thử lại.');
+}
+
 const PROGRESS_STATES = {
+  CANCELLED: {
+    percent: 0,
+    title: ['Draft cancelled', 'Đã hủy bản nháp'],
+    detail: ['This draft will not continue generating.', 'Bản nháp này sẽ không tiếp tục được tạo.'],
+  },
   GENERATING_STORY: {
     percent: 8,
     title: ['Creating the case premise', 'Đang tạo tiền đề vụ án'],
@@ -252,19 +314,103 @@ export async function renderAdminAiPage(app) {
   let runVersion = 0;
   let currentProgressStatus = 'GENERATING_STORY';
   let disposed = false;
+  let disposePresentation = () => {};
+  let capabilitiesError = null;
+  let draftListError = null;
+  let creationError = null;
+  let pollingError = null;
+  let visibleDraft = null;
+  let creating = false;
+  let checkingReadiness = false;
+  const formFields = {
+    'ai-preset-select': 'NORMAL_RANDOM',
+    'ai-creator-direction': '',
+    'ai-setting-lock': '',
+    'ai-tone-lock': '',
+    'ai-mechanic-lock': '',
+  };
+  let includeCrack = false;
   let selectedLanguage = window.localStorage.getItem('sirlocked.aiCaseLanguage') === 'vi' ? 'vi' : 'en';
   let selectedCaseType = CASE_TYPES[window.localStorage.getItem('sirlocked.aiCaseType')]
     ? window.localStorage.getItem('sirlocked.aiCaseType')
     : 'RANDOM';
 
-  try {
-    capabilities = await aiCaseApi.capabilities();
-    if (canManageDrafts) drafts = await aiCaseApi.drafts();
-  } catch {
-    /* drafts list is non-critical */
+  async function loadCapabilities() {
+    try {
+      capabilities = await aiCaseApi.capabilities() || {};
+      capabilitiesError = null;
+    } catch (error) {
+      capabilitiesError = error;
+    }
   }
 
+  async function loadDraftList(version = runVersion) {
+    if (!canManageDrafts) return;
+    try {
+      const latest = await aiCaseApi.drafts();
+      if (disposed || version !== runVersion) return;
+      drafts = latest;
+      draftListError = null;
+    } catch (error) {
+      if (disposed || version !== runVersion) return;
+      draftListError = error;
+    }
+  }
+
+  await Promise.all([loadCapabilities(), loadDraftList()]);
   draw();
+
+  function creationBlocked() {
+    const crackSelected = app.querySelector('#ai-include-crack')?.checked ?? includeCrack;
+    return Boolean(capabilitiesError) || capabilities.canCreateDraft === false
+      || (crackSelected && Array.isArray(capabilities.v3CreationBlockers) && capabilities.canCreateV3Draft === false);
+  }
+
+  function captureCreationForm() {
+    for (const id of Object.keys(formFields)) {
+      const field = app.querySelector(`#${id}`);
+      if (field) formFields[id] = field.value;
+    }
+    const toggle = app.querySelector('#ai-include-crack');
+    if (toggle) includeCrack = toggle.checked;
+  }
+
+  function renderCreationStatus() {
+    const slot = app.querySelector('#ai-creation-status');
+    if (!slot) return;
+    const crackSelected = app.querySelector('#ai-include-crack')?.checked ?? includeCrack;
+    const blockers = crackSelected && Array.isArray(capabilities.v3CreationBlockers)
+      ? capabilities.v3CreationBlockers : capabilities.creationBlockers || [];
+    const errorMarkup = (error) => `<p>${escapeHtml(aiErrorText(error))}</p>${error?.code || error?.errors?.code ? `<small>${tr('Code', 'Mã lỗi')}: <code>${escapeHtml(error.code || error.errors.code)}</code></small>` : ''}`;
+    slot.innerHTML = `${creationBlocked() ? `<div class="notice notice-bad" role="alert" id="ai-readiness-error">
+      <strong>${capabilitiesError ? tr('Could not check AI availability.', 'Chưa kiểm tra được trạng thái AI.') : tr('Case creation is unavailable.', 'Chưa thể tạo vụ án.')}</strong>
+      ${capabilitiesError ? errorMarkup(capabilitiesError) : blockers.length ? blockers.map(errorMarkup).join('') : `<p>${tr('The server has disabled case creation. Ask the administrator to review its AI settings.', 'Máy chủ đang tắt chức năng tạo vụ án. Hãy nhờ quản trị viên kiểm tra thiết lập AI.')}</p>`}
+    </div>` : ''}
+    ${creationError ? `<div class="notice notice-bad" role="alert" id="ai-request-error"><strong>${tr('AI request could not be completed.', 'Chưa thể hoàn tất yêu cầu AI.')}</strong>${errorMarkup(creationError)}</div>` : ''}
+    ${draftListError ? `<div class="notice notice-bad" role="alert"><strong>${tr('Could not load recent drafts.', 'Không tải được bản nháp gần đây.')}</strong>${errorMarkup(draftListError)}</div>` : ''}
+    ${creationBlocked() || draftListError ? `<button class="btn btn-ghost" type="button" id="ai-check-readiness" ${checkingReadiness ? 'disabled' : ''}>${checkingReadiness ? tr('Checking…', 'Đang kiểm tra…') : tr('Check again', 'Kiểm tra lại')}</button>` : ''}
+    ${pollingError ? `<div class="notice notice-bad" role="alert" id="ai-poll-error"><strong>${tr('Draft status could not be loaded.', 'Không tải được trạng thái bản nháp.')}</strong>${errorMarkup(pollingError.error)}<button class="btn btn-ghost" type="button" id="ai-retry-status">${tr('Retry status check', 'Thử tải trạng thái lại')}</button></div>` : ''}`;
+    slot.querySelector('#ai-check-readiness')?.addEventListener('click', async () => {
+      if (checkingReadiness) return;
+      checkingReadiness = true;
+      renderCreationStatus();
+      await Promise.all([loadCapabilities(), loadDraftList()]);
+      checkingReadiness = false;
+      if (!disposed) draw(visibleDraft);
+    });
+    slot.querySelector('#ai-retry-status')?.addEventListener('click', () => {
+      const draftId = pollingError.draftId;
+      pollingError = null;
+      renderCreationStatus();
+      startProgressClock();
+      startPolling(draftId, ++runVersion);
+    });
+  }
+
+  function cancelButton(draft) {
+    return draft.canCancel === true && !['PUBLISHED', 'IMPORTED', 'CANCELLED'].includes(draft.status)
+      ? `<button class="btn btn-ghost btn-sm" type="button" data-cancel-draft="${escapeHtml(draft.draftId)}">${tr('Cancel draft', 'Hủy bản nháp')}</button>` : '';
+  }
 
   function isSuccessStatus(status) {
     return status === STATUS_AWAITING_APPROVAL ||
@@ -299,7 +445,18 @@ export async function renderAdminAiPage(app) {
       && !(review.findings?.length);
   }
 
+  function canRepairTruth(d) {
+    return [STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL].includes(d.status)
+      && !d.publishedCase && !d.importedCaseId && !isGeneratingDraft(d);
+  }
+
+  function canContinueTruthRepairCandidate(d) {
+    return canRepairTruth(d) && d.truthRepairStatus === 'CANDIDATE_INVALID' && Boolean(d.truthRepairCandidate);
+  }
+
   function continueButton(d, style = 'btn-primary') {
+    if (d.status === 'CANCELLED') return '';
+    if (isGeneratingDraft(d) || d.truthRepairStatus === 'CANDIDATE_READY') return '';
     if (d.status === STATUS_GENERATED_INVALID && ['BLUEPRINT_JSON', 'FULL_LOGIC_JSON', 'PROJECTION_CONTENT_JSON', 'PROJECTION_COMPILE', 'PROJECTION_CONFORMANCE', 'PRE_ASSET_VALIDATION', 'V3_SEMANTIC_REVIEW', 'BLIND_SOLVABILITY_REVIEW'].includes(d.failurePhase)) {
       const label = d.failurePhase === 'V3_SEMANTIC_REVIEW' ? tr('Regenerate V3 logic', 'Tạo lại logic V3')
         : d.failurePhase === 'BLIND_SOLVABILITY_REVIEW' ? tr('Regenerate projection', 'Tạo lại gameplay')
@@ -359,6 +516,7 @@ export async function renderAdminAiPage(app) {
       <td>
         <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">${tr('View', 'Xem')}</button>
         ${continueButton(d)}
+        ${cancelButton(d)}
         ${d.status === STATUS_PUBLISHED || d.importedCaseId
           ? `<a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
           : ''}
@@ -367,17 +525,24 @@ export async function renderAdminAiPage(app) {
   }
 
   function draw(activeDraft = null) {
+    if (disposed) return;
+    captureCreationForm();
+    visibleDraft = activeDraft;
+    disposePresentation();
+    disposePresentation = () => {};
     const availablePresets = Object.entries(PRESETS);
     render(app, `
     <div class="page">
       <h2>${tr('AI Case Creator', 'Tạo vụ án bằng AI')}</h2>
       <p class="muted">${tr('Create a premise, approve its immutable causal truth, then project that truth into playable clues, dialogue, puzzles, and a five-claim accusation.', 'Tạo tiền đề, duyệt nguồn sự thật nhân quả bất biến, rồi chuyển truth thành manh mối, hội thoại, câu đố và cáo buộc năm luận điểm.')}</p>
 
+      <div id="ai-creation-status"></div>
+
       <div class="ai-quick-create">
         <label class="ai-preset-field">
           <span>${tr('Generation preset', 'Cấu hình tạo')}</span>
           <select class="field-input" id="ai-preset-select">
-            ${availablePresets.map(([value]) => `<option value="${value}">${escapeHtml(presetLabel(value))}</option>`).join('')}
+            ${availablePresets.map(([value]) => `<option value="${value}" ${formFields['ai-preset-select'] === value ? 'selected' : ''}>${escapeHtml(presetLabel(value))}</option>`).join('')}
           </select>
         </label>
         <label class="ai-preset-field ai-language-field">
@@ -397,15 +562,20 @@ export async function renderAdminAiPage(app) {
         </label>
         ${capabilities.aiCaseV3PresetEnabled ? `<label class="ai-preset-field ai-crack-toggle">
           <span>${tr('Gameplay extension', 'Mở rộng gameplay')}</span>
-          <span><input id="ai-include-crack" type="checkbox"> ${tr('Include Crack the Lie', 'Thêm Phá Vỡ Lời Dối')} <span id="ai-crack-badge" class="chip chip-gold" hidden>V3 · Crack</span></span>
+          <span><input id="ai-include-crack" type="checkbox" ${includeCrack ? 'checked' : ''}> ${tr('Include Crack the Lie', 'Thêm Phá Vỡ Lời Dối')} <span id="ai-crack-badge" class="chip chip-gold" hidden>V3 · Crack</span></span>
           <small class="muted">${tr('Keeps the selected V2 preset and adds private evidence, testimony and Joint Review loops.', 'Giữ preset V2 đã chọn và thêm chứng cứ riêng, lời khai riêng cùng vòng Cùng xem xét.')}</small>
           <small class="muted" id="ai-crack-budget">${crackBudget('NORMAL_RANDOM', capabilities.crackBudgets)}</small>
         </label>` : ''}
         <label class="ai-preset-field ai-creator-direction">
           <span>${tr('Creator direction', 'Định hướng sáng tác')}</span>
-          <textarea class="field-input" id="ai-creator-direction" rows="3" maxlength="1200" placeholder="${tr('Optional setting, tone, characters, or mystery direction. Do not include the Crack answer.', 'Bối cảnh, sắc thái, nhân vật hoặc hướng bí ẩn (không tiết lộ đáp án Crack).')}"></textarea>
+          <textarea class="field-input" id="ai-creator-direction" rows="3" maxlength="1200" placeholder="${tr('Optional setting, tone, characters, or mystery direction. Do not include the Crack answer.', 'Bối cảnh, sắc thái, nhân vật hoặc hướng bí ẩn (không tiết lộ đáp án Crack).')}">${escapeHtml(formFields['ai-creator-direction'])}</textarea>
         </label>
-        <button class="btn btn-gold" type="button" id="quick-create-btn">${tr('Create new case', 'Tạo vụ án mới')}</button>
+        <div class="ai-creative-constraints">
+          <label class="ai-preset-field"><span>${tr('Setting lock', 'Khóa bối cảnh')}</span><select class="field-input" id="ai-setting-lock"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(CREATIVE_SETTINGS).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select></label>
+          <label class="ai-preset-field"><span>${tr('Tone lock', 'Khóa sắc thái')}</span><select class="field-input" id="ai-tone-lock"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(CREATIVE_TONES).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select></label>
+          <label class="ai-preset-field"><span>${tr('Investigation mechanic', 'Khóa cơ chế điều tra')}</span><select class="field-input" id="ai-mechanic-lock"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(CREATIVE_MECHANICS).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select></label>
+        </div>
+        <button class="btn btn-gold" type="button" id="quick-create-btn" ${creationBlocked() || creating ? 'disabled' : ''}>${creating ? tr('Creating case...', 'Đang tạo vụ án...') : tr('Create new case', 'Tạo vụ án mới')}</button>
         <span class="muted small" id="ai-preset-help">${escapeHtml(presetDescription('NORMAL_RANDOM'))}</span>
       </div>
       ${capabilities.aiCaseV3PresetEnabled && !capabilities.gameplayV3Enabled
@@ -428,6 +598,8 @@ export async function renderAdminAiPage(app) {
       ${canManageDrafts ? `<h3 class="section-title">${tr('Recent AI drafts', 'Bản nháp AI gần đây')}</h3>` : ''}
       ${!canManageDrafts
         ? ''
+        : draftListError && drafts.length === 0
+        ? ''
         : drafts.length === 0
         ? `<div class="empty-state small">${tr('No drafts yet.', 'Chưa có bản nháp.')}</div>`
         : `<table class="admin-table">
@@ -435,7 +607,11 @@ export async function renderAdminAiPage(app) {
             <tbody>${drafts.map(draftRow).join('')}</tbody>
           </table>`}
     </div>`);
+    for (const id of ['ai-setting-lock', 'ai-tone-lock', 'ai-mechanic-lock']) {
+      qs(`#${id}`, app).value = formFields[id];
+    }
     bind();
+    renderCreationStatus();
   }
 
   function failureBlock(d, generating) {
@@ -465,6 +641,7 @@ export async function renderAdminAiPage(app) {
       <strong>${escapeHtml(d.caseTitle || preview?.title || d.caseId || tr('AI draft', 'Bản nháp AI'))}</strong> - ${escapeHtml(statusLabel(d.status))} (${escapeHtml(d.provider)})
       <br><span class="muted small">${tr('Preset', 'Cấu hình')}: ${escapeHtml(presetLabel(d.settings?.generationPreset))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</span>
       ${d.storyDiversity?.seed ? `<br><span class="muted small">Diversity seed: <code>${escapeHtml(d.storyDiversity.seed)}</code>${d.storyDiversity?.coreFingerprint ? ` · Core: <code>${escapeHtml(d.storyDiversity.coreFingerprint.slice(0, 12))}</code>` : ''}${d.storyFingerprint ? ` · Preview: <code>${escapeHtml(d.storyFingerprint.slice(0, 12))}</code>` : ''}</span>` : ''}
+      ${d.storyDiversity?.creativeConstraints && !d.storyDiversity.creativeConstraints.isEmpty ? `<br><span class="muted small">${tr('Locked creative brief', 'Brief sáng tác đã khóa')}: ${escapeHtml([d.storyDiversity.creativeConstraints.settingId, d.storyDiversity.creativeConstraints.toneId, d.storyDiversity.creativeConstraints.investigationMechanicId].filter(Boolean).join(' · '))}</span>` : ''}
       ${d.hasProjectionPlan ? `<br><span class="muted small">Projection: ${escapeHtml(d.projectionPlanSchemaVersion)} · <code>${escapeHtml((d.projectionPlanHash || '').slice(0, 12))}</code> · ${escapeHtml(d.projectionCompilerVersion)} · ${escapeHtml(d.projectionBuildMode)}</span>` : d.projectionBuildMode ? `<br><span class="muted small">Build mode: ${escapeHtml(d.projectionBuildMode)}</span>` : ''}
       ${d.jsonFolderPath ? `<br><span class="muted small">Bundle: ${escapeHtml(d.jsonFolderPath)}</span>` : ''}
       ${d.assetManifest?.assetRootUrl
@@ -482,10 +659,11 @@ export async function renderAdminAiPage(app) {
             <a class="btn btn-primary btn-sm" href="#/cases/${encodeURIComponent(caseId)}">Open published case</a>
             ${session.isAdmin() ? `<a class="btn btn-ghost btn-sm" href="#/admin/cases/${encodeURIComponent(caseId)}">Admin review</a>` : ''}
           </div>`
-        : resumeAction
-        ? `<div class="case-actions">${resumeAction}</div>`
+        : resumeAction || cancelButton(d)
+        ? `<div class="case-actions">${resumeAction}${cancelButton(d)}</div>`
         : ''}
     </div>
+    ${qualitySummary(d)}
     ${preview ? previewCard(preview, d) : ''}
     ${truthPanel(d)}
     ${blindReviewPanel(d)}
@@ -494,6 +672,7 @@ export async function renderAdminAiPage(app) {
     ${v3ReviewPanel(d)}
     ${repairPanel(d)}
     ${generationDiagnostics(d)}
+    ${presentationPlaceholder(d)}
     ${d.generatedJson && session.isAdmin()
       ? `<details class="json-details">
           <summary>Generated JSON</summary>
@@ -535,6 +714,45 @@ export async function renderAdminAiPage(app) {
       relatedIds: [],
       message,
     }));
+  }
+
+  function qualitySummary(d) {
+    if (!d.truthSummary) return '';
+    const status = d.truthReviewerResult?.status || d.truthSummary.reviewerStatus || 'NOT_RUN';
+    const validationErrors = (d.truthValidationReport?.length || d.truthSummary.validationErrorCount || 0)
+      + (d.validationErrors?.length || 0);
+    return `<section class="notice ${validationErrors || ['FAILED', 'AMBIGUOUS'].includes(status) ? 'notice-bad' : ''}" data-ai-quality-summary>
+      <strong>${tr('Quality checks', 'Kiểm tra chất lượng')}</strong>
+      <p>${tr('Structure', 'Cấu trúc')}: ${validationErrors ? tr('Needs repair', 'Cần sửa') : tr('Passed deterministic validation', 'Đã qua kiểm tra tất định')} · ${tr('Story review (advisory)', 'Đánh giá cốt truyện (tham khảo)')}: <strong>${escapeHtml(status)}</strong></p>
+      <p class="muted small">${status === 'NOT_RUN'
+        ? tr('Story quality has not been reviewed. A valid structure alone does not establish that the mystery is playable.', 'Chất lượng cốt truyện chưa được đánh giá. Cấu trúc hợp lệ chưa đủ để xác nhận vụ án chơi được.')
+        : tr('Review the findings below before approval. Structural validation and V3 pair checks do not establish the quality of the whole story.', 'Hãy đọc các phát hiện bên dưới trước khi duyệt. Kiểm tra cấu trúc và cặp đối chất V3 chưa xác nhận chất lượng toàn bộ cốt truyện.')}</p>
+    </section>`;
+  }
+
+  function truthRepairReviewPanel(d) {
+    if (!d.truthRepairCandidate) return '';
+    const review = d.truthRepairReviewerResult;
+    const status = review?.status || 'NOT_RUN';
+    const findings = reviewFindings(review);
+    const valid = d.truthRepairStatus === 'CANDIDATE_READY' && !d.truthRepairValidationReport?.length;
+    return `<section class="notice ${!valid || ['FAILED', 'AMBIGUOUS'].includes(status) ? 'notice-bad' : ''}" data-truth-repair-review>
+      <h4>${tr('Repair candidate review', 'Đánh giá bản sửa')}</h4>
+      <p>${valid ? tr('Structure passed; review the content before accepting.', 'Cấu trúc hợp lệ; hãy kiểm tra nội dung trước khi chấp nhận.') : tr('The candidate still needs structural repair.', 'Bản sửa vẫn cần sửa lỗi cấu trúc.')}</p>
+      <p><strong>${tr('Candidate story review (advisory)', 'Đánh giá cốt truyện bản sửa (tham khảo)')}: ${escapeHtml(status)}</strong>${review && status !== 'NOT_RUN' ? ` · ${tr('Confidence', 'Độ tin cậy')}: ${(Number(review.confidence || 0) * 100).toFixed(0)}%` : ''}</p>
+      ${status === 'NOT_RUN' ? `<p>${tr('The candidate has not received a story quality review.', 'Bản sửa chưa được đánh giá chất lượng cốt truyện.')}</p>` : ''}
+      ${findings.length ? renderReviewFindingGroups(findings) : ''}
+      ${d.truthRepairValidationReport?.length ? `<div role="alert" data-truth-repair-validation><strong>${tr('Candidate validation errors', 'Lỗi kiểm tra bản sửa')}</strong><ul>${d.truthRepairValidationReport.slice(0, 20).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>` : ''}
+      <p class="muted small">${tr('These findings are advisory. Accepting replaces the truth and requires gameplay to be generated again; rejecting preserves the current draft.', 'Các phát hiện này mang tính tham khảo. Chấp nhận sẽ thay truth và yêu cầu tạo lại gameplay; từ chối giữ nguyên bản nháp hiện tại.')}</p>
+      ${canContinueTruthRepairCandidate(d) ? `<div data-truth-repair-continuation>
+        <h4>${tr('Continue repairing this candidate', 'Tiếp tục sửa từ bản sửa này')}</h4>
+        <p>${tr('Reuse this candidate’s valid earlier artifacts and regenerate only the selected scope and what follows. The current truth and gameplay stay unchanged until you accept a valid candidate.', 'Tái sử dụng phần hợp lệ trước đó của bản sửa và chỉ tạo lại từ phạm vi đã chọn. Sự thật và gameplay hiện tại được giữ nguyên đến khi bạn chấp nhận một bản sửa hợp lệ.')}</p>
+        ${d.truthRepairCandidatePlan ? `<p class="muted small" data-truth-repair-candidate-plan>${tr('Candidate repair recommendation', 'Khuyến nghị sửa bản sửa')}: <strong>${escapeHtml(d.truthRepairCandidatePlan.recommendedStartArtifact || 'TIMELINE')}</strong> · ${tr('Reasons', 'Lý do')}: ${truthValues(d.truthRepairCandidatePlan.reasonCodes)}</p>` : ''}
+        <label class="truth-repair-field"><span>${tr('Candidate repair start', 'Bắt đầu sửa bản sửa từ')}</span><select class="field-input" data-candidate-repair-scope="${escapeHtml(d.draftId)}">${truthRepairScopeOptions(d.truthRepairCandidatePlan)}</select><small class="muted">${tr('Choose the recommended scope or an earlier one if its inputs also need changes.', 'Chọn phạm vi được khuyến nghị hoặc sớm hơn nếu dữ liệu đầu vào cũng cần thay đổi.')}</small></label>
+        <label class="truth-repair-field"><span>${tr('Candidate repair instructions', 'Yêu cầu sửa tiếp bản sửa')}</span><textarea class="field-input" rows="2" maxlength="2000" data-candidate-repair-instructions="${escapeHtml(d.draftId)}" placeholder="${tr('Describe how to fix the candidate errors above.', 'Mô tả cách khắc phục các lỗi của bản sửa ở trên.')}"></textarea></label>
+        <div class="case-actions cluster"><button class="btn btn-primary btn-sm" type="button" data-continue-truth-repair="${escapeHtml(d.draftId)}">${tr('Continue from this candidate', 'Sửa tiếp từ bản sửa này')}</button><button class="btn btn-ghost btn-sm" type="button" data-reject-truth-repair="${escapeHtml(d.draftId)}">${tr('Discard candidate', 'Bỏ bản sửa này')}</button></div>
+      </div>` : ''}
+    </section>`;
   }
 
   function truthRepairScopeOptions(plan) {
@@ -624,27 +842,41 @@ export async function renderAdminAiPage(app) {
       ${truth.redHerringLedger?.length ? `<details class="truth-section"><summary>${tr('Red herrings and clearing evidence', 'Nghi binh và chứng cứ giải oan')} (${truth.redHerringLedger.length})</summary><div class="proof-coverage-grid">${truth.redHerringLedger.map((entry) => `<article class="proof-coverage-card"><strong>${escapeHtml(entry.suspectId)}</strong><p>${escapeHtml(entry.suspiciousReason)}</p><small>${tr('Innocent explanation', 'Giải thích vô tội')}: ${escapeHtml(entry.innocentExplanation)}<br>${tr('Clearing evidence', 'Chứng cứ giải oan')}: ${truthValues([...(entry.clearingTraceIds || []), ...(entry.clearingStatementIds || [])])}</small></article>`).join('')}</div></details>` : ''}
       <details class="json-details"><summary>${tr('Open spoiler truth JSON', 'Mở JSON truth có spoiler')}</summary><pre class="json-view">${escapeHtml(JSON.stringify(truth, null, 2))}</pre></details>` : ''}
       ${repairPlan ? `<p class="muted small" data-truth-repair-plan><strong>${tr('Recommended repair start', 'Điểm bắt đầu sửa được khuyến nghị')}:</strong> ${escapeHtml(repairPlan.recommendedStartArtifact || 'TIMELINE')} · ${tr('Reasons', 'Lý do')}: ${truthValues(repairPlan.reasonCodes)} · ${tr('Stale downstream', 'Downstream cần tạo lại')}: ${truthValues(repairPlan.staleArtifacts)}</p>` : ''}
-      ${d.status === STATUS_TRUTH_AWAITING_APPROVAL || d.status === STATUS_TRUTH_INVALID ? `<label class="truth-repair-field"><span>${tr('Repair start artifact', 'Artifact bắt đầu sửa')}</span><select class="field-input" data-truth-repair-scope="${escapeHtml(d.draftId)}">${truthRepairScopeOptions(repairPlan)}</select><small class="muted">${tr('You may start earlier than recommended, never later.', 'Có thể bắt đầu sớm hơn khuyến nghị, không được bắt đầu muộn hơn.')}</small></label><label class="truth-repair-field"><span>${tr('Scoped repair instructions', 'Yêu cầu sửa theo phạm vi')}</span><textarea class="field-input" rows="2" maxlength="2000" data-truth-repair-instructions="${escapeHtml(d.draftId)}" placeholder="${tr('Describe the invalid causal artifact; valid upstream truth will remain locked.', 'Mô tả artifact nhân quả bị lỗi; truth upstream hợp lệ vẫn được khóa.')}"></textarea></label><div class="case-actions">
-        <button class="btn btn-ghost btn-sm" type="button" data-repair-truth="${escapeHtml(d.draftId)}">${tr('Create scoped repair', 'Tạo bản sửa theo phạm vi')}</button>
+      ${truthRepairReviewPanel(d)}
+      ${canRepairTruth(d) ? `${!candidateReady ? `${d.truthRepairCandidate ? `<h4>${tr('Start again from current truth', 'Tạo lại từ sự thật hiện tại')}</h4><p class="muted small">${tr('This starts a separate repair from the current checkpoint and replaces the saved candidate.', 'Thao tác này bắt đầu sửa từ checkpoint hiện tại và thay thế bản sửa đang lưu.')}</p>` : ''}<label class="truth-repair-field"><span>${tr('Repair start artifact', 'Artifact bắt đầu sửa')}</span><select class="field-input" data-truth-repair-scope="${escapeHtml(d.draftId)}">${truthRepairScopeOptions(repairPlan)}</select><small class="muted">${tr('You may start earlier than recommended, never later.', 'Có thể bắt đầu sớm hơn khuyến nghị, không được bắt đầu muộn hơn.')}</small></label><label class="truth-repair-field"><span>${tr('Scoped repair instructions', 'Yêu cầu sửa theo phạm vi')}</span><textarea class="field-input" rows="2" maxlength="2000" data-truth-repair-instructions="${escapeHtml(d.draftId)}" placeholder="${tr('Describe the invalid causal artifact; valid upstream truth will remain locked.', 'Mô tả artifact nhân quả bị lỗi; truth upstream hợp lệ vẫn được khóa.')}"></textarea></label>` : ''}<div class="case-actions">
+        ${!candidateReady ? `<button class="btn btn-ghost btn-sm" type="button" data-repair-truth="${escapeHtml(d.draftId)}">${d.truthRepairCandidate ? tr('Repair from current truth', 'Sửa từ sự thật hiện tại') : tr('Create scoped repair', 'Tạo bản sửa theo phạm vi')}</button>` : ''}
         ${candidateReady ? `<button class="btn btn-primary btn-sm" type="button" data-accept-truth-repair="${escapeHtml(d.draftId)}">${tr('Accept truth repair', 'Chấp nhận bản sửa truth')}</button>
           <button class="btn btn-ghost btn-sm" type="button" data-reject-truth-repair="${escapeHtml(d.draftId)}">${tr('Reject truth repair', 'Từ chối bản sửa truth')}</button>` : ''}
       </div>` : ''}
-      ${d.truthRepairValidationReport?.length ? `<ul>${d.truthRepairValidationReport.slice(0, 20).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
+      ${!d.truthRepairCandidate && d.truthRepairValidationReport?.length ? `<ul role="alert">${d.truthRepairValidationReport.slice(0, 20).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
       ${d.truthRepairCandidate ? `<details class="json-details"><summary>${tr('Truth repair candidate', 'Ứng viên sửa truth')}</summary><pre class="json-view">${escapeHtml(JSON.stringify(d.truthRepairCandidate, null, 2))}</pre></details>` : ''}
     </section>`;
   }
 
   function blindReviewPanel(d) {
-    const review = d.blindSolvabilityReview;
-    if (!review) return '';
+    const review = d.blindSolvabilityReview || { status: 'NOT_RUN', uniqueSolution: false, confidence: 0, evidenceChainIds: [], findings: [] };
+    if (!d.blindSolvabilityReview && !d.blindReviewAssessment) return '';
+    const assessment = d.blindReviewAssessment || { status: 'NOT_RUN', validationErrors: [] };
     const findings = reviewFindings(review);
-    const passed = review.status === 'PASSED'
-      && review.uniqueSolution
-      && Number(review.confidence || 0) >= 0.8
-      && findings.length === 0;
+    const passed = assessment.status === 'PASSED';
+    const assessmentLabel = {
+      PASSED: tr('Verified pass', 'Đã xác minh đạt'),
+      FAILED: tr('Reviewer failed', 'Reviewer đánh giá chưa đạt'),
+      AMBIGUOUS: tr('Ambiguous', 'Còn mơ hồ'),
+      INVALID: tr('Reviewer result invalid', 'Kết quả reviewer không hợp lệ'),
+      UNAVAILABLE: tr('Review unavailable', 'Không lấy được review'),
+      DISABLED: tr('Review disabled', 'Review đang tắt'),
+      LEGACY_UNVERIFIED: tr('Legacy / unverified', 'Case cũ / chưa xác minh'),
+      STALE: tr('Review is stale', 'Review đã cũ'),
+    }[assessment.status] || tr('Not verified', 'Chưa xác minh');
+    const assessmentErrors = (assessment.validationErrors || []).map((finding) =>
+      `<li><strong>${escapeHtml(finding.code || 'VALIDATION')}</strong>: ${escapeHtml(finding.message || '')}</li>`).join('');
+    const claimProofs = (review.claimProofs || []).map((proof) =>
+      `<li><strong>${escapeHtml(proof.claimType || '')}</strong>: ${truthValues(proof.evidenceIds)}${proof.reasoning ? ` — ${escapeHtml(proof.reasoning)}` : ''}</li>`).join('');
     return `<section class="notice ${passed ? 'notice-ok' : ''} blind-review-panel" data-blind-review>
-      <div class="page-head"><h3>${tr('Advisory blind solvability review', 'Đánh giá khả năng giải mù (tham khảo)')}</h3><span class="chip ${passed ? 'chip-ok' : ''}">${escapeHtml(review.status || 'NOT_RUN')}</span></div>
+      <div class="page-head"><h3>${tr('Advisory blind solvability review', 'Đánh giá khả năng giải mù (tham khảo)')}</h3><span class="chip ${passed ? 'chip-ok' : ''}">${escapeHtml(assessmentLabel)}</span></div>
       <p>${tr('The reviewer only received information collectible before accusation; truth metadata and the final answer were removed.', 'Reviewer chỉ nhận thông tin người chơi có thể thu thập trước cáo buộc; metadata truth và đáp án cuối đã bị loại bỏ.')}</p>
+      <p><strong>${tr('Server assessment', 'Xác minh từ server')}:</strong> ${escapeHtml(assessment.status || 'NOT_RUN')}</p>
       <p><strong>${tr('Reviewer confidence', 'Độ tin cậy của reviewer')}:</strong> ${(Number(review.confidence || 0) * 100).toFixed(0)}%</p>
       <div class="truth-core-grid">
         <article><span>${tr('Inferred culprit', 'Thủ phạm suy ra')}</span><strong>${escapeHtml(review.culpritId || '—')}</strong></article>
@@ -654,7 +886,9 @@ export async function renderAdminAiPage(app) {
       </div>
       <p><strong>${tr('Timeline reconstruction', 'Tái dựng dòng thời gian')}:</strong> ${escapeHtml(review.timelineSummary || '—')}</p>
       <p><strong>${tr('Evidence chain', 'Chuỗi chứng cứ')}:</strong> ${truthValues(review.evidenceChainIds)}</p>
+      ${claimProofs ? `<p><strong>${tr('Proof by claim', 'Chứng cứ theo luận điểm')}:</strong></p><ul>${claimProofs}</ul>` : ''}
       ${findings.length ? `<ul>${findings.map((finding) => `<li><strong>${escapeHtml(finding.code)}</strong>${finding.relatedIds?.length ? ` [${finding.relatedIds.map(escapeHtml).join(', ')}]` : ''}: ${escapeHtml(finding.message)}</li>`).join('')}</ul>` : ''}
+      ${assessmentErrors ? `<p><strong>${tr('Server validation', 'Lỗi xác minh server')}:</strong></p><ul>${assessmentErrors}</ul>` : ''}
     </section>`;
   }
 
@@ -876,13 +1110,21 @@ export async function renderAdminAiPage(app) {
         if (isTerminalDraft(current)) {
           stopPolling();
           stopProgressClock();
-          if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+          if (current.status === STATUS_GENERATED_INVALID || current.status === STATUS_TRUTH_INVALID) {
+            creationError = { code: current.lastGenerationErrorCode, message: tr('Generation failed. Review the draft details below before retrying.', 'Tạo vụ án thất bại. Hãy kiểm tra chi tiết bản nháp bên dưới trước khi thử lại.') };
+          }
+          await loadDraftList();
+          if (disposed || version !== runVersion) return;
           draw(current);
           return;
         }
-      } catch {
+      } catch (error) {
         if (disposed || version !== runVersion) return;
-        updateProgress('GENERATING_FULL_CASE', tr('Still generating. Waiting for the next status update.', 'Vẫn đang tạo. Đang chờ trạng thái tiếp theo.'));
+        stopPolling();
+        stopProgressClock();
+        pollingError = { error, draftId };
+        renderCreationStatus();
+        return;
       }
       if (!disposed && version === runVersion) pollTimer = window.setTimeout(poll, 1500);
     };
@@ -891,12 +1133,19 @@ export async function renderAdminAiPage(app) {
   }
 
   function bind() {
+    app.querySelector('[data-open-presentation]')?.addEventListener('click', () => {
+      const host = app.querySelector('[data-presentation-host]');
+      if (host) disposePresentation = mountPresentationEditor(host, host.dataset.presentationHost);
+    });
     const presetSelect = qs('#ai-preset-select', app);
     const languageSelect = qs('#ai-language-select', app);
     const caseTypeSelect = qs('#ai-case-type-select', app);
     const crackToggle = qs('#ai-include-crack', app);
     const crackBadge = qs('#ai-crack-badge', app);
     const crackBudgetText = qs('#ai-crack-budget', app);
+    const settingLock = qs('#ai-setting-lock', app);
+    const toneLock = qs('#ai-tone-lock', app);
+    const mechanicLock = qs('#ai-mechanic-lock', app);
     const presetHelp = qs('#ai-preset-help', app);
     const syncCrackProfile = () => {
       const presetKey = presetSelect?.value ?? 'NORMAL_RANDOM';
@@ -905,11 +1154,14 @@ export async function renderAdminAiPage(app) {
       if (crackBudgetText) crackBudgetText.textContent = crackBudget(presetKey, capabilities.crackBudgets);
       if (crackBadge) crackBadge.hidden = !crackToggle?.checked;
     };
+    syncCrackProfile();
     presetSelect?.addEventListener('change', () => {
       syncCrackProfile();
     });
     crackToggle?.addEventListener('change', () => {
       syncCrackProfile();
+      qs('#quick-create-btn', app).disabled = creating || creationBlocked();
+      renderCreationStatus();
     });
     languageSelect?.addEventListener('change', () => {
       selectedLanguage = languageSelect.value === 'vi' ? 'vi' : 'en';
@@ -921,6 +1173,10 @@ export async function renderAdminAiPage(app) {
     });
 
     qs('#quick-create-btn', app).addEventListener('click', async () => {
+      if (creationBlocked() || creating) return;
+      creating = true;
+      pollingError = null;
+      stopPolling();
       const button = qs('#quick-create-btn', app);
       const presetKey = presetSelect?.value ?? 'NORMAL_RANDOM';
       const preset = PRESETS[presetKey] ?? PRESETS.NORMAL_RANDOM;
@@ -938,6 +1194,11 @@ export async function renderAdminAiPage(app) {
 
       try {
         const creatorDirection = qs('#ai-creator-direction', app)?.value?.trim() || '';
+        const creativeConstraints = {
+          settingId: settingLock?.value || '',
+          toneId: toneLock?.value || '',
+          investigationMechanicId: mechanicLock?.value || '',
+        };
         const previewDraft = await aiCaseApi.generate(
           creatorDirection,
           preset.stageCount,
@@ -946,21 +1207,31 @@ export async function renderAdminAiPage(app) {
           language,
           Boolean(crackToggle?.checked),
           selectedCaseType,
-          idempotencyKey);
+          idempotencyKey,
+          creativeConstraints);
         activeDraftId = previewDraft.draftId;
         if (disposed || version !== runVersion) return;
+        creating = false;
+        creationError = null;
         updateProgress(previewDraft.status);
-        if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-        draw(previewDraft);
+        await loadDraftList();
+        if (disposed || version !== runVersion) return;
         if (isTerminalDraft(previewDraft)) {
           stopProgressClock();
-          toast(tr('Story preview is ready for manual approval.', 'Tiền đề đã sẵn sàng để duyệt thủ công.'), 'success', 7000);
+          if (previewDraft.status === STATUS_AWAITING_APPROVAL) {
+            toast(tr('Story preview is ready for manual approval.', 'Tiền đề đã sẵn sàng để duyệt thủ công.'), 'success', 7000);
+          } else if (previewDraft.status !== 'CANCELLED') {
+            creationError = { code: previewDraft.lastGenerationErrorCode, message: tr('Generation failed. Review the draft details below before retrying.', 'Tạo vụ án thất bại. Hãy kiểm tra chi tiết bản nháp bên dưới trước khi thử lại.') };
+          }
         } else {
           startPolling(activeDraftId, version);
           toast(tr('Story preview generation was queued.', 'Đã xếp hàng tạo tiền đề.'), 'success', 5000);
         }
+        draw(previewDraft);
       } catch (err) {
         if (disposed || version !== runVersion) return;
+        creating = false;
+        creationError = err;
         stopPolling();
         stopProgressClock();
         let latest = null;
@@ -971,24 +1242,39 @@ export async function renderAdminAiPage(app) {
             /* fall back to the normal page if the failed draft cannot be reloaded */
           }
         }
-        if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-        toast(err.message, 'error', 7000);
-        draw(latest);
+        await loadDraftList();
+        if (disposed || version !== runVersion) return;
+        draw(latest || visibleDraft);
       }
     });
 
     app.querySelectorAll('[data-view]').forEach((btn) =>
       btn.addEventListener('click', async () => {
+        const version = ++runVersion;
+        stopPolling();
+        stopProgressClock();
+        pollingError = null;
         try {
-          draw(await aiCaseApi.draft(btn.dataset.view));
+          const draft = await aiCaseApi.draft(btn.dataset.view);
+          if (disposed || version !== runVersion) return;
+          draw(draft);
+          if (!isTerminalDraft(draft)) {
+            runStartedAt = Date.now();
+            startProgressClock();
+            startPolling(draft.draftId, version);
+          }
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
-          toast(err.message, 'error');
+          if (disposed || version !== runVersion) return;
+          toast(aiErrorText(err), 'error');
         }
       }));
 
     app.querySelectorAll('[data-continue]').forEach((btn) =>
       btn.addEventListener('click', () => continueDraft(btn.dataset.continue, btn)));
+
+    app.querySelectorAll('[data-cancel-draft]').forEach((btn) =>
+      btn.addEventListener('click', () => cancelDraft(btn.dataset.cancelDraft, btn)));
 
     app.querySelectorAll('[data-retry-json]').forEach((btn) =>
       btn.addEventListener('click', () => retryFailedDraft(btn.dataset.retryJson, btn, 'json')));
@@ -1004,6 +1290,9 @@ export async function renderAdminAiPage(app) {
 
     app.querySelectorAll('[data-repair-truth]').forEach((btn) =>
       btn.addEventListener('click', () => repairTruth(btn.dataset.repairTruth, btn)));
+
+    app.querySelectorAll('[data-continue-truth-repair]').forEach((btn) =>
+      btn.addEventListener('click', () => repairTruth(btn.dataset.continueTruthRepair, btn, true)));
 
     app.querySelectorAll('[data-accept-truth-repair]').forEach((btn) =>
       btn.addEventListener('click', () => resolveTruthRepair(btn.dataset.acceptTruthRepair, btn, true)));
@@ -1043,6 +1332,31 @@ export async function renderAdminAiPage(app) {
     return tr(preset.description, preset.descriptionVi);
   }
 
+  async function cancelDraft(draftId, button) {
+    if (!window.confirm(tr(
+      "Cancel this draft and stop future generation? Work already performed may still incur cost. Cancelling does not reset today's creation limit.",
+      'Hủy bản nháp này và dừng các bước tạo tiếp theo? Công việc đã thực hiện vẫn có thể phát sinh chi phí. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
+    ))) return;
+    const version = ++runVersion;
+    stopPolling();
+    stopProgressClock();
+    pollingError = null;
+    button.disabled = true;
+    button.textContent = tr('Cancelling…', 'Đang hủy…');
+    try {
+      const draft = await aiCaseApi.cancelDraft(draftId);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList();
+      if (disposed || version !== runVersion) return;
+      draw(draft);
+      toast(tr('Draft cancelled. You can review the creation limit and try again.', 'Đã hủy bản nháp. Bạn có thể kiểm tra hạn mức tạo và thử lại.'), 'success', 7000);
+    } catch (error) {
+      if (disposed || version !== runVersion) return;
+      creationError = error;
+      draw(visibleDraft);
+    }
+  }
+
   async function approveStory(draftId, button) {
     const version = ++runVersion;
     runStartedAt = Date.now();
@@ -1063,7 +1377,9 @@ export async function renderAdminAiPage(app) {
       stopPolling();
       stopProgressClock();
       updateProgress(draft.status);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
       draw(draft);
       toast(draft.status === STATUS_TRUTH_AWAITING_APPROVAL
         ? tr('Case truth is ready for spoiler review.', 'Sự thật vụ án đã sẵn sàng để kiểm tra spoiler.')
@@ -1078,8 +1394,10 @@ export async function renderAdminAiPage(app) {
       } catch {
         /* keep current page if reload fails */
       }
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1103,37 +1421,50 @@ export async function renderAdminAiPage(app) {
       stopPolling();
       stopProgressClock();
       updateProgress(draft.status);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
       draw(draft);
       toast(draft.status === STATUS_FULL_LOGIC_AWAITING_APPROVAL
-        ? tr('Truth-backed gameplay projection passed blind review.', 'Gameplay dựa trên truth đã vượt qua blind review.')
+        ? (draft.blindReviewAssessment?.status === 'PASSED'
+          ? tr('Gameplay projection passed the advisory blind review.', 'Gameplay đã vượt qua blind review tham khảo.')
+          : tr('Gameplay projection is ready for admin review.', 'Gameplay đã sẵn sàng để admin kiểm tra.'))
         : tr('Gameplay projection is blocked. Review validation details.', 'Gameplay bị chặn. Hãy kiểm tra chi tiết validation.'),
       draft.status === STATUS_FULL_LOGIC_AWAITING_APPROVAL ? 'success' : 'error', 8000);
     } catch (err) {
+      if (disposed || version !== runVersion) return;
       stopPolling();
       stopProgressClock();
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
 
-  async function repairTruth(draftId, button) {
+  async function repairTruth(draftId, button, useRepairCandidate = false) {
     const version = ++runVersion;
+    stopPolling();
     runStartedAt = Date.now();
     button.disabled = true;
+    app.querySelectorAll('[data-repair-truth], [data-continue-truth-repair], [data-reject-truth-repair]').forEach((action) => {
+      if ([action.dataset.repairTruth, action.dataset.continueTruthRepair, action.dataset.rejectTruthRepair].includes(draftId)) action.disabled = true;
+    });
     button.textContent = tr('Repairing truth...', 'Đang sửa truth...');
     startProgressClock();
     try {
-      const instructionField = [...app.querySelectorAll('[data-truth-repair-instructions]')]
-        .find((field) => field.dataset.truthRepairInstructions === draftId);
+      const instructionField = [...app.querySelectorAll(useRepairCandidate ? '[data-candidate-repair-instructions]' : '[data-truth-repair-instructions]')]
+        .find((field) => (useRepairCandidate ? field.dataset.candidateRepairInstructions : field.dataset.truthRepairInstructions) === draftId);
       const instructions = instructionField?.value?.trim()
         || 'Repair only the invalid causal artifact and preserve every valid upstream fact.';
-      const scopeField = [...app.querySelectorAll('[data-truth-repair-scope]')]
-        .find((field) => field.dataset.truthRepairScope === draftId);
-      const draft = await aiCaseApi.repairTruth(draftId, instructions, scopeField?.value || null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      const scopeField = [...app.querySelectorAll(useRepairCandidate ? '[data-candidate-repair-scope]' : '[data-truth-repair-scope]')]
+        .find((field) => (useRepairCandidate ? field.dataset.candidateRepairScope : field.dataset.truthRepairScope) === draftId);
+      const draft = await aiCaseApi.repairTruth(draftId, instructions, scopeField?.value || null, useRepairCandidate);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
       draw(draft);
       if (!isTerminalDraft(draft)) {
         startPolling(draftId, version);
@@ -1142,30 +1473,40 @@ export async function renderAdminAiPage(app) {
       }
       stopProgressClock();
       toast(draft.truthRepairStatus === 'CANDIDATE_READY'
-        ? tr('Truth repair candidate passed validation and awaits acceptance.', 'Ứng viên sửa truth đã hợp lệ và đang chờ chấp nhận.')
+        ? tr('Repair structure passed. Read the candidate story review before accepting.', 'Cấu trúc bản sửa hợp lệ. Hãy đọc đánh giá cốt truyện bản sửa trước khi chấp nhận.')
         : tr('Truth repair candidate is still invalid.', 'Ứng viên sửa truth vẫn chưa hợp lệ.'),
       draft.truthRepairStatus === 'CANDIDATE_READY' ? 'success' : 'error', 8000);
     } catch (err) {
+      if (disposed || version !== runVersion) return;
+      stopProgressClock();
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      toast(err.message, 'error', 9000);
+      if (disposed || version !== runVersion) return;
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
 
   async function resolveTruthRepair(draftId, button, accept) {
+    const version = ++runVersion;
+    stopPolling();
+    stopProgressClock();
     button.disabled = true;
     try {
       const draft = accept
         ? await aiCaseApi.acceptTruthRepair(draftId)
         : await aiCaseApi.rejectTruthRepair(draftId);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
       draw(draft);
       toast(accept
         ? tr('Truth repair accepted; downstream artifacts were invalidated.', 'Đã chấp nhận bản sửa truth; artifact downstream đã bị đánh dấu stale.')
         : tr('Truth repair rejected.', 'Đã từ chối bản sửa truth.'), 'success', 7000);
     } catch (err) {
+      if (disposed || version !== runVersion) return;
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      toast(err.message, 'error', 9000);
+      if (disposed || version !== runVersion) return;
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1192,7 +1533,9 @@ export async function renderAdminAiPage(app) {
       stopPolling();
       stopProgressClock();
       updateProgress(draft.status);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
       draw(draft);
       if (draft.status === STATUS_SCENE_LAYOUT_AWAITING_APPROVAL) {
         toast('Scene layout is ready for review.', 'success', 7000);
@@ -1211,8 +1554,10 @@ export async function renderAdminAiPage(app) {
       } catch {
         /* keep current page if reload fails */
       }
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      if (disposed || version !== runVersion) return;
+      await loadDraftList(version);
+      if (disposed || version !== runVersion) return;
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1229,7 +1574,7 @@ export async function renderAdminAiPage(app) {
       const published = await aiCaseApi.publishDraft(draftId, true);
       if (disposed || version !== runVersion) return;
       stopProgressClock();
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
       draw(latest);
       toast(`"${published.title || 'Case'}" published.`, 'success', 7000);
@@ -1242,8 +1587,8 @@ export async function renderAdminAiPage(app) {
       } catch {
         /* keep current page if reload fails */
       }
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1256,13 +1601,13 @@ export async function renderAdminAiPage(app) {
         draftId,
         'Normalize final evidence into natural scene-scale camera clues while keeping IDs and logic stable.'
       );
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       draw(draft);
       toast(draft.repairStatus === 'CANDIDATE_READY' ? 'Repair candidate is ready.' : 'Repair candidate needs review.', 'info', 7000);
     } catch (err) {
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1272,13 +1617,13 @@ export async function renderAdminAiPage(app) {
     button.textContent = 'Accepting...';
     try {
       const draft = await aiCaseApi.acceptRepair(draftId);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       draw(draft);
       toast('Repair accepted. Review full logic before layout generation.', 'success', 7000);
     } catch (err) {
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1288,13 +1633,13 @@ export async function renderAdminAiPage(app) {
     button.textContent = 'Rejecting...';
     try {
       const draft = await aiCaseApi.rejectRepair(draftId);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       draw(draft);
       toast('Repair rejected. Original logic remains unchanged.', 'info', 7000);
     } catch (err) {
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1316,13 +1661,13 @@ export async function renderAdminAiPage(app) {
     button.textContent = 'Validating...';
     try {
       const draft = await aiCaseApi.replaceJson(draftId, caseJson);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       draw(draft);
       toast('Draft JSON replaced. Review full logic before regenerating v5 layout and assets.', 'success', 8000);
     } catch (err) {
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1347,7 +1692,7 @@ export async function renderAdminAiPage(app) {
       stopPolling();
       stopProgressClock();
       updateProgress(draft.status);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       draw(draft);
       const title = draft.publishedCase?.title || draft.caseTitle || draft.storyPreview?.title || 'Case';
       if (draft.status === STATUS_PUBLISHED) {
@@ -1365,8 +1710,8 @@ export async function renderAdminAiPage(app) {
       } catch {
         /* keep the current page if the draft cannot be reloaded */
       }
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
@@ -1389,19 +1734,20 @@ export async function renderAdminAiPage(app) {
       }
       stopPolling();
       stopProgressClock();
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
+      await loadDraftList();
       draw(draft);
       toast(mode === 'json' ? 'JSON checkpoint repaired and revalidated.' : 'Failed scene regenerated and revalidated.', 'success', 8000);
     } catch (err) {
       const latest = await aiCaseApi.draft(draftId).catch(() => null);
-      if (canManageDrafts) drafts = await aiCaseApi.drafts().catch(() => drafts);
-      toast(err.message, 'error', 9000);
+      await loadDraftList();
+      toast(aiErrorText(err), 'error', 9000);
       draw(latest);
     }
   }
 
   return () => {
     disposed = true;
+    disposePresentation();
     runVersion += 1;
     stopPolling();
     stopProgressClock();

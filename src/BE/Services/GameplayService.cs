@@ -1873,6 +1873,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         return new GameResultResponse
         {
             RoomId = result.RoomId,
+            Presentation = PresentationPolicy.ProjectResult(gameCase, result.RoomId, result.Success),
             CaseId = result.CaseId,
             CaseTitle = gameCase.Title,
             SelectedCulpritId = result.SelectedCulpritId,
