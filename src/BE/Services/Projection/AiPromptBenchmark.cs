@@ -67,6 +67,7 @@ public static class AiPromptBenchmark
             Settings = new AiDraftSettings
             {
                 GenerationPreset = preset, StageCount = preset == AiGenerationPresets.ShortDemo ? 2 : preset == AiGenerationPresets.FullFeature ? 6 : 4,
+                ShortDemoProfileVersion = preset == AiGenerationPresets.ShortDemo ? 1 : 0,
                 Language = language, IncludeCrackTheLie = isV3,
                 MechanicsVersion = isV3 ? CaseMechanicsVersions.InvestigationV3PairedConfrontation : CaseMechanicsVersions.InvestigationV2
             }

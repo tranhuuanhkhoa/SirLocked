@@ -2,10 +2,16 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
+// The public shell contains media only. Case JSON, source maps and private draft
+// metadata must not become downloadable just because they exist under public/.
+const mediaExtensions = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico', '.wav', '.mp3', '.ogg', '.m4a', '.flac', '.woff', '.woff2', '.ttf']);
+const isPackagedMedia = (name) => mediaExtensions.has(path.posix.extname(name).toLowerCase());
+
 export function collectCaseAssetPaths(value, output = new Set()) {
   if (typeof value === 'string' && value.startsWith('/assets/')) {
     const pathname = decodeURIComponent(value.split(/[?#]/, 1)[0]);
     if (pathname.includes('\\') || pathname.split('/').some((part) => part === '..' || part === '.')) throw new Error('Unsafe case asset path.');
+    if (!isPackagedMedia(pathname) || /[\u0000-\u001f\u007f]/.test(pathname)) throw new Error('Case assets must reference an allowed public media file.');
     output.add(pathname.slice(1));
   } else if (Array.isArray(value)) value.forEach((entry) => collectCaseAssetPaths(entry, output));
   else if (value && typeof value === 'object') Object.values(value).forEach((entry) => collectCaseAssetPaths(entry, output));
@@ -39,7 +45,7 @@ export async function createCaseAssetManifest(publicDirectory, caseFiles) {
       if (name === 'assets/ai-generated') continue;
       if (entry.isSymbolicLink()) throw new Error(`Public asset symlinks are not packaged: ${name}`);
       if (entry.isDirectory()) await walk(path.join(directory, entry.name), name);
-      else selected.add(name);
+      else if (isPackagedMedia(name)) selected.add(name);
     }
   }
   await walk(sourceRoot);

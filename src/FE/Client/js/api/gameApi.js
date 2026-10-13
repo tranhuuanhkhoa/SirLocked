@@ -19,7 +19,7 @@ export const gameApi = {
     form.append('photo', photo, 'evidence.webp');
     return apiFetchForm(`/api/game/rooms/${roomId}/capture-clue`, form);
   },
-  evidencePhoto: (photoUrl) => apiFetchBlob(photoUrl),
+  evidencePhoto: (photoUrl, signal) => apiFetchBlob(photoUrl, signal),
   askDialogue: (roomId, dialogueId) => post(`/api/game/rooms/${roomId}/ask-dialogue`, { dialogueId }),
   converse: (roomId, payload) => post(`/api/game/rooms/${roomId}/converse`, payload),
   presentEvidence: (roomId, payload) => post(`/api/game/rooms/${roomId}/present-evidence`, payload),

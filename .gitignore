@@ -32,6 +32,7 @@ tmp/
 .grapuco/
 
 # Editor scratch files
+src/FE/build_error.txt
 docs/diagrams/.$*.bkp
 
 # MongoDB / DB dumps

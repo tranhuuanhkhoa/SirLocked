@@ -204,14 +204,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request, string? idempotencyKey = null)
     {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
-        if (AiV3GenerationProfile.IsV3Preset(request.GenerationPreset))
-        {
-            // Compatibility for clients that still send the retired standalone
-            // preset. New creation uses SHORT_DEMO + IncludeCrackTheLie.
-            request.GenerationPreset = AiGenerationPresets.ShortDemo;
-            request.IncludeCrackTheLie = true;
-        }
+        var draftSettings = CreateNewDraftSettings(request);
         if (request.IncludeCrackTheLie)
         {
             if (!_v3PresetSettings.Enabled)
@@ -220,10 +213,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     "AI_V3_PRESET_DISABLED",
                     "ai.v3Preset.disabled");
         }
-        ApplyPresetDefaults(request);
         try
         {
             request.CreativeConstraints = AiStoryDiversityPolicy.NormalizeConstraints(request.CreativeConstraints);
+            draftSettings.CreativeConstraints = request.CreativeConstraints;
         }
         catch (ArgumentException exception)
         {
@@ -231,19 +224,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
 
         var normalizedIdempotencyKey = NormalizeIdempotencyKey(idempotencyKey);
-        if (!string.IsNullOrWhiteSpace(normalizedIdempotencyKey))
-        {
-            var existingByKey = await _db.AiCaseDrafts
-                .Find(draft => draft.CreatedByUserId == user.Id
-                    && draft.IdempotencyKey == normalizedIdempotencyKey)
-                .FirstOrDefaultAsync();
-            if (existingByKey is not null)
-            {
-                if (!CreativeConstraintsEqual(existingByKey.Settings.CreativeConstraints, request.CreativeConstraints))
-                    throw ApiException.Conflict("The idempotency key is already associated with different creative constraints.", "AI_IDEMPOTENCY_CONFLICT", "ai.idempotency.conflict");
-                return AiDraftResponse.From(existingByKey, includeJson: false);
-            }
-        }
+        var existingByKey = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
+        if (existingByKey is not null) return AiDraftResponse.From(existingByKey, includeJson: false);
 
         EnsureCreationReady(request.IncludeCrackTheLie);
         var creatorPrompt = request.Prompt?.Trim() ?? string.Empty;
@@ -265,29 +247,24 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 "Could not allocate a structurally distinct story profile from recent history. Try another case type.",
                 new { similarity = AiStoryDiversityPolicy.StructuralSimilarity(storyDiversity, structuralDuplicate) });
         }
-        var mechanicsVersion = request.IncludeCrackTheLie
-            ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
-            : CaseMechanicsVersions.InvestigationV2;
         var plannedTargetKind = CaseTargetAllocationPolicy.ForCaseType(storyDiversity.CaseType);
-        var reservedBudget = await ReserveAiAdmissionAsync(user, normalizedIdempotencyKey);
+        decimal reservedBudget;
+        try { reservedBudget = await ReserveAiAdmissionAsync(user, normalizedIdempotencyKey); }
+        catch (ApiException ex) when (ex.Errors is ApiErrorDetails details
+            && details.Code is "AI_ACTIVE_DRAFT_LIMIT" or "AI_DAILY_LIMIT")
+        {
+            // Another copy of this request can win after the initial lookup but
+            // before admission observes its quota. No reservation was acquired.
+            var winner = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
+            if (winner is null) throw;
+            return AiDraftResponse.From(winner, includeJson: false);
+        }
 
         var draft = new AiCaseDraft
         {
             Id = draftId,
             Prompt = creatorPrompt,
-            Settings = new AiDraftSettings
-            {
-                StageCount = request.StageCount,
-                Difficulty = request.Difficulty,
-                VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
-                GenerationMode = CaseGenerationModes.CameraEmbedded,
-                GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset),
-                Language = CaseLanguages.Normalize(request.Language),
-                MechanicsVersion = mechanicsVersion,
-                IncludeCrackTheLie = request.IncludeCrackTheLie,
-                CaseType = request.CaseType,
-                CreativeConstraints = request.CreativeConstraints
-            },
+            Settings = draftSettings,
             StoryDiversity = storyDiversity,
             PlannedTargetKind = plannedTargetKind,
             Status = AiDraftStatus.GeneratingStory,
@@ -310,6 +287,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 request.StageCount,
                 request.Difficulty,
                 request.GenerationPreset,
+                draftSettings.ShortDemoProfileVersion,
                 request.Language,
                 request.CaseType,
                 request.CreativeConstraints,
@@ -317,26 +295,35 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }, CompactJson)),
             NextAttemptAt = DateTime.UtcNow
         };
-        try
-        {
-            await _db.AiCaseDrafts.InsertOneAsync(draft);
-        }
-        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
-        {
-            await ReleaseAiReservationAsync(reservedBudget);
-            if (!string.IsNullOrWhiteSpace(normalizedIdempotencyKey))
+        var savedDraft = await AiDraftQuotaSlots.InsertAsync(draft,
+            !_settings.BlocksAiCalls && _quota.Enabled ? _quota.MaxActiveDraftsPerUser : 0,
+            async candidate =>
             {
-                var existing = await _db.AiCaseDrafts
-                    .Find(item => item.CreatedByUserId == user.Id && item.IdempotencyKey == normalizedIdempotencyKey)
-                    .FirstOrDefaultAsync();
-                if (existing is not null) return AiDraftResponse.From(existing, includeJson: false);
-            }
-            throw ApiException.Conflict(
-                "The AI quota was claimed by another request. Continue or cancel the existing draft before creating another.",
-                "AI_QUOTA_RACE",
-                "ai.quota.concurrentCreate");
-        }
-        return AiDraftResponse.From(draft, includeJson: false);
+                try
+                {
+                    await _db.AiCaseDrafts.InsertOneAsync(candidate);
+                    return AiDraftInsertCollision.None;
+                }
+                catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+                {
+                    return AiDraftQuotaSlots.ClassifyDuplicate(ex.WriteError.Details, ex.WriteError.Message);
+                }
+            },
+            () => FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints),
+            () => ReleaseAiReservationAsync(reservedBudget));
+        return AiDraftResponse.From(savedDraft, includeJson: false);
+    }
+
+    private async Task<AiCaseDraft?> FindIdempotentDraftAsync(
+        string userId, string idempotencyKey, AiCreativeConstraints constraints)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        var existing = await _db.AiCaseDrafts.Find(item => item.CreatedByUserId == userId
+                && item.IdempotencyKey == idempotencyKey).FirstOrDefaultAsync();
+        if (existing is not null && !CreativeConstraintsEqual(existing.Settings.CreativeConstraints, constraints))
+            throw ApiException.Conflict("The idempotency key is already associated with different creative constraints.",
+                "AI_IDEMPOTENCY_CONFLICT", "ai.idempotency.conflict");
+        return existing;
     }
 
     private async Task<AiDraftResponse> GenerateStoryPreviewAsync(
@@ -507,6 +494,36 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         {
             _operationCancellationToken = default;
         }
+    }
+
+    internal static AiDraftSettings CreateNewDraftSettings(GenerateAiCaseRequest request)
+    {
+        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
+        if (AiV3GenerationProfile.IsV3Preset(request.GenerationPreset))
+        {
+            // Retired client requests become new sampler drafts. Existing
+            // persisted drafts never enter this creation-only path.
+            request.GenerationPreset = AiGenerationPresets.ShortDemo;
+            request.IncludeCrackTheLie = true;
+        }
+        ApplyPresetDefaults(request);
+        return new AiDraftSettings
+        {
+            StageCount = request.StageCount,
+            Difficulty = request.Difficulty,
+            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            GenerationPreset = request.GenerationPreset,
+            ShortDemoProfileVersion = request.GenerationPreset == AiGenerationPresets.ShortDemo
+                ? AiGenerationContract.CurrentShortDemoProfileVersion : 0,
+            Language = request.Language,
+            MechanicsVersion = request.IncludeCrackTheLie
+                ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                : CaseMechanicsVersions.InvestigationV2,
+            IncludeCrackTheLie = request.IncludeCrackTheLie,
+            CaseType = request.CaseType,
+            CreativeConstraints = request.CreativeConstraints
+        };
     }
 
     private static void ApplyPresetDefaults(GenerateAiCaseRequest request)
@@ -2547,6 +2564,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             .AppendLine(VisualArtDirectionRules)
             .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
             .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
+            .AppendLine(ShortDemoSamplerRequirements(draft.Settings))
             .AppendLine("Narrative facts and slots:")
             .AppendLine(ProjectionPromptContext.Build(draft, repairScope));
         if (repairScope is not null)
@@ -3719,6 +3737,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         {LanguageGenerationInstruction(draft.Settings.Language)}
         Preset contract (the server validates these exact bounds):
         {contract.PromptRequirements()}
+        {ShortDemoSamplerRequirements(draft.Settings)}
         The story is investigated by SirLocked and a companion.
         Visual styling is handled separately by the fixed product art pipeline and must not affect case logic.
         {lockedBlueprint}
@@ -3731,7 +3750,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         Hard requirements:
         - Each stage contains 1 or 2 scenes; follow the preset stage and total-scene bounds above.
-        - Language, fixed pixel style, mechanicsVersion, generationMode, status, timestamps, runtime and asset URLs are server-owned and are not part of your output schema.
+        - Language, fixed pixel style, mechanicsVersion, generationMode, shortDemoProfileVersion, conversation sourceDialogueId, status, timestamps, runtime and asset URLs are server-owned and are not part of your output schema.
         - Follow the strict JSON schema supplied with this request. Use empty arrays and empty strings for optional mechanics instead of inventing properties.
         {idNamespaceRequirement}
         - All IDs must be unique and every referenced ID must exist.
@@ -3780,7 +3799,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - finalLogic must have at least three motiveOptions and three methodOptions with unique IDs and valid correctMotiveId/correctMethodId.
         {requiredEvidenceLinksRequirement}
         - finalLogic.requiredDeductionIds must reference the required deduction(s), and finalLogic.requiredTeamworkChainIds must reference the required teamwork chain(s).
-        - conversationNodes are OPTIONAL. If you include them for a character, build a small branching tree: exactly one isRoot node, root has at least one topic choice, depth is at most root -> topic -> one follow-up. Every node MUST offer at least one choice with nextNodeId null (a way back to root / end), and follow-up nodes' choices must all use nextNodeId null. nodeId/choiceId unique; nextNodeId and challengeId must reference real same-character nodes/challenges. lines use speaker "NPC" or "DETECTIVE". Do not leave a node without a return choice. Characters without conversationNodes keep using flat dialogues.
+        - Follow the contract's minimum number of conversation characters. For each, build a small branching tree: exactly one isRoot node, root has topic choices, depth is at most root -> topic -> one follow-up. Every node MUST offer at least one choice with nextNodeId null (a way back to root / end), and follow-up nodes' choices must all use nextNodeId null. nodeId/choiceId unique; nextNodeId and challengeId must reference real same-character nodes/challenges. lines use speaker "NPC" or "DETECTIVE". Do not leave a node without a return choice. Characters without conversationNodes keep using flat dialogues.
         - The culprit must be one of the characters. Include at least one red herring clue with isRedHerring true.
         - Build a contradiction chain in dialogues and delay the strongest culprit evidence to a later stage.
         - Keep long narrative prose out of mechanical messages. Prefer concise strings so the full JSON is complete and not truncated.
@@ -3915,6 +3934,19 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? "Write every player-facing title, summary, role, description, item/clue text, dialogue, conversation line/choice, hint, challenge, deduction, puzzle, success/failure message and ending in natural Vietnamese with full diacritics. Preserve proper names. Keep IDs, enum values, tags, renderMode, interactionPurpose and internal visualDescription art directions in English/ASCII."
             : "Write all player-facing prose in English. Keep IDs, enum values and tags in English/ASCII.";
 
+    private static string ShortDemoSamplerRequirements(AiDraftSettings settings) =>
+        AiGenerationPresets.Normalize(settings.GenerationPreset) == AiGenerationPresets.ShortDemo
+        && settings.ShortDemoProfileVersion >= AiGenerationContract.CurrentShortDemoProfileVersion
+            ? """
+              SHORT_DEMO sampler requirements (mandatory, never optional):
+              - Exactly 2 stages, 2-3 scenes and 4 characters; keep a compact, easy mystery.
+              - Exactly one bounded puzzle, exactly one COMBINE_ITEMS interaction and exactly one USE_ITEM_ON_TARGET interaction. Each must matter to the investigation and be reachable before its reward is required.
+              - At least one character has a branching conversation: a root with at least two topic choices leading to distinct same-character non-root nodes, plus a return/end choice. Topic dialogue must preserve the approved statement facts.
+              - Exactly one evidenceChallenge, one deduction and one requiredTeamworkChain. Keep both investigator and interrogator active and require the earned proof for the final accusation.
+              - The existing IncludeCrackTheLie choice controls the confrontation type: classic evidence presentation in V2, or one paired Crack in V3. Do not add an extra confrontation.
+              """
+            : string.Empty;
+
     private static string PresetFullLogicRequirements(string preset) => AiGenerationPresets.Normalize(preset) switch
     {
         AiGenerationPresets.CrackTheLieV3 => "- CRACK_THE_LIE_V3: use the dedicated one-stage, one-scene, three-by-three paired-confrontation contract.",
@@ -3929,9 +3961,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         """,
         AiGenerationPresets.ShortDemo => """
         - SHORT DEMO: use exactly 2 stages.
-        - Keep the case simple: one core contradiction, natural camera evidence, two evidenceChallenges, and one deduction.
-        - Include exactly one puzzle and exactly one interaction.
-        - Keep clue count near the low end and avoid deep conversation trees.
+        - Include one evidenceChallenge, one deduction, one requiredTeamworkChain, one puzzle, one COMBINE_ITEMS interaction and one USE_ITEM_ON_TARGET interaction.
+        - Include a shallow branching conversation for at least one character and natural camera evidence.
+        - Keep clue count near the low end; every mechanic must advance the investigation.
         """,
         AiGenerationPresets.PuzzleHeavy => """
         - PUZZLE HEAVY: include exactly 3 puzzles and make puzzle solving central to progression.
@@ -6129,10 +6161,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 Builders<AiCaseDraft>.Filter.In(item => item.Status, activeStatuses)));
         if (activeCount >= _quota.MaxActiveDraftsPerUser)
         {
-            throw ApiException.Conflict(
-                "You already have an AI case draft in progress. Continue or cancel it before creating another.",
-                "AI_ACTIVE_DRAFT_LIMIT",
-                "ai.quota.activeDraftLimit");
+            throw AiDraftQuotaSlots.ActiveLimitReached();
         }
 
         var quotaDay = VietnamQuotaDay(DateTime.UtcNow);
@@ -6142,10 +6171,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 && item.DailyQuotaKey != null);
         if (dailyCount >= _quota.MaxCasesPerUserPerDay)
         {
-            throw ApiException.Conflict(
-                "You have reached today's AI case creation limit.",
-                "AI_DAILY_LIMIT",
-                "ai.quota.dailyLimit");
+            throw AiDraftQuotaSlots.DailyLimitReached();
         }
 
         // Admission limits above still apply. Paid calls reserve separately when usage accounting is installed.
