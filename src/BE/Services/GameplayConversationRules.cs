@@ -86,6 +86,18 @@ public static class GameplayConversationRules
         if (state.VisitedConversationNodeIds.Contains(reached.NodeId))
             return new ConversationRuleResult(reached, selectedChoice, false, Array.Empty<string>());
 
+        if (!string.IsNullOrWhiteSpace(reached.SourceDialogueId))
+        {
+            var source = gameCase.Dialogues.FirstOrDefault(dialogue => dialogue.DialogueId == reached.SourceDialogueId);
+            if (source is null || source.CharacterId != reached.CharacterId
+                || (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
+                    && !source.AvailableSceneIds.Contains(scene.SceneId)))
+                throw ApiException.BadRequest("This conversation node is not available.");
+            EnsureUnlocked(source.RequiredClueIds, state);
+            if (!state.AskedDialogueIds.Contains(source.DialogueId))
+                state.AskedDialogueIds.Add(source.DialogueId);
+        }
+
         state.VisitedConversationNodeIds.Add(reached.NodeId);
         var newClues = reached.UnlockClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
         state.UnlockedClueIds.AddRange(newClues);
@@ -103,6 +115,16 @@ public static class GameplayConversationRules
         }
 
         return new ConversationRuleResult(reached, selectedChoice, true, newClues);
+    }
+
+    /// <summary>Linked questions are delivered through their branch before flat-question replay is available.</summary>
+    internal static bool IsSourceDialogueAvailable(
+        GameCase gameCase,
+        IReadOnlyCollection<string> visitedConversationNodeIds,
+        string dialogueId)
+    {
+        var linkedNodes = gameCase.ConversationNodes.Where(node => node.SourceDialogueId == dialogueId).ToList();
+        return linkedNodes.Count == 0 || linkedNodes.Any(node => visitedConversationNodeIds.Contains(node.NodeId));
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Text.Json.Serialization;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Projection;
 
@@ -340,6 +341,10 @@ public class AiDraftSettings
     public string VisualStyle { get; set; } = AiVisualStyleDefaults.PixelDetectiveTheme;
     public string GenerationMode { get; set; } = CaseGenerationModes.CameraEmbedded;
     public string GenerationPreset { get; set; } = AiGenerationPresets.NormalRandom;
+    /// <summary>Server-owned SHORT_DEMO profile. Missing/zero preserves the original optional-mechanics contract.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [BsonIgnoreIfDefault]
+    public int ShortDemoProfileVersion { get; set; }
     public string Language { get; set; } = CaseLanguages.English;
     public int MechanicsVersion { get; set; } = CaseMechanicsVersions.InvestigationV2;
     public bool IncludeCrackTheLie { get; set; }
