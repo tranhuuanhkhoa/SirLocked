@@ -183,6 +183,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(HttpStatusCode.Accepted, create.StatusCode);
         var queued = (await create.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>())!.Data!;
         Assert.Equal(AiQueueStates.Pending, queued.QueueState);
+        Assert.Equal(1, queued.Settings.ShortDemoProfileVersion);
 
         var story = await PollAsync(client, queued.DraftId, AiDraftStatus.StoryAwaitingApproval);
         Assert.NotNull(story.StoryPreview);
@@ -214,6 +215,16 @@ public sealed partial class AiCaseWorkflowHostTests
             + $"last error {fullLogic.LastGenerationErrorCode}: "
             + string.Join(" | ", fullLogic.ValidationErrors.Concat(
                 fullLogic.GenerationAttempts.SelectMany(attempt => attempt.ValidationErrors))));
+        var sampler = System.Text.Json.JsonSerializer.Deserialize<GameCase>(
+            fullLogic.GeneratedJson, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.Equal(1, sampler.ShortDemoProfileVersion);
+        Assert.Single(sampler.Puzzles);
+        Assert.Single(sampler.Interactions.Where(item => item.Type == CaseInteractionTypes.CombineItems));
+        Assert.Single(sampler.Interactions.Where(item => item.Type == CaseInteractionTypes.UseItemOnTarget));
+        Assert.Single(sampler.EvidenceChallenges);
+        Assert.Single(sampler.Deductions);
+        Assert.Single(sampler.RequiredTeamworkChains);
+        Assert.Contains(sampler.ConversationNodes, node => node.IsRoot && node.Choices.Count >= 2);
 
         var approveFullLogic = await client.PostAsync(
             $"/api/admin/ai-cases/{queued.DraftId}/approve-full-logic",

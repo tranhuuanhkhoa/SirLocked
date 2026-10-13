@@ -69,7 +69,7 @@ test.describe('Crack V3 full-stack flow on the standard application host', () =>
     const investigator = await openPlayer(browser, room.roomId, investigatorAuth);
     const interrogator = await openPlayer(browser, room.roomId, interrogatorAuth);
     try {
-      await gatherSuppliedCase(api, room.roomId, fixture, investigator, investigatorAuth.token, interrogatorAuth.token);
+      await gatherSuppliedCase(api, room.roomId, fixture, investigator, interrogator, investigatorAuth.token, interrogatorAuth.token);
       const getState = (token: string) => call<any>(api, 'GET', `/api/game/rooms/${room.roomId}/state`, token);
       const investigatorState = await getState(investigatorAuth.token);
       const interrogatorState = await getState(interrogatorAuth.token);
@@ -80,6 +80,17 @@ test.describe('Crack V3 full-stack flow on the standard application host', () =>
       expect(interrogatorState.privateTestimonies.length).toBeGreaterThanOrEqual(2);
       expect(investigatorState.privateTestimonies).toEqual([]);
       expect(interrogatorState.privateEvidence).toEqual([]);
+      if (fixture.shortDemoProfileVersion === 1) {
+        expect(fixture.puzzles).toHaveLength(1);
+        expect(fixture.evidenceChallenges).toHaveLength(1);
+        expect(fixture.deductions).toHaveLength(1);
+        expect(fixture.requiredTeamworkChains).toHaveLength(1);
+        expect(fixture.interactions.map((entry: any) => entry.type).sort()).toEqual(['COMBINE_ITEMS', 'USE_ITEM_ON_TARGET']);
+        expect(investigatorState.usedInteractionIds).toEqual(expect.arrayContaining(fixture.interactions.map((entry: any) => entry.interactionId)));
+        expect(interrogatorState.visitedConversationNodeIds).toEqual(expect.arrayContaining(
+          fixture.conversationNodes.filter((node: any) => node.sourceDialogueId).map((node: any) => node.nodeId),
+        ));
+      }
       await investigator.screenshot({ path: testInfo.outputPath('generated-case-investigator-discovery.png'), fullPage: true });
 
       for (const challenge of fixture.evidenceChallenges) {
@@ -185,7 +196,7 @@ async function ensureDrawer(page: Page, tab: string) {
   await page.locator(`[data-case-tab="${tab}"]`).click();
 }
 
-async function gatherSuppliedCase(api: APIRequestContext, roomId: string, fixture: any, investigator: Page, investigatorToken: string, interrogatorToken: string) {
+async function gatherSuppliedCase(api: APIRequestContext, roomId: string, fixture: any, investigator: Page, interrogator: Page, investigatorToken: string, interrogatorToken: string) {
   const prefix = `/api/game/rooms/${roomId}`;
   const state = (token: string) => call<any>(api, 'GET', `${prefix}/state`, token);
   const scenes = fixture.stages.sort((a: any, b: any) => a.order - b.order).flatMap((stage: any) => stage.scenes);
@@ -199,7 +210,7 @@ async function gatherSuppliedCase(api: APIRequestContext, roomId: string, fixtur
         await call(api, 'POST', `${prefix}/go-to-scene`, token, { sceneId: scene.sceneId });
       // Read each role's actual visible state and perform normal game endpoints. No
       // gameplay DB writes, unlocked-state injection, network mocks or provider calls.
-      const maximumPasses = fixture.items.length + fixture.clues.length + fixture.dialogues.length + fixture.interactions.length + fixture.puzzles.length + 1;
+      const maximumPasses = fixture.items.length + fixture.clues.length + fixture.dialogues.length + fixture.conversationNodes.length + fixture.interactions.length + fixture.puzzles.length + 1;
       for (let pass = 0; pass < maximumPasses; pass++) {
         let changed = false;
         let current = await state(investigatorToken);
@@ -254,6 +265,7 @@ async function gatherSuppliedCase(api: APIRequestContext, roomId: string, fixtur
           await call(api, 'POST', `${prefix}/ask-dialogue`, interrogatorToken, { dialogueId: dialogue.dialogueId });
           changed = true;
         }
+        changed = await visitSuppliedConversationBranches(interrogator, fixture, scene, () => state(interrogatorToken)) || changed;
         roundChanged ||= changed;
         if (!changed) break;
       }
@@ -262,6 +274,41 @@ async function gatherSuppliedCase(api: APIRequestContext, roomId: string, fixtur
     }
     if (!roundChanged) break;
   }
+}
+
+async function visitSuppliedConversationBranches(page: Page, fixture: any, scene: any, readState: () => Promise<any>) {
+  let changed = false;
+  for (const root of fixture.conversationNodes.filter((node: any) => node.isRoot && node.availableSceneIds.includes(scene.sceneId))) {
+    for (const choice of root.choices) {
+      const child = fixture.conversationNodes.find((node: any) => node.nodeId === choice.nextNodeId);
+      const current = await readState();
+      if (!child || current.visitedConversationNodeIds.includes(child.nodeId)
+        || ![...root.requiredClueIds, ...choice.requiredClueIds, ...child.requiredClueIds].every((id: string) => current.unlockedClueIds.includes(id))) continue;
+      await expect.poll(() => page.evaluate(sceneId => (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene')?.state?.visibleScene?.sceneId === sceneId, scene.sceneId)).toBe(true);
+      await expect.poll(() => page.evaluate(() => Boolean((window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene')?.sceneInteractionEnabled))).toBe(true);
+      const point = await page.evaluate(characterId => {
+        const game = (window as any).__sirlockedGame;
+        const renderer = game.scene.getScene('SirLockedPhaserScene');
+        const placement = renderer.state.visibleScene.runtime.characterPlacements.find((entry: any) => entry.characterId === characterId);
+        if (!placement) throw new Error(`Missing conversation character placement: ${characterId}`);
+        const box = placement.hotspot;
+        // Placeholder NPC hitboxes overlap at their center. Use the left quarter
+        // of this character's box so the click selects the intended witness.
+        const screen = renderer.worldPoint({ x: box.x + box.width / 4, y: box.y + box.height / 2 });
+        const canvas = game.canvas.getBoundingClientRect();
+        return { x: canvas.x + screen.x * canvas.width / game.scale.width, y: canvas.y + screen.y * canvas.height / game.scale.height };
+      }, root.characterId);
+      await page.mouse.click(point.x, point.y);
+      await expect(page.locator('.vn-conversation')).toBeVisible({ timeout: 20_000 });
+      await expect(page.locator('#vn-character-name')).toHaveText(fixture.characters.find((entry: any) => entry.characterId === root.characterId).name);
+      await expect(page.locator(`[data-converse-choice="${choice.choiceId}"]`)).toBeVisible({ timeout: 10_000 });
+      await page.locator(`[data-converse-choice="${choice.choiceId}"]`).click();
+      await expect.poll(async () => (await readState()).visitedConversationNodeIds.includes(child.nodeId)).toBe(true);
+      await page.locator('[data-vn-close]').click();
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 async function login(api: APIRequestContext, email: string): Promise<Auth> {

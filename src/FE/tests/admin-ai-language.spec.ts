@@ -124,6 +124,49 @@ test('Vietnamese admin AI creator localizes presets and causal workflow guidance
 
   await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
   await expect(page.locator('#ai-preset-help')).toContainText('Vụ án gọn');
+  await expect(page.locator('#ai-preset-help')).toContainText('1 hội thoại phân nhánh');
+  await expect(page.locator('#ai-preset-help')).toContainText('1 chuỗi phối hợp hai vai');
+});
+
+for (const language of ['en', 'vi']) test(`Short Demo exposes the full sampler and preserves optional Crack creation (${language})`, async ({ page }) => {
+  await page.addInitScript((language) => localStorage.setItem('sirlocked.uiLanguage', language), language);
+  await page.route('**/api/admin/ai-cases/capabilities', route => route.fulfill({ json: { success: true, data: {
+    aiCaseV3PresetEnabled: true, gameplayV3Enabled: true, canCreateDraft: true, canCreateV3Draft: true,
+    creationBlockers: [], v3CreationBlockers: [],
+  } } }));
+  await page.route('**/api/admin/ai-cases', route => route.fulfill({ json: { success: true, data:
+    route.request().method() === 'GET' ? [] : {
+      draftId: 'short-sampler', provider: 'OpenAI', status: 'STORY_AWAITING_APPROVAL', queueState: 'NONE',
+      settings: { ...route.request().postDataJSON(), shortDemoProfileVersion: 1 },
+      storyPreview: { title: 'Short sampler preview', summary: 'Mocked creation; no provider call.' },
+    },
+  } }));
+  await page.goto('/#/admin/ai');
+  await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
+  await page.locator('#ai-language-select').selectOption(language);
+  await expect(page.locator('#ai-include-crack')).not.toBeChecked();
+  const help = page.locator('#ai-preset-help');
+  const required = language === 'vi'
+    ? ['2 chặng', '2–3 cảnh', '4 nhân vật', '1 công thức ghép vật phẩm', '1 lần dùng vật phẩm', '1 câu đố',
+      '1 hội thoại phân nhánh', '1 đối chất', '1 suy luận', '1 chuỗi phối hợp hai vai']
+    : ['2 stages', '2–3 scenes', '4 characters', '1 combine recipe', '1 item use', '1 puzzle',
+      '1 branching dialogue', '1 confrontation', '1 deduction', '1 teamwork chain'];
+  for (const requirement of required) await expect(help).toContainText(requirement);
+  for (const includeCrackTheLie of [false, true]) {
+    await page.locator('#ai-include-crack').setChecked(includeCrackTheLie);
+    await expect(help).toContainText(language === 'vi'
+      ? includeCrackTheLie ? 'cặp lời khai và chứng cứ' : 'luồng thông thường'
+      : includeCrackTheLie ? 'paired testimony and evidence' : 'standard flow');
+    const requestPromise = page.waitForRequest(request => request.url().endsWith('/api/admin/ai-cases')
+      && request.method() === 'POST');
+    await page.locator('#quick-create-btn').click();
+    const payload = (await requestPromise).postDataJSON();
+    expect(payload).toMatchObject({ generationPreset: 'SHORT_DEMO', stageCount: 2, difficulty: 'easy', language, includeCrackTheLie });
+    expect(payload).not.toHaveProperty('shortDemoProfileVersion');
+    await expect(page.locator('#ai-output')).toContainText('Short sampler preview');
+    await expect(page.locator('#ai-preset-select')).toHaveValue('SHORT_DEMO');
+    for (const requirement of required) await expect(help).toContainText(requirement);
+  }
 });
 
 test('queued premise appears as soon as polling reaches story approval without reloading', async ({ page }) => {

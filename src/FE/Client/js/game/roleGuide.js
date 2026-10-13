@@ -39,8 +39,8 @@ export function roleGuideSteps(role, tr) {
       id: 'investigate',
       title: role === 'INVESTIGATOR' ? tr('Examine the scene', 'Khám nghiệm hiện trường') : tr('Question a witness', 'Hỏi nhân chứng'),
       text: role === 'INVESTIGATOR'
-        ? tr('Click an object to inspect it, or frame a clue with the Camera (Z).', 'Nhấp vào vật thể để kiểm tra, hoặc dùng Máy ảnh (Z) chụp một manh mối.')
-        : tr('Click a witness, then choose a question or conversation reply.', 'Nhấp vào nhân chứng, rồi chọn câu hỏi hoặc câu trả lời hội thoại.'),
+        ? tr('Click the floor to walk. Click an object to approach and inspect it, or frame a clue with the Camera (Z).', 'Nhấp vào sàn để di chuyển. Nhấp vật thể để đến gần và kiểm tra, hoặc dùng Máy ảnh (Z) chụp manh mối.')
+        : tr('Click a witness to approach, then choose a question or conversation reply.', 'Nhấp nhân chứng để đến gần, rồi chọn câu hỏi hoặc câu trả lời hội thoại.'),
     },
     {
       id: 'notebook',

@@ -156,8 +156,12 @@ internal static class AiCaseMockFactory
                 CulpritId = culpritId,
                 TargetId = targetKind == CaseTargetKinds.Character ? "char-target" : "stolen-ledger",
                 TargetKind = targetKind,
-                Motive = "Protect a secret debt recorded in the stolen ledger.",
-                Method = "Use a copied key during the stopped-clock window and conceal the ledger.",
+                Motive = CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese
+                    ? "Che giấu khoản nợ bí mật được ghi trong cuốn sổ bị lấy cắp."
+                    : "Protect a secret debt recorded in the stolen ledger.",
+                Method = CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese
+                    ? "Dùng chìa khóa sao chép khi đồng hồ ngừng chạy để lấy và giấu cuốn sổ."
+                    : "Use a copied key during the stopped-clock window and conceal the ledger.",
                 CrimeActionIds = actionByLocation.Select(item => item.ActionId).ToList(),
                 CulpritMistakeActionIds = actionByLocation.Select(item => item.ActionId).ToList()
             }
@@ -273,8 +277,12 @@ internal static class AiCaseMockFactory
             StatementId = $"statement-{index + 1}", SpeakerId = speakerId,
             TruthStatus = index == 0 ? StatementTruthStatuses.Misleading : StatementTruthStatuses.True,
             Content = index == 0
-                ? "The speaker gives a misleading account of the archive visit."
-                : "The speaker truthfully corroborates one part of the causal sequence.",
+                ? (CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese
+                    ? "Tôi đã nhìn thấy căn phòng từ hành lang nhưng không bước vào bên trong."
+                    : "The speaker gives a misleading account of the archive visit.")
+                : (CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese
+                    ? "Tôi có mặt ở hành lang sau đó và xác nhận một phần diễn biến đã xảy ra."
+                    : "The speaker truthfully corroborates one part of the causal sequence."),
             EventIds = { statementEventBySpeaker[speakerId] }, KnowledgeSourceIds = { crimeActionId },
             ReasonForLie = index == 0 ? "The speaker hides an embarrassing but non-culpable private action." : string.Empty,
             ContradictedByTraceIds = index == 0 ? new List<string> { "trace-1" } : new List<string>(),
@@ -1008,6 +1016,7 @@ internal static class AiCaseMockFactory
         }
         foreach (var character in root["characters"]!.AsArray()) character!.AsObject().Remove("imageUrl");
         foreach (var item in root["items"]!.AsArray()) item!.AsObject().Remove("imageUrl");
+        foreach (var node in root["conversationNodes"]!.AsArray()) node!.AsObject().Remove("sourceDialogueId");
         return root.ToJsonString(PrettyJson);
     }
 

@@ -101,6 +101,7 @@ public class GameplayState
 public class FinalAccusationSnapshot
 {
     public string CaseId { get; set; } = string.Empty;
+    public GameResultCaseSnapshot? CaseDefinitionSnapshot { get; set; }
     public List<string> PlayerIds { get; set; } = new();
     public string SelectedCulpritId { get; set; } = string.Empty;
     public List<string> SelectedEvidenceIds { get; set; } = new();

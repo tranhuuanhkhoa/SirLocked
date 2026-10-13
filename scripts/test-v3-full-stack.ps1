@@ -5,11 +5,18 @@ param(
     [ValidateRange(1024, 65535)]
     [int]$FrontendPort = 5186,
     [string]$MongoConnectionString = 'mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000',
-    [string]$CaseJsonPath = ''
+    [string]$CaseJsonPath = '',
+    [switch]$UseAuthoredLayout,
+    [switch]$PointClick
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+if ($PointClick) {
+    $UseAuthoredLayout = $true
+    if (!$CaseJsonPath) { $CaseJsonPath = Join-Path $repoRoot 'src/BE/SeedData/V3/case-point-click-night-ledger-en.json' }
+}
+if ($UseAuthoredLayout -and !$CaseJsonPath) { throw '-UseAuthoredLayout requires -CaseJsonPath.' }
 $apiProject = Join-Path $repoRoot 'src/BE/SirLocked.Api.csproj'
 $apiContentRoot = Join-Path $repoRoot 'src/BE'
 $frontendRoot = Join-Path $repoRoot 'src/FE'
@@ -31,6 +38,7 @@ $environmentKeys = @(
     'VITE_API_URL', 'SIRLOCKED_RUN_V3_FULL_STACK', 'SIRLOCKED_TEST_PASSWORD',
     'SIRLOCKED_TEST_API_URL', 'SIRLOCKED_PLAYWRIGHT_BASE_URL'
     'SIRLOCKED_TEST_CASE_PATH', 'SIRLOCKED_TEST_SEEDER_DLL', 'SIRLOCKED_TEST_MONGO', 'SIRLOCKED_TEST_DATABASE'
+    'SIRLOCKED_RUN_POINT_CLICK_FULL_STACK'
 )
 $previousEnvironment = @{}
 foreach ($key in $environmentKeys) { $previousEnvironment[$key] = [Environment]::GetEnvironmentVariable($key, 'Process') }
@@ -60,7 +68,8 @@ try {
     dotnet build $seederProject --no-restore --output $seederOutput
     if ($LASTEXITCODE -ne 0) { throw "Test seeder build failed with exit code $LASTEXITCODE." }
     if ($CaseJsonPath) { $CaseJsonPath = (Resolve-Path -LiteralPath $CaseJsonPath).Path }
-    dotnet $seederDll seed $MongoConnectionString $databaseName $testPassword $repoRoot $CaseJsonPath $playableCasePath
+    $layoutMode = if ($UseAuthoredLayout) { 'authored' } else { 'generated' }
+    dotnet $seederDll seed $MongoConnectionString $databaseName $testPassword $repoRoot $CaseJsonPath $playableCasePath $layoutMode
     if ($LASTEXITCODE -ne 0) { throw "Temporary database seed failed with exit code $LASTEXITCODE." }
 
     dotnet build $apiProject --configuration Debug --no-restore --output $apiOutput
@@ -76,6 +85,7 @@ try {
     $env:Cloudinary__Enabled = 'false'
     $env:VITE_API_URL = $apiUrl
     $env:SIRLOCKED_RUN_V3_FULL_STACK = 'true'
+    $env:SIRLOCKED_RUN_POINT_CLICK_FULL_STACK = if ($PointClick) { 'true' } else { 'false' }
     $env:SIRLOCKED_TEST_PASSWORD = $testPassword
     $env:SIRLOCKED_TEST_API_URL = $apiUrl
     $env:SIRLOCKED_PLAYWRIGHT_BASE_URL = $frontendUrl
@@ -124,7 +134,8 @@ try {
     Push-Location $frontendRoot
     try {
         $npmExecutable = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { 'npm.cmd' } else { 'npm' }
-        & $npmExecutable run test:ui -- tests/v3-full-stack.spec.ts
+        $testFile = if ($PointClick) { 'tests/point-click-full-stack.spec.ts' } else { 'tests/v3-full-stack.spec.ts' }
+        & $npmExecutable run test:ui -- $testFile
         if ($LASTEXITCODE -ne 0) { throw "V3 full-stack test failed with exit code $LASTEXITCODE." }
     }
     finally { Pop-Location }

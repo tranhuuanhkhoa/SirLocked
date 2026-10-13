@@ -10,10 +10,13 @@ import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js'
 import { toast } from '../utils/toast.js';
 import { tr, uiLanguage } from '../services/i18n.js';
 import { DialoguePresenter } from '../game/dialoguePresenter.js';
+import { createModalFocusManager } from '../game/modalFocus.js';
 import { CutsceneController } from '../game/cutsceneController.js';
 import { idleFrameAt, usableSpriteSheet } from '../game/npcAnimator.js';
+import { advancePath, findApproachPath, findPath, insideBounds, isNavigable, nearestNavigablePoint,
+  segmentIsClear, type NavigationPoint, type NavigationWorld } from '../game/navigation.js';
 import type { CharacterPresentation, CasePresentation } from '../game/presentationMedia.js';
-import { createAudioController, renderAudioControls, bindAudioControls } from '../game/audioController.js';
+import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio } from '../game/audioController.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import {
   PLAYER_FRAME,
@@ -153,12 +156,14 @@ type SceneRuntime = {
   height?: number;
   floorY?: number;
   walkableArea?: RuntimeBox;
+  navigationObstacles?: RuntimeBox[];
   spawnPoints?: Record<string, RuntimePoint>;
   itemPlacements?: RuntimeItemPlacement[];
   characterPlacements?: RuntimeCharacterPlacement[];
   transitions?: RuntimeTransition[];
   clueZones?: RuntimeClueZone[];
   cameraRules?: CameraRules;
+  audio?: SceneAudio;
 };
 
 type SceneItem = {
@@ -167,6 +172,7 @@ type SceneItem = {
   description: string;
   inspectText?: string;
   imageUrl: string;
+  isCollectible?: boolean;
 };
 
 type SceneCharacter = {
@@ -414,6 +420,7 @@ type PhaserCallbacks = {
   onCharacter: (characterId: string) => void;
   onCapture: (captureRect: RuntimeBox, photo: Blob) => void;
   onCameraError: (message: string) => void;
+  onNavigationError: (message: string) => void;
   onContextAction: (action: ContextAction | null) => void;
   onProceed: () => void;
   onScene: (sceneId: string) => void;
@@ -463,6 +470,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private cameraCapturePending = false;
   private mobileMoveX = 0;
   private lastContextActionKey = '';
+  private navigation: { sceneId: string; path: NavigationPoint[]; destination: NavigationPoint;
+    action?: () => void; valid?: () => boolean; inventoryItemId: string | null } | null = null;
+  private destinationMarker: Phaser.GameObjects.Graphics | null = null;
+  private rejectedDestination: NavigationPoint | null = null;
+  private rejectedDestinationUntil = 0;
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -487,8 +499,18 @@ class SirLockedPhaserScene extends Phaser.Scene {
       if (file?.key) this.failedTextureKeys.add(file.key);
     });
     this.scale.on('resize', () => this.draw());
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, objects: Phaser.GameObjects.GameObject[]) => {
+      if (!this.sceneInteractionEnabled || this.cameraMode || objects.length || !pointer.leftButtonDown()) return;
+      this.navigateTo(this.screenToWorld(pointer.x, pointer.y));
+    });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.cameraMode || !this.ready) return;
+      if (!this.ready) return;
+      if (!this.cameraMode) {
+        if (!this.input.manager?.canvas || this.input.manager.canvas.style.cursor === 'pointer') return;
+        this.input.setDefaultCursor(this.sceneInteractionEnabled && isNavigable(this.screenToWorld(pointer.x, pointer.y), this.navigationWorld())
+          ? 'crosshair' : 'default');
+        return;
+      }
       const pointerKey = `${Math.round(pointer.x / 3)},${Math.round(pointer.y / 3)}`;
       if (pointerKey === this.lastCameraPointerKey) return;
       this.lastCameraPointerKey = pointerKey;
@@ -529,6 +551,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
     this.interpolateRemotePlayers(delta);
     this.updateDebugPointerText();
+    if (this.rejectedDestination && time >= this.rejectedDestinationUntil) {
+      this.rejectedDestination = null;
+      this.drawDestinationMarker();
+    }
     if (this.keys.F2 && Phaser.Input.Keyboard.JustDown(this.keys.F2)) {
       this.debugLayout = !this.debugLayout;
       this.draw();
@@ -545,22 +571,44 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
 
     const axis = this.inputAxis();
-    const moving = axis.x !== 0 || axis.y !== 0;
-    const speed = 225;
-    const seconds = delta / 1000;
+    const keyboardMoving = axis.x !== 0 || axis.y !== 0;
+    const speed = 225 * this.runtimeWidth() / 1600;
+    const seconds = Math.min(delta, 100) / 1000;
     const bounds = this.walkBounds();
+    let moving = keyboardMoving;
+    let completedAction: (() => void) | undefined;
 
-    if (moving) {
+    if (keyboardMoving) {
+      this.cancelNavigation();
       const magnitude = Math.hypot(axis.x, axis.y) || 1;
       const dx = (axis.x / magnitude) * speed * seconds;
       const dy = (axis.y / magnitude) * speed * seconds;
       const startedInsideObstacle = this.collidesAt(this.localPose.x, this.localPose.y);
       const nextX = Phaser.Math.Clamp(this.localPose.x + dx, bounds.left, bounds.right);
-      if (startedInsideObstacle || !this.collidesAt(nextX, this.localPose.y)) this.localPose.x = nextX;
+      if (startedInsideObstacle || segmentIsClear(this.localPose, { x: nextX, y: this.localPose.y }, this.navigationWorld())) this.localPose.x = nextX;
       const nextY = Phaser.Math.Clamp(this.localPose.y + dy, bounds.top, bounds.bottom);
-      if (startedInsideObstacle || !this.collidesAt(this.localPose.x, nextY)) this.localPose.y = nextY;
+      if (startedInsideObstacle || segmentIsClear(this.localPose, { x: this.localPose.x, y: nextY }, this.navigationWorld())) this.localPose.y = nextY;
       if (axis.x < 0) this.localPose.direction = 'left';
       if (axis.x > 0) this.localPose.direction = 'right';
+    } else if (this.navigation) {
+      const pending = this.navigation;
+      if (pending.sceneId !== this.state.currentSceneId || pending.inventoryItemId !== this.selectedInventoryItemId
+        || (pending.valid && !pending.valid())) this.cancelNavigation();
+      else {
+        const step = advancePath(this.localPose, pending.path, speed * seconds);
+        if (step.position.x < this.localPose.x) this.localPose.direction = 'left';
+        if (step.position.x > this.localPose.x) this.localPose.direction = 'right';
+        moving = Math.hypot(step.position.x - this.localPose.x, step.position.y - this.localPose.y) > 0.001;
+        this.localPose.x = step.position.x;
+        this.localPose.y = step.position.y;
+        pending.path = step.remaining;
+        if (step.arrived) {
+          completedAction = pending.action;
+          this.navigation = null; // Consume before calling UI/server code; it can immediately open a panel.
+          moving = false;
+          this.drawDestinationMarker();
+        }
+      }
     }
 
     this.localPose.moving = moving;
@@ -572,11 +620,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.maybeSendPose(time);
 
     if (this.nearestHotspot && this.keys.E && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+      this.cancelNavigation();
       this.triggerHotspot(this.nearestHotspot);
+      return;
     }
+    completedAction?.();
   }
 
   updateGameState(state: GameState, selectedInventoryItemId: string | null) {
+    if (this.state && (this.state.currentSceneId !== state.currentSceneId
+      || JSON.stringify([this.state.visibleScene.runtime?.walkableArea, this.state.visibleScene.runtime?.navigationObstacles,
+        this.state.visibleScene.runtime?.itemPlacements]) !== JSON.stringify([state.visibleScene.runtime?.walkableArea,
+        state.visibleScene.runtime?.navigationObstacles, state.visibleScene.runtime?.itemPlacements])
+      || this.selectedInventoryItemId !== selectedInventoryItemId)) this.cancelNavigation();
     const renderKey = JSON.stringify([state.currentSceneId, state.visibleScene, state.inspectedItemIds,
       state.collectedItemIds, state.sceneMap, state.completedSceneIds, state.currentSceneCanComplete,
       state.players.map((player) => [player.userId, player.username, player.role]),
@@ -591,6 +647,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   setSceneInteractionEnabled(enabled: boolean) {
+    if (!enabled) this.cancelNavigation();
     const wasEnabled = this.sceneInteractionEnabled;
     if (wasEnabled === enabled) return;
     this.sceneInteractionEnabled = enabled;
@@ -618,6 +675,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (this.cameraMode === enabled) return;
     this.cameraMode = enabled;
     if (enabled) {
+      this.cancelNavigation();
       this.sceneInteractionEnabled = false;
       if (this.input) {
         this.input.enabled = true;
@@ -636,6 +694,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   triggerPrimaryInteraction() {
     if (!this.sceneInteractionEnabled || this.cameraMode || !this.nearestHotspot) return;
+    this.cancelNavigation();
     this.triggerHotspot(this.nearestHotspot);
   }
 
@@ -683,6 +742,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.cameraGraphics = null;
     this.cameraLabel = null;
     this.cameraCaptureZone = null;
+    this.destinationMarker = null;
     this.nearestHotspot = null;
 
     const width = this.scale.width;
@@ -699,6 +759,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.drawControlHint(width, height);
     this.drawCameraOverlay(width, height);
     this.drawDebugOverlay(scene, width, height);
+    this.drawDestinationMarker();
     this.flushTextures();
   }
 
@@ -850,6 +911,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     for (const hotspot of scene.hotspots) {
       const type = hotspot.type.toUpperCase();
       if (type === 'CHARACTER') continue;
+      if (this.isCollectedSceneItem(hotspot)) continue;
 
       const { x, y, w, h } = this.hotspotRect(hotspot);
       const inspected = type === 'ITEM' && this.state?.inspectedItemIds.includes(hotspot.targetId);
@@ -858,11 +920,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
       // Overlay item layer: composite the item sprite into its reserved slot.
       // Collected items leave the scene (they live in the inventory bar).
       const sceneItem = this.state?.visibleScene.items.find((i) => i.itemId === hotspot.targetId);
+      // Inventory loses consumed recipe inputs, while inspection history persists.
+      const removedFromScene = collected || (sceneItem?.isCollectible === true && inspected);
       const itemUrl = playableAssetUrl(sceneItem?.imageUrl);
       const itemKey = itemUrl ? `item:${hotspot.targetId}:${itemUrl}` : '';
       const placement = this.itemPlacement(hotspot.targetId);
       let itemImage: Phaser.GameObjects.Image | null = null;
-      if (itemKey && !collected) {
+      if (itemKey && !removedFromScene) {
         if (this.textures.exists(itemKey)) {
           const anchor = this.originForAnchor(placement?.anchor ?? placement?.position?.anchor ?? 'center');
           const point = placement ? this.worldPoint(placement.position) : { x: x + w / 2, y: y + h / 2 };
@@ -952,7 +1016,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     placement?: RuntimeCharacterPlacement,
     placementSize?: RuntimeSize,
   ) {
-    const group = this.add.container(x, y).setDepth(placement?.depth ?? Math.round(y));
+    const group = this.add.container(x, y).setDepth(placement?.depth ?? this.actorDepth(y));
     // Keep NPCs roughly in scale with the player chibis (height * 0.26 -> ~230px)
     // so they read as people standing in the room, not looming over it.
     const npcH = placementSize?.height ?? Phaser.Math.Clamp(height * 0.27, 140, 235);
@@ -1023,7 +1087,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       color: askable ? '#f4dc8f' : '#f7efd7',
       backgroundColor: 'rgba(10,22,40,0.88)',
       padding: { x: 8, y: 4 },
-    }).setOrigin(0.5, 0);
+    }).setOrigin(0.5, 0).setVisible(false);
 
     let newBadge: Phaser.GameObjects.Container | null = null;
     if (newlyUnlocked > 0) {
@@ -1046,11 +1110,21 @@ class SirLockedPhaserScene extends Phaser.Scene {
       });
     }
 
-    const open = () => this.callbacks.onCharacter(character.characterId);
+    const open = () => {
+      const topLeft = this.screenToWorld(x - npcW / 2, y - npcH);
+      const bottomRight = this.screenToWorld(x + npcW / 2, y);
+      const target = this.characterPlacement(character.characterId)?.hotspot ?? {
+        ...topLeft, width: bottomRight.x - topLeft.x, height: bottomRight.y - topLeft.y };
+      this.approachTarget(target, () => {
+        if (this.selectedInventoryItemId) this.callbacks.onHotspot({ type: 'CHARACTER', target: character.characterId,
+          label: character.name, locked: 'false' });
+        else this.callbacks.onCharacter(character.characterId);
+      }, () => Boolean(this.state?.visibleScene.characters.some(candidate => candidate.characterId === character.characterId)));
+    };
     const interactionZone = this.add.zone(0, -npcH / 2, npcW, npcH).setInteractive({ useHandCursor: true });
     interactionZone.on('pointerdown', open);
-    interactionZone.on('pointerover', () => { if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
-    interactionZone.on('pointerout', () => { if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
+    interactionZone.on('pointerover', () => { name.setVisible(true); if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
+    interactionZone.on('pointerout', () => { name.setVisible(false); if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
 
     group.add(newBadge ? [shadow, body, initialText, name, newBadge, interactionZone] : [shadow, body, initialText, name, interactionZone]);
   }
@@ -1088,7 +1162,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   // pose.x/pose.y is the character's feet position in scene runtime coordinates.
   private createPlayer(pose: PlayerPose, isLocal: boolean) {
     const container = this.add.container(pose.x, pose.y).setDepth(isLocal ? 80 : 70);
-    const spriteH = Phaser.Math.Clamp(this.scale.height * 0.26, 120, 230);
+    const spriteH = this.worldSize({ width: 160, height: 240 }).height;
     const shadow = this.add.ellipse(0, -2, spriteH * 0.42, spriteH * 0.09, 0x000000, 0.35);
 
     const sheet = pose.role ? PLAYER_SHEETS[pose.role] : undefined;
@@ -1121,10 +1195,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
     return container;
   }
 
+  private actorDepth(screenY: number) {
+    // Keep feet sorting below scene HUD (120) and the camera overlay (240).
+    return 30 + Phaser.Math.Clamp(screenY / this.scale.height, 0, 1) * 60;
+  }
+
   private placePlayer(container: Phaser.GameObjects.Container, pose: PlayerPose) {
     const screen = this.worldPoint(pose);
     container.setPosition(screen.x, screen.y);
-    container.setDepth(Math.round(screen.y) + (pose.userId === this.callbacks.localUserId ? 100 : 80));
+    container.setDepth(this.actorDepth(screen.y));
     container.setData('moving', pose.moving);
     const body = container.getData('body');
     const sheetKey = container.getData('sheetKey') as string;
@@ -1155,7 +1234,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   private drawControlHint(width: number, height: number) {
     if (width > 720) {
-      this.add.text(18, height - 104, 'Move: A / D    Interact: E or click', {
+      this.add.text(18, height - 104, this.callbacks.tr('Click to walk / interact · WASD / arrows · E interact · Esc cancel',
+        'Bấm để đi / tương tác · WASD / mũi tên · E tương tác · Esc hủy'), {
         fontFamily: 'Crimson Text, serif',
         fontSize: '15px',
         color: '#d9d4c4',
@@ -1191,13 +1271,14 @@ class SirLockedPhaserScene extends Phaser.Scene {
         if (!canRevisit && !canUseUnlockedPath) return;
 
         const box = this.worldRect(transition.hotspot);
-        const label = transition.label || targetEntry?.title || 'Move';
+        const label = transition.label || targetEntry?.title || this.callbacks.tr('Move', 'Di chuyển');
         const isAuthoredSuccessor = Boolean(canProceed && next?.sceneId === transition.targetSceneId);
         this.drawButton(
           box.x + box.w / 2,
           box.y + box.h / 2,
           this.shorten(label, 18),
-          () => this.callbacks.onScene(transition.targetSceneId),
+          () => this.approachTarget(transition.hotspot, () => this.callbacks.onScene(transition.targetSceneId),
+            () => Boolean(this.state?.sceneMap.some(entry => entry.sceneId === transition.targetSceneId && entry.isUnlocked))),
           Math.max(148, Math.min(box.w, 240)),
           isAuthoredSuccessor,
         );
@@ -1207,9 +1288,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
       // player is never stuck when a transition hotspot is hidden behind the HUD.
       if (canProceed) {
         const forwardLabel = completedCurrent && next?.isUnlocked
-          ? `Go to ${this.shorten(next.title, 22)}`
-          : 'Continue investigation';
-        this.drawButton(width / 2, height - 112, forwardLabel, () => this.callbacks.onProceed(), 230, true);
+          ? this.callbacks.tr(`Go to ${this.shorten(next.title, 22)}`, `Đến ${this.shorten(next.title, 22)}`)
+          : this.callbacks.tr('Continue investigation', 'Tiếp tục điều tra');
+        this.drawButton(width / 2, height - 112, forwardLabel,
+          () => this.approachScreenExit(width / 2, height - 112, () => this.callbacks.onProceed()), 230, true);
       }
 
       return;
@@ -1218,16 +1300,18 @@ class SirLockedPhaserScene extends Phaser.Scene {
     visited.slice(-2).forEach((entry, index) => {
       const x = index === 0 ? 92 : width - 92;
       const y = height * 0.52;
-      this.drawButton(x, y, this.shorten(entry.title, 18), () => this.callbacks.onScene(entry.sceneId), 148);
+      this.drawButton(x, y, this.shorten(entry.title, 18),
+        () => this.approachScreenExit(x, y, () => this.callbacks.onScene(entry.sceneId)), 148);
     });
 
     const forwardLabel = !canProceed
-      ? 'Keep searching'
+      ? this.callbacks.tr('Keep searching', 'Tiếp tục tìm kiếm')
       : completedCurrent && next?.isUnlocked
-        ? `Go to ${this.shorten(next.title, 22)}`
-        : 'Continue investigation';
+        ? this.callbacks.tr(`Go to ${this.shorten(next.title, 22)}`, `Đến ${this.shorten(next.title, 22)}`)
+        : this.callbacks.tr('Continue investigation', 'Tiếp tục điều tra');
     if (canProceed) {
-      this.drawButton(width / 2, height - 112, forwardLabel, () => this.callbacks.onProceed(), 230, true);
+      this.drawButton(width / 2, height - 112, forwardLabel,
+        () => this.approachScreenExit(width / 2, height - 112, () => this.callbacks.onProceed()), 230, true);
     }
   }
 
@@ -1254,7 +1338,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.inventorySelectionLabel = null;
       return;
     }
-    const text = `Using: ${this.prettyId(this.selectedInventoryItemId)}`;
+    const text = this.callbacks.tr(`Using: ${this.prettyId(this.selectedInventoryItemId)}`, `Đang dùng: ${this.prettyId(this.selectedInventoryItemId)}`);
     if (this.inventorySelectionLabel) {
       this.inventorySelectionLabel.setText(text).setPosition(width / 2, height - 158);
       return;
@@ -1532,9 +1616,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private inputAxis() {
     const left = this.keys.A?.isDown || this.keys.LEFT?.isDown;
     const right = this.keys.D?.isDown || this.keys.RIGHT?.isDown;
+    const up = this.keys.W?.isDown || this.keys.UP?.isDown;
+    const down = this.keys.S?.isDown || this.keys.DOWN?.isDown;
     return {
       x: this.mobileMoveX || Number(Boolean(right)) - Number(Boolean(left)),
-      y: 0,
+      y: Number(Boolean(down)) - Number(Boolean(up)),
     };
   }
 
@@ -1558,13 +1644,87 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private collidesAt(x: number, y: number) {
-    const padding = 14;
-    const obstacles = [
-      ...(this.sceneRuntime()?.itemPlacements ?? []).map((placement) => placement.reservedSlot),
-    ].filter((box): box is RuntimeBox => Boolean(box));
-    return obstacles.some((box) =>
-      x >= box.x - padding && x <= box.x + box.width + padding
-      && y >= box.y - padding && y <= box.y + box.height + padding);
+    return !isNavigable({ x, y }, this.navigationWorld());
+  }
+
+  private navigationWorld(): NavigationWorld {
+    const bounds = this.walkBounds();
+    const authored = this.sceneRuntime()?.navigationObstacles;
+    const obstacles = authored ?? (this.sceneRuntime()?.itemPlacements ?? [])
+      .filter(placement => !this.state?.collectedItemIds.includes(placement.itemId))
+      .map(placement => placement.reservedSlot).filter((box): box is RuntimeBox => Boolean(box));
+    return { bounds: { x: bounds.left, y: bounds.top, width: bounds.right - bounds.left, height: bounds.bottom - bounds.top },
+      obstacles, padding: 14 * this.runtimeWidth() / 1600 };
+  }
+
+  cancelNavigation() {
+    if (!this.navigation && !this.rejectedDestination) return;
+    this.navigation = null;
+    this.rejectedDestination = null;
+    this.destinationMarker?.destroy();
+    this.destinationMarker = null;
+    if (this.localPose?.moving) {
+      this.localPose.moving = false;
+      this.localPlayer?.setData('moving', false);
+      this.callbacks.playerPoses.set(this.localPose.userId, { ...this.localPose });
+      this.lastSentPoseKey = '';
+      this.callbacks.onPose({ ...this.localPose });
+    }
+  }
+
+  private rejectNavigation(point: NavigationPoint) {
+    this.rejectedDestination = point;
+    this.rejectedDestinationUntil = this.time.now + 1800;
+    this.drawDestinationMarker();
+    this.callbacks.onNavigationError(this.callbacks.tr('There is no reachable path to that point.', 'Không có đường đi tới điểm này.'));
+  }
+
+  private navigateTo(destination: NavigationPoint) {
+    if (!this.state || !this.localPose || !this.sceneInteractionEnabled || this.cameraMode) return;
+    this.cancelNavigation();
+    const path = findPath(this.localPose, destination, this.navigationWorld());
+    if (!path) { this.rejectNavigation(destination); return; }
+    this.queueNavigation(path);
+  }
+
+  private approachTarget(target: RuntimeBox, action: () => void, valid?: () => boolean) {
+    if (!this.state || !this.localPose || !this.sceneInteractionEnabled || this.cameraMode) return;
+    this.cancelNavigation();
+    const path = findApproachPath(this.localPose, target, this.navigationWorld(), 100 * this.runtimeWidth() / 1600);
+    if (!path) { this.rejectNavigation({ x: target.x + target.width / 2, y: target.y + target.height }); return; }
+    if (path.length === 0) { if (!valid || valid()) action(); return; }
+    this.queueNavigation(path, action, valid);
+  }
+
+  private approachScreenExit(x: number, y: number, action: () => void) {
+    const point = this.screenToWorld(x, y);
+    this.approachTarget({ ...point, width: 0, height: 0 }, action);
+  }
+
+  private queueNavigation(path: NavigationPoint[], action?: () => void, valid?: () => boolean) {
+    if (!this.state || !this.localPose || !path.length) return;
+    this.navigation = { sceneId: this.state.currentSceneId, path, destination: { ...path[path.length - 1] },
+      action, valid, inventoryItemId: this.selectedInventoryItemId };
+    this.drawDestinationMarker();
+  }
+
+  private drawDestinationMarker() {
+    this.destinationMarker?.destroy();
+    this.destinationMarker = null;
+    const destination = this.rejectedDestination ?? this.navigation?.destination;
+    if (!this.ready || !destination) return;
+    const point = this.worldPoint(destination);
+    const marker = this.add.graphics().setDepth(29);
+    marker.lineStyle(2, this.rejectedDestination ? 0xff7979 : this.navigation?.action ? 0xf4dc8f : 0x80e5cd, 0.95);
+    marker.strokeEllipse(point.x, point.y, 26, 12);
+    if (this.rejectedDestination) {
+      marker.lineBetween(point.x - 7, point.y - 7, point.x + 7, point.y + 7);
+      marker.lineBetween(point.x - 7, point.y + 7, point.x + 7, point.y - 7);
+    } else {
+      marker.lineBetween(point.x, point.y - 11, point.x, point.y + 11);
+      marker.lineBetween(point.x - 13, point.y, point.x + 13, point.y);
+    }
+    this.destinationMarker = marker;
   }
 
   private spawnPose(player: RoomPlayer | undefined, slot: number): PlayerPose {
@@ -1579,16 +1739,23 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const y = spawn
       ? Phaser.Math.Clamp(spawn.y + slot * 18, bounds.top, bounds.bottom)
       : Phaser.Math.Clamp(bounds.top + (bounds.bottom - bounds.top) * 0.7 - slot * 18, bounds.top, bounds.bottom);
+    const safe = nearestNavigablePoint({ x, y }, this.navigationWorld()) ?? { x, y };
     return {
       userId: player?.userId ?? this.callbacks.localUserId,
       username: player?.username,
       role: player?.role,
       sceneId: this.state?.currentSceneId ?? '',
-      x,
-      y,
+      x: safe.x,
+      y: safe.y,
       direction: spawn?.direction ?? 'right',
       moving: false,
     };
+  }
+
+  private isCollectedSceneItem(hotspot: Hotspot) {
+    return hotspot.type.toUpperCase() === 'ITEM'
+      && this.state?.visibleScene.items.some(item => item.itemId === hotspot.targetId && item.isCollectible === true)
+      && (this.state.inspectedItemIds.includes(hotspot.targetId) || this.state.collectedItemIds.includes(hotspot.targetId));
   }
 
   private findNearestHotspot(pose: PlayerPose) {
@@ -1596,6 +1763,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     let nearest: Hotspot | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
     for (const hotspot of this.state.visibleScene.hotspots) {
+      if (this.isCollectedSceneItem(hotspot)) continue;
       const center = this.hotspotWorldCenter(hotspot);
       const distance = Phaser.Math.Distance.Between(pose.x, pose.y, center.x, center.y);
       const radius = hotspot.type.toUpperCase() === 'CHARACTER' ? 150 : 115;
@@ -1652,15 +1820,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private hotspotWorldCenter(hotspot: Hotspot) {
     const runtimeBox = this.runtimeHotspotBox(hotspot);
     if (runtimeBox) {
-      return {
+      return nearestNavigablePoint({
         x: runtimeBox.x + runtimeBox.width / 2,
-        y: runtimeBox.y + runtimeBox.height / 2,
-      };
+        y: hotspot.type.toUpperCase() === 'CHARACTER' ? runtimeBox.y + runtimeBox.height : runtimeBox.y + runtimeBox.height / 2,
+      }, this.navigationWorld()) ?? { x: runtimeBox.x, y: runtimeBox.y };
     }
-    return {
+    return nearestNavigablePoint({
       x: ((hotspot.x + hotspot.width / 2) / 100) * this.runtimeWidth(),
       y: ((hotspot.y + hotspot.height / 2) / 100) * this.runtimeHeight(),
-    };
+    }, this.navigationWorld()) ?? { x: 0, y: 0 };
   }
 
   private updateInteractionPrompt() {
@@ -1715,12 +1883,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private triggerHotspot(hotspot: Hotspot) {
-    this.callbacks.onHotspot({
-      type: hotspot.type.toUpperCase(),
-      target: hotspot.targetId,
-      locked: String(hotspot.isLocked),
-      label: hotspot.label,
-    });
+    if (this.isCollectedSceneItem(hotspot)) return;
+    const box = this.runtimeHotspotBox(hotspot) ?? {
+      x: hotspot.x / 100 * this.runtimeWidth(), y: hotspot.y / 100 * this.runtimeHeight(),
+      width: hotspot.width / 100 * this.runtimeWidth(), height: hotspot.height / 100 * this.runtimeHeight() };
+    this.approachTarget(box, () => {
+      if (this.isCollectedSceneItem(hotspot)) return;
+      const current = this.state?.visibleScene.hotspots.find(candidate => candidate.hotspotId === hotspot.hotspotId) ?? hotspot;
+      this.callbacks.onHotspot({
+        type: current.type.toUpperCase(), target: current.targetId, locked: String(current.isLocked), label: current.label,
+      });
+    }, () => hotspot.hotspotId.startsWith('virtual-character-')
+      ? Boolean(this.state?.visibleScene.characters.some(character => character.characterId === hotspot.targetId))
+      : Boolean(this.state?.visibleScene.hotspots.some(candidate => candidate.hotspotId === hotspot.hotspotId)));
   }
 
   private maybeSendPose(time: number) {
@@ -1808,6 +1983,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   const me = session.user();
   const introKey = `sirlocked.intro.${roomId}`;
   const audio = createAudioController();
+  const modalFocus = createModalFocusManager(app);
   const unlockAudio = () => audio.unlock();
   window.addEventListener('pointerdown', unlockAudio, { once: true });
   window.addEventListener('keydown', unlockAudio, { once: true });
@@ -1835,6 +2011,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   let appliedSceneId = '';
   let appliedInventoryItemId: string | null = null;
   const evidencePhotoObjectUrls = new Map<string, string>();
+  const evidencePhotoRequests = new Map<string, AbortController>();
   let combineMode = false;
   const combineSelection = new Set<string>();
   const puzzleDrafts = new Map<string, string[]>();
@@ -1921,7 +2098,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   const handleKeydown = (e: KeyboardEvent) => {
     if (stopped || !state) return;
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (modalFocus.handleKey(e)) return;
+    if (e.key !== 'Escape' && (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) return;
+    phaserScene?.cancelNavigation();
     if (cutscenes.handleKey(e)) return;
     if (uiMode.kind === 'DIALOGUE' && dialoguePresenter.handleKey(e)) return;
 
@@ -1963,6 +2142,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       if (status === 'retrying' || status === 'failed') syncRecoveryActive = true;
       if (status === 'idle') syncRecoveryActive = false;
       renderRecoveryStatus();
+      syncPhaserInputState();
     },
   });
   const queueStateRefetch = (version = 0) => stateRefetcher.queue(version);
@@ -2209,6 +2389,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function destroyPhaser() {
     if (phaserGame) {
+      phaserScene?.cancelNavigation();
       phaserGame.destroy(true);
       phaserGame = null;
       phaserScene = null;
@@ -2294,13 +2475,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       for (const sceneId of fresh.completedSceneIds) {
         if (previouslyCompleted.has(sceneId)) continue;
         const entry = fresh.sceneMap?.find((s) => s.sceneId === sceneId);
-        toast(`${entry?.title ?? 'A location'} is fully investigated.`, 'success', 4500);
+        const title = entry?.title ?? tr('A location', 'Một địa điểm');
+        toast(tr(`${title} is fully investigated.`, `Đã hoàn tất điều tra tại ${title}.`), 'success', 4500);
       }
     }
     rememberAskableDialogues(fresh);
     rememberAccusationRevision(fresh);
     state = fresh;
-    audio.setScene(fresh.currentSceneId);
+    audio.setScene(fresh.currentSceneId, fresh.visibleScene.runtime?.audio);
     if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
     if (fresh.availableForAccusation && !finalReadyAnnounced) {
       finalReadyAnnounced = true;
@@ -2487,13 +2669,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }, {
     onReconnected: () => {
       if (stopped) return;
+      phaserScene?.cancelNavigation();
+      syncRecoveryActive = true;
       poseErrorShown = false;
       toast('Reconnected. Syncing the room...', 'info');
       stateRefetcher.retry();
     },
     onStatusChange: (status: string) => {
+      if (status !== 'connected') phaserScene?.cancelNavigation();
       connectionStatus = status;
       renderRecoveryStatus();
+      syncPhaserInputState();
     },
   });
 
@@ -2578,6 +2764,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (uiMode.kind !== 'DIALOGUE') resetConversation();
     const model = uiModel();
     const scene = state.visibleScene;
+    audio.setScene(state.currentSceneId, scene.runtime?.audio);
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
       hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, tr);
@@ -2639,6 +2826,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       },
     });
     hydrateEvidenceImages();
+    modalFocus.sync();
   }
 
   function mountPhaser() {
@@ -2667,6 +2855,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       },
       onCapture: (captureRect, photo) => captureClue(captureRect, photo),
       onCameraError: (message) => toast(message, 'error'),
+      onNavigationError: (message) => { audio.play('error'); toast(message, 'info'); },
       onContextAction: (action) => {
         const previousKey = contextAction ? `${contextAction.targetType}:${contextAction.targetId}:${contextAction.enabled}:${contextAction.reason ?? ''}` : '';
         const nextKey = action ? `${action.targetType}:${action.targetId}:${action.enabled}:${action.reason ?? ''}` : '';
@@ -2823,7 +3012,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     }
 
     return `
-      <div class="inventory-drawer panel panel--dossier">
+      <div class="inventory-drawer panel panel--dossier" aria-label="${tr('Inventory', 'Túi đồ')}">
         <div class="inventory-drawer-header">
           <span>${tr('Bag', 'Túi đồ')}</span>
           <button class="btn btn-ghost btn-sm ${combineMode ? 'is-active' : ''}" id="combine-mode-btn">${combineMode ? tr('Combining', 'Đang kết hợp') : tr('Combine', 'Kết hợp')}</button>
@@ -2853,15 +3042,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const cap = (key: string) => `<kbd class="key-cap">${key}</kbd>`;
     const steps = vi
       ? [
-        `Dùng ${cap('A')}/${cap('D')} để di chuyển trái/phải`,
-        'Nhấp vật thể hoặc nhân vật để tương tác',
-        'Chia sẻ chứng cứ qua Case File và phối hợp với đồng đội',
+        `Dùng ${cap('W')}${cap('A')}${cap('S')}${cap('D')} hoặc phím mũi tên để di chuyển`,
+        'Nhấp sàn để đi; nhấp vật thể hoặc nhân chứng để đến gần và tương tác',
+        'Ghép và dùng đồ trong Túi đồ (B); đối chiếu với đồng đội qua Hồ sơ vụ án',
         'Hoàn thành suy luận trước khi đưa ra cáo buộc cuối',
       ]
       : [
-        `Use ${cap('A')}/${cap('D')} to move left and right`,
-        'Click an object or character to interact',
-        'Share evidence through the Case File and coordinate with your partner',
+        `Use ${cap('W')}${cap('A')}${cap('S')}${cap('D')} or arrow keys to move`,
+        'Click the floor to walk; click objects or witnesses to approach and interact',
+        'Combine and use items in your Bag (B); compare notes with your partner in the Case File',
         'Complete deductions before the final accusation',
       ];
     return `
@@ -2897,6 +3086,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   function hydrateEvidenceImages() {
+    if (stopped) return;
     app.querySelectorAll<HTMLImageElement>('img[data-auth-image]').forEach((image) => {
       const path = image.dataset.authImage;
       if (!path || image.getAttribute('src')) return;
@@ -2905,14 +3095,22 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         image.src = cached;
         return;
       }
-      gameApi.evidencePhoto(path).then((blob: Blob) => {
+      if (evidencePhotoRequests.has(path)) return;
+      const request = new AbortController();
+      evidencePhotoRequests.set(path, request);
+      gameApi.evidencePhoto(path, request.signal).then((blob: Blob) => {
+        if (stopped || request.signal.aborted) return;
         const objectUrl = URL.createObjectURL(blob);
         evidencePhotoObjectUrls.set(path, objectUrl);
         app.querySelectorAll<HTMLImageElement>('img[data-auth-image]')
           .forEach((target) => {
             if (target.dataset.authImage === path) target.src = objectUrl;
           });
-      }).catch(() => image.remove());
+      }).catch(() => {
+        if (stopped || request.signal.aborted) return;
+        app.querySelectorAll<HTMLImageElement>('img[data-auth-image]')
+          .forEach((target) => { if (target.dataset.authImage === path) target.remove(); });
+      }).finally(() => evidencePhotoRequests.delete(path));
     });
   }
 
@@ -3054,7 +3252,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
           ${unlockedClueIds.length
             ? `<p class="clue-flash">${unlockedClueIds.length} clue(s) added to the case file.</p>`
             : '<p class="muted small">No new evidence found.</p>'}
-          <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+          <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
         </div>
       </div>
     </div>`;
@@ -3070,7 +3268,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <p>${escapeHtml(detail || clue?.inventoryDescription || clue?.content || 'A scene clue has been added to the case file.')}</p>
         ${clue?.narrativeMeaning ? `<p class="muted">${escapeHtml(clue.narrativeMeaning)}</p>` : ''}
         <p class="clue-flash">Photo captured and logged.</p>
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
@@ -3098,7 +3296,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
             ? `<p class="clue-flash">Evidence logged: ${escapeHtml(clue.title)}</p>`
             : ''}
           <div class="modal-actions">
-            ${myRole() === 'INVESTIGATOR' ? `<button class="btn btn-gold" data-use-inventory="${escapeHtml(item.itemId)}">Use</button>` : ''}
+            ${myRole() === 'INVESTIGATOR' ? `<button class="btn btn-gold" data-use-inventory="${escapeHtml(item.itemId)}">${tr('Use', 'Dùng')}</button>` : ''}
             <button class="btn btn-ghost" id="inventory-detail-close" type="button">${tr('Back', 'Quay lại')}</button>
           </div>
         </div>
@@ -3112,7 +3310,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <h2>${escapeHtml(label || 'Locked object')}</h2>
         <p>${escapeHtml(message || 'This needs another clue before it can be opened.')}</p>
         <p class="muted small">Missing clues usually hide in unexamined objects or unasked questions. Compare notes with your partner - the Investigator searches, the Interrogator questions.</p>
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>Close</button></div>
+        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
@@ -3126,11 +3324,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const solved = puzzle.isSolved;
     const locked = puzzle.isLocked;
     const body = solved
-      ? '<p class="clue-flash">Solved.</p>'
+      ? `<p class="clue-flash">${tr('Solved.', 'Đã giải.')}</p>`
       : locked
         ? `<p class="muted">Locked: ${missing.map(prettyId).map(escapeHtml).join(', ') || 'missing requirement'}.</p>`
         : puzzle.type === 'CODE_PUZZLE'
-          ? `<input class="form-control" id="puzzle-code-answer" maxlength="32" autocomplete="off" placeholder="Code">`
+          ? `<input class="form-control" id="puzzle-code-answer" maxlength="32" autocomplete="off" placeholder="${tr('Code', 'Mã')}" aria-label="${tr('Puzzle code', 'Mã câu đố')}">`
           : `<div class="deduction-options">${(puzzle.options ?? []).map((option) => `
               <button class="btn btn-ghost" data-puzzle-option="${escapeHtml(option)}">${escapeHtml(prettyId(option))}</button>`).join('')}</div>
              <p class="muted small">${draft.length > 0 ? escapeHtml(draft.map(prettyId).join(' -> ')) : 'No symbols selected.'}</p>`;
@@ -3141,8 +3339,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <h2>${escapeHtml(title)}</h2>
         ${body}
         <div class="modal-actions">
-          ${!solved && !locked ? '<button class="btn btn-ghost" id="puzzle-clear-btn">Clear</button><button class="btn btn-gold" id="puzzle-submit-btn">Submit</button>' : ''}
-          <button class="btn btn-ghost" data-close-overlay>Close</button>
+          ${!solved && !locked ? `<button class="btn btn-ghost" id="puzzle-clear-btn">${tr('Clear', 'Xóa')}</button><button class="btn btn-gold" id="puzzle-submit-btn">${tr('Submit', 'Xác nhận')}</button>` : ''}
+          <button class="btn btn-ghost" data-close-overlay>${tr('Close', 'Đóng')}</button>
         </div>
       </div>
     </div>`;
@@ -3383,10 +3581,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       return `<div class="overlay"><div class="modal modal-wide accusation-modal">
         <h2>${tr('Final Accusation', 'Cáo buộc cuối cùng')}</h2>${header}${body}
         <div class="modal-actions">
-          ${accusation.step === 1 ? '<button class="btn btn-ghost" id="accuse-cancel">Not yet</button>' : '<button class="btn btn-ghost" id="accuse-back">Back</button>'}
+          ${accusation.step === 1 ? `<button class="btn btn-ghost" id="accuse-cancel">${tr('Not yet', 'Để sau')}</button>` : `<button class="btn btn-ghost" id="accuse-back">${tr('Back', 'Quay lại')}</button>`}
           ${accusation.step < 5
             ? `<button class="btn btn-gold" id="accuse-next" ${canContinue ? '' : 'disabled'}>${tr('Continue', 'Tiếp tục')}</button>`
-            : '<button class="btn btn-gold" id="accuse-confirm">Make accusation</button>'}
+            : `<button class="btn btn-gold" id="accuse-confirm">${tr('Make accusation', 'Đưa ra cáo buộc')}</button>`}
         </div>
       </div></div>`;
     }
@@ -3502,6 +3700,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function isSceneInputBlocked() {
     return cutscenes.active || isScenePanelOpen(uiMode) ||
+      connectionStatus !== 'connected' || syncRecoveryActive ||
       !sessionStorage.getItem(introKey) ||
       Date.now() < sceneInputBlockedUntil;
   }
@@ -3520,6 +3719,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   function syncPhaserInputState() {
+    modalFocus.sync();
     if (!phaserScene) return;
     const blocked = isSceneInputBlocked();
     const cameraEnabled = isCameraMode(uiMode) && !blocked;
@@ -3549,10 +3749,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       });
     });
 
-    app.querySelector('#intro-dismiss')?.addEventListener('pointerdown', (event) => {
+    const dismissIntro = (event: Event) => {
       sessionStorage.setItem(introKey, '1');
       dismissOverlayWithShield(event.currentTarget as HTMLElement, event);
-    });
+    };
+    const introDismiss = app.querySelector('#intro-dismiss');
+    introDismiss?.addEventListener('pointerdown', dismissIntro);
+    introDismiss?.addEventListener('click', dismissIntro);
     bindMobileMovementControls();
 
     app.querySelectorAll('[data-inventory]').forEach((button) =>
@@ -3583,7 +3786,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       combineMode = false;
       combineSelection.clear();
       closeOverlay();
-      toast(`Using ${prettyId(itemId)}. Choose a target in the scene.`, 'info');
+      const itemName = state?.collectedItems?.find(item => item.itemId === itemId)?.name || prettyId(itemId);
+      toast(tr(`Using ${itemName}. Choose a target in the scene.`, `Đang dùng ${itemName}. Chọn đích trong cảnh.`), 'info');
       draw();
     }));
 
@@ -3667,21 +3871,19 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       }));
 
     app.querySelectorAll('[data-close-overlay]').forEach((button) => {
-      button.addEventListener('pointerdown', (event) => {
+      const dismiss = (event: Event) => {
         closeOverlay();
         app.querySelectorAll('.inventory-item.is-selected').forEach((item) => item.classList.remove('is-selected'));
         dismissOverlayWithShield(button as HTMLElement, event);
-      });
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      });
+      };
+      button.addEventListener('pointerdown', dismiss);
+      button.addEventListener('click', dismiss);
     });
 
     app.querySelectorAll('[data-dialogue]').forEach((button) =>
       { if (button.hasAttribute('data-events-bound')) return; button.setAttribute('data-events-bound', 'true'); button.addEventListener('click', async () => {
         if (myRole() !== 'INTERROGATOR') {
-          toast('Only the Interrogator can ask questions.', 'info');
+          toast(tr('Only the Interrogator can ask questions.', 'Chỉ Thẩm vấn viên có thể đặt câu hỏi.'), 'info');
           return;
         }
         const askButton = button as HTMLButtonElement;
@@ -3703,7 +3905,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
     app.querySelectorAll('[data-converse-choice]').forEach((button) => { if (button.hasAttribute('data-events-bound')) return; button.setAttribute('data-events-bound', 'true'); button.addEventListener('click', async () => {
       if (myRole() !== 'INTERROGATOR') {
-        toast('Only the Interrogator can ask questions.', 'info');
+        toast(tr('Only the Interrogator can ask questions.', 'Chỉ Thẩm vấn viên có thể đặt câu hỏi.'), 'info');
         return;
       }
       const target = button as HTMLElement;
@@ -3893,7 +4095,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function toggleCameraMode() {
     if (myRole() !== 'INVESTIGATOR') {
-      toast('Only the Investigator can capture scene clues.', 'info');
+      toast(tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.'), 'info');
       return;
     }
     setUiMode(uiMode.kind === 'CAMERA' ? { kind: 'EXPLORE' } : { kind: 'CAMERA' }, 'floating-camera-btn');
@@ -3927,9 +4129,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       }, 150);
     };
 
-    window.addEventListener('pointerup', finish, { capture: true, once: true });
-    window.addEventListener('pointercancel', finish, { capture: true, once: true });
-    fallbackTimer = window.setTimeout(finish, 800);
+    if (event.type === 'pointerdown') {
+      window.addEventListener('pointerup', finish, { capture: true, once: true });
+      window.addEventListener('pointercancel', finish, { capture: true, once: true });
+      fallbackTimer = window.setTimeout(finish, 800);
+    } else {
+      finish();
+    }
   }
 
   async function onHotspot({ type, target, locked, label }: HotspotClick) {
@@ -3964,7 +4170,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const puzzle = state!.visibleScene.puzzles?.find((candidate) => candidate.targetId === target && !candidate.isSolved && !candidate.isLocked);
     if (puzzle) {
       if (myRole() !== 'INVESTIGATOR') {
-        toast('Only the Investigator can operate scene puzzles.', 'info');
+        toast(tr('Only the Investigator can operate scene puzzles.', 'Chỉ Điều tra viên có thể giải câu đố hiện trường.'), 'info');
         return;
       }
       setUiMode({ kind: 'PUZZLE', view: 'SOLVE', puzzleId: puzzle.puzzleId });
@@ -3977,7 +4183,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     }
 
     if (myRole() !== 'INVESTIGATOR') {
-      toast('Only the Investigator can inspect objects. Tell your partner to check it.', 'info');
+      toast(tr('Only the Investigator can inspect objects. Tell your partner to check it.', 'Chỉ Điều tra viên có thể khám nghiệm vật thể. Hãy nhờ đồng đội kiểm tra.'), 'info');
       draw();
       return;
     }
@@ -4021,7 +4227,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   async function useSelectedItemOnTarget(targetId: string) {
     if (!selectedInventoryItemId) return;
     if (myRole() !== 'INVESTIGATOR') {
-      toast('Only the Investigator can use inventory items.', 'info');
+      toast(tr('Only the Investigator can use inventory items.', 'Chỉ Điều tra viên có thể dùng đồ trong túi.'), 'info');
       selectedInventoryItemId = null;
       draw();
       return;
@@ -4031,10 +4237,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     selectedInventoryItemId = null;
     try {
       const res = await gameApi.useItem(roomId, itemId, targetId);
-      toast(res.detail || res.message || 'Item used.', res.changed ? 'success' : 'info', 4800);
+      toast(res.detail || res.message || tr('Item used.', 'Đã dùng vật phẩm.'), res.changed ? 'success' : 'info', 4800);
       applyState(res.state);
     } catch (err: any) {
-      toast(err.message || 'That item does not work here.', 'error');
+      toast(err.message || tr('That item does not work here.', 'Không thể dùng vật phẩm đó ở đây.'), 'error');
       draw();
     }
   }
@@ -4043,18 +4249,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const itemIds = [...combineSelection];
     if (itemIds.length < 2) return;
     if (myRole() !== 'INVESTIGATOR') {
-      toast('Only the Investigator can combine inventory items.', 'info');
+      toast(tr('Only the Investigator can combine inventory items.', 'Chỉ Điều tra viên có thể kết hợp vật phẩm.'), 'info');
       return;
     }
 
     try {
       const res = await gameApi.combineItems(roomId, itemIds);
-      toast(res.detail || res.message || 'Items combined.', res.changed ? 'success' : 'info', 4800);
+      toast(res.detail || res.message || tr('Items combined.', 'Đã kết hợp vật phẩm.'), res.changed ? 'success' : 'info', 4800);
       combineSelection.clear();
       combineMode = false;
       applyState(res.state);
     } catch (err: any) {
-      toast(err.message || 'Those items do not combine.', 'error');
+      toast(err.message || tr('Those items do not combine.', 'Không thể kết hợp các vật phẩm đó.'), 'error');
     }
   }
 
@@ -4084,7 +4290,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   async function captureClue(captureRect: RuntimeBox, photo: Blob) {
     if (!state || captureInFlight || uiMode.kind !== 'CAMERA' || isSceneInputBlocked()) return;
     if (myRole() !== 'INVESTIGATOR') {
-      toast('Only the Investigator can capture scene clues.', 'info');
+      toast(tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.'), 'info');
       return;
     }
 
@@ -4107,7 +4313,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
           imageUrl: clue?.photoUrl,
           clueCount: res.unlockedClueIds?.length ?? 1,
         });
-        toast(res.message || 'Photo evidence captured.', 'success');
+        toast(res.message || tr('Photo evidence captured.', 'Đã chụp chứng cứ.'), 'success');
         applyState(res.state);
         return;
       }
@@ -4290,7 +4496,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   async function completeScene() {
     if (!state?.currentSceneCanComplete) {
-      toast('You do not have enough grounds to leave this location yet. Request a hint if you are stuck.', 'info', 4200);
+      toast(tr('You do not have enough grounds to leave this location yet. Request a hint if you are stuck.', 'Chưa đủ cơ sở để rời địa điểm này. Hãy xem gợi ý nếu đang bị kẹt.'), 'info', 4200);
       return;
     }
 
@@ -4303,7 +4509,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     } catch (err: any) {
       const missing = err.errors?.missing;
       if (missing) {
-        toast('An important trace or statement still needs to be verified.', 'error', 5500);
+        toast(tr('An important trace or statement still needs to be verified.', 'Vẫn còn dấu vết hoặc lời khai quan trọng cần xác minh.'), 'error', 5500);
       } else {
         toast(err.message, 'error');
       }
@@ -4440,6 +4646,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     signal?.removeEventListener('abort', cleanupGamePage);
     stateRefetcher.dispose();
     audio.dispose();
+    modalFocus.dispose();
     disposeAudioControls?.();
     disposePingControls?.();
     if (partnerPingTimer) clearTimeout(partnerPingTimer);
@@ -4455,6 +4662,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
     window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
+    for (const request of evidencePhotoRequests.values()) request.abort();
+    evidencePhotoRequests.clear();
     for (const objectUrl of evidencePhotoObjectUrls.values()) URL.revokeObjectURL(objectUrl);
     evidencePhotoObjectUrls.clear();
     return hub.stop();

@@ -1,4 +1,4 @@
-import { expect, type Locator, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 const roomId = 'smoke-room';
 
@@ -584,6 +584,384 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+async function openInitialBriefing(page: Page) {
+  await page.goto('/#/menu');
+  await expect(page.locator('.title-menu-screen')).toBeVisible();
+  // Change only the hash so the shared session init script does not skip this intro.
+  await page.evaluate((id) => {
+    sessionStorage.removeItem(`sirlocked.intro.${id}`);
+    window.location.hash = `#/game/${id}`;
+  }, roomId);
+  await expect(page.locator('#intro-dismiss')).toBeVisible();
+}
+
+for (const key of ['Enter', 'Space']) test(`initial briefing accepts ${key} without a pointer or an unintended scene action`, async ({ page }) => {
+  let sceneActions = 0;
+  page.on('request', (request) => {
+    if (/\/(inspect-item|complete-scene|go-to-scene)$/.test(request.url())) sceneActions++;
+  });
+  await openInitialBriefing(page);
+  await page.locator('#intro-dismiss').focus();
+  await page.keyboard.press(key);
+  await expect(page.locator('#intro-overlay')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+    return Boolean(scene?.sceneInteractionEnabled && scene.input.enabled);
+  })).toBe(true);
+  expect(sceneActions).toBe(0);
+  const playerX = () => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').localPose.x);
+  const beforeMove = await playerX();
+  await page.keyboard.down('d');
+  await expect.poll(playerX).toBeGreaterThan(beforeMove);
+  await page.keyboard.up('d');
+});
+
+test('initial briefing pointer dismissal shields the scene until the pointer is released', async ({ page }) => {
+  let inspections = 0;
+  page.on('request', (request) => { if (request.url().endsWith('/inspect-item')) inspections++; });
+  await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: {
+    ...smokeState,
+    visibleScene: { ...smokeState.visibleScene, characters: [], availableDialogues: [],
+      hotspots: smokeState.visibleScene.hotspots.filter((hotspot) => hotspot.type === 'ITEM') },
+  } } }));
+  await openInitialBriefing(page);
+  const button = (await page.locator('#intro-dismiss').boundingBox())!;
+  const canvas = (await page.locator('canvas').first().boundingBox())!;
+  const hotspot = await page.evaluate(() => {
+    const scene = (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene');
+    const zone = scene.children.list.find((child: any) => child.type === 'Zone' && child.getData('label') === 'Folded Note');
+    const bounds = zone.getBounds();
+    return { x: bounds.centerX / scene.scale.width, y: bounds.centerY / scene.scale.height };
+  });
+  await page.mouse.move(button.x + button.width / 2, button.y + button.height / 2);
+  await page.mouse.down();
+  await expect(page.locator('#intro-overlay')).toHaveClass(/is-closing-shield/);
+  expect(await page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').sceneInteractionEnabled)).toBe(false);
+  await page.mouse.move(canvas.x + canvas.width * hotspot.x, canvas.y + canvas.height * hotspot.y);
+  await page.mouse.up();
+  await expect(page.locator('#intro-overlay')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').input.enabled)).toBe(true);
+  expect(inspections).toBe(0);
+  // The same hotspot must still work after the shield has finished.
+  await page.mouse.click(canvas.x + canvas.width * hotspot.x, canvas.y + canvas.height * hotspot.y);
+  await expect.poll(() => inspections).toBe(1);
+});
+
+const deferredPhotoPath = `/api/game/rooms/${roomId}/clues/clue-photo/photo`;
+const deferredPhotoState = {
+  ...smokeState,
+  unlockedClues: ['clue-photo', 'clue-photo-copy'].map((clueId) => ({
+    clueId, title: clueId, content: 'A captured scene.', source: 'PHOTO', isEvidence: true,
+    photoUrl: deferredPhotoPath,
+  })),
+};
+
+async function installDeferredEvidencePhoto(page: Page) {
+  await page.addInitScript((photoPath) => {
+    const w = window as any;
+    w.__photoRequests = 0; w.__photoAborted = false; w.__photoCompleted = false;
+    w.__photoCreated = []; w.__photoRevoked = [];
+    let photoBlob: Blob;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      if (String(input) !== photoPath) return originalFetch(input, init);
+      w.__photoRequests++;
+      init?.signal?.addEventListener('abort', () => { w.__photoAborted = true; });
+      // Model a body that finishes after cancellation, even if fetch already returned.
+      return Promise.resolve({ ok: true, blob: () => new Promise<Blob>((resolve) => {
+        w.__resolvePhoto = () => {
+          w.__photoCompleted = true;
+          photoBlob = new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="navy"/></svg>'], { type: 'image/svg+xml' });
+          resolve(photoBlob);
+        };
+      }) } as Response);
+    };
+    const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => { const url = create(blob); if (blob === photoBlob) w.__photoCreated.push(url); return url; };
+    URL.revokeObjectURL = (url) => { if (w.__photoCreated.includes(url)) w.__photoRevoked.push(url); revoke(url); };
+  }, deferredPhotoPath);
+  await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: deferredPhotoState } }));
+}
+
+test('evidence photos share one inflight request across images and redraws and revoke their cached URL on exit', async ({ page }) => {
+  await installDeferredEvidencePhoto(page);
+  await page.goto(`/#/game/${roomId}`);
+  await page.locator('#case-file-btn').click();
+  await expect(page.locator('img[data-auth-image]')).toHaveCount(2);
+  await expect.poll(() => page.evaluate(() => (window as any).__photoRequests)).toBe(1);
+  await page.locator('[data-case-tab="testimony"]').click();
+  await page.locator('[data-case-tab="evidence"]').click();
+  expect(await page.evaluate(() => (window as any).__photoRequests)).toBe(1);
+  await page.evaluate(() => (window as any).__resolvePhoto());
+  await expect.poll(() => page.locator('img[data-auth-image]').evaluateAll((images: HTMLImageElement[]) =>
+    images.length === 2 && images.every((image) => image.naturalWidth === 40) && images[0].src === images[1].src)).toBe(true);
+  await page.locator('[data-case-tab="testimony"]').click();
+  await page.locator('[data-case-tab="evidence"]').click();
+  expect(await page.evaluate(() => ({ requests: (window as any).__photoRequests, urls: (window as any).__photoCreated.length }))).toEqual({ requests: 1, urls: 1 });
+  await page.evaluate(() => { window.location.hash = '#/menu'; });
+  await expect(page.locator('.title-menu-screen')).toBeVisible();
+  expect(await page.evaluate(() => {
+    const w = window as any;
+    return w.__photoCreated.length === 1 && w.__photoCreated.every((url: string) => w.__photoRevoked.includes(url));
+  })).toBe(true);
+});
+
+test('evidence photos abort on navigation and a late body creates no object URL or stale UI', async ({ page }) => {
+  await installDeferredEvidencePhoto(page);
+  await page.goto(`/#/game/${roomId}`);
+  await page.locator('#case-file-btn').click();
+  await expect.poll(() => page.evaluate(() => (window as any).__photoRequests)).toBe(1);
+  await page.evaluate(() => { window.location.hash = '#/menu'; });
+  await expect(page.locator('.title-menu-screen')).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__photoAborted)).toBe(true);
+  await page.evaluate(() => (window as any).__resolvePhoto());
+  await expect.poll(() => page.evaluate(() => (window as any).__photoCompleted)).toBe(true);
+  expect(await page.evaluate(() => (window as any).__photoCreated)).toEqual([]);
+  await expect(page.locator('img[data-auth-image], canvas')).toHaveCount(0);
+});
+
+test('modal focus follows keyboard navigation and redraws and returns to the opening control', async ({ page }) => {
+  await page.route('**/test-modal', (route) => route.fulfill({ contentType: 'text/html', body: '<button id="open">Mở hồ sơ</button><main id="fixture"><section id="scene"><button>Hiện trường</button></section><div id="slot"></div></main>' }));
+  await page.goto('/test-modal');
+  await page.locator('#open').focus();
+  await page.evaluate(async () => {
+    const { createModalFocusManager } = await import('/Client/js/game/modalFocus.ts');
+    const w = window as any;
+    w.__modal = createModalFocusManager(document.getElementById('fixture')!);
+    document.getElementById('slot')!.innerHTML = '<div class="overlay"><section class="modal"><h2>Hồ sơ vụ án</h2><button id="back">Trở lại</button><label>Ghi chú<input id="notes"></label><button id="continue">Tiếp tục</button></section></div>';
+    w.__modal.sync();
+    window.addEventListener('keydown', (event) => w.__modal.handleKey(event));
+  });
+  await expect(page.getByRole('dialog', { name: 'Hồ sơ vụ án' })).toBeVisible();
+  expect(await page.locator('#scene').evaluate((element: HTMLElement) => element.inert)).toBe(true);
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#back')).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.locator('#continue')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#back')).toBeFocused();
+  await page.locator('#notes').focus();
+  await page.evaluate(() => {
+    const slot = document.getElementById('slot')!;
+    slot.innerHTML = slot.innerHTML;
+    (window as any).__modal.sync();
+  });
+  await expect(page.locator('#notes')).toBeFocused();
+  await page.evaluate(() => { document.getElementById('slot')!.innerHTML = ''; (window as any).__modal.sync(); });
+  await expect(page.locator('#open')).toBeFocused();
+  expect(await page.locator('#scene').evaluate((element: HTMLElement) => element.inert)).toBe(false);
+  await page.evaluate(() => (window as any).__modal.dispose());
+});
+
+test('dialogue keeps the focused action during a new NPC line and respects reduced motion', async ({ page }) => {
+  await page.route('**/test-dialogue', (route) => route.fulfill({ contentType: 'text/html', body: '<button id="return">Hỏi nhân chứng</button><main id="fixture"></main>' }));
+  await page.goto('/test-dialogue');
+  await page.locator('#return').focus();
+  await page.evaluate(async () => {
+    localStorage.setItem('sirlocked.uiLanguage', 'vi');
+    const { DialoguePresenter } = await import('/Client/js/game/dialoguePresenter.ts');
+    const w = window as any;
+    const host = document.getElementById('fixture')!;
+    w.__dialogue = new DialoguePresenter(() => w.__dialogue.clear());
+    w.__dialogueView = { character: { characterId: 'witness', name: 'Nhân chứng', role: 'Người làm chứng', description: 'Đang kể lại sự việc.' },
+      lines: [{ speaker: 'NPC', text: 'Tôi đã thấy chiếc chìa khóa.' }], topicsHtml: '<button data-topic="clock">Hỏi về thời gian</button>', challengeHtml: '', newLeadHtml: '', readonly: false };
+    w.__dialogue.update(host, w.__dialogueView);
+    window.addEventListener('keydown', (event) => w.__dialogue.handleKey(event));
+  });
+  await page.locator('[data-vn-close]').focus();
+  await page.evaluate(() => {
+    const w = window as any;
+    w.__dialogueView = { ...w.__dialogueView, lines: [...w.__dialogueView.lines,
+      { speaker: 'NPC', text: 'Chiếc đồng hồ trong hành lang đã dừng lại trước khi mọi người rời căn phòng. '.repeat(4) }] };
+    w.__dialogue.update(document.getElementById('fixture'), w.__dialogueView);
+  });
+  await expect(page.locator('[data-vn-close]')).toBeFocused();
+  await expect(page.locator('.vn-overlay')).toHaveClass(/is-npc-speaking/);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.vn-overlay')).not.toHaveClass(/is-npc-speaking/);
+  await expect(page.locator('.vn-current-text')).toContainText('Chiếc đồng hồ');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.vn-overlay')).toHaveCount(0);
+  await expect(page.locator('#return')).toBeFocused();
+  await page.evaluate(() => (window as any).__dialogue.dispose());
+});
+
+async function installAudioHarness(page: Page) {
+  await page.route('**/test-audio', (route) => route.fulfill({ contentType: 'text/html', body: '<main></main>' }));
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__media = []; w.__tones = 0; w.__blocked = false; w.__deferMedia = false; w.__deferResume = false;
+    class Media {
+      src: string; paused = true; volume = 1; loop = false; preload = ''; plays = 0; onended: any; onerror: any;
+      completions: (() => void)[] = [];
+      constructor(src: string) { this.src = src; w.__media.push(this); }
+      play() {
+        this.plays++;
+        if (w.__blocked) return Promise.reject(new DOMException('Gesture required', 'NotAllowedError'));
+        if (w.__deferMedia) return new Promise<void>((resolve) => this.completions.push(() => { this.paused = false; resolve(); }));
+        this.paused = false; return Promise.resolve();
+      }
+      pause() { this.paused = true; }
+      removeAttribute(name: string) { if (name === 'src') this.src = ''; }
+      load() {}
+      completePlay() { for (const complete of this.completions.splice(0)) complete(); }
+    }
+    class Context {
+      state = 'suspended'; currentTime = 0; destination = {}; closes = 0; completions: (() => void)[] = [];
+      constructor() { w.__context = this; }
+      resume() {
+        if (w.__deferResume) return new Promise<void>((resolve) => this.completions.push(() => { if (this.state !== 'closed') this.state = 'running'; resolve(); }));
+        this.state = 'running'; return Promise.resolve();
+      }
+      suspend() { this.state = 'suspended'; return Promise.resolve(); }
+      close() { this.state = 'closed'; this.closes++; return Promise.resolve(); }
+      completeResume() { for (const complete of this.completions.splice(0)) complete(); }
+      createGain() { return { gain: { value: 1, setTargetAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() { return this; }, disconnect() {} }; }
+      createOscillator() { return { type: '', frequency: { value: 0 }, onended: null, connect(node: any) { return node; }, start() { w.__tones++; }, stop() {}, disconnect() {} }; }
+    }
+    w.Audio = Media; w.AudioContext = Context;
+  });
+  await page.goto('/test-audio');
+}
+
+test('scene audio switches authored loops, ducks dialogue, persists settings and resumes after visibility changes', async ({ page }) => {
+  await installAudioHarness(page);
+  const result = await page.evaluate(async () => {
+    const { createAudioController } = await import('/Client/js/game/audioController.ts');
+    const w = window as any;
+    localStorage.removeItem('sirlocked.audio.v1');
+    const audio = createAudioController();
+    audio.setScene('study', { ambienceUrl: '/assets/audio/point-click/ambience-study.wav', cues: { discovery: '/assets/audio/point-click/discovery.wav' } });
+    const study = w.__media[0]; const beforeGesture = study.plays;
+    audio.unlock(); await Promise.resolve(); await Promise.resolve();
+    audio.setDialogueActive(true); const ducked = study.volume;
+    audio.setDialogueActive(false); const unducked = study.volume;
+    audio.play('discovery'); const effect = w.__media[1];
+    audio.setSettings({ muted: true }); const muted = study.paused && effect.paused;
+    audio.setSettings({ muted: false, music: .4, effects: .6 });
+    audio.setScene('hall', { ambienceUrl: '/assets/audio/point-click/ambience-hall.wav' });
+    const hall = w.__media[2]; const oldStopped = study.paused && study.src === '';
+    let hidden = true;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+    document.dispatchEvent(new Event('visibilitychange')); const hiddenStopped = hall.paused;
+    hidden = false; document.dispatchEvent(new Event('visibilitychange'));
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    const resumed = !hall.paused && hall.plays >= 2 && w.__context.state === 'running';
+    const volume = hall.volume;
+    audio.dispose(); audio.dispose();
+    const restored = createAudioController(); const settings = restored.getSettings(); restored.dispose();
+    return { beforeGesture, ducked, unducked, muted, oldStopped, hiddenStopped, resumed, volume, settings,
+      released: w.__media.every((media: any) => media.paused && media.src === ''), closes: w.__context.closes };
+  });
+  expect(result).toEqual({ beforeGesture: 0, ducked: .06, unducked: .2, muted: true, oldStopped: true, hiddenStopped: true, resumed: true,
+    volume: .4, settings: { music: .4, effects: .6, muted: false }, released: true, closes: 1 });
+});
+
+test('scene audio recovers a blocked gesture and uses generated fallback for missing media or unsafe URLs', async ({ page }) => {
+  await installAudioHarness(page);
+  const result = await page.evaluate(async () => {
+    const { createAudioController, audioAssetUrl } = await import('/Client/js/game/audioController.ts');
+    const w = window as any;
+    localStorage.removeItem('sirlocked.audio.v1');
+    w.__blocked = true;
+    const audio = createAudioController(); audio.setScene('study', { ambienceUrl: '/missing.wav' }); audio.unlock();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    const blocked = w.__media[0].paused;
+    w.__blocked = false; audio.unlock(); await Promise.resolve(); await Promise.resolve();
+    const retried = !w.__media[0].paused;
+    w.__media[0].onerror(); const fallback = w.__tones > 0;
+    const beforeCue = w.__tones; audio.play('interact'); const cueFallback = w.__tones > beforeCue;
+    audio.dispose();
+    const unsafe = ['javascript:alert(1)', 'data:audio/wav,abc', '//example.com/audio.wav', '/assets/%2e%2e/private.wav', '/assets/..\\private.wav'].map(audioAssetUrl);
+    return { blocked, retried, fallback, cueFallback, unsafe, released: w.__media.every((media: any) => media.paused && media.src === '') };
+  });
+  expect(result).toEqual({ blocked: true, retried: true, fallback: true, cueFallback: true, unsafe: ['', '', '', '', ''], released: true });
+});
+
+test('scene audio stops late playback after scene changes and disposal while context resume is pending', async ({ page }) => {
+  await installAudioHarness(page);
+  const result = await page.evaluate(async () => {
+    const { createAudioController } = await import('/Client/js/game/audioController.ts');
+    const w = window as any;
+    localStorage.removeItem('sirlocked.audio.v1'); w.__deferMedia = true; w.__deferResume = true;
+    const audio = createAudioController(); audio.setScene('old', '/old.wav'); audio.unlock();
+    audio.setScene('new', { ambienceUrl: '/new.wav', cues: { discovery: '/discovery.wav' } });
+    w.__media[0].completePlay(); await Promise.resolve(); await Promise.resolve();
+    const oldRemainsStopped = w.__media[0].paused && w.__media[0].src === '';
+    w.__context.completeResume(); await Promise.resolve(); await Promise.resolve();
+    const currentPlayedOnce = w.__media[1].plays === 1;
+    audio.play('discovery'); audio.dispose();
+    for (const media of w.__media) media.completePlay();
+    w.__context.completeResume(); await Promise.resolve(); await Promise.resolve();
+    return { oldRemainsStopped, currentPlayedOnce, released: w.__media.every((media: any) => media.paused && media.src === ''), tones: w.__tones, closes: w.__context.closes };
+  });
+  expect(result).toEqual({ oldRemainsStopped: true, currentPlayedOnce: true, released: true, tones: 0, closes: 1 });
+});
+
+test('authored sound pack decodes in the browser as quiet nonempty loops and feedback cues', async ({ page }) => {
+  await page.route('**/test-audio-assets', (route) => route.fulfill({ contentType: 'text/html', body: '<main></main>' }));
+  await page.goto('/test-audio-assets');
+  const decoded = await page.evaluate(async () => {
+    const context = new AudioContext();
+    try {
+      return await Promise.all(['ambience-study', 'ambience-hall', 'ambience-garden', 'dialogue', 'discovery', 'reveal', 'scene', 'ping', 'interact', 'error'].map(async (name) => {
+        const response = await fetch(`/assets/audio/point-click/${name}.wav`);
+        if (!response.ok) throw new Error(`Missing sound ${name}`);
+        const buffer = await context.decodeAudioData(await response.arrayBuffer());
+        let peak = 0;
+        for (const sample of buffer.getChannelData(0)) peak = Math.max(peak, Math.abs(sample));
+        return { name, duration: buffer.duration, channels: buffer.numberOfChannels, peak };
+      }));
+    } finally { await context.close(); }
+  });
+  expect(decoded).toHaveLength(10);
+  for (const sound of decoded) {
+    expect(sound.channels).toBe(1);
+    expect(sound.duration).toBeGreaterThan(.1);
+    expect(sound.peak).toBeGreaterThan(.01);
+    expect(sound.peak).toBeLessThan(.3);
+    if (sound.name.startsWith('ambience-')) expect(sound.duration).toBeCloseTo(4, 2);
+  }
+});
+
+test('game drawers trap keyboard focus, permit Escape and restore the opening control', async ({ page }) => {
+  await page.goto(`/#/game/${roomId}`);
+  const canvas = page.locator('canvas').first();
+  await expect(canvas).toBeVisible();
+  await page.locator('#map-btn').focus();
+  await page.keyboard.press('Enter');
+  const map = page.getByRole('dialog', { name: 'Investigation Map' });
+  await expect(map).toBeVisible();
+  await expect(map.locator('h2')).toBeFocused();
+  expect(await canvas.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true);
+  await page.keyboard.press('Tab');
+  await expect(map.locator('.close-drawer-btn')).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(map.locator('#map-case-file-btn')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(map).toHaveCount(0);
+  await expect(page.locator('#map-btn')).toBeFocused();
+  expect(await canvas.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(false);
+
+  await page.locator('#floating-bag-btn').focus();
+  await page.keyboard.press('Enter');
+  const inventory = page.getByRole('dialog', { name: 'Inventory', exact: true });
+  await expect(inventory).toBeVisible();
+  await inventory.locator('.close-drawer-btn').focus();
+  await page.keyboard.press('Space');
+  await expect(inventory).toHaveCount(0);
+  await expect(page.locator('#floating-bag-btn')).toBeFocused();
+  expect(await canvas.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(false);
+
+  await page.locator('#case-file-btn').focus();
+  await page.keyboard.press('Enter');
+  const caseFile = page.getByRole('dialog', { name: 'Case File', exact: true });
+  await expect(caseFile).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(caseFile).toHaveCount(0);
+  await expect(page.locator('#case-file-btn')).toBeFocused();
+});
+
 test('Investigator shell keeps the scene primary and reports discoveries without a modal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/#/game/${roomId}`);
@@ -1077,6 +1455,15 @@ test('failed room sync stops retrying and offers a working keyboard recovery act
   await page.clock.fastForward(60_000);
   expect(requests).toBe(7); // Initial page GET plus one attempt and five retries.
   await page.setViewportSize({ width: 390, height: 844 });
+  // The retry clock is paused; resume rendering so Phaser can redraw at the new viewport size.
+  await page.clock.resume();
+  await expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+    const canvas = document.querySelector('canvas');
+    const bounds = canvas?.getBoundingClientRect();
+    return Boolean(scene && bounds && Math.abs(scene.scale.width - bounds.width) < 1
+      && Math.abs(scene.scale.height - bounds.height) < 1);
+  })).toBe(true);
   const banner = await page.locator('.game-recovery').boundingBox();
   expect(banner!.x).toBeGreaterThanOrEqual(0);
   expect(banner!.x + banner!.width).toBeLessThanOrEqual(390);

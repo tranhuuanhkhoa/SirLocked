@@ -1,0 +1,286 @@
+{
+  "tool": "built-in image_gen",
+  "createdFor": "case-full-chuyen-tau-so-7-vi",
+  "records": [
+    {
+      "path": "scenes/station-hall.png",
+      "prompt": "ONE production16:9 background for a playable 2D PIXEL ART detective adventure. Reference image establishes exact visual style/pixel clusters/palette/light quality ONLY. Create a different location: Grand waiting hall of a small Vietnamese railway station in1932 at midnight. Petrol-green walls, brass column details, amber pendant lamps, blue rainy windows at right, a large round station clock high center (decor only), wooden departure board with abstract unreadable marks high left. Low ticket desk centered x520–1080 with empty desktop around y510 and base at680, small lamp and bound book at its outer ends. Open inner doorway at far LEFT x100–230 leading to dispatch office, wooden bench on right rear. Empty actor spaces x340 and1240 at feet760. Clear front third wooden floor. Composition coordinates refer to a1600x900 level. Absolutely no people/NPCs/player sprites, no HUD, no buttons, no typography, no numbers, no logos. All loose collectible papers/keys/lockboxes will be composited later: do NOT draw them. Strong stepped pixel edges and dark outlines, visible classic adventure pixel clusters, restrained ochre/burgundy/petrol/nightblue colors, NOT photoreal, NOT smooth digital painting, NOT isometric. Use normal front-facing room perspective with slight top surfaces; leave lower30–35% as unblocked walk floor. Short furniture suitable for chibi actors. Top corners visually quiet for HUD. Fill whole wide frame.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\scenes\\ticket-office.png"
+      ],
+      "transparentBackground": false,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "scenes/dispatch-office.png",
+      "prompt": "ONE production16:9 background for a playable 2D PIXEL ART detective adventure. Reference image establishes exact visual style/pixel clusters/palette/light quality ONLY. Create a different location: Compact railway telegraph dispatch office,1932Vietnam, at night. Walnut pigeonholes, brass telegraph equipment, folded wall maps without legible text, muted amber green-shaded desk lamp. Wide LOW writing desk center from x480 to1090, empty areas of desktop at y500, base at680. Small empty side cabinet LEFT aroundx280 with topat520 for runtime lockbox. Interior doorway at farRIGHT x1350,y250 to650. Cool blue rain window behind desk, overhead pipes, side clock. Keep clear floor lowerthird and empty NPC positionsx350and1220. Composition coordinates refer to a1600x900 level. Absolutely no people/NPCs/player sprites, no HUD, no buttons, no typography, no numbers, no logos. All loose collectible papers/keys/lockboxes will be composited later: do NOT draw them. Strong stepped pixel edges and dark outlines, visible classic adventure pixel clusters, restrained ochre/burgundy/petrol/nightblue colors, NOT photoreal, NOT smooth digital painting, NOT isometric. Use normal front-facing room perspective with slight top surfaces; leave lower30–35% as unblocked walk floor. Short furniture suitable for chibi actors. Top corners visually quiet for HUD. Fill whole wide frame.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-c436a38b-e639-409c-927f-33ba8a913b2a.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\scenes\\ticket-office.png"
+      ],
+      "transparentBackground": false,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "scenes/luggage-warehouse.png",
+      "prompt": "ONE production16:9 background for a playable 2D PIXEL ART detective adventure. Reference image establishes exact visual style/pixel clusters/palette/light quality ONLY. Create a different location: Railway luggage storeroom at night,1932Vietnam. Low racks of trunks along rear wall, rope coils, railway freight scale, warm brass lamps, petrol wooden panelling and darkblue shadows. Low sorting table x530–1070 top y510 base y670, clear tabletop for props. Empty low side cabinet at left x240–390 top510. On the back RIGHT floor stands ONE large ochre wooden freight crate with two brass bands and a VERY CLEAR diagonal BLUE painted stripe across its front, at x1210–1450,y470–660. This blue-stripe crate is camera evidence and must be prominent/fully visible. NO legible text or numbers. Open indoor door at farLEFTx110. Clear main walk lane lowerthird, no foreground clutter. Composition coordinates refer to a1600x900 level. Absolutely no people/NPCs/player sprites, no HUD, no buttons, no typography, no numbers, no logos. All loose collectible papers/keys/lockboxes will be composited later: do NOT draw them. Strong stepped pixel edges and dark outlines, visible classic adventure pixel clusters, restrained ochre/burgundy/petrol/nightblue colors, NOT photoreal, NOT smooth digital painting, NOT isometric. Use normal front-facing room perspective with slight top surfaces; leave lower30–35% as unblocked walk floor. Short furniture suitable for chibi actors. Top corners visually quiet for HUD. Fill whole wide frame.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-8a63e67c-7d30-40a3-9dc4-59f4268a6176.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\scenes\\ticket-office.png"
+      ],
+      "transparentBackground": false,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "scenes/signal-cabin.png",
+      "prompt": "ONE production16:9 background for a playable 2D PIXEL ART detective adventure. Reference image establishes exact visual style/pixel clusters/palette/light quality ONLY. Create a different location: Interior of an old railway signal cabin,1932Vietnam, midnight. Warm amber lights, petrol timber walls, wide rear windows show silent tracks in cool blue. Antique signal levers at far right rear, no modern screens. A low operator desk center x560–1100 with cleartop y510 base680. On LEFT wall aroundx350,y370 there is a large old brass regulator clock: BELOW its round dial, its rectangular maintenance hatch is conspicuously OPEN showing bright brass gears inside a dark square cavity, hatch door hinged off to LEFT. This open hatch is camera evidence: make it large, obvious, unambiguous. No person. Interior exit at farleftx100. Clear lowerthird wooden floor, actor spacesx420and1250. Composition coordinates refer to a1600x900 level. Absolutely no people/NPCs/player sprites, no HUD, no buttons, no typography, no numbers, no logos. All loose collectible papers/keys/lockboxes will be composited later: do NOT draw them. Strong stepped pixel edges and dark outlines, visible classic adventure pixel clusters, restrained ochre/burgundy/petrol/nightblue colors, NOT photoreal, NOT smooth digital painting, NOT isometric. Use normal front-facing room perspective with slight top surfaces; leave lower30–35% as unblocked walk floor. Short furniture suitable for chibi actors. Top corners visually quiet for HUD. Fill whole wide frame.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-bdb5aa38-85d5-44e6-b827-5a7ee2a96a09.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\scenes\\ticket-office.png"
+      ],
+      "transparentBackground": false,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "scenes/accounts-archive.png",
+      "prompt": "ONE production16:9 background for a playable 2D PIXEL ART detective adventure. Reference image establishes exact visual style/pixel clusters/palette/light quality ONLY. Create a different location: Station accounts archive,1932Vietnam, dark walnut shelves full of bound ledgers, dusty petrol walls, warm green-shaded brass lamps and a rainy blue window. Low wide bookkeeper desk x510–1100, clear horizontal top y510 and base680, two small book stacks at edges leave clear central surface for loose evidence. Behind it a tall safe at left rear, labelled drawers without readable writing, framed abstract rail map at upperright. Interior door farLEFTx130, beyond amberhall. Floor frontthird entirely clear. Standing spacesx340and1240. Composition coordinates refer to a1600x900 level. Absolutely no people/NPCs/player sprites, no HUD, no buttons, no typography, no numbers, no logos. All loose collectible papers/keys/lockboxes will be composited later: do NOT draw them. Strong stepped pixel edges and dark outlines, visible classic adventure pixel clusters, restrained ochre/burgundy/petrol/nightblue colors, NOT photoreal, NOT smooth digital painting, NOT isometric. Use normal front-facing room perspective with slight top surfaces; leave lower30–35% as unblocked walk floor. Short furniture suitable for chibi actors. Top corners visually quiet for HUD. Fill whole wide frame.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-2f54da47-8e30-4b2d-9fcb-7c2f7230b10f.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\scenes\\ticket-office.png"
+      ],
+      "transparentBackground": false,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "scenes/freight-platform.png",
+      "prompt": "ONE production16:9 background for a playable 2D PIXEL ART detective adventure. Reference image establishes exact visual style/pixel clusters/palette/light quality ONLY. Create a different location: COVERED railway freight platform of1932Vietnam at midnight, fully dry foreground under timber/iron canopy. Cinematic pixel scene, blue rain and a parked dark steam locomotive in middle-distance beyond rear edge, warm amber lamps along roof, sacks/crates only along back wall. A low luggage inspection bench x520–1080 topy510 base670, empty center surface; small folded tarp at edge. EMPTY handcart at backRIGHT x1250,y570, with flat surface to hold a runtime small locked trunk. Warm indoor doorway farLEFT back to archive, no open track walkarea in front. Lowerthird is broad clear safe wooden freight walkway. Empty actor slotsx360and1230. No people, no readable lettering. Composition coordinates refer to a1600x900 level. Absolutely no people/NPCs/player sprites, no HUD, no buttons, no typography, no numbers, no logos. All loose collectible papers/keys/lockboxes will be composited later: do NOT draw them. Strong stepped pixel edges and dark outlines, visible classic adventure pixel clusters, restrained ochre/burgundy/petrol/nightblue colors, NOT photoreal, NOT smooth digital painting, NOT isometric. Use normal front-facing room perspective with slight top surfaces; leave lower30–35% as unblocked walk floor. Short furniture suitable for chibi actors. Top corners visually quiet for HUD. Fill whole wide frame.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d9073521-6aec-4bfe-ab24-fe2f43e7a69a.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\scenes\\ticket-office.png"
+      ],
+      "transparentBackground": false,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "characters/vy.png",
+      "prompt": "ONE isolated full-body production PIXEL ART NPC sprite on genuine transparent background. Reference defines exact chibi proportions (THREE heads tall), stepped dark outlines, chunky pixel clusters and muted warm lighting, NOT identity. New subject: Vietnamese woman42, deputy railway station chief, dark navy fitted jacket and long skirt, cream silk neck scarf, elegant low bun, composed sharp eyes, one hand lightly holding her other wrist at waist. No hat. Three-quarter facing LEFT. Match Sherlock/Watson-era2D detective adventure, large expressive head and compact body/short legs. Originally96x144-style pixel sprite enlarged crisply, no realistic anatomy, no photorealism, no smooth vector. 2:3portrait canvas, whole head to shoes fills95% height, feet close to bottom, minimal margins. Clean alpha edge, no ground, no cast shadow, no glow, no background, no text, no duplicate views. Dark ochre/petrol/burgundy palette, upper-left warm light.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d0b51393-165e-4aa7-8412-d2cd7670c133.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\characters\\mai-van.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "characters/hanh.png",
+      "prompt": "ONE isolated full-body production PIXEL ART NPC sprite on genuine transparent background. Reference defines exact chibi proportions (THREE heads tall), stepped dark outlines, chunky pixel clusters and muted warm lighting, NOT identity. New subject: Vietnamese woman28, railway ticket clerk, short black bob haircut, burgundy waistcoat over cream long-sleeved blouse, charcoal high-waisted trousers, dark brown practical shoes. Attentive slightly anxious face, hands at sides. Three-quarter facing LEFT. Match Sherlock/Watson-era2D detective adventure, large expressive head and compact body/short legs. Originally96x144-style pixel sprite enlarged crisply, no realistic anatomy, no photorealism, no smooth vector. 2:3portrait canvas, whole head to shoes fills95% height, feet close to bottom, minimal margins. Clean alpha edge, no ground, no cast shadow, no glow, no background, no text, no duplicate views. Dark ochre/petrol/burgundy palette, upper-left warm light.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-0a9b23a0-dc72-4a6a-87e6-c9048903eb68.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\characters\\mai-van.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "characters/an.png",
+      "prompt": "ONE isolated full-body production PIXEL ART NPC sprite on genuine transparent background. Reference defines exact chibi proportions (THREE heads tall), stepped dark outlines, chunky pixel clusters and muted warm lighting, NOT identity. New subject: Vietnamese man35, clock and signal technician, charcoal flat cap, dark teal work coat over cream shirt with rolled sleeves, dark trousers, brown boots. Faint stubble, tired eyes, one hand on hip; no tool in hands. Three-quarter facing LEFT. Match Sherlock/Watson-era2D detective adventure, large expressive head and compact body/short legs. Originally96x144-style pixel sprite enlarged crisply, no realistic anatomy, no photorealism, no smooth vector. 2:3portrait canvas, whole head to shoes fills95% height, feet close to bottom, minimal margins. Clean alpha edge, no ground, no cast shadow, no glow, no background, no text, no duplicate views. Dark ochre/petrol/burgundy palette, upper-left warm light.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-140aaa91-1114-4b0f-9e4a-156def374d39.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\characters\\mai-van.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "characters/minh.png",
+      "prompt": "ONE isolated full-body production PIXEL ART NPC sprite on genuine transparent background. Reference defines exact chibi proportions (THREE heads tall), stepped dark outlines, chunky pixel clusters and muted warm lighting, NOT identity. New subject: Vietnamese man33, railway reporter, round brass spectacles, short neatly parted black hair, tobacco-brown suit with dark narrow tie, cream shirt, black shoes. Thoughtful skeptical expression, arms relaxed, no hat. Three-quarter facing LEFT. Match Sherlock/Watson-era2D detective adventure, large expressive head and compact body/short legs. Originally96x144-style pixel sprite enlarged crisply, no realistic anatomy, no photorealism, no smooth vector. 2:3portrait canvas, whole head to shoes fills95% height, feet close to bottom, minimal margins. Clean alpha edge, no ground, no cast shadow, no glow, no background, no text, no duplicate views. Dark ochre/petrol/burgundy palette, upper-left warm light.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-c56572f6-6e71-4ea3-af9b-dea1444c2a85.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\characters\\mai-van.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "characters/nghi.png",
+      "prompt": "ONE isolated full-body production PIXEL ART NPC sprite on genuine transparent background. Reference defines exact chibi proportions (THREE heads tall), stepped dark outlines, chunky pixel clusters and muted warm lighting, NOT identity. New subject: Vietnamese man57, station porter, ochre railway work jacket and matching simple peaked cap without logo, grey small moustache, dark brown trousers and boots, solid stocky build, honest worried expression, hands behind back. Three-quarter facing LEFT. Match Sherlock/Watson-era2D detective adventure, large expressive head and compact body/short legs. Originally96x144-style pixel sprite enlarged crisply, no realistic anatomy, no photorealism, no smooth vector. 2:3portrait canvas, whole head to shoes fills95% height, feet close to bottom, minimal margins. Clean alpha edge, no ground, no cast shadow, no glow, no background, no text, no duplicate views. Dark ochre/petrol/burgundy palette, upper-left warm light.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-c07e4641-8f68-46a6-96a8-46db9dc2b50b.png",
+      "referenceImages": [
+        "D:\\CODE\\Final\\prn232-su26-ai-audit-project-prn232_se18d07_group-01\\src\\FE\\public\\assets\\reference-cases\\dem-khoa-so\\pixel-v2\\characters\\mai-van.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/timetable.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. A single cream railway timetable card lying flat, shallow overhead view, exact prominent black numerals '23:40', small steam-train silhouette at top, faint ledger lines; no other legible text. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-df87076b-fa91-475d-bd71-86997970401b.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/telegram-top.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. TOP half of a torn cream telegram form lying flat, jagged tear on BOTTOM edge, small dark telegraph emblem and short heading 'BAN NHAP', a few abstract handwritten lines, no numbers. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d6977cdc-cfa7-434c-bc42-b9a7d3b99a6b.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/telegram-bottom.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. BOTTOM half of a torn cream telegram form lying flat, jagged tear on TOP edge, fine ledger lines, one visibly EMPTY outlined approval box at bottom-right, no legible words or numbers. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d2b1c6e4-7bce-4126-ac51-1e53955575f3.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/telegram-full.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One restored rectangular cream telegram form lying flat, matching torn seam horizontally through its middle, small telegraph emblem and heading 'BAN NHAP', abstract handwritten lines and empty approval rectangle at bottom-right. No other readable writing. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-653552bb-77aa-476d-9b71-46aff917a5a6.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/ledger.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One small OPEN old accounts ledger lying flat on a desktop, dark petrol cover, cream pages, tiny ochre ruled columns and abstract dark ink entries, burgundy ribbon bookmark. No readable letters or numbers. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-ac9d25a9-96c5-4f54-8f5d-41f05675f20c.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/codebox.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. A squat closed dark petrol metal railway duty box with brass corners and handle folded flat, four brass number wheels on front reading EXACTLY '0000'. Normal front furniture perspective, a little top/right visible. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-09568204-2448-4bb5-aba7-4a5273443e31.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/key.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. A brass skeleton key lying diagonally, attached small cream tag with a plain dark GEAR pictogram only, round bow and two square teeth. No text. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-b656485a-0cd9-4ca2-9976-0f2885608c8d.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/star-key.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. A different antique SILVER skeleton key lying diagonally, attached small darkblue tag with one bright brass FIVE-POINT STAR pictogram. No text. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-25e1b7d2-0b2f-42f6-b2c8-a29ff6d73ff9.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/keyedbox.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. Small closed walnut document box with brass keyhole and small brass GEAR emblem above it, straight front furniture perspective with top/right slightly visible, squat rectangular silhouette. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-f37a847a-2eec-4d21-8bd1-df64980b7e44.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/routecard.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One cream card lying flat with THREE large dark pictograms left to right: crescent MOON, three WAVY lines, FIVE-POINT STAR; small right-pointing arrows between. Bottom small gear pictogram crossed out in muted red. No words or numbers. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-231f183b-78d0-46fe-9e9b-d7a6fa9ffb97.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/symbolbox.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One squat midnight-blue wooden filing box with three blank square brass selection plates on front, small moon/wave/star engraved border, folded metal handle on top, no readable text or digits. Normal front furniture perspective, slight top/right visible. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-a20b271a-2556-49d7-81bf-b4192485d943.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/receipt.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One small cream official receipt lying flat, ruled dark ink lines and a bold muted red circular PAID stamp represented by a simple check mark, tiny round station seal, no readable words or numbers. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-ec52c3a0-7435-4b90-a312-a503ec778e37.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/sequencebox.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One squat brass-and-petrol archival box with FOUR small square ivory push-buttons in a row on front, each button has a different simple abstract black document pictogram, no numbers or letters. Normal front perspective, top and right slightly visible. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-1db9846c-1ced-4a7e-85fe-c5d7a28732f9.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/carbon.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One thin charcoal-grey carbon impression paper sheet lying FLAT, slightly curled upper corner, faint darker scribbled impression lines, no readable text, no pencil included. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-f31946b1-2e8e-420d-b28b-36fdbe44ebfa.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/pencil.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. ONE short sharpened dark brown wood graphite pencil, lying diagonally horizontal, exposed pale wood at tip, dark graphite point, no eraser, no text. Entire pencil in frame. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-72006f5b-9d6c-4db0-8ec5-5466ab4b7f1f.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/rubbing.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One cream paper rubbing sheet lying FLAT, charcoal rubbed patches reveal several dark handwritten lines and one hand-drawn arrow crossing out a five-point star and pointing toward a small wave pictogram. No legible words or numbers, subtle smudges. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-b7e28921-cc69-42c3-b23a-2c34664904ac.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "path": "items/trunk.png",
+      "prompt": "ONE isolated production2D PIXEL ART point-and-click adventure item sprite. One compact closed dark blue STEEL document trunk with brass reinforced corners, a KEYHOLE on its front, and a small brass FIVE-POINT STAR on the lid. Straight front furniture perspective with top/right slightly visible. No code wheels, no other symbols, no text. Reference is style/palette only. Strong visible squared pixel clusters, stepped1px outlines, limited3-shade materials, ochre/cream/petrol/burgundy muted palette, upperleft warm light. This must integrate into the same retro detective room, not photoreal or smooth concept painting. Landscape3:2canvas, entire object occupies85–90%width, modest transparent margin. For paper: slight perspective foreshortening so it lies on a horizontal surface, not standing like a sign. For boxes: entire base visible. Genuine TRANSPARENT background, no floor/table/background rectangle, no shadows outside silhouette, no glow, no multiple views, no hands, no watermark. Crisp clean alpha.",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-3c411d92-0736-46ed-8014-5a52752f4a79.png",
+      "referenceImages": [
+        "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-6ca7fbab-d3b8-4146-be5d-440c31dab379.png"
+      ],
+      "transparentBackground": true,
+      "tool": "built-in image_gen"
+    }
+  ]
+}

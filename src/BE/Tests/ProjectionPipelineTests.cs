@@ -24,6 +24,80 @@ public sealed class ProjectionPipelineTests
     }
 
     [Fact]
+    public void ConversationProjectionSlot_OmitsNewDefaultsForPersistedLegacyPlanCompatibility()
+    {
+        var legacySlot = new ConversationProjectionSlot
+        {
+            NodeId = "legacy-conversation", CharacterId = "character-legacy",
+            NextNodeIds = ["legacy-leaf"]
+        };
+        var encoded = JsonSerializer.SerializeToNode(legacySlot, JsonOptions)!.AsObject();
+        Assert.False(encoded.ContainsKey("sourceDialogueId"));
+        Assert.False(encoded.ContainsKey("statementIds"));
+        var decoded = JsonSerializer.Deserialize<ConversationProjectionSlot>(encoded.ToJsonString(), JsonOptions)!;
+        Assert.Equal("legacy-conversation", decoded.NodeId);
+        Assert.Null(decoded.SourceDialogueId);
+        Assert.Null(decoded.StatementIds);
+        Assert.Equal(encoded.ToJsonString(), JsonSerializer.SerializeToNode(decoded, JsonOptions)!.ToJsonString());
+    }
+
+    [Fact]
+    public void ShortSampler_PlanLocksConversationSourcesBeforeStrictContentSchemaAssembly()
+    {
+        var draft = new AiCaseDraft
+        {
+            Id = "64b64c0f0f0f0f0f0f0f0f11", LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            PlannedTargetKind = CaseTargetKinds.Asset,
+            Settings = new AiDraftSettings
+            {
+                GenerationPreset = AiGenerationPresets.ShortDemo, StageCount = 2, ShortDemoProfileVersion = 1,
+                MechanicsVersion = CaseMechanicsVersions.InvestigationV2
+            }
+        };
+        var truth = JsonSerializer.Deserialize<CaseTruthPackage>(AiCaseMockFactory.BuildMockTruthPackageJson(draft), JsonOptions)!;
+        draft.CaseTruth = truth;
+        draft.TruthHash = _truthService.ComputeHash(truth);
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+        var schema = new ProjectionContentSchemaFactory().Build(plan);
+        var map = schema["properties"]!["conversationNodes"]!["properties"]!.AsObject();
+        Assert.Equal(3, map.Count);
+        foreach (var leaf in plan.Skeleton.ConversationNodes.Where(node => !node.IsRoot))
+        {
+            Assert.NotNull(leaf.SourceDialogueId);
+            var nodeSchema = map[leaf.NodeId]!["properties"]!.AsObject();
+            Assert.False(nodeSchema.ContainsKey("sourceDialogueId"));
+            Assert.False(nodeSchema.ContainsKey("nextNodeIds"));
+            Assert.False(nodeSchema.ContainsKey("unlockClueIds"));
+            Assert.Equal(leaf.Lines.Count, nodeSchema["lines"]!["minItems"]!.GetValue<int>());
+        }
+        draft.ProjectionPlan = plan;
+        var prompt = ProjectionPromptContext.Build(draft);
+        Assert.Contains("sourceDialogueId", prompt);
+        Assert.Contains("approvedLines", prompt);
+        Assert.All(plan.Skeleton.ConversationNodes.Where(node => !node.IsRoot),
+            leaf => Assert.Contains(leaf.SourceDialogueId!, prompt));
+    }
+
+    [Fact]
+    public void CapacityStartupChecks_KeepLegacyAndSamplerShortProfilesWithinEightClues()
+    {
+        ProjectionCapacityPolicy.EnsureAllContractsValid();
+        foreach (var profile in new[] { 0, 1 })
+        foreach (var paired in new[] { false, true })
+        {
+            var capacity = ProjectionCapacityPolicy.For(new AiDraftSettings
+            {
+                GenerationPreset = AiGenerationPresets.ShortDemo, StageCount = 2,
+                ShortDemoProfileVersion = profile, IncludeCrackTheLie = paired,
+                MechanicsVersion = paired ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                    : CaseMechanicsVersions.InvestigationV2
+            });
+            capacity.EnsureValid($"Short profile {profile}");
+            Assert.Equal(8, capacity.MaxProjectedClues);
+        }
+    }
+
+    [Fact]
     public void ProjectionContentFailure_CanRetryFromPersistedPlanWithoutCaseJson()
     {
         var draft = new AiCaseDraft

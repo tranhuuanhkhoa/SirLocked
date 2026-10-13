@@ -1,0 +1,4007 @@
+{
+  "caseId": "case-full-chuyen-tau-so-7-vi",
+  "title": "Hồ sơ chuyến tàu số 7",
+  "language": "vi",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "logicContractVersion": 1,
+  "generationMode": "PLACEMENT_FIRST",
+  "estimatedMinutes": 80,
+  "art_style": "pixel_art",
+  "sub_style": "high_detail_pixel",
+  "character_style": "chibi",
+  "summary": "23:10, ga Lạc Hải, năm 1932. Hồ sơ kiểm định cầu phải theo chuyến tàu số 7 lúc 00:15 đã biến mất. Một bức điện hủy giao nhận, chiếc đồng hồ sai giờ và kiện hàng chờ ra bến sông khiến năm lời khai lệch nhau. Hai thám tử có chưa đầy một đêm để tìm bản gốc trước khi nó rời ga. Hãy lần theo giấy tờ, kiểm tra hiện trường và cùng đối chất; đừng nhầm một lời nói dối với toàn bộ tội trạng.",
+  "coverImageUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/station-hall.png",
+  "stages": [
+    {
+      "stageId": "stage-1-t7",
+      "title": "Hồi I — Mười hai phút bị mất",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-hall-t7",
+          "title": "Sảnh ga Lạc Hải",
+          "backgroundUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/station-hall.png",
+          "description": "Chiếc đồng hồ lớn đã được chỉnh lại trước khi hai thám tử tới. Mốc giờ trong lời kể vẫn chưa chắc đúng. Xem lịch giao nhận, sổ nhận kiện và mảnh điện tín trên quầy; hỏi Hạnh cô đã xác định giờ bằng cách nào.",
+          "itemIds": [
+            "item-timetable-t7",
+            "item-telegram-top-t7",
+            "item-intake-t7"
+          ],
+          "characterIds": [
+            "char-hanh-t7",
+            "char-vy-t7"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-hall-hanh-t7",
+              "type": "CHARACTER",
+              "targetId": "char-hanh-t7",
+              "x": 18.5625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Đỗ Hạnh",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-hall-vy-t7",
+              "type": "CHARACTER",
+              "targetId": "char-vy-t7",
+              "x": 72.625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Trần Tường Vy",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-timetable-t7",
+              "type": "ITEM",
+              "targetId": "item-timetable-t7",
+              "x": 41.375,
+              "y": 46.22222222222222,
+              "width": 6.0,
+              "height": 6.888888888888889,
+              "zIndex": 10,
+              "label": "Lịch bàn giao đêm",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-telegram-top-t7",
+              "type": "ITEM",
+              "targetId": "item-telegram-top-t7",
+              "x": 50.21875,
+              "y": 47.22222222222222,
+              "width": 5.1875,
+              "height": 5.777777777777778,
+              "zIndex": 10,
+              "label": "Nửa đầu điện tín",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-intake-t7",
+              "type": "ITEM",
+              "targetId": "item-intake-t7",
+              "x": 57.125,
+              "y": 46.111111111111114,
+              "width": 6.375,
+              "height": 7.111111111111111,
+              "zIndex": 10,
+              "label": "Sổ tiếp nhận kiện",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 820,
+            "walkableArea": {
+              "x": 80,
+              "y": 630,
+              "width": 1440,
+              "height": 230
+            },
+            "navigationObstacles": [
+              {
+                "x": 520,
+                "y": 630,
+                "width": 590,
+                "height": 45
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 920,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-timetable-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/timetable.png",
+                "position": {
+                  "x": 710,
+                  "y": 471,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 82,
+                  "height": 52
+                },
+                "hotspot": {
+                  "x": 662.0,
+                  "y": 416,
+                  "width": 96,
+                  "height": 62
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-telegram-top-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/telegram-top.png",
+                "position": {
+                  "x": 845,
+                  "y": 470,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 69,
+                  "height": 42
+                },
+                "hotspot": {
+                  "x": 803.5,
+                  "y": 425,
+                  "width": 83,
+                  "height": 52
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-intake-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+                "position": {
+                  "x": 965,
+                  "y": 472,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 88,
+                  "height": 54
+                },
+                "hotspot": {
+                  "x": 914.0,
+                  "y": 415,
+                  "width": 102,
+                  "height": 64
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-hanh-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/hanh.png",
+                "position": {
+                  "x": 355,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 297,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              {
+                "characterId": "char-vy-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/vy.png",
+                "position": {
+                  "x": 1220,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [],
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-0-scene-dispatch-t7-t7",
+                "targetSceneId": "scene-dispatch-t7",
+                "label": "Phòng điện tín",
+                "hotspot": {
+                  "x": 145,
+                  "y": 220,
+                  "width": 100,
+                  "height": 385
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-timetable-t7",
+              "item-telegram-top-t7",
+              "item-intake-t7"
+            ],
+            "requiredClueIds": [],
+            "requiredDialogueIds": [
+              "dlg-hanh-time-t7",
+              "dlg-vy-first-t7"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-dispatch-t7",
+          "title": "Phòng điện tín",
+          "backgroundUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/dispatch-office.png",
+          "description": "Máy điện báo đã im. Ghép hai phần bản nháp, mở hộp trực bằng quy ước giờ bàn giao và đối chiếu nhật ký chuẩn. Muốn vào kho, hai người phải thống nhất lại mốc thời gian qua đối chất và suy luận.",
+          "itemIds": [
+            "item-telegram-bottom-t7",
+            "item-sync-t7",
+            "item-duty-box-t7"
+          ],
+          "characterIds": [
+            "char-an-t7",
+            "char-hanh-t7"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-dispatch-an-t7",
+              "type": "CHARACTER",
+              "targetId": "char-an-t7",
+              "x": 18.5625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Lê Quốc An",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-dispatch-hanh-t7",
+              "type": "CHARACTER",
+              "targetId": "char-hanh-t7",
+              "x": 72.625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Đỗ Hạnh",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-telegram-bottom-t7",
+              "type": "ITEM",
+              "targetId": "item-telegram-bottom-t7",
+              "x": 46.15625,
+              "y": 46.22222222222222,
+              "width": 5.1875,
+              "height": 5.777777777777778,
+              "zIndex": 10,
+              "label": "Nửa cuối điện tín",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-sync-t7",
+              "type": "ITEM",
+              "targetId": "item-sync-t7",
+              "x": 54.4375,
+              "y": 44.44444444444444,
+              "width": 6.625,
+              "height": 7.777777777777778,
+              "zIndex": 10,
+              "label": "Nhật ký đối giờ",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-duty-box-t7",
+              "type": "ITEM",
+              "targetId": "item-duty-box-t7",
+              "x": 10.375,
+              "y": 39.77777777777778,
+              "width": 8.125,
+              "height": 10.666666666666666,
+              "zIndex": 10,
+              "label": "Hộp trực khóa bốn số",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 820,
+            "walkableArea": {
+              "x": 80,
+              "y": 630,
+              "width": 1440,
+              "height": 230
+            },
+            "navigationObstacles": [
+              {
+                "x": 520,
+                "y": 630,
+                "width": 590,
+                "height": 45
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 920,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-telegram-bottom-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/telegram-bottom.png",
+                "position": {
+                  "x": 780,
+                  "y": 461,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 69,
+                  "height": 42
+                },
+                "hotspot": {
+                  "x": 738.5,
+                  "y": 416,
+                  "width": 83,
+                  "height": 52
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-sync-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+                "position": {
+                  "x": 924,
+                  "y": 463,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 92,
+                  "height": 60
+                },
+                "hotspot": {
+                  "x": 871.0,
+                  "y": 400,
+                  "width": 106,
+                  "height": 70
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-duty-box-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/codebox.png",
+                "position": {
+                  "x": 231,
+                  "y": 447,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 116,
+                  "height": 86
+                },
+                "hotspot": {
+                  "x": 166.0,
+                  "y": 358,
+                  "width": 130,
+                  "height": 96
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-an-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/an.png",
+                "position": {
+                  "x": 355,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 297,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              {
+                "characterId": "char-hanh-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/hanh.png",
+                "position": {
+                  "x": 1220,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [],
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-1-scene-hall-t7-t7",
+                "targetSceneId": "scene-hall-t7",
+                "label": "Sảnh ga Lạc Hải",
+                "hotspot": {
+                  "x": 1355,
+                  "y": 220,
+                  "width": 105,
+                  "height": 180
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-1-scene-warehouse-t7-t7",
+                "targetSceneId": "scene-warehouse-t7",
+                "label": "Kho hành lý",
+                "hotspot": {
+                  "x": 1355,
+                  "y": 415,
+                  "width": 105,
+                  "height": 180
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-telegram-bottom-t7",
+              "item-sync-t7"
+            ],
+            "requiredClueIds": [
+              "ev-draft-t7",
+              "ev-internal-transfer-t7",
+              "ev-gate-act1-t7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-an-duty-t7",
+              "dlg-hanh-correct-t7"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-2-t7",
+      "title": "Hồi II — Bức điện chưa từng đến",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-warehouse-t7",
+          "title": "Kho hành lý",
+          "backgroundUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/luggage-warehouse.png",
+          "description": "Hòm gỗ ngoài có dải xanh còn ở mép kho; túi hồ sơ bên trong đã chuyển sang sân tập kết. Chụp dấu nhận dạng để đối chiếu sổ tiếp nhận. Chìa hộp trực mở ngăn điều vận; ký hiệu trên tủ tuyến dẫn tới nơi nhận thực sự.",
+          "itemIds": [
+            "item-dispatch-cabinet-t7",
+            "item-route-rule-t7",
+            "item-route-box-t7",
+            "item-porter-fee-t7"
+          ],
+          "characterIds": [
+            "char-nghi-t7",
+            "char-minh-t7"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-warehouse-nghi-t7",
+              "type": "CHARACTER",
+              "targetId": "char-nghi-t7",
+              "x": 18.5625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Phạm Nghi",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-warehouse-minh-t7",
+              "type": "CHARACTER",
+              "targetId": "char-minh-t7",
+              "x": 72.625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Bùi Minh",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-dispatch-cabinet-t7",
+              "type": "ITEM",
+              "targetId": "item-dispatch-cabinet-t7",
+              "x": 22.0625,
+              "y": 38.44444444444444,
+              "width": 7.75,
+              "height": 10.666666666666666,
+              "zIndex": 10,
+              "label": "Ngăn điều vận khóa chìa",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-route-rule-t7",
+              "type": "ITEM",
+              "targetId": "item-route-rule-t7",
+              "x": 41.5,
+              "y": 45.22222222222222,
+              "width": 6.375,
+              "height": 6.888888888888889,
+              "zIndex": 10,
+              "label": "Thẻ quy ước tủ tuyến",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-route-box-t7",
+              "type": "ITEM",
+              "targetId": "item-route-box-t7",
+              "x": 51.0,
+              "y": 41.22222222222222,
+              "width": 8.625,
+              "height": 11.333333333333334,
+              "zIndex": 10,
+              "label": "Tủ tuyến ba ký hiệu",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-porter-fee-t7",
+              "type": "ITEM",
+              "targetId": "item-porter-fee-t7",
+              "x": 60.75,
+              "y": 47.77777777777778,
+              "width": 4.75,
+              "height": 5.333333333333333,
+              "zIndex": 10,
+              "label": "Phiếu công xe tay",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 820,
+            "walkableArea": {
+              "x": 80,
+              "y": 630,
+              "width": 1440,
+              "height": 230
+            },
+            "navigationObstacles": [
+              {
+                "x": 520,
+                "y": 630,
+                "width": 590,
+                "height": 45
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 920,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-dispatch-cabinet-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/keyedbox.png",
+                "position": {
+                  "x": 415,
+                  "y": 435,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 110,
+                  "height": 86
+                },
+                "hotspot": {
+                  "x": 353.0,
+                  "y": 346,
+                  "width": 124,
+                  "height": 96
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-route-rule-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/routecard.png",
+                "position": {
+                  "x": 715,
+                  "y": 462,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 88,
+                  "height": 52
+                },
+                "hotspot": {
+                  "x": 664.0,
+                  "y": 407,
+                  "width": 102,
+                  "height": 62
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-route-box-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/symbolbox.png",
+                "position": {
+                  "x": 885,
+                  "y": 466,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 124,
+                  "height": 92
+                },
+                "hotspot": {
+                  "x": 816.0,
+                  "y": 371,
+                  "width": 138,
+                  "height": 102
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-porter-fee-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/receipt.png",
+                "position": {
+                  "x": 1010,
+                  "y": 471,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 62,
+                  "height": 38
+                },
+                "hotspot": {
+                  "x": 972.0,
+                  "y": 430,
+                  "width": 76,
+                  "height": 48
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-nghi-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/nghi.png",
+                "position": {
+                  "x": 355,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 297,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              {
+                "characterId": "char-minh-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/minh.png",
+                "position": {
+                  "x": 1220,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "ev-blue-crate-t7",
+                "label": "Dải xanh và hai đai đồng",
+                "bounds": {
+                  "x": 1270,
+                  "y": 344,
+                  "width": 220,
+                  "height": 220
+                },
+                "shape": "rect",
+                "surface": "crate",
+                "visibility": "clear",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.95,
+                "source": "manual-visual-review",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "Observed in generated warehouse: blue diagonal stripe across front between two brass bands, at right rear of room."
+              }
+            ],
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-2-scene-dispatch-t7-t7",
+                "targetSceneId": "scene-dispatch-t7",
+                "label": "Phòng điện tín",
+                "hotspot": {
+                  "x": 145,
+                  "y": 220,
+                  "width": 100,
+                  "height": 180
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-2-scene-signal-t7-t7",
+                "targetSceneId": "scene-signal-t7",
+                "label": "Buồng trực tín hiệu",
+                "hotspot": {
+                  "x": 145,
+                  "y": 415,
+                  "width": 100,
+                  "height": 180
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-route-rule-t7"
+            ],
+            "requiredClueIds": [
+              "ev-cargo-order-t7",
+              "ev-blue-crate-t7",
+              "ev-wharf-route-t7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-nghi-cargo-t7",
+              "dlg-minh-telegram-t7"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-signal-t7",
+          "title": "Buồng trực tín hiệu",
+          "backgroundUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/signal-cabin.png",
+          "description": "Cần tách hai việc: sửa đồng hồ và tạo điện hủy. Chụp nắp bảo dưỡng đang mở, lấy nhật ký điện đến rồi đối chất với An và Minh. Chỉ kết luận điều chứng cứ thực sự xác lập.",
+          "itemIds": [
+            "item-filing-rule-t7",
+            "item-service-card-t7",
+            "item-incoming-box-t7"
+          ],
+          "characterIds": [
+            "char-an-t7",
+            "char-minh-t7"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-signal-an-t7",
+              "type": "CHARACTER",
+              "targetId": "char-an-t7",
+              "x": 18.5625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Lê Quốc An",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-signal-minh-t7",
+              "type": "CHARACTER",
+              "targetId": "char-minh-t7",
+              "x": 72.625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Bùi Minh",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-filing-rule-t7",
+              "type": "ITEM",
+              "targetId": "item-filing-rule-t7",
+              "x": 41.3125,
+              "y": 47.0,
+              "width": 6.125,
+              "height": 7.111111111111111,
+              "zIndex": 10,
+              "label": "Quy trình lưu phiếu tín hiệu",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-service-card-t7",
+              "type": "ITEM",
+              "targetId": "item-service-card-t7",
+              "x": 49.8125,
+              "y": 48.111111111111114,
+              "width": 5.625,
+              "height": 6.0,
+              "zIndex": 10,
+              "label": "Phiếu công tác của An",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-incoming-box-t7",
+              "type": "ITEM",
+              "targetId": "item-incoming-box-t7",
+              "x": 56.15625,
+              "y": 43.666666666666664,
+              "width": 8.3125,
+              "height": 11.0,
+              "zIndex": 10,
+              "label": "Ngăn lưu điện đến",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 820,
+            "walkableArea": {
+              "x": 80,
+              "y": 630,
+              "width": 1440,
+              "height": 230
+            },
+            "navigationObstacles": [
+              {
+                "x": 520,
+                "y": 630,
+                "width": 590,
+                "height": 45
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 920,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-filing-rule-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+                "position": {
+                  "x": 710,
+                  "y": 480,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 84,
+                  "height": 54
+                },
+                "hotspot": {
+                  "x": 661.0,
+                  "y": 423,
+                  "width": 98,
+                  "height": 64
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-service-card-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/receipt.png",
+                "position": {
+                  "x": 842,
+                  "y": 480,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 76,
+                  "height": 44
+                },
+                "hotspot": {
+                  "x": 797.0,
+                  "y": 433,
+                  "width": 90,
+                  "height": 54
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-incoming-box-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/sequencebox.png",
+                "position": {
+                  "x": 965,
+                  "y": 485,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 119,
+                  "height": 89
+                },
+                "hotspot": {
+                  "x": 898.5,
+                  "y": 393,
+                  "width": 133,
+                  "height": 99
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-an-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/an.png",
+                "position": {
+                  "x": 355,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 297,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              {
+                "characterId": "char-minh-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/minh.png",
+                "position": {
+                  "x": 1220,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "ev-open-hatch-t7",
+                "label": "Khoang bánh răng đang hở",
+                "bounds": {
+                  "x": 314,
+                  "y": 266,
+                  "width": 171,
+                  "height": 150
+                },
+                "shape": "rect",
+                "surface": "wall",
+                "visibility": "clear",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.95,
+                "source": "manual-visual-review",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "Observed in generated signal cabin: open left-hinged hatch and exposed gears under the round clock, left wall."
+              }
+            ],
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-3-scene-warehouse-t7-t7",
+                "targetSceneId": "scene-warehouse-t7",
+                "label": "Kho hành lý",
+                "hotspot": {
+                  "x": 145,
+                  "y": 220,
+                  "width": 100,
+                  "height": 180
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-3-scene-archive-t7-t7",
+                "targetSceneId": "scene-archive-t7",
+                "label": "Phòng lưu trữ kế toán",
+                "hotspot": {
+                  "x": 145,
+                  "y": 415,
+                  "width": 100,
+                  "height": 180
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-filing-rule-t7",
+              "item-service-card-t7"
+            ],
+            "requiredClueIds": [
+              "ev-message-47-t7",
+              "ev-open-hatch-t7",
+              "ev-gate-act2-t7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-an-hatch-t7",
+              "dlg-an-admit-t7",
+              "dlg-minh-source-t7"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-3-t7",
+      "title": "Hồi III — Người nhận cuối cùng",
+      "order": 3,
+      "scenes": [
+        {
+          "sceneId": "scene-archive-t7",
+          "title": "Phòng lưu trữ kế toán",
+          "backgroundUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/accounts-archive.png",
+          "description": "Quyền kiểm tra sổ được mở sau khi điện hủy bị bác. Tìm người hưởng lợi, chứng từ giao hồ sơ và vết hằn trên giấy lót. Hỏi lại Vy và Hạnh với những gì đã biết.",
+          "itemIds": [
+            "item-commission-t7",
+            "item-carbon-t7",
+            "item-pencil-t7",
+            "item-custody-t7"
+          ],
+          "characterIds": [
+            "char-vy-t7",
+            "char-hanh-t7"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-archive-vy-t7",
+              "type": "CHARACTER",
+              "targetId": "char-vy-t7",
+              "x": 18.5625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Trần Tường Vy",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-archive-hanh-t7",
+              "type": "CHARACTER",
+              "targetId": "char-hanh-t7",
+              "x": 72.625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Đỗ Hạnh",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-commission-t7",
+              "type": "ITEM",
+              "targetId": "item-commission-t7",
+              "x": 38.90625,
+              "y": 48.888888888888886,
+              "width": 6.6875,
+              "height": 7.555555555555555,
+              "zIndex": 10,
+              "label": "Sổ thanh toán vật tư",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-carbon-t7",
+              "type": "ITEM",
+              "targetId": "item-carbon-t7",
+              "x": 47.46875,
+              "y": 50.333333333333336,
+              "width": 5.6875,
+              "height": 6.0,
+              "zIndex": 10,
+              "label": "Tờ giấy lót có vết hằn",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-pencil-t7",
+              "type": "ITEM",
+              "targetId": "item-pencil-t7",
+              "x": 53.78125,
+              "y": 51.333333333333336,
+              "width": 4.9375,
+              "height": 4.444444444444445,
+              "zIndex": 10,
+              "label": "Bút chì mềm",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-custody-t7",
+              "type": "ITEM",
+              "targetId": "item-custody-t7",
+              "x": 59.3125,
+              "y": 49.333333333333336,
+              "width": 6.375,
+              "height": 7.444444444444445,
+              "zIndex": 10,
+              "label": "Sổ bàn giao hồ sơ gốc",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 820,
+            "walkableArea": {
+              "x": 80,
+              "y": 630,
+              "width": 1440,
+              "height": 230
+            },
+            "navigationObstacles": [
+              {
+                "x": 520,
+                "y": 630,
+                "width": 590,
+                "height": 45
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 920,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-commission-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+                "position": {
+                  "x": 676,
+                  "y": 501,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 93,
+                  "height": 58
+                },
+                "hotspot": {
+                  "x": 622.5,
+                  "y": 440,
+                  "width": 107,
+                  "height": 68
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-carbon-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/carbon.png",
+                "position": {
+                  "x": 805,
+                  "y": 500,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 77,
+                  "height": 44
+                },
+                "hotspot": {
+                  "x": 759.5,
+                  "y": 453,
+                  "width": 91,
+                  "height": 54
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-pencil-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/pencil.png",
+                "position": {
+                  "x": 900,
+                  "y": 495,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 65,
+                  "height": 30
+                },
+                "hotspot": {
+                  "x": 860.5,
+                  "y": 462,
+                  "width": 79,
+                  "height": 40
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-custody-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+                "position": {
+                  "x": 1000,
+                  "y": 504,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 88,
+                  "height": 57
+                },
+                "hotspot": {
+                  "x": 949.0,
+                  "y": 444,
+                  "width": 102,
+                  "height": 67
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-vy-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/vy.png",
+                "position": {
+                  "x": 355,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 297,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              {
+                "characterId": "char-hanh-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/hanh.png",
+                "position": {
+                  "x": 1220,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [],
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-4-scene-signal-t7-t7",
+                "targetSceneId": "scene-signal-t7",
+                "label": "Buồng trực tín hiệu",
+                "hotspot": {
+                  "x": 145,
+                  "y": 220,
+                  "width": 100,
+                  "height": 180
+                },
+                "depth": 22
+              },
+              {
+                "transitionId": "transition-4-scene-platform-t7-t7",
+                "targetSceneId": "scene-platform-t7",
+                "label": "Sân tập kết chuyến số 7",
+                "hotspot": {
+                  "x": 145,
+                  "y": 415,
+                  "width": 100,
+                  "height": 180
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-commission-t7",
+              "item-carbon-t7",
+              "item-pencil-t7",
+              "item-custody-t7"
+            ],
+            "requiredClueIds": [
+              "ev-altered-order-t7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-vy-denial-t7",
+              "dlg-hanh-custody-t7"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-platform-t7",
+          "title": "Sân tập kết chuyến số 7",
+          "backgroundUrl": "/assets/reference-cases/chuyen-tau-so-7/scenes/freight-platform.png",
+          "description": "Xe tay ra bến hẹn 00:05 nhưng vẫn đang bị giữ tại sân có mái che. Mở rương sắt chứa túi chứng từ và hồ sơ gốc, đối chiếu lệnh có ký nhận, rồi cùng hoàn tất cáo buộc trước giờ tàu chạy.",
+          "itemIds": [
+            "item-freight-trunk-t7",
+            "item-holding-log-t7"
+          ],
+          "characterIds": [
+            "char-nghi-t7",
+            "char-vy-t7"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-platform-nghi-t7",
+              "type": "CHARACTER",
+              "targetId": "char-nghi-t7",
+              "x": 18.5625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Phạm Nghi",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-platform-vy-t7",
+              "type": "CHARACTER",
+              "targetId": "char-vy-t7",
+              "x": 72.625,
+              "y": 60.0,
+              "width": 7.25,
+              "height": 26.666666666666668,
+              "zIndex": 14,
+              "label": "Trần Tường Vy",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-freight-trunk-t7",
+              "type": "ITEM",
+              "targetId": "item-freight-trunk-t7",
+              "x": 80.3125,
+              "y": 38.111111111111114,
+              "width": 10.0,
+              "height": 13.11111111111111,
+              "zIndex": 10,
+              "label": "Rương chứng từ ở sân tập kết",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-holding-log-t7",
+              "type": "ITEM",
+              "targetId": "item-holding-log-t7",
+              "x": 47.4375,
+              "y": 42.111111111111114,
+              "width": 6.625,
+              "height": 7.777777777777778,
+              "zIndex": 10,
+              "label": "Sổ giữ hàng trước cổng",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 820,
+            "walkableArea": {
+              "x": 80,
+              "y": 630,
+              "width": 1440,
+              "height": 230
+            },
+            "navigationObstacles": [],
+            "spawnPoints": {
+              "default": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 640,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 920,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-freight-trunk-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/trunk.png",
+                "position": {
+                  "x": 1365,
+                  "y": 454,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 146,
+                  "height": 108
+                },
+                "hotspot": {
+                  "x": 1285.0,
+                  "y": 343,
+                  "width": 160,
+                  "height": 118
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-holding-log-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+                "position": {
+                  "x": 812,
+                  "y": 442,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 92,
+                  "height": 60
+                },
+                "hotspot": {
+                  "x": 759.0,
+                  "y": 379,
+                  "width": 106,
+                  "height": 70
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-nghi-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/nghi.png",
+                "position": {
+                  "x": 355,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 297,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              {
+                "characterId": "char-vy-t7",
+                "asset": "/assets/reference-cases/chuyen-tau-so-7/characters/vy.png",
+                "position": {
+                  "x": 1220,
+                  "y": 775,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1162,
+                  "y": 540,
+                  "width": 116,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [],
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-5-scene-archive-t7-t7",
+                "targetSceneId": "scene-archive-t7",
+                "label": "Phòng lưu trữ kế toán",
+                "hotspot": {
+                  "x": 145,
+                  "y": 220,
+                  "width": 100,
+                  "height": 385
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-holding-log-t7"
+            ],
+            "requiredClueIds": [
+              "ev-signed-order-t7",
+              "ev-original-report-t7",
+              "ev-gate-act3-t7"
+            ],
+            "requiredDialogueIds": [
+              "dlg-nghi-hold-t7",
+              "dlg-vy-last-t7"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-vy-t7",
+      "name": "Trần Tường Vy",
+      "role": "Phó trưởng ga",
+      "description": "Điều phối hồ sơ kiểm định và các hợp đồng vật tư. Vy yêu cầu điều tra kín để không ảnh hưởng chuyến tàu đêm.",
+      "visualDescription": "Vietnamese woman age42, navy tailored jacket, cream silk scarf, low bun, composed sharp eyes",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/characters/vy.png"
+    },
+    {
+      "characterId": "char-hanh-t7",
+      "name": "Đỗ Hạnh",
+      "role": "Nhân viên vé và giao nhận",
+      "description": "Giữ sổ nhận hồ sơ. Cô nhớ tiếng chuông xe hàng nhưng dựa vào đồng hồ sảnh để kể lại thời điểm.",
+      "visualDescription": "Vietnamese woman age28, burgundy waistcoat, cream blouse, charcoal trousers, short black bob",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/characters/hanh.png"
+    },
+    {
+      "characterId": "char-an-t7",
+      "name": "Lê Quốc An",
+      "role": "Thợ đồng hồ và tín hiệu",
+      "description": "Đang bị nhắc nhở vì bảo dưỡng ngoài lịch. An sợ mất việc và không muốn nhắc đến nắp máy đồng hồ.",
+      "visualDescription": "Vietnamese man age35, dark teal work coat, rolled cream sleeves, charcoal flat cap, no spectacles",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/characters/an.png"
+    },
+    {
+      "characterId": "char-minh-t7",
+      "name": "Bùi Minh",
+      "role": "Phóng viên đường sắt",
+      "description": "Đến viết về cuộc kiểm định cầu. Anh giấu danh tính nguồn tin và lặp lại một thông báo chưa tự kiểm chứng.",
+      "visualDescription": "Vietnamese man age33, tobacco brown suit, round spectacles, short dark hair, slim dark tie",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/characters/minh.png"
+    },
+    {
+      "characterId": "char-nghi-t7",
+      "name": "Phạm Nghi",
+      "role": "Nhân viên chuyển hàng",
+      "description": "Chuyển kiện giữa kho và sân tập kết. Một khoản tiền công thêm khiến ông bị nghi nhận hối lộ.",
+      "visualDescription": "Vietnamese man age57, ochre railway porter jacket and cap, grey moustache, dark trousers",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/characters/nghi.png"
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-timetable-t7",
+      "name": "Lịch bàn giao đêm",
+      "description": "Chuyến bàn giao hàng cuối trước nửa đêm chạy lúc 23:40.",
+      "inspectText": "Chuyến bàn giao hàng cuối trước nửa đêm chạy lúc 23:40. Dòng quy ước của hộp trực: dùng giờ của chuyến bàn giao cuối, theo HHMM, bỏ dấu hai chấm. Tàu khách số 7 đi lúc 00:15 là chuyến khác; không dùng giờ đó làm mã.",
+      "visualDescription": "Lịch bàn giao đêm: isolated pixel-art timetable, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/timetable.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-timetable-t7"
+      ]
+    },
+    {
+      "itemId": "item-telegram-top-t7",
+      "name": "Nửa đầu điện tín",
+      "description": "Mảnh giấy có đầu dòng BẢN NHÁP TẠI GA và phần lệnh ngừng giao hồ sơ.",
+      "inspectText": "Mảnh giấy có đầu dòng BẢN NHÁP TẠI GA và phần lệnh ngừng giao hồ sơ. Mép dưới bị xé; phần định tuyến và dấu truyền không còn. Giữ lại để tìm nửa khớp.",
+      "visualDescription": "Nửa đầu điện tín: isolated pixel-art telegram-top, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/telegram-top.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-telegram-top-t7"
+      ]
+    },
+    {
+      "itemId": "item-intake-t7",
+      "name": "Sổ tiếp nhận kiện",
+      "description": "21:50, Hạnh nhận hồ sơ kiểm định cầu từ đoàn kỹ sư và niêm vào hòm gỗ: dải xanh chéo, hai đai đồng.",
+      "inspectText": "21:50, Hạnh nhận hồ sơ kiểm định cầu từ đoàn kỹ sư và niêm vào hòm gỗ: dải xanh chéo, hai đai đồng. Sổ mô tả đây là kiện duy nhất trong ga có đủ hai dấu ấy. Hồ sơ gồm bản kiểm định có chữ ký gốc, phụ lục thanh toán và thư gửi thanh tra.",
+      "visualDescription": "Sổ tiếp nhận kiện: isolated pixel-art ledger, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-intake-t7"
+      ]
+    },
+    {
+      "itemId": "item-telegram-bottom-t7",
+      "name": "Nửa cuối điện tín",
+      "description": "Nửa giấy còn dòng: chuyển kiện sang khu tập kết, chờ xe tay ra bến; ô MÃ NHẬN ĐƯỜNG DÂY để trống.",
+      "inspectText": "Nửa giấy còn dòng: chuyển kiện sang khu tập kết, chờ xe tay ra bến; ô MÃ NHẬN ĐƯỜNG DÂY để trống. Mép xé khớp mảnh tìm ở sảnh. Ghép đủ để đọc trọn yêu cầu chuyển hàng và đối chiếu ô mã truyền với nhãn bản nháp.",
+      "visualDescription": "Nửa cuối điện tín: isolated pixel-art telegram-bottom, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/telegram-bottom.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-telegram-bottom-t7"
+      ]
+    },
+    {
+      "itemId": "item-sync-t7",
+      "name": "Nhật ký đối giờ",
+      "description": "Trạm chuẩn đường sắt gửi mốc 22:30; nhân viên trực đầu xa ghi 22:30, còn đồng hồ sảnh Lạc Hải chỉ 22:18.",
+      "inspectText": "Trạm chuẩn đường sắt gửi mốc 22:30; nhân viên trực đầu xa ghi 22:30, còn đồng hồ sảnh Lạc Hải chỉ 22:18. Bản giấy có mã kiểm tra và chữ ký hai đầu, không do Hạnh hay An tự xác nhận. Ghi chú sau đó: đồng hồ sảnh chạy chậm đều 12 phút, đã đặt đúng lúc 22:45. Chiếc đồng hồ trong cảnh hiện tại vì thế không còn giữ giờ sai của lời kể.",
+      "visualDescription": "Nhật ký đối giờ: isolated pixel-art ledger, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-sync-t7"
+      ]
+    },
+    {
+      "itemId": "item-duty-box-t7",
+      "name": "Hộp trực khóa bốn số",
+      "description": "Hộp giữ chìa ngăn điều vận và cuống xuất kho.",
+      "inspectText": "Hộp giữ chìa ngăn điều vận và cuống xuất kho. Mã tuân theo giờ chuyến bàn giao hàng cuối, dạng HHMM như lịch ở sảnh.",
+      "visualDescription": "Hộp trực khóa bốn số: isolated pixel-art codebox, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/codebox.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [],
+      "isInteractivePuzzleObject": true,
+      "interactionReason": "Hộp giữ chìa ngăn điều vận và cuống xuất kho. Mã tuân theo giờ chuyến bàn giao hàng cuối, dạng HHMM như lịch ở sảnh."
+    },
+    {
+      "itemId": "item-telegram-t7",
+      "name": "Bản nháp đã ghép",
+      "description": "Bản đầy đủ là lệnh soạn ngay tại ga, chưa có mã tiếp nhận từ đường dây.",
+      "inspectText": "Bản đầy đủ là lệnh soạn ngay tại ga, chưa có mã tiếp nhận từ đường dây. Lệnh dự kiến ngừng giao hồ sơ kiểm định và chuyển nó qua khu tập kết sang bến sông. Giấy này cho hướng điều tra, chưa chứng minh ai ra lệnh.",
+      "visualDescription": "Bản nháp đã ghép: isolated pixel-art telegram-full, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/telegram-full.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": []
+    },
+    {
+      "itemId": "item-warehouse-key-t7",
+      "name": "Chìa ngăn điều vận",
+      "description": "Chìa đồng thẻ bánh răng, lấy từ hộp trực.",
+      "inspectText": "Chìa đồng thẻ bánh răng, lấy từ hộp trực. Chỉ mở ngăn điều vận trong kho; người giữ chìa không mặc nhiên là người lấy hồ sơ.",
+      "visualDescription": "Chìa ngăn điều vận: isolated pixel-art key, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/key.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": []
+    },
+    {
+      "itemId": "item-dispatch-cabinet-t7",
+      "name": "Ngăn điều vận khóa chìa",
+      "description": "Ổ khóa có dấu bánh răng khớp thẻ chìa trong hộp trực.",
+      "inspectText": "Ổ khóa có dấu bánh răng khớp thẻ chìa trong hộp trực. Ngăn chứa phiếu giao hàng và bản kê nhiệm vụ xe tay.",
+      "visualDescription": "Ngăn điều vận khóa chìa: isolated pixel-art keyedbox, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/keyedbox.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [],
+      "isInteractivePuzzleObject": true,
+      "interactionReason": "Ổ khóa có dấu bánh răng khớp thẻ chìa trong hộp trực. Ngăn chứa phiếu giao hàng và bản kê nhiệm vụ xe tay."
+    },
+    {
+      "itemId": "item-route-rule-t7",
+      "name": "Thẻ quy ước tủ tuyến",
+      "description": "Tủ lưu bản điều chỉnh, tra theo ba mục: CA → ĐƯỜNG ĐI → ĐƠN VỊ NHẬN THEO HỒ SƠ GỐC.",
+      "inspectText": "Tủ lưu bản điều chỉnh, tra theo ba mục: CA → ĐƯỜNG ĐI → ĐƠN VỊ NHẬN THEO HỒ SƠ GỐC. Ô thứ ba là mã phân loại hồ sơ, không xác nhận người thực nhận sau khi sửa lệnh. TRĂNG là ca đêm; SÓNG là bến sông; SAO là đoàn thanh tra; BÁNH RĂNG là xưởng sửa. Phiếu điều vận yêu cầu ca đêm, qua bến sông, hồ sơ dành cho thanh tra. Chọn đúng ba ký hiệu để mở ngăn lưu tuyến.",
+      "visualDescription": "Thẻ quy ước tủ tuyến: isolated pixel-art routecard, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/routecard.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-route-rule-t7"
+      ]
+    },
+    {
+      "itemId": "item-route-box-t7",
+      "name": "Tủ tuyến ba ký hiệu",
+      "description": "Ba ô trên mặt tủ lần lượt là ca, đường đi và đơn vị nhận theo hồ sơ gốc; không phải nơi nhận sau khi điều chỉnh.",
+      "inspectText": "Ba ô trên mặt tủ lần lượt là ca, đường đi và đơn vị nhận theo hồ sơ gốc; không phải nơi nhận sau khi điều chỉnh. Cần thẻ quy ước và ảnh nhận dạng kiện để chọn tuyến đúng, không suy từ màu áo của một nhân viên.",
+      "visualDescription": "Tủ tuyến ba ký hiệu: isolated pixel-art symbolbox, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/symbolbox.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [],
+      "isInteractivePuzzleObject": true,
+      "interactionReason": "Ba ô trên mặt tủ lần lượt là ca, đường đi và đơn vị nhận theo hồ sơ gốc; không phải nơi nhận sau khi điều chỉnh. Cần thẻ quy ước và ảnh nhận dạng kiện để chọn tuyến đúng, không suy từ màu áo của một nhân viên."
+    },
+    {
+      "itemId": "item-porter-fee-t7",
+      "name": "Phiếu công xe tay",
+      "description": "Phiếu công có đóng dấu thu ngân: Nghi được thêm tiền cho ca chờ hàng sau nửa đêm, mức cố định áp dụng cho tất cả người trực.",
+      "inspectText": "Phiếu công có đóng dấu thu ngân: Nghi được thêm tiền cho ca chờ hàng sau nửa đêm, mức cố định áp dụng cho tất cả người trực. Đây là khoản đã ghi vào bảng lương, không phải tiền mặt không rõ nguồn. Nó giải thích khoản tiền đáng ngờ, không chứng minh mọi hành động của ông đều vô can.",
+      "visualDescription": "Phiếu công xe tay: isolated pixel-art receipt, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/receipt.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-porter-fee-t7"
+      ]
+    },
+    {
+      "itemId": "item-trunk-key-t7",
+      "name": "Chìa rương chứng từ",
+      "description": "Chìa thẻ ngôi sao trong tủ tuyến.",
+      "inspectText": "Chìa thẻ ngôi sao trong tủ tuyến. Kẹp theo phiếu báo: rương chứng từ ở sân tập kết chờ xe tay lúc 00:05; chưa được phép đưa ra bến nếu thiếu chữ ký bàn giao.",
+      "visualDescription": "Chìa rương chứng từ: isolated pixel-art key, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/star-key.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": []
+    },
+    {
+      "itemId": "item-filing-rule-t7",
+      "name": "Quy trình lưu phiếu tín hiệu",
+      "description": "Ngăn nhật ký dùng bốn thẻ công việc theo đúng trình tự lưu hồ sơ: NHẬN PHIẾU → ĐỐI GIỜ → KIỂM SỐ → LƯU SỔ.",
+      "inspectText": "Ngăn nhật ký dùng bốn thẻ công việc theo đúng trình tự lưu hồ sơ: NHẬN PHIẾU → ĐỐI GIỜ → KIỂM SỐ → LƯU SỔ. Chỉ là thứ tự sắp chứng từ, không điều khiển đường ray hay tín hiệu đang hoạt động. Sau khi nhập đủ, ngăn lộ cuộn điện đến đã niêm lưu.",
+      "visualDescription": "Quy trình lưu phiếu tín hiệu: isolated pixel-art ledger, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-filing-rule-t7"
+      ]
+    },
+    {
+      "itemId": "item-service-card-t7",
+      "name": "Phiếu công tác của An",
+      "description": "Tổ điện ký đối chứng An có mặt trong buồng trực từ 22:25 đến 22:38 để chỉnh cơ cấu đồng hồ, chưa ghi đủ phiếu xin phép.",
+      "inspectText": "Tổ điện ký đối chứng An có mặt trong buồng trực từ 22:25 đến 22:38 để chỉnh cơ cấu đồng hồ, chưa ghi đủ phiếu xin phép. Nó giải thích việc giấu sửa chữa; không cấp cho An một ngoại phạm cho cả đêm và không tự chứng minh ai đã lấy hồ sơ.",
+      "visualDescription": "Phiếu công tác của An: isolated pixel-art receipt, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/receipt.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-service-card-t7"
+      ]
+    },
+    {
+      "itemId": "item-incoming-box-t7",
+      "name": "Ngăn lưu điện đến",
+      "description": "Bốn nút mang tên các bước lưu chứng từ.",
+      "inspectText": "Bốn nút mang tên các bước lưu chứng từ. Dùng trình tự trong quy trình, không nhập thứ tự các giờ xuất hiện trong lời khai.",
+      "visualDescription": "Ngăn lưu điện đến: isolated pixel-art sequencebox, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/sequencebox.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [],
+      "isInteractivePuzzleObject": true,
+      "interactionReason": "Bốn nút mang tên các bước lưu chứng từ. Dùng trình tự trong quy trình, không nhập thứ tự các giờ xuất hiện trong lời khai."
+    },
+    {
+      "itemId": "item-commission-t7",
+      "name": "Sổ thanh toán vật tư",
+      "description": "Ba khoản hoa hồng từ nhà cung cấp Hưng Phát đi vào tài khoản đứng tên Trần Tường Vy; tờ xác nhận chủ tài khoản có dấu ngân hàng.",
+      "inspectText": "Ba khoản hoa hồng từ nhà cung cấp Hưng Phát đi vào tài khoản đứng tên Trần Tường Vy; tờ xác nhận chủ tài khoản có dấu ngân hàng. Phụ lục kiểm định cầu yêu cầu đối soát chính ba khoản này vào sáng mai. Nếu hồ sơ gốc không tới thanh tra, Vy có thêm thời gian che khoản hưởng lợi; đây là động cơ cụ thể, không chỉ một khoản nợ chung chung.",
+      "visualDescription": "Sổ thanh toán vật tư: isolated pixel-art ledger, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-commission-t7"
+      ]
+    },
+    {
+      "itemId": "item-carbon-t7",
+      "name": "Tờ giấy lót có vết hằn",
+      "description": "Giấy lót dưới tập lệnh điều vận có vết bút hằn nhưng quá nhạt.",
+      "inspectText": "Giấy lót dưới tập lệnh điều vận có vết bút hằn nhưng quá nhạt. Dùng ruột chì mềm quét nhẹ lên mặt sau để đọc; cần giữ cả giấy và dụng cụ trong túi đồ.",
+      "visualDescription": "Tờ giấy lót có vết hằn: isolated pixel-art carbon, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/carbon.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-carbon-t7"
+      ]
+    },
+    {
+      "itemId": "item-pencil-t7",
+      "name": "Bút chì mềm",
+      "description": "Bút chì mềm dùng sao vết hằn.",
+      "inspectText": "Bút chì mềm dùng sao vết hằn. Ghép với giấy lót trong túi đồ; việc này chỉ làm nổi nét đã có, không tạo thêm chữ mới.",
+      "visualDescription": "Bút chì mềm: isolated pixel-art pencil, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/pencil.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-pencil-t7"
+      ]
+    },
+    {
+      "itemId": "item-custody-t7",
+      "name": "Sổ bàn giao hồ sơ gốc",
+      "description": "22:30 giờ chuẩn đường sắt, Trần Tường Vy ký nhận hòm hồ sơ từ Hạnh.",
+      "inspectText": "22:30 giờ chuẩn đường sắt, Trần Tường Vy ký nhận hòm hồ sơ từ Hạnh. Hạnh ký đối chứng và ghi rõ nhìn thấy Vy nhận trực tiếp; cùng trang có mẫu chữ ký đã xác nhận trong ca. Người nhận có quyền tiếp cận từ 22:30, nhưng riêng quyền tiếp cận chưa đủ chứng minh đã đổi tuyến.",
+      "visualDescription": "Sổ bàn giao hồ sơ gốc: isolated pixel-art ledger, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-custody-t7"
+      ]
+    },
+    {
+      "itemId": "item-rubbing-t7",
+      "name": "Bản sao vết hằn",
+      "description": "Nét hằn ghi một lệnh thay đơn vị nhận: từ thanh tra cầu sang kho tư Hưng Phát tại bến sông, gắn đúng số kiện và mã hồ sơ gốc.",
+      "inspectText": "Nét hằn ghi một lệnh thay đơn vị nhận: từ thanh tra cầu sang kho tư Hưng Phát tại bến sông, gắn đúng số kiện và mã hồ sơ gốc. Vết sửa nằm trên giấy lót còn kẹp trong tập điều vận của Vy. Phải đối chiếu bản lệnh gốc và chữ ký trước khi kết luận người thực hiện.",
+      "visualDescription": "Bản sao vết hằn: isolated pixel-art rubbing, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/rubbing.png",
+      "isCollectible": true,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": []
+    },
+    {
+      "itemId": "item-freight-trunk-t7",
+      "name": "Rương chứng từ ở sân tập kết",
+      "description": "Rương sắt giữ túi chứng từ và hồ sơ lấy từ hòm gỗ dải xanh.",
+      "inspectText": "Rương sắt giữ túi chứng từ và hồ sơ lấy từ hòm gỗ dải xanh. Thẻ ngôi sao khớp chìa tủ tuyến. Xe tay chưa được nhận rương vì chuyến ra bến hẹn 00:05 vẫn chưa tới giờ.",
+      "visualDescription": "Rương chứng từ ở sân tập kết: isolated pixel-art trunk, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/trunk.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [],
+      "isInteractivePuzzleObject": true,
+      "interactionReason": "Rương sắt giữ túi chứng từ và hồ sơ lấy từ hòm gỗ dải xanh. Thẻ ngôi sao khớp chìa tủ tuyến. Xe tay chưa được nhận rương vì chuyến ra bến hẹn 00:05 vẫn chưa tới giờ."
+    },
+    {
+      "itemId": "item-holding-log-t7",
+      "name": "Sổ giữ hàng trước cổng",
+      "description": "23:05, trưởng ca giữ lại toàn bộ lô kiểm định tại sân có mái che để chờ xác minh.",
+      "inspectText": "23:05, trưởng ca giữ lại toàn bộ lô kiểm định tại sân có mái che để chờ xác minh. Xe tay đi bến được hẹn 00:05; không có chữ ký xuất cổng. Vì thế đường đi dự kiến ra bến không mâu thuẫn với việc hồ sơ vẫn ở ga. Nghi ký vị trí rương, nhân viên cổng ký xác nhận chưa cho hàng đi.",
+      "visualDescription": "Sổ giữ hàng trước cổng: isolated pixel-art ledger, warm brass and paper palette, transparent background.",
+      "imageUrl": "/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+      "isCollectible": false,
+      "renderMode": "CUTOUT",
+      "unlockClueIds": [
+        "ev-holding-log-t7"
+      ]
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "ev-timetable-t7",
+      "title": "Quy ước hộp trực: giờ bàn giao cuối",
+      "content": "Chuyến bàn giao hàng cuối trước nửa đêm chạy lúc 23:40. Dòng quy ước của hộp trực: dùng giờ của chuyến bàn giao cuối, theo HHMM, bỏ dấu hai chấm. Tàu khách số 7 đi lúc 00:15 là chuyến khác; không dùng giờ đó làm mã.",
+      "inventoryDescription": "Chuyến bàn giao hàng cuối trước nửa đêm chạy lúc 23:40. Dòng quy ước của hộp trực: dùng giờ của chuyến bàn giao cuối, theo HHMM, bỏ dấu hai chấm. Tàu khách số 7 đi lúc 00:15 là chuyến khác; không dùng giờ đó làm mã.",
+      "narrativeMeaning": "Chuyến bàn giao hàng cuối trước nửa đêm chạy lúc 23:40. Dòng quy ước của hộp trực: dùng giờ của chuyến bàn giao cuối, theo HHMM, bỏ dấu hai chấm. Tàu khách số 7 đi lúc 00:15 là chuyến khác; không dùng giờ đó làm mã.",
+      "source": "item-timetable-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-hall-t7",
+      "isEvidence": true,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-telegram-top-t7",
+      "title": "Nửa đầu bản nháp",
+      "content": "Mảnh giấy có đầu dòng BẢN NHÁP TẠI GA và phần lệnh ngừng giao hồ sơ. Mép dưới bị xé; phần định tuyến và dấu truyền không còn. Giữ lại để tìm nửa khớp.",
+      "inventoryDescription": "Mảnh giấy có đầu dòng BẢN NHÁP TẠI GA và phần lệnh ngừng giao hồ sơ. Mép dưới bị xé; phần định tuyến và dấu truyền không còn. Giữ lại để tìm nửa khớp.",
+      "narrativeMeaning": "Mảnh giấy có đầu dòng BẢN NHÁP TẠI GA và phần lệnh ngừng giao hồ sơ. Mép dưới bị xé; phần định tuyến và dấu truyền không còn. Giữ lại để tìm nửa khớp.",
+      "source": "item-telegram-top-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-hall-t7",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-intake-t7",
+      "title": "Hồ sơ và dấu nhận dạng riêng",
+      "content": "21:50, Hạnh nhận hồ sơ kiểm định cầu từ đoàn kỹ sư và niêm vào hòm gỗ: dải xanh chéo, hai đai đồng. Sổ mô tả đây là kiện duy nhất trong ga có đủ hai dấu ấy. Hồ sơ gồm bản kiểm định có chữ ký gốc, phụ lục thanh toán và thư gửi thanh tra.",
+      "inventoryDescription": "21:50, Hạnh nhận hồ sơ kiểm định cầu từ đoàn kỹ sư và niêm vào hòm gỗ: dải xanh chéo, hai đai đồng. Sổ mô tả đây là kiện duy nhất trong ga có đủ hai dấu ấy. Hồ sơ gồm bản kiểm định có chữ ký gốc, phụ lục thanh toán và thư gửi thanh tra.",
+      "narrativeMeaning": "21:50, Hạnh nhận hồ sơ kiểm định cầu từ đoàn kỹ sư và niêm vào hòm gỗ: dải xanh chéo, hai đai đồng. Sổ mô tả đây là kiện duy nhất trong ga có đủ hai dấu ấy. Hồ sơ gồm bản kiểm định có chữ ký gốc, phụ lục thanh toán và thư gửi thanh tra.",
+      "source": "item-intake-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-hall-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-telegram-bottom-t7",
+      "title": "Nửa cuối bản nháp",
+      "content": "Nửa giấy còn dòng: chuyển kiện sang khu tập kết, chờ xe tay ra bến; ô MÃ NHẬN ĐƯỜNG DÂY để trống. Mép xé khớp mảnh tìm ở sảnh. Ghép đủ để đọc trọn yêu cầu chuyển hàng và đối chiếu ô mã truyền với nhãn bản nháp.",
+      "inventoryDescription": "Nửa giấy còn dòng: chuyển kiện sang khu tập kết, chờ xe tay ra bến; ô MÃ NHẬN ĐƯỜNG DÂY để trống. Mép xé khớp mảnh tìm ở sảnh. Ghép đủ để đọc trọn yêu cầu chuyển hàng và đối chiếu ô mã truyền với nhãn bản nháp.",
+      "narrativeMeaning": "Nửa giấy còn dòng: chuyển kiện sang khu tập kết, chờ xe tay ra bến; ô MÃ NHẬN ĐƯỜNG DÂY để trống. Mép xé khớp mảnh tìm ở sảnh. Ghép đủ để đọc trọn yêu cầu chuyển hàng và đối chiếu ô mã truyền với nhãn bản nháp.",
+      "source": "item-telegram-bottom-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-dispatch-t7",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-sync-t7",
+      "title": "22:30 giờ chuẩn = 22:18 ở sảnh",
+      "content": "Trạm chuẩn đường sắt gửi mốc 22:30; nhân viên trực đầu xa ghi 22:30, còn đồng hồ sảnh Lạc Hải chỉ 22:18. Bản giấy có mã kiểm tra và chữ ký hai đầu, không do Hạnh hay An tự xác nhận. Ghi chú sau đó: đồng hồ sảnh chạy chậm đều 12 phút, đã đặt đúng lúc 22:45. Chiếc đồng hồ trong cảnh hiện tại vì thế không còn giữ giờ sai của lời kể.",
+      "inventoryDescription": "Trạm chuẩn đường sắt gửi mốc 22:30; nhân viên trực đầu xa ghi 22:30, còn đồng hồ sảnh Lạc Hải chỉ 22:18. Bản giấy có mã kiểm tra và chữ ký hai đầu, không do Hạnh hay An tự xác nhận. Ghi chú sau đó: đồng hồ sảnh chạy chậm đều 12 phút, đã đặt đúng lúc 22:45. Chiếc đồng hồ trong cảnh hiện tại vì thế không còn giữ giờ sai của lời kể.",
+      "narrativeMeaning": "Trạm chuẩn đường sắt gửi mốc 22:30; nhân viên trực đầu xa ghi 22:30, còn đồng hồ sảnh Lạc Hải chỉ 22:18. Bản giấy có mã kiểm tra và chữ ký hai đầu, không do Hạnh hay An tự xác nhận. Ghi chú sau đó: đồng hồ sảnh chạy chậm đều 12 phút, đã đặt đúng lúc 22:45. Chiếc đồng hồ trong cảnh hiện tại vì thế không còn giữ giờ sai của lời kể.",
+      "source": "item-sync-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-dispatch-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-route-rule-t7",
+      "title": "Quy ước ca – đường – người nhận",
+      "content": "Tủ lưu bản điều chỉnh, tra theo ba mục: CA → ĐƯỜNG ĐI → ĐƠN VỊ NHẬN THEO HỒ SƠ GỐC. Ô thứ ba là mã phân loại hồ sơ, không xác nhận người thực nhận sau khi sửa lệnh. TRĂNG là ca đêm; SÓNG là bến sông; SAO là đoàn thanh tra; BÁNH RĂNG là xưởng sửa. Phiếu điều vận yêu cầu ca đêm, qua bến sông, hồ sơ dành cho thanh tra. Chọn đúng ba ký hiệu để mở ngăn lưu tuyến.",
+      "inventoryDescription": "Tủ lưu bản điều chỉnh, tra theo ba mục: CA → ĐƯỜNG ĐI → ĐƠN VỊ NHẬN THEO HỒ SƠ GỐC. Ô thứ ba là mã phân loại hồ sơ, không xác nhận người thực nhận sau khi sửa lệnh. TRĂNG là ca đêm; SÓNG là bến sông; SAO là đoàn thanh tra; BÁNH RĂNG là xưởng sửa. Phiếu điều vận yêu cầu ca đêm, qua bến sông, hồ sơ dành cho thanh tra. Chọn đúng ba ký hiệu để mở ngăn lưu tuyến.",
+      "narrativeMeaning": "Tủ lưu bản điều chỉnh, tra theo ba mục: CA → ĐƯỜNG ĐI → ĐƠN VỊ NHẬN THEO HỒ SƠ GỐC. Ô thứ ba là mã phân loại hồ sơ, không xác nhận người thực nhận sau khi sửa lệnh. TRĂNG là ca đêm; SÓNG là bến sông; SAO là đoàn thanh tra; BÁNH RĂNG là xưởng sửa. Phiếu điều vận yêu cầu ca đêm, qua bến sông, hồ sơ dành cho thanh tra. Chọn đúng ba ký hiệu để mở ngăn lưu tuyến.",
+      "source": "item-route-rule-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-warehouse-t7",
+      "isEvidence": true,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-porter-fee-t7",
+      "title": "Tiền công thêm có chứng từ",
+      "content": "Phiếu công có đóng dấu thu ngân: Nghi được thêm tiền cho ca chờ hàng sau nửa đêm, mức cố định áp dụng cho tất cả người trực. Đây là khoản đã ghi vào bảng lương, không phải tiền mặt không rõ nguồn. Nó giải thích khoản tiền đáng ngờ, không chứng minh mọi hành động của ông đều vô can.",
+      "inventoryDescription": "Phiếu công có đóng dấu thu ngân: Nghi được thêm tiền cho ca chờ hàng sau nửa đêm, mức cố định áp dụng cho tất cả người trực. Đây là khoản đã ghi vào bảng lương, không phải tiền mặt không rõ nguồn. Nó giải thích khoản tiền đáng ngờ, không chứng minh mọi hành động của ông đều vô can.",
+      "narrativeMeaning": "Phiếu công có đóng dấu thu ngân: Nghi được thêm tiền cho ca chờ hàng sau nửa đêm, mức cố định áp dụng cho tất cả người trực. Đây là khoản đã ghi vào bảng lương, không phải tiền mặt không rõ nguồn. Nó giải thích khoản tiền đáng ngờ, không chứng minh mọi hành động của ông đều vô can.",
+      "source": "item-porter-fee-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-warehouse-t7",
+      "isEvidence": true,
+      "isCritical": false,
+      "isRedHerring": true,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-filing-rule-t7",
+      "title": "Thứ tự lưu chứng từ bốn bước",
+      "content": "Ngăn nhật ký dùng bốn thẻ công việc theo đúng trình tự lưu hồ sơ: NHẬN PHIẾU → ĐỐI GIỜ → KIỂM SỐ → LƯU SỔ. Chỉ là thứ tự sắp chứng từ, không điều khiển đường ray hay tín hiệu đang hoạt động. Sau khi nhập đủ, ngăn lộ cuộn điện đến đã niêm lưu.",
+      "inventoryDescription": "Ngăn nhật ký dùng bốn thẻ công việc theo đúng trình tự lưu hồ sơ: NHẬN PHIẾU → ĐỐI GIỜ → KIỂM SỐ → LƯU SỔ. Chỉ là thứ tự sắp chứng từ, không điều khiển đường ray hay tín hiệu đang hoạt động. Sau khi nhập đủ, ngăn lộ cuộn điện đến đã niêm lưu.",
+      "narrativeMeaning": "Ngăn nhật ký dùng bốn thẻ công việc theo đúng trình tự lưu hồ sơ: NHẬN PHIẾU → ĐỐI GIỜ → KIỂM SỐ → LƯU SỔ. Chỉ là thứ tự sắp chứng từ, không điều khiển đường ray hay tín hiệu đang hoạt động. Sau khi nhập đủ, ngăn lộ cuộn điện đến đã niêm lưu.",
+      "source": "item-filing-rule-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": true,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-service-card-t7",
+      "title": "Một việc sửa ngoài lịch",
+      "content": "Tổ điện ký đối chứng An có mặt trong buồng trực từ 22:25 đến 22:38 để chỉnh cơ cấu đồng hồ, chưa ghi đủ phiếu xin phép. Nó giải thích việc giấu sửa chữa; không cấp cho An một ngoại phạm cho cả đêm và không tự chứng minh ai đã lấy hồ sơ.",
+      "inventoryDescription": "Tổ điện ký đối chứng An có mặt trong buồng trực từ 22:25 đến 22:38 để chỉnh cơ cấu đồng hồ, chưa ghi đủ phiếu xin phép. Nó giải thích việc giấu sửa chữa; không cấp cho An một ngoại phạm cho cả đêm và không tự chứng minh ai đã lấy hồ sơ.",
+      "narrativeMeaning": "Tổ điện ký đối chứng An có mặt trong buồng trực từ 22:25 đến 22:38 để chỉnh cơ cấu đồng hồ, chưa ghi đủ phiếu xin phép. Nó giải thích việc giấu sửa chữa; không cấp cho An một ngoại phạm cho cả đêm và không tự chứng minh ai đã lấy hồ sơ.",
+      "source": "item-service-card-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": true,
+      "isCritical": false,
+      "isRedHerring": true,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-commission-t7",
+      "title": "Vy hưởng lợi từ khoản sẽ bị kiểm tra",
+      "content": "Ba khoản hoa hồng từ nhà cung cấp Hưng Phát đi vào tài khoản đứng tên Trần Tường Vy; tờ xác nhận chủ tài khoản có dấu ngân hàng. Phụ lục kiểm định cầu yêu cầu đối soát chính ba khoản này vào sáng mai. Nếu hồ sơ gốc không tới thanh tra, Vy có thêm thời gian che khoản hưởng lợi; đây là động cơ cụ thể, không chỉ một khoản nợ chung chung.",
+      "inventoryDescription": "Ba khoản hoa hồng từ nhà cung cấp Hưng Phát đi vào tài khoản đứng tên Trần Tường Vy; tờ xác nhận chủ tài khoản có dấu ngân hàng. Phụ lục kiểm định cầu yêu cầu đối soát chính ba khoản này vào sáng mai. Nếu hồ sơ gốc không tới thanh tra, Vy có thêm thời gian che khoản hưởng lợi; đây là động cơ cụ thể, không chỉ một khoản nợ chung chung.",
+      "narrativeMeaning": "Ba khoản hoa hồng từ nhà cung cấp Hưng Phát đi vào tài khoản đứng tên Trần Tường Vy; tờ xác nhận chủ tài khoản có dấu ngân hàng. Phụ lục kiểm định cầu yêu cầu đối soát chính ba khoản này vào sáng mai. Nếu hồ sơ gốc không tới thanh tra, Vy có thêm thời gian che khoản hưởng lợi; đây là động cơ cụ thể, không chỉ một khoản nợ chung chung.",
+      "source": "item-commission-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-archive-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-carbon-t7",
+      "title": "Vết hằn chưa đọc được",
+      "content": "Giấy lót dưới tập lệnh điều vận có vết bút hằn nhưng quá nhạt. Dùng ruột chì mềm quét nhẹ lên mặt sau để đọc; cần giữ cả giấy và dụng cụ trong túi đồ.",
+      "inventoryDescription": "Giấy lót dưới tập lệnh điều vận có vết bút hằn nhưng quá nhạt. Dùng ruột chì mềm quét nhẹ lên mặt sau để đọc; cần giữ cả giấy và dụng cụ trong túi đồ.",
+      "narrativeMeaning": "Giấy lót dưới tập lệnh điều vận có vết bút hằn nhưng quá nhạt. Dùng ruột chì mềm quét nhẹ lên mặt sau để đọc; cần giữ cả giấy và dụng cụ trong túi đồ.",
+      "source": "item-carbon-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-archive-t7",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-pencil-t7",
+      "title": "Dụng cụ sao vết hằn",
+      "content": "Bút chì mềm dùng sao vết hằn. Ghép với giấy lót trong túi đồ; việc này chỉ làm nổi nét đã có, không tạo thêm chữ mới.",
+      "inventoryDescription": "Bút chì mềm dùng sao vết hằn. Ghép với giấy lót trong túi đồ; việc này chỉ làm nổi nét đã có, không tạo thêm chữ mới.",
+      "narrativeMeaning": "Bút chì mềm dùng sao vết hằn. Ghép với giấy lót trong túi đồ; việc này chỉ làm nổi nét đã có, không tạo thêm chữ mới.",
+      "source": "item-pencil-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-archive-t7",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-custody-t7",
+      "title": "Vy nhận trực tiếp lúc 22:30",
+      "content": "22:30 giờ chuẩn đường sắt, Trần Tường Vy ký nhận hòm hồ sơ từ Hạnh. Hạnh ký đối chứng và ghi rõ nhìn thấy Vy nhận trực tiếp; cùng trang có mẫu chữ ký đã xác nhận trong ca. Người nhận có quyền tiếp cận từ 22:30, nhưng riêng quyền tiếp cận chưa đủ chứng minh đã đổi tuyến.",
+      "inventoryDescription": "22:30 giờ chuẩn đường sắt, Trần Tường Vy ký nhận hòm hồ sơ từ Hạnh. Hạnh ký đối chứng và ghi rõ nhìn thấy Vy nhận trực tiếp; cùng trang có mẫu chữ ký đã xác nhận trong ca. Người nhận có quyền tiếp cận từ 22:30, nhưng riêng quyền tiếp cận chưa đủ chứng minh đã đổi tuyến.",
+      "narrativeMeaning": "22:30 giờ chuẩn đường sắt, Trần Tường Vy ký nhận hòm hồ sơ từ Hạnh. Hạnh ký đối chứng và ghi rõ nhìn thấy Vy nhận trực tiếp; cùng trang có mẫu chữ ký đã xác nhận trong ca. Người nhận có quyền tiếp cận từ 22:30, nhưng riêng quyền tiếp cận chưa đủ chứng minh đã đổi tuyến.",
+      "source": "item-custody-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-archive-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-holding-log-t7",
+      "title": "Hàng chưa rời ga",
+      "content": "23:05, trưởng ca giữ lại toàn bộ lô kiểm định tại sân có mái che để chờ xác minh. Xe tay đi bến được hẹn 00:05; không có chữ ký xuất cổng. Vì thế đường đi dự kiến ra bến không mâu thuẫn với việc hồ sơ vẫn ở ga. Nghi ký vị trí rương, nhân viên cổng ký xác nhận chưa cho hàng đi.",
+      "inventoryDescription": "23:05, trưởng ca giữ lại toàn bộ lô kiểm định tại sân có mái che để chờ xác minh. Xe tay đi bến được hẹn 00:05; không có chữ ký xuất cổng. Vì thế đường đi dự kiến ra bến không mâu thuẫn với việc hồ sơ vẫn ở ga. Nghi ký vị trí rương, nhân viên cổng ký xác nhận chưa cho hàng đi.",
+      "narrativeMeaning": "23:05, trưởng ca giữ lại toàn bộ lô kiểm định tại sân có mái che để chờ xác minh. Xe tay đi bến được hẹn 00:05; không có chữ ký xuất cổng. Vì thế đường đi dự kiến ra bến không mâu thuẫn với việc hồ sơ vẫn ở ga. Nghi ký vị trí rương, nhân viên cổng ký xác nhận chưa cho hàng đi.",
+      "source": "item-holding-log-t7",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-platform-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-draft-t7",
+      "title": "Bản nháp hủy giao nhận tại ga",
+      "content": "Bản đầy đủ là lệnh soạn ngay tại ga, chưa có mã tiếp nhận từ đường dây. Lệnh dự kiến ngừng giao hồ sơ kiểm định và chuyển nó qua khu tập kết sang bến sông. Giấy này cho hướng điều tra, chưa chứng minh ai ra lệnh.",
+      "inventoryDescription": "Bản đầy đủ là lệnh soạn ngay tại ga, chưa có mã tiếp nhận từ đường dây. Lệnh dự kiến ngừng giao hồ sơ kiểm định và chuyển nó qua khu tập kết sang bến sông. Giấy này cho hướng điều tra, chưa chứng minh ai ra lệnh.",
+      "narrativeMeaning": "Bản đầy đủ là lệnh soạn ngay tại ga, chưa có mã tiếp nhận từ đường dây. Lệnh dự kiến ngừng giao hồ sơ kiểm định và chuyển nó qua khu tập kết sang bến sông. Giấy này cho hướng điều tra, chưa chứng minh ai ra lệnh.",
+      "source": "interaction-restore-telegram-t7",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-dispatch-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-internal-transfer-t7",
+      "title": "Cuống xuất kho lúc 22:36",
+      "content": "22:36 giờ chuẩn, hòm dải xanh được chuyển nội bộ từ quầy sang kho, không đưa lên chuyến tàu nào. Người thực hiện nhận phiếu điều vận từ phòng điện tín. Chìa ngăn điều vận được kẹp cùng cuống.",
+      "inventoryDescription": "22:36 giờ chuẩn, hòm dải xanh được chuyển nội bộ từ quầy sang kho, không đưa lên chuyến tàu nào. Người thực hiện nhận phiếu điều vận từ phòng điện tín. Chìa ngăn điều vận được kẹp cùng cuống.",
+      "narrativeMeaning": "22:36 giờ chuẩn, hòm dải xanh được chuyển nội bộ từ quầy sang kho, không đưa lên chuyến tàu nào. Người thực hiện nhận phiếu điều vận từ phòng điện tín. Chìa ngăn điều vận được kẹp cùng cuống.",
+      "source": "puzzle-duty-code-t7",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-dispatch-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-cargo-order-t7",
+      "title": "Phiếu điều vận xe tay",
+      "content": "Phiếu ghi rõ: sau khi phân tuyến, chuyển hòm kiểm định sang sân có mái che; xe tay chờ lúc 00:05 mới đi bến sông. Bản kho là bản sao chưa có chữ ký người thay nơi nhận; bản gốc phải nằm trong rương chứng từ.",
+      "inventoryDescription": "Phiếu ghi rõ: sau khi phân tuyến, chuyển hòm kiểm định sang sân có mái che; xe tay chờ lúc 00:05 mới đi bến sông. Bản kho là bản sao chưa có chữ ký người thay nơi nhận; bản gốc phải nằm trong rương chứng từ.",
+      "narrativeMeaning": "Phiếu ghi rõ: sau khi phân tuyến, chuyển hòm kiểm định sang sân có mái che; xe tay chờ lúc 00:05 mới đi bến sông. Bản kho là bản sao chưa có chữ ký người thay nơi nhận; bản gốc phải nằm trong rương chứng từ.",
+      "source": "interaction-open-dispatch-t7",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-warehouse-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-blue-crate-t7",
+      "title": "Ảnh hòm có dải xanh",
+      "content": "Ảnh ghi đủ dấu nhận dạng của kiện trong sổ tiếp nhận: dải xanh chéo và hai đai đồng trên cùng một hòm ở kho. Đây là nhận dạng kiện hàng, không phải nhận dạng thủ phạm.",
+      "inventoryDescription": "Ảnh ghi đủ dấu nhận dạng của kiện trong sổ tiếp nhận: dải xanh chéo và hai đai đồng trên cùng một hòm ở kho. Đây là nhận dạng kiện hàng, không phải nhận dạng thủ phạm.",
+      "narrativeMeaning": "Ảnh ghi đủ dấu nhận dạng của kiện trong sổ tiếp nhận: dải xanh chéo và hai đai đồng trên cùng một hòm ở kho. Đây là nhận dạng kiện hàng, không phải nhận dạng thủ phạm.",
+      "source": "scene-warehouse-t7",
+      "sourceType": "camera",
+      "discoverMethod": "camera",
+      "sceneId": "scene-warehouse-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [],
+      "visualDescription": "Dải xanh và hai đai đồng",
+      "visualTextPolicy": "NO_TEXT"
+    },
+    {
+      "clueId": "ev-wharf-route-t7",
+      "title": "Tuyến đêm qua bến sông",
+      "content": "Ngăn tuyến xác nhận hồ sơ kiểm định được phân sang bến sông thay vì đi cùng tàu số 7. Chìa rương chứng từ có thẻ sao nằm trong ngăn. Phiếu kèm chìa nhắc rương còn ở sân tập kết đến 00:05.",
+      "inventoryDescription": "Ngăn tuyến xác nhận hồ sơ kiểm định được phân sang bến sông thay vì đi cùng tàu số 7. Chìa rương chứng từ có thẻ sao nằm trong ngăn. Phiếu kèm chìa nhắc rương còn ở sân tập kết đến 00:05.",
+      "narrativeMeaning": "Ngăn tuyến xác nhận hồ sơ kiểm định được phân sang bến sông thay vì đi cùng tàu số 7. Chìa rương chứng từ có thẻ sao nằm trong ngăn. Phiếu kèm chìa nhắc rương còn ở sân tập kết đến 00:05.",
+      "source": "puzzle-route-symbols-t7",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-warehouse-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-open-hatch-t7",
+      "title": "Ảnh khoang máy đang hở",
+      "content": "Ảnh hiện trường cho thấy nắp bảo dưỡng lệch sang bên và bánh răng lộ rõ; phần máy hiện không được che kín. Ảnh chỉ chứng minh hiện trạng khi chụp, không tự định giờ đã mở và không chứng minh người lấy hồ sơ.",
+      "inventoryDescription": "Ảnh hiện trường cho thấy nắp bảo dưỡng lệch sang bên và bánh răng lộ rõ; phần máy hiện không được che kín. Ảnh chỉ chứng minh hiện trạng khi chụp, không tự định giờ đã mở và không chứng minh người lấy hồ sơ.",
+      "narrativeMeaning": "Ảnh hiện trường cho thấy nắp bảo dưỡng lệch sang bên và bánh răng lộ rõ; phần máy hiện không được che kín. Ảnh chỉ chứng minh hiện trạng khi chụp, không tự định giờ đã mở và không chứng minh người lấy hồ sơ.",
+      "source": "scene-signal-t7",
+      "sourceType": "camera",
+      "discoverMethod": "camera",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [],
+      "visualDescription": "Khoang bánh răng đang hở",
+      "visualTextPolicy": "NO_TEXT"
+    },
+    {
+      "clueId": "ev-message-47-t7",
+      "title": "Điện đến 47 là bản tin thời tiết",
+      "content": "Cuộn điện đến lưu liên tục, đối chiếu bản lưu đầu gửi: số 47 báo mưa ở nhánh phía bắc; số 48 là kiểm tra đường dây. Không có điện hủy hồ sơ trong khung 21:50–22:45. Vì số 47 mang nội dung khác, không thể gọi nó là điện hủy.",
+      "inventoryDescription": "Cuộn điện đến lưu liên tục, đối chiếu bản lưu đầu gửi: số 47 báo mưa ở nhánh phía bắc; số 48 là kiểm tra đường dây. Không có điện hủy hồ sơ trong khung 21:50–22:45. Vì số 47 mang nội dung khác, không thể gọi nó là điện hủy.",
+      "narrativeMeaning": "Cuộn điện đến lưu liên tục, đối chiếu bản lưu đầu gửi: số 47 báo mưa ở nhánh phía bắc; số 48 là kiểm tra đường dây. Không có điện hủy hồ sơ trong khung 21:50–22:45. Vì số 47 mang nội dung khác, không thể gọi nó là điện hủy.",
+      "source": "puzzle-filing-sequence-t7",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-meeting-t7",
+      "title": "Dấu giờ cuộc gọi của Minh",
+      "content": "Bản lưu tổng đài và nhân viên trực xác nhận Minh gọi tòa soạn từ phòng chờ phía đông lúc 22:27–22:34. Nó làm yếu giả thuyết Minh trực tiếp nhận hòm ở quầy lúc 22:30; không xóa mọi khả năng đồng phạm. Nội dung cuộc gọi bàn bảo vệ danh tính một nguồn tin.",
+      "inventoryDescription": "Bản lưu tổng đài và nhân viên trực xác nhận Minh gọi tòa soạn từ phòng chờ phía đông lúc 22:27–22:34. Nó làm yếu giả thuyết Minh trực tiếp nhận hòm ở quầy lúc 22:30; không xóa mọi khả năng đồng phạm. Nội dung cuộc gọi bàn bảo vệ danh tính một nguồn tin.",
+      "narrativeMeaning": "Bản lưu tổng đài và nhân viên trực xác nhận Minh gọi tòa soạn từ phòng chờ phía đông lúc 22:27–22:34. Nó làm yếu giả thuyết Minh trực tiếp nhận hòm ở quầy lúc 22:30; không xóa mọi khả năng đồng phạm. Nội dung cuộc gọi bàn bảo vệ danh tính một nguồn tin.",
+      "source": "puzzle-filing-sequence-t7",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": true,
+      "isCritical": false,
+      "isRedHerring": true,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-altered-order-t7",
+      "title": "Vết đổi người nhận trên lệnh",
+      "content": "Nét hằn ghi một lệnh thay đơn vị nhận: từ thanh tra cầu sang kho tư Hưng Phát tại bến sông, gắn đúng số kiện và mã hồ sơ gốc. Vết sửa nằm trên giấy lót còn kẹp trong tập điều vận của Vy. Phải đối chiếu bản lệnh gốc và chữ ký trước khi kết luận người thực hiện.",
+      "inventoryDescription": "Nét hằn ghi một lệnh thay đơn vị nhận: từ thanh tra cầu sang kho tư Hưng Phát tại bến sông, gắn đúng số kiện và mã hồ sơ gốc. Vết sửa nằm trên giấy lót còn kẹp trong tập điều vận của Vy. Phải đối chiếu bản lệnh gốc và chữ ký trước khi kết luận người thực hiện.",
+      "narrativeMeaning": "Nét hằn ghi một lệnh thay đơn vị nhận: từ thanh tra cầu sang kho tư Hưng Phát tại bến sông, gắn đúng số kiện và mã hồ sơ gốc. Vết sửa nằm trên giấy lót còn kẹp trong tập điều vận của Vy. Phải đối chiếu bản lệnh gốc và chữ ký trước khi kết luận người thực hiện.",
+      "source": "interaction-rub-order-t7",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-archive-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-signed-order-t7",
+      "title": "Lệnh gốc đổi nơi nhận có ký chứng",
+      "content": "Lệnh gốc số 19 đổi nơi nhận hồ sơ kiểm định sang kho tư Hưng Phát ở bến sông. Trần Tường Vy ký, Hạnh ký chứng thực đã nhìn thấy Vy ký; mẫu chữ ký trên sổ ca khớp. Nội dung trùng vết hằn, số kiện trùng sổ tiếp nhận. Đây là hành vi thay tuyến được xác lập, không chỉ quyền giữ chìa.",
+      "inventoryDescription": "Lệnh gốc số 19 đổi nơi nhận hồ sơ kiểm định sang kho tư Hưng Phát ở bến sông. Trần Tường Vy ký, Hạnh ký chứng thực đã nhìn thấy Vy ký; mẫu chữ ký trên sổ ca khớp. Nội dung trùng vết hằn, số kiện trùng sổ tiếp nhận. Đây là hành vi thay tuyến được xác lập, không chỉ quyền giữ chìa.",
+      "narrativeMeaning": "Lệnh gốc số 19 đổi nơi nhận hồ sơ kiểm định sang kho tư Hưng Phát ở bến sông. Trần Tường Vy ký, Hạnh ký chứng thực đã nhìn thấy Vy ký; mẫu chữ ký trên sổ ca khớp. Nội dung trùng vết hằn, số kiện trùng sổ tiếp nhận. Đây là hành vi thay tuyến được xác lập, không chỉ quyền giữ chìa.",
+      "source": "interaction-open-trunk-t7",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-platform-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-original-report-t7",
+      "title": "Hồ sơ kiểm định gốc được giữ lại",
+      "content": "Túi trong rương có bản kiểm định ký gốc và phụ lục yêu cầu thanh tra đối soát ba khoản hoa hồng Hưng Phát. Các số trang liên tục khớp biên bản 21:50. Trưởng ca niêm giữ rương sau khi hai thám tử lập biên bản; không có tài liệu được đưa ra bến.",
+      "inventoryDescription": "Túi trong rương có bản kiểm định ký gốc và phụ lục yêu cầu thanh tra đối soát ba khoản hoa hồng Hưng Phát. Các số trang liên tục khớp biên bản 21:50. Trưởng ca niêm giữ rương sau khi hai thám tử lập biên bản; không có tài liệu được đưa ra bến.",
+      "narrativeMeaning": "Túi trong rương có bản kiểm định ký gốc và phụ lục yêu cầu thanh tra đối soát ba khoản hoa hồng Hưng Phát. Các số trang liên tục khớp biên bản 21:50. Trưởng ca niêm giữ rương sau khi hai thám tử lập biên bản; không có tài liệu được đưa ra bến.",
+      "source": "interaction-open-trunk-t7",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-platform-t7",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-reveal-time-t7",
+      "title": "Mười hai phút bị bỏ quên",
+      "content": "Nhật ký chuẩn bác đúng việc gọi 22:18 là giờ đường sắt. Hạnh vẫn có thể nhớ đúng tiếng chuông và vị trí đứng; phải sửa mốc giờ, không xóa sạch lời cô.",
+      "inventoryDescription": "Nhật ký chuẩn bác đúng việc gọi 22:18 là giờ đường sắt. Hạnh vẫn có thể nhớ đúng tiếng chuông và vị trí đứng; phải sửa mốc giờ, không xóa sạch lời cô.",
+      "narrativeMeaning": "Nhật ký chuẩn bác đúng việc gọi 22:18 là giờ đường sắt. Hạnh vẫn có thể nhớ đúng tiếng chuông và vị trí đứng; phải sửa mốc giờ, không xóa sạch lời cô.",
+      "source": "dlg-hanh-time-t7",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-dispatch-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-reveal-telegram-t7",
+      "title": "Số điện đúng, nội dung sai",
+      "content": "Điện đến 47 là thời tiết. Minh thừa nhận chưa tự đọc nó và đã lặp lời thông báo của Vy. Bản nháp tại ga không biến thành chỉ thị của thanh tra chỉ vì có một số điện được nhắc tới.",
+      "inventoryDescription": "Điện đến 47 là thời tiết. Minh thừa nhận chưa tự đọc nó và đã lặp lời thông báo của Vy. Bản nháp tại ga không biến thành chỉ thị của thanh tra chỉ vì có một số điện được nhắc tới.",
+      "narrativeMeaning": "Điện đến 47 là thời tiết. Minh thừa nhận chưa tự đọc nó và đã lặp lời thông báo của Vy. Bản nháp tại ga không biến thành chỉ thị của thanh tra chỉ vì có một số điện được nhắc tới.",
+      "source": "dlg-minh-telegram-t7",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-reveal-hatch-t7",
+      "title": "Một lỗi sửa chữa, một vụ chuyển hồ sơ",
+      "content": "Ảnh bác câu phần máy hiện còn che kín. An nhận đã mở máy ngoài lịch; thời gian sửa cần đối chiếu phiếu công tác và nhật ký chuẩn. Việc nói dối này chưa đủ quy anh là người lấy hồ sơ.",
+      "inventoryDescription": "Ảnh bác câu phần máy hiện còn che kín. An nhận đã mở máy ngoài lịch; thời gian sửa cần đối chiếu phiếu công tác và nhật ký chuẩn. Việc nói dối này chưa đủ quy anh là người lấy hồ sơ.",
+      "narrativeMeaning": "Ảnh bác câu phần máy hiện còn che kín. An nhận đã mở máy ngoài lịch; thời gian sửa cần đối chiếu phiếu công tác và nhật ký chuẩn. Việc nói dối này chưa đủ quy anh là người lấy hồ sơ.",
+      "source": "dlg-an-hatch-t7",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-reveal-vy-t7",
+      "title": "Người thay nơi nhận",
+      "content": "Lệnh gốc, chữ ký có đối chứng và số kiện khớp nhau bác lời Vy chưa từng ký đưa hồ sơ ra bến. Hai người đã xác lập hành vi đổi tuyến, cần ghép tiếp động cơ và quyền tiếp cận để hoàn tất cáo buộc.",
+      "inventoryDescription": "Lệnh gốc, chữ ký có đối chứng và số kiện khớp nhau bác lời Vy chưa từng ký đưa hồ sơ ra bến. Hai người đã xác lập hành vi đổi tuyến, cần ghép tiếp động cơ và quyền tiếp cận để hoàn tất cáo buộc.",
+      "narrativeMeaning": "Lệnh gốc, chữ ký có đối chứng và số kiện khớp nhau bác lời Vy chưa từng ký đưa hồ sơ ra bến. Hai người đã xác lập hành vi đổi tuyến, cần ghép tiếp động cơ và quyền tiếp cận để hoàn tất cáo buộc.",
+      "source": "dlg-vy-denial-t7",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-platform-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-gate-act1-t7",
+      "title": "Hồ sơ biến mất khi nào, theo đường nào?",
+      "content": "Hai thám tử thống nhất mốc giờ chuẩn và đường chuyển nội bộ. Trưởng ca mở kho hành lý cho kiểm tra, giữ nguyên hiện trường buồng trực để đối chiếu sau.",
+      "inventoryDescription": "Hai thám tử thống nhất mốc giờ chuẩn và đường chuyển nội bộ. Trưởng ca mở kho hành lý cho kiểm tra, giữ nguyên hiện trường buồng trực để đối chiếu sau.",
+      "narrativeMeaning": "Hai thám tử thống nhất mốc giờ chuẩn và đường chuyển nội bộ. Trưởng ca mở kho hành lý cho kiểm tra, giữ nguyên hiện trường buồng trực để đối chiếu sau.",
+      "source": "deduction-act1-t7",
+      "sourceType": "deduction",
+      "discoverMethod": "deduction",
+      "sceneId": "scene-dispatch-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-gate-act2-t7",
+      "title": "Hai lời nói dối có cùng chứng minh một thủ phạm không?",
+      "content": "Hai việc được tách rõ: lỗi giờ gây nhầm thời gian, còn lệnh nội bộ đổi hướng hồ sơ. Trưởng ca cho đối soát sổ tài chính và giữ xe hàng tại sân tập kết; cuộc điều tra bước vào người nhận cuối cùng.",
+      "inventoryDescription": "Hai việc được tách rõ: lỗi giờ gây nhầm thời gian, còn lệnh nội bộ đổi hướng hồ sơ. Trưởng ca cho đối soát sổ tài chính và giữ xe hàng tại sân tập kết; cuộc điều tra bước vào người nhận cuối cùng.",
+      "narrativeMeaning": "Hai việc được tách rõ: lỗi giờ gây nhầm thời gian, còn lệnh nội bộ đổi hướng hồ sơ. Trưởng ca cho đối soát sổ tài chính và giữ xe hàng tại sân tập kết; cuộc điều tra bước vào người nhận cuối cùng.",
+      "source": "deduction-act2-t7",
+      "sourceType": "deduction",
+      "discoverMethod": "deduction",
+      "sceneId": "scene-signal-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    },
+    {
+      "clueId": "ev-gate-act3-t7",
+      "title": "Chuỗi nào giải thích đủ động cơ, hành vi và cơ hội?",
+      "content": "Hồ sơ gốc, lệnh có ký chứng và chứng từ thanh toán nối thành cùng một chuỗi. Việc sửa máy và tiền công hợp lệ không thay thế bằng chứng về hành vi của Vy. Hai thám tử đủ căn cứ lập cáo buộc chung.",
+      "inventoryDescription": "Hồ sơ gốc, lệnh có ký chứng và chứng từ thanh toán nối thành cùng một chuỗi. Việc sửa máy và tiền công hợp lệ không thay thế bằng chứng về hành vi của Vy. Hai thám tử đủ căn cứ lập cáo buộc chung.",
+      "narrativeMeaning": "Hồ sơ gốc, lệnh có ký chứng và chứng từ thanh toán nối thành cùng một chuỗi. Việc sửa máy và tiền công hợp lệ không thay thế bằng chứng về hành vi của Vy. Hai thám tử đủ căn cứ lập cáo buộc chung.",
+      "source": "deduction-act3-t7",
+      "sourceType": "deduction",
+      "discoverMethod": "deduction",
+      "sceneId": "scene-platform-t7",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": []
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-hanh-time-t7",
+      "characterId": "char-hanh-t7",
+      "question": "Chị xác định lúc bàn giao quyền giữ hòm bằng cách nào?",
+      "answer": "22:18 tôi kể là giờ chuẩn đường sắt. Tôi nhìn đồng hồ sảnh ngay khi chuông xe hàng vang. Tôi đứng tại quầy vé lúc đó. Người chuyển hàng chỉ vào lấy sau khi có phiếu. Tôi không mang đồng hồ riêng, nhưng vẫn nghĩ chiếc đồng hồ lớn của ga phải đúng.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-hall-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-vy-first-t7",
+      "characterId": "char-vy-t7",
+      "question": "Vì sao hồ sơ này phải lên chuyến số 7?",
+      "answer": "Thanh tra cầu chờ bản ký gốc sáng mai. Bản sao đủ cho công việc trong ga nhưng không thay được hồ sơ kiểm định. Tôi được giao điều phối, còn Hạnh giữ sổ và Nghi chuyển kiện. Tin điện hủy đến khiến tôi yêu cầu mọi người bình tĩnh. Xin kiểm tra giấy tờ trước khi làm chậm cả nhà ga.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-hall-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-an-duty-t7",
+      "characterId": "char-an-t7",
+      "question": "Vì sao nhật ký điện và đồng hồ sảnh cần đối chiếu?",
+      "answer": "Đường dây dùng giờ chuẩn từ trạm xa; đồng hồ sảnh là máy cơ tại ga. Hai nguồn không phải lúc nào cũng trùng. Tôi phụ trách bảo dưỡng nhưng giấy công tác nằm ở buồng trực. Hộp trực dùng quy ước lịch bàn giao, không dùng giờ trên chiếc đồng hồ lúc anh chị đang nhìn.",
+      "requiredClueIds": [
+        "ev-intake-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-dispatch-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-hanh-correct-t7",
+      "characterId": "char-hanh-t7",
+      "question": "Sau khi đối giờ, chị muốn sửa điều gì trong lời kể?",
+      "answer": "Tôi sửa lại: chuông xe hàng vang lúc 22:30 giờ chuẩn. 22:18 chỉ là số trên mặt đồng hồ sảnh khi ấy. Việc tôi đứng tại quầy không đổi; phần tôi đã nói chắc quá là gọi giờ đó là giờ chuẩn. Phiếu ký nhận chi tiết nằm trong lưu trữ kế toán.",
+      "requiredClueIds": [
+        "ev-reveal-time-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-dispatch-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-nghi-cargo-t7",
+      "characterId": "char-nghi-t7",
+      "question": "Ông đã chuyển kiện nào và tiền công thêm ở đâu ra?",
+      "answer": "Tôi chuyển hòm dải xanh theo phiếu từ phòng điện tín, rồi chờ phân tuyến. Tiền ca muộn có phiếu thu ngân, không có người lạ dúi cho tôi. Công việc của tôi là chuyển kiện, chưa phải giao ra ngoài cổng. Nếu muốn biết ai đổi người nhận, hãy tìm lệnh gốc, đừng suy từ người đẩy xe.",
+      "requiredClueIds": [
+        "ev-gate-act1-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-warehouse-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-minh-telegram-t7",
+      "characterId": "char-minh-t7",
+      "question": "Anh dựa vào đâu để nói thanh tra đã hủy nhận hồ sơ?",
+      "answer": "Điện đến số 47 hủy việc giao hồ sơ. Tôi nghe thông báo hủy từ phòng điều hành. Tôi chưa đọc bản ký gốc của hồ sơ cầu. Có người yêu cầu tôi chưa đăng báo trong đêm; tôi tưởng số điện đã đủ để xác nhận tin. Tôi không muốn kéo nguồn tin của mình vào chuyện này.",
+      "requiredClueIds": [
+        "ev-gate-act1-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-warehouse-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-an-hatch-t7",
+      "characterId": "char-an-t7",
+      "question": "Anh có thể nói rõ tình trạng máy và ca bảo dưỡng không?",
+      "answer": "Phần máy đồng hồ hiện vẫn được nắp che kín. Tôi phụ trách bảo dưỡng đồng hồ của ga. Phiếu công tác có thể lập chậm sau ca. Tôi hiểu anh chị đang tìm một người sửa giờ để giấu việc lấy kiện, nhưng hai việc ấy không nhất thiết là một.",
+      "requiredClueIds": [
+        "ev-wharf-route-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-signal-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-minh-source-t7",
+      "characterId": "char-minh-t7",
+      "question": "Điện 47 là thời tiết; nguồn thông báo hủy là ai?",
+      "answer": "Tường Vy đọc số 47 cho tôi. Tôi đã biến lời truyền đạt thành điều chắc chắn mà chưa xem sổ. Nguồn tin tôi gặp là người báo sai lệch vật tư, không phải người bảo tôi lấy hồ sơ. Dấu tổng đài chỉ kiểm tra được lúc tôi gọi báo, không tự miễn cho tôi mọi nghi ngờ.",
+      "requiredClueIds": [
+        "ev-reveal-telegram-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-signal-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-an-admit-t7",
+      "characterId": "char-an-t7",
+      "question": "Ảnh thấy bánh răng lộ ra; anh đã làm gì?",
+      "answer": "Tôi đã mở nắp và sửa máy mà chưa đủ phiếu xin phép. Tôi sợ lại bị đình ca. Nhật ký đầu xa mới xác định được 22:30 tương ứng 22:18 ở sảnh; tôi không thể dùng lời mình để tự xác nhận. Tôi chỉnh đúng lúc 22:45, còn lệnh đổi hồ sơ không do tôi soạn.",
+      "requiredClueIds": [
+        "ev-reveal-hatch-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-signal-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-vy-denial-t7",
+      "characterId": "char-vy-t7",
+      "question": "Ai có quyền thay nơi nhận, và bà có ký lệnh đó không?",
+      "answer": "Tôi chưa từng ký lệnh đưa hồ sơ ra bến sông. Tôi được phân công điều phối hồ sơ kiểm định. Sổ giao nhận phải có người ký đối chứng. Việc tôi ký nhận giữ hộ không có nghĩa tôi thay tuyến. Một bản hằn trên giấy lót cũng cần so với lệnh gốc, anh chị chắc hiểu điều đó.",
+      "requiredClueIds": [
+        "ev-gate-act2-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-archive-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-hanh-custody-t7",
+      "characterId": "char-hanh-t7",
+      "question": "Chữ ký đối chứng của chị trên sổ xác nhận điều gì?",
+      "answer": "Tôi tận mắt thấy Vy ký nhận hòm lúc 22:30 giờ chuẩn ghi từ trạm điện. Tôi cũng chứng kiến chữ ký trên lệnh điều vận số 19 rồi đặt lệnh vào túi chứng từ; lúc đó tôi chỉ kiểm số kiện, không nhận ra tên người nhận đã bị sửa. Hãy lấy bản gốc ra đối chiếu, đừng chỉ dựa vào trí nhớ của tôi.",
+      "requiredClueIds": [
+        "ev-custody-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-archive-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-nghi-hold-t7",
+      "characterId": "char-nghi-t7",
+      "question": "Vì sao hàng đi bến mà vẫn ở sân ga?",
+      "answer": "00:05 xe tay mới nhận hàng. 23:05 trưởng ca giữ cả lô ở đây, có nhân viên cổng ký. Theo phiếu đóng kiện, hồ sơ và túi chứng từ được chuyển từ hòm gỗ sang rương sắt trước mặt hai người kiểm hàng; số niêm túi giữ nguyên. Tôi chưa ký giao ra cổng. Cái hòm lớn vẫn ở kho, nhưng bản gốc ở rương này.",
+      "requiredClueIds": [
+        "ev-holding-log-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-platform-t7"
+      ]
+    },
+    {
+      "dialogueId": "dlg-vy-last-t7",
+      "characterId": "char-vy-t7",
+      "question": "Bản lệnh có ký chứng đã xuất hiện. Bà còn muốn đính chính gì?",
+      "answer": "Tôi không còn phủ nhận chữ ký trên lệnh số 19. Tôi muốn chặn hồ sơ trước buổi đối soát. Nhưng kết luận của anh chị phải nối được cả khoản hưởng lợi, lệnh đổi nơi nhận và lúc tôi giữ hồ sơ. Đừng đổ việc tôi làm sang người sửa đồng hồ hay người chỉ chuyển kiện.",
+      "requiredClueIds": [
+        "ev-reveal-vy-t7"
+      ],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-platform-t7"
+      ]
+    }
+  ],
+  "conversationNodes": [
+    {
+      "nodeId": "node-hanh-topic-1-t7",
+      "characterId": "char-hanh-t7",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-hall-t7",
+        "scene-dispatch-t7",
+        "scene-archive-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi nhớ tiếng chuông xe hàng và người ra vào, nhưng con số giờ lấy từ mặt đồng hồ. Nếu nguồn giờ sai, không thể vì thế bảo tất cả điều tôi thấy đều sai. Anh chị cần so đúng phần có thể kiểm chứng."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-hanh-topic-1-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-hanh-topic-2-t7",
+      "characterId": "char-hanh-t7",
+      "isRoot": false,
+      "requiredClueIds": [
+        "ev-custody-t7"
+      ],
+      "availableSceneIds": [
+        "scene-hall-t7",
+        "scene-dispatch-t7",
+        "scene-archive-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Sổ ký nhận xác nhận người cầm hòm. Lệnh điều vận xác nhận người yêu cầu đưa nó đi đâu. Tôi ký đối chứng hai việc ấy ở hai tờ khác nhau. Ghép chúng với số kiện sẽ tránh lấy quyền tiếp cận thay cho bằng chứng hành vi."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-hanh-topic-2-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-hanh-root-t7",
+      "characterId": "char-hanh-t7",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-hall-t7",
+        "scene-dispatch-t7",
+        "scene-archive-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi có thể giải thích thêm về phần việc của mình. Anh chị muốn làm rõ điều gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-hanh-topic-1-t7",
+          "label": "Một ký ức đúng có thể mang giờ sai không?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-hanh-topic-1-t7"
+        },
+        {
+          "choiceId": "choice-hanh-topic-2-t7",
+          "label": "Ký nhận khác ký lệnh như thế nào?",
+          "requiredClueIds": [
+            "ev-custody-t7"
+          ],
+          "nextNodeId": "node-hanh-topic-2-t7"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-vy-topic-1-t7",
+      "characterId": "char-vy-t7",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-hall-t7",
+        "scene-archive-t7",
+        "scene-platform-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Bản gốc có chữ ký đoàn kiểm định và phụ lục niêm cùng bộ. Sáng mai thanh tra đối soát ngay với chứng từ mua vật tư. Bản sao ở ga có thể cho biết nội dung, nhưng không đủ thay cuộc bàn giao chính thức."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-vy-topic-1-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-vy-topic-2-t7",
+      "characterId": "char-vy-t7",
+      "isRoot": false,
+      "requiredClueIds": [
+        "ev-commission-t7"
+      ],
+      "availableSceneIds": [
+        "scene-hall-t7",
+        "scene-archive-t7",
+        "scene-platform-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Một khoản tiền có thể có nhiều cách giải thích. Anh chị cần chứng minh nó vào đúng tài khoản của tôi, do đúng nhà cung cấp trả và sẽ bị cuộc kiểm định này xem xét. Sổ và xác nhận ngân hàng mới trả lời được, không phải màu áo hay chức vụ."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-vy-topic-2-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-vy-root-t7",
+      "characterId": "char-vy-t7",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-hall-t7",
+        "scene-archive-t7",
+        "scene-platform-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi có thể giải thích thêm về phần việc của mình. Anh chị muốn làm rõ điều gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-vy-topic-1-t7",
+          "label": "Vì sao cần bản gốc thay vì bản sao?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-vy-topic-1-t7"
+        },
+        {
+          "choiceId": "choice-vy-topic-2-t7",
+          "label": "Khoản hoa hồng có liên quan gì tới hồ sơ?",
+          "requiredClueIds": [
+            "ev-commission-t7"
+          ],
+          "nextNodeId": "node-vy-topic-2-t7"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-an-topic-1-t7",
+      "characterId": "char-an-t7",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-dispatch-t7",
+        "scene-signal-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Đồng hồ cơ có thể chạy lệch. Mốc giờ điện đến được ghi cả ở trạm xa và ở đây, nên phải tìm nguồn độc lập. Tôi là người có lý do giấu việc sửa; dùng mỗi lời tôi để chứng minh tôi nói thật sẽ thành vòng tròn."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-an-topic-1-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-an-topic-2-t7",
+      "characterId": "char-an-t7",
+      "isRoot": false,
+      "requiredClueIds": [
+        "ev-reveal-hatch-t7"
+      ],
+      "availableSceneIds": [
+        "scene-dispatch-t7",
+        "scene-signal-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Không. Nó giải thích được phần giờ sai và lời tôi né tránh, chứ không giải thích ai ký đổi người nhận hoặc ai hưởng lợi từ việc giữ hồ sơ. Tôi chịu trách nhiệm về bảo dưỡng ngoài lịch; phần vụ án còn lại hãy để giấy tờ trả lời."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-an-topic-2-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-an-root-t7",
+      "characterId": "char-an-t7",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-dispatch-t7",
+        "scene-signal-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi có thể giải thích thêm về phần việc của mình. Anh chị muốn làm rõ điều gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-an-topic-1-t7",
+          "label": "Máy cơ và giờ đường dây khác nhau ở đâu?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-an-topic-1-t7"
+        },
+        {
+          "choiceId": "choice-an-topic-2-t7",
+          "label": "Một lỗi bảo dưỡng có đủ kết tội trộm hồ sơ?",
+          "requiredClueIds": [
+            "ev-reveal-hatch-t7"
+          ],
+          "nextNodeId": "node-an-topic-2-t7"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-minh-topic-1-t7",
+      "characterId": "char-minh-t7",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-warehouse-t7",
+        "scene-signal-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi có thể không nêu tên người báo tin cho mình, nhưng vẫn phải kiểm nội dung trước khi coi đó là sự thật. Một số điện đọc qua miệng người khác chưa phải bản điện gốc. Trong đêm vội, tôi đã quên ranh giới ấy."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-minh-topic-1-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-minh-topic-2-t7",
+      "characterId": "char-minh-t7",
+      "isRoot": false,
+      "requiredClueIds": [
+        "ev-meeting-t7"
+      ],
+      "availableSceneIds": [
+        "scene-warehouse-t7",
+        "scene-signal-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Nó chỉ đặt tôi ở một nơi trong một quãng cụ thể. Nó không biết tôi nói gì trước đó, giúp ai sau đó hay có nhận lợi ích gì không. Nếu anh chị loại được một hành động trực tiếp, hãy chỉ ghi đúng hành động đó được loại."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-minh-topic-2-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-minh-root-t7",
+      "characterId": "char-minh-t7",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-warehouse-t7",
+        "scene-signal-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi có thể giải thích thêm về phần việc của mình. Anh chị muốn làm rõ điều gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-minh-topic-1-t7",
+          "label": "Giữ bí mật nguồn tin khác xác minh tin ra sao?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-minh-topic-1-t7"
+        },
+        {
+          "choiceId": "choice-minh-topic-2-t7",
+          "label": "Dấu tổng đài có gỡ hết nghi ngờ không?",
+          "requiredClueIds": [
+            "ev-meeting-t7"
+          ],
+          "nextNodeId": "node-minh-topic-2-t7"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-nghi-topic-1-t7",
+      "characterId": "char-nghi-t7",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-warehouse-t7",
+        "scene-platform-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Màu xanh riêng lẻ chưa đủ. Sổ còn tả hai đai đồng, và cả kho chỉ có một hòm kiểm định ghép đúng hai dấu ấy. Chụp được hiện trạng rồi so sổ sẽ vững hơn việc tôi chỉ nói trông giống."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-nghi-topic-1-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-nghi-topic-2-t7",
+      "characterId": "char-nghi-t7",
+      "isRoot": false,
+      "requiredClueIds": [
+        "ev-holding-log-t7"
+      ],
+      "availableSceneIds": [
+        "scene-warehouse-t7",
+        "scene-platform-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Hòm gỗ là kiện chứa ngoài dùng trong kho. Khi ra sân, tổ đóng kiện cho túi hồ sơ và lệnh gốc vào rương sắt có khóa, ghi vào phiếu kiểm hàng trước mặt hai người. Hòm gỗ không chạy theo rương; số hồ sơ và niêm túi mới nối được hai chặng."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-nghi-topic-2-back-t7",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-nghi-root-t7",
+      "characterId": "char-nghi-t7",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-warehouse-t7",
+        "scene-platform-t7"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Tôi có thể giải thích thêm về phần việc của mình. Anh chị muốn làm rõ điều gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-nghi-topic-1-t7",
+          "label": "Nhìn hòm bằng dấu gì để khỏi lẫn?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-nghi-topic-1-t7"
+        },
+        {
+          "choiceId": "choice-nghi-topic-2-t7",
+          "label": "Vì sao hồ sơ chuyển sang rương nhỏ?",
+          "requiredClueIds": [
+            "ev-holding-log-t7"
+          ],
+          "nextNodeId": "node-nghi-topic-2-t7"
+        }
+      ]
+    }
+  ],
+  "testimonyFragments": [
+    {
+      "id": "fragment-hanh-time-1-t7",
+      "dialogueId": "dlg-hanh-time-t7",
+      "text": "22:18 tôi kể là giờ chuẩn đường sắt."
+    },
+    {
+      "id": "fragment-hanh-time-2-t7",
+      "dialogueId": "dlg-hanh-time-t7",
+      "text": "Tôi nhìn đồng hồ sảnh ngay khi chuông xe hàng vang."
+    },
+    {
+      "id": "fragment-hanh-time-3-t7",
+      "dialogueId": "dlg-hanh-time-t7",
+      "text": "Tôi đứng tại quầy vé lúc đó."
+    },
+    {
+      "id": "fragment-minh-telegram-1-t7",
+      "dialogueId": "dlg-minh-telegram-t7",
+      "text": "Điện đến số 47 hủy việc giao hồ sơ."
+    },
+    {
+      "id": "fragment-minh-telegram-2-t7",
+      "dialogueId": "dlg-minh-telegram-t7",
+      "text": "Tôi nghe thông báo hủy từ phòng điều hành."
+    },
+    {
+      "id": "fragment-minh-telegram-3-t7",
+      "dialogueId": "dlg-minh-telegram-t7",
+      "text": "Tôi chưa đọc bản ký gốc của hồ sơ cầu."
+    },
+    {
+      "id": "fragment-an-hatch-1-t7",
+      "dialogueId": "dlg-an-hatch-t7",
+      "text": "Phần máy đồng hồ hiện vẫn được nắp che kín."
+    },
+    {
+      "id": "fragment-an-hatch-2-t7",
+      "dialogueId": "dlg-an-hatch-t7",
+      "text": "Tôi phụ trách bảo dưỡng đồng hồ của ga."
+    },
+    {
+      "id": "fragment-an-hatch-3-t7",
+      "dialogueId": "dlg-an-hatch-t7",
+      "text": "Phiếu công tác có thể lập chậm sau ca."
+    },
+    {
+      "id": "fragment-vy-denial-1-t7",
+      "dialogueId": "dlg-vy-denial-t7",
+      "text": "Tôi chưa từng ký lệnh đưa hồ sơ ra bến sông."
+    },
+    {
+      "id": "fragment-vy-denial-2-t7",
+      "dialogueId": "dlg-vy-denial-t7",
+      "text": "Tôi được phân công điều phối hồ sơ kiểm định."
+    },
+    {
+      "id": "fragment-vy-denial-3-t7",
+      "dialogueId": "dlg-vy-denial-t7",
+      "text": "Sổ giao nhận phải có người ký đối chứng."
+    }
+  ],
+  "interactions": [
+    {
+      "interactionId": "interaction-restore-telegram-t7",
+      "type": "COMBINE_ITEMS",
+      "targetId": "",
+      "requiredItemIds": [
+        "item-telegram-top-t7",
+        "item-telegram-bottom-t7"
+      ],
+      "requiredClueIds": [
+        "ev-telegram-top-t7",
+        "ev-telegram-bottom-t7"
+      ],
+      "unlockItemIds": [
+        "item-telegram-t7"
+      ],
+      "unlockClueIds": [
+        "ev-draft-t7"
+      ],
+      "consumeItemIds": [
+        "item-telegram-top-t7",
+        "item-telegram-bottom-t7"
+      ],
+      "unlockSceneIds": [],
+      "singleUse": true,
+      "successMessage": "Hai mép khớp: đây là bản nháp tại ga, chưa có mã điện đến. Lệnh dự kiến đổi đường đi của hồ sơ.",
+      "failureMessage": "Các vật này chưa đáp ứng cách sử dụng. Đọc mô tả mục tiêu và kiểm tra chứng cứ cần có trước."
+    },
+    {
+      "interactionId": "interaction-open-dispatch-t7",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-dispatch-cabinet-t7",
+      "requiredItemIds": [
+        "item-warehouse-key-t7"
+      ],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "ev-cargo-order-t7"
+      ],
+      "consumeItemIds": [],
+      "unlockSceneIds": [],
+      "singleUse": true,
+      "successMessage": "Chìa mở ngăn điều vận: lô hàng phải chờ ở sân tập kết đến 00:05 mới giao xe tay ra bến.",
+      "failureMessage": "Các vật này chưa đáp ứng cách sử dụng. Đọc mô tả mục tiêu và kiểm tra chứng cứ cần có trước."
+    },
+    {
+      "interactionId": "interaction-rub-order-t7",
+      "type": "COMBINE_ITEMS",
+      "targetId": "",
+      "requiredItemIds": [
+        "item-carbon-t7",
+        "item-pencil-t7"
+      ],
+      "requiredClueIds": [
+        "ev-carbon-t7",
+        "ev-pencil-t7"
+      ],
+      "unlockItemIds": [
+        "item-rubbing-t7"
+      ],
+      "unlockClueIds": [
+        "ev-altered-order-t7"
+      ],
+      "consumeItemIds": [
+        "item-carbon-t7"
+      ],
+      "unlockSceneIds": [],
+      "singleUse": true,
+      "successMessage": "Vết hằn hiện dòng sửa người nhận sang kho tư Hưng Phát. Bút chì được giữ lại; bản sao cần đối chiếu lệnh gốc.",
+      "failureMessage": "Các vật này chưa đáp ứng cách sử dụng. Đọc mô tả mục tiêu và kiểm tra chứng cứ cần có trước."
+    },
+    {
+      "interactionId": "interaction-open-trunk-t7",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-freight-trunk-t7",
+      "requiredItemIds": [
+        "item-trunk-key-t7"
+      ],
+      "requiredClueIds": [
+        "ev-holding-log-t7"
+      ],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "ev-signed-order-t7",
+        "ev-original-report-t7"
+      ],
+      "consumeItemIds": [],
+      "unlockSceneIds": [],
+      "singleUse": true,
+      "successMessage": "Trong rương là lệnh đổi nơi nhận có ký chứng và hồ sơ kiểm định gốc. Người trực niêm giữ lại toàn bộ để chờ hai thám tử kết luận.",
+      "failureMessage": "Các vật này chưa đáp ứng cách sử dụng. Đọc mô tả mục tiêu và kiểm tra chứng cứ cần có trước."
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "puzzle-duty-code-t7",
+      "type": "CODE_PUZZLE",
+      "targetId": "item-duty-box-t7",
+      "prompt": "Nhập giờ HHMM của chuyến bàn giao HÀNG cuối trước nửa đêm; đọc lịch ở sảnh, phân biệt với tàu khách số 7.",
+      "options": [],
+      "correctCode": "2340",
+      "correctSequence": [],
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "ev-timetable-t7"
+      ],
+      "unlockItemIds": [
+        "item-warehouse-key-t7"
+      ],
+      "unlockClueIds": [
+        "ev-internal-transfer-t7"
+      ],
+      "unlockSceneIds": [],
+      "successMessage": "Ngăn lưu đã mở. Chứng từ bên trong bổ sung một phần đường đi của hồ sơ.",
+      "failureMessage": "Chưa đúng quy ước. Xem lại tài liệu hướng dẫn, xóa lựa chọn rồi thử lại.",
+      "progressionRole": "REQUIRED",
+      "investigationPurpose": "Nhập giờ HHMM của chuyến bàn giao HÀNG cuối trước nửa đêm; đọc lịch ở sảnh, phân biệt với tàu khách số 7."
+    },
+    {
+      "puzzleId": "puzzle-route-symbols-t7",
+      "type": "SYMBOL_MATCH_PUZZLE",
+      "targetId": "item-route-box-t7",
+      "prompt": "Chọn CA → ĐƯỜNG ĐI → NGƯỜI NHẬN của kiện kiểm định theo thẻ quy ước và phiếu điều vận.",
+      "options": [
+        "TRĂNG",
+        "SÓNG",
+        "SAO",
+        "BÁNH RĂNG"
+      ],
+      "correctCode": "",
+      "correctSequence": [
+        "TRĂNG",
+        "SÓNG",
+        "SAO"
+      ],
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "ev-route-rule-t7",
+        "ev-cargo-order-t7",
+        "ev-blue-crate-t7"
+      ],
+      "unlockItemIds": [
+        "item-trunk-key-t7"
+      ],
+      "unlockClueIds": [
+        "ev-wharf-route-t7"
+      ],
+      "unlockSceneIds": [],
+      "successMessage": "Ngăn lưu đã mở. Chứng từ bên trong bổ sung một phần đường đi của hồ sơ.",
+      "failureMessage": "Chưa đúng quy ước. Xem lại tài liệu hướng dẫn, xóa lựa chọn rồi thử lại.",
+      "progressionRole": "REQUIRED",
+      "investigationPurpose": "Chọn CA → ĐƯỜNG ĐI → NGƯỜI NHẬN của kiện kiểm định theo thẻ quy ước và phiếu điều vận."
+    },
+    {
+      "puzzleId": "puzzle-filing-sequence-t7",
+      "type": "SEQUENCE_PUZZLE",
+      "targetId": "item-incoming-box-t7",
+      "prompt": "Sắp bốn bước lưu chứng từ theo quy trình; đây là ngăn hồ sơ đã ngắt khỏi thiết bị điều khiển.",
+      "options": [
+        "KIỂM SỐ",
+        "LƯU SỔ",
+        "NHẬN PHIẾU",
+        "ĐỐI GIỜ"
+      ],
+      "correctCode": "",
+      "correctSequence": [
+        "NHẬN PHIẾU",
+        "ĐỐI GIỜ",
+        "KIỂM SỐ",
+        "LƯU SỔ"
+      ],
+      "requiredItemIds": [],
+      "requiredClueIds": [
+        "ev-filing-rule-t7"
+      ],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "ev-message-47-t7",
+        "ev-meeting-t7"
+      ],
+      "unlockSceneIds": [],
+      "successMessage": "Ngăn lưu đã mở. Chứng từ bên trong bổ sung một phần đường đi của hồ sơ.",
+      "failureMessage": "Chưa đúng quy ước. Xem lại tài liệu hướng dẫn, xóa lựa chọn rồi thử lại.",
+      "progressionRole": "REQUIRED",
+      "investigationPurpose": "Sắp bốn bước lưu chứng từ theo quy trình; đây là ngăn hồ sơ đã ngắt khỏi thiết bị điều khiển."
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-time-t7",
+      "order": 1,
+      "isSignature": false,
+      "dialogueId": "dlg-hanh-time-t7",
+      "testimonyFragmentId": "fragment-hanh-time-1-t7",
+      "candidateTestimonyFragmentIds": [
+        "fragment-hanh-time-1-t7",
+        "fragment-hanh-time-2-t7",
+        "fragment-hanh-time-3-t7"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-hanh-time-1-t7",
+        "fragment-hanh-time-2-t7"
+      ],
+      "prompt": "Mười hai phút bị bỏ quên",
+      "correctEvidenceId": "ev-sync-t7",
+      "candidateEvidenceIds": [
+        "ev-sync-t7",
+        "ev-intake-t7",
+        "ev-timetable-t7"
+      ],
+      "startRequiredEvidenceIds": [
+        "ev-sync-t7",
+        "ev-intake-t7"
+      ],
+      "successResponse": "Nhật ký chuẩn bác đúng việc gọi 22:18 là giờ đường sắt. Hạnh vẫn có thể nhớ đúng tiếng chuông và vị trí đứng; phải sửa mốc giờ, không xóa sạch lời cô.",
+      "failureResponse": "Cặp này chưa bác đúng mệnh đề. Chọn chứng cứ trực tiếp kiểm tra nội dung câu nói, không chỉ làm người nói đáng ngờ.",
+      "revealTitle": "MƯỜI HAI PHÚT BỊ BỎ QUÊN",
+      "unlockClueIds": [
+        "ev-reveal-time-t7"
+      ]
+    },
+    {
+      "challengeId": "challenge-telegram-t7",
+      "order": 2,
+      "isSignature": false,
+      "dialogueId": "dlg-minh-telegram-t7",
+      "testimonyFragmentId": "fragment-minh-telegram-1-t7",
+      "candidateTestimonyFragmentIds": [
+        "fragment-minh-telegram-1-t7",
+        "fragment-minh-telegram-2-t7",
+        "fragment-minh-telegram-3-t7"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-minh-telegram-1-t7",
+        "fragment-minh-telegram-2-t7"
+      ],
+      "prompt": "Số điện đúng, nội dung sai",
+      "correctEvidenceId": "ev-message-47-t7",
+      "candidateEvidenceIds": [
+        "ev-message-47-t7",
+        "ev-wharf-route-t7",
+        "ev-cargo-order-t7"
+      ],
+      "startRequiredEvidenceIds": [
+        "ev-message-47-t7",
+        "ev-wharf-route-t7"
+      ],
+      "successResponse": "Điện đến 47 là thời tiết. Minh thừa nhận chưa tự đọc nó và đã lặp lời thông báo của Vy. Bản nháp tại ga không biến thành chỉ thị của thanh tra chỉ vì có một số điện được nhắc tới.",
+      "failureResponse": "Cặp này chưa bác đúng mệnh đề. Chọn chứng cứ trực tiếp kiểm tra nội dung câu nói, không chỉ làm người nói đáng ngờ.",
+      "revealTitle": "SỐ ĐIỆN ĐÚNG, NỘI DUNG SAI",
+      "unlockClueIds": [
+        "ev-reveal-telegram-t7"
+      ]
+    },
+    {
+      "challengeId": "challenge-hatch-t7",
+      "order": 3,
+      "isSignature": false,
+      "dialogueId": "dlg-an-hatch-t7",
+      "testimonyFragmentId": "fragment-an-hatch-1-t7",
+      "candidateTestimonyFragmentIds": [
+        "fragment-an-hatch-1-t7",
+        "fragment-an-hatch-2-t7",
+        "fragment-an-hatch-3-t7"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-an-hatch-1-t7",
+        "fragment-an-hatch-2-t7"
+      ],
+      "prompt": "Một lỗi sửa chữa, một vụ chuyển hồ sơ",
+      "correctEvidenceId": "ev-open-hatch-t7",
+      "candidateEvidenceIds": [
+        "ev-open-hatch-t7",
+        "ev-service-card-t7",
+        "ev-internal-transfer-t7"
+      ],
+      "startRequiredEvidenceIds": [
+        "ev-open-hatch-t7",
+        "ev-service-card-t7"
+      ],
+      "successResponse": "Ảnh bác câu phần máy hiện còn che kín. An nhận đã mở máy ngoài lịch; thời gian sửa cần đối chiếu phiếu công tác và nhật ký chuẩn. Việc nói dối này chưa đủ quy anh là người lấy hồ sơ.",
+      "failureResponse": "Cặp này chưa bác đúng mệnh đề. Chọn chứng cứ trực tiếp kiểm tra nội dung câu nói, không chỉ làm người nói đáng ngờ.",
+      "revealTitle": "MỘT LỖI SỬA CHỮA, MỘT VỤ CHUYỂN HỒ SƠ",
+      "unlockClueIds": [
+        "ev-reveal-hatch-t7"
+      ]
+    },
+    {
+      "challengeId": "challenge-vy-t7",
+      "order": 4,
+      "isSignature": true,
+      "dialogueId": "dlg-vy-denial-t7",
+      "testimonyFragmentId": "fragment-vy-denial-1-t7",
+      "candidateTestimonyFragmentIds": [
+        "fragment-vy-denial-1-t7",
+        "fragment-vy-denial-2-t7",
+        "fragment-vy-denial-3-t7"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-vy-denial-1-t7",
+        "fragment-vy-denial-2-t7"
+      ],
+      "prompt": "Người thay nơi nhận",
+      "correctEvidenceId": "ev-signed-order-t7",
+      "candidateEvidenceIds": [
+        "ev-signed-order-t7",
+        "ev-commission-t7",
+        "ev-custody-t7"
+      ],
+      "startRequiredEvidenceIds": [
+        "ev-signed-order-t7",
+        "ev-custody-t7"
+      ],
+      "successResponse": "Lệnh gốc, chữ ký có đối chứng và số kiện khớp nhau bác lời Vy chưa từng ký đưa hồ sơ ra bến. Hai người đã xác lập hành vi đổi tuyến, cần ghép tiếp động cơ và quyền tiếp cận để hoàn tất cáo buộc.",
+      "failureResponse": "Cặp này chưa bác đúng mệnh đề. Chọn chứng cứ trực tiếp kiểm tra nội dung câu nói, không chỉ làm người nói đáng ngờ.",
+      "revealTitle": "NGƯỜI THAY NƠI NHẬN",
+      "unlockClueIds": [
+        "ev-reveal-vy-t7"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-act1-t7",
+      "prompt": "Hồ sơ biến mất khi nào, theo đường nào?",
+      "requiredClueIds": [
+        "ev-sync-t7",
+        "ev-internal-transfer-t7",
+        "ev-draft-t7",
+        "ev-reveal-time-t7"
+      ],
+      "requiredChallengeIds": [
+        "challenge-time-t7"
+      ],
+      "options": [
+        {
+          "id": "option-act1-0-t7",
+          "label": "Hồ sơ đã rời ga lúc 22:18 vì đồng hồ lớn luôn đúng."
+        },
+        {
+          "id": "option-act1-1-t7",
+          "label": "Mốc đúng là 22:30; kiện còn được chuyển nội bộ lúc 22:36, nên cần kiểm kho và lệnh tại ga."
+        },
+        {
+          "id": "option-act1-2-t7",
+          "label": "Ai sửa đồng hồ thì chắc chắn là người lấy hồ sơ."
+        }
+      ],
+      "correctOptionId": "option-act1-1-t7",
+      "successResponse": "Hai thám tử thống nhất mốc giờ chuẩn và đường chuyển nội bộ. Trưởng ca mở kho hành lý cho kiểm tra, giữ nguyên hiện trường buồng trực để đối chiếu sau.",
+      "failureResponse": "Giả thuyết chưa giải thích đủ các nguồn độc lập. Phân biệt điều đã được xác lập với điều mới chỉ nghi ngờ.",
+      "unlockClueIds": [
+        "ev-gate-act1-t7"
+      ]
+    },
+    {
+      "deductionId": "deduction-act2-t7",
+      "prompt": "Hai lời nói dối có cùng chứng minh một thủ phạm không?",
+      "requiredClueIds": [
+        "ev-gate-act1-t7",
+        "ev-wharf-route-t7",
+        "ev-blue-crate-t7",
+        "ev-message-47-t7",
+        "ev-reveal-telegram-t7",
+        "ev-reveal-hatch-t7"
+      ],
+      "requiredChallengeIds": [
+        "challenge-telegram-t7",
+        "challenge-hatch-t7"
+      ],
+      "options": [
+        {
+          "id": "option-act2-0-t7",
+          "label": "An giấu sửa đồng hồ nên không cần xem thêm lệnh điều vận."
+        },
+        {
+          "id": "option-act2-1-t7",
+          "label": "Minh nói sai số điện nên chắc chắn tự chuyển kiện ra bến."
+        },
+        {
+          "id": "option-act2-2-t7",
+          "label": "An giấu một lần sửa máy; điện hủy không đến từ trạm ngoài. Kiện vẫn ở ga theo tuyến bị đổi, cần kiểm người hưởng lợi và người ký lệnh."
+        }
+      ],
+      "correctOptionId": "option-act2-2-t7",
+      "successResponse": "Hai việc được tách rõ: lỗi giờ gây nhầm thời gian, còn lệnh nội bộ đổi hướng hồ sơ. Trưởng ca cho đối soát sổ tài chính và giữ xe hàng tại sân tập kết; cuộc điều tra bước vào người nhận cuối cùng.",
+      "failureResponse": "Giả thuyết chưa giải thích đủ các nguồn độc lập. Phân biệt điều đã được xác lập với điều mới chỉ nghi ngờ.",
+      "unlockClueIds": [
+        "ev-gate-act2-t7"
+      ]
+    },
+    {
+      "deductionId": "deduction-act3-t7",
+      "prompt": "Chuỗi nào giải thích đủ động cơ, hành vi và cơ hội?",
+      "requiredClueIds": [
+        "ev-gate-act1-t7",
+        "ev-gate-act2-t7",
+        "ev-commission-t7",
+        "ev-altered-order-t7",
+        "ev-custody-t7",
+        "ev-signed-order-t7",
+        "ev-original-report-t7",
+        "ev-holding-log-t7",
+        "ev-reveal-vy-t7"
+      ],
+      "requiredChallengeIds": [
+        "challenge-vy-t7"
+      ],
+      "options": [
+        {
+          "id": "option-act3-0-t7",
+          "label": "Vy nhận hồ sơ lúc 22:30, đổi nơi nhận bằng lệnh số 19 để trì hoãn việc lộ hoa hồng; hồ sơ bị giữ lại trước chuyến xe ra bến."
+        },
+        {
+          "id": "option-act3-1-t7",
+          "label": "Nghi có tiền công thêm nên đã tự soạn điện hủy và giả mọi chữ ký."
+        },
+        {
+          "id": "option-act3-2-t7",
+          "label": "Toàn bộ chỉ là lỗi đồng hồ; không có ai thay nơi nhận."
+        }
+      ],
+      "correctOptionId": "option-act3-0-t7",
+      "successResponse": "Hồ sơ gốc, lệnh có ký chứng và chứng từ thanh toán nối thành cùng một chuỗi. Việc sửa máy và tiền công hợp lệ không thay thế bằng chứng về hành vi của Vy. Hai thám tử đủ căn cứ lập cáo buộc chung.",
+      "failureResponse": "Giả thuyết chưa giải thích đủ các nguồn độc lập. Phân biệt điều đã được xác lập với điều mới chỉ nghi ngờ.",
+      "unlockClueIds": [
+        "ev-gate-act3-t7"
+      ]
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-clock-t7",
+      "investigatorClueId": "ev-sync-t7",
+      "interrogatorChallengeId": "challenge-time-t7",
+      "deductionId": "deduction-act1-t7",
+      "description": "Vật chứng riêng của điều tra viên phải ghép đúng lời khai riêng của thẩm vấn viên, được cả hai xác nhận rồi sử dụng trong suy luận."
+    },
+    {
+      "chainId": "chain-wire-t7",
+      "investigatorClueId": "ev-message-47-t7",
+      "interrogatorChallengeId": "challenge-telegram-t7",
+      "deductionId": "deduction-act2-t7",
+      "description": "Vật chứng riêng của điều tra viên phải ghép đúng lời khai riêng của thẩm vấn viên, được cả hai xác nhận rồi sử dụng trong suy luận."
+    },
+    {
+      "chainId": "chain-photo-t7",
+      "investigatorClueId": "ev-open-hatch-t7",
+      "interrogatorChallengeId": "challenge-hatch-t7",
+      "deductionId": "deduction-act2-t7",
+      "description": "Vật chứng riêng của điều tra viên phải ghép đúng lời khai riêng của thẩm vấn viên, được cả hai xác nhận rồi sử dụng trong suy luận."
+    },
+    {
+      "chainId": "chain-order-t7",
+      "investigatorClueId": "ev-signed-order-t7",
+      "interrogatorChallengeId": "challenge-vy-t7",
+      "deductionId": "deduction-act3-t7",
+      "description": "Vật chứng riêng của điều tra viên phải ghép đúng lời khai riêng của thẩm vấn viên, được cả hai xác nhận rồi sử dụng trong suy luận."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-hall-1-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-hall-t7",
+      "order": 1,
+      "text": "Hỏi Hạnh nguồn của con số giờ. Lịch tàu khách và lịch bàn giao hàng không phải cùng một lịch."
+    },
+    {
+      "hintId": "hint-hall-2-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-hall-t7",
+      "order": 2,
+      "text": "Giữ nửa điện tín. Đọc quy ước HHMM của chuyến bàn giao hàng cuối: 23:40, khác tàu số 7 lúc 00:15."
+    },
+    {
+      "hintId": "hint-dispatch-1-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-dispatch-t7",
+      "order": 1,
+      "text": "Ghép hai mảnh điện tín; dùng lịch sảnh mở hộp trực. Đối chiếu lời Hạnh với nguồn giờ không do cô hay An tự lập."
+    },
+    {
+      "hintId": "hint-dispatch-2-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-dispatch-t7",
+      "order": 2,
+      "text": "Điều tra viên chọn nhật ký 22:30 = 22:18; thẩm vấn viên chọn câu gọi 22:18 là giờ chuẩn. Cả hai xác nhận, làm suy luận hồi I rồi hỏi Hạnh câu vừa mở."
+    },
+    {
+      "hintId": "hint-warehouse-1-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-warehouse-t7",
+      "order": 1,
+      "text": "Chụp hòm dải xanh trước khi mở tủ tuyến. Chìa hộp trực mở ngăn điều vận; phiếu công xe tay có cách kiểm chứng riêng."
+    },
+    {
+      "hintId": "hint-warehouse-2-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-warehouse-t7",
+      "order": 2,
+      "text": "Tủ tuyến tra CA → ĐƯỜNG → ĐƠN VỊ NHẬN THEO HỒ SƠ GỐC: đêm, bến sông, thanh tra tương ứng TRĂNG → SÓNG → SAO."
+    },
+    {
+      "hintId": "hint-signal-1-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-signal-t7",
+      "order": 1,
+      "text": "Một lời nói dối nói về hiện trạng nắp máy; lời kia nói về nội dung điện số 47. Tìm chứng cứ riêng cho từng câu."
+    },
+    {
+      "hintId": "hint-signal-2-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-signal-t7",
+      "order": 2,
+      "text": "Chụp khoang bánh răng đang hở. Ngăn điện đến dùng NHẬN PHIẾU → ĐỐI GIỜ → KIỂM SỐ → LƯU SỔ. Hoàn tất cả hai đối chất, câu hỏi mới và suy luận hồi II."
+    },
+    {
+      "hintId": "hint-archive-1-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-archive-t7",
+      "order": 1,
+      "text": "Quyền cầm hồ sơ, cách sửa lệnh và người hưởng lợi là ba vấn đề riêng. Giấy lót cần một dụng cụ trong phòng để đọc."
+    },
+    {
+      "hintId": "hint-archive-2-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-archive-t7",
+      "order": 2,
+      "text": "Ghép giấy lót với bút chì. Đọc sổ hoa hồng và sổ bàn giao, hỏi Hạnh về ký đối chứng. Lệnh có chữ ký gốc vẫn ở rương sân tập kết."
+    },
+    {
+      "hintId": "hint-platform-1-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-platform-t7",
+      "order": 1,
+      "text": "Đọc sổ giữ hàng để giải thích vì sao lô đi bến còn ở ga. Chìa thẻ sao mở rương, nhưng quyền giữ chìa chưa đủ buộc tội."
+    },
+    {
+      "hintId": "hint-platform-2-t7",
+      "contextType": "SCENE",
+      "targetId": "scene-platform-t7",
+      "order": 2,
+      "text": "Đối chất câu Vy chưa ký đưa hồ sơ ra bến bằng lệnh gốc có ký chứng. Hỏi lại Vy, hoàn tất suy luận và gắn đúng động cơ–phương thức–cơ hội khi cả hai cáo buộc."
+    },
+    {
+      "hintId": "challenge-time-t7-hint",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-time-t7",
+      "order": 1,
+      "text": "Chọn đúng một câu có thể kiểm chứng. Vật chứng về tiền không bác câu về giờ; ảnh hiện trạng không tự xác định ai ký lệnh."
+    },
+    {
+      "hintId": "challenge-telegram-t7-hint",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-telegram-t7",
+      "order": 1,
+      "text": "Chọn đúng một câu có thể kiểm chứng. Vật chứng về tiền không bác câu về giờ; ảnh hiện trạng không tự xác định ai ký lệnh."
+    },
+    {
+      "hintId": "challenge-hatch-t7-hint",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-hatch-t7",
+      "order": 1,
+      "text": "Chọn đúng một câu có thể kiểm chứng. Vật chứng về tiền không bác câu về giờ; ảnh hiện trạng không tự xác định ai ký lệnh."
+    },
+    {
+      "hintId": "challenge-vy-t7-hint",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-vy-t7",
+      "order": 1,
+      "text": "Chọn đúng một câu có thể kiểm chứng. Vật chứng về tiền không bác câu về giờ; ảnh hiện trạng không tự xác định ai ký lệnh."
+    },
+    {
+      "hintId": "deduction-act1-t7-hint",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-act1-t7",
+      "order": 1,
+      "text": "Giữ lại phần lời khai đã được kiểm chứng, sửa đúng phần sai. Phương án đúng phải giải thích tất cả chứng cứ bắt buộc mà không biến sự đáng ngờ thành kết tội."
+    },
+    {
+      "hintId": "deduction-act2-t7-hint",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-act2-t7",
+      "order": 1,
+      "text": "Giữ lại phần lời khai đã được kiểm chứng, sửa đúng phần sai. Phương án đúng phải giải thích tất cả chứng cứ bắt buộc mà không biến sự đáng ngờ thành kết tội."
+    },
+    {
+      "hintId": "deduction-act3-t7-hint",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-act3-t7",
+      "order": 1,
+      "text": "Giữ lại phần lời khai đã được kiểm chứng, sửa đúng phần sai. Phương án đúng phải giải thích tất cả chứng cứ bắt buộc mà không biến sự đáng ngờ thành kết tội."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-vy-t7",
+    "motive": "Ngăn hồ sơ tới thanh tra để che khoản hoa hồng từ nhà cung cấp Hưng Phát.",
+    "method": "Dùng thông báo hủy sai làm cớ, ký đổi người nhận trên lệnh điều vận và chuyển hồ sơ sang lô chờ ra bến sông.",
+    "requiredEvidenceIds": [],
+    "motiveOptions": [
+      {
+        "id": "motive-repair-t7",
+        "label": "Che việc An sửa đồng hồ ngoài lịch"
+      },
+      {
+        "id": "motive-commission-t7",
+        "label": "Che hoa hồng Hưng Phát vào tài khoản của Vy trước buổi kiểm định"
+      },
+      {
+        "id": "motive-porter-t7",
+        "label": "Nhận khoản công ca muộn của Nghi"
+      }
+    ],
+    "correctMotiveId": "motive-commission-t7",
+    "methodOptions": [
+      {
+        "id": "method-order-t7",
+        "label": "Đổi nơi nhận bằng lệnh nội bộ giả danh hủy giao, chuyển hồ sơ vào lô chờ ra bến"
+      },
+      {
+        "id": "method-clock-t7",
+        "label": "Chỉ sửa đồng hồ là đủ làm hồ sơ tự biến mất"
+      },
+      {
+        "id": "method-outside-t7",
+        "label": "Thanh tra thực sự gửi điện 47 hủy nhận, mọi người làm đúng"
+      }
+    ],
+    "correctMethodId": "method-order-t7",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "evidenceId": "ev-commission-t7"
+      },
+      {
+        "claimType": "METHOD",
+        "evidenceId": "ev-altered-order-t7"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "evidenceId": "ev-custody-t7"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-act1-t7",
+      "deduction-act2-t7",
+      "deduction-act3-t7"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-clock-t7",
+      "chain-wire-t7",
+      "chain-photo-t7",
+      "chain-order-t7"
+    ],
+    "winEnding": "Lệnh giao ra bến bị đình lại trước 00:05. Hồ sơ gốc được niêm bàn giao cho trưởng đoàn thanh tra trên chuyến số 7. Ba khoản hoa hồng, lệnh đổi nơi nhận có ký chứng và sổ nhận lúc 22:30 cùng quy về Trần Tường Vy; bà thừa nhận muốn trì hoãn cuộc đối soát. An chịu trách nhiệm riêng về sửa máy ngoài lịch. Minh đính chính tin điện hủy và bảo vệ nguồn tin bằng việc kiểm chứng thay vì lặp lời. Hạnh sửa mốc giờ, Nghi nhận lại danh dự trong phạm vi chứng cứ đã làm rõ. Hai thám tử đóng hồ sơ bằng một chuỗi chứng minh chung, không bằng việc chọn người nói dối đầu tiên.",
+    "failEnding": "Cáo buộc chưa nối đúng người hưởng lợi, hành vi thay tuyến và lúc nhận hồ sơ. Việc An giấu sửa máy, Minh lặp tin sai hoặc Nghi có tiền công không thay cho ba liên kết chứng cứ. Hồ sơ vẫn được trưởng ca giữ an toàn, nhưng kết luận buộc tội của hai thám tử chưa được chấp nhận. Xem phần đối chiếu kết quả và mở phòng mới để điều tra lại."
+  }
+}

@@ -68,6 +68,18 @@ public static class ProjectionCapacityPolicy
             }).EnsureValid($"{preset}+V3");
         }
 
+        // SHORT_DEMO has a persisted legacy profile and a new feature sampler.
+        // Startup must validate both budgets, rather than checking only default 0.
+        foreach (var version in new[] { 0, AiGenerationContract.CurrentShortDemoProfileVersion })
+        foreach (var paired in new[] { false, true })
+            For(new AiDraftSettings
+            {
+                GenerationPreset = AiGenerationPresets.ShortDemo, StageCount = 2,
+                ShortDemoProfileVersion = version, IncludeCrackTheLie = paired,
+                MechanicsVersion = paired ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                    : CaseMechanicsVersions.InvestigationV2
+            }).EnsureValid($"{AiGenerationPresets.ShortDemo} profile {version}" + (paired ? "+V3" : string.Empty));
+
         For(new AiDraftSettings
         {
             GenerationPreset = AiGenerationPresets.CrackTheLieV3,

@@ -65,7 +65,8 @@ public static class ProjectionPromptContext
                     .Select(item => new { item.ItemId, item.Name, item.Description, item.InteractionReason }),
                 conversationTopology = plan.Skeleton.ConversationNodes.Select(item => new
                 {
-                    item.NodeId, lineCount = item.Lines.Count,
+                    item.NodeId, item.SourceDialogueId, item.StatementIds, item.AvailableSceneIds,
+                    approvedLines = item.Lines, lineCount = item.Lines.Count,
                     choices = item.Choices.Select(choice => new { choice.ChoiceId, choice.NextNodeId })
                 }),
                 finalLogic = new
@@ -166,7 +167,8 @@ public static class ProjectionPromptContext
                     pair => new { pair.Value.CharacterId, sceneIds = pair.Value.SceneIds.Where(sceneIds.Contains) }),
                 conversationTopology = plan.Skeleton.ConversationNodes.Where(item => nodes.ContainsKey(item.NodeId)).Select(item => new
                 {
-                    item.NodeId, lineCount = item.Lines.Count,
+                    item.NodeId, item.SourceDialogueId, item.StatementIds, item.AvailableSceneIds,
+                    approvedLines = item.Lines, lineCount = item.Lines.Count,
                     choices = item.Choices.Select(choice => new { choice.ChoiceId, choice.NextNodeId })
                 })
             },

@@ -1,0 +1,121 @@
+{
+  "caseId": "case-full-chuyen-tau-so-7-vi",
+  "verifiedAt": "2026-10-04",
+  "caseSha256": "3d5c084169fd5fd263bb7df90aba8ba01baea60c3bf9114c0fce089113441e05",
+  "schema": {
+    "status": "PASS",
+    "validator": "CaseValidationService",
+    "errors": 0
+  },
+  "content": {
+    "stages": 3,
+    "characters": 5,
+    "items": 23,
+    "clues": 32,
+    "dialogues": 13,
+    "conversationNodes": 15,
+    "puzzles": 3,
+    "interactions": 4,
+    "evidenceChallenges": 4,
+    "deductions": 3,
+    "hints": 19,
+    "scenes": 6,
+    "cameraZones": 2,
+    "evidenceClues": 21
+  },
+  "assets": {
+    "status": "PASS",
+    "generatedPngs": 28,
+    "transparentPngs": 22,
+    "directCaseAssetUrls": 36,
+    "missing": [],
+    "copiesUnmodified": true,
+    "manifest": "asset-manifest.json"
+  },
+  "typecheck": {
+    "status": "PASS",
+    "command": "npm.cmd --prefix src/FE run typecheck"
+  },
+  "productionBuild": {
+    "status": "PASS",
+    "directory": "tmp/chuyen-tau-so-7-dist",
+    "packagedAssetFiles": 86,
+    "caseAnswersInPublic": false,
+    "warnings": [
+      "Existing Phaser bundle size warning",
+      "Existing CSS asset references deferred until runtime",
+      "SignalR annotation warnings"
+    ]
+  },
+  "backendTests": {
+    "status": "PASS",
+    "passed": 78,
+    "failed": 0,
+    "filter": "CaseValidation | GameStateProjectionTests | V3KnowledgeProjectionTests",
+    "proof": "evidence/backend-checks.trx"
+  },
+  "twoBrowserPlaythroughs": {
+    "win": {
+      "status": "PASS",
+      "run": "src/FE/test-results/run-1791079495488-26148"
+    },
+    "lossAndAllDialogueBranches": {
+      "status": "PASS",
+      "run": "src/FE/test-results/run-1791080439556-28308"
+    },
+    "approvedCaseRegression": {
+      "status": "PASS",
+      "run": "src/FE/test-results/run-1791080392832-8568"
+    }
+  },
+  "verifiedThroughUi": [
+    "Both private roles",
+    "Real canvas clicks with approach movement",
+    "All six scene transitions and chapter gates",
+    "All 15 conversation nodes / 10 optional topics",
+    "All 13 main questions",
+    "Two camera evidence zones",
+    "Two combinations and consumed-item visibility",
+    "Two key-on-target interactions",
+    "Code, symbol and sequence puzzles: wrong answer then correct answer",
+    "Four joint confrontations; an incorrect pair grants no reveal",
+    "All three deductions",
+    "Three final evidence links and both players confirming",
+    "Correct culprit wins; incorrect culprit loses"
+  ],
+  "visualReview": {
+    "status": "PASS",
+    "desktop": [
+      1440,
+      960
+    ],
+    "laptop": [
+      1366,
+      768
+    ],
+    "scenesReviewed": 6,
+    "minorNotes": [
+      "Instruction strip overlaps left NPC shoes on laptop; required targets and controls remain usable."
+    ]
+  },
+  "generation": {
+    "json": "Authored locally in Codex",
+    "images": "Built-in image_gen",
+    "applicationAiProviderCalls": 0,
+    "separateApiKeyUsed": false
+  },
+  "scope": {
+    "mainDatabaseModified": false,
+    "published": false,
+    "temporaryDatabasesDropped": true,
+    "testProcessesStopped": true
+  },
+  "limitations": [
+    "Estimated 60–90 minutes is a design target, not measured human playtime.",
+    "Automated tests know the authored answers; enjoyment and independent deduction need a human playtest."
+  ],
+  "testHarnessCorrections": [
+    "Read optional dialogue history from INTERROGATOR, not INVESTIGATOR.",
+    "Read both role projections in the test oracle for team clue gates; gameplay keeps role evidence private."
+  ]
+}

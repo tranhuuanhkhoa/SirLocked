@@ -32,3 +32,24 @@ test('rejects plain and encoded path traversal before any copy', () => {
   for (const path of ['/assets/../secret', '/assets/%2e%2e/secret', '/assets/sub\\..\\secret'])
     assert.throws(() => collectCaseAssetPaths(path), /Unsafe/);
 });
+
+test('packages authored audio while omitting public case definitions and draft metadata', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'sirlocked-assets-'));
+  try {
+    const publicRoot = path.join(directory, 'public');
+    const audio = path.join(publicRoot, 'assets', 'audio');
+    await fs.mkdir(audio, { recursive: true });
+    await fs.writeFile(path.join(audio, 'ambience.wav'), 'sound');
+    await fs.writeFile(path.join(publicRoot, 'case-private.json'), '{"culpritId":"private"}');
+    await fs.writeFile(path.join(audio, 'draft.json'), '{"correctCode":"secret"}');
+    const file = path.join(directory, 'case.json');
+    await fs.writeFile(file, JSON.stringify({ caseId: 'case-point-click', stages: [{ scenes: [{ runtime: { audio: { ambienceUrl: '/assets/audio/ambience.wav' } } }] }] }));
+    const manifest = await createCaseAssetManifest(publicRoot, [file]);
+    assert.deepEqual(manifest.assets.map((asset) => asset.path), ['assets/audio/ambience.wav']);
+    assert.throws(() => collectCaseAssetPaths('/assets/audio/draft.json'), /allowed public media/);
+  } finally {
+    const resolved = path.resolve(directory);
+    assert.ok(resolved.startsWith(path.resolve(os.tmpdir()) + path.sep) && path.basename(resolved).startsWith('sirlocked-assets-'));
+    await fs.rm(resolved, { recursive: true, force: true });
+  }
+});

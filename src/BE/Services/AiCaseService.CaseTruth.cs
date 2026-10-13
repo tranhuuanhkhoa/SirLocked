@@ -1013,6 +1013,16 @@ public partial class AiCaseService
             or CaseTruthArtifacts.Evidence or CaseTruthArtifacts.Statements or CaseTruthArtifacts.ProofGraph
             ? "SOURCE INDEPENDENCE: plan genuinely separate origins for corroboration within the existing budgets. Repeating, quoting, or admitting the contents of the same document or dependent account does not create another independent source. Such dependent evidence and statements must retain the same independentSourceGroup; never satisfy the two-group requirement by renaming the group. A separate firsthand observation can supply independent support only for facts the observer actually perceived. Follow knowledgeSourceIds and sourceActionId to distinguish that observation from repetition."
             : string.Empty;
+        var shortSamplerTruthContract = AiGenerationPresets.Normalize(draft.Settings.GenerationPreset) == AiGenerationPresets.ShortDemo
+            && draft.Settings.ShortDemoProfileVersion >= AiGenerationContract.CurrentShortDemoProfileVersion
+            ? artifact switch
+            {
+                CaseTruthArtifacts.Timeline => "SHORT_DEMO BRANCH SOURCE CONTRACT: within the existing event budget, establish one confrontation speaker's physical presence and knowledge of at least two distinct facts at one shared location. These will become two genuine questioning topics, not duplicated or invented dialogue. One fact must support a physically falsifiable statement directly contradicted by an observable trace; preserve a separate scene-grounded fact for that same speaker.",
+                CaseTruthArtifacts.Evidence => "SHORT_DEMO BRANCH SOURCE CONTRACT: preserve one clear physical contradiction of a scene-grounded account, with matching subject, action/state, object, location and time scope. Keep the approved sources for a second distinct fact known by that same speaker at a shared location; do not invent extra traces or grow the evidence budget.",
+                CaseTruthArtifacts.Statements => "SHORT_DEMO BRANCH SOURCE CONTRACT: include exactly one statement with a contradictedByTraceIds entry and at least one other distinct, non-contradicted statement by that same speaker. Both statements must reference events at one shared location where the speaker was an actor or witness. They must express different approved facts so the backend can deliver two topic branches and the required confrontation in one conversation. Keep all other statements non-contradicted, preserve knowledge-source limits, and stay within the existing statement and dialogue budgets.",
+                _ => string.Empty
+            }
+            : string.Empty;
         var instruction = artifact switch
         {
             CaseTruthArtifacts.CaseSeed => $"Lock crime type, era, technology constraints, difficulty, duration, exactly {CaseTargetAllocationPolicy.RequiredSuspects(gameplayContract, CaseTargetAllocationPolicy.Resolve(draft))} stable suspect IDs, location IDs, and a complete travel-time graph. The server has locked target kind {CaseTargetAllocationPolicy.Resolve(draft)}; do not add the target to suspectIds. Do not choose a culprit yet.",
@@ -1061,6 +1071,7 @@ public partial class AiCaseService
             {proofScopeContract}
             {methodEvidenceContract}
             {sourceIndependenceContract}
+            {shortSamplerTruthContract}
             ALIBI COVERAGE: for every innocent excluded by OPPORTUNITY, carry their actual locked witness
             observation into an explicit trace or statement linked to that conclusion. Check each innocent
             separately: two independent groups about other people do not corroborate this person's alibi.

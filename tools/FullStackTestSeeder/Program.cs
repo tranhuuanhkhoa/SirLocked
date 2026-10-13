@@ -65,6 +65,9 @@ await SeedUserAsync(db, "it_interrogator", "it_interrogator@tests.invalid", pass
 
 var fixturePath = args.ElementAtOrDefault(5);
 var isSuppliedCase = !string.IsNullOrWhiteSpace(fixturePath);
+var useAuthoredLayout = string.Equals(args.ElementAtOrDefault(7), "authored", StringComparison.OrdinalIgnoreCase);
+if (useAuthoredLayout && !isSuppliedCase)
+    throw new InvalidOperationException("Authored layout mode requires a supplied case.");
 if (string.IsNullOrWhiteSpace(fixturePath))
     fixturePath = Path.Combine(repoRoot, "src", "BE", "SeedData", "V3", "case-v3-broken-seal-en.json");
 var gameCase = JsonSerializer.Deserialize<GameCase>(
@@ -94,14 +97,17 @@ if (isSuppliedCase)
     // JSON-only generation intentionally precedes image/layout generation. Exercise
     // the production deterministic no-provider layout, keeping the original JSON
     // immutable and preserving every clue, dialogue, puzzle and final-logic fact.
-    foreach (var scene in gameCase.Stages.SelectMany(stage => stage.Scenes))
-        if (string.IsNullOrEmpty(scene.BackgroundUrl)) scene.BackgroundUrl = "/assets/scenes/owners-office.png";
-    foreach (var item in gameCase.Items)
-        if (string.IsNullOrEmpty(item.ImageUrl) && item.RenderMode != CaseItemRenderModes.Embedded)
-            item.ImageUrl = "/assets/items/letter.png";
-    var layoutMethod = typeof(AiCaseService).GetMethod("ApplyDeterministicMockSceneLayout", BindingFlags.NonPublic | BindingFlags.Static)
-        ?? throw new InvalidOperationException("The production deterministic layout method is unavailable.");
-    layoutMethod.Invoke(null, [gameCase]);
+    if (!useAuthoredLayout)
+    {
+        foreach (var scene in gameCase.Stages.SelectMany(stage => stage.Scenes))
+            if (string.IsNullOrEmpty(scene.BackgroundUrl)) scene.BackgroundUrl = "/assets/scenes/owners-office.png";
+        foreach (var item in gameCase.Items)
+            if (string.IsNullOrEmpty(item.ImageUrl) && item.RenderMode != CaseItemRenderModes.Embedded)
+                item.ImageUrl = "/assets/items/letter.png";
+        var layoutMethod = typeof(AiCaseService).GetMethod("ApplyDeterministicMockSceneLayout", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("The production deterministic layout method is unavailable.");
+        layoutMethod.Invoke(null, [gameCase]);
+    }
     var playableValidation = new CaseValidationService().Validate(gameCase);
     if (!playableValidation.IsValid)
         throw new InvalidOperationException("Derived playable fixture failed validation: "
@@ -113,7 +119,9 @@ if (isSuppliedCase)
         sourcePath = Path.GetFullPath(fixturePath!),
         sourceSha256 = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(fixturePath!))).ToLowerInvariant(),
         derivedCasePath = outputPath,
-        transformation = "Production ApplyDeterministicMockSceneLayout plus existing local placeholder art; test-only ID, timestamps and published status in loopback temporary DB.",
+        transformation = useAuthoredLayout
+            ? "Original authored art and layout preserved; test-only ID, timestamps and published status in loopback temporary DB."
+            : "Production ApplyDeterministicMockSceneLayout plus existing local placeholder art; test-only ID, timestamps and published status in loopback temporary DB.",
         contentRewritten = false,
         providerCalls = 0,
         databaseName,

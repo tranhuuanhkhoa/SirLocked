@@ -1,0 +1,247 @@
+{
+  "style": "pixel-v2",
+  "generatedImages": 13,
+  "totalBytes": 17938786,
+  "assets": [
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png",
+      "size": [
+        1672,
+        941
+      ],
+      "mode": "RGB",
+      "bytes": 2022600,
+      "sha256": "3a5ece02e718f49e23fcaf48a442db01b98fee3605a10dca6b2a9befdb4c52fe"
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/service-passage.png",
+      "size": [
+        1672,
+        941
+      ],
+      "mode": "RGB",
+      "bytes": 1960991,
+      "sha256": "7ea4c57d86d0af9cdfa515b79199e51c7d968460947589e8c1594713ff052dd8"
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "mode": "RGBA",
+      "bytes": 1214774,
+      "sha256": "464e0a736ceae25ac84aaa52c1d825d7e5a0e17051d4d49ad913113f95874013",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        65,
+        15,
+        864,
+        1528
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/vu-khang.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "mode": "RGBA",
+      "bytes": 1255221,
+      "sha256": "9c8d972a69ca2c71c02c6a8a25df818aa7cf17a0a10d93dbf4ab865b3f566841",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        65,
+        0,
+        964,
+        1536
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/son-lam.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "mode": "RGBA",
+      "bytes": 1183983,
+      "sha256": "c14855fd11841dcbdbd847878dfa143fde0c517e9bf8c7e901e5c91a3d6578e8",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        65,
+        10,
+        1010,
+        1523
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-left.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1293466,
+      "sha256": "01eaec640655d4e7ee2f21ceda7da34051744357a8898f56f833084dccb74a49",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        0,
+        29,
+        1473,
+        1024
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-right.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1229204,
+      "sha256": "f8ee7b034e1ed8a59ef36519f711f1310d35be0bb9dabb6b2898456f63642faf",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        0,
+        28,
+        1512,
+        1024
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/sealed-envelope.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1336086,
+      "sha256": "032f61f688871cb4eabc1052f258111cc5eedd4eb31be8d2d5c0e09a7a830f73",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        21,
+        0,
+        1520,
+        988
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/brass-key.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "mode": "RGBA",
+      "bytes": 1105634,
+      "sha256": "cc6a4b404a65dc0435fc56b363a269920c99dc85109a77600d141cd762a9acb7",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        65,
+        67,
+        1010,
+        1516
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/cashbox.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1309185,
+      "sha256": "7d274a95aa122df6f22016c1b4a2460978e39bc762c6d7b07cb9802eb18a8005",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        46,
+        31,
+        1518,
+        1024
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/service-lockbox.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1328310,
+      "sha256": "b299704985c90f8a866f45747cf0f6fcdac8cbd54f978eb4ca63db57832392db",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        0,
+        21,
+        1492,
+        1024
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-restored.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1150952,
+      "sha256": "178d33a6b97de9b3321ec50c63ba0de779ab8286ad081d7eb0277f67d1747d4a",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        31,
+        23,
+        1536,
+        1024
+      ]
+    },
+    {
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/pawn-ticket.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1548380,
+      "sha256": "89f5433f1c1c57213bb8f7ed4afa848849b703f18d7280784bc316c4c8454340",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "visibleBounds": [
+        0,
+        0,
+        1521,
+        1024
+      ]
+    }
+  ]
+}

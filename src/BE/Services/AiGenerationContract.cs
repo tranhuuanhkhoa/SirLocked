@@ -79,6 +79,8 @@ public sealed record AiGenerationContract(
     int MinConversationCharacters = 0,
     int MaxEvidenceChallenges = -1)
 {
+    public const int CurrentShortDemoProfileVersion = 1;
+
     private static readonly Regex UnsafeVisualTerms = new(
         @"\b(bulletin board|duty board|notice board|signage|sign|label|ledger|manifest|telegram|document|paper|readable|written|writing|letters?|numbers?|text|annotation|caption|screen|monitor|camera display|user interface|ui overlay|clock numerals?|initials?|notation)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -101,7 +103,7 @@ public sealed record AiGenerationContract(
         return normalized switch
         {
             AiGenerationPresets.CrackTheLieV3 => new(1, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 0, 0, 0, 0, 0, 0),
-            AiGenerationPresets.ShortDemo => new(2, 2, 2, 3, 4, 4, 6, 8, 6, 8, 2, 1, 1, 0, 1, 0, 1),
+            AiGenerationPresets.ShortDemo => new(2, 2, 2, 3, 4, 4, 6, 8, 6, 8, 1, 1, 1, 1, 1, 2, 2, 1),
             AiGenerationPresets.PuzzleHeavy => new(5, 6, 5, 6, 4, 5, 9, 12, 6, 10, 2, 1, 1, 3, 3, 2, 4),
             AiGenerationPresets.DialogueHeavy => new(5, 6, 5, 6, 5, 5, 10, 12, 12, 16, 3, 2, 1, 0, 1, 0, 2, 3),
             AiGenerationPresets.FullFeature => new(6, 6, 6, 6, 5, 5, 10, 12, 12, 16, 3, 2, 2, 3, 3, 2, 4),
@@ -114,7 +116,12 @@ public sealed record AiGenerationContract(
 
     public static AiGenerationContract For(AiDraftSettings settings)
     {
-        var contract = For(settings.GenerationPreset, settings.StageCount);
+        // Persisted drafts are validated against the profile they were created
+        // with. Never infer a new profile from their preset or repair date.
+        var contract = AiGenerationPresets.Normalize(settings.GenerationPreset) == AiGenerationPresets.ShortDemo
+                       && settings.ShortDemoProfileVersion == 0
+            ? new AiGenerationContract(2, 2, 2, 3, 4, 4, 6, 8, 6, 8, 2, 1, 1, 0, 1, 0, 1)
+            : For(settings.GenerationPreset, settings.StageCount);
         if (!settings.IncludeCrackTheLie) return contract;
         var budget = CrackGenerationBudgets.For(settings.GenerationPreset);
         return contract with { EvidenceChallenges = budget.MinCracks, MaxEvidenceChallenges = budget.MaxCracks };
@@ -148,6 +155,26 @@ public sealed record AiGenerationContract(
         AddRange(result, "interactions", gameCase.Interactions.Count, MinInteractions, MaxInteractions);
 
         var preset = AiGenerationPresets.Normalize(settings.GenerationPreset);
+        if (preset == AiGenerationPresets.ShortDemo
+            && settings.ShortDemoProfileVersion >= CurrentShortDemoProfileVersion)
+        {
+            foreach (var type in new[] { CaseInteractionTypes.CombineItems, CaseInteractionTypes.UseItemOnTarget })
+            {
+                if (gameCase.Interactions.Count(interaction => interaction.Type.Equals(type, StringComparison.OrdinalIgnoreCase)) != 1)
+                    result.Add("PresetContract", "interactions", $"SHORT_DEMO requires exactly one {type}.");
+            }
+
+            var branchingCharacters = gameCase.ConversationNodes
+                .Where(root => root.IsRoot && root.Choices.Where(choice =>
+                    !string.IsNullOrWhiteSpace(choice.NextNodeId)
+                    && gameCase.ConversationNodes.Any(topic => topic.NodeId == choice.NextNodeId
+                        && !topic.IsRoot && topic.CharacterId == root.CharacterId))
+                    .Select(choice => choice.NextNodeId).Distinct(StringComparer.Ordinal).Count() >= 2)
+                .Select(root => root.CharacterId).Distinct(StringComparer.Ordinal).Count();
+            if (branchingCharacters < MinConversationCharacters)
+                result.Add("PresetContract", "conversationNodes",
+                    "SHORT_DEMO requires a branching conversation with at least two root choices leading to distinct same-character topic nodes.");
+        }
         if (preset is AiGenerationPresets.PuzzleHeavy or AiGenerationPresets.FullFeature)
         {
             foreach (var type in CasePuzzleTypes.All)
@@ -288,8 +315,13 @@ public sealed record AiGenerationContract(
             yield return ($"puzzle:{puzzle.PuzzleId}.successMessage", puzzle.SuccessMessage);
             yield return ($"puzzle:{puzzle.PuzzleId}.failureMessage", puzzle.FailureMessage);
         }
-        yield return ("finalLogic.motive", c.FinalLogic.Motive);
-        yield return ("finalLogic.method", c.FinalLogic.Method);
+        // Canonical truth may retain its original language. The correct option
+        // label is the accusation text players see; legacy cases without that
+        // display label still use the raw truth as their presentation fallback.
+        var motiveOption = c.FinalLogic.MotiveOptions.FirstOrDefault(option => option.Id == c.FinalLogic.CorrectMotiveId);
+        var methodOption = c.FinalLogic.MethodOptions.FirstOrDefault(option => option.Id == c.FinalLogic.CorrectMethodId);
+        yield return ("finalLogic.motive", string.IsNullOrWhiteSpace(motiveOption?.Label) ? c.FinalLogic.Motive : motiveOption.Label);
+        yield return ("finalLogic.method", string.IsNullOrWhiteSpace(methodOption?.Label) ? c.FinalLogic.Method : methodOption.Label);
         yield return ("finalLogic.winEnding", c.FinalLogic.WinEnding);
         yield return ("finalLogic.failEnding", c.FinalLogic.FailEnding);
     }

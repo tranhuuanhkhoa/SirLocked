@@ -113,6 +113,12 @@ public static class V3SceneProjectionPolicy
         Height = source.Height,
         FloorY = source.FloorY,
         WalkableArea = Clone(source.WalkableArea),
+        NavigationObstacles = source.NavigationObstacles?.Select(box => Clone(box)!).ToList(),
+        Audio = source.Audio is not { } audio ? null : new SceneAudioConfig
+        {
+            AmbienceUrl = audio.AmbienceUrl,
+            Cues = new Dictionary<string, string>(audio.Cues, StringComparer.Ordinal)
+        },
         SpawnPoints = source.SpawnPoints.ToDictionary(
             pair => pair.Key,
             pair => new SpawnPoint

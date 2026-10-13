@@ -313,6 +313,7 @@ public class CaseValidationService : ICaseValidationService
                 result.Add("MissingReference", $"{path}.requiredClueIds", "Conversation node required clue does not exist.", clueId);
             foreach (var clueId in node.UnlockClueIds.Where(id => !clueIds.Contains(id)))
                 result.Add("MissingReference", $"{path}.unlockClueIds", "Conversation node unlock clue does not exist.", clueId);
+            ValidateConversationSource(c, node, path, dialogueById, challengeById, result);
             if (!string.IsNullOrWhiteSpace(node.ChallengeId))
             {
                 if (!challengeById.TryGetValue(node.ChallengeId, out var challenge))
@@ -359,6 +360,38 @@ public class CaseValidationService : ICaseValidationService
             .ToHashSet();
         ValidateInteractions(c, itemIds, clueIds, sceneIds, visibleTargets, result);
         ValidatePuzzles(c, itemIds, clueIds, sceneIds, visibleTargets, result);
+    }
+
+    private static void ValidateConversationSource(
+        GameCase gameCase,
+        ConversationNode node,
+        string path,
+        IReadOnlyDictionary<string, CaseDialogue> dialogueById,
+        IReadOnlyDictionary<string, EvidenceChallenge> challengeById,
+        CaseValidationResult result)
+    {
+        if (string.IsNullOrWhiteSpace(node.SourceDialogueId)) return;
+        if (!dialogueById.TryGetValue(node.SourceDialogueId, out var source))
+        {
+            result.Add("MissingReference", $"{path}.sourceDialogueId", "Conversation source dialogue does not exist.", node.SourceDialogueId);
+            return;
+        }
+
+        void Invalid(string field, string message) => result.Add("InvalidConversationSource", $"{path}.{field}", message, node.NodeId);
+        bool SameSet(IEnumerable<string> left, IEnumerable<string> right) => left.ToHashSet(StringComparer.Ordinal).SetEquals(right);
+        if (node.IsRoot) Invalid("sourceDialogueId", "Only a conversation branch may deliver a source dialogue.");
+        if (source.CharacterId != node.CharacterId) Invalid("sourceDialogueId", "Conversation source must belong to the same character.");
+        if (!SameSet(node.StatementIds, source.StatementIds)) Invalid("statementIds", "Conversation statements must match its source dialogue.");
+        if (!SameSet(node.RequiredClueIds, source.RequiredClueIds)) Invalid("requiredClueIds", "Conversation clue gates must match its source dialogue.");
+        if (!SameSet(node.UnlockClueIds, source.UnlockClueIds)) Invalid("unlockClueIds", "Conversation rewards must match its source dialogue.");
+        if (!SameSet(node.AvailableSceneIds, source.AvailableSceneIds)) Invalid("availableSceneIds", "Conversation scenes must match its source dialogue.");
+        if (node.AvailableSceneIds.Any(sceneId => !gameCase.Stages.SelectMany(stage => stage.Scenes)
+                .Any(scene => scene.SceneId == sceneId && scene.CharacterIds.Contains(node.CharacterId))))
+            Invalid("availableSceneIds", "Conversation source scenes must contain its character.");
+        if (!string.IsNullOrWhiteSpace(node.ChallengeId)
+            && challengeById.TryGetValue(node.ChallengeId, out var challenge)
+            && challenge.DialogueId != source.DialogueId)
+            Invalid("challengeId", "Conversation challenge must belong to its source dialogue.");
     }
 
     private static void ValidateVisualContract(GameCase c, CaseValidationResult result, CaseValidationStage stage)
@@ -566,9 +599,49 @@ public class CaseValidationService : ICaseValidationService
             ValidateRuntimeBox(runtime.WalkableArea, $"{scenePath}.runtime.walkableArea", runtime.Width, runtime.Height, result, scene.SceneId);
         }
 
+        if (runtime.NavigationObstacles is { } obstacles)
+        {
+            if (obstacles.Count > 64)
+                result.Add("InvalidValue", $"{scenePath}.runtime.navigationObstacles", "A scene supports at most 64 navigation obstacles.", scene.SceneId);
+            for (var i = 0; i < obstacles.Count; i++)
+            {
+                var obstacle = obstacles[i];
+                var path = $"{scenePath}.runtime.navigationObstacles[{i}]";
+                if (obstacle is null)
+                {
+                    result.Add("InvalidValue", path, "Navigation obstacles cannot be null.", scene.SceneId);
+                    continue;
+                }
+                ValidateRuntimeBox(obstacle, path, runtime.Width, runtime.Height, result, scene.SceneId);
+                if (runtime.WalkableArea is { } floor && obstacle.X <= floor.X && obstacle.Y <= floor.Y
+                    && obstacle.X + obstacle.Width >= floor.X + floor.Width && obstacle.Y + obstacle.Height >= floor.Y + floor.Height)
+                    result.Add("BlockedNavigation", path, "An obstacle cannot cover the entire walkable area.", scene.SceneId);
+                foreach (var (name, spawn) in runtime.SpawnPoints)
+                    if (spawn.X >= obstacle.X && spawn.X <= obstacle.X + obstacle.Width && spawn.Y >= obstacle.Y && spawn.Y <= obstacle.Y + obstacle.Height)
+                        result.Add("BlockedNavigation", $"{scenePath}.runtime.spawnPoints.{name}", "A player cannot spawn inside a navigation obstacle.", scene.SceneId);
+            }
+        }
+        if (runtime.Audio is { } audio)
+        {
+            if (!IsSceneAudioUrl(audio.AmbienceUrl))
+                result.Add("InvalidValue", $"{scenePath}.runtime.audio.ambienceUrl", "Scene audio must use a safe /assets path or an HTTP(S) URL.", scene.SceneId);
+            if (audio.Cues is null)
+                result.Add("MissingField", $"{scenePath}.runtime.audio.cues", "Audio cues cannot be null.", scene.SceneId);
+            else foreach (var (cue, url) in audio.Cues)
+            {
+                if (cue is not ("dialogue" or "discovery" or "reveal" or "scene" or "ping" or "interact" or "error"))
+                    result.Add("InvalidValue", $"{scenePath}.runtime.audio.cues.{cue}", "Unsupported scene audio cue.", scene.SceneId);
+                if (!IsSceneAudioUrl(url))
+                    result.Add("InvalidValue", $"{scenePath}.runtime.audio.cues.{cue}", "Scene audio must use a safe /assets path or an HTTP(S) URL.", scene.SceneId);
+            }
+        }
+
         foreach (var (name, spawn) in runtime.SpawnPoints)
         {
             ValidateRuntimePoint(spawn, $"{scenePath}.runtime.spawnPoints.{name}", runtime.Width, runtime.Height, result, scene.SceneId);
+            if (runtime.NavigationObstacles is not null && runtime.WalkableArea is { } floor
+                && (spawn.X < floor.X || spawn.Y < floor.Y || spawn.X > floor.X + floor.Width || spawn.Y > floor.Y + floor.Height))
+                result.Add("BlockedNavigation", $"{scenePath}.runtime.spawnPoints.{name}", "A player must spawn within the walkable area.", scene.SceneId);
         }
 
         for (var i = 0; i < runtime.ItemPlacements.Count; i++)
@@ -699,7 +772,7 @@ public class CaseValidationService : ICaseValidationService
 
     private static void ValidateRuntimePoint(RuntimePoint point, string path, int width, int height, CaseValidationResult result, string id)
     {
-        if (point.X < 0 || point.X > width || point.Y < 0 || point.Y > height)
+        if (!double.IsFinite(point.X) || !double.IsFinite(point.Y) || point.X < 0 || point.X > width || point.Y < 0 || point.Y > height)
         {
             result.Add("InvalidValue", path, "Runtime point must fit within runtime.width/runtime.height.", id);
         }
@@ -707,7 +780,7 @@ public class CaseValidationService : ICaseValidationService
 
     private static void ValidateRuntimeSize(RuntimeSize size, string path, CaseValidationResult result, string id)
     {
-        if (size.Width <= 0 || size.Height <= 0)
+        if (!double.IsFinite(size.Width) || !double.IsFinite(size.Height) || size.Width <= 0 || size.Height <= 0)
         {
             result.Add("InvalidValue", path, "Runtime size width/height must be positive.", id);
         }
@@ -715,10 +788,24 @@ public class CaseValidationService : ICaseValidationService
 
     private static void ValidateRuntimeBox(RuntimeBox box, string path, int width, int height, CaseValidationResult result, string id)
     {
-        if (box.Width <= 0 || box.Height <= 0 || box.X < 0 || box.Y < 0 || box.X + box.Width > width || box.Y + box.Height > height)
+        if (!double.IsFinite(box.X) || !double.IsFinite(box.Y) || !double.IsFinite(box.Width) || !double.IsFinite(box.Height)
+            || box.Width <= 0 || box.Height <= 0 || box.X < 0 || box.Y < 0 || box.X + box.Width > width || box.Y + box.Height > height)
         {
             result.Add("InvalidValue", path, "Runtime box must fit within runtime.width/runtime.height.", id);
         }
+    }
+
+    private static bool IsSceneAudioUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        if (value.Length > 2048 || value.Contains('\\') || value.Any(char.IsControl)) return false;
+        if (value.StartsWith("/assets/", StringComparison.Ordinal))
+        {
+            var path = Uri.UnescapeDataString(value.Split('?', '#')[0]);
+            return !path.Contains('\\') && !path.Any(char.IsControl) && !path.Split('/').Any(segment => segment is "." or "..");
+        }
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"
+            && string.IsNullOrEmpty(uri.UserInfo);
     }
 
     private static void ValidateCameraEmbeddedItems(GameCase c, CaseValidationResult result)
@@ -764,6 +851,7 @@ public class CaseValidationService : ICaseValidationService
         var conversationNodeIds = c.ConversationNodes.Select(node => node.NodeId).ToHashSet();
         var interactionIds = c.Interactions.Select(interaction => interaction.InteractionId).ToHashSet();
         var puzzleIds = c.Puzzles.Select(puzzle => puzzle.PuzzleId).ToHashSet();
+        var deductions = c.Deductions.ToLookup(deduction => deduction.DeductionId);
         var sceneIds = c.Stages.SelectMany(s => s.Scenes).Select(s => s.SceneId).ToHashSet();
         var characterIds = c.Characters.Select(ch => ch.CharacterId).ToHashSet();
         var cameraZoneCounts = c.Stages
@@ -788,14 +876,14 @@ public class CaseValidationService : ICaseValidationService
             var sourceType = clue.SourceType?.ToLowerInvariant();
             var discoverMethod = DiscoverMethod(clue);
 
-            if (discoverMethod is not ("item" or "dialogue" or "camera" or "conversation" or "interaction" or "puzzle"))
+            if (discoverMethod is not ("item" or "dialogue" or "camera" or "conversation" or "interaction" or "puzzle" or "deduction"))
             {
-                result.Add("InvalidValue", $"clues[{i}].discoverMethod", "Clue discoverMethod must be 'item', 'dialogue', 'camera', 'conversation', 'interaction', or 'puzzle'.", clue.ClueId);
+                result.Add("InvalidValue", $"clues[{i}].discoverMethod", "Clue discoverMethod must be 'item', 'dialogue', 'camera', 'conversation', 'interaction', 'puzzle', or 'deduction'.", clue.ClueId);
             }
 
-            if (sourceType is not ("item" or "dialogue" or "camera" or "conversation" or "interaction" or "puzzle"))
+            if (sourceType is not ("item" or "dialogue" or "camera" or "conversation" or "interaction" or "puzzle" or "deduction"))
             {
-                result.Add("InvalidValue", $"clues[{i}].sourceType", "Clue sourceType must be 'item', 'dialogue', 'camera', 'conversation', 'interaction', or 'puzzle'.", clue.ClueId);
+                result.Add("InvalidValue", $"clues[{i}].sourceType", "Clue sourceType must be 'item', 'dialogue', 'camera', 'conversation', 'interaction', 'puzzle', or 'deduction'.", clue.ClueId);
                 continue;
             }
 
@@ -818,6 +906,13 @@ public class CaseValidationService : ICaseValidationService
             if (sourceType == "puzzle" && !puzzleIds.Contains(clue.Source))
             {
                 result.Add("MissingReference", $"clues[{i}].source", "Clue source puzzle does not exist.", clue.Source);
+            }
+            if (sourceType == "deduction")
+            {
+                if (!deductions.Contains(clue.Source))
+                    result.Add("MissingReference", $"clues[{i}].source", "Clue source deduction does not exist.", clue.Source);
+                else if (!deductions[clue.Source].Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId)))
+                    result.Add("InvalidReference", $"clues[{i}].source", "Clue source deduction must unlock this clue.", clue.ClueId);
             }
 
             var isFinalEvidence = finalEvidenceIds.Contains(clue.ClueId);
@@ -1035,6 +1130,7 @@ public class CaseValidationService : ICaseValidationService
                         if (!scene.CharacterIds.Contains(dialogue.CharacterId)) continue;
                         if (c.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
                             && !dialogue.AvailableSceneIds.Contains(scene.SceneId)) continue;
+                        if (!GameplayConversationRules.IsSourceDialogueAvailable(c, visitedConversationNodes, dialogue.DialogueId)) continue;
                         if (!dialogue.RequiredClueIds.All(unlockedClues.Contains)) continue;
 
                         askedDialogues.Add(dialogue.DialogueId);
@@ -1042,7 +1138,7 @@ public class CaseValidationService : ICaseValidationService
                         sceneProgressed = true;
                     }
 
-                    if (ApplyReachableConversationNodes(c, scene, unlockedClues, visitedConversationNodes))
+                    if (ApplyReachableConversationNodes(c, scene, unlockedClues, visitedConversationNodes, askedDialogues))
                         sceneProgressed = true;
 
                     foreach (var challenge in c.EvidenceChallenges)
@@ -1181,7 +1277,8 @@ public class CaseValidationService : ICaseValidationService
         GameCase gameCase,
         CaseScene scene,
         HashSet<string> unlockedClues,
-        HashSet<string> visitedConversationNodes)
+        HashSet<string> visitedConversationNodes,
+        HashSet<string> askedDialogues)
     {
         var progressed = false;
         foreach (var characterId in scene.CharacterIds)
@@ -1203,6 +1300,7 @@ public class CaseValidationService : ICaseValidationService
                     && root.RequiredClueIds.All(unlockedClues.Contains))
                 {
                     visitedConversationNodes.Add(root.NodeId);
+                    if (!string.IsNullOrWhiteSpace(root.SourceDialogueId)) askedDialogues.Add(root.SourceDialogueId);
                     foreach (var clueId in root.UnlockClueIds) unlockedClues.Add(clueId);
                     characterProgressed = true;
                 }
@@ -1225,6 +1323,7 @@ public class CaseValidationService : ICaseValidationService
                             continue;
 
                         foreach (var clueId in reached.UnlockClueIds) unlockedClues.Add(clueId);
+                        if (!string.IsNullOrWhiteSpace(reached.SourceDialogueId)) askedDialogues.Add(reached.SourceDialogueId);
                         characterProgressed = true;
                     }
                 }
@@ -1302,7 +1401,9 @@ public class CaseValidationService : ICaseValidationService
 
         var minimumChallenges = c.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
             ? CrackGenerationBudgets.For(c.GenerationPreset).MinCracks
-            : 2;
+            : AiGenerationPresets.Normalize(c.GenerationPreset) == AiGenerationPresets.ShortDemo
+              && c.ShortDemoProfileVersion >= AiGenerationContract.CurrentShortDemoProfileVersion
+                ? 1 : 2;
         if (c.EvidenceChallenges.Count < minimumChallenges)
             result.Add("MissingField", "evidenceChallenges", $"This V2-compatible case requires at least {minimumChallenges} evidence challenge(s).");
         if (c.Deductions.Count == 0)

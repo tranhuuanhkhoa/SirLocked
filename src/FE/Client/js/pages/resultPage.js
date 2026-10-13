@@ -20,6 +20,15 @@ const teamworkFlags = (score) => {
   return escapeHtml(flags.join('  '));
 };
 
+const claimLabel = (claimType) => ({
+  CULPRIT: tr('Culprit', 'Hung thủ'),
+  MOTIVE: tr('Motive', 'Động cơ'),
+  METHOD: tr('Method', 'Phương thức'),
+  OPPORTUNITY: tr('Opportunity', 'Cơ hội'),
+  IDENTITY: tr('Identity', 'Danh tính'),
+  TIMELINE: tr('Timeline', 'Dòng thời gian'),
+})[claimType] || claimType;
+
 const scorePenalties = (score) => {
   const parts = [];
   if (score.wrongEvidencePenalty) parts.push(`−${score.wrongEvidencePenalty} ${tr('wrong evidence', 'chứng cứ sai')}`);
@@ -74,7 +83,7 @@ export async function renderResultPage(app, roomId) {
           ${verdictRow(tr('Culprit', 'Hung thủ'), result.culpritResult)}
           ${verdictRow(tr('Motive', 'Động cơ'), result.motiveResult)}
           ${verdictRow(tr('Method', 'Phương thức'), result.methodResult)}
-          ${result.evidenceResults.map((entry) => verdictRow(`${entry.claimType} ${tr('evidence', 'chứng cứ')}`, entry)).join('')}
+          ${result.evidenceResults.map((entry) => verdictRow(`${claimLabel(entry.claimType)} ${tr('evidence', 'chứng cứ')}`, entry)).join('')}
         </div>
       </section>` : ''}
 

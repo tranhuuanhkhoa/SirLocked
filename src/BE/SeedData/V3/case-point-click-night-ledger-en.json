@@ -1,0 +1,1153 @@
+{
+  "caseId": "case-point-click-night-ledger-en",
+  "title": "The Night Ledger",
+  "summary": "A charity fund vanishes behind a repaired receipt, a locked cashbox, and a seal that should never have been broken. Two detectives follow the money through the theatre.",
+  "language": "en",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "generationMode": "PLACEMENT_FIRST",
+  "logicContractVersion": 1,
+  "estimatedMinutes": 20,
+  "coverImageUrl": "/assets/scenes/owners-office.png",
+  "stages": [
+    {
+      "stageId": "stage-night-ledger-en",
+      "title": "After the Curtain Falls",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-box-office-en",
+          "title": "The Box Office",
+          "backgroundUrl": "/assets/scenes/owners-office.png",
+          "description": "The charity ledger is missing after the final performance. Examine the packet and the torn receipt, speak to the staff, and follow the paper trail into the service passage.",
+          "itemIds": [
+            "item-receipt-left-en",
+            "item-receipt-right-en",
+            "item-locker-key-en",
+            "item-sealed-packet-en"
+          ],
+          "characterIds": [
+            "char-mara-en",
+            "char-victor-en"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-office-item-1-en",
+              "type": "ITEM",
+              "targetId": "item-receipt-left-en",
+              "x": 32.1875,
+              "y": 57.77777777777778,
+              "width": 8.125,
+              "height": 28.333333333333332,
+              "zIndex": 10,
+              "label": "Left receipt half",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-2-en",
+              "type": "ITEM",
+              "targetId": "item-receipt-right-en",
+              "x": 50.3125,
+              "y": 57.77777777777778,
+              "width": 8.125,
+              "height": 28.333333333333332,
+              "zIndex": 10,
+              "label": "Right receipt half",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-3-en",
+              "type": "ITEM",
+              "targetId": "item-locker-key-en",
+              "x": 17.1875,
+              "y": 42.22222222222222,
+              "width": 6.875,
+              "height": 36.111111111111114,
+              "zIndex": 10,
+              "label": "Brass locker key",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-4-en",
+              "type": "ITEM",
+              "targetId": "item-sealed-packet-en",
+              "x": 63.4375,
+              "y": 57.77777777777778,
+              "width": 8.125,
+              "height": 28.333333333333332,
+              "zIndex": 10,
+              "label": "Resealed charity packet",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-box-office-en-char-mara-en-en",
+              "type": "CHARACTER",
+              "targetId": "char-mara-en",
+              "x": 79.375,
+              "y": 52.77777777777778,
+              "width": 10.3125,
+              "height": 37.77777777777778,
+              "zIndex": 10,
+              "label": "Mara Vale — box-office clerk",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-box-office-en-char-victor-en-en",
+              "type": "CHARACTER",
+              "targetId": "char-victor-en",
+              "x": 12.1875,
+              "y": 53.333333333333336,
+              "width": 10.3125,
+              "height": 38.333333333333336,
+              "zIndex": 10,
+              "label": "Victor Crane — treasurer",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 815,
+            "walkableArea": {
+              "x": 70,
+              "y": 640,
+              "width": 1460,
+              "height": 215
+            },
+            "navigationObstacles": [
+              {
+                "x": 465,
+                "y": 645,
+                "width": 675,
+                "height": 125
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 170,
+                "y": 815,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 170,
+                "y": 815,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 1450,
+                "y": 815,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-receipt-left-en",
+                "asset": "/assets/items/letter.png",
+                "position": {
+                  "x": 580,
+                  "y": 565,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 100,
+                  "height": 76
+                },
+                "hotspot": {
+                  "x": 515,
+                  "y": 520,
+                  "width": 130,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-receipt-right-en",
+                "asset": "/assets/items/love-letter.png",
+                "position": {
+                  "x": 870,
+                  "y": 565,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 100,
+                  "height": 76
+                },
+                "hotspot": {
+                  "x": 805,
+                  "y": 520,
+                  "width": 130,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-locker-key-en",
+                "asset": "/assets/items/key.png",
+                "position": {
+                  "x": 322,
+                  "y": 430,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 85,
+                  "height": 72
+                },
+                "hotspot": {
+                  "x": 275,
+                  "y": 380,
+                  "width": 110,
+                  "height": 325
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-sealed-packet-en",
+                "asset": "/assets/items/letter.png",
+                "position": {
+                  "x": 1080,
+                  "y": 565,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 100,
+                  "height": 76
+                },
+                "hotspot": {
+                  "x": 1015,
+                  "y": 520,
+                  "width": 130,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mara-en",
+                "asset": "/assets/characters/mona-sprite.png",
+                "position": {
+                  "x": 1350,
+                  "y": 805,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 1270,
+                  "y": 475,
+                  "width": 165,
+                  "height": 340
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-victor-en",
+                "asset": "/assets/characters/victor-sprite.png",
+                "position": {
+                  "x": 275,
+                  "y": 815,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 195,
+                  "y": 480,
+                  "width": 165,
+                  "height": 345
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              }
+            ],
+            "clueZones": [],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-office-passage-en",
+                "targetSceneId": "scene-service-passage-en",
+                "label": "Service passage",
+                "hotspot": {
+                  "x": 90,
+                  "y": 270,
+                  "width": 130,
+                  "height": 465
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-receipt-left-en",
+              "item-receipt-right-en",
+              "item-locker-key-en",
+              "item-sealed-packet-en"
+            ],
+            "requiredClueIds": [
+              "clue-restored-receipt-en"
+            ],
+            "requiredDialogueIds": [
+              "dlg-mara-account-en"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-service-passage-en",
+          "title": "The Service Passage",
+          "backgroundUrl": "/assets/scenes/backstage-hallway.png",
+          "description": "A locked cashbox rests on a crate beside a service locker. The guard has kept this passage closed since 21:45; Mara waits here to answer the detectives together.",
+          "itemIds": [
+            "item-cashbox-en",
+            "item-service-locker-en"
+          ],
+          "characterIds": [
+            "char-mara-en",
+            "char-samuel-en"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-passage-item-1-en",
+              "type": "ITEM",
+              "targetId": "item-cashbox-en",
+              "x": 34.375,
+              "y": 58.333333333333336,
+              "width": 9.375,
+              "height": 20.555555555555557,
+              "zIndex": 10,
+              "label": "Locked cashbox",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-passage-item-2-en",
+              "type": "ITEM",
+              "targetId": "item-service-locker-en",
+              "x": 79.0625,
+              "y": 68.88888888888889,
+              "width": 11.25,
+              "height": 17.77777777777778,
+              "zIndex": 10,
+              "label": "Service locker",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-service-passage-en-char-mara-en-en",
+              "type": "CHARACTER",
+              "targetId": "char-mara-en",
+              "x": 64.6875,
+              "y": 46.666666666666664,
+              "width": 10,
+              "height": 38.333333333333336,
+              "zIndex": 10,
+              "label": "Mara Vale — box-office clerk",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-service-passage-en-char-samuel-en-en",
+              "type": "CHARACTER",
+              "targetId": "char-samuel-en",
+              "x": 55.3125,
+              "y": 53.888888888888886,
+              "width": 10,
+              "height": 38.333333333333336,
+              "zIndex": 10,
+              "label": "Samuel Reed — night guard",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 810,
+            "walkableArea": {
+              "x": 75,
+              "y": 640,
+              "width": 1450,
+              "height": 220
+            },
+            "navigationObstacles": [
+              {
+                "x": 80,
+                "y": 645,
+                "width": 465,
+                "height": 170
+              },
+              {
+                "x": 590,
+                "y": 620,
+                "width": 120,
+                "height": 65
+              },
+              {
+                "x": 1260,
+                "y": 790,
+                "width": 220,
+                "height": 55
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 820,
+                "y": 810,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 820,
+                "y": 810,
+                "anchor": "bottom-center",
+                "direction": "left"
+              },
+              "INTERROGATOR": {
+                "x": 1110,
+                "y": 735,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-hall.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-cashbox-en",
+                "asset": "/assets/items/ledger.png",
+                "position": {
+                  "x": 610,
+                  "y": 590,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 120,
+                  "height": 98
+                },
+                "hotspot": {
+                  "x": 550,
+                  "y": 525,
+                  "width": 150,
+                  "height": 185
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-service-locker-en",
+                "asset": "/assets/items/makeup-kit.png",
+                "position": {
+                  "x": 1360,
+                  "y": 735,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 140,
+                  "height": 95
+                },
+                "hotspot": {
+                  "x": 1265,
+                  "y": 620,
+                  "width": 180,
+                  "height": 160
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mara-en",
+                "asset": "/assets/characters/mona-sprite.png",
+                "position": {
+                  "x": 1110,
+                  "y": 755,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 1035,
+                  "y": 420,
+                  "width": 160,
+                  "height": 345
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-samuel-en",
+                "asset": "/assets/characters/samuel-sprite.png",
+                "position": {
+                  "x": 960,
+                  "y": 820,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 885,
+                  "y": 485,
+                  "width": 160,
+                  "height": 345
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              }
+            ],
+            "clueZones": [],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-passage-office-en",
+                "targetSceneId": "scene-box-office-en",
+                "label": "Return to the box office",
+                "hotspot": {
+                  "x": 745,
+                  "y": 320,
+                  "width": 125,
+                  "height": 310
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "evidence-debt-transfer-en",
+              "evidence-key-entry-en",
+              "reveal-resealed-packet-en"
+            ],
+            "requiredDialogueIds": [
+              "dlg-samuel-watch-en"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-mara-en",
+      "name": "Mara Vale",
+      "role": "Box-office clerk",
+      "imageUrl": "/assets/characters/mona-portrait.png",
+      "description": "Mara prepared the charity records and held the only office key that night.",
+      "visualDescription": "A dark-haired clerk in a burgundy coat, matching the supplied Mona pixel-art portrait and sprite."
+    },
+    {
+      "characterId": "char-samuel-en",
+      "name": "Samuel Reed",
+      "role": "Night guard",
+      "imageUrl": "/assets/characters/samuel-portrait.png",
+      "description": "Samuel secured the passage after the show and is ready to explain his patrol.",
+      "visualDescription": "A uniformed night guard with a cap, matching the supplied Samuel portrait and sprite."
+    },
+    {
+      "characterId": "char-victor-en",
+      "name": "Victor Crane",
+      "role": "Treasurer",
+      "imageUrl": "/assets/characters/victor-portrait.png",
+      "description": "Victor controls bank deposits but entrusted the sealed packet to the office.",
+      "visualDescription": "A suited treasurer, matching the supplied Victor portrait and sprite."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-receipt-left-en",
+      "name": "Left receipt half",
+      "description": "A receipt torn through its numbered lock instruction.",
+      "inspectText": "The heading reads LEFT → RIGHT. The left half shows 21 and the words 'cashbox access'. Keep it to repair the full receipt.",
+      "imageUrl": "/assets/items/letter.png",
+      "isCollectible": true,
+      "unlockClueIds": [
+        "clue-receipt-left-en"
+      ],
+      "renderMode": "CUTOUT",
+      "interactionPurpose": "combine-item",
+      "visualDescription": "A small torn cream-paper slip with a rough right edge."
+    },
+    {
+      "itemId": "item-receipt-right-en",
+      "name": "Right receipt half",
+      "description": "The matching right edge of the same receipt.",
+      "inspectText": "The right half shows 42. Its torn edge matches the left half. The instruction says to read the two halves left to right.",
+      "imageUrl": "/assets/items/love-letter.png",
+      "isCollectible": true,
+      "unlockClueIds": [
+        "clue-receipt-right-en"
+      ],
+      "renderMode": "CUTOUT",
+      "interactionPurpose": "combine-item",
+      "visualDescription": "A small torn cream-paper slip with a rough left edge."
+    },
+    {
+      "itemId": "item-locker-key-en",
+      "name": "Brass locker key",
+      "description": "A brass key hangs on the office hook.",
+      "inspectText": "The tag says SERVICE LOCKER. Mara says this office key stayed on its hook all evening. It may unlock the locker in the passage.",
+      "imageUrl": "/assets/items/key.png",
+      "isCollectible": true,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "visualDescription": "A brass service key with a paper tag."
+    },
+    {
+      "itemId": "item-sealed-packet-en",
+      "name": "Resealed charity packet",
+      "description": "The charity packet appears to be sealed in blue wax.",
+      "inspectText": "Two distinct wax layers overlap: the lower seal is broken, while a newer layer covers its crack. The packet was opened and resealed.",
+      "imageUrl": "/assets/items/letter.png",
+      "isCollectible": false,
+      "unlockClueIds": [
+        "evidence-overlapping-wax-en"
+      ],
+      "renderMode": "CUTOUT",
+      "visualDescription": "A folded cream-paper packet with overlapping red wax."
+    },
+    {
+      "itemId": "item-restored-receipt-en",
+      "name": "Restored receipt",
+      "description": "The repaired left and right halves form one instruction.",
+      "inspectText": "LEFT → RIGHT: 21 | 42. Cashbox code: 2142. The cashbox contains the charity transfer record; this instruction identifies the record, not its author.",
+      "imageUrl": "/assets/items/letter.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Two joined receipt halves on cream paper."
+    },
+    {
+      "itemId": "item-cashbox-en",
+      "name": "Locked cashbox",
+      "description": "A small numbered cashbox is strapped to the crate.",
+      "inspectText": "The four-digit dial is marked RECEIPT — LEFT TO RIGHT. Repair the office receipt and read its digits in that order.",
+      "imageUrl": "/assets/items/ledger.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "The four-digit dial is marked RECEIPT — LEFT TO RIGHT. Repair the office receipt and read its digits in that order.",
+      "visualDescription": "A compact leather-bound cash record case with a four-digit combination."
+    },
+    {
+      "itemId": "item-service-locker-en",
+      "name": "Service locker",
+      "description": "A key-operated locker holds an office delivery pouch.",
+      "inspectText": "Its brass lock carries the same SERVICE LOCKER tag as the office key. Use that key; merely examining the door cannot open it.",
+      "imageUrl": "/assets/items/makeup-kit.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "Its brass lock carries the same SERVICE LOCKER tag as the office key. Use that key; merely examining the door cannot open it.",
+      "visualDescription": "A small locked service storage case resting on the passage rack."
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-receipt-left-en",
+      "title": "Receipt: left 21",
+      "content": "The left receipt half gives 21 and a left-to-right arrow.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "item-receipt-left-en",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-en",
+      "inventoryDescription": "The left receipt half gives 21 and a left-to-right arrow.",
+      "narrativeMeaning": "The left receipt half gives 21 and a left-to-right arrow.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    },
+    {
+      "clueId": "clue-receipt-right-en",
+      "title": "Receipt: right 42",
+      "content": "The right receipt half gives 42 and fits the same torn edge.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "item-receipt-right-en",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-en",
+      "inventoryDescription": "The right receipt half gives 42 and fits the same torn edge.",
+      "narrativeMeaning": "The right receipt half gives 42 and fits the same torn edge.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    },
+    {
+      "clueId": "clue-restored-receipt-en",
+      "title": "Cashbox instruction: 2142",
+      "content": "The repaired receipt reads LEFT → RIGHT: 21 | 42. Enter 2142 on the service-passage cashbox to inspect the charity transfer.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "interaction-repair-receipt-en",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-box-office-en",
+      "inventoryDescription": "The repaired receipt reads LEFT → RIGHT: 21 | 42. Enter 2142 on the service-passage cashbox to inspect the charity transfer.",
+      "narrativeMeaning": "The repaired receipt reads LEFT → RIGHT: 21 | 42. Enter 2142 on the service-passage cashbox to inspect the charity transfer.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    },
+    {
+      "clueId": "evidence-overlapping-wax-en",
+      "title": "Overlapping wax layers",
+      "content": "The old seal was broken and a fresh layer applied over it. The packet did not remain intact through the evening.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "item-sealed-packet-en",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-en",
+      "inventoryDescription": "The old seal was broken and a fresh layer applied over it. The packet did not remain intact through the evening.",
+      "narrativeMeaning": "The old seal was broken and a fresh layer applied over it. The packet did not remain intact through the evening.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    },
+    {
+      "clueId": "evidence-debt-transfer-en",
+      "title": "Signed private-debt transfer",
+      "content": "Inside the cashbox, a 21:30 transfer order in Mara Vale's signature diverts the charity balance to settle her private debt. The bank acknowledgement matches the amount.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "puzzle-cashbox-code-en",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-service-passage-en",
+      "inventoryDescription": "Inside the cashbox, a 21:30 transfer order in Mara Vale's signature diverts the charity balance to settle her private debt. The bank acknowledgement matches the amount.",
+      "narrativeMeaning": "Inside the cashbox, a 21:30 transfer order in Mara Vale's signature diverts the charity balance to settle her private debt. The bank acknowledgement matches the amount.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    },
+    {
+      "clueId": "evidence-key-entry-en",
+      "title": "Office-key entry record",
+      "content": "The locker contains the service-entry counterfoil stamped 21:18 and signed Mara Vale; its key seal matches the sole key kept in her box office. Samuel's patrol started at 21:45.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "interaction-open-locker-en",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-service-passage-en",
+      "inventoryDescription": "The locker contains the service-entry counterfoil stamped 21:18 and signed Mara Vale; its key seal matches the sole key kept in her box office. Samuel's patrol started at 21:45.",
+      "narrativeMeaning": "The locker contains the service-entry counterfoil stamped 21:18 and signed Mara Vale; its key seal matches the sole key kept in her box office. Samuel's patrol started at 21:45.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    },
+    {
+      "clueId": "reveal-resealed-packet-en",
+      "title": "The intact-seal account is false",
+      "content": "The physical wax layers directly contradict Mara's intact-seal account. The later transfer and earlier entry record must now be explained together.",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "dlg-mara-account-en",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-service-passage-en",
+      "inventoryDescription": "The physical wax layers directly contradict Mara's intact-seal account. The later transfer and earlier entry record must now be explained together.",
+      "narrativeMeaning": "The physical wax layers directly contradict Mara's intact-seal account. The later transfer and earlier entry record must now be explained together.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-en"
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-mara-account-en",
+      "characterId": "char-mara-en",
+      "question": "Describe what happened after the charity packet arrived.",
+      "answer": "The charity packet stayed sealed all night. I was alone in the office until 21:00, then left for the tram. I never used the service locker.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-en",
+        "scene-service-passage-en"
+      ]
+    },
+    {
+      "dialogueId": "dlg-samuel-watch-en",
+      "characterId": "char-samuel-en",
+      "question": "When did you secure the passage, and who held its key?",
+      "answer": "I started my patrol at 21:45. Before that, the passage was open to staff. Mara kept the only office key; Victor's deposit receipt was signed at the bank at 21:10.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-service-passage-en"
+      ]
+    }
+  ],
+  "testimonyFragments": [
+    {
+      "id": "fragment-seal-intact-en",
+      "dialogueId": "dlg-mara-account-en",
+      "text": "The charity packet stayed sealed all night."
+    },
+    {
+      "id": "fragment-office-alone-en",
+      "dialogueId": "dlg-mara-account-en",
+      "text": "I was alone in the office until 21:00."
+    },
+    {
+      "id": "fragment-no-locker-en",
+      "dialogueId": "dlg-mara-account-en",
+      "text": "I never used the service locker."
+    }
+  ],
+  "conversationNodes": [
+    {
+      "nodeId": "node-victor-root-en",
+      "characterId": "char-victor-en",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-en"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "The bank stamped my deposit at 21:10. The charity packet was left with Mara, and its receipt was torn in half. What do you need to know?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-victor-receipt-en",
+          "label": "How does the receipt work?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-victor-receipt-en"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-victor-receipt-en",
+      "characterId": "char-victor-en",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-en"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Bring the matching halves together in your inventory. The arrow fixes the order: left digits, then right digits. The repaired receipt is needed at the cashbox in the passage."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-victor-back-en",
+          "label": "Back to your account.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "interactionId": "interaction-repair-receipt-en",
+      "type": "COMBINE_ITEMS",
+      "targetId": "",
+      "requiredItemIds": [
+        "item-receipt-left-en",
+        "item-receipt-right-en"
+      ],
+      "requiredClueIds": [
+        "clue-receipt-left-en",
+        "clue-receipt-right-en"
+      ],
+      "unlockItemIds": [
+        "item-restored-receipt-en"
+      ],
+      "unlockClueIds": [
+        "clue-restored-receipt-en"
+      ],
+      "unlockSceneIds": [],
+      "consumeItemIds": [
+        "item-receipt-left-en",
+        "item-receipt-right-en"
+      ],
+      "successMessage": "The torn edges fit. LEFT → RIGHT: 21 | 42. You have restored the cashbox receipt.",
+      "failureMessage": "These items do not share matching edges.",
+      "singleUse": true
+    },
+    {
+      "interactionId": "interaction-open-locker-en",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-service-locker-en",
+      "requiredItemIds": [
+        "item-locker-key-en"
+      ],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "evidence-key-entry-en"
+      ],
+      "unlockSceneIds": [],
+      "consumeItemIds": [],
+      "successMessage": "The key turns. Inside is the 21:18 service-entry counterfoil, signed Mara Vale.",
+      "failureMessage": "The locker requires its brass service key.",
+      "singleUse": true
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "puzzle-cashbox-code-en",
+      "type": "CODE_PUZZLE",
+      "targetId": "item-cashbox-en",
+      "prompt": "The dial says RECEIPT — LEFT TO RIGHT. Use the restored receipt's two pairs of digits to enter the four-digit code.",
+      "options": [],
+      "correctCode": "2142",
+      "correctSequence": [],
+      "requiredItemIds": [
+        "item-restored-receipt-en"
+      ],
+      "requiredClueIds": [
+        "clue-restored-receipt-en"
+      ],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "evidence-debt-transfer-en"
+      ],
+      "unlockSceneIds": [],
+      "successMessage": "The cashbox opens. Mara's signed private-debt transfer is inside.",
+      "failureMessage": "The lock remains shut. Read the repaired receipt from left to right.",
+      "progressionRole": "REQUIRED",
+      "investigationPurpose": "Read the locked financial record using an instruction reconstructed from physical objects."
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-broken-seal-en",
+      "order": 1,
+      "isSignature": true,
+      "dialogueId": "dlg-mara-account-en",
+      "testimonyFragmentId": "fragment-seal-intact-en",
+      "candidateTestimonyFragmentIds": [
+        "fragment-seal-intact-en",
+        "fragment-office-alone-en",
+        "fragment-no-locker-en"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-seal-intact-en",
+        "fragment-no-locker-en"
+      ],
+      "prompt": "Which physical trace directly contradicts this specific statement?",
+      "correctEvidenceId": "evidence-overlapping-wax-en",
+      "candidateEvidenceIds": [
+        "evidence-overlapping-wax-en",
+        "evidence-debt-transfer-en",
+        "evidence-key-entry-en"
+      ],
+      "startRequiredEvidenceIds": [
+        "evidence-overlapping-wax-en",
+        "evidence-debt-transfer-en"
+      ],
+      "successResponse": "The broken lower seal beneath fresh wax contradicts the intact-seal account. The team now shares that contradiction.",
+      "failureResponse": "This pairing does not prove the selected contradiction. Compare what each trace establishes.",
+      "revealTitle": "CRACKED: THE PACKET WAS RESEALED",
+      "unlockClueIds": [
+        "reveal-resealed-packet-en"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-night-ledger-en",
+      "prompt": "What explanation accounts for the seal, the 21:18 entry, and the 21:30 debt transfer?",
+      "requiredClueIds": [
+        "reveal-resealed-packet-en",
+        "evidence-debt-transfer-en",
+        "evidence-key-entry-en"
+      ],
+      "requiredChallengeIds": [
+        "challenge-broken-seal-en"
+      ],
+      "options": [
+        {
+          "id": "deduction-ledger-correct-en",
+          "label": "Mara entered before the patrol, opened the packet, diverted the charity funds to her debt, and resealed it."
+        },
+        {
+          "id": "deduction-ledger-wrong-en",
+          "label": "The 21:45 patrol proves no staff member could enter earlier."
+        }
+      ],
+      "correctOptionId": "deduction-ledger-correct-en",
+      "successResponse": "The money trail and physical contradiction form a single timeline without relying on the misleading alibi.",
+      "failureResponse": "That explanation ignores the order of the recorded times.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-night-ledger-en",
+      "investigatorClueId": "evidence-overlapping-wax-en",
+      "interrogatorChallengeId": "challenge-broken-seal-en",
+      "deductionId": "deduction-night-ledger-en",
+      "description": "Physical evidence, a precisely challenged statement, and a joint deduction connect the charity loss."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-office-1-en",
+      "contextType": "SCENE",
+      "targetId": "scene-box-office-en",
+      "order": 1,
+      "text": "Inspect all four office objects. Combine the two receipt halves in inventory while your partner records Mara's account."
+    },
+    {
+      "hintId": "hint-passage-1-en",
+      "contextType": "SCENE",
+      "targetId": "scene-service-passage-en",
+      "order": 1,
+      "text": "The repaired receipt supplies the cashbox digits. The brass key belongs to the locker. Ask Samuel before pairing Mara's claim with the wax trace."
+    },
+    {
+      "hintId": "hint-confrontation-1-en",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-broken-seal-en",
+      "order": 1,
+      "text": "Challenge one sentence, not the whole account. A money record establishes motive; wax layers establish whether a seal was broken."
+    },
+    {
+      "hintId": "hint-deduction-1-en",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-night-ledger-en",
+      "order": 1,
+      "text": "Put the entry, transfer and patrol times in chronological order."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-mara-en",
+    "motive": "Settle a private debt with charity funds.",
+    "method": "Open the charity packet and reseal it with fresh wax.",
+    "requiredEvidenceIds": [],
+    "motiveOptions": [
+      {
+        "id": "motive-private-debt-en",
+        "label": "Repay Mara's private debt with charity funds"
+      },
+      {
+        "id": "motive-bank-deposit-en",
+        "label": "Correct Victor's ordinary bank deposit"
+      }
+    ],
+    "methodOptions": [
+      {
+        "id": "method-reseal-wax-en",
+        "label": "Break the packet seal, divert the funds and cover the break with fresh wax"
+      },
+      {
+        "id": "method-guard-patrol-en",
+        "label": "Take funds during the guard's 21:45 patrol without opening the packet"
+      }
+    ],
+    "correctMotiveId": "motive-private-debt-en",
+    "correctMethodId": "method-reseal-wax-en",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "evidenceId": "evidence-debt-transfer-en"
+      },
+      {
+        "claimType": "METHOD",
+        "evidenceId": "evidence-overlapping-wax-en"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "evidenceId": "evidence-key-entry-en"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-night-ledger-en"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-night-ledger-en"
+    ],
+    "winEnding": "Mara's 21:18 entry, signed 21:30 debt transfer and replaced seal establish how the charity fund vanished. The detectives recover the order before the transfer clears; the theatre keeps its fund.",
+    "failEnding": "The allegation does not explain the recorded money trail and the broken seal together. The evidence remains available in the result review."
+  }
+}

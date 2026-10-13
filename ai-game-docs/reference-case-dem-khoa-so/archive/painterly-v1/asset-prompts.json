@@ -1,0 +1,110 @@
+{
+  "caseId": "case-reference-dem-khoa-so-vi",
+  "generation": "Codex built-in ImageGen; no application AI provider",
+  "assets": [
+    {
+      "id": "office",
+      "path": "scenes/ticket-office.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-0c189a19-1b18-4068-bf63-3465952e1ccd.png",
+      "prompt": "Use case: stylized-concept. Asset type: finished background plate for a Vietnamese cooperative point-and-click detective game called Dem Khoa So, a 1930s theatre charity-fund mystery. Generate ONE 16:9 landscape scene, ideally 1600x900. Premium hand-painted 2D adventure game art, crisp readable silhouette, detailed aged wood and brass, muted petrol blue shadows and amber practical light, rich but not dark. Straight-on eye-level room view, no strong lens distortion. Empty theatre ticket office at night after the show. Carefully match these staging proportions: a tall open doorway occupies x=6-14%, y=30-81%; small empty brass hook on wall at x=20%, y=43%; broad wooden desk centered, desk top at y=63%, stretches x=29-71%, desk body ends at y=84%. Clear usable empty desk surface where separate clue sprites will be placed at x=36%,54%,67%. Empty standing space at x=17% and x=84%, feet y=90%. Floor open across bottom 25%, with a strip of walkable floor in front of the desk. Ticket cubbies, a small green-shaded lamp and dusty theatre posters without legible writing on the back wall. Rainy window upper right, subtle crimson velvet theatre curtains. NO people, NO keys, NO envelopes, NO loose paper clues, NO UI, NO captions, NO watermarks, no grid. This is a playable room background, not a poster.",
+      "tool": "built-in image_gen",
+      "transparentBackground": false
+    },
+    {
+      "id": "hall",
+      "path": "scenes/service-passage.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-9113e18e-fee7-45b7-8025-f34f719f1230.png",
+      "prompt": "Use case: stylized-concept. Asset type: final 16:9 landscape background for 2D point-and-click theatre detective game. Match a premium hand-painted 1930s theatre ticket office aesthetic: painterly realistic wood, aged brass, petrol blue walls, amber lights, crimson curtain accents. A backstage service passage, straight-on eye-level wide room view with clear front floor, a deep central doorway at x=47-54%, y=35-69%, stacked stage trunks filling x=5-31%, y=65-90%, a small wooden pedestal with completely EMPTY top at x=38%, y=65%; empty shelving low at x=79-92%, top y=80% for a separate locked box. Leave blank standing spaces x=60% and x=69%, feet y=91% and y=84%. Floor walkable across bottom 25%, right to central, visible scratches but no clue-specific marks. Rain-blue ambient light, readable warm lamps. NO people, NO paper, NO keys, NO cash box or lockbox (placed separately), no text, no UI, no watermarks. Room for investigation, not promotional poster.",
+      "tool": "built-in image_gen",
+      "transparentBackground": false
+    },
+    {
+      "id": "mai",
+      "path": "characters/mai-van.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-58f7a69e-d9c8-46d1-857e-d828d26fdcc2.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent full-body NPC cutout for premium 2D detective adventure, 1930s fictional Vietnamese theatre. Mai Van, adult Vietnamese woman age 32, dark hair neatly swept in low bun, burgundy silk blouse with modest collar, charcoal high-waist long skirt and sensible black shoes, tiny brass theatre badge, reserved worried expression, hands relaxed together. Full body from head to shoes, three-quarter facing slightly left, straight standing pose, character occupies nearly whole image height with 4% margin. Hand-painted realistic adventure-game illustration, crisp readable outline, petrol-blue soft shadow tones, warm amber light from upper left. No floor, no cast shadow, no scene, no props, no lettering, no border. Actual transparent alpha background. Single person only, no panels.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "vu",
+      "path": "characters/vu-khang.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-663206e1-4694-48a2-951a-06e6e88c53f0.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent full-body NPC cutout for premium hand-painted 2D detective adventure, 1930s fictional Vietnamese theatre. Vu Khang, adult Vietnamese male theatre treasurer age 48, swept-back short dark hair with gray temples, thin round brass glasses, dark petrol-blue three-piece suit, cream shirt and discreet brown tie, clean shaven, thoughtful concerned face. Full body head to shoes, three-quarter facing slightly right, arms calmly at sides. Entire person nearly fills image height with 4% margin. Realistic painterly adventure-game illustration, crisp silhouette, amber upper-left lighting and restrained blue shadows. Single person, actual transparent alpha background, no floor, no cast shadow, no scene, no objects, no text, no panels, no watermark.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "son",
+      "path": "characters/son-lam.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-ef30c8d6-0202-43f1-abe1-5dd0432bcdaa.png",
+      "prompt": "Use case: stylized-concept. Single full-body transparent NPC game sprite, premium hand-painted realistic 1930s Vietnamese theatre detective adventure. Son Lam, Vietnamese male night watchman age 58, lean build, warm weathered face, small neat moustache, navy work jacket and trousers, cream undershirt, worn brown leather belt, navy flat cap, black boots. Calm upright posture, three-quarter view slightly left, full figure head to shoes with 4% margin, relaxed arms. Crisp silhouette, restrained warm amber upper-left light, cool blue soft shadows. Actual transparent background, no floor, no external shadow or glow, no objects, no text, no scene.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "left",
+      "path": "items/receipt-left.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-69a2a2c4-5b98-4fb2-a604-7dba7550ff55.png",
+      "prompt": "Use case: stylized-concept. Asset type: a single isolated inventory object PNG for premium hand-painted 2D theatre detective adventure. Amber highlights, muted blue shadows, crisp readable edges, realistic aged materials. True transparent background with no scenery, no floor, no glow, no shadow outside object, no frame, no watermark. Object centered, fills 88% of frame, front three-quarter view unless specified. A single LEFT HALF of a torn cream admission receipt, landscape paper scrap with straight left edge and jagged torn right edge. Mostly flat view so it is legible. In dark black ink print ONLY a large '21' and a right pointing arrow under it. Faint red theatre emblem at top. No other lettering. This is the left half of a four digit clue.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "right",
+      "path": "items/receipt-right.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d82c74c1-44fa-4fea-a58f-71e9b9185ab6.png",
+      "prompt": "Use case: stylized-concept. Asset type: a single isolated inventory object PNG for premium hand-painted 2D theatre detective adventure. Amber highlights, muted blue shadows, crisp readable edges, realistic aged materials. True transparent background with no scenery, no floor, no glow, no shadow outside object, no frame, no watermark. Object centered, fills 88% of frame, front three-quarter view unless specified. A single RIGHT HALF of a torn cream admission receipt, landscape paper scrap with jagged torn left edge and straight right edge. Mostly flat view so it is legible. In dark black ink print ONLY a large '42'. Faint red theatre emblem at top. No other lettering. This is the right half of a four digit clue.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "key",
+      "path": "items/brass-key.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-65c0dcec-f2ca-4735-a18a-ec3359aa136a.png",
+      "prompt": "Use case: stylized-concept. Single isolated inventory sprite for a hand-painted realistic 1930s theatre detective adventure, aged materials with warm amber highlights. Actual transparent alpha background, no room, no floor, no cast shadow, no aura or glow. Crisp outer boundary. Centered object fills 90% frame. No watermark or decorative frame. An antique brass skeleton key, vertical with ring at top and teeth at bottom, a small cream tag tied to ring shows a simple ink envelope icon. Full key, 2:3 portrait canvas. No letters or digits.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "envelope",
+      "path": "items/sealed-envelope.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-e18907f4-878a-48b5-946e-bbc3202c5d58.png",
+      "prompt": "Use case: stylized-concept. Single isolated inventory sprite for a hand-painted realistic 1930s theatre detective adventure, aged materials with warm amber highlights. Actual transparent alpha background, no room, no floor, no cast shadow, no aura or glow. Crisp outer boundary. Centered object fills 90% frame. No watermark or decorative frame. A horizontal cream paper envelope, reverse flap facing viewer, seen almost straight-on. At center a broken older RED wax seal ring with clearly cracked edges; a smaller newer RED wax seal overlaps it, making two distinct wax layers unmistakable. Subtle theatre-mask imprint on top seal. Entire envelope fits frame. 3:2 landscape canvas. No lettering, no writing.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "restored",
+      "path": "items/receipt-restored.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-05324ced-982f-4c3c-a67d-66e5904b184e.png",
+      "prompt": "Use case: stylized-concept. Single isolated inventory sprite for a hand-painted realistic 1930s theatre detective adventure, aged materials with warm amber highlights. Actual transparent alpha background, no room, no floor, no cast shadow, no aura or glow. Crisp outer boundary. Centered object fills 90% frame. No watermark or decorative frame. A single restored cream theatre receipt, horizontal, two torn paper halves joined visibly down the center by two tiny strips of translucent tape. Printed exact large black digits '21' on LEFT half and '42' on RIGHT half, a black arrow pointing right along bottom. Small faded red theatre mask emblem at top. Mostly frontal view, 3:2 landscape canvas, no other writing.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "cashbox",
+      "path": "items/cashbox.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-759c039f-5b6b-4ab8-aea4-6fb24cd8c94d.png",
+      "prompt": "Use case: stylized-concept. One isolated game inventory sprite, premium hand-painted realistic 1930s theatre detective adventure. Aged materials, warm amber light, muted blue shadow. True transparent alpha background. NO environment, NO floor, NO external shadow, NO glow, NO watermark. Object centered and fully visible, filling 88% of frame, landscape 3:2 canvas. A small closed dark petrol-blue metal document cashbox with worn brass edges and handle on top, front panel has a brass combination lock with precisely FOUR small number wheels all showing 0. Three-quarter front view, simple readable silhouette. A tiny engraved paper-receipt icon and right arrow next to lock. No text except the four zero digits. This is a CODE lockbox, no keyhole.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "lockbox",
+      "path": "items/service-lockbox.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-a5cf75ad-e9e4-4cf9-8edc-f7b8539bc868.png",
+      "prompt": "Use case: stylized-concept. One isolated game inventory sprite, premium hand-painted realistic 1930s theatre detective adventure. Aged materials, warm amber light, muted blue shadow. True transparent alpha background. NO environment, NO floor, NO external shadow, NO glow, NO watermark. Object centered and fully visible, filling 88% of frame, landscape 3:2 canvas. A compact old dark walnut wooden service mail lockbox, rectangular wide, gently rounded edges and a tiny mail slot near top. Front has one large worn brass KEYHOLE plate and an engraved envelope symbol above it. Closed hinged lid, NO combination lock, no text or numbers. Three-quarter front view.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    },
+    {
+      "id": "pawn",
+      "path": "items/pawn-ticket.png",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-c4d7ec8e-40ae-49c2-a998-2a6cb187ffb0.png",
+      "prompt": "Use case: stylized-concept. One isolated game inventory sprite, premium hand-painted realistic 1930s theatre detective adventure. Aged materials, warm amber light, muted blue shadow. True transparent alpha background. NO environment, NO floor, NO external shadow, NO glow, NO watermark. Object centered and fully visible, filling 88% of frame, landscape 3:2 canvas. A single old cream pawn receipt, rectangular horizontal paper, with a detailed small ink drawing of a pocket watch in left third. On right only the large red stamped text 'DA TAT TOAN' with a diagonal red cancellation line. Faint ruled lines, no other legible lettering. Frontal view, easily readable as an old settled debt receipt, restrained worn paper.",
+      "tool": "built-in image_gen",
+      "transparentBackground": true
+    }
+  ]
+}

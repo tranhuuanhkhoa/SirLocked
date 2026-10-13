@@ -1,0 +1,103 @@
+{
+  "caseId": "case-reference-dem-khoa-so-vi",
+  "caseSha256": "1150a9ffec89ca76377d0bd6ce2cb1520ccd72efe73a14c6efb2ddfbc80e5a87",
+  "date": "2026-10-04",
+  "timezone": "Asia/Saigon",
+  "authoritativeValidation": "PASS: 0 errors",
+  "assetClosure": {
+    "status": "PASS",
+    "files": 58,
+    "totalBytes": 34649211,
+    "generatedImages": 13,
+    "transparentCutouts": 11
+  },
+  "frontendTypecheck": "PASS",
+  "productionBuild": "PASS",
+  "productionBuildPath": "tmp/dem-khoa-so-pixel-dist",
+  "publicSpoilerCaseJson": false,
+  "browserTest": {
+    "status": "PASS",
+    "passed": 1,
+    "duration": "1.2m",
+    "engine": "Chromium",
+    "roles": [
+      "INVESTIGATOR",
+      "INTERROGATOR"
+    ],
+    "entryPoint": "ai-game-docs/reference-case-dem-khoa-so/test-reference.ps1",
+    "test": "src/FE/tests/point-click-full-stack.spec.ts",
+    "sourceRun": "src/FE/test-results/run-1791077602083-17864",
+    "providerCalls": 0,
+    "temporaryDatabaseCleaned": true,
+    "verified": [
+      "introduction dismissal",
+      "NPC questions",
+      "both root conversation branches and return",
+      "approach movement",
+      "item inspection/collection",
+      "required camera capture via actual canvas",
+      "inventory combination",
+      "two-stage scene progression",
+      "use key on locked target",
+      "incorrect puzzle code rejected",
+      "correct code grants evidence",
+      "role-private evidence and testimony",
+      "incorrect joint confrontation does not grant reveal",
+      "both correct joint confrontations",
+      "required deduction",
+      "three final evidence links",
+      "both-player accusation consensus",
+      "winning result",
+      "no browser pageerror",
+      "consumed recipe inputs do not respawn in scene",
+      "desktop 1440x960 and laptop 1366x768 visual captures"
+    ]
+  },
+  "limitations": [
+    "Human difficulty/enjoyment not measured",
+    "Losing final accusation text authored but not separately played to loss",
+    "Optional sequence/symbol puzzle variants and generated video are outside this reference case",
+    "Shared player art and audio reused from the project"
+  ],
+  "counts": {
+    "stages": 2,
+    "characters": 3,
+    "items": 8,
+    "clues": 10,
+    "dialogues": 3,
+    "conversationNodes": 3,
+    "testimonyFragments": 6,
+    "interactions": 2,
+    "puzzles": 1,
+    "evidenceChallenges": 2,
+    "deductions": 1,
+    "requiredTeamworkChains": 2,
+    "hints": 7
+  },
+  "artRevision": "pixel-v2",
+  "backendRegression": {
+    "status": "PASS",
+    "passed": 22,
+    "filter": "GameStateProjectionTests|V3KnowledgeProjectionTests"
+  },
+  "visualReview": {
+    "status": "PASS",
+    "viewports": [
+      "1440x960",
+      "1366x768"
+    ],
+    "checks": [
+      "pixel-art room / NPC / player consistency",
+      "comparable actor scale",
+      "spawn separation",
+      "clue camera hook alignment",
+      "props grounded on counters",
+      "hall lockbox clear of right toolbar"
+    ],
+    "screenshots": [
+      "evidence/scene-1-entry.png",
+      "evidence/scene-1-laptop.png",
+      "evidence/scene-2-entry.png"
+    ]
+  }
+}

@@ -19,6 +19,48 @@ public class GameStateBuilder : IGameStateBuilder
 
     public GameStateBuilder(MongoDbContext db) => _db = db;
 
+    internal static GameStateResponse? BuildCompletedReadState(GameRoom room, string userId)
+    {
+        if (room.Status != RoomStatus.Completed || room.GameplayState is not { } state
+            || state.FinalAccusationSnapshot?.CaseDefinitionSnapshot is not { } definition)
+            return null;
+
+        // Completed gameplay reads only need to redirect to the result. They must
+        // not resolve a saved scene against a definition that may have been replaced.
+        var sceneId = state.PlayerSceneIds.GetValueOrDefault(userId, state.CurrentSceneId);
+        return new GameStateResponse
+        {
+            RoomId = room.Id,
+            RoomCode = room.RoomCode,
+            HostUserId = room.HostUserId,
+            CaseId = room.CaseId,
+            CaseTitle = definition.Title,
+            Language = definition.Language,
+            MechanicsVersion = definition.MechanicsVersion,
+            RoomStatus = room.Status,
+            CurrentStageId = state.CurrentStageId,
+            CurrentSceneId = sceneId,
+            Version = state.Version,
+            Players = room.Players.Select(RoomPlayerDto.From).ToList(),
+            GameStatus = state.GameStatus,
+            IsCaseComplete = true,
+            VisibleScene = new VisibleSceneDto { SceneId = sceneId }
+        };
+    }
+
+    internal static List<SceneDialogueDto> BuildSceneDialogues(GameCase gameCase, GameplayState state, CaseScene scene)
+    {
+        var unlocked = state.UnlockedClueIds.ToHashSet();
+        return gameCase.Dialogues
+            .Where(dialogue => scene.CharacterIds.Contains(dialogue.CharacterId))
+            .Where(dialogue => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+                || dialogue.AvailableSceneIds.Contains(scene.SceneId))
+            .Where(dialogue => GameplayConversationRules.IsSourceDialogueAvailable(
+                gameCase, state.VisitedConversationNodeIds, dialogue.DialogueId))
+            .Select(dialogue => SceneDialogueDto.From(dialogue, unlocked, state.AskedDialogueIds.Contains(dialogue.DialogueId)))
+            .ToList();
+    }
+
     public async Task<GameStateResponse> BuildStateAsync(GameRoom room, GameCase gameCase, string userId)
     {
         var state = room.GameplayState!;
@@ -37,12 +79,7 @@ public class GameStateBuilder : IGameStateBuilder
         var canCompleteScene = CanCompleteScene(state, scene.SceneId, currentSceneProgress);
         var missingRequirements = BuildMissingRequirements(currentSceneProgress);
 
-        var sceneDialogues = gameCase.Dialogues
-            .Where(d => scene.CharacterIds.Contains(d.CharacterId))
-            .Where(d => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
-                || d.AvailableSceneIds.Contains(scene.SceneId))
-            .Select(d => SceneDialogueDto.From(d, unlocked, state.AskedDialogueIds.Contains(d.DialogueId)))
-            .ToList();
+        var sceneDialogues = BuildSceneDialogues(gameCase, state, scene);
         var conversationTreeCharacterIds = gameCase.ConversationNodes
             .Where(node => scene.CharacterIds.Contains(node.CharacterId))
             .Where(node => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
@@ -304,14 +341,18 @@ public class GameStateBuilder : IGameStateBuilder
         CompleteConditionProgressResult progress,
         IReadOnlySet<string> unlocked)
     {
+        string T(string english, string vietnamese) => gameCase.Language == CaseLanguages.Vietnamese ? vietnamese : english;
         if (state.GameStatus != GameStatus.InProgress)
         {
-            return state.GameStatus == GameStatus.Won ? "Case closed - the culprit was exposed." : "Case closed - the culprit escaped.";
+            return state.GameStatus == GameStatus.Won
+                ? T("Case closed - the culprit was exposed.", "Vụ án đã khép lại — thủ phạm đã bị vạch trần.")
+                : T("Case closed - the culprit escaped.", "Vụ án đã khép lại — thủ phạm đã thoát tội.");
         }
 
         if (GameRules.IsAccusationAvailable(gameCase, state, scene.SceneId))
         {
-            return "All the evidence is on the table. Confront the suspects and make the final accusation.";
+            return T("All the evidence is on the table. Confront the suspects and make the final accusation.",
+                "Đã có đủ chứng cứ. Hãy cùng đồng đội thống nhất lời buộc tội cuối cùng.");
         }
 
         if (GameRules.AllScenesCompleted(gameCase, state))
@@ -331,20 +372,22 @@ public class GameStateBuilder : IGameStateBuilder
                 : 0;
 
             var finalParts = new List<string>();
-            if (missingEvidence > 0) finalParts.Add($"secure {missingEvidence} more piece(s) of key evidence");
-            if (missingCracks > 0) finalParts.Add($"crack {missingCracks} more contradiction(s) with your partner");
-            if (missingChains > 0) finalParts.Add($"resolve {missingChains} more confrontation chain(s) with your partner");
-            if (missingDeductions > 0) finalParts.Add($"solve {missingDeductions} more deduction(s)");
+            if (missingEvidence > 0) finalParts.Add(T($"secure {missingEvidence} more piece(s) of key evidence", $"thu thập thêm {missingEvidence} chứng cứ then chốt"));
+            if (missingCracks > 0) finalParts.Add(T($"crack {missingCracks} more contradiction(s) with your partner", $"cùng đồng đội vạch trần thêm {missingCracks} mâu thuẫn"));
+            if (missingChains > 0) finalParts.Add(T($"resolve {missingChains} more confrontation chain(s) with your partner", $"hoàn thành thêm {missingChains} chuỗi phối hợp"));
+            if (missingDeductions > 0) finalParts.Add(T($"solve {missingDeductions} more deduction(s)", $"giải thêm {missingDeductions} suy luận"));
 
             var lastScene = gameCase.Stages.OrderBy(s => s.Order).Last().Scenes.Last();
             return finalParts.Count == 0
-                ? $"Head to {lastScene.Title} to make the final accusation."
-                : $"Every location is fully investigated. Before accusing: {string.Join(", ", finalParts)}.";
+                ? T($"Head to {lastScene.Title} to make the final accusation.", $"Đến {lastScene.Title} để đưa ra lời buộc tội cuối cùng.")
+                : T($"Every location is fully investigated. Before accusing: {string.Join(", ", finalParts)}.",
+                    $"Đã điều tra xong mọi địa điểm. Trước khi buộc tội: {string.Join(", ", finalParts)}.");
         }
 
         if (progress.IsSatisfied)
         {
-            return $"You have found everything that matters in {scene.Title}. Continue the investigation when both of you are ready.";
+            return T($"You have found everything that matters in {scene.Title}. Continue the investigation when both of you are ready.",
+                $"Đã tìm đủ thông tin quan trọng tại {scene.Title}. Tiếp tục điều tra khi cả hai đã sẵn sàng.");
         }
 
         if (string.Equals(scene.CompleteCondition.Logic, "OR", StringComparison.OrdinalIgnoreCase))
@@ -352,29 +395,30 @@ public class GameStateBuilder : IGameStateBuilder
             var alternatives = progress.Alternatives.Select(alternative => alternative.Type switch
             {
                 CompleteConditionAlternativeType.Items =>
-                    $"examine {alternative.MissingIds.Count} physical evidence item(s)",
+                    T($"examine {alternative.MissingIds.Count} physical evidence item(s)", $"khám xét {alternative.MissingIds.Count} vật chứng"),
                 CompleteConditionAlternativeType.Dialogues =>
-                    $"ask {alternative.MissingIds.Count} question(s)",
+                    T($"ask {alternative.MissingIds.Count} question(s)", $"hỏi {alternative.MissingIds.Count} câu"),
                 CompleteConditionAlternativeType.Clues =>
-                    $"uncover {alternative.MissingIds.Count} clue(s)",
+                    T($"uncover {alternative.MissingIds.Count} clue(s)", $"tìm {alternative.MissingIds.Count} manh mối"),
                 _ => throw new ArgumentOutOfRangeException()
             }).ToList();
 
             return alternatives.Count == 0
-                ? $"Investigate {scene.Title}."
-                : $"Investigate {scene.Title}: choose one \u2014 {string.Join("; or ", alternatives)}.";
+                ? T($"Investigate {scene.Title}.", $"Điều tra {scene.Title}.")
+                : T($"Investigate {scene.Title}: choose one \u2014 {string.Join("; or ", alternatives)}.",
+                    $"Điều tra {scene.Title}: chọn một hướng — {string.Join("; hoặc ", alternatives)}.");
         }
 
         var parts = new List<string>();
         var missingItems = progress.MissingItemIds.Count;
         var missingClues = progress.MissingClueIds.Count;
         var missingDialogues = progress.MissingDialogueIds.Count;
-        if (missingItems > 0) parts.Add($"examine {missingItems} more piece(s) of physical evidence");
-        if (missingDialogues > 0) parts.Add($"ask {missingDialogues} more question(s)");
-        if (missingClues > 0) parts.Add($"uncover {missingClues} more clue(s)");
+        if (missingItems > 0) parts.Add(T($"examine {missingItems} more piece(s) of physical evidence", $"khám xét thêm {missingItems} vật chứng"));
+        if (missingDialogues > 0) parts.Add(T($"ask {missingDialogues} more question(s)", $"hỏi thêm {missingDialogues} câu"));
+        if (missingClues > 0) parts.Add(T($"uncover {missingClues} more clue(s)", $"tìm thêm {missingClues} manh mối"));
 
         return parts.Count == 0
-            ? $"Investigate {scene.Title}."
-            : $"Investigate {scene.Title}: {string.Join(", ", parts)}.";
+            ? T($"Investigate {scene.Title}.", $"Điều tra {scene.Title}.")
+            : T($"Investigate {scene.Title}: {string.Join(", ", parts)}.", $"Điều tra {scene.Title}: {string.Join(", ", parts)}.");
     }
 }

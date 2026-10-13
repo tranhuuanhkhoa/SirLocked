@@ -1,0 +1,1153 @@
+{
+  "caseId": "case-point-click-night-ledger-vi",
+  "title": "Cuốn sổ trong đêm",
+  "summary": "Quỹ từ thiện biến mất sau một biên nhận bị xé, hộp tiền có khóa và niêm phong không được phép bị phá. Hai thám tử lần theo dấu tiền trong nhà hát.",
+  "language": "vi",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "generationMode": "PLACEMENT_FIRST",
+  "logicContractVersion": 1,
+  "estimatedMinutes": 20,
+  "coverImageUrl": "/assets/scenes/owners-office.png",
+  "stages": [
+    {
+      "stageId": "stage-night-ledger-vi",
+      "title": "Sau khi màn hạ",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-box-office-vi",
+          "title": "Phòng vé",
+          "backgroundUrl": "/assets/scenes/owners-office.png",
+          "description": "Sổ quỹ từ thiện biến mất sau buổi diễn cuối. Kiểm tra phong bì và biên nhận bị xé, hỏi nhân viên rồi lần theo dấu giấy tờ đến hành lang hậu trường.",
+          "itemIds": [
+            "item-receipt-left-vi",
+            "item-receipt-right-vi",
+            "item-locker-key-vi",
+            "item-sealed-packet-vi"
+          ],
+          "characterIds": [
+            "char-mara-vi",
+            "char-victor-vi"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-office-item-1-vi",
+              "type": "ITEM",
+              "targetId": "item-receipt-left-vi",
+              "x": 32.1875,
+              "y": 57.77777777777778,
+              "width": 8.125,
+              "height": 28.333333333333332,
+              "zIndex": 10,
+              "label": "Nửa trái biên nhận",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-2-vi",
+              "type": "ITEM",
+              "targetId": "item-receipt-right-vi",
+              "x": 50.3125,
+              "y": 57.77777777777778,
+              "width": 8.125,
+              "height": 28.333333333333332,
+              "zIndex": 10,
+              "label": "Nửa phải biên nhận",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-3-vi",
+              "type": "ITEM",
+              "targetId": "item-locker-key-vi",
+              "x": 17.1875,
+              "y": 42.22222222222222,
+              "width": 6.875,
+              "height": 36.111111111111114,
+              "zIndex": 10,
+              "label": "Chìa khóa đồng",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-4-vi",
+              "type": "ITEM",
+              "targetId": "item-sealed-packet-vi",
+              "x": 63.4375,
+              "y": 57.77777777777778,
+              "width": 8.125,
+              "height": 28.333333333333332,
+              "zIndex": 10,
+              "label": "Phong bì quỹ bị niêm phong lại",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-box-office-vi-char-mara-vi-vi",
+              "type": "CHARACTER",
+              "targetId": "char-mara-vi",
+              "x": 79.375,
+              "y": 52.77777777777778,
+              "width": 10.3125,
+              "height": 37.77777777777778,
+              "zIndex": 10,
+              "label": "Mara Vale — nhân viên phòng vé",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-box-office-vi-char-victor-vi-vi",
+              "type": "CHARACTER",
+              "targetId": "char-victor-vi",
+              "x": 12.1875,
+              "y": 53.333333333333336,
+              "width": 10.3125,
+              "height": 38.333333333333336,
+              "zIndex": 10,
+              "label": "Victor Crane — thủ quỹ",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 815,
+            "walkableArea": {
+              "x": 70,
+              "y": 640,
+              "width": 1460,
+              "height": 215
+            },
+            "navigationObstacles": [
+              {
+                "x": 465,
+                "y": 645,
+                "width": 675,
+                "height": 125
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 170,
+                "y": 815,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 170,
+                "y": 815,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 1450,
+                "y": 815,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-receipt-left-vi",
+                "asset": "/assets/items/letter.png",
+                "position": {
+                  "x": 580,
+                  "y": 565,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 100,
+                  "height": 76
+                },
+                "hotspot": {
+                  "x": 515,
+                  "y": 520,
+                  "width": 130,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-receipt-right-vi",
+                "asset": "/assets/items/love-letter.png",
+                "position": {
+                  "x": 870,
+                  "y": 565,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 100,
+                  "height": 76
+                },
+                "hotspot": {
+                  "x": 805,
+                  "y": 520,
+                  "width": 130,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-locker-key-vi",
+                "asset": "/assets/items/key.png",
+                "position": {
+                  "x": 322,
+                  "y": 430,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 85,
+                  "height": 72
+                },
+                "hotspot": {
+                  "x": 275,
+                  "y": 380,
+                  "width": 110,
+                  "height": 325
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-sealed-packet-vi",
+                "asset": "/assets/items/letter.png",
+                "position": {
+                  "x": 1080,
+                  "y": 565,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 100,
+                  "height": 76
+                },
+                "hotspot": {
+                  "x": 1015,
+                  "y": 520,
+                  "width": 130,
+                  "height": 255
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mara-vi",
+                "asset": "/assets/characters/mona-sprite.png",
+                "position": {
+                  "x": 1350,
+                  "y": 805,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 1270,
+                  "y": 475,
+                  "width": 165,
+                  "height": 340
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-victor-vi",
+                "asset": "/assets/characters/victor-sprite.png",
+                "position": {
+                  "x": 275,
+                  "y": 815,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 195,
+                  "y": 480,
+                  "width": 165,
+                  "height": 345
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              }
+            ],
+            "clueZones": [],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-office-passage-vi",
+                "targetSceneId": "scene-service-passage-vi",
+                "label": "Hành lang hậu trường",
+                "hotspot": {
+                  "x": 90,
+                  "y": 270,
+                  "width": 130,
+                  "height": 465
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-receipt-left-vi",
+              "item-receipt-right-vi",
+              "item-locker-key-vi",
+              "item-sealed-packet-vi"
+            ],
+            "requiredClueIds": [
+              "clue-restored-receipt-vi"
+            ],
+            "requiredDialogueIds": [
+              "dlg-mara-account-vi"
+            ]
+          }
+        },
+        {
+          "sceneId": "scene-service-passage-vi",
+          "title": "Hành lang hậu trường",
+          "backgroundUrl": "/assets/scenes/backstage-hallway.png",
+          "description": "Hộp tiền khóa nằm trên thùng gỗ cạnh ngăn đồ phục vụ. Bảo vệ giữ hành lang đóng cửa từ 21:45; Mara chờ ở đây để cùng trả lời hai thám tử.",
+          "itemIds": [
+            "item-cashbox-vi",
+            "item-service-locker-vi"
+          ],
+          "characterIds": [
+            "char-mara-vi",
+            "char-samuel-vi"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-passage-item-1-vi",
+              "type": "ITEM",
+              "targetId": "item-cashbox-vi",
+              "x": 34.375,
+              "y": 58.333333333333336,
+              "width": 9.375,
+              "height": 20.555555555555557,
+              "zIndex": 10,
+              "label": "Hộp tiền có khóa số",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-passage-item-2-vi",
+              "type": "ITEM",
+              "targetId": "item-service-locker-vi",
+              "x": 79.0625,
+              "y": 68.88888888888889,
+              "width": 11.25,
+              "height": 17.77777777777778,
+              "zIndex": 10,
+              "label": "Ngăn đồ có khóa",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-service-passage-vi-char-mara-vi-vi",
+              "type": "CHARACTER",
+              "targetId": "char-mara-vi",
+              "x": 64.6875,
+              "y": 46.666666666666664,
+              "width": 10,
+              "height": 38.333333333333336,
+              "zIndex": 10,
+              "label": "Mara Vale — nhân viên phòng vé",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-service-passage-vi-char-samuel-vi-vi",
+              "type": "CHARACTER",
+              "targetId": "char-samuel-vi",
+              "x": 55.3125,
+              "y": 53.888888888888886,
+              "width": 10,
+              "height": 38.333333333333336,
+              "zIndex": 10,
+              "label": "Samuel Reed — bảo vệ đêm",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 810,
+            "walkableArea": {
+              "x": 75,
+              "y": 640,
+              "width": 1450,
+              "height": 220
+            },
+            "navigationObstacles": [
+              {
+                "x": 80,
+                "y": 645,
+                "width": 465,
+                "height": 170
+              },
+              {
+                "x": 590,
+                "y": 620,
+                "width": 120,
+                "height": 65
+              },
+              {
+                "x": 1260,
+                "y": 790,
+                "width": 220,
+                "height": 55
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 820,
+                "y": 810,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 820,
+                "y": 810,
+                "anchor": "bottom-center",
+                "direction": "left"
+              },
+              "INTERROGATOR": {
+                "x": 1110,
+                "y": 735,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-hall.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-cashbox-vi",
+                "asset": "/assets/items/ledger.png",
+                "position": {
+                  "x": 610,
+                  "y": 590,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 120,
+                  "height": 98
+                },
+                "hotspot": {
+                  "x": 550,
+                  "y": 525,
+                  "width": 150,
+                  "height": 185
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-service-locker-vi",
+                "asset": "/assets/items/makeup-kit.png",
+                "position": {
+                  "x": 1360,
+                  "y": 735,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 140,
+                  "height": 95
+                },
+                "hotspot": {
+                  "x": 1265,
+                  "y": 620,
+                  "width": 180,
+                  "height": 160
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mara-vi",
+                "asset": "/assets/characters/mona-sprite.png",
+                "position": {
+                  "x": 1110,
+                  "y": 755,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 1035,
+                  "y": 420,
+                  "width": 160,
+                  "height": 345
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              },
+              {
+                "characterId": "char-samuel-vi",
+                "asset": "/assets/characters/samuel-sprite.png",
+                "position": {
+                  "x": 960,
+                  "y": 820,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 155,
+                  "height": 315
+                },
+                "hotspot": {
+                  "x": 885,
+                  "y": 485,
+                  "width": 160,
+                  "height": 345
+                },
+                "anchor": "bottom-center",
+                "direction": "left",
+                "depth": 14
+              }
+            ],
+            "clueZones": [],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-passage-office-vi",
+                "targetSceneId": "scene-box-office-vi",
+                "label": "Trở lại phòng vé",
+                "hotspot": {
+                  "x": 745,
+                  "y": 320,
+                  "width": 125,
+                  "height": 310
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "evidence-debt-transfer-vi",
+              "evidence-key-entry-vi",
+              "reveal-resealed-packet-vi"
+            ],
+            "requiredDialogueIds": [
+              "dlg-samuel-watch-vi"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-mara-vi",
+      "name": "Mara Vale",
+      "role": "Nhân viên phòng vé",
+      "imageUrl": "/assets/characters/mona-portrait.png",
+      "description": "Mara chuẩn bị sổ quỹ từ thiện và giữ chìa khóa văn phòng duy nhất tối đó.",
+      "visualDescription": "Nữ nhân viên tóc tối mặc áo đỏ sẫm, dùng chân dung và sprite Mona có sẵn."
+    },
+    {
+      "characterId": "char-samuel-vi",
+      "name": "Samuel Reed",
+      "role": "Bảo vệ đêm",
+      "imageUrl": "/assets/characters/samuel-portrait.png",
+      "description": "Samuel khóa hành lang sau buổi diễn và sẵn sàng kể lại ca tuần tra.",
+      "visualDescription": "Người gác đêm đội mũ, mặc đồng phục, dùng chân dung và sprite Samuel có sẵn."
+    },
+    {
+      "characterId": "char-victor-vi",
+      "name": "Victor Crane",
+      "role": "Thủ quỹ",
+      "imageUrl": "/assets/characters/victor-portrait.png",
+      "description": "Victor quản lý tiền gửi ngân hàng nhưng giao phong bì niêm phong cho phòng vé.",
+      "visualDescription": "Thủ quỹ mặc vest, dùng chân dung và sprite Victor có sẵn."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-receipt-left-vi",
+      "name": "Nửa trái biên nhận",
+      "description": "Biên nhận bị xé ngang chỉ dẫn khóa số.",
+      "inspectText": "Tiêu đề ghi TRÁI → PHẢI. Nửa trái có số 21 và chữ 'mở hộp tiền'. Hãy giữ lại để ghép biên nhận.",
+      "imageUrl": "/assets/items/letter.png",
+      "isCollectible": true,
+      "unlockClueIds": [
+        "clue-receipt-left-vi"
+      ],
+      "renderMode": "CUTOUT",
+      "interactionPurpose": "combine-item",
+      "visualDescription": "Mảnh biên nhận nhỏ màu kem, mép phải bị xé."
+    },
+    {
+      "itemId": "item-receipt-right-vi",
+      "name": "Nửa phải biên nhận",
+      "description": "Mảnh có mép phải khớp với biên nhận.",
+      "inspectText": "Nửa phải có số 42. Mép xé khớp nửa trái. Chỉ dẫn yêu cầu đọc hai nửa từ trái sang phải.",
+      "imageUrl": "/assets/items/love-letter.png",
+      "isCollectible": true,
+      "unlockClueIds": [
+        "clue-receipt-right-vi"
+      ],
+      "renderMode": "CUTOUT",
+      "interactionPurpose": "combine-item",
+      "visualDescription": "Mảnh biên nhận nhỏ màu kem, mép trái bị xé."
+    },
+    {
+      "itemId": "item-locker-key-vi",
+      "name": "Chìa khóa đồng",
+      "description": "Chìa đồng treo trên móc văn phòng.",
+      "inspectText": "Thẻ ghi NGĂN ĐỒ PHỤC VỤ. Mara nói chìa này treo trên móc cả tối. Nó có thể mở ngăn đồ ở hành lang.",
+      "imageUrl": "/assets/items/key.png",
+      "isCollectible": true,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Chìa đồng có thẻ giấy ghi tủ dịch vụ."
+    },
+    {
+      "itemId": "item-sealed-packet-vi",
+      "name": "Phong bì quỹ bị niêm phong lại",
+      "description": "Phong bì quỹ trông như được niêm phong bằng sáp xanh.",
+      "inspectText": "Hai lớp sáp chồng lên nhau: niêm phong bên dưới đã vỡ, lớp mới che vết nứt. Phong bì đã bị mở và niêm phong lại.",
+      "imageUrl": "/assets/items/letter.png",
+      "isCollectible": false,
+      "unlockClueIds": [
+        "evidence-overlapping-wax-vi"
+      ],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Gói giấy màu kem gấp kín, dấu sáp đỏ chồng lớp."
+    },
+    {
+      "itemId": "item-restored-receipt-vi",
+      "name": "Biên nhận đã ghép",
+      "description": "Hai nửa trái và phải ghép thành một chỉ dẫn.",
+      "inspectText": "TRÁI → PHẢI: 21 | 42. Mã hộp tiền: 2142. Hộp chứa lệnh chuyển tiền quỹ; chỉ dẫn này xác định hồ sơ, chưa xác định người viết.",
+      "imageUrl": "/assets/items/letter.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Hai nửa biên nhận màu kem đã ghép lại."
+    },
+    {
+      "itemId": "item-cashbox-vi",
+      "name": "Hộp tiền có khóa số",
+      "description": "Hộp tiền khóa số được buộc lên thùng gỗ.",
+      "inspectText": "Khóa bốn số ghi BIÊN NHẬN — TRÁI SANG PHẢI. Ghép biên nhận phòng vé rồi đọc các chữ số theo thứ tự đó.",
+      "imageUrl": "/assets/items/ledger.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "Khóa bốn số ghi BIÊN NHẬN — TRÁI SANG PHẢI. Ghép biên nhận phòng vé rồi đọc các chữ số theo thứ tự đó.",
+      "visualDescription": "Hộp sổ tiền bọc da nhỏ có khóa mã bốn chữ số."
+    },
+    {
+      "itemId": "item-service-locker-vi",
+      "name": "Ngăn đồ có khóa",
+      "description": "Ngăn có khóa chìa giữ túi giao hồ sơ văn phòng.",
+      "inspectText": "Ổ khóa đồng mang cùng thẻ NGĂN ĐỒ PHỤC VỤ như chìa văn phòng. Hãy dùng chìa; kiểm tra cánh cửa không mở được khóa.",
+      "imageUrl": "/assets/items/makeup-kit.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "Ổ khóa đồng mang cùng thẻ NGĂN ĐỒ PHỤC VỤ như chìa văn phòng. Hãy dùng chìa; kiểm tra cánh cửa không mở được khóa.",
+      "visualDescription": "Hộp cất đồ dịch vụ nhỏ có khóa, đặt trên giá ở hành lang."
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-receipt-left-vi",
+      "title": "Biên nhận: trái 21",
+      "content": "Nửa trái có 21 và mũi tên từ trái sang phải.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "item-receipt-left-vi",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-vi",
+      "inventoryDescription": "Nửa trái có 21 và mũi tên từ trái sang phải.",
+      "narrativeMeaning": "Nửa trái có 21 và mũi tên từ trái sang phải.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    },
+    {
+      "clueId": "clue-receipt-right-vi",
+      "title": "Biên nhận: phải 42",
+      "content": "Nửa phải có 42 và mép xé khớp cùng biên nhận.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "item-receipt-right-vi",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-vi",
+      "inventoryDescription": "Nửa phải có 42 và mép xé khớp cùng biên nhận.",
+      "narrativeMeaning": "Nửa phải có 42 và mép xé khớp cùng biên nhận.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    },
+    {
+      "clueId": "clue-restored-receipt-vi",
+      "title": "Chỉ dẫn hộp tiền: 2142",
+      "content": "Biên nhận đã ghép ghi TRÁI → PHẢI: 21 | 42. Nhập 2142 vào hộp tiền hành lang để kiểm tra lệnh chuyển quỹ.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "interaction-repair-receipt-vi",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-box-office-vi",
+      "inventoryDescription": "Biên nhận đã ghép ghi TRÁI → PHẢI: 21 | 42. Nhập 2142 vào hộp tiền hành lang để kiểm tra lệnh chuyển quỹ.",
+      "narrativeMeaning": "Biên nhận đã ghép ghi TRÁI → PHẢI: 21 | 42. Nhập 2142 vào hộp tiền hành lang để kiểm tra lệnh chuyển quỹ.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    },
+    {
+      "clueId": "evidence-overlapping-wax-vi",
+      "title": "Hai lớp sáp chồng nhau",
+      "content": "Niêm phong cũ bị vỡ và có lớp sáp mới phủ lên. Phong bì không nguyên vẹn suốt tối.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "item-sealed-packet-vi",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-vi",
+      "inventoryDescription": "Niêm phong cũ bị vỡ và có lớp sáp mới phủ lên. Phong bì không nguyên vẹn suốt tối.",
+      "narrativeMeaning": "Niêm phong cũ bị vỡ và có lớp sáp mới phủ lên. Phong bì không nguyên vẹn suốt tối.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    },
+    {
+      "clueId": "evidence-debt-transfer-vi",
+      "title": "Lệnh trả nợ cá nhân có chữ ký",
+      "content": "Trong hộp tiền có lệnh 21:30 mang chữ ký Mara Vale, chuyển tiền quỹ để trả nợ cá nhân của cô. Xác nhận ngân hàng khớp số tiền.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "puzzle-cashbox-code-vi",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-service-passage-vi",
+      "inventoryDescription": "Trong hộp tiền có lệnh 21:30 mang chữ ký Mara Vale, chuyển tiền quỹ để trả nợ cá nhân của cô. Xác nhận ngân hàng khớp số tiền.",
+      "narrativeMeaning": "Trong hộp tiền có lệnh 21:30 mang chữ ký Mara Vale, chuyển tiền quỹ để trả nợ cá nhân của cô. Xác nhận ngân hàng khớp số tiền.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    },
+    {
+      "clueId": "evidence-key-entry-vi",
+      "title": "Dấu chìa văn phòng trên hồ sơ vào cửa",
+      "content": "Ngăn đồ chứa cuống vào cửa đóng dấu 21:18, ký Mara Vale; dấu chìa khớp chìa duy nhất trong phòng vé của cô. Samuel bắt đầu tuần tra lúc 21:45.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "interaction-open-locker-vi",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-service-passage-vi",
+      "inventoryDescription": "Ngăn đồ chứa cuống vào cửa đóng dấu 21:18, ký Mara Vale; dấu chìa khớp chìa duy nhất trong phòng vé của cô. Samuel bắt đầu tuần tra lúc 21:45.",
+      "narrativeMeaning": "Ngăn đồ chứa cuống vào cửa đóng dấu 21:18, ký Mara Vale; dấu chìa khớp chìa duy nhất trong phòng vé của cô. Samuel bắt đầu tuần tra lúc 21:45.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    },
+    {
+      "clueId": "reveal-resealed-packet-vi",
+      "title": "Lời khai niêm phong nguyên vẹn sai",
+      "content": "Hai lớp sáp trực tiếp bác bỏ lời Mara rằng niêm phong nguyên vẹn. Cần giải thích cùng nhau lệnh chuyển tiền sau đó và hồ sơ vào cửa trước đó.",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "dlg-mara-account-vi",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-service-passage-vi",
+      "inventoryDescription": "Hai lớp sáp trực tiếp bác bỏ lời Mara rằng niêm phong nguyên vẹn. Cần giải thích cùng nhau lệnh chuyển tiền sau đó và hồ sơ vào cửa trước đó.",
+      "narrativeMeaning": "Hai lớp sáp trực tiếp bác bỏ lời Mara rằng niêm phong nguyên vẹn. Cần giải thích cùng nhau lệnh chuyển tiền sau đó và hồ sơ vào cửa trước đó.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mara-vi"
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-mara-account-vi",
+      "characterId": "char-mara-vi",
+      "question": "Hãy kể chuyện sau khi phong bì quỹ đến.",
+      "answer": "Phong bì quỹ được niêm phong cả tối. Tôi ở văn phòng một mình đến 21:00 rồi đi xe điện. Tôi chưa từng dùng ngăn đồ phục vụ.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-vi",
+        "scene-service-passage-vi"
+      ]
+    },
+    {
+      "dialogueId": "dlg-samuel-watch-vi",
+      "characterId": "char-samuel-vi",
+      "question": "Ông khóa hành lang lúc nào và ai giữ chìa?",
+      "answer": "Tôi bắt đầu tuần tra lúc 21:45. Trước đó hành lang mở cho nhân viên. Mara giữ chìa văn phòng duy nhất; biên nhận của Victor được ký tại ngân hàng lúc 21:10.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-service-passage-vi"
+      ]
+    }
+  ],
+  "testimonyFragments": [
+    {
+      "id": "fragment-seal-intact-vi",
+      "dialogueId": "dlg-mara-account-vi",
+      "text": "Phong bì quỹ được niêm phong cả tối."
+    },
+    {
+      "id": "fragment-office-alone-vi",
+      "dialogueId": "dlg-mara-account-vi",
+      "text": "Tôi ở văn phòng một mình đến 21:00."
+    },
+    {
+      "id": "fragment-no-locker-vi",
+      "dialogueId": "dlg-mara-account-vi",
+      "text": "Tôi chưa từng dùng ngăn đồ phục vụ."
+    }
+  ],
+  "conversationNodes": [
+    {
+      "nodeId": "node-victor-root-vi",
+      "characterId": "char-victor-vi",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-vi"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Ngân hàng đóng dấu tiền gửi của tôi lúc 21:10. Phong bì quỹ được giao cho Mara và biên nhận bị xé đôi. Anh chị cần biết gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-victor-receipt-vi",
+          "label": "Biên nhận dùng thế nào?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-victor-receipt-vi"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-victor-receipt-vi",
+      "characterId": "char-victor-vi",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-vi"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Ghép hai nửa khớp nhau trong túi đồ. Mũi tên xác định thứ tự: số bên trái rồi số bên phải. Biên nhận đã ghép dùng để mở hộp tiền ở hành lang."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-victor-back-vi",
+          "label": "Trở lại lời kể của ông.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "interactionId": "interaction-repair-receipt-vi",
+      "type": "COMBINE_ITEMS",
+      "targetId": "",
+      "requiredItemIds": [
+        "item-receipt-left-vi",
+        "item-receipt-right-vi"
+      ],
+      "requiredClueIds": [
+        "clue-receipt-left-vi",
+        "clue-receipt-right-vi"
+      ],
+      "unlockItemIds": [
+        "item-restored-receipt-vi"
+      ],
+      "unlockClueIds": [
+        "clue-restored-receipt-vi"
+      ],
+      "unlockSceneIds": [],
+      "consumeItemIds": [
+        "item-receipt-left-vi",
+        "item-receipt-right-vi"
+      ],
+      "successMessage": "Hai mép xé khớp. TRÁI → PHẢI: 21 | 42. Bạn đã ghép lại biên nhận hộp tiền.",
+      "failureMessage": "Các vật này không có mép khớp nhau.",
+      "singleUse": true
+    },
+    {
+      "interactionId": "interaction-open-locker-vi",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-service-locker-vi",
+      "requiredItemIds": [
+        "item-locker-key-vi"
+      ],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "evidence-key-entry-vi"
+      ],
+      "unlockSceneIds": [],
+      "consumeItemIds": [],
+      "successMessage": "Chìa mở được khóa. Bên trong là cuống vào cửa lúc 21:18, ký Mara Vale.",
+      "failureMessage": "Ngăn đồ cần đúng chìa đồng phục vụ.",
+      "singleUse": true
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "puzzle-cashbox-code-vi",
+      "type": "CODE_PUZZLE",
+      "targetId": "item-cashbox-vi",
+      "prompt": "Khóa ghi BIÊN NHẬN — TRÁI SANG PHẢI. Dùng hai cặp số trên biên nhận đã ghép để nhập mã bốn chữ số.",
+      "options": [],
+      "correctCode": "2142",
+      "correctSequence": [],
+      "requiredItemIds": [
+        "item-restored-receipt-vi"
+      ],
+      "requiredClueIds": [
+        "clue-restored-receipt-vi"
+      ],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "evidence-debt-transfer-vi"
+      ],
+      "unlockSceneIds": [],
+      "successMessage": "Hộp mở ra. Bên trong có lệnh trả nợ riêng mang chữ ký Mara.",
+      "failureMessage": "Khóa vẫn đóng. Hãy đọc biên nhận đã ghép từ trái sang phải.",
+      "progressionRole": "REQUIRED",
+      "investigationPurpose": "Đọc hồ sơ tài chính khóa kín bằng chỉ dẫn ghép từ vật chứng."
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-broken-seal-vi",
+      "order": 1,
+      "isSignature": true,
+      "dialogueId": "dlg-mara-account-vi",
+      "testimonyFragmentId": "fragment-seal-intact-vi",
+      "candidateTestimonyFragmentIds": [
+        "fragment-seal-intact-vi",
+        "fragment-office-alone-vi",
+        "fragment-no-locker-vi"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-seal-intact-vi",
+        "fragment-no-locker-vi"
+      ],
+      "prompt": "Vết vật lý nào trực tiếp bác bỏ câu khai cụ thể này?",
+      "correctEvidenceId": "evidence-overlapping-wax-vi",
+      "candidateEvidenceIds": [
+        "evidence-overlapping-wax-vi",
+        "evidence-debt-transfer-vi",
+        "evidence-key-entry-vi"
+      ],
+      "startRequiredEvidenceIds": [
+        "evidence-overlapping-wax-vi",
+        "evidence-debt-transfer-vi"
+      ],
+      "successResponse": "Niêm phong cũ đã vỡ dưới lớp sáp mới bác bỏ lời khai nguyên vẹn. Hai thám tử đã cùng xác nhận mâu thuẫn.",
+      "failureResponse": "Cặp này chưa chứng minh mâu thuẫn đã chọn. Hãy so sánh điều từng chứng cứ thực sự xác lập.",
+      "revealTitle": "ĐỐI CHẤT THÀNH CÔNG: PHONG BÌ ĐƯỢC NIÊM PHONG LẠI",
+      "unlockClueIds": [
+        "reveal-resealed-packet-vi"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-night-ledger-vi",
+      "prompt": "Giải thích nào khớp niêm phong, lần vào cửa 21:18 và lệnh trả nợ 21:30?",
+      "requiredClueIds": [
+        "reveal-resealed-packet-vi",
+        "evidence-debt-transfer-vi",
+        "evidence-key-entry-vi"
+      ],
+      "requiredChallengeIds": [
+        "challenge-broken-seal-vi"
+      ],
+      "options": [
+        {
+          "id": "deduction-ledger-correct-vi",
+          "label": "Mara vào trước ca tuần tra, mở phong bì, chuyển tiền quỹ trả nợ riêng rồi niêm phong lại."
+        },
+        {
+          "id": "deduction-ledger-wrong-vi",
+          "label": "Ca tuần tra 21:45 chứng minh không nhân viên nào vào được trước đó."
+        }
+      ],
+      "correctOptionId": "deduction-ledger-correct-vi",
+      "successResponse": "Dấu tiền và mâu thuẫn vật lý tạo thành một dòng thời gian thống nhất, không dựa vào lời ngoại phạm sai.",
+      "failureResponse": "Giải thích đó bỏ qua thứ tự các thời điểm được ghi.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-night-ledger-vi",
+      "investigatorClueId": "evidence-overlapping-wax-vi",
+      "interrogatorChallengeId": "challenge-broken-seal-vi",
+      "deductionId": "deduction-night-ledger-vi",
+      "description": "Vật chứng, lời khai được đối chất chính xác và suy luận chung kết nối vụ mất quỹ."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-office-1-vi",
+      "contextType": "SCENE",
+      "targetId": "scene-box-office-vi",
+      "order": 1,
+      "text": "Kiểm tra bốn vật trong phòng vé. Ghép hai nửa biên nhận trong túi đồ trong khi đồng đội ghi lời Mara."
+    },
+    {
+      "hintId": "hint-passage-1-vi",
+      "contextType": "SCENE",
+      "targetId": "scene-service-passage-vi",
+      "order": 1,
+      "text": "Biên nhận đã ghép cho mã hộp tiền. Chìa đồng mở ngăn đồ. Hỏi Samuel rồi ghép lời Mara với vết sáp."
+    },
+    {
+      "hintId": "hint-confrontation-1-vi",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-broken-seal-vi",
+      "order": 1,
+      "text": "Đối chất một câu, không phải toàn bộ lời kể. Hồ sơ tiền xác lập động cơ; lớp sáp xác lập niêm phong có bị phá hay không."
+    },
+    {
+      "hintId": "hint-deduction-1-vi",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-night-ledger-vi",
+      "order": 1,
+      "text": "Xếp thời điểm vào cửa, chuyển tiền và tuần tra theo thứ tự thời gian."
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-mara-vi",
+    "motive": "Trả nợ cá nhân bằng tiền quỹ từ thiện.",
+    "method": "Mở phong bì quỹ rồi phủ sáp mới để niêm phong lại.",
+    "requiredEvidenceIds": [],
+    "motiveOptions": [
+      {
+        "id": "motive-private-debt-vi",
+        "label": "Dùng tiền quỹ trả nợ cá nhân của Mara"
+      },
+      {
+        "id": "motive-bank-deposit-vi",
+        "label": "Sửa tiền gửi ngân hàng thông thường của Victor"
+      }
+    ],
+    "methodOptions": [
+      {
+        "id": "method-reseal-wax-vi",
+        "label": "Phá niêm phong, chuyển tiền rồi che vết vỡ bằng sáp mới"
+      },
+      {
+        "id": "method-guard-patrol-vi",
+        "label": "Lấy tiền trong ca tuần tra 21:45 mà không mở phong bì"
+      }
+    ],
+    "correctMotiveId": "motive-private-debt-vi",
+    "correctMethodId": "method-reseal-wax-vi",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "evidenceId": "evidence-debt-transfer-vi"
+      },
+      {
+        "claimType": "METHOD",
+        "evidenceId": "evidence-overlapping-wax-vi"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "evidenceId": "evidence-key-entry-vi"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-night-ledger-vi"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-night-ledger-vi"
+    ],
+    "winEnding": "Lần vào cửa 21:18 của Mara, lệnh trả nợ ký lúc 21:30 và niêm phong bị thay xác lập cách quỹ bị rút. Hai thám tử thu hồi lệnh trước khi chuyển tiền hoàn tất; nhà hát giữ lại quỹ.",
+    "failEnding": "Cáo buộc chưa giải thích thống nhất dấu tiền và niêm phong bị phá. Bạn có thể xem lại chứng cứ trong kết quả."
+  }
+}

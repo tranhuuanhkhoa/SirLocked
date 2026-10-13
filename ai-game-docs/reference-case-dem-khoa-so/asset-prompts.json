@@ -1,0 +1,149 @@
+{
+  "style": "Pixel adventure matching existing Sherlock/Watson, chibi NPCs, transparent props",
+  "assets": [
+    {
+      "path": "scenes/ticket-office.png",
+      "prompt": "Create ONE production background for a 2D point-and-click detective GAME, landscape 16:9. STYLE REFERENCES: first image is the existing game's pixel-art room; second is an existing chunky pixel NPC. Match their actual retro adventure-game pixel clusters, limited dark petrol/ochre/burgundy palette, hard stepped edges and warm pool lighting. NOT a photograph, NOT painterly concept art, NOT a website mockup. New subject: the ticket office of a small Vietnamese theatre at night, circa 1930. No people, no HUD, no letters or numbers. Stage geometry for 1600x900 gameplay: shallow rear wall starts at floor y610; lower third of image is clear wooden walkable floor. An OPEN interior doorway at left x130-270 from y240 to650, looking into a dim indoor backstage passage (no street/outdoors). A single very legible intact curved brass J-hook with small mounting plate on the petrol wall around x350,y425; NO key on it, it is camera evidence. At center a LOW ticket counter from x550 to1080, desktop approximately y600, bottom y740, visibly scaled for short/chibi actors. Clear horizontal desktop with a small ledger near its left edge, warm desk lamp at right edge, space between for runtime paper clues. Ticket booth lattice window and burgundy drape behind desk. Modest posters with abstract unlettered graphic forms, little shelves, brass trim. Keep empty actor standing spaces x370, x1250 and clear entire front lane y760-900. Deliberate chunky pixel-art, readable silhouettes and visible block shapes like a LucasArts-era detective adventure, muted edge areas, brightest counter and hook. Do not draw loose receipts, envelopes, keys, characters, visual UI, logos, watermarks. Camera straight-on room with slight top visibility on desk, NOT isometric. Wide 16:9 game-level background fills frame.",
+      "transparentBackground": false,
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-12f89f70-28cd-437c-a5ec-73683e9a33ad.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png",
+      "referenceImages": [
+        "/assets/scenes/owners-office.png",
+        "/assets/characters/samuel-sprite.png"
+      ]
+    },
+    {
+      "path": "scenes/service-passage.png",
+      "transparentBackground": false,
+      "prompt": "ONE wide 16:9 production background for the SAME 2D pixel-art detective game as the reference. Reference is art style and palette only. Depict an indoor backstage theatre records corridor at night circa 1930 Vietnam. Strong visible pixel clusters, stepped hard edges, limited petrol/ochre/burgundy palette, warm amber sconces, no painterly realism, no photograph, no UI. Front-facing adventure-game room with slight top surfaces. 1600x900 composition: lower THIRD clear wooden walkable floor. Walls end at y630. Center-left small wooden writing cabinet x340-580 with clear top at y560 for a runtime cashbox, cabinet bottom y700. At far RIGHT a low shelf x1340-1550 with clear shelf top y575 for a runtime lockbox. Broad unobstructed central floor. A clearly visible wooden interior door at x730-900, y260-650. Muted file pigeonholes, coat rack empty, dark burgundy curtain high at left, scattered closed ledgers neatly on upper wall shelves. Two small theatrical masks high on wall suggest backstage. Small pool of cool blue moonlight at right window, otherwise amber. Spaces at x1000 and1210 free for NPC actors to stand on floor y790. Top corners quiet for game HUD. No characters, no keys, no loose receipts, no cashbox, no lockbox, no writing, no numbers, no logos. Must look like a polished playable pixel adventure level with crisp silhouettes and grounded furniture, not a poster.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-ce252fd0-800f-4c77-b315-4307aec171b9.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/service-passage.png",
+      "referenceImages": [
+        "/assets/scenes/owners-office.png"
+      ]
+    },
+    {
+      "path": "characters/mai-van.png",
+      "transparentBackground": true,
+      "prompt": "ONE isolated full-body 2D PIXEL ART adventure-game NPC sprite on genuine transparent background. Reference image is ONLY style and pixel-cluster treatment, NOT identity/clothes. New character Mai Vân, Vietnamese female theatre ticket clerk age32, black hair low bun, burgundy blouse with cream collar, charcoal mid-calf skirt and brown low shoes. Expression composed but wary, one hand holds opposite wrist at waist. Face and body three-quarter facing LEFT. Exaggerated CHIBI proportion THREE HEADS TALL matching a small Sherlock detective game, large expressive head, compact torso, short legs. Strong 1-2 logical pixel dark outline, flat color clusters with just 3-step shading per material, muted ochre/burgundy/petrol colors and warm light from upper left. Render as classic pixel sprite originally approximately96x144 pixels, enlarged with crisp square blocks; no smooth gradients, no photo, no realistic tall anatomy, no fine textured painting. Portrait canvas2:3, entire person fills90-95% of height with feet just above bottom, minimal blank margins, clean alpha, no ground shadow, no base, no scene, no labels, no duplicate views, no accessories outside silhouette. Must look like an actual game actor, NOT concept art.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-dcc5cd5d-e56b-43a9-93b0-4d0db8d42bb4.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png",
+      "referenceImages": [
+        "/assets/characters/samuel-sprite.png"
+      ]
+    },
+    {
+      "path": "characters/vu-khang.png",
+      "transparentBackground": true,
+      "prompt": "ONE production full-body PIXEL ART chibi NPC sprite on genuinely transparent background. Reference image defines exactly the same pixel cluster style, large head to compact body ratio, three-head-tall proportions, 2:3 canvas and warm palette; change identity and clothing only. Vũ Khang, Vietnamese male theatre treasurer age48, round brass spectacles, short neatly combed dark hair with grey at temples, slightly worried thoughtful eyebrows, petrol-blue three-piece suit, cream shirt, brown shoes, one hand at waistcoat and other at side. No hat, no beard. Three-quarter facing LEFT. Strong dark stepped outlines, blocky color clusters like a96x144 adventure-game sprite enlarged nearest-neighbor. Entire body and shoes visible, head almost at top, feet almost at bottom, minimal blank margin; occupy95% height. No photorealism, no smooth gradients, no tall adult-realistic anatomy, no glow or haze beyond silhouette, no ground shadow, no background, no text, no multiple views. Match the reference game's restrained charcoal/ochre/burgundy/petrol palette and warm upper-left light. Crisp clean alpha edge.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-313da863-2cf0-4105-83cf-955717f0c453.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/vu-khang.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png"
+      ]
+    },
+    {
+      "path": "characters/son-lam.png",
+      "transparentBackground": true,
+      "prompt": "ONE production full-body PIXEL ART chibi NPC sprite on genuinely transparent background. Reference image defines exactly the same pixel cluster style, large head to compact body ratio, three-head-tall proportions, 2:3 canvas and warm palette; change identity and clothing only. Sơn Lâm, Vietnamese male night guard age58, salt-and-pepper small moustache, grey flat cap, navy work coat and trousers, dull brass buttons, brown shoes. Weathered expressive face, hands loosely clasped behind back, slightly hunched shoulders. No weapons, no lantern. Three-quarter facing LEFT. Strong dark stepped outlines, blocky color clusters like a96x144 adventure-game sprite enlarged nearest-neighbor. Entire body and shoes visible, head almost at top, feet almost at bottom, minimal blank margin; occupy95% height. No photorealism, no smooth gradients, no tall adult-realistic anatomy, no glow or haze beyond silhouette, no ground shadow, no background, no text, no multiple views. Match the reference game's restrained charcoal/ochre/burgundy/petrol palette and warm upper-left light. Crisp clean alpha edge.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-b590cb1c-113e-447d-bacf-83a8e2eb60dc.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/son-lam.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png"
+      ]
+    },
+    {
+      "path": "items/receipt-left.png",
+      "transparentBackground": true,
+      "prompt": "Single isolated 2D PIXEL ART clickable adventure-game item sprite. A small LEFT HALF of a torn cream paper receipt lying FLAT on a desk seen in shallow overhead perspective (foreshortened height), tilted -5 degrees. Clear black numerals '21' and a short right-pointing arrow. Jagged tear on RIGHT edge. Dark ochre edge, horizontal wide shape. No other readable text. Style matches the reference game room: crisp visible squared pixel clusters, dark thin stepped outlines, flat limited ochre/cream/burgundy palette, THREE tones per material, warm upper-left light. This is a small in-world prop at64-96px width, NOT a giant presentation icon or photograph. Transparent background, no rectangle/backdrop, no glow, no drop shadow, no table, no floor, no labels. Landscape3:2 canvas, prop fills80-90% width, minimal blank margin. The paper must sit on a horizontal surface, NOT stand upright like a sign. Only one object, no multiple views.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-ef10820a-fb84-48f2-aefc-bc6ea3cff0f7.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-left.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png"
+      ]
+    },
+    {
+      "path": "items/receipt-right.png",
+      "transparentBackground": true,
+      "prompt": "Single isolated 2D PIXEL ART clickable adventure-game item sprite. A small RIGHT HALF of a torn cream paper receipt lying FLAT on a desk seen in shallow overhead perspective (foreshortened height), tilted 6 degrees. Clear black numerals '42'. Jagged tear on LEFT edge. Dark ochre edge, horizontal wide shape. No other readable text. Style matches the reference game room: crisp visible squared pixel clusters, dark thin stepped outlines, flat limited ochre/cream/burgundy palette, THREE tones per material, warm upper-left light. This is a small in-world prop at64-96px width, NOT a giant presentation icon or photograph. Transparent background, no rectangle/backdrop, no glow, no drop shadow, no table, no floor, no labels. Landscape3:2 canvas, prop fills80-90% width, minimal blank margin. The paper must sit on a horizontal surface, NOT stand upright like a sign. Only one object, no multiple views.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-12c962ac-57fc-4d5b-a25e-bef89dd77ae4.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-right.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png"
+      ]
+    },
+    {
+      "path": "items/sealed-envelope.png",
+      "transparentBackground": true,
+      "prompt": "Single isolated 2D PIXEL ART clickable adventure-game item sprite. A small cream envelope lying FLAT on a desktop seen at shallow overhead perspective, its back flap facing camera. Two overlapping dark red wax seals at flap center: new intact red wax over an older visibly cracked red ring. Dark ochre edges, restrained dirty cream paper, wide low silhouette. No letters or numbers. Style matches the reference game room: crisp visible squared pixel clusters, dark thin stepped outlines, flat limited ochre/cream/burgundy palette, THREE tones per material, warm upper-left light. This is a small in-world prop at64-96px width, NOT a giant presentation icon or photograph. Transparent background, no rectangle/backdrop, no glow, no drop shadow, no table, no floor, no labels. Landscape3:2 canvas, prop fills80-90% width, minimal blank margin. The paper must sit on a horizontal surface, NOT stand upright like a sign. Only one object, no multiple views.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d99541d2-b786-4094-8f72-0f6cb67585a3.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/sealed-envelope.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png"
+      ]
+    },
+    {
+      "path": "items/brass-key.png",
+      "transparentBackground": true,
+      "prompt": "ONE isolated production item sprite for same 2D PIXEL ART detective game as reference. One small old brass skeleton key hanging VERTICALLY, round bow at very top, shaft down and two square teeth at bottom-right. A tiny square paper tag hangs off the bow by short thread; tag has only a simple envelope pictogram. Key fills85% of height. Portrait2:3 canvas. Strong crisp squared pixel clusters and dark stepped outlines, flat3-tone shading per material, muted dark ochre/cream/petrol/burgundy palette and warm light from upper left. Think adventure-game sprite at96px, no photoreal material, no fine painted texture. Truly transparent canvas, clean alpha, no background, no tabletop, no floor, no outer glow, no labels, no duplicate objects. Object stands alone ready for compositing directly into a pixel room; keep form readable at small scale.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-33294faf-92a6-4d30-93db-4746ad0c24e8.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/brass-key.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png"
+      ]
+    },
+    {
+      "path": "items/cashbox.png",
+      "transparentBackground": true,
+      "prompt": "ONE isolated production item sprite for same 2D PIXEL ART detective game as reference. One low closed dark petrol metal cashbox with brass corners and a brass four-wheel combination lock reading exactly '0000' on its FRONT. Small handle folded flat on top. Front view with just the TOP and RIGHT faces visible at slight elevated angle, normal straight furniture perspective, NOT dramatic isometric. Squat wide rectangular box. Landscape3:2 canvas. Box fills85% of canvas. Strong crisp squared pixel clusters and dark stepped outlines, flat3-tone shading per material, muted dark ochre/cream/petrol/burgundy palette and warm light from upper left. Think adventure-game sprite at96px, no photoreal material, no fine painted texture. Truly transparent canvas, clean alpha, no background, no tabletop, no floor, no outer glow, no labels, no duplicate objects. Object stands alone ready for compositing directly into a pixel room; keep form readable at small scale.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-7fc3db03-b2f2-439e-9d33-288e18c1261f.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/cashbox.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png"
+      ]
+    },
+    {
+      "path": "items/service-lockbox.png",
+      "transparentBackground": true,
+      "prompt": "ONE isolated production item sprite for same 2D PIXEL ART detective game as reference. One small closed walnut wood service-mail box with a brass KEYHOLE at center of front and a simple brass ENVELOPE pictogram above keyhole. Compact wide low wooden chest, front visible with just TOP and RIGHT faces visible at slight elevated angle. Matches theatre filing furniture, simple brass edges. Landscape3:2 canvas. Box fills85% of canvas. No numerals or letters. Strong crisp squared pixel clusters and dark stepped outlines, flat3-tone shading per material, muted dark ochre/cream/petrol/burgundy palette and warm light from upper left. Think adventure-game sprite at96px, no photoreal material, no fine painted texture. Truly transparent canvas, clean alpha, no background, no tabletop, no floor, no outer glow, no labels, no duplicate objects. Object stands alone ready for compositing directly into a pixel room; keep form readable at small scale.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-d47653b0-a71b-4823-a57a-8cb48eb8e942.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/service-lockbox.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png"
+      ]
+    },
+    {
+      "path": "items/receipt-restored.png",
+      "transparentBackground": true,
+      "prompt": "Single production 2D PIXEL ART adventure-game inventory prop on genuine transparent background. One cream paper receipt reconstructed from two torn halves, the matching jagged seam visible down its middle. EXACT readable dark numerals and arrow across it: '21 → 42'. A small horizontal receipt, flat shallow overhead perspective, gentle -3degree rotation. NO other writing. Match reference pixel receipt exactly in palette, visible squared pixel clusters and stepped dark outline. Restrained aged cream/ochre/dark brown/red, warm upper left light,3-step shading, no realistic photography. Landscape3:2canvas, object fills85%width, small blank margin. No floor, no table, no outer glow, no shadow, no background rectangle. No duplicated views or hands. Readable at inventory scale.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-889f4f5f-077c-4256-a8d2-adfab0645eb0.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-restored.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-left.png"
+      ]
+    },
+    {
+      "path": "items/pawn-ticket.png",
+      "transparentBackground": true,
+      "prompt": "Single production 2D PIXEL ART adventure-game inventory prop on genuine transparent background. One small cream pawn receipt lying FLAT in shallow overhead perspective, faint decorative ledger lines, an old pocket-watch pictogram in dark brown at left, and a muted dark red diagonal rectangular stamp with exact text 'TAT TOAN' (paid in full) at right. Slight tilt6degrees. No other readable writing. Match reference pixel receipt exactly in palette, visible squared pixel clusters and stepped dark outline. Restrained aged cream/ochre/dark brown/red, warm upper left light,3-step shading, no realistic photography. Landscape3:2canvas, object fills85%width, small blank margin. No floor, no table, no outer glow, no shadow, no background rectangle. No duplicated views or hands. Readable at inventory scale.",
+      "tool": "built-in image_gen",
+      "sourcePath": "C:\\Users\\hoang\\.codex\\generated_images\\01a1043b-0ac3-7d82-bf19-ef9e9a5f62dd\\exec-76e259d4-a553-46b3-bb87-65bce7487344.png",
+      "url": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/pawn-ticket.png",
+      "referenceImages": [
+        "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-left.png"
+      ]
+    }
+  ]
+}

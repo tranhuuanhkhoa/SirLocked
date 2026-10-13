@@ -17,10 +17,24 @@ public class CaseService : ICaseService
     internal static System.Linq.Expressions.Expression<Func<GameRoom, bool>> ReferencingActiveCase(string caseId) =>
         room => room.CaseId == caseId && (room.Status == RoomStatus.Waiting || room.Status == RoomStatus.Ready || room.Status == RoomStatus.InProgress);
 
+    internal static System.Linq.Expressions.Expression<Func<GameRoom, bool>> ReferencingLegacyCompletedCase(string caseId) =>
+        room => room.CaseId == caseId && room.Status == RoomStatus.Completed
+            && (room.GameplayState == null || room.GameplayState.FinalAccusationSnapshot == null
+                || room.GameplayState.FinalAccusationSnapshot.CaseDefinitionSnapshot == null);
+
+    internal static System.Linq.Expressions.Expression<Func<GameResult, bool>> ReferencingLegacyResult(string caseId) =>
+        result => result.CaseId == caseId && result.CaseDefinitionSnapshot == null;
+
     private static readonly string[] CrackDemoFiles =
     [
         "case-v3-broken-seal-en.json",
         "case-v3-broken-seal-vi.json"
+    ];
+
+    private static readonly string[] PointClickDemoFiles =
+    [
+        "case-point-click-night-ledger-en.json",
+        "case-point-click-night-ledger-vi.json"
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -248,7 +262,19 @@ public class CaseService : ICaseService
         var results = new List<CaseSummaryResponse>(CrackDemoFiles.Length);
         foreach (var fileName in CrackDemoFiles)
         {
-            var gameCase = LoadBundledCrackCase(fileName);
+            var gameCase = LoadBundledDemoCase(fileName);
+            await UpsertValidatedAsync(gameCase, overwrite: true, forceDraft: true);
+            results.Add(await PublishAsync(gameCase.CaseId));
+        }
+        return results;
+    }
+
+    public async Task<List<CaseSummaryResponse>> SeedPointClickDemoAsync()
+    {
+        var results = new List<CaseSummaryResponse>(PointClickDemoFiles.Length);
+        foreach (var fileName in PointClickDemoFiles)
+        {
+            var gameCase = LoadBundledDemoCase(fileName);
             await UpsertValidatedAsync(gameCase, overwrite: true, forceDraft: true);
             results.Add(await PublishAsync(gameCase.CaseId));
         }
@@ -288,6 +314,20 @@ public class CaseService : ICaseService
                     $"Case '{gameCase.CaseId}' is referenced by active room '{activeRoom.RoomCode}'. Import it under a new caseId after that room finishes.",
                     "CASE_IMMUTABLE_WHILE_ACTIVE",
                     "case.immutableWhileActive");
+            }
+
+            // Historical records have no original answer/label definition. Keep their
+            // existing case intact rather than inventing a snapshot from a replacement.
+            var legacyRoom = await _db.Rooms.Find(ReferencingLegacyCompletedCase(gameCase.CaseId))
+                .Limit(1).FirstOrDefaultAsync();
+            var legacyResult = await _db.GameResults.Find(ReferencingLegacyResult(gameCase.CaseId))
+                .Limit(1).FirstOrDefaultAsync();
+            if (legacyRoom is not null || legacyResult is not null)
+            {
+                throw ApiException.Conflict(
+                    $"Case '{gameCase.CaseId}' has historical results without an original definition snapshot. Import the revised case under a new caseId to preserve those results.",
+                    "CASE_IMMUTABLE_FOR_LEGACY_RESULT",
+                    "case.immutableForLegacyResult");
             }
 
             gameCase.Id = existing.Id;
@@ -338,11 +378,11 @@ public class CaseService : ICaseService
         return ParseCase(File.ReadAllText(path));
     }
 
-    private GameCase LoadBundledCrackCase(string fileName)
+    private GameCase LoadBundledDemoCase(string fileName)
     {
-        if (!CrackDemoFiles.Contains(fileName, StringComparer.Ordinal))
+        if (!CrackDemoFiles.Concat(PointClickDemoFiles).Contains(fileName, StringComparer.Ordinal))
         {
-            throw new InvalidOperationException($"Unsupported Crack demo fixture '{fileName}'.");
+            throw new InvalidOperationException($"Unsupported demo fixture '{fileName}'.");
         }
 
         var candidates = new[]
@@ -351,13 +391,13 @@ public class CaseService : ICaseService
             Path.Combine(AppContext.BaseDirectory, "SeedData", "V3", fileName)
         };
         var path = candidates.FirstOrDefault(File.Exists)
-            ?? throw ApiException.NotFound($"Crack demo fixture '{fileName}' was not found.");
+            ?? throw ApiException.NotFound($"Demo fixture '{fileName}' was not found.");
         var gameCase = ParseCase(File.ReadAllText(path));
         var expectedCaseId = Path.GetFileNameWithoutExtension(fileName);
         if (!string.Equals(gameCase.CaseId, expectedCaseId, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Crack demo fixture '{fileName}' declared unexpected caseId '{gameCase.CaseId}'.");
+                $"Demo fixture '{fileName}' declared unexpected caseId '{gameCase.CaseId}'.");
         }
         return gameCase;
     }

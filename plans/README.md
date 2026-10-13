@@ -12,7 +12,7 @@ Plans 007-011 were written against the current local gameplay worktree, which ha
 | 002 | Add lobby concurrency guards | P1 | M | - | DONE |
 | 003 | Add real health checks | P1 | S | - | DONE |
 | 004 | Upgrade vulnerable MongoDB transitives | P1 | S/M | - | DONE |
-| 005 | Untrack generated AI artifacts | P2 | M | - | DONE |
+| 005 | Untrack generated AI artifacts | P2 | M | - | DONE - index cleaned; local artifacts preserved |
 | 006 | Phase C conversation tree | P1 | L | - | IN PROGRESS - implementation exists locally; reconcile before marking DONE |
 | 007 | Align case validator with runtime reachability | P1 | L | - | DONE - approved in `advisor/007-runtime-reachability-validator` at `9fa3aa8` |
 | 008 | Make gameplay persistence recoverable | P1 | L | 009 | DONE - approved in `advisor/008-recoverable-gameplay-persistence` at `55b3e88` |
@@ -24,6 +24,8 @@ Plans 007-011 were written against the current local gameplay worktree, which ha
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale).
 
 ## Next roadmap (013+)
+
+Commercialization execution: [037 — commercial readiness](037-commercial-readiness.md). Initial remote-playtest tooling is available; plan014 remains TODO until three real pairs supply observations, interviews and telemetry. Paid generation and checkout remain gated by measured gameplay and full text/image costs.
 
 Plans 013 and above are specified in [`ROADMAP_2026-07-27_VI.md`](ROADMAP_2026-07-27_VI.md), written at commit `af3da77` against a verified baseline (backend build clean, 529/529 tests pass, frontend typecheck pass). Each row below gets its own plan file, written from the roadmap section of the same number, before implementation starts.
 

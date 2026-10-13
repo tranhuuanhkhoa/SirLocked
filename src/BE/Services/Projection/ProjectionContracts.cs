@@ -146,6 +146,12 @@ public sealed class ConversationProjectionSlot
 {
     public string NodeId { get; set; } = string.Empty;
     public string CharacterId { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? SourceDialogueId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<string>? StatementIds { get; set; }
     public string ChallengeId { get; set; } = string.Empty;
     public List<string> NextNodeIds { get; set; } = new();
 }

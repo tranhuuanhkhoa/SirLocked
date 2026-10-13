@@ -51,8 +51,11 @@ public sealed partial class GameplayProjectionPlanner
 
         var dossier = AddDossierItem(skeleton, "item-projection-comparison", null, true,
             T("Comparison dossier", "Hồ sơ đối chiếu"),
-            T("Two evidence notes assembled for a focused comparison. Use this dossier at the comparison desk after completing the preliminary analysis.",
-                "Hai phiếu chứng cứ được ghép để đối chiếu. Dùng hồ sơ tại bàn đối chiếu sau khi hoàn thành phân tích sơ bộ."), []);
+            contract.MinPuzzles == 1
+                ? T("Two evidence notes assembled for a focused comparison. Use this dossier at the comparison desk to prepare the evidence needed by the analysis.",
+                    "Hai phiếu chứng cứ được ghép để đối chiếu. Dùng hồ sơ tại bàn đối chiếu để chuẩn bị chứng cứ cần cho bài phân tích.")
+                : T("Two evidence notes assembled for a focused comparison. Use this dossier at the comparison desk after completing the preliminary analysis.",
+                    "Hai phiếu chứng cứ được ghép để đối chiếu. Dùng hồ sơ tại bàn đối chiếu sau khi hoàn thành phân tích sơ bộ."), []);
         dossier.InteractionPurpose = CaseItemInteractionPurposes.CombineItem;
         var comparisonReward = rewards[^1];
         RemovePreviousCarrier(skeleton, comparisonReward);
@@ -85,8 +88,11 @@ public sealed partial class GameplayProjectionPlanner
             SingleUse = true,
             SuccessMessage = T("The comparison is complete. The documented evidence has been added to the case file.",
                 "Đã hoàn thành đối chiếu. Chứng cứ được ghi nhận đã bổ sung vào hồ sơ."),
-            FailureMessage = T("Use the assembled dossier after completing the preliminary analysis.",
-                "Dùng hồ sơ đã ghép sau khi hoàn thành phân tích sơ bộ.")
+            FailureMessage = contract.MinPuzzles == 1
+                ? T("Bring the assembled dossier and both discovered evidence notes to this comparison desk.",
+                    "Mang hồ sơ đã ghép và hai chứng cứ đã tìm thấy tới bàn đối chiếu này.")
+                : T("Use the assembled dossier after completing the preliminary analysis.",
+                    "Dùng hồ sơ đã ghép sau khi hoàn thành phân tích sơ bộ.")
         };
         SetMechanicSource(comparisonReward, use.InteractionId, "interaction", EvidenceAcquisitionMethods.ItemUse);
         skeleton.Interactions.Add(combine);

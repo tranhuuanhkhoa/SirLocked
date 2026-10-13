@@ -24,9 +24,13 @@ public class User
     /// <summary>Only the hash is persisted for newly issued refresh tokens.</summary>
     public string? RefreshTokenHash { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
+    /// <summary>Only the hash is persisted for newly issued password reset tokens.</summary>
     public string? ResetPasswordToken { get; set; }
+    public string? ResetPasswordTokenHash { get; set; }
     public DateTime? ResetPasswordTokenExpiry { get; set; }
+    /// <summary>Only the hash is persisted for newly issued email verification tokens.</summary>
     public string? EmailVerificationToken { get; set; }
+    public string? EmailVerificationTokenHash { get; set; }
     public DateTime? EmailVerificationTokenExpiry { get; set; }
     public bool IsEmailVerified { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

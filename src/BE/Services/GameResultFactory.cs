@@ -22,6 +22,7 @@ public static class GameResultFactory
         return new FinalAccusationSnapshot
         {
             CaseId = gameCase.CaseId,
+            CaseDefinitionSnapshot = CaptureCaseDefinition(gameCase),
             PlayerIds = room.Players.Select(player => player.UserId).ToList(),
             SelectedCulpritId = request.CulpritId,
             SelectedEvidenceIds = submittedEvidenceIds.Distinct().ToList(),
@@ -43,6 +44,7 @@ public static class GameResultFactory
     {
         RoomId = roomId,
         CaseId = snapshot.CaseId,
+        CaseDefinitionSnapshot = snapshot.CaseDefinitionSnapshot,
         Players = snapshot.PlayerIds.ToList(),
         SelectedCulpritId = snapshot.SelectedCulpritId,
         SelectedEvidenceIds = snapshot.SelectedEvidenceIds.ToList(),
@@ -58,6 +60,64 @@ public static class GameResultFactory
         Ending = snapshot.Ending,
         CreatedAt = snapshot.CompletedAt
     };
+
+    private static GameResultCaseSnapshot CaptureCaseDefinition(GameCase gameCase) => new()
+    {
+        Title = gameCase.Title,
+        Language = gameCase.Language,
+        MechanicsVersion = gameCase.MechanicsVersion,
+        CharacterNames = gameCase.Characters.ToDictionary(character => character.CharacterId, character => character.Name),
+        ClueTitles = gameCase.Clues.ToDictionary(clue => clue.ClueId, clue => clue.Title),
+        FinalLogic = new FinalLogic
+        {
+            CulpritId = gameCase.FinalLogic.CulpritId,
+            Motive = gameCase.FinalLogic.Motive,
+            Method = gameCase.FinalLogic.Method,
+            RequiredEvidenceIds = gameCase.FinalLogic.RequiredEvidenceIds.ToList(),
+            MotiveOptions = CopyOptions(gameCase.FinalLogic.MotiveOptions),
+            MethodOptions = CopyOptions(gameCase.FinalLogic.MethodOptions),
+            CorrectMotiveId = gameCase.FinalLogic.CorrectMotiveId,
+            CorrectMethodId = gameCase.FinalLogic.CorrectMethodId,
+            RequiredEvidenceLinks = gameCase.FinalLogic.RequiredEvidenceLinks.Select(link => new RequiredEvidenceLink
+            {
+                ClaimType = link.ClaimType,
+                ConclusionId = link.ConclusionId,
+                EvidenceId = link.EvidenceId
+            }).ToList()
+        },
+        Presentation = gameCase.Presentation is not { } presentation ? null : new CasePresentation
+        {
+            Version = presentation.Version,
+            PackageId = presentation.PackageId,
+            Clips = presentation.Clips.Where(clip => clip.Kind == "ENDING").Select(clip => new PresentationClip
+            {
+                Id = clip.Id,
+                Kind = clip.Kind,
+                TargetId = clip.TargetId,
+                Caption = clip.Caption,
+                Speaker = clip.Speaker,
+                PosterAssetId = clip.PosterAssetId,
+                VideoAssetId = clip.VideoAssetId,
+                DurationSeconds = clip.DurationSeconds
+            }).ToList()
+        }
+    };
+
+    private static List<AccusationOption> CopyOptions(IEnumerable<AccusationOption> options) =>
+        options.Select(option => new AccusationOption { Id = option.Id, Label = option.Label }).ToList();
+
+    internal static GameCase CaseForResult(GameResult result, GameCase currentCase) =>
+        result.CaseDefinitionSnapshot is not { } definition ? currentCase : new GameCase
+        {
+            CaseId = result.CaseId,
+            Title = definition.Title,
+            Language = definition.Language,
+            MechanicsVersion = definition.MechanicsVersion,
+            Characters = definition.CharacterNames.Select(pair => new CaseCharacter { CharacterId = pair.Key, Name = pair.Value }).ToList(),
+            Clues = definition.ClueTitles.Select(pair => new CaseClue { ClueId = pair.Key, Title = pair.Value }).ToList(),
+            FinalLogic = definition.FinalLogic,
+            Presentation = definition.Presentation
+        };
 }
 
 public static class GameResultPersistenceCoordinator
@@ -104,6 +164,7 @@ public sealed class MongoGameResultStore : IGameResultStore
         var filter = Builders<GameResult>.Filter.Eq(existing => existing.RoomId, result.RoomId);
         var update = Builders<GameResult>.Update
             .Set(existing => existing.CaseId, result.CaseId)
+            .Set(existing => existing.CaseDefinitionSnapshot, result.CaseDefinitionSnapshot)
             .Set(existing => existing.Players, result.Players)
             .Set(existing => existing.SelectedCulpritId, result.SelectedCulpritId)
             .Set(existing => existing.SelectedEvidenceIds, result.SelectedEvidenceIds)

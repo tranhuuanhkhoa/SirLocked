@@ -4,6 +4,7 @@ import { escapeHtml } from './dom.js';
 export function toast(message, type = 'info', duration = 4200) {
   const root = document.getElementById('toast-root');
   if (!root) return;
+  if (document.body.classList.contains('game-page-active')) root.replaceChildren();
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.setAttribute('role', 'status');

@@ -61,7 +61,7 @@ public class AuthService : IAuthService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Role = UserRole.Player,
             Status = UserStatus.Active,
-            EmailVerificationToken = autoVerify ? null : verificationToken,
+            EmailVerificationTokenHash = autoVerify ? null : HashOneTimeToken(verificationToken),
             EmailVerificationTokenExpiry = autoVerify ? null : DateTime.UtcNow.AddHours(24),
             IsEmailVerified = autoVerify
         };
@@ -85,10 +85,28 @@ public class AuthService : IAuthService
             }
             catch (Exception ex)
             {
+                try
+                {
+                    var cleanup = await _db.Users.DeleteOneAsync(userToDelete =>
+                        userToDelete.Id == user.Id
+                        && userToDelete.EmailVerificationTokenHash == HashOneTimeToken(verificationToken));
+                    if (cleanup.DeletedCount != 1)
+                    {
+                        _logger.LogWarning(
+                            "Registration email failed for {Email}, but the compensating user cleanup matched no document.",
+                            user.Email);
+                    }
+                }
+                catch (Exception cleanupException)
+                {
+                    _logger.LogError(
+                        cleanupException,
+                        "Registration email failed and compensating user cleanup also failed for {Email}.",
+                        user.Email);
+                }
                 _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
-                throw ex is ApiException apiException
-                    ? apiException
-                    : ApiException.BadGateway("Verification email delivery failed.");
+                if (ex is ApiException) throw;
+                throw ApiException.BadGateway("Verification email delivery failed.");
             }
         }
 
@@ -212,7 +230,8 @@ public class AuthService : IAuthService
         var expiry = DateTime.UtcNow.AddMinutes(30);
 
         var update = Builders<User>.Update
-            .Set(u => u.ResetPasswordToken, token)
+            .Set(u => u.ResetPasswordToken, null)
+            .Set(u => u.ResetPasswordTokenHash, HashOneTimeToken(token))
             .Set(u => u.ResetPasswordTokenExpiry, expiry)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
@@ -235,22 +254,31 @@ public class AuthService : IAuthService
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
     {
-        var user = await _db.Users.Find(u => u.ResetPasswordToken == request.Token).FirstOrDefaultAsync()
-            ?? throw ApiException.BadRequest("Invalid or expired reset token.");
-
-        if (user.ResetPasswordTokenExpiry < DateTime.UtcNow)
-            throw ApiException.BadRequest("Reset token has expired. Please request a new one.");
+        var now = DateTime.UtcNow;
+        var filters = Builders<User>.Filter;
+        var tokenHash = HashOneTimeToken(request.Token);
+        var legacyTokenFilter = filters.Eq(u => u.ResetPasswordToken, request.Token)
+            & (filters.Eq(u => u.ResetPasswordTokenHash, null)
+                | filters.Eq(u => u.ResetPasswordTokenHash, ""));
+        var tokenFilter = filters.Eq(u => u.ResetPasswordTokenHash, tokenHash)
+            | legacyTokenFilter;
+        var filter = filters.And(
+            tokenFilter,
+            filters.Gt(u => u.ResetPasswordTokenExpiry, now));
 
         var update = Builders<User>.Update
             .Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(request.NewPassword))
             .Set(u => u.ResetPasswordToken, null)
+            .Set(u => u.ResetPasswordTokenHash, null)
             .Set(u => u.ResetPasswordTokenExpiry, null)
             .Set(u => u.RefreshToken, null)
             .Set(u => u.RefreshTokenExpiry, null)
             .Set(u => u.RefreshTokenHash, null)
             .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
-        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+        var result = await _db.Users.UpdateOneAsync(filter, update);
+        if (result.MatchedCount != 1)
+            throw ApiException.BadRequest("Invalid or expired reset token.");
     }
 
     public async Task<object> ResendVerificationAsync(string userId)
@@ -264,7 +292,8 @@ public class AuthService : IAuthService
         var token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
 
         var update = Builders<User>.Update
-            .Set(u => u.EmailVerificationToken, token)
+            .Set(u => u.EmailVerificationToken, null)
+            .Set(u => u.EmailVerificationTokenHash, HashOneTimeToken(token))
             .Set(u => u.EmailVerificationTokenExpiry, DateTime.UtcNow.AddHours(24))
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
@@ -287,18 +316,25 @@ public class AuthService : IAuthService
 
     public async Task VerifyEmailAsync(VerifyEmailRequest request)
     {
-        var user = await _db.Users.Find(u => u.EmailVerificationToken == request.Token).FirstOrDefaultAsync()
-            ?? throw ApiException.BadRequest("Invalid verification token.");
-
-        if (user.EmailVerificationTokenExpiry < DateTime.UtcNow)
-            throw ApiException.BadRequest("Liên kết xác minh đã hết hạn. Vui lòng yêu cầu gửi lại.");
+        var filters = Builders<User>.Filter;
+        var tokenHash = HashOneTimeToken(request.Token);
+        var legacyTokenFilter = filters.Eq(u => u.EmailVerificationToken, request.Token)
+            & (filters.Eq(u => u.EmailVerificationTokenHash, null)
+                | filters.Eq(u => u.EmailVerificationTokenHash, ""));
+        var filter = filters.And(
+            filters.Eq(u => u.EmailVerificationTokenHash, tokenHash)
+                | legacyTokenFilter,
+            filters.Gt(u => u.EmailVerificationTokenExpiry, DateTime.UtcNow));
 
         var update = Builders<User>.Update
             .Set(u => u.IsEmailVerified, true)
             .Set(u => u.EmailVerificationToken, null)
+            .Set(u => u.EmailVerificationTokenHash, null)
             .Set(u => u.EmailVerificationTokenExpiry, null)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
-        await _db.Users.UpdateOneAsync(u => u.Id == user.Id, update);
+        var result = await _db.Users.UpdateOneAsync(filter, update);
+        if (result.MatchedCount != 1)
+            throw ApiException.BadRequest("Invalid or expired verification token.");
     }
 
     public async Task ChangePasswordAsync(string userId, ChangePasswordRequest request)
@@ -434,6 +470,9 @@ public class AuthService : IAuthService
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
     private static string HashRefreshToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
+
+    private static string HashOneTimeToken(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
 }
 

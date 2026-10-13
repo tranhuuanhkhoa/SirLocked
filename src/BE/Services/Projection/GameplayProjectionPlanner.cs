@@ -85,6 +85,14 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
                 "Truth has no approved statement that can become dialogue.");
         var dialogueAllocation = _readinessAnalyzer.AllocateDialogues(truth, contract);
         result.Errors.AddRange(dialogueAllocation.Validation.Errors);
+        var branchingSpeakerCount = dialogueAllocation.Slots.GroupBy(slot => slot.CharacterId, StringComparer.Ordinal)
+            .Count(group => group.Any(first => group.Any(second =>
+                first.DialogueId != second.DialogueId
+                && !first.StatementIds.ToHashSet(StringComparer.Ordinal).SetEquals(second.StatementIds)
+                && first.AvailableSceneIds.Intersect(second.AvailableSceneIds, StringComparer.Ordinal).Any())));
+        if (branchingSpeakerCount < contract.MinConversationCharacters)
+            result.Add("ProjectionConversationCoverage", "statementLedger",
+                $"This preset requires {contract.MinConversationCharacters} speakers with two distinct approved dialogue slots available in one shared scene; truth provides {branchingSpeakerCount}.");
         var validContradictionCount = truth.StatementLedger.Sum(statement =>
             statement.ContradictedByTraceIds.Count(traceId =>
                 truth.TraceLedger.Any(trace => trace.TraceId == traceId)));
@@ -187,6 +195,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             MechanicsVersion = draft.Settings.MechanicsVersion,
             GenerationMode = draft.Settings.GenerationMode,
             GenerationPreset = draft.Settings.GenerationPreset,
+            ShortDemoProfileVersion = draft.Settings.ShortDemoProfileVersion,
             LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
             LogicVerificationStatus = CaseLogicVerificationStatuses.CausalVerified,
             TruthSchemaVersion = truth.SchemaVersion,
@@ -261,6 +270,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         CreateDialogues(skeleton, dialogueAllocation);
         CreateInvestigativeMechanics(skeleton, truth, contract, clueByTrace);
         CreateChallenges(skeleton, truth, clueByTrace, contract, challengeStatementIds);
+        CreateConversationTrees(skeleton, truth, contract);
         FillClueBudget(skeleton, truth, contract.MinClues);
         CreateDeductionsAndTeamwork(skeleton, truth, contract);
         CreateHints(skeleton);
@@ -910,6 +920,8 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             {
                 NodeId = node.NodeId,
                 CharacterId = node.CharacterId,
+                SourceDialogueId = node.SourceDialogueId,
+                StatementIds = node.StatementIds.ToList(),
                 ChallengeId = node.ChallengeId ?? string.Empty,
                 NextNodeIds = node.Choices.Select(choice => choice.NextNodeId).OfType<string>()
                     .Where(id => !string.IsNullOrWhiteSpace(id))

@@ -13,6 +13,126 @@ public sealed class ProjectionMechanicQualityTests
     private readonly CaseTruthService _truth = new();
 
     [Theory]
+    [InlineData("en", false)]
+    [InlineData("vi", false)]
+    [InlineData("en", true)]
+    [InlineData("vi", true)]
+    public void ShortSampler_HasCompactRequiredMechanicsAndApprovedAtomicConversationSources(string language, bool paired)
+    {
+        var (draft, truth, plan, gameCase) = Build(AiGenerationPresets.ShortDemo, 2, 1, language, paired);
+        Assert.Equal(1, gameCase.ShortDemoProfileVersion);
+        Assert.Equal(2, gameCase.Stages.Count);
+        Assert.InRange(gameCase.Stages.Sum(stage => stage.Scenes.Count), 2, 3);
+        Assert.Equal(4, gameCase.Characters.Count);
+        Assert.InRange(gameCase.Items.Count, 1, 8);
+        Assert.InRange(gameCase.Clues.Count, 6, 8);
+        var puzzle = Assert.Single(gameCase.Puzzles);
+        Assert.Equal(PuzzleProgressionRoles.Required, puzzle.ProgressionRole);
+        var combine = Assert.Single(gameCase.Interactions.Where(item => item.Type == CaseInteractionTypes.CombineItems));
+        var use = Assert.Single(gameCase.Interactions.Where(item => item.Type == CaseInteractionTypes.UseItemOnTarget));
+        Assert.Equal(2, gameCase.Interactions.Count);
+        Assert.Equal(combine.UnlockItemIds, use.RequiredItemIds);
+        Assert.All(use.UnlockClueIds, id => Assert.Contains(id, puzzle.RequiredClueIds));
+        Assert.Empty(use.RequiredClueIds.Intersect(puzzle.UnlockClueIds, StringComparer.Ordinal));
+        Assert.Single(gameCase.EvidenceChallenges);
+        Assert.Single(gameCase.Deductions);
+        Assert.Single(gameCase.RequiredTeamworkChains);
+
+        var root = Assert.Single(gameCase.ConversationNodes.Where(node => node.IsRoot));
+        Assert.Equal(2, root.Choices.Count);
+        Assert.Null(root.SourceDialogueId);
+        Assert.Contains(gameCase.ConversationNodes, node => node.SourceDialogueId == gameCase.EvidenceChallenges.Single().DialogueId);
+        Assert.Equal(2, root.Choices.Select(choice => gameCase.ConversationNodes.Single(node => node.NodeId == choice.NextNodeId))
+            .Select(node => string.Join("|", node.StatementIds.Order(StringComparer.Ordinal))).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(root.Choices, choice =>
+        {
+            var leaf = gameCase.ConversationNodes.Single(node => node.NodeId == choice.NextNodeId);
+            var source = gameCase.Dialogues.Single(dialogue => dialogue.DialogueId == leaf.SourceDialogueId);
+            Assert.False(leaf.IsRoot);
+            Assert.Equal(root.CharacterId, leaf.CharacterId);
+            Assert.Equal(source.CharacterId, leaf.CharacterId);
+            Assert.Equal(source.StatementIds, leaf.StatementIds);
+            Assert.Equal(source.RequiredClueIds, leaf.RequiredClueIds);
+            Assert.Equal(source.UnlockClueIds, leaf.UnlockClueIds);
+            Assert.Equal(source.AvailableSceneIds, leaf.AvailableSceneIds);
+            Assert.Equal(root.AvailableSceneIds, leaf.AvailableSceneIds);
+            Assert.Equal(source.DialogueId, plan.ConversationNodes[leaf.NodeId].SourceDialogueId);
+            Assert.Equal(source.StatementIds, plan.ConversationNodes[leaf.NodeId].StatementIds);
+            Assert.Equal(source.StatementIds.Count, leaf.Lines.Count);
+            Assert.All(source.StatementIds, id => Assert.Contains(leaf.Lines,
+                line => line.Text.Contains(truth.StatementLedger.Single(statement => statement.StatementId == id).Content, StringComparison.Ordinal)));
+            Assert.All(gameCase.TestimonyFragments.Where(fragment => fragment.DialogueId == source.DialogueId),
+                fragment => Assert.Contains(leaf.Lines, line => line.Text.Contains(fragment.Text, StringComparison.Ordinal)));
+            Assert.Null(leaf.Choices.Single().NextNodeId);
+        });
+        AssertValid(draft, truth, plan, gameCase);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyShortDemo_KeepsItsOriginalProjectionShape(bool paired)
+    {
+        var (draft, truth, plan, gameCase) = Build(AiGenerationPresets.ShortDemo, 2, 0, CaseLanguages.English, paired);
+        Assert.Equal(0, gameCase.ShortDemoProfileVersion);
+        Assert.Empty(gameCase.ConversationNodes);
+        Assert.Empty(gameCase.Puzzles);
+        Assert.DoesNotContain(gameCase.Interactions, interaction => interaction.InteractionId.StartsWith("interaction-projection-", StringComparison.Ordinal));
+        AssertValid(draft, truth, plan, gameCase);
+    }
+
+    [Theory]
+    [InlineData("combine")]
+    [InlineData("use")]
+    [InlineData("puzzle")]
+    public void ShortSampler_CannotWinWhenAnyStepOfTheEvidenceChainIsRemoved(string removed)
+    {
+        var (_, _, _, gameCase) = Build(AiGenerationPresets.ShortDemo, 2, 1);
+        if (removed == "puzzle") gameCase.Puzzles.Clear();
+        else gameCase.Interactions.RemoveAll(item => item.Type == (removed == "combine"
+            ? CaseInteractionTypes.CombineItems : CaseInteractionTypes.UseItemOnTarget));
+        var result = CausalStateGraphValidator.Validate(gameCase);
+        Assert.Contains(result.Errors, error => error.Code == "NoCanonicalWinPath");
+    }
+
+    [Fact]
+    public void Compiler_PreservesApprovedLeafAccountWhenModelInventsFacts()
+    {
+        var (draft, truth, plan, _) = Build(AiGenerationPresets.ShortDemo, 2, 1);
+        var content = ProjectionContentMockFactory.Build(plan);
+        foreach (var node in content.ConversationNodes.Values)
+            node.Lines = node.Lines.Select(_ => "The culprit confesses an unapproved secret.").ToList();
+        var compiled = new GameCaseProjectionCompiler().Compile(plan, content, draft.Settings);
+        Assert.All(compiled.ConversationNodes.Where(node => !string.IsNullOrWhiteSpace(node.SourceDialogueId)), node =>
+        {
+            var approved = plan.Skeleton.ConversationNodes.Single(expected => expected.NodeId == node.NodeId);
+            Assert.Equal(approved.Lines.Count, node.Lines.Count);
+            Assert.All(approved.Lines, line => Assert.Contains(node.Lines, compiledLine => compiledLine.Text.Contains(line.Text, StringComparison.Ordinal)));
+            Assert.DoesNotContain(node.Lines, line => line.Text.Contains("unapproved secret", StringComparison.Ordinal));
+            Assert.All(compiled.TestimonyFragments.Where(fragment => fragment.DialogueId == node.SourceDialogueId),
+                fragment => Assert.Contains(node.Lines, line => line.Text.Contains(fragment.Text, StringComparison.Ordinal)));
+        });
+        Assert.True(new ProjectionGraphValidator(_truth).Validate(truth, plan, compiled).IsValid);
+    }
+
+    [Theory]
+    [InlineData("source")]
+    [InlineData("statement")]
+    [InlineData("reward")]
+    [InlineData("wording")]
+    public void ProjectionValidation_RejectsMutatedConversationAtomicSource(string mutation)
+    {
+        var (_, truth, plan, gameCase) = Build(AiGenerationPresets.ShortDemo, 2, 1);
+        var leaf = gameCase.ConversationNodes.First(node => !string.IsNullOrWhiteSpace(node.SourceDialogueId));
+        if (mutation == "source") leaf.SourceDialogueId = "dialogue-invented";
+        else if (mutation == "statement") leaf.StatementIds.Clear();
+        else if (mutation == "wording") leaf.Lines[0].Text = "A new unapproved assertion.";
+        else leaf.UnlockClueIds.Add(gameCase.Clues[0].ClueId);
+        var result = new ProjectionGraphValidator(_truth).Validate(truth, plan, gameCase);
+        Assert.Contains(result.Errors, error => error.Code == "ProjectionDependencyMismatch" && error.RefId == leaf.NodeId);
+    }
+
+    [Theory]
     [InlineData(AiGenerationPresets.PuzzleHeavy, 5)]
     [InlineData(AiGenerationPresets.FullFeature, 6)]
     public void RequiredMechanics_UnlockDistinctTruthSources_AndCraftedDossierCannotBeCollectedDirectly(string preset, int stages)
@@ -148,16 +268,26 @@ public sealed class ProjectionMechanicQualityTests
     }
 
     private (AiCaseDraft Draft, CaseTruthPackage Truth, GameplayProjectionPlan Plan, GameCase Case) Build(
-        string preset = AiGenerationPresets.PuzzleHeavy, int stages = 5)
+        string preset = AiGenerationPresets.PuzzleHeavy, int stages = 5, int shortProfile = 0,
+        string language = CaseLanguages.English, bool paired = false)
     {
         var draft = new AiCaseDraft
         {
             Id = "64b64c0f0f0f0f0f0f0f0f0f", LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
             PlannedTargetKind = CaseTargetKinds.Asset,
             Settings = new AiDraftSettings { StageCount = stages, Difficulty = "medium", GenerationPreset = preset,
-                MechanicsVersion = CaseMechanicsVersions.InvestigationV2, Language = CaseLanguages.English }
+                ShortDemoProfileVersion = shortProfile, IncludeCrackTheLie = paired,
+                MechanicsVersion = paired ? CaseMechanicsVersions.InvestigationV3PairedConfrontation : CaseMechanicsVersions.InvestigationV2,
+                Language = language }
         };
         var truth = JsonSerializer.Deserialize<CaseTruthPackage>(AiCaseMockFactory.BuildMockTruthPackageJson(draft), Json)!;
+        if (language == CaseLanguages.Vietnamese)
+        {
+            // The fixture ledger is approved test input. Its quotations must have
+            // the same language as the preserved source-linked conversation.
+            foreach (var (statement, index) in truth.StatementLedger.Select((value, index) => (value, index)))
+                statement.Content = $"Lời khai đã phê duyệt thứ {index + 1} xác nhận phần quan sát của người khai trong vụ án.";
+        }
         draft.CaseTruth = truth;
         draft.TruthHash = _truth.ComputeHash(truth);
         var plan = new GameplayProjectionPlanner(_truth).Build(draft, truth);

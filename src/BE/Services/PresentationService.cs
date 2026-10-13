@@ -125,7 +125,7 @@ public sealed class PresentationService(
         var room = await db.Rooms.Find(room => room.Id == roomId).FirstOrDefaultAsync(ct);
         if (room is null || !room.Players.Any(player => player.UserId == userId)) throw MediaUnavailable();
         var gameCase = await cases.GetCaseAsync(room.CaseId);
-        if (gameCase.Presentation is not { } presentation || !presentation.Clips.Any(clip =>
+        if (PresentationPolicy.GameMediaPresentation(room, gameCase) is not { } presentation || !presentation.Clips.Any(clip =>
             (clip.PosterAssetId == assetId || clip.VideoAssetId == assetId) && PresentationPolicy.IsEligible(clip, room, gameCase, userId))) throw MediaUnavailable();
         var asset = await store.GetAssetAsync(assetId, ct);
         if (asset is null || asset.DraftId != presentation.PackageId) throw MediaUnavailable();

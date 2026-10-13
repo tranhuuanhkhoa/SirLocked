@@ -255,6 +255,8 @@ public class AiRequestValidationTests
         Assert.DoesNotContain("imageUrl", json, StringComparison.Ordinal);
         Assert.DoesNotContain("placementPlan", json, StringComparison.Ordinal);
         Assert.DoesNotContain("runtime", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("shortDemoProfileVersion", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("sourceDialogueId", json, StringComparison.Ordinal);
         Assert.Contains("visualDescription", json, StringComparison.Ordinal);
         Assert.Contains("visualTextPolicy", json, StringComparison.Ordinal);
     }
@@ -608,14 +610,15 @@ public class AiRequestValidationTests
 
         Assert.Equal(6, contract.MinClues);
         Assert.Equal(8, contract.MaxClues);
-        Assert.Equal(2, contract.EvidenceChallenges);
-        Assert.Equal(0, contract.MinPuzzles);
+        Assert.Equal(1, contract.EvidenceChallenges);
+        Assert.Equal(1, contract.MinPuzzles);
         Assert.Equal(1, contract.MaxPuzzles);
-        Assert.Equal(0, contract.MinInteractions);
-        Assert.Equal(1, contract.MaxInteractions);
+        Assert.Equal(2, contract.MinInteractions);
+        Assert.Equal(2, contract.MaxInteractions);
+        Assert.Equal(1, contract.MinConversationCharacters);
         Assert.Contains("clues 6-8", prompt, StringComparison.Ordinal);
-        Assert.Contains("puzzles 0-1", prompt, StringComparison.Ordinal);
-        Assert.Contains("interactions 0-1", prompt, StringComparison.Ordinal);
+        Assert.Contains("puzzles 1-1", prompt, StringComparison.Ordinal);
+        Assert.Contains("interactions 2-2", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("10-12", prompt, StringComparison.Ordinal);
     }
 
@@ -650,7 +653,7 @@ public class AiRequestValidationTests
     }
 
     [Theory]
-    [InlineData(AiGenerationPresets.ShortDemo, 2, 2, 2, 2, 3, 4, 6, 8, 6, 8, 2, 1, 1)]
+    [InlineData(AiGenerationPresets.ShortDemo, 2, 2, 2, 2, 3, 4, 6, 8, 6, 8, 1, 1, 1)]
     [InlineData(AiGenerationPresets.NormalRandom, 4, 4, 4, 4, 6, 4, 8, 10, 8, 12, 2, 1, 1)]
     [InlineData(AiGenerationPresets.PuzzleHeavy, 5, 5, 6, 5, 6, 4, 9, 12, 6, 10, 2, 1, 1)]
     [InlineData(AiGenerationPresets.DialogueHeavy, 5, 5, 6, 5, 6, 5, 10, 12, 12, 16, 3, 2, 1)]

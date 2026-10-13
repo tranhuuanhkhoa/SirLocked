@@ -41,7 +41,11 @@ Published case content is immutable while a room is `WAITING` or
 `CASE_IMMUTABLE_WHILE_ACTIVE`. New authored content must use a new `caseId`.
 
 AI drafts carry `idempotencyKey`, `quotaDay`, `activeQuotaKey`,
-`dailyQuotaKey`, and `reservedBudgetUsd`. The active key is cleared when a
+`dailyQuotaKey`, and `reservedBudgetUsd`. Active quota uses bounded per-user
+slots: the first key remains the user ID for compatibility with existing drafts;
+additional keys use `userId:active:2`, `userId:active:3`, and so on up to
+`AiQuota.MaxActiveDraftsPerUser`. The existing unique active-key index claims each
+slot atomically; a collision retries another permitted slot. The active key is cleared when a
 draft is cancelled or imported; the daily key remains to enforce one accepted
 create per user and Vietnam calendar day. `aiBudgetLedger` atomically tracks
 `reservedUsd`, `spentUsd`, and the configured `limitUsd` before a paid provider

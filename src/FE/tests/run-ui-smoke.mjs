@@ -19,7 +19,7 @@ const playwrightArgs = [
   './node_modules/@playwright/test/cli.js',
   'test',
   ...outputArgs,
-  ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/route-lifecycle.spec.ts', 'tests/invites-resume.spec.ts', 'tests/auth-refresh.spec.ts', 'tests/google-login.spec.ts', 'tests/admin-ai-language.spec.ts', 'tests/admin-ai-creation-errors.spec.ts', 'tests/admin-ai-truth-repair.spec.ts', 'tests/presentation-admin.spec.ts', 'tests/admin-v3-case-gates.spec.ts', 'tests/v3-accusation-consensus.spec.ts', 'tests/v3-paired-confrontation.spec.ts', 'tests/v3-two-browser-flow.spec.ts']),
+  ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/navigation.spec.ts', 'tests/route-lifecycle.spec.ts', 'tests/invites-resume.spec.ts', 'tests/auth-refresh.spec.ts', 'tests/google-login.spec.ts', 'tests/admin-ai-language.spec.ts', 'tests/admin-ai-creation-errors.spec.ts', 'tests/admin-ai-truth-repair.spec.ts', 'tests/presentation-admin.spec.ts', 'tests/admin-v3-case-gates.spec.ts', 'tests/v3-accusation-consensus.spec.ts', 'tests/v3-paired-confrontation.spec.ts', 'tests/v3-two-browser-flow.spec.ts']),
 ];
 
 let server;

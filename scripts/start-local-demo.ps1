@@ -158,6 +158,14 @@ try {
     elseif ($missingCases.Count -gt 0) {
         Write-Warning 'The demo catalogue was edited. Use Seed Crack cases in Admin after existing matches finish to restore both cases.'
     }
+    $pointClickCases = @('case-point-click-night-ledger-en', 'case-point-click-night-ledger-vi')
+    $missingPointClickCases = @($pointClickCases | Where-Object { $_ -notin @($catalogue.data.caseId) })
+    if ($missingPointClickCases.Count -eq 2) {
+        Invoke-RestMethod "$apiUrl/api/admin/cases/seed-point-click-demo" -Method Post -Headers $headers | Out-Null
+    }
+    elseif ($missingPointClickCases.Count -gt 0) {
+        Write-Warning 'One point-and-click case is missing. Existing matches and edited case content were retained.'
+    }
     foreach ($number in 1, 2) {
         $registration = @{ fullName = "Detective $number"; email = "player$number@demo.sirlocked.local"; password = $demoPassword } | ConvertTo-Json
         try { Invoke-RestMethod "$apiUrl/api/auth/register" -Method Post -ContentType 'application/json' -Body $registration | Out-Null }
@@ -174,6 +182,7 @@ try {
     Write-Host 'Local accounts: admin@sirlocked.local, player1@demo.sirlocked.local, player2@demo.sirlocked.local'
     Write-Host "Local demo password: $demoPassword"
     Write-Host 'Open two browser profiles/private windows, select different roles, ready both players, then start.'
+    Write-Host 'Choose The Night Ledger / Cuon so trong dem for the complete point-and-click case.'
     Write-Host 'Stop with ./scripts/stop-local-demo.ps1. Saved local matches are retained.'
 }
 catch {
