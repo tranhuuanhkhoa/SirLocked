@@ -266,11 +266,25 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             .Set(item => item.UpdatedAt, now);
         if (!string.IsNullOrWhiteSpace(errorCode))
         {
-            var failureStatus = draft.Status == AiDraftStatus.GeneratingCaseTruth
-                || draft.QueuedOperation == AiQueuedOperations.TruthRepair
-                ? AiDraftStatus.CaseTruthInvalid
-                : AiDraftStatus.GeneratedInvalid;
-            completion = completion.Set(item => item.Status, failureStatus);
+            if (draft.QueuedOperation == AiQueuedOperations.TruthRepair)
+            {
+                // A failed candidate cannot invalidate the checkpoint it was repairing.
+                completion = completion
+                    .Set(item => item.TruthRepairStatus, AiRepairStatus.CandidateInvalid)
+                    // A failed continuation retains its previous invalid candidate for
+                    // an explicit retry; the active truth and gameplay never change.
+                    .Set(item => item.TruthRepairValidationReport,
+                        current.TruthRepairValidationReport.Append(errorCode).Distinct(StringComparer.Ordinal).ToList())
+                    .Set(item => item.TruthRepairInput, null)
+                    .Set(item => item.TruthRepairInputHash, string.Empty)
+                    .Set(item => item.TruthRepairUseCandidate, false);
+            }
+            else
+            {
+                var failureStatus = draft.Status == AiDraftStatus.GeneratingCaseTruth
+                    ? AiDraftStatus.CaseTruthInvalid : AiDraftStatus.GeneratedInvalid;
+                completion = completion.Set(item => item.Status, failureStatus);
+            }
         }
         var result = await _db.AiCaseDrafts.UpdateOneAsync(
             activeFilter,
@@ -328,6 +342,17 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             draft.ProjectionPlanHash,
             draft.ProjectionContentHash,
             draft.V3CrackContentHash,
+            // A truth-repair edit is not harmless metadata: stale downstream commands
+            // must not retry across a new candidate or a change of repair scope.
+            draft.TruthRepairStatus,
+            draft.TruthRepairFromArtifact,
+            draft.TruthRepairInstructions,
+            draft.TruthRepairUseCandidate,
+            draft.TruthRepairInputHash,
+            draft.TruthRepairCandidateHash,
+            draft.TruthRepairOriginalFromArtifact,
+            draft.TruthRepairBaseHash,
+            draft.TruthRepairFailedArtifact,
             GeneratedJsonHash = string.IsNullOrWhiteSpace(draft.GeneratedJson)
                 ? string.Empty
                 : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(draft.GeneratedJson)))

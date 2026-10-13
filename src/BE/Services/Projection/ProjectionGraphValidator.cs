@@ -227,9 +227,24 @@ public sealed class ProjectionGraphValidator : IProjectionGraphValidator
                 .Where(nextId => !string.IsNullOrWhiteSpace(nextId))
                 .Distinct(StringComparer.Ordinal).ToList();
             if (node.CharacterId != slot.CharacterId
+                || node.SourceDialogueId != slot.SourceDialogueId
+                || (slot.StatementIds is { Count: > 0 } && !node.StatementIds.SequenceEqual(slot.StatementIds, StringComparer.Ordinal))
                 || (node.ChallengeId ?? string.Empty) != slot.ChallengeId
                 || !nextIds.SequenceEqual(slot.NextNodeIds, StringComparer.Ordinal))
                 result.Add("ProjectionDependencyMismatch", $"conversationNodes.{id}", "Compiled conversation topology differs from the plan.", id);
+            if (!string.IsNullOrWhiteSpace(slot.SourceDialogueId))
+            {
+                var expected = plan.Skeleton.ConversationNodes.Single(item => item.NodeId == id);
+                var expectedLines = ProjectionConversationPresentation.SourceLines(expected, gameCase.TestimonyFragments);
+                if (node.IsRoot != expected.IsRoot
+                    || !node.RequiredClueIds.SequenceEqual(expected.RequiredClueIds, StringComparer.Ordinal)
+                    || !node.UnlockClueIds.SequenceEqual(expected.UnlockClueIds, StringComparer.Ordinal)
+                    || !node.AvailableSceneIds.SequenceEqual(expected.AvailableSceneIds, StringComparer.Ordinal)
+                    || !node.Lines.Select(line => (line.Speaker, line.Text))
+                        .SequenceEqual(expectedLines.Select(line => (line.Speaker, line.Text))))
+                    result.Add("ProjectionDependencyMismatch", $"conversationNodes.{id}",
+                        "Compiled conversation changed its approved atomic source, wording, rewards or availability.", id);
+            }
         }
         foreach (var (id, slot) in plan.Hints)
         {
