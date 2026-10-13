@@ -6,9 +6,11 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
 const cases = [];
 let reportOnly = false;
+let outDir;
 for (let index = 0; index < args.length; index++) {
   if (args[index] === '--case' && args[index + 1]) cases.push(path.resolve(args[++index]));
   else if (args[index] === '--report-only') reportOnly = true;
+  else if (args[index] === '--out-dir' && args[index + 1]) outDir = path.resolve(args[++index]);
   else throw new Error(`Unknown argument: ${args[index]}`);
 }
 if (!cases.length) throw new Error('Provide one or more --case paths to final case JSON exports.');
@@ -18,5 +20,5 @@ if (reportOnly) {
 } else {
   process.env.SIRLOCKED_CASE_FILES = JSON.stringify(cases);
   const { build } = await import('vite');
-  await build({ root, configFile: path.join(root, 'vite.config.js') });
+  await build({ root, configFile: path.join(root, 'vite.config.js'), ...(outDir ? { build: { outDir, emptyOutDir: false } } : {}) });
 }

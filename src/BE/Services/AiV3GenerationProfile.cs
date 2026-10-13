@@ -63,6 +63,8 @@ public static class AiV3GenerationProfile
             ? CaseGenerationModes.PlacementFirst
             : CaseGenerationModes.CameraEmbedded;
         gameCase.GenerationPreset = AiGenerationPresets.Normalize(draft.Settings.GenerationPreset);
+        gameCase.ShortDemoProfileVersion = gameCase.GenerationPreset == AiGenerationPresets.ShortDemo
+            ? draft.Settings.ShortDemoProfileVersion : 0;
         gameCase.SourceAiDraftId = draft.Id;
         gameCase.AiSemanticReviewStatus = includeReviewStatus && isV3
             ? draft.V3SemanticReview.Status
