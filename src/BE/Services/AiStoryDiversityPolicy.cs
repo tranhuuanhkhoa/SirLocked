@@ -16,6 +16,94 @@ internal static class AiStoryDiversityPolicy
 {
     public const double StructuralDuplicateThreshold = 0.70;
 
+    internal static readonly IReadOnlyDictionary<string, string> CreativeSettings = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["manor"] = "an isolated manor and its service passages",
+        ["railway"] = "a rain-soaked railway terminus",
+        ["theatre"] = "a riverside theatre during a gala",
+        ["clockmakers"] = "a clockmakers' district preparing for a public exhibition",
+        ["museum"] = "a private museum during an inventory lockdown",
+        ["hotel"] = "a grand hotel cut off by severe weather",
+        ["harbor"] = "a harbor warehouse complex during a night shift",
+        ["observatory"] = "a mountain observatory hosting a small scientific delegation"
+    };
+
+    internal static readonly IReadOnlyDictionary<string, string> CreativeSettingsVi = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["manor"] = "biệt thự biệt lập và lối phục vụ",
+        ["railway"] = "ga đường sắt trong mưa",
+        ["theatre"] = "nhà hát ven sông trong đêm gala",
+        ["clockmakers"] = "khu phố thợ đồng hồ chuẩn bị triển lãm",
+        ["museum"] = "bảo tàng tư nhân đang kiểm kê",
+        ["hotel"] = "khách sạn lớn bị cô lập vì thời tiết",
+        ["harbor"] = "khu kho cảng trong ca đêm",
+        ["observatory"] = "đài quan sát trên núi đón đoàn khoa học"
+    };
+
+    internal static readonly IReadOnlyDictionary<string, string> CreativeTones = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["classic_mystery"] = "a classic restrained mystery tone",
+        ["tense"] = "a tense, claustrophobic investigation tone",
+        ["melancholic"] = "a melancholic character-focused tone",
+        ["light_humor"] = "a lightly humorous Victorian adventure tone"
+    };
+
+    internal static readonly IReadOnlyDictionary<string, string> CreativeTonesVi = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["classic_mystery"] = "bí ẩn cổ điển, tiết chế",
+        ["tense"] = "căng thẳng và ngột ngạt",
+        ["melancholic"] = "u buồn, tập trung vào nhân vật",
+        ["light_humor"] = "phiêu lưu Victorian hài nhẹ"
+    };
+
+    internal static readonly IReadOnlyDictionary<string, string> CreativeMechanics = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["timeline"] = "reconcile mutually incompatible timelines",
+        ["physical_trace"] = "test a testimony claim against a physical trace",
+        ["object_switch"] = "prove an object was switched by tracking state changes",
+        ["access_opportunity"] = "separate access, capability, and opportunity for each suspect",
+        ["observability"] = "reconstruct sight and sound observability between locations",
+        ["custody"] = "follow custody of a document or container"
+    };
+
+    internal static readonly IReadOnlyDictionary<string, string> CreativeMechanicsVi = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["timeline"] = "đối chiếu các mốc thời gian mâu thuẫn",
+        ["physical_trace"] = "đối chiếu lời khai với dấu vết vật lý",
+        ["object_switch"] = "chứng minh vật đã bị tráo qua các trạng thái",
+        ["access_opportunity"] = "tách quyền tiếp cận, khả năng và cơ hội",
+        ["observability"] = "dựng lại khả năng nhìn và nghe giữa các vị trí",
+        ["custody"] = "truy nguồn lưu giữ của tài liệu hoặc vật chứa"
+    };
+
+    public static AiCreativeConstraints NormalizeConstraints(AiCreativeConstraints? constraints)
+    {
+        constraints ??= new AiCreativeConstraints();
+        return new AiCreativeConstraints
+        {
+            SettingId = NormalizeOption(constraints.SettingId, CreativeSettings),
+            ToneId = NormalizeOption(constraints.ToneId, CreativeTones),
+            InvestigationMechanicId = NormalizeOption(constraints.InvestigationMechanicId, CreativeMechanics)
+        };
+    }
+
+    public static void ApplyCreativeConstraints(AiStoryDiversityProfile profile, AiCreativeConstraints? constraints)
+    {
+        var normalized = NormalizeConstraints(constraints);
+        profile.CreativeConstraints = normalized;
+        if (CreativeSettings.TryGetValue(normalized.SettingId, out var setting)) profile.SettingArchetype = setting;
+        if (CreativeTones.TryGetValue(normalized.ToneId, out var tone)) profile.EraFlavor = $"{profile.EraFlavor}; {tone}";
+        if (CreativeMechanics.TryGetValue(normalized.InvestigationMechanicId, out var mechanic)) profile.InvestigationMechanic = mechanic;
+        profile.CoreFingerprint = ComputeCoreFingerprint(profile);
+    }
+
+    private static string NormalizeOption(string? value, IReadOnlyDictionary<string, string> options)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var normalized = value.Trim().ToLowerInvariant();
+        return options.ContainsKey(normalized) ? normalized : throw new ArgumentException($"Unknown creative constraint '{value}'.");
+    }
+
     private static readonly string[] ConcreteCaseTypes =
     [
         AiCaseTypes.Murder,

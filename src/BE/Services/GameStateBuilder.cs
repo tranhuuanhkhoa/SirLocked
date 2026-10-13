@@ -128,7 +128,8 @@ public class GameStateBuilder : IGameStateBuilder
             CurrentStageId = stage.StageId,
             CurrentSceneId = scene.SceneId,
             Version = state.Version,
-            Players = room.Players.Select(RoomPlayerDto.From).ToList(),
+            Players = room.Players.Select(player => RoomPlayerDto.From(player,
+                room.Status == RoomStatus.InProgress ? room.GameplayState?.StartedAt : null)).ToList(),
             VisitedSceneIds = state.VisitedSceneIds,
             UnlockedSceneIds = state.UnlockedSceneIds,
             InspectedItemIds = state.InspectedItemIds,
@@ -229,6 +230,7 @@ public class GameStateBuilder : IGameStateBuilder
             }).ToList()
         };
         V3KnowledgeProjector.Apply(response, room, gameCase, userId);
+        PresentationPolicy.Apply(response, room, gameCase, userId);
         return response;
     }
 
