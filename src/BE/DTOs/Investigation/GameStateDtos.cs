@@ -177,6 +177,7 @@ public class SceneItemDto
     public string Description { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public bool IsInspected { get; set; }
+    public bool IsCollectible { get; set; }
     /// <summary>InspectText is only revealed after the item has been inspected.</summary>
     public string? InspectText { get; set; }
 
@@ -187,6 +188,7 @@ public class SceneItemDto
         Description = item.Description,
         ImageUrl = item.ImageUrl,
         IsInspected = inspected,
+        IsCollectible = item.IsCollectible,
         InspectText = inspected ? item.InspectText : null
     };
 }

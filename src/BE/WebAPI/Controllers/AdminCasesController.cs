@@ -53,4 +53,8 @@ public class AdminCasesController : BaseApiController
     [HttpPost("seed-crack-demo")]
     public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> SeedCrackDemo() =>
         Ok(await _caseService.SeedCrackDemoAsync(), "Crack demo cases seeded and published.");
+
+    [HttpPost("seed-point-click-demo")]
+    public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> SeedPointClickDemo() =>
+        Ok(await _caseService.SeedPointClickDemoAsync(), "Point-and-click cases seeded and published.");
 }

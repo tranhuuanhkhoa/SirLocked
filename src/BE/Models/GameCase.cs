@@ -31,6 +31,10 @@ public class GameCase
     public string GenerationMode { get; set; } = CaseGenerationModes.LegacyItem;
     /// <summary>Server-owned generation profile. Empty for manually authored and legacy cases.</summary>
     public string GenerationPreset { get; set; } = string.Empty;
+    /// <summary>Server-owned SHORT_DEMO profile: 0 preserves legacy cases; 1 samples each core mechanic.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [BsonIgnoreIfDefault]
+    public int ShortDemoProfileVersion { get; set; }
     /// <summary>Server-owned provenance for AI-generated cases.</summary>
     public string SourceAiDraftId { get; set; } = string.Empty;
     /// <summary>1 keeps legacy three-claim accusation; 2 requires the causal five-claim contract.</summary>
@@ -348,12 +352,22 @@ public class SceneRuntime
     public int Height { get; set; } = 900;
     public double? FloorY { get; set; }
     public RuntimeBox? WalkableArea { get; set; }
+    /// <summary>Absolute feet-center collision rectangles. Null keeps legacy movement; empty explicitly permits the floor.</summary>
+    public List<RuntimeBox>? NavigationObstacles { get; set; }
+    public SceneAudioConfig? Audio { get; set; }
     public Dictionary<string, SpawnPoint> SpawnPoints { get; set; } = new();
     public List<ItemPlacement> ItemPlacements { get; set; } = new();
     public List<CharacterPlacement> CharacterPlacements { get; set; } = new();
     public List<ClueZone> ClueZones { get; set; } = new();
     public CameraRules CameraRules { get; set; } = new();
     public List<TransitionZone> Transitions { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class SceneAudioConfig
+{
+    public string AmbienceUrl { get; set; } = string.Empty;
+    public Dictionary<string, string> Cues { get; set; } = new();
 }
 
 [BsonIgnoreExtraElements]
@@ -489,9 +503,9 @@ public class CaseClue
     public bool IsCritical { get; set; }
     public bool IsEvidence { get; set; }
     public bool IsRedHerring { get; set; }
-    /// <summary>itemId or dialogueId the clue primarily comes from.</summary>
+    /// <summary>ID of the item, dialogue, camera scene, conversation, interaction, puzzle, or deduction awarding the clue.</summary>
     public string Source { get; set; } = string.Empty;
-    /// <summary>"item", "dialogue", or "camera".</summary>
+    /// <summary>"item", "dialogue", "camera", "conversation", "interaction", "puzzle", or "deduction".</summary>
     public string SourceType { get; set; } = "item";
     public string SceneId { get; set; } = string.Empty;
     public string DiscoverMethod { get; set; } = string.Empty;
@@ -539,6 +553,10 @@ public class ConversationNode
 {
     public string NodeId { get; set; } = string.Empty;
     public string CharacterId { get; set; } = string.Empty;
+    /// <summary>Server-owned link to the approved dialogue delivered by this leaf; empty for legacy nodes.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? SourceDialogueId { get; set; }
     public bool IsRoot { get; set; }
     public List<string> RequiredClueIds { get; set; } = new();
     public List<ConversationLine> Lines { get; set; } = new();
