@@ -19,6 +19,7 @@ public class CaseValidationService : ICaseValidationService
 
         ValidateRequiredFields(gameCase, result);
         ValidateVisualContract(gameCase, result, stage);
+        ValidatePresentationSprites(gameCase, result);
         ValidateDuplicateIds(gameCase, result);
         ValidateReferences(gameCase, result, stage);
         ValidateCameraEmbeddedItems(gameCase, result);
@@ -53,6 +54,23 @@ public class CaseValidationService : ICaseValidationService
         }
 
         return result;
+    }
+
+    internal static void ValidatePresentationSprites(GameCase gameCase, CaseValidationResult result)
+    {
+        for (var index = 0; index < gameCase.Characters.Count; index++)
+        {
+            if (gameCase.Characters[index].Presentation?.SpriteSheet is not { } sheet) continue;
+            var local = sheet.Url?.StartsWith("/assets/", StringComparison.Ordinal) == true && !sheet.Url.Contains("..", StringComparison.Ordinal);
+            var remote = Uri.TryCreate(sheet.Url, UriKind.Absolute, out var uri) && uri.Scheme == "https" && uri.UserInfo.Length == 0;
+            if ((!local && !remote) || sheet.FrameWidth is < 1 or > 2048 || sheet.FrameHeight is < 1 or > 2048
+                || sheet.FrameCount is < 1 or > 64 || sheet.Fps is < 1 or > 24
+                || sheet.IdleFrames is null || sheet.IdleFrames.Any(frame => frame < 0 || frame >= sheet.FrameCount)
+                || !double.IsFinite(sheet.AnchorX) || !double.IsFinite(sheet.AnchorY)
+                || sheet.AnchorX is < 0 or > 1 || sheet.AnchorY is < 0 or > 1)
+                result.Add("InvalidPresentationSprite", $"characters[{index}].presentation.spriteSheet",
+                    "Sprite sheets require a safe asset URL, valid frame dimensions/count, 1-24 FPS, in-range idle frames and normalized anchors.");
+        }
     }
 
     private enum CaseValidationStage

@@ -14,6 +14,9 @@ namespace SirLocked.Api.Services;
 
 public class CaseService : ICaseService
 {
+    internal static System.Linq.Expressions.Expression<Func<GameRoom, bool>> ReferencingActiveCase(string caseId) =>
+        room => room.CaseId == caseId && (room.Status == RoomStatus.Waiting || room.Status == RoomStatus.Ready || room.Status == RoomStatus.InProgress);
+
     private static readonly string[] CrackDemoFiles =
     [
         "case-v3-broken-seal-en.json",
@@ -276,9 +279,7 @@ public class CaseService : ICaseService
             // A room stores only the caseId and resolves the definition at runtime.
             // Replacing a published/in-progress definition would therefore mutate an
             // active session underneath its players.  Publish a new caseId instead.
-            var activeRoom = await _db.Rooms.Find(room =>
-                    room.CaseId == gameCase.CaseId
-                    && (room.Status == RoomStatus.Waiting || room.Status == RoomStatus.InProgress))
+            var activeRoom = await _db.Rooms.Find(ReferencingActiveCase(gameCase.CaseId))
                 .Limit(1)
                 .FirstOrDefaultAsync();
             if (activeRoom is not null)

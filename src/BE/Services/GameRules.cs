@@ -181,8 +181,14 @@ internal static class GameRules
             && requiredEvidenceIds.All(state.UnlockedClueIds.Contains)
             && requiredDeductions.All(id => state.SolvedDeductionRecords.Any(record => record.DeductionId == id))
             && requiredChains.All(id => IsTeamworkChainComplete(gameCase, state, id))
+            && AreRequiredPuzzlesSolved(gameCase, state.SolvedPuzzleIds)
             && everyV3CrackResolved;
     }
+
+    public static bool AreRequiredPuzzlesSolved(GameCase gameCase, IReadOnlyCollection<string> solvedPuzzleIds) =>
+        gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
+        || gameCase.Puzzles.All(puzzle => puzzle.ProgressionRole != PuzzleProgressionRoles.Required
+            || solvedPuzzleIds.Contains(puzzle.PuzzleId, StringComparer.Ordinal));
 
     public static bool IsTeamworkChainComplete(GameCase gameCase, GameplayState state, string chainId)
     {

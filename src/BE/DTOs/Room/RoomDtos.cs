@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using SirLocked.Api.Models;
+using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services;
 
 namespace SirLocked.Api.DTOs.Room;
 
@@ -35,8 +37,11 @@ public class RoomPlayerDto
     public bool IsConnected { get; set; }
     public DateTime? LastConnectedAt { get; set; }
     public DateTime? DisconnectedAt { get; set; }
+    public DateTime? ReconnectGraceEndsAt { get; set; }
 
-    public static RoomPlayerDto From(RoomPlayer p) => new()
+    public static RoomPlayerDto From(RoomPlayer p) => From(p, null);
+
+    public static RoomPlayerDto From(RoomPlayer p, DateTime? matchStartedAt) => new()
     {
         UserId = p.UserId,
         Username = p.Username,
@@ -44,7 +49,8 @@ public class RoomPlayerDto
         IsReady = p.IsReady,
         IsConnected = p.IsConnected,
         LastConnectedAt = p.LastConnectedAt,
-        DisconnectedAt = p.DisconnectedAt
+        DisconnectedAt = p.DisconnectedAt,
+        ReconnectGraceEndsAt = RoomRecoveryRules.ReconnectDeadline(p, matchStartedAt)
     };
 }
 
@@ -67,7 +73,8 @@ public class RoomResponse
         CaseTitle = caseTitle,
         HostUserId = room.HostUserId,
         Status = room.Status,
-        Players = room.Players.Select(RoomPlayerDto.From).ToList(),
+        Players = room.Players.Select(player => RoomPlayerDto.From(player,
+            room.Status == RoomStatus.InProgress ? room.GameplayState?.StartedAt : null)).ToList(),
         CreatedAt = room.CreatedAt
     };
 }

@@ -1,4 +1,6 @@
 import { session } from './services/session.js';
+import { createRouteLifecycle } from './services/routeLifecycle.js';
+import { inviteCodeFromHash, rememberRoomInvite } from './services/roomInvites.js';
 import { authApi } from './api/authApi.js';
 import { Award, Briefcase, Crown, Folder, FolderSearch, Gamepad2, Lightbulb, Timer, Users, X, createIcons } from 'lucide';
 import { escapeHtml, initials, render } from './utils/dom.js';
@@ -27,7 +29,7 @@ import { renderVerifyNoticePage } from './pages/verifyNoticePage.js';
 import { renderTitleMenuPage } from './pages/titleMenuPage.js';
 
 const routes = [
-  { pattern: /^#\/login$/, page: renderLoginPage, anonymous: true },
+  { pattern: /^#\/login(?:\?[^#]*)?$/, page: renderLoginPage, anonymous: true },
   { pattern: /^#\/oauth-callback/, page: renderOAuthCallbackPage, anonymous: true },
   { pattern: /^#\/verify-email/, page: renderVerifyEmailPage, anonymous: true },
   { pattern: /^#\/reset-password/, page: renderResetPasswordPage, anonymous: true },
@@ -39,11 +41,16 @@ const routes = [
   { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
   { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
-  { pattern: /^#\/join$/, page: renderJoinRoomPage, requiresVerified: true },
-  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true },
+  { pattern: /^#\/join(?:\?[^#]*)?$/, page: renderJoinRoomPage, requiresVerified: true },
+  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true, lifecycle: true },
   {
     pattern: /^#\/game\/([^/]+)$/,
-    page: async (...args) => (await import('./pages/gamePage.ts')).renderGamePage(...args),
+    page: async (app, roomId, context) => {
+      const { renderGamePage } = await import('./pages/gamePage.ts');
+      if (context.signal.aborted) return;
+      return renderGamePage(app, roomId, context);
+    },
+    lifecycle: true,
     requiresVerified: true,
     game: true,
   },
@@ -58,7 +65,7 @@ const routes = [
   { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
 ];
 
-let cleanup = null;
+const routeLifecycle = createRouteLifecycle();
 
 function renderNav() {
   const navRoot = document.getElementById('nav-root');
@@ -91,7 +98,7 @@ function renderNav() {
   ];
 
   // Longest prefix wins so #/admin/cases does not also light up #/admin.
-  const hash = window.location.hash || '#/cases';
+  const hash = (window.location.hash || '#/cases').split('?')[0];
   const activeHref = [...playerItems, ...staffItems]
     .map(({ href }) => href)
     .filter((href) => hash === href || hash.startsWith(`${href}/`))
@@ -176,15 +183,8 @@ function renderNav() {
 }
 
 async function route() {
-  const app = document.getElementById('app');
-  if (typeof cleanup === 'function') {
-    try {
-      await cleanup();
-    } catch {
-      /* page cleanup is best effort */
-    }
-    cleanup = null;
-  }
+  const mount = routeLifecycle.begin(document.getElementById('app'));
+  const { app } = mount;
 
   let hash = window.location.hash || '#/';
   if (hash === '#/' || hash === '#') {
@@ -203,6 +203,7 @@ async function route() {
 
   const { r, m } = match;
   if (!r.anonymous && !session.isLoggedIn()) {
+    rememberRoomInvite(hash);
     window.location.hash = '#/login';
     return;
   }
@@ -211,6 +212,11 @@ async function route() {
     return;
   }
   if (r.requiresVerified && !session.isEmailVerified()) {
+    if (inviteCodeFromHash(hash)) {
+      rememberRoomInvite(hash);
+      window.location.hash = '#/verify-notice';
+      return;
+    }
     alert(tr(
       'You must verify your email before entering the game. Open Profile to verify it.',
       'Bạn cần xác minh email trước khi vào game. Vào trang Hồ sơ để xác minh.',
@@ -226,7 +232,15 @@ async function route() {
   document.body.classList.toggle('game-page-active', r.game === true);
   document.body.classList.toggle('title-menu-active', r.titleMenu === true);
   renderNav();
-  cleanup = await r.page(app, ...m.slice(1));
+  try {
+    const args = r.lifecycle ? [...m.slice(1), { signal: mount.signal }] : m.slice(1);
+    mount.setCleanup(await r.page(app, ...args));
+  } catch (error) {
+    if (!mount.active) return;
+    mount.dispose();
+    render(app, `<div class="page"><div class="empty-state" role="alert">${escapeHtml(tr('This page could not be loaded. Please try again.', 'Không thể tải trang này. Vui lòng thử lại.'))}</div></div>`);
+    console.error('Page load failed', error);
+  }
 }
 
 window.addEventListener('hashchange', route);
