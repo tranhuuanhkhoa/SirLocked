@@ -58,6 +58,8 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         {
             throw ApiException.BadRequest("The game has not started yet.");
         }
+        var completedState = GameStateBuilder.BuildCompletedReadState(room, userId);
+        if (completedState is not null) return completedState;
         return await _stateBuilder.BuildStateAsync(room, gameCase, userId);
     }
 
@@ -761,6 +763,8 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             if (gameCase.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim
                 && !dialogue.AvailableSceneIds.Contains(scene.SceneId))
                 throw ApiException.BadRequest("This testimony is not available in the current scene.");
+            if (!GameplayConversationRules.IsSourceDialogueAvailable(gameCase, state.VisitedConversationNodeIds, dialogueId))
+                throw ApiException.BadRequest("This question is available through the conversation topics.");
 
             var missingClues = dialogue.RequiredClueIds.Where(c => !state.UnlockedClueIds.Contains(c)).ToList();
             if (missingClues.Count > 0)
@@ -859,6 +863,9 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
 
             if (ruleResult.Changed)
             {
+                if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
+                    && !string.IsNullOrWhiteSpace(ruleResult.Node.SourceDialogueId))
+                    RecordTestimonyDiscoveries(gameCase, state, ruleResult.Node.SourceDialogueId, user.Id, player.Role);
                 if (!await TrySaveStateAsync(room, gameCase))
                 {
                     if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
@@ -1297,8 +1304,9 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
                     Message = nextScene is null
-                        ? $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete."
-                        : $"You already continued from {scene.Title}."
+                        ? ProgressText(gameCase, $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete.",
+                            $"{scene.Title} là địa điểm cuối cùng. Có thể buộc tội khi hoàn tất mọi yêu cầu.")
+                        : ProgressText(gameCase, $"You already continued from {scene.Title}.", $"Bạn đã tiếp tục điều tra từ {scene.Title}.")
                 };
             }
 
@@ -1312,11 +1320,13 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
 
             if (transition.CompletedNow)
             {
-                await LogAsync(gameCase, roomId, user.Id, "COMPLETE_SCENE", $"{scene.Title} is fully investigated.", new { sceneId = scene.SceneId });
+                await LogAsync(gameCase, roomId, user.Id, "COMPLETE_SCENE",
+                    ProgressText(gameCase, $"{scene.Title} is fully investigated.", $"Đã điều tra xong {scene.Title}."), new { sceneId = scene.SceneId });
             }
             else if (transition.IsContinuation && nextScene is not null)
             {
-                await LogAsync(gameCase, roomId, user.Id, "CONTINUE_SCENE", $"{user.FullName} continued to {nextScene.Title}.", new
+                await LogAsync(gameCase, roomId, user.Id, "CONTINUE_SCENE",
+                    ProgressText(gameCase, $"{user.FullName} continued to {nextScene.Title}.", $"{user.FullName} tiếp tục điều tra tại {nextScene.Title}."), new
                 {
                     previousSceneId = scene.SceneId,
                     currentSceneId = nextScene.SceneId
@@ -1361,14 +1371,18 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 }
             }
             var message = nextScene is null
-                ? $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete."
-                : $"Continued to {nextScene.Title}.";
+                ? ProgressText(gameCase, $"{scene.Title} is the final location. The final confrontation is ready when every requirement is complete.",
+                    $"{scene.Title} là địa điểm cuối cùng. Có thể buộc tội khi hoàn tất mọi yêu cầu.")
+                : ProgressText(gameCase, $"Continued to {nextScene.Title}.", $"Tiếp tục điều tra tại {nextScene.Title}.");
             return new GameActionResponse { State = stateResponse, Changed = true, Message = message };
         }
     }
 
     private static int StageIndex(GameCase gameCase, string stageId) =>
         gameCase.Stages.OrderBy(stage => stage.Order).ToList().FindIndex(stage => stage.StageId == stageId);
+
+    private static string ProgressText(GameCase gameCase, string english, string vietnamese) =>
+        gameCase.Language == CaseLanguages.Vietnamese ? vietnamese : english;
 
     public async Task<GameActionResponse> CompleteStageAsync(CurrentUser user, string roomId)
     {
@@ -1394,7 +1408,8 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 {
                     State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
                     Changed = false,
-                    Message = "Previous stage is complete. Current stage is still in progress."
+                    Message = ProgressText(gameCase, "Previous stage is complete. Current stage is still in progress.",
+                        "Đã hoàn tất chặng trước. Chặng hiện tại vẫn đang được điều tra.")
                 };
             }
 
@@ -1409,7 +1424,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         {
             State = completedState,
             Changed = false,
-            Message = "Stage is complete."
+            Message = ProgressText(gameCase, "Stage is complete.", "Đã hoàn tất chặng điều tra.")
         };
     }
 
@@ -1663,6 +1678,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
 
         var newlyAvailableDialogues = gameCase.Dialogues
             .Where(dialogue => !state.AskedDialogueIds.Contains(dialogue.DialogueId))
+            .Where(dialogue => GameplayConversationRules.IsSourceDialogueAvailable(gameCase, state.VisitedConversationNodeIds, dialogue.DialogueId))
             .Where(dialogue => gameCase.LogicContractVersion < CaseLogicContractVersions.CausalFiveClaim
                 || dialogue.AvailableSceneIds.Contains(sceneId))
             .Where(dialogue => dialogue.RequiredClueIds.Count > 0 && dialogue.RequiredClueIds.All(state.UnlockedClueIds.Contains))
@@ -1844,8 +1860,11 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             ? ApiException.BadRequest(message)
             : ApiException.BadRequest(message, details);
 
-    private static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
+    internal static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {
+        // New results carry the definition used when the accusation was committed. Older
+        // records remain readable, but their missing historical definition cannot be rebuilt.
+        gameCase = GameResultFactory.CaseForResult(result, gameCase);
         string NameOf(string characterId) =>
             gameCase.Characters.FirstOrDefault(c => c.CharacterId == characterId)?.Name ?? characterId;
         string ClueTitle(string clueId) => gameCase.Clues.FirstOrDefault(clue => clue.ClueId == clueId)?.Title ?? clueId;

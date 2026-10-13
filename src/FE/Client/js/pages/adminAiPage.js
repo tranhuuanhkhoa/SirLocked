@@ -45,8 +45,8 @@ const PRESETS = {
     labelVi: 'Bản thử ngắn',
     stageCount: 2,
     difficulty: 'easy',
-    description: 'Compact case for quick testing and demos.',
-    descriptionVi: 'Vụ án gọn để kiểm thử nhanh và trình diễn.',
+    description: 'Compact feature demo: 2 stages, 2–3 scenes, 4 characters. Requires 1 combine recipe, 1 item use, 1 puzzle, 1 branching dialogue, 1 confrontation, 1 deduction, and 1 teamwork chain.',
+    descriptionVi: 'Vụ án gọn đủ cơ chế: 2 chặng, 2–3 cảnh, 4 nhân vật. Bắt buộc 1 công thức ghép vật phẩm, 1 lần dùng vật phẩm, 1 câu đố, 1 hội thoại phân nhánh, 1 đối chất, 1 suy luận và 1 chuỗi phối hợp hai vai.',
   },
   PUZZLE_HEAVY: {
     label: 'Puzzle Heavy',
@@ -187,7 +187,7 @@ const CREATION_ERROR_LABELS = {
   AI_TRUTH_REPAIR_CANDIDATE_STALE: ['The current truth changed after this candidate was created. Create a new repair from the current truth.', 'Sự thật hiện tại đã thay đổi sau khi tạo bản sửa này. Hãy tạo bản sửa mới từ sự thật hiện tại.'],
   AI_TRUTH_REPAIR_CANDIDATE_UPSTREAM_INVALID: ['Earlier candidate artifacts still need repair. Choose an earlier repair scope.', 'Phần trước của bản sửa vẫn còn lỗi. Hãy chọn phạm vi sửa bắt đầu sớm hơn.'],
   UNSAFE_TRUTH_REPAIR_SCOPE: ['Choose the recommended repair scope or an earlier one so every affected artifact can be repaired.', 'Hãy chọn phạm vi sửa được khuyến nghị hoặc sớm hơn để sửa đủ các phần bị ảnh hưởng.'],
-  AI_ACTIVE_DRAFT_LIMIT: ['An existing draft is using your active-draft limit. Continue it or cancel it in Recent AI drafts before creating another.', 'Bản nháp hiện tại đang chiếm giới hạn bản nháp hoạt động. Hãy tiếp tục hoặc hủy nó trong Bản nháp AI gần đây trước khi tạo vụ án khác.'],
+  AI_ACTIVE_DRAFT_LIMIT: ['You have reached your active-draft limit. Complete or cancel a draft in Recent AI drafts before creating another.', 'Bạn đã đạt giới hạn bản nháp đang hoạt động. Hãy hoàn tất hoặc hủy một bản nháp trong Bản nháp AI gần đây trước khi tạo vụ án khác.'],
   AI_DAILY_LIMIT: ["You have reached today's creation limit. Continue an existing draft or try again after the daily limit resets; cancellation does not reset this limit.", 'Bạn đã đạt giới hạn tạo vụ án hôm nay. Hãy tiếp tục bản nháp hiện có hoặc thử lại khi hạn mức ngày được đặt lại; hủy bản nháp không đặt lại hạn mức này.'],
   AI_GLOBAL_BUDGET_EXHAUSTED: ['The remaining AI budget cannot cover this request. Ask the administrator to review usage and the configured budget.', 'Ngân sách AI còn lại không đủ cho yêu cầu này. Hãy nhờ quản trị viên kiểm tra mức sử dụng và ngân sách đã cấu hình.'],
   AI_V3_PRESET_DISABLED: ['Crack the Lie generation is disabled. Uncheck it or ask the administrator to enable it.', 'Tính năng tạo Phá Vỡ Lời Dối đang tắt. Hãy bỏ chọn tính năng này hoặc nhờ quản trị viên bật.'],
@@ -1150,7 +1150,14 @@ export async function renderAdminAiPage(app) {
     const syncCrackProfile = () => {
       const presetKey = presetSelect?.value ?? 'NORMAL_RANDOM';
       const preset = PRESETS[presetKey] ?? PRESETS.NORMAL_RANDOM;
-      presetHelp.textContent = `${presetDescription(presetKey)}${crackToggle?.checked ? ` ${tr('Crack the Lie will be added on top of this preset.', 'Crack the Lie sẽ được thêm trên cấu hình này.')}` : ''}`;
+      const confrontationHelp = presetKey === 'SHORT_DEMO'
+        ? crackToggle?.checked
+          ? tr('The one confrontation uses paired testimony and evidence through Crack the Lie; every other demo mechanic stays required.', 'Đối chất duy nhất dùng cặp lời khai và chứng cứ qua Phá Vỡ Lời Dối; các cơ chế thử còn lại vẫn bắt buộc.')
+          : tr('The one confrontation uses the standard flow. Crack the Lie remains optional.', 'Đối chất duy nhất dùng luồng thông thường. Phá Vỡ Lời Dối vẫn là lựa chọn tùy chọn.')
+        : crackToggle?.checked
+          ? tr('Crack the Lie will be added on top of this preset.', 'Crack the Lie sẽ được thêm trên cấu hình này.')
+          : '';
+      presetHelp.textContent = `${presetDescription(presetKey)}${confrontationHelp ? ` ${confrontationHelp}` : ''}`;
       if (crackBudgetText) crackBudgetText.textContent = crackBudget(presetKey, capabilities.crackBudgets);
       if (crackBadge) crackBadge.hidden = !crackToggle?.checked;
     };

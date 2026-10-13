@@ -3060,7 +3060,12 @@ body.game-page-active .nav-links { display: none; }
 body.game-page-active #toast-root {
   top: calc(var(--app-nav-height) + var(--hud-safe-band));
   right: var(--hud-safe-x);
+  max-width: min(320px, calc(100vw - 32px));
 }
+
+/* Discovery and the case log hold the detail; leave the room visible. */
+body.game-page-active #toast-root > .toast:not(:last-child) { display: none; }
+body.game-page-active #toast-root > .toast { padding: 10px 12px; font-size: 13px; }
 
 .toast {
   padding: var(--s-3) var(--s-4);
@@ -3604,6 +3609,9 @@ select.field-input:focus,
 .vn-history .conv-turn { padding: 14px 0; border-bottom: 1px solid var(--line); }
 .vn-history p { margin: 8px 0; line-height: 1.6; }
 .vn-line-button:focus-visible { outline: 2px solid var(--gold); outline-offset: 5px; }
+.vn-overlay.is-npc-speaking .vn-portrait-stage { border-bottom-color: var(--gold-light); }
+.vn-overlay.is-npc-speaking .vn-speaker::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 10px 3px 0; border-radius: 50%; background: var(--gold-light); }
+.point-game-phaser [role="dialog"] :is(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
 .comic-overlay { position: fixed; inset: 0; z-index: calc(var(--z-overlay) + 30); display: grid; place-items: center; padding: clamp(12px, 3vw, 36px); background: #030711ed; }
 .comic-stage { width: min(1100px, 100%); max-height: 94dvh; overflow-y: auto; padding: 12px; background: var(--panel-strong); }
 .comic-media { position: relative; aspect-ratio: 16 / 9; max-height: 60dvh; overflow: hidden; background: radial-gradient(ellipse at center, #273344, #08111c); border: 1px solid var(--line-strong); }
@@ -3624,8 +3632,10 @@ select.field-input:focus,
 .game-coop-tools details[open] summary { padding: 6px 4px; background: none; border: 0; }
 .team-ping-options { display: grid; gap: 8px; }
 .team-ping-options button { min-height: 44px; }
-.game-audio-controls label { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; }
+.game-audio-controls label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; }
 .game-audio-controls input[type="range"] { width: 120px; accent-color: var(--gold); }
+.game-audio-controls output { width: 3.5ch; text-align: right; color: var(--gold-light); font-variant-numeric: tabular-nums; }
+.game-audio-controls[open] { max-width: calc(100vw - 36px); }
 .partner-ping { position: fixed; z-index: var(--z-overlay); top: 100px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; padding: 16px 24px; background: var(--panel-strong); border: 1px solid var(--gold-dim); border-radius: var(--r-sm); box-shadow: var(--e-3); pointer-events: none; }
 .partner-ping strong { color: var(--gold-light); font-family: var(--font-display); }
 .truth-recap article + article { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
@@ -3649,6 +3659,8 @@ select.field-input:focus,
   .comic-controls button { padding-inline: 10px; }
 }
 @media (prefers-reduced-motion: no-preference) {
+  .vn-overlay.is-npc-speaking .vn-speaker::before { animation: witness-speaking 700ms ease-in-out infinite alternate; }
+  @keyframes witness-speaking { from { opacity: .4; } to { opacity: 1; } }
   .vn-overlay .vn-conversation { animation: narrative-entrance 220ms ease-out; }
   .comic-stage { animation: narrative-entrance 180ms ease-out; }
   @keyframes narrative-entrance { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
