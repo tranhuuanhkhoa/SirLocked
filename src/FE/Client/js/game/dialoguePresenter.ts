@@ -1,6 +1,7 @@
 import { escapeHtml } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
 import { PresentationMedia, type CharacterPresentation } from './presentationMedia.js';
+import { rememberFocusedControl, restoreFocusedControl } from './modalFocus.js';
 
 type Line = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
 type DialogueView = {
@@ -24,6 +25,7 @@ export class DialoguePresenter {
   private media = new PresentationMedia();
   private motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private returnFocus: HTMLElement | null = null;
+  private returnFocusId = '';
   private portraitKey = '';
   private onMotionChange = () => {
     if (!this.motion.matches || !this.view) return;
@@ -47,6 +49,7 @@ export class DialoguePresenter {
       this.returnFocus = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement : document.querySelector('canvas');
       if (this.returnFocus instanceof HTMLCanvasElement) this.returnFocus.tabIndex = 0;
+      this.returnFocusId = this.returnFocus?.id ?? '';
       this.index = Math.max(0, view.lines.length - 1);
       this.revealed = view.lines[this.index]?.text.length ?? 0;
       this.history = false;
@@ -72,7 +75,7 @@ export class DialoguePresenter {
     const preservedPortrait = this.portraitKey === portraitKey ? this.host.querySelector('.vn-portrait-stage') : null;
     this.portraitKey = portraitKey;
     if (!preservedPortrait) this.media.clear();
-    const focused = this.host.contains(document.activeElement) ? (document.activeElement as HTMLElement)?.dataset : null;
+    const focused = rememberFocusedControl(this.host);
     const line = lines[this.index];
     this.host.innerHTML = `<div class="overlay dialogue-overlay vn-overlay" role="dialog" aria-modal="true" aria-labelledby="vn-character-name">
       <section class="conversation-box vn-conversation">
@@ -116,12 +119,14 @@ export class DialoguePresenter {
       this.revealed += 2;
       this.paint();
     }, 28);
-    if (focused) this.host.querySelector<HTMLButtonElement>(focused.vnHistory !== undefined ? '[data-vn-history]' : '[data-vn-advance]')?.focus();
+    restoreFocusedControl(this.host, focused, '[data-vn-advance]');
   }
 
   private paint() {
     if (!this.view) return;
     const line = this.view.lines[this.index];
+    const speaking = line?.speaker === 'NPC' && this.revealed < line.text.length && !this.motion.matches;
+    this.host?.querySelector('.vn-overlay')?.classList.toggle('is-npc-speaking', speaking);
     const el = this.host?.querySelector<HTMLElement>('.vn-current-text');
     if (el) el.textContent = line ? line.text.slice(0, this.revealed) : tr('Choose a topic to question this witness.', 'Chọn một chủ đề để hỏi nhân chứng.');
     const spoken = this.host?.querySelector<HTMLElement>('#vn-full-line');
@@ -164,7 +169,9 @@ export class DialoguePresenter {
     if (!this.view) return;
     this.stopTimer(); this.media.clear(); this.signature = ''; this.portraitKey = ''; this.view = null;
     if (this.host) this.host.innerHTML = '';
-    this.returnFocus?.focus(); this.returnFocus = null;
+    const returnTarget = this.returnFocusId ? document.getElementById(this.returnFocusId) : this.returnFocus;
+    if (returnTarget?.isConnected) returnTarget.focus({ preventScroll: true });
+    this.returnFocus = null; this.returnFocusId = '';
   }
   dispose() { this.clear(); this.motion.removeEventListener('change', this.onMotionChange); }
 }

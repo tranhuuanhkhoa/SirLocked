@@ -133,6 +133,22 @@ public static class PresentationPolicy
     public static string MediaUrl(string roomId, string assetId) =>
         $"/api/game/rooms/{Uri.EscapeDataString(roomId)}/presentation/media/{Uri.EscapeDataString(assetId)}";
 
+    internal static CasePresentation? GameMediaPresentation(GameRoom room, GameCase currentCase)
+    {
+        if (room.Status != RoomStatus.Completed
+            || room.GameplayState?.FinalAccusationSnapshot?.CaseDefinitionSnapshot is not { } definition)
+            return currentCase.Presentation;
+
+        // Only ending media is pinned by the completed result. A replacement case
+        // must not grant access to new clips through an old completed room.
+        return definition.Presentation is not { } presentation ? null : new CasePresentation
+        {
+            Version = presentation.Version,
+            PackageId = presentation.PackageId,
+            Clips = presentation.Clips.Where(clip => clip.Kind == "ENDING").ToList()
+        };
+    }
+
     public static GamePresentationDto? Project(GameRoom room, GameCase gameCase, string userId)
     {
         if (gameCase.Presentation is not { } presentation) return null;

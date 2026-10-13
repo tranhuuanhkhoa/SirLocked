@@ -274,6 +274,7 @@ public sealed class CaseTruthService : ICaseTruthService
             ? AiTruthGenerationBudget.ForProjection(new AiDraftSettings
             {
                 GenerationPreset = gameCase.GenerationPreset,
+                ShortDemoProfileVersion = gameCase.ShortDemoProfileVersion,
                 StageCount = Math.Max(1, gameCase.Stages.Count),
                 MechanicsVersion = gameCase.MechanicsVersion,
                 IncludeCrackTheLie =

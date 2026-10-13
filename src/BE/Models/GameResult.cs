@@ -12,6 +12,8 @@ public class GameResult
 
     public string RoomId { get; set; } = string.Empty;
     public string CaseId { get; set; } = string.Empty;
+    // Nullable for historical records written before result definitions were captured.
+    public GameResultCaseSnapshot? CaseDefinitionSnapshot { get; set; }
     public List<string> Players { get; set; } = new();
     public string SelectedCulpritId { get; set; } = string.Empty;
     public List<string> SelectedEvidenceIds { get; set; } = new();
@@ -22,6 +24,18 @@ public class GameResult
     public bool Success { get; set; }
     public string Ending { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class GameResultCaseSnapshot
+{
+    public string Title { get; set; } = string.Empty;
+    public string Language { get; set; } = CaseLanguages.English;
+    public int MechanicsVersion { get; set; }
+    public Dictionary<string, string> CharacterNames { get; set; } = new();
+    public Dictionary<string, string> ClueTitles { get; set; } = new();
+    public FinalLogic FinalLogic { get; set; } = new();
+    public CasePresentation? Presentation { get; set; }
 }
 
 [BsonIgnoreExtraElements]

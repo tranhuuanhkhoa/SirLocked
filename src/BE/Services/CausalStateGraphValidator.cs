@@ -123,6 +123,7 @@ internal static class CausalStateGraphValidator
             foreach (var dialogue in gameCase.Dialogues.Where(dialogue => !state.Dialogues.Contains(dialogue.DialogueId)
                          && scene.CharacterIds.Contains(dialogue.CharacterId)
                          && dialogue.AvailableSceneIds.Contains(scene.SceneId)
+                         && GameplayConversationRules.IsSourceDialogueAvailable(gameCase, state.ConversationNodes, dialogue.DialogueId)
                          && dialogue.RequiredClueIds.All(state.Clues.Contains)))
             {
                 var next = state.Clone();
@@ -139,6 +140,7 @@ internal static class CausalStateGraphValidator
             {
                 var next = state.Clone();
                 next.ConversationNodes.Add(node.NodeId);
+                if (!string.IsNullOrWhiteSpace(node.SourceDialogueId)) next.Dialogues.Add(node.SourceDialogueId);
                 next.Clues.UnionWith(node.UnlockClueIds);
                 yield return next;
             }
