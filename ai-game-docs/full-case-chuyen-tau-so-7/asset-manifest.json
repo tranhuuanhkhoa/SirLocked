@@ -1,0 +1,320 @@
+[
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/scenes/station-hall.png",
+    "width": 1672,
+    "height": 941,
+    "mode": "RGB",
+    "alphaRange": null,
+    "sha256": "d3966c44bebb2804b58e7a026219e1083b95b04dd4afe40a384b0897913d2ddf",
+    "bytes": 1968730
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/scenes/dispatch-office.png",
+    "width": 1672,
+    "height": 941,
+    "mode": "RGB",
+    "alphaRange": null,
+    "sha256": "efcfa5d81f7a11f6c672ab9d56553b9aae1ab6aa6f719991fd9822c779e89596",
+    "bytes": 1928569
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/scenes/luggage-warehouse.png",
+    "width": 1672,
+    "height": 941,
+    "mode": "RGB",
+    "alphaRange": null,
+    "sha256": "9af02856c5dc3e00a9c55eaab9834337b1764cb202e57ecd8f5a8f502970ece8",
+    "bytes": 1910338
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/scenes/signal-cabin.png",
+    "width": 1672,
+    "height": 941,
+    "mode": "RGB",
+    "alphaRange": null,
+    "sha256": "4ebe9d56b04fc0fa5ec24cad4818a6722f88554f871c06260706a3e3bc856bb3",
+    "bytes": 1873027
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/scenes/accounts-archive.png",
+    "width": 1672,
+    "height": 941,
+    "mode": "RGB",
+    "alphaRange": null,
+    "sha256": "a364e67a540b3094674dc89657e1a2d88a19dcac2747aeeafd261f17a09c0061",
+    "bytes": 1825342
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/scenes/freight-platform.png",
+    "width": 1672,
+    "height": 941,
+    "mode": "RGB",
+    "alphaRange": null,
+    "sha256": "16a1ad2a79c20905fa1e0bfd4054705a424694217b1a891ac420e7bcfdd4ff26",
+    "bytes": 2059157
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/characters/vy.png",
+    "width": 1024,
+    "height": 1536,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "a89fa6d314ded4659823e692d5b66cc6ee8577d7f390f76e5e1d2cb2c456cab3",
+    "bytes": 1116958
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/characters/hanh.png",
+    "width": 1024,
+    "height": 1536,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "9e96afa57b5c779a9e387c264ac3baa7a97e0c1a7c68e097a4f7475f9b5c053f",
+    "bytes": 1236584
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/characters/an.png",
+    "width": 1024,
+    "height": 1536,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "c5cdd130b1140039b6460a015b1ef0ab0e2acb7fb664f5b91c9dbf6b4249e431",
+    "bytes": 1243139
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/characters/minh.png",
+    "width": 1024,
+    "height": 1536,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "426ada272fc748a93e8350a24f23acbfb27bf17e22df087e5858ebf4502982c1",
+    "bytes": 1365422
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/characters/nghi.png",
+    "width": 1024,
+    "height": 1536,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "4b97d197ce47b543c8bb06cba85423dac2baadd2b769b65221c7d7900fe61ff2",
+    "bytes": 1218075
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/timetable.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "8355e7e7aa8dc020f2855323b8c7800874dc8ae56417e0089e93cc5b3025517e",
+    "bytes": 1844352
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/telegram-top.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "8a7a059b1a3cb4f6011e86916beafd24da12b420ec87c79af4b944614aa985a3",
+    "bytes": 1769513
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/telegram-bottom.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "1d7efee2fe6632a1a264065d4130231d68f30f8b1665f3f89b78ebbb25d219dc",
+    "bytes": 1441940
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/telegram-full.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "67b291d7fab6c5c6dec28836275504586d1c4d5c44db93d80e6baaef82d4ceaa",
+    "bytes": 1892253
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/ledger.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "37e9ed15345c1142d7ba9b2998216ee8d71f3054641934814579d93425478c30",
+    "bytes": 1503914
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/codebox.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "8a662cb1183f266156f2a53dc7192d580487579ada3de693fe7f8d3a270dd8c7",
+    "bytes": 1356023
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/key.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "1f4879c86f5a8c0f8fd5a5e22fea223aac9d7c4d0738e706f8a11589b90c943a",
+    "bytes": 1262723
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/star-key.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "7afe7682a741f306210764c1c0389aed59833b854c0b37c19ebcd23947a3fae8",
+    "bytes": 1196260
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/keyedbox.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "893445c114d0830869617146ad4eae4fa03e6710abd9dd5726835ef84d55bc12",
+    "bytes": 1373507
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/routecard.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "a20f3949815afbdc088f91454e4c14f7c6c6a08818d6e8f7d973d26c1042eed5",
+    "bytes": 1624588
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/symbolbox.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "313ccb5300d8d7192da498331831604ae1905707bc5646552556d5eed3857a76",
+    "bytes": 1676242
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/receipt.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "d802357f5121080865986cb0baad61be5a5ea3072d3d6c360fd53adabe597adc",
+    "bytes": 1656987
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/sequencebox.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "336318cec090c74fd26b4bc7f14895317dddaab4935c9312faab1eedf19bbc15",
+    "bytes": 1355805
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/carbon.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "faaf4270e08d9eb1108059b56a11914d2fd5d63dfd5994e8682e26649bdfff59",
+    "bytes": 1600730
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/pencil.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "c282db5fcd4a58546a6ccf8a93deb10d2cc35fd5504d24d440dc97dcce24d53a",
+    "bytes": 1004794
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/rubbing.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "566514f4d7f7d6a0ed0fb0958af6757433e2cde7379928f8661f8dacadc66157",
+    "bytes": 1918579
+  },
+  {
+    "path": "src/FE/public/assets/reference-cases/chuyen-tau-so-7/items/trunk.png",
+    "width": 1536,
+    "height": 1024,
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "sha256": "a2de05b28b6b0267ec12d3403aa6c6a43e8253a41237e4f68525511deefe8609",
+    "bytes": 1717882
+  }
+]

@@ -255,6 +255,8 @@ public class AiRequestValidationTests
         Assert.DoesNotContain("imageUrl", json, StringComparison.Ordinal);
         Assert.DoesNotContain("placementPlan", json, StringComparison.Ordinal);
         Assert.DoesNotContain("runtime", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("shortDemoProfileVersion", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("sourceDialogueId", json, StringComparison.Ordinal);
         Assert.Contains("visualDescription", json, StringComparison.Ordinal);
         Assert.Contains("visualTextPolicy", json, StringComparison.Ordinal);
     }
@@ -366,6 +368,49 @@ public class AiRequestValidationTests
             properties["evidenceChainIds"]!["minItems"]!.GetValue<int>());
         Assert.Equal(CaseTruthReviewFindingCodes.All,
             EnumValues(properties["findings"]!["items"]!["properties"]!["code"]!));
+    }
+
+    [Fact]
+    public void BlindReviewV3Schema_UsesClaimProofsByConclusionCategory()
+    {
+        var schema = AiStrictSchemaProvider.BlindSolvabilityReviewV3Schema();
+        var properties = schema["properties"]!;
+
+        Assert.Equal(
+            new[] { CaseTruthSchemaVersions.BlindReviewV3 }.ToHashSet(StringComparer.Ordinal),
+            EnumValues(properties["schemaVersion"]!));
+        Assert.Equal(0,
+            properties["claimProofs"]!["minItems"]!.GetValue<int>());
+        Assert.Equal(ProofConclusionCategories.All.Count,
+            properties["claimProofs"]!["maxItems"]!.GetValue<int>());
+        Assert.Equal(ProofConclusionCategories.All,
+            EnumValues(properties["claimProofs"]!["items"]!["properties"]!["claimType"]!));
+        Assert.DoesNotContain("evidenceChainIds",
+            schema["required"]!.AsArray().Select(item => item!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void CreativeConstraints_AreNormalizedIntoTheFingerprintAndRejectUnknownIds()
+    {
+        var profile = AiStoryDiversityPolicy.Create(AiCaseTypes.Murder, "creative-lock-seed");
+        var before = profile.CoreFingerprint;
+
+        AiStoryDiversityPolicy.ApplyCreativeConstraints(profile, new AiCreativeConstraints
+        {
+            SettingId = "railway",
+            ToneId = "tense",
+            InvestigationMechanicId = "timeline"
+        });
+
+        Assert.Equal("railway", profile.CreativeConstraints.SettingId);
+        Assert.Equal("tense", profile.CreativeConstraints.ToneId);
+        Assert.Equal("timeline", profile.CreativeConstraints.InvestigationMechanicId);
+        Assert.NotEqual(before, profile.CoreFingerprint);
+        Assert.Contains("railway", profile.SettingArchetype, StringComparison.OrdinalIgnoreCase);
+        Assert.Throws<ArgumentException>(() => AiStoryDiversityPolicy.NormalizeConstraints(new AiCreativeConstraints
+        {
+            ToneId = "unknown-tone"
+        }));
     }
 
     [Fact]
@@ -565,14 +610,15 @@ public class AiRequestValidationTests
 
         Assert.Equal(6, contract.MinClues);
         Assert.Equal(8, contract.MaxClues);
-        Assert.Equal(2, contract.EvidenceChallenges);
+        Assert.Equal(1, contract.EvidenceChallenges);
         Assert.Equal(1, contract.MinPuzzles);
         Assert.Equal(1, contract.MaxPuzzles);
-        Assert.Equal(1, contract.MinInteractions);
-        Assert.Equal(1, contract.MaxInteractions);
+        Assert.Equal(2, contract.MinInteractions);
+        Assert.Equal(2, contract.MaxInteractions);
+        Assert.Equal(1, contract.MinConversationCharacters);
         Assert.Contains("clues 6-8", prompt, StringComparison.Ordinal);
         Assert.Contains("puzzles 1-1", prompt, StringComparison.Ordinal);
-        Assert.Contains("interactions 1-1", prompt, StringComparison.Ordinal);
+        Assert.Contains("interactions 2-2", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("10-12", prompt, StringComparison.Ordinal);
     }
 
@@ -607,7 +653,7 @@ public class AiRequestValidationTests
     }
 
     [Theory]
-    [InlineData(AiGenerationPresets.ShortDemo, 2, 2, 2, 2, 3, 4, 6, 8, 6, 8, 2, 1, 1)]
+    [InlineData(AiGenerationPresets.ShortDemo, 2, 2, 2, 2, 3, 4, 6, 8, 6, 8, 1, 1, 1)]
     [InlineData(AiGenerationPresets.NormalRandom, 4, 4, 4, 4, 6, 4, 8, 10, 8, 12, 2, 1, 1)]
     [InlineData(AiGenerationPresets.PuzzleHeavy, 5, 5, 6, 5, 6, 4, 9, 12, 6, 10, 2, 1, 1)]
     [InlineData(AiGenerationPresets.DialogueHeavy, 5, 5, 6, 5, 6, 5, 10, 12, 12, 16, 3, 2, 1)]

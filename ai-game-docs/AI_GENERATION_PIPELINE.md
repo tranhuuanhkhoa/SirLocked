@@ -49,6 +49,14 @@ Defaults:
 - `language`: `en` by default; `vi` makes all player-facing prose Vietnamese while image art direction remains English/ASCII
 - visual style is not creator-controlled; all assets use the fixed SirLocked Victorian gaslight chibi pixel-art contract
 
+### Short Demo feature sampler (2026-10-01)
+
+New `SHORT_DEMO` drafts keep 2 stages, 2–3 scenes and 4 characters, and require one combine recipe, one item-use interaction, one puzzle, at least one character with branching dialogue, one confrontation, one deduction and one teamwork chain. These actions must advance evidence derived from approved truth.
+
+`includeCrackTheLie` remains optional: the single confrontation uses the standard V2 flow by default, or one paired V3 Crack when selected. The other sampler mechanics remain required in either mode.
+
+The server persists `settings.shortDemoProfileVersion = 1` for newly created Short Demo drafts. The client does not supply this field. Existing drafts with a missing field or version `0` retain their previous 0–1 puzzle and 0–1 interaction contract when resumed; they are not silently migrated to the sampler requirements. This section updates the Short Demo contract only; the older pipeline description below is not a new validation report.
+
 ## Step 1: Story Preview
 
 `POST /api/admin/ai-cases` inserts an `AiCaseDraft`, calls OpenAI, and stores `storyPreview`.
