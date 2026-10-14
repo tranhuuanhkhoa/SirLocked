@@ -307,9 +307,18 @@ public sealed class CaseTruthServiceTests
     [Fact]
     public void DraftListProjection_DoesNotExposeSpoilerTruthOrReviewerSecrets()
     {
-        var truth = ValidTruth();
+        var fixture = new AiCaseDraft
+        {
+            PlannedTargetKind = CaseTargetKinds.Asset,
+            LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            Settings = new AiDraftSettings { GenerationPreset = AiGenerationPresets.ShortDemo, StageCount = 2 }
+        };
+        var truth = JsonSerializer.Deserialize<CaseTruthPackage>(AiCaseMockFactory.BuildMockTruthPackageJson(fixture), JsonOptions)!;
         var draft = new AiCaseDraft
         {
+            PlannedTargetKind = fixture.PlannedTargetKind,
+            LogicContractVersion = fixture.LogicContractVersion,
+            Settings = fixture.Settings,
             CaseTruth = truth,
             TruthSchemaVersion = truth.SchemaVersion,
             TruthHash = _service.ComputeHash(truth),
@@ -379,6 +388,42 @@ public sealed class CaseTruthServiceTests
         Assert.True(response.BlindReviewIsAdvisory);
         Assert.Empty(response.TruthValidationReport);
         Assert.Equal(CaseTruthReviewStatuses.Failed, response.TruthReviewerResult!.Status);
+    }
+
+    [Fact]
+    public void BlindReviewAssessment_IsAuthoritativeAndBecomesStaleWithProjectionChanges()
+    {
+        var draft = new AiCaseDraft
+        {
+            BlindSolvabilityReview = new BlindSolvabilityReview
+            {
+                SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3,
+                Status = CaseTruthReviewStatuses.Passed
+            },
+            BlindReviewAssessment = new BlindReviewAssessment
+            {
+                Status = BlindReviewAssessmentStatuses.Invalid,
+                InputHash = "review-input"
+            }
+        };
+
+        var invalidResponse = SirLocked.Api.DTOs.Ai.AiDraftResponse.From(draft, includeJson: true);
+        Assert.Equal(BlindReviewAssessmentStatuses.Invalid, invalidResponse.BlindReviewAssessment!.Status);
+
+        draft.BlindReviewAssessment.Status = BlindReviewAssessmentStatuses.Passed;
+        draft.ArtifactProvenance.Add(new AiArtifactProvenance
+        {
+            Artifact = CaseTruthArtifacts.Projection,
+            IsStale = true
+        });
+        var staleResponse = SirLocked.Api.DTOs.Ai.AiDraftResponse.From(draft, includeJson: true);
+        Assert.Equal(BlindReviewAssessmentStatuses.Stale, staleResponse.BlindReviewAssessment!.Status);
+
+        draft.ArtifactProvenance.Clear();
+        draft.BlindReviewAssessment = new BlindReviewAssessment();
+        draft.BlindSolvabilityReview.SchemaVersion = CaseTruthSchemaVersions.BlindReviewV2;
+        var legacyResponse = SirLocked.Api.DTOs.Ai.AiDraftResponse.From(draft, includeJson: true);
+        Assert.Equal(BlindReviewAssessmentStatuses.LegacyUnverified, legacyResponse.BlindReviewAssessment!.Status);
     }
 
     [Fact]
@@ -1194,6 +1239,62 @@ public sealed class CaseTruthServiceTests
         var result = _service.ValidateBlindReview(truth, review);
 
         Assert.Contains(result.Errors, error => error.Code == "BlindReviewConfidenceLow");
+    }
+
+    [Fact]
+    public void BlindReviewV3_RequiresCoverageAndPlayerVisibleSupportingClues()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        var review = AiCaseMockFactory.BuildMockBlindReview(truth, gameCase);
+
+        var valid = _service.ValidateBlindReview(truth, gameCase, review);
+        Assert.True(valid.IsValid, Messages(valid.Errors));
+
+        review.ClaimProofs[0].EvidenceIds[0] = "clue-not-visible";
+        var invalid = _service.ValidateBlindReview(truth, gameCase, review);
+        Assert.Contains(invalid.Errors, error => error.Code == "BlindReviewUnknownEvidence");
+    }
+
+    [Fact]
+    public void BlindReviewV3_RejectsDuplicateAndMissingClaimProofs()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        var review = AiCaseMockFactory.BuildMockBlindReview(truth, gameCase);
+        review.ClaimProofs.RemoveAt(0);
+        review.ClaimProofs.Add(new BlindClaimProof
+        {
+            ClaimType = review.ClaimProofs[0].ClaimType,
+            EvidenceIds = review.ClaimProofs[0].EvidenceIds.ToList(),
+            Reasoning = "duplicate"
+        });
+
+        var result = _service.ValidateBlindReview(truth, gameCase, review);
+        Assert.Contains(result.Errors, error => error.Code == "BlindReviewDuplicateClaimProof");
+        Assert.Contains(result.Errors, error => error.Code == "BlindReviewMissingClaimProof");
+    }
+
+    [Fact]
+    public void BlindReviewV3_AllowsPartialProofsForAnExplainedFailedReview()
+    {
+        var truth = ValidTruth();
+        var gameCase = MockProjection(truth);
+        var review = AiCaseMockFactory.BuildMockBlindReview(truth, gameCase);
+        review.Status = CaseTruthReviewStatuses.Failed;
+        review.Findings.Add(new CaseTruthReviewFinding
+        {
+            FindingId = "missing-opportunity",
+            Code = CaseTruthReviewFindingCodes.Other,
+            Message = "Opportunity remains ambiguous."
+        });
+        review.ClaimProofs.RemoveAll(item => item.ClaimType == ProofConclusionCategories.Opportunity);
+        review.EvidenceChainIds = review.ClaimProofs.SelectMany(item => item.EvidenceIds).Distinct().ToList();
+
+        var result = _service.ValidateBlindReview(truth, gameCase, review);
+
+        Assert.DoesNotContain(result.Errors, error => error.Code == "BlindReviewMissingClaimProof");
+        Assert.True(result.IsValid);
     }
 
     [Fact]

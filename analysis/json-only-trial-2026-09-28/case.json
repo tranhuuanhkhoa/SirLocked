@@ -1,0 +1,875 @@
+{
+  "id": "",
+  "caseId": "case-ai-6aba793fa941714af5247263",
+  "title": "H\u1EA1 M\u00E0n T\u1EA1i Kho H\u1EA3i \u00C2u",
+  "summary": "M\u1ED9t b\u1EA3o v\u1EADt h\u00E0ng h\u1EA3i bi\u1EBFn m\u1EA5t gi\u1EEFa l\u1EC5 chuy\u1EC3n giao t\u00E0i s\u1EA3n t\u1EA1i nh\u00E0 h\u00E1t d\u1EF1ng trong Kho s\u1ED1 4. Khi c\u1ED5ng kho v\u1EABn \u0111\u01B0\u1EE3c canh gi\u1EEF v\u00E0 m\u1ECDi ng\u01B0\u1EDDi \u0111\u1EC1u qu\u1EA3 quy\u1EBFt m\u00ECnh \u1EDF n\u01A1i kh\u00E1c, SirLocked ph\u1EA3i \u0111\u1ED1i chi\u1EBFu l\u1EDDi khai, m\u1ED1c gi\u1EDD v\u00E0 d\u1EA5u v\u1EBFt v\u1EADt l\u00FD \u0111\u1EC3 t\u00ECm ra m\u1EE5c ti\u00EAu th\u1EADt s\u1EF1 c\u1EE7a v\u1EE5 tr\u1ED9m.",
+  "language": "vi",
+  "art_style": "pixel_art",
+  "sub_style": "high_detail_pixel",
+  "character_style": "chibi",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "generationMode": "CAMERA_EMBEDDED",
+  "generationPreset": "SHORT_DEMO",
+  "sourceAiDraftId": "6aba793fa941714af5247263",
+  "logicContractVersion": 2,
+  "logicVerificationStatus": "CAUSAL_VERIFIED",
+  "truthSchemaVersion": "case-truth-v2",
+  "truthHash": "b1bcfe56c081ffd7c26e415218a5e54ffd3b88343d32309c6cdc1ec2f73b1a16",
+  "blindReviewStatus": "NOT_RUN",
+  "projectionSchemaVersion": "gameplay-projection-plan-v1",
+  "projectionPlanHash": "7f8165ecafd9644e32fc00f4a73f0679669bb45ce95eba3b2b0d8f1604ddfbe6",
+  "projectionCompilerVersion": "projection-compiler-v1",
+  "projectionBuildMode": "AI_COMPILED",
+  "aiSemanticReviewStatus": "PASSED",
+  "estimatedMinutes": 35,
+  "coverImageUrl": "",
+  "stages": [
+    {
+      "stageId": "stage-01",
+      "title": "M\u00E0n I: Nh\u1EEFng M\u1ED1c Gi\u1EDD Trong S\u01B0\u01A1ng",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "location_backstage_inspection_corridor",
+          "title": "H\u00E0nh Lang Ki\u1EC3m H\u00E0ng H\u1EADu Tr\u01B0\u1EDDng",
+          "backgroundUrl": "",
+          "description": "M\u1ED9t h\u00E0nh lang g\u1EA1ch h\u1EB9p n\u1ED1i c\u00E1nh g\u00E0 v\u1EDBi khu ki\u1EC3m h\u00E0ng. Nh\u1EEFng th\u00F9ng h\u00E0ng, d\u1EE5ng c\u1EE5 ni\u00EAm phong v\u00E0 v\u1EADt d\u1EE5ng tr\u1EF1c ca n\u1EB1m gi\u1EEFa m\u00F9i g\u1ED7 kh\u00F4, mu\u1ED1i bi\u1EC3n c\u00F9ng h\u01A1i s\u01B0\u01A1ng len qua c\u1EEDa h\u1EADu.",
+          "visualDescription": "A narrow red brick corridor with dark timber beams, worn stone flooring, brass wall lamps, stacked pine crates, iron hooks, damp corners, and a heavy rear door beneath cold blue harbor light.",
+          "itemIds": [
+            "item-projection-01",
+            "item-projection-02",
+            "item-projection-03"
+          ],
+          "characterIds": [
+            "suspect_edwin_vale",
+            "suspect_hector_pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-location_backstage_inspection_corridor-suspect_edwin_vale",
+              "type": "CHARACTER",
+              "targetId": "suspect_edwin_vale",
+              "x": 70,
+              "y": 45,
+              "width": 10,
+              "height": 30,
+              "zIndex": 5,
+              "label": "Edwin Vale",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_backstage_inspection_corridor-suspect_hector_pike",
+              "type": "CHARACTER",
+              "targetId": "suspect_hector_pike",
+              "x": 75,
+              "y": 45,
+              "width": 10,
+              "height": 30,
+              "zIndex": 5,
+              "label": "Hector Pike",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_backstage_inspection_corridor-item-projection-01",
+              "type": "ITEM",
+              "targetId": "item-projection-01",
+              "x": 20,
+              "y": 65,
+              "width": 7,
+              "height": 9,
+              "zIndex": 4,
+              "label": "Ch\u00ECa kh\u00F3a th\u00F9ng ki\u1EC3m h\u00E0ng",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_backstage_inspection_corridor-item-projection-02",
+              "type": "ITEM",
+              "targetId": "item-projection-02",
+              "x": 30,
+              "y": 65,
+              "width": 7,
+              "height": 9,
+              "zIndex": 4,
+              "label": "S\u1ED5 tr\u1EF1c ca \u0111\u00EAm",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_backstage_inspection_corridor-item-projection-03",
+              "type": "ITEM",
+              "targetId": "item-projection-03",
+              "x": 40,
+              "y": 65,
+              "width": 7,
+              "height": 9,
+              "zIndex": 4,
+              "label": "Th\u00F9ng ki\u1EC3m h\u00E0ng b\u1ECB kh\u00F3a",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-trace_blank_packet_fold_from_edwin_desk_stock",
+              "clue-trace_relic_salt_dust_inside_inspection_crate"
+            ],
+            "requiredDialogueIds": [
+              "dialogue-statement_edwin_minimizes_blank_packet"
+            ]
+          }
+        },
+        {
+          "sceneId": "location_ticket_booth_guest_entrance",
+          "title": "Qu\u1EA7y V\u00E9 V\u00E0 L\u1ED1i V\u00E0o Kh\u00E1ch M\u1EDDi",
+          "backgroundUrl": "",
+          "description": "Qu\u1EA7y v\u00E9 ch\u1EADt h\u1EB9p nh\u00ECn th\u1EB3ng ra c\u1EEDa ch\u00EDnh c\u1EE7a nh\u00E0 kho. \u0110\u00E2y l\u00E0 n\u01A1i Clara, Mabel v\u00E0 Hector \u0111\u01B0\u1EE3c nh\u00ECn th\u1EA5y trong qu\u00E3ng gi\u00E1n \u0111o\u1EA1n, khi\u1EBFn l\u1EDDi x\u00E1c nh\u1EADn ch\u00E9o c\u1EE7a h\u1ECD tr\u1EDF th\u00E0nh ph\u1EA7n quan tr\u1ECDng c\u1EE7a d\u00F2ng th\u1EDDi gian.",
+          "visualDescription": "A cramped oak booth beside tall warehouse doors, with a polished counter, brass grille, dark green paint, scuffed floorboards, warm gaslight, and pale fog pressing against the glass panes.",
+          "itemIds": [],
+          "characterIds": [
+            "suspect_clara_wren",
+            "suspect_mabel_finch",
+            "suspect_hector_pike"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-location_ticket_booth_guest_entrance-suspect_clara_wren",
+              "type": "CHARACTER",
+              "targetId": "suspect_clara_wren",
+              "x": 70,
+              "y": 45,
+              "width": 10,
+              "height": 30,
+              "zIndex": 5,
+              "label": "Clara Wren",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_ticket_booth_guest_entrance-suspect_mabel_finch",
+              "type": "CHARACTER",
+              "targetId": "suspect_mabel_finch",
+              "x": 75,
+              "y": 45,
+              "width": 10,
+              "height": 30,
+              "zIndex": 5,
+              "label": "Mabel Finch",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_ticket_booth_guest_entrance-suspect_hector_pike",
+              "type": "CHARACTER",
+              "targetId": "suspect_hector_pike",
+              "x": 80,
+              "y": 45,
+              "width": 10,
+              "height": 30,
+              "zIndex": 5,
+              "label": "Hector Pike",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [],
+            "requiredDialogueIds": [
+              "dialogue-statement_hector_dates_original_ledger_entry"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-02",
+      "title": "M\u00E0n II: B\u00ED M\u1EADt D\u01B0\u1EDBi \u00C1nh \u0110\u00E8n S\u00E2n Kh\u1EA5u",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "location_warehouse_theatre_stage",
+          "title": "S\u00E2n Kh\u1EA5u Nh\u00E0 H\u00E1t Kho H\u1EA3i \u00C2u",
+          "backgroundUrl": "",
+          "description": "S\u00E2n kh\u1EA5u g\u1ED7 v\u1EABn ng\u1ED5n ngang sau v\u1EE5 \u0111\u1ED5 ph\u00F4ng c\u1EA3nh. T\u1EE7 tr\u01B0ng b\u00E0y b\u1ECF tr\u1ED1ng \u0111\u1EE9ng d\u01B0\u1EDBi \u00E1nh \u0111\u00E8n v\u00E0ng, trong khi d\u00E2y treo, \u1ED5 kh\u00F3a v\u00E0 chi\u1EBFc \u0111\u1EBF b\u1EA3o v\u1EADt l\u01B0u gi\u1EEF nh\u1EEFng d\u1EA5u v\u1EBFt m\u00E0 c\u1EA3nh h\u1ED7n lo\u1EA1n ch\u01B0a x\u00F3a \u0111\u01B0\u1EE3c.",
+          "visualDescription": "A raised timber stage inside a vast brick warehouse, with amber footlights, burgundy curtains, collapsed painted flats, frayed rigging, an open glass-and-brass case, and cold mist near the loading doors.",
+          "itemIds": [
+            "item-evidence-clue-trace_original_deed_red_wax_flake_in_plinth"
+          ],
+          "characterIds": [
+            "suspect_edwin_vale"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-location_warehouse_theatre_stage-suspect_edwin_vale",
+              "type": "CHARACTER",
+              "targetId": "suspect_edwin_vale",
+              "x": 70,
+              "y": 45,
+              "width": 10,
+              "height": 30,
+              "zIndex": 5,
+              "label": "Edwin Vale",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-location_warehouse_theatre_stage-item-evidence-clue-trace_original_deed_red_wax_flake_in_plinth",
+              "type": "ITEM",
+              "targetId": "item-evidence-clue-trace_original_deed_red_wax_flake_in_plinth",
+              "x": 30,
+              "y": 64,
+              "width": 8,
+              "height": 10,
+              "zIndex": 4,
+              "label": "M\u1EA3nh s\u00E1p \u0111\u1ECF trong \u0111\u1EBF b\u1EA3o v\u1EADt",
+              "requiredClueIds": []
+            }
+          ],
+          "placementPlan": null,
+          "runtime": null,
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+              "clue-trace_fresh_frays_prove_rope_was_deliberately_loosened"
+            ],
+            "requiredDialogueIds": [
+              "dialogue-statement_edwin_denies_unlocking_display_case"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "presentation": null,
+      "characterId": "suspect_edwin_vale",
+      "name": "Edwin Vale",
+      "role": "Tr\u1EE3 l\u00FD th\u00E2n t\u00EDn c\u1EE7a ch\u1EE7 b\u1EBFn",
+      "imageUrl": "",
+      "description": "Edwin n\u1EAFm l\u1ECBch bu\u1ED5i l\u1EC5, danh s\u00E1ch kh\u00E1ch m\u1EDDi v\u00E0 ch\u00ECa kh\u00F3a c\u00E1c khu h\u1EADu tr\u01B0\u1EDDng. \u00D4ng tr\u1EA3 l\u1EDDi \u0111i\u1EC1m t\u0129nh nh\u01B0ng lu\u00F4n thu h\u1EB9p c\u00E2u chuy\u1EC7n v\u1EC1 m\u1ED9t v\u1EE5 m\u1EA5t b\u1EA3o v\u1EADt \u0111\u01A1n thu\u1EA7n.",
+      "visualDescription": "A charcoal wool coat, ivory waistcoat, polished black leather shoes, and a brass key ring lie in precise alignment on a dark oak surface beneath a shaded gas lamp."
+    },
+    {
+      "presentation": null,
+      "characterId": "suspect_clara_wren",
+      "name": "Clara Wren",
+      "role": "N\u1EEF di\u1EC5n vi\u00EAn ch\u00EDnh",
+      "imageUrl": "",
+      "description": "Clara tin gia \u0111\u00ECnh m\u00ECnh c\u00F3 quy\u1EC1n h\u1EE3p ph\u00E1p \u0111\u1ED1i v\u1EDBi m\u1ED9t ph\u1EA7n khu kho \u0111ang \u0111\u01B0\u1EE3c chuy\u1EC3n giao. Trong l\u00FAc bu\u1ED5i l\u1EC5 gi\u00E1n \u0111o\u1EA1n, c\u00F4 \u0111\u01B0\u1EE3c Mabel nh\u00ECn th\u1EA5y li\u00EAn t\u1EE5c b\u00EAn qu\u1EA7y v\u00E9.",
+      "visualDescription": "A fitted burgundy velvet costume with black lace trim rests beside a walnut dressing stand under warm amber light; the fabric is lightly worn at the cuffs and hem."
+    },
+    {
+      "presentation": null,
+      "characterId": "suspect_hector_pike",
+      "name": "Hector Pike",
+      "role": "Qu\u1EA3n \u0111\u1ED1c ca \u0111\u00EAm",
+      "imageUrl": "",
+      "description": "Hector ph\u1EE5 tr\u00E1ch ki\u1EC3m h\u00E0ng v\u00E0 s\u1ED5 tr\u1EF1c. \u00D4ng kh\u1EB3ng \u0111\u1ECBnh \u0111\u00E3 ho\u00E0n t\u1EA5t m\u1EE5c ki\u1EC3m h\u00E0ng tr\u01B0\u1EDBc khi sang qu\u1EA7y v\u00E9, n\u01A1i Mabel c\u00F3 th\u1EC3 tr\u00F4ng th\u1EA5y \u00F4ng trong qu\u00E3ng gi\u00E1n \u0111o\u1EA1n.",
+      "visualDescription": "A heavy navy wool coat and worn brown leather gloves rest near an iron scale mechanism; cool gray light crosses scratched oak, dull brass, and salt-stained stone."
+    },
+    {
+      "presentation": null,
+      "characterId": "suspect_mabel_finch",
+      "name": "Mabel Finch",
+      "role": "Ng\u01B0\u1EDDi so\u00E1t v\u00E9",
+      "imageUrl": "",
+      "description": "Mabel c\u00F3 tr\u00ED nh\u1EDB s\u1EAFc b\u00E9n v\u1EC1 l\u01B0\u1EE3t kh\u00E1ch v\u00E0 v\u00E9 \u0111\u00E3 x\u00E9. C\u00F4 x\u00E1c nh\u1EADn Clara \u1EDF c\u1EA1nh qu\u1EA7y t\u1EEB ph\u00FAt m\u01B0\u1EDDi hai \u0111\u1EBFn ph\u00FAt hai m\u01B0\u01A1i m\u1ED1t, \u0111\u1ED3ng th\u1EDDi \u0111\u01B0\u1EE3c Clara nh\u00ECn th\u1EA5y su\u1ED1t th\u1EDDi gian \u0111\u00F3.",
+      "visualDescription": "A dark green wool jacket and cream cotton gloves rest behind a polished oak counter, surrounded by brass fittings, frosted glass, worn edges, and steady amber light."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-evidence-clue-trace_original_deed_red_wax_flake_in_plinth",
+      "name": "M\u1EA3nh s\u00E1p \u0111\u1ECF trong \u0111\u1EBF b\u1EA3o v\u1EADt",
+      "description": "M\u1ED9t m\u1EA3nh s\u00E1p \u0111\u1ECF nh\u1ECF m\u1EAFc s\u00E2u trong khe c\u1EE7a chi\u1EBFc \u0111\u1EBF r\u1ED7ng.",
+      "inspectText": "M\u1EA3nh s\u00E1p c\u00F3 b\u1EC1 m\u1EB7t g\u00E3y m\u1EDBi v\u00E0 c\u00F9ng lo\u1EA1i v\u1EDBi l\u1EDBp ni\u00EAm phong c\u1EE7a ch\u1EE9ng th\u01B0 g\u1ED1c. N\u00F3 b\u1ECB k\u1EB9t b\u00EAn trong \u0111\u1EBF khi v\u1EADt \u0111\u01B0\u1EE3c ni\u00EAm phong b\u1ECB r\u00FAt ra trong m\u00E0n tr\u00E1o \u0111\u1ED5i.",
+      "visualDescription": "A small jagged crimson wax flake rests inside a narrow seam of a dark mahogany plinth, surrounded by dry dust, brass edging, and shallow fresh scrape marks.",
+      "renderMode": "EMBEDDED",
+      "imageUrl": "",
+      "unlockClueIds": [
+        "clue-trace_original_deed_red_wax_flake_in_plinth"
+      ],
+      "isCollectible": false,
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "Ki\u1EC3m tra khe b\u00EAn trong \u0111\u1EBF \u0111\u1EC3 x\u00E1c \u0111\u1ECBnh th\u1EE9 \u0111\u00E3 \u0111\u01B0\u1EE3c l\u1EA5y kh\u1ECFi ng\u0103n gi\u1EA5u k\u00EDn."
+    },
+    {
+      "itemId": "item-projection-01",
+      "name": "Ch\u00ECa kh\u00F3a th\u00F9ng ki\u1EC3m h\u00E0ng",
+      "description": "M\u1ED9t ch\u00ECa kh\u00F3a \u0111\u1ED3ng nh\u1ECF \u0111\u01B0\u1EE3c c\u1EA5t c\u00F9ng d\u1EE5ng c\u1EE5 ki\u1EC3m h\u00E0ng \u1EDF h\u00E0nh lang h\u1EADu tr\u01B0\u1EDDng.",
+      "inspectText": "R\u0103ng kh\u00F3a v\u00E0 \u0111\u1ED9 m\u00F2n c\u1EE7a th\u00E2n ch\u00ECa ph\u00F9 h\u1EE3p v\u1EDBi \u1ED5 kh\u00F3a tr\u00EAn chi\u1EBFc th\u00F9ng ki\u1EC3m h\u00E0ng g\u1EA7n c\u1EEDa h\u1EADu.",
+      "visualDescription": "A small tarnished brass key with an oval bow rests on a scratched oak shelf beside iron tools under weak amber light.",
+      "renderMode": "CUTOUT",
+      "imageUrl": "",
+      "unlockClueIds": [],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "combine-item",
+      "interactionReason": "C\u00F3 th\u1EC3 d\u00F9ng ch\u00ECa kh\u00F3a n\u00E0y \u0111\u1EC3 m\u1EDF chi\u1EBFc th\u00F9ng ki\u1EC3m h\u00E0ng \u0111ang kh\u00F3a."
+    },
+    {
+      "itemId": "item-projection-02",
+      "name": "S\u1ED5 tr\u1EF1c ca \u0111\u00EAm",
+      "description": "S\u1ED5 tr\u1EF1c ghi l\u1EA1i c\u00F4ng vi\u1EC7c ki\u1EC3m h\u00E0ng c\u1EE7a Hector trong ca \u0111\u00EAm.",
+      "inspectText": "M\u1EE5c ki\u1EC3m h\u00E0ng \u0111\u01B0\u1EE3c Hector ho\u00E0n t\u1EA5t t\u1EEB ph\u00FAt b\u1EA3y \u0111\u1EBFn ph\u00FAt ch\u00EDn. Sau \u0111\u00F3 \u00F4ng \u0111\u00F3ng s\u1ED5 v\u00E0 sang qu\u1EA7y v\u00E9, ph\u00F9 h\u1EE3p v\u1EDBi l\u1EDDi khai v\u1EC1 l\u1ECBch tr\u00ECnh c\u1EE7a m\u00ECnh.",
+      "visualDescription": "A dark green clothbound rectangular volume rests closed on a worn oak desk beside a brass blotter, with dry edges, rounded corners, and low golden light.",
+      "renderMode": "CUTOUT",
+      "imageUrl": "",
+      "unlockClueIds": [],
+      "isCollectible": true,
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "combine-item",
+      "interactionReason": "\u0110\u1ED1i chi\u1EBFu th\u1EDDi \u0111i\u1EC3m Hector r\u1EDDi khu ki\u1EC3m h\u00E0ng v\u1EDBi qu\u00E3ng gi\u00E1n \u0111o\u1EA1n c\u1EE7a bu\u1ED5i l\u1EC5."
+    },
+    {
+      "itemId": "item-projection-03",
+      "name": "Th\u00F9ng ki\u1EC3m h\u00E0ng b\u1ECB kh\u00F3a",
+      "description": "M\u1ED9t th\u00F9ng g\u1ED7 th\u00F4ng \u0111\u1EB7t s\u00E1t t\u01B0\u1EDDng h\u00E0nh lang, t\u00E1ch kh\u1ECFi nh\u1EEFng ki\u1EC7n h\u00E0ng c\u00F2n l\u1EA1i.",
+      "inspectText": "N\u1EAFp th\u00F9ng kh\u00F3a ch\u1EB7t, nh\u01B0ng c\u00E1c m\u00E9p kh\u00F4 v\u00E0 s\u1EA1ch cho th\u1EA5y b\u00EAn trong \u0111\u01B0\u1EE3c b\u1EA3o v\u1EC7 kh\u1ECFi h\u01A1i \u1EA9m c\u00F9ng s\u1EF1 qua l\u1EA1i ngo\u00E0i h\u00E0nh lang.",
+      "visualDescription": "A squat pine crate with iron corner straps and a small brass lock sits against a damp brick wall; its lid is dry, its edges are scuffed, and pale salt crystals cling inside the seams.",
+      "renderMode": "EMBEDDED",
+      "imageUrl": "",
+      "unlockClueIds": [],
+      "isCollectible": false,
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "M\u1EDF th\u00F9ng \u0111\u1EC3 ki\u1EC3m tra xem c\u00F3 v\u1EADt g\u00EC t\u1EEBng \u0111\u01B0\u1EE3c gi\u1EA5u b\u00EAn trong."
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+      "title": "D\u1EA5u Ng\u00F3n C\u00E1i Trong S\u00E1p Kh\u00F3a",
+      "content": "S\u00E1p quanh \u1ED5 kh\u00F3a gi\u1EEF l\u1EA1i r\u00F5 c\u00E1c \u0111i\u1EC3m ph\u00E2n nh\u00E1nh c\u1EE7a m\u1ED9t d\u1EA5u ng\u00F3n c\u00E1i ph\u1EA3i. Khi \u0111\u1ED1i chi\u1EBFu, nh\u1EEFng \u0111\u1EB7c \u0111i\u1EC3m n\u00E0y kh\u1EDBp ri\u00EAng v\u1EDBi Edwin, \u0111\u1EB7t ng\u00F3n tay \u00F4ng tr\u00EAn \u1ED5 kh\u00F3a trong h\u00E0nh \u0111\u1ED9ng m\u1EDF t\u1EE7.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "location_warehouse_theatre_stage",
+      "sourceType": "camera",
+      "sceneId": "location_warehouse_theatre_stage",
+      "discoverMethod": "camera",
+      "acquisitionMethod": "CAMERA_CAPTURE",
+      "sourceActionId": "event_edwin_unlocks_display_case_with_backstage_key",
+      "supportsConclusionIds": [
+        "conclusion-identity",
+        "conclusion-method"
+      ],
+      "independentSourceGroup": "group_display_lock_fingerprint",
+      "visualDescription": "Amber wax around a brass lock holds a clear oval depression with curved ridges and several branching grooves; the surface is cool, dry, sheltered, and sharply preserved.",
+      "visualTextPolicy": "NO_TEXT",
+      "inventoryDescription": "D\u1EA5u ng\u00F3n c\u00E1i ph\u1EA3i c\u1EE7a Edwin \u0111\u01B0\u1EE3c gi\u1EEF nguy\u00EAn trong s\u00E1p tr\u00EAn \u1ED5 kh\u00F3a t\u1EE7 tr\u01B0ng b\u00E0y.",
+      "narrativeMeaning": "Edwin \u0111\u00E3 ch\u1EA1m v\u00E0o \u1ED5 kh\u00F3a khi t\u1EE7 \u0111\u01B0\u1EE3c m\u1EDF, d\u00F9 d\u1EA5u v\u1EBFt n\u00E0y ch\u01B0a t\u1EF1 ch\u1EE9ng minh th\u1EE9 \u00F4ng l\u1EA5y \u0111i ho\u1EB7c \u0111\u1ED9ng c\u01A1 c\u1EE7a \u00F4ng.",
+      "hintLevel": 1,
+      "tags": [
+        "identity",
+        "method",
+        "camera"
+      ],
+      "relatedCharacterIds": [
+        "suspect_edwin_vale"
+      ]
+    },
+    {
+      "clueId": "clue-trace_original_deed_red_wax_flake_in_plinth",
+      "title": "M\u1EA3nh S\u00E1p T\u1EEB Ni\u00EAm Phong Ch\u1EE9ng Th\u01B0",
+      "content": "M\u1EA3nh s\u00E1p \u0111\u1ECF g\u00E3y kh\u1ECFi ni\u00EAm phong ch\u1EE9ng th\u01B0 g\u1ED1c khi v\u1EADt \u0111\u00F3 b\u1ECB m\u1EDF v\u00E0 r\u00FAt kh\u1ECFi ng\u0103n trong \u0111\u1EBF. Vi\u1EC7c g\u00F3i tr\u1EAFng n\u1EB1m l\u1EA1i thay th\u1EBF cho th\u1EA5y ch\u1EE9ng th\u01B0 ni\u00EAm phong \u0111\u00E3 b\u1ECB l\u1EA5y trong m\u00E0n tr\u00E1o \u0111\u1ED5i, c\u00F2n b\u1EA3o v\u1EADt ch\u1EC9 che khu\u1EA5t m\u1EE5c ti\u00EAu th\u1EADt.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "item-evidence-clue-trace_original_deed_red_wax_flake_in_plinth",
+      "sourceType": "item",
+      "sceneId": "location_warehouse_theatre_stage",
+      "discoverMethod": "item",
+      "acquisitionMethod": "ITEM_INSPECT",
+      "sourceActionId": "event_edwin_swaps_hidden_deed_for_blank_packet",
+      "supportsConclusionIds": [
+        "conclusion-motive",
+        "conclusion-timeline"
+      ],
+      "independentSourceGroup": "group_original_deed_seal",
+      "visualDescription": "A jagged crimson wax fragment rests in the dry inner seam of a dark mahogany plinth, beside brass trim, shallow scrape marks, and a pale fibrous replacement bundle.",
+      "visualTextPolicy": "NO_TEXT",
+      "inventoryDescription": "M\u1EA3nh s\u00E1p \u0111\u1ECF ch\u1EE9ng minh ch\u1EE9ng th\u01B0 ni\u00EAm phong \u0111\u00E3 b\u1ECB r\u00FAt kh\u1ECFi \u0111\u1EBF trong m\u00E0n tr\u00E1o \u0111\u1ED5i.",
+      "narrativeMeaning": "Ch\u1EE9ng th\u01B0 g\u1ED1c, kh\u00F4ng ch\u1EC9 b\u1EA3o v\u1EADt h\u00E0ng h\u1EA3i, \u0111\u00E3 b\u1ECB l\u1EA5y kh\u1ECFi t\u1EE7; m\u1EA3nh s\u00E1p kh\u00F4ng t\u1EF1 x\u00E1c \u0111\u1ECBnh ng\u01B0\u1EDDi mang n\u00F3 \u0111i.",
+      "hintLevel": 1,
+      "tags": [
+        "motive",
+        "timeline",
+        "item"
+      ],
+      "relatedCharacterIds": [
+        "suspect_edwin_vale"
+      ]
+    },
+    {
+      "clueId": "clue-trace_blank_packet_fold_from_edwin_desk_stock",
+      "title": "G\u00F3i Tr\u1EAFng T\u1EEB V\u1EADt Li\u1EC7u Tr\u00EAn B\u00E0n Edwin",
+      "content": "S\u1EE3i v\u1EADt li\u1EC7u v\u00E0 n\u1EBFp g\u1EA5p c\u1EE7a g\u00F3i thay th\u1EBF tr\u00F9ng v\u1EDBi ngu\u1ED3n tr\u00EAn b\u00E0n Edwin. K\u00EDch th\u01B0\u1EDBc c\u1EE7a n\u00F3 v\u1EEBa v\u1EDBi ng\u0103n gi\u1EA5u ch\u1EE9ng th\u01B0, cho th\u1EA5y g\u00F3i \u0111\u00E3 \u0111\u01B0\u1EE3c chu\u1EA9n b\u1ECB tr\u01B0\u1EDBc l\u00FAc gi\u00E1n \u0111o\u1EA1n \u0111\u1EC3 thay th\u1EBF v\u1EADt n\u1EB1m trong \u0111\u1EBF.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "location_backstage_inspection_corridor",
+      "sourceType": "camera",
+      "sceneId": "location_backstage_inspection_corridor",
+      "discoverMethod": "camera",
+      "acquisitionMethod": "CAMERA_CAPTURE",
+      "sourceActionId": "event_edwin_wraps_blank_sheets_as_deed_packet",
+      "supportsConclusionIds": [
+        "conclusion-motive",
+        "conclusion-method"
+      ],
+      "independentSourceGroup": "group_prepared_packet_paper",
+      "visualDescription": "A pale fibrous rectangular packet lies within a dry mahogany cavity; its sharp folds, compressed corners, and fine cream fibers match a nearby stack of the same material.",
+      "visualTextPolicy": "NO_TEXT",
+      "inventoryDescription": "G\u00F3i thay th\u1EBF \u0111\u01B0\u1EE3c g\u1EA5p t\u1EEB v\u1EADt li\u1EC7u tr\u00EAn b\u00E0n Edwin \u0111\u1EC3 v\u1EEBa ng\u0103n gi\u1EA5u ch\u1EE9ng th\u01B0.",
+      "narrativeMeaning": "M\u00E0n tr\u00E1o \u0111\u1ED5i \u0111\u00E3 \u0111\u01B0\u1EE3c chu\u1EA9n b\u1ECB t\u1EEB tr\u01B0\u1EDBc b\u1EB1ng v\u1EADt li\u1EC7u thu\u1ED9c ngu\u1ED3n c\u1EE7a Edwin, nh\u01B0ng ri\u00EAng d\u1EA5u v\u1EBFt n\u00E0y ch\u01B0a ch\u1EE9ng minh ai m\u1EDF t\u1EE7.",
+      "hintLevel": 1,
+      "tags": [
+        "motive",
+        "method",
+        "camera"
+      ],
+      "relatedCharacterIds": [
+        "suspect_edwin_vale"
+      ]
+    },
+    {
+      "clueId": "clue-trace_relic_salt_dust_inside_inspection_crate",
+      "title": "B\u1EE5i Mu\u1ED1i Trong Th\u00F9ng Ki\u1EC3m H\u00E0ng",
+      "content": "L\u1EDBp tinh th\u1EC3 mu\u1ED1i kh\u00F4 trong th\u00F9ng ph\u00F9 h\u1EE3p v\u1EDBi c\u1EB7n b\u00E1m tr\u00EAn b\u1EA3o v\u1EADt h\u00E0ng h\u1EA3i. D\u1EA5u chuy\u1EC3n n\u00E0y cho th\u1EA5y b\u1EA3o v\u1EADt \u0111\u00E3 \u0111i t\u1EEB t\u1EE7 s\u00E2n kh\u1EA5u \u0111\u1EBFn chi\u1EBFc th\u00F9ng trong qu\u00E3ng Edwin kh\u00F4ng b\u1ECB ai quan s\u00E1t.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "location_backstage_inspection_corridor",
+      "sourceType": "camera",
+      "sceneId": "location_backstage_inspection_corridor",
+      "discoverMethod": "camera",
+      "acquisitionMethod": "CAMERA_CAPTURE",
+      "sourceActionId": "event_edwin_hides_maritime_relic_inside_inspection_crate",
+      "supportsConclusionIds": [
+        "conclusion-identity",
+        "conclusion-opportunity"
+      ],
+      "independentSourceGroup": "group_relic_salt_transfer",
+      "visualDescription": "Fine white salt crystals scatter across the dark inner lining of an open pine crate, sheltered by iron-bound walls and a dry fitted lid beneath cool corridor light.",
+      "visualTextPolicy": "NO_TEXT",
+      "inventoryDescription": "B\u1EE5i mu\u1ED1i n\u1ED1i \u0111\u01B0\u1EDDng di chuy\u1EC3n c\u1EE7a b\u1EA3o v\u1EADt t\u1EEB t\u1EE7 tr\u01B0ng b\u00E0y \u0111\u1EBFn th\u00F9ng ki\u1EC3m h\u00E0ng.",
+      "narrativeMeaning": "B\u1EA3o v\u1EADt t\u1EEBng \u0111\u01B0\u1EE3c \u0111\u1EB7t trong th\u00F9ng gi\u1EEFa qu\u00E3ng ti\u1EBFp c\u1EADn kh\u00F4ng ng\u01B0\u1EDDi ch\u1EE9ng ki\u1EBFn, nh\u01B0ng b\u1EE5i mu\u1ED1i kh\u00F4ng t\u1EF1 nh\u1EADn di\u1EC7n ng\u01B0\u1EDDi \u0111\u00E3 mang n\u00F3.",
+      "hintLevel": 1,
+      "tags": [
+        "identity",
+        "opportunity",
+        "camera"
+      ],
+      "relatedCharacterIds": [
+        "suspect_edwin_vale"
+      ]
+    },
+    {
+      "clueId": "clue-trace_fresh_frays_prove_rope_was_deliberately_loosened",
+      "title": "D\u00E2y Treo B\u1ECB C\u1EAFt V\u00E0 N\u1EDBi L\u1ECFng",
+      "content": "Gi\u1EEFa c\u00E1c s\u1EE3i x\u01A1 do ch\u1ECBu l\u1EF1c c\u00F3 nh\u1EEFng \u0111\u1EA7u s\u1EE3i m\u1EDBi b\u1ECB l\u01B0\u1EE1i s\u1EAFc c\u1EAFt \u0111\u1EE9t. D\u00E2y treo ph\u00F4ng c\u1EA3nh \u0111\u00E3 b\u1ECB c\u1ED1 \u00FD l\u00E0m y\u1EBFu tr\u01B0\u1EDBc qu\u00E3ng tr\u1ED9m, khi\u1EBFn v\u1EE5 s\u1EADp tr\u1EDF th\u00E0nh m\u1ED9t s\u1EF1 gi\u00E1n \u0111o\u1EA1n \u0111\u01B0\u1EE3c chu\u1EA9n b\u1ECB.",
+      "isCritical": true,
+      "isEvidence": true,
+      "isRedHerring": false,
+      "source": "location_warehouse_theatre_stage",
+      "sourceType": "camera",
+      "sceneId": "location_warehouse_theatre_stage",
+      "discoverMethod": "camera",
+      "acquisitionMethod": "CAMERA_CAPTURE",
+      "sourceActionId": "event_edwin_loosens_scenery_support_rope",
+      "supportsConclusionIds": [
+        "conclusion-opportunity",
+        "conclusion-timeline"
+      ],
+      "independentSourceGroup": "group_scenery_rope_damage",
+      "visualDescription": "A thick hemp support rope hangs above the timber stage with fresh pale fibers, sharp cut ends, loosened coils, and older dark wear around an iron pulley.",
+      "visualTextPolicy": "NO_TEXT",
+      "inventoryDescription": "D\u00E2y treo ph\u00F4ng c\u1EA3nh c\u00F3 v\u1EBFt c\u1EAFt m\u1EDBi, ch\u1EE9ng minh v\u1EE5 s\u1EADp \u0111\u00E3 \u0111\u01B0\u1EE3c chu\u1EA9n b\u1ECB c\u00F3 ch\u1EE7 \u00FD.",
+      "narrativeMeaning": "S\u1EF1 c\u1ED1 s\u00E2n kh\u1EA5u kh\u00F4ng ph\u1EA3i tai n\u1EA1n, nh\u01B0ng nh\u1EEFng s\u1EE3i d\u00E2y kh\u00F4ng x\u00E1c \u0111\u1ECBnh \u0111\u01B0\u1EE3c ng\u01B0\u1EDDi \u0111\u00E3 d\u00F9ng l\u01B0\u1EE1i c\u1EAFt.",
+      "hintLevel": 1,
+      "tags": [
+        "opportunity",
+        "timeline",
+        "camera"
+      ],
+      "relatedCharacterIds": [
+        "suspect_edwin_vale"
+      ]
+    },
+    {
+      "clueId": "clue-reveal-challenge-01",
+      "title": "L\u1EDDi Ph\u1EE7 Nh\u1EADn B\u1ECB B\u1EBB G\u00E3y",
+      "content": "D\u1EA5u v\u00E2n trong s\u00E1p kh\u00F3a kh\u1EDBp v\u1EDBi ng\u00F3n c\u00E1i ph\u1EA3i c\u1EE7a Edwin. D\u1EA5u v\u1EBFt v\u1EADt l\u00FD n\u00E0y tr\u1EF1c ti\u1EBFp b\u00E1c b\u1ECF l\u1EDDi \u00F4ng ph\u1EE7 nh\u1EADn \u0111\u00E3 ch\u1EA1m v\u00E0o \u1ED5 kh\u00F3a trong l\u00FAc bu\u1ED5i l\u1EC5 b\u1ECB gi\u00E1n \u0111o\u1EA1n.",
+      "isCritical": true,
+      "isEvidence": false,
+      "isRedHerring": false,
+      "source": "dialogue-statement_edwin_denies_unlocking_display_case",
+      "sourceType": "dialogue",
+      "sceneId": "location_warehouse_theatre_stage",
+      "discoverMethod": "dialogue",
+      "acquisitionMethod": "",
+      "sourceActionId": "event_edwin_unlocks_display_case_with_backstage_key",
+      "supportsConclusionIds": [
+        "conclusion-identity",
+        "conclusion-method"
+      ],
+      "independentSourceGroup": "group_display_lock_fingerprint",
+      "visualDescription": "Amber lock wax around a brass fitting preserves deep curved ridges and branching grooves beneath warm stage light, with smooth sheltered edges and no later smearing.",
+      "visualTextPolicy": "NO_TEXT",
+      "inventoryDescription": "D\u1EA5u v\u00E2n trong s\u00E1p kh\u00F3a b\u00E1c b\u1ECF l\u1EDDi Edwin ph\u1EE7 nh\u1EADn \u0111\u00E3 ch\u1EA1m v\u00E0o \u1ED5 kh\u00F3a.",
+      "narrativeMeaning": "Edwin kh\u00F4ng n\u00F3i th\u1EADt khi ph\u1EE7 nh\u1EADn vi\u1EC7c m\u00ECnh \u0111\u00E3 m\u1EDF t\u1EE7 tr\u01B0ng b\u00E0y.",
+      "hintLevel": 1,
+      "tags": [
+        "identity",
+        "method",
+        "dialogue"
+      ],
+      "relatedCharacterIds": [
+        "suspect_edwin_vale"
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dialogue-statement_edwin_denies_unlocking_display_case",
+      "characterId": "suspect_edwin_vale",
+      "question": "\u00D4ng c\u00F3 m\u1EDF kh\u00F3a t\u1EE7 tr\u01B0ng b\u00E0y trong l\u00FAc h\u1ED7n lo\u1EA1n kh\u00F4ng?",
+      "answer": "Kh\u00F4ng. T\u00F4i \u0111\u00E3 n\u00F3i r\u00F5: trong l\u00FAc bu\u1ED5i l\u1EC5 b\u1ECB gi\u00E1n \u0111o\u1EA1n, t\u00F4i kh\u00F4ng m\u1EDF kh\u00F3a t\u1EE7 tr\u01B0ng b\u00E0y. C\u00E1c v\u1ECB c\u00F3 th\u1EC3 h\u1ECFi l\u1EA1i bao nhi\u00EAu l\u1EA7n t\u00F9y th\u00EDch, c\u00E2u tr\u1EA3 l\u1EDDi c\u1EE7a t\u00F4i v\u1EABn v\u1EADy. Vi\u1EC7c t\u00F4i c\u00F3 quy\u1EC1n gi\u1EEF ch\u00ECa kh\u00F3a h\u1EADu tr\u01B0\u1EDDng kh\u00F4ng ch\u1EE9ng minh r\u1EB1ng t\u00F4i \u0111\u00E3 d\u00F9ng n\u00F3. T\u00F4i ph\u1EE7 nh\u1EADn \u0111\u00E3 ch\u1EA1m v\u00E0o \u1ED5 kh\u00F3a, v\u00E0 t\u00F4i kh\u00F4ng c\u00F3 g\u00EC \u0111\u1EC3 n\u00F3i th\u00EAm v\u1EC1 chuy\u1EC7n \u0111\u00F3.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "statementIds": [
+        "statement_edwin_denies_unlocking_display_case"
+      ],
+      "availableSceneIds": [
+        "location_warehouse_theatre_stage"
+      ]
+    },
+    {
+      "dialogueId": "dialogue-statement_edwin_minimizes_blank_packet",
+      "characterId": "suspect_edwin_vale",
+      "question": "\u00D4ng bi\u1EBFt g\u00EC v\u1EC1 g\u00F3i gi\u1EA5y tr\u1EAFng \u0111\u01B0\u1EE3c chu\u1EA9n b\u1ECB tr\u01B0\u1EDBc bu\u1ED5i l\u1EC5?",
+      "answer": "T\u00F4i c\u00F3 g\u1EA5p m\u1ED9t g\u00F3i gi\u1EA5y tr\u1EAFng t\u1EEB gi\u1EA5y tr\u00EAn b\u00E0n, nh\u01B0ng \u0111\u00F3 ch\u1EC9 l\u00E0 gi\u1EA5y v\u0103n ph\u00F2ng.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "statementIds": [
+        "statement_edwin_minimizes_blank_packet"
+      ],
+      "availableSceneIds": [
+        "location_backstage_inspection_corridor"
+      ]
+    },
+    {
+      "dialogueId": "dialogue-statement_edwin_claims_only_relic_was_taken",
+      "characterId": "suspect_edwin_vale",
+      "question": "Theo \u00F4ng, k\u1EBB tr\u1ED9m \u0111\u00E3 l\u1EA5y th\u1EE9 g\u00EC kh\u1ECFi t\u1EE7?",
+      "answer": "K\u1EBB tr\u1ED9m ch\u1EC9 l\u1EA5y b\u1EA3o v\u1EADt h\u00E0ng h\u1EA3i kh\u1ECFi t\u1EE7 tr\u01B0ng b\u00E0y.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "statementIds": [
+        "statement_edwin_claims_only_relic_was_taken"
+      ],
+      "availableSceneIds": [
+        "location_warehouse_theatre_stage"
+      ]
+    },
+    {
+      "dialogueId": "dialogue-statement_hector_dates_original_ledger_entry",
+      "characterId": "suspect_hector_pike",
+      "question": "\u00D4ng \u0111\u00E3 l\u00E0m g\u00EC tr\u01B0\u1EDBc khi sang khu v\u1EF1c qu\u1EA7y v\u00E9?",
+      "answer": "T\u00F4i vi\u1EBFt m\u1EE5c ki\u1EC3m h\u00E0ng t\u1EEB ph\u00FAt b\u1EA3y \u0111\u1EBFn ph\u00FAt ch\u00EDn, \u0111\u00F3ng s\u1ED5 r\u1ED3i sang qu\u1EA7y v\u00E9.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "statementIds": [
+        "statement_hector_dates_original_ledger_entry"
+      ],
+      "availableSceneIds": [
+        "location_backstage_inspection_corridor",
+        "location_ticket_booth_guest_entrance"
+      ]
+    },
+    {
+      "dialogueId": "dialogue-statement_mabel_confirms_clara_at_entrance",
+      "characterId": "suspect_mabel_finch",
+      "question": "C\u00F4 \u0111\u00E3 th\u1EA5y Clara \u1EDF \u0111\u00E2u trong qu\u00E3ng gi\u00E1n \u0111o\u1EA1n?",
+      "answer": "T\u00F4i li\u00EAn t\u1EE5c th\u1EA5y Clara x\u1EBFp ch\u01B0\u01A1ng tr\u00ECnh c\u1EA1nh qu\u1EA7y v\u00E9 t\u1EEB ph\u00FAt m\u01B0\u1EDDi hai \u0111\u1EBFn ph\u00FAt hai m\u01B0\u01A1i m\u1ED1t.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "statementIds": [
+        "statement_mabel_confirms_clara_at_entrance"
+      ],
+      "availableSceneIds": [
+        "location_ticket_booth_guest_entrance"
+      ]
+    },
+    {
+      "dialogueId": "dialogue-statement_clara_confirms_mabel_at_booth",
+      "characterId": "suspect_clara_wren",
+      "question": "C\u00F4 c\u00F3 nh\u00ECn th\u1EA5y Mabel trong l\u00FAc bu\u1ED5i l\u1EC5 b\u1ECB gi\u00E1n \u0111o\u1EA1n kh\u00F4ng?",
+      "answer": "Mabel \u1EDF sau qu\u1EA7y v\u00E0 ki\u1EC3m tra cu\u1ED1ng v\u00E9 su\u1ED1t th\u1EDDi gian gi\u00E1n \u0111o\u1EA1n.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "statementIds": [
+        "statement_clara_confirms_mabel_at_booth"
+      ],
+      "availableSceneIds": [
+        "location_ticket_booth_guest_entrance"
+      ]
+    }
+  ],
+  "testimonyFragments": [
+    {
+      "id": "fragment-challenge-01-01",
+      "dialogueId": "dialogue-statement_edwin_denies_unlocking_display_case",
+      "text": "trong l\u00FAc bu\u1ED5i l\u1EC5 b\u1ECB gi\u00E1n \u0111o\u1EA1n, t\u00F4i kh\u00F4ng m\u1EDF kh\u00F3a t\u1EE7 tr\u01B0ng b\u00E0y"
+    },
+    {
+      "id": "fragment-challenge-01-02",
+      "dialogueId": "dialogue-statement_edwin_denies_unlocking_display_case",
+      "text": "Vi\u1EC7c t\u00F4i c\u00F3 quy\u1EC1n gi\u1EEF ch\u00ECa kh\u00F3a h\u1EADu tr\u01B0\u1EDDng kh\u00F4ng ch\u1EE9ng minh r\u1EB1ng t\u00F4i \u0111\u00E3 d\u00F9ng n\u00F3"
+    }
+  ],
+  "conversationNodes": [],
+  "evidenceChallenges": [
+    {
+      "order": 1,
+      "isSignature": true,
+      "challengeId": "challenge-01",
+      "dialogueId": "dialogue-statement_edwin_denies_unlocking_display_case",
+      "testimonyFragmentId": "fragment-challenge-01-01",
+      "candidateTestimonyFragmentIds": [
+        "fragment-challenge-01-01",
+        "fragment-challenge-01-02"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-challenge-01-01",
+        "fragment-challenge-01-02"
+      ],
+      "prompt": "Edwin ph\u1EE7 nh\u1EADn \u0111\u00E3 m\u1EDF t\u1EE7 trong l\u00FAc gi\u00E1n \u0111o\u1EA1n. H\u00E3y ch\u1ECDn d\u1EA5u v\u1EBFt tr\u1EF1c ti\u1EBFp \u0111\u1EB7t tay \u00F4ng tr\u00EAn \u1ED5 kh\u00F3a.",
+      "correctEvidenceId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+      "candidateEvidenceIds": [
+        "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+        "clue-trace_original_deed_red_wax_flake_in_plinth",
+        "clue-trace_blank_packet_fold_from_edwin_desk_stock"
+      ],
+      "startRequiredEvidenceIds": [
+        "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+        "clue-trace_original_deed_red_wax_flake_in_plinth"
+      ],
+      "successResponse": "C\u00E1c \u0111i\u1EC3m ph\u00E2n nh\u00E1nh trong s\u00E1p kh\u1EDBp v\u1EDBi ng\u00F3n c\u00E1i ph\u1EA3i c\u1EE7a Edwin. L\u1EDDi ph\u1EE7 nh\u1EADn c\u1EE7a \u00F4ng kh\u00F4ng th\u1EC3 \u0111\u1EE9ng v\u1EEFng tr\u01B0\u1EDBc d\u1EA5u v\u1EBFt n\u00E0y.",
+      "failureResponse": "B\u1EB1ng ch\u1EE9ng \u0111\u00F3 li\u00EAn quan \u0111\u1EBFn v\u1EE5 tr\u00E1o \u0111\u1ED5i, nh\u01B0ng kh\u00F4ng tr\u1EF1c ti\u1EBFp b\u00E1c b\u1ECF l\u1EDDi ph\u1EE7 nh\u1EADn \u0111\u00E3 ch\u1EA1m v\u00E0o \u1ED5 kh\u00F3a.",
+      "revealTitle": "D\u1EA5u V\u00E2n B\u00E1c B\u1ECF L\u1EDDi Ph\u1EE7 Nh\u1EADn",
+      "unlockClueIds": [
+        "clue-reveal-challenge-01"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-conclusion-motive",
+      "prompt": "M\u1EA3nh s\u00E1p ch\u1EE9ng th\u01B0 v\u00E0 g\u00F3i thay th\u1EBF cho th\u1EA5y m\u1EE5c ti\u00EAu th\u1EADt c\u1EE7a k\u1EBF ho\u1EA1ch l\u00E0 g\u00EC?",
+      "requiredClueIds": [
+        "clue-trace_original_deed_red_wax_flake_in_plinth"
+      ],
+      "requiredChallengeIds": [
+        "challenge-01"
+      ],
+      "options": [
+        {
+          "id": "deduction-01-correct",
+          "label": "Lo\u1EA1i b\u1ECF ch\u1EE9ng th\u01B0 g\u1ED1c \u0111e d\u1ECDa ph\u1EA7n th\u1EEBa k\u1EBF d\u1EF1 ki\u1EBFn; d\u00F9ng b\u1EA3o v\u1EADt l\u00E0m m\u1EE5c ti\u00EAu gi\u1EA3"
+        },
+        {
+          "id": "deduction-01-wrong-a",
+          "label": "B\u00E1n b\u1EA3o v\u1EADt h\u00E0ng h\u1EA3i \u0111\u1EC3 l\u1EA5y ti\u1EC1n ngay trong \u0111\u00EAm"
+        },
+        {
+          "id": "deduction-01-wrong-b",
+          "label": "Ph\u00E1 bu\u1ED5i l\u1EC5 nh\u1EB1m g\u00E2y tai ti\u1EBFng cho Clara"
+        }
+      ],
+      "correctOptionId": "deduction-01-correct",
+      "successResponse": "Ch\u00EDnh x\u00E1c. Ch\u1EE9ng th\u01B0 \u0111\u00E3 b\u1ECB r\u00FAt kh\u1ECFi \u0111\u1EBF v\u00E0 thay b\u1EB1ng g\u00F3i tr\u1EAFng; b\u1EA3o v\u1EADt b\u1ECB mang \u0111i ch\u1EC9 \u0111\u1EC3 h\u01B0\u1EDBng m\u1ECDi ng\u01B0\u1EDDi kh\u1ECFi t\u00E0i s\u1EA3n ph\u00E1p l\u00FD th\u1EADt s\u1EF1.",
+      "failureResponse": "L\u1EF1a ch\u1ECDn \u0111\u00F3 kh\u00F4ng gi\u1EA3i th\u00EDch v\u00EC sao ch\u1EE9ng th\u01B0 ni\u00EAm phong b\u1ECB r\u00FAt kh\u1ECFi \u0111\u1EBF r\u1ED3i thay b\u1EB1ng m\u1ED9t g\u00F3i \u0111\u00E3 chu\u1EA9n b\u1ECB s\u1EB5n.",
+      "unlockClueIds": [],
+      "conclusionId": "conclusion-motive"
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-01",
+      "investigatorClueId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+      "interrogatorChallengeId": "challenge-01",
+      "deductionId": "deduction-conclusion-motive",
+      "description": "M\u1ED9t ng\u01B0\u1EDDi \u0111i\u1EC1u tra s\u00E2n kh\u1EA5u \u0111\u1EC3 thu d\u1EA5u ng\u00F3n c\u00E1i trong s\u00E1p kh\u00F3a; ng\u01B0\u1EDDi kia d\u00F9ng n\u00F3 b\u1EBB g\u00E3y l\u1EDDi ph\u1EE7 nh\u1EADn c\u1EE7a Edwin. Sau \u0111\u00F3, c\u1EA3 hai k\u1EBFt h\u1EE3p k\u1EBFt qu\u1EA3 \u0111\u1ED1i ch\u1EA5t v\u1EDBi m\u1EA3nh s\u00E1p ch\u1EE9ng th\u01B0 \u0111\u1EC3 x\u00E1c \u0111\u1ECBnh m\u1EE5c ti\u00EAu th\u1EADt."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-scene-location_backstage_inspection_corridor",
+      "contextType": "SCENE",
+      "targetId": "location_backstage_inspection_corridor",
+      "order": 1,
+      "text": "T\u00ECm ch\u00ECa kh\u00F3a nh\u1ECF, ki\u1EC3m tra chi\u1EBFc th\u00F9ng s\u00E1t t\u01B0\u1EDDng v\u00E0 quan s\u00E1t nh\u1EEFng tinh th\u1EC3 kh\u00F4 c\u00F2n m\u1EAFc b\u00EAn trong."
+    },
+    {
+      "hintId": "hint-scene-location_ticket_booth_guest_entrance",
+      "contextType": "SCENE",
+      "targetId": "location_ticket_booth_guest_entrance",
+      "order": 1,
+      "text": "\u0110\u1ED1i chi\u1EBFu ai nh\u00ECn th\u1EA5y ai t\u1EEB ph\u00FAt m\u01B0\u1EDDi hai \u0111\u1EBFn ph\u00FAt hai m\u01B0\u01A1i m\u1ED1t. Nh\u1EEFng l\u1EDDi x\u00E1c nh\u1EADn ch\u00E9o s\u1EBD thu h\u1EB9p ng\u01B0\u1EDDi c\u00F3 c\u01A1 h\u1ED9i r\u1EDDi \u0111i."
+    },
+    {
+      "hintId": "hint-scene-location_warehouse_theatre_stage",
+      "contextType": "SCENE",
+      "targetId": "location_warehouse_theatre_stage",
+      "order": 1,
+      "text": "\u0110\u1EEBng ch\u1EC9 nh\u00ECn chi\u1EBFc t\u1EE7 tr\u1ED1ng. H\u00E3y ki\u1EC3m tra s\u00E1p quanh \u1ED5 kh\u00F3a, d\u00E2y treo ph\u00F4ng c\u1EA3nh v\u00E0 khe b\u00EAn trong \u0111\u1EBF b\u1EA3o v\u1EADt."
+    },
+    {
+      "hintId": "hint-challenge-01",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-01",
+      "order": 1,
+      "text": "T\u1EADp trung v\u00E0o b\u1EB1ng ch\u1EE9ng \u0111\u1EB7t tr\u1EF1c ti\u1EBFp ng\u00F3n tay Edwin tr\u00EAn \u1ED5 kh\u00F3a, kh\u00F4ng ph\u1EA3i d\u1EA5u v\u1EBFt ch\u1EC9 li\u00EAn quan \u0111\u1EBFn th\u1EE9 n\u1EB1m trong \u0111\u1EBF."
+    },
+    {
+      "hintId": "hint-deduction-conclusion-motive",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-conclusion-motive",
+      "order": 1,
+      "text": "N\u1EBFu b\u1EA3o v\u1EADt l\u00E0 m\u1EE5c ti\u00EAu duy nh\u1EA5t, v\u00EC sao m\u1ED9t v\u1EADt ni\u00EAm phong trong \u0111\u1EBF l\u1EA1i b\u1ECB l\u1EA5y v\u00E0 thay b\u1EB1ng g\u00F3i tr\u1EAFng v\u1EEBa kh\u00EDt?"
+    }
+  ],
+  "interactions": [
+    {
+      "interactionId": "interaction-01",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-projection-03",
+      "requiredItemIds": [
+        "item-projection-01"
+      ],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": [],
+      "unlockSceneIds": [],
+      "consumeItemIds": [],
+      "successMessage": "Ch\u00ECa kh\u00F3a \u0111\u1ED3ng xoay v\u1EEBa \u1ED5. N\u1EAFp th\u00F9ng b\u1EADt m\u1EDF, \u0111\u1EC3 l\u1ED9 l\u1EDBp b\u1EE5i mu\u1ED1i kh\u00F4 c\u00F2n m\u1EAFc tr\u00EAn l\u1EDBp l\u00F3t b\u00EAn trong.",
+      "failureMessage": "\u1ED4 kh\u00F3a c\u00F2n nguy\u00EAn. B\u1EA1n c\u1EA7n t\u00ECm chi\u1EBFc ch\u00ECa nh\u1ECF d\u00F9ng cho th\u00F9ng ki\u1EC3m h\u00E0ng.",
+      "singleUse": true
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "puzzle-01",
+      "type": "CODE_PUZZLE",
+      "targetId": "suspect_edwin_vale",
+      "prompt": "Kh\u00F3a ki\u1EC3m tra d\u00F9ng ba ch\u1EEF s\u1ED1. D\u1EF1a theo th\u1EE9 t\u1EF1 \u0111\u00E1nh d\u1EA5u tr\u00EAn c\u01A1 c\u1EA5u ni\u00EAm phong, h\u00E3y nh\u1EADp m\u00E3: ba, m\u1ED9t, b\u1ED1n.",
+      "options": [],
+      "correctCode": "314",
+      "correctSequence": [],
+      "requiredItemIds": [],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": [],
+      "unlockSceneIds": [],
+      "successMessage": "M\u00E3 314 kh\u1EDBp. C\u01A1 c\u1EA5u b\u1EADt m\u1EDF, cho ph\u00E9p b\u1EA1n ti\u1EBFp t\u1EE5c ki\u1EC3m tra m\u00E0n tr\u00E1o \u0111\u1ED5i.",
+      "failureMessage": "C\u01A1 c\u1EA5u kh\u00F4ng nh\u00FAc nh\u00EDch. H\u00E3y nh\u1EADp ba ch\u1EEF s\u1ED1 theo \u0111\u00FAng th\u1EE9 t\u1EF1 \u0111\u00E3 ch\u1EC9 ra.",
+      "basedOnTruthIds": [
+        "conclusion-motive"
+      ],
+      "investigationPurpose": "M\u1EDF c\u01A1 c\u1EA5u ki\u1EC3m tra \u0111\u1EC3 ti\u1EBFp t\u1EE5c \u0111\u1ED1i chi\u1EBFu v\u1EADt thay th\u1EBF v\u1EDBi ng\u0103n gi\u1EA5u ch\u1EE9ng th\u01B0.",
+      "revealsConclusionIds": [
+        "conclusion-motive"
+      ],
+      "progressionRole": "REQUIRED"
+    }
+  ],
+  "alternateRewardPaths": [],
+  "finalLogic": {
+    "culpritId": "suspect_edwin_vale",
+    "motive": "Edwin mu\u1ED1n h\u1EE7y ch\u1EE9ng th\u01B0 c\u00F3 th\u1EC3 l\u00E0m m\u1EA5t ph\u1EA7n t\u00E0i s\u1EA3n b\u1EBFn c\u1EA3ng m\u00E0 \u00F4ng d\u1EF1 ki\u1EBFn \u0111\u01B0\u1EE3c th\u1EEBa k\u1EBF.",
+    "method": "Edwin d\u00F9ng ch\u00ECa kh\u00F3a h\u1EADu tr\u01B0\u1EDDng trong kho\u1EA3ng gi\u00E1n \u0111o\u1EA1n \u0111\u1EC3 \u0111\u1ED5i ch\u1EE9ng th\u01B0 gi\u1EA5u trong \u0111\u1EBF b\u1EA3o v\u1EADt l\u1EA5y gi\u1EA5y tr\u1EAFng r\u1ED3i mang b\u1EA3o v\u1EADt \u0111i l\u00E0m m\u1EE5c ti\u00EAu gi\u1EA3.",
+    "requiredEvidenceIds": [
+      "clue-trace_original_deed_red_wax_flake_in_plinth",
+      "clue-trace_blank_packet_fold_from_edwin_desk_stock",
+      "clue-trace_relic_salt_dust_inside_inspection_crate",
+      "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+      "clue-trace_fresh_frays_prove_rope_was_deliberately_loosened"
+    ],
+    "motiveOptions": [
+      {
+        "id": "motive-correct",
+        "label": "Edwin mu\u1ED1n h\u1EE7y ch\u1EE9ng th\u01B0 c\u00F3 th\u1EC3 l\u00E0m m\u1EA5t ph\u1EA7n t\u00E0i s\u1EA3n b\u1EBFn c\u1EA3ng m\u00E0 \u00F4ng d\u1EF1 ki\u1EBFn \u0111\u01B0\u1EE3c th\u1EEBa k\u1EBF."
+      },
+      {
+        "id": "motive-distractor-01",
+        "label": "Tr\u1ED9m b\u1EA3o v\u1EADt h\u00E0ng h\u1EA3i \u0111\u1EC3 b\u00E1n l\u1EA5y ti\u1EC1n"
+      },
+      {
+        "id": "motive-distractor-02",
+        "label": "Ph\u00E1 ho\u1EA1i bu\u1ED5i l\u1EC5 \u0111\u1EC3 tr\u1EA3 \u0111\u0169a Clara"
+      }
+    ],
+    "methodOptions": [
+      {
+        "id": "method-correct",
+        "label": "Edwin d\u00F9ng ch\u00ECa kh\u00F3a h\u1EADu tr\u01B0\u1EDDng trong kho\u1EA3ng gi\u00E1n \u0111o\u1EA1n \u0111\u1EC3 \u0111\u1ED5i ch\u1EE9ng th\u01B0 gi\u1EA5u trong \u0111\u1EBF b\u1EA3o v\u1EADt l\u1EA5y gi\u1EA5y tr\u1EAFng r\u1ED3i mang b\u1EA3o v\u1EADt \u0111i l\u00E0m m\u1EE5c ti\u00EAu gi\u1EA3."
+      },
+      {
+        "id": "method-distractor-01",
+        "label": "L\u1EBBn qua c\u1EEDa ch\u00EDnh, \u0111\u1EADp t\u1EE7 v\u00E0 chuy\u1EC3n b\u1EA3o v\u1EADt cho m\u1ED9t v\u1ECB kh\u00E1ch"
+      },
+      {
+        "id": "method-distractor-02",
+        "label": "Nh\u1EDD Hector s\u1EEDa s\u1ED5 tr\u1EF1c r\u1ED3i \u0111\u01B0a b\u1EA3o v\u1EADt ra ngo\u00E0i b\u1EB1ng c\u1ED5ng kho"
+      }
+    ],
+    "correctMotiveId": "motive-correct",
+    "correctMethodId": "method-correct",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "conclusionId": "conclusion-motive",
+        "evidenceId": "clue-trace_original_deed_red_wax_flake_in_plinth"
+      },
+      {
+        "claimType": "METHOD",
+        "conclusionId": "conclusion-method",
+        "evidenceId": "clue-trace_blank_packet_fold_from_edwin_desk_stock"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "conclusionId": "conclusion-opportunity",
+        "evidenceId": "clue-trace_relic_salt_dust_inside_inspection_crate"
+      },
+      {
+        "claimType": "IDENTITY",
+        "conclusionId": "conclusion-identity",
+        "evidenceId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax"
+      },
+      {
+        "claimType": "TIMELINE",
+        "conclusionId": "conclusion-timeline",
+        "evidenceId": "clue-trace_fresh_frays_prove_rope_was_deliberately_loosened"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-conclusion-motive"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-01"
+    ],
+    "winEnding": "C\u00E1c m\u1ED1c gi\u1EDD kh\u00E9p l\u1EA1i nh\u01B0 m\u1ED9t v\u00F2ng kh\u00F3a. Clara, Mabel v\u00E0 Hector \u0111\u1EC1u \u0111\u01B0\u1EE3c nh\u00ECn th\u1EA5y t\u1EA1i l\u1ED1i v\u00E0o trong qu\u00E3ng gi\u00E1n \u0111o\u1EA1n; Edwin th\u00EC kh\u00F4ng. D\u1EA5u ng\u00F3n c\u00E1i trong s\u00E1p ch\u1EE9ng minh \u00F4ng \u0111\u00E3 m\u1EDF t\u1EE7. M\u1EA3nh s\u00E1p \u0111\u1ECF v\u00E0 g\u00F3i tr\u1EAFng cho th\u1EA5y ch\u1EE9ng th\u01B0 g\u1ED1c m\u1EDBi l\u00E0 m\u1EE5c ti\u00EAu, c\u00F2n b\u1EE5i mu\u1ED1i d\u1EABn t\u1EDBi n\u01A1i b\u1EA3o v\u1EADt b\u1ECB gi\u1EA5u l\u00E0m m\u1ED3i nh\u1EED. Tr\u01B0\u1EDBc chu\u1ED7i ch\u1EE9ng c\u1EE9, Edwin kh\u00F4ng th\u1EC3 ti\u1EBFp t\u1EE5c ph\u1EE7 nh\u1EADn: \u00F4ng \u0111\u00E3 chu\u1EA9n b\u1ECB v\u1EE5 s\u1EADp, tr\u00E1o ch\u1EE9ng th\u01B0 \u0111\u1EC3 b\u1EA3o v\u1EC7 ph\u1EA7n th\u1EEBa k\u1EBF d\u1EF1 ki\u1EBFn r\u1ED3i d\u1EF1ng n\u00EAn m\u1ED9t v\u1EE5 tr\u1ED9m b\u1EA3o v\u1EADt. M\u00E0n h\u1EA1 xu\u1ED1ng, nh\u01B0ng s\u1EF1 th\u1EADt cu\u1ED1i c\u00F9ng \u0111\u00E3 b\u01B0\u1EDBc ra \u00E1nh s\u00E1ng.",
+    "failEnding": "L\u1EDDi bu\u1ED9c t\u1ED9i kh\u00F4ng n\u1ED1i \u0111\u01B0\u1EE3c m\u1EE5c ti\u00EAu v\u1EDBi ph\u01B0\u01A1ng th\u1EE9c v\u00E0 d\u1EA5u v\u1EBFt t\u1EA1i hi\u1EC7n tr\u01B0\u1EDDng. Nh\u1EEFng l\u1EDDi khai ti\u1EBFp t\u1EE5c ch\u1ED3ng ch\u00E9o, c\u00F2n k\u1EBB \u0111\u00E3 l\u1EE3i d\u1EE5ng qu\u00E3ng gi\u00E1n \u0111o\u1EA1n r\u1EDDi kh\u1ECFi v\u00F2ng nghi v\u1EA5n. Bu\u1ED5i l\u1EC5 k\u1EBFt th\u00FAc trong ho\u00E0i nghi, ch\u1EE9ng th\u01B0 v\u1EABn m\u1EA5t t\u00EDch v\u00E0 m\u00E0n s\u01B0\u01A1ng ngo\u00E0i b\u1EBFn c\u1EA3ng nu\u1ED1t l\u1EA5y c\u01A1 h\u1ED9i cu\u1ED1i c\u00F9ng \u0111\u1EC3 kh\u00E9p v\u1EE5 \u00E1n."
+  },
+  "presentation": null,
+  "createdAt": "2026-09-28T14:39:52.6115748Z",
+  "updatedAt": "2026-09-28T14:39:52.6115748Z"
+}
