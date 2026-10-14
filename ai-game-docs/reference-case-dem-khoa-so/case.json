@@ -1,0 +1,1409 @@
+{
+  "caseId": "case-reference-dem-khoa-so-vi",
+  "title": "Đêm khóa sổ",
+  "summary": "22:00, nhà hát Vọng Âm đóng cửa sau đêm diễn cứu trợ. Trong phong bì quỹ, tờ lệnh chi đã bị thay. Sáng mai ngân hàng sẽ trả tiền cho người ghi trên lệnh. Một người khám nghiệm vật chứng, một người gỡ lời khai: hãy tìm ra ai đã đổi hồ sơ trước khi quỹ bị rút.",
+  "language": "vi",
+  "status": "DRAFT",
+  "mechanicsVersion": 3,
+  "generationMode": "PLACEMENT_FIRST",
+  "logicContractVersion": 1,
+  "estimatedMinutes": 35,
+  "coverImageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png",
+  "stages": [
+    {
+      "stageId": "stage-dem-khoa-so-1",
+      "title": "Hồi I — Quầy vé sau màn hạ",
+      "order": 1,
+      "scenes": [
+        {
+          "sceneId": "scene-box-office-dks",
+          "title": "Phòng vé Vọng Âm",
+          "backgroundUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/ticket-office.png",
+          "description": "Trên quầy là hai nửa biên nhận và phong bì có dấu sáp đỏ. Chìa ngăn hồ sơ treo trên móc đồng cạnh cửa. Kiểm tra vật chứng, chụp rõ móc treo sau khi lấy chìa và nhờ đồng đội hỏi Mai cùng Khang.",
+          "itemIds": [
+            "item-receipt-left-dks",
+            "item-receipt-right-dks",
+            "item-locker-key-dks",
+            "item-sealed-packet-dks",
+            "item-pawn-ticket-dks"
+          ],
+          "characterIds": [
+            "char-mai-dks",
+            "char-vu-dks"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-office-item-1-dks",
+              "type": "ITEM",
+              "targetId": "item-receipt-left-dks",
+              "x": 43.8125,
+              "y": 50.888888888888886,
+              "width": 5.5,
+              "height": 6.0,
+              "zIndex": 10,
+              "label": "Nửa trái biên nhận",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-2-dks",
+              "type": "ITEM",
+              "targetId": "item-receipt-right-dks",
+              "x": 50.625,
+              "y": 50.22222222222222,
+              "width": 5.0,
+              "height": 5.555555555555555,
+              "zIndex": 10,
+              "label": "Nửa phải biên nhận",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-3-dks",
+              "type": "ITEM",
+              "targetId": "item-locker-key-dks",
+              "x": 25.9375,
+              "y": 42.77777777777778,
+              "width": 3.625,
+              "height": 8.88888888888889,
+              "zIndex": 10,
+              "label": "Chìa ngăn hồ sơ",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-office-item-4-dks",
+              "type": "ITEM",
+              "targetId": "item-sealed-packet-dks",
+              "x": 56.875,
+              "y": 50.111111111111114,
+              "width": 6.875,
+              "height": 7.111111111111111,
+              "zIndex": 10,
+              "label": "Phong bì lệnh chi",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-box-office-dks-char-mai-dks-dks",
+              "type": "CHARACTER",
+              "targetId": "char-mai-dks",
+              "x": 74.375,
+              "y": 60.55555555555556,
+              "width": 7.5,
+              "height": 26.666666666666668,
+              "zIndex": 10,
+              "label": "Mai Vân — Nhân viên phòng vé",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-box-office-dks-char-vu-dks-dks",
+              "type": "CHARACTER",
+              "targetId": "char-vu-dks",
+              "x": 19.0625,
+              "y": 58.333333333333336,
+              "width": 7.5,
+              "height": 26.666666666666668,
+              "zIndex": 10,
+              "label": "Vũ Khang — Thủ quỹ",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-old-debt-dks",
+              "type": "ITEM",
+              "targetId": "item-pawn-ticket-dks",
+              "x": 37.6875,
+              "y": 49.55555555555556,
+              "width": 4.875,
+              "height": 5.333333333333333,
+              "zIndex": 10,
+              "label": "Phiếu cầm đồng hồ cũ",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 825,
+            "walkableArea": {
+              "x": 70,
+              "y": 620,
+              "width": 1460,
+              "height": 240
+            },
+            "navigationObstacles": [
+              {
+                "x": 525,
+                "y": 620,
+                "width": 590,
+                "height": 65
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 635,
+                "y": 825,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 635,
+                "y": 825,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INTERROGATOR": {
+                "x": 985,
+                "y": 825,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-study.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-receipt-left-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-left.png",
+                "position": {
+                  "x": 745,
+                  "y": 504,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 72,
+                  "height": 42
+                },
+                "hotspot": {
+                  "x": 701.0,
+                  "y": 458,
+                  "width": 88,
+                  "height": 54
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-receipt-right-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-right.png",
+                "position": {
+                  "x": 850,
+                  "y": 494,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 64,
+                  "height": 38
+                },
+                "hotspot": {
+                  "x": 810.0,
+                  "y": 452,
+                  "width": 80,
+                  "height": 50
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-locker-key-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/brass-key.png",
+                "position": {
+                  "x": 444,
+                  "y": 457,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 42,
+                  "height": 68
+                },
+                "hotspot": {
+                  "x": 415.0,
+                  "y": 385,
+                  "width": 58,
+                  "height": 80
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-sealed-packet-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/sealed-envelope.png",
+                "position": {
+                  "x": 965,
+                  "y": 507,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 94,
+                  "height": 52
+                },
+                "hotspot": {
+                  "x": 910.0,
+                  "y": 451,
+                  "width": 110,
+                  "height": 64
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-pawn-ticket-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/pawn-ticket.png",
+                "position": {
+                  "x": 642,
+                  "y": 486,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 62,
+                  "height": 36
+                },
+                "hotspot": {
+                  "x": 603,
+                  "y": 446,
+                  "width": 78,
+                  "height": 48
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mai-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png",
+                "position": {
+                  "x": 1250,
+                  "y": 780,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1190,
+                  "y": 545,
+                  "width": 120,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              },
+              {
+                "characterId": "char-vu-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/vu-khang.png",
+                "position": {
+                  "x": 365,
+                  "y": 760,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 305,
+                  "y": 525,
+                  "width": 120,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "right"
+              }
+            ],
+            "clueZones": [
+              {
+                "clueId": "evidence-intact-hook-dks",
+                "label": "Móc đồng cạnh cửa",
+                "bounds": {
+                  "x": 426,
+                  "y": 340,
+                  "width": 38,
+                  "height": 66
+                },
+                "shape": "rect",
+                "surface": "wall",
+                "visibility": "clear",
+                "detectionDifficulty": "easy",
+                "detectionStatus": "FOUND",
+                "confidence": 0.95,
+                "source": "manual-visual-review",
+                "isFallback": false,
+                "requiredClueIds": [],
+                "reason": "Pixel-v2 image visually inspected: intact brass J hook below left poster, approximately 28% width and 42% height. Bounds include its plate and curved tip."
+              }
+            ],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-office-passage-dks",
+                "targetSceneId": "scene-service-passage-dks",
+                "label": "Hành lang hậu trường",
+                "hotspot": {
+                  "x": 155,
+                  "y": 190,
+                  "width": 100,
+                  "height": 440
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [
+              "item-receipt-left-dks",
+              "item-receipt-right-dks",
+              "item-locker-key-dks",
+              "item-sealed-packet-dks"
+            ],
+            "requiredClueIds": [
+              "clue-restored-receipt-dks",
+              "evidence-intact-hook-dks"
+            ],
+            "requiredDialogueIds": [
+              "dlg-mara-account-dks"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "stageId": "stage-dem-khoa-so-2",
+      "title": "Hồi II — Hồ sơ trước giờ giải ngân",
+      "order": 2,
+      "scenes": [
+        {
+          "sceneId": "scene-service-passage-dks",
+          "title": "Hành lang kiểm sổ",
+          "backgroundUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/scenes/service-passage.png",
+          "description": "Một hộp hồ sơ khóa số đặt trên bục gỗ; tủ thư dịch vụ ở kệ bên phải. Sơn Lâm chờ cạnh Mai. Dùng biên nhận và chìa đã tìm được để khôi phục dòng thời gian trước khi cùng đối chất.",
+          "itemIds": [
+            "item-cashbox-dks",
+            "item-service-locker-dks"
+          ],
+          "characterIds": [
+            "char-mai-dks",
+            "char-son-dks"
+          ],
+          "hotspots": [
+            {
+              "hotspotId": "hotspot-passage-item-1-dks",
+              "type": "ITEM",
+              "targetId": "item-cashbox-dks",
+              "x": 20.8125,
+              "y": 42.55555555555556,
+              "width": 8.375,
+              "height": 11.333333333333334,
+              "zIndex": 10,
+              "label": "Hộp đối soát khóa số",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-passage-item-2-dks",
+              "type": "ITEM",
+              "targetId": "item-service-locker-dks",
+              "x": 79.9375,
+              "y": 44.333333333333336,
+              "width": 8.875,
+              "height": 12.0,
+              "zIndex": 10,
+              "label": "Ngăn thư dịch vụ",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-service-passage-dks-char-mai-dks-dks",
+              "type": "CHARACTER",
+              "targetId": "char-mai-dks",
+              "x": 73.4375,
+              "y": 58.888888888888886,
+              "width": 7.5,
+              "height": 26.666666666666668,
+              "zIndex": 10,
+              "label": "Mai Vân — Nhân viên phòng vé",
+              "requiredClueIds": []
+            },
+            {
+              "hotspotId": "hotspot-scene-service-passage-dks-char-son-dks-dks",
+              "type": "CHARACTER",
+              "targetId": "char-son-dks",
+              "x": 60.0,
+              "y": 61.666666666666664,
+              "width": 7.5,
+              "height": 26.666666666666668,
+              "zIndex": 10,
+              "label": "Sơn Lâm — Bảo vệ đêm",
+              "requiredClueIds": []
+            }
+          ],
+          "runtime": {
+            "width": 1600,
+            "height": 900,
+            "floorY": 825,
+            "walkableArea": {
+              "x": 70,
+              "y": 620,
+              "width": 1460,
+              "height": 240
+            },
+            "navigationObstacles": [
+              {
+                "x": 245,
+                "y": 620,
+                "width": 300,
+                "height": 30
+              },
+              {
+                "x": 1270,
+                "y": 620,
+                "width": 265,
+                "height": 85
+              }
+            ],
+            "spawnPoints": {
+              "default": {
+                "x": 670,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "right"
+              },
+              "INVESTIGATOR": {
+                "x": 670,
+                "y": 830,
+                "anchor": "bottom-center",
+                "direction": "left"
+              },
+              "INTERROGATOR": {
+                "x": 840,
+                "y": 840,
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            },
+            "audio": {
+              "ambienceUrl": "/assets/audio/point-click/ambience-hall.wav",
+              "cues": {
+                "dialogue": "/assets/audio/point-click/dialogue.wav",
+                "discovery": "/assets/audio/point-click/discovery.wav",
+                "reveal": "/assets/audio/point-click/reveal.wav",
+                "scene": "/assets/audio/point-click/scene.wav",
+                "ping": "/assets/audio/point-click/ping.wav",
+                "interact": "/assets/audio/point-click/interact.wav",
+                "error": "/assets/audio/point-click/error.wav"
+              }
+            },
+            "itemPlacements": [
+              {
+                "itemId": "item-cashbox-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/cashbox.png",
+                "position": {
+                  "x": 400,
+                  "y": 477,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 118,
+                  "height": 90
+                },
+                "hotspot": {
+                  "x": 333.0,
+                  "y": 383,
+                  "width": 134,
+                  "height": 102
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              },
+              {
+                "itemId": "item-service-locker-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/service-lockbox.png",
+                "position": {
+                  "x": 1350,
+                  "y": 499,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 126,
+                  "height": 96
+                },
+                "hotspot": {
+                  "x": 1279.0,
+                  "y": 399,
+                  "width": 142,
+                  "height": 108
+                },
+                "anchor": "bottom-center",
+                "depth": 10
+              }
+            ],
+            "characterPlacements": [
+              {
+                "characterId": "char-mai-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png",
+                "position": {
+                  "x": 1235,
+                  "y": 765,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 1175,
+                  "y": 530,
+                  "width": 120,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              },
+              {
+                "characterId": "char-son-dks",
+                "asset": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/son-lam.png",
+                "position": {
+                  "x": 1020,
+                  "y": 790,
+                  "anchor": "bottom-center"
+                },
+                "size": {
+                  "width": 160,
+                  "height": 240
+                },
+                "hotspot": {
+                  "x": 960,
+                  "y": 555,
+                  "width": 120,
+                  "height": 240
+                },
+                "anchor": "bottom-center",
+                "direction": "left"
+              }
+            ],
+            "clueZones": [],
+            "cameraRules": {
+              "captureRectWidth": 180,
+              "captureRectHeight": 140,
+              "minClueCoverage": 0.45,
+              "nearMissCoverage": 0.22,
+              "requireCaptureCenterInside": true
+            },
+            "transitions": [
+              {
+                "transitionId": "transition-passage-office-dks",
+                "targetSceneId": "scene-box-office-dks",
+                "label": "Trở lại phòng vé",
+                "hotspot": {
+                  "x": 685,
+                  "y": 250,
+                  "width": 155,
+                  "height": 370
+                },
+                "depth": 22
+              }
+            ]
+          },
+          "completeCondition": {
+            "logic": "AND",
+            "requiredItemIds": [],
+            "requiredClueIds": [
+              "evidence-debt-transfer-dks",
+              "evidence-key-entry-dks",
+              "reveal-resealed-packet-dks",
+              "reveal-hook-rumour-dks"
+            ],
+            "requiredDialogueIds": [
+              "dlg-samuel-watch-dks"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "characterId": "char-mai-dks",
+      "name": "Mai Vân",
+      "role": "Nhân viên phòng vé",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/mai-van.png",
+      "description": "Mai tiếp nhận phong bì lệnh chi quỹ lúc 20:50. Cô nói mình rời nhà hát lúc 21:00.",
+      "visualDescription": "Phụ nữ Việt khoảng 32 tuổi, tóc búi, áo đỏ rượu, váy dài xám."
+    },
+    {
+      "characterId": "char-son-dks",
+      "name": "Sơn Lâm",
+      "role": "Bảo vệ đêm",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/son-lam.png",
+      "description": "Lâm bắt đầu ca lúc 21:45. Ông nghi có người lạ giật chìa; cần tách điều ông thấy khỏi điều ông suy đoán.",
+      "visualDescription": "Người Việt khoảng 58 tuổi, mũ vải và đồng phục xanh tối, ria mép mảnh."
+    },
+    {
+      "characterId": "char-vu-dks",
+      "name": "Vũ Khang",
+      "role": "Thủ quỹ",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/characters/vu-khang.png",
+      "description": "Khang bàn giao lệnh chi đã niêm phong rồi đi ngân hàng. Phiếu cầm đồ cũ của ông dễ gây hiểu lầm.",
+      "visualDescription": "Nam Việt khoảng 48 tuổi, kính tròn, bộ vest xanh trầm."
+    }
+  ],
+  "items": [
+    {
+      "itemId": "item-receipt-left-dks",
+      "name": "Nửa trái biên nhận",
+      "description": "Mảnh trái của phiếu hướng dẫn mở hộp đối soát.",
+      "inspectText": "Mũi tên chỉ sang phải; số 21 nằm ở nửa trái. Mép phải bị xé răng cưa. Hãy giữ mảnh để ghép với nửa còn lại.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-left.png",
+      "isCollectible": true,
+      "unlockClueIds": [
+        "clue-receipt-left-dks"
+      ],
+      "renderMode": "CUTOUT",
+      "interactionPurpose": "combine-item",
+      "visualDescription": "Giấy kem, cạnh phải xé, số 21 và mũi tên."
+    },
+    {
+      "itemId": "item-receipt-right-dks",
+      "name": "Nửa phải biên nhận",
+      "description": "Mảnh phải bị mắc ở mép quầy.",
+      "inspectText": "Số 42 nằm ở nửa phải. Hai mép xé khớp nhau, nhưng riêng mảnh này chưa cho biết thứ tự mã.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-right.png",
+      "isCollectible": true,
+      "unlockClueIds": [
+        "clue-receipt-right-dks"
+      ],
+      "renderMode": "CUTOUT",
+      "interactionPurpose": "combine-item",
+      "visualDescription": "Giấy kem, cạnh trái xé, số 42."
+    },
+    {
+      "itemId": "item-locker-key-dks",
+      "name": "Chìa ngăn hồ sơ",
+      "description": "Chìa đồng của ngăn thư dịch vụ.",
+      "inspectText": "Thẻ khóa mang biểu tượng ngăn thư. Móc treo còn đó; sau khi lấy chìa, dùng máy ảnh ghi lại tình trạng thật của móc để kiểm chứng lời bảo vệ.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/brass-key.png",
+      "isCollectible": true,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Chìa đồng cũ, thẻ nhỏ có hình ngăn thư."
+    },
+    {
+      "itemId": "item-sealed-packet-dks",
+      "name": "Phong bì lệnh chi",
+      "description": "Phong bì giấy kem có hai lớp sáp đỏ.",
+      "inspectText": "Dưới dấu sáp mới là mép niêm phong cũ đã nứt. Phong bì từng bị mở rồi đóng lại. Vết này chứng minh can thiệp vào hồ sơ, chưa chứng minh ai làm.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/sealed-envelope.png",
+      "isCollectible": false,
+      "unlockClueIds": [
+        "evidence-overlapping-wax-dks"
+      ],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Phong bì giấy kem, sáp đỏ chồng lên một vòng sáp đỏ bị nứt."
+    },
+    {
+      "itemId": "item-restored-receipt-dks",
+      "name": "Biên nhận đã ghép",
+      "description": "Hai nửa ghép thành hướng dẫn cho khóa đối soát.",
+      "inspectText": "Đọc theo mũi tên từ trái sang phải: 21 | 42. Mã hộp là 2142. Đây chỉ là cách tiếp cận hồ sơ, không phải chứng cứ buộc tội.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/receipt-restored.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Biên nhận giấy kem có đường xé ghép giữa, số 21 và 42 theo thứ tự."
+    },
+    {
+      "itemId": "item-cashbox-dks",
+      "name": "Hộp đối soát khóa số",
+      "description": "Hộp đồng đen giữ bản sao lệnh chi.",
+      "inspectText": "Khóa có bốn vòng số. Biểu tượng biên nhận và mũi tên nhắc đọc hai nửa từ trái sang phải; cần ghép biên nhận trước khi mở.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/cashbox.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "Khóa có bốn vòng số. Biểu tượng biên nhận và mũi tên nhắc đọc hai nửa từ trái sang phải; cần ghép biên nhận trước khi mở.",
+      "visualDescription": "Hộp kim loại xanh đen nhỏ với khóa bốn số bằng đồng."
+    },
+    {
+      "itemId": "item-service-locker-dks",
+      "name": "Ngăn thư dịch vụ",
+      "description": "Hộp thư khóa chìa nằm trên kệ hậu trường.",
+      "inspectText": "Ổ khóa đồng có cùng biểu tượng ngăn thư như thẻ chìa ở quầy. Bên trong giữ cuống giao nhận hồ sơ, không thể lấy chỉ bằng nhìn bên ngoài.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/service-lockbox.png",
+      "isCollectible": false,
+      "unlockClueIds": [],
+      "renderMode": "CUTOUT",
+      "isInteractivePuzzleObject": true,
+      "interactionPurpose": "operate-mechanism",
+      "interactionReason": "Ổ khóa đồng có cùng biểu tượng ngăn thư như thẻ chìa ở quầy. Bên trong giữ cuống giao nhận hồ sơ, không thể lấy chỉ bằng nhìn bên ngoài.",
+      "visualDescription": "Hộp thư gỗ nhỏ, khóa đồng và biểu tượng phong bì."
+    },
+    {
+      "itemId": "item-pawn-ticket-dks",
+      "name": "Phiếu cầm đồng hồ cũ",
+      "description": "Phiếu bị kẹp dưới sổ quầy, mang tên Vũ Khang.",
+      "inspectText": "Phiếu cầm đồng hồ mang tên Vũ Khang, nhưng dấu TẤT TOÁN có ngày từ tuần trước. Ông từng mắc nợ; tờ giấy này không chứng minh động cơ rút quỹ tối nay.",
+      "imageUrl": "/assets/reference-cases/dem-khoa-so/pixel-v2/items/pawn-ticket.png",
+      "isCollectible": false,
+      "unlockClueIds": [
+        "clue-old-debt-dks"
+      ],
+      "renderMode": "CUTOUT",
+      "visualDescription": "Phiếu giấy cũ có hình đồng hồ bỏ túi và dấu đỏ gạch chéo đã tất toán."
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-receipt-left-dks",
+      "title": "Biên nhận — nửa 21",
+      "content": "Nửa trái có số 21, mũi tên sang phải và mép xé răng cưa.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "item-receipt-left-dks",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-dks",
+      "inventoryDescription": "Nửa trái có số 21, mũi tên sang phải và mép xé răng cưa.",
+      "narrativeMeaning": "Cho một nửa mã; cần ghép để biết thứ tự.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "clue-receipt-right-dks",
+      "title": "Biên nhận — nửa 42",
+      "content": "Nửa phải có số 42; đường xé khớp nửa 21.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "item-receipt-right-dks",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-dks",
+      "inventoryDescription": "Nửa phải có số 42; đường xé khớp nửa 21.",
+      "narrativeMeaning": "Kết hợp hai mảnh thay vì đoán khóa.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "clue-restored-receipt-dks",
+      "title": "Mã hộp đối soát: 2142",
+      "content": "Hai mảnh ghép thành chỉ dẫn 21 → 42. Nhập 2142 vào hộp đối soát ở hành lang.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": false,
+      "source": "interaction-repair-receipt-dks",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-box-office-dks",
+      "inventoryDescription": "Hai mảnh ghép thành chỉ dẫn 21 → 42. Nhập 2142 vào hộp đối soát ở hành lang.",
+      "narrativeMeaning": "Mở đường đến hồ sơ tài chính; không xác định thủ phạm.",
+      "hintLevel": 1,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "evidence-overlapping-wax-dks",
+      "title": "Niêm phong đỏ bị chồng lớp",
+      "content": "Lớp sáp đỏ mới phủ lên viền sáp cũ đã gãy. Phong bì lệnh chi không nguyên vẹn suốt tối.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "item-sealed-packet-dks",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-dks",
+      "inventoryDescription": "Lớp sáp đỏ mới phủ lên viền sáp cũ đã gãy. Phong bì lệnh chi không nguyên vẹn suốt tối.",
+      "narrativeMeaning": "Bằng chứng về phương thức mở rồi niêm phong lại; không tự xác định người mở.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "evidence-debt-transfer-dks",
+      "title": "Bản sao lệnh chi trả nợ",
+      "content": "Bản lưu 21:30 mang chữ ký Mai Vân và số khế ước nợ riêng của cô, thay tên đơn vị cứu trợ bằng chủ nợ. Ngân hàng sẽ giải ngân sáng mai; chưa có tiền nào được chuyển.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "puzzle-cashbox-code-dks",
+      "sourceType": "puzzle",
+      "discoverMethod": "puzzle",
+      "sceneId": "scene-service-passage-dks",
+      "inventoryDescription": "Bản lưu 21:30 mang chữ ký Mai Vân và số khế ước nợ riêng của cô, thay tên đơn vị cứu trợ bằng chủ nợ. Ngân hàng sẽ giải ngân sáng mai; chưa có tiền nào được chuyển.",
+      "narrativeMeaning": "Cho thấy Mai có lợi ích cá nhân cụ thể và đã sửa người thụ hưởng.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "evidence-key-entry-dks",
+      "title": "Cuống giao nhận lúc 21:18",
+      "content": "Cuống nộp hồ sơ ghi 21:18, chữ ký Mai Vân khớp sổ trực. Ngay dưới có chữ ký đối chứng của nhân viên nhận thư, ghi rõ Mai tự nộp. Lâm chỉ bắt đầu ca lúc 21:45. Chìa dùng chung không tự chứng minh ai vào.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "interaction-open-locker-dks",
+      "sourceType": "interaction",
+      "discoverMethod": "interaction",
+      "sceneId": "scene-service-passage-dks",
+      "inventoryDescription": "Cuống nộp hồ sơ ghi 21:18, chữ ký Mai Vân khớp sổ trực. Ngay dưới có chữ ký đối chứng của nhân viên nhận thư, ghi rõ Mai tự nộp. Lâm chỉ bắt đầu ca lúc 21:45. Chìa dùng chung không tự chứng minh ai vào.",
+      "narrativeMeaning": "Cơ hội được xác lập bằng chữ ký có đối chứng trên hồ sơ, không bằng suy đoán ai giữ chìa.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "reveal-resealed-packet-dks",
+      "title": "Mai khai sai về niêm phong",
+      "content": "Hai người cùng xác nhận: viền sáp cũ đã gãy bác bỏ câu phong bì nguyên vẹn. Mai thừa nhận từng mở nó nhưng nói chỉ kiểm giấy.",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "dlg-mara-account-dks",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-service-passage-dks",
+      "inventoryDescription": "Hai người cùng xác nhận: viền sáp cũ đã gãy bác bỏ câu phong bì nguyên vẹn. Mai thừa nhận từng mở nó nhưng nói chỉ kiểm giấy.",
+      "narrativeMeaning": "Mở phong bì là sự thật; cần lệnh chi và cuống giao nhận để phân biệt kiểm giấy với đánh tráo.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-mai-dks"
+      ]
+    },
+    {
+      "clueId": "evidence-intact-hook-dks",
+      "title": "Ảnh móc chìa nguyên vẹn",
+      "content": "Ảnh cận cho thấy móc đồng còn đủ đường cong và đế bắt vít, không hề gãy rời. Nó bác bỏ lời mô tả móc bị bẻ gãy; không chứng minh căn phòng chưa từng có người lạ.",
+      "isEvidence": true,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "scene-box-office-dks",
+      "sourceType": "camera",
+      "discoverMethod": "camera",
+      "sceneId": "scene-box-office-dks",
+      "inventoryDescription": "Ảnh cận cho thấy móc đồng còn đủ đường cong và đế bắt vít, không hề gãy rời. Nó bác bỏ lời mô tả móc bị bẻ gãy; không chứng minh căn phòng chưa từng có người lạ.",
+      "narrativeMeaning": "Ảnh cận cho thấy móc đồng còn đủ đường cong và đế bắt vít, không hề gãy rời. Nó bác bỏ lời mô tả móc bị bẻ gãy; không chứng minh căn phòng chưa từng có người lạ.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [],
+      "visualDescription": "Móc đồng hình chữ J còn nguyên, gắn vào đế nhỏ trên tường xanh cạnh cửa bên trái.",
+      "visualTextPolicy": "NO_TEXT"
+    },
+    {
+      "clueId": "reveal-hook-rumour-dks",
+      "title": "Một suy đoán đã thành lời khai",
+      "content": "Đối diện ảnh chụp, Lâm thừa nhận chỉ thấy chìa đung đưa khi đi qua cửa; ông đã tự suy ra móc gãy. Chưa có vật chứng chứng minh một vụ giật chìa từ bên ngoài.",
+      "isEvidence": false,
+      "isCritical": true,
+      "isRedHerring": false,
+      "source": "dlg-samuel-watch-dks",
+      "sourceType": "dialogue",
+      "discoverMethod": "dialogue",
+      "sceneId": "scene-service-passage-dks",
+      "inventoryDescription": "Đối diện ảnh chụp, Lâm thừa nhận chỉ thấy chìa đung đưa khi đi qua cửa; ông đã tự suy ra móc gãy. Chưa có vật chứng chứng minh một vụ giật chìa từ bên ngoài.",
+      "narrativeMeaning": "Đối diện ảnh chụp, Lâm thừa nhận chỉ thấy chìa đung đưa khi đi qua cửa; ông đã tự suy ra móc gãy. Chưa có vật chứng chứng minh một vụ giật chìa từ bên ngoài.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-son-dks"
+      ]
+    },
+    {
+      "clueId": "clue-old-debt-dks",
+      "title": "Khoản nợ đã tất toán",
+      "content": "Phiếu cầm đồng hồ của Khang đã tất toán từ tuần trước. Có nợ trong quá khứ không đồng nghĩa đã sửa lệnh chi tối nay.",
+      "isEvidence": false,
+      "isCritical": false,
+      "isRedHerring": true,
+      "source": "item-pawn-ticket-dks",
+      "sourceType": "item",
+      "discoverMethod": "item",
+      "sceneId": "scene-box-office-dks",
+      "inventoryDescription": "Phiếu cầm đồng hồ của Khang đã tất toán từ tuần trước. Có nợ trong quá khứ không đồng nghĩa đã sửa lệnh chi tối nay.",
+      "narrativeMeaning": "Phiếu cầm đồng hồ của Khang đã tất toán từ tuần trước. Có nợ trong quá khứ không đồng nghĩa đã sửa lệnh chi tối nay.",
+      "hintLevel": 2,
+      "tags": [],
+      "relatedCharacterIds": [
+        "char-vu-dks"
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dlg-mara-account-dks",
+      "characterId": "char-mai-dks",
+      "question": "Sau khi nhận phong bì quỹ, chị đã làm gì?",
+      "answer": "Phong bì quỹ được niêm phong nguyên vẹn cả tối. Tôi nhận phong bì lúc 20:50. Ngăn thư dịch vụ dùng chìa đồng. Tôi rời quầy lúc 21:00 rồi về.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-dks",
+        "scene-service-passage-dks"
+      ]
+    },
+    {
+      "dialogueId": "dlg-samuel-watch-dks",
+      "characterId": "char-son-dks",
+      "question": "Ông thực sự thấy gì ở phòng vé, và ca trực bắt đầu lúc nào?",
+      "answer": "Móc chìa đã bị bẻ gãy. Chắc có người ngoài giật chìa rồi chạy. Tôi bắt đầu tuần tra lúc 21:45; trước giờ đó nhân viên vẫn đi lại. Tôi không tận mắt thấy người nào giật chìa.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-service-passage-dks"
+      ]
+    },
+    {
+      "dialogueId": "dlg-vu-handover-dks",
+      "characterId": "char-vu-dks",
+      "question": "Ông bàn giao gì và vì sao tên ông trên phiếu cầm đồ?",
+      "answer": "20:50, tôi giao Mai phong bì có lệnh chi cho đơn vị cứu trợ. Sau đó tôi đến ngân hàng; biên nhận có dấu 21:10. Khoản cầm đồng hồ đã tất toán tuần trước. Hãy kiểm tra ngày, đừng chỉ nhìn tên.",
+      "requiredClueIds": [],
+      "unlockClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-dks"
+      ]
+    }
+  ],
+  "testimonyFragments": [
+    {
+      "id": "fragment-seal-intact-dks",
+      "dialogueId": "dlg-mara-account-dks",
+      "text": "Phong bì quỹ được niêm phong nguyên vẹn cả tối."
+    },
+    {
+      "id": "fragment-office-alone-dks",
+      "dialogueId": "dlg-mara-account-dks",
+      "text": "Tôi nhận phong bì lúc 20:50."
+    },
+    {
+      "id": "fragment-no-locker-dks",
+      "dialogueId": "dlg-mara-account-dks",
+      "text": "Ngăn thư dịch vụ dùng chìa đồng."
+    },
+    {
+      "id": "fragment-hook-broken-dks",
+      "dialogueId": "dlg-samuel-watch-dks",
+      "text": "Móc chìa đã bị bẻ gãy."
+    },
+    {
+      "id": "fragment-patrol-start-dks",
+      "dialogueId": "dlg-samuel-watch-dks",
+      "text": "Tôi bắt đầu tuần tra lúc 21:45."
+    },
+    {
+      "id": "fragment-no-eyewitness-dks",
+      "dialogueId": "dlg-samuel-watch-dks",
+      "text": "Tôi không tận mắt thấy người nào giật chìa."
+    }
+  ],
+  "conversationNodes": [
+    {
+      "nodeId": "node-victor-root-dks",
+      "characterId": "char-vu-dks",
+      "isRoot": true,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-dks"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Bản lưu lệnh chi nằm trong hộp khóa số. Đọc bản lưu, rồi đối chiếu lời bàn giao và dấu niêm phong; không thể chỉ nhìn tên một người rồi kết tội. Anh chị muốn hỏi gì?"
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-victor-receipt-dks",
+          "label": "Biên nhận dùng thế nào?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-victor-receipt-dks"
+        },
+        {
+          "choiceId": "choice-vu-bank-dks",
+          "label": "Dấu ngân hàng 21:10 xác lập điều gì?",
+          "requiredClueIds": [],
+          "nextNodeId": "node-vu-bank-dks"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-victor-receipt-dks",
+      "characterId": "char-vu-dks",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-dks"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Hai nửa biên nhận ghép theo mép xé. Đọc cặp số trái trước, phải sau. Mã mở hộp là công cụ tìm chứng cứ, không nói ai có tội."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-victor-back-dks",
+          "label": "Trở lại lời kể của ông.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    },
+    {
+      "nodeId": "node-vu-bank-dks",
+      "characterId": "char-vu-dks",
+      "isRoot": false,
+      "requiredClueIds": [],
+      "availableSceneIds": [
+        "scene-box-office-dks"
+      ],
+      "lines": [
+        {
+          "speaker": "NPC",
+          "text": "Nó xác nhận tôi giao giấy ở ngân hàng lúc 21:10. Nó không tự chứng minh mọi phút sau đó tôi ở đâu. Muốn kết luận, cần ghép hồ sơ 21:18 và bản lệnh 21:30."
+        }
+      ],
+      "unlockClueIds": [],
+      "choices": [
+        {
+          "choiceId": "choice-vu-bank-back-dks",
+          "label": "Quay lại câu chuyện.",
+          "requiredClueIds": [],
+          "nextNodeId": null
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "interactionId": "interaction-repair-receipt-dks",
+      "type": "COMBINE_ITEMS",
+      "targetId": "",
+      "requiredItemIds": [
+        "item-receipt-left-dks",
+        "item-receipt-right-dks"
+      ],
+      "requiredClueIds": [
+        "clue-receipt-left-dks",
+        "clue-receipt-right-dks"
+      ],
+      "unlockItemIds": [
+        "item-restored-receipt-dks"
+      ],
+      "unlockClueIds": [
+        "clue-restored-receipt-dks"
+      ],
+      "unlockSceneIds": [],
+      "consumeItemIds": [
+        "item-receipt-left-dks",
+        "item-receipt-right-dks"
+      ],
+      "successMessage": "Hai mép xé khớp: 21 → 42. Bạn đã ghép biên nhận hướng dẫn mở hộp đối soát.",
+      "failureMessage": "Các vật này không có mép khớp nhau.",
+      "singleUse": true
+    },
+    {
+      "interactionId": "interaction-open-locker-dks",
+      "type": "USE_ITEM_ON_TARGET",
+      "targetId": "item-service-locker-dks",
+      "requiredItemIds": [
+        "item-locker-key-dks"
+      ],
+      "requiredClueIds": [],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "evidence-key-entry-dks"
+      ],
+      "unlockSceneIds": [],
+      "consumeItemIds": [],
+      "successMessage": "Chìa mở ngăn thư. Cuống giao nhận 21:18 mang chữ ký Mai và lời xác nhận có ký tên ngay trên giấy của nhân viên nhận thư.",
+      "failureMessage": "Ngăn thư dịch vụ cần đúng chìa đồng có biểu tượng phong bì.",
+      "singleUse": true
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "puzzle-cashbox-code-dks",
+      "type": "CODE_PUZZLE",
+      "targetId": "item-cashbox-dks",
+      "prompt": "Ghép hai nửa biên nhận, đọc từ trái sang phải rồi nhập bốn số vào hộp đối soát.",
+      "options": [],
+      "correctCode": "2142",
+      "correctSequence": [],
+      "requiredItemIds": [
+        "item-restored-receipt-dks"
+      ],
+      "requiredClueIds": [
+        "clue-restored-receipt-dks"
+      ],
+      "unlockItemIds": [],
+      "unlockClueIds": [
+        "evidence-debt-transfer-dks"
+      ],
+      "unlockSceneIds": [],
+      "successMessage": "Hộp mở. Bản lưu 21:30 ghi người thụ hưởng là chủ nợ riêng của Mai; lệnh chưa được ngân hàng thực hiện.",
+      "failureMessage": "Khóa vẫn đóng. Hãy đọc biên nhận đã ghép từ trái sang phải.",
+      "progressionRole": "REQUIRED",
+      "investigationPurpose": "Dùng mã có căn cứ để tìm bằng chứng lợi ích cá nhân và thay đổi người thụ hưởng."
+    }
+  ],
+  "evidenceChallenges": [
+    {
+      "challengeId": "challenge-broken-seal-dks",
+      "order": 1,
+      "isSignature": true,
+      "dialogueId": "dlg-mara-account-dks",
+      "testimonyFragmentId": "fragment-seal-intact-dks",
+      "candidateTestimonyFragmentIds": [
+        "fragment-seal-intact-dks",
+        "fragment-office-alone-dks",
+        "fragment-no-locker-dks"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-seal-intact-dks",
+        "fragment-no-locker-dks"
+      ],
+      "prompt": "Bằng chứng nào trực tiếp bác bỏ câu niêm phong nguyên vẹn?",
+      "correctEvidenceId": "evidence-overlapping-wax-dks",
+      "candidateEvidenceIds": [
+        "evidence-overlapping-wax-dks",
+        "evidence-debt-transfer-dks",
+        "evidence-key-entry-dks"
+      ],
+      "startRequiredEvidenceIds": [
+        "evidence-overlapping-wax-dks",
+        "evidence-debt-transfer-dks"
+      ],
+      "successResponse": "Vết gãy dưới lớp sáp mới chứng minh phong bì đã mở. Mai thừa nhận kiểm giấy; hai bạn vẫn phải xác minh động cơ và cơ hội.",
+      "failureResponse": "Cặp này chưa chứng minh mâu thuẫn đã chọn. Hãy so sánh điều từng chứng cứ thực sự xác lập.",
+      "revealTitle": "VẾT SÁP KHÔNG KHỚP LỜI KHAI",
+      "unlockClueIds": [
+        "reveal-resealed-packet-dks"
+      ]
+    },
+    {
+      "challengeId": "challenge-intact-hook-dks",
+      "order": 2,
+      "isSignature": false,
+      "dialogueId": "dlg-samuel-watch-dks",
+      "testimonyFragmentId": "fragment-hook-broken-dks",
+      "candidateTestimonyFragmentIds": [
+        "fragment-hook-broken-dks",
+        "fragment-patrol-start-dks",
+        "fragment-no-eyewitness-dks"
+      ],
+      "startRequiredTestimonyFragmentIds": [
+        "fragment-hook-broken-dks",
+        "fragment-patrol-start-dks"
+      ],
+      "prompt": "Tách điều bảo vệ nhìn thấy khỏi điều ông đã suy ra.",
+      "correctEvidenceId": "evidence-intact-hook-dks",
+      "candidateEvidenceIds": [
+        "evidence-intact-hook-dks",
+        "evidence-overlapping-wax-dks",
+        "evidence-key-entry-dks"
+      ],
+      "startRequiredEvidenceIds": [
+        "evidence-intact-hook-dks",
+        "evidence-key-entry-dks"
+      ],
+      "successResponse": "Móc còn nguyên, nên nhận định móc đã gãy là sai. Lâm sửa lời: ông không chứng kiến trộm chìa. Đây là loại bỏ một giả thuyết, không phải lời thú tội.",
+      "failureResponse": "Hãy chọn vật chứng kiểm tra đúng câu về móc treo. Hồ sơ tài chính không cho biết móc có gãy hay không.",
+      "revealTitle": "ẢNH CHỤP SỬA LẠI MỘT LỜI KHAI",
+      "unlockClueIds": [
+        "reveal-hook-rumour-dks"
+      ]
+    }
+  ],
+  "deductions": [
+    {
+      "deductionId": "deduction-night-ledger-dks",
+      "prompt": "Sau khi sửa cả hai lời khai, dòng thời gian nào giải thích việc đổi người thụ hưởng?",
+      "requiredClueIds": [
+        "reveal-resealed-packet-dks",
+        "reveal-hook-rumour-dks",
+        "evidence-debt-transfer-dks",
+        "evidence-key-entry-dks"
+      ],
+      "requiredChallengeIds": [
+        "challenge-broken-seal-dks",
+        "challenge-intact-hook-dks"
+      ],
+      "options": [
+        {
+          "id": "deduction-ledger-correct-dks",
+          "label": "Mai còn ở nhà hát lúc 21:18, sửa lệnh chi trả nợ lúc 21:30 rồi niêm phong lại. Chuyện giật chìa là suy đoán."
+        },
+        {
+          "id": "deduction-ledger-wrong-dks",
+          "label": "Mọi việc do người lạ giật chìa, vì bảo vệ nghĩ móc đã gãy."
+        },
+        {
+          "id": "deduction-ledger-vu-dks",
+          "label": "Khang từng cầm đồng hồ nên chắc chắn ông đổi lệnh chi tối nay."
+        }
+      ],
+      "correctOptionId": "deduction-ledger-correct-dks",
+      "successResponse": "Vật chứng, mốc giờ có đối chứng và lợi ích cá nhân cùng chỉ về Mai. Bạn đã loại bỏ hai suy đoán thay vì chỉ tìm một người đáng ngờ.",
+      "failureResponse": "Giả thuyết cần giải thích cả chữ ký 21:18, người hưởng lợi trên lệnh 21:30 và vết niêm phong; một suy đoán riêng lẻ chưa đủ.",
+      "unlockClueIds": []
+    }
+  ],
+  "requiredTeamworkChains": [
+    {
+      "chainId": "chain-night-ledger-dks",
+      "investigatorClueId": "evidence-overlapping-wax-dks",
+      "interrogatorChallengeId": "challenge-broken-seal-dks",
+      "deductionId": "deduction-night-ledger-dks",
+      "description": "Điều tra viên tìm vết sáp; thẩm vấn viên chọn câu khai; hai người đối chất và lập dòng thời gian."
+    },
+    {
+      "chainId": "chain-camera-hook-dks",
+      "investigatorClueId": "evidence-intact-hook-dks",
+      "interrogatorChallengeId": "challenge-intact-hook-dks",
+      "deductionId": "deduction-night-ledger-dks",
+      "description": "Ảnh khám nghiệm phải kết hợp câu khai riêng của bảo vệ mới loại bỏ được giả thuyết giật chìa."
+    }
+  ],
+  "hints": [
+    {
+      "hintId": "hint-office-1-dks",
+      "contextType": "SCENE",
+      "targetId": "scene-box-office-dks",
+      "order": 1,
+      "text": "Chia việc: một người kiểm tra quầy và chìa, một người ghi lời Mai cùng Khang. Phiếu cầm đồ có ngày cần đọc kỹ."
+    },
+    {
+      "hintId": "hint-office-2-dks",
+      "contextType": "SCENE",
+      "targetId": "scene-box-office-dks",
+      "order": 2,
+      "text": "Ghép hai mảnh biên nhận trong túi đồ. Dùng máy ảnh chụp móc đồng trên tường cạnh cửa; lấy chìa trước để nhìn rõ móc."
+    },
+    {
+      "hintId": "hint-hall-1-dks",
+      "contextType": "SCENE",
+      "targetId": "scene-service-passage-dks",
+      "order": 1,
+      "text": "Hộp số cần biên nhận đã ghép, ngăn thư cần chìa đồng. Hỏi Lâm và đối chiếu hai câu khai riêng biệt."
+    },
+    {
+      "hintId": "hint-hall-2-dks",
+      "contextType": "SCENE",
+      "targetId": "scene-service-passage-dks",
+      "order": 2,
+      "text": "Mỗi người giữ phần thông tin riêng: điều tra viên đề xuất vật chứng, thẩm vấn viên chọn lời khai; cả hai xác nhận cặp đối chất."
+    },
+    {
+      "hintId": "hint-seal-1-dks",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-broken-seal-dks",
+      "order": 1,
+      "text": "Câu khai nói về niêm phong. Chọn dấu vật lý cho thấy niêm phong đã bị mở, không chọn chứng cứ chỉ nói về khoản nợ."
+    },
+    {
+      "hintId": "hint-hook-1-dks",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-intact-hook-dks",
+      "order": 1,
+      "text": "Câu móc đã bị bẻ gãy có thể kiểm tra trực tiếp bằng ảnh móc. Bác câu này không đồng nghĩa bảo vệ lấy quỹ."
+    },
+    {
+      "hintId": "hint-deduction-1-dks",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-night-ledger-dks",
+      "order": 1,
+      "text": "Xếp 21:18, 21:30, 21:45. Giải thích nào khớp hồ sơ và vết sáp mà không dựa vào lời suy đoán đã bị bác?"
+    }
+  ],
+  "finalLogic": {
+    "culpritId": "char-mai-dks",
+    "motive": "Chuyển tiền cứu trợ cho chủ nợ riêng để xóa nợ của Mai.",
+    "method": "Thay người thụ hưởng trên lệnh chi rồi dùng sáp đỏ mới che niêm phong cũ đã gãy.",
+    "requiredEvidenceIds": [],
+    "motiveOptions": [
+      {
+        "id": "motive-private-debt-dks",
+        "label": "Dùng quỹ cứu trợ để trả khoản nợ riêng của Mai"
+      },
+      {
+        "id": "motive-bank-deposit-dks",
+        "label": "Tất toán khoản cầm đồng hồ cũ của Khang"
+      },
+      {
+        "id": "motive-patrol-dks",
+        "label": "Che giấu việc Lâm bắt đầu trực muộn"
+      }
+    ],
+    "methodOptions": [
+      {
+        "id": "method-reseal-wax-dks",
+        "label": "Mở phong bì, đổi lệnh chi rồi niêm phong lại bằng sáp đỏ"
+      },
+      {
+        "id": "method-guard-patrol-dks",
+        "label": "Giật chìa bằng cách bẻ gãy móc treo"
+      },
+      {
+        "id": "method-bank-error-dks",
+        "label": "Ngân hàng tự ghi sai tên người nhận, phong bì không bị mở"
+      }
+    ],
+    "correctMotiveId": "motive-private-debt-dks",
+    "correctMethodId": "method-reseal-wax-dks",
+    "requiredEvidenceLinks": [
+      {
+        "claimType": "MOTIVE",
+        "evidenceId": "evidence-debt-transfer-dks"
+      },
+      {
+        "claimType": "METHOD",
+        "evidenceId": "evidence-overlapping-wax-dks"
+      },
+      {
+        "claimType": "OPPORTUNITY",
+        "evidenceId": "evidence-key-entry-dks"
+      }
+    ],
+    "requiredDeductionIds": [
+      "deduction-night-ledger-dks"
+    ],
+    "requiredTeamworkChainIds": [
+      "chain-night-ledger-dks",
+      "chain-camera-hook-dks"
+    ],
+    "winEnding": "Trước giờ ngân hàng mở cửa, hai thám tử giao nộp hồ sơ: chữ ký giao nhận 21:18, bản lệnh chi 21:30 trả chủ nợ của Mai và lớp sáp che vết niêm phong vỡ. Mai thừa nhận đổi người nhận tiền. Lệnh bị hủy, quỹ cứu trợ được giữ nguyên. Khang không bị kết tội từ khoản nợ cũ; Lâm đính chính lời suy đoán. Vụ án khép lại nhờ cả vật chứng và lời khai được kiểm chứng.",
+    "failEnding": "Cáo buộc chưa liên kết đúng người, lợi ích, phương thức và cơ hội. Một món nợ cũ hay lời đoán về chiếc móc chưa đủ buộc tội. Xem lại phần đối chiếu trong kết quả rồi mở phòng chơi mới để thử lại; hồ sơ này chưa tạo được một kết luận có căn cứ."
+  }
+}

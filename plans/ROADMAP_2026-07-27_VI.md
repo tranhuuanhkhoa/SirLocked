@@ -1,5 +1,7 @@
 # SirLocked — Kế hoạch phát triển chi tiết (Roadmap 013+)
 
+> **Cập nhật 23/09/2026:** các bảng baseline/thiếu bên dưới là khảo sát lịch sử, không mô tả source hiện tại. Presentation, NPC idle, audio/ping/recap, AI usage ledger, compact prompt/repair và case asset packaging đã được triển khai trong đợt [cinematic roadmap](../docs/CINEMATIC_PRESENTATION_VI.md). Xem trạng thái từng phạm vi ở [index](README.md); playtest ba cặp và live provider validation còn mở.
+
 > **Ngày lập:** 27/07/2026
 > **Commit nền:** `af3da77 chore(assets): commit generated assets for the Broken Seal star-carpet case`
 > **Nhánh hiện tại:** `feature/ai-gameplay-v2-20260717`
