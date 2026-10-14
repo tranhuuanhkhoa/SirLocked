@@ -1,0 +1,112 @@
+{
+  "title": "Hạ Màn Tại Kho Hải Âu",
+  "summary": "Một bảo vật hàng hải biến mất giữa lễ chuyển giao tài sản tại Nhà kho số 4. Khi cổng vẫn được canh giữ và mọi người đều có lời chứng ngoại phạm, SirLocked phải đối chiếu thời gian, quyền tiếp cận và dấu vết vật lý để tìm ra mục tiêu thật của vụ trộm.",
+  "suspects": [
+    {
+      "characterId": "suspect_edwin_vale",
+      "name": "Edwin Vale",
+      "role": "Trợ lý thân tín của chủ bến",
+      "description": "Người nắm lịch buổi lễ, danh sách khách mời và chìa khóa các phòng hậu trường. Edwin thừa nhận đã tính toán ảnh hưởng của chứng thư Kho Bốn đối với phần thừa kế mình dự kiến nhận."
+    },
+    {
+      "characterId": "suspect_clara_wren",
+      "name": "Clara Wren",
+      "role": "Nữ diễn viên chính",
+      "description": "Một nghệ sĩ sân khấu cương nghị, tin rằng gia đình mình có quyền hợp pháp đối với một phần khu kho cảng. Trong lúc gián đoạn, cô nói mình đứng trước quầy vé chờ hiệu gọi trở lại."
+    },
+    {
+      "characterId": "suspect_hector_pike",
+      "name": "Hector Pike",
+      "role": "Quản đốc ca đêm",
+      "description": "Người thực hiện cuộc kiểm tra ban đầu và ghi lại điều khoản của chứng thư. Hector khẳng định mình ở quầy vé trong suốt khoảng gián đoạn, đối chiếu các cuống vé cùng Mabel."
+    },
+    {
+      "characterId": "suspect_mabel_finch",
+      "name": "Mabel Finch",
+      "role": "Người soát vé",
+      "description": "Người phụ trách quầy vé và đối chiếu giờ bằng đồng hồ cơ. Bản ghi liên tục của Mabel đặt cô, Clara và Hector tại lối vào trong toàn bộ khoảng gián đoạn."
+    }
+  ],
+  "clues": [
+    {
+      "clueId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+      "title": "Dấu Ngón Cái Trong Sáp Khóa",
+      "content": "Lớp sáp quanh ổ khóa đã bị làm mềm và giữ lại vân ngón cái phải nhận dạng riêng Edwin. Dấu vết cho thấy ông trực tiếp chạm vào sáp trong hành động mở tủ.",
+      "narrativeMeaning": "Dấu vết trực tiếp gắn Edwin với việc mở tủ, nhưng tự nó không cho biết chứng thư được cất ở đâu sau đó."
+    },
+    {
+      "clueId": "clue-trace_edwin_signed_inheritance_loss_calculation",
+      "title": "Bản Tính Thiệt Hại Thừa Kế",
+      "content": "Bản tính có chữ ký của Edwin cho thấy ông biết chứng thư Kho Bốn sẽ trực tiếp làm giảm phần tài sản mình dự kiến thừa kế.",
+      "narrativeMeaning": "Edwin có lợi ích cá nhân nếu chứng thư bị vô hiệu hóa, nhưng bản tính không tự chứng minh ông đã lấy hoặc tráo nó."
+    },
+    {
+      "clueId": "clue-trace_hector_ledger_copy_of_deed_clause",
+      "title": "Ghi Chép Điều Khoản Chứng Thư",
+      "content": "Ghi chép kiểm tra xác nhận chứng thư gốc từng nằm trong hộc đế bảo vật. Điều khoản được sao lại cho thấy chứng thư sẽ làm giảm phần thừa kế dự kiến của Vale.",
+      "narrativeMeaning": "Chứng thư thật từng ở trong đế bảo vật và bất lợi cho Vale; riêng ghi chép không xác định ai đã tráo nó."
+    },
+    {
+      "clueId": "clue-trace_clocked_entrance_record_for_three_innocents",
+      "title": "Bản Ghi Lối Vào Có Mốc Giờ",
+      "content": "Chuỗi ghi nhận theo đồng hồ xác nhận Clara, Hector và Mabel liên tục ở khu vực lối vào từ phút 12 đến phút 21.",
+      "narrativeMeaning": "Ba người này không thể đồng thời thực hiện chuỗi hành động tại sân khấu và hành lang hậu trường trong khoảng thời gian ấy."
+    },
+    {
+      "clueId": "clue-trace_fresh_wax_over_dried_inspection_ledger_seal",
+      "title": "Hai Lớp Sáp Khác Thời Điểm",
+      "content": "Một lớp sáp mới nằm trên niêm phong vốn đã khô cứng. Quan hệ chồng lớp chứng minh việc bôi sửa xảy ra sau cuộc kiểm tra ban đầu.",
+      "narrativeMeaning": "Niêm phong đã bị bôi sửa sau cuộc kiểm tra gốc, nhưng dấu vết này không tự xác định người thực hiện hay phút chính xác."
+    },
+    {
+      "clueId": "clue-trace_relic_blank_packet_and_empty_deed_compartment_in_crate",
+      "title": "Bảo Vật Và Hộc Chứng Thư Trống",
+      "content": "Trong thùng kiểm hàng có bảo vật nguyên vẹn. Hộc ở đế chỉ còn một gói giấy trắng được bọc thay thế, còn chứng thư gốc đã biến mất.",
+      "narrativeMeaning": "Chứng thư thật đã bị tráo bằng gói giấy trắng, còn bảo vật được dùng làm mục tiêu trộm giả; tình trạng này tự nó không nhận dạng thủ phạm."
+    }
+  ],
+  "dialogues": [
+    {
+      "dialogueId": "dialogue-statement_edwin_denies_touching_lock_wax",
+      "characterId": "suspect_edwin_vale",
+      "question": "Ông có từng chạm vào lớp sáp quanh ổ khóa tủ trưng bày không?",
+      "answer": "Tôi chưa từng chạm vào lớp sáp quanh ổ khóa tủ trưng bày. Tôi nói hoàn toàn rõ ràng: không phải đầu ngón tay, lòng bàn tay hay bất cứ phần nào của tay tôi đã tiếp xúc với lớp sáp ấy. Dù các ông tìm thấy dấu gì ở đó, tôi vẫn khẳng định mình không hề chạm vào nó."
+    },
+    {
+      "dialogueId": "dialogue-statement_hector_original_deed_clause",
+      "characterId": "suspect_hector_pike",
+      "question": "Ông đã ghi nhận điều gì trong cuộc kiểm tra ban đầu?",
+      "answer": "Tôi đã chép điều khoản xác nhận chứng thư gốc nằm trong hộc đế bảo vật và sẽ làm giảm phần thừa kế dự kiến của Vale."
+    },
+    {
+      "dialogueId": "dialogue-statement_edwin_acknowledges_loss_calculation",
+      "characterId": "suspect_edwin_vale",
+      "question": "Ông có thừa nhận bản tính thiệt hại thừa kế này không?",
+      "answer": "Có. Tôi đã ký bản tính cho thấy mình sẽ mất một phần thừa kế nếu chứng thư Kho Bốn có hiệu lực."
+    },
+    {
+      "dialogueId": "dialogue-statement_mabel_clocked_entrance_record",
+      "characterId": "suspect_mabel_finch",
+      "question": "Bản ghi theo đồng hồ của bà xác nhận điều gì?",
+      "answer": "Đồng hồ và bản ghi liên tục của tôi xác nhận Clara, Hector và tôi đều ở lối vào từ phút 12 đến phút 21."
+    },
+    {
+      "dialogueId": "dialogue-statement_clara_observes_hector_and_mabel",
+      "characterId": "suspect_clara_wren",
+      "question": "Cô đã nhìn thấy gì tại quầy vé trong lúc gián đoạn?",
+      "answer": "Tôi thấy Hector liên tục đếm cuống vé và Mabel liên tục ghi từng lượt kiểm vé tại quầy. Cả hai đều ở trong tầm mắt tôi suốt lúc gián đoạn."
+    },
+    {
+      "dialogueId": "dialogue-statement_hector_observes_clara_and_mabel",
+      "characterId": "suspect_hector_pike",
+      "question": "Trong lúc gián đoạn, ông quan sát được Clara và Mabel ở đâu?",
+      "answer": "Tôi thấy Clara luôn đứng phía khách của quầy, còn Mabel không rời bản ghi kiểm vé trong suốt lúc gián đoạn."
+    },
+    {
+      "dialogueId": "dialogue-statement_hector_original_seals_hardened",
+      "characterId": "suspect_hector_pike",
+      "question": "Niêm sáp ban đầu ở trạng thái nào khi cuộc kiểm tra kết thúc?",
+      "answer": "Các niêm sáp tôi tạo trong cuộc kiểm tra gốc đã nguội cứng trước khi cuộc kiểm tra kết thúc."
+    }
+  ]
+}

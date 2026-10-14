@@ -1,0 +1,152 @@
+[
+  {
+    "File": "20260928-142857319-1-generatecoretruth.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-142842790-1-generatecaseseed.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-142752791-1-createstorypreview.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-012330257-2-buildstatements.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-012253977-2-generatecausalevidence.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-012215297-2-buildopportunitymatrix.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-012157589-3-buildtruetimeline.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-144013854-1-reviewv3pairmatrix.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021836050-2-reviewv3pairmatrix.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143952496-1-generatefullcasejson.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143649209-1-reviewcasetruthfeasibility.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143530675-1-buildproofgraph.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021828669-1-generatefullcasejson.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143512095-1-buildstatements.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021503582-3-reviewcasetruthfeasibility.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143420915-1-generatecausalevidence.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021433533-4-buildproofgraph.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021415139-5-buildstatements.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143354452-1-buildopportunitymatrix.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021115752-4-buildstatements.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143333907-2-buildtruetimeline.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-021041697-4-generatecausalevidence.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260928-143044897-1-buildtruetimeline.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-020644380-2-reviewcasetruthfeasibility.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-020548807-3-buildproofgraph.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-014848673-3-buildstatements.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-014649639-4-buildtruetimeline.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-014751067-3-generatecausalevidence.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-012352026-2-buildproofgraph.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  },
+  {
+    "File": "20260930-014712552-3-buildopportunitymatrix.json",
+    "ServiceTier": "default",
+    "Status": "completed"
+  }
+]

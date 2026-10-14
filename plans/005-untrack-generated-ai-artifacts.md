@@ -98,11 +98,11 @@ Run backend tests and frontend typecheck. This plan should not affect compiled s
 
 ## Done criteria
 
-- [ ] `git ls-files src/BE/GeneratedCaseJson` returns no tracked files.
-- [ ] `git ls-files src/FE/public/assets/ai-generated` returns no tracked files.
-- [ ] Local generated folders are still present after cached removal.
-- [ ] `.gitignore` continues to ignore both paths.
-- [ ] `plans/README.md` row for plan 005 is updated.
+- [x] `git ls-files src/BE/GeneratedCaseJson` returns no tracked files.
+- [x] `git ls-files src/FE/public/assets/ai-generated` returns no tracked files.
+- [x] Local generated folders are still present after cached removal.
+- [x] `.gitignore` continues to ignore both paths.
+- [x] `plans/README.md` row for plan 005 is updated.
 
 ## STOP conditions
 
