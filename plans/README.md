@@ -12,7 +12,7 @@ Plans 007-011 were written against the current local gameplay worktree, which ha
 | 002 | Add lobby concurrency guards | P1 | M | - | DONE |
 | 003 | Add real health checks | P1 | S | - | DONE |
 | 004 | Upgrade vulnerable MongoDB transitives | P1 | S/M | - | DONE |
-| 005 | Untrack generated AI artifacts | P2 | M | - | DONE |
+| 005 | Untrack generated AI artifacts | P2 | M | - | DONE - index cleaned; local artifacts preserved |
 | 006 | Phase C conversation tree | P1 | L | - | IN PROGRESS - implementation exists locally; reconcile before marking DONE |
 | 007 | Align case validator with runtime reachability | P1 | L | - | DONE - approved in `advisor/007-runtime-reachability-validator` at `9fa3aa8` |
 | 008 | Make gameplay persistence recoverable | P1 | L | 009 | DONE - approved in `advisor/008-recoverable-gameplay-persistence` at `55b3e88` |
@@ -25,6 +25,8 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 
 ## Next roadmap (013+)
 
+Commercialization execution: [037 — commercial readiness](037-commercial-readiness.md). Initial remote-playtest tooling is available; plan014 remains TODO until three real pairs supply observations, interviews and telemetry. Paid generation and checkout remain gated by measured gameplay and full text/image costs.
+
 Plans 013 and above are specified in [`ROADMAP_2026-07-27_VI.md`](ROADMAP_2026-07-27_VI.md), written at commit `af3da77` against a verified baseline (backend build clean, 529/529 tests pass, frontend typecheck pass). Each row below gets its own plan file, written from the roadmap section of the same number, before implementation starts.
 
 | Plan | Title | Phase | Priority | Effort | Depends on | Status |
@@ -33,26 +35,28 @@ Plans 013 and above are specified in [`ROADMAP_2026-07-27_VI.md`](ROADMAP_2026-0
 | 014 | [Run the three-pair V3 playtest gate](014-run-v3-playtest-gate.md) | P0 | P0 | S | 013 | TODO |
 | 015 | [Accusation consensus between both players](015-accusation-consensus.md) | P1 | P0 | L | 016 (soft) | DONE - two-browser E2E passes; Mongo exactly-once integration test written but not executed, no MongoDB available in the execution environment |
 | 016 | [Lock room terminal-state transitions](016-lock-room-terminal-transitions.md) | P1 | P0 | S | - | DONE - Mongo integration test for the start race written but not executed; no MongoDB available in the execution environment |
-| 017 | AI cost ledger, quota and circuit breaker | P1 | P0 | L | - | TODO |
+| 017 | AI cost ledger, quota and circuit breaker | P1 | P0 | L | - | IN PROGRESS — atomic per-call reservations/usage/reconciliation implemented; live price/provider validation remains |
 | 018 | Session hardening and security headers (absorbs 011) | P1 | P0 | L | - | TODO |
 | 019 | Save/resume match and pin case revisions | P1 | P0 | M/L | 016 | TODO |
 | 020 | Invite link, QR and join-by-URL | P2 | P1 | S/M | - | TODO |
 | 021 | Solo prologue with a scripted companion bot | P2 | P0 | XL | 013, 015 | TODO |
-| 022 | Contextual clue pings | P2 | P1 | M | 013 | TODO |
+| 022 | Contextual clue pings | P2 | P1 | M | 013 | IN PROGRESS — three safe preset pings, TTL/cooldown implemented; no private-clue payload |
 | 023 | Host migration and disconnect continuation | P2 | P1 | M/L | 016, 019 | TODO |
 | 024 | Quick match and opt-in public rooms | P2 | P1 | M | 020, 023 | TODO |
-| 025 | Audio system | P3 | P1 | M/L | - | TODO |
+| 025 | Audio system | P3 | P1 | M/L | - | IN PROGRESS — scene ambience/cues, music/SFX settings, mute/ducking implemented; authored soundtrack deferred |
 | 026 | Accessibility center | P3 | P1 | M/L | - | TODO |
 | 027 | Difficulty/assist mode and hint rework | P3 | P1 | M | 013 | TODO |
-| 028 | Asset manifest and per-case packaging | P3 | P0 | L | - | TODO |
-| 029 | Split gamePage, lazy Phaser, CI bundle budgets | P3 | P1 | L | 028 | TODO |
-| 030 | Admin case authoring and preview simulator | P3 | P1 | XL | 019 | TODO |
+| 028 | Asset manifest and per-case packaging | P3 | P0 | L | - | IN PROGRESS — protected media manifest and opt-in per-case build implemented; select production case set before rollout |
+| 029 | Split gamePage, lazy Phaser, CI bundle budgets | P3 | P1 | L | 028 | IN PROGRESS — dialogue/cutscene/NPC/media/audio presenters extracted, renderer redraw fixed; existing lazy Phaser remains large |
+| 030 | Admin case authoring and preview simulator | P3 | P1 | XL | 019 | IN PROGRESS — presentation storyboard/preview/approval/recovery added; full gameplay simulator remains |
 | 031 | Observability | P4 | P1 | L | - | TODO |
 | 032 | Full CI/CD | P4 | P1 | L | - | TODO |
 | 033 | Data lifecycle and privacy controls | P4 | P1 | M/L | - | TODO |
 | 034 | UGC/AI moderation workflow | P4 | P1 | L | - | TODO |
 | 035 | Desktop/Steam packaging | P4 | P2 | XL | 028 | TODO |
-| 036 | [Make the UI read as a game — surface system and screen pass](036-game-ui-design-system.md) | P3 | P1 | L | - | TODO |
+| 036 | [Make the UI read as a game — surface system and screen pass](036-game-ui-design-system.md) | P3 | P1 | L | - | IN PROGRESS — existing surface system plus cinematic gameplay UI implemented; historical nine-screen/CSS gates not re-certified |
+
+Implementation update 2026-09-23: [cinematic presentation, generation accounting, compact prompts and validation guide](../docs/CINEMATIC_PRESENTATION_VI.md). The current work keeps plan014's real three-pair playtest gate open; automated two-browser tests do not replace it.
 
 Plan 011 stays open in the table above only as a historical row; its scope is now executed as part of plan 018.
 

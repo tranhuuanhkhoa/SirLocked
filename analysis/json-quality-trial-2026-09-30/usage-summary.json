@@ -1,0 +1,12 @@
+{
+  "calls": 17,
+  "measuredCostUsd": 0,
+  "calculatedCostUsd": 1.656639,
+  "knownCostUsd": 1.656639,
+  "unknownCalls": 0,
+  "reservedUsd": 0,
+  "inputTokens": 135770,
+  "outputTokens": 48892,
+  "cachedInputTokens": 0,
+  "reasoningTokens": 28211
+}

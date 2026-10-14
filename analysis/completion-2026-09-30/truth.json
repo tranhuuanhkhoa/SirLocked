@@ -1,0 +1,799 @@
+{
+  "schemaVersion": "case-truth-v2",
+  "caseSeed": {
+    "crimeType": "THEFT",
+    "era": "Đầu thời Edward, trong một ca đêm tại khu kho cảng Hải Âu.",
+    "technologyConstraints": [
+      "Không có điện thoại di động, camera giám sát hoặc ghi âm điện tử.",
+      "Thời gian được đối chiếu bằng đồng hồ cơ, vé giấy, sổ trực và lịch biểu diễn.",
+      "Khóa cơ, chìa khóa vật lý và niêm phong thủ công kiểm soát quyền tiếp cận.",
+      "Liên lạc từ xa chỉ qua điện báo cố định hoặc người đưa tin."
+    ],
+    "difficulty": "Dễ",
+    "estimatedMinutes": 35,
+    "suspectIds": [
+      "suspect_edwin_vale",
+      "suspect_clara_wren",
+      "suspect_hector_pike",
+      "suspect_mabel_finch"
+    ],
+    "locationIds": [
+      "location_warehouse_theatre_stage",
+      "location_ticket_booth_guest_entrance",
+      "location_backstage_inspection_corridor"
+    ],
+    "locationGraph": [
+      {
+        "fromLocationId": "location_warehouse_theatre_stage",
+        "toLocationId": "location_ticket_booth_guest_entrance",
+        "travelMinutes": 2
+      },
+      {
+        "fromLocationId": "location_ticket_booth_guest_entrance",
+        "toLocationId": "location_warehouse_theatre_stage",
+        "travelMinutes": 2
+      },
+      {
+        "fromLocationId": "location_warehouse_theatre_stage",
+        "toLocationId": "location_backstage_inspection_corridor",
+        "travelMinutes": 1
+      },
+      {
+        "fromLocationId": "location_backstage_inspection_corridor",
+        "toLocationId": "location_warehouse_theatre_stage",
+        "travelMinutes": 1
+      },
+      {
+        "fromLocationId": "location_ticket_booth_guest_entrance",
+        "toLocationId": "location_backstage_inspection_corridor",
+        "travelMinutes": 3
+      },
+      {
+        "fromLocationId": "location_backstage_inspection_corridor",
+        "toLocationId": "location_ticket_booth_guest_entrance",
+        "travelMinutes": 3
+      }
+    ]
+  },
+  "coreTruth": {
+    "culpritId": "suspect_edwin_vale",
+    "targetId": "asset_warehouse_four_original_title_deed",
+    "targetKind": "ASSET",
+    "motive": "Edwin muốn hủy chứng thư có thể làm mất phần tài sản bến cảng mà ông dự kiến được thừa kế.",
+    "method": "Edwin dùng chìa khóa hậu trường trong khoảng gián đoạn để đổi chứng thư giấu trong đế bảo vật lấy giấy trắng rồi mang bảo vật đi làm mục tiêu giả.",
+    "preparationActionIds": [
+      "event_edwin_wraps_blank_sheets_as_deed_packet",
+      "event_edwin_loosens_scenery_support_rope"
+    ],
+    "crimeActionIds": [
+      "event_edwin_unlocks_display_case_with_backstage_key",
+      "event_edwin_swaps_hidden_deed_for_blank_packet",
+      "event_edwin_removes_maritime_relic_from_display_case"
+    ],
+    "concealmentActionIds": [
+      "event_edwin_hides_maritime_relic_inside_inspection_crate"
+    ],
+    "culpritMistakeActionIds": [
+      "event_edwin_smears_fresh_sealing_wax_on_inspection_ledger"
+    ]
+  },
+  "trueTimeline": [
+    {
+      "eventId": "event_hector_performs_original_inspection",
+      "actorId": "suspect_hector_pike",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 0,
+      "endMinute": 4,
+      "travelFromPreviousMinutes": 0,
+      "action": "Hector mở tủ để kiểm tra, chép điều khoản chứng thư đe dọa phần thừa kế của Vale vào sổ, niêm sáp trang sổ rồi tạo vòng sáp chứng kiểm quanh ổ khóa; cả hai lớp sáp đã nguội cứng trước phút 4.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [
+        "trace_hector_ledger_copy_of_deed_clause"
+      ],
+      "requiredAccessIds": [
+        "access_inspector_display_case"
+      ],
+      "requiredToolIds": [
+        "tool_inspection_key",
+        "tool_sealing_wax_kit"
+      ],
+      "requiredKnowledgeIds": [
+        "knowledge_deed_compartment_in_relic_base"
+      ]
+    },
+    {
+      "eventId": "event_edwin_wraps_blank_sheets_as_deed_packet",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_backstage_inspection_corridor",
+      "startMinute": 0,
+      "endMinute": 4,
+      "travelFromPreviousMinutes": 0,
+      "action": "Edwin gói giấy trắng thành một tập vừa hốc chứng thư và ký bản tính riêng về phần thừa kế dự kiến cùng khoản mất mát nếu chứng thư Kho Bốn có hiệu lực.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [
+        "trace_edwin_signed_inheritance_loss_calculation"
+      ],
+      "requiredAccessIds": [
+        "access_backstage_worktable"
+      ],
+      "requiredToolIds": [
+        "tool_paper_wrap",
+        "tool_ink_pen"
+      ],
+      "requiredKnowledgeIds": [
+        "knowledge_relic_compartment_dimensions",
+        "knowledge_vale_expected_inheritance_share"
+      ]
+    },
+    {
+      "eventId": "event_edwin_loosens_scenery_support_rope",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 5,
+      "endMinute": 7,
+      "travelFromPreviousMinutes": 1,
+      "action": "Edwin nới nút dây đỡ phông và đặt tải cảnh trí lên đoạn dây yếu để lần kéo dây hiệu kế tiếp làm nút trượt và phông đổ.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [],
+      "requiredAccessIds": [
+        "access_stage_rigging"
+      ],
+      "requiredToolIds": [
+        "tool_rigging_hook"
+      ],
+      "requiredKnowledgeIds": [
+        "knowledge_scheduled_scenery_cue"
+      ]
+    },
+    {
+      "eventId": "event_clara_waits_at_guest_entrance",
+      "actorId": "suspect_clara_wren",
+      "locationId": "location_ticket_booth_guest_entrance",
+      "startMinute": 12,
+      "endMinute": 21,
+      "travelFromPreviousMinutes": 0,
+      "action": "Clara đứng liên tục trước quầy vé và chờ hiệu gọi trở lại sân khấu trong toàn bộ lúc gián đoạn.",
+      "witnessIds": [
+        "suspect_mabel_finch",
+        "suspect_hector_pike"
+      ],
+      "witnessObservations": [
+        {
+          "witnessId": "suspect_mabel_finch",
+          "mode": "SIGHT",
+          "lineOfSightOrHearingClear": true,
+          "observableDetail": "Mabel nhìn thấy Clara đứng trước quầy không rời khỏi lối vào."
+        },
+        {
+          "witnessId": "suspect_hector_pike",
+          "mode": "SIGHT",
+          "lineOfSightOrHearingClear": true,
+          "observableDetail": "Hector nhìn thấy Clara liên tục ở phía khách của quầy vé."
+        }
+      ],
+      "traceIds": [],
+      "requiredAccessIds": [],
+      "requiredToolIds": [],
+      "requiredKnowledgeIds": []
+    },
+    {
+      "eventId": "event_hector_reviews_ticket_stubs_at_entrance",
+      "actorId": "suspect_hector_pike",
+      "locationId": "location_ticket_booth_guest_entrance",
+      "startMinute": 12,
+      "endMinute": 21,
+      "travelFromPreviousMinutes": 2,
+      "action": "Hector liên tục đếm và đối chiếu cuống vé ngay cạnh quầy trong lúc buổi lễ bị tạm dừng.",
+      "witnessIds": [
+        "suspect_mabel_finch",
+        "suspect_clara_wren"
+      ],
+      "witnessObservations": [
+        {
+          "witnessId": "suspect_mabel_finch",
+          "mode": "SIGHT",
+          "lineOfSightOrHearingClear": true,
+          "observableDetail": "Mabel thấy Hector đếm các chồng cuống vé liên tục tại quầy."
+        },
+        {
+          "witnessId": "suspect_clara_wren",
+          "mode": "SIGHT",
+          "lineOfSightOrHearingClear": true,
+          "observableDetail": "Clara thấy Hector không rời bàn đếm vé trong khoảng gián đoạn."
+        }
+      ],
+      "traceIds": [],
+      "requiredAccessIds": [
+        "access_ticket_stub_bundle"
+      ],
+      "requiredToolIds": [],
+      "requiredKnowledgeIds": [
+        "knowledge_ticket_batch_order"
+      ]
+    },
+    {
+      "eventId": "event_mabel_checks_tickets_during_interruption",
+      "actorId": "suspect_mabel_finch",
+      "locationId": "location_ticket_booth_guest_entrance",
+      "startMinute": 12,
+      "endMinute": 21,
+      "travelFromPreviousMinutes": 0,
+      "action": "Mabel đối chiếu đồng hồ cơ lúc bắt đầu và kết thúc rồi ghi liên tục từng lượt kiểm vé, đồng thời ghi Clara và Hector hiện diện cạnh quầy suốt khoảng đó.",
+      "witnessIds": [
+        "suspect_clara_wren",
+        "suspect_hector_pike"
+      ],
+      "witnessObservations": [
+        {
+          "witnessId": "suspect_clara_wren",
+          "mode": "SIGHT",
+          "lineOfSightOrHearingClear": true,
+          "observableDetail": "Clara thấy Mabel viết từng dòng kiểm vé tại quầy mà không rời vị trí."
+        },
+        {
+          "witnessId": "suspect_hector_pike",
+          "mode": "SIGHT",
+          "lineOfSightOrHearingClear": true,
+          "observableDetail": "Hector thấy Mabel duy trì bản ghi và kiểm đồng hồ quầy ở hai đầu khoảng."
+        }
+      ],
+      "traceIds": [
+        "trace_clocked_entrance_record_for_three_innocents"
+      ],
+      "requiredAccessIds": [
+        "access_ticket_booth_ledger"
+      ],
+      "requiredToolIds": [
+        "tool_booth_clock",
+        "tool_ink_pen"
+      ],
+      "requiredKnowledgeIds": [
+        "knowledge_ticket_recording_procedure"
+      ]
+    },
+    {
+      "eventId": "event_edwin_triggers_scenery_collapse",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 12,
+      "endMinute": 13,
+      "travelFromPreviousMinutes": 0,
+      "action": "Edwin kéo dây hiệu cảnh trí, khiến tải chuyển sang nút đã nới, dây trượt và phông đổ xuống để buộc buổi lễ gián đoạn.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [],
+      "requiredAccessIds": [
+        "access_stage_cue_line"
+      ],
+      "requiredToolIds": [],
+      "requiredKnowledgeIds": [
+        "knowledge_scheduled_scenery_cue",
+        "knowledge_loosened_rope_load"
+      ]
+    },
+    {
+      "eventId": "event_edwin_unlocks_display_case_with_backstage_key",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 13,
+      "endMinute": 14,
+      "travelFromPreviousMinutes": 0,
+      "action": "Edwin hơ vòng sáp khóa bằng nến đến mềm, tì ngón cái phải trần vào sáp rồi dùng chìa khóa hậu trường mở tủ trưng bày.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [
+        "trace_edwin_right_thumbprint_in_display_lock_wax"
+      ],
+      "requiredAccessIds": [
+        "access_backstage_display_key"
+      ],
+      "requiredToolIds": [
+        "tool_backstage_display_key",
+        "tool_wax_taper"
+      ],
+      "requiredKnowledgeIds": [
+        "knowledge_display_lock_location"
+      ]
+    },
+    {
+      "eventId": "event_edwin_swaps_hidden_deed_for_blank_packet",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 14,
+      "endMinute": 15,
+      "travelFromPreviousMinutes": 0,
+      "action": "Edwin mở hốc trong đế bảo vật, lấy tập chứng thư gốc vào áo và đặt tập giấy trắng đã gói vào đúng vị trí.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [],
+      "requiredAccessIds": [
+        "access_open_display_case"
+      ],
+      "requiredToolIds": [],
+      "requiredKnowledgeIds": [
+        "knowledge_deed_compartment_in_relic_base"
+      ]
+    },
+    {
+      "eventId": "event_edwin_removes_maritime_relic_from_display_case",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 15,
+      "endMinute": 16,
+      "travelFromPreviousMinutes": 0,
+      "action": "Edwin nhấc nguyên bảo vật cùng tập giấy trắng trong đế ra khỏi tủ để biến nó thành mục tiêu trộm giả.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [],
+      "requiredAccessIds": [
+        "access_open_display_case"
+      ],
+      "requiredToolIds": [],
+      "requiredKnowledgeIds": [
+        "knowledge_relic_as_decoy"
+      ]
+    },
+    {
+      "eventId": "event_edwin_hides_maritime_relic_inside_inspection_crate",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_backstage_inspection_corridor",
+      "startMinute": 17,
+      "endMinute": 19,
+      "travelFromPreviousMinutes": 1,
+      "action": "Edwin đặt bảo vật nguyên vẹn vào thùng kiểm hàng; hốc đế vẫn chứa tập giấy trắng cùng nếp gói đã chuẩn bị nhưng không còn chứng thư gốc.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [
+        "trace_relic_blank_packet_and_empty_deed_compartment_in_crate"
+      ],
+      "requiredAccessIds": [
+        "access_inspection_crate"
+      ],
+      "requiredToolIds": [],
+      "requiredKnowledgeIds": [
+        "knowledge_inspection_crate_location"
+      ]
+    },
+    {
+      "eventId": "event_edwin_smears_fresh_sealing_wax_on_inspection_ledger",
+      "actorId": "suspect_edwin_vale",
+      "locationId": "location_warehouse_theatre_stage",
+      "startMinute": 20,
+      "endMinute": 21,
+      "travelFromPreviousMinutes": 1,
+      "action": "Edwin nung sáp mới rồi miết nó lên niêm sáp đã khô của sổ kiểm tra mà không che phần chữ; lớp mới còn ấm lúc phút 21 và sau đó nguội trên lớp cũ.",
+      "witnessIds": [],
+      "witnessObservations": [],
+      "traceIds": [
+        "trace_fresh_wax_over_dried_inspection_ledger_seal"
+      ],
+      "requiredAccessIds": [
+        "access_inspection_ledger"
+      ],
+      "requiredToolIds": [
+        "tool_sealing_wax_stick",
+        "tool_wax_taper"
+      ],
+      "requiredKnowledgeIds": [
+        "knowledge_original_inspection_entry_location"
+      ]
+    }
+  ],
+  "opportunityMatrix": [
+    {
+      "characterId": "suspect_edwin_vale",
+      "hasMotive": true,
+      "accessIds": [
+        "access_backstage_worktable",
+        "access_stage_rigging",
+        "access_stage_cue_line",
+        "access_backstage_display_key",
+        "access_open_display_case",
+        "access_inspection_crate",
+        "access_inspection_ledger"
+      ],
+      "toolIds": [
+        "tool_paper_wrap",
+        "tool_ink_pen",
+        "tool_rigging_hook",
+        "tool_backstage_display_key",
+        "tool_wax_taper",
+        "tool_sealing_wax_stick"
+      ],
+      "knowledgeIds": [
+        "knowledge_relic_compartment_dimensions",
+        "knowledge_vale_expected_inheritance_share",
+        "knowledge_scheduled_scenery_cue",
+        "knowledge_loosened_rope_load",
+        "knowledge_display_lock_location",
+        "knowledge_deed_compartment_in_relic_base",
+        "knowledge_relic_as_decoy",
+        "knowledge_inspection_crate_location",
+        "knowledge_original_inspection_entry_location"
+      ],
+      "availableFromMinute": 12,
+      "availableToMinute": 21,
+      "alibiEventIds": [],
+      "alibiVerified": false,
+      "identityLinkedToCrime": true,
+      "eliminationReason": "Không bị loại; quyền tiếp cận, kiến thức và dấu ngón tay trong sáp khóa gắn Edwin với toàn bộ chuỗi hành động."
+    },
+    {
+      "characterId": "suspect_clara_wren",
+      "hasMotive": true,
+      "accessIds": [],
+      "toolIds": [],
+      "knowledgeIds": [],
+      "availableFromMinute": 0,
+      "availableToMinute": 0,
+      "alibiEventIds": [
+        "event_clara_waits_at_guest_entrance"
+      ],
+      "alibiVerified": true,
+      "identityLinkedToCrime": false,
+      "eliminationReason": "Bản ghi quầy vé có mốc đồng hồ xác nhận Clara ở lối vào suốt phút 12–21, nên cô không thể đến sân khấu cách hai phút để thực hiện chuỗi trộm."
+    },
+    {
+      "characterId": "suspect_hector_pike",
+      "hasMotive": false,
+      "accessIds": [
+        "access_inspector_display_case",
+        "access_ticket_stub_bundle"
+      ],
+      "toolIds": [
+        "tool_inspection_key",
+        "tool_sealing_wax_kit"
+      ],
+      "knowledgeIds": [
+        "knowledge_deed_compartment_in_relic_base",
+        "knowledge_ticket_batch_order"
+      ],
+      "availableFromMinute": 0,
+      "availableToMinute": 0,
+      "alibiEventIds": [
+        "event_hector_reviews_ticket_stubs_at_entrance"
+      ],
+      "alibiVerified": true,
+      "identityLinkedToCrime": false,
+      "eliminationReason": "Bản ghi quầy vé có mốc đồng hồ xác nhận Hector ở lối vào suốt phút 12–21, loại trừ việc ông tới sân khấu để gây sập và tráo chứng thư."
+    },
+    {
+      "characterId": "suspect_mabel_finch",
+      "hasMotive": false,
+      "accessIds": [
+        "access_ticket_booth_ledger"
+      ],
+      "toolIds": [
+        "tool_booth_clock",
+        "tool_ink_pen"
+      ],
+      "knowledgeIds": [
+        "knowledge_ticket_recording_procedure"
+      ],
+      "availableFromMinute": 0,
+      "availableToMinute": 0,
+      "alibiEventIds": [
+        "event_mabel_checks_tickets_during_interruption"
+      ],
+      "alibiVerified": true,
+      "identityLinkedToCrime": false,
+      "eliminationReason": "Bản ghi liên tục do Mabel lập và các lượt vé có mốc đồng hồ giữ cô tại quầy phút 12–21, nên quãng đường ba phút tới hậu trường ngăn cô thực hiện chuỗi trộm."
+    }
+  ],
+  "traceLedger": [
+    {
+      "traceId": "trace_hector_ledger_copy_of_deed_clause",
+      "sourceActionId": "event_hector_performs_original_inspection",
+      "createdByCharacterId": "suspect_hector_pike",
+      "createdAtMinute": 4,
+      "locationId": "location_warehouse_theatre_stage",
+      "physicalCause": "Hector chép vào sổ rằng chứng thư gốc nằm trong hốc đế bảo vật và điều khoản của nó làm giảm phần thừa kế dự kiến của Vale, rồi niêm sáp trang.",
+      "persistenceReason": "Mực và niêm sáp đã khô trước phút 4, còn sổ được giữ nguyên trong nhà hát nên nội dung và niêm phong tồn tại đến lúc kiểm tra.",
+      "proves": "Sổ ghi nhận chứng thư gốc từng ở trong đế và điều khoản đó gây tổn thất thừa kế cho Vale, đồng thời xác lập nội dung thật để đối chiếu với gói thay thế.",
+      "doesNotProve": "Sổ không tự chứng minh ai về sau tráo chứng thư, lấy bảo vật hoặc sửa niêm sáp.",
+      "independentSourceGroup": "group_original_inspection_ledger",
+      "supportsConclusionIds": [
+        "conclusion-motive",
+        "conclusion-method"
+      ]
+    },
+    {
+      "traceId": "trace_edwin_signed_inheritance_loss_calculation",
+      "sourceActionId": "event_edwin_wraps_blank_sheets_as_deed_packet",
+      "createdByCharacterId": "suspect_edwin_vale",
+      "createdAtMinute": 4,
+      "locationId": "location_backstage_inspection_corridor",
+      "physicalCause": "Edwin tự viết và ký bản tính phần thừa kế dự kiến cùng khoản ông sẽ mất nếu chứng thư Kho Bốn có hiệu lực.",
+      "persistenceReason": "Mực ký thấm và khô trên giấy trong hành lang nội thất, khiến nội dung cùng chữ ký còn đọc được khi thu hồi.",
+      "proves": "Tài liệu riêng cho thấy Edwin biết chứng thư mục tiêu trực tiếp làm giảm phần tài sản ông dự kiến thừa kế và vì thế có lợi ích cá nhân khi vô hiệu hóa nó.",
+      "doesNotProve": "Bản tính không tự chứng minh Edwin đã mở tủ, tráo chứng thư hoặc giấu bảo vật.",
+      "independentSourceGroup": "group_edwin_private_calculation",
+      "supportsConclusionIds": [
+        "conclusion-motive"
+      ]
+    },
+    {
+      "traceId": "trace_edwin_right_thumbprint_in_display_lock_wax",
+      "sourceActionId": "event_edwin_unlocks_display_case_with_backstage_key",
+      "createdByCharacterId": "suspect_edwin_vale",
+      "createdAtMinute": 14,
+      "locationId": "location_warehouse_theatre_stage",
+      "physicalCause": "Khi hơ mềm vòng sáp quanh ổ khóa để mở tủ, Edwin tì ngón cái phải trần vào sáp và để lại vân tay cá nhân.",
+      "persistenceReason": "Sáp nguội lại trong nhà hát kín, giữ nguyên các đường vân lõm trên ổ khóa cho đến khi được khám nghiệm.",
+      "proves": "Vân ngón cái phải nhận dạng riêng Edwin đã trực tiếp chạm vào lớp sáp khóa bị làm mềm trong hành động mở tủ của vụ trộm.",
+      "doesNotProve": "Dấu vân tay riêng lẻ không tự cho biết chứng thư đã được đặt ở đâu sau khi lấy hoặc toàn bộ nội dung bị tráo.",
+      "independentSourceGroup": "group_display_lock_wax_thumbprint",
+      "supportsConclusionIds": [
+        "conclusion-identity"
+      ]
+    },
+    {
+      "traceId": "trace_relic_blank_packet_and_empty_deed_compartment_in_crate",
+      "sourceActionId": "event_edwin_hides_maritime_relic_inside_inspection_crate",
+      "createdByCharacterId": "suspect_edwin_vale",
+      "createdAtMinute": 19,
+      "locationId": "location_backstage_inspection_corridor",
+      "physicalCause": "Edwin đặt bảo vật nguyên vẹn vào thùng kiểm hàng trong khi hốc đế chứa gói giấy trắng đã bọc nhưng không còn chứng thư gốc.",
+      "persistenceReason": "Thùng nằm yên trong hành lang nội thất, bảo vệ bảo vật, gói giấy và hốc đế khỏi thời tiết hay xáo trộn cho đến lúc thu hồi.",
+      "proves": "Tổ hợp thu hồi chứng minh chứng thư thật đã bị thay bằng gói giấy trắng và bảo vật nguyên vẹn bị mang khỏi tủ rồi dùng làm mục tiêu trộm giả.",
+      "doesNotProve": "Tình trạng trong thùng không tự nhận dạng người thực hiện nếu tách khỏi dấu vân tay và các tài liệu khác.",
+      "independentSourceGroup": "group_recovered_inspection_crate_contents",
+      "supportsConclusionIds": [
+        "conclusion-method"
+      ]
+    },
+    {
+      "traceId": "trace_clocked_entrance_record_for_three_innocents",
+      "sourceActionId": "event_mabel_checks_tickets_during_interruption",
+      "createdByCharacterId": "suspect_mabel_finch",
+      "createdAtMinute": 21,
+      "locationId": "location_ticket_booth_guest_entrance",
+      "physicalCause": "Mabel đối chiếu đồng hồ cơ ở hai đầu khoảng gián đoạn và ghi liên tục các lượt vé cùng sự hiện diện của Clara, Hector và chính mình từ phút 12 đến 21.",
+      "persistenceReason": "Mực khô trên sổ quầy vé được giữ trong khu vào cửa có mái che, nên chuỗi dòng và mốc đồng hồ còn nguyên để đối chiếu.",
+      "proves": "Bản ghi có mốc đồng hồ xác nhận Clara, Hector và Mabel liên tục ở lối vào trong khoảng 12–21, loại họ khỏi chuỗi hành động tại sân khấu và hậu trường trong khoảng đó.",
+      "doesNotProve": "Bản ghi không tự mô tả thao tác mở tủ hay tráo chứng thư và chỉ nhận dạng Edwin bằng phép loại trừ khi kết hợp chứng cứ trực tiếp.",
+      "independentSourceGroup": "group_clocked_ticket_booth_record",
+      "supportsConclusionIds": [
+        "conclusion-opportunity",
+        "conclusion-identity"
+      ]
+    },
+    {
+      "traceId": "trace_fresh_wax_over_dried_inspection_ledger_seal",
+      "sourceActionId": "event_edwin_smears_fresh_sealing_wax_on_inspection_ledger",
+      "createdByCharacterId": "suspect_edwin_vale",
+      "createdAtMinute": 21,
+      "locationId": "location_warehouse_theatre_stage",
+      "physicalCause": "Edwin nung sáp mới rồi miết lên trên niêm sáp kiểm tra vốn đã khô cứng, tạo hai lớp có thứ tự vật lý rõ ràng.",
+      "persistenceReason": "Lớp sáp mới nguội và bám trên lớp cũ trong nhà hát kín, nên quan hệ chồng lớp vẫn còn nguyên khi kiểm tra.",
+      "proves": "Lớp sáp mới nằm trên niêm phong đã khô chứng minh việc bôi sửa xảy ra sau cuộc kiểm tra gốc, thiết lập thứ tự tương đối của hai hành động.",
+      "doesNotProve": "Quan hệ chồng lớp không tự chứng minh phút chính xác của việc mở tủ, tráo chứng thư hay danh tính người bôi sáp.",
+      "independentSourceGroup": "group_original_inspection_ledger",
+      "supportsConclusionIds": [
+        "conclusion-timeline"
+      ]
+    }
+  ],
+  "statementLedger": [
+    {
+      "statementId": "statement_hector_original_deed_clause",
+      "speakerId": "suspect_hector_pike",
+      "truthStatus": "TRUE",
+      "content": "Tôi đã chép điều khoản xác nhận chứng thư gốc nằm trong hốc đế bảo vật và sẽ làm giảm phần thừa kế dự kiến của Vale.",
+      "eventIds": [
+        "event_hector_performs_original_inspection"
+      ],
+      "knowledgeSourceIds": [
+        "event_hector_performs_original_inspection",
+        "trace_hector_ledger_copy_of_deed_clause"
+      ],
+      "reasonForLie": "Không có; lời khai đúng.",
+      "contradictedByTraceIds": [],
+      "independentSourceGroup": "group_original_inspection_ledger",
+      "supportsConclusionIds": [
+        "conclusion-motive",
+        "conclusion-method"
+      ]
+    },
+    {
+      "statementId": "statement_edwin_acknowledges_loss_calculation",
+      "speakerId": "suspect_edwin_vale",
+      "truthStatus": "TRUE",
+      "content": "Tôi đã ký bản tính cho thấy mình sẽ mất một phần thừa kế nếu chứng thư Kho Bốn có hiệu lực.",
+      "eventIds": [
+        "event_edwin_wraps_blank_sheets_as_deed_packet"
+      ],
+      "knowledgeSourceIds": [
+        "event_edwin_wraps_blank_sheets_as_deed_packet",
+        "trace_edwin_signed_inheritance_loss_calculation"
+      ],
+      "reasonForLie": "Không có; lời khai đúng.",
+      "contradictedByTraceIds": [],
+      "independentSourceGroup": "group_edwin_private_calculation",
+      "supportsConclusionIds": [
+        "conclusion-motive"
+      ]
+    },
+    {
+      "statementId": "statement_edwin_denies_touching_lock_wax",
+      "speakerId": "suspect_edwin_vale",
+      "truthStatus": "FALSE",
+      "content": "Tôi chưa từng chạm vào lớp sáp quanh ổ khóa tủ trưng bày.",
+      "eventIds": [
+        "event_edwin_unlocks_display_case_with_backstage_key"
+      ],
+      "knowledgeSourceIds": [
+        "event_edwin_unlocks_display_case_with_backstage_key"
+      ],
+      "reasonForLie": "Edwin muốn che giấu việc chính mình đã làm mềm sáp và mở tủ.",
+      "contradictedByTraceIds": [
+        "trace_edwin_right_thumbprint_in_display_lock_wax"
+      ],
+      "independentSourceGroup": "group_display_lock_wax_thumbprint",
+      "supportsConclusionIds": [
+        "conclusion-identity"
+      ]
+    },
+    {
+      "statementId": "statement_mabel_clocked_entrance_record",
+      "speakerId": "suspect_mabel_finch",
+      "truthStatus": "TRUE",
+      "content": "Đồng hồ và bản ghi liên tục của tôi xác nhận Clara, Hector và tôi đều ở lối vào từ phút 12 đến 21.",
+      "eventIds": [
+        "event_mabel_checks_tickets_during_interruption"
+      ],
+      "knowledgeSourceIds": [
+        "event_mabel_checks_tickets_during_interruption",
+        "trace_clocked_entrance_record_for_three_innocents"
+      ],
+      "reasonForLie": "Không có; lời khai đúng.",
+      "contradictedByTraceIds": [],
+      "independentSourceGroup": "group_clocked_ticket_booth_record",
+      "supportsConclusionIds": [
+        "conclusion-opportunity",
+        "conclusion-timeline"
+      ]
+    },
+    {
+      "statementId": "statement_clara_observes_hector_and_mabel",
+      "speakerId": "suspect_clara_wren",
+      "truthStatus": "TRUE",
+      "content": "Tôi thấy Hector liên tục đếm cuống vé và Mabel liên tục ghi lượt kiểm vé tại quầy trong suốt lúc gián đoạn.",
+      "eventIds": [
+        "event_hector_reviews_ticket_stubs_at_entrance",
+        "event_mabel_checks_tickets_during_interruption"
+      ],
+      "knowledgeSourceIds": [
+        "event_hector_reviews_ticket_stubs_at_entrance",
+        "event_mabel_checks_tickets_during_interruption"
+      ],
+      "reasonForLie": "Không có; lời khai đúng.",
+      "contradictedByTraceIds": [],
+      "independentSourceGroup": "group_clara_firsthand_entrance_observation",
+      "supportsConclusionIds": [
+        "conclusion-opportunity"
+      ]
+    },
+    {
+      "statementId": "statement_hector_observes_clara_and_mabel",
+      "speakerId": "suspect_hector_pike",
+      "truthStatus": "TRUE",
+      "content": "Tôi thấy Clara luôn đứng phía khách của quầy và Mabel không rời bản ghi kiểm vé trong suốt lúc gián đoạn.",
+      "eventIds": [
+        "event_clara_waits_at_guest_entrance",
+        "event_mabel_checks_tickets_during_interruption"
+      ],
+      "knowledgeSourceIds": [
+        "event_clara_waits_at_guest_entrance",
+        "event_mabel_checks_tickets_during_interruption"
+      ],
+      "reasonForLie": "Không có; lời khai đúng.",
+      "contradictedByTraceIds": [],
+      "independentSourceGroup": "group_hector_firsthand_entrance_observation",
+      "supportsConclusionIds": [
+        "conclusion-opportunity"
+      ]
+    },
+    {
+      "statementId": "statement_hector_original_seals_hardened",
+      "speakerId": "suspect_hector_pike",
+      "truthStatus": "TRUE",
+      "content": "Các niêm sáp tôi tạo trong cuộc kiểm tra gốc đã nguội cứng trước khi cuộc kiểm tra kết thúc.",
+      "eventIds": [
+        "event_hector_performs_original_inspection"
+      ],
+      "knowledgeSourceIds": [
+        "event_hector_performs_original_inspection"
+      ],
+      "reasonForLie": "Không có; lời khai đúng.",
+      "contradictedByTraceIds": [],
+      "independentSourceGroup": "group_original_inspection_ledger",
+      "supportsConclusionIds": [
+        "conclusion-timeline"
+      ]
+    }
+  ],
+  "proofGraph": {
+    "conclusions": [
+      {
+        "conclusionId": "conclusion-motive",
+        "category": "MOTIVE",
+        "proposition": "Điều khoản trong chứng thư làm giảm phần thừa kế dự kiến của Vale, còn bản tính có chữ ký xác nhận Edwin biết rõ tổn thất cá nhân đó.",
+        "supportingTraceIds": [
+          "trace_hector_ledger_copy_of_deed_clause",
+          "trace_edwin_signed_inheritance_loss_calculation"
+        ],
+        "supportingStatementIds": [
+          "statement_hector_original_deed_clause",
+          "statement_edwin_acknowledges_loss_calculation"
+        ],
+        "excludesSuspectIds": []
+      },
+      {
+        "conclusionId": "conclusion-method",
+        "category": "METHOD",
+        "proposition": "Chứng thư gốc trong đế bảo vật đã bị thay bằng gói giấy trắng, rồi bảo vật nguyên vẹn bị lấy khỏi tủ và giấu trong thùng như mục tiêu trộm giả.",
+        "supportingTraceIds": [
+          "trace_hector_ledger_copy_of_deed_clause",
+          "trace_relic_blank_packet_and_empty_deed_compartment_in_crate"
+        ],
+        "supportingStatementIds": [
+          "statement_hector_original_deed_clause"
+        ],
+        "excludesSuspectIds": []
+      },
+      {
+        "conclusionId": "conclusion-opportunity",
+        "category": "OPPORTUNITY",
+        "proposition": "Bản ghi có mốc đồng hồ cùng hai lời quan sát độc lập đặt Clara, Hector và Mabel liên tục ở lối vào trong khoảng 12–21, loại họ khỏi chuỗi hành động tại sân khấu và hậu trường.",
+        "supportingTraceIds": [
+          "trace_clocked_entrance_record_for_three_innocents"
+        ],
+        "supportingStatementIds": [
+          "statement_mabel_clocked_entrance_record",
+          "statement_clara_observes_hector_and_mabel",
+          "statement_hector_observes_clara_and_mabel"
+        ],
+        "excludesSuspectIds": [
+          "suspect_clara_wren",
+          "suspect_hector_pike",
+          "suspect_mabel_finch"
+        ]
+      },
+      {
+        "conclusionId": "conclusion-identity",
+        "category": "IDENTITY",
+        "proposition": "Vân ngón cái phải của Edwin trong lớp sáp khóa bị làm mềm chứng minh ông trực tiếp chạm vào nó khi tủ bị mở; bản ghi lối vào đồng thời loại ba nghi phạm còn lại.",
+        "supportingTraceIds": [
+          "trace_edwin_right_thumbprint_in_display_lock_wax",
+          "trace_clocked_entrance_record_for_three_innocents"
+        ],
+        "supportingStatementIds": [
+          "statement_edwin_denies_touching_lock_wax"
+        ],
+        "excludesSuspectIds": [
+          "suspect_clara_wren",
+          "suspect_hector_pike",
+          "suspect_mabel_finch"
+        ]
+      },
+      {
+        "conclusionId": "conclusion-timeline",
+        "category": "TIMELINE",
+        "proposition": "Niêm sáp gốc đã khô trước khi kiểm tra kết thúc, còn lớp sáp mới nằm trên nó nên được bôi sau đó; riêng bản ghi đồng hồ xác lập khoảng gián đoạn 12–21.",
+        "supportingTraceIds": [
+          "trace_fresh_wax_over_dried_inspection_ledger_seal"
+        ],
+        "supportingStatementIds": [
+          "statement_mabel_clocked_entrance_record",
+          "statement_hector_original_seals_hardened"
+        ],
+        "excludesSuspectIds": []
+      }
+    ]
+  },
+  "redHerringLedger": []
+}

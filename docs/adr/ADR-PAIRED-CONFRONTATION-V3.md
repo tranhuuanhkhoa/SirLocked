@@ -84,7 +84,7 @@ V3 failures use a generic message plus stable `errors.code` and `errors.messageK
 
 - While an attempt is active, notebook/read, own-proposal edit, confirm and cancel remain available.
 - Scene/stage completion, scene transition, accusation and unilateral `present-evidence` are blocked.
-- Disconnect does not mutate the attempt or confirmations. Reconnect refetches authoritative state.
+- Disconnect preserves the attempt and confirmations during a five-minute reconnect window. Reconnect before the deadline refetches authoritative state; expiration automatically abandons the room and cancels pending attempts.
 - Either player may cancel without penalty.
 - Room abandon stores the active attempt as `Cancelled` in the abandoned snapshot; it cannot resume into a new match.
 - Invalid proposal content is never replaced silently. The server reports `CONFRONTATION_STALE`; the owning role must reselect or either player may cancel.
