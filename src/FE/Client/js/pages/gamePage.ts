@@ -6,6 +6,7 @@ import { createRoomConnection } from '../services/signalrClient.js';
 import { createStateRefetcher } from '../services/stateRefetcher.js';
 import { createRoleGuide, roleGuideSteps } from '../game/roleGuide.js';
 import '../../../css/game-recovery.css';
+import '../../../css/40-bpa-game.css';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr, uiLanguage } from '../services/i18n.js';
@@ -37,12 +38,17 @@ import {
   type PartnerActivity,
 } from '../game/gameUiModel.js';
 import {
+  clockText,
+  gameIcon,
   renderContextAction,
   renderDiscoveryCard,
   renderFinalConfrontationCallout,
   renderGameHud,
   reconnectWait,
   renderReconnectWait,
+  roleName,
+  romanNumeral,
+  type HudExtras,
 } from '../game/gameShell.js';
 import {
   buildPairedConfrontationViewModel,
@@ -468,6 +474,14 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private cameraLabel: Phaser.GameObjects.Text | null = null;
   private cameraCaptureZone: Phaser.GameObjects.Zone | null = null;
   private cameraCapturePending = false;
+  // Camera frame: aimed by mouse, touch drag or WASD/arrows; brackets fly in on open and out on close.
+  private cameraAim: { x: number; y: number } | null = null;
+  private cameraOpenedAt = 0;
+  private cameraClosingAt = 0;
+  private cameraClosingRect: { x: number; y: number; width: number; height: number } | null = null;
+  private keySpace: Phaser.Input.Keyboard.Key | null = null;
+  private keyShift: Phaser.Input.Keyboard.Key | null = null;
+  private heldItemImage: Phaser.GameObjects.Image | null = null;
   private mobileMoveX = 0;
   private lastContextActionKey = '';
   private navigation: { sceneId: string; path: NavigationPoint[]; destination: NavigationPoint;
@@ -494,6 +508,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.definePlayerFrames();
     this.debugLayout = window.location.href.includes('debugLayout=1');
     this.keys = (this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,E,F2') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
+    // Not captured: Space and Shift keep working on focused buttons; the camera only reads them.
+    this.keySpace = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE, false) ?? null;
+    this.keyShift = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT, false) ?? null;
+    // The key's own event: a tap whose keyup lands in the same frame would be missed by JustDown.
+    this.keySpace?.on('down', () => {
+      const focused = document.activeElement;
+      const onControl = focused instanceof HTMLElement && focused.matches('button, a, input, textarea, select, summary, [contenteditable="true"]');
+      if (this.cameraMode && !onControl) void this.captureCameraFrame();
+    });
     // Remember 404s so a missing asset doesn't trigger an endless reload loop.
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
       if (file?.key) this.failedTextureKeys.add(file.key);
@@ -505,15 +528,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
     });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.ready) return;
+      this.positionHeldItem(pointer.x, pointer.y);
       if (!this.cameraMode) {
         if (!this.input.manager?.canvas || this.input.manager.canvas.style.cursor === 'pointer') return;
         this.input.setDefaultCursor(this.sceneInteractionEnabled && isNavigable(this.screenToWorld(pointer.x, pointer.y), this.navigationWorld())
           ? 'crosshair' : 'default');
         return;
       }
+      // A mouse aims on hover; a finger moves the frame only while it drags.
+      if (pointer.wasTouch && !pointer.isDown) return;
       const pointerKey = `${Math.round(pointer.x / 3)},${Math.round(pointer.y / 3)}`;
       if (pointerKey === this.lastCameraPointerKey) return;
       this.lastCameraPointerKey = pointerKey;
+      this.cameraAim = { x: pointer.x, y: pointer.y };
       this.refreshCameraOverlay();
     });
     this.draw();
@@ -560,6 +587,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.draw();
       return;
     }
+    if (this.cameraMode || this.cameraClosingAt) this.updateCamera(time, delta);
     if (!this.state || !this.localPose || !this.localPlayer) return;
 
     if (!this.sceneInteractionEnabled) {
@@ -684,8 +712,42 @@ class SirLockedPhaserScene extends Phaser.Scene {
       if (this.game?.input) {
         this.game.input.enabled = true;
       }
+      this.keySpace?.reset();
+      this.cameraClosingAt = 0;
+      this.cameraClosingRect = null;
+      this.cameraOpenedAt = this.time?.now ?? 0;
+      const pointer = this.input?.activePointer;
+      this.cameraAim = pointer && !pointer.wasTouch && pointer.x > 0 && pointer.y > 0
+        && pointer.x < this.scale.width && pointer.y < this.scale.height ? { x: pointer.x, y: pointer.y } : null;
+      if (this.ready) this.draw();
+      return;
     }
+    // Leaving: the capture area goes at once, the brackets fly back out, then the overlay unmounts.
+    this.cameraCaptureZone?.destroy();
+    this.cameraCaptureZone = null;
+    if (this.ready && this.cameraGraphics && !this.reducedMotion.matches) {
+      this.cameraClosingRect = this.cameraScreenRect(this.scale.width, this.scale.height);
+      this.cameraClosingAt = this.time.now || 1;
+    } else {
+      this.cameraClosingAt = 0;
+    }
+    // Redraw brings the doorway buttons back (hidden while framing); the closing frame redraws with it.
     if (this.ready) this.draw();
+    else this.refreshCameraOverlay();
+  }
+
+  /** Shutter button / keyboard: photograph the frame being aimed. */
+  shoot() {
+    if (this.cameraMode) void this.captureCameraFrame();
+  }
+
+  /** Screen point (canvas px) of the doorway leading to a scene, for the room transition. */
+  transitionPoint(targetSceneId: string | null | undefined) {
+    if (!this.ready || !this.state) return null;
+    const transition = this.sceneRuntime()?.transitions?.find((candidate) => candidate.targetSceneId === targetSceneId);
+    if (!transition) return null;
+    const box = this.worldRect(transition.hotspot);
+    return { x: box.x + box.w / 2, y: box.y + box.h * 0.45 };
   }
 
   setMobileMoveX(value: number) {
@@ -734,6 +796,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
     this.children.removeAll(true);
     this.inventorySelectionLabel = null;
+    this.heldItemImage = null;
     this.npcAnimations = [];
     this.npcBreathing = [];
     this.remotePlayers.clear();
@@ -946,17 +1009,21 @@ class SirLockedPhaserScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       hitbox.setData('label', hotspot.label);
 
-      const label = this.add.text(x + w / 2, y - 8, hotspot.isLocked ? 'Locked' : inspected ? 'Found' : hotspot.label, {
-        fontFamily: 'Crimson Text, serif',
-        fontSize: '15px',
-        color: '#f4dc8f',
-        backgroundColor: 'rgba(10,22,40,0.88)',
-        padding: { x: 8, y: 4 },
-      }).setOrigin(0.5, 1).setDepth(28).setVisible(false);
+      const tr = this.callbacks.tr;
+      const isObject = type === 'ITEM' || type === 'OBJECT' || type === 'CLUE';
+      const kicker = hotspot.isLocked ? tr('Locked', 'Đang khóa')
+        : inspected ? tr('Examined', 'Đã khám nghiệm')
+          : isObject ? tr('Inspect', 'Khám nghiệm') : tr('Interact', 'Tương tác');
+      const note = hotspot.isLocked
+        ? tr('Needs another lead.', 'Cần thêm manh mối.')
+        : this.localRole() !== 'INVESTIGATOR' && (isObject || type === 'ENVIRONMENT')
+          ? tr('Your Investigator partner examines objects.', 'Đồng đội Điều tra viên phụ trách khám nghiệm vật thể.')
+          : '';
+      const label = this.createHoverTag(kicker, hotspot.label || this.prettyId(hotspot.targetId), note);
 
       hitbox.on('pointerover', () => {
         itemImage?.setTint(0xffe9b0);
-        label.setVisible(true);
+        this.placeHoverTag(label, x + w / 2, y - 6);
       });
       hitbox.on('pointerout', () => {
         itemImage?.clearTint();
@@ -1081,13 +1148,14 @@ class SirLockedPhaserScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5).setVisible(body instanceof Phaser.GameObjects.Rectangle);
 
-    const name = this.add.text(0, 8, askable ? `${character.name} (${askable})` : character.name, {
-      fontFamily: 'Crimson Text, serif',
-      fontSize: '16px',
-      color: askable ? '#f4dc8f' : '#f7efd7',
-      backgroundColor: 'rgba(10,22,40,0.88)',
-      padding: { x: 8, y: 4 },
-    }).setOrigin(0.5, 0).setVisible(false);
+    const tr = this.callbacks.tr;
+    const name = this.createHoverTag(
+      tr('Question', 'Hỏi'),
+      character.role ? `${character.name} — ${character.role}` : character.name,
+      this.localRole() !== 'INTERROGATOR'
+        ? tr('Your Interrogator partner questions witnesses.', 'Đồng đội Thẩm vấn viên phụ trách hỏi nhân chứng.')
+        : askable ? tr(`${askable} question(s) to ask`, `${askable} câu hỏi có thể hỏi`) : '',
+    );
 
     let newBadge: Phaser.GameObjects.Container | null = null;
     if (newlyUnlocked > 0) {
@@ -1123,10 +1191,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
     };
     const interactionZone = this.add.zone(0, -npcH / 2, npcW, npcH).setInteractive({ useHandCursor: true });
     interactionZone.on('pointerdown', open);
-    interactionZone.on('pointerover', () => { name.setVisible(true); if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
+    interactionZone.on('pointerover', () => { this.placeHoverTag(name, x, y - npcH - 6); if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
     interactionZone.on('pointerout', () => { name.setVisible(false); if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
 
-    group.add(newBadge ? [shadow, body, initialText, name, newBadge, interactionZone] : [shadow, body, initialText, name, interactionZone]);
+    group.add(newBadge ? [shadow, body, initialText, newBadge, interactionZone] : [shadow, body, initialText, interactionZone]);
   }
 
   private drawPlayers() {
@@ -1183,8 +1251,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const name = this.add.text(0, 8, this.playerLabel(pose), {
       fontFamily: 'Crimson Text, serif',
       fontSize: '14px',
-      color: isLocal ? '#f4dc8f' : '#d9d4c4',
-      backgroundColor: 'rgba(10,22,40,0.82)',
+      color: isLocal ? '#efd486' : '#e9dfcc',
+      backgroundColor: 'rgba(13,16,20,0.86)',
       padding: { x: 7, y: 3 },
     }).setOrigin(0.5, 0);
 
@@ -1232,18 +1300,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     for (const remote of this.remotePlayers.values()) apply(remote);
   }
 
+  // The key hint lives in the DOM tray (above the tools); only the hidden prompt object stays here.
   private drawControlHint(width: number, height: number) {
-    if (width > 720) {
-      this.add.text(18, height - 104, this.callbacks.tr('Click to walk / interact · WASD / arrows · E interact · Esc cancel',
-        'Bấm để đi / tương tác · WASD / mũi tên · E tương tác · Esc hủy'), {
-        fontFamily: 'Crimson Text, serif',
-        fontSize: '15px',
-        color: '#d9d4c4',
-        backgroundColor: 'rgba(10,22,40,0.68)',
-        padding: { x: 9, y: 5 },
-      }).setDepth(120);
-    }
-
     this.promptText = this.add.text(width / 2, height - 166, '', {
       fontFamily: 'Crimson Text, serif',
       fontSize: '17px',
@@ -1254,7 +1312,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private drawSceneNavigation(width: number, height: number) {
-    if (!this.state) return;
+    if (!this.state || this.cameraMode) return;
 
     const visited = this.state.sceneMap.filter((entry) => entry.isVisited && !entry.isCurrent);
     const currentIndex = this.state.sceneMap.findIndex((entry) => entry.isCurrent);
@@ -1262,6 +1320,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const completedCurrent = this.state.completedSceneIds.includes(this.state.currentSceneId);
     const canProceed = Boolean(this.state.currentSceneCanComplete);
     const runtimeTransitions = this.sceneRuntime()?.transitions ?? [];
+    // Phones stack the movement dock over the tool tray, so the proceed button rides above both.
+    const proceedY = height - (width <= 900 ? 214 : 112);
 
     if (runtimeTransitions.length > 0) {
       runtimeTransitions.forEach((transition) => {
@@ -1290,8 +1350,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
         const forwardLabel = completedCurrent && next?.isUnlocked
           ? this.callbacks.tr(`Go to ${this.shorten(next.title, 22)}`, `Đến ${this.shorten(next.title, 22)}`)
           : this.callbacks.tr('Continue investigation', 'Tiếp tục điều tra');
-        this.drawButton(width / 2, height - 112, forwardLabel,
-          () => this.approachScreenExit(width / 2, height - 112, () => this.callbacks.onProceed()), 230, true);
+        this.drawButton(width / 2, proceedY, forwardLabel,
+          () => this.approachScreenExit(width / 2, proceedY, () => this.callbacks.onProceed()), 230, true);
       }
 
       return;
@@ -1310,8 +1370,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
         ? this.callbacks.tr(`Go to ${this.shorten(next.title, 22)}`, `Đến ${this.shorten(next.title, 22)}`)
         : this.callbacks.tr('Continue investigation', 'Tiếp tục điều tra');
     if (canProceed) {
-      this.drawButton(width / 2, height - 112, forwardLabel,
-        () => this.approachScreenExit(width / 2, height - 112, () => this.callbacks.onProceed()), 230, true);
+      this.drawButton(width / 2, proceedY, forwardLabel,
+        () => this.approachScreenExit(width / 2, proceedY, () => this.callbacks.onProceed()), 230, true);
     }
   }
 
@@ -1332,81 +1392,238 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
   }
 
+  // "Đang dùng": the item in hand follows the pointer while the player picks a target.
   private drawInventoryHint(width: number, height: number) {
     if (!this.selectedInventoryItemId) {
       this.inventorySelectionLabel?.destroy();
       this.inventorySelectionLabel = null;
+      this.heldItemImage?.destroy();
+      this.heldItemImage = null;
       return;
     }
-    const text = this.callbacks.tr(`Using: ${this.prettyId(this.selectedInventoryItemId)}`, `Đang dùng: ${this.prettyId(this.selectedInventoryItemId)}`);
+    const itemId = this.selectedInventoryItemId;
+    const item = this.state?.collectedItems?.find((candidate) => candidate.itemId === itemId)
+      ?? this.state?.visibleScene.items.find((candidate) => candidate.itemId === itemId);
+    const text = item?.name || this.prettyId(itemId);
+    const url = playableAssetUrl(item?.imageUrl);
+    const key = url ? `held:${itemId}:${url}` : '';
+    if (key && !this.textures.exists(key)) {
+      this.queueTexture(key, url);
+      this.flushTextures();
+    }
+    if (this.heldItemImage && this.heldItemImage.texture.key !== key) {
+      this.heldItemImage.destroy();
+      this.heldItemImage = null;
+    }
+    if (!this.heldItemImage && key && this.textures.exists(key)) {
+      this.heldItemImage = this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(32, 32).setDepth(286);
+    }
+    const padding = { left: this.heldItemImage ? 42 : 10, right: 10, top: 9, bottom: 9 };
     if (this.inventorySelectionLabel) {
-      this.inventorySelectionLabel.setText(text).setPosition(width / 2, height - 158);
-      return;
+      this.inventorySelectionLabel.setText(text).setPadding(padding);
+    } else {
+      this.inventorySelectionLabel = this.add.text(0, 0, text, {
+        fontFamily: 'Crimson Text, serif',
+        fontSize: '15px',
+        color: '#fbf6ed',
+        backgroundColor: 'rgba(13,16,20,0.92)',
+        padding,
+      }).setDepth(285);
     }
-    this.inventorySelectionLabel = this.add.text(width / 2, height - 158, text, {
-      fontFamily: 'Crimson Text, serif',
-      fontSize: '17px',
-      color: '#f4dc8f',
-      backgroundColor: 'rgba(10,22,40,0.82)',
-      padding: { x: 10, y: 5 },
-    }).setOrigin(0.5);
+    const pointer = this.input?.activePointer;
+    const inside = pointer && !pointer.wasTouch && pointer.x > 0 && pointer.y > 0 && pointer.x < width && pointer.y < height;
+    this.positionHeldItem(inside ? pointer.x : width / 2 - this.inventorySelectionLabel.width / 2 - 16, inside ? pointer.y : height - 260);
+  }
+
+  private positionHeldItem(x: number, y: number) {
+    if (!this.inventorySelectionLabel) return;
+    const left = Phaser.Math.Clamp(x + 16, 4, Math.max(4, this.scale.width - this.inventorySelectionLabel.width - 4));
+    const top = Phaser.Math.Clamp(y + 14, 4, Math.max(4, this.scale.height - this.inventorySelectionLabel.height - 4));
+    this.inventorySelectionLabel.setPosition(left, top);
+    this.heldItemImage?.setPosition(left + 4, top + (this.inventorySelectionLabel.height - 32) / 2);
+  }
+
+  // Dark tag above whatever the pointer is over: what the action is, the name, and an optional note.
+  private createHoverTag(kicker: string, title: string, note = '') {
+    const padX = 10;
+    const padY = 6;
+    const kick = this.add.text(padX, padY, kicker.toUpperCase(), {
+      fontFamily: 'Source Code Pro, monospace', fontSize: '10px', fontStyle: 'bold', color: '#efd486', letterSpacing: 1.8,
+    } as Phaser.Types.GameObjects.Text.TextStyle);
+    const name = this.add.text(padX, kick.y + kick.height + 2, title, {
+      fontFamily: 'Crimson Text, Georgia, serif', fontSize: '16px', color: '#fbf6ed', wordWrap: { width: 262 },
+    });
+    let bottom = name.y + name.height;
+    let noteText: Phaser.GameObjects.Text | null = null;
+    let ruleY = 0;
+    if (note) {
+      ruleY = bottom + 5;
+      noteText = this.add.text(padX, ruleY + 5, note, {
+        fontFamily: 'Crimson Text, Georgia, serif', fontSize: '15px', color: '#d9cdb8', wordWrap: { width: 262 },
+      });
+      bottom = noteText.y + noteText.height;
+    }
+    const width = Math.ceil(Math.min(282, Math.max(kick.width, name.width, noteText?.width ?? 0) + padX * 2));
+    const height = Math.ceil(bottom + padY + 1);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.35).fillRect(3, 6, width, height);
+    bg.fillStyle(0x0d1014, 1).fillRect(0, 0, width, height);
+    bg.lineStyle(1, 0xefd486, 0.4).strokeRect(0.5, 0.5, width - 1, height - 1);
+    if (noteText) {
+      bg.lineStyle(1, 0xefd486, 0.28);
+      for (let x = padX; x < width - padX; x += 5) bg.lineBetween(x, ruleY, Math.min(x + 2.5, width - padX), ruleY);
+    }
+    const tag = this.add.container(0, 0, noteText ? [bg, kick, name, noteText] : [bg, kick, name])
+      .setDepth(280).setVisible(false);
+    tag.setSize(width, height);
+    return tag;
+  }
+
+  private placeHoverTag(tag: Phaser.GameObjects.Container, centerX: number, bottomY: number) {
+    const x = Phaser.Math.Clamp(centerX - tag.width / 2, 8, Math.max(8, this.scale.width - tag.width - 8));
+    tag.setPosition(Math.round(x), Math.round(Math.max(8, bottomY - tag.height))).setVisible(true);
+  }
+
+  private localRole() {
+    return this.state?.players.find((player) => player.userId === this.callbacks.localUserId)?.role ?? null;
   }
 
   private drawCameraOverlay(width: number, height: number) {
-    if (!this.cameraMode) return;
+    if (!this.cameraMode && !this.cameraClosingAt) return;
     this.refreshCameraOverlay(width, height);
   }
 
+  private updateCamera(time: number, delta: number) {
+    if (!this.cameraMode) {
+      this.refreshCameraOverlay();
+      return;
+    }
+    const axis = this.inputAxis();
+    let moved = false;
+    if (axis.x || axis.y) {
+      const step = (this.keyShift?.isDown ? 900 : 360) * Math.min(delta, 100) / 1000;
+      const current = this.cameraAim ?? this.cameraCentre();
+      this.cameraAim = { x: current.x + axis.x * step, y: current.y + axis.y * step };
+      const rect = this.cameraScreenRect(this.scale.width, this.scale.height);
+      this.cameraAim = {
+        x: Phaser.Math.Clamp(rect.x + rect.width / 2, rect.width / 2, this.scale.width - rect.width / 2),
+        y: Phaser.Math.Clamp(rect.y + rect.height / 2, rect.height / 2, this.scale.height - rect.height / 2),
+      };
+      moved = true;
+    }
+    if (moved || time - this.cameraOpenedAt < 1150) this.refreshCameraOverlay();
+  }
+
+  private cameraCentre() {
+    const frame = this.sceneFrame();
+    return { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+  }
+
+  // Veil over the scene, darker outside the frame, gold frame with four brackets, a label and a centre dot.
+  // Opening: the brackets fly in from the screen corners and lock on; closing plays it back quickly.
   private refreshCameraOverlay(width = this.scale.width, height = this.scale.height) {
     if (!this.ready) return;
-    if (!this.cameraMode) {
+    const now = this.time.now;
+    const closing = !this.cameraMode && this.cameraClosingAt > 0;
+    const closeT = closing ? Math.min(1, (now - this.cameraClosingAt) / 220) : 0;
+    if ((!this.cameraMode && !closing) || closeT >= 1) {
       this.cameraGraphics?.destroy();
       this.cameraLabel?.destroy();
       this.cameraCaptureZone?.destroy();
       this.cameraGraphics = null;
       this.cameraLabel = null;
       this.cameraCaptureZone = null;
+      this.cameraClosingAt = 0;
+      this.cameraClosingRect = null;
       return;
     }
 
-    const rect = this.cameraScreenRect(width, height);
+    const rect = closing && this.cameraClosingRect ? this.cameraClosingRect : this.cameraScreenRect(width, height);
+    const seconds = this.reducedMotion.matches ? 10 : (now - this.cameraOpenedAt) / 1000;
+    const ramp = (start: number, duration: number) => Phaser.Math.Clamp((seconds - start) / duration, 0, 1);
+    let veil = ramp(0.24, 0.3);
+    let shade = ramp(0.29, 0.22);
+    let fly = 1 - Math.pow(1 - ramp(0.22, 0.5), 3);
+    let detail = ramp(0.62, 0.25);
+    if (closing) {
+      veil = 1 - closeT;
+      shade = 1 - closeT;
+      fly = 1 - closeT * closeT;
+      detail = 0;
+    }
+
     const graphics = this.cameraGraphics ?? this.add.graphics().setDepth(240);
     this.cameraGraphics = graphics;
     graphics.clear();
-    graphics.fillStyle(0x6d7178, 0.2);
+    graphics.fillStyle(0xc4c1bc, 0.13 * veil);
     graphics.fillRect(0, 0, width, height);
-    graphics.fillStyle(0x000000, 0.18);
+    graphics.fillStyle(0x09090b, 0.44 * shade);
     graphics.fillRect(0, 0, width, rect.y);
     graphics.fillRect(0, rect.y + rect.height, width, height - rect.y - rect.height);
     graphics.fillRect(0, rect.y, rect.x, rect.height);
     graphics.fillRect(rect.x + rect.width, rect.y, width - rect.x - rect.width, rect.height);
-    graphics.lineStyle(2, 0xf4dc8f, 0.96);
+    graphics.lineStyle(1.5, 0xefd486, 0.9 * shade);
     graphics.strokeRect(rect.x, rect.y, rect.width, rect.height);
-    graphics.lineStyle(5, 0xf4dc8f, 0.92);
-    const corner = Math.min(34, rect.width * 0.22, rect.height * 0.22);
-    graphics.lineBetween(rect.x, rect.y, rect.x + corner, rect.y);
-    graphics.lineBetween(rect.x, rect.y, rect.x, rect.y + corner);
-    graphics.lineBetween(rect.x + rect.width, rect.y, rect.x + rect.width - corner, rect.y);
-    graphics.lineBetween(rect.x + rect.width, rect.y, rect.x + rect.width, rect.y + corner);
-    graphics.lineBetween(rect.x, rect.y + rect.height, rect.x + corner, rect.y + rect.height);
-    graphics.lineBetween(rect.x, rect.y + rect.height, rect.x, rect.y + rect.height - corner);
-    graphics.lineBetween(rect.x + rect.width, rect.y + rect.height, rect.x + rect.width - corner, rect.y + rect.height);
-    graphics.lineBetween(rect.x + rect.width, rect.y + rect.height, rect.x + rect.width, rect.y + rect.height - corner);
 
-    if (!this.cameraLabel) this.cameraLabel = this.add.text(width / 2, rect.y - 14, 'Camera', {
-      fontFamily: 'Crimson Text, serif',
-      fontSize: '17px',
-      color: '#f4dc8f',
-      backgroundColor: 'rgba(10,22,40,0.84)',
-      padding: { x: 10, y: 5 },
-    }).setOrigin(0.5, 1).setDepth(245);
-    this.cameraLabel.setPosition(width / 2, rect.y - 14);
+    const size = 22 * (1 + 0.8 * (1 - fly));
+    const thick = 4;
+    const corners = [
+      { tx: rect.x - 6, ty: rect.y - 6, sx: 0, sy: 0, dx: 1, dy: 1 },
+      { tx: rect.x + rect.width + 6, ty: rect.y - 6, sx: width, sy: 0, dx: -1, dy: 1 },
+      { tx: rect.x - 6, ty: rect.y + rect.height + 6, sx: 0, sy: height, dx: 1, dy: -1 },
+      { tx: rect.x + rect.width + 6, ty: rect.y + rect.height + 6, sx: width, sy: height, dx: -1, dy: -1 },
+    ];
+    for (const corner of corners) {
+      const cx = Phaser.Math.Linear(corner.sx, corner.tx, fly);
+      const cy = Phaser.Math.Linear(corner.sy, corner.ty, fly);
+      const across = corner.dx > 0 ? cx : cx - size;
+      const down = corner.dy > 0 ? cy : cy - size;
+      const barX = corner.dx > 0 ? cx : cx - thick;
+      const barY = corner.dy > 0 ? cy : cy - thick;
+      graphics.fillStyle(0x000000, 0.65 * fly);
+      graphics.fillRect(across, barY + 1, size, thick);
+      graphics.fillRect(barX, down + 1, thick, size);
+      graphics.fillStyle(0xefd486, fly);
+      graphics.fillRect(across, barY, size, thick);
+      graphics.fillRect(barX, down, thick, size);
+    }
 
+    if (detail > 0) {
+      graphics.fillStyle(0x000000, 0.35 * detail);
+      graphics.fillCircle(rect.x + rect.width / 2, rect.y + rect.height / 2, 5);
+      graphics.fillStyle(0xefd486, detail);
+      graphics.fillCircle(rect.x + rect.width / 2, rect.y + rect.height / 2, 3);
+    }
+
+    if (!this.cameraLabel) this.cameraLabel = this.add.text(0, 0, this.callbacks.tr('Camera', 'Máy ảnh').toUpperCase(), {
+      fontFamily: 'Source Code Pro, monospace',
+      fontSize: '10px',
+      fontStyle: 'bold',
+      color: '#efd486',
+      letterSpacing: 1.8,
+      backgroundColor: 'rgba(13,16,20,0.9)',
+      padding: { x: 7, y: 3 },
+    } as Phaser.Types.GameObjects.Text.TextStyle).setDepth(245);
+    const labelAbove = rect.y - this.cameraLabel.height - 7 >= 4;
+    const labelX = labelAbove ? rect.x - 1.5 : rect.x + 7;
+    const labelY = labelAbove ? rect.y - this.cameraLabel.height - 7 : rect.y + 7;
+    this.cameraLabel.setPosition(labelX, labelY).setAlpha(detail);
+    if (detail > 0) {
+      graphics.lineStyle(1, 0xefd486, 0.35 * detail);
+      graphics.strokeRect(labelX + 0.5, labelY + 0.5, this.cameraLabel.width - 1, this.cameraLabel.height - 1);
+    }
+
+    if (!this.cameraMode) return;
     if (!this.cameraCaptureZone) {
       this.cameraCaptureZone = this.add.zone(width / 2, height / 2, width, height)
         .setDepth(250)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this.captureCameraFrame());
+        .setInteractive({ cursor: 'crosshair' })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          // A finger places the frame (the bar's shutter takes the photo); a mouse click shoots.
+          this.cameraAim = { x: pointer.x, y: pointer.y };
+          if (pointer.wasTouch) { this.refreshCameraOverlay(); return; }
+          void this.captureCameraFrame();
+        });
     } else {
       this.cameraCaptureZone.setPosition(width / 2, height / 2).setSize(width, height);
     }
@@ -1421,12 +1638,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const frame = this.sceneFrame();
     const captureWidth = Phaser.Math.Clamp(size.width * 0.85, 102, Math.min(width * 0.72, frame.width, 357));
     const captureHeight = Phaser.Math.Clamp(size.height * 0.85, 78, Math.min(height * 0.62, frame.height, 272));
-    const pointer = this.input.activePointer;
-    const fallbackX = frame.x + frame.width / 2;
-    const fallbackY = frame.y + frame.height / 2;
-    const pointerInsideCanvas = pointer.x >= 0 && pointer.y >= 0 && pointer.x <= width && pointer.y <= height;
-    const centerX = Phaser.Math.Clamp(pointerInsideCanvas ? pointer.x : fallbackX, frame.x, frame.x + frame.width);
-    const centerY = Phaser.Math.Clamp(pointerInsideCanvas ? pointer.y : fallbackY, frame.y, frame.y + frame.height);
+    // The aim follows the mouse, a dragging finger or WASD; without one the frame starts centred.
+    const aim = this.cameraAim ?? this.cameraCentre();
+    const centerX = Phaser.Math.Clamp(aim.x, frame.x, frame.x + frame.width);
+    const centerY = Phaser.Math.Clamp(aim.y, frame.y, frame.y + frame.height);
     return {
       x: Phaser.Math.Clamp(centerX - captureWidth / 2, frame.x, frame.x + frame.width - captureWidth),
       y: Phaser.Math.Clamp(centerY - captureHeight / 2, frame.y, frame.y + frame.height - captureHeight),
@@ -1480,7 +1695,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     } finally {
       this.cameraGraphics?.setVisible(true);
       this.cameraLabel?.setVisible(true);
-      this.cameraCaptureZone?.setInteractive({ useHandCursor: true });
+      this.cameraCaptureZone?.setInteractive({ cursor: 'crosshair' });
       this.cameraCapturePending = false;
     }
   }
@@ -1593,20 +1808,23 @@ class SirLockedPhaserScene extends Phaser.Scene {
     isPrimary = false,
     enabled = true,
   ) {
-    const button = this.add.rectangle(x, y, buttonWidth, 38, 0x0a1628, 0.86)
-      .setStrokeStyle(1, 0xc9a84c, isPrimary ? 0.86 : 0.42)
-      .setAlpha(enabled ? 1 : 0.52);
-    if (enabled) button.setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, label, {
-      fontFamily: 'Crimson Text, serif',
-      fontSize: '16px',
-      color: enabled ? '#f4dc8f' : '#b7ad92',
+    const text = this.add.text(x, y, label.toUpperCase(), {
+      fontFamily: 'Source Code Pro, monospace',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: enabled ? '#efd486' : '#b3a794',
       align: 'center',
-    }).setOrigin(0.5).setAlpha(enabled ? 1 : 0.78);
+      letterSpacing: 1.6,
+    } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5).setAlpha(enabled ? 1 : 0.78).setDepth(26);
+    const button = this.add.rectangle(x, y, Math.max(buttonWidth, text.width + 32), 40, 0x0d1014, 0.88)
+      .setStrokeStyle(isPrimary ? 1.5 : 1, 0xefd486, isPrimary ? 0.8 : 0.4)
+      .setAlpha(enabled ? 1 : 0.52)
+      .setDepth(25);
+    if (enabled) button.setInteractive({ useHandCursor: true });
 
     if (enabled) {
-      button.on('pointerover', () => button.setFillStyle(0x2a2240, 0.9));
-      button.on('pointerout', () => button.setFillStyle(0x0a1628, 0.86));
+      button.on('pointerover', () => { button.setFillStyle(0x1d1a14, 0.96); text.setColor('#fbf6ed'); });
+      button.on('pointerout', () => { button.setFillStyle(0x0d1014, 0.88); text.setColor('#efd486'); });
       button.on('pointerdown', onClick);
     }
 
@@ -2042,6 +2260,38 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   let amendedAccusation: { attemptId: string; expectedRevision: number } | null = null;
   let accusationCommandInFlight = false;
 
+  // ----- "Bảng phá án" HUD: presentation-only state (never sent to the server) -----
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  // The server does not report CameraMissCount yet, so misses are counted here and kept for the tab's session.
+  const cameraMissKey = `sirlocked.cameraMisses.${roomId}.${me.userId}`;
+  let cameraMisses = Number(sessionStorage.getItem(cameraMissKey)) || 0;
+  let cameraShots = 0;
+  let cameraPrint: { url: string; kind: 'NEAR_MISS' | 'MISS'; caption: string; startedAt: number; outAt: number | null } | null = null;
+  const cameraPrintTimers: ReturnType<typeof setTimeout>[] = [];
+  let cameraFxShown = false;
+  let cameraFxTimer: ReturnType<typeof setTimeout> | null = null;
+  let bagWasOpen = false;
+  let bagOpenedAt = 0;
+  let bagGhost: { startedAt: number; liftItemId: string | null; itemId: string | null } | null = null;
+  let bagGhostTimer: ReturnType<typeof setTimeout> | null = null;
+  let bagThudAt = 0;
+  let detailItemShown: string | null = null;
+  let detailOpenedAt = 0;
+  const knownInventoryIds = new Set<string>();
+  const newInventoryIds = new Set<string>();
+  let inventorySeeded = false;
+  let discoveryShownAt = 0;
+  let discoveryPhotoUrl: string | null = null;
+  let clockTimer: ReturnType<typeof setInterval> | null = null;
+  const clockKey = `sirlocked.gameClock.${roomId}`;
+  let clockStartedAt = 0;
+  let travelTimers: ReturnType<typeof setTimeout>[] = [];
+  let travelTyping: ReturnType<typeof setInterval> | null = null;
+  let hudKeysBound = false;
+  const codeDrafts = new Map<string, string[]>();
+  let trayAboveKind = '';
+  let trayAboveSince = 0;
+
   type UiPlaytestEvent =
     | 'ReconnectRestored'
     | 'PrivateNotebookOpened'
@@ -2197,9 +2447,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         : failed
           ? tr('The latest room state could not be loaded. Try again.', 'Chưa tải được trạng thái mới nhất của phòng. Hãy thử lại.')
           : tr('Restoring the latest room state…', 'Đang khôi phục trạng thái mới nhất của phòng…');
-    slot.innerHTML = `<aside class="game-recovery panel panel--dossier" role="status" aria-live="polite">
+    slot.innerHTML = `<aside class="game-recovery" role="status" aria-live="polite">
+      ${gameIcon(disconnected || connecting ? 'wifiOff' : 'info')}
       <span>${escapeHtml(message)}</span>
-      <button class="btn btn-gold" id="game-recovery-retry" type="button" ${!disconnected && (connecting || !failed) ? 'disabled' : ''}>${disconnected ? tr('Reconnect', 'Kết nối lại') : tr('Try again', 'Thử lại')}</button>
+      <button class="bpa-btn bpa-btn--gold bpa-btn--sm" id="game-recovery-retry" type="button" ${!disconnected && (connecting || !failed) ? 'disabled' : ''}>${disconnected ? tr('Reconnect', 'Kết nối lại') : tr('Try again', 'Thử lại')}</button>
     </aside>`;
     slot.querySelector('#game-recovery-retry')?.addEventListener('click', () => {
       if (stopped) return;
@@ -2231,14 +2482,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const steps = roleGuideSteps(myRole(), tr);
     const nextStep = steps.find((step) => !progress.completed.includes(step.id))?.id;
     slot.innerHTML = `<details class="role-guide-controls" ${progress.dismissed ? '' : 'open'}>
-      <summary>${tr('Help', 'Hướng dẫn')} <span data-guide-progress aria-live="polite">${progress.completed.length}/3</span></summary>
-      <section class="role-guide-panel" aria-label="${tr('Your role guide', 'Hướng dẫn vai trò của bạn')}">
-        <strong>${myRole() === 'INVESTIGATOR' ? tr('Investigator', 'Điều tra viên') : tr('Interrogator', 'Thẩm vấn viên')}</strong>
+      <summary>${gameIcon('help')}<span class="bpa-g-lbl">${tr('Help', 'Hướng dẫn')}</span> <span class="bpa-g-guide-count" data-guide-progress aria-live="polite">${progress.completed.length}/3</span></summary>
+      <section class="role-guide-panel bpa-g-pop is-end" aria-label="${tr('Your role guide', 'Hướng dẫn vai trò của bạn')}">
+        <div class="bpa-g-kick">${tr('Guide', 'Hướng dẫn')} · ${escapeHtml(roleName(myRole(), tr))}</div>
         <ol>${steps.map((step) => `<li class="${progress.completed.includes(step.id) ? 'is-complete' : ''}" ${step.id === nextStep ? 'aria-current="step"' : ''}>
           <strong>${escapeHtml(step.title)} ${progress.completed.includes(step.id) ? `<span>— ${tr('Done', 'Đã làm')}</span>` : ''}</strong><p>${escapeHtml(step.text)}</p>
         </li>`).join('')}</ol>
         <p class="role-guide-note">${tr('Only your own actions check off these steps. You can keep playing with this guide open.', 'Chỉ thao tác của chính bạn mới đánh dấu các bước. Bạn vẫn chơi bình thường khi mở hướng dẫn.')}</p>
-        <button class="btn btn-ghost" type="button" data-guide-dismiss>${tr('Close guide', 'Đóng hướng dẫn')}</button>
+        <button class="bpa-btn bpa-btn--gold bpa-btn--sm" type="button" data-guide-dismiss>${tr('Close guide', 'Đóng hướng dẫn')}</button>
       </section>
     </details>`;
     const details = slot.querySelector<HTMLDetailsElement>('details')!;
@@ -2437,6 +2688,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       return;
     }
     const isNewScene = state && state.currentSceneId !== fresh.currentSceneId;
+    // Changing rooms: keep a picture of the room being left and where its door is before the scene redraws.
+    const travelStart = isNewScene ? captureTravelStart(state!, fresh) : null;
     const previousClueKey = clueKey(state);
     const freshClueKey = clueKey(fresh);
     const unlockedCluesChanged = previousClueKey !== freshClueKey;
@@ -2491,12 +2744,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     
     if (isNewScene) {
       audio.play('scene');
-      sceneIntroActive = true;
+      // The room transition's title card replaces the old location toast.
+      sceneIntroActive = false;
       if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
-      sceneIntroTimeout = setTimeout(() => {
-        sceneIntroActive = false;
-        draw();
-      }, 3000);
     }
     for (const itemId of [...combineSelection]) {
       if (!fresh.collectedItemIds.includes(itemId)) combineSelection.delete(itemId);
@@ -2505,6 +2755,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       selectedInventoryItemId = null;
     }
     draw();
+    if (travelStart) playRoomTravel(travelStart);
     if (unlockedCluesChanged) queueConversationRefreshAfterClueUnlock(fresh);
   }
 
@@ -2551,7 +2802,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function showDiscovery(notice: DiscoveryNotice) {
     audio.play('discovery');
+    // A camera hit shows the photo just taken (a blob URL); the previous one is released here.
+    if (discoveryPhotoUrl && discoveryPhotoUrl !== notice.imageUrl) URL.revokeObjectURL(discoveryPhotoUrl);
+    discoveryPhotoUrl = notice.imageUrl?.startsWith('blob:') ? notice.imageUrl : null;
     discoveryNotice = notice;
+    discoveryShownAt = performance.now();
     if (discoveryTimer) clearTimeout(discoveryTimer);
     discoveryTimer = setTimeout(() => {
       if (discoveryNotice?.id !== notice.id) return;
@@ -2759,7 +3014,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   function draw() {
     if (stopped || !state) return;
     mountShell();
-    app.querySelector('.point-game-phaser')?.classList.toggle('is-dialogue', uiMode.kind === 'DIALOGUE');
+    ensureHudLayers();
+    const root = app.querySelector('.point-game-phaser');
+    root?.classList.toggle('is-dialogue', uiMode.kind === 'DIALOGUE');
+    root?.classList.toggle('bpa-g-has-proceed', Boolean(state.currentSceneCanComplete));
     audio.setDialogueActive(uiMode.kind === 'DIALOGUE' || cutscenes.active);
     if (uiMode.kind !== 'DIALOGUE') resetConversation();
     const model = uiModel();
@@ -2767,36 +3025,49 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     audio.setScene(state.currentSceneId, scene.runtime?.audio);
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
-      hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, tr);
+      hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, tr, hudExtras());
     }
+    startClock();
     renderReconnectWaitStatus();
     renderRecoveryStatus();
     renderRoleGuide();
 
+    // A changed room now announces itself with the title card of the room transition.
     const introSlot = app.querySelector('#scene-intro-slot');
-    if (introSlot) {
-      if (sceneIntroActive) {
-        const locationTitle = locationTitleParts(scene.title);
-        introSlot.innerHTML = `
-          <div class="scene-intro-toast">
-            <h2>${escapeHtml(locationTitle.area)}</h2>
-            ${locationTitle.scene ? `<p>${escapeHtml(locationTitle.scene)}</p>` : ''}
-          </div>
-        `;
-      } else {
-        introSlot.innerHTML = '';
-      }
+    if (introSlot) introSlot.innerHTML = '';
+
+    trackInventory();
+    const bagOpen = uiMode.kind === 'INVENTORY';
+    if (bagOpen && !bagWasOpen) {
+      bagOpenedAt = performance.now();
+      clearBagGhost();
+    }
+    if (!bagOpen && bagWasOpen) startBagGhost();
+    bagWasOpen = bagOpen;
+    const detailId = bagOpen && !combineMode ? uiMode.kind === 'INVENTORY' ? uiMode.itemId ?? null : null : null;
+    let focusAfterDraw = '';
+    if (detailId !== detailItemShown) {
+      detailOpenedAt = performance.now();
+      if (detailId) focusAfterDraw = '.bpa-g-dcard [data-use-inventory], #inventory-detail-close';
+      else if (bagOpen && detailItemShown) focusAfterDraw = `[data-inventory="${CSS.escape(detailItemShown)}"]`;
+      detailItemShown = detailId;
     }
 
     const inventory = app.querySelector('#inventory-slot');
-    if (inventory) inventory.innerHTML = inventoryDrawer() + caseFileDrawer() + investigationToolDock(model) + mobileMovementDock(model);
+    if (inventory) inventory.innerHTML = (bagOpen ? inventoryDrawer() : inventoryDrawer(bagGhost)) + caseFileDrawer() + mobileMovementDock(model);
+    renderTray(model);
     const transient = app.querySelector('#game-transient-slot');
     const completedTruth = state.sharedKnowledge?.resolvedTruths?.at(-1) ?? null;
     const caseComplete = isV3CaseComplete();
     const showCaseComplete = caseComplete
       && !crackPayoffPair
       && !caseCompleteDismissed;
-    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${accusationConsensusPanel()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${renderDiscoveryCard(discoveryNotice, tr)}${renderFinalConfrontationCallout(model, tr)}`;
+    const discoveryCard = renderDiscoveryCard(discoveryNotice, tr, {
+      privateRole: state.mechanicsVersion === 3 ? myRole() : null,
+      elapsedMs: discoveryNotice ? performance.now() - discoveryShownAt : 0,
+    });
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${accusationConsensusPanel()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${discoveryCard}${renderFinalConfrontationCallout(model, tr)}`;
+    syncCameraFx();
     if (uiMode.kind === 'DIALOGUE') dialogueOverlay(uiMode.characterId);
     else dialoguePresenter.clear();
     const cinematicHost = app.querySelector<HTMLElement>('#game-cutscene-slot');
@@ -2813,6 +3084,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     }
     syncPhaserInputState();
     bind();
+    bindHud();
+    alignBagOrigin();
     if (!cutscenes.active && crackPayoffPair) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-crack-dismiss')?.focus());
     else if (!cutscenes.active && showCaseComplete) window.requestAnimationFrame(() => app.querySelector<HTMLButtonElement>('#v3-complete-review')?.focus());
     createIcons({
@@ -2827,6 +3100,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     });
     hydrateEvidenceImages();
     modalFocus.sync();
+    // The item card takes focus on its Use button; closing it returns focus to the item's slot.
+    if (focusAfterDraw) app.querySelector<HTMLElement>(focusAfterDraw)?.focus({ preventScroll: true });
   }
 
   function mountPhaser() {
@@ -2933,31 +3208,477 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     };
   }
 
-  function investigationToolDock(model: ReturnType<typeof buildGameUiModel>) {
-    const cameraHtml = model.canUseCamera ? `
-      <button class="floating-btn camera-tool ${model.mode.kind === 'CAMERA' ? 'is-hot' : ''}" id="floating-camera-btn" title="${tr('Camera', 'Máy ảnh')} (Z)" aria-pressed="${model.mode.kind === 'CAMERA'}">
-        <i data-lucide="camera" aria-hidden="true"></i>
-        <span class="hotkey-label">Z</span>
-        <span class="camera-badge">${state!.capturedClueIds?.length ?? 0}</span>
-      </button>
-    ` : '';
+  // ----- "Bảng phá án" HUD helpers -----
 
-    return `
-      <div class="investigation-tool-dock">
-        <button class="floating-btn ${model.mode.kind === 'CASE_FILE' && model.mode.section !== 'map' ? 'is-open' : ''}" id="case-file-btn" title="${tr('Case File', 'Hồ sơ vụ án')}" aria-label="${tr('Case File', 'Hồ sơ vụ án')}">
-          <i data-lucide="folder-search"></i>
-          <span class="tool-badge">${model.role === 'INTERROGATOR' && model.newQuestionCount > 0 ? model.newQuestionCount : state!.unlockedClues.length}</span>
-        </button>
-        <button class="floating-btn ${model.mode.kind === 'CASE_FILE' && model.mode.section === 'map' ? 'is-open' : ''}" id="map-btn" title="${tr('Locations', 'Địa điểm')}" aria-label="${tr('Locations', 'Địa điểm')}"><i data-lucide="map"></i></button>
-        <button class="floating-btn" id="hint-btn" title="${tr('Request a hint', 'Yêu cầu gợi ý')}" aria-label="${tr('Hint', 'Gợi ý')}"><i data-lucide="lightbulb"></i></button>
-        ${cameraHtml}
-        ${model.canUseInventory ? `<button class="floating-btn bag-tool ${model.mode.kind === 'INVENTORY' ? 'is-open' : ''}" id="floating-bag-btn" title="${tr('Inventory', 'Túi đồ')} (B)" aria-pressed="${model.mode.kind === 'INVENTORY'}">
-          <i data-lucide="briefcase" aria-hidden="true"></i>
-          <span class="hotkey-label">B</span>
-          ${state!.collectedItemIds.length > 0 ? `<span class="camera-badge">${state!.collectedItemIds.length}</span>` : ''}
-        </button>` : ''}
-      </div>
-    `;
+  // Layers that outlive redraws: the tool tray (which adopts the co-op tools), the camera
+  // open/close effect and a status line for screen readers.
+  function ensureHudLayers() {
+    const sceneCanvas = app.querySelector<HTMLElement>('.point-game-phaser .scene-canvas');
+    const root = app.querySelector<HTMLElement>('.point-game-phaser');
+    if (!sceneCanvas || !root || sceneCanvas.querySelector('#bpa-g-tray')) return;
+    const blade = '<g class="bpa-g-bl"><path d="M-320 0H320V320H-320Z"/><path class="is-e" d="M-320 0H320"/></g>';
+    const fx = document.createElement('div');
+    fx.id = 'bpa-g-camfx';
+    fx.className = 'bpa-g-camfx';
+    fx.hidden = true;
+    fx.setAttribute('aria-hidden', 'true');
+    fx.innerHTML = `<span class="bpa-g-lb is-t"></span><span class="bpa-g-lb is-b"></span>
+      <svg class="bpa-g-ap" viewBox="-100 -100 200 200"><defs><linearGradient id="bpa-g-blg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d342a"/><stop offset=".1" stop-color="#1c1814"/><stop offset="1" stop-color="#0d0b09"/></linearGradient></defs>
+      ${[0, 60, 120, 180, 240, 300].map((angle) => `<g transform="rotate(${angle})">${blade}</g>`).join('')}</svg>
+      <span class="bpa-g-flash"></span>`;
+    sceneCanvas.querySelector('#game-hud-slot')?.before(fx);
+    const tray = document.createElement('div');
+    tray.id = 'bpa-g-tray';
+    tray.className = 'bpa-g-dock';
+    tray.innerHTML = `<div class="bpa-g-dock-above" id="bpa-g-tray-above"></div>
+      <nav class="bpa-g-tools" aria-label="${tr('Investigation tools', 'Công cụ điều tra')}"><div class="investigation-tool-dock bpa-g-tools-main" id="bpa-g-tray-main"></div></nav>`;
+    sceneCanvas.append(tray);
+    const coop = app.querySelector<HTMLElement>('#game-coop-tools');
+    if (coop) {
+      coop.classList.add('bpa-g-coop');
+      tray.querySelector('.bpa-g-tools')?.append(coop);
+    }
+    const status = document.createElement('p');
+    status.id = 'bpa-g-sr';
+    status.className = 'bpa-sr';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    root.append(status);
+  }
+
+  function renderTray(model: ReturnType<typeof buildGameUiModel>) {
+    const main = app.querySelector<HTMLElement>('#bpa-g-tray-main');
+    if (main) keepFocus(main, () => { main.innerHTML = investigationToolDock(model); });
+    renderTrayAbove(model);
+  }
+
+  // Redraws replace the tray's buttons; a keyboard user keeps their place (matched by id).
+  function keepFocus(container: HTMLElement, rerender: () => void) {
+    const focused = document.activeElement instanceof HTMLElement && container.contains(document.activeElement)
+      ? document.activeElement.id : '';
+    rerender();
+    if (focused) container.querySelector<HTMLElement>(`#${CSS.escape(focused)}`)?.focus({ preventScroll: true });
+  }
+
+  function renderTrayAbove(model = uiModel()) {
+    const above = app.querySelector<HTMLElement>('#bpa-g-tray-above');
+    if (!above) return;
+    const kind = model.mode.kind === 'CAMERA' ? 'camera' : selectedInventoryItemId && model.mode.kind === 'EXPLORE' ? `use:${selectedInventoryItemId}` : 'hint';
+    if (kind !== trayAboveKind) { trayAboveKind = kind; trayAboveSince = performance.now(); }
+    const offset = `--bpa-t: -${Math.round(performance.now() - trayAboveSince)}ms`;
+    keepFocus(above, () => {
+      above.innerHTML = kind === 'camera'
+        ? cameraBarHtml(offset)
+        : kind === 'hint'
+          ? `<p class="bpa-g-hintbar">${tr('Click to walk / interact · WASD / arrows · E interact · Esc cancel', 'Bấm để đi / tương tác · WASD / mũi tên · E tương tác · Esc hủy')}</p>`
+          : useBarHtml(offset);
+    });
+    bindTrayAbove();
+  }
+
+  function cameraBarHtml(offset: string) {
+    const now = performance.now();
+    const print = cameraPrint
+      ? `<div class="bpa-g-print is-${cameraPrint.kind === 'NEAR_MISS' ? 'near' : 'miss'} ${cameraPrint.outAt ? 'is-out' : ''}" aria-hidden="true"
+          style="--bpa-t: -${Math.round(now - cameraPrint.startedAt)}ms; --bpa-t-out: -${cameraPrint.outAt ? Math.round(now - cameraPrint.outAt) : 0}ms">
+          <img src="${escapeHtml(cameraPrint.url)}" alt="">
+          <span class="bpa-g-print-cap">${escapeHtml(cameraPrint.caption)}</span>
+          <span class="bpa-g-print-stamp">${cameraPrint.kind === 'NEAR_MISS' ? tr('UNCLEAR', 'CHƯA RÕ') : tr('MISSED', 'CHỤP TRƯỢT')}</span>
+        </div>`
+      : '';
+    return `<div class="bpa-g-modewrap">${print}
+      <section class="bpa-g-modebar bpa-g-glass" aria-label="${tr('Camera', 'Máy ảnh')}" style="--bpa-g-bar-delay: 300ms; ${offset}">
+        <span class="bpa-g-mb-ic" aria-hidden="true">${gameIcon('camera')}</span>
+        <div class="bpa-g-mb-txt">
+          <span class="bpa-g-kick">${tr('Camera', 'Máy ảnh')}</span>
+          <span class="bpa-g-mb-help bpa-g-fine">${tr('Move the mouse or', 'Rê chuột hoặc')} <kbd>WASD</kbd> ${tr('to aim', 'để ngắm')} · ${tr('Click or', 'Bấm hoặc')} <kbd>Space</kbd> ${tr('to shoot', 'để chụp')}</span>
+          <span class="bpa-g-mb-help bpa-g-coarse">${tr('Tap or drag to place the frame · Press the shutter', 'Chạm hoặc kéo để đặt khung · Bấm nút chụp')}</span>
+        </div>
+        <span class="bpa-g-mb-sep" aria-hidden="true"></span>
+        <div class="bpa-g-mb-count">
+          <span class="bpa-g-mb-nums"><span>${tr('Captured', 'Đã chụp')} <b>${state!.capturedClueIds?.length ?? 0}</b></span><span class="is-miss">${tr('Missed', 'Chụp trượt')} <b>${cameraMisses}</b></span></span>
+          <span class="bpa-g-mb-note">${tr('Each missed shot costs investigation points.', 'Mỗi lần chụp trượt bị trừ điểm điều tra.')}</span>
+        </div>
+        <div class="bpa-g-mb-act">
+          <button type="button" class="bpa-g-shut" id="bpa-g-shutter" aria-label="${tr('Photograph the framed area', 'Chụp khung đang ngắm')}" aria-keyshortcuts="Space" ${captureInFlight ? 'disabled' : ''}><span></span></button>
+          <button type="button" class="bpa-btn bpa-btn--gold bpa-btn--sm" id="bpa-g-camera-exit" aria-keyshortcuts="Escape">${tr('Exit', 'Thoát')} <kbd>Esc</kbd></button>
+        </div>
+      </section></div>`;
+  }
+
+  function useBarHtml(offset: string) {
+    const item = collectedItem(selectedInventoryItemId!);
+    const picture = item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : escapeHtml(initials(item.name));
+    return `<div class="bpa-g-modewrap">
+      <section class="bpa-g-modebar bpa-g-glass" aria-label="${tr('Using an item', 'Đang dùng vật phẩm')}" style="${offset}">
+        <span class="bpa-g-mb-item" aria-hidden="true">${picture}</span>
+        <div class="bpa-g-mb-txt">
+          <span class="bpa-g-mb-main">${tr('Using', 'Đang dùng')}: <b>${escapeHtml(item.name)}</b></span>
+          <span class="bpa-g-mb-help">${tr('Choose a target in the scene', 'Chọn đích trong cảnh')} · <kbd>Esc</kbd> ${tr('cancel', 'hủy')}</span>
+        </div>
+        <div class="bpa-g-mb-act"><button type="button" class="bpa-btn bpa-btn--gold bpa-btn--sm" id="bpa-g-use-cancel" aria-keyshortcuts="Escape">${tr('Cancel', 'Hủy')}</button></div>
+      </section></div>`;
+  }
+
+  function collectedItem(itemId: string): SceneItem {
+    const item = state!.collectedItems?.find((candidate) => candidate.itemId === itemId)
+      ?? state!.visibleScene.items.find((candidate) => candidate.itemId === itemId);
+    return item ?? { itemId, name: prettyId(itemId), description: '', imageUrl: '' };
+  }
+
+  function bindTrayAbove() {
+    app.querySelector('#bpa-g-shutter')?.addEventListener('click', () => phaserScene?.shoot());
+    app.querySelector('#bpa-g-camera-exit')?.addEventListener('click', () => closeUiMode());
+    app.querySelector('#bpa-g-use-cancel')?.addEventListener('click', cancelItemUse);
+  }
+
+  function bindHud() {
+    app.querySelectorAll<HTMLElement>('[data-bpa-locked-tool]').forEach((button) => button.addEventListener('click', () => {
+      toast(button.dataset.bpaLockedTool === 'camera'
+        ? tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.')
+        : tr('Only the Investigator can use inventory items.', 'Chỉ Điều tra viên có thể dùng đồ trong túi.'), 'info');
+    }));
+    bindCodeCells();
+    if (hudKeysBound) return;
+    hudKeysBound = true;
+    // Esc puts the item in hand back; outside clicks close the sound panel like the other tray menus.
+    window.addEventListener('keydown', (event) => {
+      if (stopped || event.key !== 'Escape' || !selectedInventoryItemId || uiMode.kind !== 'EXPLORE') return;
+      cancelItemUse();
+    }, { signal });
+    document.addEventListener('pointerdown', (event) => {
+      const open = app.querySelector<HTMLDetailsElement>('.bpa-g-coop .game-audio-controls[open]');
+      if (open && event.target instanceof Node && !open.contains(event.target)) open.open = false;
+    }, { capture: true, signal });
+  }
+
+  function cancelItemUse() {
+    if (!selectedInventoryItemId) return;
+    selectedInventoryItemId = null;
+    draw();
+    window.requestAnimationFrame(() => app.querySelector<HTMLElement>('#floating-bag-btn')?.focus());
+  }
+
+  // Investigation clock: from the first moment this room was seen on this device or its oldest log entry.
+  function startClock() {
+    const firstLog = (state?.actionLog ?? []).reduce((min, entry) => Math.min(min, Date.parse(entry.createdAt) || Infinity), Infinity);
+    if (!clockStartedAt) {
+      let stored = NaN;
+      try { stored = Number(localStorage.getItem(clockKey)); } catch { /* storage may be blocked */ }
+      clockStartedAt = Math.min(stored > 0 ? stored : Infinity, Date.now());
+    }
+    if (firstLog < clockStartedAt) clockStartedAt = firstLog;
+    try { localStorage.setItem(clockKey, String(clockStartedAt)); } catch { /* memory-only clock */ }
+    clockTimer ??= setInterval(() => {
+      if (stopped) { if (clockTimer) clearInterval(clockTimer); clockTimer = null; return; }
+      const clock = app.querySelector('#bpa-g-clock');
+      if (clock) clock.textContent = clockText((Date.now() - clockStartedAt) / 1000);
+    }, 1000);
+  }
+
+  function hudExtras(): HudExtras {
+    if (!clockStartedAt) startClock();
+    const sceneIndex = state!.sceneMap.findIndex((entry) => entry.sceneId === state!.currentSceneId || entry.isCurrent);
+    const whereabouts: Record<string, string> = {};
+    for (const player of state!.players) {
+      if (player.userId === me.userId) { whereabouts[player.userId] = state!.visibleScene.title; continue; }
+      const sceneId = playerPoses.get(player.userId)?.sceneId;
+      const entry = sceneId ? state!.sceneMap.find((candidate) => candidate.sceneId === sceneId) : null;
+      whereabouts[player.userId] = entry?.title ?? roleName(player.role, tr);
+    }
+    return {
+      sceneTitle: state!.visibleScene.title,
+      actNumber: sceneIndex >= 0 ? sceneIndex + 1 : 1,
+      roomCode: state!.roomCode,
+      clockSeconds: (Date.now() - clockStartedAt) / 1000,
+      progress: sceneProgress(),
+      whereabouts,
+    };
+  }
+
+  // Role-shaped progress in this location: objects examined (Investigator) or statements taken (Interrogator).
+  function sceneProgress(): HudExtras['progress'] {
+    const scene = state!.visibleScene;
+    if (myRole() === 'INTERROGATOR') {
+      const total = scene.availableDialogues.length;
+      return total ? { done: scene.availableDialogues.filter((dialogue) => dialogue.isAsked).length, total, unit: 'TESTIMONY' } : null;
+    }
+    const targets = new Set<string>();
+    const done = new Set<string>();
+    for (const hotspot of scene.hotspots) {
+      if (!['ITEM', 'OBJECT', 'CLUE', 'ENVIRONMENT'].includes(hotspot.type.toUpperCase())) continue;
+      targets.add(hotspot.targetId);
+      if (state!.inspectedItemIds.includes(hotspot.targetId) || state!.collectedItemIds.includes(hotspot.targetId)
+        || state!.usedInteractionIds?.includes(hotspot.targetId) || state!.usedInteractionIds?.includes(hotspot.hotspotId)) done.add(hotspot.targetId);
+    }
+    for (const zone of scene.runtime?.clueZones ?? []) {
+      targets.add(`clue:${zone.clueId}`);
+      if (state!.capturedClueIds?.includes(zone.clueId)) done.add(`clue:${zone.clueId}`);
+    }
+    return targets.size ? { done: done.size, total: targets.size, unit: 'EVIDENCE' } : null;
+  }
+
+  // Items that arrived since the satchel was last opened get a "new" mark.
+  function trackInventory() {
+    const ids = state!.collectedItemIds ?? [];
+    if (!inventorySeeded) {
+      ids.forEach((id) => knownInventoryIds.add(id));
+      inventorySeeded = true;
+      return;
+    }
+    for (const id of ids) {
+      if (knownInventoryIds.has(id)) continue;
+      knownInventoryIds.add(id);
+      newInventoryIds.add(id);
+    }
+    for (const id of [...newInventoryIds]) if (!ids.includes(id)) newInventoryIds.delete(id);
+  }
+
+  // The satchel closes back into its button: its DOM stays ≈300 ms (400 ms when an item is lifted out for use).
+  function startBagGhost() {
+    newInventoryIds.clear();
+    clearBagGhost();
+    if (reducedMotion.matches) return;
+    const liftItemId = selectedInventoryItemId;
+    bagGhost = { startedAt: performance.now(), liftItemId, itemId: detailItemShown };
+    bagGhostTimer = setTimeout(() => {
+      bagGhost = null;
+      bagGhostTimer = null;
+      app.querySelector('.bpa-g-bag-ghost')?.remove();
+      bagThudAt = performance.now();
+      const tool = app.querySelector<HTMLElement>('[data-bpa-tool="bag"]');
+      if (tool) { tool.classList.remove('is-thud'); void tool.offsetWidth; tool.classList.add('is-thud'); }
+    }, liftItemId ? 400 : 300);
+  }
+
+  function clearBagGhost() {
+    if (bagGhostTimer) clearTimeout(bagGhostTimer);
+    bagGhostTimer = null;
+    bagGhost = null;
+  }
+
+  // The satchel grows out of its tray button.
+  function alignBagOrigin() {
+    const bag = app.querySelector<HTMLElement>('#inventory-slot .bpa-g-bag');
+    const tool = app.querySelector<HTMLElement>('[data-bpa-tool="bag"]');
+    const slot = app.querySelector<HTMLElement>('#inventory-slot');
+    if (!bag || !tool || !slot || window.matchMedia('(max-width: 900px)').matches) return;
+    const toolBox = tool.getBoundingClientRect();
+    const slotBox = slot.getBoundingClientRect();
+    const originX = toolBox.left + toolBox.width / 2 - slotBox.left - (bag.offsetLeft - bag.offsetWidth / 2);
+    bag.style.setProperty('--bpa-g-origin-x', `${Math.round(originX)}px`);
+  }
+
+  // Camera open/close effect: six-blade aperture blink and letterbox bars (the brackets live in Phaser).
+  function syncCameraFx() {
+    const on = uiMode.kind === 'CAMERA';
+    const fx = app.querySelector<HTMLElement>('#bpa-g-camfx');
+    if (!fx || on === cameraFxShown) return;
+    cameraFxShown = on;
+    if (cameraFxTimer) clearTimeout(cameraFxTimer);
+    cameraFxTimer = null;
+    if (on) {
+      fx.hidden = false;
+      fx.className = 'bpa-g-camfx';
+      void fx.offsetWidth;
+      fx.classList.add('is-in');
+      return;
+    }
+    clearCameraPrint();
+    fx.className = 'bpa-g-camfx is-out';
+    cameraFxTimer = setTimeout(() => { fx.hidden = true; fx.className = 'bpa-g-camfx'; }, reducedMotion.matches ? 0 : 340);
+  }
+
+  function flashCamera() {
+    const flash = app.querySelector<HTMLElement>('#bpa-g-camfx .bpa-g-flash');
+    if (!flash || reducedMotion.matches) return;
+    flash.classList.remove('is-on');
+    void flash.offsetWidth;
+    flash.classList.add('is-on');
+  }
+
+  // The print of a near miss or miss slides up behind the camera bar, then drops away.
+  function showCameraPrint(photo: Blob, kind: 'NEAR_MISS' | 'MISS', caption: string) {
+    clearCameraPrint();
+    cameraPrint = { url: URL.createObjectURL(photo), kind, caption, startedAt: performance.now(), outAt: null };
+    cameraPrintTimers.push(setTimeout(() => {
+      if (!cameraPrint || stopped) return;
+      cameraPrint.outAt = performance.now();
+      if (uiMode.kind === 'CAMERA') renderTrayAbove();
+    }, 2700));
+    cameraPrintTimers.push(setTimeout(() => {
+      clearCameraPrint();
+      if (!stopped && uiMode.kind === 'CAMERA') renderTrayAbove();
+    }, 3150));
+  }
+
+  function clearCameraPrint() {
+    cameraPrintTimers.splice(0).forEach((timer) => clearTimeout(timer));
+    if (cameraPrint) URL.revokeObjectURL(cameraPrint.url);
+    cameraPrint = null;
+  }
+
+  function announce(message: string) {
+    const status = app.querySelector('#bpa-g-sr');
+    if (status) status.textContent = message;
+  }
+
+  // Code lock cells: one character per cell, arrows roll digits, typing moves on; the hidden field keeps the answer.
+  function bindCodeCells() {
+    const cells = [...app.querySelectorAll<HTMLInputElement>('[data-code-cell]')];
+    const answer = app.querySelector<HTMLInputElement>('#puzzle-code-answer');
+    if (!answer) return;
+    const puzzleId = answer.dataset.puzzleId ?? '';
+    // Capture phase: the cells must be emptied before the existing Clear handler redraws the lock.
+    app.querySelector('#puzzle-clear-btn')?.addEventListener('click', () => codeDrafts.delete(puzzleId), { capture: true });
+    const sync = () => {
+      const draft = cells.length ? cells.map((cell) => cell.value.slice(-1)) : [answer.value];
+      answer.value = draft.join('').trim();
+      codeDrafts.set(puzzleId, draft);
+    };
+    if (!cells.length) {
+      answer.addEventListener('input', sync);
+      answer.addEventListener('keydown', (event) => { if (event.key === 'Enter') app.querySelector<HTMLButtonElement>('#puzzle-submit-btn')?.click(); });
+      return;
+    }
+    const roll = (index: number, step: number) => {
+      const cell = cells[index];
+      const digit = /^\d$/.test(cell.value) ? Number(cell.value) : step > 0 ? -1 : 0;
+      cell.value = String((digit + step + 10) % 10);
+      sync();
+    };
+    cells.forEach((cell, index) => {
+      cell.addEventListener('input', () => {
+        cell.value = cell.value.slice(-1).toUpperCase();
+        sync();
+        if (cell.value) cells[index + 1]?.focus();
+      });
+      cell.addEventListener('focus', () => cell.select());
+      cell.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { roll(index, event.key === 'ArrowUp' ? 1 : -1); event.preventDefault(); }
+        else if (event.key === 'ArrowLeft') { cells[index - 1]?.focus(); event.preventDefault(); }
+        else if (event.key === 'ArrowRight') { cells[index + 1]?.focus(); event.preventDefault(); }
+        else if (event.key === 'Backspace' && !cell.value) { cells[index - 1]?.focus(); }
+        else if (event.key === 'Enter') { app.querySelector<HTMLButtonElement>('#puzzle-submit-btn')?.click(); event.preventDefault(); }
+      });
+    });
+    app.querySelectorAll<HTMLButtonElement>('[data-code-roll]').forEach((button) => button.addEventListener('click', () => {
+      const [index, step] = (button.dataset.codeRoll ?? '0:1').split(':').map(Number);
+      roll(index, step);
+      cells[index]?.focus();
+    }));
+  }
+
+  // Room transition: push into the doorway → iris closes → act title card with a red string from the old
+  // room to the new one → iris opens on the new room. Reduced motion: fade to black, card, fade out.
+  type TravelStart = { fromTitle: string; fromSceneId: string; snapshot: string; door: { x: number; y: number } };
+
+  function captureTravelStart(previous: GameState, fresh: GameState): TravelStart {
+    const root = app.querySelector<HTMLElement>('.point-game-phaser');
+    const canvas = app.querySelector<HTMLCanvasElement>(`#${hostId} canvas`);
+    const width = root?.clientWidth || window.innerWidth;
+    const height = root?.clientHeight || window.innerHeight;
+    let snapshot = '';
+    if (!reducedMotion.matches) {
+      try { snapshot = canvas?.toDataURL('image/jpeg', 0.82) ?? ''; } catch { snapshot = ''; }
+    }
+    const door = phaserScene?.transitionPoint(fresh.currentSceneId)
+      ?? { x: width / 2, y: height - (width <= 900 ? 214 : 112) };
+    return { fromTitle: previous.visibleScene.title, fromSceneId: previous.currentSceneId, snapshot, door };
+  }
+
+  function playRoomTravel(start: TravelStart) {
+    const root = app.querySelector<HTMLElement>('.point-game-phaser');
+    if (!root || !state) return;
+    travelTimers.splice(0).forEach((timer) => clearTimeout(timer));
+    if (travelTyping) clearInterval(travelTyping);
+    travelTyping = null;
+    root.querySelector('.bpa-g-tr')?.remove();
+    const reduce = reducedMotion.matches;
+    const width = root.clientWidth;
+    const height = root.clientHeight;
+    const iris = (point: { x: number; y: number }) => Math.round(2 * Math.hypot(Math.max(point.x, width - point.x), Math.max(point.y, height - point.y)) + 280);
+    const sceneIndex = state.sceneMap.findIndex((entry) => entry.sceneId === state!.currentSceneId);
+    const act = `${tr('Act', 'Hồi')} ${romanNumeral(sceneIndex >= 0 ? sceneIndex + 1 : 1)}`;
+    const title = state.visibleScene.title;
+    const door = start.door;
+    // The old room's picture zooms into its doorway under the HUD; the iris and the card cover everything.
+    root.querySelector('.bpa-g-tr-shot')?.remove();
+    let shot: HTMLImageElement | null = null;
+    if (start.snapshot) {
+      shot = document.createElement('img');
+      shot.className = 'bpa-g-tr-shot';
+      shot.alt = '';
+      shot.setAttribute('aria-hidden', 'true');
+      shot.src = start.snapshot;
+      shot.style.transformOrigin = `${Math.round(door.x)}px ${Math.round(door.y)}px`;
+      root.querySelector('#game-hud-slot')?.before(shot);
+    }
+    const layer = document.createElement('div');
+    layer.className = 'bpa-g-tr is-push';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = `<span class="bpa-g-tr-iris" style="left: ${Math.round(door.x)}px; top: ${Math.round(door.y)}px; width: ${iris(door)}px; height: ${iris(door)}px"></span>
+      <div class="bpa-g-tc">
+        <div class="bpa-g-tc-card"><span class="bpa-pin bpa-pin--red"></span><span class="bpa-g-tc-kick">${escapeHtml(`${act} — ${state.caseTitle}`)}</span><span class="bpa-g-tc-ttl"><span class="bpa-g-tc-typed"></span><span class="bpa-g-tc-caret"></span></span></div>
+        <div class="bpa-g-tc-route">
+          <svg viewBox="0 0 300 64"><path class="is-sh" d="M32 17Q150 66 268 17" pathLength="1"/><path class="is-st" d="M30 14Q150 63 270 14" pathLength="1"/></svg>
+          <span class="bpa-g-tc-tag is-a"><span class="bpa-pin bpa-pin--red"></span>${escapeHtml(start.fromTitle)}</span>
+          <span class="bpa-g-tc-tag is-b"><span class="bpa-pin bpa-pin--red"></span>${escapeHtml(title)}</span>
+        </div>
+      </div>`;
+    root.append(layer);
+    announce(tr(`Moving to ${title}.`, `Đang di chuyển tới ${title}.`));
+    // Presentation only: the scene keeps taking input underneath (clicks pass through the overlay).
+    const total = reduce ? 2000 : 2460;
+    const typed = layer.querySelector<HTMLElement>('.bpa-g-tc-typed')!;
+    travelTimers.push(setTimeout(() => {
+      layer.className = 'bpa-g-tr is-card';
+      shot?.remove();
+      if (reduce) { typed.textContent = title; return; }
+      let shown = 0;
+      travelTimers.push(setTimeout(() => {
+        travelTyping = setInterval(() => {
+          shown += 1;
+          typed.textContent = title.slice(0, shown);
+          if (shown >= title.length && travelTyping) { clearInterval(travelTyping); travelTyping = null; }
+        }, 30);
+      }, 160));
+    }, reduce ? 320 : 850));
+    travelTimers.push(setTimeout(() => {
+      typed.textContent = title;
+      if (travelTyping) clearInterval(travelTyping);
+      travelTyping = null;
+      const arrival = phaserScene?.transitionPoint(start.fromSceneId) ?? { x: width / 2, y: height / 2 };
+      const opening = layer.querySelector<HTMLElement>('.bpa-g-tr-iris');
+      if (opening) Object.assign(opening.style, { left: `${Math.round(arrival.x)}px`, top: `${Math.round(arrival.y)}px`, width: `${iris(arrival)}px`, height: `${iris(arrival)}px` });
+      layer.className = 'bpa-g-tr is-open';
+    }, reduce ? 1700 : 1800));
+    travelTimers.push(setTimeout(() => {
+      layer.remove();
+      announce(tr(`Arrived at ${title}. ${act}.`, `Đã tới ${title}. ${act}.`));
+    }, total));
+  }
+
+  function investigationToolDock(model: ReturnType<typeof buildGameUiModel>) {
+    const locked = (tool: 'camera' | 'bag', icon: string, label: string, tip: string) => `<button type="button" class="bpa-g-tool is-locked" data-bpa-tool="${tool}" data-bpa-locked-tool="${tool}"
+        aria-label="${label}" aria-disabled="true" aria-describedby="bpa-g-tip-${tool}">${gameIcon(icon)}<span class="bpa-g-lbl">${label}</span>
+        <span class="bpa-g-lock" aria-hidden="true">${gameIcon('lock')}</span><span class="bpa-g-tip" id="bpa-g-tip-${tool}" role="tooltip">${tip}</span></button>`;
+    const camera = model.canUseCamera
+      ? `<button type="button" class="bpa-g-tool" id="floating-camera-btn" data-bpa-tool="camera" aria-label="${tr('Camera', 'Máy ảnh')}" aria-pressed="${model.mode.kind === 'CAMERA'}" aria-keyshortcuts="Z">${gameIcon('camera')}<span class="bpa-g-lbl">${tr('Camera', 'Máy ảnh')}</span><span class="bpa-g-key" aria-hidden="true">Z</span></button>`
+      : locked('camera', 'camera', tr('Camera', 'Máy ảnh'), tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.'));
+    const hasNew = newInventoryIds.size > 0 && model.mode.kind !== 'INVENTORY';
+    const thud = performance.now() - bagThudAt < 360;
+    const bag = model.canUseInventory
+      ? `<button type="button" class="bpa-g-tool ${hasNew ? 'has-new' : ''} ${thud ? 'is-thud' : ''}" id="floating-bag-btn" data-bpa-tool="bag" aria-label="${hasNew ? tr('Inventory, new item', 'Túi đồ, có vật phẩm mới') : tr('Inventory', 'Túi đồ')}" aria-pressed="${model.mode.kind === 'INVENTORY'}" aria-keyshortcuts="B" style="${thud ? `--bpa-t: -${Math.round(performance.now() - bagThudAt)}ms` : ''}">${gameIcon('bag')}<span class="bpa-g-lbl">${tr('Inventory', 'Túi đồ')}</span><span class="bpa-g-key" aria-hidden="true">B</span></button>`
+      : locked('bag', 'bag', tr('Inventory', 'Túi đồ'), tr('Only the Investigator can use inventory items.', 'Chỉ Điều tra viên có thể dùng đồ trong túi.'));
+    const caseCount = model.role === 'INTERROGATOR' && model.newQuestionCount > 0 ? model.newQuestionCount : state!.unlockedClues.length;
+    const caseOpen = model.mode.kind === 'CASE_FILE' && model.mode.section !== 'map';
+    const mapOpen = model.mode.kind === 'CASE_FILE' && model.mode.section === 'map';
+    return `${camera}${bag}
+      <button type="button" class="bpa-g-tool" id="case-file-btn" data-bpa-tool="case-file" aria-label="${tr('Case File', 'Hồ sơ vụ án')}" aria-pressed="${caseOpen}">${gameIcon('file')}<span class="bpa-g-lbl">${tr('Case File', 'Hồ sơ vụ án')}</span>${caseCount ? `<span class="bpa-g-count tool-badge" aria-hidden="true">${caseCount}</span>` : ''}</button>
+      <button type="button" class="bpa-g-tool" id="map-btn" data-bpa-tool="map" aria-label="${tr('Locations', 'Địa điểm')}" aria-pressed="${mapOpen}">${gameIcon('map')}<span class="bpa-g-lbl">${tr('Locations', 'Địa điểm')}</span></button>
+      <span class="bpa-g-sep" aria-hidden="true"></span>
+      <button type="button" class="bpa-g-tool" id="hint-btn" data-bpa-tool="hint" aria-label="${tr('Hint', 'Gợi ý')}">${gameIcon('hint')}<span class="bpa-g-lbl">${tr('Hint', 'Gợi ý')}</span></button>`;
   }
 
   function mobileMovementDock(model: ReturnType<typeof buildGameUiModel>) {
@@ -2986,45 +3707,78 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     return `<div class="hint-chip" title="${escapeHtml(state.currentObjective)}">${escapeHtml(state.currentObjective)}</div>`;
   }
 
-  function inventoryDrawer() {
-    if (uiMode.kind !== 'INVENTORY') return '';
+  // Túi đồ: a leather satchel with twelve slots. `ghost` renders the inert copy that plays the closing
+  // flap after the bag's state has already closed (no ids or data hooks, so nothing can act on it).
+  function inventoryDrawer(ghost: typeof bagGhost = null) {
+    if (!ghost && uiMode.kind !== 'INVENTORY') return '';
+    const live = !ghost;
 
     const itemsById = new Map(state!.visibleScene.items.map((i) => [i.itemId, i]));
     for (const item of state!.collectedItems ?? []) itemsById.set(item.itemId, item);
     const collected = state!.collectedItemIds.map((id) => itemsById.get(id) ?? { itemId: id, name: prettyId(id), imageUrl: '' });
-    
-    const totalSlots = Math.max(12, collected.length);
+    const detailId = live ? uiMode.kind === 'INVENTORY' ? uiMode.itemId : undefined : ghost.itemId;
+    const now = performance.now();
+    const opening = live && now - bagOpenedAt < 900 && !reducedMotion.matches;
+    const offset = ghost ? now - ghost.startedAt : opening ? now - bagOpenedAt : 0;
+
+    const totalSlots = Math.max(12, Math.ceil(collected.length / 6) * 6);
     const slots = [];
     for (let i = 0; i < totalSlots; i++) {
       const item = collected[i];
       if (item) {
-        slots.push(`
-          <button class="inventory-drawer-slot is-filled ${uiMode.itemId === item.itemId ? 'is-selected' : ''} ${combineSelection.has(item.itemId) ? 'is-combine-selected' : ''}"
-                  data-inventory="${escapeHtml(item.itemId)}" title="${escapeHtml(item.name)}">
-            <span class="inventory-icon" style="${placeholderStyle(item.itemId)}">
-              ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
+        const isNew = newInventoryIds.has(item.itemId);
+        const name = escapeHtml(item.name);
+        const classes = [
+          live ? 'inventory-drawer-slot' : '', 'bpa-g-slot is-filled',
+          live && uiMode.kind === 'INVENTORY' && uiMode.itemId === item.itemId && !combineMode ? 'is-selected is-out' : '',
+          live && combineSelection.has(item.itemId) ? 'is-combine-selected' : '',
+          ghost?.liftItemId === item.itemId ? 'is-lift' : '',
+        ].filter(Boolean).join(' ');
+        slots.push(`<li><button type="button" class="${classes}" style="--bpa-g-i: ${i}"
+            ${live ? `data-inventory="${escapeHtml(item.itemId)}"` : 'tabindex="-1"'}
+            ${live && i === 0 ? 'data-modal-autofocus' : ''}
+            ${combineMode && live ? `aria-pressed="${combineSelection.has(item.itemId)}"` : ''}
+            aria-label="${combineMode ? tr('Select to combine', 'Chọn để kết hợp') : tr('View details', 'Xem chi tiết')}: ${name}${isNew ? ` (${tr('new', 'mới')})` : ''}">
+            ${isNew ? `<span class="bpa-g-slot-new" aria-hidden="true">${tr('NEW', 'MỚI')}</span>` : ''}
+            <span class="bpa-g-slot-ck" aria-hidden="true">${gameIcon('check')}</span>
+            <span class="inventory-icon bpa-g-slot-pic" style="${item.imageUrl ? '' : placeholderStyle(item.itemId)}" aria-hidden="true">
+              ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}<span>${escapeHtml(initials(item.name))}</span>
             </span>
-          </button>
-        `);
+            <span class="bpa-g-slot-name">${name}</span>
+          </button></li>`);
       } else {
-        slots.push(`<div class="inventory-drawer-slot is-empty"></div>`);
+        slots.push(`<li aria-hidden="true"><span class="${live ? 'inventory-drawer-slot ' : ''}bpa-g-slot is-empty"></span></li>`);
       }
     }
 
+    const note = combineMode && live
+      ? tr('Choose the items to combine, then press Use.', 'Chọn các vật phẩm muốn ghép, rồi bấm Dùng.')
+      : collected.length
+        ? tr('Choose an item to see its details.', 'Chọn một vật phẩm để xem chi tiết.')
+        : tr('The bag is empty. Examine objects in the scene to collect them.', 'Túi đồ đang trống. Khám nghiệm vật thể trong hiện trường để thu thập.');
+    const classes = [
+      live ? 'inventory-drawer' : 'bpa-g-bag-ghost', 'bpa-g-bag',
+      live && combineMode ? 'is-combining' : '', opening ? 'is-opening' : '',
+      ghost ? 'is-closing' : '', ghost?.liftItemId ? 'is-lift' : '',
+    ].filter(Boolean).join(' ');
     return `
-      <div class="inventory-drawer panel panel--dossier" aria-label="${tr('Inventory', 'Túi đồ')}">
-        <div class="inventory-drawer-header">
-          <span>${tr('Bag', 'Túi đồ')}</span>
-          <button class="btn btn-ghost btn-sm ${combineMode ? 'is-active' : ''}" id="combine-mode-btn">${combineMode ? tr('Combining', 'Đang kết hợp') : tr('Combine', 'Kết hợp')}</button>
-          ${combineMode ? `<button class="btn btn-gold btn-sm" id="combine-submit-btn" ${combineSelection.size >= 2 ? '' : 'disabled'}>${tr('Use', 'Dùng')} ${combineSelection.size}</button>` : ''}
-          <button class="close-drawer-btn" title="${tr('Close', 'Đóng')} (Esc)"><i data-lucide="x"></i></button>
+      <section class="${classes}" ${live ? `aria-label="${tr('Inventory', 'Túi đồ')}" data-modal-key="inventory"` : 'aria-hidden="true" inert'} style="${offset ? `--bpa-t: -${Math.round(offset)}ms` : ''}">
+        ${live && detailId && !combineMode ? inventoryDetailOverlay(detailId) : ''}
+        <span class="bpa-g-bag-face" aria-hidden="true"></span>
+        <span class="bpa-g-grab" aria-hidden="true"></span>
+        <span class="bpa-g-rivet is-a" aria-hidden="true"></span><span class="bpa-g-rivet is-b" aria-hidden="true"></span><span class="bpa-g-rivet is-c" aria-hidden="true"></span><span class="bpa-g-rivet is-d" aria-hidden="true"></span>
+        <div class="inventory-drawer-header bpa-g-bag-hd">
+          <div class="bpa-g-bag-ttl">${gameIcon('bag')}<h2>${tr('Inventory', 'Túi đồ')}</h2><span class="bpa-g-mute">${collected.length}/${totalSlots}</span></div>
+          <div class="bpa-g-bag-act">
+            <button type="button" class="bpa-g-bbtn" ${live ? 'id="combine-mode-btn"' : 'tabindex="-1"'} aria-pressed="${combineMode && live}">${gameIcon('merge')}${combineMode && live ? tr('Combining', 'Đang kết hợp') : tr('Combine', 'Kết hợp')}</button>
+            ${combineMode && live ? `<button type="button" class="bpa-g-bbtn is-go" id="combine-submit-btn" ${combineSelection.size >= 2 ? '' : 'disabled'}>${tr('Use', 'Dùng')} ${combineSelection.size}</button>` : ''}
+            <button type="button" class="${live ? 'close-drawer-btn ' : ''}bpa-g-x" ${live ? '' : 'tabindex="-1"'} aria-label="${tr('Close inventory', 'Đóng túi đồ')}" aria-keyshortcuts="Escape">${gameIcon('x')}</button>
+          </div>
         </div>
-        <div class="inventory-drawer-grid">
-          ${slots.join('')}
-        </div>
-        ${uiMode.itemId ? inventoryDetailOverlay(uiMode.itemId) : ''}
-      </div>
-    `;
+        <p class="bpa-g-bag-note">${note}</p>
+        <ul class="${live ? 'inventory-drawer-grid ' : ''}bpa-g-grid" aria-label="${tr('Items in the bag', 'Vật phẩm trong túi')}">${slots.join('')}</ul>
+        <span class="bpa-g-flap" aria-hidden="true"><i></i></span>
+      </section>`;
   }
 
   function introOverlay(role: string | null) {
@@ -3054,15 +3808,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         'Complete deductions before the final accusation',
       ];
     return `
-    <div class="overlay" id="intro-overlay">
-      <div class="modal panel panel--dossier intro-dossier">
+    <div class="overlay bpa-g-overlay" id="intro-overlay">
+      <div class="modal intro-dossier bpa-g-brief">
+        <span class="bpa-pin bpa-pin--red" aria-hidden="true"></span>
+        <p class="bpa-g-brief-kick">${tr('Case file', 'Hồ sơ vụ án')} · ${escapeHtml(roleName(role, tr))}</p>
         <h2 class="intro-title">${escapeHtml(state!.caseTitle)}</h2>
         <p class="intro-premise">${escapeHtml(state!.caseSummary)}</p>
         <p class="intro-role" data-role="${escapeHtml(role ?? '')}">${roleGuide}</p>
         <ol class="tutorial-steps">
           ${steps.map((step) => `<li><span class="tutorial-step-copy">${step}</span></li>`).join('')}
         </ol>
-        <button class="btn btn-gold btn-block" id="intro-dismiss">${vi ? 'Bắt đầu điều tra' : 'Enter the scene'}</button>
+        <button class="bpa-btn bpa-btn--red bpa-btn--block" id="intro-dismiss">${vi ? 'Bắt đầu điều tra' : 'Enter the scene'}</button>
       </div>
     </div>`;
   }
@@ -3240,19 +3996,20 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const item = state!.visibleScene.items.find((i) => i.itemId === itemId) ?? { itemId, name: prettyId(itemId), imageUrl: '', description: '' };
     const inspectedText = detail ?? item.inspectText ?? item.description;
     return `
-    <div class="overlay">
-      <div class="modal modal-wide inspect-modal">
-        <div class="inspect-art" style="${placeholderStyle(item.itemId)}">
-          <img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">
-          <span>${escapeHtml(item.name)}</span>
+    <div class="overlay bpa-g-overlay">
+      <div class="modal modal-wide inspect-modal bpa-g-paper-modal">
+        <span class="bpa-pin bpa-pin--red" aria-hidden="true"></span>
+        <div class="inspect-art bpa-g-d-pic" aria-hidden="true">
+          ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}<span>${escapeHtml(initials(item.name))}</span>
         </div>
         <div class="inspect-copy">
+          <span class="bpa-g-d-k">${tr('Examination', 'Khám nghiệm')}</span>
           <h2>${escapeHtml(item.name)}</h2>
           <p>${escapeHtml(inspectedText)}</p>
           ${unlockedClueIds.length
-            ? `<p class="clue-flash">${unlockedClueIds.length} clue(s) added to the case file.</p>`
-            : '<p class="muted small">No new evidence found.</p>'}
-          <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
+            ? `<p class="bpa-g-disc-count"><b>+${unlockedClueIds.length}</b>${tr('new case-file lead(s)', 'manh mối mới trong hồ sơ')}</p>`
+            : `<p class="bpa-g-d-desc">${tr('No new evidence found.', 'Không có chứng cứ mới.')}</p>`}
+          <div class="modal-actions"><button class="bpa-btn bpa-btn--ink bpa-btn--sm" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
         </div>
       </div>
     </div>`;
@@ -3261,14 +4018,16 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   function photoOverlay(clueId: string, detail: string) {
     const clue = state!.unlockedClues.find((c) => c.clueId === clueId) ?? state!.evidenceClues.find((c) => c.clueId === clueId);
     return `
-    <div class="overlay">
-      <div class="modal">
-        <h2>${escapeHtml(clue?.title ?? 'Photographic evidence')}</h2>
-        ${clue ? evidencePhotoMarkup(clue, 'evidence-photo-large') : ''}
-        <p>${escapeHtml(detail || clue?.inventoryDescription || clue?.content || 'A scene clue has been added to the case file.')}</p>
-        ${clue?.narrativeMeaning ? `<p class="muted">${escapeHtml(clue.narrativeMeaning)}</p>` : ''}
-        <p class="clue-flash">Photo captured and logged.</p>
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
+    <div class="overlay bpa-g-overlay">
+      <div class="modal bpa-g-paper-modal">
+        <span class="bpa-pin bpa-pin--red" aria-hidden="true"></span>
+        <span class="bpa-g-d-k">${tr('Photographic evidence', 'Chứng cứ ảnh')}</span>
+        <h2>${escapeHtml(clue?.title ?? tr('Photographic evidence', 'Chứng cứ ảnh'))}</h2>
+        ${clue ? `<figure class="bpa-g-photo"><span class="bpa-g-tape" aria-hidden="true"></span>${evidencePhotoMarkup(clue, 'evidence-photo-large')}</figure>` : ''}
+        <p>${escapeHtml(detail || clue?.inventoryDescription || clue?.content || tr('A scene clue has been added to the case file.', 'Một manh mối hiện trường đã được thêm vào hồ sơ.'))}</p>
+        ${clue?.narrativeMeaning ? `<p class="bpa-g-d-desc">${escapeHtml(clue.narrativeMeaning)}</p>` : ''}
+        <p class="bpa-g-disc-count"><b>+1</b>${tr('Photo captured and logged.', 'Đã chụp và ghi vào hồ sơ.')}</p>
+        <div class="modal-actions"><button class="bpa-btn bpa-btn--ink bpa-btn--sm" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
@@ -3280,67 +4039,97 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const byId = new Map(state!.visibleScene.items.map((i) => [i.itemId, i]));
     for (const i of state!.collectedItems ?? []) byId.set(i.itemId, i);
     const item = byId.get(itemId) ?? { itemId, name: prettyId(itemId), imageUrl: '', description: '', inspectText: '' };
-    const finding = item.inspectText || item.description || 'You collected this item during the investigation.';
+    const finding = item.inspectText || item.description || tr('You collected this item during the investigation.', 'Bạn đã thu thập vật phẩm này trong quá trình điều tra.');
     const clue = state!.unlockedClues.find((c) => c.source === itemId);
+    const elapsed = reducedMotion.matches ? 0 : Math.round(performance.now() - detailOpenedAt);
+    // A paper card slides up out of the satchel.
     return `
-      <section class="inventory-detail-inline">
-        <div class="inventory-detail-art" style="${placeholderStyle(item.itemId)}">
-          ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}
-          <span>${escapeHtml(item.name)}</span>
+      <section class="inventory-detail-inline bpa-g-dcard" role="group" aria-labelledby="bpa-g-d-name" style="--bpa-t-d: -${elapsed}ms">
+        <div class="inventory-detail-art bpa-g-d-pic" aria-hidden="true">
+          ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" onerror="this.remove()">` : ''}<span>${escapeHtml(initials(item.name))}</span>
         </div>
-        <div class="inspect-copy">
-          <h3>${escapeHtml(item.name)}</h3>
-          ${item.description ? `<p class="muted">${escapeHtml(item.description)}</p>` : ''}
-          <p>${escapeHtml(finding)}</p>
-          ${clue
-            ? `<p class="clue-flash">Evidence logged: ${escapeHtml(clue.title)}</p>`
-            : ''}
-          <div class="modal-actions">
-            ${myRole() === 'INVESTIGATOR' ? `<button class="btn btn-gold" data-use-inventory="${escapeHtml(item.itemId)}">${tr('Use', 'Dùng')}</button>` : ''}
-            <button class="btn btn-ghost" id="inventory-detail-close" type="button">${tr('Back', 'Quay lại')}</button>
+        <div class="bpa-g-d-txt">
+          <h3 class="bpa-g-d-name" id="bpa-g-d-name">${escapeHtml(item.name)}</h3>
+          ${item.description && item.description !== finding ? `<p class="bpa-g-d-desc">${escapeHtml(item.description)}</p>` : ''}
+          <span class="bpa-g-d-k">${tr('Examination', 'Khám nghiệm')}</span>
+          <p class="bpa-g-d-insp">${escapeHtml(finding)}</p>
+          ${clue ? `<p class="bpa-g-d-clue">${gameIcon('file')}${tr('Logged in the case file:', 'Đã ghi vào hồ sơ:')} <b>${escapeHtml(clue.title)}</b></p>` : ''}
+          <div class="bpa-g-d-act">
+            ${myRole() === 'INVESTIGATOR' ? `<button class="bpa-btn bpa-btn--red bpa-btn--sm" type="button" data-use-inventory="${escapeHtml(item.itemId)}">${tr('Use', 'Dùng')}</button>` : ''}
+            <button class="bpa-btn bpa-btn--ink bpa-btn--sm" id="inventory-detail-close" type="button">${tr('Back', 'Quay lại')}</button>
           </div>
         </div>
       </section>`;
   }
 
+  // Locked object: the brass lock panel with what is still missing.
   function puzzleOverlay(label: string, message: string) {
     return `
-    <div class="overlay">
-      <div class="modal">
-        <h2>${escapeHtml(label || 'Locked object')}</h2>
-        <p>${escapeHtml(message || 'This needs another clue before it can be opened.')}</p>
-        <p class="muted small">Missing clues usually hide in unexamined objects or unasked questions. Compare notes with your partner - the Investigator searches, the Interrogator questions.</p>
-        <div class="modal-actions"><button class="btn btn-gold" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
+    <div class="overlay bpa-g-overlay">
+      <div class="modal bpa-g-lk">
+        <span class="bpa-g-rivet is-a" aria-hidden="true"></span><span class="bpa-g-rivet is-b" aria-hidden="true"></span><span class="bpa-g-rivet is-c" aria-hidden="true"></span><span class="bpa-g-rivet is-d" aria-hidden="true"></span>
+        <div class="bpa-g-lk-hd">
+          <span class="bpa-g-lk-ic" aria-hidden="true">${gameIcon('lock')}</span>
+          <div class="bpa-g-lk-ttl"><span class="bpa-g-kick">${tr('Locked', 'Đang khóa')}</span><h2>${escapeHtml(label || tr('Locked object', 'Vật thể đang khóa'))}</h2></div>
+        </div>
+        <p class="bpa-g-lk-p">${escapeHtml(message || tr('This needs another clue before it can be opened.', 'Cần thêm manh mối trước khi mở được vật này.'))}</p>
+        <p class="bpa-g-lk-note">${tr('Missing clues usually hide in unexamined objects or unasked questions. Compare notes with your partner: the Investigator searches, the Interrogator questions.', 'Manh mối còn thiếu thường nằm ở vật chưa khám nghiệm hoặc câu chưa hỏi. Hãy đối chiếu với đồng đội: Điều tra viên tìm kiếm, Thẩm vấn viên đặt câu hỏi.')}</p>
+        <div class="bpa-g-lk-act"><button class="bpa-btn bpa-btn--gold bpa-btn--sm" data-close-overlay>${tr('Close', 'Đóng')}</button></div>
       </div>
     </div>`;
   }
 
+  // Puzzle on a scene object. Codes get one brass cell per character (arrows roll digits); the hidden
+  // #puzzle-code-answer carries the joined answer to the existing submit handler.
   function puzzleSolveOverlay(puzzleId: string) {
     const puzzle = state!.visibleScene.puzzles?.find((candidate) => candidate.puzzleId === puzzleId);
     if (!puzzle) return '';
     const draft = puzzleDrafts.get(puzzle.puzzleId) ?? [];
     const missing = [...(puzzle.missingItemIds ?? []), ...(puzzle.missingClueIds ?? [])];
-    const title = puzzle.prompt || prettyId(puzzle.puzzleId);
+    const target = state!.visibleScene.items.find((item) => item.itemId === puzzle.targetId);
+    const title = target?.name || prettyId(puzzle.targetId || puzzle.puzzleId);
     const solved = puzzle.isSolved;
     const locked = puzzle.isLocked;
-    const body = solved
-      ? `<p class="clue-flash">${tr('Solved.', 'Đã giải.')}</p>`
-      : locked
-        ? `<p class="muted">Locked: ${missing.map(prettyId).map(escapeHtml).join(', ') || 'missing requirement'}.</p>`
-        : puzzle.type === 'CODE_PUZZLE'
-          ? `<input class="form-control" id="puzzle-code-answer" maxlength="32" autocomplete="off" placeholder="${tr('Code', 'Mã')}" aria-label="${tr('Puzzle code', 'Mã câu đố')}">`
-          : `<div class="deduction-options">${(puzzle.options ?? []).map((option) => `
-              <button class="btn btn-ghost" data-puzzle-option="${escapeHtml(option)}">${escapeHtml(prettyId(option))}</button>`).join('')}</div>
-             <p class="muted small">${draft.length > 0 ? escapeHtml(draft.map(prettyId).join(' -> ')) : 'No symbols selected.'}</p>`;
+    const kind = puzzle.type === 'CODE_PUZZLE' ? tr('Puzzle code', 'Mã câu đố')
+      : puzzle.type === 'SEQUENCE_PUZZLE' ? tr('Sequence', 'Thứ tự') : tr('Symbols', 'Ký hiệu');
+    let body: string;
+    if (solved) body = `<p class="bpa-g-solved">${gameIcon('check')} ${tr('Solved.', 'Đã giải.')}</p>`;
+    else if (locked) body = `<p class="bpa-g-lk-note">${tr('Locked', 'Đang khóa')}: ${missing.map(prettyId).map(escapeHtml).join(', ') || tr('missing requirement', 'còn thiếu điều kiện')}.</p>`;
+    else if (puzzle.type === 'CODE_PUZZLE') {
+      const length = puzzle.answerLength;
+      const code = codeDrafts.get(puzzle.puzzleId) ?? [];
+      if (length > 0 && length <= 10) {
+        const cells = Array.from({ length }, (_, index) => `<div class="bpa-g-dial">
+            <button type="button" class="bpa-g-dial-b bpa-g-up" tabindex="-1" data-code-roll="${index}:1" aria-label="${tr(`Increase character ${index + 1}`, `Tăng ký tự thứ ${index + 1}`)}">${gameIcon('next')}</button>
+            <input class="bpa-g-dial-w" data-code-cell="${index}" maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" ${index === 0 ? 'data-modal-autofocus' : ''}
+              aria-label="${tr(`Character ${index + 1} of ${length}`, `Ký tự thứ ${index + 1}/${length}`)}" value="${escapeHtml(code[index] ?? '')}">
+            <button type="button" class="bpa-g-dial-b bpa-g-down" tabindex="-1" data-code-roll="${index}:-1" aria-label="${tr(`Decrease character ${index + 1}`, `Giảm ký tự thứ ${index + 1}`)}">${gameIcon('next')}</button>
+          </div>`).join('');
+        body = `<div class="bpa-g-dials ${length > 6 ? 'is-long' : ''}" role="group" aria-label="${kind}">${cells}</div>
+          <input type="hidden" id="puzzle-code-answer" data-puzzle-id="${escapeHtml(puzzle.puzzleId)}" value="${escapeHtml(code.join(''))}">`;
+      } else {
+        body = `<input class="bpa-g-code-wide" id="puzzle-code-answer" data-puzzle-id="${escapeHtml(puzzle.puzzleId)}" data-modal-autofocus maxlength="32" autocomplete="off" spellcheck="false"
+          placeholder="${tr('Code', 'Mã')}" aria-label="${kind}" value="${escapeHtml(code.join(''))}">`;
+      }
+    } else {
+      body = `<div class="bpa-g-opts">${(puzzle.options ?? []).map((option) => `
+          <button class="bpa-btn bpa-btn--gold bpa-btn--sm" type="button" data-puzzle-option="${escapeHtml(option)}">${escapeHtml(prettyId(option))}</button>`).join('')}</div>
+        <p class="bpa-g-seq" role="status">${draft.length > 0 ? escapeHtml(draft.map(prettyId).join(' → ')) : tr('No symbols selected.', 'Chưa chọn ký hiệu nào.')}</p>`;
+    }
 
     return `
-    <div class="overlay">
-      <div class="modal">
-        <h2>${escapeHtml(title)}</h2>
+    <div class="overlay bpa-g-overlay">
+      <div class="modal bpa-g-lk">
+        <span class="bpa-g-rivet is-a" aria-hidden="true"></span><span class="bpa-g-rivet is-b" aria-hidden="true"></span><span class="bpa-g-rivet is-c" aria-hidden="true"></span><span class="bpa-g-rivet is-d" aria-hidden="true"></span>
+        <div class="bpa-g-lk-hd">
+          <span class="bpa-g-lk-ic" aria-hidden="true">${gameIcon(solved ? 'unlock' : 'lock')}</span>
+          <div class="bpa-g-lk-ttl"><span class="bpa-g-kick">${kind}</span><h2>${escapeHtml(title)}</h2></div>
+          <button class="bpa-g-x" type="button" data-close-overlay aria-label="${tr('Close', 'Đóng')}" aria-keyshortcuts="Escape">${gameIcon('x')}</button>
+        </div>
+        ${puzzle.prompt ? `<p class="bpa-g-lk-p">${escapeHtml(puzzle.prompt)}</p>` : ''}
         ${body}
-        <div class="modal-actions">
-          ${!solved && !locked ? `<button class="btn btn-ghost" id="puzzle-clear-btn">${tr('Clear', 'Xóa')}</button><button class="btn btn-gold" id="puzzle-submit-btn">${tr('Submit', 'Xác nhận')}</button>` : ''}
-          <button class="btn btn-ghost" data-close-overlay>${tr('Close', 'Đóng')}</button>
+        <div class="bpa-g-lk-act">
+          ${!solved && !locked ? `<button class="bpa-btn bpa-btn--gold bpa-btn--sm" type="button" id="puzzle-clear-btn">${tr('Clear', 'Xóa')}</button><button class="bpa-btn bpa-btn--red bpa-btn--sm" type="button" id="puzzle-submit-btn">${tr('Submit', 'Xác nhận')}</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -3426,6 +4215,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     convLog = buildConversation(characterId);
 
     const tree = isTreeCharacter(characterId);
+    // Numbered question cards: the number is also the keyboard shortcut; new leads carry a "Mới" tag.
+    let topicNumber = 0;
+    const topic = (attributes: string, text: string, isNew: boolean) => {
+      topicNumber += 1;
+      return `<button type="button" class="conv-choice ${isNew ? 'is-new' : ''}" ${attributes}>${topicNumber <= 9 ? `<kbd aria-hidden="true">${topicNumber}</kbd>` : ''}<span class="conv-choice-text">${escapeHtml(text)}</span>${isNew ? `<em class="conv-choice-tag">${tr('New', 'Mới')}</em>` : ''}</button>`;
+    };
     let topicsHtml: string;
     let challengeHtml: string;
     let newLeadHtml: string;
@@ -3445,16 +4240,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         topicsHtml = `<p class="conv-readonly muted small">${tr('There is nothing left to ask right now.', 'Hiện không còn câu hỏi nào để hỏi.')}</p>`;
       } else {
         const lockedTree = choices.filter((c) => c.isLocked).length + dialogues.filter((d) => d.isLocked).length;
-        const dialogueButtons = askable.map((d) => `
-            <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
-              <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? tr('New', 'Mới') : tr('Ask', 'Hỏi')}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
-            </button>`).join('');
-        topicsHtml = `${dialogueButtons}${choices.filter((c) => !c.isLocked).map((c) => {
-            const isNew = isTreeCueHighlighted(characterId, c.choiceId);
-            return `<button class="conv-choice ${isNew ? 'is-new' : ''}" data-converse-node="${escapeHtml(convTreeNodeId ?? '')}" data-converse-choice="${escapeHtml(c.choiceId)}">
-              <span class="conv-choice-tag">${isNew ? tr('New', 'Mới') : tr('Ask', 'Hỏi')}</span><span class="conv-choice-text">${escapeHtml(c.label ?? '')}</span>
-            </button>`;
-          }).join('')}
+        const dialogueButtons = askable.map((d) => topic(`data-dialogue="${escapeHtml(d.dialogueId)}"`, d.question,
+          newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId))).join('');
+        topicsHtml = `${dialogueButtons}${choices.filter((c) => !c.isLocked).map((c) => topic(
+            `data-converse-node="${escapeHtml(convTreeNodeId ?? '')}" data-converse-choice="${escapeHtml(c.choiceId)}"`,
+            c.label ?? '', isTreeCueHighlighted(characterId, c.choiceId))).join('')}
           ${lockedTree > 0
             ? `<p class="conv-locked">${lockedTree > 1
               ? tr(`${lockedTree} more options locked — find stronger evidence first.`, `${lockedTree} lựa chọn khác đang bị khóa — hãy tìm chứng cứ mạnh hơn.`)
@@ -3481,10 +4271,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         ? `<p class="conv-readonly muted small">${tr('Waiting for the Interrogator to continue questioning.', 'Đang chờ Thẩm vấn viên tiếp tục đặt câu hỏi.')}</p>`
         : askable.length === 0 && lockedCount === 0
           ? `<p class="conv-readonly muted small">${tr('There is nothing left to ask right now.', 'Hiện không còn câu hỏi nào để hỏi.')}</p>`
-          : `${askable.map((d) => `
-              <button class="conv-choice ${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? 'is-new' : ''}" data-dialogue="${escapeHtml(d.dialogueId)}">
-                <span class="conv-choice-tag">${newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId) ? tr('New', 'Mới') : tr('Ask', 'Hỏi')}</span><span class="conv-choice-text">${escapeHtml(d.question)}</span>
-              </button>`).join('')}
+          : `${askable.map((d) => topic(`data-dialogue="${escapeHtml(d.dialogueId)}"`, d.question,
+              newDialogueIds.has(d.dialogueId) || visibleNewDialogueIds.has(d.dialogueId))).join('')}
             ${lockedCount > 0
               ? `<p class="conv-locked">${lockedCount > 1
                 ? tr(`${lockedCount} more questions locked — find stronger evidence first.`, `${lockedCount} câu hỏi khác đang bị khóa — hãy tìm chứng cứ mạnh hơn.`)
@@ -3496,7 +4284,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
     const host = app.querySelector<HTMLElement>('#game-dialogue-slot');
     if (host) dialoguePresenter.update(host, { character, lines: convLog, topicsHtml, challengeHtml,
-      newLeadHtml, readonly: role !== 'INTERROGATOR' });
+      newLeadHtml, readonly: role !== 'INTERROGATOR', context: state!.visibleScene.title });
     return '';
   }
 
@@ -4295,6 +5083,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     }
 
     captureInFlight = true;
+    flashCamera();
+    app.querySelector('#bpa-g-shutter')?.setAttribute('disabled', '');
+    const shotNumber = ++cameraShots;
+    const shotTime = clockText((Date.now() - clockStartedAt) / 1000);
+    // Camera feedback is shown in the interface language even when the server answers in English.
+    const say = (serverMessage: string | undefined, english: string, vietnamese: string) =>
+      uiLanguage() === 'vi' ? vietnamese : serverMessage || english;
     try {
       const res = await gameApi.captureClue(roomId, state.currentSceneId, captureRect, photo);
       const result = String(res.captureResult || '').toUpperCase();
@@ -4310,24 +5105,30 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
           kind: 'PHOTO',
           title: clue?.title || tr('Photographic evidence', 'Chứng cứ ảnh'),
           detail: res.detail || res.message || tr('Photo evidence added to the case file.', 'Chứng cứ ảnh đã được thêm vào hồ sơ.'),
-          imageUrl: clue?.photoUrl,
+          imageUrl: URL.createObjectURL(photo),
           clueCount: res.unlockedClueIds?.length ?? 1,
         });
-        toast(res.message || tr('Photo evidence captured.', 'Đã chụp chứng cứ.'), 'success');
+        toast(say(res.message, 'Photo evidence captured.', 'Đã chụp chứng cứ.'), 'success');
         applyState(res.state);
         return;
       }
 
       if (result === 'NEAR_MISS') {
-        toast(res.message || 'Close, but the clue is not framed clearly enough.', 'info', 3600);
+        toast(say(res.message, 'Close, but the clue is not framed clearly enough.', 'Có gì đó đáng chú ý ở đây. Hãy căn khung kỹ hơn.'), 'info', 3600);
       } else {
-        toast(res.message || 'Nothing noteworthy in that frame.', 'info', 3200);
+        cameraMisses += 1;
+        try { sessionStorage.setItem(cameraMissKey, String(cameraMisses)); } catch { /* the count stays in memory */ }
+        toast(say(res.message, 'Nothing noteworthy in that frame.', 'Không phát hiện chi tiết quan trọng nào.'), 'info', 3200);
       }
+      showCameraPrint(photo, result === 'NEAR_MISS' ? 'NEAR_MISS' : 'MISS', `${tr('Photo', 'Ảnh')} ${String(shotNumber).padStart(2, '0')} · ${shotTime}`);
+      captureInFlight = false;
       if (res.state) applyState(res.state);
+      else draw();
     } catch (err: any) {
       toast(err.message, 'error');
     } finally {
       captureInFlight = false;
+      app.querySelector('#bpa-g-shutter')?.removeAttribute('disabled');
     }
   }
 
