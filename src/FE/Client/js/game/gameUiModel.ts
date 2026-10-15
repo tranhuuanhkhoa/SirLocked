@@ -1,4 +1,4 @@
-export type CaseFileSection = 'evidence' | 'testimony' | 'contradictions' | 'map';
+export type CaseFileSection = 'evidence' | 'testimony' | 'contradictions' | 'deductions' | 'map' | 'log';
 
 export type AccusationDraft = {
   step: number;
