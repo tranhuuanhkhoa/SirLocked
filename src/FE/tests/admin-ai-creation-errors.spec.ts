@@ -98,7 +98,7 @@ test('creation errors remain visible and every entered field survives a successf
   await page.locator('#ai-tone-lock').selectOption('tense');
   await page.locator('#ai-mechanic-lock').selectOption('timeline');
   await page.locator('#quick-create-btn').click();
-  await expect(page.locator('#ai-request-error')).toContainText('Hãy tiếp tục hoặc hủy');
+  await expect(page.locator('#ai-request-error')).toContainText('Hãy hoàn tất hoặc hủy');
   await expect(page.locator('#ai-request-error')).toContainText('AI_ACTIVE_DRAFT_LIMIT');
   await page.clock.install();
   await page.clock.fastForward(10_000);
