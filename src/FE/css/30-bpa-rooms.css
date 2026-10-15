@@ -1,0 +1,378 @@
+/* ==========================================================================
+   "Bảng phá án" — Rooms: #/create-room and #/join (createRoomPage.js, joinRoomPage.js)
+   Design: docs/design/bang-pha-an/nguon-canvas/Rooms.dc.html. The public room table,
+   its filters and the public/private mode are not built (no backend); the case
+   picker takes the table's place.
+   ========================================================================== */
+
+.bpa-rooms-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 26px;
+  padding-bottom: 40px;
+  color: var(--bpa-on-dark);
+  font-family: var(--bpa-font-body);
+}
+
+/* ---- title row ---- */
+.bpa-rooms-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+.bpa-rooms-label { padding-right: 30px; }
+.bpa-rooms-h1 {
+  margin: 2px 0 0;
+  font-family: var(--bpa-font-display);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--bpa-white);
+}
+.bpa-rooms-lead {
+  flex: 0 1 560px;
+  margin: 0;
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.4;
+  color: #d9cfbd;
+}
+
+/* ---- board columns ---- */
+.bpa-rooms-cols {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px;
+}
+.bpa-rooms-ledger { flex: 1 1 620px; min-width: 0; }
+.bpa-rooms-side {
+  flex: 0 1 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+
+/* ---- shared paper text ---- */
+.bpa-rooms-page .bpa-paper { color: var(--bpa-ink); }
+.bpa-rooms-h2 {
+  margin: 4px 0 0;
+  font-family: var(--bpa-font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--bpa-ink);
+}
+.bpa-rooms-h3 {
+  margin: 0;
+  font-family: var(--bpa-font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--bpa-ink);
+  overflow-wrap: anywhere;
+}
+.bpa-rooms-kick { color: var(--bpa-muted); }
+.bpa-rooms-note {
+  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 1.38;
+  color: var(--bpa-ink-3);
+}
+.bpa-rooms-page .bpa-paper .bpa-link:focus-visible { outline-color: var(--bpa-ink); }
+
+/* ---- ledger: published case picker ---- */
+.bpa-rooms-ledhead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.bpa-rooms-ledhead .bpa-rooms-h2 { margin: 0; }
+.bpa-rooms-count { margin: 2px 0 0; letter-spacing: .16em; color: var(--bpa-muted); }
+.bpa-rooms-tablewrap { margin-top: 12px; overflow-x: auto; }
+.bpa-rooms-table thead th { text-transform: uppercase; }
+.bpa-rooms-table th:first-child { padding-left: 12px; }
+.bpa-rooms-nowrap { white-space: nowrap; }
+.bpa-rooms-table tbody th {
+  padding: 10px 10px 10px 12px;
+  border-bottom: 1px solid var(--bpa-rule);
+  font-family: var(--bpa-font-body);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--bpa-ink-2);
+  white-space: normal;
+  vertical-align: middle;
+}
+.bpa-rooms-row { cursor: pointer; transition: background-color .15s; }
+.bpa-rooms-row.is-selected { background: rgba(239, 212, 134, .38); }
+.bpa-rooms-table tbody .bpa-rooms-row.is-selected:hover { background: rgba(239, 212, 134, .46); }
+.bpa-rooms-row.is-selected > th { box-shadow: inset 3px 0 0 var(--bpa-string); }
+.bpa-rooms-ctitle {
+  display: block;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--bpa-ink);
+  overflow-wrap: anywhere;
+}
+.bpa-rooms-csub { display: block; margin-top: 2px; font-size: 14px; color: var(--bpa-muted); }
+.bpa-rooms-sm { display: none; }
+.bpa-rooms-table .bpa-rooms-num {
+  text-align: center;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.bpa-rooms-table td.bpa-rooms-num { font-size: 17px; color: var(--bpa-ink); }
+.bpa-rooms-act { width: 1%; text-align: right; white-space: nowrap; }
+.bpa-rooms-pick { min-height: 44px; min-width: 116px; gap: 8px; }
+.bpa-rooms-pick .bpa-rooms-tick,
+.bpa-rooms-pick .bpa-rooms-pick-on { display: none; }
+.bpa-rooms-pick[aria-pressed="true"] { background: var(--bpa-ink); color: var(--bpa-white); }
+.bpa-rooms-pick[aria-pressed="true"] .bpa-rooms-tick,
+.bpa-rooms-pick[aria-pressed="true"] .bpa-rooms-pick-on { display: inline; }
+.bpa-rooms-pick[aria-pressed="true"] .bpa-rooms-pick-off { display: none; }
+.bpa-rooms-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--bpa-muted);
+}
+.bpa-rooms-foot svg { flex: none; color: var(--bpa-rust); }
+.bpa-rooms-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 4px;
+  padding: 18px 16px;
+  border-top: 1.5px solid rgba(182, 64, 48, .6);
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--bpa-ink-2);
+}
+.bpa-rooms-state svg { flex: none; color: var(--bpa-teal); }
+.bpa-rooms-state.is-error { color: var(--bpa-red-dark); }
+.bpa-rooms-state.is-error svg { color: var(--bpa-red); }
+
+/* ---- cards on the right ---- */
+.bpa-rooms-card { box-shadow: var(--bpa-shadow-card); }
+.bpa-rooms-create { padding: 22px 24px 24px; transform: rotate(.6deg); }
+.bpa-rooms-join { padding: 20px 24px 22px; background: var(--bpa-ledger); transform: rotate(-.8deg); }
+.bpa-rooms-join .bpa-rooms-h2 { margin-top: 0; font-size: 22px; }
+.bpa-rooms-join .bpa-rooms-kick + .bpa-rooms-h2 { margin-top: 4px; }
+
+.bpa-rooms-selected { margin-top: 16px; }
+.bpa-rooms-selcase {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid rgba(47, 99, 99, .55);
+}
+.bpa-rooms-thumb {
+  position: relative;
+  flex: none;
+  width: 76px;
+  height: 56px;
+  margin: 0 2px 0 4px;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px var(--bpa-paper), 0 6px 10px rgba(0, 0, 0, .3);
+  transform: rotate(-3deg);
+}
+.bpa-rooms-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.bpa-rooms-selbody { min-width: 0; }
+.bpa-rooms-meta {
+  margin: 5px 0 0;
+  font-family: var(--bpa-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: #4f4536;
+}
+.bpa-rooms-sum {
+  display: -webkit-box;
+  margin: 10px 0 0;
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 1.38;
+  color: var(--bpa-ink-2);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.bpa-rooms-details { margin-top: 2px; color: #4f4536; }
+.bpa-rooms-codeslot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--bpa-label);
+}
+.bpa-rooms-codeslot-k {
+  font-family: var(--bpa-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--bpa-on-dark-3);
+}
+.bpa-rooms-codeslot-t { font-size: 16px; font-style: italic; line-height: 1.35; color: var(--bpa-on-dark); }
+.bpa-rooms-createbtn { min-height: 52px; margin-top: 18px; }
+.bpa-rooms-cta { min-height: 50px; margin-top: 16px; }
+.bpa-rooms-page a.bpa-btn--ink { color: var(--bpa-ink); }
+.bpa-rooms-page a.bpa-btn--ink:hover { color: var(--bpa-white); }
+
+/* ---- join card ---- */
+.bpa-rooms-invite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 9px 12px;
+  background: var(--bpa-teal-fill);
+  box-shadow: inset 0 0 0 1px rgba(47, 99, 99, .45);
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.35;
+  color: #1f4545;
+}
+.bpa-rooms-invite svg { flex: none; color: var(--bpa-teal); }
+.bpa-rooms-joinform { margin-top: 12px; }
+.bpa-rooms-codelabel {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--bpa-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--bpa-muted);
+}
+.bpa-rooms-coderow { display: flex; gap: 10px; }
+.bpa-rooms-code { flex: 1 1 auto; min-width: 0; }
+.bpa-rooms-code:invalid:not(:placeholder-shown):not(:focus) { box-shadow: inset 0 0 0 1.5px var(--bpa-red); }
+.bpa-rooms-joinbtn { flex: none; min-height: 56px; }
+
+/* #/join: the code card is the main element */
+.bpa-rooms-join.is-lead {
+  flex: 1 1 560px;
+  min-width: 0;
+  padding: 30px 36px 34px 58px;
+  background-color: var(--bpa-ledger);
+  transform: rotate(-.5deg);
+}
+.bpa-rooms-join.is-lead::before {          /* double red margin, as on the ledger */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 30px;
+  width: 5.5px;
+  box-sizing: border-box;
+  border-left: 1.5px solid var(--bpa-margin);
+  border-right: 1.5px solid var(--bpa-margin);
+  pointer-events: none;
+}
+.bpa-rooms-join.is-lead .bpa-rooms-h2 { font-size: 34px; }
+.bpa-rooms-join.is-lead .bpa-rooms-note { font-size: 18px; }
+.bpa-rooms-join.is-lead .bpa-rooms-joinform { margin-top: 22px; }
+.bpa-rooms-join.is-lead .bpa-rooms-code { min-height: 76px; font-size: 38px; letter-spacing: .5em; text-indent: .5em; }
+.bpa-rooms-join.is-lead .bpa-rooms-joinbtn { min-height: 76px; padding: 0 28px; font-size: 14px; }
+
+.bpa-rooms-steps { padding: 20px 22px 18px; transform: rotate(1.2deg); }
+.bpa-rooms-steps-tape { top: -8px; left: -14px; }
+.bpa-rooms-steps-h { color: var(--bpa-ink-2); letter-spacing: .2em; }
+.bpa-rooms-steplist { margin: 10px 0 0; padding: 0; list-style: none; counter-reset: bpa-rooms-step; }
+.bpa-rooms-steplist li {
+  position: relative;
+  padding: 5px 0 5px 34px;
+  border-bottom: 1px dashed rgba(42, 35, 24, .25);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--bpa-ink-2);
+  counter-increment: bpa-rooms-step;
+}
+.bpa-rooms-steplist li:last-child { border-bottom: 0; }
+.bpa-rooms-steplist li::before {
+  content: counter(bpa-rooms-step, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 7px;
+  font-family: var(--bpa-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--bpa-red-dark);
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1100px) {
+  .bpa-rooms-cols { flex-direction: column; align-items: stretch; gap: 36px; }
+  .bpa-rooms-ledger,
+  .bpa-rooms-join.is-lead { flex: none; }
+  .bpa-rooms-side {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 32px 28px;
+  }
+}
+@media (max-width: 760px) {
+  .bpa-rooms-page { gap: 20px; padding-top: 20px; }
+  .bpa-rooms-h1 { font-size: 30px; }
+  .bpa-rooms-lead { font-size: 17px; }
+  .bpa-rooms-side { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .bpa-rooms-ledger { padding: 20px 14px 16px 40px; }
+  .bpa-rooms-ledger::before { left: 22px; }
+  .bpa-rooms-lg { display: none; }
+  .bpa-rooms-sm { display: inline; }
+  .bpa-rooms-table th:first-child,
+  .bpa-rooms-table tbody th { padding-left: 8px; }
+  .bpa-rooms-table td { padding-left: 6px; padding-right: 4px; }
+  .bpa-rooms-pick { min-width: 0; padding: 0 10px; gap: 6px; letter-spacing: .12em; }
+  .bpa-rooms-create, .bpa-rooms-join { padding: 20px 18px 22px; }
+  .bpa-rooms-code { font-size: 22px; letter-spacing: .28em; }
+  .bpa-rooms-join.is-lead { padding: 24px 18px 26px 40px; }
+  .bpa-rooms-join.is-lead::before { left: 18px; }
+  .bpa-rooms-join.is-lead .bpa-rooms-h2 { font-size: 28px; }
+  .bpa-rooms-join.is-lead .bpa-rooms-coderow { flex-direction: column; }
+  .bpa-rooms-join.is-lead .bpa-rooms-code { min-height: 64px; font-size: 30px; letter-spacing: .36em; text-indent: .36em; }
+  .bpa-rooms-join.is-lead .bpa-rooms-joinbtn { min-height: 54px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bpa-rooms-row { transition: none; }
+}
+
+/* envelope art on the main join card */
+.bpa-rooms-envelope {
+  position: absolute;
+  top: 22px;
+  right: 26px;
+  width: 190px;
+  height: auto;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25));
+  pointer-events: none;
+}
+.bpa-rooms-join.is-lead .bpa-rooms-kick,
+.bpa-rooms-join.is-lead .bpa-rooms-h2,
+.bpa-rooms-join.is-lead .bpa-rooms-note,
+.bpa-rooms-join.is-lead .bpa-rooms-invite { max-width: calc(100% - 210px); }
+@media (max-width: 760px) {
+  .bpa-rooms-envelope { display: none; }
+  .bpa-rooms-join.is-lead .bpa-rooms-kick,
+  .bpa-rooms-join.is-lead .bpa-rooms-h2,
+  .bpa-rooms-join.is-lead .bpa-rooms-note,
+  .bpa-rooms-join.is-lead .bpa-rooms-invite { max-width: none; }
+}
