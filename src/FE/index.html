@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:,">
 <title>Sir Locked — Cooperative Detective Game</title>
+<script>
+  // Pick the interface language before first paint so the loading screen matches it.
+  try { document.documentElement.lang = localStorage.getItem('sirlocked.uiLanguage') === 'vi' ? 'vi' : 'en'; } catch (e) { /* default en */ }
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Source+Code+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/_tokens.css">
 <link rel="stylesheet" href="/css/00-base.css">
@@ -12,11 +16,91 @@
 <link rel="stylesheet" href="/css/20-bpa-foundation.css">
 <link rel="stylesheet" href="/css/09-app.css?v=workshop-fix-20260727g">
 <link rel="stylesheet" href="/css/10-game.css?v=workshop-fix-20260727g">
+<link rel="stylesheet" href="/css/21-bpa-shell.css">
 </head>
-<body>
+<body class="bpa-board">
 <div id="toast-root" aria-live="polite"></div>
 <header id="nav-root"></header>
 <main id="app"></main>
+
+<div id="bpa-loading" class="bpa-board bpa-loading is-booting" role="status" aria-live="polite">
+  <p class="bpa-sr"><span class="bpa-i18n-en">Opening the case file…</span><span class="bpa-i18n-vi">Đang mở hồ sơ vụ án…</span></p>
+  <svg class="bpa-loading-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="bpa-ld-drop" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="2" dy="8" stdDeviation="7" flood-color="#000" flood-opacity=".55"/></filter>
+      <radialGradient id="bpa-ld-red" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#f3a291"/><stop offset=".45" stop-color="#c0392b"/><stop offset="1" stop-color="#6e1a12"/></radialGradient>
+      <radialGradient id="bpa-ld-gold" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff1c2"/><stop offset=".45" stop-color="#c7a24b"/><stop offset="1" stop-color="#5e4a1c"/></radialGradient>
+      <radialGradient id="bpa-ld-seal" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#d0533e"/><stop offset=".7" stop-color="#8f2a1d"/><stop offset="1" stop-color="#5f1a11"/></radialGradient>
+      <g id="bpa-ld-clues">
+        <g transform="translate(34 46) rotate(-4)">
+          <g filter="url(#bpa-ld-drop)"><path d="M0 0H250V146L238 152L224 146L210 153L196 146L182 152L168 146L154 153L140 146L126 152L112 146L98 153L84 146L70 152L56 146L42 153L28 146L14 152L0 147Z" fill="#e3dbc9"/></g>
+          <text x="14" y="22" font-family="'Source Code Pro', monospace" font-size="8" letter-spacing="1.6" fill="#3a342b">221B · Nº 1221</text>
+          <path d="M14 29H236M14 32H236" stroke="#3a342b" stroke-width=".7"/>
+          <text x="14" y="64" font-family="'Playfair Display', Georgia, serif" font-size="28" font-weight="700" letter-spacing="1" fill="#15120e">SIR LOCKED</text>
+          <rect x="14" y="74" width="168" height="8" fill="#15120e" opacity=".8"/>
+          <g fill="#8f8676" opacity=".55"><rect x="14" y="96" width="110" height="3"/><rect x="14" y="104" width="102" height="3"/><rect x="14" y="112" width="110" height="3"/><rect x="14" y="120" width="88" height="3"/><rect x="136" y="96" width="100" height="3"/><rect x="136" y="104" width="96" height="3"/><rect x="136" y="112" width="100" height="3"/><rect x="136" y="120" width="70" height="3"/></g>
+        </g>
+        <g transform="translate(322 150) rotate(3)">
+          <g filter="url(#bpa-ld-drop)"><rect width="150" height="190" fill="#f1ebde"/></g>
+          <text x="12" y="22" font-family="'Source Code Pro', monospace" font-size="8" letter-spacing="1.6" fill="#3a342b">Nº 04</text>
+          <path d="M12 30H138" stroke="rgba(182,64,48,.6)" stroke-width="1"/>
+          <g transform="translate(75 104) scale(.68)" fill="none" stroke="#1d2a3a" stroke-width="2.2" stroke-linecap="round" opacity=".85">
+            <path d="M-4 8V0A4 5 0 0 1 4 0V10"/><path d="M-11 22V0A11 13 0 0 1 11 0V26"/><path d="M-18 34V0A18 21 0 0 1 18 0V38" stroke-dasharray="60 5 200"/><path d="M-25 46V2A25 29 0 0 1 25 2V50"/><path d="M-32 56V4A32 37 0 0 1 32 4V60" stroke-dasharray="90 6 300"/><path d="M-39 64V6A39 45 0 0 1 39 6V68"/><path d="M-46 70V8A46 53 0 0 1 46 8V72" stroke-dasharray="40 5 160 7 400"/><path d="M-53 72V10A53 61 0 0 1 53 10V74"/><path d="M-56 86C-30 78 30 78 56 88"/><path d="M-50 96C-24 90 24 90 50 98"/>
+          </g>
+          <circle cx="98" cy="84" r="11" fill="none" stroke="#b8382b" stroke-width="1.8"/>
+        </g>
+        <g transform="translate(540 40) rotate(-6)">
+          <g filter="url(#bpa-ld-drop)"><path d="M22 0H220V112H22L0 90V22Z" fill="#c4a06b"/></g>
+          <circle cx="24" cy="56" r="10" fill="none" stroke="#ece0c6" stroke-width="4"/>
+          <circle cx="24" cy="56" r="6" fill="#1a130d"/>
+          <text x="48" y="28" font-family="'Source Code Pro', monospace" font-size="10" font-weight="700" letter-spacing="1.6" fill="#2a2318">Nº 3</text>
+          <g fill="none" stroke="#1d2a3a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="76" cy="66" r="14"/><circle cx="76" cy="66" r="5"/><path d="M90 66H190"/><path d="M166 66V79H172V72H178V81H184V66"/></g>
+        </g>
+        <g transform="translate(726 120) rotate(4)">
+          <g filter="url(#bpa-ld-drop)"><rect width="168" height="150" fill="#ecd68a"/></g>
+          <text x="16" y="62" font-family="'Source Code Pro', monospace" font-size="38" font-weight="700" fill="#2a2318">23:47</text>
+          <text x="16" y="110" font-family="'Playfair Display', Georgia, serif" font-size="40" font-style="italic" fill="#2a2318">?</text>
+          <path d="M16 122C46 118 80 125 112 119" fill="none" stroke="#b8382b" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g fill="rgba(239,212,134,.55)">
+          <ellipse cx="520" cy="338" rx="7" ry="12" transform="rotate(62 520 338)"/><ellipse cx="548" cy="320" rx="7" ry="12" transform="rotate(62 548 320)"/><ellipse cx="576" cy="333" rx="7" ry="12" transform="rotate(62 576 333)"/><ellipse cx="604" cy="314" rx="7" ry="12" transform="rotate(62 604 314)"/><ellipse cx="632" cy="327" rx="7" ry="12" transform="rotate(62 632 327)"/>
+        </g>
+        <g transform="translate(676 318)">
+          <circle r="34" fill="url(#bpa-ld-seal)" filter="url(#bpa-ld-drop)"/>
+          <circle r="25" fill="none" stroke="rgba(255,210,190,.35)" stroke-width="1.5"/>
+          <text y="6" font-family="'Playfair Display', Georgia, serif" font-size="17" font-weight="700" fill="rgba(255,225,210,.75)" text-anchor="middle">221B</text>
+        </g>
+        <g fill="none" stroke="#bf3b2c" stroke-width="2" stroke-linecap="round"><path d="M226 128L382 166"/><path d="M382 166L557 98"/><path d="M557 98L806 132"/><path d="M806 132L676 300"/></g>
+        <circle cx="226" cy="128" r="7" fill="url(#bpa-ld-red)"/><circle cx="382" cy="166" r="7" fill="url(#bpa-ld-gold)"/><circle cx="557" cy="98" r="7" fill="url(#bpa-ld-red)"/><circle cx="806" cy="132" r="7" fill="url(#bpa-ld-gold)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <div class="bpa-loading-label" aria-hidden="true">
+    <p class="bpa-loading-kicker"><span class="bpa-i18n-en">221B · OPENING THE FILE</span><span class="bpa-i18n-vi">221B · ĐANG MỞ HỒ SƠ</span></p>
+    <p class="bpa-loading-word">SIR <span>LOCKED</span></p>
+  </div>
+
+  <div class="bpa-loading-stage" aria-hidden="true">
+    <div class="bpa-loading-faded"><svg viewBox="0 0 920 380" width="100%" height="100%"><use href="#bpa-ld-clues"/></svg></div>
+    <div class="bpa-loading-reveal"><svg viewBox="0 0 920 380" width="100%" height="100%"><use href="#bpa-ld-clues"/></svg></div>
+    <div class="bpa-loading-lens"></div>
+  </div>
+
+  <div class="bpa-loading-progress" aria-hidden="true">
+    <p class="bpa-loading-status">
+      <span><span class="bpa-i18n-en">GATHERING CLUES</span><span class="bpa-i18n-vi">ĐANG THU THẬP MANH MỐI</span></span>
+      <span><span class="bpa-i18n-en">MATCHING FINGERPRINTS</span><span class="bpa-i18n-vi">ĐANG ĐỐI CHIẾU DẤU VÂN TAY</span></span>
+      <span><span class="bpa-i18n-en">REBUILDING THE TIMELINE</span><span class="bpa-i18n-vi">ĐANG DỰNG LẠI DÒNG THỜI GIAN</span></span>
+    </p>
+    <div class="bpa-loading-thread"><span class="bpa-loading-run"></span><span class="bpa-loading-end"></span><span class="bpa-loading-end"></span></div>
+    <p class="bpa-loading-tip">
+      <span class="bpa-i18n-en">Tip — The Investigator examines the scene, the Interrogator questions witnesses. Describe every detail to your partner.</span>
+      <span class="bpa-i18n-vi">Mẹo — Điều tra viên khám nghiệm hiện trường, Thẩm vấn viên hỏi nhân chứng. Hãy mô tả thật chi tiết cho đồng đội.</span>
+    </p>
+  </div>
+</div>
+
 <script type="module" src="/Client/js/main.js?v=workshop-fix-20260727g"></script>
 </body>
 </html>
