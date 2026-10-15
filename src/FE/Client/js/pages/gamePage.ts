@@ -3360,6 +3360,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       const open = app.querySelector<HTMLDetailsElement>('.bpa-g-coop .game-audio-controls[open]');
       if (open && event.target instanceof Node && !open.contains(event.target)) open.open = false;
     }, { capture: true, signal });
+    // Phaser also hit-tests the scene under presses that bubble to window, so presses on the phone dock and the tray
+    // stop here. Releases still pass: a press begun on the scene must not be left down.
+    ['mousedown', 'touchstart'].forEach((type) => app.addEventListener(type, (event) => {
+      if (event.target instanceof Element && event.target.closest('.mobile-movement-dock, #bpa-g-tray')) event.stopPropagation();
+    }, { passive: true, signal }));
   }
 
   function cancelItemUse() {

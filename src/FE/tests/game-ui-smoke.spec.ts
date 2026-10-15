@@ -1533,6 +1533,70 @@ test('Interrogator guide checks questioning only after a successful local answer
   await expect(page.locator('[data-guide-progress]')).toHaveText('1/3');
 });
 
+test('phone dock and tool tray presses never reach the Phaser scene', async ({ page }) => {
+  let inspections = 0;
+  let captures = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/inspect-item')) inspections++;
+    if (request.url().endsWith('/capture-clue')) captures++;
+  });
+  const sceneReady = async () => {
+    await expect(page.locator('.context-action')).toContainText('Folded Note');
+    await expect.poll(() => page.evaluate(() => {
+      const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+      return Boolean(scene?.sceneInteractionEnabled && scene.input.enabled);
+    })).toBe(true);
+  };
+  // Checked once rather than retried: the card and the toast of a leaked press go away on their own.
+  const expectSceneUntouched = async () => {
+    await page.waitForTimeout(800); // room for an approach walk and its request
+    expect({ inspections, captures }).toEqual({ inspections: 0, captures: 0 });
+    expect(await page.locator('.discovery-card, .conversation-box').count()).toBe(0);
+    expect(await page.locator('.toast', { hasText: 'Interrogator partner' }).count()).toBe(0);
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/#/game/${roomId}`);
+  await sceneReady();
+  // The dock rides over the note's hotspot (and the witness), so a press reaching the scene would act on them.
+  const overNote = (selector: string) => page.evaluate((sel) => {
+    const scene = (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene');
+    const zone = scene.children.list.find((child: any) => child.type === 'Zone' && child.getData('label') === 'Folded Note');
+    const canvas = scene.game.canvas.getBoundingClientRect();
+    const button = document.querySelector(sel)!.getBoundingClientRect();
+    return zone.getBounds().contains((button.x + button.width / 2 - canvas.x) * scene.scale.width / canvas.width,
+      (button.y + button.height / 2 - canvas.y) * scene.scale.height / canvas.height);
+  }, selector);
+  expect(await overNote('#mobile-camera-btn')).toBe(true);
+  expect(await overNote('#mobile-inventory-btn')).toBe(true);
+
+  const camera = page.locator('#mobile-camera-btn');
+  await camera.click();
+  await expect(camera).toHaveAttribute('aria-pressed', 'true');
+  await expectSceneUntouched();
+  // In camera mode a press anywhere on the scene shoots; presses on the tray (its camera bar and a tool) must not.
+  await page.locator('.bpa-g-mb-count').click();
+  await page.locator('.role-guide-controls summary').click();
+  await expect(page.locator('.role-guide-panel')).toBeVisible();
+  await expectSceneUntouched();
+  await camera.click();
+  await expect(camera).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#mobile-inventory-btn').click();
+  await expect(page.locator('.inventory-drawer')).toBeVisible();
+  await expectSceneUntouched();
+
+  // A finger reaches Phaser through touchstart: tap the dock again on an emulated touch screen.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  await page.reload();
+  await sceneReady();
+  expect(await page.evaluate(() => (window as any).__sirlockedGame.input.touch.enabled)).toBe(true);
+  const box = (await camera.boundingBox())!;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(camera).toHaveAttribute('aria-pressed', 'true');
+  await expectSceneUntouched();
+});
+
 test('PC game shell fits supported desktop resolutions', async ({ page }) => {
   for (const viewport of [
     { width: 1366, height: 768 },
