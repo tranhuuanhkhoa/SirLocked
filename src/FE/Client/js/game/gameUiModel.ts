@@ -1,4 +1,4 @@
-export type CaseFileSection = 'evidence' | 'testimony' | 'contradictions' | 'map';
+export type CaseFileSection = 'evidence' | 'testimony' | 'contradictions' | 'deductions' | 'map' | 'log';
 
 export type AccusationDraft = {
   step: number;
@@ -128,6 +128,54 @@ export function buildGameUiModel(input: BuildGameUiModelInput): GameUiModel {
     contextAction: input.contextAction,
     discovery: input.discovery,
     finalConfrontationReady: input.availableForAccusation,
+  };
+}
+
+export type CaseFileStepState = 'done' | 'now' | 'lock';
+
+export type CaseFileProgress = {
+  /** Requirements still open across the locations the team can already reach. */
+  openLeads: number;
+  solvedDeductions: number;
+  totalDeductions: number;
+  crackedCount: number;
+  steps: { evidence: CaseFileStepState; crack: CaseFileStepState; deduction: CaseFileStepState; accusation: CaseFileStepState };
+  accusationReady: boolean;
+};
+
+type CaseFileProgressInput = {
+  sceneMap: Array<Omit<UiSceneMapEntry, 'sceneId'> & { isVisited?: boolean; isUnlocked?: boolean }>;
+  deductions: { isSolved: boolean }[];
+  crackedCount: number;
+  crackInProgress: boolean;
+  availableForAccusation: boolean;
+  accusationProposed: boolean;
+};
+
+/**
+ * The case file's progress line: evidence → crack the lie → deduction → accusation.
+ * Every count comes from server state; the line only orders them.
+ */
+export function buildCaseFileProgress(input: CaseFileProgressInput): CaseFileProgress {
+  const openLeads = input.sceneMap
+    .filter((entry) => !entry.isCompleted && (entry.isVisited || entry.isUnlocked || entry.isCurrent))
+    .reduce((total, entry) => total + Math.max(0, entry.pendingRequirementCount ?? 0), 0);
+  const totalDeductions = input.deductions.length;
+  const solvedDeductions = input.deductions.filter((deduction) => deduction.isSolved).length;
+  const ready = input.availableForAccusation;
+  const evidenceDone = ready || openLeads === 0;
+  const crackDone = ready || (input.crackedCount > 0 && !input.crackInProgress);
+  const deductionDone = ready || (totalDeductions > 0 ? solvedDeductions === totalDeductions : crackDone);
+  const done = [evidenceDone, crackDone, deductionDone, input.accusationProposed];
+  const firstOpen = done.findIndex((value) => !value);
+  const stateAt = (index: number): CaseFileStepState => (done[index] ? 'done' : index === firstOpen ? 'now' : 'lock');
+  return {
+    openLeads,
+    solvedDeductions,
+    totalDeductions,
+    crackedCount: input.crackedCount,
+    steps: { evidence: stateAt(0), crack: stateAt(1), deduction: stateAt(2), accusation: stateAt(3) },
+    accusationReady: ready,
   };
 }
 
