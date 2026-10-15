@@ -7,6 +7,11 @@ const lobby = {
   hostUserId: player.userId, status: 'WAITING',
   players: [{ userId: player.userId, username: player.fullName, role: null, isReady: false, isConnected: true }],
 };
+const profile = {
+  userId: player.userId, displayName: player.fullName, role: 'PLAYER', isEmailVerified: true, hasPassword: true,
+  casesSolved: 0, casesPlayed: 0, successRate: 0, fastestSolveSeconds: null, creatorStats: null,
+  rank: { tier: 'APPRENTICE', tierLabel: 'Tập sự', solved: 0, nextThreshold: 3, nextTierLabel: 'Thám tử', progressPercent: 0 },
+};
 
 async function setup(page: Page, signedIn = false) {
   await page.addInitScript(({ signedIn, auth }) => {
@@ -17,6 +22,13 @@ async function setup(page: Page, signedIn = false) {
     }
     (window as any).__sirlockedNoSignalR = true;
   }, { signedIn, auth });
+  // The header asks for the profile and the lobby and case list for case details. Answer them for every
+  // tab so a running backend never sees the fixture token; page routes in the tests still take precedence.
+  await page.context().route('**/api/profile/me', (route) => route.fulfill({ json: { success: true, data: profile } }));
+  await page.context().route('**/api/cases/*', (route) => route.fulfill({ json: { success: true, data: {
+    caseId: decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop() ?? ''),
+    title: lobby.caseTitle, summary: '', estimatedMinutes: 10, sceneCount: 1, characterCount: 0, clueCount: 3, characters: [],
+  } } }));
 }
 
 async function signIn(page: Page) {
