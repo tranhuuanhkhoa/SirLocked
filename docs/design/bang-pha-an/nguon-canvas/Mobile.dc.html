@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Đăng nhập (điện thoại)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#050a12}
+a{color:#07111f}a:hover{color:#8a6e2e}
+.sl-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sl-lang{min-width:48px;min-height:44px;padding:0 12px;border:0;border-radius:2px;background:transparent;color:#a99d8d;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.08em;cursor:pointer;transition:color .12s,background-color .12s}
+.sl-lang:hover{color:#efd486}
+.sl-lang[aria-pressed="true"]{background:#c7a24b;color:#07111f}
+.sl-lang:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.sl-tab{position:relative;min-width:156px;min-height:44px;padding:12px 24px 10px;border:0;background:#c9b78f;color:#3b3226;font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:13px;letter-spacing:.18em;cursor:pointer;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 100%,0 100%);transition:background-color .12s,color .12s,min-height .2s,padding .2s}
+.sl-tab:hover{background:#d8c9a6;color:#07111f}
+.sl-tab.is-active{min-height:50px;padding-top:16px;background:#eee4d2;color:#07111f;cursor:default}
+.sl-tab:focus-visible{outline:2px solid #8a6e2e;outline-offset:-7px}
+.sl-input{display:block;width:100%;box-sizing:border-box;min-height:46px;padding:10px 4px 8px;border:0;border-bottom:1.5px solid rgba(90,74,50,.55);border-radius:0;background:transparent;color:#07111f;font-family:'Source Code Pro',ui-monospace,monospace;font-size:16px;letter-spacing:.02em;outline:none;transition:border-color .12s,background-color .12s,box-shadow .12s}
+.sl-input::placeholder{color:#6e5f48;opacity:1}
+.sl-input:hover{border-bottom-color:#5a4a32}
+.sl-input:focus{border-bottom-color:#07111f;box-shadow:0 1.5px 0 #07111f;background-color:rgba(239,212,134,.32)}
+.sl-input.has-tool{padding-right:48px}
+.sl-reveal{position:absolute;right:0;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:2px;background:transparent;color:#5a4a32;cursor:pointer;transition:color .12s,background-color .12s}
+.sl-reveal:hover{color:#07111f}
+.sl-reveal[aria-pressed="true"]{color:#07111f;background:rgba(239,212,134,.5)}
+.sl-reveal:focus-visible{outline:2px solid #8a6e2e;outline-offset:-2px}
+.sl-link{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0;padding:0;border:0;background:none;color:#5a4a32;font-family:'Crimson Text',Georgia,serif;font-size:16px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(90,74,50,.45);text-underline-offset:3px;cursor:pointer}
+.sl-link:hover{color:#07111f;text-decoration-color:#07111f}
+.sl-link:focus-visible{outline:2px solid #8a6e2e;outline-offset:2px}
+.sl-link.is-strong{font-style:normal;font-weight:600;color:#07111f}
+.sl-primary{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:54px;padding:0 24px;border:0;background:#07111f;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:15px;letter-spacing:.22em;cursor:pointer;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);box-shadow:inset 0 0 0 4px #07111f,inset 0 0 0 5px rgba(239,212,134,.4);transition:background-color .12s,color .12s,transform .12s}
+.sl-primary:hover:not(:disabled){background:#142235;color:#fbf6ed}
+.sl-primary:active:not(:disabled){transform:translateY(1px)}
+.sl-primary:focus-visible{outline:none;box-shadow:inset 0 0 0 2px #efd486,inset 0 0 0 5px #07111f,inset 0 0 0 6px rgba(239,212,134,.7)}
+.sl-primary:disabled{cursor:progress;background:#142235;color:#c7a24b}
+.sl-google{display:flex;align-items:center;justify-content:center;gap:12px;min-height:48px;padding:0 16px;border:1px solid #bfb39a;background:#ffffff;color:#1f1f1f;font-family:'Crimson Text',Georgia,serif;font-weight:600;font-size:17px;text-decoration:none;transition:background-color .12s,border-color .12s}
+.sl-google:hover{background:#f7f3ea;border-color:#8a7d63;color:#1f1f1f}
+.sl-google:focus-visible{outline:2px solid #8a6e2e;outline-offset:2px}
+.sl-inked{filter:url(#sl-ink)}
+@keyframes slRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes slStamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-16deg) scale(2.3)}60%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(.95)}80%{transform:translate(-50%,-50%) rotate(-9deg) scale(1.02)}100%{opacity:1;transform:translate(-50%,-50%) rotate(-9deg) scale(1)}}
+@keyframes slThud{0%,100%{transform:none}35%{transform:translateY(3px)}65%{transform:translateY(-1px)}}
+@keyframes slFog{from{transform:translateX(-5%)}to{transform:translateX(5%)}}
+@keyframes slFlicker{0%,100%{opacity:1}9%{opacity:.8}11%{opacity:.97}47%{opacity:.88}50%{opacity:1}73%{opacity:.93}}
+.sl-rise{animation:slRise .7s cubic-bezier(.2,.8,.2,1) both}
+.sl-rise-late{animation:slRise .75s .16s cubic-bezier(.2,.8,.2,1) both}
+.sl-stamp-in{animation:slStamp .45s cubic-bezier(.2,.8,.2,1) both}
+.sl-thud{animation:slThud .28s .26s ease-out both}
+.sl-fog{animation:slFog 16s ease-in-out infinite alternate}
+.sl-flicker{animation:slFlicker 6.5s linear infinite}
+@media (max-width:1020px){
+  .sl-hero{align-items:center !important;align-self:center !important;text-align:center}
+  .sl-hero-rule{display:none !important}
+  .sl-pool{display:none !important}
+  .sl-shade-x{background:linear-gradient(180deg,rgba(5,10,18,.5) 0%,rgba(5,10,18,.6) 32%,rgba(5,10,18,.86) 100%) !important}
+}
+@media (max-width:640px){
+  .sl-roles{display:none !important}
+  .sl-lens{width:40px !important;height:40px !important}
+  header{padding-top:12px !important}
+  .sl-sheet{padding:24px 20px 26px !important}
+  .sl-tabs{padding:0 8px !important}
+  .sl-tab{flex:1 1 0;min-width:0;padding-left:12px;padding-right:12px}
+  .sl-filehead{font-size:10px !important;letter-spacing:.14em !important}
+  .sl-title{font-size:30px !important}
+}
+@media (prefers-reduced-motion:reduce){
+  .sl-rise,.sl-rise-late,.sl-stamp-in,.sl-thud,.sl-fog,.sl-flicker{animation:none !important}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #050a12; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none">
+    <img src="/_blob/4743a5129437e72a0f91c4c4820372c3" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 40% 45%; transform: scale(1.03)">
+    <div class="sl-shade-x" style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,10,18,.55) 0%, rgba(5,10,18,.12) 34%, rgba(5,10,18,.12) 52%, rgba(5,10,18,.68) 74%, rgba(5,10,18,.86) 100%)"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,10,18,.5) 0%, rgba(5,10,18,0) 22%, rgba(5,10,18,0) 52%, rgba(5,10,18,.88) 100%)"></div>
+    <div class="sl-pool" style="position: absolute; inset: 0; background: radial-gradient(ellipse 52% 50% at 20% 84%, rgba(5,10,18,.9), rgba(5,10,18,0) 72%)"></div>
+    <div style="position: absolute; inset: 0; background: #050a12; opacity: {{ dim }}"></div>
+    <div class="sl-flicker" style="position: absolute; inset: 0; background: radial-gradient(ellipse 34% 44% at 74% 44%, rgba(239,212,134,.14), rgba(239,212,134,0) 70%); mix-blend-mode: screen"></div>
+    <div class="sl-fog" style="position: absolute; left: -15%; right: -15%; bottom: -16%; height: 44%; background: radial-gradient(ellipse at 50% 50%, rgba(111,137,145,.22), rgba(111,137,145,0) 66%); filter: blur(30px)"></div>
+    <svg width="100%" height="100%" style="position: absolute; inset: 0; opacity: .12; mix-blend-mode: overlay">
+      <filter id="sl-grain"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter>
+      <rect width="100%" height="100%" filter="url(#sl-grain)"></rect>
+    </svg>
+    <svg width="0" height="0" style="position: absolute">
+      <filter id="sl-ink" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4" result="noise"></feTurbulence>
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4 3" result="speckle"></feColorMatrix>
+        <feComposite in="SourceGraphic" in2="speckle" operator="in"></feComposite>
+      </filter>
+    </svg>
+  </div>
+
+  <header style="position: relative; z-index: 3; display: flex; justify-content: flex-end; padding: 20px clamp(16px, 4vw, 48px) 0">
+    <div style="display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid rgba(239,212,134,.42); border-radius: 4px; background: rgba(3,9,16,.7); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px)">
+      <button type="button" class="sl-lang" aria-pressed="false" aria-label="English">EN</button>
+      <button type="button" class="sl-lang" aria-pressed="true" aria-label="Tiếng Việt">VI</button>
+    </div>
+  </header>
+
+  <div style="position: relative; z-index: 1; flex: 1 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: clamp(28px, 5vw, 88px); box-sizing: border-box; width: 100%; max-width: 1296px; margin: 0 auto; padding: clamp(8px, 2vw, 24px) clamp(16px, 4vw, 56px) clamp(28px, 5vw, 56px)">
+
+    <section class="sl-hero sl-rise" aria-labelledby="sl-title" style="flex: 1 1 420px; min-width: 0; align-self: flex-end; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding-bottom: 8px">
+      <div class="sl-lens" aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 4px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px; box-shadow: 0 0 0 4px rgba(199,162,75,.10), 0 0 24px rgba(199,162,75,.18)">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 8px; height: 8px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #050a12"></span>
+      </div>
+      <p style="margin: 0; color: #efd486; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 500; letter-spacing: .28em; text-shadow: 0 1px 8px #050a12">221B · ĐƠN VỊ ĐIỀU TRA</p>
+      <h1 id="sl-title" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: clamp(44px, 6vw, 88px); font-weight: 700; line-height: 1; letter-spacing: .08em; color: #fbf6ed; text-shadow: 0 4px 0 #050a12, 0 12px 32px rgba(0,0,0,.78)">SIR <span style="background: linear-gradient(180deg, #fbf6ed 0%, #efd486 45%, #8a6e2e 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; text-shadow: none; filter: drop-shadow(0 4px 0 #050a12)">LOCKED</span></h1>
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span class="sl-hero-rule" aria-hidden="true" style="width: 56px; height: 1px; background: linear-gradient(90deg, rgba(138,110,46,0), #8a6e2e)"></span>
+        <p style="margin: 0; color: #eee4d2; font-size: clamp(18px, 1.7vw, 23px); font-style: italic; text-shadow: 0 1px 10px #050a12">Hai thám tử. Một vụ án bí ẩn.</p>
+      </div>
+      <sc-if value="{{ showRoles }}" hint-placeholder-val="{{ true }}">
+        <ul class="sl-roles" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 0; padding: 0; list-style: none">
+          <li style="display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 14px; border: 1px solid rgba(239,212,134,.18); background: rgba(3,9,16,.66)">
+            <span aria-hidden="true" style="flex: none; width: 8px; height: 8px; border-radius: 999px; background: #4f9a9a; box-shadow: 0 0 0 3px rgba(79,154,154,.24)"></span>
+            <span style="display: flex; flex-direction: column; gap: 2px; text-align: left">
+              <strong style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #eee4d2">ĐIỀU TRA VIÊN</strong>
+              <span style="font-size: 16px; color: #a99d8d">Khám nghiệm hiện trường</span>
+            </span>
+          </li>
+          <li style="display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 14px; border: 1px solid rgba(239,212,134,.18); background: rgba(3,9,16,.66)">
+            <span aria-hidden="true" style="flex: none; width: 8px; height: 8px; border-radius: 999px; background: #b66b4d; box-shadow: 0 0 0 3px rgba(182,107,77,.24)"></span>
+            <span style="display: flex; flex-direction: column; gap: 2px; text-align: left">
+              <strong style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #eee4d2">THẨM VẤN VIÊN</strong>
+              <span style="font-size: 16px; color: #a99d8d">Hỏi nhân chứng</span>
+            </span>
+          </li>
+        </ul>
+      </sc-if>
+    </section>
+
+    <section class="sl-rise-late" aria-label="Đăng nhập hoặc đăng ký" style="flex: 0 1 470px; width: 100%; max-width: 470px; margin: 0 auto; padding-top: 8px">
+      <div class="sl-tabs" style="position: relative; z-index: 3; display: flex; align-items: flex-end; gap: 4px; padding: 0 18px">
+        <button type="button" class="{{ loginTabClass }}" aria-pressed="{{ loginPressed }}" onClick="{{ showLogin }}">ĐĂNG NHẬP</button>
+        <button type="button" class="{{ registerTabClass }}" aria-pressed="{{ registerPressed }}" onClick="{{ showRegister }}">ĐĂNG KÝ</button>
+      </div>
+
+      <div style="position: relative">
+        <div aria-hidden="true" style="position: absolute; top: 14px; right: -10px; bottom: -14px; left: 12px; background: #ded0b3; transform: rotate(2.4deg); box-shadow: 0 20px 44px rgba(0,0,0,.5)"></div>
+        <div aria-hidden="true" style="position: absolute; top: 6px; right: 4px; bottom: -8px; left: -8px; background: #c9b78f; transform: rotate(-1.1deg); box-shadow: 0 26px 60px rgba(0,0,0,.55)"></div>
+
+        <div class="{{ sheetClass }}" style="position: relative; z-index: 2; box-sizing: border-box; padding: 30px 40px 30px; overflow: hidden; color: #07111f; background: radial-gradient(ellipse 70% 50% at 12% 0%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%), radial-gradient(ellipse 80% 60% at 100% 100%, rgba(138,110,46,.16), rgba(138,110,46,0) 70%), #eee4d2; box-shadow: inset 0 1px 0 rgba(255,255,255,.65), 0 30px 70px rgba(0,0,0,.55)">
+          <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; opacity: .22; mix-blend-mode: multiply; pointer-events: none">
+            <filter id="sl-paper"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="3" stitchTiles="stitch"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .35  0 0 0 0 .29  0 0 0 0 .2  0 0 0 .55 0"></feColorMatrix></filter>
+            <rect width="100%" height="100%" filter="url(#sl-paper)"></rect>
+          </svg>
+          <div aria-hidden="true" style="position: absolute; left: -46px; bottom: -58px; width: 150px; height: 150px; border-radius: 999px; box-shadow: inset 0 0 0 2px rgba(138,110,46,.14), inset 0 0 14px 3px rgba(138,110,46,.07); pointer-events: none"></div>
+
+          <div style="position: relative; z-index: 1">
+
+            <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div class="sl-filehead" style="display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 3px double rgba(90,74,50,.42); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: .2em; color: #5a4a32">
+                  <span>HỒ SƠ THÁM TỬ</span><span aria-hidden="true">·</span><span>Nº 221-B</span>
+                </div>
+                <h2 class="sl-title" style="margin: 20px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #07111f">Trở lại 221B</h2>
+                <p style="margin: 6px 0 0; font-size: 18px; font-style: italic; color: #5a4a32">Bí ẩn đang chờ đợi.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div class="sl-filehead" style="display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 3px double rgba(90,74,50,.42); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: .2em; color: #5a4a32">
+                  <span>HỒ SƠ MỚI</span><span aria-hidden="true">·</span><span>Nº CHỜ CẤP</span>
+                </div>
+                <h2 class="sl-title" style="margin: 20px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #07111f">Gia nhập 221B</h2>
+                <p style="margin: 6px 0 0; font-size: 18px; font-style: italic; color: #5a4a32">Lập hồ sơ thám tử để bắt đầu phá án.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isForgot }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div class="sl-filehead" style="display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 3px double rgba(90,74,50,.42); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: .2em; color: #5a4a32">
+                  <span>ĐIỆN TÍN KHẨN</span><span aria-hidden="true">·</span><span>GỬI 221B</span>
+                </div>
+                <h2 class="sl-title" style="margin: 20px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #07111f">Quên mật khẩu?</h2>
+                <p style="margin: 6px 0 0; font-size: 18px; font-style: italic; color: #5a4a32">Nhập email để nhận liên kết đặt lại mật khẩu.</p>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasInvite }}" hint-placeholder-val="{{ false }}">
+              <div role="note" style="display: flex; align-items: flex-start; gap: 12px; margin-top: 18px; padding: 12px 14px; border: 1px dashed #4f9a9a; background: rgba(251,246,237,.85)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"></path><circle cx="17" cy="9" r="2.6"></circle><path d="M16 14.3c2.3.1 4 1.7 4.5 4.2"></path></svg>
+                <div>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #2f6363">ĐỒNG ĐỘI ĐANG CHỜ</p>
+                  <p style="margin: 4px 0 0; font-size: 16px; line-height: 1.35; color: #07111f">Đăng nhập hoặc đăng ký để vào cùng đồng đội. Lời mời được giữ trong lúc bạn xác minh email.</p>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasGoogleError }}" hint-placeholder-val="{{ false }}">
+              <div role="alert" style="display: flex; align-items: flex-start; gap: 12px; margin-top: 18px; padding: 12px 14px; border: 1px solid rgba(182,107,77,.6); background: rgba(182,107,77,.10)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5"></path><path d="M12 16.5h.01"></path></svg>
+                <div>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #7a3f27">ĐĂNG NHẬP GOOGLE ĐÃ BỊ HỦY</p>
+                  <p style="margin: 4px 0 0; font-size: 16px; line-height: 1.35; color: #07111f">Bạn có thể thử lại bên dưới hoặc đăng nhập bằng email và mật khẩu.</p>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+              <form onSubmit="{{ submitLogin }}" style="display: flex; flex-direction: column; gap: 18px; margin-top: 22px">
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <label for="sl-login-email" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5a4a32">01 — EMAIL</label>
+                  <input id="sl-login-email" class="sl-input" type="email" name="email" autocomplete="email" placeholder="detective@sirlocked.local">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                    <label for="sl-login-password" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5a4a32">02 — MẬT KHẨU</label>
+                    <button type="button" class="sl-link" onClick="{{ showForgot }}">Quên mật khẩu?</button>
+                  </div>
+                  <div style="position: relative">
+                    <input id="sl-login-password" class="sl-input has-tool" type="{{ pwType }}" name="password" autocomplete="current-password" placeholder="••••••••">
+                    <button type="button" class="sl-reveal" aria-label="{{ revealLabel }}" aria-pressed="{{ revealPressed }}" onClick="{{ toggleReveal }}">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path><path d="M8 9.5a3 3 0 0 1 2.5-2"></path></svg>
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" class="sl-primary" disabled="{{ busy }}" style="margin-top: 6px">
+                  <span>{{ loginCta }}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                </button>
+              </form>
+            </sc-if>
+
+            <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+              <form onSubmit="{{ submitRegister }}" style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px">
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <label for="sl-reg-name" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5a4a32">01 — HỌ VÀ TÊN</label>
+                  <input id="sl-reg-name" class="sl-input" type="text" name="fullName" autocomplete="name" placeholder="Detective Holmes">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <label for="sl-reg-email" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5a4a32">02 — EMAIL</label>
+                  <input id="sl-reg-email" class="sl-input" type="email" name="email" autocomplete="email" placeholder="detective@sirlocked.local">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <label for="sl-reg-password" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5a4a32">03 — MẬT KHẨU</label>
+                  <div style="position: relative">
+                    <input id="sl-reg-password" class="sl-input has-tool" type="{{ pwType }}" name="password" autocomplete="new-password" aria-describedby="sl-reg-hint" placeholder="••••••••">
+                    <button type="button" class="sl-reveal" aria-label="{{ revealLabel }}" aria-pressed="{{ revealPressed }}" onClick="{{ toggleReveal }}">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path><path d="M8 9.5a3 3 0 0 1 2.5-2"></path></svg>
+                    </button>
+                  </div>
+                  <p id="sl-reg-hint" style="margin: 4px 0 0; font-size: 15px; color: #5a4a32">Tối thiểu 6 ký tự, gồm chữ và số.</p>
+                </div>
+                <button type="submit" class="sl-primary" disabled="{{ busy }}" style="margin-top: 4px">
+                  <span>{{ registerCta }}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                </button>
+              </form>
+            </sc-if>
+
+            <sc-if value="{{ isForgot }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <sc-if value="{{ showForgotForm }}" hint-placeholder-val="{{ true }}">
+                  <form onSubmit="{{ submitForgot }}" style="display: flex; flex-direction: column; gap: 18px; margin-top: 22px">
+                    <div style="display: flex; flex-direction: column; gap: 4px">
+                      <label for="sl-forgot-email" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5a4a32">01 — EMAIL</label>
+                      <input id="sl-forgot-email" class="sl-input" type="email" name="email" autocomplete="email" placeholder="detective@sirlocked.local">
+                    </div>
+                    <button type="submit" class="sl-primary" style="margin-top: 6px">
+                      <span>GỬI YÊU CẦU</span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                    </button>
+                  </form>
+                </sc-if>
+                <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+                  <div role="status" style="margin-top: 24px; padding: 16px 18px 18px; border: 1px solid rgba(90,74,50,.38); border-top: 2px dashed rgba(90,74,50,.5); background: #f7f0dc; box-shadow: 0 8px 18px rgba(5,10,18,.14); transform: rotate(-.8deg)">
+                    <p style="margin: 0 0 8px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .2em; color: #5a4a32">ĐIỆN TÍN ĐÃ ĐƯỢC GỬI</p>
+                    <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 14px; line-height: 1.6; color: #2a2318">Nếu email tồn tại, chúng tôi đã gửi một liên kết đặt lại mật khẩu. Hãy mở email (kiểm tra cả mục Spam) và nhấn vào nút trong đó.</p>
+                  </div>
+                </sc-if>
+                <p style="display: flex; justify-content: center; margin: 24px 0 0">
+                  <button type="button" class="sl-link" onClick="{{ showLogin }}">← Quay lại đăng nhập</button>
+                </p>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showAlt }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display: flex; align-items: center; gap: 12px; margin: 20px 0 16px; color: #5a4a32; font-size: 16px; font-style: italic">
+                  <span aria-hidden="true" style="flex: 1; height: 1px; background: rgba(90,74,50,.32)"></span>
+                  <span>hoặc</span>
+                  <span aria-hidden="true" style="flex: 1; height: 1px; background: rgba(90,74,50,.32)"></span>
+                </div>
+                <a href="#" class="sl-google">
+                  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
+                  <span>Đăng nhập với Google</span>
+                </a>
+                <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+                  <p style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 18px 0 0; font-size: 16px; color: #5a4a32">Chưa có tài khoản? <button type="button" class="sl-link is-strong" onClick="{{ showRegister }}">Đăng ký</button></p>
+                </sc-if>
+                <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+                  <p style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 18px 0 0; font-size: 16px; color: #5a4a32">Đã có tài khoản? <button type="button" class="sl-link is-strong" onClick="{{ showLogin }}">Đăng nhập</button></p>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <p class="sl-sr" role="status">{{ statusText }}</p>
+          </div>
+
+          <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}">
+            <div class="sl-stamp-in" aria-hidden="true" style="position: absolute; left: 50%; top: 52%; z-index: 6; transform: translate(-50%,-50%) rotate(-9deg); pointer-events: none; mix-blend-mode: multiply">
+              <div class="sl-inked" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 24px 12px; border: 6px double #b05a3c; color: #b05a3c; white-space: nowrap">
+                <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; letter-spacing: .1em; line-height: 1">{{ stampWord }}</span>
+                <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 600; letter-spacing: .32em">221B · {{ today }}</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["login","register","forgot"],"default":"login","section":"Trạng thái"},"notice":{"editor":"enum","options":["none","invite","googleError"],"default":"none","section":"Trạng thái"},"showRoles":{"editor":"boolean","default":true,"section":"Hiển thị"},"backdropDim":{"editor":"range","min":0,"max":0.8,"step":0.05,"default":0.15,"section":"Không khí"},"$preview":{"width":390,"height":930}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: null, reveal: false, busy: false, sent: false };
+    this._timer = null;
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.view !== this.props.view) this.go(this.props.view || 'login');
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._timer);
+  }
+
+  go(view) {
+    clearTimeout(this._timer);
+    this.setState({ view: view, reveal: false, busy: false, sent: false });
+  }
+
+  stamp(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (this.state && this.state.busy) return;
+    clearTimeout(this._timer);
+    this.setState({ busy: true });
+    this._timer = setTimeout(() => this.setState({ busy: false }), 2600);
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const view = s.view || this.props.view || 'login';
+    const notice = this.props.notice || 'none';
+    const isLogin = view === 'login';
+    const isRegister = view === 'register';
+    const isForgot = view === 'forgot';
+    const busy = !!s.busy;
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const dimValue = Number(this.props.backdropDim);
+    return {
+      isLogin: isLogin,
+      isRegister: isRegister,
+      isForgot: isForgot,
+      showAlt: !isForgot,
+      loginTabClass: 'sl-tab' + (isLogin || isForgot ? ' is-active' : ''),
+      registerTabClass: 'sl-tab' + (isRegister ? ' is-active' : ''),
+      loginPressed: String(isLogin || isForgot),
+      registerPressed: String(isRegister),
+      pwType: s.reveal ? 'text' : 'password',
+      revealLabel: s.reveal ? 'Ẩn mật khẩu' : 'Hiện mật khẩu',
+      revealPressed: String(!!s.reveal),
+      busy: busy,
+      sheetClass: busy ? 'sl-sheet sl-thud' : 'sl-sheet',
+      loginCta: busy && isLogin ? 'ĐANG MỞ HỒ SƠ…' : 'ĐĂNG NHẬP',
+      registerCta: busy && isRegister ? 'ĐANG LẬP HỒ SƠ…' : 'TẠO TÀI KHOẢN',
+      stampWord: isRegister ? 'ĐÃ LẬP HỒ SƠ' : 'ĐÃ XÁC MINH',
+      statusText: busy ? (isRegister ? 'Đang lập hồ sơ thám tử…' : 'Đang xác minh danh tính…') : '',
+      today: pad(now.getDate()) + '.' + pad(now.getMonth() + 1) + '.' + now.getFullYear(),
+      sent: !!s.sent,
+      showForgotForm: !s.sent,
+      hasInvite: notice === 'invite',
+      hasGoogleError: notice === 'googleError',
+      showRoles: this.props.showRoles ?? true,
+      dim: Number.isFinite(dimValue) ? dimValue : 0.15,
+      showLogin: () => this.go('login'),
+      showRegister: () => this.go('register'),
+      showForgot: () => this.go('forgot'),
+      toggleReveal: () => this.setState({ reveal: !s.reveal }),
+      submitLogin: (event) => this.stamp(event),
+      submitRegister: (event) => this.stamp(event),
+      submitForgot: (event) => {
+        if (event && event.preventDefault) event.preventDefault();
+        this.setState({ sent: true });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

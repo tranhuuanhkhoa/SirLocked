@@ -1,0 +1,509 @@
+/* ==========================================================================
+   Sir Locked — "Bảng phá án" foundation (tokens · primitives · motion)
+   File: src/FE/css/20-bpa-foundation.css — link it in index.html AFTER _primitives.css.
+   Every class is prefixed .bpa- so pages can be migrated one by one next to the old styles.
+   Do not edit per page: page-specific CSS goes in its own file (30-*, 40-* …).
+   ========================================================================== */
+
+:root {
+  /* surfaces */
+  --bpa-cork: #2a1f17;
+  --bpa-cork-deep: #120d09;
+  --bpa-night: #0b0806;
+  --bpa-paper: #fbf6ed;          /* index card */
+  --bpa-ledger: #f4efe3;         /* ledger / table sheet */
+  --bpa-kraft: #e9dcc0;          /* manila */
+  --bpa-folder: #d9c49a;         /* darker folder */
+  --bpa-news: #e3dbc9;           /* newspaper */
+  --bpa-note: #ecd68a;           /* sticky note */
+  --bpa-label: #0d1014;          /* black label / dark panel */
+  /* ink on paper */
+  --bpa-ink: #07111f;
+  --bpa-ink-2: #2a2318;
+  --bpa-ink-3: #3b3328;
+  --bpa-muted: #5b5248;
+  /* text on dark */
+  --bpa-on-dark: #eee4d2;
+  --bpa-on-dark-2: #cfc4b1;
+  --bpa-on-dark-3: #b3a794;
+  --bpa-white: #fbf6ed;
+  /* accents */
+  --bpa-string: #bf3b2c;
+  --bpa-red: #9e3f2a;
+  --bpa-red-hover: #b2472f;
+  --bpa-red-dark: #6b2a1c;
+  --bpa-stamp: #b05a3c;
+  --bpa-gold: #efd486;
+  --bpa-brass: #c7a24b;
+  --bpa-brass-dark: #5e4a1c;
+  --bpa-teal: #2f6363;
+  --bpa-teal-fill: rgba(79, 154, 154, .16);
+  --bpa-rust: #7a3f27;
+  --bpa-rust-fill: rgba(182, 107, 77, .14);
+  --bpa-navy: #1a2c42;
+  --bpa-margin: rgba(182, 64, 48, .5);   /* red margin line of index cards */
+  --bpa-rule: rgba(79, 154, 154, .4);    /* teal ruled lines */
+  /* rarity (text on paper) */
+  --bpa-r-common: #5f574b;
+  --bpa-r-rare: #2f6363;
+  --bpa-r-epic: #4b3a7a;
+  --bpa-r-legend: #8a6420;
+  /* type */
+  --bpa-font-display: 'Playfair Display', Georgia, serif;
+  --bpa-font-body: 'Crimson Text', Georgia, serif;
+  --bpa-font-label: 'Source Code Pro', ui-monospace, monospace;
+  /* depth & motion */
+  --bpa-shadow-card: 0 1px 0 rgba(0, 0, 0, .2), 0 22px 44px rgba(0, 0, 0, .55);
+  --bpa-shadow-lift: 0 1px 0 rgba(0, 0, 0, .2), 0 32px 56px rgba(0, 0, 0, .6);
+  --bpa-shadow-label: 0 14px 30px rgba(0, 0, 0, .55);
+  --bpa-ease-lens: cubic-bezier(.7, 0, .2, 1);
+  --bpa-ease-out: cubic-bezier(.2, .8, .2, 1);
+  --bpa-ease-wipe: cubic-bezier(.4, 0, .2, 1);
+  --bpa-pin-red: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 45%, #6e1a12 100%);
+  --bpa-pin-gold: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%);
+}
+
+/* --------------------------------------------------------------------------
+   Cork board (dark board under a desk lamp). Put .bpa-board on the page root.
+   -------------------------------------------------------------------------- */
+.bpa-board {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  color: var(--bpa-on-dark);
+  font-family: var(--bpa-font-body);
+  background-color: var(--bpa-cork);
+  background-image:
+    radial-gradient(ellipse 75% 75% at 50% 50%, rgba(5, 10, 18, 0) 45%, rgba(5, 10, 18, .85) 100%),
+    radial-gradient(ellipse 62% 62% at 50% 42%, rgba(255, 217, 138, .2), rgba(239, 212, 134, .05) 50%, rgba(239, 212, 134, 0) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='l' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .31 0 0 0 0 .2 0 0 0 4 -2.35'/%3E%3C/filter%3E%3Cfilter id='d' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .035 0 0 0 0 .02 0 0 0 -4 1.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23l%29'/%3E%3Crect width='100%25' height='100%25' filter='url%28%23d%29'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900'%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .01' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.6 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23b%29' opacity='.5'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 320px 320px, 1200px 900px;
+  background-attachment: fixed, fixed, scroll, scroll;
+}
+.bpa-board::before {            /* lamp flicker over the board */
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 62% 62% at 50% 42%, rgba(255, 217, 138, .06), rgba(255, 217, 138, 0) 70%);
+  animation: bpaFlicker 7s linear infinite;
+}
+.bpa-container {                 /* page content column */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1352px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+/* --------------------------------------------------------------------------
+   Type
+   -------------------------------------------------------------------------- */
+.bpa-kicker {                    /* typewriter label: "HỒ SƠ 01 · PHÒNG" */
+  margin: 0;
+  font-family: var(--bpa-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+.bpa-h1, .bpa-h2, .bpa-h3 { margin: 0; font-family: var(--bpa-font-display); font-weight: 700; line-height: 1.1; }
+.bpa-h1 { font-size: clamp(28px, 3vw, 40px); }
+.bpa-h2 { font-size: clamp(22px, 2.2vw, 28px); }
+.bpa-h3 { font-size: 20px; }
+.bpa-body { font-family: var(--bpa-font-body); font-size: 17px; line-height: 1.4; }
+.bpa-aside { font-family: var(--bpa-font-body); font-style: italic; color: var(--bpa-on-dark-2); }
+.bpa-num { font-family: var(--bpa-font-label); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bpa-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* --------------------------------------------------------------------------
+   Paper & panels
+   -------------------------------------------------------------------------- */
+.bpa-paper {
+  position: relative;
+  box-sizing: border-box;
+  background: var(--bpa-paper);
+  color: var(--bpa-ink);
+  box-shadow: var(--bpa-shadow-card);
+}
+.bpa-paper--card { padding: 20px 24px 20px 44px; }
+.bpa-paper--card::before {       /* red margin line */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 24px;
+  width: 1.5px;
+  background: var(--bpa-margin);
+  pointer-events: none;
+}
+.bpa-paper--ruled { background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--bpa-rule) 27px 28px); }
+.bpa-paper--ledger { background-color: var(--bpa-ledger); padding: 22px 24px 18px 46px; }
+.bpa-paper--ledger::before {     /* double red margin */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 26px;
+  width: 5.5px;
+  border-left: 1.5px solid var(--bpa-margin);
+  border-right: 1.5px solid var(--bpa-margin);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.bpa-paper--kraft { background-color: var(--bpa-kraft); padding: 24px 26px 22px; }
+.bpa-paper--folder { background-color: var(--bpa-folder); padding: 24px 26px 22px; }
+.bpa-paper--news { background-color: var(--bpa-news); color: #15120e; padding: 22px 26px; }
+.bpa-paper--news .bpa-masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 3px double rgba(58, 52, 43, .6);
+  font-family: var(--bpa-font-label);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  color: #3a342b;
+}
+.bpa-paper--note { background-color: var(--bpa-note); color: var(--bpa-ink-2); padding: 18px 20px; }
+.bpa-panel {                     /* black panel on the board */
+  position: relative;
+  box-sizing: border-box;
+  background: var(--bpa-label);
+  color: var(--bpa-on-dark);
+  box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .16), 0 24px 48px rgba(0, 0, 0, .6);
+}
+.bpa-label {                     /* rotated black page title label */
+  position: relative;
+  display: inline-block;
+  padding: 12px 26px 12px 34px;
+  background: var(--bpa-label);
+  color: var(--bpa-white);
+  box-shadow: var(--bpa-shadow-label);
+  transform: rotate(-1deg);
+}
+.bpa-label::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 11px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--bpa-pin-gold);
+}
+.bpa-label .bpa-kicker { color: var(--bpa-gold); letter-spacing: .26em; }
+.bpa-tilt-l { transform: rotate(-1.2deg); }
+.bpa-tilt-r { transform: rotate(1deg); }
+.bpa-lift { transition: transform .25s var(--bpa-ease-out), box-shadow .25s; }
+.bpa-lift:hover { transform: translateY(-5px); box-shadow: var(--bpa-shadow-lift); }
+
+/* pins & tape */
+.bpa-pin {
+  position: absolute;
+  z-index: 3;
+  top: -8px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 50%;
+  background: var(--bpa-pin-gold);
+  box-shadow: 0 4px 5px rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+.bpa-pin--red { background: var(--bpa-pin-red); }
+.bpa-tape {
+  position: absolute;
+  z-index: 3;
+  width: 70px;
+  height: 20px;
+  background: rgba(233, 220, 192, .72);
+  transform: rotate(-32deg);
+  pointer-events: none;
+}
+
+/* red string: an absolutely positioned SVG layer behind cards
+   <svg class="bpa-strings" viewBox="0 0 W H" preserveAspectRatio="none"><path class="bpa-string" d="…"/></svg> */
+.bpa-strings { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; }
+.bpa-string { fill: none; stroke: var(--bpa-string); stroke-width: 2.1; stroke-linecap: round; }
+.bpa-string--shadow { stroke: rgba(0, 0, 0, .45); stroke-width: 2.8; transform: translate(2px, 5px); }
+.bpa-string--draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: bpaDraw .9s var(--bpa-ease-out) forwards; } /* needs pathLength="1" */
+
+/* stamps, chips, monogram avatars */
+.bpa-stamp {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 4px double currentColor;
+  color: var(--bpa-stamp);
+  font-family: var(--bpa-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-8deg);
+  mix-blend-mode: multiply;
+}
+.bpa-stamp--teal { color: var(--bpa-teal); }
+.bpa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 2px;
+  background: rgba(251, 246, 237, .7);
+  box-shadow: inset 0 0 0 1px rgba(79, 69, 54, .35);
+  color: var(--bpa-ink-3);
+  font-family: var(--bpa-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+.bpa-chip--dark { background: var(--bpa-label); color: var(--bpa-gold); box-shadow: none; }
+.bpa-chip--teal { background: var(--bpa-teal-fill); color: var(--bpa-teal); box-shadow: inset 0 0 0 1px rgba(47, 99, 99, .4); }
+.bpa-chip--rust { background: var(--bpa-rust-fill); color: var(--bpa-rust); box-shadow: inset 0 0 0 1px rgba(122, 63, 39, .4); }
+.bpa-avatar {                    /* initials monogram — never a portrait */
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--bpa-navy);
+  box-shadow: inset 0 0 0 1px var(--bpa-brass);
+  color: var(--bpa-gold);
+  font-family: var(--bpa-font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.bpa-avatar--rust { background: #3a1d12; box-shadow: inset 0 0 0 1px #c98a63; color: #f2c9a9; }
+.bpa-avatar--lg { width: 76px; height: 76px; font-size: 28px; box-shadow: inset 0 0 0 2px var(--bpa-brass), 0 0 0 4px var(--bpa-paper), 0 0 0 5px rgba(91, 82, 72, .35); }
+
+/* --------------------------------------------------------------------------
+   Controls
+   -------------------------------------------------------------------------- */
+.bpa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 2px;
+  font-family: var(--bpa-font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .12s, color .12s, transform .12s, box-shadow .12s;
+}
+.bpa-btn:active:not(:disabled) { transform: translateY(2px); }
+.bpa-btn:focus-visible { outline: 2px solid var(--bpa-gold); outline-offset: 3px; }
+.bpa-paper .bpa-btn:focus-visible { outline-color: var(--bpa-ink); }
+.bpa-btn--red { background: var(--bpa-red); color: var(--bpa-white); box-shadow: 0 3px 0 var(--bpa-red-dark), 0 10px 20px rgba(158, 63, 42, .3); }
+.bpa-btn--red:hover:not(:disabled) { background: var(--bpa-red-hover); color: var(--bpa-white); }
+.bpa-btn--red:disabled { cursor: not-allowed; background: #5a4a3e; color: #c9bfae; box-shadow: 0 3px 0 #3a3029; }
+.bpa-btn--ink { background: transparent; color: var(--bpa-ink); box-shadow: inset 0 0 0 1.5px var(--bpa-ink); }
+.bpa-btn--ink:hover:not(:disabled) { background: var(--bpa-ink); color: var(--bpa-white); }
+.bpa-btn--ink:disabled { cursor: not-allowed; color: #6b6257; box-shadow: inset 0 0 0 1.5px rgba(91, 82, 72, .35); }
+.bpa-btn--gold { background: transparent; color: var(--bpa-gold); box-shadow: inset 0 0 0 1.5px rgba(239, 212, 134, .6); }
+.bpa-btn--gold:hover:not(:disabled) { background: rgba(239, 212, 134, .12); color: var(--bpa-white); }
+.bpa-btn--teal { background: var(--bpa-teal); color: var(--bpa-white); box-shadow: 0 3px 0 #1d4040; }
+.bpa-btn--sm { min-height: 36px; padding: 0 14px; font-size: 11px; }
+.bpa-btn--block { width: 100%; }
+
+.bpa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--bpa-muted);
+  font-family: var(--bpa-font-body);
+  font-size: 16px;
+  font-style: italic;
+  text-decoration: underline;
+  text-decoration-color: rgba(91, 82, 72, .45);
+  text-underline-offset: 3px;
+}
+.bpa-link:hover { color: var(--bpa-red); }
+.bpa-link--gold { color: var(--bpa-gold); font-size: 17px; text-decoration-color: rgba(239, 212, 134, .4); text-underline-offset: 4px; }
+.bpa-link--gold:hover { color: var(--bpa-white); text-decoration-color: var(--bpa-white); }
+.bpa-link:focus-visible { outline: 2px solid var(--bpa-gold); outline-offset: 2px; }
+
+.bpa-field {                     /* underlined field on paper */
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 46px;
+  padding: 8px 4px;
+  border: 0;
+  border-bottom: 1.5px solid rgba(47, 99, 99, .55);
+  border-radius: 0;
+  background: transparent;
+  color: var(--bpa-ink);
+  font-family: var(--bpa-font-body);
+  font-size: 17px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.bpa-field:focus { border-bottom-color: var(--bpa-ink); background-color: rgba(239, 212, 134, .3); }
+.bpa-field[aria-invalid="true"] { border-bottom-color: var(--bpa-red); }
+.bpa-field-label { display: block; margin-bottom: 2px; font-family: var(--bpa-font-label); font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--bpa-muted); }
+.bpa-code {                      /* 6-char room code */
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--bpa-paper);
+  box-shadow: inset 0 0 0 1.5px rgba(91, 82, 72, .5);
+  color: var(--bpa-ink);
+  font-family: var(--bpa-font-label);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .42em;
+  text-transform: uppercase;
+  text-align: center;
+  outline: none;
+}
+.bpa-code::placeholder { color: #a0968a; opacity: 1; }
+.bpa-code:focus { box-shadow: inset 0 0 0 2px var(--bpa-ink); background-color: #fff9e8; }
+
+.bpa-seg {                       /* segmented toggle on paper, use aria-pressed */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(91, 82, 72, .35);
+  color: var(--bpa-ink-3);
+  font-family: var(--bpa-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  cursor: pointer;
+  transition: background-color .12s, color .12s;
+}
+.bpa-seg:hover { box-shadow: inset 0 0 0 1.5px var(--bpa-ink); color: var(--bpa-ink); }
+.bpa-seg[aria-pressed="true"], .bpa-seg[aria-selected="true"] { background: var(--bpa-ink); color: var(--bpa-white); box-shadow: inset 0 0 0 1px var(--bpa-ink); }
+.bpa-seg:focus-visible { outline: 2px solid var(--bpa-red); outline-offset: 2px; }
+
+.bpa-tab {                       /* manila folder tab, use aria-selected */
+  position: relative;
+  min-width: 140px;
+  min-height: 46px;
+  padding: 12px 22px 10px;
+  border: 0;
+  background: #c9b78f;
+  color: #3b3226;
+  font-family: var(--bpa-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 100%, 0 100%);
+  transition: background-color .12s, color .12s;
+}
+.bpa-tab:hover { background: #d8c9a6; color: var(--bpa-ink); }
+.bpa-tab[aria-selected="true"] { min-height: 52px; padding-top: 16px; background: var(--bpa-ledger); color: var(--bpa-ink); cursor: default; }
+.bpa-tab:focus-visible { outline: 2px solid var(--bpa-red); outline-offset: -7px; }
+
+.bpa-table { width: 100%; border-collapse: collapse; }
+.bpa-table th { padding: 10px; border-bottom: 1.5px solid rgba(182, 64, 48, .6); text-align: left; font-family: var(--bpa-font-label); font-size: 10px; font-weight: 700; letter-spacing: .16em; color: var(--bpa-muted); white-space: nowrap; }
+.bpa-table td { padding: 9px 10px; border-bottom: 1px solid var(--bpa-rule); vertical-align: middle; font-size: 16px; color: var(--bpa-ink-2); }
+.bpa-table tbody tr:hover { background: rgba(239, 212, 134, .28); }
+
+/* --------------------------------------------------------------------------
+   Motion
+   -------------------------------------------------------------------------- */
+/* Page change = magnifier lens: the new page opens through a lens at the
+   centre, then the lens grows past the edges. Router usage:
+     app.classList.add('bpa-enter')            // on the new page root
+     document.body.append(rim) where rim = <div class="bpa-rim" aria-hidden="true">
+     on 'animationend' of app (animationName === 'bpaLens'): remove 'bpa-enter' and the rim
+   .bpa-enter > * gets the zoom-out so pages need no extra wrapper. */
+@keyframes bpaLens { 0% { clip-path: circle(0px at 50% 46%); } 16% { clip-path: circle(66px at 50% 46%); } 34% { clip-path: circle(66px at 50% 46%); } 100% { clip-path: circle(150% at 50% 46%); } }
+@keyframes bpaZoom { 0%, 34% { transform: scale(1.14); } 100% { transform: none; } }
+@keyframes bpaRim { 0% { width: 0; height: 0; opacity: 0; } 16% { width: 132px; height: 132px; opacity: 1; } 34% { width: 132px; height: 132px; opacity: 1; } 100% { width: 3200px; height: 3200px; opacity: 0; } }
+.bpa-enter { animation: bpaLens 1.15s var(--bpa-ease-lens) both; }
+.bpa-enter > * { transform-origin: 50% 46vh; animation: bpaZoom 1.15s var(--bpa-ease-lens) both; }
+.bpa-rim {
+  position: fixed;
+  left: 50%;
+  top: 46%;
+  z-index: 9000;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  box-sizing: border-box;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 8px solid var(--bpa-brass);
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 42%);
+  box-shadow: inset 0 0 0 2px var(--bpa-brass-dark), 0 0 0 2px var(--bpa-brass-dark), 0 14px 30px rgba(0, 0, 0, .6);
+  pointer-events: none;
+  animation: bpaRim 1.15s var(--bpa-ease-lens) both;
+}
+.bpa-rim::after {                /* magnifier handle */
+  content: "";
+  position: absolute;
+  left: 85%;
+  top: 85%;
+  width: 18px;
+  height: 90px;
+  margin-left: -9px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #2a1b10, #5a3b22 45%, #2a1b10);
+  box-shadow: 0 0 0 2px var(--bpa-brass-dark);
+  transform-origin: 50% 0;
+  transform: rotate(-45deg);
+}
+
+/* In-page change (tab switch, new selection): lens wipe. Alternate -a / -b
+   to replay it, e.g. class = flip ? 'bpa-wipe-b' : 'bpa-wipe-a'.
+   Origin via --bpa-wipe-at (default top-left). */
+@keyframes bpaWipeA { from { clip-path: circle(0% at var(--bpa-wipe-at, 8% 0%)); } to { clip-path: circle(160% at var(--bpa-wipe-at, 8% 0%)); } }
+@keyframes bpaWipeB { from { clip-path: circle(0% at var(--bpa-wipe-at, 8% 0%)); } to { clip-path: circle(160% at var(--bpa-wipe-at, 8% 0%)); } }
+.bpa-wipe-a { animation: bpaWipeA .6s var(--bpa-ease-wipe) both; }
+.bpa-wipe-b { animation: bpaWipeB .6s var(--bpa-ease-wipe) both; }
+
+/* Stamp slam (put on the .bpa-stamp). Alternate -a / -b to replay. */
+@keyframes bpaSlamA { 0% { opacity: 0; transform: rotate(-16deg) scale(2.2); } 60% { opacity: 1; transform: rotate(-7deg) scale(.94); } 100% { opacity: 1; transform: rotate(-8deg) scale(1); } }
+@keyframes bpaSlamB { 0% { opacity: 0; transform: rotate(-16deg) scale(2.2); } 60% { opacity: 1; transform: rotate(-7deg) scale(.94); } 100% { opacity: 1; transform: rotate(-8deg) scale(1); } }
+.bpa-slam-a { animation: bpaSlamA .45s var(--bpa-ease-out) both; }
+.bpa-slam-b { animation: bpaSlamB .45s var(--bpa-ease-out) both; }
+
+@keyframes bpaDraw { to { stroke-dashoffset: 0; } }
+@keyframes bpaRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes bpaFlicker { 0%, 100% { opacity: 1; } 8% { opacity: .82; } 10% { opacity: .97; } 44% { opacity: .9; } 47% { opacity: 1; } 71% { opacity: .93; } }
+@keyframes bpaSpin { to { transform: rotate(360deg); } }
+.bpa-rise { animation: bpaRise .5s var(--bpa-ease-out) both; }
+.bpa-spin { animation: bpaSpin 1.4s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bpa-enter, .bpa-enter > *, .bpa-rim, .bpa-board::before,
+  .bpa-wipe-a, .bpa-wipe-b, .bpa-slam-a, .bpa-slam-b, .bpa-rise, .bpa-spin, .bpa-string--draw {
+    animation: none !important;
+  }
+  .bpa-rim { display: none; }
+  .bpa-string--draw { stroke-dashoffset: 0; }
+  .bpa-lift, .bpa-btn, .bpa-seg, .bpa-tab { transition: none; }
+}

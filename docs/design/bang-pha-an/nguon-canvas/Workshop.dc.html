@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Workshop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 18px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active{transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover{background:#b2472f;color:#fbf6ed}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover{background:#07111f;color:#fbf6ed}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover{background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-sm{min-height:40px;padding:0 14px;font-size:11px}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+.ws-sort{display:inline-flex;align-items:center;min-height:42px;padding:0 16px;border:0;border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px rgba(239,212,134,.35);color:#d9cfbd;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.14em;cursor:pointer;transition:background-color .12s,color .12s}
+.ws-sort:hover{color:#efd486;box-shadow:inset 0 0 0 1px #efd486}
+.ws-sort[aria-pressed="true"]{background:#efd486;color:#07111f;box-shadow:none}
+.ws-sort:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.ws-search{width:100%;box-sizing:border-box;min-height:42px;padding:8px 12px 8px 38px;border:0;border-radius:2px;background:rgba(13,16,20,.85);box-shadow:inset 0 0 0 1px rgba(239,212,134,.35);color:#fbf6ed;font-family:'Crimson Text',Georgia,serif;font-size:17px;outline:none}
+.ws-search::placeholder{color:#b3a794;opacity:1}
+.ws-search:focus{box-shadow:inset 0 0 0 1.5px #efd486}
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr));gap:28px 28px}
+.ws-card{position:relative;display:flex;flex-direction:column;box-sizing:border-box;height:100%;background:#d9c49a;color:#07111f;box-shadow:0 1px 0 rgba(0,0,0,.2),0 20px 40px rgba(0,0,0,.5);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.ws-card:hover{transform:translateY(-5px);box-shadow:0 1px 0 rgba(0,0,0,.2),0 30px 54px rgba(0,0,0,.6)}
+.ws-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:2px;background:rgba(251,246,237,.7);box-shadow:inset 0 0 0 1px rgba(79,69,54,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3328;white-space:nowrap}
+.ws-chip.gold{background:#0d1014;color:#efd486;box-shadow:none}
+@keyframes wsWipeA{from{clip-path:circle(0% at 50% 0%)}to{clip-path:circle(150% at 50% 0%)}}
+@keyframes wsWipeB{from{clip-path:circle(0% at 50% 0%)}to{clip-path:circle(150% at 50% 0%)}}
+.wipe-a{animation:wsWipeA .7s cubic-bezier(.4,0,.2,1) both}
+.wipe-b{animation:wsWipeB .7s cubic-bezier(.4,0,.2,1) both}
+@media (max-width:820px){
+  .s-nav{order:3;width:100%}
+  .ws-banner{grid-template-columns:minmax(0,1fr) !important}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp,.wipe-a,.wipe-b{animation:none !important}
+  .ws-card{transition:none}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".3" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html">TRANG CHỦ</a>
+      <a href="FindGame.dc.html">TÌM TRẬN</a>
+      <a href="Rooms.dc.html">PHÒNG</a>
+      <a href="Cases.dc.html">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html" aria-current="page">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 24px 16px 40px">
+
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+          <div style="position: relative; padding: 12px 26px 12px; background: #0d1014; box-shadow: 0 14px 30px rgba(0,0,0,.55); transform: rotate(-1deg)">
+            <span aria-hidden="true" style="position: absolute; top: 8px; left: 10px; width: 12px; height: 12px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%)"></span>
+            <p style="margin: 0 0 0 10px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .26em; color: #efd486">HỒ SƠ 06 · CỘNG ĐỒNG</p>
+            <h1 style="margin: 2px 0 0 10px; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #fbf6ed">Workshop</h1>
+          </div>
+          <p style="flex: 1 1 320px; margin: 0; max-width: 520px; font-size: 18px; font-style: italic; line-height: 1.4; color: #d9cfbd">Vụ án do cộng đồng viết. Chơi, chấm điểm, hoặc tự viết hồ sơ của riêng bạn.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px">
+            <a class="s-btn s-btn-gold" href="Challenge.dc.html">THỬ THÁCH TUẦN</a>
+            <a class="s-btn s-btn-red" href="#">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              VIẾT VỤ ÁN
+            </a>
+          </div>
+        </div>
+
+        <section aria-labelledby="ws-week" class="ws-banner" style="position: relative; display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 26px; box-sizing: border-box; padding: 22px 26px 22px 22px; background: #e3dbc9; color: #15120e; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 24px 48px rgba(0,0,0,.55); transform: rotate(-.4deg)">
+          <span aria-hidden="true" style="position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 45%, #6e1a12 100%); box-shadow: 0 4px 5px rgba(0,0,0,.55)"></span>
+          <svg viewBox="0 0 440 230" width="100%" role="img" aria-label="Minh họa: sân khấu nhà hát và phong bì quỹ có dấu niêm phong" style="display: block; background: #15110e">
+            <path d="M0 0H440V18H0Z" style="fill: #3a1410"></path>
+            <path d="M0 18C30 60 20 160 50 230H0Z" style="fill: #7d2219"></path>
+            <path d="M0 18C22 70 8 150 28 230" style="fill: none; stroke: #5a1812; stroke-width: 3"></path>
+            <path d="M440 18C410 60 420 160 390 230H440Z" style="fill: #7d2219"></path>
+            <path d="M440 18C418 70 432 150 412 230" style="fill: none; stroke: #5a1812; stroke-width: 3"></path>
+            <path d="M40 18Q220 64 400 18" style="fill: #5a1812"></path>
+            <ellipse cx="220" cy="214" rx="150" ry="10" style="fill: rgba(239,212,134,.12)"></ellipse>
+            <g transform="translate(140 92) rotate(-6)">
+              <rect width="160" height="100" style="fill: #e9dcc0"></rect>
+              <path d="M0 0L80 54L160 0" style="fill: none; stroke: #b9a77f; stroke-width: 2"></path>
+              <circle cx="80" cy="54" r="15" style="fill: #b8382b"></circle>
+              <text x="80" y="59" style="font-family: 'Playfair Display', Georgia, serif; font-size: 12px; font-weight: 700; fill: #f3c7b8; text-anchor: middle">Q</text>
+              <text x="12" y="90" style="font-family: 'Source Code Pro', monospace; font-size: 9px; letter-spacing: 1.5px; fill: #5b5248">QUỸ CỨU TRỢ</text>
+            </g>
+            <g transform="translate(250 70) rotate(9)">
+              <rect width="120" height="64" style="fill: #fbf6ed"></rect>
+              <text x="10" y="20" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; fill: #15120e">LỆNH CHI</text>
+              <path d="M10 32H108M10 42H90M10 52H70" style="stroke: #8f8676; stroke-width: 2"></path>
+              <path d="M70 46C80 36 92 58 108 44" style="fill: none; stroke: #b8382b; stroke-width: 1.6"></path>
+            </g>
+            <text x="220" y="48" style="font-family: 'Source Code Pro', monospace; font-size: 11px; letter-spacing: 4px; fill: #efd486; text-anchor: middle">NHÀ HÁT VỌNG ÂM · 22:00</text>
+          </svg>
+          <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+            <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 6px; border-bottom: 3px double rgba(58,52,43,.6); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .2em; color: #3a342b"><span>BÁO 221B · VỤ ÁN CỦA TUẦN</span><span style="color: #9e3f2a">TUẦN 42</span></div>
+            <h2 id="ws-week" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 40px; font-weight: 700; line-height: 1.05">Đêm khóa sổ</h2>
+            <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .14em; color: #5b5248">TÁC GIẢ: THANH_TRA_LÊ</p>
+            <p style="margin: 0; font-size: 18px; line-height: 1.45; color: #2a2318">22:00, nhà hát Vọng Âm đóng cửa sau đêm diễn cứu trợ. Trong phong bì quỹ, tờ lệnh chi đã bị thay. Sáng mai ngân hàng sẽ trả tiền cho người ghi trên lệnh — hãy tìm ra ai đã đổi hồ sơ trước khi quỹ bị rút.</p>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+              <span class="ws-chip">35 PHÚT</span>
+              <span class="ws-chip">1.204 LƯỢT CHƠI</span>
+              <span class="ws-chip gold">V3 · CRACK</span>
+              <span style="font-size: 16px; font-style: italic; color: #7a3f27">41% đội buộc tội nhầm</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 6px">
+              <a class="s-btn s-btn-red" href="Lobby.dc.html" style="min-width: 180px">CHƠI NGAY</a>
+              <a class="s-btn s-btn-ink" href="WorkshopCase.dc.html">THỐNG KÊ</a>
+            </div>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px">
+          <div style="position: relative; flex: 1 1 320px; max-width: 460px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#efd486" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 12px; top: 12px"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+            <label for="ws-q" class="s-sr">Tìm vụ án</label>
+            <input id="ws-q" class="ws-search" type="search" placeholder="Tìm theo tên vụ án…" autocomplete="off">
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <button type="button" class="ws-sort" aria-pressed="{{ sHot }}" onClick="{{ setHot }}">HOT</button>
+            <button type="button" class="ws-sort" aria-pressed="{{ sNew }}" onClick="{{ setNew }}">MỚI</button>
+            <button type="button" class="ws-sort" aria-pressed="{{ sTop }}" onClick="{{ setTop }}">TOP ĐIỂM</button>
+            <button type="button" class="ws-sort" aria-pressed="{{ sHard }}" onClick="{{ setHard }}">KHÓ NHẤT</button>
+          </div>
+        </div>
+
+        <div class="{{ wipeClass }}">
+          <ul class="ws-grid" style="margin: 0; padding: 0; list-style: none">
+            <li>
+              <article class="ws-card" style="transform: rotate(-.6deg)">
+                <svg viewBox="0 0 380 130" width="100%" aria-hidden="true" style="display: block; background: #15110e">
+                  <path d="M0 112H380M0 122H380" style="stroke: #5a4a3a; stroke-width: 3"></path>
+                  <path d="M10 112v10M40 112v10M70 112v10M100 112v10M130 112v10M160 112v10M190 112v10M220 112v10M250 112v10M280 112v10M310 112v10M340 112v10M370 112v10" style="stroke: #3a2e24; stroke-width: 4"></path>
+                  <g transform="translate(90 20) rotate(-4)">
+                    <path d="M0 0H200V78H0Z" style="fill: #e9dcc0"></path>
+                    <path d="M150 0V78" style="stroke: #9e3f2a; stroke-width: 1.5; stroke-dasharray: 4 4"></path>
+                    <text x="12" y="22" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; fill: #15120e">GA LẠC HẢI · 1932</text>
+                    <text x="12" y="48" style="font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; fill: #15120e">Chuyến 7</text>
+                    <text x="12" y="68" style="font-family: 'Source Code Pro', monospace; font-size: 10px; letter-spacing: 1px; fill: #5b5248">KHỞI HÀNH 00:15</text>
+                    <text x="174" y="46" style="font-family: 'Source Code Pro', monospace; font-size: 18px; font-weight: 700; fill: #9e3f2a; text-anchor: middle">7</text>
+                  </g>
+                </svg>
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 18px">
+                  <h3 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15">Hồ sơ chuyến tàu số 7</h3>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #4f4536">TÁC GIẢ: GA_LAC_HAI</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #2a2318">23:10, ga Lạc Hải, năm 1932. Hồ sơ kiểm định cầu phải theo chuyến tàu số 7 lúc 00:15 đã biến mất.</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="ws-chip">80 PHÚT</span><span class="ws-chip">2.341 LƯỢT CHƠI</span><span class="ws-chip gold">V3 · CRACK</span></div>
+                  <p style="margin: 0; font-size: 15px; font-style: italic; color: #7a3f27">52% đội buộc tội nhầm</p>
+                  <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 6px"><a class="s-btn s-btn-red s-btn-sm" href="Lobby.dc.html">CHƠI</a><a class="s-btn s-btn-ink s-btn-sm" href="WorkshopCase.dc.html">THỐNG KÊ</a></div>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="ws-card" style="transform: rotate(.5deg)">
+                <svg viewBox="0 0 380 130" width="100%" aria-hidden="true" style="display: block; background: #15110e">
+                  <g transform="translate(110 30)">
+                    <path d="M0 10Q40 0 80 10V80Q40 70 0 80Z" style="fill: #e9dcc0"></path>
+                    <path d="M80 10Q120 0 160 10V80Q120 70 80 80Z" style="fill: #f4ecd8"></path>
+                    <path d="M12 26H66M12 38H66M12 50H58M94 26H148M94 38H140M94 50H148" style="stroke: #8f8676; stroke-width: 2"></path>
+                    <path d="M100 62L130 56" style="stroke: #b8382b; stroke-width: 2"></path>
+                  </g>
+                  <rect x="300" y="64" width="16" height="44" style="fill: #e9dcc0"></rect>
+                  <path d="M308 64C300 54 306 44 308 36C312 46 318 54 308 64Z" style="fill: #efd486"></path>
+                  <circle cx="308" cy="52" r="26" style="fill: rgba(239,212,134,.12)"></circle>
+                </svg>
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 18px">
+                  <h3 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15">Cuốn sổ trong đêm</h3>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #4f4536">TÁC GIẢ: CU_DEM</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #2a2318">Quỹ từ thiện biến mất sau một biên nhận bị xé, hộp tiền có khóa và niêm phong không được phép bị phá.</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="ws-chip">20 PHÚT</span><span class="ws-chip">3.087 LƯỢT CHƠI</span><span class="ws-chip gold">V3 · CRACK</span></div>
+                  <p style="margin: 0; font-size: 15px; font-style: italic; color: #7a3f27">18% đội buộc tội nhầm</p>
+                  <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 6px"><a class="s-btn s-btn-red s-btn-sm" href="Lobby.dc.html">CHƠI</a><a class="s-btn s-btn-ink s-btn-sm" href="WorkshopCase.dc.html">THỐNG KÊ</a></div>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="ws-card" style="transform: rotate(-.3deg)">
+                <svg viewBox="0 0 380 130" width="100%" aria-hidden="true" style="display: block; background: #15110e">
+                  <g transform="translate(120 18) rotate(3)">
+                    <rect width="140" height="96" style="fill: #e9dcc0"></rect>
+                    <path d="M14 20H126M14 32H110M14 44H120" style="stroke: #8f8676; stroke-width: 2"></path>
+                  </g>
+                  <circle cx="200" cy="96" r="24" style="fill: #a8322a"></circle>
+                  <circle cx="200" cy="96" r="16" style="fill: none; stroke: rgba(255,210,190,.4); stroke-width: 1.5"></circle>
+                  <path d="M186 76L198 92L192 100L206 118" style="fill: none; stroke: #15110e; stroke-width: 3; stroke-linejoin: round"></path>
+                  <path d="M224 92l12-4M222 104l14 6" style="stroke: #a8322a; stroke-width: 3; stroke-linecap: round"></path>
+                </svg>
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 18px">
+                  <h3 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15">Con Dấu Bị Phá</h3>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #4f4536">TÁC GIẢ: THU_KHO</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #2a2318">Đối chiếu lời khai của thủ kho với dấu vết vật lý trên một hồ sơ đã bị niêm phong lại.</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="ws-chip">10 PHÚT</span><span class="ws-chip">5.612 LƯỢT CHƠI</span><span class="ws-chip gold">V3 · CRACK</span></div>
+                  <p style="margin: 0; font-size: 15px; font-style: italic; color: #7a3f27">27% đội buộc tội nhầm</p>
+                  <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 6px"><a class="s-btn s-btn-red s-btn-sm" href="Lobby.dc.html">CHƠI</a><a class="s-btn s-btn-ink s-btn-sm" href="WorkshopCase.dc.html">THỐNG KÊ</a></div>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="ws-card" style="transform: rotate(.4deg)">
+                <svg viewBox="0 0 380 130" width="100%" aria-hidden="true" style="display: block; background: #15110e">
+                  <path d="M110 120V50L190 22L270 50V120Z" style="fill: #3a2e24"></path>
+                  <rect x="150" y="62" width="80" height="58" style="fill: #5a4a3a; stroke: #8a6e2e; stroke-width: 2"></rect>
+                  <path d="M190 62V120M150 80H230M150 100H230" style="stroke: #3a2e24; stroke-width: 2"></path>
+                  <text x="190" y="52" style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; fill: #efd486; text-anchor: middle">4</text>
+                  <path d="M60 40q8-8 16 0q8-8 16 0M290 28q7-7 14 0q7-7 14 0M310 56q6-6 12 0q6-6 12 0" style="fill: none; stroke: #e9dcc0; stroke-width: 2; stroke-linecap: round"></path>
+                  <path d="M0 122H380" style="stroke: #4f9a9a; stroke-width: 6; opacity: .5"></path>
+                </svg>
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 18px">
+                  <h3 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15">Hạ Màn Tại Kho Hải Âu</h3>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #4f4536">TÁC GIẢ: HAI_AU</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #2a2318">Một bảo vật hàng hải biến mất giữa lễ chuyển giao tài sản tại Nhà kho số 4.</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="ws-chip">35 PHÚT</span><span class="ws-chip">912 LƯỢT CHƠI</span><span class="ws-chip">V2</span></div>
+                  <p style="margin: 0; font-size: 15px; font-style: italic; color: #7a3f27">46% đội buộc tội nhầm</p>
+                  <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 6px"><a class="s-btn s-btn-red s-btn-sm" href="Lobby.dc.html">CHƠI</a><a class="s-btn s-btn-ink s-btn-sm" href="WorkshopCase.dc.html">THỐNG KÊ</a></div>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="ws-card" style="transform: rotate(-.5deg)">
+                <svg viewBox="0 0 380 130" width="100%" aria-hidden="true" style="display: block; background: #15110e">
+                  <g transform="translate(130 70)" style="fill: none; stroke: #8a6e2e; stroke-width: 6">
+                    <circle r="26"></circle>
+                    <path d="M0 -36V-26M0 26V36M-36 0H-26M26 0H36M-25 -25L-18 -18M18 18L25 25M25 -25L18 -18M-18 18L-25 25"></path>
+                  </g>
+                  <g transform="translate(180 42)" style="fill: none; stroke: #5a4a3a; stroke-width: 5">
+                    <circle r="16"></circle>
+                    <path d="M0 -22V-16M0 16V22M-22 0H-16M16 0H22"></path>
+                  </g>
+                  <g transform="translate(260 66)">
+                    <circle r="40" style="fill: #e9dcc0; stroke: #c7a24b; stroke-width: 5"></circle>
+                    <path d="M0 -40v8M40 0h-8M0 40v-8M-40 0h8" style="stroke: #5b5248; stroke-width: 2"></path>
+                    <path d="M0 0L-12 -24M0 0L26 -10" style="stroke: #15120e; stroke-width: 3; stroke-linecap: round"></path>
+                    <circle r="3" style="fill: #b8382b"></circle>
+                  </g>
+                </svg>
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 18px">
+                  <h3 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15">The Clockwork Conservatory</h3>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #4f4536">TÁC GIẢ: LAMPLIGHT · EN</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #2a2318">At ten seventeen, every clock in Bellweather Conservatory stops and its priceless sunstone vanishes.</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="ws-chip">15 PHÚT</span><span class="ws-chip">1.388 LƯỢT CHƠI</span><span class="ws-chip gold">V3 · CRACK</span></div>
+                  <p style="margin: 0; font-size: 15px; font-style: italic; color: #7a3f27">33% đội buộc tội nhầm</p>
+                  <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 6px"><a class="s-btn s-btn-red s-btn-sm" href="Lobby.dc.html">CHƠI</a><a class="s-btn s-btn-ink s-btn-sm" href="WorkshopCase.dc.html">THỐNG KÊ</a></div>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="ws-card" style="transform: rotate(.6deg)">
+                <svg viewBox="0 0 380 130" width="100%" aria-hidden="true" style="display: block; background: #15110e">
+                  <rect x="70" y="18" width="150" height="96" rx="18" style="fill: #0b1b2d; stroke: #5a4a3a; stroke-width: 6"></rect>
+                  <circle cx="186" cy="42" r="10" style="fill: #efd486; opacity: .85"></circle>
+                  <path d="M80 92L110 80L140 90L170 76L210 88V104H80Z" style="fill: #142235"></path>
+                  <g transform="translate(232 40) rotate(-5)">
+                    <rect width="92" height="66" style="fill: #7a4126; stroke: #c7a24b; stroke-width: 1.6"></rect>
+                    <path d="M46 0V66M0 33H92" style="stroke: #b8382b; stroke-width: 2.4"></path>
+                    <circle cx="46" cy="33" r="7" style="fill: #b8382b"></circle>
+                  </g>
+                </svg>
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 16px 18px 18px">
+                  <h3 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15">The Sealed Ledger Affair</h3>
+                  <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #4f4536">TÁC GIẢ: NIGHTRAIL · EN</p>
+                  <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #2a2318">A sealed ledger vanishes aboard a night train while its owner is found unconscious in a locked compartment.</p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="ws-chip">43 PHÚT</span><span class="ws-chip">764 LƯỢT CHƠI</span><span class="ws-chip">V2</span></div>
+                  <p style="margin: 0; font-size: 15px; font-style: italic; color: #7a3f27">58% đội buộc tội nhầm</p>
+                  <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 6px"><a class="s-btn s-btn-red s-btn-sm" href="Lobby.dc.html">CHƠI</a><a class="s-btn s-btn-ink s-btn-sm" href="WorkshopCase.dc.html">THỐNG KÊ</a></div>
+                </div>
+              </article>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1430}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sort: 'hot', flip: false };
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const sort = s.sort || 'hot';
+    const pick = (key) => () => this.setState({ sort: key, flip: !s.flip });
+    return {
+      sHot: String(sort === 'hot'),
+      sNew: String(sort === 'new'),
+      sTop: String(sort === 'top'),
+      sHard: String(sort === 'hard'),
+      setHot: pick('hot'),
+      setNew: pick('new'),
+      setTop: pick('top'),
+      setHard: pick('hard'),
+      wipeClass: s.flip ? 'wipe-b' : 'wipe-a'
+    };
+  }
+}
+</script>
+</body>
+</html>

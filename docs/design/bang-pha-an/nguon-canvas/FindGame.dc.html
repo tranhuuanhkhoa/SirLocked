@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Tìm trận</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #07111f;outline-offset:3px}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-red:disabled{cursor:progress;background:#7d3122;color:#efd486}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover{background:#07111f;color:#fbf6ed}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover{background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-gold:focus-visible{outline:2px solid #efd486}
+.s-link{display:inline-flex;align-items:center;min-height:44px;color:#5b5248;font-size:16px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px}
+.s-link:hover{color:#9e3f2a}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+.fg-cols{display:flex;flex-wrap:wrap;gap:32px;align-items:stretch}
+.fg-opt{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 12px;box-sizing:border-box;border:0;border-radius:2px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(91,82,72,.35);color:#3b3328;font-family:'Crimson Text',Georgia,serif;font-size:16px;font-weight:600;cursor:pointer;transition:background-color .12s,color .12s,box-shadow .12s}
+.fg-opt:hover{box-shadow:inset 0 0 0 1.5px #07111f;color:#07111f}
+.fg-opt[aria-pressed="true"]{background:#07111f;color:#fbf6ed;box-shadow:inset 0 0 0 1px #07111f}
+.fg-opt:focus-visible{outline:2px solid #9e3f2a;outline-offset:2px}
+.fg-opt:disabled{cursor:not-allowed;opacity:.55}
+.fg-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.fg-thread{fill:none;stroke:#bf3b2c;stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+.fg-map.is-searching .fg-thread{animation:fgDraw 1.2s cubic-bezier(.3,.7,.2,1) forwards}
+.fg-map.is-searching .t2{animation-delay:.9s}
+.fg-map.is-searching .t3{animation-delay:1.8s}
+.fg-map.is-searching .t4{animation-delay:2.7s}
+.fg-map.is-searching .t5{animation-delay:3.6s}
+.fg-map.is-searching .t6{animation-delay:4.5s}
+.fg-map.is-found .fg-thread,.fg-map.is-accepted .fg-thread{stroke-dashoffset:0;opacity:.18}
+.fg-map.is-found .fg-thread.match,.fg-map.is-accepted .fg-thread.match{opacity:1;stroke:#efd486;stroke-width:3.2}
+.fg-lens{display:none;position:absolute;left:30%;top:28%;width:150px;height:150px;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:7px solid #c7a24b;-webkit-backdrop-filter:contrast(1.2) brightness(1.08) saturate(1.3);backdrop-filter:contrast(1.2) brightness(1.08) saturate(1.3);background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.22),rgba(255,255,255,0) 45%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 16px 30px rgba(0,0,0,.45);pointer-events:none}
+.fg-lens::after{content:"";position:absolute;left:85%;top:85%;width:16px;height:80px;margin-left:-8px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.fg-map.is-searching .fg-lens{display:block;animation:fgScan 6.5s ease-in-out infinite}
+.fg-dpin{transform-box:fill-box;transform-origin:center}
+.fg-map.is-searching .fg-dpin{animation:fgPulse 1.6s ease-in-out infinite}
+@keyframes fgDraw{to{stroke-dashoffset:0}}
+@keyframes fgScan{0%,100%{left:31%;top:28%}20%{left:57%;top:24%}40%{left:74%;top:40%}60%{left:68%;top:56%}80%{left:47%;top:50%}}
+@keyframes fgPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+@keyframes fgStamp{0%{opacity:0;transform:rotate(-14deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.95)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes fgCard{from{opacity:0;transform:translate(-50%,-46%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes fgSpin{to{transform:rotate(360deg)}}
+.fg-stamp{animation:fgStamp .45s cubic-bezier(.2,.8,.2,1) both}
+.fg-found{animation:fgCard .4s cubic-bezier(.2,.8,.2,1) both}
+.fg-spin{animation:fgSpin 1.4s linear infinite}
+@media (max-width:640px){
+  .s-nav{order:3;width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp,.fg-lens,.fg-dpin,.fg-stamp,.fg-found,.fg-spin{animation:none !important}
+  .fg-map.is-searching .fg-thread{animation:none !important;stroke-dashoffset:0}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".42" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html">TRANG CHỦ</a>
+      <a href="FindGame.dc.html" aria-current="page">TÌM TRẬN</a>
+      <a href="Rooms.dc.html">PHÒNG</a>
+      <a href="Cases.dc.html">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 26px 16px 36px">
+
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+          <div style="position: relative; padding: 12px 26px 12px; background: #0d1014; box-shadow: 0 14px 30px rgba(0,0,0,.55); transform: rotate(-1deg)">
+            <span aria-hidden="true" style="position: absolute; top: 8px; left: 10px; width: 12px; height: 12px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%)"></span>
+            <p style="margin: 0 0 0 10px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .26em; color: #efd486">HỒ SƠ 03 · GHÉP ĐÔI</p>
+            <h1 style="margin: 2px 0 0 10px; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #fbf6ed">Tìm trận</h1>
+          </div>
+          <p style="margin: 0; max-width: 520px; font-size: 18px; font-style: italic; line-height: 1.4; color: #d9cfbd">Hai thám tử, một vụ án. Chọn cách bạn muốn chơi, hệ thống sẽ ghép bạn với một người phù hợp.</p>
+        </div>
+
+        <div class="fg-cols" style="flex: 1">
+          <section aria-labelledby="fg-setup" style="position: relative; flex: 0 1 400px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box; min-width: 0; padding: 24px 26px 24px 44px; background: #fbf6ed; color: #07111f; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 22px 44px rgba(0,0,0,.55)">
+            <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 26px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+            <span aria-hidden="true" style="position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%); box-shadow: 0 4px 5px rgba(0,0,0,.55)"></span>
+            <h2 id="fg-setup" style="margin: 0; padding-bottom: 8px; border-bottom: 1.5px solid rgba(182,64,48,.55); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 600; letter-spacing: .2em; color: #5b5248">THIẾT LẬP TÌM TRẬN</h2>
+
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">01 — CHẾ ĐỘ</span>
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+                <button type="button" class="fg-opt" aria-pressed="{{ modeQuick }}" onClick="{{ setQuick }}" disabled="{{ locked }}">Ghép nhanh</button>
+                <button type="button" class="fg-opt" aria-pressed="{{ modeRanked }}" onClick="{{ setRanked }}" disabled="{{ locked }}">Xếp hạng</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">02 — VAI TRÒ MONG MUỐN</span>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                <button type="button" class="fg-opt" aria-pressed="{{ roleInv }}" onClick="{{ setInv }}" disabled="{{ locked }}" style="flex-direction: column; gap: 4px; min-height: 64px; line-height: 1.1"><span class="fg-dot" aria-hidden="true" style="background: #4f9a9a"></span>Điều tra viên</button>
+                <button type="button" class="fg-opt" aria-pressed="{{ roleInt }}" onClick="{{ setInt }}" disabled="{{ locked }}" style="flex-direction: column; gap: 4px; min-height: 64px; line-height: 1.1"><span class="fg-dot" aria-hidden="true" style="background: #b66b4d"></span>Thẩm vấn viên</button>
+                <button type="button" class="fg-opt" aria-pressed="{{ roleAny }}" onClick="{{ setAny }}" disabled="{{ locked }}" style="flex-direction: column; gap: 4px; min-height: 64px; line-height: 1.1"><span class="fg-dot" aria-hidden="true" style="background: linear-gradient(90deg, #4f9a9a 50%, #b66b4d 50%)"></span>Bất kỳ</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">03 — ĐỘ DÀI VỤ ÁN</span>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                <button type="button" class="fg-opt" aria-pressed="{{ lenShort }}" onClick="{{ setShort }}" disabled="{{ locked }}" style="flex-direction: column; gap: 0; min-height: 56px; line-height: 1.15">Ngắn<span style="font-size: 13px; font-weight: 400; opacity: .85">≤ 20 phút</span></button>
+                <button type="button" class="fg-opt" aria-pressed="{{ lenMid }}" onClick="{{ setMid }}" disabled="{{ locked }}" style="flex-direction: column; gap: 0; min-height: 56px; line-height: 1.15">Vừa<span style="font-size: 13px; font-weight: 400; opacity: .85">~ 35 phút</span></button>
+                <button type="button" class="fg-opt" aria-pressed="{{ lenLong }}" onClick="{{ setLong }}" disabled="{{ locked }}" style="flex-direction: column; gap: 0; min-height: 56px; line-height: 1.15">Dài<span style="font-size: 13px; font-weight: 400; opacity: .85">60+ phút</span></button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">04 — NGÔN NGỮ VỤ ÁN</span>
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+                <button type="button" class="fg-opt" aria-pressed="{{ langVi }}" onClick="{{ setVi }}" disabled="{{ locked }}">Tiếng Việt</button>
+                <button type="button" class="fg-opt" aria-pressed="{{ langEn }}" onClick="{{ setEn }}" disabled="{{ locked }}">English</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top: 6px">
+              <sc-if value="{{ canStart }}" hint-placeholder-val="{{ true }}">
+                <button type="button" class="s-btn s-btn-red" onClick="{{ start }}" style="width: 100%; min-height: 56px; font-size: 15px; letter-spacing: .24em">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+                  BẮT ĐẦU TÌM
+                </button>
+              </sc-if>
+              <sc-if value="{{ isSearching }}" hint-placeholder-val="{{ false }}">
+                <button type="button" class="s-btn s-btn-ink" onClick="{{ cancel }}" style="width: 100%; min-height: 56px">HỦY TÌM · {{ timer }}</button>
+              </sc-if>
+              <a class="s-link" href="Rooms.dc.html" style="align-self: center">Muốn chơi với bạn bè? Tạo phòng riêng</a>
+            </div>
+          </section>
+
+          <section aria-label="Bản đồ ghép đôi" class="{{ mapClass }}" style="position: relative; flex: 1 1 560px; min-width: 0; min-height: 600px; overflow: hidden; background: #e7ddc5; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 24px 48px rgba(0,0,0,.6)">
+            <svg aria-hidden="true" viewBox="0 0 820 600" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style="position: absolute; inset: 0">
+              <rect width="820" height="600" style="fill: #e7ddc5"></rect>
+              <rect x="262" y="34" width="190" height="110" rx="10" style="fill: #c9d3b2; opacity: .8"></rect>
+              <text x="357" y="94" class="s-mono" style="font-family: 'Source Code Pro', monospace; font-size: 9px; letter-spacing: 2px; fill: #5c6b4c; text-anchor: middle">CÔNG VIÊN REGENT</text>
+              <path d="M-10 452C110 410 220 488 340 458S560 378 660 428S800 492 830 462" style="fill: none; stroke: #a9c7c3; stroke-width: 38"></path>
+              <path d="M-10 452C110 410 220 488 340 458S560 378 660 428S800 492 830 462" style="fill: none; stroke: #8fb4b0; stroke-width: 1.5; stroke-dasharray: 2 6"></path>
+              <text x="520" y="430" class="s-mono" style="font-family: 'Source Code Pro', monospace; font-size: 10px; letter-spacing: 4px; fill: #4c7470">SÔNG THAMES</text>
+              <g style="fill: none; stroke: #c9b892; stroke-width: 1.4">
+                <path d="M0 80H820M0 130H820M0 205H820M0 270H820M0 330H820M0 380H820M0 530H820M0 575H820"></path>
+                <path d="M60 0V600M120 0V600M200 0V420M290 0V600M370 0V440M450 0V600M530 0V400M610 0V600M690 0V600M760 0V600"></path>
+                <path d="M370 205L530 330M610 130L760 270M120 330L290 205M450 530L610 575"></path>
+              </g>
+              <g style="fill: none; stroke: #f3ecd9; stroke-width: 7">
+                <path d="M0 170H820M240 0V600M560 0V600"></path>
+              </g>
+              <g style="fill: none; stroke: #b9a77f; stroke-width: 1">
+                <path d="M0 166H820M0 174H820M236 0V600M244 0V600M556 0V600M564 0V600"></path>
+              </g>
+              <text x="70" y="163" class="s-mono" style="font-family: 'Source Code Pro', monospace; font-size: 9px; letter-spacing: 2px; fill: #6b5f4b">PHỐ BAKER</text>
+              <text x="430" y="250" class="s-mono" style="font-family: 'Source Code Pro', monospace; font-size: 10px; letter-spacing: 3px; fill: #8a7b60">SOHO</text>
+              <text x="372" y="520" class="s-mono" style="font-family: 'Source Code Pro', monospace; font-size: 10px; letter-spacing: 3px; fill: #8a7b60">WESTMINSTER</text>
+              <text x="640" y="318" class="s-mono" style="font-family: 'Source Code Pro', monospace; font-size: 10px; letter-spacing: 3px; fill: #8a7b60">WHITECHAPEL</text>
+              <g transform="translate(748 540)" style="fill: none; stroke: #6b5f4b; stroke-width: 1.4">
+                <circle r="24"></circle>
+                <path d="M0 -20L6 0L0 20L-6 0Z" style="fill: #6b5f4b"></path>
+                <text y="-30" style="font-family: 'Source Code Pro', monospace; font-size: 10px; fill: #6b5f4b; stroke: none; text-anchor: middle">B</text>
+              </g>
+              <g>
+                <path class="fg-thread t1" pathLength="1" d="M248 178L468 140"></path>
+                <path class="fg-thread t2" pathLength="1" d="M248 178L604 236"></path>
+                <path class="fg-thread t3 match" pathLength="1" d="M248 178L560 330"></path>
+                <path class="fg-thread t4" pathLength="1" d="M248 178L380 300"></path>
+                <path class="fg-thread t5" pathLength="1" d="M248 178L690 520"></path>
+                <path class="fg-thread t6" pathLength="1" d="M248 178L150 520"></path>
+              </g>
+              <g style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2">
+                <circle class="fg-dpin" cx="468" cy="140" r="7"></circle>
+                <circle class="fg-dpin" cx="604" cy="236" r="7"></circle>
+                <circle class="fg-dpin" cx="560" cy="330" r="7"></circle>
+                <circle class="fg-dpin" cx="380" cy="300" r="7"></circle>
+                <circle class="fg-dpin" cx="690" cy="520" r="7"></circle>
+                <circle class="fg-dpin" cx="150" cy="520" r="7"></circle>
+              </g>
+              <g transform="translate(248 178)">
+                <circle r="11" style="fill: #c0392b; stroke: #6e1a12; stroke-width: 1.5"></circle>
+                <circle cx="-3" cy="-3" r="3" style="fill: rgba(255,255,255,.55)"></circle>
+                <rect x="14" y="-28" width="76" height="20" style="fill: #0d1014"></rect>
+                <text x="52" y="-14" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; fill: #efd486; text-anchor: middle">221B · BẠN</text>
+              </g>
+            </svg>
+
+            <div class="fg-lens" aria-hidden="true"></div>
+
+            <div style="position: absolute; left: 18px; right: 18px; top: 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: rgba(13,16,20,.92); box-shadow: 0 10px 24px rgba(0,0,0,.45)">
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: .2em; color: #efd486">{{ statusTitle }}</span>
+                <span style="font-size: 16px; font-style: italic; color: #cfc4b1">{{ statusText }}</span>
+              </div>
+              <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 26px; font-weight: 700; letter-spacing: .06em; color: #fbf6ed; font-variant-numeric: tabular-nums">{{ timer }}</span>
+            </div>
+            <p class="s-sr" role="status">{{ statusTitle }}. {{ statusText }}</p>
+
+            <sc-if value="{{ isFound }}" hint-placeholder-val="{{ false }}">
+              <div class="fg-found" role="dialog" aria-labelledby="fg-found-title" style="position: absolute; left: 50%; top: 54%; z-index: 4; width: min(420px, calc(100% - 32px)); box-sizing: border-box; padding: 26px 26px 22px 40px; background: #fbf6ed; color: #07111f; transform: translate(-50%, -50%); box-shadow: 0 30px 60px rgba(0,0,0,.55)">
+                <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 24px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+                <span aria-hidden="true" style="position: absolute; top: -10px; left: 50%; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 45%, #6e1a12 100%); box-shadow: 0 4px 5px rgba(0,0,0,.55)"></span>
+                <div class="fg-stamp" aria-hidden="true" style="position: absolute; top: 14px; right: 16px; padding: 6px 12px; border: 4px double #b05a3c; color: #b05a3c; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: .2em; transform: rotate(-8deg); mix-blend-mode: multiply">KHỚP!</div>
+                <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .2em; color: #5b5248">ĐÃ TÌM THẤY ĐỒNG ĐỘI</p>
+                <h2 id="fg-found-title" style="margin: 6px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1.1">Thám tử Vy</h2>
+                <p style="margin: 2px 0 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .14em; color: #5b5248">THÁM TỬ · CẤP 9 · 18 VỤ ĐÃ PHÁ</p>
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px">
+                  <div style="padding: 10px 12px; background: rgba(79,154,154,.14); box-shadow: inset 0 0 0 1px rgba(47,99,99,.45)"><span style="display: block; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: .16em; color: #2f6363">BẠN</span><strong style="font-size: 17px">Điều tra viên</strong></div>
+                  <div style="padding: 10px 12px; background: rgba(182,107,77,.12); box-shadow: inset 0 0 0 1px rgba(122,63,39,.45)"><span style="display: block; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: .16em; color: #7a3f27">ĐỒNG ĐỘI</span><strong style="font-size: 17px">Thẩm vấn viên</strong></div>
+                </div>
+                <p style="margin: 12px 0 0; font-size: 17px; color: #3b3328">Vụ án: <strong>Đêm khóa sổ</strong> · 35 phút · Tiếng Việt</p>
+                <div style="display: flex; gap: 10px; margin-top: 16px">
+                  <button type="button" class="s-btn s-btn-red" onClick="{{ accept }}" style="flex: 1; min-height: 52px">CHẤP NHẬN · {{ countdown }}</button>
+                  <button type="button" class="s-btn s-btn-ink" onClick="{{ cancel }}" style="min-height: 52px">TỪ CHỐI</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isAccepted }}" hint-placeholder-val="{{ false }}">
+              <div class="fg-found" role="status" style="position: absolute; left: 50%; top: 54%; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(380px, calc(100% - 32px)); box-sizing: border-box; padding: 28px; background: #0d1014; color: #fbf6ed; text-align: center; transform: translate(-50%, -50%); box-shadow: 0 30px 60px rgba(0,0,0,.6)">
+                <svg class="fg-spin" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#efd486" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+                <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: .2em; color: #efd486">ĐANG MỞ HỒ SƠ VỤ ÁN…</p>
+                <p style="margin: 0; font-size: 17px; font-style: italic; color: #cfc4b1">Đồng đội đã sẵn sàng. Chuẩn bị vào phòng chờ.</p>
+                <a class="s-btn s-btn-red" href="Lobby.dc.html">VÀO PHÒNG CHỜ</a>
+              </div>
+            </sc-if>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"preview":{"editor":"enum","options":["idle","searching","found"],"default":"searching","section":"Trạng thái"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { phase: 'idle', mode: 'quick', role: 'any', length: 'mid', lang: 'vi', secs: 0, countdown: 10 };
+    this._tick = null;
+    this._found = null;
+  }
+
+  componentDidMount() {
+    this.setPhase(this.props.preview || 'searching');
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.preview !== this.props.preview) this.setPhase(this.props.preview || 'searching');
+  }
+
+  componentWillUnmount() {
+    this.stopTimers();
+  }
+
+  stopTimers() {
+    clearInterval(this._tick);
+    clearTimeout(this._found);
+  }
+
+  setPhase(phase) {
+    this.stopTimers();
+    if (phase === 'searching') {
+      this.setState({ phase: 'searching', secs: 0 });
+      this._tick = setInterval(() => this.setState({ secs: ((this.state && this.state.secs) || 0) + 1 }), 1000);
+      this._found = setTimeout(() => this.setPhase('found'), 6500);
+    } else if (phase === 'found') {
+      this.setState({ phase: 'found', countdown: 10 });
+      this._tick = setInterval(() => {
+        const next = ((this.state && this.state.countdown) || 0) - 1;
+        if (next <= 0) {
+          this.setPhase('idle');
+          return;
+        }
+        this.setState({ countdown: next });
+      }, 1000);
+    } else {
+      this.setState({ phase: phase });
+    }
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const phase = s.phase || 'idle';
+    const secs = s.secs || 0;
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    const titles = {
+      idle: ['SẴN SÀNG TÌM ĐỒNG ĐỘI', 'Thời gian chờ ước tính khoảng 1 phút.'],
+      searching: ['ĐANG TÌM ĐỒNG ĐỘI', 'Đang lần theo các thám tử phù hợp gần bạn…'],
+      found: ['ĐÃ TÌM THẤY ĐỒNG ĐỘI', 'Xác nhận để vào phòng chờ.'],
+      accepted: ['ĐÃ GHÉP ĐÔI', 'Đang mở hồ sơ vụ án…']
+    };
+    const t = titles[phase] || titles.idle;
+    const pick = (key, value) => () => this.setState({ [key]: value });
+    return {
+      isIdle: phase === 'idle',
+      isSearching: phase === 'searching',
+      isFound: phase === 'found',
+      isAccepted: phase === 'accepted',
+      canStart: phase === 'idle',
+      locked: phase !== 'idle',
+      mapClass: 'fg-map is-' + phase,
+      statusTitle: t[0],
+      statusText: t[1],
+      timer: mm + ':' + ss,
+      countdown: s.countdown || 10,
+      modeQuick: String(s.mode === 'quick'),
+      modeRanked: String(s.mode === 'ranked'),
+      roleInv: String(s.role === 'inv'),
+      roleInt: String(s.role === 'int'),
+      roleAny: String(s.role === 'any'),
+      lenShort: String(s.length === 'short'),
+      lenMid: String(s.length === 'mid'),
+      lenLong: String(s.length === 'long'),
+      langVi: String(s.lang === 'vi'),
+      langEn: String(s.lang === 'en'),
+      setQuick: pick('mode', 'quick'),
+      setRanked: pick('mode', 'ranked'),
+      setInv: pick('role', 'inv'),
+      setInt: pick('role', 'int'),
+      setAny: pick('role', 'any'),
+      setShort: pick('length', 'short'),
+      setMid: pick('length', 'mid'),
+      setLong: pick('length', 'long'),
+      setVi: pick('lang', 'vi'),
+      setEn: pick('lang', 'en'),
+      start: () => this.setPhase('searching'),
+      cancel: () => this.setPhase('idle'),
+      accept: () => this.setPhase('accepted')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Đăng nhập (Bảng phá án)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.b-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.b-mono{font-family:'Source Code Pro',ui-monospace,monospace}
+.b-serif{font-family:'Playfair Display',Georgia,serif}
+.b-body{font-family:'Crimson Text',Georgia,serif}
+.b-lang{min-width:48px;min-height:44px;padding:0 12px;border:0;border-radius:2px;background:transparent;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.08em;cursor:pointer;transition:color .12s,background-color .12s}
+.b-lang:hover{color:#efd486}
+.b-lang[aria-pressed="true"]{background:#c7a24b;color:#07111f}
+.b-lang:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.b-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1.5px solid rgba(182,64,48,.55);font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:500;letter-spacing:.2em;color:#5b5248}
+.b-title{margin:14px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;line-height:1.1;color:#07111f}
+.b-title:focus{outline:none}
+.b-sub{margin:6px 0 0;font-size:18px;font-style:italic;color:#5b5248}
+.b-field{display:flex;flex-direction:column;gap:4px}
+.b-flabel{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;color:#5b5248}
+.b-hint{font-size:15px;font-style:italic;color:#5b5248}
+.b-input{display:block;width:100%;box-sizing:border-box;min-height:46px;padding:10px 4px 8px;border:0;border-bottom:1.5px solid rgba(47,99,99,.55);border-radius:0;background:transparent;color:#07111f;font-family:'Source Code Pro',ui-monospace,monospace;font-size:16px;letter-spacing:.02em;outline:none;transition:border-color .12s,background-color .12s,box-shadow .12s}
+.b-input::placeholder{color:#6b6257;opacity:1}
+.b-input:hover{border-bottom-color:#2f6363}
+.b-input:focus{border-bottom-color:#07111f;box-shadow:0 1.5px 0 #07111f;background-color:rgba(239,212,134,.35)}
+.b-input.has-tool{padding-right:48px}
+.b-reveal{position:absolute;right:0;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:2px;background:transparent;color:#5b5248;cursor:pointer;transition:color .12s,background-color .12s}
+.b-reveal:hover{color:#07111f}
+.b-reveal[aria-pressed="true"]{color:#07111f;background:rgba(239,212,134,.5)}
+.b-reveal:focus-visible{outline:2px solid #9e3f2a;outline-offset:-2px}
+.b-link{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0;padding:0;border:0;background:none;color:#5b5248;font-family:'Crimson Text',Georgia,serif;font-size:16px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px;cursor:pointer}
+.b-link:hover{color:#9e3f2a;text-decoration-color:#9e3f2a}
+.b-link:focus-visible{outline:2px solid #9e3f2a;outline-offset:2px}
+.b-link.is-strong{font-style:normal;font-weight:600;color:#07111f}
+.b-link.is-back{gap:6px;text-decoration:none}
+.b-link.is-back .u{text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px}
+.b-link.is-back:hover .u{text-decoration-color:#9e3f2a}
+.b-primary{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;box-sizing:border-box;min-height:54px;padding:8px 20px;border:0;border-radius:2px;background:#9e3f2a;color:#fbf6ed;font-family:'Source Code Pro',ui-monospace,monospace;font-weight:700;font-size:14px;letter-spacing:.22em;line-height:1.3;text-align:center;cursor:pointer;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3);transition:background-color .12s,transform .12s,box-shadow .12s}
+.b-primary svg{flex:none}
+.b-primary span{text-wrap:balance}
+.b-primary:hover:not(:disabled){background:#b2472f}
+a.b-primary,a.b-primary:hover{color:#fbf6ed;text-decoration:none}
+.b-primary:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #6b2a1c,0 4px 10px rgba(158,63,42,.3)}
+.b-primary:focus-visible{outline:2px solid #07111f;outline-offset:3px}
+.b-primary:disabled{cursor:progress;background:#7d3122;color:#efd486}
+.b-google{display:flex;align-items:center;justify-content:center;gap:12px;min-height:48px;padding:0 16px;border:1px solid #c9c0ae;background:#ffffff;color:#1f1f1f;font-family:'Crimson Text',Georgia,serif;font-weight:600;font-size:17px;text-decoration:none;transition:background-color .12s,border-color .12s}
+.b-google:hover{background:#f6f2ea;border-color:#8a7d63;color:#1f1f1f}
+.b-google:focus-visible{outline:2px solid #9e3f2a;outline-offset:2px}
+.b-col{padding-top:max(20px,calc(50vh - 388px))}
+.b-col.has-notice{padding-top:max(16px,calc(50vh - 434px))}
+.b-tabs{position:relative;z-index:2;display:flex;align-items:flex-end;gap:4px;margin-bottom:-1px;padding-left:30px}
+.b-tab{position:relative;min-width:138px;min-height:44px;padding:13px 18px 9px;border:0;border-radius:3px 3px 0 0;background:#d9c49a;color:#3b3328;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;cursor:pointer;box-shadow:inset 0 -8px 8px -8px rgba(40,24,10,.45),0 -2px 10px rgba(0,0,0,.25);transition:background-color .12s,color .12s,min-height .18s,padding .18s}
+.b-tab::before{content:"";position:absolute;left:12px;right:12px;top:6px;height:2px;border-radius:1px;background:rgba(122,63,39,.3)}
+.b-tab:hover{background:#e7d7b4;color:#07111f}
+.b-tab[aria-pressed="true"]{min-height:46px;padding-top:16px;background:#fbf6ed;color:#07111f;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+.b-tab[aria-pressed="true"]::before{background:#bf3b2c}
+.b-tab.is-current{cursor:default}
+.b-tab:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.b-note{display:flex;align-items:flex-start;gap:10px;margin:12px 0 0;padding:10px 12px;font-size:16px;line-height:1.35;color:#07111f}
+.b-note svg{flex:none;margin-top:2px}
+.b-note p{margin:0}
+.b-note .k{margin:0 0 3px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.16em}
+.b-note.invite{border:1px dashed #4f9a9a;background:rgba(79,154,154,.07)}
+.b-note.invite .k{color:#2f6363}
+.b-note.warn{border:1px solid rgba(182,107,77,.6);background:rgba(182,107,77,.1)}
+.b-note.warn .k{color:#7a3f27}
+.b-slip{margin:20px 0 0;padding:14px 16px 16px;border:1px solid rgba(90,74,50,.38);border-top:2px dashed rgba(90,74,50,.5);background:#f7f0dc;box-shadow:0 8px 18px rgba(5,10,18,.14);transform:rotate(-.8deg)}
+.b-slip .k{margin:0 0 8px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.2em;color:#5b5248}
+.b-slip p{margin:0}
+.b-slip-in{animation:bSlip .5s cubic-bezier(.2,.8,.2,1) both}
+.b-stampbox{position:absolute;z-index:4;left:20px;right:0;top:38%;display:flex;justify-content:center;pointer-events:none}
+.b-filed .b-field{opacity:.42;transition:opacity .4s}
+.b-stamp{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 22px 10px;border:6px double currentColor;white-space:nowrap;transform:rotate(-9deg);mix-blend-mode:multiply;filter:url(#b-ink)}
+.b-stamp b{font-family:'Playfair Display',Georgia,serif;font-size:30px;font-weight:700;letter-spacing:.1em;line-height:1}
+.b-stamp small{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.3em}
+.b-stamp-in{animation:bStamp .45s .1s cubic-bezier(.2,.8,.2,1) both}
+.b-threads .thread{fill:none;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:bDraw 1.1s cubic-bezier(.3,.7,.2,1) forwards}
+.b-threads .shadow{stroke:rgba(0,0,0,.42);stroke-width:2.8}
+.b-threads .red{stroke:#bf3b2c;stroke-width:2.1}
+.b-threads .d1{animation-delay:.2s}
+.b-threads .d2{animation-delay:.32s}
+.b-threads .d3{animation-delay:.44s}
+.b-threads .d4{animation-delay:.56s}
+.b-threads .d5{animation-delay:.68s}
+.b-threads .d6{animation-delay:.8s}
+.b-threads .d7{animation-delay:1s}
+.b-threads.is-solving .red{stroke:#efd486;stroke-width:2.4;stroke-dasharray:.07 .015;stroke-dashoffset:0;filter:url(#b-glow);animation:bRun .7s linear infinite}
+.b-threads.is-solving .shadow{opacity:.35}
+.b-pin.is-solving{box-shadow:0 0 0 4px rgba(239,212,134,.35),0 0 24px 8px rgba(239,212,134,.45),0 6px 8px rgba(0,0,0,.45) !important}
+@keyframes bDraw{to{stroke-dashoffset:0}}
+@keyframes bRun{to{stroke-dashoffset:-.085}}
+.b-threads.is-solving .red.d1,.b-threads.is-solving .red.d2,.b-threads.is-solving .red.d3,.b-threads.is-solving .red.d4,.b-threads.is-solving .red.d5,.b-threads.is-solving .red.d6,.b-threads.is-solving .red.d7{animation-delay:0s}
+@keyframes bRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes bFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+@keyframes bSettleA{0%{transform:translateY(-7px) rotate(-.8deg)}55%{transform:translateY(1px) rotate(.15deg)}100%{transform:none}}
+@keyframes bSettleB{0%{transform:translateY(-7px) rotate(-.8deg)}55%{transform:translateY(1px) rotate(.15deg)}100%{transform:none}}
+@keyframes bRepinA{0%{transform:translateY(-16px) scale(1.35)}55%{transform:translateY(1px) scale(.92)}100%{transform:none}}
+@keyframes bRepinB{0%{transform:translateY(-16px) scale(1.35)}55%{transform:translateY(1px) scale(.92)}100%{transform:none}}
+@keyframes bWipeA{from{clip-path:circle(0% at 20% 0%)}to{clip-path:circle(150% at 20% 0%)}}
+@keyframes bWipeB{from{clip-path:circle(0% at 20% 0%)}to{clip-path:circle(150% at 20% 0%)}}
+@keyframes bStamp{0%{opacity:0;transform:rotate(-17deg) scale(2.2)}60%{opacity:1;transform:rotate(-8deg) scale(.94)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+@keyframes bSlip{from{opacity:0;transform:translateY(-10px) rotate(-3deg)}to{opacity:1;transform:rotate(-.8deg)}}
+.b-rise{animation:bRise .7s cubic-bezier(.2,.8,.2,1) both}
+.b-rise-late{animation:bRise .75s .12s cubic-bezier(.2,.8,.2,1) both}
+.b-lamp{animation:bFlicker 7s linear infinite}
+.b-settle-a{animation:bSettleA .5s cubic-bezier(.2,.8,.2,1) both}
+.b-settle-b{animation:bSettleB .5s cubic-bezier(.2,.8,.2,1) both}
+.b-repin-a{animation:bRepinA .5s cubic-bezier(.3,1.4,.5,1) both}
+.b-repin-b{animation:bRepinB .5s cubic-bezier(.3,1.4,.5,1) both}
+.b-wipe-a{animation:bWipeA .5s cubic-bezier(.4,0,.2,1) both}
+.b-wipe-b{animation:bWipeB .5s cubic-bezier(.4,0,.2,1) both}
+@media (max-width:700px){
+  .b-col{padding-top:88px !important}
+}
+@media (max-width:640px){
+  .b-card{padding:24px 20px 22px 42px !important}
+  .b-margin{left:28px !important}
+  .b-label{padding:14px 26px 12px !important}
+  .b-wordmark{font-size:36px !important}
+  .b-title{font-size:28px !important}
+  .b-tabs{padding-left:16px}
+  .b-tab{min-width:124px;padding-left:12px;padding-right:12px;letter-spacing:.14em}
+  .b-pinpos{right:28px !important}
+  .b-primary{font-size:13px;letter-spacing:.14em;gap:10px}
+  .b-stamp{padding:10px 16px 8px;border-width:5px}
+  .b-stamp b{font-size:24px}
+  .b-stamp small{letter-spacing:.2em}
+}
+@media (prefers-reduced-motion:reduce){
+  .b-threads .thread{animation:none !important;stroke-dashoffset:0 !important}
+  .b-threads.is-solving .red{animation:none !important}
+  .b-filed .b-field{transition:none}
+  .b-rise,.b-rise-late,.b-lamp,.b-settle-a,.b-settle-b,.b-repin-a,.b-repin-b,.b-wipe-a,.b-wipe-b,.b-stamp-in,.b-slip-in{animation:none !important}
+  .b-tab{transition:none}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none">
+    <div style="position: absolute; left: 50%; top: 50%; width: max(100%, 160vh); height: max(100%, 62.5vw); transform: translate(-50%, -50%)">
+      <svg viewBox="0 0 1440 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="display: block">
+        <defs>
+          <filter id="b-cork-light" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence>
+            <feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix>
+          </filter>
+          <filter id="b-cork-dark" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence>
+            <feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix>
+          </filter>
+          <filter id="b-blotch" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence>
+            <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix>
+          </filter>
+          <filter id="b-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur>
+            <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+          </filter>
+          <filter id="b-drop" x="-15%" y="-15%" width="130%" height="140%">
+            <feDropShadow dx="2" dy="9" stdDeviation="8" style="flood-color: #000000; flood-opacity: .55"></feDropShadow>
+          </filter>
+          <filter id="b-ink" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4" result="noise"></feTurbulence>
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4 3" result="speckle"></feColorMatrix>
+            <feComposite in="SourceGraphic" in2="speckle" operator="in"></feComposite>
+          </filter>
+          <radialGradient id="b-pin-red" cx=".35" cy=".3" r=".75">
+            <stop offset="0" style="stop-color: #f3a291"></stop>
+            <stop offset=".45" style="stop-color: #c0392b"></stop>
+            <stop offset="1" style="stop-color: #6e1a12"></stop>
+          </radialGradient>
+          <radialGradient id="b-pin-gold" cx=".35" cy=".3" r=".75">
+            <stop offset="0" style="stop-color: #fff1c2"></stop>
+            <stop offset=".45" style="stop-color: #c7a24b"></stop>
+            <stop offset="1" style="stop-color: #5e4a1c"></stop>
+          </radialGradient>
+          <linearGradient id="b-sticky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color: #ecd68a"></stop>
+            <stop offset="1" style="stop-color: #d6bc66"></stop>
+          </linearGradient>
+          <radialGradient id="b-lamp" cx="720" cy="380" r="780" gradientUnits="userSpaceOnUse">
+            <stop offset="0" style="stop-color: #ffd98a; stop-opacity: .26"></stop>
+            <stop offset=".45" style="stop-color: #efd486; stop-opacity: .08"></stop>
+            <stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop>
+          </radialGradient>
+          <radialGradient id="b-vignette" cx="720" cy="440" r="860" gradientUnits="userSpaceOnUse">
+            <stop offset=".4" style="stop-color: #050a12; stop-opacity: 0"></stop>
+            <stop offset=".78" style="stop-color: #050a12; stop-opacity: .55"></stop>
+            <stop offset="1" style="stop-color: #050a12; stop-opacity: .9"></stop>
+          </radialGradient>
+        </defs>
+
+        <rect width="1440" height="900" style="fill: #2a1f17"></rect>
+        <rect width="1440" height="900" filter="url(#b-blotch)" style="opacity: .5"></rect>
+        <rect width="1440" height="900" filter="url(#b-cork-light)"></rect>
+        <rect width="1440" height="900" filter="url(#b-cork-dark)"></rect>
+        <rect class="b-lamp" width="1440" height="900" fill="url(#b-lamp)"></rect>
+
+        <g transform="translate(64 58) rotate(-5)">
+          <g filter="url(#b-drop)">
+            <path d="M0 0H320V196L306 204L292 197L276 206L258 198L240 205L222 197L205 206L186 198L168 205L150 197L132 206L114 198L96 205L78 197L60 206L42 198L24 205L10 197L0 203Z" style="fill: #e3dbc9"></path>
+          </g>
+          <text x="16" y="25" class="b-mono" style="font-size: 9.5px; letter-spacing: 2px; fill: #3a342b">NHẬT BÁO LUÂN ĐÔN</text>
+          <text x="304" y="25" class="b-mono" style="font-size: 9.5px; letter-spacing: 1px; fill: #3a342b; text-anchor: end">SỐ 1221</text>
+          <path d="M16 33H304M16 36.5H304" style="stroke: #3a342b; stroke-width: .8"></path>
+          <text x="16" y="66" class="b-serif" style="font-size: 25px; font-weight: 700; letter-spacing: .5px; fill: #15120e">BÍ ẨN CĂN PHÒNG</text>
+          <text x="16" y="94" class="b-serif" style="font-size: 25px; font-weight: 700; letter-spacing: .5px; fill: #15120e">KHÓA KÍN</text>
+          <text x="16" y="114" class="b-body" style="font-size: 12.5px; font-style: italic; fill: #3a342b">Cảnh sát bó tay — hai thám tử được mời vào cuộc.</text>
+          <g style="fill: #8f8676; opacity: .55">
+            <rect x="16" y="126" width="138" height="3"></rect>
+            <rect x="16" y="134" width="130" height="3"></rect>
+            <rect x="16" y="142" width="138" height="3"></rect>
+            <rect x="16" y="150" width="122" height="3"></rect>
+            <rect x="16" y="158" width="138" height="3"></rect>
+            <rect x="16" y="166" width="134" height="3"></rect>
+            <rect x="16" y="174" width="96" height="3"></rect>
+            <rect x="166" y="188" width="110" height="3"></rect>
+          </g>
+          <rect x="166" y="124" width="138" height="58" style="fill: #2b2621"></rect>
+          <path d="M235 136A9 9 0 0 1 240 152.5L243 170H227L230 152.5A9 9 0 0 1 235 136Z" style="fill: #d9cfb8"></path>
+        </g>
+
+        <g transform="translate(104 318) rotate(4)">
+          <g filter="url(#b-drop)">
+            <rect width="262" height="176" style="fill: #e7ddc5"></rect>
+          </g>
+          <path d="M-2 132C40 112 82 152 130 134S220 98 264 114" style="fill: none; stroke: rgba(79,154,154,.42); stroke-width: 15"></path>
+          <path d="M0 30H262M0 72H262M14 0V176M58 0V176M104 0V120M150 0V176M196 0V176M240 0V176M0 104L120 96M150 40L262 18" style="fill: none; stroke: #ab9d7f; stroke-width: 1.2"></path>
+          <path d="M0 46H262M80 0V176" style="fill: none; stroke: #cdbf9f; stroke-width: 4"></path>
+          <path d="M131 0V176M0 88H262" style="stroke: rgba(0,0,0,.08); stroke-width: 1.5"></path>
+          <text x="16" y="60" class="b-mono" style="font-size: 7.5px; letter-spacing: 1.5px; fill: #6b5f4b">PHỐ BAKER</text>
+          <ellipse cx="172" cy="52" rx="24" ry="17" transform="rotate(-12 172 52)" style="fill: none; stroke: #b8382b; stroke-width: 2.4"></ellipse>
+          <path d="M150 44C156 32 180 28 194 36" style="fill: none; stroke: #b8382b; stroke-width: 1.6; stroke-linecap: round"></path>
+          <path d="M166 46L178 58M178 46L166 58" style="stroke: #b8382b; stroke-width: 2; stroke-linecap: round"></path>
+          <text x="200" y="30" class="b-mono" style="font-size: 11px; font-weight: 700; letter-spacing: 1px; fill: #b8382b">221B</text>
+        </g>
+
+        <g transform="translate(74 590) rotate(-4)">
+          <g filter="url(#b-drop)">
+            <rect width="214" height="196" fill="url(#b-sticky)"></rect>
+          </g>
+          <text class="b-body" style="font-size: 22px; font-style: italic; fill: #2a2318">
+            <tspan x="20" y="58">Cửa khóa trái</tspan>
+            <tspan x="20" y="88">từ bên trong…</tspan>
+            <tspan x="20" y="118">vậy hung thủ</tspan>
+            <tspan x="20" y="148">ra bằng lối nào?</tspan>
+          </text>
+          <path d="M20 96C54 92 90 99 124 93" style="fill: none; stroke: #b8382b; stroke-width: 2; stroke-linecap: round"></path>
+        </g>
+
+        <g transform="translate(1124 44) rotate(5)">
+          <g filter="url(#b-drop)">
+            <rect width="236" height="292" style="fill: #f1ebde"></rect>
+          </g>
+          <text x="18" y="30" class="b-mono" style="font-size: 10px; letter-spacing: 2px; fill: #3a342b">VÂN TAY · MẪU 04</text>
+          <path d="M18 40H218" style="stroke: rgba(182,64,48,.6); stroke-width: 1.2"></path>
+          <g transform="translate(118 145)" style="fill: none; stroke: #1d2a3a; stroke-width: 1.7; stroke-linecap: round; opacity: .82">
+            <path d="M-4 8V0A4 5 0 0 1 4 0V10"></path>
+            <path d="M-11 22V0A11 13 0 0 1 11 0V26"></path>
+            <path d="M-18 34V0A18 21 0 0 1 18 0V38" style="stroke-dasharray: 60 5 200"></path>
+            <path d="M-25 46V2A25 29 0 0 1 25 2V50"></path>
+            <path d="M-32 56V4A32 37 0 0 1 32 4V60" style="stroke-dasharray: 90 6 300"></path>
+            <path d="M-39 64V6A39 45 0 0 1 39 6V68"></path>
+            <path d="M-46 70V8A46 53 0 0 1 46 8V72" style="stroke-dasharray: 40 5 160 7 400"></path>
+            <path d="M-53 72V10A53 61 0 0 1 53 10V74"></path>
+            <path d="M-60 70V14A60 69 0 0 1 60 14V64" style="stroke-dasharray: 120 8 400"></path>
+            <path d="M-56 86C-30 78 30 78 56 88"></path>
+            <path d="M-50 96C-24 90 24 90 50 98"></path>
+            <path d="M-40 106C-18 101 18 101 40 108"></path>
+          </g>
+          <circle cx="152" cy="112" r="15" style="fill: none; stroke: #b8382b; stroke-width: 2"></circle>
+          <text x="18" y="276" class="b-body" style="font-size: 14px; font-style: italic; fill: #4a4237">Tay nắm cửa, phía trong</text>
+        </g>
+
+        <g transform="translate(1046 396) rotate(-6)">
+          <g filter="url(#b-drop)">
+            <path d="M28 0H284V146H28L0 118V28Z" style="fill: #c4a06b"></path>
+          </g>
+          <circle cx="30" cy="73" r="13" style="fill: none; stroke: #ece0c6; stroke-width: 5"></circle>
+          <circle cx="30" cy="73" r="8" style="fill: #1a130d"></circle>
+          <text x="60" y="34" class="b-mono" style="font-size: 12px; font-weight: 700; letter-spacing: 2px; fill: #2a2318">TANG VẬT #3</text>
+          <path d="M60 42H252" style="stroke: rgba(42,35,24,.4); stroke-width: 1"></path>
+          <g style="fill: none; stroke: #1d2a3a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round">
+            <circle cx="96" cy="84" r="18"></circle>
+            <circle cx="96" cy="84" r="7"></circle>
+            <path d="M114 84H238"></path>
+            <path d="M208 84V100H216V92H224V102H232V84"></path>
+          </g>
+          <text x="60" y="132" class="b-body" style="font-size: 15px; font-style: italic; fill: #2a2318">Chìa khóa đồng</text>
+        </g>
+
+        <g transform="translate(1104 630) rotate(3)">
+          <g filter="url(#b-drop)">
+            <rect width="276" height="196" style="fill: #f3eee3"></rect>
+          </g>
+          <path d="M0 40H276" style="stroke: rgba(182,64,48,.6); stroke-width: 1.2"></path>
+          <path d="M0 72H276M0 104H276M0 136H276M0 168H276" style="stroke: rgba(79,154,154,.45); stroke-width: 1"></path>
+          <text x="18" y="30" class="b-mono" style="font-size: 10px; letter-spacing: 2px; fill: #3a342b">DÒNG THỜI GIAN</text>
+          <text x="18" y="66" class="b-mono" style="font-size: 12.5px; fill: #2a2318">21:30<tspan x="74">Đèn tầng hai tắt</tspan></text>
+          <text x="18" y="98" class="b-mono" style="font-size: 12.5px; fill: #2a2318">22:15<tspan x="74">Có tiếng gõ cửa</tspan></text>
+          <text x="18" y="130" class="b-mono" style="font-size: 12.5px; fill: #2a2318">23:47<tspan x="74">Cửa bị khóa trái</tspan></text>
+          <text x="18" y="162" class="b-mono" style="font-size: 12.5px; font-weight: 700; fill: #b8382b">??:??<tspan x="74">Thám tử tới</tspan></text>
+        </g>
+
+        <g class="{{ threadsClass }}">
+          <g transform="translate(2 5)">
+            <path class="thread shadow d1" pathLength="1" d="M385.4 220.6L720 450"></path>
+            <path class="thread shadow d2" pathLength="1" d="M1141.2 53.5L720 450"></path>
+            <path class="thread shadow d3" pathLength="1" d="M130.8 335.9L720 450"></path>
+            <path class="thread shadow d4" pathLength="1" d="M1083.5 465.5L720 450"></path>
+            <path class="thread shadow d5" pathLength="1" d="M181.9 598.5L720 450"></path>
+            <path class="thread shadow d6" pathLength="1" d="M1343.1 652.5L720 450"></path>
+            <path class="thread shadow d7" pathLength="1" d="M130.8 335.9L181.9 598.5"></path>
+            <path class="thread shadow d7" pathLength="1" d="M1141.2 53.5L1083.5 465.5"></path>
+            <path class="thread shadow d7" pathLength="1" d="M1083.5 465.5L1343.1 652.5"></path>
+            <path class="thread shadow d7" pathLength="1" d="M130.8 335.9L-20 250"></path>
+            <path class="thread shadow d7" pathLength="1" d="M1343.1 652.5L1460 760"></path>
+          </g>
+          <path class="thread red d1" pathLength="1" d="M385.4 220.6L720 450"></path>
+          <path class="thread red d2" pathLength="1" d="M1141.2 53.5L720 450"></path>
+          <path class="thread red d3" pathLength="1" d="M130.8 335.9L720 450"></path>
+          <path class="thread red d4" pathLength="1" d="M1083.5 465.5L720 450"></path>
+          <path class="thread red d5" pathLength="1" d="M181.9 598.5L720 450"></path>
+          <path class="thread red d6" pathLength="1" d="M1343.1 652.5L720 450"></path>
+          <path class="thread red d7" pathLength="1" d="M130.8 335.9L181.9 598.5"></path>
+          <path class="thread red d7" pathLength="1" d="M1141.2 53.5L1083.5 465.5"></path>
+          <path class="thread red d7" pathLength="1" d="M1083.5 465.5L1343.1 652.5"></path>
+          <path class="thread red d7" pathLength="1" d="M130.8 335.9L-20 250"></path>
+          <path class="thread red d7" pathLength="1" d="M1343.1 652.5L1460 760"></path>
+        </g>
+
+        <g>
+          <ellipse cx="81" cy="69.3" rx="7" ry="4.5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="78.6" cy="64.7" r="7.5" fill="url(#b-pin-gold)"></circle>
+          <ellipse cx="387.8" cy="225.2" rx="8" ry="5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="385.4" cy="220.6" r="8.5" fill="url(#b-pin-red)"></circle>
+          <ellipse cx="133.2" cy="340.5" rx="8" ry="5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="130.8" cy="335.9" r="8.5" fill="url(#b-pin-gold)"></circle>
+          <ellipse cx="184.3" cy="603.1" rx="8" ry="5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="181.9" cy="598.5" r="8.5" fill="url(#b-pin-red)"></circle>
+          <ellipse cx="1143.6" cy="58.1" rx="8" ry="5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="1141.2" cy="53.5" r="8.5" fill="url(#b-pin-gold)"></circle>
+          <ellipse cx="1085.9" cy="470.1" rx="8" ry="5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="1083.5" cy="465.5" r="8.5" fill="url(#b-pin-red)"></circle>
+          <ellipse cx="1345.5" cy="657.1" rx="8" ry="5" style="fill: rgba(0,0,0,.45)"></ellipse>
+          <circle cx="1343.1" cy="652.5" r="8.5" fill="url(#b-pin-gold)"></circle>
+        </g>
+
+        <rect width="1440" height="900" fill="url(#b-vignette)"></rect>
+      </svg>
+    </div>
+  </div>
+
+  <header style="position: absolute; z-index: 3; top: 20px; right: clamp(16px, 4vw, 48px)">
+    <div style="display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid rgba(239,212,134,.42); border-radius: 4px; background: rgba(10,8,6,.72)">
+      <button type="button" class="b-lang" aria-pressed="false" aria-label="English">EN</button>
+      <button type="button" class="b-lang" aria-pressed="true" aria-label="Tiếng Việt">VI</button>
+    </div>
+  </header>
+
+  <div class="{{ colClass }}" style="position: relative; z-index: 1; flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 14px; box-sizing: border-box; width: 100%; padding-right: 16px; padding-bottom: 14px; padding-left: 16px">
+
+    <div class="b-rise" style="position: relative; max-width: 100%">
+      <div class="b-label" style="position: relative; box-sizing: border-box; max-width: 100%; padding: 16px 40px 12px; background: #0d1014; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 18px 36px rgba(0,0,0,.6); text-align: center; transform: rotate(-1.5deg)">
+        <span aria-hidden="true" style="position: absolute; top: 9px; left: 12px; width: 14px; height: 14px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%); box-shadow: 0 3px 4px rgba(0,0,0,.6)"></span>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 12px; width: 14px; height: 14px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%); box-shadow: 0 3px 4px rgba(0,0,0,.6)"></span>
+        <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: .32em; color: #efd486">BẢNG PHÁ ÁN · 221B</p>
+        <h1 class="b-wordmark" style="margin: 6px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 42px; font-weight: 700; line-height: 1; letter-spacing: .08em; color: #fbf6ed">SIR <span style="background: linear-gradient(180deg, #fbf6ed 0%, #efd486 45%, #8a6e2e 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent">LOCKED</span></h1>
+        <p style="margin: 6px 0 0; font-size: 16px; font-style: italic; color: #d9cfbd">Hai thám tử. Một vụ án bí ẩn.</p>
+      </div>
+    </div>
+
+    <section class="b-rise-late" aria-labelledby="b-title" style="position: relative; width: 100%; max-width: 450px">
+      <div class="{{ settleCls }}">
+        <div class="b-tabs" role="group" aria-label="Đăng nhập hoặc đăng ký">
+          <button type="button" class="{{ loginTabClass }}" aria-pressed="{{ loginPressed }}" onClick="{{ showLogin }}">ĐĂNG NHẬP</button>
+          <button type="button" class="{{ registerTabClass }}" aria-pressed="{{ registerPressed }}" onClick="{{ showRegister }}">ĐĂNG KÝ</button>
+        </div>
+        <div class="b-card" style="position: relative; box-sizing: border-box; padding: 24px 32px 22px 54px; background: #fbf6ed; color: #07111f; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 26px 54px rgba(0,0,0,.62)">
+          <span aria-hidden="true" class="{{ pinClass }}" style="position: absolute; z-index: 5; right: 56px; top: -11px; width: 24px; height: 24px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 42%, #6e1a12 100%); box-shadow: 0 6px 8px rgba(0,0,0,.45)"></span>
+          <div class="b-margin" aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 36px; width: 1.5px; background: rgba(182,64,48,.5)"></div>
+
+          <div class="{{ swapCls }}">
+            <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div class="b-head"><span>THẺ ĐIỀU TRA</span><span>Nº 221</span></div>
+                <h2 id="b-title" class="b-title" tabindex="-1">Bắt đầu phá án</h2>
+                <p class="b-sub">Mọi manh mối đều dẫn về bạn.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div class="b-head"><span>HỒ SƠ MỚI</span><span>Nº CHỜ CẤP</span></div>
+                <h2 id="b-title" class="b-title" tabindex="-1">Gia nhập 221B</h2>
+                <p class="b-sub">Lập hồ sơ thám tử để bắt đầu phá án.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isForgot }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div class="b-head"><span>ĐIỆN TÍN KHẨN</span><span>GỬI 221B</span></div>
+                <h2 id="b-title" class="b-title" tabindex="-1">Quên mật khẩu?</h2>
+                <p class="b-sub">Nhập email để nhận liên kết đặt lại mật khẩu.</p>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasInvite }}" hint-placeholder-val="{{ false }}">
+              <div class="b-note invite" role="note">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20.5V4.5A1.5 1.5 0 0 1 6.5 3h11A1.5 1.5 0 0 1 19 4.5v16"></path><path d="M3 20.5h18"></path><path d="M15 12.5h.01"></path></svg>
+                <div>
+                  <p class="k">ĐỒNG ĐỘI ĐANG CHỜ</p>
+                  <p>Đăng nhập hoặc đăng ký để vào cùng đồng đội. Lời mời được giữ trong lúc bạn xác minh email.</p>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasGoogleError }}" hint-placeholder-val="{{ false }}">
+              <div class="b-note warn" role="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5"></path><path d="M12 16.5h.01"></path></svg>
+                <div>
+                  <p class="k">ĐĂNG NHẬP GOOGLE ĐÃ BỊ HỦY</p>
+                  <p>Bạn có thể thử lại bên dưới hoặc đăng nhập bằng email và mật khẩu.</p>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+              <form onSubmit="{{ submit }}" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px">
+                <div class="b-field">
+                  <label for="b-email" class="b-flabel">01 — EMAIL</label>
+                  <input id="b-email" class="b-input" type="email" name="email" autocomplete="email" placeholder="detective@sirlocked.local">
+                </div>
+                <div class="b-field">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                    <label for="b-password" class="b-flabel">02 — MẬT KHẨU</label>
+                    <button type="button" class="b-link" onClick="{{ openForgot }}">Quên mật khẩu?</button>
+                  </div>
+                  <div style="position: relative">
+                    <input id="b-password" class="b-input has-tool" type="{{ pwType }}" name="password" autocomplete="current-password" placeholder="••••••••">
+                    <button type="button" class="b-reveal" aria-label="{{ revealLabel }}" aria-pressed="{{ revealPressed }}" onClick="{{ toggleReveal }}">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path><path d="M8 9.5a3 3 0 0 1 2.5-2"></path></svg>
+                    </button>
+                  </div>
+                </div>
+                <sc-if value="{{ notDone }}" hint-placeholder-val="{{ true }}">
+                  <button type="submit" class="b-primary" disabled="{{ busy }}" style="margin-top: 6px">
+                    <span>{{ cta }}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                  </button>
+                </sc-if>
+                <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+                  <a id="b-go" href="Loading.dc.html" class="b-primary" style="margin-top: 6px">
+                    <span>VÀO PHÒNG ĐIỀU TRA</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                  </a>
+                </sc-if>
+              </form>
+            </sc-if>
+
+            <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+              <form onSubmit="{{ submit }}" class="{{ regFormCls }}" style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px">
+                <div class="b-field">
+                  <label for="b-reg-name" class="b-flabel">01 — HỌ VÀ TÊN</label>
+                  <input id="b-reg-name" class="b-input" type="text" name="fullName" autocomplete="name" placeholder="Detective Holmes">
+                </div>
+                <div class="b-field">
+                  <label for="b-reg-email" class="b-flabel">02 — EMAIL</label>
+                  <input id="b-reg-email" class="b-input" type="email" name="email" autocomplete="email" placeholder="detective@sirlocked.local">
+                </div>
+                <div class="b-field">
+                  <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px">
+                    <label for="b-reg-password" class="b-flabel">03 — MẬT KHẨU</label>
+                    <span id="b-reg-hint" class="b-hint">Tối thiểu 6 ký tự, gồm chữ và số.</span>
+                  </div>
+                  <div style="position: relative">
+                    <input id="b-reg-password" class="b-input has-tool" type="{{ pwType }}" name="password" autocomplete="new-password" aria-describedby="b-reg-hint" placeholder="••••••••">
+                    <button type="button" class="b-reveal" aria-label="{{ revealLabel }}" aria-pressed="{{ revealPressed }}" onClick="{{ toggleReveal }}">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path><path d="M8 9.5a3 3 0 0 1 2.5-2"></path></svg>
+                    </button>
+                  </div>
+                </div>
+                <sc-if value="{{ notDone }}" hint-placeholder-val="{{ true }}">
+                  <button type="submit" class="b-primary" disabled="{{ busy }}" style="margin-top: 4px">
+                    <span>{{ registerCta }}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                  </button>
+                </sc-if>
+                <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+                  <a id="b-verify" href="VerifyEmail.dc.html" class="b-primary" style="margin-top: 4px">
+                    <span>XÁC MINH EMAIL</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                  </a>
+                </sc-if>
+              </form>
+            </sc-if>
+
+            <sc-if value="{{ isForgot }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <sc-if value="{{ showForgotForm }}" hint-placeholder-val="{{ true }}">
+                  <form onSubmit="{{ submitForgot }}" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px">
+                    <div class="b-field">
+                      <label for="b-forgot-email" class="b-flabel">01 — EMAIL</label>
+                      <input id="b-forgot-email" class="b-input" type="email" name="email" autocomplete="email" placeholder="detective@sirlocked.local">
+                    </div>
+                    <button type="submit" class="b-primary" style="margin-top: 6px">
+                      <span>GỬI YÊU CẦU</span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                    </button>
+                  </form>
+                </sc-if>
+                <div role="status">
+                  <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+                    <div class="b-slip b-slip-in">
+                      <p class="k">ĐIỆN TÍN ĐÃ ĐƯỢC GỬI</p>
+                      <p class="b-mono" style="font-size: 14px; line-height: 1.6; color: #2a2318">Nếu email tồn tại, chúng tôi đã gửi một liên kết đặt lại mật khẩu. Hãy mở email (kiểm tra cả mục Spam) và nhấn vào nút trong đó.</p>
+                    </div>
+                  </sc-if>
+                </div>
+                <p style="display: flex; justify-content: center; margin: 24px 0 0">
+                  <button id="b-back" type="button" class="b-link is-back" onClick="{{ openLogin }}"><span aria-hidden="true">←</span><span class="u">Quay lại đăng nhập</span></button>
+                </p>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showAlt }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display: flex; align-items: center; gap: 12px; margin: 16px 0 12px; color: #5b5248; font-size: 16px; font-style: italic">
+                  <span aria-hidden="true" style="flex: 1; height: 1px; background: rgba(91,82,72,.3)"></span>
+                  <span>hoặc</span>
+                  <span aria-hidden="true" style="flex: 1; height: 1px; background: rgba(91,82,72,.3)"></span>
+                </div>
+                <a href="#" class="b-google">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
+          <span>Đăng nhập với Google</span>
+        </a>
+                <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+                  <p style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 12px 0 0; font-size: 16px; color: #5b5248">Chưa có tài khoản? <button type="button" class="b-link is-strong" onClick="{{ openRegister }}">Đăng ký</button></p>
+                </sc-if>
+                <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+                  <p style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 12px 0 0; font-size: 16px; color: #5b5248">Đã có tài khoản? <button type="button" class="b-link is-strong" onClick="{{ openLogin }}">Đăng nhập</button></p>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ regDone }}" hint-placeholder-val="{{ false }}">
+            <div class="b-stampbox" aria-hidden="true">
+              <div class="b-stamp b-stamp-in" style="color: #b05a3c"><b>ĐÃ LẬP HỒ SƠ</b><small>221B · {{ today }}</small></div>
+            </div>
+          </sc-if>
+          <p class="b-sr" role="status">{{ statusText }}</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["dang-nhap","dang-ky","quen-mat-khau"],"default":"dang-nhap","section":"Trạng thái"},"preview":{"editor":"enum","options":["idle","solving"],"default":"idle","section":"Trạng thái"},"notice":{"editor":"enum","options":["khong","loi-moi","loi-google"],"default":"khong","section":"Trạng thái"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: null, reveal: false, busy: false, done: false, sent: false, flip: null };
+    this._timer = null;
+    this._focusTimer = null;
+    this._root = null;
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._timer);
+    clearTimeout(this._focusTimer);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.view !== this.props.view) {
+      const s = this.state || {};
+      this.go(this.props.view, null, false, this.normalize(s.view || prevProps.view));
+    }
+  }
+
+  normalize(v) {
+    const views = ['dang-nhap', 'dang-ky', 'quen-mat-khau'];
+    return views.indexOf(v) >= 0 ? v : 'dang-nhap';
+  }
+
+  current() {
+    const s = this.state || {};
+    return this.normalize(s.view || this.props.view);
+  }
+
+  remember(event) {
+    try {
+      const el = event && (event.currentTarget || event.target);
+      const root = el && el.closest ? el.closest('section') : null;
+      if (root) this._root = root;
+    } catch (e) {}
+  }
+
+  focusLater(selector) {
+    clearTimeout(this._focusTimer);
+    this._focusTimer = setTimeout(() => {
+      try {
+        const el = this._root && this._root.querySelector(selector);
+        if (el && el.focus) el.focus();
+      } catch (e) {}
+    }, 60);
+  }
+
+  go(view, event, focusTitle, shown) {
+    const next = this.normalize(view);
+    if (event) this.remember(event);
+    if (next === (shown || this.current())) return;
+    const s = this.state || {};
+    clearTimeout(this._timer);
+    this.setState({ view: next, reveal: false, busy: false, done: false, sent: false, flip: !s.flip });
+    if (focusTitle) this.focusLater('#b-title');
+  }
+
+  submit(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (this.state && this.state.busy) return;
+    this.remember(event);
+    clearTimeout(this._timer);
+    this.setState({ busy: true, done: false });
+    this._timer = setTimeout(() => {
+      this.setState({ busy: false, done: true });
+      this.focusLater(this.current() === 'dang-ky' ? '#b-verify' : '#b-go');
+    }, 2800);
+  }
+
+  submitForgot(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    this.remember(event);
+    this.setState({ sent: true });
+    this.focusLater('#b-back');
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const view = this.current();
+    const isLogin = view === 'dang-nhap';
+    const isRegister = view === 'dang-ky';
+    const isForgot = view === 'quen-mat-khau';
+    const busy = !isForgot && (!!s.busy || this.props.preview === 'solving');
+    const done = !isForgot && !!s.done && !busy;
+    const lit = busy || done;
+    const notice = this.props.notice;
+    const anim = s.flip == null ? '' : (s.flip ? 'b' : 'a');
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+      isLogin: isLogin,
+      isRegister: isRegister,
+      isForgot: isForgot,
+      showAlt: !isForgot,
+      loginTabClass: 'b-tab' + (isLogin ? ' is-current' : ''),
+      registerTabClass: 'b-tab' + (isRegister ? ' is-current' : ''),
+      loginPressed: String(!isRegister),
+      registerPressed: String(isRegister),
+      colClass: (notice === 'loi-moi' || notice === 'loi-google') ? 'b-col has-notice' : 'b-col',
+      hasInvite: !isForgot && notice === 'loi-moi',
+      hasGoogleError: isLogin && notice === 'loi-google',
+      busy: busy,
+      done: done,
+      notDone: !done,
+      regDone: isRegister && done,
+      regFormCls: isRegister && done ? 'b-filed' : 'b-regform',
+      threadsClass: lit ? 'b-threads is-solving' : 'b-threads',
+      pinClass: 'b-pin b-pinpos' + (lit ? ' is-solving' : '') + (anim ? ' b-repin-' + anim : ''),
+      settleCls: anim ? 'b-settle-' + anim : 'b-stack',
+      swapCls: anim ? 'b-swap b-wipe-' + anim : 'b-swap',
+      cta: busy ? 'ĐANG LẦN THEO DẤU…' : 'ĐĂNG NHẬP',
+      registerCta: busy ? 'ĐANG LẬP HỒ SƠ…' : 'TẠO TÀI KHOẢN',
+      statusText: busy
+        ? (isRegister ? 'Đang lập hồ sơ thám tử…' : 'Đang lần theo manh mối, xác minh danh tính…')
+        : (done ? (isRegister ? 'Đã lập hồ sơ thám tử. Tiếp tục để xác minh email.' : 'Đã xác minh danh tính. Mời vào phòng điều tra.') : ''),
+      today: pad(now.getDate()) + '.' + pad(now.getMonth() + 1) + '.' + now.getFullYear(),
+      sent: isForgot && !!s.sent,
+      showForgotForm: !s.sent,
+      pwType: s.reveal ? 'text' : 'password',
+      revealLabel: s.reveal ? 'Ẩn mật khẩu' : 'Hiện mật khẩu',
+      revealPressed: String(!!s.reveal),
+      toggleReveal: () => this.setState({ reveal: !(this.state && this.state.reveal) }),
+      submit: (event) => this.submit(event),
+      submitForgot: (event) => this.submitForgot(event),
+      showLogin: (event) => this.go('dang-nhap', event, false),
+      showRegister: (event) => this.go('dang-ky', event, false),
+      openLogin: (event) => this.go('dang-nhap', event, true),
+      openRegister: (event) => this.go('dang-ky', event, true),
+      openForgot: (event) => this.go('quen-mat-khau', event, true)
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,966 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Vụ án</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-paper .s-btn:focus-visible{outline-color:#07111f}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-red:disabled{cursor:not-allowed;background:#5a4a3e;color:#c9bfae;box-shadow:0 3px 0 #3a3029}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover:not(:disabled){background:#07111f;color:#fbf6ed}
+.s-btn-ink:disabled{cursor:not-allowed;color:#6b6257;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.35)}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover:not(:disabled){background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-sm{min-height:36px;padding:0 14px;font-size:11px}
+.s-link{display:inline-flex;align-items:center;min-height:44px;color:#5b5248;font-size:16px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px}
+.s-link:hover{color:#9e3f2a}
+.s-link-gold{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:#efd486;font-family:'Crimson Text',Georgia,serif;font-size:17px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(239,212,134,.4);text-underline-offset:4px}
+.s-link-gold:hover{color:#fbf6ed;text-decoration-color:#fbf6ed}
+.s-link:focus-visible,.s-link-gold:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.s-pin{position:absolute;z-index:3;width:18px;height:18px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.s-pin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.s-pin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.s-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:2px;background:rgba(251,246,237,.7);box-shadow:inset 0 0 0 1px rgba(79,69,54,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3328;white-space:nowrap}
+.s-chip.dark{background:#0d1014;color:#efd486;box-shadow:none}
+.s-stamp{display:inline-block;padding:6px 12px;border:4px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;transform:rotate(-8deg);mix-blend-mode:multiply}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+/* ---- Vụ án (cs-) ---- */
+[hidden]{display:none !important}
+sc-if{display:contents}
+.cs-kick{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.2em;color:#5b5248}
+.cs-kick.gold{color:#efd486}
+.cs-h2{margin:2px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;line-height:1.1;color:#07111f}
+.cs-h2.light{color:#fbf6ed}
+.cs-up{text-transform:uppercase}
+.s-paper .s-link:focus-visible{outline-color:#07111f}
+/* top strip: resume + join by code */
+.cs-top{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px 40px;align-items:stretch}
+.cs-cont{position:relative;display:flex;flex-direction:column;min-width:0;box-sizing:border-box;padding:20px 26px 12px;background:#0d1014;color:#eee4d2;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 0 1px rgba(239,212,134,.16),0 24px 48px rgba(0,0,0,.6);transform:rotate(-.3deg)}
+.cs-swap{flex:1;display:flex;flex-direction:column}
+.cs-runs{margin:12px 0 0;padding:0;list-style:none}
+.cs-run{display:grid;grid-template-columns:150px minmax(0,1fr) 104px 186px;grid-template-areas:"code case who go";align-items:center;gap:10px 22px;padding:13px 0;border-top:1px solid rgba(239,212,134,.16)}
+.cs-rcode{grid-area:code}
+.cs-rcase{grid-area:case;min-width:0}
+.cs-who{grid-area:who;display:flex;align-items:center;gap:10px}
+.cs-rgo{grid-area:go;width:100%}
+.cs-codek{display:block;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.18em;color:#b3a794}
+.cs-codev{display:block;margin-top:3px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:22px;font-weight:700;line-height:1.1;letter-spacing:.16em;color:#fbf6ed}
+.cs-rtitle{display:block;overflow:hidden;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;line-height:1.2;color:#fbf6ed;white-space:nowrap;text-overflow:ellipsis}
+.cs-rsub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:6px;font-size:15px;font-style:italic;line-height:1.25;color:#cfc4b1}
+.cs-tag{display:inline-flex;align-items:center;gap:7px;min-height:22px;padding:0 8px;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-style:normal;font-weight:700;letter-spacing:.12em;white-space:nowrap;text-transform:uppercase}
+.cs-tag.play{background:rgba(196,98,63,.15);color:#e8a58c;box-shadow:inset 0 0 0 1px rgba(232,165,140,.45)}
+.cs-tag.wait{background:rgba(79,154,154,.16);color:#8fd0cf;box-shadow:inset 0 0 0 1px rgba(143,208,207,.4)}
+.cs-live{width:7px;height:7px;border-radius:50%;background:#e8a58c;animation:csLive 1.8s ease-out infinite}
+.cs-seats{display:inline-flex}
+.cs-seat{display:inline-grid;place-items:center;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 1.5px #c7a24b,0 0 0 2px #0d1014;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:12px;font-weight:700;letter-spacing:.02em}
+.cs-seat + .cs-seat{margin-left:3px}
+.cs-seat.empty{background:#0d1014;box-shadow:0 0 0 2px #0d1014;border:1.5px dashed rgba(239,212,134,.55)}
+.cs-n{font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;color:#e9dfcc;font-variant-numeric:tabular-nums}
+.cs-empty{position:relative;flex:1;display:flex;align-items:center;gap:20px;min-height:116px;margin:14px 0 8px;padding:16px 150px 16px 20px;box-sizing:border-box;border:1.5px dashed rgba(239,212,134,.28);border-radius:2px}
+.cs-empty p{margin:0;max-width:440px;font-size:18px;font-style:italic;line-height:1.4;color:#cfc4b1}
+.cs-empty svg{flex:none}
+.cs-estampbox{position:absolute;top:50%;right:24px;margin-top:-18px}
+.cs-estamp{display:inline-block;padding:4px 12px;border:4px double currentColor;color:#e8a58c;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;transform:rotate(-8deg);opacity:.8}
+.cs-join{position:relative;display:flex;flex-direction:column;min-width:0;box-sizing:border-box;padding:20px 24px 16px 50px;background:#f4efe3;color:#07111f;box-shadow:0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55);transform:rotate(.7deg)}
+.cs-mline{position:absolute;top:0;bottom:0;width:1.5px;background:rgba(182,64,48,.5)}
+.cs-joinp{margin:4px 0 0;font-size:16px;line-height:1.35;color:#3b3328}
+.cs-codehead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:14px}
+.cs-label{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;color:#5b5248;text-transform:uppercase}
+.cs-count{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.12em;color:#5b5248;font-variant-numeric:tabular-nums}
+.cs-coderow{display:flex;gap:10px;margin-top:6px}
+.cs-code{flex:1;width:100%;min-width:0;box-sizing:border-box;min-height:56px;padding:8px 6px;border:0;border-radius:2px;background:#fbf6ed;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.5);color:#07111f;font-family:'Source Code Pro',ui-monospace,monospace;font-size:24px;font-weight:700;letter-spacing:.38em;text-indent:.38em;text-transform:uppercase;text-align:center;outline:none;transition:box-shadow .15s,background-color .15s}
+.cs-code::placeholder{color:#776e60;opacity:1}
+.cs-code:focus{box-shadow:inset 0 0 0 2px #07111f;background-color:#fff9e8}
+.cs-go{flex:none;min-width:86px;min-height:56px}
+.cs-hint{margin:8px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#5b5248}
+/* main: filing drawer + open dossier */
+.cs-main{position:relative;display:grid;grid-template-columns:680px minmax(0,1fr);gap:44px 56px;align-items:stretch;margin-top:14px}
+.cs-drawer{position:relative;display:flex;flex-direction:column;min-width:0;background:#0e0b09;box-shadow:inset 0 0 0 1px rgba(239,212,134,.14),0 24px 48px rgba(0,0,0,.6)}
+.cs-dhead{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px 16px;height:76px;box-sizing:border-box;padding:0 22px;background:linear-gradient(180deg,#1c2026,#111418);border-bottom:1px solid rgba(239,212,134,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 14px rgba(0,0,0,.55)}
+.cs-plate{position:relative;display:inline-flex;flex:none;margin:0 10px;padding:4px;border-radius:2px;background:linear-gradient(180deg,#f3dc98 0%,#c7a24b 46%,#8a6e2e 100%);box-shadow:0 2px 5px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.55)}
+.cs-plate::before,.cs-plate::after{content:"";position:absolute;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f6e3a6,#8a6e2e 60%,#4a3a14);box-shadow:0 1px 1px rgba(0,0,0,.6)}
+.cs-plate::before{left:-10px}
+.cs-plate::after{right:-10px}
+.cs-plate span{display:block;padding:5px 12px;background:#f4efe3;box-shadow:inset 0 1px 2px rgba(0,0,0,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;color:#3b3328;white-space:nowrap}
+.cs-files{flex:1;display:flex;flex-direction:column;gap:22px;margin:0;padding:30px 16px 24px;list-style:none;background:linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,0) 14px,rgba(0,0,0,0) calc(100% - 14px),rgba(0,0,0,.45))}
+.cs-file{position:relative;height:118px;box-sizing:border-box;padding:14px 22px 14px 18px;background:#e9dcc0;color:#07111f;box-shadow:0 1px 0 rgba(0,0,0,.25),0 10px 18px rgba(0,0,0,.5);transform:translateX(0) rotate(var(--r,0deg));transition:transform .32s cubic-bezier(.2,.8,.2,1),box-shadow .32s;cursor:pointer}
+.cs-file:nth-child(even){background:#dccb9f}
+.cs-file:nth-child(1){--r:-.3deg}.cs-file:nth-child(2){--r:.25deg}.cs-file:nth-child(3){--r:-.2deg}.cs-file:nth-child(4){--r:.3deg}.cs-file:nth-child(5){--r:-.25deg}.cs-file:nth-child(6){--r:.2deg}.cs-file:nth-child(7){--r:-.3deg}
+.cs-file:hover,.cs-file:focus-within{transform:translateX(8px) rotate(var(--r,0deg))}
+.cs-file.is-open,.cs-file.is-open:hover,.cs-file.is-open:focus-within{z-index:2;transform:translateX(30px) rotate(0deg);box-shadow:inset 4px 0 0 #9e3f2a,0 1px 0 rgba(0,0,0,.25),0 18px 30px rgba(0,0,0,.65)}
+.cs-tab{position:absolute;top:-20px;display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 15px;box-sizing:border-box;background:inherit;clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 100%,0 100%);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#4f4536;white-space:nowrap}
+.cs-file:nth-child(3n+1) .cs-tab{left:18px}
+.cs-file:nth-child(3n+2) .cs-tab{left:176px}
+.cs-file:nth-child(3n) .cs-tab{left:334px}
+.cs-tabdot{display:none;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12)}
+.cs-file.is-open .cs-tab{color:#9e3f2a}
+.cs-file.is-open .cs-tabdot{display:inline-block}
+.cs-fbody{display:grid;grid-template-columns:112px minmax(0,1fr) 108px;grid-template-areas:"thumb main acts";align-items:center;gap:0 18px;height:100%}
+.cs-thumb{grid-area:thumb;position:relative;display:block;width:112px;height:84px;background:radial-gradient(ellipse at 50% 38%,#2e251d 0%,#15110e 72%);box-shadow:inset 0 0 0 1px rgba(239,212,134,.24),0 3px 6px rgba(0,0,0,.35);transform:rotate(-1.4deg)}
+.cs-file:nth-child(even) .cs-thumb{transform:rotate(1.1deg)}
+.cs-thumb .cs-art{display:block;width:100%;height:100%}
+.cs-clip{position:absolute;top:-12px;left:14px;transform:rotate(-7deg);filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+.cs-fmain{grid-area:main;min-width:0}
+.cs-trow{display:flex;align-items:center;gap:8px;min-width:0}
+.cs-ftitle{min-width:0;margin:0;overflow:hidden;font-family:'Playfair Display',Georgia,serif;font-size:21px;font-weight:700;line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
+.cs-fsum{display:-webkit-box;margin:4px 0 0;overflow:hidden;font-size:16px;line-height:1.3;color:#2a2318;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cs-fstats{margin:7px 0 0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.08em;color:#4f4536;text-transform:uppercase;white-space:nowrap}
+.cs-fstats b{font-weight:700;color:#07111f}
+.cs-fstats b,.cs-fstats span{white-space:nowrap}
+.cs-facts{grid-area:acts;display:flex;flex-direction:column;gap:8px}
+.cs-facts .s-btn{width:100%;gap:6px;padding:0 4px;letter-spacing:.14em;white-space:nowrap}
+.cs-pick[aria-pressed="true"]{background:#07111f;color:#fbf6ed}
+/* dossier */
+.cs-detail{position:relative;display:flex;flex-direction:column;min-width:0;box-sizing:border-box;padding:12px;background:#d9c49a;box-shadow:inset 0 0 0 1px rgba(94,74,28,.22),0 1px 0 rgba(0,0,0,.2),0 24px 48px rgba(0,0,0,.6);transform:rotate(.25deg)}
+.cs-dtab{position:absolute;top:-26px;left:22px;display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 18px;box-sizing:border-box;background:#d9c49a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 100%,0 100%);font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.18em;color:#3b3328;white-space:nowrap}
+.cs-dtab .cs-tabdot{display:inline-block}
+.cs-under{position:absolute;top:20px;right:5px;bottom:5px;left:22px;background:#efe6d0;box-shadow:0 2px 6px rgba(0,0,0,.25);transform:rotate(.9deg)}
+.cs-page{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;padding:12px 26px 24px 46px;background:#fbf6ed;color:#07111f;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.cs-margin{position:absolute;top:0;bottom:0;left:24px;width:1.5px;background:rgba(182,64,48,.5)}
+.cs-dc{position:relative;flex:1;display:flex;flex-direction:column;min-width:0}
+.cs-o1{--oy:141px}.cs-o2{--oy:281px}.cs-o3{--oy:421px}.cs-o4{--oy:561px}.cs-o5{--oy:701px}.cs-o6{--oy:841px}.cs-o7{--oy:981px}
+.cs-dtop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px}
+.cs-back{display:inline-flex;align-items:center;gap:9px;min-height:44px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;color:#9e3f2a;text-decoration:none;text-transform:uppercase}
+.cs-back:hover{color:#07111f}
+.cs-back svg{transition:transform .15s}
+.cs-back:hover svg{transform:translateX(-3px)}
+.cs-back:focus-visible{outline:2px solid #07111f;outline-offset:2px}
+.cs-stampbox{flex:none;margin:6px 16px 0 0;pointer-events:none}
+.cs-stamp{display:inline-block;padding:4px 10px;border:3px double currentColor;color:#2f6363;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.2em;white-space:nowrap;text-transform:uppercase;transform:rotate(-8deg);mix-blend-mode:multiply}
+.cs-dtitle{margin:2px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.08;color:#07111f;outline:none}
+.cs-dtitle:focus-visible{outline:2px solid #07111f;outline-offset:4px}
+.cs-dmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px}
+.cs-dwrong{margin-left:4px;font-size:15px;font-style:italic;color:#7a3f27}
+.cs-dsum{margin:12px 0 0;font-size:17px;line-height:1.45;color:#2a2318}
+.cs-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.cs-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cs-stats li{display:flex;flex-direction:column;gap:3px;min-width:0;padding:9px 7px 8px;background:rgba(255,255,255,.6);box-shadow:inset 0 2px 0 #9e3f2a,inset 0 0 0 1px rgba(79,154,154,.45)}
+.cs-sn{font-family:'Playfair Display',Georgia,serif;font-size:27px;font-weight:700;line-height:1;color:#07111f;font-variant-numeric:lining-nums tabular-nums}
+.cs-sl{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.08em;line-height:1.25;color:#5b5248;text-transform:uppercase}
+.cs-h3{display:flex;align-items:center;gap:12px;margin:22px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;line-height:1.15;color:#07111f}
+.cs-h3::after{content:"";flex:1;height:1.5px;background:rgba(182,64,48,.45)}
+.cs-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;margin:12px 0 0}
+.cs-act{display:flex;flex-direction:column;min-width:0}
+.cs-acth{min-height:2.4em;margin:0;font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700;line-height:1.2;color:#07111f;text-wrap:balance}
+.cs-acth span{color:#9e3f2a}
+.cs-photo{position:relative;margin:18px 0 0;padding:6px 6px 0;background:#fffdf8;box-shadow:0 1px 0 rgba(0,0,0,.15),0 8px 16px rgba(0,0,0,.28)}
+.cs-photo img{display:block;width:100%;aspect-ratio:16 / 9;object-fit:cover;background:#15110e}
+.cs-photo figcaption{padding:7px 2px 8px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#3b3328;text-align:center;text-transform:uppercase}
+.cs-tape{position:absolute;z-index:2;width:56px;height:18px;background:rgba(233,220,192,.8);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.cs-people{margin:10px 0 0;padding:0;list-style:none}
+.cs-person{display:flex;align-items:flex-start;gap:14px;padding:11px 0;border-bottom:1px solid rgba(79,154,154,.4)}
+.cs-person:first-child{border-top:1px solid rgba(79,154,154,.4)}
+.cs-mono{display:grid;place-items:center;flex:none;width:44px;height:44px;margin-top:2px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 2px #c7a24b,0 0 0 3px #fbf6ed,0 0 0 4px rgba(26,44,66,.35);color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:700;letter-spacing:.02em}
+.cs-pname{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin:0}
+.cs-pname strong{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:#07111f}
+.cs-prole{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#5b5248;text-transform:uppercase}
+.cs-pdesc{margin:3px 0 0;font-size:16px;line-height:1.35;color:#2a2318}
+.cs-cover{position:relative;flex:1 1 auto;display:grid;place-items:center;min-height:220px;margin-top:20px;background:radial-gradient(ellipse at 50% 46%,rgba(255,217,138,.15) 0%,rgba(255,217,138,0) 55%),radial-gradient(ellipse at 50% 42%,#30261e 0%,#17120e 64%,#0e0b09 100%);box-shadow:inset 0 0 0 1px rgba(239,212,134,.24),0 8px 16px rgba(0,0,0,.25)}
+.cs-cover .cs-art{width:min(80%,400px);height:auto;aspect-ratio:4 / 3;filter:drop-shadow(0 10px 12px rgba(0,0,0,.5))}
+.cs-sus{display:flex;gap:14px;margin:16px 0 0;padding:0 2px}
+.cs-su{position:relative;flex:1 1 0;max-width:92px;aspect-ratio:5 / 6;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:#e9dcc0;box-shadow:inset 0 0 0 1px rgba(79,69,54,.22),0 1px 0 rgba(0,0,0,.18),0 6px 12px rgba(0,0,0,.22);transform:rotate(-1.4deg)}
+.cs-su:nth-child(even){background:#dccb9f;transform:rotate(1.1deg)}
+.cs-su::before{content:"";position:absolute;z-index:1;top:5px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%);box-shadow:0 2px 2px rgba(0,0,0,.45)}
+.cs-su svg{display:block;width:80%;height:auto}
+.cs-sealnote{margin:14px 0 0}
+.cs-sealk{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#7a3f27;text-transform:uppercase}
+.cs-note{display:flex;align-items:center;gap:8px;margin:3px 0 0;font-size:17px;font-style:italic;line-height:1.3;color:#3b2418}
+.cs-note svg{flex:none}
+.cs-dacts{display:flex;flex-wrap:wrap;gap:10px 12px;margin-top:auto;padding-top:22px}
+.cs-dacts > div{display:flex;flex-wrap:wrap;gap:10px 12px;width:100%;padding-top:18px;border-top:1px dashed rgba(91,82,72,.45)}
+.cs-dacts .s-btn{flex:1 1 200px;min-height:48px;padding:0 16px;font-size:12px;letter-spacing:.14em}
+.cs-lens{position:absolute;z-index:5;left:20px;width:0;height:0;box-sizing:border-box;border:6px solid #c7a24b;border-radius:50%;opacity:0;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.18),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 1.5px #5e4a1c,0 0 0 1.5px #5e4a1c,0 10px 22px rgba(0,0,0,.35);transform:translate(-50%,-50%);pointer-events:none}
+.cs-thread{position:absolute;z-index:4;left:672px;overflow:visible;pointer-events:none}
+.cs-thread .ln{fill:none;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0}
+.cs-thread .pn{transform-box:fill-box;transform-origin:50% 50%}
+/* motion */
+@keyframes csLive{0%{box-shadow:0 0 0 0 rgba(232,165,140,.65)}70%,100%{box-shadow:0 0 0 6px rgba(232,165,140,0)}}
+@keyframes csPopA{0%{clip-path:circle(0px at -26px var(--oy,0px))}15%{clip-path:circle(36px at -26px var(--oy,0px))}100%{clip-path:circle(150% at -26px var(--oy,0px))}}
+@keyframes csPopB{0%{clip-path:circle(0px at -26px var(--oy,0px))}15%{clip-path:circle(36px at -26px var(--oy,0px))}100%{clip-path:circle(150% at -26px var(--oy,0px))}}
+@keyframes csRimA{0%{width:0;height:0;opacity:0}15%{width:72px;height:72px;opacity:1}100%{width:2700px;height:2700px;opacity:0}}
+@keyframes csRimB{0%{width:0;height:0;opacity:0}15%{width:72px;height:72px;opacity:1}100%{width:2700px;height:2700px;opacity:0}}
+@keyframes csDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes csDrawA{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes csDrawB{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes csPinA{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:scale(1)}}
+@keyframes csPinB{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:scale(1)}}
+@keyframes csStampA{0%{opacity:0;transform:rotate(-16deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes csStampB{0%{opacity:0;transform:rotate(-16deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes csWipeA{from{clip-path:circle(0% at 0% 0%)}to{clip-path:circle(150% at 0% 0%)}}
+@keyframes csWipeB{from{clip-path:circle(0% at 0% 0%)}to{clip-path:circle(150% at 0% 0%)}}
+@keyframes csPingA{0%{box-shadow:0 0 0 0 rgba(239,212,134,.95),0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55)}70%,100%{box-shadow:0 0 0 16px rgba(239,212,134,0),0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55)}}
+@keyframes csPingB{0%{box-shadow:0 0 0 0 rgba(239,212,134,.95),0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55)}70%,100%{box-shadow:0 0 0 16px rgba(239,212,134,0),0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55)}}
+.cs-pop-a{animation:csPopA .62s cubic-bezier(.5,0,.25,1) backwards}
+.cs-pop-b{animation:csPopB .62s cubic-bezier(.5,0,.25,1) backwards}
+.cs-lens-a{animation:csRimA .62s cubic-bezier(.5,0,.25,1) both}
+.cs-lens-b{animation:csRimB .62s cubic-bezier(.5,0,.25,1) both}
+.cs-thr0 .ln{animation:csDraw .5s 1.25s cubic-bezier(.5,0,.3,1) both}
+.cs-thr0 .pn1{animation:csPinA .3s 1.15s cubic-bezier(.2,.8,.2,1) both}
+.cs-thr0 .pn2{animation:csPinA .3s 1.7s cubic-bezier(.2,.8,.2,1) both}
+.cs-thr-a .ln{animation:csDrawA .45s .22s cubic-bezier(.5,0,.3,1) both}
+.cs-thr-b .ln{animation:csDrawB .45s .22s cubic-bezier(.5,0,.3,1) both}
+.cs-thr-a .pn1{animation:csPinA .3s .12s cubic-bezier(.2,.8,.2,1) both}
+.cs-thr-b .pn1{animation:csPinB .3s .12s cubic-bezier(.2,.8,.2,1) both}
+.cs-thr-a .pn2{animation:csPinA .3s .62s cubic-bezier(.2,.8,.2,1) both}
+.cs-thr-b .pn2{animation:csPinB .3s .62s cubic-bezier(.2,.8,.2,1) both}
+.cs-st0 .cs-stamp{animation:csStampA .45s 1.3s cubic-bezier(.2,.8,.2,1) both}
+.cs-st-a .cs-stamp{animation:csStampA .45s .3s cubic-bezier(.2,.8,.2,1) both}
+.cs-st-b .cs-stamp{animation:csStampB .45s .3s cubic-bezier(.2,.8,.2,1) both}
+.cs-wa{animation:csWipeA .55s cubic-bezier(.4,0,.2,1) both}
+.cs-wb{animation:csWipeB .55s cubic-bezier(.4,0,.2,1) both}
+.cs-wa .cs-estamp{animation:csStampA .45s .3s cubic-bezier(.2,.8,.2,1) both}
+.cs-wb .cs-estamp{animation:csStampB .45s .3s cubic-bezier(.2,.8,.2,1) both}
+.cs-ping-a{animation:csPingA .8s ease-out 2}
+.cs-ping-b{animation:csPingB .8s ease-out 2}
+@media (max-width:1239px){
+  .cs-top{grid-template-columns:minmax(0,1fr) 360px;gap:28px 32px}
+  .cs-run{grid-template-columns:132px minmax(0,1fr) 104px 172px;gap:10px 18px}
+  .cs-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px 36px;align-items:start}
+  .cs-thread{display:none}
+  .cs-dhead{height:auto;min-height:76px;padding:12px 20px}
+  .cs-file{height:auto}
+  .cs-file:hover,.cs-file:focus-within{transform:translateX(4px) rotate(var(--r,0deg))}
+  .cs-file.is-open,.cs-file.is-open:hover,.cs-file.is-open:focus-within{transform:translateX(0) rotate(0deg)}
+  .cs-fbody{grid-template-columns:96px minmax(0,1fr);grid-template-areas:"thumb main" "thumb acts";align-items:start;gap:12px 16px;height:auto}
+  .cs-thumb{width:96px;height:72px}
+  .cs-fstats{white-space:normal}
+  .cs-facts{flex-direction:row;flex-wrap:wrap}
+  .cs-facts .s-btn{width:auto;padding:0 14px}
+  .cs-dc{--oy:0px !important}
+  .cs-lens{top:0 !important;left:0}
+  .cs-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cs-dacts{margin-top:0}
+}
+@media (max-width:1023px){
+  .cs-top{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:899px){
+  .cs-main{grid-template-columns:minmax(0,1fr);gap:52px}
+}
+@media (max-width:760px){
+  .s-nav{order:3;width:100%}
+  .cs-cont{padding:18px 16px 10px}
+  .cs-run{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"code who" "case case" "go go";gap:10px 12px;padding:14px 0}
+  .cs-rtitle{white-space:normal}
+  .cs-empty{flex-direction:column;align-items:flex-start;gap:12px;padding:16px}
+  .cs-estampbox{position:static;margin:4px 0 0}
+  .cs-join{padding:18px 18px 16px 44px}
+  .cs-dhead{padding:12px 14px}
+  .cs-plate{margin:0 8px}
+  .cs-plate span{padding:4px 8px;font-size:10px}
+  .cs-files{padding:28px 10px 18px}
+  .cs-file{padding:14px 12px 14px 14px}
+  .cs-file:nth-child(3n+2) .cs-tab{left:118px}
+  .cs-file:nth-child(3n) .cs-tab{left:218px}
+  .cs-fbody{grid-template-columns:80px minmax(0,1fr);grid-template-areas:"thumb main" "acts acts";gap:12px 12px}
+  .cs-thumb{width:80px;height:60px}
+  .cs-clip{top:-11px;left:8px}
+  .cs-ftitle{font-size:19px;white-space:normal}
+  .cs-trow{flex-wrap:wrap;gap:4px 8px}
+  .cs-facts .s-btn{flex:1 1 0;min-height:44px}
+  .cs-page{padding:10px 16px 20px 34px}
+  .cs-under{left:18px}
+  .cs-margin{left:18px}
+  .cs-dtitle{font-size:28px}
+  .cs-stamp{font-size:10px;padding:3px 8px}
+  .cs-stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cs-acts{grid-template-columns:minmax(0,1fr)}
+  .cs-acth{min-height:0}
+  .cs-dacts .s-btn{flex:1 1 100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp,.cs-live,.cs-pop-a,.cs-pop-b,.cs-lens-a,.cs-lens-b,.cs-thread .ln,.cs-thread .pn,.cs-stamp,.cs-estamp,.cs-wa,.cs-wb,.cs-ping-a,.cs-ping-b{animation:none !important}
+  .cs-file,.cs-back svg,.cs-code{transition:none}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".42" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+    <defs>
+      <radialGradient id="cs-pinr" cx=".35" cy=".3" r=".75"><stop offset="0" style="stop-color: #f3a291"></stop><stop offset=".45" style="stop-color: #c0392b"></stop><stop offset="1" style="stop-color: #6e1a12"></stop></radialGradient>
+      <symbol id="cs-art-1" viewBox="0 0 120 90">
+        <path d="M0 0H120V7H0Z" style="fill: #3a1410"></path>
+        <path d="M0 7C9 24 5 62 13 90H0Z" style="fill: #7d2219"></path>
+        <path d="M0 7C6 28 2 60 7 90" style="fill: none; stroke: #5a1812; stroke-width: 1.4"></path>
+        <path d="M120 7C111 24 115 62 107 90H120Z" style="fill: #7d2219"></path>
+        <path d="M120 7C114 28 118 60 113 90" style="fill: none; stroke: #5a1812; stroke-width: 1.4"></path>
+        <path d="M11 7Q60 21 109 7" style="fill: #5a1812"></path>
+        <ellipse cx="60" cy="83" rx="40" ry="5" style="fill: rgba(239,212,134,.14)"></ellipse>
+        <g transform="translate(25 41) rotate(-6)">
+          <rect width="54" height="34" style="fill: #e9dcc0"></rect>
+          <path d="M0 0L27 18L54 0" style="fill: none; stroke: #b9a77f; stroke-width: 1.2"></path>
+          <circle cx="27" cy="18" r="6.5" style="fill: #b8382b"></circle>
+          <circle cx="27" cy="18" r="4" style="fill: none; stroke: rgba(243,199,184,.55); stroke-width: .8"></circle>
+        </g>
+        <g transform="translate(63 30) rotate(9)">
+          <rect width="38" height="25" style="fill: #fbf6ed"></rect>
+          <path d="M4 6H22" style="stroke: #15120e; stroke-width: 2"></path>
+          <path d="M4 12H34M4 16.5H27" style="stroke: #8f8676; stroke-width: 1.2"></path>
+          <path d="M20 21C23 17 27 24 33 19" style="fill: none; stroke: #b8382b; stroke-width: 1.1"></path>
+        </g>
+      </symbol>
+      <symbol id="cs-art-2" viewBox="0 0 120 90">
+        <path d="M0 77H120M0 85H120" style="stroke: #5a4a3a; stroke-width: 2"></path>
+        <path d="M6 77v8M20 77v8M34 77v8M48 77v8M62 77v8M76 77v8M90 77v8M104 77v8M118 77v8" style="stroke: #3a2e24; stroke-width: 3"></path>
+        <circle cx="96" cy="24" r="7" style="fill: rgba(233,220,192,.16)"></circle>
+        <circle cx="107" cy="15" r="4.5" style="fill: rgba(233,220,192,.12)"></circle>
+        <g transform="translate(15 23) rotate(-4)">
+          <path d="M0 0H86V46H0Z" style="fill: #e9dcc0"></path>
+          <path d="M64 2V44" style="stroke: #9e3f2a; stroke-width: 1; stroke-dasharray: 3 3"></path>
+          <path d="M6 9H40" style="stroke: #15120e; stroke-width: 2"></path>
+          <text x="6" y="29" style="font-family: 'Playfair Display', Georgia, serif; font-size: 12px; font-weight: 700; fill: #15120e">Chuyến 7</text>
+          <path d="M6 38H44" style="stroke: #8f8676; stroke-width: 1.2"></path>
+          <text x="75" y="30" style="font-family: 'Source Code Pro', monospace; font-size: 15px; font-weight: 700; fill: #9e3f2a; text-anchor: middle">7</text>
+        </g>
+      </symbol>
+      <symbol id="cs-art-3" viewBox="0 0 120 90">
+        <circle cx="101" cy="42" r="22" style="fill: rgba(239,212,134,.1)"></circle>
+        <g transform="translate(6 22)">
+          <path d="M0 8Q20 0 40 8V58Q20 50 0 58Z" style="fill: #e9dcc0"></path>
+          <path d="M40 8Q60 0 80 8V58Q60 50 40 58Z" style="fill: #f4ecd8"></path>
+          <path d="M40 8V58" style="stroke: #b9a77f; stroke-width: 1"></path>
+          <path d="M7 20H33M7 28H33M7 36H27M47 20H73M47 28H67M47 36H73" style="stroke: #8f8676; stroke-width: 1.4"></path>
+          <path d="M50 46L70 42" style="stroke: #b8382b; stroke-width: 1.6"></path>
+        </g>
+        <g transform="translate(16 64) rotate(-8)">
+          <path d="M0 0H26L23.5 3L26.5 6L23.5 9L26.5 12L23.5 15H0Z" style="fill: #fbf6ed"></path>
+          <path d="M4 5H17M4 10H14" style="stroke: #8f8676; stroke-width: 1.2"></path>
+        </g>
+        <rect x="97" y="52" width="9" height="28" style="fill: #e9dcc0"></rect>
+        <path d="M101.5 52C97 46 100.5 40 101.5 33C104 41 107 46 101.5 52Z" style="fill: #efd486"></path>
+        <ellipse cx="101.5" cy="80" rx="9" ry="2.2" style="fill: #8a6e2e"></ellipse>
+      </symbol>
+      <symbol id="cs-art-4" viewBox="0 0 120 90">
+        <g transform="translate(30 9) rotate(3)">
+          <rect width="58" height="70" style="fill: #e9dcc0"></rect>
+          <path d="M8 12H50M8 20H44M8 28H48M8 36H38" style="stroke: #8f8676; stroke-width: 1.4"></path>
+        </g>
+        <circle cx="62" cy="58" r="15" style="fill: #a8322a"></circle>
+        <circle cx="62" cy="58" r="10" style="fill: none; stroke: rgba(255,210,190,.4); stroke-width: 1"></circle>
+        <path d="M53 44L61 54L57 60L66 72" style="fill: none; stroke: #15110e; stroke-width: 2.2; stroke-linejoin: round"></path>
+        <path d="M80 54l7-3M79 63l8 4" style="stroke: #a8322a; stroke-width: 2.4; stroke-linecap: round"></path>
+      </symbol>
+      <symbol id="cs-art-5" viewBox="0 0 120 90">
+        <path d="M30 80V40L60 25L90 40V80Z" style="fill: #3a2e24"></path>
+        <path d="M30 40L60 25L90 40" style="fill: none; stroke: #5a4a3a; stroke-width: 2"></path>
+        <rect x="45" y="51" width="30" height="29" style="fill: #5a4a3a; stroke: #8a6e2e; stroke-width: 1.4"></rect>
+        <path d="M60 51V80M45 61H75M45 70.5H75" style="stroke: #3a2e24; stroke-width: 1.4"></path>
+        <text x="60" y="45" style="font-family: 'Playfair Display', Georgia, serif; font-size: 12px; font-weight: 700; fill: #efd486; text-anchor: middle">4</text>
+        <path d="M9 22q4-4 8 0q4-4 8 0M86 14q3.5-3.5 7 0q3.5-3.5 7 0M97 30q3-3 6 0q3-3 6 0" style="fill: none; stroke: #e9dcc0; stroke-width: 1.4; stroke-linecap: round"></path>
+        <path d="M0 84H120" style="stroke: #4f9a9a; stroke-width: 6; opacity: .5"></path>
+      </symbol>
+      <symbol id="cs-art-6" viewBox="0 0 120 90">
+        <g transform="translate(34 54)" style="fill: none; stroke: #8a6e2e; stroke-width: 4">
+          <circle r="15"></circle>
+          <path d="M0 -21V-15M0 15V21M-21 0H-15M15 0H21M-15 -15L-11 -11M11 11L15 15M15 -15L11 -11M-11 11L-15 15"></path>
+        </g>
+        <g transform="translate(56 30)" style="fill: none; stroke: #5a4a3a; stroke-width: 3">
+          <circle r="9"></circle>
+          <path d="M0 -13V-9M0 9V13M-13 0H-9M9 0H13"></path>
+        </g>
+        <g transform="translate(86 50)">
+          <circle r="24" style="fill: #e9dcc0; stroke: #c7a24b; stroke-width: 3"></circle>
+          <path d="M0 -24v5M24 0h-5M0 24v-5M-24 0h5" style="stroke: #5b5248; stroke-width: 1.4"></path>
+          <path d="M0 0L-7.8 -6.2M0 0L14.7 3.1" style="stroke: #15120e; stroke-width: 2; stroke-linecap: round"></path>
+          <circle r="2" style="fill: #b8382b"></circle>
+        </g>
+      </symbol>
+      <symbol id="cs-art-7" viewBox="0 0 120 90">
+        <rect x="10" y="12" width="66" height="52" rx="10" style="fill: #0b1b2d; stroke: #5a4a3a; stroke-width: 4"></rect>
+        <circle cx="59" cy="27" r="5" style="fill: #efd486; opacity: .85"></circle>
+        <path d="M14 52L30 45L46 51L62 43L72 50V60H14Z" style="fill: #142235"></path>
+        <g transform="translate(64 44) rotate(-5)">
+          <rect width="46" height="34" style="fill: #7a4126; stroke: #c7a24b; stroke-width: 1.2"></rect>
+          <path d="M23 0V34M0 17H46" style="stroke: #b8382b; stroke-width: 2"></path>
+          <circle cx="23" cy="17" r="4.5" style="fill: #b8382b"></circle>
+        </g>
+      </symbol>
+      <symbol id="cs-sil" viewBox="0 0 60 64">
+        <circle cx="30" cy="23" r="12.5" style="fill: #3b3328"></circle>
+        <path d="M6 64C6 47 17 39 30 39S54 47 54 64Z" style="fill: #3b3328"></path>
+        <text x="30" y="29" style="font-family: 'Playfair Display', Georgia, serif; font-size: 16px; font-weight: 700; fill: #efd486; text-anchor: middle">?</text>
+      </symbol>
+      <symbol id="cs-clip" viewBox="0 0 12 34">
+        <path d="M8.5 9V26.5a3.5 3.5 0 0 1-7 0V6a2.75 2.75 0 0 1 5.5 0V24a1.25 1.25 0 0 1-2.5 0V9" style="fill: none; stroke: #d3dade; stroke-width: 1.4; stroke-linecap: round"></path>
+      </symbol>
+      <symbol id="cs-i-eye" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></g></symbol>
+      <symbol id="cs-i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round"></path></symbol>
+    </defs>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html">TRANG CHỦ</a>
+      <a href="FindGame.dc.html">TÌM TRẬN</a>
+      <a href="Rooms.dc.html">PHÒNG</a>
+      <a href="Cases.dc.html" aria-current="page">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span aria-hidden="true" style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; display: flex; flex-direction: column; gap: 26px; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 24px 16px 44px">
+
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px">
+          <div style="position: relative; padding: 12px 26px 12px; background: #0d1014; box-shadow: 0 14px 30px rgba(0,0,0,.55); transform: rotate(-1deg)">
+            <span aria-hidden="true" style="position: absolute; top: 8px; left: 10px; width: 12px; height: 12px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%)"></span>
+            <p style="margin: 0 0 0 10px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .26em; color: #efd486">THƯ VIỆN HỒ SƠ · 7 VỤ ÁN</p>
+            <h1 style="margin: 2px 0 0 10px; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #fbf6ed">Vụ án đã xuất bản</h1>
+          </div>
+          <p style="flex: 1 1 320px; margin: 0; max-width: 540px; font-size: 18px; font-style: italic; line-height: 1.4; color: #d9cfbd">Chọn một hồ sơ, mở phòng và mời đồng đội — hoặc quay lại ván đang dang dở.</p>
+        </div>
+
+        <div class="cs-top">
+
+          <section class="cs-cont" aria-labelledby="cs-cont-h">
+            <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+            <p class="cs-kick gold">{{ roomKick }}</p>
+            <h2 id="cs-cont-h" class="cs-h2 light">Tiếp tục ván đang chơi</h2>
+            <div class="{{ swapCls }}">
+              <sc-if value="{{ hasRooms }}" hint-placeholder-val="{{ true }}">
+                <ul class="cs-runs">
+                  <li class="cs-run">
+                    <div class="cs-rcode"><span class="cs-codek">MÃ PHÒNG</span><span class="cs-codev">K7Q2LM</span></div>
+                    <div class="cs-rcase">
+                      <span class="cs-rtitle">Đêm khóa sổ</span>
+                      <span class="cs-rsub"><span class="cs-tag play"><span class="cs-live" aria-hidden="true"></span>Đang điều tra</span>Vai của bạn: Điều tra viên</span>
+                    </div>
+                    <div class="cs-who">
+                      <span class="cs-seats" aria-hidden="true"><span class="cs-seat">TM</span><span class="cs-seat">TV</span></span>
+                      <span class="cs-n">2/2<span class="s-sr"> thám tử: Thám tử Minh và Thám tử Vy</span></span>
+                    </div>
+                    <a class="s-btn s-btn-red cs-rgo cs-up" href="Game.dc.html">Tiếp tục<span class="s-sr"> vụ Đêm khóa sổ, phòng K7Q2LM</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></a>
+                  </li>
+                  <li class="cs-run">
+                    <div class="cs-rcode"><span class="cs-codek">MÃ PHÒNG</span><span class="cs-codev">8FJ3XA</span></div>
+                    <div class="cs-rcase">
+                      <span class="cs-rtitle">Hồ sơ chuyến tàu số 7</span>
+                      <span class="cs-rsub"><span class="cs-tag wait">Phòng chờ</span>Đang chờ đồng đội vào phòng</span>
+                    </div>
+                    <div class="cs-who">
+                      <span class="cs-seats" aria-hidden="true"><span class="cs-seat">TM</span><span class="cs-seat empty"></span></span>
+                      <span class="cs-n">1/2<span class="s-sr"> thám tử, còn trống một chỗ</span></span>
+                    </div>
+                    <a class="s-btn s-btn-gold cs-rgo cs-up" href="Lobby.dc.html">Về phòng chờ<span class="s-sr"> của phòng 8FJ3XA</span></a>
+                  </li>
+                </ul>
+              </sc-if>
+              <sc-if value="{{ noRooms }}" hint-placeholder-val="{{ false }}">
+                <div class="cs-empty">
+                  <svg width="60" height="60" viewBox="0 0 64 64" aria-hidden="true">
+                    <path d="M8 18h16l4 5h28v29H8z" style="fill: rgba(239,212,134,.04); stroke: #c7a24b; stroke-width: 1.8; stroke-linejoin: round"></path>
+                    <path d="M8 29h48" style="stroke: rgba(199,162,75,.55); stroke-width: 1.4; stroke-dasharray: 3 3"></path>
+                    <path d="M46.5 46.5L55 55" style="stroke: #3b2716; stroke-width: 6; stroke-linecap: round"></path>
+                    <path d="M46.5 46.5L55 55" style="stroke: #8a5a34; stroke-width: 3; stroke-linecap: round"></path>
+                    <circle cx="40" cy="40" r="9" style="fill: rgba(190,225,235,.12); stroke: #efd486; stroke-width: 2.6"></circle>
+                  </svg>
+                  <p>Chưa có ván đang chơi. Hãy tạo phòng hoặc vào cùng đồng đội.</p>
+                  <span class="cs-estampbox" aria-hidden="true"><span class="cs-estamp">Trống</span></span>
+                </div>
+              </sc-if>
+            </div>
+          </section>
+
+          <section class="{{ joinCls }}" aria-labelledby="cs-join-h">
+            <span class="cs-mline" aria-hidden="true" style="left: 26px"></span>
+            <span class="cs-mline" aria-hidden="true" style="left: 30px"></span>
+            <span class="s-pin gold" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+            <p class="cs-kick">MÃ MỜI · VÀO CÙNG ĐỒNG ĐỘI</p>
+            <h2 id="cs-join-h" class="cs-h2">Đã có mã phòng?</h2>
+            <p class="cs-joinp">Nhập mã 6 ký tự đồng đội gửi cho bạn.</p>
+            <div class="cs-codehead">
+              <label for="cs-code" class="cs-label">Mã phòng</label>
+              <span class="cs-count" aria-hidden="true">{{ codeCount }}/6</span>
+            </div>
+            <div class="cs-coderow">
+              <input id="cs-code" class="cs-code" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" autocapitalize="characters" spellcheck="false" value="{{ code }}" onChange="{{ setCode }}" aria-describedby="cs-code-hint">
+              <a class="s-btn s-btn-red cs-go" href="Lobby.dc.html">VÀO</a>
+            </div>
+            <p id="cs-code-hint" class="cs-hint">Gồm 6 ký tự: chữ A–Z và số 0–9.</p>
+          </section>
+
+        </div>
+
+        <div class="cs-main">
+
+          <section id="cs-list" class="cs-drawer" aria-labelledby="cs-list-h">
+            <div class="cs-dhead">
+              <div>
+                <p class="cs-kick gold">NGĂN LƯU TRỮ · 7 HỒ SƠ</p>
+                <h2 id="cs-list-h" class="cs-h2 light">Tất cả vụ án</h2>
+              </div>
+              <span class="cs-plate" aria-hidden="true"><span>Nº 01 — 07</span></span>
+            </div>
+            <ol class="cs-files">
+
+              <li class="{{ f1 }}" onClick="{{ tap1 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 01</span>
+                <article class="cs-fbody" aria-labelledby="cs-t1">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-1"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t1" class="cs-ftitle">Đêm khóa sổ</h3></div>
+                    <p class="cs-fsum">22:00, nhà hát Vọng Âm đóng cửa sau đêm diễn cứu trợ. Trong phong bì quỹ, tờ lệnh chi đã bị thay. Sáng mai ngân hàng sẽ trả tiền cho người ghi trên lệnh — hãy tìm ra ai đã đổi hồ sơ trước khi quỹ bị rút.</p>
+                    <p class="cs-fstats"><b>35 phút</b> · <span>2 hiện trường</span> · <span>3 nghi phạm</span> · <span>10 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-1" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p1 }}" aria-controls="cs-detail" onClick="{{ pick1 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: Đêm khóa sổ</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: Đêm khóa sổ</span></a>
+                  </div>
+                </article>
+              </li>
+
+              <li class="{{ f2 }}" onClick="{{ tap2 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 02</span>
+                <article class="cs-fbody" aria-labelledby="cs-t2">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-2"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t2" class="cs-ftitle">Hồ sơ chuyến tàu số 7</h3></div>
+                    <p class="cs-fsum">23:10, ga Lạc Hải, năm 1932. Hồ sơ kiểm định cầu phải theo chuyến tàu số 7 lúc 00:15 đã biến mất.</p>
+                    <p class="cs-fstats"><b>80 phút</b> · <span>4 hiện trường</span> · <span>5 nghi phạm</span> · <span>18 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-2" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p2 }}" aria-controls="cs-detail" onClick="{{ pick2 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: Hồ sơ chuyến tàu số 7</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: Hồ sơ chuyến tàu số 7</span></a>
+                  </div>
+                </article>
+              </li>
+
+              <li class="{{ f3 }}" onClick="{{ tap3 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 03</span>
+                <article class="cs-fbody" aria-labelledby="cs-t3">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-3"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t3" class="cs-ftitle">Cuốn sổ trong đêm</h3></div>
+                    <p class="cs-fsum">Quỹ từ thiện biến mất sau một biên nhận bị xé, hộp tiền có khóa và niêm phong không được phép bị phá.</p>
+                    <p class="cs-fstats"><b>20 phút</b> · <span>2 hiện trường</span> · <span>3 nghi phạm</span> · <span>8 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-3" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p3 }}" aria-controls="cs-detail" onClick="{{ pick3 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: Cuốn sổ trong đêm</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: Cuốn sổ trong đêm</span></a>
+                  </div>
+                </article>
+              </li>
+
+              <li class="{{ f4 }}" onClick="{{ tap4 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 04</span>
+                <article class="cs-fbody" aria-labelledby="cs-t4">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-4"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t4" class="cs-ftitle">Con Dấu Bị Phá</h3></div>
+                    <p class="cs-fsum">Đối chiếu lời khai của thủ kho với dấu vết vật lý trên một hồ sơ đã bị niêm phong lại.</p>
+                    <p class="cs-fstats"><b>10 phút</b> · <span>1 hiện trường</span> · <span>2 nghi phạm</span> · <span>5 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-4" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p4 }}" aria-controls="cs-detail" onClick="{{ pick4 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: Con Dấu Bị Phá</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: Con Dấu Bị Phá</span></a>
+                  </div>
+                </article>
+              </li>
+
+              <li class="{{ f5 }}" onClick="{{ tap5 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 05</span>
+                <article class="cs-fbody" aria-labelledby="cs-t5">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-5"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t5" class="cs-ftitle">Hạ Màn Tại Kho Hải Âu</h3></div>
+                    <p class="cs-fsum">Một bảo vật hàng hải biến mất giữa lễ chuyển giao tài sản tại Nhà kho số 4.</p>
+                    <p class="cs-fstats"><b>35 phút</b> · <span>3 hiện trường</span> · <span>4 nghi phạm</span> · <span>12 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-5" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p5 }}" aria-controls="cs-detail" onClick="{{ pick5 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: Hạ Màn Tại Kho Hải Âu</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: Hạ Màn Tại Kho Hải Âu</span></a>
+                  </div>
+                </article>
+              </li>
+
+              <li class="{{ f6 }}" onClick="{{ tap6 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 06</span>
+                <article class="cs-fbody" aria-labelledby="cs-t6">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-6"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t6" class="cs-ftitle">The Clockwork Conservatory</h3><span class="s-chip dark">EN<span class="s-sr"> — vụ án tiếng Anh</span></span></div>
+                    <p class="cs-fsum">At ten seventeen, every clock in Bellweather Conservatory stops and its priceless sunstone vanishes.</p>
+                    <p class="cs-fstats"><b>15 phút</b> · <span>2 hiện trường</span> · <span>3 nghi phạm</span> · <span>7 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-6" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p6 }}" aria-controls="cs-detail" onClick="{{ pick6 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: The Clockwork Conservatory</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: The Clockwork Conservatory</span></a>
+                  </div>
+                </article>
+              </li>
+
+              <li class="{{ f7 }}" onClick="{{ tap7 }}">
+                <span class="cs-tab" aria-hidden="true"><span class="cs-tabdot"></span>Nº 07</span>
+                <article class="cs-fbody" aria-labelledby="cs-t7">
+                  <span class="cs-thumb" aria-hidden="true"><svg class="cs-art" width="112" height="84"><use href="#cs-art-7"></use></svg><svg class="cs-clip" width="12" height="34"><use href="#cs-clip"></use></svg></span>
+                  <div class="cs-fmain">
+                    <div class="cs-trow"><h3 id="cs-t7" class="cs-ftitle">The Sealed Ledger Affair</h3><span class="s-chip dark">EN<span class="s-sr"> — vụ án tiếng Anh</span></span></div>
+                    <p class="cs-fsum">A sealed ledger vanishes aboard a night train while its owner is found unconscious in a locked compartment.</p>
+                    <p class="cs-fstats"><b>43 phút</b> · <span>3 hiện trường</span> · <span>4 nghi phạm</span> · <span>14 manh mối</span></p>
+                  </div>
+                  <div class="cs-facts">
+                    <button type="button" id="cs-pick-7" class="s-btn s-btn-ink s-btn-sm cs-pick cs-up" aria-pressed="{{ p7 }}" aria-controls="cs-detail" onClick="{{ pick7 }}"><svg width="14" height="14" aria-hidden="true"><use href="#cs-i-eye"></use></svg>Chi tiết<span class="s-sr">: The Sealed Ledger Affair</span></button>
+                    <a class="s-btn s-btn-red s-btn-sm cs-up" href="Lobby.dc.html"><svg width="13" height="13" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: The Sealed Ledger Affair</span></a>
+                  </div>
+                </article>
+              </li>
+
+            </ol>
+          </section>
+
+          <section id="cs-detail" class="cs-detail" aria-labelledby="cs-dh">
+            <span class="cs-dtab" aria-hidden="true"><span class="cs-tabdot"></span>HỒ SƠ Nº {{ dNum }}</span>
+            <span class="cs-under" aria-hidden="true"></span>
+            <div class="cs-page s-paper">
+              <span class="cs-margin" aria-hidden="true"></span>
+              <div class="{{ popCls }}">
+                <div class="cs-dtop">
+                  <a class="cs-back" href="#cs-list" onClick="{{ backToList }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="M11 18l-6-6 6-6"></path></svg>Tất cả vụ án</a>
+                  <span class="{{ stampCls }}" aria-hidden="true"><span class="cs-stamp">Đã xuất bản</span></span>
+                </div>
+                <p class="cs-kick">TÁC GIẢ: {{ dAuthor }}</p>
+                <h2 id="cs-dh" class="cs-dtitle" tabindex="-1">{{ dTitle }}</h2>
+                <div class="cs-dmeta">
+                  <span class="s-chip dark">{{ dVer }}</span>
+                  <span class="s-chip">{{ dLang }}</span>
+                  <span class="cs-dwrong">{{ dMeta }}</span>
+                </div>
+                <p class="cs-dsum">{{ dSum }}</p>
+                <ul class="{{ statsCls }}" aria-label="Thông số vụ án">
+                  <li><span class="cs-sn">{{ s1n }}</span> <span class="cs-sl">{{ s1l }}</span></li>
+                  <li><span class="cs-sn">{{ s2n }}</span> <span class="cs-sl">{{ s2l }}</span></li>
+                  <li><span class="cs-sn">{{ s3n }}</span> <span class="cs-sl">{{ s3l }}</span></li>
+                  <li><span class="cs-sn">{{ s4n }}</span> <span class="cs-sl">{{ s4l }}</span></li>
+                  <li hidden="{{ hideStat5 }}"><span class="cs-sn">{{ s5n }}</span> <span class="cs-sl">{{ s5l }}</span></li>
+                </ul>
+
+                <sc-if value="{{ isKs }}" hint-placeholder-val="{{ true }}">
+                  <h3 class="cs-h3">Các hồi điều tra</h3>
+                  <div class="cs-acts">
+                    <article class="cs-act">
+                      <h4 class="cs-acth"><span>Hồi I —</span> Quầy vé sau màn hạ</h4>
+                      <figure class="cs-photo" style="transform: rotate(-1.2deg)">
+                        <span class="cs-tape" aria-hidden="true" style="top: -8px; left: -14px; transform: rotate(-30deg)"></span>
+                        <span class="cs-tape" aria-hidden="true" style="top: -8px; right: -14px; transform: rotate(28deg)"></span>
+                        <img src="/_blob/0c2343546616163ced455490488d6d69" alt="Quầy vé gỗ dưới rèm nhung đỏ, lưới cửa bán vé bằng đồng, đèn bàn và chiếc móc đồng trên tường cạnh cửa">
+                        <figcaption>Phòng vé Vọng Âm</figcaption>
+                      </figure>
+                    </article>
+                    <article class="cs-act">
+                      <h4 class="cs-acth"><span>Hồi II —</span> Hồ sơ trước giờ giải ngân</h4>
+                      <figure class="cs-photo" style="transform: rotate(1deg)">
+                        <span class="cs-tape" aria-hidden="true" style="top: -8px; left: -14px; transform: rotate(-28deg)"></span>
+                        <span class="cs-tape" aria-hidden="true" style="top: -8px; right: -14px; transform: rotate(30deg)"></span>
+                        <img src="/_blob/3b834eb4587233e5db0579e72e49e276" alt="Hành lang ốp gỗ với tủ thư dịch vụ nhiều ngăn, cánh cửa gỗ, giá treo áo và kệ sách cạnh cửa sổ">
+                        <figcaption>Hành lang kiểm sổ</figcaption>
+                      </figure>
+                    </article>
+                  </div>
+                  <h3 class="cs-h3">Nhân vật liên quan</h3>
+                  <ul class="cs-people">
+                    <li class="cs-person">
+                      <span class="cs-mono" aria-hidden="true">MV</span>
+                      <div style="min-width: 0">
+                        <p class="cs-pname"><strong>Mai Vân</strong><span class="cs-prole">Nhân viên phòng vé</span></p>
+                        <p class="cs-pdesc">Mai tiếp nhận phong bì lệnh chi quỹ lúc 20:50. Cô nói mình rời nhà hát lúc 21:00.</p>
+                      </div>
+                    </li>
+                    <li class="cs-person">
+                      <span class="cs-mono" aria-hidden="true">SL</span>
+                      <div style="min-width: 0">
+                        <p class="cs-pname"><strong>Sơn Lâm</strong><span class="cs-prole">Bảo vệ đêm</span></p>
+                        <p class="cs-pdesc">Lâm bắt đầu ca lúc 21:45. Ông nghi có người lạ giật chìa; cần tách điều ông thấy khỏi điều ông suy đoán.</p>
+                      </div>
+                    </li>
+                    <li class="cs-person">
+                      <span class="cs-mono" aria-hidden="true">VK</span>
+                      <div style="min-width: 0">
+                        <p class="cs-pname"><strong>Vũ Khang</strong><span class="cs-prole">Thủ quỹ</span></p>
+                        <p class="cs-pdesc">Khang bàn giao lệnh chi đã niêm phong rồi đi ngân hàng. Phiếu cầm đồ cũ của ông dễ gây hiểu lầm.</p>
+                      </div>
+                    </li>
+                  </ul>
+                </sc-if>
+
+                <sc-if value="{{ notKs }}" hint-placeholder-val="{{ false }}">
+                  <div class="cs-cover">
+                    <span class="cs-tape" aria-hidden="true" style="top: -8px; left: -12px; transform: rotate(-32deg)"></span>
+                    <span class="cs-tape" aria-hidden="true" style="bottom: -8px; right: -12px; transform: rotate(-32deg)"></span>
+                    <svg class="cs-art" width="300" height="225" aria-hidden="true"><use href="#{{ dArt }}"></use></svg>
+                  </div>
+                  <h3 class="cs-h3">Nhân vật liên quan</h3>
+                  <div class="cs-sus" aria-hidden="true">
+                    <span class="cs-su"><svg width="60" height="64"><use href="#cs-sil"></use></svg></span>
+                    <span class="cs-su"><svg width="60" height="64"><use href="#cs-sil"></use></svg></span>
+                    <span class="cs-su" hidden="{{ qh3 }}"><svg width="60" height="64"><use href="#cs-sil"></use></svg></span>
+                    <span class="cs-su" hidden="{{ qh4 }}"><svg width="60" height="64"><use href="#cs-sil"></use></svg></span>
+                    <span class="cs-su" hidden="{{ qh5 }}"><svg width="60" height="64"><use href="#cs-sil"></use></svg></span>
+                  </div>
+                  <div class="cs-sealnote">
+                    <p class="cs-sealk">{{ suspectText }}</p>
+                    <p class="cs-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>Hồ sơ nhân vật sẽ mở khi vào phòng.</p>
+                  </div>
+                </sc-if>
+
+                <div class="cs-dacts">
+                  <div>
+                    <a class="s-btn s-btn-red cs-up" href="Lobby.dc.html"><svg width="15" height="15" aria-hidden="true"><use href="#cs-i-plus"></use></svg>Tạo phòng<span class="s-sr">: {{ dTitle }}</span></a>
+                    <button type="button" class="s-btn s-btn-ink cs-up" onClick="{{ focusCode }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M10.8 12.2L19 4"></path><path d="M16 7l2.5 2.5"></path><path d="M13.5 9.5l2 2"></path></svg>Vào bằng mã phòng</button>
+                  </div>
+                </div>
+              </div>
+              <span class="{{ lensCls }}" style="top: {{ rimTop }}px" aria-hidden="true"></span>
+            </div>
+          </section>
+
+          <svg class="{{ thrCls }}" style="top: {{ thrTop }}px" width="80" height="48" viewBox="0 0 80 48" aria-hidden="true">
+            <path class="ln" pathLength="1" d="M12 24Q41 39 70 24" transform="translate(2 5)" style="stroke: rgba(0,0,0,.45); stroke-width: 2.8"></path>
+            <path class="ln" pathLength="1" d="M12 24Q41 39 70 24" style="stroke: #bf3b2c; stroke-width: 2.1"></path>
+            <g class="pn pn1"><circle cx="13.5" cy="27.5" r="7.5" style="fill: rgba(0,0,0,.38)"></circle><circle cx="12" cy="24" r="7.5" fill="url(#cs-pinr)"></circle></g>
+            <g class="pn pn2"><circle cx="71.5" cy="27.5" r="7.5" style="fill: rgba(0,0,0,.38)"></circle><circle cx="70" cy="24" r="7.5" fill="url(#cs-pinr)"></circle></g>
+          </svg>
+          <p class="s-sr" role="status">{{ liveMsg }}</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"rooms":{"editor":"enum","options":["co-van","trong"],"default":"co-van","section":"Trạng thái"},"$preview":{"width":1440,"height":1605}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 0, flip: null, rooms: null, roomFlip: null, code: '', ping: null, live: '' };
+    this._t = null;
+    this.cases = [
+      { title: 'Đêm khóa sổ', author: 'THANH_TRA_LÊ', ver: 'V3 · CRACK', lang: 'VI', plays: '1.204', wrong: '41%', suspects: 3,
+        sum: '22:00, nhà hát Vọng Âm đóng cửa sau đêm diễn cứu trợ. Trong phong bì quỹ, tờ lệnh chi đã bị thay. Sáng mai ngân hàng sẽ trả tiền cho người ghi trên lệnh. Một người khám nghiệm vật chứng, một người gỡ lời khai: hãy tìm ra ai đã đổi hồ sơ trước khi quỹ bị rút.',
+        stats: [['35', 'phút'], ['2', 'hiện trường'], ['8', 'vật phẩm'], ['10', 'manh mối'], ['9', 'câu hỏi']] },
+      { title: 'Hồ sơ chuyến tàu số 7', author: 'GA_LAC_HAI', ver: 'V3 · CRACK', lang: 'VI', plays: '2.341', wrong: '52%', suspects: 5,
+        sum: '23:10, ga Lạc Hải, năm 1932. Hồ sơ kiểm định cầu phải theo chuyến tàu số 7 lúc 00:15 đã biến mất.',
+        stats: [['80', 'phút'], ['4', 'hiện trường'], ['5', 'nghi phạm'], ['18', 'manh mối']] },
+      { title: 'Cuốn sổ trong đêm', author: 'CU_DEM', ver: 'V3 · CRACK', lang: 'VI', plays: '3.087', wrong: '18%', suspects: 3,
+        sum: 'Quỹ từ thiện biến mất sau một biên nhận bị xé, hộp tiền có khóa và niêm phong không được phép bị phá.',
+        stats: [['20', 'phút'], ['2', 'hiện trường'], ['3', 'nghi phạm'], ['8', 'manh mối']] },
+      { title: 'Con Dấu Bị Phá', author: 'THU_KHO', ver: 'V3 · CRACK', lang: 'VI', plays: '5.612', wrong: '27%', suspects: 2,
+        sum: 'Đối chiếu lời khai của thủ kho với dấu vết vật lý trên một hồ sơ đã bị niêm phong lại.',
+        stats: [['10', 'phút'], ['1', 'hiện trường'], ['2', 'nghi phạm'], ['5', 'manh mối']] },
+      { title: 'Hạ Màn Tại Kho Hải Âu', author: 'HAI_AU', ver: 'V2', lang: 'VI', plays: '912', wrong: '46%', suspects: 4,
+        sum: 'Một bảo vật hàng hải biến mất giữa lễ chuyển giao tài sản tại Nhà kho số 4.',
+        stats: [['35', 'phút'], ['3', 'hiện trường'], ['4', 'nghi phạm'], ['12', 'manh mối']] },
+      { title: 'The Clockwork Conservatory', author: 'LAMPLIGHT', ver: 'V3 · CRACK', lang: 'EN', plays: '1.388', wrong: '33%', suspects: 3,
+        sum: 'At ten seventeen, every clock in Bellweather Conservatory stops and its priceless sunstone vanishes.',
+        stats: [['15', 'phút'], ['2', 'hiện trường'], ['3', 'nghi phạm'], ['7', 'manh mối']] },
+      { title: 'The Sealed Ledger Affair', author: 'NIGHTRAIL', ver: 'V2', lang: 'EN', plays: '764', wrong: '58%', suspects: 4,
+        sum: 'A sealed ledger vanishes aboard a night train while its owner is found unconscious in a locked compartment.',
+        stats: [['43', 'phút'], ['3', 'hiện trường'], ['4', 'nghi phạm'], ['14', 'manh mối']] }
+    ];
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.rooms !== this.props.rooms) {
+      const s = this.state || {};
+      this.setState({ rooms: this.props.rooms, roomFlip: !s.roomFlip });
+    }
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._t);
+  }
+
+  csFind(id) {
+    try {
+      if (typeof document === 'undefined') return null;
+      const direct = document.getElementById(id);
+      if (direct) return direct;
+      const roots = [document];
+      while (roots.length) {
+        const all = roots.pop().querySelectorAll('*');
+        for (let i = 0; i < all.length; i += 1) {
+          const sr = all[i].shadowRoot;
+          if (sr) {
+            const hit = sr.getElementById ? sr.getElementById(id) : sr.querySelector('#' + id);
+            if (hit) return hit;
+            roots.push(sr);
+          }
+        }
+      }
+    } catch (err) {
+      return null;
+    }
+    return null;
+  }
+
+  csFocusLater(id) {
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      const el = this.csFind(id);
+      if (el && typeof el.focus === 'function') el.focus();
+    }, 60);
+  }
+
+  csPick(i) {
+    const s = this.state || {};
+    const cur = typeof s.sel === 'number' ? s.sel : 0;
+    if (cur !== i) this.setState({ sel: i, flip: !s.flip, live: 'Đang xem hồ sơ: ' + this.cases[i].title });
+    this.csFocusLater('cs-dh');
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const sel = typeof s.sel === 'number' ? s.sel : 0;
+    const c = this.cases[sel] || this.cases[0];
+    const rooms = s.rooms || this.props.rooms || 'co-van';
+    const hasRooms = rooms !== 'trong';
+    // centre of the selected folder inside .cs-main (desktop): drawer head 76 + list padding 30 + n × (folder 118 + gap 22) + half folder
+    const cy = 76 + 30 + sel * 140 + 59;
+    const ab = s.flip == null ? '' : (s.flip ? 'b' : 'a');
+    const st = c.stats;
+    const v = {
+      roomKick: hasRooms ? 'VÁN DANG DỞ · 2 PHÒNG' : 'VÁN DANG DỞ · 0 PHÒNG',
+      swapCls: 'cs-swap' + (s.roomFlip == null ? '' : (s.roomFlip ? ' cs-wb' : ' cs-wa')),
+      hasRooms: hasRooms,
+      noRooms: !hasRooms,
+      joinCls: 'cs-join s-paper' + (s.ping == null ? '' : (s.ping ? ' cs-ping-b' : ' cs-ping-a')),
+      code: s.code || '',
+      codeCount: String((s.code || '').length),
+      setCode: (e) => {
+        const raw = e && e.target ? String(e.target.value || '') : '';
+        this.setState({ code: raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) });
+      },
+      focusCode: () => {
+        const st2 = this.state || {};
+        this.setState({ ping: !st2.ping });
+        this.csFocusLater('cs-code');
+      },
+      backToList: (e) => {
+        const el = this.csFind('cs-pick-' + (sel + 1));
+        if (el && typeof el.focus === 'function') {
+          if (e && typeof e.preventDefault === 'function') e.preventDefault();
+          el.focus();
+        }
+      },
+      dNum: String(sel + 1).padStart(2, '0'),
+      dTitle: c.title,
+      dAuthor: c.author,
+      dVer: c.ver,
+      dLang: c.lang,
+      dMeta: c.plays + ' lượt chơi · ' + c.wrong + ' đội buộc tội nhầm',
+      dSum: c.sum,
+      dArt: 'cs-art-' + (sel + 1),
+      isKs: sel === 0,
+      notKs: sel !== 0,
+      statsCls: st.length === 5 ? 'cs-stats' : 'cs-stats four',
+      hideStat5: st.length < 5,
+      suspectText: c.suspects + ' nghi phạm · đang niêm phong',
+      qh3: c.suspects < 3,
+      qh4: c.suspects < 4,
+      qh5: c.suspects < 5,
+      popCls: 'cs-dc cs-o' + (sel + 1) + (ab ? ' cs-pop-' + ab : ''),
+      lensCls: 'cs-lens' + (ab ? ' cs-lens-' + ab : ''),
+      rimTop: cy - 12,
+      thrCls: 'cs-thread ' + (ab ? 'cs-thr-' + ab : 'cs-thr0'),
+      thrTop: cy - 24,
+      stampCls: 'cs-stampbox ' + (ab ? 'cs-st-' + ab : 'cs-st0'),
+      liveMsg: s.live || ''
+    };
+    for (let i = 0; i < 5; i += 1) {
+      v['s' + (i + 1) + 'n'] = st[i] ? st[i][0] : '';
+      v['s' + (i + 1) + 'l'] = st[i] ? st[i][1] : '';
+    }
+    for (let i = 0; i < 7; i += 1) {
+      const on = i === sel;
+      v['f' + (i + 1)] = on ? 'cs-file s-paper is-open' : 'cs-file s-paper';
+      v['p' + (i + 1)] = String(on);
+      v['pick' + (i + 1)] = () => this.csPick(i);
+      v['tap' + (i + 1)] = (e) => {
+        const t = e && e.target;
+        if (t && typeof t.closest === 'function' && t.closest('a,button')) return;
+        this.csPick(i);
+      };
+    }
+    return v;
+  }
+}
+</script>
+</body>
+</html>

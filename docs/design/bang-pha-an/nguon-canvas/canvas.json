@@ -1,0 +1,44 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-15T05:52:00Z" },
+  "title": "Sir Locked · Thiết kế giao diện",
+  "launch": { "view": "canvas", "page": "case" },
+  "pages": [
+    { "id": "login", "name": "Đăng nhập & tài khoản" },
+    { "id": "app", "name": "Trang chủ & tính năng" },
+    { "id": "case", "name": "Trong vụ án" },
+    { "id": "library", "name": "Hồ sơ & thư viện" }
+  ],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "A · Hồ sơ 221B — Desktop", "expand": "fill", "is_interactive": true, "page": "login" },
+    "Mobile.dc.html": { "x": 1520, "y": 0, "w": 390, "h": 930, "title": "A · Hồ sơ 221B — Mobile", "is_interactive": true, "page": "login" },
+    "PhaAn.dc.html": { "x": 0, "y": 1310, "w": 1440, "h": 900, "title": "B · Đăng nhập · Đăng ký · Quên mật khẩu", "expand": "fill", "is_interactive": true, "page": "login" },
+    "VerifyEmail.dc.html": { "x": 1520, "y": 1310, "w": 1440, "h": 900, "title": "B · Xác minh email", "expand": "fill", "is_interactive": true, "page": "login" },
+    "ResetPassword.dc.html": { "x": 3040, "y": 1310, "w": 1440, "h": 900, "title": "B · Đặt lại mật khẩu", "expand": "fill", "is_interactive": true, "page": "login" },
+    "Loading.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "1 · Loading", "expand": "fill", "is_interactive": true, "page": "app" },
+    "Home.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "2 · Trang chủ", "expand": "fill", "is_interactive": true, "page": "app" },
+    "FindGame.dc.html": { "x": 0, "y": 1020, "w": 1440, "h": 900, "title": "3 · Tìm trận", "expand": "fill", "is_interactive": true, "page": "app" },
+    "Rooms.dc.html": { "x": 1520, "y": 1020, "w": 1440, "h": 900, "title": "4 · Phòng công khai / riêng tư", "expand": "fill", "is_interactive": true, "page": "app" },
+    "Market.dc.html": { "x": 0, "y": 2040, "w": 1440, "h": 980, "title": "5 · Chợ đồ", "expand": "fill", "is_interactive": true, "page": "app" },
+    "Workshop.dc.html": { "x": 1520, "y": 2040, "w": 1440, "h": 1430, "title": "6 · Workshop", "expand": "fill", "is_interactive": true, "page": "app" },
+    "Lobby.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "7 · Phòng chờ", "expand": "fill", "is_interactive": true, "page": "case" },
+    "Game.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "8 · Hiện trường (HUD)", "expand": "fill", "is_interactive": true, "page": "case" },
+    "CaseFile.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 900, "title": "9 · Hồ sơ vụ án", "expand": "fill", "is_interactive": true, "page": "case" },
+    "Confront.dc.html": { "x": 0, "y": 1020, "w": 1440, "h": 900, "title": "10 · Cùng xem xét — Phá Vỡ Lời Dối", "expand": "fill", "is_interactive": true, "page": "case" },
+    "Accuse.dc.html": { "x": 1520, "y": 1020, "w": 1440, "h": 900, "title": "11 · Cáo buộc cuối cùng", "expand": "fill", "is_interactive": true, "page": "case" },
+    "Result.dc.html": { "x": 3040, "y": 1020, "w": 1440, "h": 1740, "title": "12 · Kết quả vụ án", "expand": "fill", "is_interactive": true, "page": "case" },
+    "Profile.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1652, "title": "13 · Hồ sơ thám tử", "expand": "fill", "is_interactive": true, "page": "library" },
+    "Cases.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1605, "title": "14 · Vụ án đã xuất bản", "expand": "fill", "is_interactive": true, "page": "library" },
+    "Challenge.dc.html": { "x": 0, "y": 1772, "w": 1440, "h": 1056, "title": "15 · Thử thách tuần", "expand": "fill", "is_interactive": true, "page": "library" },
+    "WorkshopCase.dc.html": { "x": 1520, "y": 1772, "w": 1440, "h": 1424, "title": "16 · Workshop — chi tiết vụ án", "expand": "fill", "is_interactive": true, "page": "library" }
+  },
+  "order": ["Main.dc.html", "Mobile.dc.html", "PhaAn.dc.html", "VerifyEmail.dc.html", "ResetPassword.dc.html", "Loading.dc.html", "Home.dc.html", "FindGame.dc.html", "Rooms.dc.html", "Market.dc.html", "Workshop.dc.html", "Lobby.dc.html", "Game.dc.html", "CaseFile.dc.html", "Confront.dc.html", "Accuse.dc.html", "Result.dc.html", "Profile.dc.html", "Cases.dc.html", "Challenge.dc.html", "WorkshopCase.dc.html"],
+  "notes": {
+    "heading": { "x": 0, "y": -260, "text": "Phương án A — Hồ sơ 221B", "kind": "title1", "maxW": 1910, "page": "login" },
+    "headingB": { "x": 0, "y": 1050, "text": "Phương án B — Bảng phá án (đã chọn)", "kind": "title1", "maxW": 4480, "page": "login" },
+    "headingApp": { "x": 0, "y": -260, "text": "Trang chủ Sir Locked — phong cách Bảng phá án", "kind": "title1", "maxW": 2960, "page": "app" },
+    "headingCase": { "x": 0, "y": -260, "text": "Trong vụ án — Đêm khóa sổ, từ phòng chờ tới kết quả", "kind": "title1", "maxW": 4480, "page": "case" },
+    "headingLibrary": { "x": 0, "y": -260, "text": "Hồ sơ thám tử, thư viện vụ án và thử thách", "kind": "title1", "maxW": 2960, "page": "library" }
+  },
+  "designSystems": []
+}
