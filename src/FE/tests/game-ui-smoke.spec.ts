@@ -1646,3 +1646,37 @@ async function canvasHasNonBlankPixels(canvas: Locator) {
     return sample[0] !== 0 || sample[1] !== 0 || sample[2] !== 0 || sample[3] !== 0;
   });
 }
+
+test('Vietnamese camera misses keep the zone label of the server hint', async ({ page }) => {
+  // Authored zone labels can hold Vietnamese text and double quotes; the hint must keep them verbatim.
+  const label = 'Ngăn kéo "bí mật" của bà Hằng';
+  let captures = 0;
+  await page.route(`**/api/game/rooms/${roomId}/capture-clue`, (route) => {
+    captures++;
+    // The server adds the hint only after repeated misses; the page itself does not count them.
+    const message = captures === 1
+      ? 'No important detail was detected.'
+      : `No important detail was detected. Perhaps "${label}" deserves a closer look.`;
+    return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { state: smokeState, changed: false, captureResult: 'MISS', message } }) });
+  });
+  await page.addInitScript(() => window.localStorage.setItem('sirlocked.uiLanguage', 'vi'));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`/#/game/${roomId}`);
+  const canvas = page.locator('canvas').first();
+  await expect(canvas).toBeVisible();
+  await expect.poll(() => page.evaluate(() =>
+    Boolean((window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene')?.sceneInteractionEnabled))).toBe(true);
+  await page.keyboard.press('z');
+  await expect(page.locator('#bpa-g-shutter')).toBeVisible();
+  const box = (await canvas.boundingBox())!;
+  for (const [shot, text] of [
+    'Không phát hiện chi tiết quan trọng nào.',
+    'Không phát hiện chi tiết quan trọng nào. Có lẽ nên xem kỹ "Ngăn kéo "bí mật" của bà Hằng".',
+  ].entries()) {
+    // A camera click shoots; the toast lasts about three seconds, so it is read right away.
+    await canvas.click({ position: { x: box.width * 0.5, y: box.height * 0.45 } });
+    await expect(page.locator('#toast-root .toast')).toHaveText(text);
+    expect(captures).toBe(shot + 1);
+  }
+});

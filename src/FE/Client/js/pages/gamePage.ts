@@ -5677,7 +5677,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       } else {
         cameraMisses += 1;
         try { sessionStorage.setItem(cameraMissKey, String(cameraMisses)); } catch { /* the count stays in memory */ }
-        toast(say(res.message, 'Nothing noteworthy in that frame.', 'Không phát hiện chi tiết quan trọng nào.'), 'info', 3200);
+        // After repeated misses the server (GameplayService.CaptureClueAsync) names a zone; keep its authored label when translating.
+        const zoneLabel = /^No important detail was detected\. Perhaps "([\s\S]+)" deserves a closer look\.$/.exec(res.message ?? '')?.[1];
+        toast(say(res.message, 'Nothing noteworthy in that frame.', zoneLabel
+          ? `Không phát hiện chi tiết quan trọng nào. Có lẽ nên xem kỹ "${zoneLabel}".`
+          : 'Không phát hiện chi tiết quan trọng nào.'), 'info', 3200);
       }
       showCameraPrint(photo, result === 'NEAR_MISS' ? 'NEAR_MISS' : 'MISS', `${tr('Photo', 'Ảnh')} ${String(shotNumber).padStart(2, '0')} · ${shotTime}`);
       captureInFlight = false;
