@@ -2250,8 +2250,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   let requestedReconnectDeadline: number | null = null;
   let returnFocusId: string | null = null;
   let finalReadyAnnounced = false;
-  let sceneIntroActive = true; // Show on initial load
-  let sceneIntroTimeout: ReturnType<typeof setTimeout> | null = null;
   let connectionStatus = 'connecting';
   let stateSyncStatus = 'idle';
   let syncRecoveryActive = false;
@@ -2752,12 +2750,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       toast(tr('The final confrontation is ready.', 'Đối chất cuối cùng đã sẵn sàng.'), 'success', 5500);
     }
     
-    if (isNewScene) {
-      audio.play('scene');
-      // The room transition's title card replaces the old location toast.
-      sceneIntroActive = false;
-      if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
-    }
+    if (isNewScene) audio.play('scene');
     for (const itemId of [...combineSelection]) {
       if (!fresh.collectedItemIds.includes(itemId)) combineSelection.delete(itemId);
     }
@@ -2963,7 +2956,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     await hub.start();
     if (stopped || !state) return cleanupGamePage;
     recordV3UiEvent('ReconnectRestored');
-    sceneIntroTimeout = setTimeout(() => { sceneIntroActive = false; draw(); }, 3000);
     draw();
   } catch (err: any) {
     if (stopped) return cleanupGamePage;
@@ -6037,7 +6029,6 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (partnerActivityTimer) clearTimeout(partnerActivityTimer);
     if (reconnectWaitTimer) clearInterval(reconnectWaitTimer);
     reconnectWaitTimer = null;
-    if (sceneIntroTimeout) clearTimeout(sceneIntroTimeout);
     window.removeEventListener('keydown', handleKeydown);
     destroyPhaser();
     for (const request of evidencePhotoRequests.values()) request.abort();
