@@ -31,11 +31,10 @@ export function placeholderStyle(seedText) {
   return `background: linear-gradient(135deg, hsl(${hue}, 35%, 18%), hsl(${hue2}, 45%, 30%));`;
 }
 
+/** First letter of the first and last word: "Thám tử Minh" → "TM". */
 export function initials(name) {
-  return String(name || '?')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
+  const words = String(name || '?').split(/\s+/).filter(Boolean);
+  return (words.length > 2 ? [words[0], words[words.length - 1]] : words)
     .map((w) => w[0].toUpperCase())
     .join('');
 }
