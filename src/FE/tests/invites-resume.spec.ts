@@ -22,13 +22,18 @@ async function setup(page: Page, signedIn = false) {
     }
     (window as any).__sirlockedNoSignalR = true;
   }, { signedIn, auth });
-  // The header asks for the profile and the lobby and case list for case details. Answer them for every
-  // tab so a running backend never sees the fixture token; page routes in the tests still take precedence.
+  // No request may reach a local backend, running or not: it would reject the fixture token and end the session.
+  // Every /api/ call nothing below mocks gets the dev proxy's "backend is down" answer. A predicate, not
+  // **/api/**, so the modules under /Client/js/api/ still load. Later routes and page routes take precedence.
+  await page.context().route((url) => url.pathname.startsWith('/api/'), (route) =>
+    route.fulfill({ status: 502, contentType: 'text/plain', body: '' }));
+  // The header asks for the profile and the lobby and case list for case details, for every tab.
   await page.context().route('**/api/profile/me', (route) => route.fulfill({ json: { success: true, data: profile } }));
-  await page.context().route('**/api/cases/*', (route) => route.fulfill({ json: { success: true, data: {
-    caseId: decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop() ?? ''),
-    title: lobby.caseTitle, summary: '', estimatedMinutes: 10, sceneCount: 1, characterCount: 0, clueCount: 3, characters: [],
-  } } }));
+  await page.context().route((url) => /^\/api\/cases\/(?!published$)[^/]+$/.test(url.pathname), (route) =>
+    route.fulfill({ json: { success: true, data: {
+      caseId: decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop() ?? ''),
+      title: lobby.caseTitle, summary: '', estimatedMinutes: 10, sceneCount: 1, characterCount: 0, clueCount: 3, characters: [],
+    } } }));
 }
 
 async function signIn(page: Page) {
