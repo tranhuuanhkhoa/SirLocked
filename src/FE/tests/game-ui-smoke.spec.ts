@@ -1597,6 +1597,63 @@ test('phone dock and tool tray presses never reach the Phaser scene', async ({ p
   await expectSceneUntouched();
 });
 
+test('discovery card and confrontation call-out presses never reach the Phaser scene', async ({ page }) => {
+  let current: object = smokeState;
+  let inspections = 0;
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: current } }));
+  page.on('request', (request) => { if (request.url().endsWith('/inspect-item')) inspections++; });
+  const sceneReady = () => expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+    return Boolean(scene?.sceneInteractionEnabled && scene.input.enabled);
+  })).toBe(true);
+  // A point of the control (on top there, and not one of its inner buttons) that lies over the note's hotspot zone.
+  const pointOverNote = (selector: string) => page.evaluate((sel) => {
+    const scene = (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene');
+    const zone = scene.children.list.find((child: any) => child.type === 'Zone' && child.getData('label') === 'Folded Note').getBounds();
+    const canvas = scene.game.canvas.getBoundingClientRect();
+    const view = scene.cameras.main.worldView, ratio = canvas.width / scene.scale.width * scene.cameras.main.zoom;
+    const left = canvas.x + (zone.x - view.x) * ratio, top = canvas.y + (zone.y - view.y) * ratio;
+    const control = document.querySelector(sel)!.getBoundingClientRect();
+    for (let y = Math.ceil(Math.max(top, control.top)) + 2; y < Math.min(top + zone.height * ratio, control.bottom) - 2; y += 4) {
+      for (let x = Math.ceil(Math.max(left, control.left)) + 2; x < Math.min(left + zone.width * ratio, control.right) - 2; x += 4) {
+        const hit = document.elementFromPoint(x, y);
+        if (hit?.closest(sel) && hit.closest(`${sel}, button`)?.matches(sel)) return { x, y };
+      }
+    }
+    return null;
+  }, selector);
+  // Checked once rather than retried: a leaked press inspects the note right away (the player starts in reach).
+  const expectSceneUntouched = async (expected: number) => {
+    await page.waitForTimeout(800);
+    expect(inspections).toBe(expected);
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto(`/#/game/${roomId}`);
+  await expect(page.locator('.context-action')).toContainText('Folded Note');
+  await sceneReady();
+  await page.locator('#mobile-interact-btn').click();
+  await expect(page.locator('.discovery-card')).toContainText('Folded Note');
+  await expect.poll(() => inspections).toBe(1);
+  await sceneReady();
+  const onCard = await pointOverNote('.discovery-card');
+  expect(onCard).not.toBeNull();
+  await page.mouse.click(onCard!.x, onCard!.y);
+  await expectSceneUntouched(1);
+  await expect(page.locator('.discovery-card')).toBeVisible();
+
+  current = accusationReadyState;
+  await page.reload();
+  await expect(page.locator('.final-confrontation-callout')).toBeVisible();
+  await sceneReady();
+  const onCallout = await pointOverNote('.final-confrontation-callout');
+  expect(onCallout).not.toBeNull();
+  await page.mouse.click(onCallout!.x, onCallout!.y);
+  await expect(page.locator('.overlay .modal h2')).toHaveText('Final Accusation');
+  await expectSceneUntouched(1);
+});
+
 test('PC game shell fits supported desktop resolutions', async ({ page }) => {
   for (const viewport of [
     { width: 1366, height: 768 },
