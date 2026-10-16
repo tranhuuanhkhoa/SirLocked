@@ -311,6 +311,8 @@ async function discover(page: Page, roomId: string, route: 'inspect-item' | 'ask
 
 for (const run of [1, 2, 3]) {
   test(`two-browser V3 loop is deterministic without fixed sleeps (run ${run})`, async ({ browser }) => {
+    // Two browser contexts, each tracing every Vite module it loads: closing them can outlast the default timeout.
+    test.slow();
     const flow = new SharedV3Flow(run);
     const investigator = await contextFor(browser, flow, 'INVESTIGATOR');
     const interrogator = await contextFor(browser, flow, 'INTERROGATOR');

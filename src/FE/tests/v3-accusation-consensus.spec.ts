@@ -229,6 +229,8 @@ async function buildAccusation(page: Page, culpritId: string) {
 }
 
 test('one detective cannot end the case; both must confirm the same revision', async ({ browser }) => {
+  // Two browser contexts, each tracing every Vite module it loads: closing them can outlast the default timeout.
+  test.slow();
   const flow = new SharedAccusationFlow(1);
   const investigator = await contextFor(browser, flow, 'INVESTIGATOR');
   const interrogator = await contextFor(browser, flow, 'INTERROGATOR');
@@ -277,6 +279,7 @@ test('one detective cannot end the case; both must confirm the same revision', a
 });
 
 test('withdrawing a proposal reopens the accusation for either detective', async ({ browser }) => {
+  test.slow();
   const flow = new SharedAccusationFlow(2);
   const investigator = await contextFor(browser, flow, 'INVESTIGATOR');
   const interrogator = await contextFor(browser, flow, 'INTERROGATOR');

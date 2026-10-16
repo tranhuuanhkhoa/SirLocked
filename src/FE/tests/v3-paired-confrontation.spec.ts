@@ -227,6 +227,8 @@ async function prepare(page: Page, initialState: ReturnType<typeof v3State>) {
 }
 
 test('role-private notebooks never render partner sentinels before Joint Review', async ({ browser }) => {
+  // Two browser contexts, each tracing every Vite module it loads: closing them can outlast the default timeout.
+  test.slow();
   const investigatorContext = await browser.newContext();
   const investigatorPage = await investigatorContext.newPage();
   await prepare(investigatorPage, v3State('INVESTIGATOR'));
@@ -252,6 +254,7 @@ test('role-private notebooks never render partner sentinels before Joint Review'
 });
 
 test('all disclosed wrong options remain reusable from each owner notebook', async ({ browser }) => {
+  test.slow();
   const interrogatorContext = await browser.newContext();
   const interrogatorPage = await interrogatorContext.newPage();
   await prepare(interrogatorPage, exhaustedRetryState('INTERROGATOR'));
