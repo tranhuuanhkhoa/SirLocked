@@ -175,7 +175,8 @@ for (const status of [403, 404]) {
     });
     await page.goto('/#/admin/ai');
     await page.clock.install();
-    await page.clock.pauseAt(new Date());
+    // On a loaded page the installed clock keeps running, so "now" may be past by the time it pauses: pause just ahead.
+    await page.clock.pauseAt(Date.now() + 1_000);
     await page.locator('#quick-create-btn').click();
     await expect(page.locator('#ai-output')).toContainText('Generating story');
     await page.clock.fastForward(500);

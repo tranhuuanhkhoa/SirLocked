@@ -1443,7 +1443,8 @@ test('failed room sync stops retrying and offers a working keyboard recovery act
   await page.goto(`/#/game/${roomId}`);
   await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
   await page.clock.install();
-  await page.clock.pauseAt(new Date());
+  // On a loaded page the installed clock keeps running, so "now" may be past by the time it pauses: pause just ahead.
+  await page.clock.pauseAt(Date.now() + 1_000);
   await page.evaluate(() => (window as any).__sirlockedEmitSignalR('GameStateUpdated', { version: 2 }));
   await expect(page.locator('.game-recovery')).toContainText('Restoring the latest room state');
   for (const [index, delay] of [500, 1000, 2000, 4000, 8000].entries()) {
