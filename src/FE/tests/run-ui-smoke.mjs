@@ -15,10 +15,15 @@ const requestedArgs = process.argv.slice(2);
 const outputArgs = requestedArgs.some((arg) => arg === '--output' || arg.startsWith('--output='))
   ? []
   : [`--output=test-results/run-${Date.now()}-${process.pid}`];
+// Two-browser Phaser specs time out under Playwright's default of half the cores; keep a caller's choice.
+const workerArgs = requestedArgs.some((arg) => arg === '--workers' || arg.startsWith('--workers=') || /^-j/.test(arg))
+  ? []
+  : ['--workers=2'];
 const playwrightArgs = [
   './node_modules/@playwright/test/cli.js',
   'test',
   ...outputArgs,
+  ...workerArgs,
   ...(requestedArgs.length > 0 ? requestedArgs : ['tests/game-ui-smoke.spec.ts', 'tests/navigation.spec.ts', 'tests/route-lifecycle.spec.ts', 'tests/invites-resume.spec.ts', 'tests/auth-refresh.spec.ts', 'tests/google-login.spec.ts', 'tests/admin-ai-language.spec.ts', 'tests/admin-ai-creation-errors.spec.ts', 'tests/admin-ai-truth-repair.spec.ts', 'tests/presentation-admin.spec.ts', 'tests/admin-v3-case-gates.spec.ts', 'tests/v3-accusation-consensus.spec.ts', 'tests/v3-paired-confrontation.spec.ts', 'tests/v3-two-browser-flow.spec.ts']),
 ];
 
@@ -36,6 +41,7 @@ try {
   server.stderr.on('data', (chunk) => process.stderr.write(chunk));
 
   await waitForServer(baseUrl, 30_000);
+  await warmGamePage(baseUrl);
 
   const exitCode = await runPlaywright(playwrightArgs);
   process.exitCode = exitCode;
@@ -65,6 +71,19 @@ async function waitForServer(url, timeoutMs) {
   }
 
   throw new Error(`Timed out waiting for ${url}. Last error: ${lastError?.message ?? 'unknown'}`);
+}
+
+// A fresh Vite needs seconds to transform the game page (and Phaser); do it before the first test waits on it.
+async function warmGamePage(url) {
+  const startedAt = Date.now();
+  try {
+    const response = await fetch(new URL('/Client/js/pages/gamePage.ts', url), { signal: AbortSignal.timeout(120_000) });
+    await response.arrayBuffer();
+    if (!response.ok) console.warn(`Warming /Client/js/pages/gamePage.ts returned ${response.status}.`);
+    else if (process.env.SIRLOCKED_VERBOSE_UI_TEST === '1') console.log(`Warmed gamePage.ts in ${Date.now() - startedAt} ms.`);
+  } catch (error) {
+    console.warn(`Could not warm /Client/js/pages/gamePage.ts: ${error.message}`);
+  }
 }
 
 function runPlaywright(args) {
