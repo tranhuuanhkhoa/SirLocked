@@ -44,8 +44,14 @@ public class RoomService : IRoomService
         }
     }
 
-    public async Task<RoomResponse> CreateAsync(CurrentUser user, string caseId)
+    public async Task<RoomResponse> CreateAsync(CurrentUser user, string caseId, string? visibility = null)
     {
+        if (!RoomVisibility.TryNormalize(visibility, out var normalizedVisibility))
+        {
+            throw ApiException.BadRequest(
+                $"Visibility must be {RoomVisibility.Public} or {RoomVisibility.Private}.",
+                new Dictionary<string, string[]> { ["visibility"] = [$"Use {RoomVisibility.Public} or {RoomVisibility.Private}."] });
+        }
         await EnsureEmailVerifiedAsync(user);
 
         var gameCase = await _caseService.GetCaseAsync(caseId);
@@ -59,6 +65,7 @@ public class RoomService : IRoomService
             CaseId = gameCase.CaseId,
             HostUserId = user.Id,
             Status = RoomStatus.Waiting,
+            Visibility = normalizedVisibility,
             Players = new List<RoomPlayer>
             {
                 new() { UserId = user.Id, Username = user.FullName }
@@ -152,7 +159,7 @@ public class RoomService : IRoomService
             {
                 Id = room.Id, RoomCode = room.RoomCode, CaseId = room.CaseId,
                 HostUserId = room.HostUserId, Status = room.Status, Players = room.Players,
-                CreatedAt = room.CreatedAt
+                Visibility = room.Visibility, CreatedAt = room.CreatedAt
             })
             .ToListAsync(cancellationToken);
         if (rooms.Count == 0) return [];
@@ -164,6 +171,70 @@ public class RoomService : IRoomService
         var titlesByCase = titles.ToDictionary(gameCase => gameCase.CaseId, gameCase => gameCase.Title);
         return rooms.Select(room => RoomResponse.From(room,
             titlesByCase.GetValueOrDefault(room.CaseId, room.CaseId))).ToList();
+    }
+
+    public async Task<List<PublicRoomResponse>> ListPublicAsync(string userId, PublicRoomQuery query, CancellationToken cancellationToken = default)
+    {
+        if (!PublicRoomRules.TryParseLanguage(query.Language, out var language))
+        {
+            throw ApiException.BadRequest("Language must be vi, en or ALL.",
+                new Dictionary<string, string[]> { ["language"] = ["Use vi, en or ALL."] });
+        }
+        var search = query.Q?.Trim();
+        if (search is { Length: > PublicRoomRules.MaxQueryLength })
+        {
+            throw ApiException.BadRequest("The search text is too long.",
+                new Dictionary<string, string[]> { ["q"] = [$"At most {PublicRoomRules.MaxQueryLength} characters."] });
+        }
+
+        var rooms = await _db.Rooms.Find(PublicRoomRules.ListingFilter(DateTime.UtcNow))
+            .SortByDescending(room => room.UpdatedAt)
+            .Limit(PublicRoomRules.ScanLimit)
+            // Listing metadata only: never the embedded gameplay state.
+            .Project(room => new GameRoom
+            {
+                Id = room.Id, RoomCode = room.RoomCode, CaseId = room.CaseId, HostUserId = room.HostUserId,
+                Status = room.Status, Visibility = room.Visibility, Players = room.Players, CreatedAt = room.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+        if (rooms.Count == 0) return [];
+
+        // Case title, length and language come from the cached published catalogue; a room whose case
+        // was unpublished afterwards falls back to the per-case cache, and is dropped if the case is gone.
+        var published = (await _caseService.GetPublishedAsync()).ToDictionary(c => c.CaseId, StringComparer.Ordinal);
+        var rows = new List<PublicRoomResponse>(rooms.Count);
+        foreach (var room in rooms)
+        {
+            string title; int minutes; string caseLanguage;
+            if (published.TryGetValue(room.CaseId, out var summary))
+            {
+                (title, minutes, caseLanguage) = (summary.Title, summary.EstimatedMinutes, summary.Language);
+            }
+            else
+            {
+                GameCase gameCase;
+                try { gameCase = await _caseService.GetCaseAsync(room.CaseId); }
+                catch (ApiException missing) when (missing.StatusCode == 404) { continue; }
+                (title, minutes, caseLanguage) = (gameCase.Title, gameCase.EstimatedMinutes, CaseLanguages.Normalize(gameCase.Language));
+            }
+            var host = room.Players.FirstOrDefault(p => p.UserId == room.HostUserId) ?? room.Players.FirstOrDefault();
+            rows.Add(new PublicRoomResponse
+            {
+                RoomId = room.Id,
+                RoomCode = room.RoomCode,
+                CaseId = room.CaseId,
+                CaseTitle = title,
+                EstimatedMinutes = minutes,
+                Language = caseLanguage,
+                HostUsername = host?.Username ?? string.Empty,
+                PlayerCount = room.Players.Count,
+                Status = room.Status,
+                IsJoinable = PublicRoomRules.IsJoinable(room),
+                IsMember = room.Players.Any(p => p.UserId == userId),
+                CreatedAt = room.CreatedAt
+            });
+        }
+        return PublicRoomRules.Apply(rows, language, query.OpenOnly, search, query.Limit).ToList();
     }
 
     public async Task<RoomResponse?> LeaveAsync(CurrentUser user, string roomId)
@@ -352,7 +423,10 @@ public class RoomService : IRoomService
                 PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
                 Version = 1,
                 VisitedSceneIds = new List<string> { firstScene.SceneId },
-                UnlockedSceneIds = new List<string> { firstScene.SceneId },
+                // Open-coop cases let both detectives roam every place from the first second.
+                UnlockedSceneIds = CaseRuleSets.IsOpenCoop(gameCase)
+                    ? gameCase.Stages.OrderBy(s => s.Order).SelectMany(s => s.Scenes).Select(s => s.SceneId).ToList()
+                    : new List<string> { firstScene.SceneId },
                 GameStatus = GameStatus.InProgress,
                 StartedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -457,7 +531,7 @@ public class RoomService : IRoomService
         return true;
     }
 
-    private static string GenerateRoomCode()
+    internal static string GenerateRoomCode()
     {
         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // avoids 0/O and 1/I
         Span<char> code = stackalloc char[6];

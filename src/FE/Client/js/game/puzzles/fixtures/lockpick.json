@@ -1,0 +1,17 @@
+{
+  "title": "Hòm sắt dưới quầy",
+  "prompt": "Bật lực vặn, đưa cây nạy tới từng chốt rồi nâng lên. Chỉ chốt đang kẹt mới khớp; nghe ‘cạch’ thì dừng — nâng quá tay sẽ phải làm lại.",
+  "params": {
+    "chest": {
+      "tag": "VẬT CHỨNG · TIỆM CẦM ĐỒ",
+      "title": "Hòm sắt dưới quầy",
+      "text": "Hòm sắt nhỏ khóa ổ bi giấu dưới quầy tiệm cầm đồ Đặng Bửu. Chìa không thấy đâu; trong ngăn kéo còn bộ đồ nghề sửa khóa."
+    },
+    "note": "Thợ khóa phố Hàng Đường dặn: ổ cũ thì mỗi lúc chỉ một chốt kẹt — chốt nào rung nhẹ thì nâng chốt đó trước.",
+    "noteTag": "LỜI DẶN · THỢ KHÓA"
+  },
+  "reveal": {
+    "title": "Hợp đồng bảo hiểm Sao Mai",
+    "text": "Bản sao hợp đồng bảo hiểm Sao Mai của tiệm cầm đồ, ký thứ Hai tuần trước: bảo hiểm cả hàng đang cầm — kể cả trâm hồng ngọc của bà Lâm."
+  }
+}

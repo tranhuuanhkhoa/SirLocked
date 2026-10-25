@@ -188,10 +188,17 @@ public static class GameplayV2Rules
             gameCase.EvidenceChallenges.Count,
             state.ResolvedConfrontationRecords.Count,
             25);
-        var deductionCoverage = ScaledCoverage(
-            gameCase.Deductions.Count,
-            state.SolvedDeductionRecords.Count,
-            20);
+        var openCoop = CaseRuleSets.IsOpenCoop(gameCase);
+        // Open co-op replaces deductions with the timeline reconstruction.
+        var deductionCoverage = openCoop
+            ? ScaledCoverage(
+                gameCase.Timeline?.Events.Count(item => !item.IsFixed) ?? 0,
+                state.PlacedTimelineEventIds.Count,
+                20)
+            : ScaledCoverage(
+                gameCase.Deductions.Count,
+                state.SolvedDeductionRecords.Count,
+                20);
 
         var (investigator, interrogator, handoff) = EvaluateTeamwork(gameCase, state);
         var teamworkScore = (investigator ? 5 : 0) + (interrogator ? 5 : 0) + (handoff ? 5 : 0);
@@ -200,10 +207,15 @@ public static class GameplayV2Rules
         var wrongDeductionPenalty = state.WrongDeductionCount * 2;
         // Aiming the camera is a skill check, not a knowledge check — cap its drain on the score.
         var cameraMissPenalty = Math.Min(state.CameraMissCount, 10);
+        var wrongAccusationPenalty = openCoop ? state.WrongAccusationCount * 15 : 0;
+        var timelinePenalty = openCoop ? Math.Min(state.WrongTimelineCount * 2, 10) : 0;
+        var hintPenalty = openCoop ? Math.Min(state.LeadHintCount * 2, 10) : 0;
+        var puzzlePenalty = openCoop ? Math.Min(state.WrongPuzzleCount, 10) : 0;
 
         var total = Math.Clamp(
             evidenceCoverage + contradictionCoverage + deductionCoverage + teamworkScore
-                - wrongEvidencePenalty - wrongDeductionPenalty - cameraMissPenalty,
+                - wrongEvidencePenalty - wrongDeductionPenalty - cameraMissPenalty
+                - wrongAccusationPenalty - timelinePenalty - hintPenalty - puzzlePenalty,
             0, 100);
 
         var rank = !accusationSucceeded
@@ -222,6 +234,10 @@ public static class GameplayV2Rules
             WrongEvidencePenalty = wrongEvidencePenalty,
             WrongDeductionPenalty = wrongDeductionPenalty,
             CameraMissPenalty = cameraMissPenalty,
+            WrongAccusationPenalty = wrongAccusationPenalty,
+            TimelinePenalty = timelinePenalty,
+            HintPenalty = hintPenalty,
+            PuzzlePenalty = puzzlePenalty,
             TotalScore = total,
             Rank = rank
         };

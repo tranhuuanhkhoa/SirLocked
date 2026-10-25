@@ -10,6 +10,8 @@ import { renderCasesPage } from './pages/casesPage.js';
 import { renderCaseDetailPage } from './pages/caseDetailPage.js';
 import { renderCreateRoomPage } from './pages/createRoomPage.js';
 import { renderJoinRoomPage } from './pages/joinRoomPage.js';
+import { renderRoomsPage } from './pages/roomsPage.js';
+import { renderFindGamePage } from './pages/findGamePage.js';
 import { renderLobbyPage } from './pages/lobbyPage.js';
 import { renderResultPage } from './pages/resultPage.js';
 import { renderWorkshopPage } from './pages/workshopPage.js';
@@ -27,6 +29,8 @@ import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
 import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
 import { renderVerifyNoticePage } from './pages/verifyNoticePage.js';
 import { PROFILE_EVENT, detectiveRankLabel, renderTitleMenuPage } from './pages/titleMenuPage.js';
+import { renderMarketPage } from './pages/marketPage.js';
+import { hydrateWalletChip, walletChipMarkup } from './components/walletChip.js';
 
 /**
  * Loading screen (markup lives in index.html so it can show before this
@@ -68,9 +72,12 @@ const routes = [
   { pattern: /^#\/cases$/, page: renderCasesPage },
   { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
   { pattern: /^#\/workshop$/, page: renderWorkshopPage },
+  { pattern: /^#\/market(?:\/(sell|trade|orders))?$/, page: renderMarketPage },
   { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
   { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
+  { pattern: /^#\/rooms$/, page: renderRoomsPage, requiresVerified: true, lifecycle: true },
+  { pattern: /^#\/find-game$/, page: renderFindGamePage, requiresVerified: true, lifecycle: true },
   { pattern: /^#\/join(?:\?[^#]*)?$/, page: renderJoinRoomPage, requiresVerified: true },
   { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true, lifecycle: true },
   {
@@ -215,6 +222,7 @@ function renderNav(r) {
       </div>`);
   } else {
     const roomItems = [
+      { href: '#/rooms', label: tr('Public rooms', 'Phòng công khai'), note: tr('Rooms waiting for a partner', 'Phòng đang chờ người') },
       { href: '#/create-room', label: tr('Create room', 'Tạo phòng'), note: tr('Host a new investigation', 'Mở phiên điều tra mới') },
       { href: '#/join', label: tr('Join room', 'Vào phòng'), note: tr('Enter a 6-character code', 'Nhập mã 6 ký tự') },
     ];
@@ -234,6 +242,8 @@ function renderNav(r) {
       { href: '#/menu', label: tr('Home', 'Trang chủ') },
       { href: '#/cases', label: tr('Cases', 'Vụ án') },
       { href: '#/workshop', label: 'Workshop' },
+      { href: '#/find-game', label: tr('Find game', 'Tìm trận') },
+      { href: '#/market', label: tr('Market', 'Chợ đồ') },
     ];
     const current = activeHref([...mainItems, ...roomItems, ...staffItems, { href: '#/detective' }].map(({ href }) => href));
     const rankText = navRankText();
@@ -243,12 +253,15 @@ function renderNav(r) {
         ${brandMarkup()}
         <nav class="bpa-shell-nav nav-links" aria-label="${tr('Main navigation', 'Điều hướng chính')}">
           ${navLink(mainItems[0], current)}
+          ${navLink(mainItems[3], current)}
           ${navGroup('bpa-shell-rooms', tr('Rooms', 'Phòng'), roomItems, current)}
           ${navLink(mainItems[1], current)}
+          ${navLink(mainItems[4], current)}
           ${navLink(mainItems[2], current)}
           ${staffItems.length ? navGroup('bpa-shell-staff', tr('Operations', 'Quản trị'), staffItems, current) : ''}
         </nav>
         <div class="bpa-shell-tools">
+          ${walletChipMarkup()}
           ${languageSwitchMarkup('ui-language-switch-nav')}
           <a class="bpa-shell-profile${current === '#/detective' ? ' is-active' : ''}" id="nav-profile" href="#/detective"
              ${current === '#/detective' ? 'aria-current="page"' : ''}
@@ -283,6 +296,7 @@ function renderNav(r) {
     });
 
     if (!r.titleMenu) requestNavProfile(user);
+    hydrateWalletChip();
   }
 
   navRoot.querySelector('#nav-logout').addEventListener('click', async () => {

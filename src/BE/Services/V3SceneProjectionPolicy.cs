@@ -19,15 +19,26 @@ public static class V3SceneProjectionPolicy
         response.VisibleScene.Runtime = sourceRuntime is null
             ? null
             : CloneRuntime(sourceRuntime, investigator);
+        // Open co-op: the Investigator also sees the people (to call the partner over) and the
+        // Interrogator also sees puzzle objects (both detectives solve puzzles).
+        var openCoop = CaseRuleSets.IsOpenCoop(gameCase);
+        var puzzleTargets = openCoop
+            ? response.VisibleScene.Puzzles.Select(puzzle => puzzle.TargetId).ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
         response.VisibleScene.Hotspots = response.VisibleScene.Hotspots
-            .Where(hotspot => investigator
-                ? !hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase)
-                : interrogator && hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase))
+            .Where(hotspot =>
+            {
+                var character = hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase);
+                if (openCoop) return investigator || (interrogator && (character || puzzleTargets.Contains(hotspot.TargetId)));
+                return investigator ? !character : interrogator && character;
+            })
             .Select(SanitizeHotspot)
             .ToList();
         response.VisibleScene.Items = investigator
             ? response.VisibleScene.Items
-            : new List<SceneItemDto>();
+            : openCoop
+                ? response.VisibleScene.Items.Where(item => puzzleTargets.Contains(item.ItemId)).ToList()
+                : new List<SceneItemDto>();
         response.VisibleScene.AvailableDialogues = interrogator
             ? response.VisibleScene.AvailableDialogues.Select(SanitizeDialogue).ToList()
             : new List<SceneDialogueDto>();
@@ -37,7 +48,7 @@ public static class V3SceneProjectionPolicy
         response.VisibleScene.ConversationTranscript = interrogator
             ? response.VisibleScene.ConversationTranscript
             : new List<ConversationTranscriptEntryDto>();
-        response.VisibleScene.Puzzles = investigator
+        response.VisibleScene.Puzzles = investigator || openCoop
             ? response.VisibleScene.Puzzles
             : new List<ScenePuzzleDto>();
 
@@ -62,7 +73,7 @@ public static class V3SceneProjectionPolicy
         response.UsedInteractionIds = investigator
             ? response.UsedInteractionIds.Where(interactionIds.Contains).ToList()
             : new List<string>();
-        response.SolvedPuzzleIds = investigator
+        response.SolvedPuzzleIds = investigator || openCoop
             ? response.SolvedPuzzleIds.Where(puzzleIds.Contains).ToList()
             : new List<string>();
         response.SelectedEvidenceIds = new List<string>();

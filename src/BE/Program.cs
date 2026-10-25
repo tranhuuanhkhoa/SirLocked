@@ -15,6 +15,7 @@ using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Market;
 using SirLocked.Api.Services.Projection;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
@@ -138,6 +139,9 @@ builder.Services.AddScoped<IAiArtifactCleanupService, AiArtifactCleanupService>(
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<RoomDisconnectTimeoutService>();
 builder.Services.AddHostedService<RoomDisconnectTimeoutWorker>();
+builder.Services.AddScoped<IMatchmakingNotifier, MatchmakingNotifier>();
+builder.Services.AddScoped<MatchmakingService>();
+builder.Services.AddHostedService<MatchmakingWorker>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
@@ -192,6 +196,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
+builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddRateLimiter(options =>

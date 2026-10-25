@@ -9,6 +9,8 @@ export const gameApi = {
     post(`/api/game/rooms/${roomId}/interactions/${interactionId}/activate`),
   solvePuzzle: (roomId, puzzleId, answer, answerSequence = []) =>
     post(`/api/game/rooms/${roomId}/solve-puzzle`, { puzzleId, answer, answerSequence }),
+  probePuzzle: (roomId, puzzleId, payload) =>
+    post(`/api/game/rooms/${roomId}/puzzle-probe`, { puzzleId, payload }),
   captureClue: (roomId, sceneId, captureRect, photo) => {
     const form = new FormData();
     form.append('sceneId', sceneId);
@@ -30,6 +32,10 @@ export const gameApi = {
   cancelPairedConfrontation: (roomId, attemptId, payload) => post(`/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/cancel`, payload),
   recordPlaytestEvent: (roomId, payload) => post(`/api/game/rooms/${roomId}/playtest-events`, payload),
   hint: (roomId, contextType, targetId) => post(`/api/game/rooms/${roomId}/hint`, { contextType, targetId }),
+  leadHint: (roomId, level) => post(`/api/game/rooms/${roomId}/lead-hint`, { level }),
+  placeTimelineEvent: (roomId, eventId, afterEventId) => post(`/api/game/rooms/${roomId}/timeline/place`, { eventId, afterEventId }),
+  pinBoardItem: (roomId, itemId, targetId) => post(`/api/game/rooms/${roomId}/board/pin`, { itemId, targetId }),
+  boardHint: (roomId) => post(`/api/game/rooms/${roomId}/board/hint`, {}),
   solveDeduction: (roomId, deductionId, optionId) => post(`/api/game/rooms/${roomId}/solve-deduction`, { deductionId, optionId }),
   completeScene: (roomId) => post(`/api/game/rooms/${roomId}/complete-scene`),
   completeStage: (roomId) => post(`/api/game/rooms/${roomId}/complete-stage`),

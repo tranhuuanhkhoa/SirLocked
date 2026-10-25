@@ -138,6 +138,7 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             }
 
             GameResultResponse? result = null;
+            var rejected = false;
             if (transition.ShouldResolve)
             {
                 // The resolver owns the single optimistic write that carries both the final
@@ -147,6 +148,7 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
                     context.Case,
                     user,
                     ToRequest(transition.Terminal!));
+                rejected = result is null;
             }
             else if (transition.Changed
                 && !await _persistence.TrySaveAsync(context.Room, context.Case, cancellationToken))
@@ -178,7 +180,13 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
                     transition,
                     cancellationToken);
             }
-            return BuildResponse(state, transition, result);
+            var response = BuildResponse(state, transition, result);
+            if (rejected)
+            {
+                response.Rejected = true;
+                response.Message = GameplayService.NotConvincingMessage;
+            }
+            return response;
         }
 
         throw ApiException.Conflict(

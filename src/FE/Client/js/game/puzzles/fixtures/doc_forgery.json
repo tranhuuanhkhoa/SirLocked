@@ -1,0 +1,30 @@
+{
+  "title": "Sổ cầm đồ trên quầy",
+  "prompt": "Rê kính lúp trên trang sổ, đổi đèn để thấy dấu vết. Nhấp vào chỗ khả nghi để khoanh mực đỏ — đối chiếu với cuống biên nhận của bà Lâm.",
+  "params": {
+    "doc": { "label": "SỔ CẦM ĐỒ TRÊN QUẦY", "title": "SỔ CẦM ĐỒ", "sub": "TIỆM ĐẶNG BỬU · TRANG 12", "short": "sổ cầm đồ" },
+    "ref": { "label": "CUỐNG BIÊN NHẬN · BẢN CỦA BÀ LÂM", "title": "BIÊN NHẬN", "sub": "TIỆM ĐẶNG BỬU · SỐ 12", "short": "cuống biên nhận" },
+    "fields": [
+      { "id": "nguoi", "label": "Người cầm:", "value": "Bà Lâm · nhà xe họ Lâm" },
+      { "id": "mon", "label": "Món cầm:", "value": "Trâm hồng ngọc" },
+      { "id": "gia", "label": "Định giá:", "value": "3.000 đồng", "ref": "300 đồng", "trace": "ink" },
+      { "id": "ngay", "label": "Ngày nhận:", "value": "10/10", "ref": "14/10", "trace": "erase" },
+      { "id": "han", "label": "Hạn chuộc:", "value": "14/11" }
+    ],
+    "signers": [
+      { "label": "Chủ tiệm ký", "name": "Đặng Bửu" },
+      { "label": "Người cầm ký", "name": "Lâm Thị Hoa" }
+    ],
+    "seal": { "ring": "TIỆM ĐẶNG BỬU", "top": "ĐÃ", "bottom": "NHẬN" },
+    "cards": {
+      "ctxTitle": "Quầy tiệm cầm đồ",
+      "ctxText": "Sổ để mở ở trang ghi cây trâm hồng ngọc. Bà Lâm đưa cuống biên nhận của bà để đối chiếu.",
+      "mateLead": "Bà Lâm khai:",
+      "mateText": "tôi cầm cây trâm lấy 300 đồng, hôm thứ Tư 14/10."
+    }
+  },
+  "reveal": {
+    "title": "Sổ cầm đồ bị sửa sau khi cầm",
+    "text": "Giá cây trâm bị thêm số bằng mực khác: 300 đồng thành 3.000 đồng. Ngày nhận bị tẩy, viết lại thành 10/10 — trước ngày Đặng Bửu ký hợp đồng bảo hiểm Sao Mai (thứ Hai 12/10). Cuống biên nhận của bà Lâm vẫn ghi 300 đồng, ngày 14/10."
+  }
+}

@@ -4,6 +4,7 @@ import { escapeHtml, initials, render } from '../utils/dom.js';
 import { plural, tr, uiLanguage } from '../services/i18n.js';
 import { session } from '../services/session.js';
 import { CutsceneController } from '../game/cutsceneController.js';
+import { hydrateRewardChip } from '../components/walletChip.js';
 
 /* Rank ladder used by the backend (GameplayV2Rules.BuildScoreSummary): S ≥ 90, A ≥ 75, B ≥ 60, else C.
    A failed accusation always ranks D. */
@@ -147,6 +148,10 @@ function scorePanel(score, win, motionOk) {
     [score.wrongEvidencePenalty, tr('wrong evidence', 'chứng cứ sai')],
     [score.wrongDeductionPenalty, tr('wrong deductions', 'suy luận sai')],
     [score.cameraMissPenalty, tr('camera misses', 'lần chụp trượt')],
+    [score.wrongAccusationPenalty, tr('wrong accusation', 'buộc tội sai')],
+    [score.timelinePenalty, tr('misplaced timeline cards', 'đặt sai dòng thời gian')],
+    [score.hintPenalty, tr('hints', 'gợi ý')],
+    [score.puzzlePenalty, tr('wrong puzzle answers', 'giải đố sai')],
   ].filter(([value]) => num(value) > 0);
   const penaltyTotal = penalties.reduce((sum, [value]) => sum + num(value), 0);
   const equationHolds = raw - penaltyTotal === total;
@@ -416,7 +421,8 @@ export async function renderResultPage(app, roomId) {
     <nav class="bpa-result-foot" aria-label="${tr('What next', 'Bước tiếp theo')}">
       <p class="bpa-result-footnote"><span class="bpa-kicker">${tr('What next', 'Bước tiếp theo')}</span><span>${win
     ? tr('The file is stamped and archived.', 'Hồ sơ đã đóng dấu và lưu kho.')
-    : tr('Open the file again and follow the threads you missed.', 'Mở lại hồ sơ và lần theo những sợi dây đã bỏ lỡ.')}</span></p>
+    : tr('Open the file again and follow the threads you missed.', 'Mở lại hồ sơ và lần theo những sợi dây đã bỏ lỡ.')}</span>
+        <span class="bpa-mk-reward" data-market-reward hidden></span></p>
       <div class="bpa-result-actions">
         ${backToCases}
         ${replay}
@@ -427,6 +433,7 @@ export async function renderResultPage(app, roomId) {
   </div>`);
 
   const page = app.querySelector('.bpa-result-page');
+  hydrateRewardChip(app.querySelector('[data-market-reward]'), roomId); // Chợ đồ: "+120 xu phần thưởng"
   const cinematicHost = document.createElement('div');
   app.append(cinematicHost);
 

@@ -5,7 +5,8 @@ namespace SirLocked.Api.Services.Interfaces;
 
 public interface IRoomService
 {
-    Task<RoomResponse> CreateAsync(CurrentUser user, string caseId);
+    Task<RoomResponse> CreateAsync(CurrentUser user, string caseId, string? visibility = null);
+    Task<List<PublicRoomResponse>> ListPublicAsync(string userId, PublicRoomQuery query, CancellationToken cancellationToken = default);
     Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode);
     Task<RoomResponse> GetAsync(string userId, string roomId);
     Task<List<RoomResponse>> GetMineAsync(string userId, CancellationToken cancellationToken = default);

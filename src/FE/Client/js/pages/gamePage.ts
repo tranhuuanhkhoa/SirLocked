@@ -21,6 +21,9 @@ import { PIXEL_PLAYER_SHEETS, advanceMotion, facingFromVector, isFacing, motionF
 import type { CharacterPresentation, CasePresentation } from '../game/presentationMedia.js';
 import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio } from '../game/audioController.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
+import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
+import { renderOpenCoopTimeline, renderOpenCoopCrack, type OpenCoopContext, type OpenCoopEvidence, type OpenCoopTestimony, type TimelineView } from '../game/openCoopCaseFile';
+import { createCaseWall, renderOpenCoopShell, type BoardView, type ShellTab, type WallStatus } from '../game/openCoopWall';
 import {
   PLAYER_FRAME,
   PLAYER_SHEETS,
@@ -249,6 +252,13 @@ type ScenePuzzle = {
   isSolved: boolean;
   missingItemIds: string[];
   missingClueIds: string[];
+  /** Interactive puzzles (type INTERACTIVE_PUZZLE): kind module id, public params, run and reveal. */
+  kind?: string;
+  params?: any;
+  run?: any;
+  reveal?: any;
+  hintsAvailable?: number;
+  hintsUsed?: number;
 };
 
 type ResolvedConfrontation = {
@@ -365,6 +375,10 @@ type GameState = {
   caseSummary: string;
   language: 'en' | 'vi';
   mechanicsVersion: number;
+  ruleSet?: string;
+  accusationAttemptsLeft?: number;
+  timeline?: TimelineView | null;
+  board?: BoardView | null;
   roomStatus: string;
   currentSceneId: string;
   version: number;
@@ -1431,7 +1445,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const currentIndex = this.state.sceneMap.findIndex((entry) => entry.isCurrent);
     const next = currentIndex >= 0 ? this.state.sceneMap[currentIndex + 1] : undefined;
     const completedCurrent = this.state.completedSceneIds.includes(this.state.currentSceneId);
-    const canProceed = Boolean(this.state.currentSceneCanComplete);
+    // Open co-op has no "continue" step: every place is open from the start.
+    const canProceed = Boolean(this.state.currentSceneCanComplete) && (this.state.ruleSet ?? '').toUpperCase() !== 'OPEN_COOP';
     const runtimeTransitions = this.sceneRuntime()?.transitions ?? [];
     // Phones stack the movement dock over the tool tray, so the proceed button rides above both.
     const proceedY = height - (width <= 900 ? 214 : 112);
@@ -2344,8 +2359,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private playerLabel(pose: PlayerPose) {
-    if (pose.role === 'INVESTIGATOR') return 'Sherlock';
-    if (pose.role === 'INTERROGATOR') return 'Watson';
+    if (pose.role === 'INVESTIGATOR') return 'Watson';
+    if (pose.role === 'INTERROGATOR') return 'Sherlock';
     return pose.username?.split(' ')[0] || 'Detective';
   }
 
@@ -2675,6 +2690,40 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   let state: GameState | null = null;
   let uiMode: GameUiMode = { kind: 'EXPLORE' };
+  let puzzleHost: PuzzleHost | null = null;
+  // Open co-op case wall (Sơ đồ vụ án): keeps its own drag/hold/animation state across redraws.
+  // Dev builds only: lets end-to-end scripts open a scene puzzle without aiming at the canvas.
+  if (import.meta.env.DEV) {
+    (window as any).__sirlockedTest = {
+      openPuzzle: (puzzleId: string) => setUiMode({ kind: 'PUZZLE', view: 'SOLVE', puzzleId }),
+      state: () => state,
+    };
+  }
+  const caseWall = createCaseWall({
+    tr,
+    pin: async (itemId, targetId) => {
+      const res = await gameApi.pinBoardItem(roomId, itemId, targetId);
+      const feedback = typeof res.puzzleFeedback === 'string' ? JSON.parse(res.puzzleFeedback || '{}') : (res.puzzleFeedback ?? {});
+      audio.play(feedback.correct ? 'reveal' : 'error');
+      applyState(res.state);
+      return Boolean(feedback.correct);
+    },
+    hint: async () => {
+      const res = await gameApi.boardHint(roomId);
+      const feedback = typeof res.puzzleFeedback === 'string' ? JSON.parse(res.puzzleFeedback || '{}') : (res.puzzleFeedback ?? {});
+      applyState(res.state);
+      return feedback.itemId ? { itemId: String(feedback.itemId), targetId: String(feedback.targetId) } : null;
+    },
+    redraw: () => draw(),
+  });
+  // Open co-op UI state (board card open, timeline card picked, partner feed, lead hint note).
+  let boardOpenId: string | null = null;
+  let timelineSelected: string | null = null;
+  let timelineBusy = false;
+  let leadHintNote: { text: string; level: number; open: number } | null = null;
+  let leadHintBusy = false;
+  const coopFeed: Array<{ id: string; text: string; target: string; at: number }> = [];
+  let coopFeedTimer: number | null = null;
   let selectedInventoryItemId: string | null = null;
   let captureInFlight = false;
   let stopped = false;
@@ -3117,10 +3166,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         </main>
         <div id="scene-intro-slot"></div>
         <div id="game-transient-slot"></div>
+        <div id="game-puzzle-slot"></div>
         <div id="game-dialogue-slot"></div>
         <div id="game-cutscene-slot"></div>
         <div id="game-coop-tools" class="game-coop-tools">${renderPingControls(tr)}${renderAudioControls(audio.getSettings(), tr)}<div id="game-role-guide-slot"></div></div>
         <div id="partner-ping-slot"></div>
+        <div id="oc-feed-slot"></div>
+        <div id="oc-hint-slot"></div>
         <div id="game-recovery-slot"></div>
       </div>`);
     shellMounted = true;
@@ -3181,8 +3233,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         }, 4500);
       }
     }
+    trackOpenCoopDiscoveries(state, fresh);
     // Scenes complete themselves server-side once every requirement is met; surface that here.
-    if (state) {
+    // (Open co-op has no per-place goals, so there is nothing to announce.)
+    if (state && (fresh.ruleSet ?? '').toUpperCase() !== 'OPEN_COOP') {
       const previouslyCompleted = new Set(state.completedSceneIds);
       for (const sceneId of fresh.completedSceneIds) {
         if (previouslyCompleted.has(sceneId)) continue;
@@ -3198,7 +3252,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
     if (fresh.availableForAccusation && !finalReadyAnnounced) {
       finalReadyAnnounced = true;
-      toast(tr('The final confrontation is ready.', 'Đối chất cuối cùng đã sẵn sàng.'), 'success', 5500);
+      toast((fresh.ruleSet ?? '').toUpperCase() === 'OPEN_COOP'
+        ? tr('First evidence found — you can accuse whenever you are sure (2 attempts).', 'Đã có chứng cứ đầu tiên — có thể buộc tội khi chắc chắn (2 lần).')
+        : tr('The final confrontation is ready.', 'Đối chất cuối cùng đã sẵn sàng.'), 'success', 5500);
     }
     
     if (isNewScene) audio.play('scene');
@@ -3519,7 +3575,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       privateRole: state.mechanicsVersion === 3 ? myRole() : null,
       elapsedMs: discoveryNotice ? performance.now() - discoveryShownAt : 0,
     });
-    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${accusationConsensusPanel()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${discoveryCard}${renderFinalConfrontationCallout(model, tr)}`;
+    syncInteractivePuzzle();
+    if (transient) transient.innerHTML = `${introOverlay(myRole())}${overlayHtml()}${accusationModal()}${accusationConsensusPanel()}${renderCrackPayoff(crackPayoffPair, escapeHtml, tr, caseComplete)}${renderV3CaseComplete(showCaseComplete, completedTruth, escapeHtml, tr)}${renderContextAction(model, tr)}${discoveryCard}${isOpenCoop() ? '' : renderFinalConfrontationCallout(model, tr)}`;
     syncCameraFx();
     if (uiMode.kind === 'DIALOGUE') dialogueOverlay(uiMode.characterId);
     else dialoguePresenter.clear();
@@ -3553,6 +3610,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     });
     hydrateEvidenceImages();
     modalFocus.sync();
+    caseWall.afterRender(app.querySelector<HTMLElement>('.ocw-wall'));
     // The item card takes focus on its Use button; closing it returns focus to the item's slot.
     if (focusAfterDraw) app.querySelector<HTMLElement>(focusAfterDraw)?.focus({ preventScroll: true });
   }
@@ -4333,6 +4391,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   // The case file is one manila folder: index tabs on the left, one page per section.
   function caseFileOverlay(section: CaseFileSection) {
+    // Open co-op has its own case file (wall, timeline, Crack the Lie); the map keeps the classic folder.
+    if (isOpenCoop() && section !== 'map') return openCoopCaseFileOverlay(section);
     const current = state!;
     const v3 = current.mechanicsVersion === 3;
     const model = v3 ? buildPairedConfrontationViewModel(current, myRole()) : null;
@@ -4367,7 +4427,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <div class="bpa-cf-body">
           <div class="bpa-cf-side">
             <div class="case-file-tabs bpa-cf-tabs" role="tablist" aria-label="${tr('Case file sections', 'Các mục hồ sơ')}">${tabs.html}</div>
-            ${caseFileTeamMarkup(v3)}
+            ${caseFileTeamMarkup(v3 && !isOpenCoop())}
           </div>
           <div class="bpa-cf-pagewrap">
             <svg class="bpa-cf-clip" viewBox="0 0 20 58" aria-hidden="true" focusable="false"><path d="M6 50V10a4 4 0 0 1 8 0v36a6 6 0 0 1-12 0V12" fill="none" stroke="#a7adb3" stroke-width="2.4" stroke-linecap="round"/></svg>
@@ -4406,6 +4466,247 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (!iso) return '';
     const date = new Date(iso);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  // ----- Open co-op case file (Sơ đồ vụ án · Dòng thời gian · Phá vỡ lời dối) -----
+
+  function openCoopContext(): OpenCoopContext {
+    const current = state!;
+    const partner = current.players.find((player) => player.userId !== me.userId);
+    const recent = Date.now() - 120_000;
+    const newIds = new Set<string>();
+    ((current as any).privateEvidence ?? []).forEach((entry: OpenCoopEvidence) => { if (entry.foundAt && Date.parse(entry.foundAt) > recent) newIds.add(entry.clueId); });
+    ((current as any).privateTestimonies ?? []).forEach((entry: OpenCoopTestimony) => { if (entry.foundAt && Date.parse(entry.foundAt) > recent) newIds.add(entry.testimonyFragmentId); });
+    return {
+      tr,
+      escape: escapeHtml,
+      meId: me.userId,
+      partnerName: partner?.username ?? tr('your partner', 'đồng đội'),
+      who: (userId, role) => {
+        const player = current.players.find((candidate) => candidate.userId === userId);
+        const character = (player?.role ?? role) === 'INVESTIGATOR' ? 'Watson' : (player?.role ?? role) === 'INTERROGATOR' ? 'Sherlock' : '';
+        return player ? `${player.username}${character ? ` · ${character}` : ''}` : character || tr('Partner', 'Đồng đội');
+      },
+      sceneTitle: (sceneId) => current.sceneMap.find((scene) => scene.sceneId === sceneId)?.title ?? '',
+      characters: (current.suspects ?? []).map((character) => ({ characterId: character.characterId, name: character.name, role: character.role })),
+      newIds,
+      openCardId: boardOpenId,
+      selectedTimelineId: timelineSelected,
+      evidencePhoto: (evidence) => evidence.photoUrl
+        ? `<img data-auth-image="${escapeHtml(evidence.photoUrl)}" alt="${escapeHtml(tr(`Captured view of ${evidence.title}`, `Ảnh chụp: ${evidence.title}`))}">`
+        : '',
+    };
+  }
+
+  function openCoopFacts() {
+    const evidenceIds = new Set(((state as any).privateEvidence ?? []).map((entry: OpenCoopEvidence) => entry.clueId));
+    return state!.unlockedClues
+      .filter((clue) => !clue.isEvidence && !evidenceIds.has(clue.clueId) && /^(reveal|fact)-/.test(clue.clueId))
+      .map((clue) => ({ clueId: clue.clueId, title: clue.title, content: clue.content }));
+  }
+
+
+  function openCoopPageHead(section: CaseFileSection) {
+    const number = (index: number) => `${tr('SECTION', 'MỤC')} ${String(index).padStart(2, '0')}`;
+    const [kicker, title, note] = section === 'timeline'
+      ? [`${number(2)} · ${tr('PUT THE NIGHT IN ORDER', 'XẾP LẠI THỨ TỰ')}`, state?.timeline?.title || tr('Timeline', 'Dòng thời gian'), tr('Shared by both detectives', 'Dùng chung cho cả hai thám tử')]
+      : [`${number(3)} · ${tr('DISCUSS AND CATCH THE LIE', 'THẢO LUẬN VÀ BẮT LỖI')}`, tr('Crack the Lie', 'Phá vỡ lời dối'), tr('Either of you drafts, both confirm', 'Ai cũng soạn được, cả hai cùng xác nhận')];
+    return `<div class="ocw-pagehead"><div><p>${kicker}</p><h3>${escapeHtml(title)}</h3></div><span>${note}</span></div>`;
+  }
+
+  function openCoopCaseFileOverlay(requested: CaseFileSection) {
+    const section: CaseFileSection = ['board', 'timeline', 'contradictions'].includes(requested) ? requested : 'board';
+    const current = state!;
+    const model = buildPairedConfrontationViewModel(current, myRole());
+    const previous = app.querySelector<HTMLElement>('.case-file-drawer.ocw');
+    const previousSection = previous?.dataset.caseSection ?? null;
+    if (section === 'board' && previousSection !== 'board') caseWall.markOpened();
+    const ctx = openCoopContext();
+    const evidence = ((current as any).privateEvidence ?? []) as OpenCoopEvidence[];
+    const testimonies = ((current as any).privateTestimonies ?? []) as OpenCoopTestimony[];
+    const resolved = (model?.resolvedTruths ?? []).filter((pair) => pair.status === 'RESOLVED_SHARED_TRUTH');
+    const failed = [...(model?.attemptHistory ?? []), ...(model?.resolvedTruths ?? []).filter((pair) => pair.status !== 'RESOLVED_SHARED_TRUTH')];
+    const active = (model?.active ?? null) as any;
+    const players = current.players.map((player) => ({ userId: player.userId, username: player.username, role: player.role }));
+    let body: string;
+    let status: WallStatus;
+    if (section === 'board') {
+      body = caseWall.render(current.board, {
+        tr, escape: escapeHtml, meId: me.userId, players, evidence, testimonies, cracked: resolved,
+        draft: active ? { testimonyId: active.testimony?.testimonyFragmentId ?? null, evidenceId: active.evidence?.clueId ?? null } : null,
+        newIds: ctx.newIds, sceneTitle: ctx.sceneTitle, evidencePhoto: ctx.evidencePhoto,
+      });
+      status = caseWall.footerStatus(current.board ?? null);
+    } else if (section === 'timeline') {
+      body = `<div class="ocw-paper" data-ocw-paper>${openCoopPageHead('timeline')}${renderOpenCoopTimeline(current.timeline, ctx)}</div>`;
+      const open = current.timeline?.open.length ?? 0;
+      status = open
+        ? { label: tr('TIMELINE', 'DÒNG THỜI GIAN'), text: tr('Pick a card, then tap the “+” where it belongs (or drag it there). A wrong spot costs a little score.', 'Chọn một thẻ rồi chạm khe “+” nơi nó thuộc về (hoặc kéo thả). Đặt sai bị trừ chút điểm.'), tone: 'info' }
+        : { label: tr('TIMELINE', 'DÒNG THỜI GIAN'), text: current.timeline?.hiddenCount ? tr('More cards appear as you find clues.', 'Thêm thẻ sẽ hiện khi các bạn tìm thêm manh mối.') : tr('Every event is in place.', 'Mọi mốc đã vào đúng chỗ.'), tone: current.timeline?.hiddenCount ? 'info' : 'ok' };
+    } else {
+      body = `<div class="ocw-paper" data-ocw-paper>${openCoopPageHead('contradictions')}${renderOpenCoopCrack(evidence, testimonies, resolved, failed, active, ctx)}</div>`;
+      status = active
+        ? { label: tr('UNDER REVIEW', 'ĐANG XEM XÉT'), text: tr('A statement and a piece of evidence are on the table — discuss, then both confirm.', 'Một câu khai và một chứng cứ đang được đưa ra — bàn với nhau rồi cả hai cùng xác nhận.'), tone: 'info' }
+        : { label: tr('CRACK THE LIE', 'PHÁ VỠ LỜI DỐI'), text: tr('Pick a statement you can break, then the evidence that contradicts it.', 'Chọn một lời khai có thể vạch trần, rồi chọn chứng cứ mâu thuẫn với nó.'), tone: 'info' };
+    }
+    if (section !== 'board') {
+      // Conclusions the team has established (cracked lies, the true timeline) close both papers.
+      const facts = openCoopFacts();
+      if (facts.length) {
+        body = body.replace(/<\/div>$/, `<section class="oc-facts" aria-label="${tr('Conclusions', 'Kết luận')}"><h4>${tr('What we know for sure', 'Điều đã chắc chắn')}</h4>
+          <ul>${facts.map((fact) => `<li class="${ctx.newIds.has(fact.clueId) ? 'is-new' : ''}"><b>${escapeHtml(fact.title)}</b><p>${escapeHtml(fact.content)}</p></li>`).join('')}</ul></section></div>`);
+      }
+    }
+    const keptScroll = previousSection === section ? previous?.querySelector<HTMLElement>('[data-ocw-paper]')?.scrollTop ?? 0 : 0;
+    if (keptScroll) {
+      queueMicrotask(() => {
+        const page = app.querySelector<HTMLElement>('[data-ocw-paper]');
+        if (page) page.scrollTop = keptScroll;
+      });
+    }
+    const board = current.board;
+    const cracked = resolved.length;
+    const tabs: ShellTab[] = [
+      { key: 'board', no: '01', name: tr('Case Board', 'Sơ đồ vụ án'), sub: tr('Photos & statements', 'Ghép ảnh & lời khai'), dot: Boolean(board?.envelope.length) },
+      { key: 'timeline', no: '02', name: tr('Timeline', 'Dòng thời gian'), sub: current.timeline?.title || tr('Put it in order', 'Xếp lại thứ tự'), dot: Boolean(current.timeline?.open.length) },
+      { key: 'contradictions', no: '03', name: tr('Crack the Lie', 'Phá vỡ lời dối'), sub: active ? tr('Under review', 'Đang xem xét') : tr(`${cracked} cracked`, `${cracked} lời dối đã phá`), dot: Boolean(active) },
+    ];
+    const left = current.accusationAttemptsLeft ?? 2;
+    const accuse = current.activeAccusation
+      ? { enabled: true, name: tr('Read the proposal', 'Đọc đề xuất'), sub: tr('Waiting for both', 'Chờ cả hai xác nhận'), reason: '' }
+      : current.availableForAccusation
+        ? { enabled: true, name: tr('Build accusation', 'Lập cáo buộc'), sub: tr(`${left} attempt(s) left`, `Còn ${left} lần`), reason: '' }
+        : { enabled: false, name: tr('Build accusation', 'Lập cáo buộc'), sub: tr('Opens with the first evidence', 'Mở khi có chứng cứ'), reason: tr('Find a first piece of evidence.', 'Hãy tìm chứng cứ đầu tiên.') };
+    const mine = players.find((player) => player.userId === me.userId) ?? null;
+    const partner = players.find((player) => player.userId !== me.userId) ?? null;
+    return renderOpenCoopShell({
+      tr, escape: escapeHtml, caseTitle: current.caseTitle, place: current.visibleScene.title, section, tabs, accuse,
+      me: mine, partner, body, status, opening: !previous, renderKey: section,
+    });
+  }
+
+
+
+  async function placeTimeline(afterEventId: string) {
+    if (!timelineSelected || timelineBusy) return;
+    const eventId = timelineSelected;
+    timelineBusy = true;
+    try {
+      const res = await gameApi.placeTimelineEvent(roomId, eventId, afterEventId || null);
+      const feedback = typeof res.puzzleFeedback === 'string' ? JSON.parse(res.puzzleFeedback || '{}') : (res.puzzleFeedback ?? {});
+      if (feedback.correct) {
+        timelineSelected = null;
+        audio.play('reveal');
+        toast(tr(`Placed: ${res.message}`, `Đã ghim: ${res.message}`), 'success', 4200);
+      } else {
+        toast(feedback.direction === 'later'
+          ? tr('Not there — this happened later.', 'Chưa đúng — mốc này xảy ra muộn hơn.')
+          : tr('Not there — this happened earlier.', 'Chưa đúng — mốc này xảy ra sớm hơn.'), 'info', 4200);
+        app.querySelector(`[data-oc-tl-pick="${CSS.escape(eventId)}"]`)?.classList.add('oc-tl-shake');
+      }
+      applyState(res.state);
+    } catch (err: any) {
+      toast(err.message || tr('Could not place the card.', 'Không đặt được thẻ.'), 'error');
+    } finally {
+      timelineBusy = false;
+    }
+  }
+
+  async function requestLeadHint(level: number) {
+    if (leadHintBusy) return;
+    leadHintBusy = true;
+    try {
+      const res = await gameApi.leadHint(roomId, level);
+      leadHintNote = { text: res.text, level: res.level, open: res.openLeads };
+      applyState(res.state);
+      renderLeadHint();
+    } catch (err: any) {
+      toast(err.message || tr('No hint right now.', 'Chưa có gợi ý.'), 'error');
+    } finally {
+      leadHintBusy = false;
+    }
+  }
+
+  function renderLeadHint() {
+    const slot = app.querySelector<HTMLElement>('#oc-hint-slot');
+    if (!slot) return;
+    if (!leadHintNote) { slot.innerHTML = ''; return; }
+    slot.innerHTML = `<aside class="oc-hint-note" role="status" aria-live="polite">
+      <b>${tr('HINT', 'GỢI Ý')} · ${leadHintNote.level === 1 ? tr('WHERE', 'Ở ĐÂU') : tr('WHAT', 'CÁI GÌ')}</b>
+      <p>${escapeHtml(leadHintNote.text)}</p>
+      <div class="oc-hint-acts">
+        ${leadHintNote.level === 1 && leadHintNote.open > 0 ? `<button type="button" data-oc-hint-more>${tr('Be more specific', 'Chỉ rõ hơn')}</button>` : ''}
+        <button type="button" data-oc-hint-close>${tr('Got it', 'Đã hiểu')}</button>
+      </div>
+    </aside>`;
+    slot.querySelector('[data-oc-hint-more]')?.addEventListener('click', () => void requestLeadHint(2));
+    slot.querySelector('[data-oc-hint-close]')?.addEventListener('click', () => { leadHintNote = null; renderLeadHint(); });
+  }
+
+  /** Partner discoveries in open co-op: a short feed with a "Xem" button that opens the board card. */
+  function trackOpenCoopDiscoveries(previous: GameState | null, fresh: GameState) {
+    if (!previous || (fresh.ruleSet ?? '').toUpperCase() !== 'OPEN_COOP') return;
+    const before = new Set<string>([
+      ...(((previous as any).privateEvidence ?? []) as OpenCoopEvidence[]).map((entry) => entry.clueId),
+      ...(((previous as any).privateTestimonies ?? []) as OpenCoopTestimony[]).map((entry) => entry.testimonyFragmentId),
+    ]);
+    const partnerName = (userId?: string) => {
+      const player = fresh.players.find((candidate) => candidate.userId === userId);
+      return player ? `${player.username} (${player.role === 'INVESTIGATOR' ? 'Watson' : 'Sherlock'})` : tr('Your partner', 'Đồng đội');
+    };
+    const scene = (sceneId: string) => fresh.sceneMap.find((entry) => entry.sceneId === sceneId)?.title ?? '';
+    for (const entry of ((fresh as any).privateEvidence ?? []) as OpenCoopEvidence[]) {
+      if (before.has(entry.clueId) || !entry.foundByUserId || entry.foundByUserId === me.userId) continue;
+      coopFeed.push({ id: entry.clueId, at: Date.now(), target: entry.clueId,
+        text: tr(`${escapeHtml(partnerName(entry.foundByUserId))} found <b>${escapeHtml(entry.title)}</b>${scene(entry.sceneId) ? ` · ${escapeHtml(scene(entry.sceneId))}` : ''}`,
+          `${escapeHtml(partnerName(entry.foundByUserId))} vừa tìm thấy <b>${escapeHtml(entry.title)}</b>${scene(entry.sceneId) ? ` · ${escapeHtml(scene(entry.sceneId))}` : ''}`) });
+    }
+    // Statements arrive a few at a time; one line per person keeps the feed readable.
+    const heard = new Map<string, OpenCoopTestimony[]>();
+    for (const entry of ((fresh as any).privateTestimonies ?? []) as OpenCoopTestimony[]) {
+      if (before.has(entry.testimonyFragmentId) || !entry.foundByUserId || entry.foundByUserId === me.userId) continue;
+      heard.set(entry.characterId, [...(heard.get(entry.characterId) ?? []), entry]);
+    }
+    for (const entries of heard.values()) {
+      const first = entries[0];
+      const quote = entries.length === 1 ? `: “${escapeHtml(first.text)}”` : '';
+      coopFeed.push({ id: `say:${first.characterId}:${Date.now()}`, at: Date.now(), target: first.testimonyFragmentId,
+        text: tr(`${escapeHtml(partnerName(first.foundByUserId))} heard <b>${escapeHtml(first.characterName)}</b>${quote || ` (${entries.length} new statements)`}`,
+          `${escapeHtml(partnerName(first.foundByUserId))} vừa nghe <b>${escapeHtml(first.characterName)}</b>${quote || ` khai ${entries.length} câu mới`}`) });
+    }
+    const placedBefore = new Set((previous.timeline?.placed ?? []).map((event) => event.eventId));
+    for (const event of fresh.timeline?.placed ?? []) {
+      if (placedBefore.has(event.eventId) || event.isFixed) continue;
+      coopFeed.push({ id: `tl:${event.eventId}`, at: Date.now(), target: 'timeline',
+        text: tr(`The timeline now has <b>${escapeHtml(event.timeLabel)} — ${escapeHtml(event.label)}</b>`, `Dòng thời gian vừa có <b>${escapeHtml(event.timeLabel)} — ${escapeHtml(event.label)}</b>`) });
+    }
+    // A rejected accusation reaches both detectives, not only the one who pressed confirm.
+    const leftBefore = previous.accusationAttemptsLeft ?? 2;
+    const leftNow = fresh.accusationAttemptsLeft ?? 2;
+    if (leftNow < leftBefore && fresh.roomStatus !== 'COMPLETED') {
+      toast(leftNow === 1
+        ? tr('Not convincing yet — the case continues. One accusation left.', 'Chưa thuyết phục — vụ án vẫn tiếp tục. Còn 1 lần buộc tội.')
+        : tr('Not convincing — the case continues.', 'Chưa thuyết phục — vụ án vẫn tiếp tục.'), 'error', 7000);
+    }
+    while (coopFeed.length > 3) coopFeed.shift();
+    renderCoopFeed();
+  }
+
+  function renderCoopFeed() {
+    const slot = app.querySelector<HTMLElement>('#oc-feed-slot');
+    if (!slot) return;
+    const now = Date.now();
+    for (let index = coopFeed.length - 1; index >= 0; index--) if (now - coopFeed[index].at > 9000) coopFeed.splice(index, 1);
+    slot.innerHTML = coopFeed.length
+      ? `<div class="oc-feed" role="log" aria-live="polite">${coopFeed.map((item) => `<div class="oc-feed-item"><p>${item.text}</p><button type="button" data-oc-feed="${escapeHtml(item.target)}">${tr('View', 'Xem')}</button></div>`).join('')}</div>`
+      : '';
+    slot.querySelectorAll<HTMLElement>('[data-oc-feed]').forEach((button) => button.addEventListener('click', () => {
+      const target = button.dataset.ocFeed ?? '';
+      if (target === 'timeline') setUiMode({ kind: 'CASE_FILE', section: 'timeline' });
+      else { caseWall.reveal(target); setUiMode({ kind: 'CASE_FILE', section: 'board' }); }
+    }));
+    if (coopFeedTimer) window.clearTimeout(coopFeedTimer);
+    if (coopFeed.length) coopFeedTimer = window.setTimeout(renderCoopFeed, 1500);
   }
 
   function caseFileTabs(section: CaseFileSection, model: PairedConfrontationViewModel | null) {
@@ -4565,6 +4866,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   function caseFilePageHead(section: CaseFileSection, model: PairedConfrontationViewModel | null) {
+    if (isOpenCoop() && section !== 'map') return openCoopPageHead(section);
     const current = state!;
     const role = myRole();
     const partnerName = escapeHtml(current.players.find((player) => player.userId !== me.userId)?.username ?? tr('your partner', 'đồng đội'));
@@ -4904,9 +5206,60 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   // Puzzle on a scene object. Codes get one brass cell per character (arrows roll digits); the hidden
   // #puzzle-code-answer carries the joined answer to the existing submit handler.
+  // ----- Interactive puzzles (kinds) live in their own slot so re-renders never reset them -----
+
+  function isOpenCoop() { return (state?.ruleSet ?? '').toUpperCase() === 'OPEN_COOP'; }
+  function isInteractivePuzzle(puzzle: ScenePuzzle | undefined | null) { return Boolean(puzzle && puzzle.type === 'INTERACTIVE_PUZZLE'); }
+
+  function interactivePuzzleModel(): PuzzleHostModel | null {
+    if (!state || uiMode.kind !== 'PUZZLE' || uiMode.view !== 'SOLVE') return null;
+    const puzzleId = uiMode.puzzleId;
+    const puzzle = state.visibleScene.puzzles?.find((candidate) => candidate.puzzleId === puzzleId);
+    if (!puzzle || !isInteractivePuzzle(puzzle) || puzzle.isLocked) return null;
+    const target = state.visibleScene.items.find((item) => item.itemId === puzzle.targetId);
+    return {
+      puzzleId: puzzle.puzzleId,
+      kind: puzzle.kind ?? '',
+      title: target?.name || prettyId(puzzle.targetId || puzzle.puzzleId),
+      prompt: puzzle.prompt,
+      params: puzzle.params ?? {},
+      run: puzzle.run ?? null,
+      reveal: puzzle.reveal ?? null,
+      solved: puzzle.isSolved,
+      hintsAvailable: puzzle.hintsAvailable ?? 0,
+      hintsUsed: puzzle.hintsUsed ?? 0,
+    };
+  }
+
+  function syncInteractivePuzzle() {
+    const slot = app.querySelector<HTMLElement>('#game-puzzle-slot');
+    if (!slot) return;
+    if (!puzzleHost) {
+      puzzleHost = createPuzzleHost({
+        slot,
+        tr,
+        submit: async (puzzleId, answer) => {
+          const res = await gameApi.solvePuzzle(roomId, puzzleId, JSON.stringify(answer));
+          const solved = Boolean(res.state?.solvedPuzzleIds?.includes(puzzleId));
+          applyState(res.state);
+          if (solved) toast(res.detail || res.message || tr('Puzzle solved.', 'Đã giải câu đố.'), 'success', 5200);
+          return { solved, feedback: res.puzzleFeedback ?? null, message: res.message ?? '' };
+        },
+        probe: async (puzzleId, payload) => {
+          const res = await gameApi.probePuzzle(roomId, puzzleId, JSON.stringify(payload));
+          applyState(res.state);
+          return { feedback: res.puzzleFeedback ?? null, message: res.message ?? '' };
+        },
+        onClose: () => closeOverlay(),
+      });
+    }
+    puzzleHost.sync(interactivePuzzleModel());
+  }
+
   function puzzleSolveOverlay(puzzleId: string) {
     const puzzle = state!.visibleScene.puzzles?.find((candidate) => candidate.puzzleId === puzzleId);
     if (!puzzle) return '';
+    if (isInteractivePuzzle(puzzle) && !puzzle.isLocked) return '';
     const draft = puzzleDrafts.get(puzzle.puzzleId) ?? [];
     const missing = [...(puzzle.missingItemIds ?? []), ...(puzzle.missingClueIds ?? [])];
     const target = state!.visibleScene.items.find((item) => item.itemId === puzzle.targetId);
@@ -5553,7 +5906,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         caseFileOpenedAt = performance.now();
         recordV3UiEvent('PrivateNotebookOpened');
       }
-      setUiMode(closing ? { kind: 'EXPLORE' } : { kind: 'CASE_FILE', section: 'evidence' }, 'case-file-btn');
+      setUiMode(closing ? { kind: 'EXPLORE' } : { kind: 'CASE_FILE', section: isOpenCoop() ? 'board' : 'evidence' }, 'case-file-btn');
     });
     app.querySelectorAll('[data-case-tab]').forEach((button) => button.addEventListener('click', () => {
       const tab = (button as HTMLElement).dataset.caseTab as CaseFileSection;
@@ -5605,7 +5958,31 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     app.querySelector('#evidence-detail-back')?.addEventListener('click', () => {
       setUiMode({ kind: 'CASE_FILE', section: 'evidence' });
     });
-    app.querySelector('#hint-btn')?.addEventListener('click', () => requestHint('SCENE', state!.currentSceneId));
+    app.querySelector('#hint-btn')?.addEventListener('click', () => (isOpenCoop() ? void requestLeadHint(1) : requestHint('SCENE', state!.currentSceneId)));
+    app.querySelectorAll<HTMLElement>('[data-oc-toggle]').forEach((button) => button.addEventListener('click', () => {
+      const id = button.dataset.ocToggle ?? null;
+      boardOpenId = boardOpenId === id ? null : id;
+      draw();
+    }));
+    app.querySelectorAll<HTMLElement>('[data-oc-tl-pick]').forEach((card) => {
+      const id = card.dataset.ocTlPick ?? '';
+      card.addEventListener('click', () => { timelineSelected = timelineSelected === id ? null : id; draw(); });
+      card.addEventListener('dragstart', (event) => { event.dataTransfer?.setData('text/plain', id); timelineSelected = id; });
+    });
+    app.querySelectorAll<HTMLElement>('[data-oc-slot]').forEach((button) => {
+      const after = button.dataset.ocSlot ?? '';
+      button.addEventListener('click', () => void placeTimeline(after));
+      const slot = button.parentElement;
+      if (!slot) return;
+      slot.addEventListener('dragover', (event) => { event.preventDefault(); slot.classList.add('is-drop'); });
+      slot.addEventListener('dragleave', () => slot.classList.remove('is-drop'));
+      slot.addEventListener('drop', (event) => {
+        event.preventDefault();
+        slot.classList.remove('is-drop');
+        const id = event.dataTransfer?.getData('text/plain');
+        if (id) { timelineSelected = id; void placeTimeline(after); }
+      });
+    });
     app.querySelector('#floating-camera-btn')?.addEventListener('click', toggleCameraMode);
     app.querySelector('#floating-bag-btn')?.addEventListener('click', () => {
       setUiMode(uiMode.kind === 'INVENTORY' ? { kind: 'EXPLORE' } : { kind: 'INVENTORY' }, 'floating-bag-btn');
@@ -5967,7 +6344,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     // inspected/collected first (which is what unlocks the puzzle later on).
     const puzzle = state!.visibleScene.puzzles?.find((candidate) => candidate.targetId === target && !candidate.isSolved && !candidate.isLocked);
     if (puzzle) {
-      if (myRole() !== 'INVESTIGATOR') {
+      // Open co-op cases and hands-on puzzles: either detective may solve.
+      if (myRole() !== 'INVESTIGATOR' && !isOpenCoop() && !isInteractivePuzzle(puzzle)) {
         toast(tr('Only the Investigator can operate scene puzzles.', 'Chỉ Điều tra viên có thể giải câu đố hiện trường.'), 'info');
         return;
       }
@@ -6245,7 +6623,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   async function startPairedConfrontation(testimonyFragmentId: string) {
-    if (!testimonyFragmentId || myRole() !== 'INTERROGATOR') return;
+    if (!testimonyFragmentId || (myRole() !== 'INTERROGATOR' && !isOpenCoop())) return;
     await runPairedCommand(() => gameApi.startPairedConfrontation(roomId, {
       attemptId: crypto.randomUUID(),
       testimonyFragmentId,
@@ -6254,7 +6632,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   async function editPairedTestimony(testimonyFragmentId: string) {
     const active = state?.activeConfrontation;
-    if (!active || !testimonyFragmentId || myRole() !== 'INTERROGATOR') return;
+    if (!active || !testimonyFragmentId || (myRole() !== 'INTERROGATOR' && !isOpenCoop())) return;
     await runPairedCommand(() => gameApi.editPairedTestimony(roomId, active.attemptId, {
       testimonyFragmentId,
       expectedRevision: active.revision,
@@ -6263,7 +6641,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   async function submitPairedEvidence(evidenceId: string) {
     const active = state?.activeConfrontation;
-    if (!active || !evidenceId || myRole() !== 'INVESTIGATOR') return;
+    if (!active || !evidenceId || (myRole() !== 'INVESTIGATOR' && !isOpenCoop())) return;
     await runPairedCommand(() => gameApi.submitPairedEvidence(roomId, active.attemptId, {
       evidenceId,
       expectedRevision: active.revision,
@@ -6407,6 +6785,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     amendedAccusation = null;
     uiMode = { kind: 'EXPLORE' };
     if (response?.accusation) acknowledgedAccusationKey = accusationRevisionKey(response.accusation);
+    // The "not convincing" notice comes from applyState, so both detectives get the same one.
+    if (response?.rejected) audio.play('error');
     if (response?.result) {
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(response.result));
       // Both detectives agreed: stamp the sheet they just read before the result page takes over.
@@ -6468,6 +6848,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (stopped) return;
     stopped = true;
     signal?.removeEventListener('abort', cleanupGamePage);
+    caseWall.destroy();
     stateRefetcher.dispose();
     audio.dispose();
     modalFocus.dispose();
@@ -6484,6 +6865,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (reconnectWaitTimer) clearInterval(reconnectWaitTimer);
     reconnectWaitTimer = null;
     window.removeEventListener('keydown', handleKeydown);
+    puzzleHost?.destroy();
+    puzzleHost = null;
     destroyPhaser();
     for (const request of evidencePhotoRequests.values()) request.abort();
     evidencePhotoRequests.clear();

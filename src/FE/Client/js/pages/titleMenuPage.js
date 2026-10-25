@@ -1,7 +1,6 @@
 import '../../../css/23-bpa-home.css';
-import { BadgeCheck, Camera, Crown, LightbulbOff, Target, Timer, createIcons } from 'lucide';
 import { authApi } from '../api/authApi.js';
-import { badgeApi } from '../api/badgeApi.js';
+import { marketApi } from '../api/marketApi.js';
 import { profileApi } from '../api/profileApi.js';
 import { roomApi } from '../api/roomApi.js';
 import { weeklyApi } from '../api/weeklyApi.js';
@@ -10,13 +9,13 @@ import { activeRoomDestination } from '../services/roomInvites.js';
 import { session } from '../services/session.js';
 import { tr, uiLanguage } from '../services/i18n.js';
 import { escapeHtml, initials, render } from '../utils/dom.js';
+import { changeText, defName, fmt as formatPrice, itemTile, rarityLabel, rarityOf } from './market/marketKit.js';
 
 /** Fired with the /profile/me payload so the header chip can reuse it. */
 export const PROFILE_EVENT = 'sirlocked:profile';
 
 const RANK_ORDER = ['APPRENTICE', 'DETECTIVE', 'INSPECTOR', 'MASTER'];
 const RANK_EN = { APPRENTICE: 'Apprentice', DETECTIVE: 'Detective', INSPECTOR: 'Inspector', MASTER: 'Master' };
-const BADGE_ICONS = { BadgeCheck, Camera, Crown, LightbulbOff, Target, Timer };
 
 /** The backend labels ranks in Vietnamese only; English follows the stable tier key. */
 export function detectiveRankLabel(rank) {
@@ -100,22 +99,22 @@ export function renderTitleMenuPage(app) {
             <div class="bpa-home-card bpa-home-card--kraft bpa-tilt-l">
               <span class="bpa-pin" aria-hidden="true"></span>
               <span class="bpa-pin bpa-pin--red bpa-home-edgepin bpa-home-edgepin--right" aria-hidden="true"></span>
-              <p class="bpa-home-head"><span>${tr('FILE 01 · ROOMS', 'HỒ SƠ 01 · PHÒNG')}</span><span>${tr('2 DETECTIVES', '2 THÁM TỬ')}</span></p>
+              <p class="bpa-home-head"><span>${tr('FILE 01 · ROOMS', 'HỒ SƠ 01 · PHÒNG')}</span><span id="home-open-rooms">${tr('2 DETECTIVES', '2 THÁM TỬ')}</span></p>
               <h2 class="bpa-home-title">${tr('Investigation room', 'Phòng điều tra')}</h2>
               <p class="bpa-home-text">${tr(
-                'Open a private room and send the invite code to your partner, or enter a code to join a waiting room.',
-                'Mở phòng riêng rồi gửi mã mời cho đồng đội, hoặc nhập mã để vào phòng đang chờ.',
+                'Play with friends in a private room, or join a public room that is waiting for a partner.',
+                'Chơi với bạn bè trong phòng riêng, hoặc vào một phòng công khai đang chờ người.',
               )}</p>
               <div class="bpa-home-tiles">
-                <a class="bpa-home-tile" href="#/create-room">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V4.5A1.5 1.5 0 0 1 6.5 3h11A1.5 1.5 0 0 1 19 4.5V21"/><path d="M12 9v6M9 12h6"/></svg>
-                  <strong class="is-teal">${tr('CREATE ROOM', 'TẠO PHÒNG')}</strong>
-                  <span>${tr('Host a new investigation', 'Mở phiên điều tra mới')}</span>
+                <a class="bpa-home-tile" href="#/rooms">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <strong class="is-teal">${tr('PUBLIC', 'CÔNG KHAI')}</strong>
+                  <span>${tr('Open rooms anyone can join', 'Ai cũng thấy và vào được')}</span>
                 </a>
-                <a class="bpa-home-tile" href="#/join">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3"/><path d="M16 7l3 3"/><path d="M14 9l2 2"/></svg>
-                  <strong class="is-rust">${tr('JOIN A ROOM', 'VÀO PHÒNG')}</strong>
-                  <span>${tr('Enter a 6-character code', 'Nhập mã mời 6 ký tự')}</span>
+                <a class="bpa-home-tile" href="#/create-room">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/></svg>
+                  <strong class="is-rust">${tr('PRIVATE', 'RIÊNG TƯ')}</strong>
+                  <span>${tr('Invite code only', 'Chỉ vào bằng mã mời')}</span>
                 </a>
               </div>
               <div class="bpa-home-foot" id="home-rooms" aria-live="polite">
@@ -168,31 +167,31 @@ export function renderTitleMenuPage(app) {
                 <span class="bpa-home-scene-tag">${tr('CRIME SCENE · 23:47', 'HIỆN TRƯỜNG · 23:47')}</span>
               </div>
               <div class="bpa-home-ready-copy">
-                <p class="bpa-kicker">${tr('TWO DETECTIVES · ONE CASE', 'HAI THÁM TỬ · MỘT VỤ ÁN')}</p>
+                <p class="bpa-kicker">${tr('NEW CASE · QUICK MATCH', 'VỤ ÁN MỚI · GHÉP ĐÔI NHANH')}</p>
                 <h2 id="home-ready-title" class="bpa-home-ready-title">${tr('Ready to crack the case?', 'Sẵn sàng phá án?')}</h2>
                 <p>${tr(
-                  'Pick a case and bring a partner: one examines the scene, the other questions the witnesses.',
-                  'Chọn một vụ án và mời đồng đội: một người khám nghiệm hiện trường, một người hỏi nhân chứng.',
+                  'Get paired with another detective: one examines the scene, the other questions the witnesses.',
+                  'Ghép đôi với một thám tử khác: một người khám nghiệm hiện trường, một người hỏi nhân chứng.',
                 )}</p>
               </div>
-              <a class="bpa-btn bpa-btn--red bpa-btn--block bpa-home-start" href="#/cases">
+              <a class="bpa-btn bpa-btn--red bpa-btn--block bpa-home-start" href="#/find-game">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg>
-                ${tr('BEGIN INVESTIGATION', 'BẮT ĐẦU PHÁ ÁN')}
+                ${tr('FIND A GAME', 'TÌM TRẬN')}
               </a>
-              <a class="bpa-link bpa-link--gold bpa-home-join" href="#/join">${tr('Have a room code? Join a room', 'Đã có mã phòng? Vào phòng')}</a>
+              <a class="bpa-link bpa-link--gold bpa-home-join" href="#/rooms">${tr('Playing with friends? Create a private room', 'Chơi với bạn bè? Tạo phòng riêng')}</a>
             </section>
           </div>
 
-          <div class="bpa-home-slot bpa-home-badges">
-            <a class="bpa-home-card bpa-home-card--ledger bpa-home-cardlink bpa-tilt-r" href="#/detective">
+          <div class="bpa-home-slot bpa-home-badges bpa-home-market">
+            <a class="bpa-home-card bpa-home-card--ledger bpa-home-cardlink bpa-tilt-r" href="#/market">
               <span class="bpa-pin" aria-hidden="true"></span>
               <span class="bpa-pin bpa-pin--red bpa-home-edgepin bpa-home-edgepin--left" aria-hidden="true"></span>
-              <p class="bpa-home-head"><span>${tr('BADGE CABINET', 'TỦ HUY HIỆU')}</span><span id="home-badge-count"></span></p>
-              <h2 class="bpa-home-title">${tr('Badges', 'Huy hiệu')}</h2>
-              <ul class="bpa-home-badge-list" id="home-badges" aria-busy="true">
-                <li class="bpa-home-muted">${tr('Opening the cabinet…', 'Đang mở tủ…')}</li>
+              <p class="bpa-home-head"><span>${tr('TRADING LEDGER', 'SỔ GIAO DỊCH')}</span><span>${tr('BUY · SELL · SWAP', 'MUA · BÁN · ĐỔI')}</span></p>
+              <h2 class="bpa-home-title">${tr('Market', 'Chợ đồ')}</h2>
+              <ul class="bpa-mk-homelist" id="home-market" aria-busy="true">
+                <li class="bpa-home-muted">${tr('Opening the ledger…', 'Đang mở sổ giao dịch…')}</li>
               </ul>
-              <span class="bpa-home-go">${tr('VIEW DETECTIVE PROFILE', 'XEM HỒ SƠ THÁM TỬ')} ${ARROW}</span>
+              <span class="bpa-home-go">${tr('ENTER THE MARKET', 'VÀO CHỢ')} ${ARROW}</span>
             </a>
           </div>
 
@@ -229,7 +228,8 @@ export function renderTitleMenuPage(app) {
   // Each card fills itself; a slow or failed request never blocks the others.
   loadProfile(app);
   loadActiveRooms(app);
-  loadBadges(app, user?.userId);
+  loadOpenRoomCount(app);
+  loadMarket(app);
   loadFeatured(app);
   loadChallenge(app);
 }
@@ -280,38 +280,44 @@ async function loadActiveRooms(app) {
   mount.innerHTML = `<a class="bpa-home-go" href="${href}">${label} ${ARROW}</a>`;
 }
 
-async function loadBadges(app, userId) {
-  const list = app.querySelector('#home-badges');
-  let badges = [];
+/** "12 PHÒNG MỞ": public rooms with a free seat; the static label stays if the list is unavailable. */
+async function loadOpenRoomCount(app) {
+  let rooms;
   try {
-    if (userId) badges = await badgeApi.forUser(userId);
+    rooms = await roomApi.publicRooms({ openOnly: true });
   } catch {
-    badges = null;
+    return;
+  }
+  const label = app.isConnected ? app.querySelector('#home-open-rooms') : null;
+  if (!label || !Array.isArray(rooms)) return;
+  label.textContent = tr(`${rooms.length} OPEN ${rooms.length === 1 ? 'ROOM' : 'ROOMS'}`, `${rooms.length} PHÒNG MỞ`);
+}
+
+/** Chợ đồ teaser: the three most traded item types with their lowest ask and 30-day change. */
+async function loadMarket(app) {
+  const list = app.querySelector('#home-market');
+  let rows = null;
+  try {
+    rows = (await marketApi.browse({ sort: 'popular' })).rows.slice(0, 3);
+  } catch {
+    rows = null;
   }
   if (!app.isConnected) return;
   list.removeAttribute('aria-busy');
-  if (!badges?.length) {
-    list.innerHTML = `<li class="bpa-home-muted">${badges
-      ? tr('No badges yet — solve a case to earn the first one.', 'Chưa có huy hiệu — phá một vụ án để nhận huy hiệu đầu tiên.')
-      : tr('The badge cabinet could not be opened.', 'Không mở được tủ huy hiệu.')}</li>`;
+  if (!rows?.length) {
+    list.innerHTML = `<li class="bpa-home-muted">${tr('The market could not be opened.', 'Không mở được sổ giao dịch.')}</li>`;
     return;
   }
-  const earned = badges.filter((badge) => badge.earned);
-  app.querySelector('#home-badge-count').textContent = tr(`${earned.length} / ${badges.length} EARNED`, `${earned.length} / ${badges.length} ĐÃ ĐẠT`);
-  const shown = [...earned, ...badges.filter((badge) => !badge.earned)].slice(0, 3);
-  list.innerHTML = shown.map((badge) => `
-    <li class="bpa-home-badge${badge.earned ? ' is-earned' : ''}">
-      <span class="bpa-home-badge-icon" aria-hidden="true"><i data-lucide="${escapeHtml(badge.iconKey || 'badge-check')}"></i></span>
-      <span class="bpa-home-badge-copy">
-        <span class="bpa-home-badge-name">${escapeHtml(badge.name)}</span>
-        <span class="bpa-home-badge-state">${badge.earned ? tr('EARNED', 'ĐÃ ĐẠT') : tr('LOCKED', 'CHƯA MỞ')}</span>
-      </span>
-    </li>`).join('');
-  try {
-    createIcons({ icons: BADGE_ICONS, attrs: { 'aria-hidden': 'true' }, root: list });
-  } catch {
-    // Icons are decorative; the names still read without them.
-  }
+  list.innerHTML = rows.map((row) => {
+    const rarity = rarityOf(row.def.rarity);
+    const change = changeText(row.changePercent);
+    return `
+    <li class="bpa-mk-homerow">
+      ${itemTile(row.def, 34, 28)}
+      <span class="bpa-mk-homename"><span>${escapeHtml(defName(row.def))}</span><span class="bpa-mk-rar is-${rarity.cls}">${escapeHtml(rarityLabel(row.def.rarity).toUpperCase())}</span></span>
+      <span class="bpa-mk-homeprice">${row.lowestAsk != null ? formatPrice(row.lowestAsk) : '—'}<small class="${change.up ? 'is-up' : 'is-down'}">${row.lowestAsk != null ? change.text : tr('none listed', 'chưa rao')}</small></span>
+    </li>`;
+  }).join('');
 }
 
 async function loadFeatured(app) {

@@ -7,7 +7,7 @@ using SirLocked.Api.Models;
 
 namespace SirLocked.Api.DataAccess;
 
-public class MongoDbContext
+public partial class MongoDbContext
 {
     public const string PlaytestSessionTimestampIndexName = "ix_playtestEvents_session_timestamp";
     public const string PlaytestTypeTimestampIndexName = "ix_playtestEvents_type_timestamp";
@@ -200,6 +200,7 @@ public class MongoDbContext
                 new CreateIndexOptions { Name = "ix_weeklyFeatures_type_isActive" }),
             cancellationToken: ct);
 
+        await EnsureLobbyIndexesAsync(ct);
         await EnsurePlaytestEventIndexesAsync(ct);
     }
 

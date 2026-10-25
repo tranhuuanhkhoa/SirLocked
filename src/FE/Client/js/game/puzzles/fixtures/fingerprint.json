@@ -1,0 +1,33 @@
+{
+  "title": "Tay nắm két sắt",
+  "prompt": "Rê chổi lên mặt két để rắc bột. Khi dấu đủ rõ, nhấc dấu bằng băng keo rồi đối chiếu với thẻ vân tay mẫu. Bàn phím: nút “Rắc một lượt”, hoặc phím mũi tên trên mặt két.",
+  "params": {
+    "cards": [
+      { "id": "tl", "mono": "TL", "name": "Trịnh Lực", "role": "Tài xế nhà họ Lâm" },
+      { "id": "db", "mono": "ĐB", "name": "Đặng Bửu", "role": "Chủ tiệm cầm đồ" },
+      { "id": "pt", "mono": "PT", "name": "Phạm Tùng", "role": "Thợ phụ tiệm cầm đồ" }
+    ],
+    "plate": "KÉT SẮT · Đ.B.",
+    "edge": "TAY NẮM",
+    "surface": "Két sắt tiệm cầm đồ",
+    "place": "Tay nắm",
+    "note": {
+      "title": "Két sắt bị mở",
+      "text": "Két không bị cạy, ổ khóa nguyên vẹn. Tay nắm thép còn bóng — dấu tay sẽ lên rõ với bột xám.",
+      "tag": "VẬT CHỨNG · TIỆM CẦM ĐỒ"
+    },
+    "testimony": {
+      "mono": "ĐB",
+      "text": "Đặng Bửu khai: tối thứ Sáu ông không động vào két — chỉ thằng Lực từng lảng vảng quanh quầy.",
+      "tag": "LỜI KHAI · ĐẶNG BỬU"
+    }
+  },
+  "solution": {
+    "card": "db",
+    "hints": ["Người ta thường cầm vào tay nắm để mở két.", "Tìm vết sẹo cắt chéo các đường vân."]
+  },
+  "reveal": {
+    "title": "Dấu vân tay trên tay nắm két",
+    "text": "Dấu ngón cái trên tay nắm két là của chính Đặng Bửu — không có dấu tay của Trịnh Lực. Bửu khai không động vào két tối thứ Sáu; lời khai này không đứng vững."
+  }
+}

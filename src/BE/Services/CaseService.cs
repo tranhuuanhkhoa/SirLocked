@@ -40,7 +40,8 @@ public class CaseService : ICaseService
     /// <summary>Hand-authored PixelLab case: one outdoor map, five interiors, pixel render mode.</summary>
     private static readonly string[] PixelDemoFiles =
     [
-        "case-pixel-lo-thuoc-thu-nam-vi.json"
+        "case-pixel-lo-thuoc-thu-nam-vi.json",
+        "case-pixel-tram-hong-ngoc-vi.json"
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -293,7 +294,18 @@ public class CaseService : ICaseService
         foreach (var fileName in PixelDemoFiles)
         {
             var gameCase = LoadBundledDemoCase(fileName);
-            await UpsertValidatedAsync(gameCase, overwrite: true, forceDraft: true);
+            try
+            {
+                await UpsertValidatedAsync(gameCase, overwrite: true, forceDraft: true);
+            }
+            catch (ApiException error) when (error.Errors is ApiErrorDetails { Code: "CASE_IMMUTABLE_WHILE_ACTIVE" })
+            {
+                // A room is still playing this case: keep the published copy and seed the others.
+                _logger.LogWarning("Pixel demo {CaseId} left unchanged: {Message}", gameCase.CaseId, error.Message);
+                var existing = await _db.Cases.Find(c => c.CaseId == gameCase.CaseId).FirstOrDefaultAsync();
+                if (existing is not null) results.Add(CaseSummaryResponse.From(existing));
+                continue;
+            }
             results.Add(await PublishAsync(gameCase.CaseId));
         }
         return results;
@@ -306,6 +318,8 @@ public class CaseService : ICaseService
             gameCase.Status = CaseStatus.Draft;
         }
 
+        // Interactive puzzles get their per-case answers here (deterministic per case and puzzle).
+        Services.PuzzleKinds.PuzzleKindRegistry.FillMissing(gameCase);
         var validation = _validator.Validate(gameCase);
         if (!validation.IsValid)
         {

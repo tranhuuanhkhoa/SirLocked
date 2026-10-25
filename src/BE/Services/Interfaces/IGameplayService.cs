@@ -11,6 +11,11 @@ public interface IGameplayService
     Task<GameActionResponse> UseItemAsync(CurrentUser user, string roomId, UseItemRequest request);
     Task<GameActionResponse> CombineItemsAsync(CurrentUser user, string roomId, CombineItemsRequest request);
     Task<GameActionResponse> ActivateEnvironmentInteractionAsync(CurrentUser user, string roomId, string interactionId);
+    Task<LeadHintResponse> RequestLeadHintAsync(CurrentUser user, string roomId, LeadHintRequest request);
+    Task<GameActionResponse> PlaceTimelineEventAsync(CurrentUser user, string roomId, PlaceTimelineEventRequest request);
+    Task<GameActionResponse> PinBoardItemAsync(CurrentUser user, string roomId, PinBoardItemRequest request);
+    Task<GameActionResponse> BoardHintAsync(CurrentUser user, string roomId);
+    Task<GameActionResponse> ProbePuzzleAsync(CurrentUser user, string roomId, ProbePuzzleRequest request);
     Task<GameActionResponse> SolvePuzzleAsync(CurrentUser user, string roomId, SolvePuzzleRequest request);
     Task<GameActionResponse> CaptureClueAsync(CurrentUser user, string roomId, CaptureClueRequest request);
     Task<EvidencePhotoContent> GetEvidencePhotoAsync(string userId, string roomId, string clueId);

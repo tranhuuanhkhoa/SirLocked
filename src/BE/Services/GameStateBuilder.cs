@@ -125,7 +125,8 @@ public class GameStateBuilder : IGameStateBuilder
             ConversationTranscript = conversationTranscript,
             Puzzles = gameCase.Puzzles
                 .Where(puzzle => IsTargetAvailableInScene(scene, puzzle.TargetId))
-                .Select(puzzle => ScenePuzzleDto.From(puzzle, collected, unlocked, solvedPuzzles))
+                .Select(puzzle => ScenePuzzleDto.From(puzzle, collected, unlocked, solvedPuzzles,
+                    state.PuzzleRuns.GetValueOrDefault(puzzle.PuzzleId)))
                 .ToList()
         };
 
@@ -161,6 +162,12 @@ public class GameStateBuilder : IGameStateBuilder
             CaseSummary = gameCase.Summary,
             Language = gameCase.Language,
             MechanicsVersion = gameCase.MechanicsVersion,
+            RuleSet = gameCase.RuleSet ?? string.Empty,
+            Timeline = TimelineRules.BuildView(gameCase, state),
+            Board = CaseBoardRules.BuildView(gameCase, state),
+            AccusationAttemptsLeft = CaseRuleSets.IsOpenCoop(gameCase)
+                ? Math.Max(0, CaseRuleSets.AccusationAttempts - state.WrongAccusationCount)
+                : 1,
             RoomStatus = room.Status,
             CurrentStageId = stage.StageId,
             CurrentSceneId = scene.SceneId,

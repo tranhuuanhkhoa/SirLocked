@@ -1,10 +1,11 @@
 import '../../../css/30-bpa-rooms.css';
 import { caseApi } from '../api/caseApi.js';
-import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle } from '../utils/dom.js';
-import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
 import { bindJoinForm, joinCardHtml } from './joinRoomPage.js';
+import {
+  VISIBILITY, bindVisibilityToggle, caseSelectHtml, createRoomAndOpen, visibilityNoteHtml, visibilityStampHtml, visibilityToggleHtml,
+} from './roomCreateCard.js';
 
 const ICON_SPIN = `
   <svg class="bpa-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -72,6 +73,7 @@ export async function renderCreateRoomPage(app) {
 
   let selectedCaseId = cases[0]?.caseId ?? null;
   let flip = false;
+  let visibility = VISIBILITY.PRIVATE;
 
   function selectedHtml() {
     const selected = cases.find((c) => c.caseId === selectedCaseId);
@@ -139,13 +141,13 @@ export async function renderCreateRoomPage(app) {
   const createHtml = count === 0 ? '' : `
     <section class="bpa-paper bpa-paper--kraft bpa-rooms-card bpa-rooms-create" aria-labelledby="rooms-create-h">
       <span class="bpa-pin bpa-pin--red" aria-hidden="true"></span>
+      ${visibilityStampHtml(visibility)}
       <p class="bpa-kicker bpa-rooms-kick">${tr('Open a new file', 'Mở hồ sơ mới')}</p>
       <h2 id="rooms-create-h" class="bpa-rooms-h2">${tr('Create a room', 'Tạo phòng')}</h2>
+      ${visibilityToggleHtml(visibility)}
+      ${caseSelectHtml(cases, selectedCaseId)}
       <div class="bpa-rooms-selected" id="rooms-selected" aria-live="polite">${selectedHtml()}</div>
-      <div class="bpa-rooms-codeslot">
-        <span class="bpa-rooms-codeslot-k">${tr('Invite code', 'Mã mời')}</span>
-        <span class="bpa-rooms-codeslot-t">${tr('Issued as soon as the room opens — share it from the lobby.', 'Có ngay khi phòng mở — gửi cho đồng đội từ phòng chờ.')}</span>
-      </div>
+      <div id="room-visibility-note">${visibilityNoteHtml(visibility)}</div>
       <button type="button" class="bpa-btn bpa-btn--red bpa-btn--block bpa-rooms-createbtn" id="create-room-submit">${tr('Create room', 'Tạo phòng')}</button>
     </section>`;
 
@@ -163,6 +165,8 @@ export async function renderCreateRoomPage(app) {
         row.querySelector('[data-select-case]')?.setAttribute('aria-pressed', String(on));
       });
     }
+    const select = app.querySelector('#room-case-select');
+    if (select && select.value !== selectedCaseId) select.value = selectedCaseId;
     const block = app.querySelector('#rooms-selected');
     if (block) {
       flip = !flip;
@@ -181,16 +185,15 @@ export async function renderCreateRoomPage(app) {
       draw();
     }));
 
-  app.querySelector('#create-room-submit')?.addEventListener('click', async (buttonEvent) => {
-    const button = buttonEvent.currentTarget;
-    button.disabled = true;
-    try {
-      const room = await roomApi.create(selectedCaseId);
-      toast(tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
-      window.location.hash = `#/lobby/${room.roomId}`;
-    } catch (err) {
-      toast(err.message, 'error');
-      button.disabled = false;
-    }
+  // The dropdown and the ledger rows pick the same case.
+  app.querySelector('#room-case-select')?.addEventListener('change', (event) => {
+    if (event.target.value === selectedCaseId) return;
+    selectedCaseId = event.target.value;
+    draw();
   });
+  const createCard = app.querySelector('.bpa-rooms-create');
+  if (createCard) bindVisibilityToggle(createCard, { initial: visibility, onChange: (value) => { visibility = value; } });
+
+  app.querySelector('#create-room-submit')?.addEventListener('click', (buttonEvent) =>
+    createRoomAndOpen(buttonEvent.currentTarget, selectedCaseId, visibility, app));
 }

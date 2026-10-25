@@ -63,6 +63,11 @@ public class ScoreSummary
     public int WrongEvidencePenalty { get; set; }
     public int WrongDeductionPenalty { get; set; }
     public int CameraMissPenalty { get; set; }
+    // Open co-op penalties (zero for classic cases).
+    public int WrongAccusationPenalty { get; set; }
+    public int TimelinePenalty { get; set; }
+    public int HintPenalty { get; set; }
+    public int PuzzlePenalty { get; set; }
 
     public int TotalScore { get; set; }
     public string Rank { get; set; } = string.Empty;

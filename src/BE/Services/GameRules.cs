@@ -25,9 +25,10 @@ internal static class GameRules
     public static bool IsSceneAlreadyCompleted(GameplayState state, string sceneId) =>
         state.CompletedSceneIds.Contains(sceneId);
 
-    public static bool CanEnterScene(GameCase _, GameplayState state, string sceneId) =>
+    public static bool CanEnterScene(GameCase gameCase, GameplayState state, string sceneId) =>
         state.VisitedSceneIds.Contains(sceneId)
-        || state.UnlockedSceneIds.Contains(sceneId);
+        || state.UnlockedSceneIds.Contains(sceneId)
+        || (CaseRuleSets.IsOpenCoop(gameCase) && gameCase.Stages.Any(stage => stage.Scenes.Any(scene => scene.SceneId == sceneId)));
 
     public static IReadOnlyList<CaseScene> GetAuthoredScenes(GameCase gameCase) =>
         gameCase.Stages
@@ -165,6 +166,14 @@ internal static class GameRules
 
     public static bool IsAccusationAvailable(GameCase gameCase, GameplayState state, string? currentSceneId = null)
     {
+        if (CaseRuleSets.IsOpenCoop(gameCase))
+        {
+            // Open coop: the accusation opens with the first piece of evidence, anywhere on the map.
+            var evidenceIds = gameCase.Clues.Where(clue => clue.IsEvidence).Select(clue => clue.ClueId).ToHashSet();
+            return state.GameStatus == GameStatus.InProgress
+                && state.WrongAccusationCount < CaseRuleSets.AccusationAttempts
+                && state.UnlockedClueIds.Any(evidenceIds.Contains);
+        }
         var lastStage = gameCase.Stages.OrderBy(s => s.Order).Last();
         var lastScene = lastStage.Scenes.Last();
         var requiredEvidenceIds = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2

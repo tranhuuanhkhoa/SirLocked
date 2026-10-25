@@ -29,7 +29,8 @@ const HOLMES_SMOKING = 'pixel-holmes96-smoking';
 const WATSON = 'pixel-watson96';
 
 export const PIXEL_PLAYER_SHEETS: Record<string, PixelActorSheet> = {
-  INVESTIGATOR: {
+  // Watson works the scene (camera, objects); Sherlock questions people.
+  INTERROGATOR: {
     textures: [
       { key: HOLMES, url: '/assets/pixel/players/holmes96-normal.png', columns: 21 },
       { key: HOLMES_SMOKING, url: '/assets/pixel/players/holmes96-smoking.png', columns: 41 },
@@ -45,7 +46,7 @@ export const PIXEL_PLAYER_SHEETS: Record<string, PixelActorSheet> = {
     },
     idleDelayMs: 15000,
   },
-  INTERROGATOR: {
+  INVESTIGATOR: {
     textures: [{ key: WATSON, url: '/assets/pixel/players/watson96.png', columns: 9 }],
     cell: 128,
     pivot: { x: 64, y: 105 },

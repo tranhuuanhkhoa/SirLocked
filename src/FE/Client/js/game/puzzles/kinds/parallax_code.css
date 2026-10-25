@@ -1,0 +1,254 @@
+/*
+ * P8 · Góc nhìn đúng (parallax_code) — ported from design/project/PuzzlePerspective.dc.html (pp- renamed pv-,
+ * the pp- prefix belongs to the fingerprint kind). The ink drawing is 600×540 design px in 4 depth layers
+ * (d4 back … d1 front); each layer only ever gets a new transform while the viewpoint moves. The white paint
+ * is generated per case from params.paint (brush lines instead of the mockup's pre-baked shapes).
+ */
+.pv-body{flex:1;min-width:0;min-height:0;display:grid;grid-template-columns:262px minmax(0,1fr);gap:22px;align-items:stretch}
+.pv-side{position:relative;z-index:1;display:flex;flex-direction:column;gap:16px;min-height:0;padding-top:6px}
+.pv-k{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.2em;color:#5b5248}
+/* clue cards */
+.pv-clue{transform:rotate(-.8deg)}
+.pv-glassnote{position:relative;margin:10px 0 2px;padding:12px 12px 13px;border-radius:2px;background:linear-gradient(115deg,rgba(255,255,255,.75),rgba(226,234,236,.55) 46%,rgba(255,255,255,.7) 60%,rgba(222,230,232,.5));box-shadow:inset 0 0 0 1px rgba(60,70,74,.28),inset 0 -9px 0 -6px rgba(40,34,26,.55)}
+.pv-scrawl{display:block;font-family:'Crimson Text',Georgia,serif;font-size:20px;font-style:italic;line-height:1.1;color:#4d4a45;letter-spacing:.01em;transform:rotate(-2.2deg);text-shadow:.4px .3px 0 rgba(77,74,69,.35)}
+.pv-scrawl-u{display:block;width:72%;height:7px;margin:3px 0 0 4px;overflow:visible}
+.pv-scrawl-u path{fill:none;stroke:#6b6760;stroke-width:1.1;stroke-linecap:round}
+.pv-mate{transform:rotate(.7deg)}
+.pv-mate-h{display:flex;align-items:center;gap:10px}
+.pv-mate-h span:last-child{font-size:16px;line-height:1.2;color:#3b3328}
+.pv-say i{color:#07111f}
+.pv-ctx{transform:rotate(-.5deg)}
+.pv-kb{display:inline-flex;gap:3px;flex:none}
+.pv-kb kbd{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(239,212,134,.55);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;color:#efd486}
+/* the leather mat */
+.pv-mat{position:relative;min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 244px;gap:20px;padding:16px 18px 14px;border-radius:6px;background:radial-gradient(ellipse 70% 60% at 40% 42%,rgba(255,214,150,.08),rgba(255,214,150,0) 70%),linear-gradient(180deg,#16231f,#0f1815);box-shadow:inset 0 0 0 1px rgba(0,0,0,.55),inset 0 0 70px rgba(0,0,0,.5),0 16px 36px rgba(0,0,0,.45)}
+.pv-mat::before{content:"";position:absolute;inset:9px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(199,162,75,.42);pointer-events:none}
+.pv-stage{position:relative;z-index:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+.pv-slot{position:relative;flex:1;min-height:0;container-type:size;display:flex;align-items:center;justify-content:center}
+.pv-fwrap{display:flex;flex-direction:column;gap:9px;max-width:100%}
+.pv-frame{position:relative;padding:11px;border-radius:2px;background:linear-gradient(135deg,#2a1d14,#120c08 55%,#24180f);box-shadow:inset 0 0 0 1px rgba(199,162,75,.5),inset 0 0 0 4px #150e09,inset 0 0 0 5px rgba(199,162,75,.25),0 3px 0 rgba(0,0,0,.4),0 22px 40px rgba(0,0,0,.55)}
+.pv-flabel{position:absolute;z-index:4;left:-8px;top:-13px;padding:6px 10px;background:#0d1014;color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;line-height:1;letter-spacing:.18em;white-space:nowrap;box-shadow:0 6px 14px rgba(0,0,0,.45);transform:rotate(-2deg)}
+.pv-pane{position:relative;display:block;width:min(calc(100cqw - 22px),calc((100cqh - 56px) * 1.11111));aspect-ratio:600/540;overflow:hidden;background:#efeae0;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;perspective:1500px;perspective-origin:50% 50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6)}
+.pv-pane.is-drag{cursor:grabbing}
+.pv-pane:focus{outline:none}
+.pv-pane:focus-visible{outline:2px solid #efd486;outline-offset:6px}
+.pv-layer{position:absolute;left:-21.6667%;top:-20.3704%;width:143.3333%;height:140.7407%;will-change:transform;pointer-events:none}
+.pv-layer svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block;overflow:visible}
+.pv-paint{will-change:transform}
+.pv-pane.is-ease .pv-layer{transition:transform .3s cubic-bezier(.25,.8,.3,1)}
+.pv-pane.is-glide .pv-layer{transition:transform 1.5s cubic-bezier(.45,0,.2,1)}
+.pv-fx,.pv-grain,.pv-vig,.pv-door{position:absolute;inset:0;pointer-events:none}
+.pv-fx{width:100%;height:100%;overflow:visible}
+.pv-grain{width:100%;height:100%;mix-blend-mode:multiply;opacity:.5}
+.pv-vig{background:radial-gradient(ellipse 75% 70% at 50% 46%,rgba(20,20,20,0) 58%,rgba(20,20,20,.16) 100%);mix-blend-mode:multiply}
+/* ink classes (art + door) */
+.pv-ink .i{fill:none;stroke:#141414;stroke-linecap:round;stroke-linejoin:round}
+.pv-ink .k3{stroke-width:.35}.pv-ink .k4{stroke-width:.45}.pv-ink .k5{stroke-width:.55}.pv-ink .k7{stroke-width:.7}.pv-ink .k9{stroke-width:.9}.pv-ink .k12{stroke-width:1.2}.pv-ink .k15{stroke-width:1.5}
+.pv-ink .o3{stroke-opacity:.35}.pv-ink .o4{stroke-opacity:.42}.pv-ink .o5{stroke-opacity:.5}.pv-ink .o6{stroke-opacity:.6}.pv-ink .o7{stroke-opacity:.7}.pv-ink .o8{stroke-opacity:.8}
+.pv-ink .pf{fill:#efeae0}
+.pv-ink .pfo{fill:#efeae0;stroke:#141414;stroke-width:1.1;stroke-linejoin:round}
+.pv-ink .pv-thin{stroke-width:.75}
+.pv-ink .if{fill:#141414}
+.pv-ink .pv-wash{fill:#141414;fill-opacity:.36}
+.pv-ink .pv-pale{fill:none;stroke:#efeae0;stroke-linecap:round;stroke-linejoin:round}
+.pv-ink .pv-hl{fill:none;stroke:#efeae0;stroke-width:3.4;stroke-linecap:round;opacity:.85}
+.pv-ink .pv-hl2{fill:none;stroke:#efeae0;stroke-width:1.4;stroke-linecap:round;opacity:.75}
+.pv-ink .pv-glass{fill-opacity:.4}
+.pv-ink .pv-plate{font-family:'Source Code Pro',ui-monospace,monospace;font-size:7.5px;font-weight:700;letter-spacing:.08em;text-anchor:middle;fill:#141414}
+.pv-ink .pv-pencil{font-family:'Crimson Text',Georgia,serif;font-size:12px;font-style:italic;fill:#57534c;letter-spacing:.02em}
+.pv-ink .pv-pencil-u{fill:none;stroke:#77736b;stroke-width:.6}
+.pv-ink .pv-tint{fill:#dfe6e4;fill-opacity:.07}
+.pv-ink .pv-sheen{fill:#ffffff;fill-opacity:.22}
+.pv-ink .pv-sheen.s2{fill-opacity:.13}
+/* white paint strokes (per-case pieces drawn as brush lines; widths are set on each path) */
+.pv-paint .pv-halo,.pv-paint .pv-shd,.pv-paint .pv-ol,.pv-paint .pv-wt,.pv-paint .pv-br{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.pv-paint .pv-halo{stroke:#fffef8;opacity:0;transition:opacity .35s}
+.pv-paint .pv-shd{stroke:#141414;stroke-opacity:.26}
+.pv-paint .pv-ol{stroke:#141414;transition:stroke .5s .2s}
+.pv-paint .pv-wt{stroke:#fbf8f1;transition:stroke .55s .2s}
+.pv-paint .pv-br{stroke:#141414;stroke-opacity:.2;stroke-width:.6;transition:stroke .5s .2s}
+.pv-paint .pv-spk{fill:#fffef8;stroke:#141414;stroke-width:.8;opacity:0;transform-box:fill-box;transform-origin:50% 50%;transition:opacity .3s}
+.pv-g.glim-1 .pv-spk{opacity:.5;animation:pvTw 1.9s ease-in-out infinite}
+.pv-g.glim-2 .pv-spk{opacity:.85;animation:pvTw 1.15s ease-in-out infinite}
+.pv-g.glim-2 .pv-halo{opacity:.35}
+.pv-g.glim-3 .pv-spk{opacity:1;animation:pvTw .7s ease-in-out infinite}
+.pv-g.glim-3 .pv-halo{opacity:.75}
+.pv-g .pv-spk.k2{animation-delay:-.35s}.pv-g .pv-spk.k3{animation-delay:-.7s}.pv-g .pv-spk.k4{animation-delay:-1s}
+.pv-g.is-red .pv-wt{stroke:#b0281d}
+.pv-g.is-red .pv-ol{stroke:#3c0a06}
+.pv-g.is-red .pv-br{stroke:#ffd9c8;stroke-opacity:.3}
+.pv-g.is-red .pv-shd{stroke:#3c0a06}
+/* drop + ripple when a group locks */
+.pv-rip{opacity:0}
+.pv-rip.is-go{opacity:1}
+.pv-drop{fill:#141414;stroke:#efeae0;stroke-width:1.2;opacity:0}
+.pv-ring{fill:none;stroke:#141414;stroke-width:1.6;opacity:0;transform-box:fill-box;transform-origin:50% 50%}
+.pv-ring.r1{stroke:#b0281d;stroke-width:2.2}
+.pv-rip.is-go .pv-drop{animation:pvDrop .5s cubic-bezier(.55,0,.9,.5) both}
+.pv-rip.is-go .pv-ring{animation:pvRing 1.5s cubic-bezier(.2,.7,.3,1) .42s both}
+.pv-rip.is-go .pv-ring.r2{animation-delay:.6s}
+.pv-rip.is-go .pv-ring.r3{animation-delay:.8s}
+/* the bud that blooms on the dried branch */
+.pv-bstem{fill:none;stroke:#141414;stroke-width:1.3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+.pv-bud,.pv-pet,.pv-bctr{opacity:0}
+.pv-budp{fill:#efeae0;stroke:#141414;stroke-width:1}
+.pv-pet{fill:#efeae0;stroke:#141414;stroke-width:1.05;transform:rotate(-40deg) scale(.2)}
+.pv-pet.is-red{fill:#b0281d;stroke:#3c0a06}
+.pv-bctr{fill:#141414}
+.pv-budg.is-bloom .pv-bstem{stroke-dashoffset:0;transition:stroke-dashoffset .5s ease-out}
+.pv-budg.is-bloom .pv-bud{animation:pvBud 1.2s ease-out .35s both}
+.pv-budg.is-bloom .pv-pet{opacity:1;transform:none;transition:opacity .35s,transform .7s cubic-bezier(.3,1.4,.5,1)}
+.pv-budg.is-bloom .pv-pet.p1{transition-delay:1.15s}.pv-budg.is-bloom .pv-pet.p2{transition-delay:1.25s}.pv-budg.is-bloom .pv-pet.p3{transition-delay:1.35s}.pv-budg.is-bloom .pv-pet.p4{transition-delay:1.45s}.pv-budg.is-bloom .pv-pet.p5{transition-delay:1.55s}
+.pv-budg.is-bloom .pv-bctr{opacity:1;transition:opacity .3s 1.7s}
+/* the glass door: the lock turns, then the door swings out of the frame */
+.pv-door{transform-origin:0 50%;backface-visibility:hidden;transition:transform 1.5s cubic-bezier(.42,0,.25,1),opacity .35s 1.25s}
+.pv-door svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pv-pane.is-open .pv-door{transform:rotateY(-100deg);opacity:0}
+.pv-tumb{transform-origin:589px 270px;transition:transform .45s cubic-bezier(.3,1.5,.5,1)}
+.pv-pane.is-unlock .pv-tumb{transform:rotate(90deg)}
+.pv-clack{fill:none;stroke:#141414;stroke-width:1.3;stroke-linecap:round;opacity:0}
+.pv-pane.is-unlock .pv-clack{animation:pvClack .55s ease-out .3s both}
+.pv-pane.is-static .pv-layer,.pv-pane.is-static .pv-door,.pv-pane.is-static .pv-tumb{transition:none}
+.pv-pane.is-static .pv-budg *,.pv-pane.is-static .pv-clack{transition:none !important;animation:none !important}
+.pv-pane.is-static .pv-budg.is-bloom .pv-bud{opacity:0}
+.pv-cap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;padding:0 4px}
+.pv-cap .pv-k{color:#b3a794}
+.pv-cap .pv-kb kbd{box-shadow:inset 0 0 0 1px rgba(239,212,134,.4);color:#d9c99a}
+/* right column on the mat */
+.pv-panel{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:flex-start;gap:18px;min-height:0;padding:12px 0 0}
+.pv-card2{position:relative;padding:14px 12px 14px;background:#efeae0;color:#141414;box-shadow:inset 0 0 0 1px rgba(20,20,20,.5),inset 0 0 0 4px #efeae0,inset 0 0 0 4.6px rgba(20,20,20,.35),0 14px 28px rgba(0,0,0,.45)}
+.pv-card2 .pv-k{color:#3b3328}
+.pv-codeh{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.pv-miss{font-size:10px;letter-spacing:.12em;color:#7a3f27 !important}
+.pv-cells{position:relative;display:grid;grid-template-columns:repeat(3,64px);justify-content:center;gap:10px;margin:12px 0 4px;border-radius:2px}
+.pv-cells:focus-within{outline:2px solid #07111f;outline-offset:5px}
+.pv-cell{position:relative;display:grid;place-items:center;height:86px;background:#f6f2e8;box-shadow:inset 0 0 0 1.5px #141414,inset 0 0 0 4px #f6f2e8,inset 0 0 0 4.6px rgba(20,20,20,.45)}
+.pv-cell .pv-glyph{width:54px;height:54px;opacity:0;transform:scale(1.35);transition:opacity .25s,transform .35s cubic-bezier(.3,1.4,.5,1)}
+.pv-cell.is-full .pv-glyph{opacity:1;transform:none}
+.pv-cn{position:absolute;left:50%;bottom:-17px;transform:translateX(-50%);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-style:normal;font-weight:700;color:#5b5248}
+.pv-caret{position:absolute;left:50%;bottom:13px;width:22px;height:2px;margin-left:-11px;background:#141414;opacity:0}
+.pv-cell.is-act .pv-caret{opacity:1;animation:pvBlink 1.05s steps(1) infinite}
+.pv-cring{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;box-shadow:0 0 0 1.5px #b0281d;opacity:0}
+.pv-cell.ld-a .pv-cring{animation:pvCRingA 1s ease-out .12s both}
+.pv-cell.ld-b .pv-cring{animation:pvCRingB 1s ease-out .12s both}
+.pv-wch{position:absolute;inset:0;display:grid;place-items:center;font-family:'Playfair Display',Georgia,serif;font-size:40px;font-weight:700;line-height:1;color:#141414;opacity:0;pointer-events:none}
+.pv-wch.w-a{animation:pvWobA .9s ease-in both}
+.pv-wch.w-b{animation:pvWobB .9s ease-in both}
+.pv-input{position:absolute;inset:-4px;z-index:2;width:calc(100% + 8px);height:calc(100% + 8px);margin:0;padding:0;border:0;opacity:0;font-size:16px;cursor:text;background:transparent;color:transparent;caret-color:transparent}
+.pv-note{margin:20px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#3b3328}
+.pv-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.pv-chip{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:72px;padding:4px 2px 6px;box-sizing:border-box;border:0;border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px rgba(20,20,20,.4);color:#141414;cursor:pointer;transition:background-color .15s,box-shadow .15s}
+.pv-chip:disabled{cursor:default}
+.pv-chip:not(:disabled):hover{background:rgba(176,40,29,.07);box-shadow:inset 0 0 0 1.5px #141414}
+.pv-chip:focus-visible{outline:2px solid #07111f;outline-offset:2px}
+.pv-chip .pv-glyph{width:36px;height:36px;display:none}
+.pv-chip.is-found .pv-glyph{display:block;animation:pvChipIn .5s cubic-bezier(.3,1.4,.5,1) both}
+.pv-chip-q{display:grid;place-items:center;width:36px;height:36px;font-family:'Playfair Display',Georgia,serif;font-size:22px;color:#8a8278}
+.pv-chip.is-found .pv-chip-q{display:none}
+.pv-chip-l{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:#3b3328;white-space:nowrap}
+.pv-glyph{display:block;overflow:visible}
+.pv-glyph use{width:100%;height:100%}
+.pv-syms{position:absolute;width:0;height:0;overflow:hidden}
+/* viewpoint pad */
+.pv-viewrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.pv-pad{position:relative;flex:none;width:80px;height:122px;background:#f6f2e8;box-shadow:inset 0 0 0 1.2px #141414}
+.pv-pad svg{position:absolute;inset:0;width:100%;height:100%}
+.pv-pad-grid{fill:none;stroke:#141414;stroke-width:.5;stroke-opacity:.35}
+.pv-pad-ax{fill:none;stroke:#141414;stroke-width:.8;stroke-opacity:.6;stroke-dasharray:2 2}
+.pv-pad-t{position:absolute;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:#5b5248;line-height:1}
+.pv-eye{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:radial-gradient(circle,#141414 0 3.4px,#f6f2e8 3.8px 5.6px,#141414 6px 7.4px,transparent 7.8px);transition:left .3s cubic-bezier(.25,.8,.3,1),top .3s cubic-bezier(.25,.8,.3,1)}
+.pv-eye.is-drag{transition:none}
+.pv-mark{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;display:grid;place-items:center;border-radius:50%;box-shadow:inset 0 0 0 1.2px #b0281d;font-family:'Playfair Display',Georgia,serif;font-size:10px;font-weight:700;color:#b0281d;opacity:0;transform:scale(.3);transition:opacity .3s,transform .4s cubic-bezier(.3,1.5,.5,1)}
+.pv-mark.is-on{opacity:1;transform:none}
+.pv-dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:0}
+.pv-dbtn{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:2px;background:transparent;color:#141414;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(20,20,20,.35);transition:background-color .12s,box-shadow .12s}
+.pv-dbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pv-dbtn:hover:not(:disabled){background:rgba(20,20,20,.08);box-shadow:inset 0 0 0 1.5px #141414}
+.pv-dbtn:active:not(:disabled){background:rgba(20,20,20,.16)}
+.pv-dbtn:focus-visible{outline:2px solid #07111f;outline-offset:1px;position:relative;z-index:1}
+.pv-dbtn:disabled{color:#9a9288;cursor:default}
+.pv-dbtn.up{grid-column:2;grid-row:1}.pv-dbtn.lf{grid-column:1;grid-row:2}.pv-dbtn.ct{grid-column:2;grid-row:2}.pv-dbtn.rt{grid-column:3;grid-row:2}.pv-dbtn.dn{grid-column:2;grid-row:3}
+.pv-dbtn.ct{font-family:'Source Code Pro',ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.04em}
+.pv-vnote{margin:10px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#3b3328}
+/* success layer (drawn by the host): card on the right so the opened cabinet stays visible */
+@media (min-width:901px){
+  [data-pzh-kind="parallax_code"] .pzh-win{justify-items:end;padding-right:30px;background:linear-gradient(270deg,rgba(10,8,6,.9) 0,rgba(10,8,6,.8) 380px,rgba(10,8,6,.1) 470px,rgba(10,8,6,.05) 100%)}
+  [data-pzh-kind="parallax_code"] .pzh-win .pz-win-card{width:min(384px,100%)}
+}
+[data-pzh-kind="parallax_code"] .pzh-win .pz-win-card h3,[data-pzh-kind="parallax_code"] .pzh-win .pz-win-card p{text-wrap:balance}
+@keyframes pvTw{0%,100%{transform:scale(.35) rotate(0deg)}50%{transform:scale(1.15) rotate(45deg)}}
+@keyframes pvDrop{0%{opacity:.9;transform:translateY(-96px) scale(1.1,1.35)}72%{opacity:1;transform:translateY(-3px) scale(1,1.15)}100%{opacity:0;transform:translateY(2px) scale(1.5,.25)}}
+@keyframes pvRing{0%{opacity:.95;transform:scale(.2)}100%{opacity:0;transform:scale(7)}}
+@keyframes pvBud{0%{opacity:0;transform:scale(.1)}35%{opacity:1;transform:scale(1.15)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.2)}}
+@keyframes pvClack{0%{opacity:0;transform:scale(.7)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+@keyframes pvBlink{0%{opacity:1}50%{opacity:0}}
+@keyframes pvCRingA{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(2.1)}}
+@keyframes pvCRingB{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(2.1)}}
+@keyframes pvWobA{0%{opacity:0;transform:translateY(-10px) scale(1.2)}18%{opacity:1;transform:none}32%{transform:rotate(-14deg)}46%{transform:rotate(11deg)}60%{opacity:1;transform:rotate(-7deg)}100%{opacity:0;transform:translate(10px,26px) rotate(24deg) scale(.8)}}
+@keyframes pvWobB{0%{opacity:0;transform:translateY(-10px) scale(1.2)}18%{opacity:1;transform:none}32%{transform:rotate(-14deg)}46%{transform:rotate(11deg)}60%{opacity:1;transform:rotate(-7deg)}100%{opacity:0;transform:translate(10px,26px) rotate(24deg) scale(.8)}}
+@keyframes pvFadeA{0%,55%{opacity:1}100%{opacity:0}}
+@keyframes pvFadeB{0%,55%{opacity:1}100%{opacity:0}}
+@keyframes pvChipIn{0%{opacity:0;transform:scale(1.6)}100%{opacity:1;transform:none}}
+/* per-case additions: status tones, typed characters in the cells, glyphs on the pad, the erase button */
+.pv-markg{display:block;width:9px;height:12px;overflow:visible}
+.pv-mark .pv-gl{stroke:#b0281d}
+[data-pzh-kind="parallax_code"] .pz-status[data-tone="bad"]{color:#f4ab98}
+[data-pzh-kind="parallax_code"] .pz-status[data-tone="ok"]{color:#8fd0c4}
+.pv-glyph text{font-family:'Playfair Display',Georgia,serif;font-weight:700;fill:#141414;text-anchor:middle;dominant-baseline:central}
+.pv-glyph .pv-gl{fill:none;stroke:#141414;stroke-linecap:round;stroke-linejoin:round}
+.pv-cells.is-off .pv-input{cursor:not-allowed}
+.pv-cells.is-busy{opacity:.75}
+.pv-back{display:inline-flex;align-items:center;gap:6px;margin:0;min-height:30px;padding:0 10px;border:0;border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px rgba(20,20,20,.35);color:#3b3328;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;cursor:pointer}
+.pv-back:disabled{opacity:.45;cursor:default}
+.pv-back:focus-visible{outline:2px solid #07111f;outline-offset:2px}
+.pv-codefoot{display:flex;justify-content:center;margin-top:20px}
+.pv-codefoot + .pv-note{margin-top:8px}
+.pv-acts{display:flex;justify-content:flex-end;gap:10px;margin-top:2px}
+/* the header wraps to two rows below ~1232px: the note goes bottom-right */
+@media (min-width:901px) and (max-width:1232px){
+  [data-pzh-kind="parallax_code"] .pz-hint{top:auto;bottom:92px}
+  .pv-body{grid-template-columns:236px minmax(0,1fr)}
+}
+@media (min-width:901px) and (max-height:860px){
+  .pv-side{overflow-y:auto;overscroll-behavior:contain;padding:8px 10px 20px;margin:0 -10px;scrollbar-width:thin;scrollbar-color:rgba(199,162,75,.5) transparent}
+  /* short screens: the code panel tightens (the header already says how to type) */
+  .pv-panel{gap:12px;padding-top:2px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(199,162,75,.5) transparent}
+  .pv-note{display:none}
+  .pv-cells{margin-top:10px}
+  .pv-cell{height:70px}
+  .pv-cell .pv-glyph{width:46px;height:46px}
+  .pv-chip{min-height:58px}
+  .pv-chip .pv-glyph,.pv-chip-q{width:28px;height:28px}
+  .pv-card2 > .pv-k[id="pv-found-t"]{margin-top:22px !important}
+  .pv-pad{height:116px}
+}
+@media (max-width:900px){
+  [data-pzh-kind="parallax_code"] .pz-sheet{overflow-x:hidden}
+  .pv-body{display:flex;flex-direction:column;gap:22px;padding:0 0 24px;overflow-x:clip}
+  .pv-mat{order:1;grid-template-columns:minmax(0,1fr);gap:18px;padding:12px 6px 14px}
+  .pv-mat::before{inset:4px}
+  .pv-frame{padding:7px}
+  .pv-flabel{left:-4px}
+  .pv-side{order:2;gap:22px;padding-top:8px}
+  .pv-slot{flex:none;container-type:inline-size}
+  .pv-pane{width:calc(100cqw - 14px)}
+  .pv-panel{gap:14px}
+  .pv-viewrow{justify-content:center}
+  .pv-pane,.pv-dbtn,.pv-chip,.pv-cells{scroll-margin:24px 0 150px}
+  [data-pzh-kind="parallax_code"] .pz-foot{position:sticky;bottom:0;z-index:6;background:linear-gradient(180deg,rgba(29,23,18,.95),#1d1712)}
+}
+@media (prefers-reduced-motion:reduce){
+  .pv-g .pv-spk,.pv-rip .pv-drop,.pv-rip .pv-ring,.pv-budg .pv-bud,.pv-clack,.pv-caret,.pv-cring,.pv-chip .pv-glyph{animation:none !important}
+  .pv-layer,.pv-door,.pv-tumb,.pv-eye,.pv-mark,.pv-cell .pv-glyph,.pv-budg *,.pv-paint *{transition:none !important}
+  .pv-pane.is-ease .pv-layer,.pv-pane.is-glide .pv-layer{transition:none !important}
+  .pv-g .pv-spk{transform:none}
+  .pv-cell.is-act .pv-caret{opacity:1}
+  .pv-wch.w-a{animation:pvFadeA 1.3s linear both !important}
+  .pv-wch.w-b{animation:pvFadeB 1.3s linear both !important}
+}
+/* the module also honours ctx.reducedMotion (same rules, on a class) */
+.pv-rm .pv-g .pv-spk,.pv-rm .pv-rip .pv-drop,.pv-rm .pv-rip .pv-ring,.pv-rm .pv-budg .pv-bud,.pv-rm .pv-clack,.pv-rm .pv-caret,.pv-rm .pv-cring,.pv-rm .pv-chip .pv-glyph{animation:none !important}
+.pv-rm .pv-layer,.pv-rm .pv-door,.pv-rm .pv-tumb,.pv-rm .pv-eye,.pv-rm .pv-mark,.pv-rm .pv-cell .pv-glyph,.pv-rm .pv-budg *,.pv-rm .pv-paint *{transition:none !important}
+.pv-rm .pv-g .pv-spk{transform:none}
+.pv-rm .pv-wch.w-a{animation:pvFadeA 1.3s linear both !important}
+.pv-rm .pv-wch.w-b{animation:pvFadeB 1.3s linear both !important}

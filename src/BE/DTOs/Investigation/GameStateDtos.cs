@@ -283,11 +283,26 @@ public class ScenePuzzleDto
     public List<string> MissingItemIds { get; set; } = new();
     public List<string> MissingClueIds { get; set; } = new();
 
+    /// <summary>Interactive puzzle kind (frontend module id); empty for classic puzzles.</summary>
+    public string Kind { get; set; } = string.Empty;
+    /// <summary>Public parameters of an unlocked interactive puzzle (JSON object).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(RawJsonStringConverter))]
+    public string Params { get; set; } = string.Empty;
+    /// <summary>Content revealed after solving (JSON object).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(RawJsonStringConverter))]
+    public string Reveal { get; set; } = string.Empty;
+    /// <summary>Public run state: attempts, probes used and kind-specific values (JSON object).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(RawJsonStringConverter))]
+    public string Run { get; set; } = string.Empty;
+    public int HintsAvailable { get; set; }
+    public int HintsUsed { get; set; }
+
     public static ScenePuzzleDto From(
         CasePuzzle puzzle,
         IReadOnlySet<string> collectedItems,
         IReadOnlySet<string> unlockedClues,
-        IReadOnlySet<string> solvedPuzzles)
+        IReadOnlySet<string> solvedPuzzles,
+        PuzzleRunState? run = null)
     {
         var missingItems = puzzle.RequiredItemIds.Where(id => !collectedItems.Contains(id)).ToList();
         var missingClues = puzzle.RequiredClueIds.Where(id => !unlockedClues.Contains(id)).ToList();
@@ -309,7 +324,22 @@ public class ScenePuzzleDto
             IsSolved = solvedPuzzles.Contains(puzzle.PuzzleId),
             MissingItemIds = missingItems,
             MissingClueIds = missingClues
-        };
+        }.WithInteractive(puzzle, locked, solvedPuzzles.Contains(puzzle.PuzzleId), run);
+    }
+
+    private ScenePuzzleDto WithInteractive(CasePuzzle puzzle, bool locked, bool solved, PuzzleRunState? run)
+    {
+        if (!Services.PuzzleKinds.PuzzleKindRegistry.IsInteractive(puzzle)) return this;
+        Kind = puzzle.Kind;
+        AnswerLength = 0;
+        if (locked) return this;
+        Params = puzzle.ParamsJson;
+        if (solved) Reveal = puzzle.RevealJson;
+        var view = Services.PuzzleKinds.PuzzleRunViews.Build(puzzle, run);
+        Run = view.Json;
+        HintsAvailable = view.HintsAvailable;
+        HintsUsed = view.HintsUsed;
+        return this;
     }
 }
 
@@ -482,6 +512,14 @@ public class ActionLogEntryDto
 
 public class GameStateResponse
 {
+    /// <summary>Open co-op timeline as the team currently sees it (null when the case has none).</summary>
+    public TimelineViewDto? Timeline { get; set; }
+    /// <summary>Open co-op case wall (null for other rule sets).</summary>
+    public BoardViewDto? Board { get; set; }
+    /// <summary>Gameplay rule set ("" classic, "OPEN_COOP" open co-op).</summary>
+    public string RuleSet { get; set; } = string.Empty;
+    /// <summary>Open co-op: wrong accusations left before the case is lost.</summary>
+    public int AccusationAttemptsLeft { get; set; }
     public GamePresentationDto? Presentation { get; set; }
     public string RoomId { get; set; } = string.Empty;
     public string RoomCode { get; set; } = string.Empty;
@@ -563,6 +601,18 @@ public class GameActionResponse
     public string? Detail { get; set; }
     public string CaptureResult { get; set; } = string.Empty;
     public string? MatchedClueId { get; set; }
+    /// <summary>Interactive puzzle feedback for this answer or probe (JSON object), e.g. {"firstWrong":6}.</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(RawJsonStringConverter))]
+    public string PuzzleFeedback { get; set; } = string.Empty;
+}
+
+/// <summary>Mid-puzzle query: weighings, binding-pin checks, or {"$hint": true} for the next hint.</summary>
+public class ProbePuzzleRequest
+{
+    [Required]
+    public string PuzzleId { get; set; } = string.Empty;
+    /// <summary>JSON object understood by the puzzle kind.</summary>
+    public string Payload { get; set; } = "{}";
 }
 
 public class MissingRequirementsDto
@@ -570,4 +620,116 @@ public class MissingRequirementsDto
     public List<string> RequiredItemIds { get; set; } = new();
     public List<string> RequiredClueIds { get; set; } = new();
     public List<string> RequiredDialogueIds { get; set; } = new();
+}
+
+
+/// <summary>Timeline as the team sees it: placed events in order, plus open cards still to place.</summary>
+public class TimelineViewDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    /// <summary>Fixed and correctly placed events, in time order.</summary>
+    public List<TimelineEventDto> Placed { get; set; } = new();
+    /// <summary>Known events whose time is not established yet (the tray).</summary>
+    public List<TimelineEventDto> Open { get; set; } = new();
+    public int HiddenCount { get; set; }
+    public int WrongCount { get; set; }
+}
+
+public class TimelineEventDto
+{
+    public string EventId { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public string DayLabel { get; set; } = string.Empty;
+    /// <summary>Shown only for placed events.</summary>
+    public string TimeLabel { get; set; } = string.Empty;
+    public bool IsFixed { get; set; }
+}
+
+/// <summary>Open co-op case wall as both detectives see it.</summary>
+public class BoardViewDto
+{
+    public string Summary { get; set; } = string.Empty;
+    public BoardCenterDto Center { get; set; } = new();
+    public List<BoardColumnDto> Columns { get; set; } = new();
+    /// <summary>Found items already pinned, in the order they were found.</summary>
+    public List<BoardPinDto> Pins { get; set; } = new();
+    /// <summary>Found items still in the envelope (clue ids and testimony fragment ids).</summary>
+    public List<string> Envelope { get; set; } = new();
+    /// <summary>Authored strings whose two ends are both pinned.</summary>
+    public List<BoardLinkDto> Links { get; set; } = new();
+    public int WrongCount { get; set; }
+    /// <summary>Statements plus evidence in the whole case (found or not).</summary>
+    public int TotalItems { get; set; }
+}
+
+public class BoardCenterDto
+{
+    public string TargetId { get; set; } = string.Empty;
+    public string? CharacterId { get; set; }
+    public string Kicker { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Subtitle { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+    public int StatementTotal { get; set; }
+    public int EvidenceTotal { get; set; }
+}
+
+public class BoardColumnDto
+{
+    public string TargetId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    /// <summary>SUSPECT or WITNESS (only changes the card style).</summary>
+    public string Kind { get; set; } = "SUSPECT";
+    public string ImageUrl { get; set; } = string.Empty;
+    public int StatementTotal { get; set; }
+    public int EvidenceTotal { get; set; }
+}
+
+public class BoardPinDto
+{
+    public string ItemId { get; set; } = string.Empty;
+    /// <summary>"say" (statement) or "ev" (evidence).</summary>
+    public string Kind { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+}
+
+public class BoardLinkDto
+{
+    public string FromId { get; set; } = string.Empty;
+    public string ToId { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+public class PinBoardItemRequest
+{
+    [Required]
+    public string ItemId { get; set; } = string.Empty;
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
+}
+
+public class PlaceTimelineEventRequest
+{
+    [Required]
+    public string EventId { get; set; } = string.Empty;
+    /// <summary>The placed event this card goes right after; empty = before the first one.</summary>
+    public string? AfterEventId { get; set; }
+}
+
+
+public class LeadHintRequest
+{
+    /// <summary>1 = which place, 2 = the exact thing.</summary>
+    public int Level { get; set; } = 1;
+}
+
+public class LeadHintResponse
+{
+    public GameStateResponse State { get; set; } = new();
+    public string Text { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public int OpenLeads { get; set; }
 }

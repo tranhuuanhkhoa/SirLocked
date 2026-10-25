@@ -148,8 +148,13 @@ public static class GameResultPersistenceCoordinator
 public sealed class MongoGameResultStore : IGameResultStore
 {
     private readonly MongoDbContext _db;
+    private readonly IGameResultRewardHook? _rewardHook;
 
-    public MongoGameResultStore(MongoDbContext db) => _db = db;
+    public MongoGameResultStore(MongoDbContext db, IGameResultRewardHook? rewardHook = null)
+    {
+        _db = db;
+        _rewardHook = rewardHook;
+    }
 
     public async Task<GameResult?> FindByRoomIdAsync(
         string roomId,
@@ -160,6 +165,17 @@ public sealed class MongoGameResultStore : IGameResultStore
     public async Task<GameResult> UpsertAsync(
         GameResult result,
         CancellationToken cancellationToken = default)
+    {
+        var saved = await UpsertResultAsync(result, cancellationToken);
+        // --- Chợ đồ reward hook (market) --- coins once per player per game; idempotent by room + user,
+        // never throws. See Services/Market/MarketHosting.cs (MarketGameRewardHook).
+        if (_rewardHook is not null) await _rewardHook.OnGameResultPersistedAsync(saved, cancellationToken);
+        return saved;
+    }
+
+    private async Task<GameResult> UpsertResultAsync(
+        GameResult result,
+        CancellationToken cancellationToken)
     {
         var filter = Builders<GameResult>.Filter.Eq(existing => existing.RoomId, result.RoomId);
         var update = Builders<GameResult>.Update

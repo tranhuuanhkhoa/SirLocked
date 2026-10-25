@@ -25,6 +25,7 @@ public class CaseValidationService : ICaseValidationService
         ValidateCameraEmbeddedItems(gameCase, result);
         ValidateClues(gameCase, result, stage);
         ValidateFinalLogic(gameCase, result);
+        ValidateRuleSet(gameCase, result);
         if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV2)
         {
             ValidateInvestigationV2(gameCase, result);
@@ -511,8 +512,11 @@ public class CaseValidationService : ICaseValidationService
             var path = $"puzzles[{i}]";
             if (string.IsNullOrWhiteSpace(puzzle.PuzzleId))
                 result.Add("MissingField", $"{path}.puzzleId", "puzzleId is required.");
-            if (!CasePuzzleTypes.All.Contains(puzzle.Type))
+            var interactive = PuzzleKinds.PuzzleKindRegistry.IsInteractive(puzzle);
+            if (!CasePuzzleTypes.All.Contains(puzzle.Type) && !interactive)
                 result.Add("InvalidValue", $"{path}.type", "Puzzle type is not supported by the gameplay engine.", puzzle.Type);
+            if (interactive)
+                PuzzleKinds.PuzzleKindRegistry.Validate(puzzle, path, (field, message, value) => result.Add("InvalidPuzzleKind", field, message, value));
             if (string.IsNullOrWhiteSpace(puzzle.TargetId))
                 result.Add("MissingField", $"{path}.targetId", "targetId is required.", puzzle.PuzzleId);
             else if (!visibleTargets.Contains(puzzle.TargetId))
@@ -1074,6 +1078,65 @@ public class CaseValidationService : ICaseValidationService
             or CaseItemInteractionPurposes.OperateMechanism;
     }
 
+    private static void ValidateBoard(GameCase c, CaseValidationResult result)
+    {
+        if (c.Board is not { } board) return;
+        if (!CaseRuleSets.IsOpenCoop(c))
+            result.Add("InvalidValue", "board", "The case wall is only played in OPEN_COOP cases.");
+        var characterIds = c.Characters.Select(character => character.CharacterId).ToHashSet(StringComparer.Ordinal);
+        for (var i = 0; i < c.Clues.Count; i++)
+            foreach (var characterId in c.Clues[i].RelatedCharacterIds.Where(id => !characterIds.Contains(id)))
+                result.Add("MissingReference", $"clues[{i}].relatedCharacterIds", "Clue points to an unknown character.", characterId);
+        // A string between a lie and the evidence that breaks it would give the crack away.
+        var crackPairs = c.EvidenceChallenges
+            .Select(challenge => (challenge.TestimonyFragmentId, challenge.CorrectEvidenceId))
+            .ToHashSet();
+        for (var i = 0; i < board.Links.Count; i++)
+        {
+            var link = board.Links[i];
+            var path = $"board.links[{i}]";
+            foreach (var end in new[] { link.FromId, link.ToId })
+                if (CaseBoardRules.KindOf(c, end) is null)
+                    result.Add("MissingReference", path, "Board strings join two pinned cards (evidence clues or testimony fragments).", end);
+            if (link.FromId == link.ToId)
+                result.Add("InvalidValue", path, "A board string needs two different ends.", link.FromId);
+            if (string.IsNullOrWhiteSpace(link.Label))
+                result.Add("MissingField", $"{path}.label", "Board strings need a short label.", link.FromId);
+            if (crackPairs.Contains((link.FromId, link.ToId)) || crackPairs.Contains((link.ToId, link.FromId)))
+                result.Add("InvalidValue", path, "This string would reveal a crack answer (statement + the evidence that breaks it).", link.FromId);
+        }
+    }
+
+    private static void ValidateRuleSet(GameCase c, CaseValidationResult result)
+    {
+        if (!CaseRuleSets.IsKnown(c.RuleSet))
+            result.Add("InvalidValue", "ruleSet", "Unknown rule set. Use \"\" (classic) or \"OPEN_COOP\".", c.RuleSet);
+        ValidateBoard(c, result);
+        if (c.Timeline is not { } timeline) return;
+        if (!CaseRuleSets.IsOpenCoop(c))
+            result.Add("InvalidValue", "timeline", "The timeline is only played in OPEN_COOP cases.");
+        var clueIds = c.Clues.Select(clue => clue.ClueId).ToHashSet(StringComparer.Ordinal);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var seenKeys = new HashSet<int>();
+        for (var i = 0; i < timeline.Events.Count; i++)
+        {
+            var item = timeline.Events[i];
+            var path = $"timeline.events[{i}]";
+            if (string.IsNullOrWhiteSpace(item.EventId) || !seenIds.Add(item.EventId))
+                result.Add("InvalidValue", $"{path}.eventId", "Timeline event ids must be present and unique.", item.EventId);
+            if (!seenKeys.Add(item.SortKey))
+                result.Add("InvalidValue", $"{path}.sortKey", "Timeline sort keys must be unique (they define the true order).", item.EventId);
+            if (string.IsNullOrWhiteSpace(item.Label))
+                result.Add("MissingField", $"{path}.label", "Timeline events need a label.", item.EventId);
+            if (string.IsNullOrWhiteSpace(item.TimeLabel))
+                result.Add("MissingField", $"{path}.timeLabel", "Timeline events need a time label.", item.EventId);
+            foreach (var clueId in item.RequiredClueIds.Concat(item.RevealClueIds).Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}", "Timeline event references an unknown clue.", clueId);
+        }
+        if (timeline.Events.Count > 0 && !timeline.Events.Any(item => item.IsFixed))
+            result.Add("MissingField", "timeline.events", "A timeline needs at least one fixed event to anchor the others.");
+    }
+
     private static void ValidateFinalLogic(GameCase c, CaseValidationResult result)
     {
         var final = c.FinalLogic;
@@ -1275,6 +1338,13 @@ public class CaseValidationService : ICaseValidationService
                     globalProgressed = true;
                 }
             }
+            // Open co-op timeline: every known card can be placed, revealing its conclusions.
+            if (CaseRuleSets.IsOpenCoop(c) && c.Timeline is { } timeline)
+            {
+                foreach (var timelineEvent in timeline.Events.Where(item => item.RequiredClueIds.All(unlockedClues.Contains)))
+                    foreach (var clueId in timelineEvent.RevealClueIds)
+                        if (unlockedClues.Add(clueId)) globalProgressed = true;
+            }
         } while (globalProgressed);
 
         foreach (var scene in orderedScenes)
@@ -1329,7 +1399,8 @@ public class CaseValidationService : ICaseValidationService
             var unlockedByChallenge = c.EvidenceChallenges.Any(challenge => challenge.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByDeduction = c.Deductions.Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByInteraction = c.Interactions.Any(interaction => interaction.UnlockClueIds.Contains(clue.ClueId));
-            var unlockedByPuzzle = c.Puzzles.Any(puzzle => puzzle.UnlockClueIds.Contains(clue.ClueId));
+            var unlockedByPuzzle = c.Puzzles.Any(puzzle => puzzle.UnlockClueIds.Contains(clue.ClueId))
+                || (CaseRuleSets.IsOpenCoop(c) && c.Timeline?.Events.Any(item => item.RevealClueIds.Contains(clue.ClueId)) == true);
             var unlockedByCamera = DiscoverMethod(clue) == "camera"
                 && (!hasCameraLayout || c.Stages.SelectMany(s => s.Scenes).Any(scene =>
                     scene.Runtime?.ClueZones.Any(zone => zone.ClueId == clue.ClueId) == true));

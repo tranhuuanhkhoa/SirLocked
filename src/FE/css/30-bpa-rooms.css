@@ -1,8 +1,8 @@
 /* ==========================================================================
    "Bảng phá án" — Rooms: #/create-room and #/join (createRoomPage.js, joinRoomPage.js)
-   Design: docs/design/bang-pha-an/nguon-canvas/Rooms.dc.html. The public room table,
-   its filters and the public/private mode are not built (no backend); the case
-   picker takes the table's place.
+   Design: docs/design/bang-pha-an/nguon-canvas/Rooms.dc.html. The public room table
+   (#/rooms) and the public/private choice live in 36-bpa-public-rooms.css; on
+   #/create-room the case picker takes the table's place.
    ========================================================================== */
 
 .bpa-rooms-page {

@@ -15,6 +15,10 @@ public class PrivateEvidenceDto
     public string InventoryDescription { get; set; } = string.Empty;
     public string NarrativeMeaning { get; set; } = string.Empty;
     public string? PhotoUrl { get; set; }
+    /// <summary>Open co-op board: who found it and when.</summary>
+    public string FoundByUserId { get; set; } = string.Empty;
+    public string FoundByRole { get; set; } = string.Empty;
+    public DateTime? FoundAt { get; set; }
 }
 
 public class PrivateTestimonyDto
@@ -24,6 +28,10 @@ public class PrivateTestimonyDto
     public string CharacterId { get; set; } = string.Empty;
     public string CharacterName { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
+    public string FoundByUserId { get; set; } = string.Empty;
+    public DateTime? FoundAt { get; set; }
+    /// <summary>Open co-op: the statement can be put to a Crack the Lie attempt.</summary>
+    public bool CanChallenge { get; set; } = true;
 }
 
 public class DisclosedPairDto

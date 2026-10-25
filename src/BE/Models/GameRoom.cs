@@ -21,6 +21,11 @@ public class GameRoom
     [JsonIgnore]
     public string? PendingRemovedPlayerId { get; set; }
     public string Status { get; set; } = RoomStatus.Waiting;
+    /// <summary>PUBLIC rooms are listed for everyone; PRIVATE (the default, also for legacy rooms) only by code.</summary>
+    public string Visibility { get; set; } = RoomVisibility.Private;
+    /// <summary>Set only for rooms created by matchmaking; a unique index keeps one room per match.</summary>
+    [BsonIgnoreIfNull]
+    public string? MatchId { get; set; }
     /// <summary>Optimistic-concurrency version for lobby mutations before gameplay starts.</summary>
     public long LobbyVersion { get; set; } = 1;
 
@@ -87,6 +92,18 @@ public class GameplayState
     /// <summary>Terminal accusation proposals retained for history, retries and exactly-once outcomes.</summary>
     public List<AccusationProposalState> AccusationAttempts { get; set; } = new();
     public string GameStatus { get; set; } = Enums.GameStatus.InProgress;
+    /// <summary>Open-coop timeline events the team has placed correctly.</summary>
+    public List<string> PlacedTimelineEventIds { get; set; } = new();
+    public int WrongTimelineCount { get; set; }
+    /// <summary>Open-coop accusations judged "not convincing" (the second wrong one ends the case).</summary>
+    public int WrongAccusationCount { get; set; }
+    /// <summary>Open-coop lead hints revealed (each costs score).</summary>
+    public int LeadHintCount { get; set; }
+    /// <summary>Open-coop case wall: item id (clue or testimony fragment) → pinned target id.</summary>
+    public Dictionary<string, string> BoardPins { get; set; } = new();
+    public int WrongBoardPinCount { get; set; }
+    /// <summary>Per-puzzle run state for interactive puzzles (attempts, probe tokens, re-rolled secrets).</summary>
+    public Dictionary<string, PuzzleRunState> PuzzleRuns { get; set; } = new();
     /// <summary>
     /// Authoritative completion data used to recreate the denormalized game result when its write fails.
     /// Null for games that have not completed and for legacy room documents.
@@ -242,4 +259,5 @@ public static class ClueDiscoverySources
     public const string Deduction = "deduction";
     public const string Interaction = "interaction";
     public const string Puzzle = "puzzle";
+    public const string Timeline = "timeline";
 }

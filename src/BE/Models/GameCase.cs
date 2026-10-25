@@ -70,6 +70,15 @@ public class GameCase
     public List<AlternateRewardPath> AlternateRewardPaths { get; set; } = new();
     public FinalLogic FinalLogic { get; set; } = new();
     public CasePresentation? Presentation { get; set; }
+    /// <summary>
+    /// Gameplay rule set layered over the mechanics version. Empty keeps the classic gated rules;
+    /// <see cref="CaseRuleSets.OpenCoop"/> opens every place, shares one notebook and adds the timeline.
+    /// </summary>
+    public string RuleSet { get; set; } = string.Empty;
+    /// <summary>Open-coop timeline reconstruction (optional).</summary>
+    public CaseTimeline? Timeline { get; set; }
+    /// <summary>Open co-op case wall settings (middle card, authored strings). Optional.</summary>
+    public CaseBoard? Board { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -252,6 +261,12 @@ public static class CasePuzzleTypes
     public const string CodePuzzle = "CODE_PUZZLE";
     public const string SequencePuzzle = "SEQUENCE_PUZZLE";
     public const string SymbolMatchPuzzle = "SYMBOL_MATCH_PUZZLE";
+    /// <summary>
+    /// Hands-on puzzle drawn by a frontend module chosen by <see cref="CasePuzzle.Kind"/> and checked by the
+    /// matching server-side kind (see Services/PuzzleKinds). Not part of <see cref="All"/>, which lists the
+    /// classic types the AI presets must produce.
+    /// </summary>
+    public const string InteractivePuzzle = "INTERACTIVE_PUZZLE";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -726,6 +741,25 @@ public class CasePuzzle
     public string InvestigationPurpose { get; set; } = string.Empty;
     public List<string> RevealsConclusionIds { get; set; } = new();
     public string ProgressionRole { get; set; } = string.Empty;
+    /// <summary>
+    /// Puzzle kind for <see cref="CasePuzzleTypes.KindPuzzle"/> (see <see cref="PuzzleKinds"/>). Each case
+    /// carries its own parameters; the solution never leaves the server.
+    /// </summary>
+    public string Kind { get; set; } = string.Empty;
+    /// <summary>Public parameters sent to the client (raw JSON object).</summary>
+    [JsonPropertyName("params")]
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string ParamsJson { get; set; } = string.Empty;
+    /// <summary>Server-only solution (raw JSON object).</summary>
+    [JsonPropertyName("solution")]
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string SolutionJson { get; set; } = string.Empty;
+    /// <summary>Extra content shown only after the puzzle is solved (raw JSON object).</summary>
+    [JsonPropertyName("reveal")]
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string RevealJson { get; set; } = string.Empty;
+    /// <summary>EASY / NORMAL / HARD — used when parameters are generated for this case.</summary>
+    public string Difficulty { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
