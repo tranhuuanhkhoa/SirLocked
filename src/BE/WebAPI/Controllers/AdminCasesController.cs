@@ -57,4 +57,8 @@ public class AdminCasesController : BaseApiController
     [HttpPost("seed-point-click-demo")]
     public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> SeedPointClickDemo() =>
         Ok(await _caseService.SeedPointClickDemoAsync(), "Point-and-click cases seeded and published.");
+
+    [HttpPost("seed-pixel-demo")]
+    public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> SeedPixelDemo() =>
+        Ok(await _caseService.SeedPixelDemoAsync(), "Pixel case seeded and published.");
 }

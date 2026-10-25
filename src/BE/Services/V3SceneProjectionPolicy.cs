@@ -141,7 +141,39 @@ public static class V3SceneProjectionPolicy
                 RequireCaptureCenterInside = source.CameraRules.RequireCaptureCenterInside
             }
             : new CameraRules(),
-        Transitions = source.Transitions.Select(Clone).ToList()
+        Transitions = source.Transitions.Select(Clone).ToList(),
+        Render = Clone(source.Render)
+    };
+
+    private static SceneRenderSettings? Clone(SceneRenderSettings? value) => value is null ? null : new()
+    {
+        Mode = value.Mode,
+        Projection = value.Projection,
+        NativeWidth = value.NativeWidth,
+        NativeHeight = value.NativeHeight,
+        PixelScale = value.PixelScale,
+        CameraZoom = value.CameraZoom,
+        ActorScale = value.ActorScale,
+        WalkSpeed = value.WalkSpeed,
+        InteractRadius = value.InteractRadius,
+        BackdropColor = value.BackdropColor,
+        WalkGrid = value.WalkGrid is not { } grid ? null : new SceneWalkGrid
+        {
+            CellSize = grid.CellSize,
+            Cols = grid.Cols,
+            Rows = grid.Rows,
+            Data = grid.Data.ToList()
+        },
+        Foreground = value.Foreground.Select(layer => new SceneForegroundLayer
+        {
+            Id = layer.Id,
+            Url = layer.Url,
+            X = layer.X,
+            Y = layer.Y,
+            Width = layer.Width,
+            Height = layer.Height,
+            BaseY = layer.BaseY
+        }).ToList()
     };
 
     private static ItemPlacement Clone(ItemPlacement value) => new()

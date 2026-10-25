@@ -1,0 +1,14 @@
+{
+ "tool": "create_image_pro",
+ "width": 512,
+ "height": 512,
+ "no_background": false,
+ "seed": 707,
+ "description": "Interior of a Victorian photographer's studio. On one side: a large wooden camera on a tripod facing a painted backdrop and a posing chair. On the other side, behind a half-open dark curtain, a small darkroom corner with a red safelight lamp, shallow developing trays and brown chemical bottles on a bench, a drying line with a few sheets of paper held by wooden clips, and a shelf with glass photographic plates and boxes. Skylight glow on the wooden floor. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+ "reference_images": [
+  {
+   "url": "upload:66f2c504-d009-4ee6-a0a8-b0a1ab299fb0",
+   "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera"
+  }
+ ]
+}

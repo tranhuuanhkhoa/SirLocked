@@ -768,6 +768,80 @@ public class CaseValidationService : ICaseValidationService
             }
             ValidateRuntimeBox(transition.Hotspot, $"{path}.hotspot", runtime.Width, runtime.Height, result, transition.TransitionId);
         }
+
+        if (runtime.Render is { } render)
+        {
+            ValidateRenderSettings(scene, runtime, render, $"{scenePath}.runtime.render", result);
+        }
+    }
+
+    private static void ValidateRenderSettings(CaseScene scene, SceneRuntime runtime, SceneRenderSettings render, string path, CaseValidationResult result)
+    {
+        void Invalid(string field, string message) => result.Add("InvalidRenderSettings", $"{path}.{field}", message, scene.SceneId);
+        static bool InRange(double value, double min, double max) => double.IsFinite(value) && value > min && value <= max;
+
+        if (render.Mode != SceneRenderModes.Pixel) Invalid("mode", "render.mode must be 'pixel'.");
+        if (!SceneRenderModes.Projections.Contains(render.Projection)) Invalid("projection", "render.projection must be 'topdown' or 'isometric'.");
+        if (render.NativeWidth is <= 0 or > 4096 || render.NativeHeight is <= 0 or > 4096)
+            Invalid("nativeWidth", "Native background size must be between 1 and 4096 pixels.");
+        if (!InRange(render.PixelScale, 0, 16)) Invalid("pixelScale", "pixelScale must be greater than 0 and at most 16.");
+        else if (Math.Abs(render.NativeWidth * render.PixelScale - runtime.Width) > 1
+            || Math.Abs(render.NativeHeight * render.PixelScale - runtime.Height) > 1)
+            Invalid("pixelScale", "nativeWidth/nativeHeight x pixelScale must equal runtime.width/runtime.height.");
+        if (!InRange(render.CameraZoom, 0, 8)) Invalid("cameraZoom", "cameraZoom must be greater than 0 and at most 8.");
+        if (!InRange(render.ActorScale, 0, 16)) Invalid("actorScale", "actorScale must be greater than 0 and at most 16.");
+        if (!InRange(render.WalkSpeed, 0, 5000)) Invalid("walkSpeed", "walkSpeed must be greater than 0 and at most 5000.");
+        if (!InRange(render.InteractRadius, 0, 2000)) Invalid("interactRadius", "interactRadius must be greater than 0 and at most 2000.");
+        if (!string.IsNullOrEmpty(render.BackdropColor)
+            && !System.Text.RegularExpressions.Regex.IsMatch(render.BackdropColor, "^#[0-9a-fA-F]{6}$"))
+            Invalid("backdropColor", "backdropColor must be empty or a #RRGGBB colour.");
+
+        if (render.WalkGrid is { } grid)
+        {
+            var gridValid = true;
+            if (grid.CellSize <= 0 || grid.Cols is <= 0 or > 512 || grid.Rows is <= 0 or > 512)
+            {
+                Invalid("walkGrid", "walkGrid needs a positive cellSize and 1-512 cols/rows.");
+                gridValid = false;
+            }
+            else if (grid.Cols * grid.CellSize != runtime.Width || grid.Rows * grid.CellSize != runtime.Height)
+            {
+                Invalid("walkGrid", "walkGrid cols/rows x cellSize must cover exactly runtime.width/runtime.height.");
+                gridValid = false;
+            }
+            if (grid.Data is null || grid.Data.Count != grid.Rows
+                || grid.Data.Any(row => row is null || row.Length != grid.Cols || row.Any(cell => cell is not ('0' or '1'))))
+            {
+                Invalid("walkGrid.data", "walkGrid.data needs one '0'/'1' string of length cols per row.");
+                gridValid = false;
+            }
+            if (gridValid)
+            {
+                if (!grid.Data.Any(row => row.Contains('1')))
+                    Invalid("walkGrid.data", "walkGrid has no walkable cell.");
+                foreach (var (name, spawn) in runtime.SpawnPoints)
+                    if (!grid.IsWalkable(spawn.X, spawn.Y))
+                        result.Add("BlockedNavigation", $"{path}.walkGrid", $"Spawn point '{name}' is not on a walkable cell.", scene.SceneId);
+            }
+        }
+
+        if (render.Foreground is null)
+        {
+            Invalid("foreground", "foreground cannot be null.");
+            return;
+        }
+        if (render.Foreground.Count > 64) Invalid("foreground", "A pixel scene supports at most 64 foreground layers.");
+        for (var i = 0; i < render.Foreground.Count; i++)
+        {
+            var layer = render.Foreground[i];
+            if (layer is null) { Invalid($"foreground[{i}]", "Foreground layers cannot be null."); continue; }
+            if (string.IsNullOrWhiteSpace(layer.Url) || !IsSceneAudioUrl(layer.Url))
+                Invalid($"foreground[{i}].url", "Foreground layers need a safe /assets path or an HTTP(S) URL.");
+            ValidateRuntimeBox(new RuntimeBox { X = layer.X, Y = layer.Y, Width = layer.Width, Height = layer.Height },
+                $"{path}.foreground[{i}]", runtime.Width, runtime.Height, result, scene.SceneId);
+            if (!double.IsFinite(layer.BaseY) || layer.BaseY < 0 || layer.BaseY > runtime.Height)
+                Invalid($"foreground[{i}].baseY", "baseY must fit within runtime.height.");
+        }
     }
 
     private static void ValidateRuntimePoint(RuntimePoint point, string path, int width, int height, CaseValidationResult result, string id)

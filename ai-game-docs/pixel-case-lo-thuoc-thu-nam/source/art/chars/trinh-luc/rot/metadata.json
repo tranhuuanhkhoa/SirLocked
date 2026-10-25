@@ -1,0 +1,36 @@
+{
+  "group_id": "cf14a87d-e5e7-495b-a161-f8a74a29fd15",
+  "states": [
+    {
+      "character": {
+        "id": "628a9ad5-fbd3-492d-afa8-1165185dd083",
+        "name": "Idle",
+        "prompt": "Victorian coachman, black top hat, long navy blue coat with brass buttons, brown leather gloves, black boots",
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-25T04:39:39.700322+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-25T04:50:23.926174"
+}

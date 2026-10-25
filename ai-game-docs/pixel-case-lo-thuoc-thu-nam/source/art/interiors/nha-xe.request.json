@@ -1,0 +1,14 @@
+{
+ "tool": "create_image_pro",
+ "width": 512,
+ "height": 512,
+ "no_background": false,
+ "seed": 707,
+ "description": "Interior of a Victorian wooden carriage house with a coachman's sleeping corner. Wooden plank walls with horse harness, reins and lanterns hanging on pegs, a spare carriage wheel leaning on the wall, bales of hay, a workbench with tools and a small logbook hanging on a nail beside the entrance. In the back corner a narrow cot bed with a blanket, a small table with an oil lamp and a wooden chest. Packed dirt and plank floor with straw. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+ "reference_images": [
+  {
+   "url": "upload:fcd2f820-a950-41ca-a75b-34e9f626376d",
+   "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera"
+  }
+ ]
+}

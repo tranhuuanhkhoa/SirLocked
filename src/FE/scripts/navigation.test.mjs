@@ -68,3 +68,49 @@ test('waypoint travel is frame-rate independent, consumes segments once and neve
   assert.deepEqual(remaining, first.remaining);
   assert.deepEqual(path, [{ x: 30, y: 0 }, { x: 30, y: 40 }], 'caller path is immutable');
 });
+
+// Pixel scenes: authored walk grids ('1' walkable) replace rectangles.
+import { parseNavigationGrid, gridApproachPoint } from '../Client/js/game/navigation.ts';
+
+const gridData = [
+  '1111111111',
+  '1111111111',
+  '1100000011',
+  '1100000011',
+  '1111111111',
+];
+const grid = parseNavigationGrid({ cellSize: 10, cols: 10, rows: 5, data: gridData });
+const gridWorld = { bounds: { x: 0, y: 0, width: 100, height: 50 }, obstacles: [], grid };
+
+test('walk grid parsing rejects malformed rows and keeps authored walkability', () => {
+  assert.equal(parseNavigationGrid({ cellSize: 10, cols: 10, rows: 5, data: gridData.slice(1) }), null);
+  assert.equal(parseNavigationGrid({ cellSize: 10, cols: 9, rows: 5, data: gridData }), null);
+  assert.ok(grid);
+  assert.ok(isNavigable({ x: 5, y: 5 }, gridWorld));
+  assert.equal(isNavigable({ x: 45, y: 25 }, gridWorld), false);
+  assert.equal(isNavigable({ x: -1, y: 5 }, gridWorld), false);
+});
+
+test('walk grid paths go around blocked cells, never cut corners and end on the destination', () => {
+  const from = { x: 45, y: 5 }, goal = { x: 45, y: 45 };
+  assert.equal(segmentIsClear(from, goal, gridWorld), false);
+  const path = findPath(from, goal, gridWorld);
+  assert.ok(path && path.length >= 2);
+  let previous = from;
+  for (const point of path) {
+    assert.ok(segmentIsClear(previous, point, gridWorld), `segment ${JSON.stringify(previous)} -> ${JSON.stringify(point)}`);
+    previous = point;
+  }
+  assert.deepEqual(path.at(-1), goal);
+  assert.deepEqual(findPath(from, goal, gridWorld), path);
+});
+
+test('walk grid approach walks to the floor below a wall object and repairs blocked spawns', () => {
+  const approach = gridApproachPoint(grid, { x: 30, y: 20, width: 30, height: 20 });
+  assert.ok(approach && isNavigable(approach, gridWorld));
+  const path = findApproachPath({ x: 5, y: 45 }, { x: 30, y: 20, width: 30, height: 20 }, gridWorld, 12);
+  assert.ok(path && path.length > 0);
+  assert.deepEqual(path.at(-1), approach);
+  const repaired = nearestNavigablePoint({ x: 45, y: 25 }, gridWorld);
+  assert.ok(repaired && isNavigable(repaired, gridWorld));
+});

@@ -16,6 +16,7 @@ export const adminApi = {
   seedSample: () => post('/api/admin/cases/seed-sample?publish=true'),
   seedDemo: () => post('/api/admin/cases/seed-demo'),
   seedCrackDemo: () => post('/api/admin/cases/seed-crack-demo'),
+  seedPixelDemo: () => post('/api/admin/cases/seed-pixel-demo'),
 
   // 404 while playtest instrumentation is off; callers hide the panel instead of surfacing an error.
   playtestSummary: (from, to) => {

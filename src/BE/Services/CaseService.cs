@@ -37,6 +37,12 @@ public class CaseService : ICaseService
         "case-point-click-night-ledger-vi.json"
     ];
 
+    /// <summary>Hand-authored PixelLab case: one outdoor map, five interiors, pixel render mode.</summary>
+    private static readonly string[] PixelDemoFiles =
+    [
+        "case-pixel-lo-thuoc-thu-nam-vi.json"
+    ];
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         ReadCommentHandling = JsonCommentHandling.Skip,
@@ -281,6 +287,18 @@ public class CaseService : ICaseService
         return results;
     }
 
+    public async Task<List<CaseSummaryResponse>> SeedPixelDemoAsync()
+    {
+        var results = new List<CaseSummaryResponse>(PixelDemoFiles.Length);
+        foreach (var fileName in PixelDemoFiles)
+        {
+            var gameCase = LoadBundledDemoCase(fileName);
+            await UpsertValidatedAsync(gameCase, overwrite: true, forceDraft: true);
+            results.Add(await PublishAsync(gameCase.CaseId));
+        }
+        return results;
+    }
+
     private async Task<CaseSummaryResponse> UpsertValidatedAsync(GameCase gameCase, bool overwrite, bool forceDraft)
     {
         if (forceDraft)
@@ -380,7 +398,7 @@ public class CaseService : ICaseService
 
     private GameCase LoadBundledDemoCase(string fileName)
     {
-        if (!CrackDemoFiles.Concat(PointClickDemoFiles).Contains(fileName, StringComparer.Ordinal))
+        if (!CrackDemoFiles.Concat(PointClickDemoFiles).Concat(PixelDemoFiles).Contains(fileName, StringComparer.Ordinal))
         {
             throw new InvalidOperationException($"Unsupported demo fixture '{fileName}'.");
         }

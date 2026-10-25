@@ -560,6 +560,7 @@ public sealed class MongoGameplayConcurrencyTests
         public Task<List<CaseSummaryResponse>> SeedDemoAsync() => throw new NotSupportedException();
         public Task<List<CaseSummaryResponse>> SeedCrackDemoAsync() => throw new NotSupportedException();
         public Task<List<CaseSummaryResponse>> SeedPointClickDemoAsync() => throw new NotSupportedException();
+        public Task<List<CaseSummaryResponse>> SeedPixelDemoAsync() => throw new NotSupportedException();
         public GameCase ParseCase(JsonElement caseJson) => throw new NotSupportedException();
         public GameCase ParseCase(string caseJson) => throw new NotSupportedException();
     }

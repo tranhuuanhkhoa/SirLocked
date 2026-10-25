@@ -14,8 +14,10 @@ import { DialoguePresenter } from '../game/dialoguePresenter.js';
 import { createModalFocusManager } from '../game/modalFocus.js';
 import { CutsceneController } from '../game/cutsceneController.js';
 import { idleFrameAt, usableSpriteSheet } from '../game/npcAnimator.js';
-import { advancePath, findApproachPath, findPath, insideBounds, isNavigable, nearestNavigablePoint,
-  segmentIsClear, type NavigationPoint, type NavigationWorld } from '../game/navigation.js';
+import { advancePath, findApproachPath, findPath, gridApproachPoint, insideBounds, isNavigable, nearestNavigablePoint,
+  parseNavigationGrid, segmentIsClear, type NavigationGrid, type NavigationPoint, type NavigationWorld } from '../game/navigation.js';
+import { PIXEL_PLAYER_SHEETS, advanceMotion, facingFromVector, isFacing, motionFrame,
+  type Facing, type PixelMotionState } from '../game/pixelActors.js';
 import type { CharacterPresentation, CasePresentation } from '../game/presentationMedia.js';
 import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio } from '../game/audioController.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
@@ -165,7 +167,24 @@ type CameraRules = {
   requireCaptureCenterInside?: boolean;
 };
 
+/** Pure pixel-art presentation (PixelLab scenes). Runtime units = native pixels x pixelScale. */
+type PixelRender = {
+  mode: 'pixel' | string;
+  projection: 'topdown' | 'isometric' | string;
+  nativeWidth: number;
+  nativeHeight: number;
+  pixelScale: number;
+  cameraZoom: number;
+  actorScale: number;
+  walkSpeed: number;
+  interactRadius: number;
+  backdropColor?: string;
+  walkGrid?: { cellSize: number; cols: number; rows: number; data: string[] } | null;
+  foreground?: { id: string; url: string; x: number; y: number; width: number; height: number; baseY: number }[];
+};
+
 type SceneRuntime = {
+  render?: PixelRender | null;
   width?: number;
   height?: number;
   floorY?: number;
@@ -410,6 +429,8 @@ type PlayerPose = {
   x: number;
   y: number;
   direction: 'left' | 'right';
+  /** Eight-way facing for pixel scenes; legacy scenes only read direction. */
+  facing?: Facing;
   moving: boolean;
   updatedAt?: string;
 };
@@ -497,6 +518,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private destinationMarker: Phaser.GameObjects.Graphics | null = null;
   private rejectedDestination: NavigationPoint | null = null;
   private rejectedDestinationUntil = 0;
+  // Pixel scenes: parsed walk grid, the scene the local player came from, per-player motion and the door in reach.
+  private navGridCache: { sceneId: string; grid: NavigationGrid | null } | null = null;
+  private previousSceneId: string | null = null;
+  private cameraNeedsSnap = true;
+  private pixelMotion = new Map<string, PixelMotionState>();
+  private nearestTransition: RuntimeTransition | null = null;
+  private approachCache = new Map<string, NavigationPoint | null>();
+  /** Screen position of the pixel-scene "continue" shortcut (null when hidden); read by end-to-end tests. */
+  proceedButtonPoint: { x: number; y: number } | null = null;
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
@@ -507,6 +537,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
     for (const sheet of Object.values(PLAYER_SHEETS)) {
       if (!this.textures.exists(sheet.key)) {
         this.load.image(sheet.key, sheet.url);
+      }
+    }
+    for (const sheet of Object.values(PIXEL_PLAYER_SHEETS)) {
+      for (const texture of sheet.textures) {
+        if (!this.textures.exists(texture.key)) this.load.image(texture.key, texture.url);
       }
     }
   }
@@ -529,7 +564,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
       if (file?.key) this.failedTextureKeys.add(file.key);
     });
-    this.scale.on('resize', () => this.draw());
+    this.scale.on('resize', () => { this.cameraNeedsSnap = true; this.draw(); });
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, objects: Phaser.GameObjects.GameObject[]) => {
       if (!this.sceneInteractionEnabled || this.cameraMode || objects.length || !pointer.leftButtonDown()) return;
       this.navigateTo(this.screenToWorld(pointer.x, pointer.y));
@@ -608,7 +643,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
     const axis = this.inputAxis();
     const keyboardMoving = axis.x !== 0 || axis.y !== 0;
-    const speed = 225 * this.runtimeWidth() / 1600;
+    const pixel = this.pixelRender();
+    const speed = pixel ? pixel.walkSpeed : 225 * this.runtimeWidth() / 1600;
+    const before = { x: this.localPose.x, y: this.localPose.y };
     const seconds = Math.min(delta, 100) / 1000;
     const bounds = this.walkBounds();
     let moving = keyboardMoving;
@@ -647,18 +684,32 @@ class SirLockedPhaserScene extends Phaser.Scene {
       }
     }
 
+    if (pixel) {
+      const vx = keyboardMoving ? axis.x : this.localPose.x - before.x;
+      const vy = keyboardMoving ? axis.y : this.localPose.y - before.y;
+      if (moving && Math.hypot(vx, vy) > 1e-6) this.localPose.facing = facingFromVector(vx, vy, this.localPose.facing ?? 'south');
+    }
     this.localPose.moving = moving;
     this.localPose.sceneId = this.state.currentSceneId;
     this.callbacks.playerPoses.set(this.localPose.userId, { ...this.localPose });
     this.placePlayer(this.localPlayer, this.localPose);
+    this.updatePixelCamera(delta);
     this.nearestHotspot = this.findNearestHotspot(this.localPose);
+    this.nearestTransition = this.nearestHotspot ? null : this.findNearestTransition(this.localPose);
     this.updateInteractionPrompt();
     this.maybeSendPose(time);
 
-    if (this.nearestHotspot && this.keys.E && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
-      this.cancelNavigation();
-      this.triggerHotspot(this.nearestHotspot);
-      return;
+    if (this.keys.E && Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+      if (this.nearestHotspot) {
+        this.cancelNavigation();
+        this.triggerHotspot(this.nearestHotspot);
+        return;
+      }
+      if (this.nearestTransition) {
+        this.cancelNavigation();
+        this.useTransition(this.nearestTransition);
+        return;
+      }
     }
     completedAction?.();
   }
@@ -675,6 +726,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
       state.visibleScene.characters.map((character) => this.callbacks.newDialogueCount(character.characterId))]);
     const changed = renderKey !== this.sceneRenderKey;
     this.sceneRenderKey = renderKey;
+    if (this.state && this.state.currentSceneId !== state.currentSceneId) {
+      this.previousSceneId = this.state.currentSceneId;
+      this.cameraNeedsSnap = true;
+      this.approachCache.clear();
+    }
     this.state = state;
     const selectionChanged = this.selectedInventoryItemId !== selectedInventoryItemId;
     this.selectedInventoryItemId = selectedInventoryItemId;
@@ -755,7 +811,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const transition = this.sceneRuntime()?.transitions?.find((candidate) => candidate.targetSceneId === targetSceneId);
     if (!transition) return null;
     const box = this.worldRect(transition.hotspot);
-    return { x: box.x + box.w / 2, y: box.y + box.h * 0.45 };
+    const scroll = this.viewScroll();
+    return { x: box.x + box.w / 2 - scroll.x, y: box.y + box.h * 0.45 - scroll.y };
   }
 
   setMobileMoveX(value: number) {
@@ -763,9 +820,14 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   triggerPrimaryInteraction() {
-    if (!this.sceneInteractionEnabled || this.cameraMode || !this.nearestHotspot) return;
-    this.cancelNavigation();
-    this.triggerHotspot(this.nearestHotspot);
+    if (!this.sceneInteractionEnabled || this.cameraMode) return;
+    if (this.nearestHotspot) {
+      this.cancelNavigation();
+      this.triggerHotspot(this.nearestHotspot);
+    } else if (this.nearestTransition) {
+      this.cancelNavigation();
+      this.useTransition(this.nearestTransition);
+    }
   }
 
   updateRemotePose(pose: PlayerPose) {
@@ -803,6 +865,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (!this.ready || !this.state) return;
 
     this.children.removeAll(true);
+    // Every tween in this scene belongs to an object rebuilt below (badges, sparkles, door pulses).
+    this.tweens.killAll();
     this.inventorySelectionLabel = null;
     this.heldItemImage = null;
     this.npcAnimations = [];
@@ -820,6 +884,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const height = this.scale.height;
     const scene = this.state.visibleScene;
 
+    if (!this.pixelRender()) {
+      this.cameras.main.setScroll(0, 0);
+      this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+    }
     this.drawBackground(scene, width, height);
     this.drawSceneLighting(width, height);
     this.drawHotspots(scene, width, height);
@@ -831,6 +899,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.drawCameraOverlay(width, height);
     this.drawDebugOverlay(scene, width, height);
     this.drawDestinationMarker();
+    this.updatePixelCamera(0, this.cameraNeedsSnap);
+    this.cameraNeedsSnap = false;
     this.flushTextures();
   }
 
@@ -841,6 +911,12 @@ class SirLockedPhaserScene extends Phaser.Scene {
     let assetHeight = 900;
 
     const runtime = scene?.runtime;
+    const render = runtime?.render?.mode === 'pixel' ? runtime.render : null;
+    if (render && runtime?.width && runtime?.height) {
+      // Pixel scenes: a fixed world frame the camera scrolls over, at an integer screen size per native pixel.
+      const viewScale = this.pixelViewScale(render);
+      return { x: 0, y: 0, width: runtime.width * viewScale, height: runtime.height * viewScale };
+    }
     if (runtime?.width && runtime?.height) {
       assetWidth = runtime.width;
       assetHeight = runtime.height;
@@ -916,6 +992,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   private screenToWorld(x: number, y: number) {
     const frame = this.sceneFrame();
+    const scroll = this.viewScroll();
+    x += scroll.x;
+    y += scroll.y;
     return {
       x: ((x - frame.x) / frame.width) * this.runtimeWidth(),
       y: ((y - frame.y) / frame.height) * this.runtimeHeight(),
@@ -959,6 +1038,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.add.image(frame.x, frame.y, bgKey)
         .setOrigin(0, 0)
         .setDisplaySize(frame.width, frame.height);
+      this.drawPixelForeground();
       return;
     }
 
@@ -993,9 +1073,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const sceneItem = this.state?.visibleScene.items.find((i) => i.itemId === hotspot.targetId);
       // Inventory loses consumed recipe inputs, while inspection history persists.
       const removedFromScene = collected || (sceneItem?.isCollectible === true && inspected);
-      const itemUrl = playableAssetUrl(sceneItem?.imageUrl);
-      const itemKey = itemUrl ? `item:${hotspot.targetId}:${itemUrl}` : '';
       const placement = this.itemPlacement(hotspot.targetId);
+      // Pixel scenes paint fixtures into the room art: only an explicit placement asset becomes a sprite.
+      const itemUrl = this.pixelRender() ? playableAssetUrl(placement?.asset) : playableAssetUrl(sceneItem?.imageUrl);
+      const itemKey = itemUrl ? `item:${hotspot.targetId}:${itemUrl}` : '';
       let itemImage: Phaser.GameObjects.Image | null = null;
       if (itemKey && !removedFromScene) {
         if (this.textures.exists(itemKey)) {
@@ -1029,12 +1110,15 @@ class SirLockedPhaserScene extends Phaser.Scene {
           : '';
       const label = this.createHoverTag(kicker, hotspot.label || this.prettyId(hotspot.targetId), note);
 
+      const outline = this.pixelRender() ? this.drawPixelHotspotMarker(hotspot, { x, y, w, h }) : null;
       hitbox.on('pointerover', () => {
         itemImage?.setTint(0xffe9b0);
+        outline?.setVisible(true);
         this.placeHoverTag(label, x + w / 2, y - 6);
       });
       hitbox.on('pointerout', () => {
         itemImage?.clearTint();
+        outline?.setVisible(false);
         label.setVisible(false);
       });
       hitbox.on('pointerdown', () => {
@@ -1091,7 +1175,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
     placement?: RuntimeCharacterPlacement,
     placementSize?: RuntimeSize,
   ) {
-    const group = this.add.container(x, y).setDepth(placement?.depth ?? this.actorDepth(y));
+    const pixelNpc = Boolean(this.pixelRender() && placement);
+    const group = this.add.container(x, y).setDepth(placement?.depth
+      ?? (pixelNpc ? this.depthForRuntimeY(placement!.position.y) : this.actorDepth(y)));
     // Keep NPCs roughly in scale with the player chibis (height * 0.26 -> ~230px)
     // so they read as people standing in the room, not looming over it.
     const npcH = placementSize?.height ?? Phaser.Math.Clamp(height * 0.27, 140, 235);
@@ -1100,16 +1186,20 @@ class SirLockedPhaserScene extends Phaser.Scene {
       .filter((dialogue) => dialogue.characterId === character.characterId && !dialogue.isAsked && !dialogue.isLocked).length ?? 0;
     const newlyUnlocked = this.callbacks.newDialogueCount(character.characterId);
 
-    const spriteUrls = [
-      usableSpriteSheet(character.presentation?.spriteSheet) ? character.presentation!.spriteSheet!.url : '',
+    const sheetUrl = usableSpriteSheet(character.presentation?.spriteSheet) ? character.presentation!.spriteSheet!.url : '';
+    // Pixel scenes only use the authored sprite sheet; portrait-derived legacy sprite names do not exist there.
+    const spriteUrls = (pixelNpc && sheetUrl ? [sheetUrl] : [
+      sheetUrl,
       playableAssetUrl(placement?.asset),
       sceneCharacterSpriteUrl(character, this.state?.currentSceneId),
       characterSpriteUrl(character),
-    ].filter((url, index, urls) => url && urls.indexOf(url) === index);
+    ]).filter((url, index, urls) => url && urls.indexOf(url) === index);
     const readySpriteUrl = spriteUrls.find((url) => this.textures.exists(`npc:${character.characterId}:${url}`));
     const spriteUrl = readySpriteUrl ?? spriteUrls[0] ?? '';
     const spriteKey = spriteUrl ? `npc:${character.characterId}:${spriteUrl}` : '';
-    const shadow = this.add.ellipse(0, -2, npcH * 0.4, npcH * 0.08, 0x000000, 0.32);
+    const shadow = pixelNpc
+      ? this.add.ellipse(0, -1, npcH * 0.22, npcH * 0.05, 0x000000, 0.28)
+      : this.add.ellipse(0, -2, npcH * 0.4, npcH * 0.08, 0x000000, 0.32);
 
     let body: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
     if (spriteKey && this.textures.exists(spriteKey)) {
@@ -1195,11 +1285,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
         if (this.selectedInventoryItemId) this.callbacks.onHotspot({ type: 'CHARACTER', target: character.characterId,
           label: character.name, locked: 'false' });
         else this.callbacks.onCharacter(character.characterId);
-      }, () => Boolean(this.state?.visibleScene.characters.some(candidate => candidate.characterId === character.characterId)));
+      }, () => Boolean(this.state?.visibleScene.characters.some(candidate => candidate.characterId === character.characterId)), true);
     };
-    const interactionZone = this.add.zone(0, -npcH / 2, npcW, npcH).setInteractive({ useHandCursor: true });
+    const interactionZone = pixelNpc
+      ? this.add.zone(0, -npcH * 0.38, npcW * 0.34, npcH * 0.66).setInteractive({ useHandCursor: true })
+      : this.add.zone(0, -npcH / 2, npcW, npcH).setInteractive({ useHandCursor: true });
     interactionZone.on('pointerdown', open);
-    interactionZone.on('pointerover', () => { this.placeHoverTag(name, x, y - npcH - 6); if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
+    interactionZone.on('pointerover', () => { this.placeHoverTag(name, x, y - (pixelNpc ? npcH * 0.72 : npcH) - 6); if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
     interactionZone.on('pointerout', () => { name.setVisible(false); if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
 
     group.add(newBadge ? [shadow, body, initialText, newBadge, interactionZone] : [shadow, body, initialText, interactionZone]);
@@ -1237,6 +1329,11 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   // pose.x/pose.y is the character's feet position in scene runtime coordinates.
   private createPlayer(pose: PlayerPose, isLocal: boolean) {
+    const pixel = this.pixelRender();
+    const pixelSheet = pixel && pose.role ? PIXEL_PLAYER_SHEETS[pose.role] : undefined;
+    if (pixel && pixelSheet && pixelSheet.textures.every((texture) => this.textures.exists(texture.key))) {
+      return this.createPixelPlayer(pose, isLocal, pixel, pixelSheet);
+    }
     const container = this.add.container(pose.x, pose.y).setDepth(isLocal ? 80 : 70);
     const spriteH = this.worldSize({ width: 160, height: 240 }).height;
     const shadow = this.add.ellipse(0, -2, spriteH * 0.42, spriteH * 0.09, 0x000000, 0.35);
@@ -1279,6 +1376,12 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private placePlayer(container: Phaser.GameObjects.Container, pose: PlayerPose) {
     const screen = this.worldPoint(pose);
     container.setPosition(screen.x, screen.y);
+    if (container.getData('pixelSheet')) {
+      container.setDepth(this.depthForRuntimeY(pose.y));
+      container.setData('moving', pose.moving);
+      container.setData('facing', pose.facing ?? (pose.direction === 'left' ? 'west' : 'east'));
+      return;
+    }
     container.setDepth(this.actorDepth(screen.y));
     container.setData('moving', pose.moving);
     const body = container.getData('body');
@@ -1292,11 +1395,13 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   // Manual frame animation: frames 0-1 idle breathing, frames 2-7 walk cycle.
   private animatePlayers(time: number) {
+    this.animatePixelPlayers(time);
     const idleFrame = Math.floor(time / 450) % 2;
     const walkFrame = 2 + (Math.floor(time / 110) % 6);
     const apply = (container: Phaser.GameObjects.Container | null) => {
       if (!container) return;
       const body = container.getData('body');
+      if (container.getData('pixelSheet')) return;
       if (!(body instanceof Phaser.GameObjects.Image) || !container.getData('sheetKey')) return;
       const frame = container.getData('moving') ? walkFrame : idleFrame;
       if (container.getData('frameIndex') !== frame) {
@@ -1316,7 +1421,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       color: '#f4dc8f',
       backgroundColor: 'rgba(10,22,40,0.84)',
       padding: { x: 10, y: 5 },
-    }).setOrigin(0.5).setDepth(120).setVisible(false);
+    }).setOrigin(0.5).setDepth(120).setScrollFactor(0).setVisible(false);
   }
 
   private drawSceneNavigation(width: number, height: number) {
@@ -1330,6 +1435,21 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const runtimeTransitions = this.sceneRuntime()?.transitions ?? [];
     // Phones stack the movement dock over the tool tray, so the proceed button rides above both.
     const proceedY = height - (width <= 900 ? 214 : 112);
+
+    this.proceedButtonPoint = null;
+    if (this.pixelRender()) {
+      for (const transition of runtimeTransitions) this.drawPixelDoor(transition, Boolean(canProceed && next?.sceneId === transition.targetSceneId));
+      if (canProceed) {
+        const forwardLabel = completedCurrent && next?.isUnlocked
+          ? this.callbacks.tr(`Go to ${this.shorten(next.title, 22)}`, `Đến ${this.shorten(next.title, 22)}`)
+          : this.callbacks.tr('Continue investigation', 'Tiếp tục điều tra');
+        // Room exits sit at the bottom of the frame, so the shortcut moves to the bottom-right corner on wide screens.
+        const proceedX = width > 900 ? width - 150 : width / 2;
+        this.proceedButtonPoint = { x: proceedX, y: proceedY };
+        this.drawButton(proceedX, proceedY, forwardLabel, () => this.callbacks.onProceed(), 230, true, true, true);
+      }
+      return;
+    }
 
     if (runtimeTransitions.length > 0) {
       runtimeTransitions.forEach((transition) => {
@@ -1392,6 +1512,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       current.x = Phaser.Math.Linear(current.x, target.x, blend);
       current.y = Phaser.Math.Linear(current.y, target.y, blend);
       current.direction = target.direction;
+      current.facing = isFacing(target.facing) ? target.facing : current.facing;
       const poseAge = this.time.now - (this.remotePoseReceivedAt.get(userId) ?? this.time.now);
       current.moving = target.moving && poseAge < 1250;
       current.sceneId = target.sceneId;
@@ -1424,7 +1545,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.heldItemImage = null;
     }
     if (!this.heldItemImage && key && this.textures.exists(key)) {
-      this.heldItemImage = this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(32, 32).setDepth(286);
+      this.heldItemImage = this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(32, 32).setDepth(286).setScrollFactor(0);
     }
     const padding = { left: this.heldItemImage ? 42 : 10, right: 10, top: 9, bottom: 9 };
     if (this.inventorySelectionLabel) {
@@ -1436,7 +1557,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
         color: '#fbf6ed',
         backgroundColor: 'rgba(13,16,20,0.92)',
         padding,
-      }).setDepth(285);
+      }).setDepth(285).setScrollFactor(0);
     }
     const pointer = this.input?.activePointer;
     const inside = pointer && !pointer.wasTouch && pointer.x > 0 && pointer.y > 0 && pointer.x < width && pointer.y < height;
@@ -1488,8 +1609,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private placeHoverTag(tag: Phaser.GameObjects.Container, centerX: number, bottomY: number) {
-    const x = Phaser.Math.Clamp(centerX - tag.width / 2, 8, Math.max(8, this.scale.width - tag.width - 8));
-    tag.setPosition(Math.round(x), Math.round(Math.max(8, bottomY - tag.height))).setVisible(true);
+    const scroll = this.viewScroll();
+    const x = Phaser.Math.Clamp(centerX - tag.width / 2, scroll.x + 8, Math.max(scroll.x + 8, scroll.x + this.scale.width - tag.width - 8));
+    tag.setPosition(Math.round(x), Math.round(Math.max(scroll.y + 8, bottomY - tag.height))).setVisible(true);
   }
 
   private localRole() {
@@ -1523,8 +1645,19 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private cameraCentre() {
-    const frame = this.sceneFrame();
+    const frame = this.visibleFrame();
     return { x: frame.x + frame.width / 2, y: frame.y + frame.height / 2 };
+  }
+
+  /** The scene frame in screen coordinates, clipped to the canvas (pixel scenes scroll the frame). */
+  private visibleFrame() {
+    const frame = this.sceneFrame();
+    if (!this.pixelRender()) return frame;
+    const scroll = this.viewScroll();
+    const left = Math.max(0, frame.x - scroll.x), top = Math.max(0, frame.y - scroll.y);
+    const right = Math.min(this.scale.width, frame.x + frame.width - scroll.x);
+    const bottom = Math.min(this.scale.height, frame.y + frame.height - scroll.y);
+    return { x: left, y: top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
   }
 
   // Veil over the scene, darker outside the frame, gold frame with four brackets, a label and a centre dot.
@@ -1560,7 +1693,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       detail = 0;
     }
 
-    const graphics = this.cameraGraphics ?? this.add.graphics().setDepth(240);
+    const graphics = this.cameraGraphics ?? this.add.graphics().setDepth(240).setScrollFactor(0);
     this.cameraGraphics = graphics;
     graphics.clear();
     graphics.fillStyle(0xc4c1bc, 0.13 * veil);
@@ -1611,7 +1744,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       letterSpacing: 1.8,
       backgroundColor: 'rgba(13,16,20,0.9)',
       padding: { x: 7, y: 3 },
-    } as Phaser.Types.GameObjects.Text.TextStyle).setDepth(245);
+    } as Phaser.Types.GameObjects.Text.TextStyle).setDepth(245).setScrollFactor(0);
     const labelAbove = rect.y - this.cameraLabel.height - 7 >= 4;
     const labelX = labelAbove ? rect.x - 1.5 : rect.x + 7;
     const labelY = labelAbove ? rect.y - this.cameraLabel.height - 7 : rect.y + 7;
@@ -1625,6 +1758,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (!this.cameraCaptureZone) {
       this.cameraCaptureZone = this.add.zone(width / 2, height / 2, width, height)
         .setDepth(250)
+        .setScrollFactor(0)
         .setInteractive({ cursor: 'crosshair' })
         .on('pointerdown', (pointer: Phaser.Input.Pointer) => {
           // A finger places the frame (the bar's shutter takes the photo); a mouse click shoots.
@@ -1643,7 +1777,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       width: rules.captureRectWidth && rules.captureRectWidth > 0 ? rules.captureRectWidth : 180,
       height: rules.captureRectHeight && rules.captureRectHeight > 0 ? rules.captureRectHeight : 140,
     });
-    const frame = this.sceneFrame();
+    const frame = this.visibleFrame();
     const captureWidth = Phaser.Math.Clamp(size.width * 0.85, 102, Math.min(width * 0.72, frame.width, 357));
     const captureHeight = Phaser.Math.Clamp(size.height * 0.85, 78, Math.min(height * 0.62, frame.height, 272));
     // The aim follows the mouse, a dragging finger or WASD; without one the frame starts centred.
@@ -1732,6 +1866,16 @@ class SirLockedPhaserScene extends Phaser.Scene {
     }
 
     const runtime = this.sceneRuntime();
+    const debugGrid = this.navigationGrid();
+    if (debugGrid) {
+      graphics.fillStyle(0x3cff8a, 0.18);
+      const cell = this.worldSize({ width: debugGrid.cellSize, height: debugGrid.cellSize });
+      for (let row = 0; row < debugGrid.rows; row++) for (let col = 0; col < debugGrid.cols; col++) {
+        if (!debugGrid.cells[row * debugGrid.cols + col]) continue;
+        const p = this.worldPoint({ x: col * debugGrid.cellSize, y: row * debugGrid.cellSize });
+        graphics.fillRect(p.x, p.y, cell.width, cell.height);
+      }
+    }
     if (runtime?.walkableArea) {
       this.debugBox(graphics, runtime.walkableArea, 0x3aa7ff, 0.18, 'walkable');
     }
@@ -1776,7 +1920,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       color: '#ffffff',
       backgroundColor: 'rgba(0,0,0,0.72)',
       padding: { x: 8, y: 6 },
-    }).setDepth(310);
+    }).setDepth(310).setScrollFactor(0);
     this.updateDebugPointerText();
   }
 
@@ -1815,6 +1959,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     buttonWidth = 160,
     isPrimary = false,
     enabled = true,
+    fixed = false,
   ) {
     const text = this.add.text(x, y, label.toUpperCase(), {
       fontFamily: 'Source Code Pro, monospace',
@@ -1829,6 +1974,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
       .setAlpha(enabled ? 1 : 0.52)
       .setDepth(25);
     if (enabled) button.setInteractive({ useHandCursor: true });
+    if (fixed) {
+      text.setScrollFactor(0);
+      button.setScrollFactor(0);
+    }
 
     if (enabled) {
       button.on('pointerover', () => { button.setFillStyle(0x1d1a14, 0.96); text.setColor('#fbf6ed'); });
@@ -1874,6 +2023,10 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private navigationWorld(): NavigationWorld {
+    const grid = this.navigationGrid();
+    if (grid) {
+      return { bounds: { x: 0, y: 0, width: this.runtimeWidth(), height: this.runtimeHeight() }, obstacles: [], padding: 0, grid };
+    }
     const bounds = this.walkBounds();
     const authored = this.sceneRuntime()?.navigationObstacles;
     const obstacles = authored ?? (this.sceneRuntime()?.itemPlacements ?? [])
@@ -1913,10 +2066,31 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.queueNavigation(path);
   }
 
-  private approachTarget(target: RuntimeBox, action: () => void, valid?: () => boolean) {
+  private approachTarget(target: RuntimeBox, action: () => void, valid?: () => boolean, standBeside = false) {
     if (!this.state || !this.localPose || !this.sceneInteractionEnabled || this.cameraMode) return;
     this.cancelNavigation();
-    const path = findApproachPath(this.localPose, target, this.navigationWorld(), 100 * this.runtimeWidth() / 1600);
+    const pixel = this.pixelRender();
+    if (pixel) {
+      const face = () => {
+        if (!this.localPose) return;
+        const centre = { x: target.x + target.width / 2, y: target.y + target.height * (standBeside ? 0.9 : 0.5) };
+        this.localPose.facing = facingFromVector(centre.x - this.localPose.x, centre.y - this.localPose.y, this.localPose.facing ?? 'south');
+        this.lastSentPoseKey = '';
+      };
+      const run = () => { face(); action(); };
+      const goal = this.pixelApproachPoint(`approach:${target.x}:${target.y}:${target.width}:${target.height}`, target, standBeside);
+      if (!goal) { this.rejectNavigation({ x: target.x + target.width / 2, y: target.y + target.height }); return; }
+      if (Phaser.Math.Distance.Between(this.localPose.x, this.localPose.y, goal.x, goal.y) <= pixel.interactRadius) {
+        if (!valid || valid()) run();
+        return;
+      }
+      const route = findPath(this.localPose, goal, this.navigationWorld());
+      if (!route) { this.rejectNavigation(goal); return; }
+      this.queueNavigation(route, run, valid);
+      return;
+    }
+    const reach = this.pixelRender()?.interactRadius ?? 100 * this.runtimeWidth() / 1600;
+    const path = findApproachPath(this.localPose, target, this.navigationWorld(), reach);
     if (!path) { this.rejectNavigation({ x: target.x + target.width / 2, y: target.y + target.height }); return; }
     if (path.length === 0) { if (!valid || valid()) action(); return; }
     this.queueNavigation(path, action, valid);
@@ -1958,11 +2132,17 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const runtime = this.sceneRuntime();
     const roleSpawn = player?.role ? runtime?.spawnPoints?.[player.role] : null;
     const defaultSpawn = runtime?.spawnPoints?.default;
-    const spawn = roleSpawn ?? defaultSpawn;
-    const x = spawn
+    // Pixel scenes place the player at the doorway they came through.
+    const doorSpawn = this.pixelRender() && this.previousSceneId ? runtime?.spawnPoints?.[`from:${this.previousSceneId}`] : null;
+    const spawn = doorSpawn ?? roleSpawn ?? defaultSpawn;
+    const x = spawn && doorSpawn
+      ? spawn.x
+      : spawn
       ? Phaser.Math.Clamp(spawn.x + slot * 18, bounds.left, bounds.right)
       : Phaser.Math.Clamp(bounds.left + 120 + slot * 92, bounds.left, bounds.right);
-    const y = spawn
+    const y = spawn && doorSpawn
+      ? spawn.y
+      : spawn
       ? Phaser.Math.Clamp(spawn.y + slot * 18, bounds.top, bounds.bottom)
       : Phaser.Math.Clamp(bounds.top + (bounds.bottom - bounds.top) * 0.7 - slot * 18, bounds.top, bounds.bottom);
     const safe = nearestNavigablePoint({ x, y }, this.navigationWorld()) ?? { x, y };
@@ -1974,6 +2154,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       x: safe.x,
       y: safe.y,
       direction: spawn?.direction ?? 'right',
+      facing: this.pixelRender() ? 'south' : undefined,
       moving: false,
     };
   }
@@ -1986,6 +2167,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   private findNearestHotspot(pose: PlayerPose) {
     if (!this.state) return null;
+    if (this.pixelRender()) return this.findNearestPixelHotspot(pose);
     let nearest: Hotspot | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
     for (const hotspot of this.state.visibleScene.hotspots) {
@@ -2058,6 +2240,24 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   private updateInteractionPrompt() {
+    if (this.promptText && !this.nearestHotspot && this.nearestTransition) {
+      const transition = this.nearestTransition;
+      const action: ContextAction = {
+        targetId: transition.transitionId,
+        targetType: 'TRANSITION',
+        label: transition.label || this.callbacks.tr('Doorway', 'Lối đi'),
+        actionLabel: this.callbacks.tr('Go', 'Đi'),
+        keyLabel: 'E',
+        enabled: true,
+      };
+      const actionKey = `${action.targetId}:true:`;
+      if (actionKey !== this.lastContextActionKey) {
+        this.lastContextActionKey = actionKey;
+        this.callbacks.onContextAction(action);
+      }
+      this.promptText.setVisible(false);
+      return;
+    }
     if (!this.promptText || !this.nearestHotspot) {
       this.promptText?.setVisible(false);
       if (this.lastContextActionKey) {
@@ -2121,7 +2321,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
       });
     }, () => hotspot.hotspotId.startsWith('virtual-character-')
       ? Boolean(this.state?.visibleScene.characters.some(character => character.characterId === hotspot.targetId))
-      : Boolean(this.state?.visibleScene.hotspots.some(candidate => candidate.hotspotId === hotspot.hotspotId)));
+      : Boolean(this.state?.visibleScene.hotspots.some(candidate => candidate.hotspotId === hotspot.hotspotId)),
+    hotspot.type.toUpperCase() === 'CHARACTER');
   }
 
   private maybeSendPose(time: number) {
@@ -2130,6 +2331,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       Math.round(this.localPose.x),
       Math.round(this.localPose.y),
       this.localPose.direction,
+      this.localPose.facing ?? '',
       this.localPose.moving ? 1 : 0,
       this.localPose.sceneId,
     ].join(':');
@@ -2169,6 +2371,255 @@ class SirLockedPhaserScene extends Phaser.Scene {
       .replace(/^(item|clue|char|dlg|scene|hotspot)-/i, '')
       .replaceAll('-', ' ')
       .replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+
+  // ---------------------------------------------------------------- pixel scenes
+
+  private pixelRender(): PixelRender | null {
+    const render = this.sceneRuntime()?.render;
+    return render && render.mode === 'pixel' && render.pixelScale > 0 && render.nativeWidth > 0 ? render : null;
+  }
+
+  /** Screen pixels per runtime unit, snapped so one native pixel is a whole number of screen pixels. */
+  private pixelViewScale(render: PixelRender | null = this.pixelRender()) {
+    if (!render) return 1;
+    const fit = Math.max(this.scale.width / 1600, this.scale.height / 900);
+    const zoom = Number.isFinite(render.cameraZoom) && render.cameraZoom > 0 ? render.cameraZoom : 1;
+    const nativePixel = Math.max(1, Math.round(fit * zoom * render.pixelScale));
+    return nativePixel / render.pixelScale;
+  }
+
+  private viewScroll() {
+    const camera = this.cameras?.main;
+    return { x: camera?.scrollX ?? 0, y: camera?.scrollY ?? 0 };
+  }
+
+  private depthForRuntimeY(y: number) {
+    return 30 + Phaser.Math.Clamp(y / this.runtimeHeight(), 0, 1) * 60;
+  }
+
+  private navigationGrid(): NavigationGrid | null {
+    const sceneId = this.state?.currentSceneId ?? '';
+    if (this.navGridCache?.sceneId === sceneId) return this.navGridCache.grid;
+    const render = this.pixelRender();
+    const grid = render ? parseNavigationGrid(render.walkGrid ?? null) : null;
+    this.navGridCache = { sceneId, grid };
+    return grid;
+  }
+
+  /** Camera follows the local player; a frame smaller than the canvas is centred instead. */
+  private updatePixelCamera(delta: number, snap = false) {
+    const camera = this.cameras?.main;
+    if (!camera) return;
+    const render = this.pixelRender();
+    if (!render || !this.localPose) {
+      if (camera.scrollX || camera.scrollY) camera.setScroll(0, 0);
+      return;
+    }
+    const frame = this.sceneFrame();
+    const feet = this.worldPoint(this.localPose);
+    const torso = feet.y - 40 * render.actorScale * frame.width / this.runtimeWidth();
+    const aim = (centre: number, size: number, view: number) => size <= view
+      ? -(view - size) / 2 : Phaser.Math.Clamp(centre - view / 2, 0, size - view);
+    const tx = aim(feet.x, frame.width, this.scale.width), ty = aim(torso, frame.height, this.scale.height);
+    if (snap || this.reducedMotion.matches) {
+      camera.setScroll(Math.round(tx), Math.round(ty));
+      return;
+    }
+    const blend = 1 - Math.exp(-Math.max(0, delta) / 140);
+    const nx = camera.scrollX + (tx - camera.scrollX) * blend, ny = camera.scrollY + (ty - camera.scrollY) * blend;
+    camera.setScroll(Math.abs(tx - nx) < 0.5 ? tx : nx, Math.abs(ty - ny) < 0.5 ? ty : ny);
+  }
+
+  /** Cut-outs (lamp posts, trees, carts...) drawn above actors standing behind their ground line. */
+  private drawPixelForeground() {
+    const render = this.pixelRender();
+    if (!render || !this.state) return;
+    this.cameras.main.setBackgroundColor(render.backdropColor || '#11100e');
+    for (const layer of render.foreground ?? []) {
+      const url = playableAssetUrl(layer.url);
+      if (!url) continue;
+      const key = `fg:${this.state.currentSceneId}:${url}`;
+      if (!this.textures.exists(key)) { this.queueTexture(key, url); continue; }
+      const point = this.worldPoint({ x: layer.x, y: layer.y });
+      const size = this.worldSize({ width: layer.width, height: layer.height });
+      this.add.image(point.x, point.y, key).setOrigin(0, 0).setDisplaySize(size.width, size.height)
+        .setDepth(this.depthForRuntimeY(layer.baseY));
+    }
+  }
+
+  /** Unexamined objects twinkle; hovering outlines the object so painted fixtures read as interactive. */
+  private drawPixelHotspotMarker(hotspot: Hotspot, rect: { x: number; y: number; w: number; h: number }) {
+    const type = hotspot.type.toUpperCase();
+    const done = type === 'ITEM'
+      ? this.state?.inspectedItemIds.includes(hotspot.targetId)
+      : type === 'ENVIRONMENT' ? this.state?.usedInteractionIds.includes(hotspot.targetId) : true;
+    const unit = Math.max(2, Math.round(this.pixelViewScale() * (this.pixelRender()?.pixelScale ?? 4)));
+    if (!done) {
+      const sparkle = this.add.graphics().setDepth(27);
+      const cx = Math.round(rect.x + rect.w / 2), cy = Math.round(rect.y - unit * 2);
+      sparkle.fillStyle(hotspot.isLocked ? 0xb3a794 : 0xfff2b8, 1);
+      sparkle.fillRect(cx - unit / 2, cy - unit * 1.5, unit, unit * 3);
+      sparkle.fillRect(cx - unit * 1.5, cy - unit / 2, unit * 3, unit);
+      if (!this.reducedMotion.matches) {
+        this.tweens.add({ targets: sparkle, alpha: { from: 1, to: 0.25 }, duration: 760, yoyo: true, repeat: -1,
+          delay: [...hotspot.hotspotId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 600 });
+      }
+    }
+    const outline = this.add.graphics().setDepth(26).setVisible(false);
+    outline.lineStyle(Math.max(1, unit / 2), 0xefd486, 0.9);
+    outline.strokeRect(Math.round(rect.x), Math.round(rect.y), Math.round(rect.w), Math.round(rect.h));
+    return outline;
+  }
+
+  /** Door markers: open doors are labelled and walkable; doors that are still locked say so. */
+  private drawPixelDoor(transition: RuntimeTransition, highlighted: boolean) {
+    if (!this.state || this.cameraMode) return;
+    const entry = this.state.sceneMap.find((candidate) => candidate.sceneId === transition.targetSceneId);
+    const open = Boolean(entry && !entry.isCurrent && (entry.isVisited || entry.isUnlocked));
+    const box = this.worldRect(transition.hotspot);
+    const label = transition.label || entry?.title || this.callbacks.tr('Doorway', 'Lối đi');
+    const tag = this.add.text(Math.round(box.x + box.w / 2), Math.round(box.y - 4),
+      `${open ? '▲' : '■'} ${this.shorten(label, 24)}`.toUpperCase(), {
+        fontFamily: 'Source Code Pro, monospace', fontSize: '10px', fontStyle: 'bold',
+        color: open ? (highlighted ? '#fbf6ed' : '#efd486') : '#b3a794',
+        backgroundColor: open ? 'rgba(13,16,20,0.86)' : 'rgba(13,16,20,0.6)', padding: { x: 6, y: 3 },
+      } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5, 1).setDepth(95).setAlpha(open ? 1 : 0.72);
+    const zone = this.add.zone(box.x + box.w / 2, box.y + box.h / 2, box.w, box.h).setDepth(21);
+    if (!open) {
+      const note = this.createHoverTag(this.callbacks.tr('Locked', 'Chưa mở'), label,
+        this.callbacks.tr('Follow the current leads first.', 'Hãy lần theo manh mối hiện tại trước.'));
+      zone.setInteractive();
+      zone.on('pointerover', () => this.placeHoverTag(note, box.x + box.w / 2, box.y - 24));
+      zone.on('pointerout', () => note.setVisible(false));
+      return;
+    }
+    if (highlighted && !this.reducedMotion.matches) {
+      this.tweens.add({ targets: tag, alpha: { from: 1, to: 0.55 }, duration: 700, yoyo: true, repeat: -1 });
+    }
+    zone.setInteractive({ useHandCursor: true });
+    zone.on('pointerover', () => tag.setColor('#fbf6ed'));
+    zone.on('pointerout', () => tag.setColor(highlighted ? '#fbf6ed' : '#efd486'));
+    zone.on('pointerdown', () => this.useTransition(transition));
+  }
+
+  private useTransition(transition: RuntimeTransition) {
+    const canUse = () => Boolean(this.state?.sceneMap.some((entry) => entry.sceneId === transition.targetSceneId
+      && !entry.isCurrent && (entry.isVisited || entry.isUnlocked)));
+    if (!canUse()) return;
+    this.approachTarget(transition.hotspot, () => this.callbacks.onScene(transition.targetSceneId), canUse);
+  }
+
+  private pixelApproachPoint(key: string, box: RuntimeBox, standBeside = false) {
+    const cacheKey = `${this.state?.currentSceneId}:${key}:${standBeside ? 'npc' : 'object'}`;
+    if (standBeside) this.approachCache.delete(cacheKey);
+    if (!this.approachCache.has(cacheKey)) {
+      const grid = this.navigationGrid();
+      let point: NavigationPoint | null = null;
+      if (grid && standBeside) {
+        // Talk to people from in front of them (then beside), one body-width away from their feet.
+        const unit = this.pixelRender()?.pixelScale ?? 4;
+        const feet = { x: box.x + box.width / 2, y: box.y + box.height };
+        const world: NavigationWorld = { bounds: { x: 0, y: 0, width: this.runtimeWidth(), height: this.runtimeHeight() }, obstacles: [], grid };
+        // Side by side (a little in front), on the side the player is already on; straight in front last.
+        const from = this.localPose ?? feet;
+        point = [[-22, 4], [22, 4], [-26, 0], [26, 0], [-18, 10], [18, 10], [0, 20]]
+          .map(([dx, dy]) => ({ x: feet.x + dx * unit, y: feet.y + dy * unit }))
+          .filter((candidate) => isNavigable(candidate, world))
+          .sort((a, b) => Phaser.Math.Distance.Between(from.x, from.y, a.x, a.y) - Phaser.Math.Distance.Between(from.x, from.y, b.x, b.y))[0] ?? null;
+      }
+      this.approachCache.set(cacheKey, point ?? (grid ? gridApproachPoint(grid, box) : null));
+    }
+    return this.approachCache.get(cacheKey) ?? null;
+  }
+
+  private findNearestPixelHotspot(pose: PlayerPose): Hotspot | null {
+    const render = this.pixelRender();
+    if (!render || !this.state) return null;
+    let nearest: Hotspot | null = null;
+    let nearestDistance = render.interactRadius * 1.35;
+    for (const hotspot of this.state.visibleScene.hotspots) {
+      if (this.isCollectedSceneItem(hotspot)) continue;
+      const box = this.runtimeHotspotBox(hotspot) ?? {
+        x: hotspot.x / 100 * this.runtimeWidth(), y: hotspot.y / 100 * this.runtimeHeight(),
+        width: hotspot.width / 100 * this.runtimeWidth(), height: hotspot.height / 100 * this.runtimeHeight() };
+      const approach = this.pixelApproachPoint(hotspot.hotspotId, box, hotspot.type.toUpperCase() === 'CHARACTER');
+      if (!approach) continue;
+      const distance = Phaser.Math.Distance.Between(pose.x, pose.y, approach.x, approach.y);
+      if (distance < nearestDistance) { nearest = hotspot; nearestDistance = distance; }
+    }
+    return nearest;
+  }
+
+  private findNearestTransition(pose: PlayerPose): RuntimeTransition | null {
+    const render = this.pixelRender();
+    if (!render || !this.state) return null;
+    let nearest: RuntimeTransition | null = null;
+    let nearestDistance = render.interactRadius * 1.35;
+    for (const transition of this.sceneRuntime()?.transitions ?? []) {
+      const entry = this.state.sceneMap.find((candidate) => candidate.sceneId === transition.targetSceneId);
+      if (!entry || entry.isCurrent || !(entry.isVisited || entry.isUnlocked)) continue;
+      const approach = this.pixelApproachPoint(`door:${transition.transitionId}`, transition.hotspot);
+      if (!approach) continue;
+      const distance = Phaser.Math.Distance.Between(pose.x, pose.y, approach.x, approach.y);
+      if (distance < nearestDistance) { nearest = transition; nearestDistance = distance; }
+    }
+    return nearest;
+  }
+
+  private ensurePixelFrame(textureKey: string, columns: number, cell: number, frame: number) {
+    const name = `px-${frame}`;
+    const texture = this.textures.get(textureKey);
+    if (!texture.has(name)) texture.add(name, 0, (frame % columns) * cell, Math.floor(frame / columns) * cell, cell, cell);
+    return name;
+  }
+
+  private createPixelPlayer(pose: PlayerPose, isLocal: boolean, render: PixelRender, sheet: typeof PIXEL_PLAYER_SHEETS[string]) {
+    const container = this.add.container(pose.x, pose.y).setDepth(isLocal ? 80 : 70);
+    const scale = render.actorScale * this.pixelViewScale(render);
+    const standing = sheet.standing[pose.facing ?? 'south'];
+    const columns = sheet.textures.find((texture) => texture.key === standing.texture)!.columns;
+    const body = this.add.image(0, 0, standing.texture, this.ensurePixelFrame(standing.texture, columns, sheet.cell, standing.frame))
+      .setOrigin(sheet.pivot.x / sheet.cell, sheet.pivot.y / sheet.cell).setScale(scale);
+    const shadow = this.add.ellipse(0, -1, 24 * scale, 6 * scale, 0x000000, 0.3);
+    const name = this.add.text(0, 6, this.playerLabel(pose), {
+      fontFamily: 'Crimson Text, serif',
+      fontSize: '13px',
+      color: isLocal ? '#efd486' : '#e9dfcc',
+      backgroundColor: 'rgba(13,16,20,0.8)',
+      padding: { x: 6, y: 2 },
+    }).setOrigin(0.5, 0);
+    container.add([shadow, body, name]);
+    container.setData('body', body);
+    container.setData('pixelSheet', sheet);
+    container.setData('userId', pose.userId);
+    container.setData('facing', pose.facing ?? 'south');
+    container.setData('moving', pose.moving);
+    return container;
+  }
+
+  private animatePixelPlayers(time: number) {
+    const apply = (container: Phaser.GameObjects.Container | null) => {
+      if (!container) return;
+      const sheet = container.getData('pixelSheet') as typeof PIXEL_PLAYER_SHEETS[string] | undefined;
+      const body = container.getData('body');
+      if (!sheet || !(body instanceof Phaser.GameObjects.Image)) return;
+      const userId = container.getData('userId') as string;
+      const facing = (container.getData('facing') as Facing) ?? 'south';
+      const previous = this.pixelMotion.get(userId) ?? { action: 'idle', facing, since: time, idleMs: 0 } as PixelMotionState;
+      const lastTick = (container.getData('lastTick') as number | undefined) ?? time;
+      container.setData('lastTick', time);
+      const motion = advanceMotion(previous, sheet, time, time - lastTick, Boolean(container.getData('moving')), facing);
+      this.pixelMotion.set(userId, motion);
+      const { texture, frame } = motionFrame(sheet, motion, time, this.reducedMotion.matches);
+      const columns = sheet.textures.find((candidate) => candidate.key === texture)?.columns;
+      if (!columns || !this.textures.exists(texture)) return;
+      const frameName = this.ensurePixelFrame(texture, columns, sheet.cell, frame);
+      if (body.texture.key !== texture) body.setTexture(texture, frameName);
+      else if (body.frame.name !== frameName) body.setFrame(frameName);
+    };
+    apply(this.localPlayer);
+    for (const remote of this.remotePlayers.values()) apply(remote);
   }
 
   private queueTexture(key: string, url: string) {
@@ -3156,6 +3607,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
           x: pose.x,
           y: pose.y,
           direction: pose.direction,
+          facing: pose.facing,
           moving: pose.moving,
         }).catch((err: any) => {
           if (!poseErrorShown) {

@@ -1,0 +1,7 @@
+{
+ "tool": "edit_image (Edit Image Pro)",
+ "source": "map-v1/map-512.png (job 42741c32-149d-4c36-aaa9-e77e592b4899 index 0), native 512x512, no upscale, no characters",
+ "image_urls": ["https://api.pixellab.ai/mcp/images/42741c32-149d-4c36-aaa9-e77e592b4899/download?index=0"],
+ "width": 512, "height": 512, "no_background": false,
+ "description": "Convert this exact map into a flat black-and-white object mask with the same framing and coordinates. Paint WHITE every visible solid object: buildings with roofs and walls, chimneys, shop fronts, window boxes, iron fences and railings, gates, lamp posts, the clock post, trees and bushes, benches, flower planters, barrels, crates, signs on brackets, the hand cart, the carriage and its wheels, the boat and the wooden pier. Paint BLACK all open ground: cobblestones, paving, the square floor, puddles and the river water. Gaps where the ground shows between objects stay black. Pure white and pure black only, no grey, no outlines, no texture, no shading."
+}

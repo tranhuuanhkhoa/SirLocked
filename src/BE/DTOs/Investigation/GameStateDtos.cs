@@ -299,8 +299,9 @@ public class ScenePuzzleDto
             TargetId = puzzle.TargetId,
             Prompt = locked ? string.Empty : puzzle.Prompt,
             Options = locked ? new() : puzzle.Options,
+            // A code lock shows one wheel per character (the client renders that many dials).
             AnswerLength = puzzle.Type.Equals(CasePuzzleTypes.CodePuzzle, StringComparison.OrdinalIgnoreCase)
-                ? 1
+                ? Math.Clamp((puzzle.CorrectCode ?? string.Empty).Trim().Length, 1, 32)
                 : Math.Max(1, puzzle.CorrectSequence.Count),
             RequiredItemIds = puzzle.RequiredItemIds,
             RequiredClueIds = puzzle.RequiredClueIds,

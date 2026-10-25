@@ -1,0 +1,14 @@
+{
+ "tool": "create_image_pro",
+ "width": 512,
+ "height": 512,
+ "no_background": false,
+ "seed": 707,
+ "description": "Interior of a Victorian collector's townhouse room, a combined gallery and study. Along the right wall a tall wooden curio shelf full of old books, a small brass birdcage and ceramic jars. Facing that shelf, a high-backed green upholstered armchair with a small round side table beside it holding one small empty glass medicine vial and a drinking glass. Against the left wall a brick fireplace with a mantel clock, and a glass-fronted display cabinet with a small brass three-dial combination lock. Near the back corner a writing desk with drawers, an inkwell and papers, and a dressing table with a small open jewellery box. A patterned rug on the wooden floor and a tall window on the back wall. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+ "reference_images": [
+  {
+   "url": "upload:8b9e002b-f73a-4b6c-9dd8-654d85d788e6",
+   "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera"
+  }
+ ]
+}

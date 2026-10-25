@@ -82,7 +82,7 @@ test('two detectives solve the authored point-and-click case through real scene 
       for (const deduction of fixture.deductions) {
         const current = (await readState(investigatorAuth)).deductions.find((entry: any) => entry.deductionId === deduction.deductionId);
         if (!current?.isAvailable || current.isSolved) continue;
-        await ensureDrawer(investigator, 'contradictions');
+        await ensureDrawer(investigator, 'deductions');
         await investigator.locator(`[data-solve-deduction="${deduction.deductionId}"][data-option="${deduction.correctOptionId}"]`).click();
         await expect.poll(async () => (await readState(investigatorAuth)).solvedDeductions.some((entry: any) => entry.deductionId === deduction.deductionId)).toBe(true);
       }
@@ -189,8 +189,13 @@ test('two detectives solve the authored point-and-click case through real scene 
           await clickTarget(investigator, puzzle.targetId);
           await expect(investigator.locator('#puzzle-submit-btn')).toBeVisible({ timeout: 20_000 });
           const code = puzzle.type === 'CODE_PUZZLE';
+          // Code locks render one dial per character; the hidden #puzzle-code-answer joins them.
+          const enterCode = async (value: string) => {
+            for (const [index, char] of [...value].entries()) await investigator.locator(`[data-code-cell="${index}"]`).fill(char);
+          };
           if (code) {
-            await investigator.locator('#puzzle-code-answer').fill(puzzle.correctCode === '0000' ? '9999' : '0000');
+            await expect(investigator.locator('[data-code-cell]')).toHaveCount(puzzle.correctCode.length);
+            await enterCode(puzzle.correctCode === '0'.repeat(puzzle.correctCode.length) ? '9'.repeat(puzzle.correctCode.length) : '0'.repeat(puzzle.correctCode.length));
           } else {
             const wrong = puzzle.correctSequence.map((answer: string) => puzzle.options.find((option: string) => option !== answer));
             for (const option of wrong) await investigator.locator(`[data-puzzle-option="${option}"]`).click();
@@ -199,7 +204,7 @@ test('two detectives solve the authored point-and-click case through real scene 
           await investigator.locator('#puzzle-submit-btn').click();
           await rejectedAnswer;
           expect((await readState(investigatorAuth)).solvedPuzzleIds).not.toContain(puzzle.puzzleId);
-          if (code) await investigator.locator('#puzzle-code-answer').fill(puzzle.correctCode);
+          if (code) await enterCode(puzzle.correctCode);
           else {
             await investigator.locator('#puzzle-clear-btn').click();
             for (const option of puzzle.correctSequence) await investigator.locator(`[data-puzzle-option="${option}"]`).click();

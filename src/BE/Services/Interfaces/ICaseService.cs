@@ -19,6 +19,7 @@ public interface ICaseService
     Task<List<CaseSummaryResponse>> SeedDemoAsync();
     Task<List<CaseSummaryResponse>> SeedCrackDemoAsync();
     Task<List<CaseSummaryResponse>> SeedPointClickDemoAsync();
+    Task<List<CaseSummaryResponse>> SeedPixelDemoAsync();
 
     GameCase ParseCase(JsonElement caseJson);
     GameCase ParseCase(string caseJson);

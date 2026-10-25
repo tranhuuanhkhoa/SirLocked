@@ -16,6 +16,10 @@ public class GameHub : Hub
     private static readonly RoomPresenceTracker Presence = new();
     private static readonly ConcurrentDictionary<string, long> LastPoseTicks = new();
     private static readonly TimeSpan PoseInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly HashSet<string> PixelFacings = new(StringComparer.Ordinal)
+    {
+        "south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"
+    };
     private readonly MongoDbContext _db;
     private readonly RoomDisconnectTimeoutService _disconnectTimeout;
     private readonly ILogger<GameHub> _logger;
@@ -129,6 +133,8 @@ public class GameHub : Hub
         var x = Math.Clamp(pose.X, 0, 5000);
         var y = Math.Clamp(pose.Y, 0, 5000);
         var direction = string.Equals(pose.Direction, "left", StringComparison.OrdinalIgnoreCase) ? "left" : "right";
+        // Pixel scenes animate eight facings; anything else is dropped so clients fall back to direction.
+        var facing = pose.Facing is { } requested && PixelFacings.Contains(requested) ? requested : null;
 
         await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseUpdated", new
         {
@@ -140,6 +146,7 @@ public class GameHub : Hub
             x,
             y,
             direction,
+            facing,
             moving = pose.Moving,
             updatedAt = DateTime.UtcNow
         });
@@ -253,5 +260,7 @@ public class PlayerPoseMessage
     public double X { get; set; }
     public double Y { get; set; }
     public string Direction { get; set; } = "right";
+    /// <summary>Optional eight-way facing used by pixel scenes (south, south-east, east, ...).</summary>
+    public string? Facing { get; set; }
     public bool Moving { get; set; }
 }

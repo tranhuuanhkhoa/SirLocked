@@ -361,6 +361,76 @@ public class SceneRuntime
     public List<ClueZone> ClueZones { get; set; } = new();
     public CameraRules CameraRules { get; set; } = new();
     public List<TransitionZone> Transitions { get; set; } = new();
+    /// <summary>Optional pure pixel-art presentation (PixelLab scenes). Null keeps the classic side-view renderer.</summary>
+    public SceneRenderSettings? Render { get; set; }
+}
+
+public static class SceneRenderModes
+{
+    public const string Pixel = "pixel";
+    public const string TopDown = "topdown";
+    public const string Isometric = "isometric";
+    public static readonly IReadOnlySet<string> Projections = new HashSet<string>(StringComparer.Ordinal) { TopDown, Isometric };
+}
+
+/// <summary>
+/// Pixel scenes draw a native-resolution background scaled by <see cref="PixelScale"/> with nearest-neighbour
+/// filtering. Runtime coordinates stay the authoritative unit (runtime = native x pixelScale); the camera follows
+/// the player and walkability comes from <see cref="WalkGrid"/> instead of rectangles.
+/// </summary>
+[BsonIgnoreExtraElements]
+public class SceneRenderSettings
+{
+    public string Mode { get; set; } = SceneRenderModes.Pixel;
+    public string Projection { get; set; } = SceneRenderModes.TopDown;
+    public int NativeWidth { get; set; }
+    public int NativeHeight { get; set; }
+    /// <summary>Runtime units per native background pixel.</summary>
+    public double PixelScale { get; set; } = 4;
+    /// <summary>Screen pixels per runtime unit on the 1600x900 reference viewport.</summary>
+    public double CameraZoom { get; set; } = 1;
+    /// <summary>Runtime units per sprite pixel for players and NPCs in this scene.</summary>
+    public double ActorScale { get; set; } = 1.5;
+    /// <summary>Runtime units per second.</summary>
+    public double WalkSpeed { get; set; } = 300;
+    /// <summary>Runtime distance from the player's feet to an interaction's approach point.</summary>
+    public double InteractRadius { get; set; } = 120;
+    public string BackdropColor { get; set; } = string.Empty;
+    public SceneWalkGrid? WalkGrid { get; set; }
+    /// <summary>Cut-outs drawn above actors whose feet are behind <see cref="SceneForegroundLayer.BaseY"/>.</summary>
+    public List<SceneForegroundLayer> Foreground { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class SceneWalkGrid
+{
+    /// <summary>Runtime units per cell.</summary>
+    public int CellSize { get; set; }
+    public int Cols { get; set; }
+    public int Rows { get; set; }
+    /// <summary>One string per row, '1' = walkable feet position, '0' = blocked.</summary>
+    public List<string> Data { get; set; } = new();
+
+    public bool IsWalkable(double x, double y)
+    {
+        if (CellSize <= 0 || !double.IsFinite(x) || !double.IsFinite(y) || x < 0 || y < 0) return false;
+        var col = (int)Math.Floor(x / CellSize);
+        var row = (int)Math.Floor(y / CellSize);
+        return row < Rows && col < Cols && row < Data.Count && col < Data[row].Length && Data[row][col] == '1';
+    }
+}
+
+[BsonIgnoreExtraElements]
+public class SceneForegroundLayer
+{
+    public string Id { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    /// <summary>Ground-contact line in runtime units used for depth sorting against actor feet.</summary>
+    public double BaseY { get; set; }
 }
 
 [BsonIgnoreExtraElements]
