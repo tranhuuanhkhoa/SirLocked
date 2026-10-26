@@ -1,6 +1,7 @@
 import '../../../css/33-bpa-profile.css';
 import { profileApi } from '../api/profileApi.js';
 import { authApi } from '../api/authApi.js';
+import { authErrorMessage } from '../services/authErrorMessages.js';
 import { session } from '../services/session.js';
 import { tr } from '../services/i18n.js';
 import { escapeHtml, render, initials } from '../utils/dom.js';
@@ -428,7 +429,7 @@ export async function renderDetectivePage(app, userIdParam) {
             <span>${escapeHtml(tr('A new verification email is on its way. Check your inbox (and the Spam folder), then open the link in the email.', 'Đã gửi lại email xác minh. Kiểm tra hộp thư (cả mục Spam) rồi nhấn liên kết trong email.'))}</span>
           </p>`;
       } catch (err) {
-        toast(err.message, 'error');
+        toast(authErrorMessage(err.message), 'error');
       } finally {
         btnResendVerify.disabled = false;
       }
@@ -483,7 +484,7 @@ export async function renderDetectivePage(app, userIdParam) {
         changePasswordForm.reset();
         updateRules();
       } catch (err) {
-        toast(err.message, 'error');
+        toast(authErrorMessage(err.message), 'error');
       } finally {
         btn.disabled = false;
       }

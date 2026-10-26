@@ -18,6 +18,36 @@ namespace SirLocked.IntegrationTests;
 public sealed class MongoAuthTokenTests
 {
     [Fact]
+    public Task ResetPassword_RejectsCurrentPasswordWithoutConsumingLink() => WithDatabase(async db =>
+    {
+        const string token = "reset-reuse-check";
+        var user = new User
+        {
+            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+            FullName = "Reset Reuse User",
+            Email = $"{Guid.NewGuid():N}@example.invalid",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("old-password1"),
+            ResetPasswordTokenHash = Hash(token),
+            ResetPasswordTokenExpiry = DateTime.UtcNow.AddMinutes(30)
+        };
+        await db.Users.InsertOneAsync(user);
+        var service = Service(db, new RecordingEmailService());
+
+        var error = await Assert.ThrowsAsync<ApiException>(() => service.ResetPasswordAsync(
+            new ResetPasswordRequest { Token = token, NewPassword = "old-password1" }));
+        Assert.Equal(400, error.StatusCode);
+        Assert.Contains("newPassword", Assert.IsType<Dictionary<string, string[]>>(error.Errors).Keys);
+        var afterRejected = await db.Users.Find(candidate => candidate.Id == user.Id).FirstAsync();
+        Assert.Equal(Hash(token), afterRejected.ResetPasswordTokenHash);
+        Assert.True(BCrypt.Net.BCrypt.Verify("old-password1", afterRejected.PasswordHash));
+
+        await service.ResetPasswordAsync(new ResetPasswordRequest { Token = token, NewPassword = "new-password1" });
+        var afterSuccess = await db.Users.Find(candidate => candidate.Id == user.Id).FirstAsync();
+        Assert.Null(afterSuccess.ResetPasswordTokenHash);
+        Assert.True(BCrypt.Net.BCrypt.Verify("new-password1", afterSuccess.PasswordHash));
+    });
+
+    [Fact]
     public Task ConcurrentResetRequests_ConsumeTheTokenExactlyOnce() => WithDatabase(async db =>
     {
         const string token = "reset-token-used-once";

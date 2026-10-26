@@ -42,6 +42,7 @@ public class AuthController : BaseApiController
 
     [HttpPost("refresh")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-token")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh([FromBody] RefreshTokenRequest request) =>
         Ok(await _authService.RefreshTokenAsync(request), "Token refreshed.");
 
@@ -90,6 +91,7 @@ public class AuthController : BaseApiController
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-token")]
     public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordRequest request)
     {
         await _authService.ResetPasswordAsync(request);
@@ -98,6 +100,7 @@ public class AuthController : BaseApiController
 
     [HttpPost("verify-email")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-token")]
     public async Task<ActionResult<ApiResponse<object>>> VerifyEmail([FromBody] VerifyEmailRequest request)
     {
         await _authService.VerifyEmailAsync(request);

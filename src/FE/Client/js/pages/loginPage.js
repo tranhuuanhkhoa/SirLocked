@@ -6,6 +6,7 @@ import { toast } from '../utils/toast.js';
 import { languageSwitchMarkup, tr } from '../services/i18n.js';
 import { pendingRoomInvite } from '../services/roomInvites.js';
 import { googleLoginUrl } from '../../../config/apiUrls.js';
+import { clearAuthErrors, clearAuthFieldError, showAuthError, validateAuthForm } from '../services/authFormErrors.js';
 
 /* --------------------------------------------------------------------------
    Shared "Bảng phá án" account board, also used by the verify, reset and
@@ -92,7 +93,7 @@ export function passwordField({ id, name, label, autocomplete, hint = '', descri
         ${hint}
       </div>
       <div class="bpa-auth-inputwrap">
-        <input id="${id}" class="bpa-auth-input has-tool" name="${name}" type="password" required
+        <input id="${id}" class="bpa-auth-input has-tool" name="${name}" type="password" required maxlength="100"
                ${minlength ? `minlength="${minlength}"` : ''} autocomplete="${autocomplete}" spellcheck="false" placeholder="••••••••"
                ${describedBy ? `aria-describedby="${describedBy}"` : ''}>
         <button type="button" class="bpa-auth-reveal" data-reveal="${id}" aria-pressed="false"
@@ -261,7 +262,7 @@ export async function renderLoginPage(app) {
           <form id="form-login" class="bpa-auth-form">
             <div class="bpa-auth-field">
               <label for="auth-login-email" class="bpa-auth-flabel"><span aria-hidden="true">01 — </span>Email</label>
-              <input id="auth-login-email" class="bpa-auth-input" name="email" type="email" required autocomplete="email" placeholder="detective@sirlocked.local">
+              <input id="auth-login-email" class="bpa-auth-input" name="email" type="email" required maxlength="160" autocomplete="email" placeholder="detective@sirlocked.local">
             </div>
             ${passwordField({
               id: 'auth-login-password', name: 'password', autocomplete: 'current-password',
@@ -276,11 +277,11 @@ export async function renderLoginPage(app) {
           <form id="form-register" class="bpa-auth-form bpa-auth-form--tight" hidden>
             <div class="bpa-auth-field">
               <label for="auth-reg-name" class="bpa-auth-flabel"><span aria-hidden="true">01 — </span>${tr('Full name', 'Họ và tên')}</label>
-              <input id="auth-reg-name" class="bpa-auth-input" name="fullName" type="text" required minlength="2" autocomplete="name" placeholder="Detective Holmes">
+              <input id="auth-reg-name" class="bpa-auth-input" name="fullName" type="text" required minlength="2" maxlength="80" autocomplete="name" placeholder="Detective Holmes">
             </div>
             <div class="bpa-auth-field">
               <label for="auth-reg-email" class="bpa-auth-flabel"><span aria-hidden="true">02 — </span>Email</label>
-              <input id="auth-reg-email" class="bpa-auth-input" name="email" type="email" required autocomplete="email" placeholder="detective@sirlocked.local">
+              <input id="auth-reg-email" class="bpa-auth-input" name="email" type="email" required maxlength="160" autocomplete="email" placeholder="detective@sirlocked.local">
             </div>
             ${passwordField({
               id: 'auth-reg-password', name: 'password', autocomplete: 'new-password', minlength: 6, describedBy: 'auth-reg-hint',
@@ -295,7 +296,7 @@ export async function renderLoginPage(app) {
           <form id="form-forgot" class="bpa-auth-form" hidden>
             <div class="bpa-auth-field">
               <label for="auth-forgot-email" class="bpa-auth-flabel"><span aria-hidden="true">01 — </span>Email</label>
-              <input id="auth-forgot-email" class="bpa-auth-input" name="email" type="email" required autocomplete="email" placeholder="detective@sirlocked.local">
+              <input id="auth-forgot-email" class="bpa-auth-input" name="email" type="email" required maxlength="160" autocomplete="email" placeholder="detective@sirlocked.local">
             </div>
             <button class="bpa-auth-primary" type="submit" data-label="${tr('Send request', 'Gửi yêu cầu')}" data-busy="${tr('Sending the telegram…', 'Đang gửi điện tín…')}">
               <span>${tr('Send request', 'Gửi yêu cầu')}</span>${ICON_ARROW}
@@ -323,6 +324,13 @@ export async function renderLoginPage(app) {
 
   render(app, loginBoardMarkup(body, { notice: Boolean(googleError || invite) }));
   wireRevealButtons(app);
+  app.querySelectorAll('form.bpa-auth-form').forEach((form) => {
+    form.noValidate = true;
+    form.addEventListener('input', (event) => {
+      if (event.target instanceof HTMLInputElement) clearAuthFieldError(event.target);
+      form.querySelectorAll('[data-auth-form-error]').forEach((node) => node.remove());
+    });
+  });
 
   const tabs = app.querySelectorAll('.bpa-auth-tab');
   const swap = qs('[data-swap]', app);
@@ -333,6 +341,7 @@ export async function renderLoginPage(app) {
   function showForm(name, { focusTitle = false } = {}) {
     if (name === view) return;
     view = name;
+    app.querySelectorAll('form.bpa-auth-form').forEach(clearAuthErrors);
     qs('#form-login', app).hidden = name !== 'login';
     qs('#form-register', app).hidden = name !== 'register';
     qs('#form-forgot', app).hidden = name !== 'forgot';
@@ -360,6 +369,7 @@ export async function renderLoginPage(app) {
   }
 
   async function submit(form, action) {
+    if (!validateAuthForm(form)) return;
     const button = form.querySelector('button[type=submit]');
     setBusy(button, true);
     try {
@@ -370,7 +380,7 @@ export async function renderLoginPage(app) {
       toast(tr(`Welcome, ${auth.user.fullName}.`, `Chào mừng, ${auth.user.fullName}.`), 'success');
       window.location.hash = pendingRoomInvite() || (auth.user.role === 'ADMIN' ? '#/admin' : '#/menu');
     } catch (err) {
-      toast(err.message, 'error');
+      showAuthError(form, err);
     } finally {
       setBusy(button, false);
     }
@@ -384,6 +394,7 @@ export async function renderLoginPage(app) {
   qs('#form-register', app).addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    if (!validateAuthForm(form)) return;
     const button = form.querySelector('button[type=submit]');
     setBusy(button, true);
     try {
@@ -394,7 +405,7 @@ export async function renderLoginPage(app) {
       // Chưa xác minh → đưa sang trang nhắc kiểm tra email (không vào game ngay)
       window.location.hash = session.isEmailVerified() ? (pendingRoomInvite() || '#/menu') : '#/verify-notice';
     } catch (err) {
-      toast(err.message, 'error');
+      showAuthError(form, err);
     } finally {
       setBusy(button, false);
     }
@@ -412,6 +423,7 @@ export async function renderLoginPage(app) {
 
   qs('#form-forgot', app).addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateAuthForm(e.target)) return;
     const btn = e.target.querySelector('button[type=submit]');
     setBusy(btn, true);
     try {
@@ -427,7 +439,7 @@ export async function renderLoginPage(app) {
         </div>`;
       e.target.querySelector('input[name=email]').value = '';
     } catch (err) {
-      toast(err.message, 'error');
+      showAuthError(e.target, err);
     } finally {
       setBusy(btn, false);
     }

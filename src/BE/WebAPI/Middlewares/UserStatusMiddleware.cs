@@ -26,8 +26,8 @@ public class UserStatusMiddleware
             }
 
             var versionClaim = context.User.FindFirstValue(User.AuthorizationVersionClaim);
-            if (long.TryParse(versionClaim, out var issuedVersion)
-                && issuedVersion != user.AuthorizationVersion)
+            if (!long.TryParse(versionClaim, out var issuedVersion)
+                || issuedVersion != user.AuthorizationVersion)
             {
                 throw ApiException.Unauthorized("Your session is no longer valid. Please sign in again.");
             }

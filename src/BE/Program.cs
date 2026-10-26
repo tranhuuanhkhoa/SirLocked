@@ -234,6 +234,16 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0
         }));
 
+    options.AddPolicy("auth-token", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
+
     // Telemetry là ghi thật vào Mongo; UI chỉ phát vài sự kiện mỗi phút nên cửa sổ theo từng người
     // dùng đủ rộng cho luồng hợp lệ mà không cho một client lặp vô hạn thổi phồng collection.
     options.AddPolicy("playtest-events", context => RateLimitPartition.GetFixedWindowLimiter(

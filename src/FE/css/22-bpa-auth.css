@@ -269,6 +269,8 @@
 .bpa-auth-input:hover { border-bottom-color: var(--bpa-teal); }
 .bpa-auth-input:focus { border-bottom-color: var(--bpa-ink); box-shadow: 0 1.5px 0 var(--bpa-ink); background-color: rgba(239, 212, 134, .35); }
 .bpa-auth-input[aria-invalid="true"] { border-bottom-color: var(--bpa-red); background-color: rgba(158, 63, 42, .07); }
+.bpa-auth-field-error, .bpa-auth-form-error { margin: 5px 0 0; color: var(--bpa-red); font-size: 14px; line-height: 1.4; }
+.bpa-auth-form-error { padding: 9px 11px; border-left: 3px solid var(--bpa-red); background: rgba(158, 63, 42, .08); }
 .bpa-auth-input.has-tool { padding-right: 48px; }
 .bpa-auth-reveal {
   position: absolute;
