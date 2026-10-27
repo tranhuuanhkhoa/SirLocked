@@ -45,7 +45,7 @@ test('an OAuth failure is visible with an existing session and keeps the pending
     .toBe('#/join?code=ABC123');
 });
 
-test('Google entry configuration keeps production same-origin and respects development API overrides', async ({ page }) => {
+test('Google entry configuration uses the API host in production and respects development overrides', async ({ page }) => {
   await page.goto('/#/login');
   const urls = await page.evaluate(async () => {
     const modulePath = '/config/apiUrls.js';
@@ -56,7 +56,7 @@ test('Google entry configuration keeps production same-origin and respects devel
       defaultDevelopment: googleLoginUrl(true),
     };
   });
-  expect(urls).toEqual({ production: '/api/auth/google',
+  expect(urls).toEqual({ production: 'https://api.sirlocked.id.vn/api/auth/google',
     overriddenDevelopment: 'http://127.0.0.1:5216/api/auth/google',
     defaultDevelopment: 'http://localhost:5215/api/auth/google' });
 });
