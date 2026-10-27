@@ -335,6 +335,40 @@ export async function renderCasesPage(app) {
     });
   };
 
+  // The "Watch the opening" button only appears for cases that have an approved opening comic.
+  const intros = new Map();
+  const loadIntro = (index) => {
+    const c = cases[index];
+    const show = () => {
+      const button = coverBody.querySelector('[data-cover-intro]');
+      if (button && app.isConnected && selected === index) button.hidden = !intros.get(c.caseId);
+    };
+    if (intros.has(c.caseId)) { show(); return; }
+    caseApi.introCutscene(c.caseId).then((data) => intros.set(c.caseId, data?.script?.pages?.length ? data : null))
+      .catch(() => intros.set(c.caseId, null)).finally(show);
+  };
+  let watching = false;
+  const watchIntro = async (button, caseId) => {
+    const data = intros.get(caseId);
+    if (!data || watching) return;
+    watching = true;
+    button.disabled = true;
+    try {
+      const [{ playMotionComic }, { storedAudioSettings }] = await Promise.all([
+        import('../game/cutscene/motionComic.js'), import('../game/cutscene/audioSettings.js'),
+      ]);
+      let handle = null;
+      handle = await playMotionComic({
+        cutscene: data, audio: storedAudioSettings(), finishLabel: tr('Close', 'Đóng'),
+        onDone: () => { handle?.dispose(); watching = false; button.disabled = false; button.focus?.(); },
+      });
+    } catch {
+      toast(tr('The opening could not be played.', 'Không phát được phần mở đầu.'), 'error');
+      watching = false;
+      button.disabled = false;
+    }
+  };
+
   const pick = (index, { focus = false, animate = true } = {}) => {
     const c = cases[index];
     if (!c) return;
@@ -360,10 +394,12 @@ export async function renderCasesPage(app) {
         people: people(c),
         actions: `
           <button type="button" class="bpa-btn bpa-btn--red" data-cover-create>${icons.plus(15)}${tr('Create room', 'Tạo phòng')}<span class="bpa-sr">: ${escapeHtml(c.title)}</span></button>
-          <button type="button" class="bpa-btn bpa-btn--ink" data-cover-join aria-controls="bpa-cases-code">${icons.key()}${tr('Join with code', 'Vào bằng mã phòng')}</button>`,
+          <button type="button" class="bpa-btn bpa-btn--ink" data-cover-join aria-controls="bpa-cases-code">${icons.key()}${tr('Join with code', 'Vào bằng mã phòng')}</button>
+          <button type="button" class="bpa-btn bpa-btn--ink" data-cover-intro hidden>${icons.eye(15)}${tr('Watch the opening', 'Xem mở đầu')}<span class="bpa-sr">: ${escapeHtml(c.title)}</span></button>`,
       });
       placeThread();
       loadPeople(index);
+      loadIntro(index);
       if (animate) live.textContent = tr(`Viewing case file: ${c.title}`, `Đang xem hồ sơ: ${c.title}`);
     }
     if (focus) {
@@ -396,6 +432,11 @@ export async function renderCasesPage(app) {
     const create = event.target.closest('[data-cover-create]');
     if (create) {
       createRoom(create, c.caseId);
+      return;
+    }
+    const intro = event.target.closest('[data-cover-intro]');
+    if (intro) {
+      watchIntro(intro, c.caseId);
       return;
     }
     if (event.target.closest('[data-cover-join]')) {

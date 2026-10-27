@@ -1,4 +1,4 @@
-import { get, post, patch } from './http.js';
+import { get, post, patch, put } from './http.js';
 
 export const adminApi = {
   dashboard: () => get('/api/admin/dashboard'),
@@ -14,6 +14,11 @@ export const adminApi = {
   importCase: (caseJson, overwrite) => post('/api/admin/cases/import-json', { caseJson, overwrite }),
   publishCase: (caseId) => patch(`/api/admin/cases/${encodeURIComponent(caseId)}/publish`),
   unpublishCase: (caseId) => patch(`/api/admin/cases/${encodeURIComponent(caseId)}/unpublish`),
+  cutscene: (caseId) => get(`/api/admin/cases/${encodeURIComponent(caseId)}/cutscene`),
+  generateCutscene: (caseId, regenerate = false) => post(`/api/admin/cases/${encodeURIComponent(caseId)}/cutscene/generate`, { regenerate }),
+  saveCutscene: (caseId, id, script) => put(`/api/admin/cases/${encodeURIComponent(caseId)}/cutscene/${encodeURIComponent(id)}/script`, { script }),
+  approveCutscene: (caseId, id) => post(`/api/admin/cases/${encodeURIComponent(caseId)}/cutscene/${encodeURIComponent(id)}/approve`),
+  disableCutscene: (caseId) => post(`/api/admin/cases/${encodeURIComponent(caseId)}/cutscene/disable`),
   seedSample: () => post('/api/admin/cases/seed-sample?publish=true'),
   seedDemo: () => post('/api/admin/cases/seed-demo'),
   seedCrackDemo: () => post('/api/admin/cases/seed-crack-demo'),

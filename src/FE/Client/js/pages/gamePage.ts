@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
+import { caseApi } from '../api/caseApi.js';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { createStateRefetcher } from '../services/stateRefetcher.js';
@@ -18,7 +19,7 @@ import { advancePath, findApproachPath, findPath, gridApproachPoint, insideBound
   parseNavigationGrid, segmentIsClear, type NavigationGrid, type NavigationPoint, type NavigationWorld } from '../game/navigation.js';
 import { PIXEL_PLAYER_SHEETS, advanceMotion, facingFromVector, isFacing, motionFrame,
   type Facing, type PixelMotionState } from '../game/pixelActors.js';
-import type { CharacterPresentation, CasePresentation } from '../game/presentationMedia.js';
+import type { CharacterPresentation, CasePresentation, Cutscene } from '../game/presentationMedia.js';
 import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio } from '../game/audioController.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
@@ -368,6 +369,7 @@ type MissingRequirements = {
 
 type GameState = {
   presentation?: CasePresentation;
+  caseId?: string;
   roomId: string;
   roomCode: string;
   hostUserId: string;
@@ -2683,9 +2685,28 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   let disposePingControls: (() => void) | undefined;
   let partnerPingTimer: ReturnType<typeof setTimeout> | undefined;
   const dialoguePresenter = new DialoguePresenter(() => closeUiMode());
+  // The AI-written opening comic of this case (null when the case has none). It plays before the role briefing.
+  let introCutscene: Cutscene | null = null;
+  let introCutsceneId = '';
+  let introVersion: string | number | undefined;
   const cutscenes = new CutsceneController(roomId, me.userId, () => {
-    if (!stopped) { audio.setDialogueActive(cutscenes.active || uiMode.kind === 'DIALOGUE'); syncPhaserInputState(); }
-  });
+    if (stopped) return;
+    audio.setDialogueActive(cutscenes.active || uiMode.kind === 'DIALOGUE'); syncPhaserInputState();
+    // When the opening ends, show the role briefing that was waiting behind it.
+    if (!cutscenes.active && introCutscene && state) draw();
+  }, { get: () => audio.getSettings(), set: (partial) => audio.setSettings(partial) });
+  const introCutscenePending = () => Boolean(introCutscene) && !cutscenes.wasPlayed(introCutsceneId, introVersion);
+  async function loadIntroCutscene(first: GameState | null) {
+    if (!first?.caseId) return;
+    try {
+      // A slow or failed lookup must never hold the game back: waiting is capped, and a late answer is ignored.
+      const data = await Promise.race([caseApi.introCutscene(first.caseId), new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500))]);
+      if (!data?.script?.pages?.length) return;
+      introCutsceneId = `mc-intro:${first.caseId}`;
+      introVersion = first.presentation?.version;
+      introCutscene = { id: introCutsceneId, trigger: 'INTRO', panels: [], motionComic: data };
+    } catch { /* no opening comic: the game starts as before */ }
+  }
   const hostId = `phaser-game-${roomId.replace(/[^a-z0-9_-]/gi, '')}`;
 
   let state: GameState | null = null;
@@ -3169,7 +3190,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <div id="game-puzzle-slot"></div>
         <div id="game-dialogue-slot"></div>
         <div id="game-cutscene-slot"></div>
-        <div id="game-coop-tools" class="game-coop-tools">${renderPingControls(tr)}${renderAudioControls(audio.getSettings(), tr)}<div id="game-role-guide-slot"></div></div>
+        <div id="game-coop-tools" class="game-coop-tools">${renderPingControls(tr)}${renderAudioControls(audio.getSettings(), tr)}${introCutscene ? `<button type="button" class="bpa-btn bpa-btn--ghost" id="game-replay-intro">${tr('Watch the opening again', 'Xem lại mở đầu')}</button>` : ''}<div id="game-role-guide-slot"></div></div>
         <div id="partner-ping-slot"></div>
         <div id="oc-feed-slot"></div>
         <div id="oc-hint-slot"></div>
@@ -3178,6 +3199,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     shellMounted = true;
     mountPhaser();
     disposeAudioControls = bindAudioControls(app, audio);
+    app.querySelector('#game-replay-intro')?.addEventListener('click', () => {
+      const host = app.querySelector<HTMLElement>('#game-cutscene-slot');
+      if (host && introCutscene && !cutscenes.active) { audio.unlock(); cutscenes.replay(host, introCutscene); }
+    });
     disposePingControls = bindPingControls(app, async (kind) => {
       await hub.sendPing(kind);
       if (kind === 'COMPARE') recordGuideAction('compare');
@@ -3452,6 +3477,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   try {
     state = await gameApi.state(roomId);
     if (stopped) return cleanupGamePage;
+    if (state?.roomStatus !== 'COMPLETED' && state?.roomStatus !== 'ABANDONED') {
+      await loadIntroCutscene(state);
+      if (stopped) return cleanupGamePage;
+    }
     if (state?.roomStatus === 'COMPLETED') {
       window.location.hash = `#/result/${roomId}`;
       return cleanupGamePage;
@@ -3581,7 +3610,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (uiMode.kind === 'DIALOGUE') dialogueOverlay(uiMode.characterId);
     else dialoguePresenter.clear();
     const cinematicHost = app.querySelector<HTMLElement>('#game-cutscene-slot');
-    if (cinematicHost && sessionStorage.getItem(introKey)) cutscenes.update(cinematicHost, state.presentation, ['INTRO', 'REVEAL']);
+    if (cinematicHost) {
+      if (sessionStorage.getItem(introKey)) {
+        const merged = introCutscene ? { ...state.presentation, version: state.presentation?.version, cutscenes: [introCutscene, ...(state.presentation?.cutscenes ?? [])] } : state.presentation;
+        cutscenes.update(cinematicHost, merged, ['INTRO', 'REVEAL']);
+      } else if (introCutscene) {
+        // The opening comic comes first; the older panel cutscenes and the role briefing wait for it.
+        cutscenes.update(cinematicHost, { version: state.presentation?.version, cutscenes: [introCutscene] }, ['INTRO']);
+      }
+    }
 
     const sceneNeedsUpdate = appliedStateVersion !== state.version
       || appliedSceneId !== state.currentSceneId
@@ -4302,6 +4339,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function introOverlay(role: string | null) {
     if (sessionStorage.getItem(introKey)) return '';
+    if (cutscenes.active || introCutscenePending()) return ''; // opening comic first, then the role briefing
     const vi = uiLanguage() === 'vi';
     const roleGuide = role === 'INVESTIGATOR'
       ? (vi

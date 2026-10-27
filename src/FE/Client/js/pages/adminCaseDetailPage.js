@@ -4,6 +4,7 @@ import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
 import { isV3, v3PublishGate } from './adminV3Gates.js';
+import { mountCutscenePanel } from './adminCutscene.js';
 
 export async function renderAdminCaseDetailPage(app, caseId) {
   render(app, `<div class="page"><p class="muted">${tr('Loading case…', 'Đang tải vụ án…')}</p></div>`);
@@ -43,11 +44,13 @@ export async function renderAdminCaseDetailPage(app, caseId) {
     ${caseProfilePanel(gameCase)}
     ${publishGatePanel(gate)}
     <div id="validation-output">${validationResultHtml(validation)}</div>
+    <section class="cs-panel panel panel--dossier" id="cutscene-panel" aria-label="${tr('Opening cutscene', 'Cutscene mở đầu')}"></section>
     <h3 class="section-title">${tr('Case JSON', 'JSON vụ án')}</h3>
     <pre class="json-view">${escapeHtml(JSON.stringify(gameCase, null, 2))}</pre>
   </div>`);
 
   const output = qs('#validation-output', app);
+  mountCutscenePanel(qs('#cutscene-panel', app), gameCase.caseId);
 
   qs('#validate-btn', app).addEventListener('click', async () => {
     try {

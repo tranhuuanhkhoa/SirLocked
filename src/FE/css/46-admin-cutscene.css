@@ -1,0 +1,8 @@
+.cs-panel { margin-top: 20px; padding: 16px; }
+.cs-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; }
+.cs-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.cs-editor { display: grid; gap: 10px; margin-top: 8px; }
+.cs-row { display: grid; gap: 4px; }
+.cs-label { font-size: 12px; letter-spacing: .04em; opacity: .8; }
+.cs-count { font-size: 12px; opacity: .7; justify-self: end; }
+.cs-count.cs-over { color: #ff8a7a; opacity: 1; font-weight: 700; }
