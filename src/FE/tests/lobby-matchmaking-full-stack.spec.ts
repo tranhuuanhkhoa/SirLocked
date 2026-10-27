@@ -10,6 +10,10 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  *   SIRLOCKED_PLAYWRIGHT_EXTERNAL_SERVER=1 npx playwright test tests/lobby-matchmaking-full-stack.spec.ts
  * The players are registered on first use (auto-verified) and reused afterwards; the seeded
  * Development admin publishes the bundled demo cases.
+ *
+ * NOTE: these specs play the bundled older (non-pixel) cases. Since the pixel catalogue became the main game
+ * the API hides them from players, so start the API with CaseCatalog__PixelOnly=false (and
+ * CaseCatalog__SeedPixelOnStartup=false if you want a database without the pixel cases).
  */
 type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 const enabled = process.env.SIRLOCKED_RUN_LOBBY_FULL_STACK === 'true';

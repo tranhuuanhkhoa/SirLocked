@@ -98,6 +98,16 @@ export function bindVisibilityToggle(root, { initial = VISIBILITY.PRIVATE, onCha
   return { get value() { return visibility; } };
 }
 
+/** The server refuses rooms for cases players can no longer play (older, non-pixel cases). */
+export const CASE_NOT_PLAYABLE_CODE = 'CASE_NOT_PLAYABLE';
+
+export function createRoomErrorText(err) {
+  if (err?.errors?.code === CASE_NOT_PLAYABLE_CODE) {
+    return tr('This case is no longer available. Pick one of the current cases.', 'Vụ án này không còn mở nữa. Hãy chọn một vụ án hiện có.');
+  }
+  return err?.message || tr('Could not create the room.', 'Không tạo được phòng.');
+}
+
 /** Creates the room and opens its lobby; re-enables the button on failure. */
 export async function createRoomAndOpen(button, caseId, visibility, app) {
   if (!caseId) return;
@@ -110,7 +120,7 @@ export async function createRoomAndOpen(button, caseId, visibility, app) {
       : tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
     window.location.hash = `#/lobby/${room.roomId}`;
   } catch (err) {
-    toast(err.message, 'error');
+    toast(createRoomErrorText(err), 'error');
     button.disabled = false;
   }
 }

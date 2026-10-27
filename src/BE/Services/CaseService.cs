@@ -12,7 +12,7 @@ using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
-public class CaseService : ICaseService
+public class CaseService : ICaseService, IPixelCaseSeeder
 {
     internal static System.Linq.Expressions.Expression<Func<GameRoom, bool>> ReferencingActiveCase(string caseId) =>
         room => room.CaseId == caseId && (room.Status == RoomStatus.Waiting || room.Status == RoomStatus.Ready || room.Status == RoomStatus.InProgress);
@@ -56,6 +56,7 @@ public class CaseService : ICaseService
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<CaseService> _logger;
     private readonly GameplayV3Settings _gameplayV3Settings;
+    private readonly CaseCatalogPolicy _catalog;
 
     public CaseService(
         MongoDbContext db,
@@ -63,8 +64,10 @@ public class CaseService : ICaseService
         ICaseValidationService validator,
         IOptions<GameplayV3Settings> gameplayV3Settings,
         IWebHostEnvironment env,
-        ILogger<CaseService> logger)
+        ILogger<CaseService> logger,
+        CaseCatalogPolicy? catalog = null)
     {
+        _catalog = catalog ?? CaseCatalogPolicy.Open;
         _db = db;
         _cache = cache;
         _validator = validator;
@@ -73,30 +76,41 @@ public class CaseService : ICaseService
         _logger = logger;
     }
 
-    public Task<List<CaseSummaryResponse>> GetPublishedAsync() =>
-        _cache.GetPublishedAsync(async () =>
+    public async Task<List<CaseSummaryResponse>> GetPublishedAsync()
+    {
+        var published = await _cache.GetPublishedAsync(async () =>
         {
             var cases = await _db.Cases.Find(c => c.Status == CaseStatus.Published)
                 .SortByDescending(c => c.UpdatedAt).ToListAsync();
             return cases.Select(CaseSummaryResponse.From).ToList();
         });
+        // Filtered after the cache so changing the catalogue setting never leaves a stale list behind.
+        return published.Where(_catalog.IsPlayable).ToList();
+    }
 
     public async Task<CasePublicDetailResponse> GetPublicDetailAsync(string caseId)
     {
         var gameCase = await GetCaseAsync(caseId);
-        if (gameCase.Status != CaseStatus.Published)
+        if (!_catalog.IsPlayable(gameCase))
         {
             throw ApiException.NotFound("Case not found.");
         }
         return CasePublicDetailResponse.FromCase(gameCase);
     }
 
-    public Task<List<CaseSummaryResponse>> GetAllForAdminAsync() =>
-        _cache.GetAdminListAsync(async () =>
-        {
-            var cases = await _db.Cases.Find(_ => true).SortByDescending(c => c.UpdatedAt).ToListAsync();
-            return cases.Select(CaseSummaryResponse.From).ToList();
-        });
+    public async Task<List<CaseSummaryResponse>> GetAllForAdminAsync()
+    {
+        var all = await _cache.GetAdminListAsync(() => LoadAdminListAsync(_db));
+        // Copies, so the cached summaries are never mutated; the flag tells admins what players can see.
+        return all.Select(summary => summary.WithPlayerVisible(_catalog.IsPlayable(summary))).ToList();
+    }
+
+    /// <summary>The cached admin list of every stored case (shared with <see cref="LegacyCaseCatalog"/>).</summary>
+    internal static async Task<List<CaseSummaryResponse>> LoadAdminListAsync(MongoDbContext db)
+    {
+        var cases = await db.Cases.Find(_ => true).SortByDescending(c => c.UpdatedAt).ToListAsync();
+        return cases.Select(CaseSummaryResponse.From).ToList();
+    }
 
     public Task<GameCase> GetCaseAsync(string caseId) =>
         _cache.GetCaseAsync(caseId, async () =>
@@ -309,6 +323,35 @@ public class CaseService : ICaseService
             results.Add(await PublishAsync(gameCase.CaseId));
         }
         return results;
+    }
+
+    /// <summary>
+    /// Startup seeding: inserts only the bundled pixel cases that are not in the database yet. A case that
+    /// already exists (even unpublished, even edited by an admin) is never touched; the admin button
+    /// "seed-pixel-demo" is what refreshes content.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> SeedMissingPixelCasesAsync(CancellationToken ct = default)
+    {
+        var seeded = new List<string>();
+        foreach (var fileName in PixelDemoFiles)
+        {
+            ct.ThrowIfCancellationRequested();
+            var caseId = Path.GetFileNameWithoutExtension(fileName);
+            if (await FindCaseAsync(caseId) is not null) continue;
+            try
+            {
+                var gameCase = LoadBundledDemoCase(fileName);
+                await UpsertValidatedAsync(gameCase, overwrite: false, forceDraft: true);
+                await PublishAsync(gameCase.CaseId);
+                seeded.Add(gameCase.CaseId);
+            }
+            catch (ApiException error) when (error.StatusCode == 409)
+            {
+                // Another API instance seeded it first.
+                _logger.LogInformation("Pixel case {CaseId} was seeded by another instance.", caseId);
+            }
+        }
+        return seeded;
     }
 
     private async Task<CaseSummaryResponse> UpsertValidatedAsync(GameCase gameCase, bool overwrite, bool forceDraft)

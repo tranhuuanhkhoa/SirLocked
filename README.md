@@ -117,7 +117,7 @@ Frontend default URL: `http://localhost:5173`
 
 ### Optional isolated Windows demo
 
-For a separate demo with portable MongoDB, two seeded V3 cases, two player accounts and no paid AI calls, run `./scripts/start-local-demo.ps1` from the repository root. Open [the isolated demo](http://127.0.0.1:5174); its API uses port `5216` and MongoDB uses port `27020`. These defaults keep the normal project's `5173`/`5215` ports and browser sessions separate. The demo uses its own database and preserves the existing `.env`.
+For a separate demo with portable MongoDB, the two pixel cases (older cases are hidden; `-LegacyCases` brings them back), two player accounts and no paid AI calls, run `./scripts/start-local-demo.ps1` from the repository root. Open [the isolated demo](http://127.0.0.1:5174); its API uses port `5216` and MongoDB uses port `27020`. These defaults keep the normal project's `5173`/`5215` ports and browser sessions separate. The demo uses its own database and preserves the existing `.env`.
 
 Stop only the demo with `./scripts/stop-local-demo.ps1`. See [Vietnamese demo and release instructions](docs/LOCAL_DEMO_VI.md).
 

@@ -17,11 +17,13 @@ public class WeeklyService : IWeeklyService
 {
     private readonly MongoDbContext _db;
     private readonly ILeaderboardService _leaderboard;
+    private readonly CaseCatalogPolicy _catalog;
 
-    public WeeklyService(MongoDbContext db, ILeaderboardService leaderboard)
+    public WeeklyService(MongoDbContext db, ILeaderboardService leaderboard, CaseCatalogPolicy? catalog = null)
     {
         _db = db;
         _leaderboard = leaderboard;
+        _catalog = catalog ?? CaseCatalogPolicy.Open;
     }
 
     public Task<WeeklyFeatureDto?> GetActiveCaseOfWeekAsync(CancellationToken ct = default) =>
@@ -59,6 +61,10 @@ public class WeeklyService : IWeeklyService
 
         var gameCase = await _db.Cases.Find(c => c.CaseId == request.CaseId).FirstOrDefaultAsync(ct)
             ?? throw ApiException.NotFound("Case not found.");
+        if (_catalog.PixelOnly && !CaseCatalogRules.IsPixel(gameCase))
+        {
+            throw ApiException.BadRequest("Only pixel cases can be featured.");
+        }
 
         // Flip any existing active feature of the same type off, then activate the new one.
         await _db.WeeklyFeatures.UpdateManyAsync(
@@ -109,6 +115,8 @@ public class WeeklyService : IWeeklyService
             return null;
         }
         var gameCase = await _db.Cases.Find(c => c.CaseId == feature.CaseId).FirstOrDefaultAsync(ct);
+        // A feature that points at a case players can no longer play is treated as not set.
+        if (_catalog.PixelOnly && gameCase is not null && !_catalog.IsPlayable(gameCase)) return null;
         return ToDto(feature, gameCase);
     }
 

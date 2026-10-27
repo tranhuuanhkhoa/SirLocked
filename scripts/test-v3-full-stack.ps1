@@ -33,7 +33,7 @@ $apiUrl = "http://127.0.0.1:$ApiPort"
 $frontendUrl = "http://127.0.0.1:$FrontendPort"
 $apiProcess = $null
 $environmentKeys = @(
-    'ASPNETCORE_ENVIRONMENT', 'Jwt__Secret', 'MongoDb__ConnectionString', 'MongoDb__DatabaseName',
+    'ASPNETCORE_ENVIRONMENT', 'CaseCatalog__PixelOnly', 'CaseCatalog__SeedPixelOnStartup', 'Jwt__Secret', 'MongoDb__ConnectionString', 'MongoDb__DatabaseName',
     'MOCK_AI_RESPONSES', 'SKIP_ASSET_GENERATION', 'PresentationVideo__Enabled', 'Cloudinary__Enabled',
     'VITE_API_URL', 'SIRLOCKED_RUN_V3_FULL_STACK', 'SIRLOCKED_TEST_PASSWORD',
     'SIRLOCKED_TEST_API_URL', 'SIRLOCKED_PLAYWRIGHT_BASE_URL'
@@ -76,6 +76,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "API build failed with exit code $LASTEXITCODE." }
 
     $env:ASPNETCORE_ENVIRONMENT = 'Development'
+    # These specs play the older non-pixel cases, which players cannot see while the catalogue is pixel-only.
+    $env:CaseCatalog__PixelOnly = 'false'
+    $env:CaseCatalog__SeedPixelOnStartup = 'false'
     $env:Jwt__Secret = $jwtSecret
     $env:MongoDb__ConnectionString = $MongoConnectionString
     $env:MongoDb__DatabaseName = $databaseName

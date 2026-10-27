@@ -1,4 +1,9 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
+/*
+ * NOTE: these specs play the bundled older (non-pixel) cases. Since the pixel catalogue became the main game
+ * the API hides them from players, so start the API with CaseCatalog__PixelOnly=false (and
+ * CaseCatalog__SeedPixelOnStartup=false if you want a database without the pixel cases).
+ */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';

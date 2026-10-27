@@ -79,6 +79,8 @@ const answerFor = (p) => {
   }
 };
 const sceneOf = (targetId) => gameCase.stages.flatMap((stage) => stage.scenes).find((scene) => (scene.hotspots ?? []).some((h) => h.targetId === targetId) || (scene.itemIds ?? []).includes(targetId) || (scene.items ?? []).some((i) => (i.itemId ?? i) === targetId))?.sceneId;
+const slotEmpty = async () => w.locator('#game-puzzle-slot').evaluate((el) => el.innerHTML.trim().length === 0);
+const openPuzzle = async (id, wait = 800) => { await w.evaluate((x) => window.__sirlockedTest.openPuzzle(x), id); await w.waitForTimeout(wait); };
 let n = 0;
 for (const p of gameCase.puzzles) {
   const scene = sceneOf(p.targetId);
@@ -90,13 +92,42 @@ for (const p of gameCase.puzzles) {
   const missing = await w.locator('.pzh-missing').count();
   check(mounted > 0 && missing === 0, `${p.kind} mounts in the game (${scene})`);
   await w.screenshot({ path: `${OUT}/p-${String(++n).padStart(2, '0')}-${p.kind}.png` });
-  await w.keyboard.press('Escape'); await w.waitForTimeout(400);
+  // Close button, then Esc: the sheet must really leave the page (it used to stay until some other redraw).
+  await w.locator(`[data-pzh-puzzle="${p.puzzleId}"] .pz-head-act [data-pzh-close]`).click();
+  await w.waitForTimeout(500);
+  check(await slotEmpty(), `${p.kind}: the Close button closes the puzzle`);
+  await openPuzzle(p.puzzleId);
+  await w.keyboard.press('Escape'); await w.waitForTimeout(500);
+  check(await slotEmpty(), `${p.kind}: Esc closes the puzzle`);
   const solver = n % 2 ? inv : int;
   if (solver === int) await go(int, scene);
+  const partnerSolves = solver === int;
+  if (partnerSolves) await openPuzzle(p.puzzleId); // Watson has it open while Sherlock solves it
   if (p.kind === 'torn_paper' && parse(p.params).partnerPiece) await call('POST', `${R}/puzzle-probe`, solver.token, { puzzleId: p.puzzleId, payload: JSON.stringify({ handoff: true }) });
   const res = await call('POST', `${R}/solve-puzzle`, solver.token, { puzzleId: p.puzzleId, answer: JSON.stringify(answerFor(p)) }).catch((e) => ({ error: e.message }));
+  if (partnerSolves) {
+    // The partner just solved it while Watson has it open. Whether or not the SOLVED card has appeared yet
+    // (it covers the header Close button on purpose), Esc must close the sheet and nothing may pop back up.
+    await w.waitForTimeout(250);
+    await w.keyboard.press('Escape');
+    await w.waitForTimeout(1800);
+    const left = await w.locator('#game-puzzle-slot').evaluate((el) => el.innerHTML.trim().slice(0, 160));
+    check(left === '' && (await w.locator('.pzh-win').count()) === 0, `${p.kind}: Esc right after the partner solved it leaves nothing behind${left ? ' — left: ' + left.replace(/\s+/g, ' ') : ''}`);
+  }
   const solved = (res.state?.solvedPuzzleIds ?? []).includes(p.puzzleId) || res.state?.visibleScene?.puzzles?.find?.((x) => x.puzzleId === p.puzzleId)?.isSolved;
   check(!res.error && solved !== false, `${p.kind} solved by ${solver === inv ? 'Watson' : 'Sherlock'}${res.error ? ' — ' + res.error.slice(0, 120) : ''}`);
+  // A solved puzzle reopens on its SOLVED card; "Back to the investigation" and Esc both close it.
+  await w.waitForTimeout(1500);
+  await openPuzzle(p.puzzleId, 900);
+  const winBtn = w.locator(`[data-pzh-puzzle="${p.puzzleId}"] .pzh-win [data-pzh-close]`);
+  check((await winBtn.count()) > 0, `${p.kind}: a solved puzzle shows the SOLVED card`);
+  await winBtn.click().catch(() => {});
+  await w.waitForTimeout(500);
+  check(await slotEmpty(), `${p.kind}: "Back to the investigation" closes the solved puzzle`);
+  await openPuzzle(p.puzzleId, 900);
+  await w.keyboard.press('Escape'); await w.waitForTimeout(500);
+  check(await slotEmpty(), `${p.kind}: Esc closes the solved puzzle`);
+  check((await w.locator('#game-puzzle-slot').count()) === 1 && (await w.evaluate(() => window.__sirlockedTest.state()?.currentSceneId)) === scene, `${p.kind}: the game is back to exploring`);
 }
 s = await st(inv);
 const puzzleEvidence = gameCase.puzzles.flatMap((p) => p.unlockClueIds);

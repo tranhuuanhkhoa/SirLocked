@@ -112,6 +112,24 @@ public static class MatchmakingRules
         IEnumerable<CaseSummaryResponse> published, string language, string caseLength) =>
         published.Where(summary => CaseFits(summary, language, caseLength)).ToList();
 
+    /// <summary>
+    /// Like <see cref="FittingCases"/> but widens the search when nothing fits, so a small catalogue (today:
+    /// Vietnamese pixel cases only) never leaves a length/language combination with no match at all.
+    /// Order: exact fit, then the requested language at any length, then the requested length in any
+    /// language, then every playable case.
+    /// </summary>
+    public static IReadOnlyList<CaseSummaryResponse> FittingCasesRelaxed(
+        IEnumerable<CaseSummaryResponse> published, string language, string caseLength)
+    {
+        var playable = published.Where(summary => summary.Status == CaseStatus.Published && summary.StageCount > 0).ToList();
+        var exact = FittingCases(playable, language, caseLength);
+        if (exact.Count > 0) return exact;
+        var sameLanguage = playable.Where(summary => CaseLanguages.Normalize(summary.Language) == language).ToList();
+        if (sameLanguage.Count > 0) return sameLanguage;
+        var sameLength = playable.Where(summary => LengthBucket(summary.EstimatedMinutes) == caseLength).ToList();
+        return sameLength.Count > 0 ? sameLength : playable;
+    }
+
     /// <summary>The ticket whose id sorts first is always claimed first, so two requests pairing the same
     /// two tickets from opposite ends cannot each hold one and both give up.</summary>
     public static (MatchTicket First, MatchTicket Second) ClaimOrder(MatchTicket a, MatchTicket b) =>

@@ -316,6 +316,9 @@ public sealed partial class AiCaseWorkflowHostTests
                     ["MongoDb:DatabaseName"] = _databaseName,
                     ["MOCK_AI_RESPONSES"] = "true",
                     ["SKIP_ASSET_GENERATION"] = "true",
+                    // These hosts play AI-generated (non-pixel) cases and must not seed the bundled pixel ones.
+                    ["CaseCatalog:PixelOnly"] = "false",
+                    ["CaseCatalog:SeedPixelOnStartup"] = "false",
                     ["Jwt:Secret"] = "integration-test-secret-with-at-least-32-characters",
                     ["Google:ClientId"] = "integration-test-google-client",
                     ["Google:ClientSecret"] = "integration-test-google-secret",

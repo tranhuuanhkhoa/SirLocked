@@ -39,16 +39,18 @@ public sealed class MatchmakingService
     private readonly TimeProvider _time;
     private readonly ILogger<MatchmakingService> _logger;
     private readonly Random _random;
+    private readonly CaseCatalogPolicy _catalog;
 
     public MatchmakingService(MongoDbContext db, ICaseService cases, IMatchmakingNotifier notifier,
-        TimeProvider time, ILogger<MatchmakingService> logger)
-        : this(db, cases, notifier, time, logger, Random.Shared)
+        TimeProvider time, ILogger<MatchmakingService> logger, CaseCatalogPolicy? catalog = null)
+        : this(db, cases, notifier, time, logger, Random.Shared, catalog)
     {
     }
 
     internal MatchmakingService(MongoDbContext db, ICaseService cases, IMatchmakingNotifier notifier,
-        TimeProvider time, ILogger<MatchmakingService> logger, Random random)
+        TimeProvider time, ILogger<MatchmakingService> logger, Random random, CaseCatalogPolicy? catalog = null)
     {
+        _catalog = catalog ?? CaseCatalogPolicy.Open;
         _db = db;
         _cases = cases;
         _notifier = notifier;
@@ -56,6 +58,11 @@ public sealed class MatchmakingService
         _logger = logger;
         _random = random;
     }
+
+    private IReadOnlyList<CaseSummaryResponse> FittingCases(IEnumerable<CaseSummaryResponse> published, string language, string length) =>
+        _catalog.RelaxCaseFit
+            ? MatchmakingRules.FittingCasesRelaxed(published, language, length)
+            : MatchmakingRules.FittingCases(published, language, length);
 
     private DateTime Now => _time.GetUtcNow().UtcDateTime;
     private static FilterDefinitionBuilder<MatchTicket> TicketFilter => Builders<MatchTicket>.Filter;
@@ -80,7 +87,7 @@ public sealed class MatchmakingService
 
         await EnsureEmailVerifiedAsync(user, ct);
 
-        var fitting = MatchmakingRules.FittingCases(await _cases.GetPublishedAsync(), language, length);
+        var fitting = FittingCases(await _cases.GetPublishedAsync(), language, length);
         if (fitting.Count == 0)
         {
             throw ApiException.Unprocessable("No published case fits this length and language yet.",
@@ -239,7 +246,7 @@ public sealed class MatchmakingService
     public async Task<MatchProposal?> TryMatchAsync(MatchTicket ticket, CancellationToken ct = default)
     {
         if (ticket.Status != MatchTicketStatuses.Searching) return null;
-        var fitting = MatchmakingRules.FittingCases(await _cases.GetPublishedAsync(), ticket.Language, ticket.CaseLength);
+        var fitting = FittingCases(await _cases.GetPublishedAsync(), ticket.Language, ticket.CaseLength);
         if (fitting.Count == 0) return null;
 
         var candidates = await _db.MatchTickets.Find(
@@ -278,7 +285,7 @@ public sealed class MatchmakingService
             CaseId = gameCase.CaseId,
             CaseTitle = gameCase.Title,
             EstimatedMinutes = gameCase.EstimatedMinutes,
-            Language = self.Language,
+            Language = CaseLanguages.Normalize(gameCase.Language), // the case's language, which can differ from the search language
             CaseLength = self.CaseLength,
             Status = MatchStatuses.Forming,
             // The older ticket is listed first; it also hosts the room.

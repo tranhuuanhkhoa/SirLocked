@@ -25,7 +25,18 @@ public class CaseSummaryResponse
     public int ItemCount { get; set; }
     public int ClueCount { get; set; }
     public int DialogueCount { get; set; }
+    /// <summary>True when every scene renders in pixel mode (see <c>CaseCatalogRules.IsPixel</c>).</summary>
+    public bool IsPixel { get; set; }
+    /// <summary>False when the case is hidden from players (a draft, or not a pixel case while the catalogue is pixel-only). Set on the admin list.</summary>
+    public bool PlayerVisible { get; set; } = true;
     public DateTime UpdatedAt { get; set; }
+
+    public CaseSummaryResponse WithPlayerVisible(bool visible)
+    {
+        var copy = (CaseSummaryResponse)MemberwiseClone();
+        copy.PlayerVisible = visible;
+        return copy;
+    }
 
     public static CaseSummaryResponse From(GameCase c) => new()
     {
@@ -49,6 +60,7 @@ public class CaseSummaryResponse
         ItemCount = c.Items.Count,
         ClueCount = c.Clues.Count,
         DialogueCount = c.Dialogues.Count,
+        IsPixel = SirLocked.Api.Services.CaseCatalogRules.IsPixel(c),
         UpdatedAt = c.UpdatedAt
     };
 }
@@ -83,6 +95,7 @@ public class CasePublicDetailResponse : CaseSummaryResponse
             ItemCount = summary.ItemCount,
             ClueCount = summary.ClueCount,
             DialogueCount = summary.DialogueCount,
+            IsPixel = summary.IsPixel,
             UpdatedAt = summary.UpdatedAt,
             Characters = c.Characters.Select(CaseCharacterDto.From).ToList()
         };

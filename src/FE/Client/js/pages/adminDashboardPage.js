@@ -116,10 +116,11 @@ export async function renderAdminDashboardPage(app) {
     <div class="page-head">
       <h2>${tr('Admin Dashboard', 'Bảng điều khiển quản trị')}</h2>
       <div class="case-actions">
+        ${stats.legacyCasesHidden ? '' : `
         <button class="btn btn-primary" id="seed-sample">${tr('Seed + publish sample case', 'Tạo và xuất bản vụ án mẫu')}</button>
         <button class="btn btn-ghost" id="seed-demo">${tr('Seed demo cases', 'Tạo các vụ án demo')}</button>
-        <button class="btn btn-ghost" id="seed-crack-demo">${tr('Seed Crack cases', 'Tạo các vụ án Crack')}</button>
-        <button class="btn btn-ghost" id="seed-pixel-demo">${tr('Seed pixel case', 'Tạo vụ án pixel')}</button>
+        <button class="btn btn-ghost" id="seed-crack-demo">${tr('Seed Crack cases', 'Tạo các vụ án Crack')}</button>`}
+        <button class="btn btn-ghost" id="seed-pixel-demo">${tr('Create / refresh pixel cases', 'Tạo/cập nhật vụ án pixel')}</button>
         <a class="btn btn-ghost" href="#/admin/cases">${tr('Manage cases', 'Quản lý vụ án')}</a>
         <a class="btn btn-ghost" href="#/admin/ai">${tr('AI case creator', 'Tạo vụ án AI')}</a>
       </div>
@@ -133,7 +134,7 @@ export async function renderAdminDashboardPage(app) {
     </table>
   </div>`);
 
-  app.querySelector('#seed-sample').addEventListener('click', async (e) => {
+  app.querySelector('#seed-sample')?.addEventListener('click', async (e) => {
     e.target.disabled = true;
     try {
       const seeded = await adminApi.seedSample();
@@ -144,7 +145,7 @@ export async function renderAdminDashboardPage(app) {
     e.target.disabled = false;
   });
 
-  app.querySelector('#seed-demo').addEventListener('click', async (e) => {
+  app.querySelector('#seed-demo')?.addEventListener('click', async (e) => {
     e.target.disabled = true;
     try {
       const seeded = await adminApi.seedDemo();
@@ -155,7 +156,7 @@ export async function renderAdminDashboardPage(app) {
     e.target.disabled = false;
   });
 
-  app.querySelector('#seed-crack-demo').addEventListener('click', async (e) => {
+  app.querySelector('#seed-crack-demo')?.addEventListener('click', async (e) => {
     e.target.disabled = true;
     try {
       const seeded = await adminApi.seedCrackDemo();
@@ -170,7 +171,7 @@ export async function renderAdminDashboardPage(app) {
     e.target.disabled = true;
     try {
       const seeded = await adminApi.seedPixelDemo();
-      toast(`${seeded.length} pixel case(s) seeded and published.`, 'success');
+      toast(tr(`${seeded.length} pixel case(s) created or refreshed and published.`, `Đã tạo/cập nhật và xuất bản ${seeded.length} vụ án pixel.`), 'success');
     } catch (err) {
       toast(err.message, 'error');
     }

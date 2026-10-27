@@ -4,6 +4,10 @@ import { expect, request as playwrightRequest, test, type APIRequestContext, typ
  * Investigation-only harness: walks the player journey and writes a screenshot per screen so a
  * UI audit can be based on the rendered result rather than on reading CSS. It asserts nothing about
  * design and is skipped unless SIRLOCKED_RUN_UI_AUDIT is set, so it never runs in CI.
+ *
+ * NOTE: these specs play the bundled older (non-pixel) cases. Since the pixel catalogue became the main game
+ * the API hides them from players, so start the API with CaseCatalog__PixelOnly=false (and
+ * CaseCatalog__SeedPixelOnStartup=false if you want a database without the pixel cases).
  */
 const enabled = process.env.SIRLOCKED_RUN_UI_AUDIT === 'true';
 const password = process.env.SIRLOCKED_TEST_PASSWORD ?? '';

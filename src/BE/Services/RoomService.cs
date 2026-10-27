@@ -24,13 +24,25 @@ public class RoomService : IRoomService
     private readonly MongoDbContext _db;
     private readonly ICaseService _caseService;
     private readonly IGameNotifier _notifier;
+    private readonly CaseCatalogPolicy _catalog;
 
-    public RoomService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier)
+    public const string CaseNotPlayableCode = "CASE_NOT_PLAYABLE";
+
+    private readonly LegacyCaseCatalog? _legacy;
+
+    public RoomService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier, CaseCatalogPolicy? catalog = null,
+        LegacyCaseCatalog? legacy = null)
     {
         _db = db;
         _caseService = caseService;
         _notifier = notifier;
+        _catalog = catalog ?? CaseCatalogPolicy.Open;
+        _legacy = legacy;
     }
+
+    /// <summary>Rooms of hidden (legacy) cases stay out of every room list; the rooms themselves are untouched.</summary>
+    private async Task<FilterDefinition<GameRoom>> WithoutLegacyAsync(FilterDefinition<GameRoom> filter) =>
+        _legacy is null ? filter : await _legacy.ExcludeAsync(filter, room => room.CaseId);
 
     // Người chơi phải xác minh email trước khi tạo/vào phòng. Admin được miễn.
     private async Task EnsureEmailVerifiedAsync(CurrentUser user)
@@ -58,6 +70,11 @@ public class RoomService : IRoomService
         if (gameCase.Status != CaseStatus.Published)
         {
             throw ApiException.BadRequest("Rooms can only be created from published cases.");
+        }
+        if (!_catalog.IsPlayable(gameCase))
+        {
+            throw ApiException.Unprocessable("This case is not available to play. Pick one of the pixel cases.",
+                new ApiErrorDetails(CaseNotPlayableCode, "case.notPlayable"));
         }
 
         var room = new GameRoom
@@ -149,6 +166,7 @@ public class RoomService : IRoomService
     {
         var filter = Builders<GameRoom>.Filter.ElemMatch(room => room.Players, player => player.UserId == userId)
             & Builders<GameRoom>.Filter.In(room => room.Status, [RoomStatus.Waiting, RoomStatus.Ready, RoomStatus.InProgress]);
+        filter = await WithoutLegacyAsync(filter);
         var rooms = await _db.Rooms.Find(filter)
             .SortByDescending(room => room.UpdatedAt)
             .ThenByDescending(room => room.CreatedAt)
@@ -187,7 +205,7 @@ public class RoomService : IRoomService
                 new Dictionary<string, string[]> { ["q"] = [$"At most {PublicRoomRules.MaxQueryLength} characters."] });
         }
 
-        var rooms = await _db.Rooms.Find(PublicRoomRules.ListingFilter(DateTime.UtcNow))
+        var rooms = await _db.Rooms.Find(await WithoutLegacyAsync(PublicRoomRules.ListingFilter(DateTime.UtcNow)))
             .SortByDescending(room => room.UpdatedAt)
             .Limit(PublicRoomRules.ScanLimit)
             // Listing metadata only: never the embedded gameplay state.

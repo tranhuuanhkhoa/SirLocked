@@ -54,6 +54,8 @@ Chọn cùng một vụ án, tạo/vào phòng bằng mã, chọn hai vai khác 
 
 ## Vụ án point-and-click
 
+> **Từ V5, vụ án pixel là game chính.** Các vụ án cũ (Broken Seal, Night Ledger, mẫu…) bị ẩn với người chơi, ẩn khỏi danh sách admin và không còn được nạp tự động; dữ liệu vẫn còn trong database. Muốn dùng lại các vụ cũ (ví dụ để chạy các spec Playwright cũ): `./scripts/start-local-demo.ps1 -LegacyCases` hoặc đặt `CaseCatalog__PixelOnly=false` khi chạy API; ở trang admin có ô **Hiện cả vụ án cũ**.
+
 Chọn **The Night Ledger** hoặc bản tiếng Việt **Cuốn sổ trong đêm**. Vụ án đi qua phòng bán vé và hành lang hậu trường, dùng cùng hệ thống co-op V3: chứng cứ của Điều tra viên và lời khai của Thẩm vấn viên chỉ được chia sẻ khi hai người chủ động đối chất.
 
 - Nhấp sàn để đi đến vị trí; nhấp vật thể, nhân chứng hoặc lối đi để nhân vật đến gần rồi tương tác. Click mới thay yêu cầu cũ. **WASD / phím mũi tên** di chuyển hai chiều, **E** tương tác gần nhất, **Esc** hủy đường đi hoặc đóng giao diện.

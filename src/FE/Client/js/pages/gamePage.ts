@@ -5250,7 +5250,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
           applyState(res.state);
           return { feedback: res.puzzleFeedback ?? null, message: res.message ?? '' };
         },
-        onClose: () => closeOverlay(),
+        // closeUiMode redraws; closeOverlay only flips the mode, which left the puzzle sheet on screen until
+        // some unrelated state push happened to redraw the page.
+        onClose: () => closeUiMode(),
       });
     }
     puzzleHost.sync(interactivePuzzleModel());

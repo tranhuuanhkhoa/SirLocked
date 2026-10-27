@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.WebAPI.Controllers;
@@ -12,12 +13,21 @@ namespace SirLocked.Api.WebAPI.Controllers;
 public class AdminCasesController : BaseApiController
 {
     private readonly ICaseService _caseService;
+    private readonly LegacyCaseCatalog _legacy;
 
-    public AdminCasesController(ICaseService caseService) => _caseService = caseService;
+    public AdminCasesController(ICaseService caseService, LegacyCaseCatalog legacy)
+    {
+        _caseService = caseService;
+        _legacy = legacy;
+    }
 
+    /// <summary>
+    /// Every case an admin works with. While the catalogue is pixel-only the older cases are hidden from this
+    /// list; <c>?includeLegacy=true</c> shows them again (they are still stored, and open by id).
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> GetAll() =>
-        Ok(await _caseService.GetAllForAdminAsync());
+    public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> GetAll([FromQuery] bool includeLegacy = false) =>
+        Ok(_legacy.FilterAdminList(await _caseService.GetAllForAdminAsync(), includeLegacy));
 
     [HttpGet("{caseId}")]
     public async Task<ActionResult<ApiResponse<GameCase>>> GetDetail(string caseId) =>

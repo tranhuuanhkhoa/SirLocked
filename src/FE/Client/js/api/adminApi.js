@@ -7,7 +7,8 @@ export const adminApi = {
   unlockUser: (userId) => patch(`/api/admin/users/${userId}/unlock`),
   setUserRole: (userId, role) => patch(`/api/admin/users/${userId}/role`, { role }),
 
-  cases: () => get('/api/admin/cases'),
+  // Older (non-pixel) cases are hidden by the server unless includeLegacy is set.
+  cases: (includeLegacy = false) => get(includeLegacy ? '/api/admin/cases?includeLegacy=true' : '/api/admin/cases'),
   caseDetail: (caseId) => get(`/api/admin/cases/${encodeURIComponent(caseId)}`),
   validateCase: (caseJson) => post('/api/admin/cases/validate', { caseJson }),
   importCase: (caseJson, overwrite) => post('/api/admin/cases/import-json', { caseJson, overwrite }),

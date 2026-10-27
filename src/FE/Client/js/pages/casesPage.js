@@ -6,6 +6,7 @@ import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
 import { activeRoomDestination, inviteDestination, normalizeRoomCode } from '../services/roomInvites.js';
 import { session } from '../services/session.js';
+import { createRoomErrorText } from './roomCreateCard.js';
 import {
   caseDossierMarkup, coverArt, countOf, fileNumber, icons, peopleMarkup, sealedPeopleMarkup,
 } from './caseDetailPage.js';
@@ -278,7 +279,7 @@ export async function renderCasesPage(app) {
       toast(tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
       window.location.hash = `#/lobby/${room.roomId}`;
     } catch (err) {
-      toast(err.message, 'error');
+      toast(createRoomErrorText(err), 'error');
       button.disabled = false;
     }
   };

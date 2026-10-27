@@ -22,15 +22,23 @@ namespace SirLocked.Api.Services;
 public class ProfileService : IProfileService
 {
     private readonly MongoDbContext _db;
+    private readonly LegacyCaseCatalog? _legacy;
 
-    public ProfileService(MongoDbContext db) => _db = db;
+    public ProfileService(MongoDbContext db, LegacyCaseCatalog? legacy = null)
+    {
+        _db = db;
+        _legacy = legacy;
+    }
 
     public async Task<DetectiveProfileDto> GetProfileAsync(string userId, CancellationToken ct = default)
     {
         var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct)
                    ?? throw ApiException.NotFound("User not found.");
 
-        var results = await _db.GameResults.Find(r => r.Players.Contains(userId)).ToListAsync(ct);
+        // Plays of hidden (legacy) cases are left out of the history and of every figure built from it.
+        FilterDefinition<GameResult> resultFilter = Builders<GameResult>.Filter.AnyEq(r => r.Players, userId);
+        if (_legacy is not null) resultFilter = await _legacy.ExcludeAsync(resultFilter, r => r.CaseId);
+        var results = await _db.GameResults.Find(resultFilter).ToListAsync(ct);
 
         // Batch-load the rooms behind these plays for best-effort fastest-solve timing (one query, no N+1).
         var roomIds = results

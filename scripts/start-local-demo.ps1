@@ -4,7 +4,10 @@ param(
     [ValidateRange(1024, 65535)][int]$FrontendPort = 5174,
     [ValidateRange(1024, 65535)][int]$MongoPort = 27020,
     [string]$MongoExecutable,
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    # Old (non-pixel) demo cases are hidden and no longer seeded. This switch turns the pixel-only catalogue off
+    # and seeds them again, for the legacy test flows.
+    [switch]$LegacyCases
 )
 
 $ErrorActionPreference = 'Stop'
@@ -135,6 +138,7 @@ $overrides = @{
     GameplayV3__Enabled = 'true'
     GameplayV3__PlaytestInstrumentationEnabled = 'false'
 }
+if ($LegacyCases) { $overrides['CaseCatalog__PixelOnly'] = 'false' }
 try {
     $ownedProcesses += Start-DemoProcess 'mongo' $MongoExecutable @(
         '--bind_ip', '127.0.0.1', '--port', $MongoPort,
@@ -149,22 +153,32 @@ try {
     $loginBody = @{ email = 'admin@sirlocked.local'; password = $demoPassword } | ConvertTo-Json
     $login = Invoke-RestMethod "$apiUrl/api/auth/login" -Method Post -ContentType 'application/json' -Body $loginBody
     $headers = @{ Authorization = "Bearer $($login.data.token)" }
-    $catalogue = Invoke-RestMethod "$apiUrl/api/cases/published" -Headers $headers
-    $demoCases = @('case-v3-broken-seal-en', 'case-v3-broken-seal-vi')
-    $missingCases = @($demoCases | Where-Object { $_ -notin @($catalogue.data.caseId) })
-    if ($missingCases.Count -eq 2) {
-        Invoke-RestMethod "$apiUrl/api/admin/cases/seed-crack-demo" -Method Post -Headers $headers | Out-Null
+    # Older (non-pixel) demo cases are no longer seeded: players cannot see them and the admin list hides them.
+    # -LegacyCases brings them back (and turns the pixel-only catalogue off).
+    if ($LegacyCases) {
+        $catalogue = Invoke-RestMethod "$apiUrl/api/admin/cases?includeLegacy=true" -Headers $headers
+        $demoCases = @('case-v3-broken-seal-en', 'case-v3-broken-seal-vi')
+        $missingCases = @($demoCases | Where-Object { $_ -notin @($catalogue.data.caseId) })
+        if ($missingCases.Count -eq 2) {
+            Invoke-RestMethod "$apiUrl/api/admin/cases/seed-crack-demo" -Method Post -Headers $headers | Out-Null
+        }
+        elseif ($missingCases.Count -gt 0) {
+            Write-Warning 'The demo catalogue was edited. Use Seed Crack cases in Admin after existing matches finish to restore both cases.'
+        }
+        $pointClickCases = @('case-point-click-night-ledger-en', 'case-point-click-night-ledger-vi')
+        $missingPointClickCases = @($pointClickCases | Where-Object { $_ -notin @($catalogue.data.caseId) })
+        if ($missingPointClickCases.Count -eq 2) {
+            Invoke-RestMethod "$apiUrl/api/admin/cases/seed-point-click-demo" -Method Post -Headers $headers | Out-Null
+        }
+        elseif ($missingPointClickCases.Count -gt 0) {
+            Write-Warning 'One point-and-click case is missing. Existing matches and edited case content were retained.'
+        }
     }
-    elseif ($missingCases.Count -gt 0) {
-        Write-Warning 'The demo catalogue was edited. Use Seed Crack cases in Admin after existing matches finish to restore both cases.'
-    }
-    $pointClickCases = @('case-point-click-night-ledger-en', 'case-point-click-night-ledger-vi')
-    $missingPointClickCases = @($pointClickCases | Where-Object { $_ -notin @($catalogue.data.caseId) })
-    if ($missingPointClickCases.Count -eq 2) {
-        Invoke-RestMethod "$apiUrl/api/admin/cases/seed-point-click-demo" -Method Post -Headers $headers | Out-Null
-    }
-    elseif ($missingPointClickCases.Count -gt 0) {
-        Write-Warning 'One point-and-click case is missing. Existing matches and edited case content were retained.'
+    # The API seeds the pixel cases itself when it starts (CaseCatalog:SeedPixelOnStartup); this only covers a failed first attempt.
+    $pixelCases = @('case-pixel-lo-thuoc-thu-nam-vi', 'case-pixel-tram-hong-ngoc-vi')
+    $catalogue = Invoke-RestMethod "$apiUrl/api/admin/cases" -Headers $headers
+    if (@($pixelCases | Where-Object { $_ -notin @($catalogue.data.caseId) }).Count -gt 0) {
+        Invoke-RestMethod "$apiUrl/api/admin/cases/seed-pixel-demo" -Method Post -Headers $headers | Out-Null
     }
     foreach ($number in 1, 2) {
         $registration = @{ fullName = "Detective $number"; email = "player$number@demo.sirlocked.local"; password = $demoPassword } | ConvertTo-Json
@@ -182,7 +196,7 @@ try {
     Write-Host 'Local accounts: admin@sirlocked.local, player1@demo.sirlocked.local, player2@demo.sirlocked.local'
     Write-Host "Local demo password: $demoPassword"
     Write-Host 'Open two browser profiles/private windows, select different roles, ready both players, then start.'
-    Write-Host 'Choose The Night Ledger / Cuon so trong dem for the complete point-and-click case.'
+    Write-Host 'Pick a pixel case (Tram hong ngoc mat tich / Lo thuoc thu Nam). Older cases are hidden; use -LegacyCases to bring them back.'
     Write-Host 'Stop with ./scripts/stop-local-demo.ps1. Saved local matches are retained.'
 }
 catch {

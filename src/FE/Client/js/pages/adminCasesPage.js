@@ -5,13 +5,16 @@ import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
 import { isV3, v3PublishGate } from './adminV3Gates.js';
 
+// Older (non-pixel) cases are hidden by the server; this switch asks for them too. Per browser tab, never saved.
+let showLegacy = false;
+
 export async function renderAdminCasesPage(app) {
   render(app, `<div class="page"><p class="muted">${tr('Loading cases…', 'Đang tải vụ án…')}</p></div>`);
 
   let cases;
   let capabilities = null;
   try {
-    cases = await adminApi.cases();
+    cases = await adminApi.cases(showLegacy);
     capabilities = await aiCaseApi.capabilities().catch(() => null);
   } catch (err) {
     render(app, `<div class="page"><div class="empty-state">${escapeHtml(err.message)}</div></div>`);
@@ -29,6 +32,7 @@ export async function renderAdminCasesPage(app) {
     <tr>
       <td><a href="#/admin/cases/${encodeURIComponent(c.caseId)}">${escapeHtml(c.title)}</a><br>
           <span class="muted small">${escapeHtml(c.caseId)}</span>
+          ${c.isPixel ? `<br><span class="chip chip-ok">PIXEL</span>` : c.status === 'PUBLISHED' && c.playerVisible === false ? `<br><span class="chip chip-bad" title="${tr('Still in the database and in old rooms, but players cannot pick it.', 'Vẫn còn trong dữ liệu và các phòng cũ, nhưng người chơi không chọn được.')}">${tr('OLD · hidden from players', 'CŨ · ẩn với người chơi')}</span>` : ''}
           ${isV3(c) ? `<br><span class="chip chip-gold">V3 · Crack</span>${c.hasSourceAiDraft ? ` <span class="chip ${c.aiSemanticReviewStatus === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(c.aiSemanticReviewStatus || 'NOT_RUN')}</span>` : ''}` : ''}</td>
       <td><span class="chip ${c.status === 'PUBLISHED' ? 'chip-ok' : ''}">${c.status}</span></td>
       <td class="muted small">${c.stageCount} ${tr('stages', 'giai đoạn')} · ${c.sceneCount} ${tr('scenes', 'hiện trường')} · ${c.clueCount} ${tr('clues', 'manh mối')}</td>
@@ -48,6 +52,10 @@ export async function renderAdminCasesPage(app) {
         <a class="btn btn-ghost" href="#/admin/ai">${tr('AI creator', 'Tạo bằng AI')}</a>
       </div>
     </div>
+    <label class="muted small legacy-toggle" style="display:block;margin:0 0 .75rem">
+      <input type="checkbox" id="show-legacy"${showLegacy ? ' checked' : ''}>
+      ${tr('Show older cases (hidden from players and from this list)', 'Hiện cả vụ án cũ (đang ẩn khỏi người chơi và khỏi danh sách này)')}
+    </label>
     ${cases.length === 0
       ? `<div class="empty-state">${tr('No cases yet — seed the sample from the dashboard or import JSON.', 'Chưa có vụ án — hãy tạo vụ án mẫu từ bảng điều khiển hoặc nhập JSON.')}</div>`
       : `<table class="admin-table">
@@ -55,6 +63,11 @@ export async function renderAdminCasesPage(app) {
           <tbody>${rows}</tbody>
         </table>`}
   </div>`);
+
+  app.querySelector('#show-legacy')?.addEventListener('change', (event) => {
+    showLegacy = event.target.checked;
+    renderAdminCasesPage(app);
+  });
 
   const bind = (selector, action, label) =>
     app.querySelectorAll(selector).forEach((btn) =>

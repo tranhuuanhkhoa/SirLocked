@@ -68,6 +68,9 @@ builder.Services.AddOptions<JwtSettings>()
 builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
+builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection("CaseCatalog"));
+builder.Services.AddSingleton<CaseCatalogPolicy>();
+builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
 builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
 // Resolved here rather than bound from configuration so the Development-only guard sits next to the
@@ -131,7 +134,10 @@ builder.Services.AddScoped<IGameplayProjectionPlanner, GameplayProjectionPlanner
 builder.Services.AddScoped<IProjectionContentSchemaFactory, ProjectionContentSchemaFactory>();
 builder.Services.AddScoped<IGameCaseProjectionCompiler, GameCaseProjectionCompiler>();
 builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>();
-builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<CaseService>();
+builder.Services.AddScoped<ICaseService>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddScoped<IPixelCaseSeeder>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
 builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
 builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
