@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SirLocked.Api.Configurations;
@@ -293,5 +294,41 @@ public sealed class CutsceneServiceTests
         var json = await rig.Service.ExportApprovedAsync(rig.Case.CaseId);
         Assert.Contains("\"format\": \"motion-comic-v1\"", json);
         Assert.Contains("ẦM!!", json);
+    }
+
+    // ---------------------------------------------------------------- startup worker
+
+    [Fact]
+    public async Task SeedWorker_WaitsForTheCatalogue_ThenSeedsFromFile()
+    {
+        var rig = new Rig();
+        var path = WriteSeed(rig.Case.CaseId, JsonSerializer.Serialize(CutsceneMockScriptFactory.Create(rig.Case), CutsceneScriptGenerator.JsonOptions));
+        try
+        {
+            var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+                .AddSingleton<ICaseService>(new StubCases(rig.Case))
+                .AddSingleton(rig.Service)
+                .BuildServiceProvider();
+            var worker = new CutsceneSeedWorker(services.GetRequiredService<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), NullLogger<CutsceneSeedWorker>.Instance);
+            Assert.True(await worker.RunPassAsync(CancellationToken.None));
+            Assert.NotNull(await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId));
+            // Running again changes nothing.
+            Assert.True(await worker.RunPassAsync(CancellationToken.None));
+            Assert.Single(rig.Store.Rows);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task SeedWorker_ReportsNotReady_WhenNoCaseIsPublishedYet()
+    {
+        var rig = new Rig(published: false);
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddSingleton<ICaseService>(new StubCases(rig.Case))
+            .AddSingleton(rig.Service)
+            .BuildServiceProvider();
+        var worker = new CutsceneSeedWorker(services.GetRequiredService<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), NullLogger<CutsceneSeedWorker>.Instance);
+        Assert.False(await worker.RunPassAsync(CancellationToken.None)); // the worker retries later
+        Assert.Empty(rig.Store.Rows);
     }
 }

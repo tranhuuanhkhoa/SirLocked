@@ -37,7 +37,7 @@ export function makeScript(overrides: Record<string, unknown> = {}) {
       { layout: 'wide-top-two-bottom', panels: [
         panel(scene(0), 'rain', 'top', [cap('Phố Hàng Đường. Sáu giờ bốn mươi sáng.'), cap('Sương còn đọng trên mặt kính đồng hồ quảng trường.')], ['ticking']),
         panel(scene(1), 'fog', 'left', [cap('Nhà số 7 mở cửa sớm hơn mọi ngày.'), sfx('CẠCH.', 'soft')]),
-        panel(scene(2), 'streetlight', 'right', [{ type: 'speech', speakerId: characters[1].characterId, text: 'Ông ấy ngồi yên từ nãy, tôi gọi mãi không thưa.' }, sfx('TÚT... TÚT...', 'phone')], ['ring']),
+        panel(scene(2), 'streetlight', 'right', [{ type: 'speech', speakerId: characters[1].characterId, text: 'Ông ấy ngồi yên từ nãy, tôi gọi mãi không thưa.' }, sfx('TÚT. TÚT.', 'phone')], ['ring']),
       ] },
       { layout: 'tall-left-two-right', panels: [
         panel(scene(3), 'rain', 'bottom', [cap('Một lọ thuốc nhỏ nằm cạnh ghế bành.'), cap('Nhãn dán ngày Thứ Năm, nét chữ hơi run.')]),
