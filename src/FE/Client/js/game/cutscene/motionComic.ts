@@ -40,6 +40,8 @@ export type MotionComicOptions = {
 export type MotionComicHandle = {
   dispose(): void;
   readonly state: string;
+  /** Seconds into the timeline (test hook). */
+  readonly time: number;
   /** Test hook: jump the timeline. */
   seek(t: number): void;
   readonly timeline: Timeline;
@@ -657,6 +659,7 @@ export async function playMotionComic(opts: MotionComicOptions): Promise<MotionC
 
   const handle: MotionComicHandle = {
     get state() { return state; },
+    get time() { return T; },
     get timeline() { return tl; },
     seek(t: number) { if (state === 'ready') startPlay(false); if (state !== 'playing' && state !== 'ended') return; setState('playing'); seekTo(t); if (REDUCED) stepIdx = Math.max(0, tl.steps.findIndex((s) => s >= t)); },
     dispose() {
