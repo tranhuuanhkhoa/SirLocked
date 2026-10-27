@@ -122,7 +122,18 @@ function placeholder(g: CanvasRenderingContext2D, w: number, h: number, label: s
 export function drawPanelArt(g: CanvasRenderingContext2D, img: HTMLImageElement | null, art: ComicArt, w: number, h: number,
   f: ArtFrame, label: string, labelFont: string) {
   if (!img) { placeholder(g, w, h, label, labelFont); }
-  else {
+  else if (art.kind === 'item' || Math.max(img.naturalWidth, img.naturalHeight) <= 160) {
+    // A small sprite (an item): show the whole object, big and sharp, on a dark card instead of cropping into a few blurry pixels.
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const bg = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
+    bg.addColorStop(0, '#2B2E3B'); bg.addColorStop(1, '#10121A');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const k = Math.max(1, Math.floor(Math.min(w * 0.8 / iw, h * 0.8 / ih))), dw = iw * k, dh = ih * k;
+    const dx = Math.round((w - dw) / 2), dy = Math.round((h - dh) / 2) + (f.reduced ? 0 : Math.round(Math.sin(f.A * 1.4) * 3));
+    g.fillStyle = 'rgba(0,0,0,0.4)'; g.beginPath(); g.ellipse(w / 2, dy + dh + 6, dw * 0.38, 9, 0, 0, TAU); g.fill();
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, dx, dy, dw, dh);
+  } else {
     const iw = img.naturalWidth, ih = img.naturalHeight;
     const [fx, fy, fw, fh] = art.focus.length === 4 ? art.focus : [0, 0, 1, 1];
     const fwPx = Math.max(8, fw * iw), fhPx = Math.max(8, fh * ih);
