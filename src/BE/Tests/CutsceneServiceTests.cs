@@ -331,4 +331,23 @@ public sealed class CutsceneServiceTests
         Assert.False(await worker.RunPassAsync(CancellationToken.None)); // the worker retries later
         Assert.Empty(rig.Store.Rows);
     }
+
+    // ---------------------------------------------------------------- bundled scripts
+
+    [Theory]
+    [InlineData(Tram)]
+    [InlineData(LoThuoc)]
+    public async Task BundledIntroScripts_PassTheSameChecksAsAiScripts_AndSeedAsApproved(string file)
+    {
+        var rig = new Rig(file);
+        var path = CutsceneService.SeedFilePath(rig.Case.CaseId);
+        Assert.True(File.Exists(path), $"missing seed script {path}");
+        var script = JsonSerializer.Deserialize<MotionComicScript>(File.ReadAllText(path), CutsceneScriptGenerator.JsonOptions);
+        var issues = CutsceneScriptValidator.Validate(script, rig.Case);
+        Assert.True(issues.Count == 0, string.Join("; ", issues.Select(i => $"{i.Path}: {i.Message}")));
+        Assert.InRange(MotionComicRules.EstimateSeconds(script!), MotionComicRules.MinSeconds, MotionComicRules.MaxSeconds);
+
+        Assert.Equal(new[] { rig.Case.CaseId }, await rig.Service.SeedMissingAsync(new[] { rig.Case }));
+        Assert.NotNull(await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId));
+    }
 }

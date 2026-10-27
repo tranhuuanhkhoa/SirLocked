@@ -1,0 +1,254 @@
+{
+  "format": "motion-comic-v1",
+  "caseId": "case-pixel-tram-hong-ngoc-vi",
+  "language": "vi",
+  "title": {
+    "eyebrow": "Hồ sơ 01",
+    "title": "Trâm hồng ngọc mất tích",
+    "subtitle": "Hai thám tử, một buổi sáng, và đêm thứ Sáu chưa ai kể hết."
+  },
+  "mood": "fog-morning",
+  "pages": [
+    {
+      "layout": "wide-top-two-bottom",
+      "panels": [
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-tn-pho",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "fog",
+          "enter": "top",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Phố Hàng Đường. Sáng thứ Bảy.",
+              "style": ""
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Quảng trường đồng hồ còn ngái ngủ, vậy mà tiếng ồn đã nổi lên.",
+              "style": ""
+            }
+          ],
+          "audio": [
+            "ticking"
+          ]
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-tn-cam-do",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "streetlight",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "speech",
+              "speakerId": "char-tn-dang-buu",
+              "text": "Mất rồi! Chiếc trâm hồng ngọc bà Lâm cầm ở tiệm mất rồi!",
+              "style": ""
+            },
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "KÉT!",
+              "style": "impact"
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "character",
+            "id": "char-tn-trinh-luc",
+            "focus": [
+              0.1,
+              0.05,
+              0.8,
+              0.85
+            ]
+          },
+          "weather": "none",
+          "enter": "right",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Ông Bửu chỉ thẳng vào người tài xế.",
+              "style": ""
+            },
+            {
+              "type": "speech",
+              "speakerId": "char-tn-trinh-luc",
+              "text": "Tối thứ Sáu tôi sửa xe ngựa tới khuya, ông ơi.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        }
+      ]
+    },
+    {
+      "layout": "three-strips",
+      "panels": [
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-tn-nha-so-7",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "fog",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Nhà số 7 là nhà của bà Lâm, người đã cầm chiếc trâm ở tiệm ông Bửu.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-tn-hieu-thuoc",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "fog",
+          "enter": "right",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Hiệu thuốc Hưng Long. Quầy cân, sổ gửi đồ và những lọ bột xếp hàng.",
+              "style": ""
+            },
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "TÍCH TẮC.",
+              "style": "soft"
+            }
+          ],
+          "audio": [
+            "ticking"
+          ]
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-tn-nha-xe",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "rain",
+          "enter": "bottom",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Bánh xe ngựa sửa dở. Rương đồ nằm dưới chân giường.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        }
+      ]
+    },
+    {
+      "layout": "splash-inset",
+      "panels": [
+        {
+          "art": {
+            "kind": "cover",
+            "id": "cover",
+            "focus": [
+              0,
+              0,
+              1,
+              1
+            ]
+          },
+          "weather": "sunrise",
+          "enter": "none",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Két sắt mở toang. Ngăn đựng trâm hồng ngọc trống trơn.",
+              "style": ""
+            },
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "ẦM!!",
+              "style": "thunder"
+            }
+          ],
+          "audio": [
+            "thunder"
+          ]
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-tn-hieu-anh",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "night",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Mười bí mật khóa kín quanh phố Hàng Đường.",
+              "style": ""
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Hai thám tử. Bắt đầu thôi.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        }
+      ]
+    }
+  ]
+}
