@@ -476,6 +476,8 @@ type PhaserCallbacks = {
   onProceed: () => void;
   onScene: (sceneId: string) => void;
   onPose: (pose: PlayerPose) => void;
+  /** Scene art is still downloading: the page shows a loading screen so characters never appear before their background. */
+  onLoading?: (status: { loading: boolean; remaining: number; total: number; progress: number }) => void;
 };
 
 type SceneFrame = {
@@ -580,6 +582,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key?: string }) => {
       if (file?.key) this.failedTextureKeys.add(file.key);
     });
+    this.load.on(Phaser.Loader.Events.PROGRESS, () => this.reportLoading());
     this.scale.on('resize', () => { this.cameraNeedsSnap = true; this.draw(); });
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, objects: Phaser.GameObjects.GameObject[]) => {
       if (!this.sceneInteractionEnabled || this.cameraMode || objects.length || !pointer.leftButtonDown()) return;
@@ -877,6 +880,16 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.remotePlayers.delete(userId);
   }
 
+  private loadBatchTotal = 0;
+
+  /** Tells the page whether this scene's art (background, foreground, items, characters) is still on its way. */
+  private reportLoading() {
+    const pending = [...this.pendingTextures.keys(), ...this.loadingTextureKeys].filter((key) => !key.startsWith('held:'));
+    const loading = !this.ready || !this.state || pending.length > 0;
+    this.loadBatchTotal = loading ? Math.max(this.loadBatchTotal, pending.length) : 0;
+    this.callbacks.onLoading?.({ loading, remaining: pending.length, total: this.loadBatchTotal, progress: this.load.isLoading() ? this.load.progress : 0 });
+  }
+
   private draw() {
     if (!this.ready || !this.state) return;
 
@@ -918,6 +931,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.updatePixelCamera(0, this.cameraNeedsSnap);
     this.cameraNeedsSnap = false;
     this.flushTextures();
+    this.reportLoading();
   }
 
   private sceneFrame(scene = this.state?.visibleScene): SceneFrame {
@@ -2664,6 +2678,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.loadingTextureKeys.clear();
       this.draw();
       this.flushTextures();
+      this.reportLoading();
     });
     this.load.start();
   }
@@ -2710,6 +2725,36 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   const hostId = `phaser-game-${roomId.replace(/[^a-z0-9_-]/gi, '')}`;
 
   let state: GameState | null = null;
+  // Loading screen: shown while scene art downloads or a scene change is in flight, so nothing pops in half-drawn.
+  let sceneArtLoading = { loading: true, remaining: 0, total: 0, progress: 0 };
+  let sceneChangePending = false;
+  let loadingShownAt = 0;
+  let loadingHideTimer: ReturnType<typeof setTimeout> | undefined;
+  let loadingGiveUpTimer: ReturnType<typeof setTimeout> | undefined;
+  let loadingGivenUp = false;
+  const sceneIsLoading = () => !loadingGivenUp && (sceneArtLoading.loading || sceneChangePending);
+  function syncLoadingScreen() {
+    if (stopped) return;
+    const el = app.querySelector<HTMLElement>('#game-loading');
+    if (!el) return;
+    const on = sceneIsLoading();
+    if (on) {
+      clearTimeout(loadingHideTimer);
+      if (!el.classList.contains('is-on')) { loadingShownAt = performance.now(); el.classList.add('is-on'); }
+      // Never trap the player: after 15 seconds show whatever arrived (failed images already have fallbacks).
+      if (!loadingGiveUpTimer) loadingGiveUpTimer = setTimeout(() => { loadingGivenUp = true; syncLoadingScreen(); }, 15000);
+      const bar = el.querySelector<HTMLElement>('[data-loading-bar]');
+      const pct = sceneArtLoading.progress > 0 ? sceneArtLoading.progress : 0;
+      if (bar) bar.style.width = `${Math.round(Math.max(0.06, pct) * 100)}%`;
+      syncPhaserInputState();
+      return;
+    }
+    clearTimeout(loadingGiveUpTimer); loadingGiveUpTimer = undefined; loadingGivenUp = false;
+    if (!el.classList.contains('is-on')) return;
+    // Keep the screen up for a moment so a very fast load does not flash.
+    clearTimeout(loadingHideTimer);
+    loadingHideTimer = setTimeout(() => { el.classList.remove('is-on'); syncPhaserInputState(); }, Math.max(0, 300 - (performance.now() - loadingShownAt)));
+  }
   let uiMode: GameUiMode = { kind: 'EXPLORE' };
   let puzzleHost: PuzzleHost | null = null;
   // Open co-op case wall (Sơ đồ vụ án): keeps its own drag/hold/animation state across redraws.
@@ -3183,6 +3228,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <main class="scene-canvas phaser-scene-wrap">
           <div id="${hostId}" class="phaser-game-host"></div>
           <header id="game-hud-slot" class="game-hud game-hud-overlay"></header>
+          <div id="game-loading" class="game-loading is-on" role="status" aria-live="polite" aria-label="${tr('Loading the scene', 'Đang tải cảnh')}">
+            <div class="game-loading-card">
+              <span class="game-loading-spinner" aria-hidden="true"></span>
+              <p class="game-loading-text" data-loading-text>${tr('Loading the scene…', 'Đang tải cảnh…')}</p>
+              <div class="game-loading-bar" aria-hidden="true"><i data-loading-bar></i></div>
+            </div>
+          </div>
           <div id="inventory-slot"></div>
         </main>
         <div id="scene-intro-slot"></div>
@@ -3197,6 +3249,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <div id="game-recovery-slot"></div>
       </div>`);
     shellMounted = true;
+    loadingShownAt = performance.now();
+    syncLoadingScreen(); // starts the give-up timer for the screen that is already showing
     mountPhaser();
     disposeAudioControls = bindAudioControls(app, audio);
     app.querySelector('#game-replay-intro')?.addEventListener('click', () => {
@@ -3695,6 +3749,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         if (isSceneInputBlocked() || discoveryNotice) return;
         goToScene(sceneId);
       },
+      onLoading: (status) => { sceneArtLoading = status; syncLoadingScreen(); },
       onPose: (pose) => {
         if (hub.connection.state !== 'Connected') return;
         hub.connection.invoke('UpdatePlayerPose', roomId, {
@@ -5845,7 +5900,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   function isSceneInputBlocked() {
-    return cutscenes.active || isScenePanelOpen(uiMode) ||
+    return cutscenes.active || isScenePanelOpen(uiMode) || sceneIsLoading() ||
       connectionStatus !== 'connected' || syncRecoveryActive ||
       !sessionStorage.getItem(introKey) ||
       Date.now() < sceneInputBlockedUntil;
@@ -6733,6 +6788,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       return;
     }
 
+    sceneChangePending = true; syncLoadingScreen();
     try {
       // The server chooses the immediate authored successor and moves only this player.
       const res = await gameApi.completeScene(roomId);
@@ -6747,16 +6803,21 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         toast(err.message, 'error');
       }
       draw();
+    } finally {
+      sceneChangePending = false; syncLoadingScreen();
     }
   }
 
   async function goToScene(sceneId: string) {
+    sceneChangePending = true; syncLoadingScreen();
     try {
       const res = await gameApi.goToScene(roomId, sceneId);
       closeOverlay();
       applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');
+    } finally {
+      sceneChangePending = false; syncLoadingScreen();
     }
   }
 
@@ -6887,6 +6948,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   function cleanupGamePage() {
     if (stopped) return;
     stopped = true;
+    clearTimeout(loadingHideTimer); clearTimeout(loadingGiveUpTimer);
     signal?.removeEventListener('abort', cleanupGamePage);
     caseWall.destroy();
     stateRefetcher.dispose();
