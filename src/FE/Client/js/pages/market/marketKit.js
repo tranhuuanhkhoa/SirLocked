@@ -4,7 +4,7 @@ import { pixelIconUrl } from '../chest/chestSprites.js';
 
 /* Shared pieces of Chợ đồ: labels, number formatting, error texts, rarity-tinted item icons, sparklines. */
 
-export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO'];
+export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO', 'FRAME', 'TITLE', 'ENTRANCE'];
 export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
 export const SLOT_CAP = 12;
 export const FEE_PERCENT = 5;
@@ -22,10 +22,14 @@ const CATEGORY_LABELS = {
   CHEST: ['Chests', 'Hòm'],
   KEY: ['Keys', 'Chìa'],
   CURIO: ['Collectibles', 'Vật phẩm sưu tầm'],
+  FRAME: ['Avatar frames', 'Viền avatar'],
+  TITLE: ['Titles', 'Danh hiệu'],
+  ENTRANCE: ['Lobby entrances', 'Hiệu ứng vào sảnh'],
 };
 
 /** Same rule as the server: chests, keys and collectibles only sit in the bag. */
 const NOT_EQUIPPABLE = new Set(['CHEST', 'KEY', 'CURIO']);
+const COSMETIC_CATEGORIES = new Set(['FRAME', 'TITLE', 'ENTRANCE']);
 
 export function isEquippable(category) {
   return !NOT_EQUIPPABLE.has(category);
@@ -127,6 +131,17 @@ const ERRORS = {
   MARKET_ITEM_NOT_EQUIPPABLE: ['Chests, keys and collectibles cannot be put in use.', 'Hòm, chìa và vật phẩm sưu tầm không dùng để trang bị được.'],
   MARKET_INVALID_REQUEST_ID: ['Please try that again.', 'Vui lòng thử lại.'],
   CHEST_NONE: ['You have no chest of this type left.', 'Bạn không còn hòm loại này.'],
+  MARKET_ITEM_NOT_TRADABLE: ['This item was earned and cannot be sold or traded.', 'Vật phẩm này do bạn đạt được nên không bán hay trao đổi được.'],
+  XP_MAX_LEVEL: ['You are already at the highest level.', 'Bạn đã đạt cấp cao nhất.'],
+  XP_NO_ITEMS: ['Choose the items to exchange.', 'Hãy chọn vật phẩm để đổi.'],
+  XP_ITEM_NOT_FOUND: ['This item is no longer in your bag.', 'Vật phẩm này không còn trong túi của bạn.'],
+  XP_ITEM_LOCKED: ['Items for sale or in a trade cannot be exchanged.', 'Vật phẩm đang rao bán hoặc đang giao dịch không đổi được.'],
+  XP_ITEM_EQUIPPED: ['Take the item off before exchanging it.', 'Hãy bỏ dùng vật phẩm trước khi đổi.'],
+  XP_ITEM_NOT_EXCHANGEABLE: ['Only rare and epic items can be exchanged.', 'Chỉ đổi được vật phẩm Hiếm và Quý.'],
+  AVATAR_UNKNOWN: ['Choose one of the avatars on offer.', 'Hãy chọn một trong các ảnh có sẵn.'],
+  AVATAR_TOO_LARGE: ['The picture must be 2 MB or smaller.', 'Ảnh phải từ 2 MB trở xuống.'],
+  AVATAR_BAD_IMAGE: ['Use a JPG, PNG or WebP picture.', 'Hãy dùng ảnh JPG, PNG hoặc WebP.'],
+  AVATAR_UNAVAILABLE: ['Uploading a picture is not available right now.', 'Hiện chưa thể tải ảnh lên.'],
   KEY_NONE: ['You have no key for this chest left.', 'Bạn không còn chìa cho loại hòm này.'],
   FUNDS: ['You do not have enough coins.', 'Bạn không đủ xu.'],
   SLOTS_FULL: ['Your inventory is full (12 slots) — free a slot first.', 'Túi đồ đã đầy (12 ô) — hãy bán bớt một món trước.'],
@@ -152,6 +167,17 @@ export function failReasonText(code) {
 const SPARKLE = '<path d="M51 5l1.6 3.8L56.4 10.4l-3.8 1.6L51 15.8l-1.6-3.8L45.6 10.4l3.8-1.6z" fill="#efd486"/><path d="M8 47l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z" fill="#fff1c2" opacity=".8"/>';
 
 const DRAW = {
+  FRAME: (r) => `
+    <circle cx="32" cy="32" r="22" fill="none" stroke="${r.deep}" stroke-width="9"/>
+    <circle cx="32" cy="32" r="22" fill="none" stroke="${r.metal}" stroke-width="5"/>
+    <circle cx="32" cy="32" r="13" fill="#1d2a3a"/>
+    <circle cx="32" cy="10" r="4" fill="${r.metal}"/><circle cx="32" cy="54" r="4" fill="${r.metal}"/><circle cx="10" cy="32" r="4" fill="${r.metal}"/><circle cx="54" cy="32" r="4" fill="${r.metal}"/>`,
+  TITLE: (r) => `
+    <path d="M12 20H52L60 32L52 44H12L4 32Z" fill="${r.deep}" stroke="${r.metal}" stroke-width="3"/>
+    <path d="M18 29H46M22 36H42" stroke="${r.metal}" stroke-width="3" stroke-linecap="round"/>`,
+  ENTRANCE: (r) => `
+    <circle cx="32" cy="32" r="24" fill="${r.deep}"/>
+    <path d="M32 12c10 8 10 14 0 20s-10 12 0 20M16 22c8 2 10 6 8 10M48 42c-8-2-10-6-8-10" fill="none" stroke="${r.metal}" stroke-width="3.4" stroke-linecap="round"/>`,
   MAGNIFIER: (r, legendary) => `
     <path d="M38 38L52 52" stroke="#3b2716" stroke-width="9" stroke-linecap="round"/>
     <path d="M38 38L52 52" stroke="${legendary ? '#d3dade' : '#8a5a34'}" stroke-width="${legendary ? 3 : 4}" stroke-linecap="round"/>
@@ -217,7 +243,8 @@ function drawingKey(def) {
  * Decorative by default; pass `label` to expose it as an image. No character art: only objects.
  */
 export function itemIcon(def, size = 34, label = '') {
-  const pixel = def?.iconKey ? pixelIconUrl(def.iconKey) : '';
+  // Cosmetics are painted art with no pixel sprite: they use the category drawing below.
+  const pixel = def?.iconKey && !COSMETIC_CATEGORIES.has(def.category) ? pixelIconUrl(def.iconKey) : '';
   if (pixel) {
     const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
     return `<img class="bpa-mk-icon bpa-mk-icon--pixel" src="${pixel}" width="${size}" height="${size}" ${alt} draggable="false">`;

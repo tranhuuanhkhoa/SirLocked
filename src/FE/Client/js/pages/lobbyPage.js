@@ -7,6 +7,10 @@ import { escapeHtml, initials, placeholderStyle, render, qs } from '../utils/dom
 import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
 import { roomInviteUrl } from '../services/roomInvites.js';
+import '../../../css/48-cosmetics.css';
+import { T, avatarFor, closeStage, frameKey, prepareCosmetics, titleHTML, titleKey, whenTitleFontReady } from '../cosmetics/index.js';
+import { createEntranceQueue } from '../cosmetics/entrances.js';
+import { createPainter } from '../cosmetics/painter.js';
 
 // The server owns the room lifecycle; the lobby only reacts to the status/code it is told.
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'ABANDONED']);
@@ -154,6 +158,19 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
   // What the previous draw showed, so stamps and the red string animate only when they change.
   let shown = null;
 
+  prepareCosmetics();
+  const painter = createPainter();
+  // Only ever plays while this room is still waiting: the game starting ends it.
+  const entrances = createEntranceQueue({
+    canPlay: () => !disposed && room?.status === 'WAITING',
+    seatFor: (userId) => app.querySelector(`[data-seat-user="${CSS.escape(userId)}"]`),
+    onPlayed: ({ userId }) => {
+      const seat = app.querySelector(`[data-seat-user="${CSS.escape(userId)}"]`);
+      seat?.classList.remove('hs-seat-in');
+      if (seat) seat.classList.add('hs-seat-in');
+    },
+  });
+
   const refresh = async () => {
     if (disposed) return;
     const fresh = await roomApi.get(roomId);
@@ -195,7 +212,8 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     PlayerLeft: ({ room: r }) => { if (disposed) return; room = r; draw(); toast(tr('A player left the room.', 'Một người chơi đã rời phòng.'), 'info'); },
     RolesUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
     ReadyUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
-    GameStarted: () => { if (!disposed) window.location.hash = `#/game/${roomId}`; },
+    GameStarted: () => { if (!disposed) { entrances.stop(); window.location.hash = `#/game/${roomId}`; } },
+    PlayerEntrance: (entrance) => { if (!disposed && entrance.roomId === roomId) entrances.push(entrance); },
     RoomError: ({ message }) => { if (!disposed) toast(message, 'error'); },
   }, { onReconnected: () => refresh().catch(() => {}) });
 
@@ -203,6 +221,9 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     if (disposed) return;
     disposed = true;
     signal?.removeEventListener('abort', cleanup);
+    entrances.stop();
+    closeStage(true);
+    painter.dispose();
     return hub.stop();
   };
   signal?.addEventListener('abort', cleanup, { once: true });
@@ -210,6 +231,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
   try {
     await refresh();
     if (disposed || !room || room.status === 'IN_PROGRESS') return cleanup;
+    whenTitleFontReady().then(() => { if (!disposed) draw(); });
     await hub.start();
   } catch (err) {
     if (disposed) return cleanup;
@@ -376,7 +398,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
       const role = roleById(p.role);
       const offline = !isMe && p.isConnected === false;
       return `
-      <article class="bpa-paper bpa-lobby-id bpa-lobby-id--${side}${p.isReady ? ' is-ready' : ''}" aria-labelledby="lobby-seat-${side}">
+      <article class="bpa-paper bpa-lobby-id bpa-lobby-id--${side}${p.isReady ? ' is-ready' : ''}" data-seat-user="${escapeHtml(p.userId)}" aria-labelledby="lobby-seat-${side}">
         <span class="bpa-pin" aria-hidden="true"></span>
         ${twoSeats ? `<span class="bpa-pin bpa-pin--red bpa-lobby-epin" aria-hidden="true"></span>` : ''}
         <div class="bpa-lobby-idhead">
@@ -384,9 +406,10 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           ${offline ? `<span class="bpa-lobby-mini is-off">${tr('Disconnected', 'Mất kết nối')}</span>` : ''}
         </div>
         <div class="bpa-lobby-who">
-          <span class="bpa-avatar bpa-lobby-mono" aria-hidden="true">${escapeHtml(initials(p.username))}</span>
+          <canvas class="hs-seat-av" data-seat-avatar="${escapeHtml(p.userId)}" width="68" height="68" aria-hidden="true"></canvas>
           <div class="bpa-lobby-whotxt">
             <h3 id="lobby-seat-${side}" class="bpa-lobby-name">${escapeHtml(p.username)}</h3>
+            <span class="hs-seat-title">${titleHTML(T[titleKey(p.titleDefId)] ?? T['tan-binh'], { scale: 0.74, bare: true, maxW: Math.max(140, window.innerWidth - 170) })}</span>
             <div class="bpa-lobby-tags">
               ${isMe ? `<span class="bpa-chip bpa-chip--teal">${tr('YOU', 'BẠN')}</span>` : `<span class="bpa-chip bpa-chip--rust">${tr('PARTNER', 'ĐỒNG ĐỘI')}</span>`}
               ${p.userId === room.hostUserId ? `<span class="bpa-chip bpa-chip--dark">${ICON.key}${tr('HOST', 'CHỦ PHÒNG')}</span>` : ''}
@@ -523,6 +546,14 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
         </div>
       </div>
     </div>`);
+
+    // The redraw replaced the seats: each portrait follows that player's look in the latest room state.
+    painter.clear();
+    app.querySelectorAll('[data-seat-avatar]').forEach((canvas) => {
+      const userId = canvas.dataset.seatAvatar;
+      const player = () => room?.players.find((p) => p.userId === userId);
+      painter.add(canvas, () => frameKey(player()?.frameDefId), () => avatarFor(player()));
+    });
 
     qs('#copy-invite', app)?.addEventListener('click', async () => {
       const input = qs('#room-invite-link', app);

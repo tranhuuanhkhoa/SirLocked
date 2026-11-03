@@ -93,6 +93,8 @@ export function mountSellTab(ctx) {
         <button type="button" class="bpa-btn bpa-btn--ink bpa-btn--block" data-act="unlist" data-id="${escapeHtml(item.listingId || '')}">${tr('WITHDRAW', 'GỠ XUỐNG')}</button>`;
     } else if (item.locked) {
       body = `<p class="bpa-mk-sellstate">${tr('This item is inside a trade that is being completed.', 'Vật phẩm đang nằm trong một giao dịch đang hoàn tất.')}</p>`;
+    } else if (item.def.tradable === false) {
+      body = `<p class="bpa-mk-sellstate">${tr('This item was earned and cannot be sold or traded.', 'Vật phẩm này do bạn đạt được nên không bán hay trao đổi được.')}</p>`;
     } else {
       body = `
         <form class="bpa-mk-sellform" id="mk-sellform" novalidate>

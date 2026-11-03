@@ -7,6 +7,8 @@ import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { AU } from './chest/chestAudio.js';
 import { chestLook, itemSprite } from './chest/chestSprites.js';
+import { cosmeticSprite, isCosmeticDef } from '../cosmetics/icons.js';
+import { prepareCosmetics } from '../cosmetics/index.js';
 import { createChestStage } from './chest/chestStage.js';
 import { errorText, fmt, rarityLabel } from './market/marketKit.js';
 
@@ -41,7 +43,7 @@ function loadFonts() {
 
 function paintSprite(canvas, sprite) {
   const x = canvas.getContext('2d');
-  x.imageSmoothingEnabled = false;
+  x.imageSmoothingEnabled = !!sprite.smooth;
   x.clearRect(0, 0, canvas.width, canvas.height);
   const s = Math.min(canvas.width / sprite.w, canvas.height / sprite.h);
   x.drawImage(sprite.c, (canvas.width - sprite.w * s) / 2, (canvas.height - sprite.h * s) / 2, sprite.w * s, sprite.h * s);
@@ -148,7 +150,7 @@ export async function renderChestPage(app, { signal } = {}) {
 
   function itemFor(def) {
     const look = RARITY_LOOK[def.rarity] ?? RARITY_LOOK.COMMON;
-    return { id: def.id, name: tr(def.nameEn || def.name, def.name), r: look.r, rarity: def.rarity, sp: itemSprite(def.iconKey), def };
+    return { id: def.id, name: tr(def.nameEn || def.name, def.name), r: look.r, rarity: def.rarity, sp: isCosmeticDef(def) ? cosmeticSprite(def) : itemSprite(def.iconKey), def };
   }
 
   /** One cosmetic card for the reel, weighted like the published odds. The result never comes from here. */

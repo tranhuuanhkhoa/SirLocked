@@ -80,7 +80,11 @@ export function createChestStage({ app, canvas: cv, spot, keyIcon, chest, rariti
   }
 
   /* drawing helpers */
-  function blit(sp, x, y, s) { ctx.drawImage(sp.c, x, y, sp.w * s, sp.h * s); }
+  function blit(sp, x, y, s) {
+    if (!sp.smooth) { ctx.drawImage(sp.c, x, y, sp.w * s, sp.h * s); return; }
+    // Cosmetics are painted, not pixel art.
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(sp.c, x, y, sp.w * s, sp.h * s); ctx.restore();
+  }
   const buf = document.createElement('canvas'), bx = buf.getContext('2d');
   function drawClosedChest(x0, y0, S, shine, c = cur, alpha = 1) {
     // composited off-screen so the glint only touches the chest itself

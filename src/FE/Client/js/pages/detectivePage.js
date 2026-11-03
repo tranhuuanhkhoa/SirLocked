@@ -7,6 +7,7 @@ import { escapeHtml, render, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { Trophy, Gamepad2, Target, Timer, Crown, Folder, Users, createIcons } from 'lucide';
 import { renderBadgeSection } from './workshop/badgeSection.js';
+import { mountCosmeticsPanel } from './detective/cosmeticsPanel.js';
 
 // Rank ladder, mirrors DetectiveRanks in the backend (key, English, Vietnamese, minimum cases solved).
 const RANK_TIERS = [
@@ -387,6 +388,8 @@ export async function renderDetectivePage(app, userIdParam) {
       ${alertLink}
     </div>
 
+    <div id="hs-profile-mount"></div>
+
     <div class="bpa-profile-grid${isOwnProfile ? '' : ' is-visitor'}">
       <div class="bpa-profile-col bpa-profile-col--side">
         ${idCard}
@@ -403,6 +406,8 @@ export async function renderDetectivePage(app, userIdParam) {
   createIcons({ icons: ICONS, root: app });
 
   renderBadgeSection(userId, app.querySelector('#ws-badge-mount'));
+
+  const disposeCosmetics = mountCosmeticsPanel(app.querySelector('#hs-profile-mount'), { userId, isOwnProfile, displayName });
 
   const alertBtn = app.querySelector('#bpa-profile-alert');
   if (alertBtn) {
@@ -489,4 +494,6 @@ export async function renderDetectivePage(app, userIdParam) {
       }
     });
   }
+
+  return disposeCosmetics;
 }

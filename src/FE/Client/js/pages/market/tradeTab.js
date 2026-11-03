@@ -67,7 +67,7 @@ export function mountTradeTab(ctx) {
   const errorEl = $('#mk-trade-err');
 
   function myItems() {
-    return state.inventory?.items || [];
+    return (state.inventory?.items || []).filter((item) => item.def.tradable !== false);
   }
 
   function itemById(side, itemId) {
