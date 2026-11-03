@@ -172,18 +172,18 @@ public static class ChestCatalog
             "A key with a jade bow. Opens only the Lacquer Box.", 210, "key_jade"),
     };
 
-    /// <summary>Everything chests add to <see cref="MarketCatalog.All"/>: 3 chests, 3 keys, 30 curios.</summary>
+    /// <summary>Everything chests add to <see cref="MarketCatalog.All"/>: 3 chests, 3 keys, 30 curios. Cosmetics join the catalog through <see cref="CosmeticCatalog"/>.</summary>
     public static readonly IReadOnlyList<MarketItemDef> ItemDefs =
         ChestAndKeyDefs.Concat(SealItems).Concat(BankItems).Concat(LacquerItems).ToList();
 
     public static readonly IReadOnlyList<ChestDef> Chests = new[]
     {
         new ChestDef("chest_np", "key_np", "Hòm Niêm Phong", "Sealed Case", "Bến Sương · Nº 07", "Fog Wharf · Nº 07",
-            "chìa kính lúp", "loupe key", "chest_seal", "key_loupe", SealItems),
+            "chìa kính lúp", "loupe key", "chest_seal", "key_loupe", SealItems.Concat(CosmeticCatalog.ForChest("chest_np")).ToList()),
         new ChestDef("chest_nb", "key_nb", "Két Nhà Băng", "Bank Safe", "Phố Tràng Tiền · Nº 12", "Trang Tien Street · Nº 12",
-            "chìa bánh răng", "gear key", "chest_bank", "key_gear", BankItems),
+            "chìa bánh răng", "gear key", "chest_bank", "key_gear", BankItems.Concat(CosmeticCatalog.ForChest("chest_nb")).ToList()),
         new ChestDef("chest_sm", "key_sm", "Tráp Sơn Mài", "Lacquer Box", "Phố Hàng Bạc · Nº 03", "Hang Bac Street · Nº 03",
-            "chìa ngọc bích", "jade key", "chest_lacquer", "key_jade", LacquerItems),
+            "chìa ngọc bích", "jade key", "chest_lacquer", "key_jade", LacquerItems.Concat(CosmeticCatalog.ForChest("chest_sm")).ToList()),
     };
 
     public static ChestDef? Find(string? id) => Chests.FirstOrDefault(chest => chest.Id == id);

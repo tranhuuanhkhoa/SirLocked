@@ -6,6 +6,7 @@ using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.Services;
 
@@ -29,15 +30,43 @@ public class RoomService : IRoomService
     public const string CaseNotPlayableCode = "CASE_NOT_PLAYABLE";
 
     private readonly LegacyCaseCatalog? _legacy;
+    private readonly IPlayerCosmeticsReader? _cosmetics;
 
     public RoomService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier, CaseCatalogPolicy? catalog = null,
-        LegacyCaseCatalog? legacy = null)
+        LegacyCaseCatalog? legacy = null, IPlayerCosmeticsReader? cosmetics = null)
     {
         _db = db;
         _caseService = caseService;
         _notifier = notifier;
         _catalog = catalog ?? CaseCatalogPolicy.Open;
         _legacy = legacy;
+        _cosmetics = cosmetics;
+    }
+
+    /// <summary>The lobby's view of a room. Looks come from the server only; failing to load them must not close a lobby.</summary>
+    private async Task<RoomResponse> ToLobbyResponseAsync(GameRoom room, string caseTitle)
+    {
+        var response = RoomResponse.From(room, caseTitle);
+        if (_cosmetics is null) return response;
+        try
+        {
+            var looks = await _cosmetics.GetCosmeticsAsync(response.Players.Select(player => player.UserId).ToList());
+            foreach (var player in response.Players)
+            {
+                if (!looks.TryGetValue(player.UserId, out var look)) continue;
+                player.Level = look.Level;
+                player.Avatar = look.Avatar;
+                player.AvatarUrl = look.AvatarUrl;
+                player.FrameDefId = look.FrameDefId;
+                player.TitleDefId = look.TitleDefId;
+                player.EntranceDefId = look.EntranceDefId;
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            System.Diagnostics.Trace.TraceWarning("Lobby cosmetics could not be loaded for room {0}: {1}", room.Id, exception.Message);
+        }
+        return response;
     }
 
     /// <summary>Rooms of hidden (legacy) cases stay out of every room list; the rooms themselves are untouched.</summary>
@@ -103,7 +132,7 @@ public class RoomService : IRoomService
             }
         }
 
-        return RoomResponse.From(room, gameCase.Title);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
     }
 
     public async Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode)
@@ -119,7 +148,7 @@ public class RoomService : IRoomService
         if (room.Players.Any(p => p.UserId == user.Id))
         {
             // Re-joining your own room (e.g. page refresh) is idempotent.
-            return RoomResponse.From(room, gameCase.Title);
+            return await ToLobbyResponseAsync(room, gameCase.Title);
         }
 
         if (room.Status is RoomStatus.InProgress or RoomStatus.Completed)
@@ -149,7 +178,7 @@ public class RoomService : IRoomService
         }
 
         var updated = await RequireRoomAsync(room.Id);
-        var response = RoomResponse.From(updated, gameCase.Title);
+        var response = await ToLobbyResponseAsync(updated, gameCase.Title);
         await _notifier.PlayerJoined(room.Id, user.Id, response);
         return response;
     }
@@ -159,7 +188,7 @@ public class RoomService : IRoomService
         var room = await RequireRoomAsync(roomId);
         RequireMember(room, userId);
         var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        return RoomResponse.From(room, gameCase.Title);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
     }
 
     public async Task<List<RoomResponse>> GetMineAsync(string userId, CancellationToken cancellationToken = default)
@@ -305,7 +334,7 @@ public class RoomService : IRoomService
             room.PendingRemovedPlayerId = null;
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.PlayerLeft(roomId, user.Id, response);
             return response;
         }
@@ -340,7 +369,7 @@ public class RoomService : IRoomService
             }
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.RolesUpdated(roomId, user.Id, response);
             return response;
         }
@@ -364,7 +393,7 @@ public class RoomService : IRoomService
             throw ApiException.Conflict("The room changed; refresh before abandoning.");
 
         var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        return RoomResponse.From(room, gameCase.Title);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
     }
 
     public async Task<RoomResponse> SetReadyAsync(CurrentUser user, string roomId, bool isReady)
@@ -389,7 +418,7 @@ public class RoomService : IRoomService
             }
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.ReadyUpdated(roomId, user.Id, response);
             return response;
         }
@@ -456,7 +485,7 @@ public class RoomService : IRoomService
                 continue;
             }
 
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.GameStarted(roomId, response);
             return response;
         }

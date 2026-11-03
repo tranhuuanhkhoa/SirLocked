@@ -47,6 +47,8 @@ public class RoomPlayer
     public bool IsConnected { get; set; }
     public DateTime? LastConnectedAt { get; set; }
     public DateTime? DisconnectedAt { get; set; }
+    /// <summary>Set once by the first connection of this seat; see LobbyEntranceService.</summary>
+    public bool EntranceAnnounced { get; set; }
 }
 
 [BsonIgnoreExtraElements]

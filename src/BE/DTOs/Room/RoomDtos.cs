@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.DTOs.Room;
 
@@ -42,6 +43,13 @@ public class RoomPlayerDto
     public DateTime? LastConnectedAt { get; set; }
     public DateTime? DisconnectedAt { get; set; }
     public DateTime? ReconnectGraceEndsAt { get; set; }
+    // What others see of this detective. Filled in by RoomService from the server's own records.
+    public int Level { get; set; } = 1;
+    public string Avatar { get; set; } = CosmeticCatalog.DefaultAvatar;
+    public string? AvatarUrl { get; set; }
+    public string? FrameDefId { get; set; }
+    public string TitleDefId { get; set; } = CosmeticCatalog.DefaultTitleDefId;
+    public string EntranceDefId { get; set; } = CosmeticCatalog.DefaultEntranceDefId;
 
     public static RoomPlayerDto From(RoomPlayer p) => From(p, null);
 

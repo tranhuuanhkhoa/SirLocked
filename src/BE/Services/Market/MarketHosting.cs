@@ -7,11 +7,13 @@ namespace SirLocked.Api.Services.Market;
 public sealed class MarketGameRewardHook : IGameResultRewardHook
 {
     private readonly MarketService _market;
+    private readonly ProgressService _progress;
     private readonly ILogger<MarketGameRewardHook> _logger;
 
-    public MarketGameRewardHook(MarketService market, ILogger<MarketGameRewardHook> logger)
+    public MarketGameRewardHook(MarketService market, ProgressService progress, ILogger<MarketGameRewardHook> logger)
     {
         _market = market;
+        _progress = progress;
         _logger = logger;
     }
 
@@ -25,6 +27,18 @@ public sealed class MarketGameRewardHook : IGameResultRewardHook
         {
             // Never fail a finished game because of the market; the recovery sweep pays missed rewards.
             _logger.LogError(exception, "Market reward for room {RoomId} failed; recovery will retry.", result.RoomId);
+        }
+        foreach (var userId in result.Players.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal))
+        {
+            try
+            {
+                await _progress.SyncAchievementsAsync(userId, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // Recounted the next time this detective opens their profile.
+                _logger.LogWarning(exception, "Achievements of {UserId} could not be updated.", userId);
+            }
         }
     }
 }
@@ -66,6 +80,8 @@ public sealed class MarketMaintenanceWorker : BackgroundService
                 if (report.Total > 0) _logger.LogInformation("Market recovery: {Report}", report);
                 var chests = await scope.ServiceProvider.GetRequiredService<ChestService>().RecoverAsync(StaleAfter, stoppingToken);
                 if (chests.Total > 0) _logger.LogInformation("Chest recovery: {Report}", chests);
+                var exchanges = await scope.ServiceProvider.GetRequiredService<ProgressService>().RecoverAsync(StaleAfter, stoppingToken);
+                if (exchanges > 0) _logger.LogInformation("Progress recovery: {Exchanges} exchanges resumed.", exchanges);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
@@ -78,7 +94,7 @@ public sealed class MarketMaintenanceWorker : BackgroundService
 
 public static class MarketServiceCollectionExtensions
 {
-    /// <summary>Registers Chợ đồ (wallet, inventory, market, trades, game rewards) and Mở hòm.</summary>
+    /// <summary>Registers Chợ đồ (wallet, inventory, market, trades, game rewards), Mở hòm and Hồ sơ thám tử.</summary>
     public static IServiceCollection AddMarket(this IServiceCollection services)
     {
         services.AddScoped<MarketStore>();
@@ -86,6 +102,9 @@ public static class MarketServiceCollectionExtensions
         services.AddOptions();
         services.AddSingleton<IChestRandom, CryptoChestRandom>();
         services.AddScoped<ChestService>();
+        services.AddScoped<ProgressService>();
+        services.AddScoped<IPlayerCosmeticsReader>(provider => provider.GetRequiredService<ProgressService>());
+        services.AddScoped<LobbyEntranceService>();
         services.AddScoped<IGameResultRewardHook, MarketGameRewardHook>();
         services.AddHostedService<MarketMaintenanceWorker>();
         return services;

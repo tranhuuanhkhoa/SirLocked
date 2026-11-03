@@ -126,6 +126,7 @@ builder.Services.AddScoped<PresentationVideoProcessor>();
 builder.Services.AddHostedService<PresentationVideoWorker>();
 builder.Services.AddHttpClient<IPresentationVideoProvider, XaiPresentationVideoProvider>(client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
+builder.Services.AddHttpClient<IAvatarStorage, CloudinaryAvatarStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddHttpClient<IPresentationMediaStorage, CloudinaryPresentationMediaStorage>(client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
 

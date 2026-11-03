@@ -34,7 +34,7 @@ public class MarketItem
     [BsonId] public string Id { get; set; } = string.Empty;
     public string OwnerId { get; set; } = string.Empty;
     public string DefId { get; set; } = string.Empty;
-    /// <summary>null = free; "listing:&lt;id&gt;" while for sale; "tx:&lt;id&gt;" while a trade moves it; "chest:&lt;id&gt;" while a chest opening spends it.</summary>
+    /// <summary>null = free; "listing:&lt;id&gt;" while for sale; "tx:&lt;id&gt;" while a trade moves it; "chest:&lt;id&gt;" while a chest opening spends it; "xp:&lt;id&gt;" while an exchange burns it.</summary>
     public string? LockedBy { get; set; }
     public string Source { get; set; } = MarketItemSources.Starter;
     public string? LastTxId { get; set; }
@@ -49,6 +49,12 @@ public static class MarketItemSources
     public const string Grant = "GRANT";
     public const string Shop = "SHOP";
     public const string Chest = "CHEST";
+    /// <summary>Granted on reaching a level. Takes no bag slot and cannot leave the account.</summary>
+    public const string Level = "LEVEL";
+    /// <summary>Granted for an achievement. Takes no bag slot and cannot leave the account.</summary>
+    public const string Achievement = "ACHIEVEMENT";
+
+    public static bool IsEarned(string? source) => source is Level or Achievement;
 }
 
 public static class MarketListingStatus

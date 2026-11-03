@@ -42,6 +42,8 @@ public sealed class MarketStore
     public IMongoCollection<MarketRequest> Requests => _db.Database.GetCollection<MarketRequest>("marketRequests");
     public IMongoCollection<ChestOpening> ChestOpenings => _db.Database.GetCollection<ChestOpening>("chestOpenings");
     public IMongoCollection<ChestPurchase> ChestPurchases => _db.Database.GetCollection<ChestPurchase>("chestPurchases");
+    public IMongoCollection<PlayerProgress> PlayerProgress => _db.Database.GetCollection<PlayerProgress>("playerProgress");
+    public IMongoCollection<XpExchange> XpExchanges => _db.Database.GetCollection<XpExchange>("xpExchanges");
 
     public DateTime Now => _time.GetUtcNow().UtcDateTime;
 
@@ -127,6 +129,9 @@ public sealed class MarketStore
         await ChestPurchases.Indexes.CreateOneAsync(new CreateIndexModel<ChestPurchase>(
             Builders<ChestPurchase>.IndexKeys.Ascending(p => p.State).Ascending(p => p.UpdatedAt),
             new CreateIndexOptions { Name = "ix_chestPurchases_state_updatedAt" }), cancellationToken: ct);
+        await XpExchanges.Indexes.CreateOneAsync(new CreateIndexModel<XpExchange>(
+            Builders<XpExchange>.IndexKeys.Ascending(e => e.State).Ascending(e => e.UpdatedAt),
+            new CreateIndexOptions { Name = "ix_xpExchanges_state_updatedAt" }), cancellationToken: ct);
     }
 
     /// <summary>

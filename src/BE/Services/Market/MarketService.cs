@@ -51,6 +51,7 @@ public sealed partial class MarketService
         MarketErrors.TradeRecipientFunds => Error(409, code, "You do not have the requested coins."),
         MarketErrors.TradeRecipientInventory => Error(409, code, "Your inventory is full."),
         MarketErrors.NoListingAtPrice => Error(409, code, "Nothing is for sale at this price any more."),
+        MarketErrors.ItemNotTradable => Error(409, code, "This item was earned and cannot be sold or traded."),
         _ => Error(409, code, "The market changed; please try again.")
     };
 
@@ -130,7 +131,10 @@ public sealed partial class MarketService
 
     private async Task<WalletDto> WalletAsync(MarketAccount account, CancellationToken ct)
     {
-        var itemCount = (int)await _store.Items.CountDocumentsAsync(i => i.OwnerId == account.Id, cancellationToken: ct);
+        // Earned cosmetics take no slot, so they do not count as bag contents either.
+        var itemCount = (int)await _store.Items.CountDocumentsAsync(
+            i => i.OwnerId == account.Id && i.Source != MarketItemSources.Level && i.Source != MarketItemSources.Achievement,
+            cancellationToken: ct);
         var reserved = (int)await _store.Orders.CountDocumentsAsync(
             o => o.BuyerId == account.Id && o.Held && !o.Released
                  && (o.Status == MarketOrderStatus.Active || o.Status == MarketOrderStatus.Pending
@@ -143,7 +147,7 @@ public sealed partial class MarketService
     // ------------------------------------------------------------------ catalog & browse
 
     public static ItemDefDto ToDefDto(MarketItemDef def) =>
-        new(def.Id, def.Category, def.Rarity, def.Name, def.NameEn, def.Description, def.DescriptionEn, def.ReferencePrice, def.IconKey);
+        new(def.Id, def.Category, def.Rarity, def.Name, def.NameEn, def.Description, def.DescriptionEn, def.ReferencePrice, def.IconKey, def.Tradable);
 
     internal static ItemDefDto DefDto(string defId) =>
         MarketCatalog.Find(defId) is { } def
@@ -158,6 +162,7 @@ public sealed partial class MarketService
         var normalized = MarketRules.NormalizeSearch(query);
         var rarityFilter = (rarities ?? Array.Empty<string>()).Where(MarketRarities.IsValid).ToHashSet();
         var searched = MarketCatalog.All
+            .Where(def => def.Tradable)
             .Where(def => MarketRules.MatchesSearch(def, normalized))
             .Where(def => rarityFilter.Count == 0 || rarityFilter.Contains(def.Rarity))
             .ToList();
@@ -323,7 +328,9 @@ public sealed partial class MarketService
     {
         var account = await EnsureAccountAsync(userId, ct);
         var items = await LoadInventoryItemsAsync(userId, account.Equipped, ct);
-        return new InventoryDto(items, await WalletAsync(account, ct), ValidEquipped(account.Equipped, items));
+        // Earned cosmetics live in the profile, not in the 12-slot bag; they can still be what is equipped.
+        var bag = items.Where(item => !MarketItemSources.IsEarned(item.Source)).ToList();
+        return new InventoryDto(bag, await WalletAsync(account, ct), ValidEquipped(account.Equipped, items));
     }
 
     /// <summary>Another detective's items, so a trade offer can ask for specific pieces.</summary>
@@ -333,7 +340,7 @@ public sealed partial class MarketService
             ?? throw Error(404, MarketErrors.UserNotFound, "No detective with this id was found.");
         var account = await _store.FindAccountAsync(ownerId, ct);
         var items = await LoadInventoryItemsAsync(ownerId, account?.Equipped ?? new Dictionary<string, string>(), ct);
-        return new PublicInventoryDto(new TradePartyDto(owner.Id, owner.FullName), items);
+        return new PublicInventoryDto(new TradePartyDto(owner.Id, owner.FullName), items.Where(item => item.Def.Tradable).ToList());
     }
 
     private async Task<List<InventoryItemDto>> LoadInventoryItemsAsync(
@@ -360,6 +367,10 @@ public sealed partial class MarketService
             else if (item.LockedBy?.StartsWith(ChestLockPrefix, StringComparison.Ordinal) == true)
             {
                 reason = "OPENING";
+            }
+            else if (item.LockedBy?.StartsWith(XpLockPrefix, StringComparison.Ordinal) == true)
+            {
+                reason = "EXCHANGING";
             }
             else if (item.LockedBy is not null)
             {

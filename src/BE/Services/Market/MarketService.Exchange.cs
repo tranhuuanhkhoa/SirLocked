@@ -11,6 +11,8 @@ public sealed partial class MarketService
     internal const string ListingLockPrefix = "listing:";
     internal const string TxLockPrefix = "tx:";
     internal const string ChestLockPrefix = "chest:";
+    /// <summary>Item lock held while an exchange for XP burns the item. Released by <see cref="ProgressService"/>, never by the market sweep.</summary>
+    internal const string XpLockPrefix = "xp:";
 
     internal static string ListingLock(string listingId) => ListingLockPrefix + listingId;
     internal static string TxLock(string txId) => TxLockPrefix + txId;
@@ -38,6 +40,7 @@ public sealed partial class MarketService
         if (item.LockedBy is not null)
             throw Error(409, MarketErrors.ItemLocked, "This item is already for sale or inside a trade.");
         var def = MarketCatalog.Find(item.DefId) ?? throw Error(409, MarketErrors.UnknownItemType, "Unknown item type.");
+        if (!def.Tradable) throw ErrorFor(MarketErrors.ItemNotTradable);
         var open = await _store.Listings.CountDocumentsAsync(
             l => l.SellerId == user.Id && (l.Status == MarketListingStatus.Opening || l.Status == MarketListingStatus.Active
                                            || l.Status == MarketListingStatus.Pending), cancellationToken: ct);
@@ -145,6 +148,7 @@ public sealed partial class MarketService
     public async Task<PurchaseResultDto> BuyLowestAsync(CurrentUser user, string defId, long maxPrice, CancellationToken ct = default)
     {
         var def = MarketCatalog.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
+        if (!def.Tradable) throw ErrorFor(MarketErrors.ItemNotTradable);
         if (MarketRules.ValidatePrice(maxPrice) is not null) throw ErrorFor(MarketErrors.NoListingAtPrice);
         await RequireVerifiedAsync(user.Id, ct);
         var account = await EnsureAccountAsync(user.Id, ct);
@@ -178,6 +182,7 @@ public sealed partial class MarketService
     public async Task<OrderResultDto> PlaceOrderAsync(CurrentUser user, string defId, long price, CancellationToken ct = default)
     {
         var def = MarketCatalog.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
+        if (!def.Tradable) throw ErrorFor(MarketErrors.ItemNotTradable);
         if (MarketRules.ValidatePrice(price) is { } priceError)
             throw Error(400, priceError, $"Price must be between {MarketRules.MinPrice} and {MarketRules.MaxPrice} xu.");
         await RequireVerifiedAsync(user.Id, ct);

@@ -94,6 +94,8 @@ public sealed partial class MarketService
             : (await _store.Items.Find(i => all.Contains(i.Id)).ToListAsync(ct)).ToDictionary(i => i.Id);
         if (MarketRules.ValidateTradeItems(offerIds, requestIds, user.Id, target.Id, items) is { } itemError)
             throw ErrorFor(itemError);
+        if (items.Values.Any(item => MarketCatalog.Find(item.DefId)?.Tradable == false))
+            throw ErrorFor(MarketErrors.ItemNotTradable);
         if (me.Balance < draft.OfferCoins) throw ErrorFor(MarketErrors.InsufficientFunds);
 
         var now = Now;

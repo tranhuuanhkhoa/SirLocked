@@ -12,9 +12,12 @@ public static class MarketCategories
     public const string Chest = "CHEST";
     public const string Key = "KEY";
     public const string Curio = "CURIO";
+    public const string Frame = "FRAME";
+    public const string Title = "TITLE";
+    public const string Entrance = "ENTRANCE";
 
     /// <summary>Display order of the "DANH MỤC" list.</summary>
-    public static readonly IReadOnlyList<string> All = new[] { Magnifier, Stamp, Pins, Folder, Badge, Board, Watch, Chest, Key, Curio };
+    public static readonly IReadOnlyList<string> All = new[] { Magnifier, Stamp, Pins, Folder, Badge, Board, Watch, Chest, Key, Curio, Frame, Title, Entrance };
 
     public static bool IsValid(string? category) => category is not null && All.Contains(category);
 
@@ -55,12 +58,13 @@ public sealed record MarketItemDef(
     string Description,
     string DescriptionEn,
     long ReferencePrice,
-    string? IconKey = null);
+    string? IconKey = null,
+    bool Tradable = true);
 
 /// <summary>
 /// The fixed catalog of cosmetic gear (Market.dc.html plus one "Thường" piece per category so the
 /// starter grant and every category have an entry-level item), plus what chests add (see
-/// <see cref="ChestCatalog"/>). Icons are drawn by the frontend: per category and tinted by rarity,
+/// <see cref="ChestCatalog"/>) and the detective profile (see <see cref="CosmeticCatalog"/>). Icons are drawn by the frontend: per category and tinted by rarity,
 /// or from a pixel sprite when <see cref="MarketItemDef.IconKey"/> is set. Nothing here affects gameplay.
 /// </summary>
 public static class MarketCatalog
@@ -137,7 +141,7 @@ public static class MarketCatalog
             "Đồng hồ quả quýt", "Hunter-case pocket watch",
             "Hiện đồng hồ đếm giờ vụ án theo kiểu mặt đồng hồ cổ.",
             "Shows the case timer as an antique watch face.", 450),
-    }.Concat(ChestCatalog.ItemDefs).ToList();
+    }.Concat(ChestCatalog.ItemDefs).Concat(CosmeticCatalog.ItemDefs).ToList();
 
     private static readonly Dictionary<string, MarketItemDef> ById = All.ToDictionary(def => def.Id, StringComparer.Ordinal);
 

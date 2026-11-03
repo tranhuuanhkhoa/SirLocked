@@ -1,4 +1,5 @@
 using SirLocked.Api.DTOs.Investigation;
+using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.DTOs.Submission;
 
@@ -13,6 +14,7 @@ public interface IGameNotifier
     Task RolesUpdated(string roomId, string userId, RoomResponse room);
     Task ReadyUpdated(string roomId, string userId, RoomResponse room);
     Task GameStarted(string roomId, RoomResponse room);
+    Task PlayerEntrance(string roomId, PlayerEntranceDto entrance);
 
     // Gameplay
     Task GameStateUpdated(string roomId, long version);

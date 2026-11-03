@@ -7,6 +7,7 @@ using MongoDB.Bson;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.WebAPI.Hubs;
 
@@ -22,13 +23,15 @@ public class GameHub : Hub
     };
     private readonly MongoDbContext _db;
     private readonly RoomDisconnectTimeoutService _disconnectTimeout;
+    private readonly LobbyEntranceService _entrances;
     private readonly ILogger<GameHub> _logger;
     private static readonly CooperativePingPolicy PingPolicy = new();
 
-    public GameHub(MongoDbContext db, RoomDisconnectTimeoutService disconnectTimeout, ILogger<GameHub> logger)
+    public GameHub(MongoDbContext db, RoomDisconnectTimeoutService disconnectTimeout, LobbyEntranceService entrances, ILogger<GameHub> logger)
     {
         _db = db;
         _disconnectTimeout = disconnectTimeout;
+        _entrances = entrances;
         _logger = logger;
     }
 
@@ -82,6 +85,16 @@ public class GameHub : Hub
             roomId,
             version = room.GameplayState?.Version ?? 0
         });
+        try
+        {
+            // After joining the group, so the arriving player sees their own entrance too.
+            await _entrances.AnnounceAsync(roomId, userId!, Context.ConnectionAborted);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            // Cosmetic only: a player must still get into the room.
+            _logger.LogWarning(error, "Could not announce the entrance of {UserId} in room {RoomId}.", userId, roomId);
+        }
     }
 
     public async Task LeaveRoom(string roomId)

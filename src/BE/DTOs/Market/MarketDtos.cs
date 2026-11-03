@@ -11,7 +11,8 @@ public sealed record ItemDefDto(
     string Description,
     string DescriptionEn,
     long ReferencePrice,
-    string? IconKey = null);
+    string? IconKey = null,
+    bool Tradable = true);
 
 public sealed record WalletDto(
     long Balance,
