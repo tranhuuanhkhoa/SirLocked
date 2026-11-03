@@ -20,6 +20,8 @@ public sealed class CutsceneServiceTests
 {
     private const string Tram = "case-pixel-tram-hong-ngoc-vi.json";
     private const string LoThuoc = "case-pixel-lo-thuoc-thu-nam-vi.json";
+    // The seeding tests write and delete this case's file; the bundled cases keep their real scripts.
+    private const string SeedTestCaseId = "case-pixel-seed-test";
 
     private sealed class MemoryStore : ICutsceneStore
     {
@@ -62,9 +64,10 @@ public sealed class CutsceneServiceTests
         public GameCase Case { get; }
         public CutsceneService Service { get; }
 
-        public Rig(string file = Tram, CutsceneSettings? cutscene = null, bool pixelOnly = true, bool published = true, bool mock = true, GameCase[]? extra = null)
+        public Rig(string file = Tram, CutsceneSettings? cutscene = null, bool pixelOnly = true, bool published = true, bool mock = true, GameCase[]? extra = null, string? caseId = null)
         {
             Case = CutsceneScriptTests.Load(file);
+            if (caseId is not null) Case.CaseId = caseId;
             Case.Status = published ? CaseStatus.Published : CaseStatus.Draft;
             var openAi = Options.Create(new OpenAiSettings { MockAiResponses = mock, ApiKey = "test-key-not-real" });
             var settings = Options.Create(cutscene ?? new CutsceneSettings());
@@ -243,7 +246,7 @@ public sealed class CutsceneServiceTests
     [Fact]
     public async Task Seed_InsertsAnApprovedScriptFromFile_AndNeverOverwrites()
     {
-        var rig = new Rig();
+        var rig = new Rig(caseId: SeedTestCaseId);
         var path = WriteSeed(rig.Case.CaseId, JsonSerializer.Serialize(CutsceneMockScriptFactory.Create(rig.Case), CutsceneScriptGenerator.JsonOptions));
         try
         {
@@ -264,7 +267,7 @@ public sealed class CutsceneServiceTests
     [Fact]
     public async Task Seed_SkipsAnInvalidFile_WithoutThrowing()
     {
-        var rig = new Rig();
+        var rig = new Rig(caseId: SeedTestCaseId);
         var script = CutsceneMockScriptFactory.Create(rig.Case);
         script.Pages[0].Panels[0].Art.Id = "nope";
         var path = WriteSeed(rig.Case.CaseId, JsonSerializer.Serialize(script, CutsceneScriptGenerator.JsonOptions));
@@ -279,7 +282,7 @@ public sealed class CutsceneServiceTests
     [Fact]
     public async Task Seed_WithoutFile_DoesNotWriteAMockDraft()
     {
-        var rig = new Rig(mock: true);
+        var rig = new Rig(mock: true, caseId: SeedTestCaseId);
         Assert.Empty(await rig.Service.SeedMissingAsync(new[] { rig.Case }));
         Assert.Empty(rig.Store.Rows);
     }
@@ -301,7 +304,7 @@ public sealed class CutsceneServiceTests
     [Fact]
     public async Task SeedWorker_WaitsForTheCatalogue_ThenSeedsFromFile()
     {
-        var rig = new Rig();
+        var rig = new Rig(caseId: SeedTestCaseId);
         var path = WriteSeed(rig.Case.CaseId, JsonSerializer.Serialize(CutsceneMockScriptFactory.Create(rig.Case), CutsceneScriptGenerator.JsonOptions));
         try
         {
