@@ -79,6 +79,10 @@ builder.Services.AddHostedService<CutsceneSeedWorker>();
 builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
 builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
+builder.Services.AddOptions<ChestSettings>()
+    .Bind(builder.Configuration.GetSection("Chests"))
+    .Validate(ChestSettings.IsValid, "Chests:Prices must price every chest and keep its expected value below the cost of opening.")
+    .ValidateOnStart();
 // Resolved here rather than bound from configuration so the Development-only guard sits next to the
 // admin-seed guard below, where anyone auditing startup can see both bypasses in one place.
 builder.Services.Configure<AuthSettings>(settings =>
@@ -255,6 +259,20 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 120,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
+
+    // Mở hòm và mua hòm/chìa là ghi thật vào Mongo; một lượt mở tốn vài giây hoạt ảnh nên 60 lần/phút
+    // theo từng người dùng vẫn dư cho cả việc gửi lại khi mạng chập chờn.
+    options.AddPolicy("chests", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
             Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0

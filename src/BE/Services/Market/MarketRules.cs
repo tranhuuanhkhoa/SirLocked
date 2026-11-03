@@ -40,6 +40,7 @@ public static class MarketErrors
     public const string InvalidRequestId = "MARKET_INVALID_REQUEST_ID";
     public const string Busy = "MARKET_BUSY";
     public const string EmailNotVerified = "MARKET_EMAIL_NOT_VERIFIED";
+    public const string NotEquippable = "MARKET_ITEM_NOT_EQUIPPABLE";
 }
 
 public sealed record DailyAggregate(DateOnly Day, long Sum, int Count, long Min, long Max);

@@ -9,11 +9,17 @@ public static class MarketCategories
     public const string Badge = "BADGE";
     public const string Board = "BOARD";
     public const string Watch = "WATCH";
+    public const string Chest = "CHEST";
+    public const string Key = "KEY";
+    public const string Curio = "CURIO";
 
     /// <summary>Display order of the "DANH MỤC" list.</summary>
-    public static readonly IReadOnlyList<string> All = new[] { Magnifier, Stamp, Pins, Folder, Badge, Board, Watch };
+    public static readonly IReadOnlyList<string> All = new[] { Magnifier, Stamp, Pins, Folder, Badge, Board, Watch, Chest, Key, Curio };
 
     public static bool IsValid(string? category) => category is not null && All.Contains(category);
+
+    /// <summary>Chests, keys and collectibles only sit in the bag; gear can be put in use ("ĐANG DÙNG").</summary>
+    public static bool IsEquippable(string? category) => IsValid(category) && category is not (Chest or Key or Curio);
 }
 
 public static class MarketRarities
@@ -22,8 +28,9 @@ public static class MarketRarities
     public const string Rare = "RARE";
     public const string Epic = "EPIC";
     public const string Legendary = "LEGENDARY";
+    public const string Mystery = "MYSTERY";
 
-    public static readonly IReadOnlyList<string> All = new[] { Common, Rare, Epic, Legendary };
+    public static readonly IReadOnlyList<string> All = new[] { Common, Rare, Epic, Legendary, Mystery };
 
     public static bool IsValid(string? rarity) => rarity is not null && All.Contains(rarity);
 
@@ -33,6 +40,7 @@ public static class MarketRarities
         Rare => 1,
         Epic => 2,
         Legendary => 3,
+        Mystery => 4,
         _ => -1
     };
 }
@@ -46,12 +54,14 @@ public sealed record MarketItemDef(
     string NameEn,
     string Description,
     string DescriptionEn,
-    long ReferencePrice);
+    long ReferencePrice,
+    string? IconKey = null);
 
 /// <summary>
 /// The fixed catalog of cosmetic gear (Market.dc.html plus one "Thường" piece per category so the
-/// starter grant and every category have an entry-level item). Icons are drawn by the frontend
-/// per category and tinted by rarity; nothing here affects gameplay.
+/// starter grant and every category have an entry-level item), plus what chests add (see
+/// <see cref="ChestCatalog"/>). Icons are drawn by the frontend: per category and tinted by rarity,
+/// or from a pixel sprite when <see cref="MarketItemDef.IconKey"/> is set. Nothing here affects gameplay.
 /// </summary>
 public static class MarketCatalog
 {
@@ -127,7 +137,7 @@ public static class MarketCatalog
             "Đồng hồ quả quýt", "Hunter-case pocket watch",
             "Hiện đồng hồ đếm giờ vụ án theo kiểu mặt đồng hồ cổ.",
             "Shows the case timer as an antique watch face.", 450),
-    };
+    }.Concat(ChestCatalog.ItemDefs).ToList();
 
     private static readonly Dictionary<string, MarketItemDef> ById = All.ToDictionary(def => def.Id, StringComparer.Ordinal);
 

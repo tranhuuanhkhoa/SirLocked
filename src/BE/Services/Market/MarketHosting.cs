@@ -64,6 +64,8 @@ public sealed class MarketMaintenanceWorker : BackgroundService
                 using var scope = _scopes.CreateScope();
                 var report = await scope.ServiceProvider.GetRequiredService<MarketService>().RecoverAsync(StaleAfter, stoppingToken);
                 if (report.Total > 0) _logger.LogInformation("Market recovery: {Report}", report);
+                var chests = await scope.ServiceProvider.GetRequiredService<ChestService>().RecoverAsync(StaleAfter, stoppingToken);
+                if (chests.Total > 0) _logger.LogInformation("Chest recovery: {Report}", chests);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
@@ -76,11 +78,14 @@ public sealed class MarketMaintenanceWorker : BackgroundService
 
 public static class MarketServiceCollectionExtensions
 {
-    /// <summary>Registers Chợ đồ (wallet, inventory, market, trades, game rewards).</summary>
+    /// <summary>Registers Chợ đồ (wallet, inventory, market, trades, game rewards) and Mở hòm.</summary>
     public static IServiceCollection AddMarket(this IServiceCollection services)
     {
         services.AddScoped<MarketStore>();
         services.AddScoped<MarketService>();
+        services.AddOptions();
+        services.AddSingleton<IChestRandom, CryptoChestRandom>();
+        services.AddScoped<ChestService>();
         services.AddScoped<IGameResultRewardHook, MarketGameRewardHook>();
         services.AddHostedService<MarketMaintenanceWorker>();
         return services;

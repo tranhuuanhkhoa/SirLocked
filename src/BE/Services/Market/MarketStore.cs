@@ -40,6 +40,8 @@ public sealed class MarketStore
     public IMongoCollection<MarketReward> Rewards => _db.Database.GetCollection<MarketReward>("marketRewards");
     public IMongoCollection<MarketTx> Txs => _db.Database.GetCollection<MarketTx>("marketTx");
     public IMongoCollection<MarketRequest> Requests => _db.Database.GetCollection<MarketRequest>("marketRequests");
+    public IMongoCollection<ChestOpening> ChestOpenings => _db.Database.GetCollection<ChestOpening>("chestOpenings");
+    public IMongoCollection<ChestPurchase> ChestPurchases => _db.Database.GetCollection<ChestPurchase>("chestPurchases");
 
     public DateTime Now => _time.GetUtcNow().UtcDateTime;
 
@@ -115,6 +117,16 @@ public sealed class MarketStore
         await Requests.Indexes.CreateOneAsync(new CreateIndexModel<MarketRequest>(
             Builders<MarketRequest>.IndexKeys.Ascending(r => r.CreatedAt),
             new CreateIndexOptions { Name = "ttl_marketRequests_createdAt", ExpireAfter = TimeSpan.FromDays(1) }), cancellationToken: ct);
+        await ChestOpenings.Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<ChestOpening>(Builders<ChestOpening>.IndexKeys.Ascending(o => o.State).Ascending(o => o.UpdatedAt),
+                new CreateIndexOptions { Name = "ix_chestOpenings_state_updatedAt" }),
+            new CreateIndexModel<ChestOpening>(Builders<ChestOpening>.IndexKeys.Ascending(o => o.UserId).Descending(o => o.CreatedAt),
+                new CreateIndexOptions { Name = "ix_chestOpenings_user_createdAt" })
+        }, ct);
+        await ChestPurchases.Indexes.CreateOneAsync(new CreateIndexModel<ChestPurchase>(
+            Builders<ChestPurchase>.IndexKeys.Ascending(p => p.State).Ascending(p => p.UpdatedAt),
+            new CreateIndexOptions { Name = "ix_chestPurchases_state_updatedAt" }), cancellationToken: ct);
     }
 
     /// <summary>

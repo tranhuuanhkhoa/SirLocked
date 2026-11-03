@@ -10,6 +10,7 @@ public sealed partial class MarketService
 {
     internal const string ListingLockPrefix = "listing:";
     internal const string TxLockPrefix = "tx:";
+    internal const string ChestLockPrefix = "chest:";
 
     internal static string ListingLock(string listingId) => ListingLockPrefix + listingId;
     internal static string TxLock(string txId) => TxLockPrefix + txId;

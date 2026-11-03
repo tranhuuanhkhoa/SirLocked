@@ -34,7 +34,7 @@ public class MarketItem
     [BsonId] public string Id { get; set; } = string.Empty;
     public string OwnerId { get; set; } = string.Empty;
     public string DefId { get; set; } = string.Empty;
-    /// <summary>null = free; "listing:&lt;id&gt;" while for sale; "tx:&lt;id&gt;" while a trade moves it.</summary>
+    /// <summary>null = free; "listing:&lt;id&gt;" while for sale; "tx:&lt;id&gt;" while a trade moves it; "chest:&lt;id&gt;" while a chest opening spends it.</summary>
     public string? LockedBy { get; set; }
     public string Source { get; set; } = MarketItemSources.Starter;
     public string? LastTxId { get; set; }
@@ -47,6 +47,8 @@ public static class MarketItemSources
     public const string Market = "MARKET";
     public const string Trade = "TRADE";
     public const string Grant = "GRANT";
+    public const string Shop = "SHOP";
+    public const string Chest = "CHEST";
 }
 
 public static class MarketListingStatus

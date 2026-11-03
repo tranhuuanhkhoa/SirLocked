@@ -20,7 +20,7 @@ namespace SirLocked.Api.Services.Market;
 public sealed partial class MarketService
 {
     private static readonly JsonSerializerOptions ResultJson = new(JsonSerializerDefaults.Web);
-    private static readonly Regex RequestIdPattern = new("^[A-Za-z0-9_-]{8,64}$", RegexOptions.Compiled);
+    internal static readonly Regex RequestIdPattern = new("^[A-Za-z0-9_-]{8,64}$", RegexOptions.Compiled);
 
     private readonly MarketStore _store;
     private readonly ILogger<MarketService> _logger;
@@ -143,9 +143,9 @@ public sealed partial class MarketService
     // ------------------------------------------------------------------ catalog & browse
 
     public static ItemDefDto ToDefDto(MarketItemDef def) =>
-        new(def.Id, def.Category, def.Rarity, def.Name, def.NameEn, def.Description, def.DescriptionEn, def.ReferencePrice);
+        new(def.Id, def.Category, def.Rarity, def.Name, def.NameEn, def.Description, def.DescriptionEn, def.ReferencePrice, def.IconKey);
 
-    private static ItemDefDto DefDto(string defId) =>
+    internal static ItemDefDto DefDto(string defId) =>
         MarketCatalog.Find(defId) is { } def
             ? ToDefDto(def)
             : new ItemDefDto(defId, MarketCategories.Magnifier, MarketRarities.Common, defId, defId, string.Empty, string.Empty, 0);
@@ -357,6 +357,10 @@ public sealed partial class MarketService
                 listingId = item.LockedBy[ListingLockPrefix.Length..];
                 if (listings.TryGetValue(listingId, out var listing)) listingPrice = listing.Price;
             }
+            else if (item.LockedBy?.StartsWith(ChestLockPrefix, StringComparison.Ordinal) == true)
+            {
+                reason = "OPENING";
+            }
             else if (item.LockedBy is not null)
             {
                 reason = "TRADE";
@@ -386,6 +390,8 @@ public sealed partial class MarketService
         if (item.LockedBy is not null)
             throw Error(409, MarketErrors.ItemLocked, "Items for sale or in a trade cannot be equipped.");
         var def = MarketCatalog.Find(item.DefId) ?? throw Error(409, MarketErrors.UnknownItemType, "Unknown item type.");
+        if (!MarketCategories.IsEquippable(def.Category))
+            throw Error(409, MarketErrors.NotEquippable, "Chests, keys and collectibles cannot be put in use.");
         await _store.Accounts.UpdateOneAsync(a => a.Id == userId,
             Builders<MarketAccount>.Update.Set($"equipped.{def.Category}", item.Id).Set(a => a.UpdatedAt, Now),
             cancellationToken: ct);
@@ -461,7 +467,7 @@ public sealed partial class MarketService
     /// Anything that moves coins or items between detectives needs a verified e-mail, so throwaway
     /// accounts cannot farm the starter grant and funnel it to a main account.
     /// </summary>
-    private async Task RequireVerifiedAsync(string userId, CancellationToken ct)
+    internal async Task RequireVerifiedAsync(string userId, CancellationToken ct)
     {
         var verified = ObjectId.TryParse(userId, out _) && await _store.Context.Users.CountDocumentsAsync(
             u => u.Id == userId && u.IsEmailVerified && u.Status == UserStatus.Active, cancellationToken: ct) > 0;
@@ -532,6 +538,14 @@ public sealed partial class MarketService
     }
 
     // ------------------------------------------------------------------ admin
+
+    /// <summary>The wallet of an existing detective, for operator tools that must not create accounts for unknown ids.</summary>
+    internal async Task<WalletDto> GetWalletForGrantAsync(string userId, CancellationToken ct)
+    {
+        if (await FindActiveUserAsync(userId, ct) is null)
+            throw Error(404, MarketErrors.UserNotFound, "No detective with this id was found.");
+        return await GetWalletAsync(userId, ct);
+    }
 
     /// <summary>Operator tool (events, support, manual testing): grants coins and/or one item.</summary>
     public async Task<WalletDto> AdminGrantAsync(string userId, string? defId, long coins, CancellationToken ct = default)

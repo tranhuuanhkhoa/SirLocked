@@ -10,7 +10,8 @@ public sealed record ItemDefDto(
     string NameEn,
     string Description,
     string DescriptionEn,
-    long ReferencePrice);
+    long ReferencePrice,
+    string? IconKey = null);
 
 public sealed record WalletDto(
     long Balance,
@@ -100,7 +101,7 @@ public sealed record InventoryItemDto(
     string ItemId,
     ItemDefDto Def,
     bool Locked,
-    // LISTED (for sale) or TRADE (inside an accepting trade); null when free.
+    // LISTED (for sale), TRADE (inside an accepting trade) or OPENING (a chest opening is spending it); null when free.
     string? LockReason,
     string? ListingId,
     long? ListingPrice,
