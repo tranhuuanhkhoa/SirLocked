@@ -31,9 +31,10 @@ public class RoomService : IRoomService
 
     private readonly LegacyCaseCatalog? _legacy;
     private readonly IPlayerCosmeticsReader? _cosmetics;
+    private readonly ILogger<RoomService>? _logger;
 
     public RoomService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier, CaseCatalogPolicy? catalog = null,
-        LegacyCaseCatalog? legacy = null, IPlayerCosmeticsReader? cosmetics = null)
+        LegacyCaseCatalog? legacy = null, IPlayerCosmeticsReader? cosmetics = null, ILogger<RoomService>? logger = null)
     {
         _db = db;
         _caseService = caseService;
@@ -41,6 +42,7 @@ public class RoomService : IRoomService
         _catalog = catalog ?? CaseCatalogPolicy.Open;
         _legacy = legacy;
         _cosmetics = cosmetics;
+        _logger = logger;
     }
 
     /// <summary>The lobby's view of a room. Looks come from the server only; failing to load them must not close a lobby.</summary>
@@ -64,7 +66,7 @@ public class RoomService : IRoomService
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            System.Diagnostics.Trace.TraceWarning("Lobby cosmetics could not be loaded for room {0}: {1}", room.Id, exception.Message);
+            _logger?.LogWarning(exception, "Lobby cosmetics could not be loaded for room {RoomId}.", room.Id);
         }
         return response;
     }

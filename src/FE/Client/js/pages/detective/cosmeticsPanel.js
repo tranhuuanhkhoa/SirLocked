@@ -53,6 +53,13 @@ function sourceText(source) {
   return source;
 }
 
+/** XP that exchanging `total` would waste, because the level cap stops the climb. The curve is the server's: 200 + 40 * (level - 1). */
+function xpBeyondCap(me, total) {
+  let room = me.xpToNext - me.xp;
+  for (let level = me.level + 1; level < me.maxLevel; level++) room += 200 + 40 * (level - 1);
+  return Math.max(0, total - room);
+}
+
 const rarityName = (rar) => tr(rar.en, rar.n);
 const fmt = (value) => Number(value).toLocaleString(uiLanguage() === 'vi' ? 'vi-VN' : 'en-US');
 
@@ -205,9 +212,11 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
     }));
     panel.querySelector('[data-hs-all]').addEventListener('click', () => {
       const ids = me.exchangeable.map((item) => item.itemId);
+      const wasted = xpBeyondCap(me, total);
       confirmDialog(
         tr(`Exchange ${ids.length} ${ids.length === 1 ? 'item' : 'items'} for ${fmt(total)} XP?`, `Đổi ${ids.length} vật phẩm lấy ${fmt(total)} KN?`),
-        tr('The items are gone for good, and they cannot be sold afterwards.', 'Vật phẩm sẽ mất vĩnh viễn và không bán được nữa.'),
+        tr('The items are gone for good, and they cannot be sold afterwards.', 'Vật phẩm sẽ mất vĩnh viễn và không bán được nữa.')
+          + (wasted > 0 ? ` ${tr(`Level ${me.maxLevel} is the top: ${fmt(wasted)} XP beyond it is lost.`, `Cấp ${me.maxLevel} là cao nhất: ${fmt(wasted)} KN dư sẽ mất.`)}` : ''),
         () => exchange(ids));
     });
   }

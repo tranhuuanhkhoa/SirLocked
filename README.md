@@ -97,6 +97,22 @@ Contents and drop rates live in one place, `Services/Market/ChestCatalog.cs`. Pr
 
 As MongoDB runs standalone, `chestOpenings` is a journal: the reward is rolled and stored before anything is spent, one free chest and key are locked (`LockedBy = chest:<id>`), and a commit flag separates the part that can still fail from the part that only rolls forward. `chestPurchases` does the same for the shop. The market's maintenance worker resumes anything left unfinished for more than 30 seconds.
 
+### Hồ sơ thám tử (detective profile)
+
+`#/detective` adds a framed portrait, a level and four tabs; the lobby shows every player's frame and title and plays their
+entrance for the whole room. Drawing code lives in `src/FE/Client/js/cosmetics/`, moved as it is from the approved mock-up (see
+the README there); art is in `src/FE/public/assets/cosmetics/`.
+
+- XP to go from level `lv` to `lv + 1` is `200 + 40 * (lv - 1)`, capped at level 50. `POST /api/progress/exchange` burns Rare items
+  for 150 XP and Epic items for 600 XP, journaled in `xpExchanges` with an idempotency key. `GET /api/progress/me` reads it all.
+- Categories `FRAME`, `TITLE` and `ENTRANCE` hold one equipped item each, through the market's equip API. Ids are prefixed
+  (`frame_`, `title_`, `entrance_`) because titles and entrances share names.
+- Chest drops are tradable. What a detective earns (levels, achievements, the defaults) has `Tradable = false`, takes no bag slot,
+  and the market refuses to list, bid on, trade or exchange it.
+- `title_tho-khoa` ("Giải 25 câu đố ổ khóa") stays closed: rooms record which puzzles were solved, not by whom.
+- `GameHub.JoinRoom` announces an arrival once per seat through SignalR `PlayerEntrance`. A refresh or reconnect plays nothing.
+- Uploaded avatars need Cloudinary; without it the upload button is not offered.
+
 ## Run Locally
 
 To run the project with your existing database and accounts, keep the repository-root `.env` configuration and start the backend and frontend below. The backend connects to the database specified by `MongoDb__ConnectionString` and `MongoDb__DatabaseName`.

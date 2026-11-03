@@ -171,6 +171,22 @@ test('exchanging everything asks first, because the items are gone for good', as
   await expect(page.getByRole('button', { name: 'Hết vật phẩm để đổi' })).toBeDisabled();
 });
 
+test('near the top level, the confirmation warns that XP beyond it is lost', async ({ page }) => {
+  // 120 XP short of level 50, with 900 XP on offer: 780 XP would go nowhere.
+  await prepare(page, progress({ level: 49, xp: 2000, xpToNext: 2120 }));
+  await page.goto('/#/detective');
+  await page.getByRole('button', { name: /Đổi tất cả/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('780 KN dư sẽ mất');
+});
+
+test('far from the top level, the confirmation does not mention lost XP', async ({ page }) => {
+  await prepare(page, progress());
+  await page.goto('/#/detective');
+  await page.getByRole('button', { name: /Đổi tất cả/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('mất vĩnh viễn');
+  await expect(page.getByRole('dialog')).not.toContainText('KN dư');
+});
+
 test('a lost connection resends the same key, so a retry cannot pay twice', async ({ page }) => {
   const state = await prepare(page, progress());
   const keys: string[] = [];
@@ -489,6 +505,33 @@ test('the page fits a phone, without scrolling sideways', async ({ page }) => {
     expect(overflow, `${name} must not scroll sideways`).toBeLessThanOrEqual(0);
   }
 });
+
+for (const [id, category, name] of [
+  ['frame_kimlong', 'FRAME', 'Kim Long'],
+  ['title_long-phung', 'TITLE', 'Long Phụng Thần Thám'],
+  ['entrance_kim-long', 'ENTRANCE', 'Kim Long Giáng Thế'],
+] as const) {
+  test(`opening a chest can reveal a ${category.toLowerCase()}, drawn with its own art`, async ({ page }) => {
+    await prepare(page, progress());
+    const errors = collectPageErrors(page);
+    const cosmetic = { ...def(id, name, 'MYSTERY'), category, iconKey: id };
+    const chest = (chestCount: number, keyCount: number) => ({
+      id: 'chest_nb', keyDefId: 'key_nb', name: 'Két Nhà Băng', nameEn: 'Bank Safe', subtitle: 'Phố Tràng Tiền', subtitleEn: 'Trang Tien Street',
+      keyName: 'chìa bánh răng', keyNameEn: 'gear key', iconKey: 'chest_bank', keyIconKey: 'key_gear', chestPrice: 170, keyPrice: 250, chestCount, keyCount,
+      contents: [def('NB-1101', 'Đồng xu lỗ vuông', 'COMMON'), cosmetic],
+    });
+    await page.route('**/api/chests', (route) => ok(route, { chests: [chest(1, 1)], odds: [{ rarity: 'COMMON', percent: 50 }, { rarity: 'MYSTERY', percent: 50 }], wallet: WALLET }));
+    await page.route('**/api/chests/chest_nb/open', (route) => ok(route, { chestId: 'chest_nb', itemId: 'reward', item: cosmetic, chestCount: 0, keyCount: 0, wallet: WALLET }));
+    await page.goto('/#/kho-ruong');
+
+    await expect(page.locator('#qh-contents .qh-it', { hasText: name })).toBeVisible();
+    await page.locator('#qh-openBtn').click();
+
+    await expect(page.locator('.qh-app')).toHaveAttribute('data-mode', 'reveal', { timeout: 30_000 });
+    await expect(page.locator('#qh-gotName')).toHaveText(name);
+    expect(errors).toEqual([]);
+  });
+}
 
 test('the market shows cosmetic categories, and an earned item has no sell form', async ({ page }) => {
   const state = await prepare(page, progress());
