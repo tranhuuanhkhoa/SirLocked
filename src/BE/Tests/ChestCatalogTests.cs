@@ -99,12 +99,13 @@ public class ChestCatalogTests
         foreach (var chest in ChestCatalog.Chests)
         {
             Assert.All(MarketRarities.All, rarity => Assert.NotEmpty(chest.Pools[rarity]));
-            Assert.Equal(10, chest.Items.Count);
-            Assert.Equal(3, chest.Pools[MarketRarities.Common].Count);
-            Assert.Equal(3, chest.Pools[MarketRarities.Rare].Count);
-            Assert.Equal(2, chest.Pools[MarketRarities.Epic].Count);
-            Assert.Single(chest.Pools[MarketRarities.Legendary]);
-            Assert.Single(chest.Pools[MarketRarities.Mystery]);
+            var curios = chest.Items.Where(item => item.Category == MarketCategories.Curio).ToList();
+            Assert.Equal(10, curios.Count);
+            Assert.Equal(3, curios.Count(item => item.Rarity == MarketRarities.Common));
+            Assert.Equal(3, curios.Count(item => item.Rarity == MarketRarities.Rare));
+            Assert.Equal(2, curios.Count(item => item.Rarity == MarketRarities.Epic));
+            Assert.Single(curios, item => item.Rarity == MarketRarities.Legendary);
+            Assert.Single(curios, item => item.Rarity == MarketRarities.Mystery);
         }
     }
 

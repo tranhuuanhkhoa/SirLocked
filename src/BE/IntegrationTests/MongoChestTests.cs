@@ -648,7 +648,7 @@ public sealed class MongoChestTests
         Assert.Equal(new ChestSettings().PriceOf(Seal).Chest, seal.ChestPrice);
         Assert.Equal(2, seal.ChestCount);
         Assert.Equal(1, seal.KeyCount);
-        Assert.Equal(10, seal.Contents.Count);
+        Assert.Equal(24, seal.Contents.Count);
         Assert.All(seal.Contents, def => Assert.False(string.IsNullOrEmpty(def.IconKey)));
         Assert.Equal(5, list.Odds.Count);
         Assert.Equal(100m, list.Odds.Sum(odd => odd.Percent));

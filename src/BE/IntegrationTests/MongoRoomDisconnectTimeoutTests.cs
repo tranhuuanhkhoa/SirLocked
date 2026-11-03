@@ -266,5 +266,6 @@ public sealed class MongoRoomDisconnectTimeoutTests
         public Task StageChanged(string roomId, string previousStageId, string currentStageId, string previousSceneId, string currentSceneId, bool isFinalStageCompleted, string userId, long version) => Task.CompletedTask;
         public Task GameCompleted(string roomId, GameResultResponse result) => Task.CompletedTask;
         public Task SystemMessage(string roomId, string message) => Task.CompletedTask;
+        public Task PlayerEntrance(string roomId, SirLocked.Api.DTOs.Market.PlayerEntranceDto entrance) => Task.CompletedTask;
     }
 }
