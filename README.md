@@ -84,6 +84,19 @@ A proposal is reviewed by both players, but its evidence ids still respect the V
 Accusation__RequireConsensus=true
 ```
 
+### Mở hòm (chest opening)
+
+`#/kho-ruong` lets a player spend in-game coins on chests and keys and open a chest for one item, which then trades on the market like any other. There is no real-money payment. The server decides every result; the client only animates the answer.
+
+- `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
+- `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
+- `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`).
+- Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
+
+Contents and drop rates live in one place, `Services/Market/ChestCatalog.cs`. Prices live in the `Chests:Prices` section of `appsettings.json`, for example `Chests__Prices__chest_np__Key=200`; the API refuses to start if a chest would pay out more on average than it costs to open.
+
+As MongoDB runs standalone, `chestOpenings` is a journal: the reward is rolled and stored before anything is spent, one free chest and key are locked (`LockedBy = chest:<id>`), and a commit flag separates the part that can still fail from the part that only rolls forward. `chestPurchases` does the same for the shop. The market's maintenance worker resumes anything left unfinished for more than 30 seconds.
+
 ## Run Locally
 
 To run the project with your existing database and accounts, keep the repository-root `.env` configuration and start the backend and frontend below. The backend connects to the database specified by `MongoDb__ConnectionString` and `MongoDb__DatabaseName`.
