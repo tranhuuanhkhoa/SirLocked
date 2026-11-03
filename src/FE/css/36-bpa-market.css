@@ -100,6 +100,8 @@
 .bpa-mk-rar.is-rare { color: var(--bpa-r-rare); }
 .bpa-mk-rar.is-epic { color: var(--bpa-r-epic); }
 .bpa-mk-rar.is-legend { color: var(--bpa-r-legend); }
+/* #E8B53A cannot be read on paper, so the label wears the dark tile colour. */
+.bpa-mk-rar.is-mystery { padding: 0 6px; background: #15110e; color: #E8B53A; }
 .bpa-mk-wait, .bpa-mk-empty { margin: 12px 0; font-size: 16px; font-style: italic; color: var(--bpa-muted); list-style: none; }
 .bpa-mk-note { margin: 0; font-size: 14px; font-style: italic; color: var(--bpa-muted); }
 .bpa-mk-formerr { margin: 0; font-size: 15px; color: var(--bpa-red); }
@@ -118,7 +120,9 @@
 .bpa-mk-tile.is-rare { box-shadow: inset 0 0 0 1px rgba(79, 154, 154, .45), inset 0 0 14px rgba(79, 154, 154, .22); }
 .bpa-mk-tile.is-epic { box-shadow: inset 0 0 0 1px rgba(122, 98, 184, .55), inset 0 0 14px rgba(122, 98, 184, .25); }
 .bpa-mk-tile.is-legend { box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .6), inset 0 0 16px rgba(239, 212, 134, .25); }
+.bpa-mk-tile.is-mystery { box-shadow: inset 0 0 0 1px rgba(232, 181, 58, .85), inset 0 0 18px rgba(232, 181, 58, .35); }
 .bpa-mk-icon { display: block; flex: none; }
+.bpa-mk-icon--pixel { image-rendering: pixelated; }
 
 .bpa-mk-field {
   width: 100%;
@@ -280,6 +284,7 @@
 .bpa-mk-hero.is-rare { background: radial-gradient(ellipse at 50% 40%, #233a39 0%, #141615 72%); }
 .bpa-mk-hero.is-epic { background: radial-gradient(ellipse at 50% 40%, #2f2742 0%, #15131a 72%); }
 .bpa-mk-hero.is-legend { background: radial-gradient(ellipse at 50% 40%, #4a3a1c 0%, #1a1410 72%); box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .5); }
+.bpa-mk-hero.is-mystery { background: radial-gradient(ellipse at 50% 40%, #5c4413 0%, #1a1410 72%); box-shadow: inset 0 0 0 1px rgba(232, 181, 58, .8); }
 .bpa-mk-herotag, .bpa-mk-owned {
   position: absolute;
   top: 10px;

@@ -1,10 +1,11 @@
 import { tr, uiLanguage } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
+import { pixelIconUrl } from '../chest/chestSprites.js';
 
 /* Shared pieces of Chợ đồ: labels, number formatting, error texts, rarity-tinted item icons, sparklines. */
 
-export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH'];
-export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY'];
+export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO'];
+export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
 export const SLOT_CAP = 12;
 export const FEE_PERCENT = 5;
 export const MIN_PRICE = 2;
@@ -18,7 +19,17 @@ const CATEGORY_LABELS = {
   BADGE: ['Badges', 'Huy hiệu'],
   BOARD: ['Evidence boards', 'Bảng điều tra'],
   WATCH: ['Watches', 'Đồng hồ'],
+  CHEST: ['Chests', 'Hòm'],
+  KEY: ['Keys', 'Chìa'],
+  CURIO: ['Collectibles', 'Vật phẩm sưu tầm'],
 };
+
+/** Same rule as the server: chests, keys and collectibles only sit in the bag. */
+const NOT_EQUIPPABLE = new Set(['CHEST', 'KEY', 'CURIO']);
+
+export function isEquippable(category) {
+  return !NOT_EQUIPPABLE.has(category);
+}
 
 /** Rarity colours: `metal` tints the icon, `marker` reads on dark, `bar` is the inventory strip. */
 export const RARITY = {
@@ -26,6 +37,7 @@ export const RARITY = {
   RARE: { label: ['Rare', 'Hiếm'], cls: 'rare', metal: '#62b3b0', deep: '#1f4a4a', marker: '#8fd0cf', bar: '#4f9a9a', glow: 'rgba(79,154,154,.34)' },
   EPIC: { label: ['Epic', 'Quý'], cls: 'epic', metal: '#9d87d8', deep: '#3b2d66', marker: '#b9a6e6', bar: '#7a62b8', glow: 'rgba(122,98,184,.4)' },
   LEGENDARY: { label: ['Legendary', 'Huyền thoại'], cls: 'legend', metal: '#e6c463', deep: '#5e4a1c', marker: '#efd486', bar: '#c7a24b', glow: 'rgba(239,212,134,.42)' },
+  MYSTERY: { label: ['Mystery', 'Bí ẩn'], cls: 'mystery', metal: '#E8B53A', deep: '#5e4a1c', marker: '#E8B53A', bar: '#E8B53A', glow: 'rgba(232,181,58,.5)' },
 };
 
 export function categoryLabel(category) {
@@ -112,6 +124,13 @@ const ERRORS = {
   MARKET_REQUEST_IN_PROGRESS: ['Still working on your last request…', 'Yêu cầu trước vẫn đang được xử lý…'],
   MARKET_EMAIL_NOT_VERIFIED: ['Verify your e-mail (Profile page) before trading on the market.', 'Hãy xác minh email (trang Hồ sơ) trước khi giao dịch trên chợ.'],
   MARKET_BUSY: ['Someone is dealing with this right now — try again in a moment.', 'Có người đang giao dịch món này — thử lại sau giây lát.'],
+  MARKET_ITEM_NOT_EQUIPPABLE: ['Chests, keys and collectibles cannot be put in use.', 'Hòm, chìa và vật phẩm sưu tầm không dùng để trang bị được.'],
+  MARKET_INVALID_REQUEST_ID: ['Please try that again.', 'Vui lòng thử lại.'],
+  CHEST_NONE: ['You have no chest of this type left.', 'Bạn không còn hòm loại này.'],
+  KEY_NONE: ['You have no key for this chest left.', 'Bạn không còn chìa cho loại hòm này.'],
+  FUNDS: ['You do not have enough coins.', 'Bạn không đủ xu.'],
+  SLOTS_FULL: ['Your inventory is full (12 slots) — free a slot first.', 'Túi đồ đã đầy (12 ô) — hãy bán bớt một món trước.'],
+  IN_PROGRESS: ['Still working on your last request…', 'Yêu cầu trước vẫn đang được xử lý…'],
 };
 
 export function errorText(error) {
@@ -120,6 +139,7 @@ export function errorText(error) {
   if (error?.status === 0) return tr('Cannot reach the server.', 'Không kết nối được máy chủ.');
   if (error?.status === 400) return tr('Please check what you entered.', 'Hãy kiểm tra lại thông tin bạn nhập.');
   if (error?.status === 401 || error?.status === 403) return tr('Please sign in again.', 'Hãy đăng nhập lại.');
+  if (error?.status === 429) return tr('Too many attempts. Please wait a minute.', 'Bạn thao tác quá nhanh. Vui lòng đợi một phút.');
   return tr('The market could not complete that. Please try again.', 'Chợ chưa thực hiện được thao tác này. Vui lòng thử lại.');
 }
 
@@ -193,10 +213,15 @@ function drawingKey(def) {
 }
 
 /**
- * Inline SVG for an item type. Decorative by default; pass `label` to expose it as an image.
- * No character art: only objects.
+ * Inline SVG for an item type, or its pixel sprite when the API names one (`iconKey`).
+ * Decorative by default; pass `label` to expose it as an image. No character art: only objects.
  */
 export function itemIcon(def, size = 34, label = '') {
+  const pixel = def?.iconKey ? pixelIconUrl(def.iconKey) : '';
+  if (pixel) {
+    const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
+    return `<img class="bpa-mk-icon bpa-mk-icon--pixel" src="${pixel}" width="${size}" height="${size}" ${alt} draggable="false">`;
+  }
   const rarity = rarityOf(def?.rarity);
   const legendary = def?.rarity === 'LEGENDARY';
   const a11y = label

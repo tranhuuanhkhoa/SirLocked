@@ -8,7 +8,7 @@ import {
 } from './marketKit.js';
 
 const SEARCH_ICON = '<svg class="bpa-mk-searchicon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5b5248" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg>';
-const RARITY_DIAMOND = { COMMON: '#a39885', RARE: '#4f9a9a', EPIC: '#7a62b8', LEGENDARY: '#c7a24b' };
+const RARITY_DIAMOND = { COMMON: '#a39885', RARE: '#4f9a9a', EPIC: '#7a62b8', LEGENDARY: '#c7a24b', MYSTERY: '#E8B53A' };
 
 const SORTS = [
   ['popular', 'Popular', 'Phổ biến'],

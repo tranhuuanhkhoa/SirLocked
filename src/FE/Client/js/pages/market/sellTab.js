@@ -3,7 +3,7 @@ import { tr } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
 import { toast } from '../../utils/toast.js';
 import {
-  MAX_PRICE, MIN_PRICE, SLOT_CAP, categoryLabel, defName, errorText, feeFor, fmt, itemIcon, itemTile, rarityLabel, rarityOf, xu,
+  MAX_PRICE, MIN_PRICE, SLOT_CAP, categoryLabel, defName, errorText, feeFor, fmt, isEquippable, itemIcon, itemTile, rarityLabel, rarityOf, xu,
 } from './marketKit.js';
 
 /** BÁN: the 12-slot bag, equip one item per category ("ĐANG DÙNG"), list an item with the 5% fee shown live. */
@@ -41,7 +41,8 @@ export function mountSellTab(ctx) {
       const flag = item.equipped
         ? `<span class="bpa-mk-flag is-equipped">${tr('IN USE', 'ĐANG DÙNG')}</span>`
         : item.lockReason === 'LISTED' ? `<span class="bpa-mk-flag is-listed">${tr('FOR SALE', 'ĐANG RAO')}</span>`
-          : item.locked ? `<span class="bpa-mk-flag is-listed">${tr('TRADING', 'ĐANG ĐỔI')}</span>` : '';
+          : item.lockReason === 'OPENING' ? `<span class="bpa-mk-flag is-listed">${tr('OPENING', 'ĐANG MỞ')}</span>`
+            : item.locked ? `<span class="bpa-mk-flag is-listed">${tr('TRADING', 'ĐANG ĐỔI')}</span>` : '';
       return `
         <button type="button" class="bpa-mk-inv${item.locked ? ' is-locked' : ''}" data-item="${escapeHtml(item.itemId)}" aria-pressed="${item.itemId === state.selectedItemId}">
           ${flag}
@@ -79,7 +80,7 @@ export function mountSellTab(ctx) {
         `Lowest ask now <strong>${book.lowestAsk != null ? xu(book.lowestAsk) : '—'}</strong> · highest bid <strong>${book.highestBid != null ? xu(book.highestBid) : '—'}</strong>.`,
         `Giá bán thấp nhất hiện tại <strong>${book.lowestAsk != null ? xu(book.lowestAsk) : '—'}</strong> · lệnh mua cao nhất <strong>${book.highestBid != null ? xu(book.highestBid) : '—'}</strong>.`)
       : tr('Checking the market…', 'Đang xem giá trên chợ…');
-    const equip = item.locked ? ''
+    const equip = item.locked || !isEquippable(item.def.category) ? ''
       : item.equipped
         ? `<div class="bpa-mk-equiprow"><span class="bpa-stamp bpa-stamp--teal bpa-mk-equipstamp">${tr('IN USE', 'ĐANG DÙNG')}</span><button type="button" class="bpa-btn bpa-btn--ink bpa-btn--sm" data-act="unequip">${tr('Stop using', 'Bỏ dùng')}</button></div>`
         : `<button type="button" class="bpa-btn bpa-btn--ink" data-act="equip">${tr('USE THIS ITEM', 'DÙNG VẬT PHẨM NÀY')}</button>`;

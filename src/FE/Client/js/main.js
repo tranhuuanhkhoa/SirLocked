@@ -30,6 +30,7 @@ import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
 import { renderVerifyNoticePage } from './pages/verifyNoticePage.js';
 import { PROFILE_EVENT, detectiveRankLabel, renderTitleMenuPage } from './pages/titleMenuPage.js';
 import { renderMarketPage } from './pages/marketPage.js';
+import { renderChestPage } from './pages/chestPage.js';
 import { hydrateWalletChip, walletChipMarkup } from './components/walletChip.js';
 
 /**
@@ -73,6 +74,7 @@ const routes = [
   { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
   { pattern: /^#\/workshop$/, page: renderWorkshopPage },
   { pattern: /^#\/market(?:\/(sell|trade|orders))?$/, page: renderMarketPage },
+  { pattern: /^#\/kho-ruong$/, page: renderChestPage, lifecycle: true },
   { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
   { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
   { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
@@ -244,6 +246,7 @@ function renderNav(r) {
       { href: '#/workshop', label: 'Workshop' },
       { href: '#/find-game', label: tr('Find game', 'Tìm trận') },
       { href: '#/market', label: tr('Market', 'Chợ đồ') },
+      { href: '#/kho-ruong', label: tr('Open chests', 'Mở hòm') },
     ];
     const current = activeHref([...mainItems, ...roomItems, ...staffItems, { href: '#/detective' }].map(({ href }) => href));
     const rankText = navRankText();
@@ -257,6 +260,7 @@ function renderNav(r) {
           ${navGroup('bpa-shell-rooms', tr('Rooms', 'Phòng'), roomItems, current)}
           ${navLink(mainItems[1], current)}
           ${navLink(mainItems[4], current)}
+          ${navLink(mainItems[5], current)}
           ${navLink(mainItems[2], current)}
           ${staffItems.length ? navGroup('bpa-shell-staff', tr('Operations', 'Quản trị'), staffItems, current) : ''}
         </nav>
