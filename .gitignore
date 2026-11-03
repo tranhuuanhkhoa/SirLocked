@@ -51,3 +51,8 @@ logs/
 # Playwright run artifacts
 src/FE/test-results/
 src/FE/playwright-report/
+
+# Bao cao, anh mau va ban thu lon: giu tren may, khong dua len git
+*.docx
+SirLocked-NewPixelArt/
+Claude outputs/
