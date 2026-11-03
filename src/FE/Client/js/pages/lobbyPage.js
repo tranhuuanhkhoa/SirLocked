@@ -213,7 +213,12 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     RolesUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
     ReadyUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
     GameStarted: () => { if (!disposed) { entrances.stop(); window.location.hash = `#/game/${roomId}`; } },
-    PlayerEntrance: (entrance) => { if (!disposed && entrance.roomId === roomId) entrances.push(entrance); },
+    PlayerEntrance: (entrance) => {
+      if (disposed || entrance.roomId !== roomId) return;
+      entrances.push(entrance);
+      // This player has just connected: the room this page holds may still say otherwise.
+      refresh().catch(() => {});
+    },
     RoomError: ({ message }) => { if (!disposed) toast(message, 'error'); },
   }, { onReconnected: () => refresh().catch(() => {}) });
 
@@ -409,7 +414,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           <canvas class="hs-seat-av" data-seat-avatar="${escapeHtml(p.userId)}" width="68" height="68" aria-hidden="true"></canvas>
           <div class="bpa-lobby-whotxt">
             <h3 id="lobby-seat-${side}" class="bpa-lobby-name">${escapeHtml(p.username)}</h3>
-            <span class="hs-seat-title">${titleHTML(T[titleKey(p.titleDefId)] ?? T['tan-binh'], { scale: 0.74, bare: true, maxW: Math.max(140, window.innerWidth - 170) })}</span>
+            <span class="hs-seat-title" data-seat-title="${escapeHtml(p.userId)}"></span>
             <div class="bpa-lobby-tags">
               ${isMe ? `<span class="bpa-chip bpa-chip--teal">${tr('YOU', 'BẠN')}</span>` : `<span class="bpa-chip bpa-chip--rust">${tr('PARTNER', 'ĐỒNG ĐỘI')}</span>`}
               ${p.userId === room.hostUserId ? `<span class="bpa-chip bpa-chip--dark">${ICON.key}${tr('HOST', 'CHỦ PHÒNG')}</span>` : ''}
@@ -553,6 +558,11 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
       const userId = canvas.dataset.seatAvatar;
       const player = () => room?.players.find((p) => p.userId === userId);
       painter.add(canvas, () => frameKey(player()?.frameDefId), () => avatarFor(player()));
+    });
+    // A plaque scales to the room its seat really has, which is only known once the seat is on the page.
+    app.querySelectorAll('[data-seat-title]').forEach((slot) => {
+      const player = room.players.find((p) => p.userId === slot.dataset.seatTitle);
+      slot.innerHTML = titleHTML(T[titleKey(player?.titleDefId)] ?? T['tan-binh'], { scale: 0.74, bare: true, maxW: slot.clientWidth || undefined });
     });
 
     qs('#copy-invite', app)?.addEventListener('click', async () => {

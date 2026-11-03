@@ -63,6 +63,34 @@ test('every seat shows a framed portrait and a small title from what the server 
   expect(errors).toEqual([]);
 });
 
+test('the longest title fits inside its seat instead of being cut off', async ({ page }) => {
+  await prepare(page, { currentRoom: room('WAITING', [player('me', 'Tuấn Yên', { titleDefId: 'title_long-phung' }), player('b', 'Thám Tử Có Tên Rất Là Dài', { titleDefId: 'title_long-phung' })]) });
+  await openLobby(page);
+  await expect(page.locator('.bpa-rim')).toHaveCount(0);
+
+  for (const seat of await page.locator('.hs-seat-title').all()) {
+    const fits = await seat.evaluate((el) => {
+      const plaque = el.querySelector('.hs-tl')!.getBoundingClientRect();
+      const card = el.closest('.bpa-lobby-id')!.getBoundingClientRect();
+      return plaque.width > 0 && plaque.right <= card.right;
+    });
+    expect(fits).toBe(true);
+  }
+});
+
+test('an arrival refreshes the room, so a partner who just connected does not look offline', async ({ page }) => {
+  let online = false;
+  await prepare(page);
+  await page.route(`**/api/rooms/${ROOM_ID}`, (route) => ok(route, room('WAITING', [player('me', 'Tuấn Yên'), player('b', 'Bảo Ngọc', { isConnected: online })])));
+  await openLobby(page);
+  await expect(page.locator('[data-seat-user="b"]')).toContainText('Mất kết nối');
+
+  online = true;
+  await emit(page, 'PlayerEntrance', entrance('b', 'Bảo Ngọc', 'entrance_lang-le'));
+
+  await expect(page.locator('[data-seat-user="b"]')).not.toContainText('Mất kết nối');
+});
+
 test('a room from an older server still renders, with the defaults', async ({ page }) => {
   await prepare(page, { currentRoom: room('WAITING', [{ userId: 'me', username: 'Tuấn Yên', role: null, isReady: false, isConnected: true } as any]) });
   const errors = collectPageErrors(page);
