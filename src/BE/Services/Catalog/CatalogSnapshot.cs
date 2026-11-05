@@ -65,16 +65,26 @@ public sealed class CatalogSnapshot
         IEnumerable<CatalogChest> chests,
         IEnumerable<CatalogLevelReward> levelRewards,
         IEnumerable<CatalogAchievement> achievements,
-        ProgressSettingsDocument? progress)
+        ProgressSettingsDocument? progress,
+        IEnumerable<string>? loadProblems = null)
     {
-        var problems = new List<string>();
+        var problems = new List<string>(loadProblems ?? Array.Empty<string>());
         var orderedChests = chests.OrderBy(chest => chest.SortOrder).ThenBy(chest => chest.Id, StringComparer.Ordinal).ToList();
+        foreach (var chest in orderedChests)
+        {
+            // Stored as null by a hand edit. Such a chest pays out nothing and cannot be bought, which the checks below report.
+            chest.Pool ??= new List<string>();
+            chest.DropWeights ??= new Dictionary<string, int>(StringComparer.Ordinal);
+            chest.Prices ??= new CatalogChestPrices();
+        }
         var activeChests = orderedChests.Where(chest => chest.Active).ToList();
 
-        var defs = items
-            .OrderBy(item => item.SortOrder).ThenBy(item => item.Id, StringComparer.Ordinal)
-            .Select(item => ToDef(item, activeChests))
-            .ToList();
+        var defs = new List<MarketItemDef>();
+        foreach (var item in items.OrderBy(item => item.SortOrder).ThenBy(item => item.Id, StringComparer.Ordinal))
+        {
+            if (MarketCategories.IsValid(item.Category) && MarketRarities.IsValid(item.Rarity)) defs.Add(ToDef(item, activeChests));
+            else problems.Add($"Item {item.Id} was left out: category \"{item.Category}\" and rarity \"{item.Rarity}\" must both be valid.");
+        }
         var byId = defs.ToDictionary(def => def.Id, StringComparer.Ordinal);
 
         var chestDefs = orderedChests.Select(chest => ToChest(chest, byId, problems)).ToList();
@@ -83,8 +93,10 @@ public sealed class CatalogSnapshot
             .OrderBy(reward => reward.Level).ThenBy(reward => reward.DefId, StringComparer.Ordinal)
             .Select(reward => new LevelReward(reward.Level, reward.DefId))
             .ToList();
+        // Granting one of these would put an item in an inventory with no type behind it.
         foreach (var reward in rewards.Where(reward => !byId.ContainsKey(reward.DefId)))
-            problems.Add($"Level reward {reward.Level} points at unknown item {reward.DefId}.");
+            problems.Add($"Level reward {reward.Level} points at unknown item {reward.DefId}; it was left out.");
+        rewards.RemoveAll(reward => !byId.ContainsKey(reward.DefId));
 
         var titles = achievements
             .OrderBy(achievement => achievement.SortOrder).ThenBy(achievement => achievement.TitleDefId, StringComparer.Ordinal)
@@ -93,6 +105,9 @@ public sealed class CatalogSnapshot
             .ToList();
         foreach (var title in titles.Where(title => title.Metric is not null && !title.Countable))
             problems.Add($"Achievement {title.TitleDefId} uses unknown metric {title.Metric}; nobody can earn it until that is fixed.");
+        foreach (var title in titles.Where(title => !byId.ContainsKey(title.TitleDefId)))
+            problems.Add($"Achievement {title.TitleDefId} names a title that does not exist; it was left out.");
+        titles.RemoveAll(title => !byId.ContainsKey(title.TitleDefId));
 
         return new CatalogSnapshot(
             defs, chestDefs, rewards, titles,
@@ -140,10 +155,12 @@ public sealed class CatalogSnapshot
             .ToList();
         foreach (var rate in rates.Where(rate => rate.Weight > 0 && pool.All(def => def.Rarity != rate.Rarity)))
             problems.Add($"Chest {chest.Id} can roll {rate.Rarity} but has no such item left; that roll falls to the nearest rarity.");
+        if (MarketRules.ValidatePrice(chest.Prices.Chest) is not null || MarketRules.ValidatePrice(chest.Prices.Key) is not null)
+            problems.Add($"Chest {chest.Id} has an invalid price (chest {chest.Prices.Chest}, key {chest.Prices.Key}); the shop refuses to sell at it.");
         return new ChestDef(
             chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
             chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, pool,
-            rates, new ChestShopPrice(chest.Prices?.Chest ?? 0, chest.Prices?.Key ?? 0), chest.Active);
+            rates, new ChestShopPrice(chest.Prices.Chest, chest.Prices.Key), chest.Active, chest.Look);
     }
 
     private static IReadOnlyDictionary<string, object?> ToDictionary(BsonDocument? document) =>

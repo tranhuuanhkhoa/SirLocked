@@ -150,6 +150,74 @@ public class CatalogSnapshotTests
         Assert.DoesNotContain(snapshot.FindChest("chest_np")!.Items, def => def.Id == "no_such_item");
         Assert.Contains(snapshot.Problems, problem => problem.Contains("no_such_item", StringComparison.Ordinal));
         Assert.Contains(snapshot.Problems, problem => problem.Contains("gone", StringComparison.Ordinal));
+        // Nothing may be granted that has no item type behind it.
+        Assert.DoesNotContain(snapshot.LevelRewards, reward => reward.DefId == "gone");
+    }
+
+    [Fact]
+    public void AnAchievementForATitleThatDoesNotExistIsLeftOut()
+    {
+        var batch = Seed();
+        ((List<CatalogAchievement>)batch.Achievements).Add(new CatalogAchievement { TitleDefId = "title_gone", Metric = AchievementMetrics.Won, Target = 1 });
+
+        var snapshot = Build(batch);
+
+        Assert.DoesNotContain(snapshot.Achievements, a => a.TitleDefId == "title_gone");
+        Assert.Contains(snapshot.Problems, problem => problem.Contains("title_gone", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("", MarketRarities.Common)]
+    [InlineData("NOT_A_CATEGORY", MarketRarities.Common)]
+    [InlineData(MarketCategories.Curio, "")]
+    [InlineData(MarketCategories.Curio, "NOT_A_RARITY")]
+    public void AnItemThatIsNotAValidTypeIsLeftOutAndReported(string category, string rarity)
+    {
+        var batch = Seed();
+        ((List<CatalogItem>)batch.Items).Add(new CatalogItem { Id = "half_written", Category = category, Rarity = rarity, Name = "x", NameEn = "x" });
+
+        var snapshot = Build(batch);
+
+        Assert.Null(snapshot.Find("half_written"));
+        Assert.Contains(snapshot.Problems, problem => problem.Contains("half_written", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FieldsStoredAsNullDoNotBreakTheBuild()
+    {
+        var batch = Seed();
+        var chest = batch.Chests.Single(c => c.Id == "chest_np");
+        chest.Pool = null!;
+        chest.DropWeights = null!;
+        chest.Prices = null!;
+        chest.Look = null!;
+        batch.Items.Single(i => i.Id == "frame_thach").Visual = null!;
+
+        var snapshot = Build(batch);
+
+        Assert.Empty(snapshot.FindChest("chest_np")!.Items);
+        Assert.NotNull(snapshot.Find("frame_thach")!.Visual);
+    }
+
+    [Theory]
+    [InlineData(0L, 180L)]
+    [InlineData(120L, 0L)]
+    [InlineData(-1L, 180L)]
+    public void AChestPriceOutsideTheLimitsIsReported(long chestPrice, long keyPrice)
+    {
+        var batch = Seed();
+        batch.Chests.Single(c => c.Id == "chest_np").Prices = new CatalogChestPrices { Chest = chestPrice, Key = keyPrice };
+
+        Assert.Contains(Build(batch).Problems, problem => problem.Contains("chest_np", StringComparison.Ordinal) && problem.Contains("price", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void AChestCarriesItsLook()
+    {
+        var look = Build(Seed()).FindChest("chest_nb")!.Look!;
+
+        Assert.Equal("bank", look.Template);
+        Assert.Equal("120,190,230", look.Light);
     }
 
     [Fact]

@@ -330,15 +330,57 @@ public sealed class MongoCatalogTests
         if (!Enabled) return;
         await using var env = await CatalogEnv.CreateAsync();
         await env.SeedAndLoadAsync();
-        var good = env.Provider.Current;
         await env.Raw("catalogItems").InsertOneAsync(new BsonDocument { ["_id"] = "broken", ["referencePrice"] = "not a number" });
+        await env.Raw("chests").UpdateOneAsync(new BsonDocument("_id", "chest_nb"), new BsonDocument("$set", new BsonDocument("pool", BsonNull.Value)));
 
         env.Provider.Invalidate();
-        Assert.Same(good, env.Provider.Current);
+        var current = env.Provider.Current;
 
-        await env.Raw("catalogItems").DeleteOneAsync(new BsonDocument("_id", "broken"));
-        env.Provider.Invalidate();
-        Assert.NotSame(good, env.Provider.Current);
+        // The bad document is left out and named; everything else is served, and later edits still apply.
+        Assert.Null(current.Find("broken"));
+        Assert.Contains(current.Problems, problem => problem.Contains("broken", StringComparison.Ordinal));
+        Assert.NotNull(current.Find("VC-0217"));
+        await env.EditItemAsync("VC-0217", Builders<CatalogItem>.Update.Set(i => i.Name, "Vẫn sửa được"));
+        Assert.Equal("Vẫn sửa được", env.Provider.Current.Find("VC-0217")!.Name);
+    }
+
+    [Fact]
+    public async Task AMalformedDocumentCannotStopTheNextStart()
+    {
+        if (!Enabled) return;
+        await using var env = await CatalogEnv.CreateAsync();
+        await env.SeedAndLoadAsync();
+        await env.Raw("catalogItems").InsertOneAsync(new BsonDocument { ["_id"] = "broken", ["referencePrice"] = "not a number" });
+        await env.Raw("chests").UpdateOneAsync(new BsonDocument("_id", "chest_nb"), new BsonDocument("$set", new BsonDocument("pool", BsonNull.Value)));
+        await env.Raw("gameSettings").ReplaceOneAsync(new BsonDocument("_id", "progress"), new BsonDocument { ["_id"] = "progress", ["rareXp"] = "many" });
+
+        // What Program.cs does at startup, in a new process.
+        await env.NewSeeder().SeedAsync();
+        var restarted = new CatalogProvider(env.Catalog, Options.Create(new ChestSettings()), NullLogger<CatalogProvider>.Instance);
+        await restarted.RefreshAsync();
+
+        Assert.NotNull(restarted.Current.Find("VC-0217"));
+        Assert.Equal(ProgressRules.RareXp, restarted.Current.RareXp);
+        Assert.Contains(restarted.Current.Problems, problem => problem.Contains("progress", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task AChestWithoutAValidPriceIsNotGivenAway()
+    {
+        if (!Enabled) return;
+        await using var env = await CatalogEnv.CreateAsync();
+        await env.SeedAndLoadAsync();
+        var user = await env.AddUserAsync("Thám tử");
+        await env.EditChestAsync(Seal, Builders<CatalogChest>.Update.Set(c => c.Prices.Key, 0L));
+        var before = await env.Market.GetWalletAsync(user.Id);
+
+        var exception = await Assert.ThrowsAsync<ApiException>(() => env.Chests.BuyKeyAsync(user, Seal, NewKey()));
+
+        Assert.Equal(409, exception.StatusCode);
+        var after = await env.Market.GetWalletAsync(user.Id);
+        Assert.Equal(before.Balance, after.Balance);
+        Assert.Equal(before.SlotsUsed, after.SlotsUsed);
+        Assert.Equal(0, await env.Store.ChestPurchases.CountDocumentsAsync(p => p.UserId == user.Id));
     }
 
     // ------------------------------------------------------------------ player flows read the stored catalog

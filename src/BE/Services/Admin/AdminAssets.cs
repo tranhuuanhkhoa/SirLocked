@@ -8,10 +8,12 @@ using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Admin;
 using SirLocked.Api.Services.Market;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SirLocked.Api.Services.Admin;
 
@@ -54,7 +56,10 @@ public static class AdminAssetProcessor
             if (info.Metadata.DecodedImageFormat is not (JpegFormat or PngFormat or WebpFormat)) throw BadImage();
             if (info.Width < 1 || info.Height < 1 || info.Width > MaxPixelSide || info.Height > MaxPixelSide) throw BadImage();
 
-            using var image = Image.Load<Rgba32>(source);
+            // One frame only: decoding every frame of an animation at full size could take the server's memory.
+            using var image = Image.Load<Rgba32>(new DecoderOptions { MaxFrames = 1 }, source);
+            // The orientation tag is about to go, so apply it first or a phone picture comes out sideways.
+            image.Mutate(context => context.AutoOrient());
             image.Metadata.ExifProfile = null;
             image.Metadata.XmpProfile = null;
             image.Metadata.IccProfile = null;

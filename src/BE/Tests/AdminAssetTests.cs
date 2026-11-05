@@ -139,6 +139,38 @@ public class AdminAssetTests
     }
 
     [Fact]
+    public async Task OnlyTheFirstFrameOfAnAnimationIsKept()
+    {
+        // Every frame of an animation would be decoded at full size: a small file could take the server's memory.
+        using var animation = new Image<Rgba32>(30, 30, new Rgba32(200, 40, 40, 255));
+        using var second = new Image<Rgba32>(30, 30, new Rgba32(40, 40, 200, 255));
+        animation.Frames.AddFrame(second.Frames.RootFrame);
+        using var stream = new MemoryStream();
+        animation.SaveAsWebp(stream);
+
+        var asset = await AdminAssetProcessor.ProcessAsync(stream.ToArray());
+
+        using var decoded = Image.Load<Rgba32>(asset.Webp);
+        Assert.Equal(1, decoded.Frames.Count);
+        Assert.True(decoded[15, 15].R > decoded[15, 15].B);
+    }
+
+    [Fact]
+    public async Task APhonePictureIsTurnedUprightBeforeItsOrientationTagIsDropped()
+    {
+        using var image = new Image<Rgba32>(40, 20, new Rgba32(1, 2, 3, 255));
+        image.Metadata.ExifProfile = new ExifProfile();
+        image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)6);
+        using var stream = new MemoryStream();
+        image.Save(stream, new JpegEncoder());
+
+        var asset = await AdminAssetProcessor.ProcessAsync(stream.ToArray());
+
+        Assert.Equal(20, asset.Width);
+        Assert.Equal(40, asset.Height);
+    }
+
+    [Fact]
     public async Task MetadataIsStripped()
     {
         using var image = new Image<Rgba32>(20, 20, new Rgba32(1, 2, 3, 255));

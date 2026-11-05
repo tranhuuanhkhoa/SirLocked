@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.Models.Catalog;
@@ -18,7 +19,7 @@ public interface ICatalogProvider
     /// <summary>Marks the cache stale. Cheap, so call it after every write.</summary>
     void Invalidate();
 
-    /// <summary>Reloads from the database now. A failed load throws and leaves the last good catalog in place.</summary>
+    /// <summary>Reloads from the database now. If the database cannot be read this throws and the last good catalog stays in place.</summary>
     Task RefreshAsync(CancellationToken ct = default);
 }
 
@@ -132,12 +133,35 @@ public sealed class CatalogProvider : ICatalogProvider
 
     private async Task<CatalogSnapshot> LoadAsync(CancellationToken ct)
     {
-        var items = _store.Items.Find(FilterDefinition<CatalogItem>.Empty).ToListAsync(ct);
-        var chests = _store.Chests.Find(FilterDefinition<CatalogChest>.Empty).ToListAsync(ct);
-        var rewards = _store.LevelRewards.Find(FilterDefinition<CatalogLevelReward>.Empty).ToListAsync(ct);
-        var achievements = _store.Achievements.Find(FilterDefinition<CatalogAchievement>.Empty).ToListAsync(ct);
-        var progress = _store.ProgressSettings.Find(new BsonDocument("_id", ProgressSettingsDocument.DocumentId)).FirstOrDefaultAsync(ct);
-        await Task.WhenAll(items, chests, rewards, achievements, progress);
-        return CatalogSnapshot.Build(await items, await chests, await rewards, await achievements, await progress);
+        var problems = new List<string>();
+        var items = await ReadAsync(_store.Items, new BsonDocument(), problems, ct);
+        var chests = await ReadAsync(_store.Chests, new BsonDocument(), problems, ct);
+        var rewards = await ReadAsync(_store.LevelRewards, new BsonDocument(), problems, ct);
+        var achievements = await ReadAsync(_store.Achievements, new BsonDocument(), problems, ct);
+        var progress = await ReadAsync(_store.ProgressSettings, new BsonDocument("_id", ProgressSettingsDocument.DocumentId), problems, ct);
+        return CatalogSnapshot.Build(items, chests, rewards, achievements, progress.FirstOrDefault(), problems);
+    }
+
+    /// <summary>
+    /// Reads one document at a time. A document of the wrong shape costs that document and is reported; it must not
+    /// stop every later admin edit from taking effect, or the API from starting after a restart.
+    /// </summary>
+    private static async Task<List<T>> ReadAsync<T>(IMongoCollection<T> collection, BsonDocument filter, List<string> problems, CancellationToken ct)
+    {
+        var name = collection.CollectionNamespace.CollectionName;
+        var documents = await collection.Database.GetCollection<BsonDocument>(name).Find(filter).ToListAsync(ct);
+        var read = new List<T>(documents.Count);
+        foreach (var document in documents)
+        {
+            try
+            {
+                read.Add(BsonSerializer.Deserialize<T>(document));
+            }
+            catch (Exception exception) when (exception is FormatException or BsonException or InvalidOperationException)
+            {
+                problems.Add($"{name}/{document.GetValue("_id", BsonNull.Value)} was left out, it has the wrong shape: {exception.Message}");
+            }
+        }
+        return read;
     }
 }

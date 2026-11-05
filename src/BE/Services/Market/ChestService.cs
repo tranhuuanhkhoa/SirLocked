@@ -314,6 +314,8 @@ public sealed class ChestService
         var purchase = await _store.ChestPurchases.Find(p => p.Id == id).FirstOrDefaultAsync(ct);
         if (purchase is null)
         {
+            // A price lost to a bad edit must not become a free chest.
+            if (MarketRules.ValidatePrice(price) is not null) throw ErrorFor(null);
             if (account.Balance < price) throw ErrorFor(ChestErrors.Funds);
             if (!MarketRules.HasRoom(account.Slots, 1)) throw ErrorFor(ChestErrors.SlotsFull);
 

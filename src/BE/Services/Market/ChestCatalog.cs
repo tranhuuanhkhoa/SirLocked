@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using SirLocked.Api.Models.Catalog;
 
 namespace SirLocked.Api.Services.Market;
 
@@ -29,7 +30,7 @@ public sealed class ChestDef
     public ChestDef(
         string id, string keyDefId, string name, string nameEn, string subtitle, string subtitleEn,
         string keyName, string keyNameEn, string iconKey, string keyIconKey, IReadOnlyList<MarketItemDef> items,
-        IReadOnlyList<ChestDropRate>? dropRates = null, ChestShopPrice? prices = null, bool active = true)
+        IReadOnlyList<ChestDropRate>? dropRates = null, ChestShopPrice? prices = null, bool active = true, CatalogChestLook? look = null)
     {
         Id = id;
         KeyDefId = keyDefId;
@@ -45,6 +46,7 @@ public sealed class ChestDef
         DropRates = dropRates ?? ChestCatalog.DropRates;
         Prices = prices ?? new ChestShopPrice(0, 0);
         Active = active;
+        Look = look;
         Pools = MarketRarities.All.ToDictionary(
             rarity => rarity,
             rarity => (IReadOnlyList<MarketItemDef>)items.Where(item => item.Rarity == rarity).ToList());
@@ -64,8 +66,10 @@ public sealed class ChestDef
     public IReadOnlyDictionary<string, IReadOnlyList<MarketItemDef>> Pools { get; }
     public IReadOnlyList<ChestDropRate> DropRates { get; }
     public ChestShopPrice Prices { get; }
-    /// <summary>Off means hidden from the chest page and not sold. Copies already owned can still be opened.</summary>
+    /// <summary>Off means hidden from the chest page. Copies already owned can still be opened. ADMIN-1 adds refusing to sell it.</summary>
     public bool Active { get; }
+    /// <summary>The drawing and light colours. Null on the seed classes. Not sent to players yet; see docs/admin-contracts.md.</summary>
+    public CatalogChestLook? Look { get; }
 
     /// <summary>Picks a rarity by <see cref="DropRates"/>, then one item of that rarity uniformly.</summary>
     public MarketItemDef Roll(IChestRandom random)

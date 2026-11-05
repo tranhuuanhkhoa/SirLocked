@@ -16,6 +16,8 @@ public class CatalogSingleSourceTests
         + @"|\bCosmeticCatalog\.(ItemDefs|LevelRewards|ForChest)\b"
         + @"|\bAchievementRules\.Catalog\b"
         + @"|\bProgressRules\.(RareXp|EpicXp)\b"
+        + @"|\bProgressRules\.XpValue\([^,)]*\)"
+        + @"|\bAchievementRules\.Evaluate\([^,)]*\)"
         + @"|\.PriceOf\(",
         RegexOptions.Compiled);
 
@@ -64,6 +66,10 @@ public class CatalogSingleSourceTests
         Assert.Matches(StaticRead, "var def = MarketCatalog.Find(id);");
         Assert.Matches(StaticRead, "foreach (var chest in ChestCatalog.Chests)");
         Assert.Matches(StaticRead, "_settings.PriceOf(chest.Id).Key");
+        Assert.Matches(StaticRead, "var xp = ProgressRules.XpValue(def);");
+        Assert.Matches(StaticRead, "AchievementRules.Evaluate(stats)");
+        Assert.DoesNotMatch(StaticRead, "ProgressRules.XpValue(def, rare, epic)");
+        Assert.DoesNotMatch(StaticRead, "AchievementRules.Evaluate(await LoadAsync(id, ct), catalog)");
         Assert.DoesNotMatch(StaticRead, "MarketCatalog.StarterItemIds.Count");
         Assert.DoesNotMatch(StaticRead, "CosmeticCatalog.DefaultTitleDefId");
     }

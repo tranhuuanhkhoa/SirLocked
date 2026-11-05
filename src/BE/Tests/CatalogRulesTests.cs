@@ -165,11 +165,30 @@ public class CatalogRulesTests
     [Fact]
     public void ATypeWithOwnedCopiesCannotBeDeleted()
     {
-        var violation = CatalogRules.ValidateDelete("VC-0217", 3);
+        var violation = CatalogRules.ValidateDelete("VC-0217", 3, Array.Empty<string>());
 
         Assert.Equal(CatalogRuleCodes.DefinitionOwned, violation!.Code);
         Assert.Contains("VC-0217", violation.Message);
-        Assert.Null(CatalogRules.ValidateDelete("VC-0217", 0));
+        Assert.Null(CatalogRules.ValidateDelete("VC-0217", 0, Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void ATypeSomethingStillPointsAtCannotBeDeleted()
+    {
+        var batch = CatalogSeedData.ForVersion(1, new ChestSettings(), DateTime.UtcNow);
+        string[] References(string defId) => CatalogRules.ReferencesTo(defId, batch.Chests, batch.LevelRewards, batch.Achievements).ToArray();
+
+        Assert.Contains(References("VC-0217"), text => text.Contains("Hòm Niêm Phong", StringComparison.Ordinal));
+        Assert.Contains(References("chest_np"), text => text.Contains("Hòm Niêm Phong", StringComparison.Ordinal));
+        Assert.Contains(References("key_np"), text => text.Contains("Hòm Niêm Phong", StringComparison.Ordinal));
+        Assert.Contains(References("frame_dong"), text => text.Contains("cấp 10", StringComparison.Ordinal));
+        Assert.Contains(References("title_huyet-kiem"), text => text.Contains("thành tích", StringComparison.Ordinal));
+        Assert.Empty(References("mag_brass"));
+
+        var violation = CatalogRules.ValidateDelete("VC-0217", 0, References("VC-0217"));
+        Assert.Equal(CatalogRuleCodes.DefinitionInUse, violation!.Code);
+        Assert.Contains("Hòm Niêm Phong", violation.Message);
+        Assert.Null(CatalogRules.ValidateDelete("mag_brass", 0, References("mag_brass")));
     }
 
     [Theory]

@@ -9,6 +9,7 @@ public sealed record CatalogRuleViolation(string Code, string Message);
 public static class CatalogRuleCodes
 {
     public const string DefinitionOwned = "CATALOG_DEF_OWNED";
+    public const string DefinitionInUse = "CATALOG_DEF_IN_USE";
     public const string DefinitionIdChanged = "CATALOG_DEF_ID_CHANGED";
     public const string WeightsTotal = "CHEST_WEIGHTS_TOTAL";
     public const string WeightInvalid = "CHEST_WEIGHT_INVALID";
@@ -27,12 +28,36 @@ public static class CatalogRules
 {
     public const int WeightDenominator = ChestCatalog.RateDenominator;
 
-    /// <summary>An item type with copies in circulation can only be retired, never deleted.</summary>
-    public static CatalogRuleViolation? ValidateDelete(string defId, long ownedCopies) =>
-        ownedCopies > 0
-            ? new CatalogRuleViolation(CatalogRuleCodes.DefinitionOwned,
-                $"Không thể xóa {defId} vì đang có {ownedCopies} bản thuộc về người chơi. Hãy cho ngừng phát hành (retired).")
+    /// <summary>
+    /// An item type with copies in circulation can only be retired, never deleted. One that something still points at
+    /// must be freed first (see <see cref="ReferencesTo"/>): a level reward would otherwise grant an item with no type behind it.
+    /// </summary>
+    public static CatalogRuleViolation? ValidateDelete(string defId, long ownedCopies, IReadOnlyCollection<string> references)
+    {
+        if (ownedCopies > 0)
+            return new CatalogRuleViolation(CatalogRuleCodes.DefinitionOwned,
+                $"Không thể xóa {defId} vì đang có {ownedCopies} bản thuộc về người chơi. Hãy cho ngừng phát hành (retired).");
+        return references.Count > 0
+            ? new CatalogRuleViolation(CatalogRuleCodes.DefinitionInUse,
+                $"Không thể xóa {defId} vì còn được dùng ở: {string.Join(", ", references)}.")
             : null;
+    }
+
+    /// <summary>What still points at an item type, in words an admin can act on. Empty means nothing does.</summary>
+    public static IReadOnlyList<string> ReferencesTo(
+        string defId, IEnumerable<CatalogChest> chests, IEnumerable<CatalogLevelReward> levelRewards, IEnumerable<CatalogAchievement> achievements)
+    {
+        var references = new List<string>();
+        foreach (var chest in chests)
+        {
+            if (chest.Id == defId) references.Add($"chính là {chest.Name}");
+            if (chest.KeyDefId == defId) references.Add($"chìa của {chest.Name}");
+            if (chest.Pool?.Contains(defId, StringComparer.Ordinal) == true) references.Add($"nội dung {chest.Name}");
+        }
+        references.AddRange(levelRewards.Where(reward => reward.DefId == defId).Select(reward => $"phần thưởng cấp {reward.Level}"));
+        if (achievements.Any(achievement => achievement.TitleDefId == defId)) references.Add("danh hiệu thành tích");
+        return references;
+    }
 
     /// <summary>Inventories, listings and journals all point at the defId, so it stays what it was at creation.</summary>
     public static CatalogRuleViolation? ValidateDefIdUnchanged(string currentId, string? submittedId) =>
