@@ -96,6 +96,23 @@ public sealed class AdminChestsStore
     }
 
     /// <summary>
+    /// Every chest, with the fields a hand edit may have stored as null read as empty, as the catalog provider does.
+    /// Such a chest fails validation until it is repaired, but the page that repairs it has to open.
+    /// </summary>
+    public static async Task<List<CatalogChest>> ReadChestsAsync(IMongoCollection<CatalogChest> collection, CancellationToken ct = default)
+    {
+        var chests = await ReadAllAsync(collection, ct);
+        foreach (var chest in chests)
+        {
+            chest.Pool ??= new List<string>();
+            chest.DropWeights ??= new Dictionary<string, int>(StringComparer.Ordinal);
+            chest.Prices ??= new CatalogChestPrices();
+            chest.Look ??= new CatalogChestLook();
+        }
+        return chests;
+    }
+
+    /// <summary>
     /// Reads a whole collection one document at a time. Like the catalog provider, a document of the wrong shape costs
     /// only itself (the provider's Problems report it), so one bad edit cannot lock an admin out of the page that fixes it.
     /// </summary>

@@ -34,7 +34,7 @@ public sealed class AdminChestsItemService
     public async Task<AdminItemListDto> ListAsync(CancellationToken ct = default)
     {
         var items = await AdminChestsStore.ReadAllAsync(_catalog.Items, ct);
-        var chests = await AdminChestsStore.ReadAllAsync(_catalog.Chests, ct);
+        var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
         var rewards = await AdminChestsStore.ReadAllAsync(_catalog.LevelRewards, ct);
         var achievements = await AdminChestsStore.ReadAllAsync(_catalog.Achievements, ct);
         var copies = await CountCopiesAsync(ct);
@@ -104,7 +104,7 @@ public sealed class AdminChestsItemService
     private async Task<AdminItemDto> RowAsync(CatalogItem item, CancellationToken ct)
     {
         var copies = await _market.Items.CountDocumentsAsync(i => i.DefId == item.Id, cancellationToken: ct);
-        var chests = await AdminChestsStore.ReadAllAsync(_catalog.Chests, ct);
+        var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
         return ToDto(item, _provider.Current, copies, chests, deletable: false);
     }
 
@@ -229,7 +229,7 @@ public sealed class AdminChestsItemService
             throw AdminChestsErrors.Error(404, AdminChestsErrors.ItemNotFound, $"Không có vật phẩm {id}.");
         if (!AdminChestsRules.IsEditableHere(item.Category))
             throw AdminChestsErrors.Error(409, AdminChestsErrors.ManagedElsewhere, $"{item.Name} được quản lý ở trang riêng, không sửa ở đây.");
-        return (item, items, await AdminChestsStore.ReadAllAsync(_catalog.Chests, ct));
+        return (item, items, await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct));
     }
 
     /// <summary>An item's rarity, price and retirement all feed the tables of the chests that list it.</summary>

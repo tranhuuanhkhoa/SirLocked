@@ -893,6 +893,57 @@ public sealed class MongoAdminChestsTests
         Assert.Contains("ix_chestPurchases_chest_state_createdAt", await names("chestPurchases"));
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("khong-phai-id")]
+    public async Task GrantingToAnIdThatCannotExistIsNotFound_NotAServerError(string userId)
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+
+        var error = await Throws(() => env.Stats.GrantAsync(Yen, new AdminChestGrantRequest { UserId = userId, ChestId = Seal, Chests = 1, Keys = 0, Reason = "Thử" }));
+
+        Assert.Equal(404, error.StatusCode);
+        Assert.Equal(MarketErrors.UserNotFound, Code(error));
+    }
+
+    [Fact]
+    public async Task AChestStoredWithEmptyFieldsStillOpensInTheAdmin_SoItCanBeRepaired()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        await env.Db.Database.GetCollection<BsonDocument>("chests").UpdateOneAsync(
+            new BsonDocument("_id", Bank),
+            new BsonDocument("$set", new BsonDocument { { "pool", BsonNull.Value }, { "dropWeights", BsonNull.Value }, { "prices", BsonNull.Value }, { "look", BsonNull.Value } }));
+        env.Provider.Invalidate();
+
+        var row = (await env.Admin.ListAsync()).Chests.Single(chest => chest.Id == Bank);
+        var detail = await env.Admin.GetAsync(Bank);
+        var items = await env.Items.ListAsync();
+
+        Assert.Equal(0, row.PoolCount);
+        Assert.Empty(detail.Pool);
+        Assert.Empty(detail.DropWeights);
+        Assert.NotEmpty(items.Items);
+    }
+
+    [Fact]
+    public async Task RenamingAChestWhoseKeyHasNoNameYetDoesNotFail()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        await env.Catalog.Chests.UpdateOneAsync(c => c.Id == Seal, Builders<CatalogChest>.Update.Set(c => c.KeyName, string.Empty).Set(c => c.KeyNameEn, string.Empty));
+        env.Provider.Invalidate();
+
+        var draft = await env.DraftOfAsync(Seal);
+        draft.KeyName = "chìa mới";
+        draft.KeyNameEn = "new key";
+        draft.Reason = "Đặt tên chìa";
+        await env.Admin.UpdateAsync(Yen, Seal, draft);
+
+        Assert.Equal("Chìa mới", env.Provider.Current.Find(SealKey)!.Name);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static AdminItemUpdateRequest UpdateOf(AdminItemDto item) => new()

@@ -42,7 +42,7 @@ public sealed class AdminChestsChestService
 
     public async Task<AdminChestListDto> ListAsync(CancellationToken ct = default)
     {
-        var chests = await AdminChestsStore.ReadAllAsync(_catalog.Chests, ct);
+        var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
         var items = await ItemsAsync(ct);
         var since = _market.Now.AddDays(-7);
         var opens = await _market.ChestOpenings.Aggregate()
@@ -143,7 +143,7 @@ public sealed class AdminChestsChestService
     {
         var source = await RequireAsync(sourceId, ct);
         var items = await ItemsAsync(ct);
-        var chests = await AdminChestsStore.ReadAllAsync(_catalog.Chests, ct);
+        var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
         var now = _market.Now;
 
         var chest = AdminChestsRules.Clone(source);
@@ -199,6 +199,10 @@ public sealed class AdminChestsChestService
         MongoBulkWriteException bulk => bulk.WriteErrors.Any(error => error.Category == ServerErrorCategory.DuplicateKey),
         _ => false,
     };
+
+    /// <summary>An item's description names its chest and key: a rename reaches it. A name that was blank has nothing to replace.</summary>
+    private static string Renamed(string? text, string? oldName, string newName) =>
+        string.IsNullOrEmpty(text) || string.IsNullOrEmpty(oldName) ? text ?? string.Empty : text.Replace(oldName, newName, StringComparison.Ordinal);
 
     private static string Capitalized(string text) =>
         string.IsNullOrEmpty(text) ? text : char.ToUpper(text[0], System.Globalization.CultureInfo.InvariantCulture) + text[1..];
@@ -288,12 +292,8 @@ public sealed class AdminChestsChestService
         async Task Sync(string defId, string name, string nameEn, long price, string iconKey)
         {
             if (!items.TryGetValue(defId, out var def)) return;
-            var description = def.Description
-                .Replace(before.Name, after.Name, StringComparison.Ordinal)
-                .Replace(before.KeyName, after.KeyName, StringComparison.Ordinal);
-            var descriptionEn = def.DescriptionEn
-                .Replace(before.NameEn, after.NameEn, StringComparison.Ordinal)
-                .Replace(before.KeyNameEn, after.KeyNameEn, StringComparison.Ordinal);
+            var description = Renamed(Renamed(def.Description, before.Name, after.Name), before.KeyName, after.KeyName);
+            var descriptionEn = Renamed(Renamed(def.DescriptionEn, before.NameEn, after.NameEn), before.KeyNameEn, after.KeyNameEn);
             if (def.Name == name && def.NameEn == nameEn && def.ReferencePrice == price && def.Visual?.IconKey == iconKey
                 && def.Retired == !after.Active && def.Description == description && def.DescriptionEn == descriptionEn) return;
 
@@ -347,7 +347,7 @@ public sealed class AdminChestsChestService
     // ------------------------------------------------------------------ helpers
 
     private async Task<CatalogChest> RequireAsync(string id, CancellationToken ct) =>
-        (await AdminChestsStore.ReadAllAsync(_catalog.Chests, ct)).FirstOrDefault(chest => chest.Id == id)
+        (await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct)).FirstOrDefault(chest => chest.Id == id)
         ?? throw AdminChestsErrors.Error(404, AdminChestsErrors.ChestNotFound, $"Không có hòm {id}.");
 
     private async Task<Dictionary<string, CatalogItem>> ItemsAsync(CancellationToken ct) =>

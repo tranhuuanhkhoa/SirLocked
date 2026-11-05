@@ -1,5 +1,7 @@
+using SirLocked.Api.Configurations;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Admin;
+using SirLocked.Api.Services.Catalog;
 using SirLocked.Api.Services.Market;
 using Xunit;
 
@@ -357,6 +359,15 @@ public class AdminChestsRulesTests
         Assert.Contains(AdminChestsRules.TextInvalid, codes);
         Assert.Contains(AdminChestsRules.ItemRarityInvalid, codes);
         Assert.Contains(CatalogRuleCodes.PriceInvalid, codes);
+    }
+
+    [Fact]
+    public void EverySeededItemThatCanBeEditedHerePassesAsItIs()
+    {
+        var items = CatalogSeedData.ForVersion(1, new ChestSettings(), DateTime.UtcNow).Items
+            .Where(item => AdminChestsRules.IsEditableHere(item.Category));
+
+        foreach (var item in items) Assert.True(!AdminChestsRules.ValidateItem(item).Any(), $"{item.Id} would be refused.");
     }
 
     [Theory]
