@@ -4,7 +4,7 @@ import { defineEntrance } from '../../../cosmetics/fx.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { paintStageThumb } from '../../../cosmetics/stage.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { acquisitionHtml, basicFieldsHtml, saveCosmetic, statusHtml, wireAcquisition, wirePictureInput, wireStatus } from './editorCommon.js';
+import { basicFieldsHtml, mountSections, saveCosmetic, wirePictureInput } from './editorCommon.js';
 import { hexOf, keyOf, rgbOf } from './shared.js';
 
 const PREVIEW_ID = '__pv_entrance';
@@ -15,7 +15,7 @@ const STILL_SECONDS = 2.5;
 /* What the full-screen preview shows around the effect. */
 const SAMPLE_PLAYER = { name: 'Thám tử mẫu', frameId: 'kimlong', titleId: 'kim-long', avatar: () => avatarImg('nonla') };
 
-export function mountEntranceEditor(host, { item, page, onSaved }) {
+export function mountEntranceEditor(host, { item, page, onSaved, onChanged }) {
   warmEntranceArt();
   const painter = createPainter();
   const shipped = Boolean(item?.visual?.builtinId);
@@ -100,7 +100,7 @@ export function mountEntranceEditor(host, { item, page, onSaved }) {
           </div>
         </section>`}
         <div class="acf-actions"><button class="btn btn-primary" type="button" data-save>${item ? 'Lưu hiệu ứng' : 'Tạo hiệu ứng'}</button></div>
-        ${item ? acquisitionHtml(item, page) + statusHtml(item) : ''}
+        ${item ? '<div class="acf-sections" data-sections></div>' : ''}
       </div>
       <aside class="acf-preview" data-preview aria-label="Xem trước">
         <h3>Xem trước</h3>
@@ -114,10 +114,7 @@ export function mountEntranceEditor(host, { item, page, onSaved }) {
   host.querySelector('[data-save]').addEventListener('click', (event) => {
     saveCosmetic({ item, category: 'ENTRANCE', root: host, visual: shipped ? null : visualBody(), button: event.currentTarget, onSaved });
   });
-  if (item) {
-    wireAcquisition(host, item, onSaved);
-    wireStatus(host, item, onSaved);
-  }
+  if (item) mountSections(host, item, page, onChanged);
   host.querySelector('[data-play]').addEventListener('click', () => {
     applyPreview();
     playing?.cancel();

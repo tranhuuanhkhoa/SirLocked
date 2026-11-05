@@ -317,14 +317,24 @@ test('how an item is obtained is saved and shown, and a level reward stops being
   await page.locator('input[name="acf-mode"][value="level"]').check();
   await page.locator('#acf-level').fill('5');
   await page.locator('[data-save-way]').click();
+  // It stops being tradable for everyone holding a copy, so the page says so and asks why.
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('không bán, trao đổi hay đổi KN được nữa');
+  await dialog.locator('[data-cancel]').click();
+  expect(state.sent).toEqual([]);
+  await page.locator('[data-save-way]').click();
+  await page.locator('#acf-reason').fill('Thưởng cấp 5');
+  await dialog.locator('[data-confirm]').click();
   await expect(page.locator('[data-field="tradable"]')).not.toBeChecked();
-  expect(state.sent.at(-1)).toMatchObject({ method: 'PUT', path: '/frame_kimlong/acquisition', body: { mode: 'level', level: 5 } });
+  expect(state.sent.at(-1)).toMatchObject({ method: 'PUT', path: '/frame_kimlong/acquisition', body: { mode: 'level', level: 5, reason: 'Thưởng cấp 5' } });
   await expect(page.locator('input[name="acf-mode"][value="level"]')).toBeChecked();
 
   await page.locator('input[name="acf-mode"][value="achievement"]').check();
   await page.locator('#acf-metric').selectOption('Won');
   await page.locator('#acf-target').fill('25');
   await page.locator('[data-save-way]').click();
+  await page.locator('#acf-reason').fill('Thành tích mới');
+  await dialog.locator('[data-confirm]').click();
   await expect.poll(() => state.sent.at(-1)?.body?.mode).toBe('achievement');
   expect(state.sent.at(-1)?.body).toMatchObject({ metric: 'Won', target: 25 });
 });
@@ -347,7 +357,80 @@ test('a refusal from the server is shown as it is', async ({ page }) => {
   await page.goto('/#/admin/cosmetics/title_tan-binh');
   await page.locator('input[name="acf-mode"][value="admin"]').check();
   await page.locator('[data-save-way]').click();
+  await page.locator('#acf-reason').fill('Thử');
+  await page.getByRole('dialog').locator('[data-confirm]').click();
   await expect(page.getByText('Nhóm này luôn cần một món mặc định.')).toBeVisible();
+});
+
+test('saving how an item is obtained, or retiring it, keeps what is still being edited', async ({ page }) => {
+  const state = await prepare(page);
+  state.page.items.push(item('frame_moi', 'FRAME', 'Đang Sửa', {
+    visual: { iconKey: 'frame_moi', imageUrl: PICTURE, builtinId: null, template: 'painted', params: { hole: { x: 120, y: 120, r: 80 }, live: {} } },
+  }));
+  await page.goto('/#/admin/cosmetics/frame_moi');
+  await page.locator('#acf-name').fill('Tên Chưa Lưu');
+  await page.locator('[data-effect-on="spark"]').check();
+
+  await page.locator('input[name="acf-mode"][value="level"]').check();
+  await page.locator('#acf-level').fill('5');
+  await page.locator('[data-save-way]').click();
+  await page.locator('#acf-reason').fill('Thưởng cấp 5');
+  await page.getByRole('dialog').locator('[data-confirm]').click();
+  await expect(page.locator('input[name="acf-mode"][value="level"]')).toBeChecked();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.locator('[data-retire]').click();
+  await page.locator('#acf-reason').fill('Hết mùa');
+  await page.getByRole('dialog').locator('[data-confirm]').click();
+  await expect(page.locator('[data-retire]')).toHaveText('Phát hành lại');
+
+  await expect(page.locator('#acf-name')).toHaveValue('Tên Chưa Lưu');
+  await expect(page.locator('[data-effect-on="spark"]')).toBeChecked();
+  await page.locator('[data-save]').click();
+  await expect(page.getByRole('heading', { name: 'Tên Chưa Lưu' })).toBeVisible();
+  const saved = state.sent.filter((call) => call.path === '/frame_moi').at(-1)!.body;
+  expect(saved.visual.params.live.spark).toBeTruthy();
+});
+
+test('turning trading on or off asks why, because it changes what players hold', async ({ page }) => {
+  const state = await prepare(page);
+  await page.goto('/#/admin/cosmetics/frame_kimlong');
+  await page.locator('[data-field="tradable"]').uncheck();
+  await page.locator('[data-save]').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('không bán');
+  await dialog.locator('[data-cancel]').click();
+  expect(state.sent).toEqual([]);
+
+  await page.locator('[data-save]').click();
+  await page.locator('#acf-reason').fill('Khóa giao dịch');
+  await dialog.locator('[data-confirm]').click();
+  await expect.poll(() => state.sent.at(-1)?.body?.reason).toBe('Khóa giao dịch');
+  expect(state.sent.at(-1)?.body?.tradable).toBe(false);
+});
+
+test('a variant whose base has a sheen can switch it off, and the player sees the same', async ({ page }) => {
+  const state = await prepare(page);
+  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.locator('#acf-name').fill('Băng Không Ánh');
+  await page.locator('input[name="acf-template"][value="builtin-clone"]').check();
+  await page.locator('[data-base="bang"]').click();
+  await expect(page.locator('[data-sheen="on"]')).toBeChecked();
+  await page.locator('[data-sheen="on"]').uncheck();
+  await page.locator('[data-save]').click();
+  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics/frame_moi');
+
+  const body = state.sent.find((call) => call.method === 'POST')!.body;
+  expect(body.visual.params.sheen.a).toBe(0);
+  const drawn = await page.evaluate(async (visual) => {
+    const index = await import('/Client/js/cosmetics/index.js' as string);
+    index.applyCosmetic({ id: 'frame_khong-anh', category: 'FRAME', rarity: 'RARE', name: 'x', visual });
+    const sheen = index.FR['khong-anh'].picSheen;
+    return sheen?.a ?? 0;
+  }, body.visual);
+  expect(drawn).toBe(0);
+  // Opened again, the box stays unticked.
+  await expect(page.locator('[data-sheen="on"]')).not.toBeChecked();
 });
 
 // ------------------------------------------------------------------ titles
@@ -807,6 +890,49 @@ test('the chest reel draws a frame it has never heard of from the definition it 
   expect(painted.known).toBe(true);
   expect(painted.pic).toContain('vien-mac');
   expect(painted.smooth).toBe(true);
+});
+
+test('the chest page does not overwrite how a known item is obtained', async ({ page }) => {
+  await page.goto('/');
+  const words = await page.evaluate(async () => {
+    const index = await import('/Client/js/cosmetics/index.js' as string);
+    const icons = await import('/Client/js/cosmetics/icons.js' as string);
+    index.applyCosmeticCatalog({
+      items: [{ id: 'frame_thach', category: 'FRAME', rarity: 'RARE', name: 'Thạch Phù', description: '', visual: { builtinId: 'thach' }, chests: ['Hòm Niêm Phong'], activeChestCount: 3 }],
+      defaults: {},
+    });
+    // What a chest sends for its contents says nothing about levels or chests.
+    icons.cosmeticSprite({ id: 'frame_thach', category: 'FRAME', rarity: 'RARE', name: 'Thạch Phù', description: 'Viền avatar.', visual: { builtinId: 'thach' } });
+    return index.FR.thach.src;
+  });
+  expect(words).toBe('Ra từ Hòm Niêm Phong');
+});
+
+test('an edited description of a shipped entrance reaches the profile', async ({ page }) => {
+  await page.goto('/');
+  const words = await page.evaluate(async () => {
+    const index = await import('/Client/js/cosmetics/index.js' as string);
+    index.applyCosmetic({ id: 'entrance_anh-trang', category: 'ENTRANCE', rarity: 'RARE', name: 'Ánh Trăng Soi Lối', description: 'Mô tả mới của admin.', visual: { builtinId: 'anh-trang' }, chests: ['Hòm Niêm Phong'], activeChestCount: 3 });
+    const edited = index.EN['anh-trang'].d;
+    // Empty on the server means "written from the chests", which leaves the effect's own line alone.
+    index.applyCosmetic({ id: 'entrance_mac-vu', category: 'ENTRANCE', rarity: 'EPIC', name: 'Mặc Vụ Ẩn Thân', description: 'Hiệu ứng vào sảnh. Ra từ Tráp Sơn Mài.', visual: { builtinId: 'mac-vu' }, chests: ['Tráp Sơn Mài'], activeChestCount: 3 });
+    return { edited, untouched: index.EN['mac-vu'].d };
+  });
+  expect(words.edited).toBe('Mô tả mới của admin.');
+  expect(words.untouched).toBe('Khói mực cuộn qua rồi tan, lộ dáng người');
+});
+
+test('in the market, a painted frame whose picture fails falls back to the category drawing', async ({ page }) => {
+  await page.goto('/');
+  const swapped = await page.evaluate(async () => {
+    const kit = await import('/Client/js/pages/market/marketKit.js' as string);
+    const host = document.createElement('div');
+    host.innerHTML = kit.itemIcon({ category: 'FRAME', rarity: 'RARE', visual: { template: 'painted', imageUrl: '/assets/khong-co.webp' } });
+    document.body.append(host);
+    for (let i = 0; i < 60 && host.querySelector('img'); i++) await new Promise((resolve) => setTimeout(resolve, 50));
+    return { image: host.querySelectorAll('img').length, drawing: host.querySelectorAll('svg').length };
+  });
+  expect(swapped).toEqual({ image: 0, drawing: 1 });
 });
 
 test('with a tint, colours change hue and keep their lightness; without one they come back untouched', async ({ page }) => {

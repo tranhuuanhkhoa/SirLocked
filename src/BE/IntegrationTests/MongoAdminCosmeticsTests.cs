@@ -175,7 +175,7 @@ public sealed class MongoAdminCosmeticsTests
 
     private static AdminCosmeticUpdateRequest Update(AdminCosmeticDto item, string? name = null, bool? tradable = null, string? rarity = null, long? price = null) => new(
         item.Version, name ?? item.Name, item.NameEn, item.Description, item.DescriptionEn, rarity ?? item.Rarity, tradable ?? item.Tradable, price ?? item.ReferencePrice,
-        new AdminCosmeticVisualRequest(item.Visual.ImageUrl, item.Visual.Template, JsonSerializer.SerializeToElement(item.Visual.Params, Web)), null);
+        new AdminCosmeticVisualRequest(item.Visual.ImageUrl, item.Visual.Template, JsonSerializer.SerializeToElement(item.Visual.Params, Web)), "Sửa thử");
 
     // ------------------------------------------------------------------ level rewards
 
@@ -289,11 +289,85 @@ public sealed class MongoAdminCosmeticsTests
         var frame = await env.Admin.CreateAsync(Admin, PaintedFrame());
         await env.Admin.SetAcquisitionAsync(Admin, frame.Id, Level(5));
         await env.Progress.GetMeAsync(player.Id);
-        var loose = await env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, null));
+        var loose = await env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, "Đổi cách nhận"));
 
         var error = await Assert.ThrowsAsync<ApiException>(() => env.Admin.UpdateAsync(Admin, frame.Id, Update(loose, tradable: true)));
 
         Assert.Equal(AdminCosmeticCodes.EarnedCopiesExist, ((ApiErrorDetails)error.Errors!).Code);
+    }
+
+    // ------------------------------------------------------------------ what a failure half way leaves
+
+    [Fact]
+    public async Task ARewardNeverReachesPlayersWhileItsItemCanStillBeTraded()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var player = await env.AddUserAsync();
+        await env.SetLevelAsync(player.Id, 6);
+        var frame = await env.Admin.CreateAsync(Admin, PaintedFrame(tradable: true));
+        await env.RefuseWritesAsync("catalogItems");
+
+        await Assert.ThrowsAnyAsync<Exception>(() => env.Admin.SetAcquisitionAsync(Admin, frame.Id, Level(5)));
+        await env.AllowWritesAsync("catalogItems");
+        await env.Provider.RefreshAsync();
+
+        // Had the reward been written first, this player could burn the copy for XP and get it back, again and again.
+        Assert.DoesNotContain(env.Provider.Current.LevelRewards, reward => reward.DefId == frame.Id);
+        Assert.DoesNotContain((await env.Progress.GetMeAsync(player.Id)).Owned, item => item.DefId == frame.Id);
+
+        var saved = await env.Admin.SetAcquisitionAsync(Admin, frame.Id, Level(5));
+        Assert.False(saved.Tradable);
+        Assert.Equal(5, saved.Acquisition.Level);
+    }
+
+    [Fact]
+    public async Task AFailureHalfWayStillTellsTheCatalogWhatWasSaved()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var frame = await env.Admin.CreateAsync(Admin, PaintedFrame(tradable: true));
+        await env.RefuseWritesAsync("levelRewards");
+
+        await Assert.ThrowsAnyAsync<Exception>(() => env.Admin.SetAcquisitionAsync(Admin, frame.Id, Level(5)));
+
+        Assert.False(env.Provider.Current.Find(frame.Id)!.Tradable);
+        await env.AllowWritesAsync("levelRewards");
+        Assert.Equal(5, (await env.Admin.SetAcquisitionAsync(Admin, frame.Id, Level(5))).Acquisition.Level);
+    }
+
+    [Fact]
+    public async Task ChangingHowAnItemIsObtainedNeedsAReasonAndRecordsTheTradableFlip()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var frame = await env.Admin.CreateAsync(Admin, PaintedFrame(tradable: true));
+
+        var noReason = await Assert.ThrowsAsync<ApiException>(() =>
+            env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("level", 5, null, null, "  ")));
+        Assert.Equal(AdminCosmeticCodes.ReasonRequired, ((ApiErrorDetails)noReason.Errors!).Code);
+        Assert.True((await env.Admin.GetAsync(frame.Id)).Tradable);
+
+        await env.Admin.SetAcquisitionAsync(Admin, frame.Id, Level(5));
+
+        var entry = (await env.Audit.QueryAsync(new AdminAuditQuery(Action: "item.acquisition"))).Items.Single();
+        Assert.True(entry.Before!.Value.GetProperty("tradable").GetBoolean());
+        Assert.False(entry.After!.Value.GetProperty("tradable").GetBoolean());
+        Assert.Equal("Thưởng mới", entry.Reason);
+    }
+
+    [Fact]
+    public async Task ChangingWhetherAnItemTradesNeedsAReason()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var frame = await env.Admin.CreateAsync(Admin, PaintedFrame(tradable: true));
+        var request = Update(frame, tradable: false) with { Reason = null };
+
+        var error = await Assert.ThrowsAsync<ApiException>(() => env.Admin.UpdateAsync(Admin, frame.Id, request));
+
+        Assert.Equal(AdminCosmeticCodes.ReasonRequired, ((ApiErrorDetails)error.Errors!).Code);
+        Assert.False((await env.Admin.UpdateAsync(Admin, frame.Id, Update(frame, tradable: false))).Tradable);
     }
 
     // ------------------------------------------------------------------ achievements
@@ -334,7 +408,7 @@ public sealed class MongoAdminCosmeticsTests
         var title = await env.Admin.CreateAsync(Admin, StyledTitle());
 
         var error = await Assert.ThrowsAsync<ApiException>(() =>
-            env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("achievement", null, "Nothing", 3, null)));
+            env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("achievement", null, "Nothing", 3, "Đổi cách nhận")));
 
         Assert.Equal(AdminCosmeticCodes.MetricUnknown, ((ApiErrorDetails)error.Errors!).Code);
     }
@@ -347,11 +421,11 @@ public sealed class MongoAdminCosmeticsTests
         var title = await env.Admin.CreateAsync(Admin, StyledTitle());
 
         await env.Admin.SetAcquisitionAsync(Admin, title.Id, Level(5));
-        await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("achievement", null, "Played", 2, null));
+        await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("achievement", null, "Played", 2, "Đổi cách nhận"));
         Assert.DoesNotContain(env.Provider.Current.LevelRewards, r => r.DefId == title.Id);
         Assert.Contains(env.Provider.Current.Achievements, a => a.TitleDefId == title.Id);
 
-        var free = await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, null));
+        var free = await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, "Đổi cách nhận"));
         Assert.Equal("admin", free.Acquisition.Mode);
         Assert.DoesNotContain(env.Provider.Current.Achievements, a => a.TitleDefId == title.Id);
     }
@@ -367,9 +441,9 @@ public sealed class MongoAdminCosmeticsTests
         var first = await env.Admin.CreateAsync(Admin, StyledTitle("Danh Một"));
         var second = await env.Admin.CreateAsync(Admin, StyledTitle("Danh Hai"));
 
-        await env.Admin.SetAcquisitionAsync(Admin, first.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, null));
+        await env.Admin.SetAcquisitionAsync(Admin, first.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
         Assert.Equal(first.Id, (await env.Progress.GetMeAsync(player.Id)).TitleDefId);
-        await env.Admin.SetAcquisitionAsync(Admin, second.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, null));
+        await env.Admin.SetAcquisitionAsync(Admin, second.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
 
         var page = await env.Admin.ListAsync();
         Assert.Equal(second.Id, Assert.Single(page.Items, item => item.Category == MarketCategories.Title && item.Acquisition.Mode == "default").Id);
@@ -388,11 +462,11 @@ public sealed class MongoAdminCosmeticsTests
         Assert.Null((await env.Progress.GetMeAsync(player.Id)).FrameDefId);
         var frame = await env.Admin.CreateAsync(Admin, PaintedFrame());
 
-        var saved = await env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, null));
+        var saved = await env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
 
         Assert.False(saved.Tradable);
         Assert.Equal(frame.Id, (await env.Progress.GetMeAsync(player.Id)).FrameDefId);
-        await env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, null));
+        await env.Admin.SetAcquisitionAsync(Admin, frame.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, "Đổi cách nhận"));
         Assert.Null((await env.Progress.GetMeAsync(player.Id)).FrameDefId);
     }
 
@@ -403,13 +477,13 @@ public sealed class MongoAdminCosmeticsTests
         await using var env = await Env.CreateAsync();
 
         var error = await Assert.ThrowsAsync<ApiException>(() =>
-            env.Admin.SetAcquisitionAsync(Admin, CosmeticCatalog.DefaultTitleDefId, new AdminCosmeticAcquisitionRequest("admin", null, null, null, null)));
+            env.Admin.SetAcquisitionAsync(Admin, CosmeticCatalog.DefaultTitleDefId, new AdminCosmeticAcquisitionRequest("admin", null, null, null, "Đổi cách nhận")));
 
         Assert.Equal(AdminCosmeticCodes.DefaultRequired, ((ApiErrorDetails)error.Errors!).Code);
 
         var other = await env.Admin.CreateAsync(Admin, StyledTitle());
-        await env.Admin.SetAcquisitionAsync(Admin, other.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, null));
-        await env.Admin.SetAcquisitionAsync(Admin, other.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, null));
+        await env.Admin.SetAcquisitionAsync(Admin, other.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
+        await env.Admin.SetAcquisitionAsync(Admin, other.Id, new AdminCosmeticAcquisitionRequest("admin", null, null, null, "Đổi cách nhận"));
         Assert.Equal(CosmeticCatalog.DefaultTitleDefId, (await env.Admin.ListAsync()).Defaults.Title);
     }
 
@@ -419,7 +493,7 @@ public sealed class MongoAdminCosmeticsTests
         if (!Enabled) return;
         await using var env = await Env.CreateAsync();
         var title = await env.Admin.CreateAsync(Admin, StyledTitle());
-        await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, null));
+        await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
 
         var retire = await Assert.ThrowsAsync<ApiException>(() => env.Admin.SetRetiredAsync(Admin, title.Id, new AdminCosmeticRetireRequest(true, "Dọn")));
         var delete = await Assert.ThrowsAsync<ApiException>(() => env.Admin.DeleteAsync(Admin, title.Id, "Dọn"));
@@ -428,7 +502,41 @@ public sealed class MongoAdminCosmeticsTests
         Assert.Equal(AdminCosmeticCodes.DefaultCannotRetire, ((ApiErrorDetails)delete.Errors!).Code);
     }
 
+    [Fact]
+    public async Task TheDefaultsInCodeCanBeTheFallbackAtAnyMomentSoTheyStayFit()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var other = await env.Admin.CreateAsync(Admin, StyledTitle());
+        await env.Admin.SetAcquisitionAsync(Admin, other.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
+        var inCode = await env.Admin.GetAsync(CosmeticCatalog.DefaultTitleDefId);
+
+        var retire = await Assert.ThrowsAsync<ApiException>(() => env.Admin.SetRetiredAsync(Admin, inCode.Id, new AdminCosmeticRetireRequest(true, "Dọn")));
+        var trade = await Assert.ThrowsAsync<ApiException>(() => env.Admin.UpdateAsync(Admin, inCode.Id, Update(inCode, tradable: true)));
+
+        Assert.Equal(AdminCosmeticCodes.DefaultCannotRetire, ((ApiErrorDetails)retire.Errors!).Code);
+        Assert.Equal(AdminCosmeticCodes.EarnedNotTradable, ((ApiErrorDetails)trade.Errors!).Code);
+    }
+
     // ------------------------------------------------------------------ retire
+
+    [Fact]
+    public async Task BringingAnItemBackMustNotBreakAChest()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var chest = await env.Catalog.Chests.Find(c => c.Id == "chest_np").SingleAsync();
+        var items = await env.Catalog.Items.Find(i => chest.Pool.Contains(i.Id) && i.Rarity == MarketRarities.Legendary).ToListAsync();
+        var valuable = items.First(item => CosmeticCatalog.IsCosmetic(item.Category));
+        // Retired long ago, at a price this chest could not afford to pay out.
+        await env.Catalog.Items.UpdateOneAsync(i => i.Id == valuable.Id, Builders<CatalogItem>.Update.Set(i => i.Retired, true).Set(i => i.ReferencePrice, 1_000_000));
+        env.Provider.Invalidate();
+
+        var error = await Assert.ThrowsAsync<ApiException>(() => env.Admin.SetRetiredAsync(Admin, valuable.Id, new AdminCosmeticRetireRequest(false, "Mở lại")));
+
+        Assert.Equal(CatalogRuleCodes.ExpectedValueTooHigh, ((ApiErrorDetails)error.Errors!).Code);
+        Assert.True((await env.Admin.GetAsync(valuable.Id)).Retired);
+    }
 
     [Fact]
     public async Task RetiringLeavesWhatIsWornOnThePlayer()
@@ -525,6 +633,22 @@ public sealed class MongoAdminCosmeticsTests
     }
 
     [Fact]
+    public async Task OpenBuyOrdersKeepAnItemFromBeingDeleted()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var buyer = await env.AddUserAsync();
+        var frame = await env.Admin.CreateAsync(Admin, PaintedFrame());
+        await env.Market.AdminGrantAsync(buyer.Id, null, 1000);
+        await env.Market.PlaceOrderAsync(buyer, frame.Id, 500);
+
+        var error = await Assert.ThrowsAsync<ApiException>(() => env.Admin.DeleteAsync(Admin, frame.Id, "Dọn"));
+
+        Assert.Equal(AdminCosmeticCodes.OpenOrders, ((ApiErrorDetails)error.Errors!).Code);
+        Assert.NotNull(env.Provider.Current.Find(frame.Id));
+    }
+
+    [Fact]
     public async Task ARewardMustBeFreedBeforeDeleting()
     {
         if (!Enabled) return;
@@ -562,6 +686,26 @@ public sealed class MongoAdminCosmeticsTests
         Assert.Equal(player.Id, audit.TargetId);
         Assert.Equal("Quà sự kiện", audit.Reason);
         Assert.Equal(frame.Id, audit.After!.Value.GetProperty("defId").GetString());
+    }
+
+    [Fact]
+    public async Task GrantingWhatCanNeverLeaveTheBagTakesNoSlot()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var player = await env.AddUserAsync();
+        var frame = await env.Admin.CreateAsync(Admin, PaintedFrame(tradable: false));
+        var before = await env.Market.GetWalletAsync(player.Id);
+
+        var result = await env.Admin.GrantAsync(Admin, frame.Id, new AdminCosmeticGrantRequest(player.Id, "Quà sự kiện"));
+
+        Assert.Equal(before.SlotsUsed, result.SlotsUsed);
+        Assert.Equal(before.SlotsUsed, (await env.Market.GetWalletAsync(player.Id)).SlotsUsed);
+        Assert.Contains((await env.Progress.GetMeAsync(player.Id)).Owned, item => item.DefId == frame.Id);
+        var again = await Assert.ThrowsAsync<ApiException>(() => env.Admin.GrantAsync(Admin, frame.Id, new AdminCosmeticGrantRequest(player.Id, "Lần nữa")));
+        Assert.Equal(AdminCosmeticCodes.AlreadyOwned, ((ApiErrorDetails)again.Errors!).Code);
+        var nobody = await Assert.ThrowsAsync<ApiException>(() => env.Admin.GrantAsync(Admin, frame.Id, new AdminCosmeticGrantRequest(ObjectId.GenerateNewId().ToString(), "Quà")));
+        Assert.Equal(404, nobody.StatusCode);
     }
 
     [Fact]
@@ -722,7 +866,7 @@ public sealed class MongoAdminCosmeticsTests
         if (!Enabled) return;
         await using var env = await Env.CreateAsync();
         var title = await env.Admin.CreateAsync(Admin, StyledTitle());
-        await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, null));
+        await env.Admin.SetAcquisitionAsync(Admin, title.Id, new AdminCosmeticAcquisitionRequest("default", null, null, null, "Đổi cách nhận"));
 
         var fresh = new CosmeticDefaultsStore(env.Catalog, NullLogger<CosmeticDefaultsStore>.Instance);
 
@@ -820,6 +964,22 @@ public sealed class MongoAdminCosmeticsTests
                 Success = success,
                 CreatedAt = new DateTime(2026, 11, 3, 5, 0, 0, DateTimeKind.Utc)
             });
+
+        /// <summary>Makes every write to a collection fail, as a dropped connection or a full disk would.</summary>
+        public Task RefuseWritesAsync(string collection) => Db.Database.RunCommandAsync<BsonDocument>(new BsonDocument
+        {
+            ["collMod"] = collection,
+            ["validator"] = new BsonDocument("fieldThatNeverExists", 1),
+            ["validationLevel"] = "strict",
+            ["validationAction"] = "error",
+        });
+
+        public Task AllowWritesAsync(string collection) => Db.Database.RunCommandAsync<BsonDocument>(new BsonDocument
+        {
+            ["collMod"] = collection,
+            ["validator"] = new BsonDocument(),
+            ["validationLevel"] = "off",
+        });
 
         public Task<long> AuditCountAsync(string action) => Catalog.Audit.CountDocumentsAsync(entry => entry.Action == action);
 

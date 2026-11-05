@@ -25,7 +25,7 @@ export function mountGrantTool(host, { page, defId }) {
       <p class="muted small" data-player-chosen>Chưa chọn người chơi.</p>
       <label class="field-label" for="acf-grant-item">Món được cấp</label>
       <select class="field-input" id="acf-grant-item" data-grant-item>${options}</select>
-      <p class="muted small">Món được cấp chiếm một ô trong túi người chơi, túi đầy thì không cấp được.</p>
+      <p class="muted small">Món giao dịch được sẽ chiếm một ô trong túi, túi đầy thì không cấp được. Món không giao dịch được thì không chiếm ô.</p>
       <div class="acf-actions"><button class="btn btn-primary" type="button" data-grant-send disabled>Cấp cho người chơi</button></div>
     </section>`;
 

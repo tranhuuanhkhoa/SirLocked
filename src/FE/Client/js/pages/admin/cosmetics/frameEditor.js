@@ -2,7 +2,7 @@ import { avatarImg, FR, forgetCanvas, paintFrame } from '../../../cosmetics/inde
 import { defineFrame, liveOf, sheenOf } from '../../../cosmetics/frames.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { acquisitionHtml, basicFieldsHtml, saveCosmetic, statusHtml, wireAcquisition, wirePictureInput, wireStatus } from './editorCommon.js';
+import { basicFieldsHtml, mountSections, saveCosmetic, wirePictureInput } from './editorCommon.js';
 import { hexOf, keyOf, rgbOf } from './shared.js';
 
 const PREVIEW_ID = '__pv';
@@ -55,7 +55,7 @@ function liveFrom(effects) {
 }
 
 function sheenFrom(stored) {
-  return { on: Boolean(stored), color: stored?.rgb ?? '255,236,180', a: Number(stored?.a ?? 0.4), period: Number(stored?.period ?? 8), conic: Boolean(stored?.conic) };
+  return { on: Boolean(stored?.a), color: stored?.rgb ?? '255,236,180', a: Number(stored?.a || 0.4), period: Number(stored?.period ?? 8), conic: Boolean(stored?.conic) };
 }
 
 const sheenValue = (sheen) => (sheen.on ? { rgb: sheen.color, a: sheen.a, period: sheen.period, conic: sheen.conic } : null);
@@ -87,7 +87,7 @@ function effectsHtml(effects, sheen) {
     </div>`;
 }
 
-export function mountFrameEditor(host, { item, page, onSaved }) {
+export function mountFrameEditor(host, { item, page, onSaved, onChanged }) {
   const painter = createPainter();
   const key = item ? keyOf(item) : null;
   const visual = item?.visual;
@@ -111,7 +111,8 @@ export function mountFrameEditor(host, { item, page, onSaved }) {
     const live = liveFrom(state.effects);
     const body = { live };
     if (state.sheen.on) body.sheen = sheenValue(state.sheen);
-    if (state.template === 'builtin-clone') return { template: 'builtin-clone', imageUrl: null, params: { base: state.base, ...body } };
+    // Left out, a clone keeps its base's sheen; strength 0 is how it switches one off.
+    if (state.template === 'builtin-clone') return { template: 'builtin-clone', imageUrl: null, params: { base: state.base, sheen: { rgb: state.sheen.color, a: 0, period: state.sheen.period }, ...body } };
     if (state.hole) body.hole = state.hole;
     if (state.scale) body.scale = state.scale;
     if (state.glowUrl) body.glowUrl = state.glowUrl;
@@ -171,7 +172,7 @@ export function mountFrameEditor(host, { item, page, onSaved }) {
             ${effectsHtml(state.effects, state.sheen)}
           </section>`}
           <div class="acf-actions"><button class="btn btn-primary" type="button" data-save>${item ? 'Lưu viền' : 'Tạo viền'}</button></div>
-          ${item ? acquisitionHtml(item, page) + statusHtml(item) : ''}
+          ${item ? '<div class="acf-sections" data-sections></div>' : ''}
         </div>
         <aside class="acf-preview" data-preview aria-label="Xem trước">
           <div class="acf-preview-head">
@@ -376,10 +377,7 @@ export function mountFrameEditor(host, { item, page, onSaved }) {
     host.querySelector('[data-save]').addEventListener('click', (event) => {
       saveCosmetic({ item, category: 'FRAME', root: host, visual: shipped ? null : visualBody(), button: event.currentTarget, onSaved });
     });
-    if (item) {
-      wireAcquisition(host, item, onSaved);
-      wireStatus(host, item, onSaved);
-    }
+    if (item) mountSections(host, item, page, onChanged);
     host.querySelector('[data-background]').addEventListener('change', (event) => { host.querySelector('[data-stage]').dataset.stage = event.target.value; });
     host.querySelectorAll('[data-preview-canvas]').forEach((canvas) => {
       const stop = painter.onPaint((seconds) => paintFrame(canvas, previewId(), seconds, avatar()));

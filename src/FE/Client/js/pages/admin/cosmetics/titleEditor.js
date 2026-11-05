@@ -1,7 +1,7 @@
 import { RARITY_OF_SERVER, T, prepareCosmetics, setPlaqueMotion, titleHTML, whenTitleFontReady } from '../../../cosmetics/index.js';
 import { STYLE_KEYS, titleFrom } from '../../../cosmetics/titles.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { acquisitionHtml, basicFieldsHtml, saveCosmetic, statusHtml, wireAcquisition, wireStatus } from './editorCommon.js';
+import { basicFieldsHtml, mountSections, saveCosmetic } from './editorCommon.js';
 import { hexOf, keyOf, rgbOf } from './shared.js';
 
 const STYLE_LABELS = {
@@ -12,7 +12,7 @@ const PARTICLES = [['tw', 'Lấp lánh'], ['rise', 'Bụi sáng bay lên'], ['le
 const MAX_PARTICLE_ROWS = 4;
 const NAME_DEBOUNCE_MS = 150;
 
-export function mountTitleEditor(host, { item, page, onSaved }) {
+export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
   prepareCosmetics();
   const shipped = Boolean(item?.visual?.builtinId);
   const params = item?.visual?.params ?? {};
@@ -149,7 +149,7 @@ export function mountTitleEditor(host, { item, page, onSaved }) {
           </div>
         </section>`}
         <div class="acf-actions"><button class="btn btn-primary" type="button" data-save>${item ? 'Lưu danh hiệu' : 'Tạo danh hiệu'}</button></div>
-        ${item ? acquisitionHtml(item, page) + statusHtml(item) : ''}
+        ${item ? '<div class="acf-sections" data-sections></div>' : ''}
       </div>
       <aside class="acf-preview" data-preview aria-label="Xem trước">
         <h3>Xem trước</h3>
@@ -163,10 +163,7 @@ export function mountTitleEditor(host, { item, page, onSaved }) {
   host.querySelector('[data-save]').addEventListener('click', (event) => {
     saveCosmetic({ item, category: 'TITLE', root: host, visual: shipped ? null : visualBody(), button: event.currentTarget, onSaved });
   });
-  if (item) {
-    wireAcquisition(host, item, onSaved);
-    wireStatus(host, item, onSaved);
-  }
+  if (item) mountSections(host, item, page, onChanged);
   // The style grid shows the name being typed, so it follows the field.
   const redrawSoon = () => {
     clearTimeout(timer);

@@ -113,6 +113,9 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   await adminPage.locator('input[name="acf-mode"][value="level"]').check();
   await adminPage.locator('#acf-level').fill('5');
   await adminPage.locator('[data-save-way]').click();
+  await expect(adminPage.getByRole('dialog')).toContainText('không bán, trao đổi hay đổi KN được nữa');
+  await adminPage.locator('#acf-reason').fill('Thưởng cấp 5');
+  await adminPage.getByRole('dialog').locator('[data-confirm]').click();
   await expect(adminPage.locator('[data-field="tradable"]')).not.toBeChecked();
   await shot(adminPage, '03-vien-theo-cap-5', { fullPage: true });
 
@@ -309,7 +312,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
 
   // A later run on this database starts without this reward.
   await call(api, 'PUT', `/api/admin/cosmetics/${frameId}/retired`, admin.token, { retired: false, reason: 'Dọn sau khi thử' });
-  await call(api, 'PUT', `/api/admin/cosmetics/${frameId}/acquisition`, admin.token, { mode: 'admin' });
+  await call(api, 'PUT', `/api/admin/cosmetics/${frameId}/acquisition`, admin.token, { mode: 'admin', reason: 'Dọn sau khi thử' });
   await api.dispose();
 });
 

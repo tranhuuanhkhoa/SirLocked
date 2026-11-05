@@ -44,7 +44,7 @@ Vị trí ảnh trong khung 200×200 tính theo cùng quy tắc đã đặt các
 
 Dùng lại hình của viền có sẵn: `params.base` là builtinId (`dong`, `bac`, `ngoc`, `vang`, `truong`, `thach`, `mac`, `bang`, `sonmai`, `ulinh`, `vankiem`, `hacduc`, `kimlong`, `phuong`, `tinhkhong`, `lua`).
 
-Có `live` hoặc `sheen` thì thay hẳn của viền gốc, không có thì giữ của viền gốc. Màu hào quang chính là màu trong `live.aura`. Các lớp hình đã dựng được dùng chung với viền gốc, nên biến thể không tốn thêm bộ nhớ.
+Có `live` hoặc `sheen` thì thay hẳn của viền gốc, không có thì giữ của viền gốc. Tắt ánh kim của viền gốc bằng `sheen.a = 0`. Màu hào quang chính là màu trong `live.aura`. Các lớp hình đã dựng được dùng chung với viền gốc, nên biến thể không tốn thêm bộ nhớ.
 
 ### Danh hiệu, `template = "style"`
 
@@ -86,11 +86,14 @@ Mỗi món có đúng một chế độ, lưu bằng `PUT /api/admin/cosmetics/{
 | `default` | `gameSettings/cosmeticDefaults` | Xem dưới. Tự thành không giao dịch được |
 | `admin` | Không lưu gì | Chỉ admin cấp |
 
+Mọi lần đổi cách nhận đều cần lý do. Các bước ghi không nằm trong một transaction (MongoDB chạy standalone), nên **thứ tự mới là thứ giữ an toàn**: tắt giao dịch trước, rồi mới ghi phần thưởng. Vì vậy một lỗi giữa chừng không bao giờ để lộ phần thưởng còn giao dịch được, và lưu lại lần nữa là xong.
+
 Món phát miễn phí và phát lại được thì không được có giá trị, nếu không người chơi đem bán hoặc đổi KN rồi nhận lại. Vì vậy:
 
 - `COSMETIC_EARNED_NOT_TRADABLE`: không bật giao dịch cho món đang theo cấp, thành tích hoặc mặc định.
 - `COSMETIC_HAS_OPEN_ORDERS`: không tắt giao dịch khi còn lệnh trên chợ hoặc trong trao đổi, vì các lệnh đó sẽ biến khỏi chợ mà vẫn giữ tiền hoặc đồ.
 - `COSMETIC_EARNED_COPIES_EXIST`: đã có bản nhận miễn phí thì không bật giao dịch được nữa.
+- Bật hoặc tắt giao dịch cần lý do, vì nó đổi quyền của mọi người đang giữ món đó.
 
 "Ra từ hòm" chỉ hiển thị ở trang này; sửa ở `#/admin/chests` (ADMIN-1).
 
@@ -103,13 +106,13 @@ Document `gameSettings/cosmeticDefaults`: `{ _id, frame, title, entrance }`. **M
 - Món mặc định không cần sở hữu. `ProgressService.Wear` trả về nó khi người chơi không đeo gì.
 - Đặt món khác làm mặc định: món cũ về `admin`. Danh hiệu và hiệu ứng luôn phải có mặc định, nên không bỏ được chế độ của món mặc định trong code (`COSMETIC_DEFAULT_REQUIRED`).
 - Có viền mặc định thì ô "Không viền" biến mất khỏi hồ sơ, vì không còn cách quay về không viền.
-- Món mặc định không retire và không xóa được (`COSMETIC_DEFAULT_RETIRE`).
+- Món mặc định không retire và không xóa được (`COSMETIC_DEFAULT_RETIRE`). Tân Binh và Bước Vào Lặng Lẽ cũng vậy, kể cả khi đang có món khác làm mặc định, vì chúng thay vào ngay khi món đó thôi làm mặc định.
 
 ## 3. Retire và xóa
 
 - Retire cần lý do. Món hết rơi, rời cửa hàng, và không còn được phát theo cấp hay thành tích. Người đang đeo vẫn giữ nguyên, và `GET /api/cosmetics/catalog` vẫn trả nó để sảnh vẽ được.
-- Retire hoặc đổi độ hiếm, giá mà làm hỏng một hòm đang tốt thì bị từ chối (`CHEST_RARITY_EMPTY`, `CHEST_EXPECTED_VALUE_TOO_HIGH`). Hòm vốn đã lỗi từ trước không chặn.
-- Chỉ xóa được món do admin tạo, chưa ai sở hữu và không còn được tham chiếu.
+- Retire, bỏ retire, hoặc đổi độ hiếm, giá mà làm hỏng một hòm đang tốt thì bị từ chối (`CHEST_RARITY_EMPTY`, `CHEST_EXPECTED_VALUE_TOO_HIGH`). Hòm vốn đã lỗi từ trước không chặn.
+- Chỉ xóa được món do admin tạo, chưa ai sở hữu, không còn được tham chiếu và không còn lệnh mua.
 
 ## 4. API
 
@@ -131,7 +134,11 @@ Tất cả cần `[Authorize(Roles = UserRole.Admin)]`, trừ dòng cuối. Mọ
 
 defId do máy chủ tạo từ tên (`frame_hac-long`), trùng thì thêm số (`frame_hac-long-2`), và không bao giờ đổi.
 
-Cấp cho người chơi dùng lại `MarketService.AdminGrantAsync`, nên món được cấp chiếm một ô trong túi; túi đầy thì báo lỗi. Người đã có món đó thì từ chối (`COSMETIC_ALREADY_OWNED`).
+Cấp cho người chơi:
+
+- Món giao dịch được: dùng lại `MarketService.AdminGrantAsync`, chiếm một ô trong túi; túi đầy thì báo lỗi.
+- Món không giao dịch được: không chiếm ô, vì nó không bao giờ rời túi nên sẽ giữ ô đó mãi. Nguồn ghi là `LEVEL`, cùng loại với đồ nhận miễn phí.
+- Người đã có món đó thì từ chối (`COSMETIC_ALREADY_OWNED`).
 
 ## 5. Thêm vào đâu khi đổi code
 

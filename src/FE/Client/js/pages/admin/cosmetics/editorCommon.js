@@ -50,10 +50,17 @@ export async function saveCosmetic({ item, category, root, visual, button, onSav
     toast('Hãy nhập tên.', 'error');
     return;
   }
+  let reason = null;
+  if (item && basics.tradable !== item.tradable) {
+    reason = await askReason(basics.tradable
+      ? { heading: `Cho phép bán ${item.name}?`, detail: 'Món sẽ lên chợ, trao đổi được và đổi được KN nếu đủ độ hiếm.', confirmLabel: 'Cho phép bán', danger: true }
+      : { heading: `Khóa giao dịch ${item.name}?`, detail: 'Món sẽ không bán, trao đổi hay đổi KN được nữa, kể cả các bản người chơi đang có.', confirmLabel: 'Khóa giao dịch', danger: true });
+    if (!reason) return;
+  }
   button.disabled = true;
   try {
     if (item) {
-      const saved = await adminCosmeticsApi.update(item.id, { ...basics, expectedVersion: item.version, visual });
+      const saved = await adminCosmeticsApi.update(item.id, { ...basics, expectedVersion: item.version, visual, reason });
       toast('Đã lưu.', 'success');
       onSaved(saved);
     } else {
@@ -126,7 +133,7 @@ export function acquisitionHtml(item, page) {
     </section>`;
 }
 
-export function wireAcquisition(root, item, onSaved) {
+function wireAcquisition(root, item, onSaved) {
   const section = root.querySelector('[data-acquisition]');
   const chosen = () => section.querySelector('input[name="acf-mode"]:checked')?.value;
   const show = () => section.querySelectorAll('[data-mode-fields]').forEach((block) => { block.hidden = block.dataset.modeFields !== chosen(); });
@@ -134,13 +141,19 @@ export function wireAcquisition(root, item, onSaved) {
   show();
   section.querySelector('[data-save-way]').addEventListener('click', async (event) => {
     const button = event.currentTarget;
+    const mode = chosen();
+    const reason = await askReason(mode !== 'admin' && item.tradable
+      ? { heading: `Đổi cách nhận của ${item.name}?`, detail: 'Món sẽ không bán, trao đổi hay đổi KN được nữa, kể cả các bản người chơi đang có. Khi đã có người nhận miễn phí thì không bật lại được.', confirmLabel: 'Đổi cách nhận', danger: true }
+      : { heading: `Đổi cách nhận của ${item.name}?`, detail: 'Áp dụng ngay cho mọi người chơi.', confirmLabel: 'Đổi cách nhận' });
+    if (!reason) return;
     button.disabled = true;
     try {
       const saved = await adminCosmeticsApi.setAcquisition(item.id, {
-        mode: chosen(),
+        mode,
         level: Number(section.querySelector('#acf-level').value),
         metric: section.querySelector('#acf-metric').value,
         target: Number(section.querySelector('#acf-target').value),
+        reason,
       });
       toast('Đã lưu cách nhận.', 'success');
       onSaved(saved);
@@ -167,7 +180,7 @@ export function statusHtml(item) {
     </section>`;
 }
 
-export function wireStatus(root, item, onSaved) {
+function wireStatus(root, item, onSaved) {
   const section = root.querySelector('[data-status]');
   section.querySelector('[data-retire]').addEventListener('click', async () => {
     const reason = await askReason(item.retired
@@ -192,4 +205,25 @@ export function wireStatus(root, item, onSaved) {
       toast(errorText(error), 'error');
     }
   });
+}
+
+/**
+ * How it is obtained and its status, which save on their own. They redraw only themselves: the admin may still be in
+ * the middle of editing a picture or its effects, and those are not saved by these buttons.
+ */
+export function mountSections(root, item, page, onChanged) {
+  const box = root.querySelector('[data-sections]');
+  const draw = () => {
+    box.innerHTML = acquisitionHtml(item, page) + statusHtml(item);
+    wireAcquisition(box, item, changed);
+    wireStatus(box, item, changed);
+  };
+  const changed = (saved) => {
+    // The object the editor holds, so its next save sends the new version.
+    Object.assign(item, saved);
+    root.querySelector('[data-field="tradable"]').checked = item.tradable;
+    onChanged(saved);
+    draw();
+  };
+  draw();
 }

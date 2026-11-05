@@ -5,7 +5,7 @@ import { installTitleDefs } from './titles.js';
 export { AVS, avatarFor, avatarImg } from './avatars.js';
 export { EN, ENTRANCES } from './fx.js';
 export { FR, GROUPS, LV_FRAMES, forgetCanvas, paintFrame } from './frames.js';
-export { applyCosmetic, applyCosmeticCatalog, cosmeticDefaults, entranceList, frameGroups, isRetired, loadCosmeticCatalog, loadCosmeticsIfUnknown, titleList, xpRates } from './catalog.js';
+export { applyCosmetic, applyCosmeticCatalog, cosmeticDefaults, entranceList, frameGroups, isKnownCosmetic, isRetired, loadCosmeticCatalog, loadCosmeticsIfUnknown, titleList, xpRates } from './catalog.js';
 export { closeStage, openStage } from './stage.js';
 export { T, TITLES, setPlaqueMotion, titleHTML } from './titles.js';
 export { reduce } from './lib.js';

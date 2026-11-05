@@ -138,12 +138,12 @@ function applyEntrance(entry, rar) {
   const params = entry.visual?.params ?? {};
   const shipped = EN[key] && !EN[key].made;
   const looks = { n: entry.name, r: rar, src: howText(entry, EN[key]?.src, 'Đạt cấp') };
-  if (shipped) {
-    Object.assign(EN[key], looks);
-    return;
-  }
   // Empty on the server means "write it from the chests", which says nothing about the effect itself.
   const own = entry.description && !entry.description.startsWith('Hiệu ứng vào sảnh.') ? entry.description : '';
+  if (shipped) {
+    Object.assign(EN[key], looks, own ? { d: own } : {});
+    return;
+  }
   defineEntrance(key, {
     ...looks,
     d: own,
@@ -195,7 +195,7 @@ export function loadCosmeticCatalog({ force = false } = {}) {
   return loading;
 }
 
-const knownId = (defId) => {
+export const isKnownCosmetic = (defId) => {
   const frame = bareId(defId, FRAME_PREFIX);
   if (frame) return !!FR[frame];
   const title = bareId(defId, TITLE_PREFIX);
@@ -206,7 +206,7 @@ const knownId = (defId) => {
 
 /** Someone may wear what was made after this page loaded. Asks again, but not on every redraw. Resolves to true when the tables changed. */
 export function loadCosmeticsIfUnknown(defIds) {
-  if (defIds.every((defId) => !defId || knownId(defId))) return Promise.resolve(false);
+  if (defIds.every((defId) => !defId || isKnownCosmetic(defId))) return Promise.resolve(false);
   if (loading) return loading;
   if (Date.now() - askedForUnknownAt < UNKNOWN_RETRY_MS) return Promise.resolve(false);
   askedForUnknownAt = Date.now();

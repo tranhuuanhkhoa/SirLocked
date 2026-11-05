@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Admin;
+using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Models.Market;
@@ -18,6 +19,9 @@ namespace SirLocked.Api.Services.Admin;
 /// </summary>
 public sealed class AdminCosmeticsService
 {
+    /// <summary>What follows a write that has landed runs to its end even if the admin's connection is gone by then.</summary>
+    private static readonly CancellationToken Finish = CancellationToken.None;
+
     private const int PlayerSearchLimit = 20;
     private const int MaxIdAttempts = 50;
     private static readonly string[] CosmeticCategories = { MarketCategories.Frame, MarketCategories.Title, MarketCategories.Entrance };
@@ -176,7 +180,7 @@ public sealed class AdminCosmeticsService
         }
 
         _catalog.Invalidate();
-        await _audit.LogAsync(admin, "item.create", "catalogItem", item.Id, null, item, AdminCosmeticRules.CleanReason(request.Reason), ct);
+        await _audit.LogAsync(admin, "item.create", "catalogItem", item.Id, null, item, AdminCosmeticRules.CleanReason(request.Reason), Finish);
         return await GetAsync(item.Id, ct);
     }
 
@@ -185,6 +189,8 @@ public sealed class AdminCosmeticsService
         var before = await LoadAsync(id, ct);
         if (request.ExpectedVersion is { } expected && expected != before.Version) throw StaleEdit();
         var fields = CheckFields(request.Name, request.NameEn, request.Description, request.DescriptionEn, request.Rarity, request.ReferencePrice, _ => before.ReferencePrice);
+        // It changes what every player holding a copy can do with it.
+        if (request.Tradable != before.Tradable) RequireReason(request.Reason);
 
         var visual = before.Visual ?? new CatalogVisual();
         if (string.IsNullOrEmpty(visual.BuiltinId))
@@ -197,7 +203,7 @@ public sealed class AdminCosmeticsService
 
         var context = await ContextAsync(new List<string>(), ct);
         var mode = ModeOf(before, context);
-        if (request.Tradable && AdminCosmeticRules.IsEarnedMode(mode))
+        if (request.Tradable && (AdminCosmeticRules.IsEarnedMode(mode) || CosmeticDefaults.IsDefaultInCode(before.Category, before.Id)))
             throw Refuse(409, AdminCosmeticCodes.EarnedNotTradable, "Món nhận theo cấp, thành tích hoặc mặc định không được bán hay giao dịch.");
         if (request.Tradable && !before.Tradable) await EnsureCanStartTradingAsync(before.Id, ct);
         if (!request.Tradable && before.Tradable) await EnsureCanStopTradingAsync(before.Id, ct);
@@ -226,7 +232,7 @@ public sealed class AdminCosmeticsService
 
         _catalog.Invalidate();
         var saved = await LoadAsync(before.Id, ct);
-        await _audit.LogAsync(admin, "item.update", "catalogItem", before.Id, before, saved, AdminCosmeticRules.CleanReason(request.Reason), ct);
+        await _audit.LogAsync(admin, "item.update", "catalogItem", before.Id, before, saved, AdminCosmeticRules.CleanReason(request.Reason), Finish);
         return await GetAsync(before.Id, ct);
     }
 
@@ -265,6 +271,7 @@ public sealed class AdminCosmeticsService
 
     public async Task<AdminCosmeticDto> SetAcquisitionAsync(CurrentUser admin, string id, AdminCosmeticAcquisitionRequest request, CancellationToken ct = default)
     {
+        var reason = RequireReason(request.Reason);
         var item = await LoadAsync(id, ct);
         var mode = request.Mode ?? string.Empty;
         if (mode is not (AdminCosmeticRules.ModeLevel or AdminCosmeticRules.ModeAchievement or AdminCosmeticRules.ModeDefault or AdminCosmeticRules.ModeAdmin))
@@ -282,49 +289,64 @@ public sealed class AdminCosmeticsService
             throw Refuse(409, AdminCosmeticCodes.DefaultRequired, "Nhóm này luôn cần một món mặc định. Hãy đặt món khác làm mặc định trước.");
         if (AdminCosmeticRules.IsEarnedMode(mode) && item.Tradable) await EnsureCanStopTradingAsync(item.Id, ct);
 
-        // Each step can run again safely, so a failure half way is fixed by saving once more.
-        var keepReward = mode == AdminCosmeticRules.ModeLevel ? CatalogLevelReward.IdOf(request.Level!.Value, item.Id) : null;
-        await _catalogStore.LevelRewards.DeleteManyAsync(r => r.DefId == item.Id && r.Id != keepReward, ct);
-        if (keepReward is not null)
+        // These writes cannot be one transaction on a standalone MongoDB, so their order is what keeps the game safe:
+        // a reward may reach players only once its item can no longer be sold or burned for XP, or a copy could be
+        // turned into XP, granted again, and turned into XP again. Each step can run again, so a failure half way
+        // is put right by saving once more, and once writing has begun a dropped connection does not stop it.
+        try
         {
-            await _catalogStore.LevelRewards.UpdateOneAsync(
-                r => r.Id == keepReward,
-                Builders<CatalogLevelReward>.Update.Set(r => r.Level, request.Level!.Value).Set(r => r.DefId, item.Id),
-                new UpdateOptions { IsUpsert = true },
-                ct);
+            if (AdminCosmeticRules.IsEarnedMode(mode) && item.Tradable)
+            {
+                await _catalogStore.Items.UpdateOneAsync(
+                    i => i.Id == item.Id,
+                    Builders<CatalogItem>.Update.Set(i => i.Tradable, false).Set(i => i.UpdatedAt, Now).Set(i => i.UpdatedBy, admin.Id).Inc(i => i.Version, 1),
+                    cancellationToken: Finish);
+                // Readers must see this before anything below can hand the item out.
+                _catalog.Invalidate();
+            }
+
+            var keepReward = mode == AdminCosmeticRules.ModeLevel ? CatalogLevelReward.IdOf(request.Level!.Value, item.Id) : null;
+            await _catalogStore.LevelRewards.DeleteManyAsync(r => r.DefId == item.Id && r.Id != keepReward, Finish);
+            if (keepReward is not null)
+            {
+                await _catalogStore.LevelRewards.UpdateOneAsync(
+                    r => r.Id == keepReward,
+                    Builders<CatalogLevelReward>.Update.Set(r => r.Level, request.Level!.Value).Set(r => r.DefId, item.Id),
+                    new UpdateOptions { IsUpsert = true },
+                    Finish);
+            }
+
+            if (mode == AdminCosmeticRules.ModeAchievement)
+            {
+                var last = await _catalogStore.Achievements.Find(FilterDefinition<CatalogAchievement>.Empty).SortByDescending(a => a.SortOrder).Limit(1).FirstOrDefaultAsync(Finish);
+                await _catalogStore.Achievements.UpdateOneAsync(
+                    a => a.TitleDefId == item.Id,
+                    Builders<CatalogAchievement>.Update
+                        .Set(a => a.Metric, request.Metric)
+                        .Set(a => a.Target, request.Target!.Value)
+                        .SetOnInsert(a => a.SortOrder, (last?.SortOrder ?? 0) + 1),
+                    new UpdateOptions { IsUpsert = true },
+                    Finish);
+            }
+            else
+            {
+                await _catalogStore.Achievements.DeleteOneAsync(a => a.TitleDefId == item.Id, Finish);
+            }
+
+            if (mode == AdminCosmeticRules.ModeDefault) await _defaults.SetAsync(item.Category, item.Id, Finish);
+            else if (wasDefault) await _defaults.SetAsync(item.Category, null, Finish);
+        }
+        finally
+        {
+            _catalog.Invalidate();
         }
 
-        if (mode == AdminCosmeticRules.ModeAchievement)
-        {
-            var last = await _catalogStore.Achievements.Find(FilterDefinition<CatalogAchievement>.Empty).SortByDescending(a => a.SortOrder).Limit(1).FirstOrDefaultAsync(ct);
-            await _catalogStore.Achievements.UpdateOneAsync(
-                a => a.TitleDefId == item.Id,
-                Builders<CatalogAchievement>.Update
-                    .Set(a => a.Metric, request.Metric)
-                    .Set(a => a.Target, request.Target!.Value)
-                    .SetOnInsert(a => a.SortOrder, (last?.SortOrder ?? 0) + 1),
-                new UpdateOptions { IsUpsert = true },
-                ct);
-        }
-        else
-        {
-            await _catalogStore.Achievements.DeleteOneAsync(a => a.TitleDefId == item.Id, ct);
-        }
-
-        if (mode == AdminCosmeticRules.ModeDefault) await _defaults.SetAsync(item.Category, item.Id, ct);
-        else if (wasDefault) await _defaults.SetAsync(item.Category, null, ct);
-
-        if (AdminCosmeticRules.IsEarnedMode(mode) && item.Tradable)
-        {
-            await _catalogStore.Items.UpdateOneAsync(
-                i => i.Id == item.Id,
-                Builders<CatalogItem>.Update.Set(i => i.Tradable, false).Set(i => i.UpdatedAt, Now).Set(i => i.UpdatedBy, admin.Id).Inc(i => i.Version, 1),
-                cancellationToken: ct);
-        }
-
-        _catalog.Invalidate();
-        var saved = await GetAsync(item.Id, ct);
-        await _audit.LogAsync(admin, "item.acquisition", "catalogItem", item.Id, before, saved.Acquisition, AdminCosmeticRules.CleanReason(request.Reason), ct);
+        var saved = await GetAsync(item.Id, Finish);
+        await _audit.LogAsync(
+            admin, "item.acquisition", "catalogItem", item.Id,
+            new { before.Mode, before.Level, before.Metric, before.Target, item.Tradable },
+            new { saved.Acquisition.Mode, saved.Acquisition.Level, saved.Acquisition.Metric, saved.Acquisition.Target, saved.Tradable },
+            reason, Finish);
         return saved;
     }
 
@@ -341,10 +363,14 @@ public sealed class AdminCosmeticsService
             var defaults = await _defaults.GetAsync(ct);
             if (defaults.For(before.Category) == before.Id)
                 throw Refuse(409, AdminCosmeticCodes.DefaultCannotRetire, "Đây là món mặc định. Hãy đặt món khác làm mặc định trước khi ngừng phát hành.");
-            var after = BsonSerializer.Deserialize<CatalogItem>(before.ToBsonDocument());
-            after.Retired = true;
-            await EnsureChestsStayValidAsync(before, after, ct);
+            // It takes over the moment another default steps down, so it has to stay fit for that.
+            if (CosmeticDefaults.IsDefaultInCode(before.Category, before.Id))
+                throw Refuse(409, AdminCosmeticCodes.DefaultCannotRetire, "Đây là món mặc định gốc của game, nên không ngừng phát hành được.");
         }
+        // Both ways: an item coming back can raise what a chest pays out above what it costs.
+        var after = BsonSerializer.Deserialize<CatalogItem>(before.ToBsonDocument());
+        after.Retired = request.Retired;
+        await EnsureChestsStayValidAsync(before, after, ct);
 
         await _catalogStore.Items.UpdateOneAsync(
             i => i.Id == before.Id,
@@ -353,7 +379,7 @@ public sealed class AdminCosmeticsService
         _catalog.Invalidate();
         await _audit.LogAsync(
             admin, request.Retired ? "item.retire" : "item.unretire", "catalogItem", before.Id,
-            new { before.Retired }, new { request.Retired }, reason, ct);
+            new { before.Retired }, new { request.Retired }, reason, Finish);
         return await GetAsync(id, ct);
     }
 
@@ -375,10 +401,12 @@ public sealed class AdminCosmeticsService
             await ReadAsync(_catalogStore.Achievements, new BsonDocument(), problems, ct));
         var owned = await _market.Items.CountDocumentsAsync(i => i.DefId == item.Id, cancellationToken: ct);
         if (CatalogRules.ValidateDelete(item.Id, owned, references) is { } violation) throw Refuse(409, violation);
+        // Buy orders hold coins under this item's name, and nothing owned stands for them.
+        await EnsureCanStopTradingAsync(item.Id, ct);
 
         await _catalogStore.Items.DeleteOneAsync(i => i.Id == item.Id, ct);
         _catalog.Invalidate();
-        await _audit.LogAsync(admin, "item.delete", "catalogItem", item.Id, item, null, reason, ct);
+        await _audit.LogAsync(admin, "item.delete", "catalogItem", item.Id, item, null, reason, Finish);
     }
 
     // ------------------------------------------------------------------ giving one to a player
@@ -392,8 +420,32 @@ public sealed class AdminCosmeticsService
         if (await _market.Items.CountDocumentsAsync(i => i.OwnerId == userId && i.DefId == item.Id, cancellationToken: ct) > 0)
             throw Refuse(409, AdminCosmeticCodes.AlreadyOwned, "Người chơi này đã có món đó.");
 
-        var wallet = await _marketService.AdminGrantAsync(userId, item.Id, 0, ct);
-        await _audit.LogAsync(admin, "player.grant", "user", userId, null, new { defId = item.Id, item.Name }, reason, ct);
+        // A copy that can never be sold would hold its bag slot for good, so it is given the way earned ones are: no slot, and one per player.
+        WalletDto wallet;
+        if (item.Tradable)
+        {
+            wallet = await _marketService.AdminGrantAsync(userId, item.Id, 0, ct);
+        }
+        else
+        {
+            wallet = await _marketService.GetWalletForGrantAsync(userId, ct);
+            try
+            {
+                await _market.Items.InsertOneAsync(new MarketItem
+                {
+                    Id = ProgressService.EarnedItemId(userId, item.Id),
+                    OwnerId = userId,
+                    DefId = item.Id,
+                    Source = MarketItemSources.Level,
+                    AcquiredAt = Now,
+                }, cancellationToken: ct);
+            }
+            catch (MongoWriteException exception) when (exception.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                throw Refuse(409, AdminCosmeticCodes.AlreadyOwned, "Người chơi này đã có món đó.");
+            }
+        }
+        await _audit.LogAsync(admin, "player.grant", "user", userId, null, new { defId = item.Id, item.Name }, reason, Finish);
         return new AdminCosmeticGrantResultDto(userId, item.Id, wallet.SlotsUsed, wallet.SlotCap);
     }
 
@@ -411,7 +463,7 @@ public sealed class AdminCosmeticsService
             new UpdateOptions { IsUpsert = true },
             ct);
         _catalog.Invalidate();
-        await _audit.LogAsync(admin, "gameSettings.update", "gameSettings", ProgressSettingsDocument.DocumentId, before, new { rareXp = request.RareXp, epicXp = request.EpicXp }, reason, ct);
+        await _audit.LogAsync(admin, "gameSettings.update", "gameSettings", ProgressSettingsDocument.DocumentId, before, new { rareXp = request.RareXp, epicXp = request.EpicXp }, reason, Finish);
         return new AdminXpSettingsDto(request.RareXp, request.EpicXp);
     }
 

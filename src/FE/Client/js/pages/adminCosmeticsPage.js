@@ -81,15 +81,25 @@ export async function renderAdminCosmeticsPage(app, defId, { signal } = {}) {
       <div class="page acf-page">
         <p><a href="#/admin/cosmetics?tab=${category}">‹ ${escapeHtml(label)}</a></p>
         <h2>${item ? escapeHtml(item.name) : `Tạo ${escapeHtml(label.toLowerCase())} mới`}</h2>
-        ${item ? `<p class="muted small"><code>${escapeHtml(item.id)}</code> · ${escapeHtml(rarityLabel(item.rarity))} · phiên bản ${item.version}</p>` : ''}
+        ${item ? `<p class="muted small" data-editor-meta></p>` : ''}
         <div data-editor></div>
       </div>`);
+    const writeMeta = (current) => {
+      const meta = app.querySelector('[data-editor-meta]');
+      if (meta) meta.innerHTML = `<code>${escapeHtml(current.id)}</code> · ${escapeHtml(rarityLabel(current.rarity))} · phiên bản ${current.version}`;
+    };
+    if (item) writeMeta(item);
+    const remember = (saved) => {
+      page.items = page.items.map((other) => (other.id === saved.id ? saved : other));
+      applyCosmetic(catalogEntryOf(saved));
+      writeMeta(saved);
+    };
     mount(EDITORS[category], app.querySelector('[data-editor]'), {
       item,
       page,
+      onChanged: remember,
       onSaved: (saved) => {
-        page.items = page.items.map((other) => (other.id === saved.id ? saved : other));
-        applyCosmetic(catalogEntryOf(saved));
+        remember(saved);
         show(saved);
       },
     });
