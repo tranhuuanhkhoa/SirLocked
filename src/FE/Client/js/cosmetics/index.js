@@ -5,6 +5,7 @@ import { installTitleDefs } from './titles.js';
 export { AVS, avatarFor, avatarImg } from './avatars.js';
 export { EN, ENTRANCES } from './fx.js';
 export { FR, GROUPS, LV_FRAMES, forgetCanvas, paintFrame } from './frames.js';
+export { applyCosmetic, applyCosmeticCatalog, cosmeticDefaults, entranceList, frameGroups, isKnownCosmetic, isRetired, loadCosmeticCatalog, loadCosmeticsIfUnknown, titleList, xpRates } from './catalog.js';
 export { closeStage, openStage } from './stage.js';
 export { T, TITLES, setPlaqueMotion, titleHTML } from './titles.js';
 export { reduce } from './lib.js';
@@ -19,7 +20,7 @@ export const RAR = {
   gold: { n: 'Bí ẩn', en: 'Mystery', c: '#E8B53A' },
 };
 
-const RARITY_OF_SERVER = { COMMON: 'common', RARE: 'rare', EPIC: 'myth', LEGENDARY: 'leg', MYSTERY: 'gold' };
+export const RARITY_OF_SERVER = { COMMON: 'common', RARE: 'rare', EPIC: 'myth', LEGENDARY: 'leg', MYSTERY: 'gold' };
 export const rarOf = (serverRarity) => RAR[RARITY_OF_SERVER[serverRarity]] ?? RAR.common;
 
 /* The server's ids carry the category as a prefix; the drawing code knows the bare names. */

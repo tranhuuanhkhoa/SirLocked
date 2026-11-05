@@ -248,7 +248,11 @@ export function itemIcon(def, size = 34, label = '') {
     const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
     return `<img class="bpa-mk-icon" src="${escapeHtml(imageUrl)}" width="${size}" height="${size}" style="object-fit:contain" ${alt} draggable="false" loading="lazy">`;
   }
-  // Cosmetics are painted art with no pixel sprite: they use the category drawing below.
+  // A frame an admin painted has its own picture; other cosmetics use the category drawing below.
+  if (def?.category === 'FRAME' && def.visual?.template === 'painted' && def.visual.imageUrl) {
+    const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
+    return `<img class="bpa-mk-icon" data-frame-rarity="${escapeHtml(def.rarity ?? '')}" src="${escapeHtml(def.visual.imageUrl)}" width="${size}" height="${size}" ${alt} draggable="false" style="object-fit:contain">`;
+  }
   const pixel = def?.iconKey && !COSMETIC_CATEGORIES.has(def.category) ? pixelIconUrl(def.iconKey) : '';
   if (pixel) {
     const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
@@ -261,6 +265,14 @@ export function itemIcon(def, size = 34, label = '') {
     : 'aria-hidden="true"';
   return `<svg class="bpa-mk-icon" width="${size}" height="${size}" viewBox="0 0 64 64" ${a11y} focusable="false">${DRAW[drawingKey(def)](rarity, legendary, def?.rarity)}${legendary ? SPARKLE : ''}</svg>`;
 }
+
+// A painted frame whose picture cannot load falls back to the drawing every other frame uses.
+document.addEventListener('error', (event) => {
+  const image = event.target;
+  if (image instanceof HTMLImageElement && image.dataset.frameRarity !== undefined) {
+    image.outerHTML = itemIcon({ category: 'FRAME', rarity: image.dataset.frameRarity }, image.width);
+  }
+}, true);
 
 /** Dark tile with a rarity glow around the icon. */
 export function itemTile(def, size = 42, iconSize = 34, label = '') {

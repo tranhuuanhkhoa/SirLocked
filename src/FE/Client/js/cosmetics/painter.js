@@ -1,4 +1,4 @@
-import { forgetCanvas, frameArtReady, isAnimatedFrame, paintFrame } from './frames.js';
+import { forgetCanvas, frameArtReady, frameRevision, isAnimatedFrame, paintFrame } from './frames.js';
 import { reduce } from './lib.js';
 import { stageOpen } from './stage.js';
 
@@ -31,7 +31,7 @@ export function createPainter() {
   const stillDone = (tile, canvas, now) => {
     const frame = tile.frame();
     const avatar = tile.avatar();
-    const key = `${frame}|${avatar?.src ?? ''}|${canvas.width}`;
+    const key = `${frame}|${avatar?.src ?? ''}|${canvas.width}|${frameRevision()}`;
     if (key !== tile.key) {
       tile.key = key;
       tile.since = now;
@@ -57,7 +57,7 @@ export function createPainter() {
     paintFrame(canvas, tile.frame(), STILL_T, avatar);
     const ready = frameArtReady(tile.frame(), canvas.width) && (!avatar || avatar.naturalWidth > 0);
     if (ready || now - tile.since > STILL_GIVE_UP_MS) tile.done = true;
-    tile.key = `${tile.frame()}|${avatar?.src ?? ''}|${canvas.width}`;
+    tile.key = `${tile.frame()}|${avatar?.src ?? ''}|${canvas.width}|${frameRevision()}`;
   };
 
   const tick = (ms) => {

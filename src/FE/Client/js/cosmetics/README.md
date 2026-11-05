@@ -23,3 +23,27 @@ Phần viết mới cho game:
 - `painter.js`: vòng lặp vẽ viền dùng chung, chỉ chạy khi tab hiện và có canvas trong khung nhìn.
 - `entrances.js`: hàng đợi hiệu ứng vào sảnh, bản nhẹ cho hiệu ứng mặc định, bản tĩnh cho `prefers-reduced-motion`.
 - `icons.js`: mỹ phẩm dưới dạng sprite cho vòng quay mở hòm.
+- `catalog.js`: đổi mô tả của máy chủ (`GET /api/cosmetics/catalog`) thành các bảng vẽ `FR`, `T`, `EN`; không tải được thì trang vẽ đồ có sẵn.
+
+Thêm vào mã vẽ để vẽ theo dữ liệu, đồ có sẵn không đổi một điểm ảnh (`tests/admin-cosmetics-look.spec.ts`):
+
+- `frames.js`: `defineFrame`, `refreshFrame`, `fitPicture`, `uploadedPic`, `picFailed`; `layer` đọc `layerOf` để biến thể dùng chung lớp hình với viền gốc.
+- `titles.js`: `defineTitle`, `titleFrom`; `titleHTML` đọc `t.ov` để ghi đè `glow` và `parts`.
+- `fx.js`: `defineEntrance`, `drawWarpSoft`; `drawSword` nhận ảnh kiếm riêng.
+- `stage.js`: `stageOf`, `timingOf`, `artOf`, `paintStageThumb`; mọi màu của sân khấu đi qua `retint`.
+- `lib.js`: `retint`. Không có màu chủ đạo thì trả về nguyên màu cũ.
+- `painter.js`: ô đã vẽ xong sẽ vẽ lại khi `frameRevision` đổi.
+
+## Vẽ theo dữ liệu
+
+Mỗi def có `visual`. `builtinId` có giá trị thì dùng mã vẽ có sẵn; `template` thì dựng từ mẫu với tham số `params`. Chi tiết và giới hạn ở `docs/admin-cosmetics.md`.
+
+| Nhóm | `template` | `params` |
+|---|---|---|
+| Viền | `painted` (ảnh ở `imageUrl`) | `hole: { x, y, r }` theo pixel ảnh gốc, `scale`, `live`, `sheen`, `glowUrl` |
+| Viền | `builtin-clone` | `base` là builtinId, `live`, `sheen` |
+| Danh hiệu | `style` | `style` là khóa trong `STY`, `glow`, `parts` |
+| Hiệu ứng | một trong 10 hiệu ứng | `tint`, `duration`; `imageUrl` cho `kim-long`, `phuong-hoang`; `swordUrl` cho `van-kiem` |
+
+`live` cùng dạng bảng `LIVE` trong `frames.js`: `aura: [rgb, mạnh]`, `rays: [rgb, mạnh]`, `comet: [rgb, tốc độ, số vệt]`, `spark: [rgb, số]`, `fall: ["snow"|"petal"|"rose"|"feather", số]`, `embers: [rgb, số]`, `flame: 1`, `breathe: độ`.
+

@@ -6,6 +6,7 @@ using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Market;
+using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Catalog;
 
 namespace SirLocked.Api.Services.Market;
@@ -32,16 +33,22 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     private readonly ILogger<ProgressService> _logger;
     private readonly IAvatarStorage? _avatars;
     private readonly ICatalogProvider _catalog;
+    private readonly ICosmeticDefaults? _defaults;
 
     public ProgressService(
-        MarketStore store, MarketService market, ILogger<ProgressService> logger, IAvatarStorage? avatars = null, ICatalogProvider? catalog = null)
+        MarketStore store, MarketService market, ILogger<ProgressService> logger, IAvatarStorage? avatars = null, ICatalogProvider? catalog = null,
+        ICosmeticDefaults? defaults = null)
     {
         _store = store;
         _market = market;
         _logger = logger;
         _avatars = avatars;
         _catalog = catalog ?? FixedCatalogProvider.Default;
+        _defaults = defaults;
     }
+
+    private Task<CosmeticDefaults> DefaultsAsync(CancellationToken ct) =>
+        _defaults?.GetAsync(ct) ?? Task.FromResult(CosmeticDefaults.InCode);
 
     private DateTime Now => _store.Now;
 
@@ -114,7 +121,7 @@ public sealed class ProgressService : IPlayerCosmeticsReader
                 owned.Add(new OwnedCosmeticDto(item.Id, def.Id, def.Category, item.Source, item.LockedBy is not null, equipped));
         }
 
-        var worn = Wear(account, items);
+        var worn = Wear(account, items, await DefaultsAsync(ct));
         var isMax = progress.Level >= ProgressRules.MaxLevel;
         return new ProgressDto(
             progress.Level, progress.Xp, isMax ? 0 : ProgressRules.XpToNext(progress.Level), ProgressRules.MaxLevel, isMax,
@@ -128,7 +135,7 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     // ------------------------------------------------------------------ what a detective wears
 
     /// <summary>An equipped entry only counts while it still points at a free item of the right category, owned by this account.</summary>
-    private (string? Frame, string Title, string Entrance) Wear(MarketAccount? account, IReadOnlyCollection<MarketItem> items)
+    private (string? Frame, string Title, string Entrance) Wear(MarketAccount? account, IReadOnlyCollection<MarketItem> items, CosmeticDefaults defaults)
     {
         string? Slot(string category)
         {
@@ -137,9 +144,9 @@ public sealed class ProgressService : IPlayerCosmeticsReader
             return item is not null && _catalog.Current.Find(item.DefId)?.Category == category ? item.DefId : null;
         }
         return (
-            Slot(MarketCategories.Frame),
-            Slot(MarketCategories.Title) ?? CosmeticCatalog.DefaultTitleDefId,
-            Slot(MarketCategories.Entrance) ?? CosmeticCatalog.DefaultEntranceDefId);
+            Slot(MarketCategories.Frame) ?? defaults.Frame,
+            Slot(MarketCategories.Title) ?? defaults.Title,
+            Slot(MarketCategories.Entrance) ?? defaults.Entrance);
     }
 
     public async Task<IReadOnlyDictionary<string, PlayerCosmeticsDto>> GetCosmeticsAsync(IReadOnlyCollection<string> userIds, CancellationToken ct = default)
@@ -151,11 +158,12 @@ public sealed class ProgressService : IPlayerCosmeticsReader
         var items = equippedIds.Count == 0
             ? new List<MarketItem>()
             : await _store.Items.Find(i => equippedIds.Contains(i.Id)).ToListAsync(ct);
+        var defaults = await DefaultsAsync(ct);
 
         var result = new Dictionary<string, PlayerCosmeticsDto>(StringComparer.Ordinal);
         foreach (var id in ids)
         {
-            var worn = Wear(accounts.GetValueOrDefault(id), items);
+            var worn = Wear(accounts.GetValueOrDefault(id), items, defaults);
             var mine = progress.GetValueOrDefault(id);
             result[id] = new PlayerCosmeticsDto(
                 mine?.Level ?? 1, mine?.Avatar ?? CosmeticCatalog.DefaultAvatar, mine?.AvatarUrl,
@@ -371,9 +379,14 @@ public sealed class ProgressService : IPlayerCosmeticsReader
 
     // ------------------------------------------------------------------ earned cosmetics
 
+    /// <summary>
+    /// Every reward at or below the level, not just the ones just passed: a reward an admin adds later reaches those
+    /// already past it the next time their profile opens. A retired item is no longer handed out.
+    /// </summary>
     private async Task GrantLevelRewardsAsync(string userId, int level, string? exchangeId, CancellationToken ct)
     {
-        foreach (var reward in _catalog.Current.LevelRewards.Where(reward => reward.Level <= level))
+        var catalog = _catalog.Current;
+        foreach (var reward in catalog.LevelRewards.Where(reward => reward.Level <= level && catalog.Find(reward.DefId)?.Retired != true))
             await GrantAsync(userId, reward.DefId, MarketItemSources.Level, exchangeId, ct);
     }
 
@@ -401,8 +414,9 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     /// <summary>Recounts a detective's record and grants whatever is newly earned. Idempotent; runs when a profile opens and when a game ends.</summary>
     public async Task<IReadOnlyList<AchievementProgress>> SyncAchievementsAsync(string userId, CancellationToken ct = default)
     {
-        var achievements = AchievementRules.Evaluate(await LoadStatsAsync(userId, ct), _catalog.Current.Achievements);
-        foreach (var achievement in achievements.Where(a => a.Earned))
+        var catalog = _catalog.Current;
+        var achievements = AchievementRules.Evaluate(await LoadStatsAsync(userId, ct), catalog.Achievements);
+        foreach (var achievement in achievements.Where(a => a.Earned && catalog.Find(a.Def.TitleDefId)?.Retired != true))
             await GrantAsync(userId, achievement.Def.TitleDefId, MarketItemSources.Achievement, null, ct);
         return achievements;
     }

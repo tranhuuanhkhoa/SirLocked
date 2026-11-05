@@ -137,7 +137,7 @@ function askForWings() {
 }
 /* the plaque */
 function titleHTML(t, o = {}) {
-  const st = STY[t.sty], L = LVL[t.r], id = 'tt' + (++TID); let sc = o.scale || 1; const bare = !!o.bare, still = reduce.matches;
+  const st = t.ov ? { ...STY[t.sty], ...t.ov } : STY[t.sty], L = LVL[t.r], id = 'tt' + (++TID); let sc = o.scale || 1; const bare = !!o.bare, still = reduce.matches;
   const fs = L === 1 ? 19 : 22, ls = 2.6, H = L === 1 ? 34 : 42, tw = measureTitle(t.n, fs, ls), pad = L === 1 ? 20 : 30, W = Math.ceil(tw + pad * 2);
   const [ml, mr, mt, mb] = bare ? [10, 10, 6, 6] : st.ext, VW = W + ml + mr, VH = H + mt + mb;
   if (o.maxW && VW * sc > o.maxW) sc = o.maxW / VW;
@@ -214,4 +214,9 @@ function titleHTML(t, o = {}) {
   return `<span class="hs-tl hs-r-${t.r}${bare ? ' hs-bare' : ''}" style="width:${(VW * sc).toFixed(1)}px;height:${(VH * sc).toFixed(1)}px" role="img" aria-label="Danh hiệu ${esc}">${plate}</span>`;
 }
 
-export { T, TITLES, installTitleDefs, setPlaqueMotion, titleHTML };
+/* a title described by data: { n, r, src, made, sty, glow, parts }. The words come from the server, the plaque from STY */
+function titleFrom(o) { const ov = {}; if (o.glow) ov.glow = o.glow; if (o.parts) ov.parts = o.parts; return { n: o.n, r: o.r, src: o.src, made: !!o.made, sty: STY[o.sty] ? o.sty : 'thuong', ov: Object.keys(ov).length ? ov : undefined }; }
+function defineTitle(id, o) { const known = T[id]; if (known) { Object.assign(known, titleFrom(o)); return; } const t = Object.assign({ id }, titleFrom(o)); T[id] = t; TITLES.push(t); }
+const STYLE_KEYS = Object.keys(STY);
+
+export { STYLE_KEYS, T, TITLES, defineTitle, installTitleDefs, setPlaqueMotion, titleFrom, titleHTML };

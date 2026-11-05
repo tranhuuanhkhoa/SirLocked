@@ -2,8 +2,9 @@ import '../../../../css/48-cosmetics.css';
 import { marketApi, newRequestId } from '../../api/marketApi.js';
 import { progressApi } from '../../api/progressApi.js';
 import {
-  AVS, ENTRANCES, FR, FRAME_PREFIX, ENTRANCE_PREFIX, GROUPS, RAR, T, TITLES, TITLE_PREFIX,
-  avatarFor, avatarImg, chime, closeStage, forgetCanvas, frameKey, paintFrame, prepareCosmetics, rarOf, reduce, setPlaqueMotion, titleHTML, titleKey,
+  AVS, EN, FR, FRAME_PREFIX, ENTRANCE_PREFIX, RAR, T, TITLE_PREFIX,
+  avatarFor, avatarImg, chime, closeStage, cosmeticDefaults, entranceList, forgetCanvas, frameGroups, frameKey, loadCosmeticCatalog, loadCosmeticsIfUnknown,
+  paintFrame, prepareCosmetics, rarOf, reduce, setPlaqueMotion, titleHTML, titleKey, titleList, xpRates,
   entranceKey, warmEntranceArt, whenTitleFontReady,
 } from '../../cosmetics/index.js';
 import { playEntrance } from '../../cosmetics/entrances.js';
@@ -20,15 +21,13 @@ const TABS = [
   { id: 'sanh', label: () => tr('Lobby entrance', 'Hiệu ứng vào sảnh') },
 ];
 const CATEGORY = { frame: 'FRAME', title: 'TITLE', entrance: 'ENTRANCE' };
-const DEFAULT_FRAME = 'none';
-const DEFAULT_TITLE = 'tan-binh';
-const DEFAULT_ENTRANCE = 'lang-le';
 const RESIZE_DEBOUNCE_MS = 200;
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const SOURCE_EN = {
   'Mặc định': 'Default',
+  'Chỉ admin cấp': 'Admin only',
   'Chơi 10 vụ': 'Play 10 cases',
   'Ghi 50 lời khai': 'Record 50 statements',
   'Tìm 100 manh mối': 'Find 100 clues',
@@ -61,6 +60,10 @@ function xpBeyondCap(me, total) {
 }
 
 const rarityName = (rar) => tr(rar.en, rar.n);
+/** Which drawing a detective with nothing equipped wears. The admin page can change it. */
+const defaultFrame = () => cosmeticDefaults().frame;
+const defaultTitle = () => cosmeticDefaults().title;
+const defaultEntrance = () => cosmeticDefaults().entrance;
 const fmt = (value) => Number(value).toLocaleString(uiLanguage() === 'vi' ? 'vi-VN' : 'en-US');
 
 /**
@@ -149,7 +152,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     $('[data-hs-level]').textContent = String(level);
     const titleHost = $('[data-hs-title]');
     const width = Math.max(240, titleHost.parentElement.clientWidth - 4);
-    titleHost.innerHTML = titleHTML(T[look().titleId] ?? T[DEFAULT_TITLE], { scale: 1.1, maxW: width });
+    titleHost.innerHTML = titleHTML(T[look().titleId] ?? T[defaultTitle()], { scale: 1.1, maxW: width });
     setPlaqueMotion(titleHost, headerOnScreen);
     const bar = $('[data-hs-bar]');
     const text = $('[data-hs-xp]');
@@ -186,8 +189,14 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
 
   const renderActiveTab = () => { if (isOwnProfile) openTab(activeTab); };
 
+  /** How to draw what this detective owns and wears: it may have been made after this page loaded. */
+  const knowWhatIsWorn = () => (me ? loadCosmeticsIfUnknown([me.frameDefId, me.titleDefId, me.entranceDefId, ...(me.owned ?? []).map((item) => item.defId)]) : Promise.resolve(false));
+
   async function refresh() {
-    me = await progressApi.me();
+    const [fresh] = await Promise.all([progressApi.me(), loadCosmeticCatalog()]);
+    me = fresh;
+    if (disposed) return;
+    await knowWhatIsWorn();
     if (disposed) return;
     renderHeader();
     renderActiveTab();
@@ -205,10 +214,11 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     }
     const total = me.exchangeable.reduce((sum, item) => sum + item.xp, 0);
     const maxed = me.isMaxLevel;
+    const rates = xpRates();
     panel.innerHTML = `
       <p class="hs-hint">${tr(
-    `<b style="color:${RAR.rare.c}">Rare</b> items give <b>150 XP</b>, <b style="color:${RAR.myth.c}">Epic</b> items give <b>600 XP</b>. Every 10 levels unlocks a new frame.`,
-    `Vật phẩm <b style="color:${RAR.rare.c}">Hiếm</b> đổi được <b>150 KN</b>, vật phẩm <b style="color:${RAR.myth.c}">Quý</b> đổi được <b>600 KN</b>. Cứ 10 cấp mở một viền mới.`)}</p>
+    `<b style="color:${RAR.rare.c}">Rare</b> items give <b>${fmt(rates.rare)} XP</b>, <b style="color:${RAR.myth.c}">Epic</b> items give <b>${fmt(rates.epic)} XP</b>. Every 10 levels unlocks a new frame.`,
+    `Vật phẩm <b style="color:${RAR.rare.c}">Hiếm</b> đổi được <b>${fmt(rates.rare)} KN</b>, vật phẩm <b style="color:${RAR.myth.c}">Quý</b> đổi được <b>${fmt(rates.epic)} KN</b>. Cứ 10 cấp mở một viền mới.`)}</p>
       ${maxed ? `<p class="hs-hint"><b>${escapeHtml(tr('You are at the highest level.', 'Bạn đã đạt cấp cao nhất.'))}</b></p>` : ''}
       ${groups.size === 0 ? `<p class="hs-hint">${tr('No Rare or Epic items to exchange yet. <a class="hs-link" href="#/kho-ruong">Open a chest</a> to find some.', 'Chưa có vật phẩm Hiếm hay Quý để đổi. <a class="hs-link" href="#/kho-ruong">Mở hòm</a> để có thêm.')}</p>` : ''}
       <div class="hs-items">
@@ -312,7 +322,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     const frame = FR[id];
     if (!frame) { showUnlocks(rest); return; }
     const { el, close } = dialog(tr('New frame unlocked', 'Mở khóa viền mới'), `
-      <small>${escapeHtml(tr(`Level ${frame.lv} · new frame unlocked`, `Cấp ${frame.lv} · mở khóa viền mới`))}</small>
+      <small>${escapeHtml(tr(`Level ${frame.lv ?? me.level} · new frame unlocked`, `Cấp ${frame.lv ?? me.level} · mở khóa viền mới`))}</small>
       <canvas width="240" height="240" aria-hidden="true"></canvas>
       <h2>${escapeHtml(frame.name)}</h2>
       <div class="hs-row-actions">
@@ -357,13 +367,13 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
 
   function renderFrames() {
     const panel = $('#hs-p-vien');
-    panel.innerHTML = GROUPS.map(([label, ids]) => `
+    panel.innerHTML = frameGroups(owns).map(([label, ids]) => `
       <p class="hs-group-label">${escapeHtml(label)}</p>
       <div class="hs-frames">
         ${ids.map((id) => {
     const frame = FR[id];
     const rar = RAR[frame.rar];
-    const ok = id === DEFAULT_FRAME || owns(FRAME_PREFIX + id);
+    const ok = id === defaultFrame() || owns(FRAME_PREFIX + id);
     const lock = frame.lv ? tr(`Level ${frame.lv}`, `Cấp ${frame.lv}`) : tr('Not yet', 'Chưa có');
     return `<button class="hs-fr${ok ? '' : ' hs-locked'}" type="button" data-hs-frame="${id}" aria-pressed="${look().frameId === id}" style="--rc:${rar.c}"
               aria-label="${escapeHtml(`${frame.name}, ${rarityName(rar)}${ok ? '' : `, ${sourceText(frame.src)}`}`)}">
@@ -375,12 +385,12 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     panel.querySelectorAll('[data-hs-frame]').forEach((button) => {
       const id = button.dataset.hsFrame;
       // Dimmed and grey until owned: motion there costs as much as anywhere and shows as nothing.
-      const locked = id !== DEFAULT_FRAME && !owns(FRAME_PREFIX + id);
+      const locked = id !== defaultFrame() && !owns(FRAME_PREFIX + id);
       painter.add(button.querySelector('canvas'), () => id, () => avatarFor(me), { still: locked });
       button.addEventListener('click', () => {
         const frame = FR[id];
         if (id === look().frameId) return;
-        if (id === DEFAULT_FRAME) { wear(CATEGORY.frame, null, frame.name); return; }
+        if (id === defaultFrame()) { wear(CATEGORY.frame, null, frame.name); return; }
         if (!owns(FRAME_PREFIX + id)) {
           live(tr(`${frame.name} is locked: ${sourceText(frame.src)}.`, `${frame.name} chưa mở: ${frame.src}.`));
           shake(button);
@@ -407,8 +417,8 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     const list = panel.firstElementChild;
     const width = list.clientWidth || 900;
     const cell = width >= 1000 ? (width - 10) / 2 : width;
-    list.innerHTML = TITLES.map((title) => {
-      const ok = title.id === DEFAULT_TITLE || owns(TITLE_PREFIX + title.id);
+    list.innerHTML = titleList(owns).map((title) => {
+      const ok = title.id === defaultTitle() || owns(TITLE_PREFIX + title.id);
       const rar = RAR[title.r];
       return `<button class="hs-ti${ok ? '' : ' hs-locked'}" type="button" data-hs-title-id="${title.id}" aria-pressed="${look().titleId === title.id}">
           ${titleHTML(title, { maxW: cell - 30 })}
@@ -432,7 +442,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
       const id = button.dataset.hsTitleId;
       const title = T[id];
       if (id === look().titleId) return;
-      if (id === DEFAULT_TITLE) { wear(CATEGORY.title, null, title.n); return; }
+      if (id === defaultTitle()) { wear(CATEGORY.title, null, title.n); return; }
       if (!owns(TITLE_PREFIX + id)) {
         live(tr(`${title.n} is locked: ${sourceText(title.src)}.`, `${title.n} chưa mở: ${title.src}.`));
         shake(button);
@@ -453,10 +463,10 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     'A lobby entrance is an item of its own, from chests. Everyone in the room sees yours when you enter a lobby; the default one stays a quiet mist in the lobby.',
     'Hiệu ứng vào sảnh là vật phẩm riêng, ra từ hòm. Khi bạn vào phòng chờ, mọi người trong phòng đều thấy hiệu ứng đang dùng; hiệu ứng mặc định chỉ là làn sương nhẹ trong sảnh.'))}</p>
       <div class="hs-ens">
-        ${ENTRANCES.map((entry) => {
+        ${entranceList(owns).map((entry) => {
     const rar = RAR[entry.r];
     const on = worn === entry.id;
-    const ok = entry.id === DEFAULT_ENTRANCE || owns(ENTRANCE_PREFIX + entry.id);
+    const ok = entry.id === defaultEntrance() || owns(ENTRANCE_PREFIX + entry.id);
     return `<div class="hs-en${on ? ' hs-on' : ''}${ok ? '' : ' hs-locked'}" style="--rc:${rar.c}" data-hs-entrance="${entry.id}">
             <span class="hs-emb"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${entry.ic}"/></svg></span>
             <span class="hs-ent"><b>${escapeHtml(entry.n)}</b><span style="color:${rar.c}">${escapeHtml(rarityName(rar))} · ${escapeHtml(sourceText(entry.src))}</span><span>${escapeHtml(entry.d)}</span></span>
@@ -469,10 +479,10 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
       </div>`;
     panel.querySelectorAll('[data-hs-entrance]').forEach((row) => {
       const id = row.dataset.hsEntrance;
-      const entry = ENTRANCES.find((candidate) => candidate.id === id);
+      const entry = EN[id];
       row.querySelector('[data-try]').addEventListener('click', () => preview(id));
       row.querySelector('[data-use]').addEventListener('click', () => {
-        if (id === DEFAULT_ENTRANCE) wear(CATEGORY.entrance, null, entry.n);
+        if (id === defaultEntrance()) wear(CATEGORY.entrance, null, entry.n);
         else wear(CATEGORY.entrance, ENTRANCE_PREFIX + id, entry.n);
       });
     });
@@ -568,7 +578,9 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
   async function start() {
     renderShell();
     try {
-      me = isOwnProfile ? await progressApi.me() : await progressApi.user(userId);
+      const [fresh] = await Promise.all([isOwnProfile ? progressApi.me() : progressApi.user(userId), loadCosmeticCatalog()]);
+      me = fresh;
+      await knowWhatIsWorn();
     } catch (error) {
       if (disposed) return;
       // The rest of the profile still works; say so only where it matters to the owner.
