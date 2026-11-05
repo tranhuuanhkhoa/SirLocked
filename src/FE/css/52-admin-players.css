@@ -1,1 +1,235 @@
 /* Players and economy admin pages. Owned by ADMIN-3. */
+
+.adp-page { max-width: var(--shell-max, var(--page-w)); }
+
+.adp-link { color: var(--gold-light); text-decoration: underline; text-underline-offset: 2px; }
+.adp-link:hover { color: var(--white); }
+.adp-break { overflow-wrap: anywhere; }
+.adp-code { font-family: var(--font-mono); font-size: var(--t-xs); overflow-wrap: anywhere; }
+
+/* ---- tabs ---- */
+
+.adp-tabs {
+  display: flex;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: var(--bw) solid var(--line);
+}
+.adp-tabs::-webkit-scrollbar { display: none; }
+
+.adp-tab {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  color: var(--beige-muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-body);
+  font-size: var(--t-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.adp-tab:hover { color: var(--gold-light); }
+.adp-tab:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+.adp-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+/* ---- filters ---- */
+
+.adp-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s-3);
+  align-items: end;
+  margin-bottom: var(--s-4);
+}
+.adp-filter { min-width: 0; }
+.adp-filter .field-label { margin-bottom: var(--s-1); }
+.adp-filter--wide { grid-column: span 2; }
+.adp-filter-go { min-height: 40px; }
+
+.adp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  margin-bottom: var(--s-3);
+  color: var(--beige);
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+
+/* ---- tables ---- */
+
+.adp-table-wrap { max-width: 100%; overflow-x: auto; }
+.adp-table { font-size: var(--t-sm); }
+.adp-table td { vertical-align: top; overflow-wrap: anywhere; }
+.adp-actions { white-space: nowrap; }
+.adp-actions .btn { min-height: 32px; }
+
+.adp-item { display: inline-flex; align-items: center; gap: var(--s-2); }
+
+.adp-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin: var(--s-3) 0 var(--s-5);
+}
+
+.adp-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.adp-section-head p { flex: 1 1 280px; margin: 0; }
+.adp-toggle { display: inline-flex; gap: var(--s-1); }
+.adp-flow-total { margin: 0 0 var(--s-2); }
+.adp-subtitle { margin: 0 0 var(--s-2); color: var(--beige-muted); font-size: var(--t-sm); font-weight: 400; }
+
+.adp-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-4); margin-bottom: var(--s-5); }
+.adp-count-list { margin: 0; padding: 0; list-style: none; }
+.adp-count-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-1) 0;
+  border-bottom: var(--bw) solid var(--line);
+  font-size: var(--t-sm);
+}
+.adp-count-list strong { color: var(--gold-light); }
+
+.adp-room-player { margin-bottom: var(--s-1); }
+.adp-review-text { display: block; max-width: 44ch; white-space: pre-wrap; }
+
+/* ---- the player ---- */
+
+.adp-profile { display: flex; flex-wrap: wrap; gap: var(--s-5); align-items: center; margin-bottom: var(--s-4); }
+.adp-look { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+.adp-look canvas { width: 168px; height: 168px; }
+.adp-look-text { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.adp-head { flex: 1 1 280px; min-width: 0; }
+.adp-head p { margin: 0 0 var(--s-2); }
+.adp-name { margin: 0 0 var(--s-1); overflow-wrap: anywhere; }
+.adp-chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+.adp-summary .stat-card { gap: var(--s-1); }
+.adp-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-4) 0; }
+.adp-toolbar [hidden] { display: none; }
+
+/* ---- pictures ---- */
+
+.adp-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.adp-avatar-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--panel);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-md);
+}
+.adp-avatar-card img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--charcoal);
+  border-radius: var(--r-md);
+}
+.adp-avatar-who { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; overflow-wrap: anywhere; }
+.adp-avatar-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: auto; }
+
+/* ---- the dialog ---- */
+
+.adp-dialog {
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: var(--s-5);
+  overflow-y: auto;
+  color: var(--beige);
+  background: var(--panel-strong);
+  border: var(--bw) solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+}
+.adp-dialog::backdrop { background: var(--fog); }
+.adp-dialog-title { margin: 0 0 var(--s-2); color: var(--gold-light); overflow-wrap: anywhere; }
+.adp-dialog-message { margin: 0 0 var(--s-3); font-size: var(--t-sm); }
+.adp-dialog-notice {
+  margin: 0 0 var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-left: 3px solid var(--copper);
+  background: var(--well, var(--charcoal));
+  font-size: var(--t-sm);
+}
+.adp-dialog-error { min-height: 0; margin: 0 0 var(--s-3); font-size: var(--t-sm); }
+.adp-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-2); }
+.adp-dialog-actions .btn { min-height: 44px; }
+.adp-presets { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-bottom: var(--s-2); }
+.adp-presets .btn { min-height: 36px; }
+.adp-reason { resize: vertical; }
+
+.adp-btn-danger { color: var(--white); background: var(--copper); border: var(--bw) solid var(--copper); }
+.adp-btn-danger:hover:not(:disabled) { background: var(--gold-dim); border-color: var(--gold-dim); }
+.adp-btn-danger:disabled { opacity: .6; }
+
+/* ---- what changed ---- */
+
+.adp-diff { font-size: var(--t-xs); }
+.adp-diff th[scope="row"] { color: var(--beige-muted); font-weight: 400; text-align: left; text-transform: none; letter-spacing: 0; background: none; }
+.adp-diff tr.is-changed td,
+.adp-diff tr.is-changed th[scope="row"] { color: var(--gold-light); font-weight: 600; }
+.adp-detail-row td { background: var(--well, var(--charcoal)); }
+
+/* ---- dashboard cards ---- */
+
+.adp-cards { margin-bottom: var(--s-3); }
+.adp-card { color: inherit; text-decoration: none; transition: border-color .15s ease; }
+.adp-card:hover,
+.adp-card:focus-visible { border-color: var(--line-strong); outline: none; }
+
+/* ---- phones: a row becomes a card, every cell says what it is ---- */
+
+@media (max-width: 720px) {
+  .adp-filter--wide { grid-column: 1 / -1; }
+  .adp-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adp-filter-go { grid-column: 1 / -1; min-height: 44px; }
+  .adp-table-wrap { overflow-x: visible; }
+  .adp-table, .adp-table tbody, .adp-table tr, .adp-table td { display: block; width: 100%; box-sizing: border-box; }
+  .adp-table thead { display: none; }
+  .adp-table tr { padding: var(--s-2) 0; border-bottom: var(--bw) solid var(--line-strong); }
+  .adp-table td {
+    display: grid;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    gap: var(--s-2);
+    padding: var(--s-1) var(--s-3);
+    border-bottom: 0;
+  }
+  .adp-table td::before { content: attr(data-label); color: var(--beige-muted); font-size: var(--t-xs); }
+  .adp-table td > * { min-width: 0; }
+  .adp-table .adp-actions { white-space: normal; }
+  .adp-table .adp-actions .btn { min-height: 44px; margin: 0 var(--s-1) var(--s-1) 0; }
+  .adp-table tr.adp-detail-row td { display: block; }
+  .adp-table tr.adp-detail-row td::before { content: none; }
+  .adp-pager .btn { min-height: 44px; }
+  .adp-tab { font-size: var(--t-sm); }
+  .adp-look canvas { width: 132px; height: 132px; }
+  .adp-toolbar .btn { flex: 1 1 calc(50% - var(--s-2)); min-height: 44px; }
+  .adp-avatar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adp-avatar-actions .btn { flex: 1 1 auto; min-height: 44px; }
+  .adp-review-text { max-width: none; }
+}
