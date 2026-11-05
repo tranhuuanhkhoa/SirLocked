@@ -3,7 +3,7 @@
  * plus the changes listed in cosmetics/README.md. The drawing is not to be redrawn or simplified.
  */
 import { forgetCanvas, paintFrame, picFailed, picImg, raysFx } from './frames.js';
-import { EN, drawSword, drawWarp, env, leafShape } from './fx.js';
+import { EN, drawSword, drawWarp, drawWarpSoft, env, leafShape } from './fx.js';
 import { SPR, TAU, clamp, drawWing, easeInOut, easeOut, glow, lerp, motes, retint, rng, smoke, ss, wob } from './lib.js';
 import { T, setPlaqueMotion, titleHTML } from './titles.js';
 import { chime, warmChime } from './chime.js';
@@ -199,7 +199,7 @@ function drawStage(c, S, id, t, G) {
     for (let i = 0; i < 7; i++) { const img = SPR.smoke(i % 3, P('240,200,120'), 512); if (!img) continue; const s = m * (.3 + i * .05), x = ((i * .19 + t * .035 * (1 + i % 3)) % 1.5 - .25) * W, y = H * (.08 + i * .13); c.save(); c.globalAlpha = .2 * fin; c.drawImage(img, x - s, y - s * .4, s * 2, s * .8); c.restore(); }
     const b = ss(2.6, 3.2, t) * fin; if (b > 0) { raysFx(c, cx, cy, m * .1, m * .9, t, P('255,214,120'), .22 * b); glow(c, cx, cy, m * .45, P('255,200,90'), .4 * b); }
     const im = artOf(own.creature, 'rong-bay'); if (im) { const wide = Math.max(W * 1.05, 700), w = own.creature ? Math.min(wide, H * .85 * im.naturalWidth / im.naturalHeight) : wide, h = w * im.naturalHeight / im.naturalWidth, k = easeInOut(clamp(t / 6.4)), x = lerp(W + 40, -w - 40, k), y = cy - h * .55 + Math.sin(t * 1.2) * m * .03;
-      c.save(); c.globalAlpha = fin; drawWarp(c, im, x, y, w, h, t, { flip: true, amp: h * .05, waves: 1.3, speed: 2.4 }); c.restore(); }
+      c.save(); c.globalAlpha = fin; (own.creature ? drawWarpSoft : drawWarp)(c, im, x, y, w, h, t, { flip: true, amp: h * .05, waves: 1.3, speed: 2.4 }); c.restore(); }
     if (t > 2.9 && t < 3.5) glow(c, cx, cy, m * .7, P('255,240,200'), (1 - (t - 2.9) / .6) * .55);
     motes(c, 26, 12, t, [0, H * .2, W, H * .8], P('255,214,120'), 2, .9, .9 * fin);
   }

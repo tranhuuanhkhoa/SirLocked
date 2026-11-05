@@ -47,6 +47,20 @@ function drawWarp(c, img, x, y, w, h, t, o = {}) {
     c.drawImage(img, u * iw, 0, iw / N + 1, ih, -w / 2 + u * w, dy, w / N + .8, h); }
   c.restore();
 }
+/* The same travelling wave for an uploaded picture. Hand-drawn art can be soft all over, and there the overlap of the
+   slices above would show as stripes, so each slice lands on whole pixels of a canvas of its own and touches the next. */
+let WARP = null;
+function drawWarpSoft(c, img, x, y, w, h, t, o = {}) {
+  const N = 56, iw = img.naturalWidth, ih = img.naturalHeight, flip = o.flip ? -1 : 1, amp = o.amp || 10;
+  // The camera scales this a little more every frame: in half steps, so the canvas is not reallocated each time.
+  const res = Math.min(2, Math.max(1, Math.ceil(Math.abs(c.getTransform().a) * 2) / 2)), W = Math.ceil(w * res), H = Math.ceil((h + amp * 2) * res);
+  if (!WARP) WARP = document.createElement('canvas');
+  const x2 = WARP.getContext('2d');
+  if (WARP.width !== W || WARP.height !== H) { WARP.width = W; WARP.height = H; } else x2.clearRect(0, 0, W, H);
+  for (let i = 0; i < N; i++) { const u = i / N, head = o.headRight === false ? u : 1 - u, env = Math.pow(head, .8), dy = amp * env * Math.sin(u * (o.waves || 1.6) * TAU - t * (o.speed || 2.4)), left = Math.round(u * W), right = Math.round((i + 1) / N * W);
+    x2.drawImage(img, u * iw, 0, iw / N, ih, left, (amp + dy) * res, right - left, h * res); }
+  c.save(); c.translate(x + w / 2, y); c.scale(flip, 1); c.drawImage(WARP, -w / 2, -amp, w, h + amp * 2); c.restore();
+}
 /* draw one frame of the active entrance. G = { W, H, ax, ay (avatar centre), rw (row width) } */
 function drawEntrance(c, id, t, G) {
   const { W, H, ax, ay } = G, R = rng(91), D = FXD[id];
@@ -140,4 +154,4 @@ function defineEntrance(id, o, { listed = true } = {}) {
   if (!EN[id]) { EN[id] = e; if (listed) ENTRANCES.push(e); }
 }
 
-export { EN, ENTRANCES, FXD, defineEntrance, drawEntrance, drawSword, drawWarp, env, leafShape };
+export { EN, ENTRANCES, FXD, defineEntrance, drawEntrance, drawSword, drawWarp, drawWarpSoft, env, leafShape };

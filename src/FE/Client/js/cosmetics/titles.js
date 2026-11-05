@@ -218,6 +218,5 @@ function titleHTML(t, o = {}) {
 function titleFrom(o) { const ov = {}; if (o.glow) ov.glow = o.glow; if (o.parts) ov.parts = o.parts; return { n: o.n, r: o.r, src: o.src, made: !!o.made, sty: STY[o.sty] ? o.sty : 'thuong', ov: Object.keys(ov).length ? ov : undefined }; }
 function defineTitle(id, o) { const known = T[id]; if (known) { Object.assign(known, titleFrom(o)); return; } const t = Object.assign({ id }, titleFrom(o)); T[id] = t; TITLES.push(t); }
 const STYLE_KEYS = Object.keys(STY);
-const styleOf = key => STY[key];
 
-export { STYLE_KEYS, T, TITLES, defineTitle, installTitleDefs, setPlaqueMotion, styleOf, titleFrom, titleHTML };
+export { STYLE_KEYS, T, TITLES, defineTitle, installTitleDefs, setPlaqueMotion, titleFrom, titleHTML };
