@@ -35,11 +35,14 @@ public static class AdminAssetProcessor
     public const int MaxBytes = 5 * 1024 * 1024;
     public const int MaxPixelSide = AvatarImageProcessor.MaxPixelSide;
 
+    internal static ApiException Error(int status, string code, string message) =>
+        new(status, message, new ApiErrorDetails(code, "admin." + code));
+
     public static ApiException TooLarge() =>
-        MarketService.Error(400, AdminAssetErrors.TooLarge, "Ảnh phải nhỏ hơn hoặc bằng 5 MB.");
+        Error(400, AdminAssetErrors.TooLarge, "Ảnh phải nhỏ hơn hoặc bằng 5 MB.");
 
     private static ApiException BadImage() =>
-        MarketService.Error(400, AdminAssetErrors.BadImage, "Chỉ nhận ảnh PNG, WebP hoặc JPG.");
+        Error(400, AdminAssetErrors.BadImage, "Chỉ nhận ảnh PNG, WebP hoặc JPG.");
 
     public static async Task<ProcessedAdminAsset> ProcessAsync(byte[] source, CancellationToken ct = default)
     {
@@ -140,7 +143,7 @@ public sealed class AdminAssetService
     public async Task<AdminAssetDto> UploadAsync(CurrentUser admin, byte[] source, string? fileName, CancellationToken ct = default)
     {
         if (!_storage.IsAvailable)
-            throw MarketService.Error(503, AdminAssetErrors.StorageUnavailable, "Chưa cấu hình nơi lưu ảnh (Cloudinary) nên chưa tải được ảnh.");
+            throw AdminAssetProcessor.Error(503, AdminAssetErrors.StorageUnavailable, "Chưa cấu hình nơi lưu ảnh (Cloudinary) nên chưa tải được ảnh.");
 
         var asset = await AdminAssetProcessor.ProcessAsync(source, ct);
         var url = await _storage.UploadAsync(asset.Webp, ct);

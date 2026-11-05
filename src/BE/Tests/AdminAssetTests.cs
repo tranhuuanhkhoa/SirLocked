@@ -49,7 +49,9 @@ public class AdminAssetTests
     private static async Task<ApiException> Rejected(byte[] file, string code)
     {
         var exception = await Assert.ThrowsAsync<ApiException>(() => AdminAssetProcessor.ProcessAsync(file));
-        Assert.Equal(code, ((ApiErrorDetails)exception.Errors!).Code);
+        var details = (ApiErrorDetails)exception.Errors!;
+        Assert.Equal(code, details.Code);
+        Assert.Equal($"admin.{code}", details.MessageKey);
         return exception;
     }
 
