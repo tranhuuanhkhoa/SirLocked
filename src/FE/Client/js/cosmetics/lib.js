@@ -367,4 +367,17 @@ function flamePlume(c, pts, w0, a = 1, licks = true) {
   for (let k = -1; k <= 1; k++) { const dx = e[0] - m[0], dy = e[1] - m[1]; c.strokeStyle = `rgba(255,130,50,${0.22 * a})`; c.lineWidth = w0 * 0.06; c.beginPath(); c.moveTo(m[0], m[1]); c.quadraticCurveTo(e[0] + k * dy * 0.25, e[1] - k * dx * 0.25, e[0] + dx * 0.12 + k * dy * 0.3, e[1] + dy * 0.12 - k * dx * 0.3); c.stroke(); }
 }
 
-export { $, C, CLOUD, D2R, IMG, M, POLY, RING, RUNES, RUYI, SPR, SVG, TAU, around, bez, clamp, drawDragon, drawPhoenixFront, drawWing, easeInOut, easeOut, f2, flame, flamePlume, glow, inc, lerp, matDefs, motes, patinaDef, polyPts, reduce, ribbonPath, rng, runeD, smoke, ss, svgImg, wob };
+/* a colour with the hue of a tint and its own lightness, so what was dark stays dark. Without a tint it comes back untouched. */
+const TINTED = new Map();
+function retint(color, tint) {
+  if (!tint) return color;
+  const key = tint + '|' + color; let out = TINTED.get(key); if (out) return out;
+  const hex = color[0] === '#', rgb = hex ? [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16)) : color.split(',').map(Number);
+  const hsl = ([r, g, b]) => { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2, s = d ? d / (1 - Math.abs(2 * l - 1)) : 0; let h = 0; if (d) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [h, s, l]; };
+  const [, cs, cl] = hsl(rgb), [th, ts] = hsl(tint.split(',').map(Number)), sat = ts * Math.min(1, .35 + cs), q = (1 - Math.abs(2 * cl - 1)) * sat, x = q * (1 - Math.abs(th % 2 - 1)), m = cl - q / 2;
+  const [r1, g1, b1] = [[q, x, 0], [x, q, 0], [0, q, x], [0, x, q], [x, 0, q], [q, 0, x]][Math.floor(th) % 6], res = [r1, g1, b1].map(v => Math.round((v + m) * 255));
+  out = hex ? '#' + res.map(v => v.toString(16).padStart(2, '0')).join('') : res.join(',');
+  TINTED.set(key, out); return out;
+}
+
+export { $, C, CLOUD, D2R, IMG, M, POLY, RING, RUNES, RUYI, SPR, SVG, TAU, around, bez, clamp, drawDragon, drawPhoenixFront, drawWing, easeInOut, easeOut, f2, flame, flamePlume, glow, inc, lerp, matDefs, motes, patinaDef, polyPts, reduce, retint, ribbonPath, rng, runeD, smoke, ss, svgImg, wob };

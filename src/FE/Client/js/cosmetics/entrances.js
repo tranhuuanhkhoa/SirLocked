@@ -5,7 +5,7 @@ import { EN, FXD, drawEntrance } from './fx.js';
 import { reduce } from './lib.js';
 import { closeStage, openStage } from './stage.js';
 import { T, titleHTML } from './titles.js';
-import { entranceKey, frameKey, titleKey } from './index.js';
+import { entranceKey, frameKey, loadCosmeticsIfUnknown, titleKey } from './index.js';
 
 const QUIET_ENTRANCE = 'lang-le';
 const STILL_BANNER_MS = 3200;
@@ -108,12 +108,23 @@ export function createEntranceQueue({ canPlay, seatFor, onPlayed }) {
   const waiting = [];
   let current = null;
   let stopped = false;
+  let preparing = false;
 
-  const next = () => {
-    if (stopped || current) return;
+  const next = async () => {
+    if (stopped || current || preparing) return;
     const entrance = waiting.shift();
     if (!entrance) return;
-    if (!canPlay() || document.visibilityState !== 'visible') {
+    const playable = () => canPlay() && document.visibilityState === 'visible';
+    if (!playable()) {
+      next();
+      return;
+    }
+    // What this player wears may have been made after this page loaded.
+    preparing = true;
+    await loadCosmeticsIfUnknown([entrance.entranceDefId, entrance.frameDefId, entrance.titleDefId]);
+    preparing = false;
+    if (stopped) return;
+    if (!playable()) {
       next();
       return;
     }

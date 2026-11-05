@@ -1,7 +1,7 @@
 import { avatarImg } from './avatars.js';
 import { EN } from './fx.js';
 import { FR, paintFrame } from './frames.js';
-import { RAR, frameKey, titleKey, entranceKey } from './index.js';
+import { RAR, applyCosmetic, frameKey, titleKey, entranceKey } from './index.js';
 import { T } from './titles.js';
 
 /*
@@ -92,6 +92,8 @@ function entranceSprite(id) {
 /** The sprite of a FRAME, TITLE or ENTRANCE item definition. */
 export function cosmeticSprite(def) {
   if (!memo.has(def.id)) {
+    // Made after this page loaded, perhaps: its definition is right here.
+    if (def.visual) applyCosmetic(def);
     const make = def.category === 'FRAME'
       ? () => frameSprite(FR[frameKey(def.id)] ? frameKey(def.id) : 'none')
       : def.category === 'TITLE'

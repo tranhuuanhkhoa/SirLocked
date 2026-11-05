@@ -243,7 +243,11 @@ function drawingKey(def) {
  * Decorative by default; pass `label` to expose it as an image. No character art: only objects.
  */
 export function itemIcon(def, size = 34, label = '') {
-  // Cosmetics are painted art with no pixel sprite: they use the category drawing below.
+  // A frame an admin painted has its own picture; other cosmetics use the category drawing below.
+  if (def?.category === 'FRAME' && def.visual?.template === 'painted' && def.visual.imageUrl) {
+    const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
+    return `<img class="bpa-mk-icon" src="${escapeHtml(def.visual.imageUrl)}" width="${size}" height="${size}" ${alt} draggable="false" style="object-fit:contain">`;
+  }
   const pixel = def?.iconKey && !COSMETIC_CATEGORIES.has(def.category) ? pixelIconUrl(def.iconKey) : '';
   if (pixel) {
     const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';

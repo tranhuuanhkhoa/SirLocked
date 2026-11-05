@@ -250,8 +250,12 @@ frame('phuong', { name: 'Phượng Hoàng', rar: 'gold', src: 'Bí ẩn · Tráp
 
 
 /* ===== painted artwork (from the AI illustrations) layered over the same rendering pipeline ===== */
-const PICS = {};
-function picImg(key) { if (!ART[key]) return null; let im = PICS[key]; if (!im) { im = new Image(); im.decoding = 'async'; im.src = ART[key]; PICS[key] = im; } return im.complete && im.naturalWidth ? im : null; }
+const PICS = {}, UP = 'up:';
+/* an uploaded picture has one entry however many cosmetics use it, so it is fetched once */
+function uploadedPic(url) { const key = UP + url; ART[key] = url; return key; }
+function picImg(key) { if (!ART[key]) return null; let im = PICS[key]; if (!im) { im = new Image(); if (key.startsWith(UP)) im.crossOrigin = 'anonymous'; im.decoding = 'async'; im.src = ART[key]; PICS[key] = im; } return im.complete && im.naturalWidth ? im : null; }
+/* a picture that was asked for and will never come, so the drawing can fall back to what ships with the game */
+function picFailed(key) { const im = PICS[key]; return !!im && im.complete && !im.naturalWidth; }
 const PU = (m, u, v) => [m.x + u * m.w, m.y + v * m.h];
 let SCR2 = null;
 function glowPass(c, S, img, m, a, shape) { // emissive layer, optionally swept by a rotating wedge
@@ -359,7 +363,7 @@ function liveFront(c, id, x, y, R, t) { const L = LIVE[id]; if (!L || reduce.mat
 }
 
 /* rasterised static layers */
-function layer(id, name, S) { return svgImg(`${id}.${name}@${S}`, () => { const [d, b] = FR[id][name](); return SVG(S, S, '0 0 200 200', d, b); }); }
+function layer(id, name, S) { const own = FR[id].layerOf || id; return svgImg(`${own}.${name}@${S}`, () => { const [d, b] = FR[own][name](); return SVG(S, S, '0 0 200 200', d, b); }); }
 
 /* avatar inside the frame hole */
 function holePath(c, h) {
@@ -402,7 +406,7 @@ function paintFrame(cv, id, t, img) {
   const c = cv.getContext('2d'), k = S / 200, f = FR[id] || FR.none, tt = reduce.matches ? 2.2 : t;
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, S, S); c.setTransform(k, 0, 0, k, 0, 0); c.imageSmoothingQuality = 'high';
   const pi = f.pic && picImg(f.pic);
-  if (pi) { const m = ARTM[f.pic], RR = m.hr * 1.2;
+  if (pi) { const m = f.picMeta ? f.picMeta(pi) : ARTM[f.pic], RR = m.hr * 1.2;
     liveBack(c, id, m.hx, m.hy, RR, tt);
     if (f.picUnder) { c.save(); f.picUnder(c, tt, m, S); c.restore(); }
     drawAvatarIn(c, { k: 'circle', x: m.hx, y: m.hy, r: m.hr + 2.5, box: [m.hx - m.hr - 2.5, m.hy - m.hr - 2.5, m.hx + m.hr + 2.5, m.hy + m.hr + 2.5] }, img);
@@ -427,4 +431,33 @@ function paintFrame(cv, id, t, img) {
   c.save(); liveFront(c, id, 100, 100, 70, tt); c.restore();
 }
 
-export { FR, GROUPS, LV_FRAMES, blossomSVG, forgetCanvas, frameArtReady, isAnimatedFrame, paintFrame, picImg, raysFx, roseSVG };
+/* ===== frames described by data (cosmetics/README.md), drawn by the same pipeline as the painted ones above ===== */
+/* where a picture sits in the 200x200 box: the rule the shipped painted frames were placed by (ARTM). The hole is centred across and sized to the usual 57 units, unless the picture would then leave the box */
+function fitPicture(hole, scale, iw, ih) {
+  const s = Math.min(57 / hole.r * (scale || 1), 196 / ih, 98 / Math.max(hole.x, iw - hole.x, 1)), h = ih * s, y = Math.min(198 - h, Math.max(2, 100 - hole.y * s));
+  return { s, x: 100 - hole.x * s, y, w: iw * s, h, hx: 100, hy: y + hole.y * s, hr: hole.r * s };
+}
+/* painted: { name, rar, src, lv, imageUrl, hole, scale, live, sheen, glowUrl }, clone: { name, rar, src, lv, base, live, sheen }. live and sheen left undefined: a clone keeps its base's, null: none */
+function defineFrame(id, o) {
+  const fresh = o.base ? { ...FR[o.base], layerOf: FR[o.base].layerOf || o.base, _full: null } : { hole: CIRC(), art: FR.none.art, layerOf: 'none' };
+  const f = Object.assign(fresh, { id, name: o.name, rar: o.rar, src: o.src, lv: o.lv, made: true });
+  if (o.imageUrl) {
+    f.pic = uploadedPic(o.imageUrl);
+    let memo = null; f.picMeta = im => (memo && memo.w0 === im.naturalWidth && memo.h0 === im.naturalHeight ? memo : (memo = Object.assign(fitPicture(o.hole, o.scale, im.naturalWidth, im.naturalHeight), { w0: im.naturalWidth, h0: im.naturalHeight })));
+    if (o.sheen) f.picSheen = o.sheen;
+    if (o.glowUrl) { const glowKey = uploadedPic(o.glowUrl); f.picFx = (c, t, m, S) => { const g = picImg(glowKey); if (g) glowPass(c, S, g, m, .22 + .2 * (.5 + .5 * wob(t * 1.4, 1))); }; }
+  } else if (o.sheen !== undefined) { if (f.pic) f.picSheen = o.sheen; else f.sheen = o.sheen; }
+  if (o.live !== undefined) { if (o.live) LIVE[id] = o.live; else delete LIVE[id]; }
+  else if (o.base && LIVE[o.base]) LIVE[id] = LIVE[o.base]; else delete LIVE[id];
+  FR[id] = f; revision++;
+}
+/* a shipped frame keeps its drawing and takes only its words from the server */
+function refreshFrame(id, { name, rar, src, lv }) { Object.assign(FR[id], { name, rar, src, lv }); }
+/* raised whenever a drawing changes, so a tile that had finished paints again */
+let revision = 0;
+const frameRevision = () => revision;
+/* the effects a shipped frame comes with, for an editor to start from */
+const liveOf = id => LIVE[id] || null;
+const sheenOf = id => FR[id]?.picSheen || FR[id]?.sheen || null;
+
+export { FR, GROUPS, LV_FRAMES, blossomSVG, defineFrame, fitPicture, forgetCanvas, frameArtReady, frameRevision, isAnimatedFrame, liveOf, paintFrame, picFailed, picImg, raysFx, refreshFrame, roseSVG, sheenOf, uploadedPic };

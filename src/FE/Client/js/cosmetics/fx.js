@@ -2,7 +2,7 @@
  * Moved as it is from the approved prototype (ho-so-src/fx.js): only imports and exports were added,
  * plus the changes listed in cosmetics/README.md. The drawing is not to be redrawn or simplified.
  */
-import { picImg } from './frames.js';
+import { picImg, uploadedPic } from './frames.js';
 import { SPR, TAU, clamp, drawDragon, drawPhoenixFront, drawWing, easeInOut, easeOut, glow, lerp, motes, rng, smoke, ss } from './lib.js';
 
 const ENTRANCES = [
@@ -22,8 +22,8 @@ const FXD = { 'lang-le': 3, 'anh-trang': 4.4, 'mac-vu': 4.6, 'truc-lam': 4.8, 'v
 const env = (t, a, b, c, d) => t < a ? 0 : t < b ? ss(a, b, t) : t < c ? 1 : t < d ? 1 - ss(c, d, t) : 0;
 
 function swordPath(c, len) { c.beginPath(); c.moveTo(-len * .5, -2.2); c.lineTo(len * .4, -2.2); c.lineTo(len * .5, 0); c.lineTo(len * .4, 2.2); c.lineTo(-len * .5, 2.2); c.closePath(); }
-function drawSword(c, x, y, ang, len, a, glint) {
-  const im = picImg('kiem');
+function drawSword(c, x, y, ang, len, a, glint, art = 'kiem') {
+  const im = picImg(art) || picImg('kiem');
   if (im) { const L = len * 1.9, h = L * im.naturalHeight / im.naturalWidth; c.save(); c.translate(x, y); c.rotate(ang);
     c.save(); c.globalAlpha = a * .5; c.globalCompositeOperation = 'lighter'; c.scale(1, .22); const g = c.createRadialGradient(L * .15, 0, 0, L * .15, 0, L * .55); g.addColorStop(0, 'rgba(120,190,255,.55)'); g.addColorStop(1, 'rgba(120,190,255,0)'); c.fillStyle = g; c.fillRect(-L * .5, -L * .6, L * 1.3, L * 1.2); c.restore();
     c.globalAlpha = a; c.drawImage(im, -L / 2, -h / 2, L, h);
@@ -132,4 +132,12 @@ function drawEntrance(c, id, t, G) {
   }
 }
 
-export { EN, ENTRANCES, FXD, drawEntrance, drawSword, drawWarp, env, leafShape };
+/* an entrance described by data: one of the stages, with its own words, colour and pictures. { n, r, src, d, tpl, tint, imageUrl, swordUrl, duration } */
+function defineEntrance(id, o, { listed = true } = {}) {
+  const tpl = EN[o.tpl] && !EN[o.tpl].made ? o.tpl : 'lang-le', base = EN[tpl], e = EN[id] || { id };
+  Object.assign(e, { n: o.n, r: o.r, src: o.src, d: o.d || base.d, ic: base.ic, made: true, tpl, tint: o.tint || null, duration: o.duration || null, creature: o.imageUrl ? uploadedPic(o.imageUrl) : null, sword: o.swordUrl ? uploadedPic(o.swordUrl) : null });
+  FXD[id] = FXD[tpl];
+  if (!EN[id]) { EN[id] = e; if (listed) ENTRANCES.push(e); }
+}
+
+export { EN, ENTRANCES, FXD, defineEntrance, drawEntrance, drawSword, drawWarp, env, leafShape };
