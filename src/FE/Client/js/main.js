@@ -115,12 +115,12 @@ const routes = [
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
   { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
   { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
-  { pattern: /^#\/admin\/chests(?:\/([^/]+))?$/, page: renderAdminChestsPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/items$/, page: renderAdminItemsPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/cosmetics(?:\/([^/]+))?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/players(?:\/([^/]+))?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/economy$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/audit$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/chests(?:\/([^/?]+))?(?:\?.*)?$/, page: renderAdminChestsPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/items(?:\?.*)?$/, page: renderAdminItemsPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/cosmetics(?:\/([^/?]+))?(?:\?.*)?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/players(?:\/([^/?]+))?(?:\?.*)?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/economy(?:\?.*)?$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/audit(?:\?.*)?$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
 ];
 
 const routeLifecycle = createRouteLifecycle();

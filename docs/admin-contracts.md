@@ -109,7 +109,7 @@ var chest = catalog.FindChest(chestId);   // ChestDef?, gồm cả hòm đã t�
 | `LevelRewards` | Theo cấp tăng dần |
 | `Achievements` | Theo `sortOrder` |
 | `RareXp`, `EpicXp`, `XpValue(def)` | Tỉ lệ KN đang áp dụng |
-| `Problems` | Dữ liệu không khớp nhau (def không tồn tại, metric lạ...). Provider ghi log. Trang admin có thể hiện ra |
+| `Problems` | Những gì không khớp trong dữ liệu đã lưu: document sai kiểu, def không tồn tại, category hoặc rarity sai, metric lạ, giá ngoài giới hạn, độ hiếm rỗng. Provider ghi log. Trang admin nên hiện ra |
 
 Trong `ChestDef`: `Items` và `Pools` đã **loại món retired**. `DropRates`, `Prices`, `Active`, `Roll(random)`, `ExpectedValue()` đều theo đúng hòm đó.
 
@@ -123,7 +123,8 @@ await _audit.LogAsync(...);
 
 - Lần đọc `Current` đầu tiên sau `Invalidate()` nạp lại từ DB rồi mới trả lời, nên người vừa ghi luôn đọc được dữ liệu mới. Thao tác đó chỉ chặn một lần nạp.
 - Mỗi 60 giây `CatalogRefreshWorker` tự nạp lại, phòng khi có nhiều tiến trình.
-- Nạp lỗi (Mongo sập, hoặc một document sai kiểu): bản tốt gần nhất vẫn phục vụ, log ghi lỗi, 5 giây sau thử lại. Việc đọc `Current` không ném lỗi đến người chơi. Riêng `RefreshAsync` có ném lỗi, để phía gọi biết.
+- Mongo sập: bản tốt gần nhất vẫn phục vụ, log ghi lỗi, 5 giây sau thử lại. Việc đọc `Current` không ném lỗi đến người chơi. Riêng `RefreshAsync` có ném lỗi, để phía gọi biết.
+- Một document sai kiểu (`referencePrice: "x"`): bị bỏ qua và ghi vào `Problems`, phần còn lại vẫn nạp bình thường. API vẫn khởi động được. Các trường lưu `null` (`pool`, `dropWeights`, `prices`) được coi là rỗng.
 - Khi test không truyền provider vào service, service dùng `FixedCatalogProvider` (dữ liệu seed). Test mới cần DB thật thì truyền `CatalogProvider`; mẫu ở `IntegrationTests/MongoCatalogTests.cs`.
 
 ## 4. Các hành vi đã chốt
@@ -132,12 +133,16 @@ await _audit.LogAsync(...);
 - **Mô tả "Ra từ..." của mỹ phẩm:** khi `description` rỗng, provider tính từ `pool` của các hòm **đang bật**: `Viền avatar. Ra từ Hòm Niêm Phong, Két Nhà Băng.`; có ở mọi hòm thì `Bí ẩn, ra từ mọi hòm.`; không ở hòm nào thì chỉ còn `Viền avatar.`. Admin nhập `description` khác rỗng thì giữ nguyên chữ của admin. Trang admin nên đọc mô tả đã tính bằng `catalog.Find(id)`, không đọc thẳng document.
 - **Lượt mở hòm dở dang:** `ChestOpening` lưu sẵn `rewardDefId`, nên sửa pool hay retire món không ảnh hưởng lượt đang chạy. Test: `AnOpeningInProgressKeepsItsRewardAfterThePoolChanges`.
 - **Hòm tắt:** `ChestService.ListAsync` chỉ trả hòm đang bật. `FindChest` vẫn tìm được, nên `OpenAsync` mở được hòm đã có.
+- **Tham chiếu tới def không tồn tại:** bị bỏ khỏi snapshot và ghi vào `Problems`, nên không bao giờ cấp ra một món không có def.
+- **Giá hòm hoặc chìa ngoài giới hạn:** cửa hàng từ chối bán (409), không thành hòm miễn phí.
 - **Rơi vào độ hiếm rỗng:** `CatalogRules` chặn khi lưu. Nếu vẫn xảy ra (ví dụ retire món cuối của một độ hiếm), lượt mở trả món ở độ hiếm gần nhất (thấp hơn trước, rồi cao hơn) thay vì lỗi, và `Problems` có ghi.
 
 **Việc để lại cho agent sau:**
 
 - ADMIN-1: `odds` trong `GET /api/chests` vẫn là **một bảng chung** (lấy từ hòm bật đầu tiên), vì ở đợt này API không được đổi hình dạng. Khi cho sửa tỉ lệ từng hòm, phải thêm tỉ lệ theo hòm vào `ChestDto` và cho `chestPage.js` đọc nó, nếu không người chơi sẽ thấy sai tỉ lệ.
 - ADMIN-1: chưa chặn mua hòm hoặc chìa của hòm đã tắt, và người đang giữ hòm đã tắt chưa thấy nó ở `#/kho-ruong`. Xem Phần B mục 2 của ADMIN-1.
+- ADMIN-1: `look` **chưa tới người chơi**. `ChestDef.Look` đã có sẵn, nhưng `ChestDto` chưa có trường này và `chestSprites.js` vẫn chọn hình theo `iconKey`. Trình sửa `look` cần thêm `Look` vào `ChestDto` và cho `chestLook()` đọc nó, nếu không đổi `look` sẽ không có tác dụng gì với người chơi.
+- ADMIN-1: `BuyKeyAsync` và `BuyChestAsync` tính theo giá hiện tại, không có tham số giá mong đợi. Khi giá sửa được, trang đang hiện 120 có thể bị trừ theo giá mới mà người chơi không hay. Nên thêm giá mong đợi tùy chọn trong request, sai thì trả lỗi để trang tải lại (`BuyLowestAsync` đã có `maxPrice` làm mẫu).
 - ADMIN-1 và ADMIN-2: khi retire một def, gọi lại `CatalogRules.ValidateChest` cho mọi hòm có def đó để không tạo độ hiếm rỗng.
 - ADMIN-2: `CosmeticCatalog.DefaultTitleDefId`, `DefaultEntranceDefId`, `DefaultAvatar`, tiền tố id và `IsCosmetic` vẫn ở trong code, chưa có schema cho "mặc định". `MarketCatalog.StarterItemIds` cũng vậy. Thêm cách nhận "Mặc định" thì cần quyết định chỗ lưu.
 
@@ -147,7 +152,9 @@ await _audit.LogAsync(...);
 
 | Hàm | Kiểm tra | Mã lỗi |
 |---|---|---|
-| `ValidateDelete(defId, ownedCopies)` | Không xóa def đã có người sở hữu | `CATALOG_DEF_OWNED` |
+| `ValidateDelete(defId, ownedCopies, references)` | Không xóa def đã có người sở hữu | `CATALOG_DEF_OWNED` |
+| | Không xóa def còn được tham chiếu | `CATALOG_DEF_IN_USE` |
+| `ReferencesTo(defId, chests, levelRewards, achievements)` | Liệt kê những gì đang dùng def, để truyền vào `ValidateDelete` | |
 | `ValidateDefIdUnchanged(current, submitted)` | defId không đổi sau khi tạo | `CATALOG_DEF_ID_CHANGED` |
 | `ValidatePrice(label, price)` | Giá trong giới hạn `MarketRules.ValidatePrice` (2 đến 1.000.000) | `CATALOG_PRICE_INVALID` |
 | `ValidateChest(chest, items)` | Tất cả các dòng dưới | |
@@ -188,13 +195,14 @@ await _audit.LogAsync(Caller, "chest.update", "chest", chestId, before, after, r
 Chỉ admin. Multipart, trường tên `file`. Trả về `{ url, width, height }`. Frontend: `adminAssetsApi.upload(file)` trong `api/adminAssetsApi.js`.
 
 - Nhận PNG, WebP, JPG, tối đa 5 MB và 8000 px mỗi cạnh. Định dạng đọc từ nội dung file, không xét đuôi file hay content type. **Không nhận SVG.**
-- Luôn chuyển sang WebP, giữ kênh alpha, không đổi kích thước, bỏ metadata.
+- Luôn chuyển sang WebP, giữ kênh alpha, không đổi kích thước, bỏ metadata. Ảnh chụp điện thoại được xoay đúng chiều trước đó, nên `width`, `height` là kích thước sau khi xoay. Ảnh động chỉ giữ khung đầu.
 - Lưu ở Cloudinary, thư mục `sirlocked/admin`, tên theo nội dung file: tải lại đúng ảnh đó không tốn thêm dung lượng.
 - Mỗi lần tải thành công ghi audit `asset.upload`.
 
 | Mã lỗi | HTTP | Khi nào |
 |---|---|---|
-| `ASSET_TOO_LARGE` | 400 | Quá 5 MB |
+| `ASSET_TOO_LARGE` | 400 | Từ trên 5 MB đến 6 MB |
+| (không có mã) | 400 | Trên 6 MB: framework từ chối trước khi vào controller. Giao diện nên tự kiểm tra `file.size` trước khi gửi |
 | `ASSET_BAD_IMAGE` | 400 | Không phải PNG, WebP, JPG; file hỏng; quá 8000 px; thiếu file |
 | `ASSET_STORAGE_UNAVAILABLE` | 503 | Chưa cấu hình Cloudinary |
 
@@ -224,7 +232,7 @@ Controller được nhận tự động.
 
 **Thanh tab:** router tự gắn `adminNav` vào `#admin-nav-root` (nằm ngoài `#app`) cho mọi route `admin: true`. **Trang không tự chèn thanh tab.** Trang vẽ lại `app` thoải mái, thanh tab không mất.
 
-**Route đã đăng ký sẵn** trong `main.js`. Hàm trang nhận `app`, rồi `:id` nếu route có (`undefined` khi không có), rồi `{ signal }`, tín hiệu hủy khi rời trang. Hàm trang có thể trả về một hàm dọn dẹp:
+**Route đã đăng ký sẵn** trong `main.js`. Hàm trang nhận `app`, rồi `:id` nếu route có (`undefined` khi không có), rồi `{ signal }`, tín hiệu hủy khi rời trang. Hàm trang có thể trả về một hàm dọn dẹp. Các route này nhận thêm chuỗi truy vấn (`#/admin/players?page=2`, `#/admin/players/u42?tab=kho`): `id` không bao gồm phần sau dấu `?`, còn trang tự đọc tham số từ `location.hash`:
 
 | Route | Hàm trong file | Agent |
 |---|---|---|
@@ -235,14 +243,14 @@ Controller được nhận tự động.
 | `#/admin/economy` | `renderAdminEconomyPage(app, { signal })` trong `pages/adminEconomyPage.js` | ADMIN-3 |
 | `#/admin/audit` | `renderAdminAuditPage(app, { signal })` trong `pages/adminAuditPage.js` | ADMIN-3 |
 
-Giữ nguyên tên hàm được export. Thay nội dung "Đang xây dựng" (kể cả thuộc tính `data-admin-placeholder`) bằng trang thật. Test `tests/admin-nav.spec.ts` kiểm tra nội dung tạm này: agent nào thay trang thì xóa dòng tương ứng trong mảng `PLACEHOLDERS` của test đó.
+Giữ nguyên tên hàm được export. Thay nội dung "Đang xây dựng" bằng trang thật. Nội dung tạm này được kiểm tra ở `tests/admin-chests/placeholder.spec.ts`, `tests/admin-cosmetics/placeholder.spec.ts` và `tests/admin-players/placeholder.spec.ts`: thay trang nào thì xóa route đó trong file của khu mình, thay hết thì xóa cả file. `tests/admin-nav.spec.ts` không phụ thuộc nội dung trang, không cần sửa. Đăng nhập giả cho test nằm ở `tests/helpers/adminSession.ts`.
 
 ## 10. File thuộc về ai
 
 | Khu | Backend | Frontend | Test |
 |---|---|---|---|
 | **ADMIN-0** (nền tảng, đừng sửa) | `Models/Catalog/*`, `Services/Catalog/*`, `Services/Admin/CatalogRules.cs`, `AdminAudit.cs`, `AdminAssets.cs`, `AdminFoundationRegistration.cs`, `AdminAuditController.cs`, `AdminAssetsController.cs`, `DTOs/Admin/AdminDtos.cs` | `components/adminNav.js`, `api/adminAssetsApi.js`, `api/adminAuditApi.js`, `css/49-admin-shell.css`, `main.js`, `index.html` | `Catalog*Tests.cs`, `AdminAssetTests.cs`, `MongoCatalogTests.cs`, `admin-nav.spec.ts` |
-| **ADMIN-1** Hòm & vật phẩm | `AdminChestsController.cs`, `Services/Admin/AdminChests*.cs`, `DTOs/Admin/AdminChestDtos.cs`. Được sửa `ChestService.cs` | `pages/adminChestsPage.js`, `pages/adminItemsPage.js`, `pages/admin/chests/`, `api/adminChestsApi.js`, `css/50-admin-chests.css`. Được sửa `pages/chestPage.js`, `pages/chest/*` | `Tests/AdminChests*Tests.cs` hoặc `Tests/AdminChests/`, `IntegrationTests/MongoAdminChests*Tests.cs` hoặc `IntegrationTests/AdminChests/`, `tests/admin-chests*.spec.ts` hoặc `tests/admin-chests/` |
+| **ADMIN-1** Hòm & vật phẩm | `AdminChestsController.cs`, `Services/Admin/AdminChests*.cs`, `DTOs/Admin/AdminChestDtos.cs`. Được sửa `ChestService.cs`, `DTOs/Market/ChestDtos.cs` | `pages/adminChestsPage.js`, `pages/adminItemsPage.js`, `pages/admin/chests/`, `api/adminChestsApi.js`, `css/50-admin-chests.css`. Được sửa `pages/chestPage.js`, `pages/chest/*` | `Tests/AdminChests*Tests.cs` hoặc `Tests/AdminChests/`, `IntegrationTests/MongoAdminChests*Tests.cs` hoặc `IntegrationTests/AdminChests/`, `tests/admin-chests*.spec.ts` hoặc `tests/admin-chests/` |
 | **ADMIN-2** Mỹ phẩm | `AdminCosmeticsController.cs`, `Services/Admin/AdminCosmetics*.cs`, `DTOs/Admin/AdminCosmeticDtos.cs`. Được sửa `ProgressService.cs`, `ProgressRules.cs` | toàn bộ `cosmetics/`, `pages/adminCosmeticsPage.js`, `pages/admin/cosmetics/`, `api/adminCosmeticsApi.js`, `css/51-admin-cosmetics.css`, `css/48-cosmetics.css`. Được sửa `pages/detective/cosmeticsPanel.js`, `lobbyPage.js` | Tương tự, tên `AdminCosmetics` / `admin-cosmetics` |
 | **ADMIN-3** Người chơi & kinh tế | Xem file ADMIN-3; đăng ký ở `AdminPlayersRegistration.cs` | `pages/adminPlayersPage.js`, `pages/adminEconomyPage.js`, `pages/adminAuditPage.js`, `pages/admin/players/`, `api/adminPlayersApi.js`, `css/52-admin-players.css` | Tương tự, tên `AdminPlayers` / `admin-players` |
 

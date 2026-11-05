@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { signInAs } from './helpers/adminSession';
 
 /**
- * The tab bar every admin page shares, and the placeholder pages the next three admin areas start from.
- * The API is faked: this is about the frame around the pages, not what they load.
+ * The tab bar every admin page shares and the routes the next admin areas start from. This says nothing about what a
+ * page shows, so it stays true as the pages are built. The API is faked.
  */
 const TABS = [
   ['Tổng quan', '#/admin'],
@@ -16,75 +17,73 @@ const TABS = [
   ['Nhật ký', '#/admin/audit'],
 ] as const;
 
-async function signIn(page: Page, role: string) {
-  await page.addInitScript((userRole) => {
-    localStorage.setItem('sirlocked.token', 'admin-nav-token');
-    localStorage.setItem('sirlocked.uiLanguage', 'vi');
-    localStorage.setItem('sirlocked.user', JSON.stringify({ userId: 'u1', fullName: 'Yến', role: userRole, isEmailVerified: true }));
-  }, role);
-  await page.route((url) => url.pathname.startsWith('/api/'), (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: null }),
-  }));
-}
-
 const tabs = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab');
+const activeTab = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab.is-active');
 
 test('an admin sees the nine tabs on every admin page, old and new', async ({ page }) => {
-  await signIn(page, 'ADMIN');
+  await signInAs(page, 'ADMIN');
   for (const [label, href] of TABS) {
     await page.goto(`/${href}`);
     await expect(tabs(page)).toHaveText(TABS.map(([name]) => name));
-    await expect(page.locator('#admin-nav-root .admin-nav-tab.is-active')).toHaveText(label);
+    await expect(activeTab(page)).toHaveText(label);
     await expect(page.locator('#admin-nav-root [aria-current="page"]')).toHaveAttribute('href', href);
   }
 });
 
 test('the tabs navigate, and the bar outlives each page render', async ({ page }) => {
-  await signIn(page, 'ADMIN');
+  await signInAs(page, 'ADMIN');
   await page.goto('/#/admin');
   const bar = page.locator('#admin-nav-root');
   await bar.getByRole('link', { name: 'Hòm & vật phẩm' }).click();
   await expect(page).toHaveURL(/#\/admin\/chests$/);
-  await expect(page.locator('#app')).toContainText('Đang xây dựng');
+  await expect(activeTab(page)).toHaveText('Hòm & vật phẩm');
   await bar.getByRole('link', { name: 'Vụ án', exact: true }).click();
   await expect(page).toHaveURL(/#\/admin\/cases$/);
   await expect(tabs(page)).toHaveCount(9);
 });
 
-const PLACEHOLDERS: [string, string, string][] = [
-  ['#/admin/chests', 'Hòm & vật phẩm', 'Hòm & vật phẩm'],
-  ['#/admin/chests/chest_np', 'Hòm & vật phẩm', 'Hòm & vật phẩm'],
-  ['#/admin/items', 'Vật phẩm', 'Hòm & vật phẩm'],
-  ['#/admin/cosmetics', 'Mỹ phẩm', 'Mỹ phẩm'],
-  ['#/admin/cosmetics/frame_kimlong', 'Mỹ phẩm', 'Mỹ phẩm'],
-  ['#/admin/players', 'Người chơi', 'Người chơi'],
-  ['#/admin/players/u42', 'Người chơi', 'Người chơi'],
-  ['#/admin/economy', 'Kinh tế & chợ', 'Kinh tế & chợ'],
-  ['#/admin/audit', 'Nhật ký', 'Nhật ký'],
+const SUB_ROUTES: [string, string][] = [
+  ['#/admin/chests/chest_np', 'Hòm & vật phẩm'],
+  ['#/admin/items', 'Hòm & vật phẩm'],
+  ['#/admin/cosmetics/frame_kimlong', 'Mỹ phẩm'],
+  ['#/admin/players/u42', 'Người chơi'],
+  ['#/admin/import', 'Vụ án'],
+  ['#/admin/cases/some-case', 'Vụ án'],
 ];
 
-for (const [hash, heading, tab] of PLACEHOLDERS) {
-  test(`${hash} says it is under construction`, async ({ page }) => {
-    await signIn(page, 'ADMIN');
+for (const [hash, tab] of SUB_ROUTES) {
+  test(`${hash} keeps the ${tab} tab lit`, async ({ page }) => {
+    await signInAs(page, 'ADMIN');
     await page.goto(`/${hash}`);
-    await expect(page.locator('[data-admin-placeholder] h2')).toHaveText(heading);
-    await expect(page.locator('[data-admin-placeholder]')).toContainText('Đang xây dựng');
-    await expect(page.locator('#admin-nav-root .admin-nav-tab.is-active')).toHaveText(tab);
+    await expect(activeTab(page)).toHaveText(tab);
+    await expect(page).toHaveURL(new RegExp(`${hash.replaceAll('/', '\\/')}$`));
   });
 }
 
-test('case sub-pages keep the Vụ án tab lit', async ({ page }) => {
-  await signIn(page, 'ADMIN');
-  for (const hash of ['#/admin/import', '#/admin/cases/some-case']) {
+// A page reads its own filters from the hash, so these must reach it rather than fall back to the home page.
+const WITH_QUERY: [string, string][] = [
+  ['#/admin/chests?tab=stats', 'Hòm & vật phẩm'],
+  ['#/admin/chests/chest_np?tab=history', 'Hòm & vật phẩm'],
+  ['#/admin/items?q=kinh', 'Hòm & vật phẩm'],
+  ['#/admin/cosmetics?tab=titles', 'Mỹ phẩm'],
+  ['#/admin/cosmetics/frame_kimlong?tab=grant', 'Mỹ phẩm'],
+  ['#/admin/players?page=2', 'Người chơi'],
+  ['#/admin/players/u42?tab=inventory', 'Người chơi'],
+  ['#/admin/economy?days=30', 'Kinh tế & chợ'],
+  ['#/admin/audit?targetId=VC-0217', 'Nhật ký'],
+];
+
+for (const [hash, tab] of WITH_QUERY) {
+  test(`${hash} stays on its page`, async ({ page }) => {
+    await signInAs(page, 'ADMIN');
     await page.goto(`/${hash}`);
-    await expect(page.locator('#admin-nav-root .admin-nav-tab.is-active')).toHaveText('Vụ án');
-  }
-});
+    await expect(activeTab(page)).toHaveText(tab);
+    expect(new URL(page.url()).hash).toBe(hash);
+  });
+}
 
 test('the bar disappears when an admin leaves the admin pages', async ({ page }) => {
-  await signIn(page, 'ADMIN');
+  await signInAs(page, 'ADMIN');
   await page.goto('/#/admin/chests');
   await expect(tabs(page)).toHaveCount(9);
   await page.evaluate(() => { window.location.hash = '#/cases'; });
@@ -93,21 +92,29 @@ test('the bar disappears when an admin leaves the admin pages', async ({ page })
   await expect(tabs(page)).toHaveCount(0);
 });
 
+test('someone with AI access only gets their page and no bar', async ({ page }) => {
+  await signInAs(page, 'VIP');
+  await page.goto('/#/admin/ai');
+  await expect(page).toHaveURL(/#\/admin\/ai$/);
+  await expect(page.locator('#admin-nav-root')).toBeHidden();
+  await expect(tabs(page)).toHaveCount(0);
+});
+
 for (const hash of ['#/admin/chests', '#/admin/cosmetics/frame_kimlong', '#/admin/players', '#/admin/economy', '#/admin/audit', '#/admin/items']) {
   test(`a player is sent away from ${hash}`, async ({ page }) => {
-    await signIn(page, 'PLAYER');
+    await signInAs(page, 'PLAYER');
     await page.goto(`/${hash}`);
     await expect(page).toHaveURL(/#\/cases$/);
     await expect(page.locator('#admin-nav-root')).toBeHidden();
-    await expect(page.locator('[data-admin-placeholder]')).toHaveCount(0);
+    await expect(tabs(page)).toHaveCount(0);
   });
 }
 
 test('on a phone the bar scrolls by itself, the page does not, and the current tab is in view', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signIn(page, 'ADMIN');
+  await signInAs(page, 'ADMIN');
   await page.goto('/#/admin/audit');
-  const active = page.locator('#admin-nav-root .admin-nav-tab.is-active');
+  const active = activeTab(page);
   await expect(active).toHaveText('Nhật ký');
   await expect(active).toBeInViewport({ ratio: 1 });
 
