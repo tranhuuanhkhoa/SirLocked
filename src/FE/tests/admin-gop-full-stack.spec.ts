@@ -80,8 +80,15 @@ async function pictureFile(page: Page, url: string, name: string) {
 
 /** An <img> with size attributes counts as visible even when its file is broken, so ask whether it really decoded. */
 async function expectPictureDrawn(picture: ReturnType<Page['locator']>) {
-  await picture.scrollIntoViewIfNeeded();
-  await expect.poll(() => picture.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(96);
+  // A list may redraw at any moment, and a lazy picture only loads once it is on screen: each attempt looks the picture up again.
+  await expect.poll(async () => {
+    try {
+      await picture.scrollIntoViewIfNeeded({ timeout: 2000 });
+      return await picture.evaluate((image: HTMLImageElement) => image.naturalWidth, undefined, { timeout: 2000 });
+    } catch {
+      return 0;
+    }
+  }, { timeout: 20_000 }).toBe(96);
 }
 
 async function seatPaintsFrame(page: Page, userId: string, frameId: string) {
@@ -111,8 +118,6 @@ async function answer(page: Page, reason: string) {
   await dialog(page).getByLabel('Lý do').fill(reason);
   await dialog(page).locator('[data-confirm]').click();
 }
-
-expect.configure({ timeout: 30_000 });
 
 const cleanups: Array<() => Promise<unknown>> = [];
 test.afterEach(async () => {
@@ -406,13 +411,12 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await call(api, 'POST', '/api/rooms/join', b.token, { roomCode });
     await pageB.goto(`/#/lobby/${room.roomId}`);
     await expect(pageB.locator('.bpa-lobby-pair')).toBeVisible();
-    // B's own arrival plays first.
-    const stageB = pageB.locator('.hs-stage:not(.hs-out)');
-    await expect(stageB.locator('.hs-hn')).toHaveText(nameB);
-    await pageB.getByRole('button', { name: 'Bỏ qua' }).click();
-    await expect(pageB.locator('.hs-stage')).toHaveCount(0);
+    await expect(pageB.locator(`[data-seat-user="${b.user.userId}"]`)).toBeVisible();
+    // B wears the default entrance, which is only a mist over the seat. Give B's connection time to join the room's group.
+    await pageB.waitForTimeout(3000);
 
     // A arrives while B is already watching.
+    const stageB = pageB.locator('.hs-stage:not(.hs-out)');
     await pageA.goto(`/#/lobby/${room.roomId}`);
     await expect(stageB.locator('.hs-hn')).toHaveText(nameA);
     await expect(stageB.locator('.hs-hero small')).toHaveText(`đã vào sảnh · ${entranceName}`);
@@ -503,8 +507,8 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await room.getByRole('button', { name: 'Đóng phòng' }).click();
     await answer(adminPage, 'Phòng treo');
     await expect(panel.getByText(roomCode)).toHaveCount(0);
-    await expect(pageB.getByText('Phòng này đã kết thúc')).toBeVisible();
-    await shot(pageB, 'B-thay-phong-da-dong', false);
+    await expect(pageA.getByText('Phòng này đã kết thúc')).toBeVisible();
+    await shot(pageA, 'A-thay-phong-da-dong', false);
   });
 
   await test.step('kiểm tra chéo: thao tác của cả 3 khu đều có trong nhật ký', async () => {
