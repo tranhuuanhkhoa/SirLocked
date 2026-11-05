@@ -68,7 +68,7 @@ public sealed class AdminItemRetireRequest
     public string? Reason { get; set; }
 }
 
-public sealed class AdminReasonRequest
+public sealed class AdminDeleteItemRequest
 {
     [StringLength(500)]
     public string? Reason { get; set; }

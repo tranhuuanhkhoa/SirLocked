@@ -43,7 +43,7 @@ public class AdminChestsController : BaseApiController
         Ok(await _items.SetRetiredAsync(Caller, id, request.Retired, request.Reason, ct));
 
     [HttpPost("items/{id}/delete")]
-    public async Task<ActionResult<ApiResponse<bool>>> DeleteItem(string id, [FromBody] AdminReasonRequest request, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteItem(string id, [FromBody] AdminDeleteItemRequest request, CancellationToken ct)
     {
         await _items.DeleteAsync(Caller, id, request.Reason, ct);
         return Ok(true);
