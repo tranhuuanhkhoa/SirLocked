@@ -90,8 +90,9 @@ Accusation__RequireConsensus=true
 
 - `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
 - `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
-- `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`).
-- Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
+- `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`, not in the audit log). The admin page uses `POST /api/admin/chests/grant`, which is logged.
+- Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`, `CHEST_NOT_FOR_SALE`, `CHEST_PRICE_CHANGED`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
+- Each chest has its own drop table and look (`ChestDto.Odds`, `ChestDto.Look`). A chest switched off leaves the shop, but anyone still holding one or its key sees it in `ChestListDto.OffSale` and can open it. Buying may send `expectedPrice`, so a price changed by an admin is refused instead of charged.
 
 Contents, drop rates and prices live in MongoDB (see [admin contracts](docs/admin-contracts.md)) and every read goes through `ICatalogProvider`. `Services/Market/ChestCatalog.cs` and the `Chests:Prices` section of `appsettings.json` only seed an empty database, so changing them later has no effect. At startup the API still refuses to start if the configured seed prices would pay out more on average than an opening costs.
 
@@ -119,7 +120,12 @@ Items, chests, level rewards, achievements and XP rates live in MongoDB (`catalo
 `gameSettings`) and are managed from `#/admin`. The API seeds them from code at startup, once per seed version and never over an
 admin's edit. Every admin write records itself in `adminAudit` (`GET /api/admin/audit`). `POST /api/admin/assets` stores admin
 pictures as WebP in the Cloudinary folder `sirlocked/admin` and answers `ASSET_STORAGE_UNAVAILABLE` without Cloudinary. Schemas and
-rules for anyone extending this are in [docs/admin-contracts.md](docs/admin-contracts.md).
+rules for anyone extending this are in [docs/admin-contracts.md](docs/admin-contracts.md) and [docs/admin-cosmetics.md](docs/admin-cosmetics.md).
+
+The admin tabs: `#/admin/chests` and `#/admin/items` (chests, items, odds, versions, grants), `#/admin/cosmetics` (frames, titles,
+entrances, how each is earned, XP rates), `#/admin/players` (coins, items, level, avatars, sessions), `#/admin/economy` (listings,
+orders, sales, stuck operations, rooms, reviews) and `#/admin/audit`. Operations on a player are journaled in `adminPlayerOps` and
+take an idempotency key.
 
 ## Run Locally
 

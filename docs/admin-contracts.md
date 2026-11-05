@@ -1,6 +1,6 @@
 # Hợp đồng chung cho trang quản trị
 
-Tài liệu này dành cho các agent làm ADMIN-1 (Hòm & vật phẩm), ADMIN-2 (Mỹ phẩm), ADMIN-3 (Người chơi & kinh tế) và ADMIN-4 (gộp). Mọi điều dưới đây đã có trong code ở nhánh `feat/admin-nen-tang`.
+Tài liệu này dành cho người sửa code khu quản trị. Mọi điều dưới đây đã có trong code ở nhánh `feat/admin`, nơi đã gộp ADMIN-0 đến ADMIN-3. Mỹ phẩm có tài liệu riêng ở [admin-cosmetics.md](admin-cosmetics.md).
 
 Quy tắc số một: **danh mục nằm trong MongoDB và chỉ đọc qua `ICatalogProvider`.** Các lớp `MarketCatalog`, `ChestCatalog`, `CosmeticCatalog`, `AchievementRules.Catalog`, `ProgressRules.RareXp/EpicXp` và `Chests:Prices` chỉ còn là **dữ liệu seed**. Test `CatalogSingleSourceTests` sẽ đỏ nếu code chạy thật đọc lại chúng.
 
@@ -53,14 +53,25 @@ Tên trường trong DB là camelCase. Lớp C# nằm ở `Models/Catalog/Catalo
 
 ### `gameSettings`
 
-Hai document, phân biệt bằng `_id`:
+Ba document, phân biệt bằng `_id`:
 
 - `progress`: `{ rareXp: 150, epicXp: 600 }`, lớp `ProgressSettingsDocument`. Công thức cấp và cấp tối đa giữ trong code.
 - `catalogSeed`: `{ seedVersion, updatedAt }`, lớp `CatalogSeedState`. Chỉ `CatalogSeeder` được ghi.
+- `cosmeticDefaults`: `{ frame, title, entrance }`, lớp `CosmeticDefaultsDocument`. Món mặc định của từng nhóm, xem `admin-cosmetics.md`.
 
 ### `adminAudit` (lớp `AdminAuditEntry`)
 
 `{ at, adminId, adminName, action, targetType, targetId, before, after, reason }`. `before` và `after` lưu dạng chuỗi JSON. Xem mục 6.
+
+### `chestVersions` (lớp `ChestVersion`)
+
+`{ _id: "<chestId>:<version>", chestId, version, action, at, adminId, adminName, reason, snapshot }`. `action` là `base` (trạng thái trước lần lưu đầu), `update`, `restore` hoặc `clone`. Tab Lịch sử ở `#/admin/chests/:id` đọc và khôi phục từ đây.
+
+### `adminPlayerOps` và `adminAvatarReviews`
+
+`adminPlayerOps` (lớp `AdminPlayerOp`) là journal cho cộng trừ xu, cấp và thu hồi vật phẩm, đặt cấp. `_id` là `"<adminId>:<idempotencyKey>"`, nên gửi lại cùng khóa không chạy lần hai. Lượt dở dang được worker bảo trì chạy tiếp.
+
+`adminAvatarReviews` (lớp `AdminAvatarReview`) ghi những ảnh đại diện admin đã duyệt.
 
 ## 2. Dạng `visual`
 
@@ -132,19 +143,18 @@ await _audit.LogAsync(...);
 - **Retired:** hết rơi, không còn trong `GET /api/market/catalog`, không còn trong hòm. Người đã có vẫn thấy, trang bị, bán, đổi KN được. Trên Chợ đồ, món retired vẫn hiện **chừng nào còn người rao bán hoặc đặt mua**, để các lệnh đó không bị mắc kẹt.
 - **Mô tả "Ra từ..." của mỹ phẩm:** khi `description` rỗng, provider tính từ `pool` của các hòm **đang bật**: `Viền avatar. Ra từ Hòm Niêm Phong, Két Nhà Băng.`; có ở mọi hòm thì `Bí ẩn, ra từ mọi hòm.`; không ở hòm nào thì chỉ còn `Viền avatar.`. Admin nhập `description` khác rỗng thì giữ nguyên chữ của admin. Trang admin nên đọc mô tả đã tính bằng `catalog.Find(id)`, không đọc thẳng document.
 - **Lượt mở hòm dở dang:** `ChestOpening` lưu sẵn `rewardDefId`, nên sửa pool hay retire món không ảnh hưởng lượt đang chạy. Test: `AnOpeningInProgressKeepsItsRewardAfterThePoolChanges`.
-- **Hòm tắt:** `ChestService.ListAsync` chỉ trả hòm đang bật. `FindChest` vẫn tìm được, nên `OpenAsync` mở được hòm đã có.
+- **Hòm tắt:** `ChestListDto.Chests` chỉ có hòm đang bật. Hòm đã tắt mà người chơi còn giữ hòm hoặc chìa nằm ở `ChestListDto.OffSale`, vẫn mở được. Cửa hàng từ chối bán với `CHEST_NOT_FOR_SALE` (409). Def `CHEST` và `KEY` của hòm tắt chuyển `retired = true` để rời catalog Chợ đồ.
+- **Tỉ lệ và hình của từng hòm:** `ChestDto.Odds` là bảng riêng của hòm đó, `ChestDto.Look` chọn hình và màu, `ChestDto.Active` cho biết còn bán không. `ChestListDto.Odds` chỉ còn cho client cũ.
+- **Giá đổi giữa chừng:** `ExpectedPrice` trong `ChestOperationRequest` là tùy chọn. Gửi lên mà sai giá hiện tại thì trả `CHEST_PRICE_CHANGED` (409), không trừ tiền.
 - **Tham chiếu tới def không tồn tại:** bị bỏ khỏi snapshot và ghi vào `Problems`, nên không bao giờ cấp ra một món không có def.
 - **Giá hòm hoặc chìa ngoài giới hạn:** cửa hàng từ chối bán (409), không thành hòm miễn phí.
 - **Rơi vào độ hiếm rỗng:** `CatalogRules` chặn khi lưu. Nếu vẫn xảy ra (ví dụ retire món cuối của một độ hiếm), lượt mở trả món ở độ hiếm gần nhất (thấp hơn trước, rồi cao hơn) thay vì lỗi, và `Problems` có ghi.
 
-**Việc để lại cho agent sau:**
+**Còn để ngỏ:**
 
-- ADMIN-1: `odds` trong `GET /api/chests` vẫn là **một bảng chung** (lấy từ hòm bật đầu tiên), vì ở đợt này API không được đổi hình dạng. Khi cho sửa tỉ lệ từng hòm, phải thêm tỉ lệ theo hòm vào `ChestDto` và cho `chestPage.js` đọc nó, nếu không người chơi sẽ thấy sai tỉ lệ.
-- ADMIN-1: chưa chặn mua hòm hoặc chìa của hòm đã tắt, và người đang giữ hòm đã tắt chưa thấy nó ở `#/kho-ruong`. Xem Phần B mục 2 của ADMIN-1.
-- ADMIN-1: `look` **chưa tới người chơi**. `ChestDef.Look` đã có sẵn, nhưng `ChestDto` chưa có trường này và `chestSprites.js` vẫn chọn hình theo `iconKey`. Trình sửa `look` cần thêm `Look` vào `ChestDto` và cho `chestLook()` đọc nó, nếu không đổi `look` sẽ không có tác dụng gì với người chơi.
-- ADMIN-1: `BuyKeyAsync` và `BuyChestAsync` tính theo giá hiện tại, không có tham số giá mong đợi. Khi giá sửa được, trang đang hiện 120 có thể bị trừ theo giá mới mà người chơi không hay. Nên thêm giá mong đợi tùy chọn trong request, sai thì trả lỗi để trang tải lại (`BuyLowestAsync` đã có `maxPrice` làm mẫu).
-- ADMIN-1 và ADMIN-2: khi retire một def, gọi lại `CatalogRules.ValidateChest` cho mọi hòm có def đó để không tạo độ hiếm rỗng.
-- ADMIN-2: `CosmeticCatalog.DefaultTitleDefId`, `DefaultEntranceDefId`, `DefaultAvatar`, tiền tố id và `IsCosmetic` vẫn ở trong code, chưa có schema cho "mặc định". `MarketCatalog.StarterItemIds` cũng vậy. Thêm cách nhận "Mặc định" thì cần quyết định chỗ lưu.
+- `CosmeticCatalog.DefaultAvatar`, tiền tố id, `IsCosmetic` và `MarketCatalog.StarterItemIds` vẫn nằm trong code.
+- `POST /api/chests/admin/grant` cũ không ghi nhật ký. Trang admin dùng `POST /api/admin/chests/grant`.
+- Món không giao dịch được mà admin cấp ở `#/admin/cosmetics` lưu `Source = LEVEL` để không chiếm ô túi, nên trang Người chơi coi nó như phần thưởng và không thu hồi được.
 
 ## 5. `CatalogRules`
 
@@ -243,7 +253,7 @@ Controller được nhận tự động.
 | `#/admin/economy` | `renderAdminEconomyPage(app, { signal })` trong `pages/adminEconomyPage.js` | ADMIN-3 |
 | `#/admin/audit` | `renderAdminAuditPage(app, { signal })` trong `pages/adminAuditPage.js` | ADMIN-3 |
 
-Giữ nguyên tên hàm được export. Thay nội dung "Đang xây dựng" bằng trang thật. Nội dung tạm này được kiểm tra ở `tests/admin-chests/placeholder.spec.ts`, `tests/admin-cosmetics/placeholder.spec.ts` và `tests/admin-players/placeholder.spec.ts`: thay trang nào thì xóa route đó trong file của khu mình, thay hết thì xóa cả file. `tests/admin-nav.spec.ts` không phụ thuộc nội dung trang, không cần sửa. Đăng nhập giả cho test nằm ở `tests/helpers/adminSession.ts`.
+Giữ nguyên tên hàm được export. `tests/admin-nav.spec.ts` không phụ thuộc nội dung trang. Đăng nhập giả cho test nằm ở `tests/helpers/adminSession.ts`.
 
 ## 10. File thuộc về ai
 
