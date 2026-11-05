@@ -222,8 +222,9 @@ export function renderTitleMenuPage(app) {
     } catch {
       // Local sign-out still succeeds if the server cannot revoke the token.
     }
+    const signIn = session.loginAddress();
     session.clear();
-    navigate('/login');
+    navigate(signIn);
   });
 
   // Each card fills itself; a slow or failed request never blocks the others.

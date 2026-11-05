@@ -35,6 +35,12 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request) =>
         Ok(await _authService.LoginAsync(request), "Logged in.");
 
+    [HttpPost("admin/login")]
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> AdminLogin([FromBody] LoginRequest request) =>
+        Ok(await _authService.AdminLoginAsync(request), "Logged in.");
+
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<ApiResponse<UserResponse>>> Me() =>

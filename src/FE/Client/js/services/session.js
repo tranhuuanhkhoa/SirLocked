@@ -42,6 +42,10 @@ export const session = {
   isAdmin() {
     return this.user()?.role === 'ADMIN';
   },
+  /** The page this account signs in on. Read it before clear(). */
+  loginAddress() {
+    return this.isAdmin() ? '/admin/login' : '/login';
+  },
   isEmailVerified() {
     const user = this.user();
     if (!user) return false;

@@ -7,6 +7,7 @@ import { profileApi } from './api/profileApi.js';
 import { escapeHtml, initials, render } from './utils/dom.js';
 import { languageSwitchMarkup, setUiLanguage, tr, uiLanguage } from './services/i18n.js';
 import { renderLoginPage } from './pages/loginPage.js';
+import { renderAdminLoginPage } from './pages/adminLoginPage.js';
 import { renderCasesPage } from './pages/casesPage.js';
 import { renderCaseDetailPage } from './pages/caseDetailPage.js';
 import { renderCreateRoomPage } from './pages/createRoomPage.js';
@@ -73,6 +74,7 @@ setTimeout(() => loadingScreen.hide(), BOOT_LOADING_CAP_MS);
 
 const routes = [
   { pattern: /^\/login$/, page: renderLoginPage, anonymous: true, authScreen: true },
+  { pattern: /^\/admin\/login$/, page: renderAdminLoginPage, anonymous: true, authScreen: true },
   { pattern: /^\/oauth-callback/, page: renderOAuthCallbackPage, anonymous: true, authScreen: true },
   { pattern: /^\/verify-email/, page: renderVerifyEmailPage, anonymous: true, authScreen: true },
   { pattern: /^\/reset-password/, page: renderResetPasswordPage, anonymous: true, authScreen: true },
@@ -324,8 +326,9 @@ function renderNav(r) {
     } catch {
       /* logout là best effort — kể cả lỗi vẫn xóa session local */
     }
+    const signIn = session.loginAddress();
     session.clear();
-    navigate('/login');
+    navigate(signIn);
   });
 }
 
@@ -365,7 +368,7 @@ async function route({ transition = true } = {}) {
   const { r, m } = target;
   if (!r.anonymous && !session.isLoggedIn()) {
     rememberRoomInvite(address);
-    navigate('/login');
+    navigate(r.admin ? '/admin/login' : '/login');
     return;
   }
   if (r.admin && !session.isAdmin()) {

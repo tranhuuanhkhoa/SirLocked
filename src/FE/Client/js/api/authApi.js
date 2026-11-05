@@ -3,6 +3,7 @@ import { get, post, patch } from './http.js';
 export const authApi = {
   register: (fullName, email, password) => post('/api/auth/register', { fullName, email, password }),
   login: (email, password) => post('/api/auth/login', { email, password }),
+  adminLogin: (email, password) => post('/api/auth/admin/login', { email, password }),
   me: () => get('/api/auth/me'),
   changePassword: (currentPassword, newPassword) => patch('/api/auth/change-password', { currentPassword, newPassword }),
   refresh: (refreshToken) => post('/api/auth/refresh', { refreshToken }),

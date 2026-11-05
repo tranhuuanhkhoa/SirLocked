@@ -113,7 +113,23 @@ public class AuthService : IAuthService
         return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request) =>
+        await BuildAuthResponseAndSaveRefreshToken(await VerifyCredentialsAsync(request));
+
+    public async Task<AuthResponse> AdminLoginAsync(LoginRequest request)
+    {
+        var user = await VerifyCredentialsAsync(request);
+
+        // Checked before any token exists: an account has one refresh token, so issuing one would end the session a player already has.
+        if (user.Role != UserRole.Admin)
+        {
+            throw ApiException.Forbidden("This account does not have admin access.");
+        }
+
+        return await BuildAuthResponseAndSaveRefreshToken(user);
+    }
+
+    private async Task<User> VerifyCredentialsAsync(LoginRequest request)
     {
         var email = NormalizeEmail(request.Email);
         var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
@@ -135,7 +151,7 @@ public class AuthService : IAuthService
             throw ApiException.Forbidden("This account is locked or deleted.");
         }
 
-        return await BuildAuthResponseAndSaveRefreshToken(user);
+        return user;
     }
 
     public async Task<UserResponse> GetMeAsync(string userId)

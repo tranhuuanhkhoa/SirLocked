@@ -90,8 +90,15 @@ test.describe('clean addresses', () => {
   });
 
   test('someone signed out is sent to the login page', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/cases');
     await expectAddress(page, '/login');
+  });
+
+  test('someone signed out at an admin address, old form or new, is sent to the admin login page', async ({ page }) => {
+    await page.goto('/admin');
+    await expectAddress(page, '/admin/login');
+    await page.goto('/#/admin/players');
+    await expectAddress(page, '/admin/login');
   });
 
   test('an address nobody knows goes home', async ({ page }) => {

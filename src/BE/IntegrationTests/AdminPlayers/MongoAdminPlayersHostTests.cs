@@ -194,6 +194,108 @@ public sealed class MongoAdminPlayersHostTests
 
     private sealed record Session(string UserId, string Token, string RefreshToken);
 
+    [Fact]
+    public async Task AdminLogin_SignsInAnAdmin()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var client = host.CreateClient();
+        var email = await host.InsertUserAsync(UserRole.Admin);
+
+        var response = await client.PostAsJsonAsync("/api/auth/admin/login", new { email, password = AdminHost.Password });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var data = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+        Assert.Equal(UserRole.Admin, data.GetProperty("user").GetProperty("role").GetString());
+        var players = await client.SendAsync(Request("GET /api/admin/players", data.GetProperty("token").GetString()));
+        Assert.Equal(HttpStatusCode.OK, players.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(UserRole.Player)]
+    [InlineData(UserRole.Vip)]
+    public async Task AdminLogin_RefusesOtherRoles_AndLeavesTheirSessionAlone(string role)
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var client = host.CreateClient();
+        var email = await host.InsertUserAsync(role);
+        var session = await host.SignInAsync(client, email);
+
+        var refused = await client.PostAsJsonAsync("/api/auth/admin/login", new { email, password = AdminHost.Password });
+
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.DoesNotContain("token", await refused.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        // Each account holds one refresh token, so issuing one here would have ended the session they are playing in.
+        var refreshed = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = session.RefreshToken });
+        Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminLogin_WithoutThePassword_SaysTheSameThingForEveryAccount()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var client = host.CreateClient();
+        var attempts = new[]
+        {
+            await host.InsertUserAsync(UserRole.Admin),
+            await host.InsertUserAsync(UserRole.Player),
+            $"{Guid.NewGuid():N}@tests.invalid",
+        };
+
+        var answers = new List<string>();
+        foreach (var email in attempts)
+        {
+            var response = await client.PostAsJsonAsync("/api/auth/admin/login", new { email, password = "Wrong-password-123!" });
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            answers.Add(await response.Content.ReadAsStringAsync());
+        }
+
+        Assert.Single(answers.Distinct());
+    }
+
+    [Fact]
+    public async Task AdminLogin_RefusesAGoogleOnlyAdmin_WithoutAnError()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var client = host.CreateClient();
+        var email = await host.InsertUserAsync(UserRole.Admin, passwordHash: string.Empty);
+
+        var response = await client.PostAsJsonAsync("/api/auth/admin/login", new { email, password = AdminHost.Password });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminLogin_RefusesALockedAdmin()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var client = host.CreateClient();
+        var email = await host.InsertUserAsync(UserRole.Admin, UserStatus.Locked);
+
+        var response = await client.PostAsJsonAsync("/api/auth/admin/login", new { email, password = AdminHost.Password });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminLogin_SharesTheLimitOfThePlayerSignIn()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var client = host.CreateClient();
+        var wrong = new { email = "nobody@tests.invalid", password = "Wrong-password-123!" };
+
+        // Five a minute in all, so a second door does not give anyone twice the guesses.
+        for (var i = 0; i < 3; i++) Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/login", wrong)).StatusCode);
+        for (var i = 0; i < 2; i++) Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/admin/login", wrong)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsJsonAsync("/api/auth/admin/login", wrong)).StatusCode);
+    }
+
     private sealed class AdminHost : WebApplicationFactory<Program>
     {
         private readonly string _connectionString =
@@ -241,22 +343,31 @@ public sealed class MongoAdminPlayersHostTests
             });
         }
 
-        public async Task<Session> RegisterAsync(HttpClient client, string name, string role = UserRole.Player)
+        public const string Password = "Test-password-123!";
+
+        public async Task<Session> RegisterAsync(HttpClient client, string name, string role = UserRole.Player) =>
+            await SignInAsync(client, await InsertUserAsync(role, name: name));
+
+        /// <summary>Registering would send a verification mail. Everything from the sign-in on is the real thing.</summary>
+        public async Task<string> InsertUserAsync(string role, string status = UserStatus.Active, string name = "Thám tử", string? passwordHash = null)
         {
-            const string password = "Test-password-123!";
             var email = $"{Guid.NewGuid():N}@tests.invalid";
-            // Registering would send a verification mail. Everything from the sign-in on is the real thing.
             await Db.Users.InsertOneAsync(new User
             {
                 Id = ObjectId.GenerateNewId().ToString(),
                 FullName = name,
                 Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                PasswordHash = passwordHash ?? BCrypt.Net.BCrypt.HashPassword(Password),
                 Role = role,
-                Status = UserStatus.Active,
+                Status = status,
                 IsEmailVerified = true,
             });
-            var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+            return email;
+        }
+
+        public async Task<Session> SignInAsync(HttpClient client, string email)
+        {
+            var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password });
             Xunit.Assert.True(login.IsSuccessStatusCode, $"Sign-in failed: {(int)login.StatusCode} {await login.Content.ReadAsStringAsync()}");
             var data = (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
             return new Session(data.GetProperty("user").GetProperty("userId").GetString()!, data.GetProperty("token").GetString()!, data.GetProperty("refreshToken").GetString()!);

@@ -174,6 +174,8 @@ On backend startup in `Development`, if no admin exists, the app seeds:
 
 Outside `Development`, default admin seeding is disabled unless `Auth__SeedDefaultAdmin=true` is explicitly configured. When enabling it outside development, also configure `Auth__SeedAdminPassword`; do not use the demo password in deployed environments.
 
+Admins sign in at `/admin/login`, players at `/login`. An admin who signs in at `/login` lands on the menu like anyone else and can still open `/admin`; that is also the way in for an admin whose account only has Google sign-in. No page can make someone an `ADMIN`.
+
 Public registration creates `PLAYER` accounts. Admins can promote a non-admin user to `VIP` from the dashboard. `VIP` and `ADMIN` accounts can create AI cases.
 
 ## Health Checks
@@ -183,7 +185,7 @@ Public registration creates `PLAYER` accounts. Admins can promote a non-admin us
 
 ## Demo Flow
 
-1. Log in as admin.
+1. Log in as admin at `/admin/login`.
 2. Open Admin Dashboard and seed demo/sample cases.
 3. Publish a valid case if needed.
 4. Register or log in as two player accounts in two browser sessions.

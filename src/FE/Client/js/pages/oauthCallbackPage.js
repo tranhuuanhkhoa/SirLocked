@@ -47,7 +47,7 @@ export async function renderOAuthCallbackPage(app) {
 
     toast(tr(`Welcome, ${user.fullName}!`, `Chào mừng, ${user.fullName}!`), 'success');
     // Replacing it leaves no address with tokens in the browser's history.
-    navigate(pendingRoomInvite() || (user.role === 'ADMIN' ? '/admin' : '/menu'), { replace: true });
+    navigate(pendingRoomInvite() || '/menu', { replace: true });
   } catch {
     if (!app.isConnected) return;
     session.clear();

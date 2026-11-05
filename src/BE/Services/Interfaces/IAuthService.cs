@@ -6,6 +6,7 @@ public interface IAuthService
 {
     Task<AuthResponse> RegisterAsync(RegisterRequest request);
     Task<AuthResponse> LoginAsync(LoginRequest request);
+    Task<AuthResponse> AdminLoginAsync(LoginRequest request);
     Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request);
     Task<UserResponse> GetMeAsync(string userId);
     Task ChangePasswordAsync(string userId, ChangePasswordRequest request);

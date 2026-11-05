@@ -27,6 +27,7 @@ Authorization: Bearer <jwt>
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | Anonymous | `{ "fullName": "...", "email": "...", "password": "..." }` | `AuthResponse` |
 | `POST` | `/api/auth/login` | Anonymous | `{ "email": "...", "password": "..." }` | `AuthResponse` |
+| `POST` | `/api/auth/admin/login` | Anonymous | `{ "email": "...", "password": "..." }` | `AuthResponse`; `403` and no token for an account that is not `ADMIN` |
 | `GET` | `/api/auth/me` | User | none | `UserResponse` |
 | `POST` | `/api/auth/logout` | User | none | `{ "loggedOut": true }` |
 

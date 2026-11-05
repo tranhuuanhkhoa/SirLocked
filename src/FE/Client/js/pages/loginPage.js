@@ -369,7 +369,8 @@ export async function renderLoginPage(app) {
       if (!app.isConnected) return;
       session.save(auth);
       toast(tr(`Welcome, ${auth.user.fullName}.`, `Chào mừng, ${auth.user.fullName}.`), 'success');
-      navigate(pendingRoomInvite() || (auth.user.role === 'ADMIN' ? '/admin' : '/menu'));
+      // Everyone who signs in here is a player for now, admins too; /admin/login is the way to the admin pages.
+      navigate(pendingRoomInvite() || '/menu');
     } catch (err) {
       toast(err.message, 'error');
     } finally {
