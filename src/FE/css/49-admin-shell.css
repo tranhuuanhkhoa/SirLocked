@@ -42,3 +42,5 @@
   height: 2px;
   background: var(--gold);
 }
+/* A table wider than the phone scrolls by itself, not the whole page. */
+.admin-table-scroll { max-width: 100%; overflow-x: auto; }

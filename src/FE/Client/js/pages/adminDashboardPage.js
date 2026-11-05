@@ -157,10 +157,10 @@ export async function renderAdminDashboardPage(app) {
     <div class="stat-grid">${statCards}</div>
     ${playtestSection(playtest)}
     <h3 class="section-title">${tr('Users', 'Người dùng')}</h3>
-    <table class="admin-table">
+    <div class="admin-table-scroll"><table class="admin-table">
       <thead><tr><th>${tr('Name', 'Tên')}</th><th>Email</th><th>${tr('Role', 'Vai trò')}</th><th>${tr('Status', 'Trạng thái')}</th><th></th></tr></thead>
       <tbody>${userRows}</tbody>
-    </table>
+    </table></div>
   </div>`);
 
   app.querySelector('#seed-sample')?.addEventListener('click', async (e) => {

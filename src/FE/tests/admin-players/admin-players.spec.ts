@@ -89,6 +89,20 @@ async function expectNoPhoneOverflow(page: Page) {
 
 // ------------------------------------------------------------------ list
 
+test('bảng người dùng ở #/admin có email dài không làm tràn màn điện thoại', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await fakeApi(page, {
+    'GET /api/admin/dashboard': () => ({ totalUsers: 1, publishedCases: 0, totalCases: 0, activeRooms: 0, totalRooms: 0, wins: 0, losses: 0, totalAiDrafts: 0, legacyCasesHidden: true }),
+    'GET /api/admin/users': () => [{
+      userId: 'u9', fullName: 'Thám tử Có Một Cái Tên Khá Dài Để Thử', email: 'mot.dia.chi.email.rat.dai.de.thu.bang@tests.invalid',
+      role: 'PLAYER', status: 'ACTIVE', isEmailVerified: true,
+    }],
+  });
+  await page.goto('/#/admin');
+  await expect(page.locator('.admin-table')).toContainText('mot.dia.chi.email.rat.dai.de.thu.bang@tests.invalid');
+  await expectNoPhoneOverflow(page);
+});
+
 test.describe('danh sách người chơi', () => {
   test('tìm, lọc, sắp xếp và phân trang đều hỏi máy chủ, và không tải toàn bộ người dùng', async ({ page }) => {
     const calls = await fakeApi(page, {
