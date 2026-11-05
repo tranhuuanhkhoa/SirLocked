@@ -24,12 +24,12 @@ public class ChestsController : BaseApiController
     [HttpPost("{chestId}/keys")]
     [EnableRateLimiting("chests")]
     public async Task<ActionResult<ApiResponse<ChestPurchaseResultDto>>> BuyKey(string chestId, [FromBody] ChestOperationRequest request, CancellationToken ct) =>
-        Ok(await _chests.BuyKeyAsync(Caller, chestId, request.IdempotencyKey, ct));
+        Ok(await _chests.BuyKeyAsync(Caller, chestId, request.IdempotencyKey, ct, request.ExpectedPrice));
 
     [HttpPost("{chestId}/buy")]
     [EnableRateLimiting("chests")]
     public async Task<ActionResult<ApiResponse<ChestPurchaseResultDto>>> BuyChest(string chestId, [FromBody] ChestOperationRequest request, CancellationToken ct) =>
-        Ok(await _chests.BuyChestAsync(Caller, chestId, request.IdempotencyKey, ct));
+        Ok(await _chests.BuyChestAsync(Caller, chestId, request.IdempotencyKey, ct, request.ExpectedPrice));
 
     [HttpPost("{chestId}/open")]
     [EnableRateLimiting("chests")]

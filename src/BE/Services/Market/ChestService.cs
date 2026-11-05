@@ -16,6 +16,8 @@ public static class ChestErrors
     public const string Funds = "FUNDS";
     public const string SlotsFull = "SLOTS_FULL";
     public const string InProgress = "IN_PROGRESS";
+    public const string NotForSale = "CHEST_NOT_FOR_SALE";
+    public const string PriceChanged = "CHEST_PRICE_CHANGED";
 }
 
 public sealed record ChestRecoveryReport(int Openings, int Purchases)
@@ -63,6 +65,8 @@ public sealed class ChestService
         ChestErrors.Funds => MarketService.Error(409, code, "You do not have enough coins."),
         ChestErrors.SlotsFull => MarketService.Error(409, code, "Your inventory is full."),
         ChestErrors.InProgress => MarketService.Error(409, code, "This request is still being processed."),
+        ChestErrors.NotForSale => MarketService.Error(409, code, "This chest is no longer on sale."),
+        ChestErrors.PriceChanged => MarketService.Error(409, code, "The price has changed; please check it and try again."),
         _ => MarketService.Error(409, code ?? MarketErrors.Busy, "The market changed; please try again."),
     };
 
@@ -85,17 +89,25 @@ public sealed class ChestService
     {
         await _market.EnsureAccountAsync(userId, ct);
         var catalog = _catalog.Current;
-        var counts = await CountFreeAsync(userId, catalog.ActiveChests.SelectMany(chest => new[] { chest.Id, chest.KeyDefId }).ToList(), ct);
-        var chests = catalog.ActiveChests.Select(chest => new ChestDto(
-            chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
-            chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, chest.Prices.Chest, chest.Prices.Key,
-            counts.GetValueOrDefault(chest.Id), counts.GetValueOrDefault(chest.KeyDefId),
-            chest.Items.Select(MarketService.ToDefDto).ToList())).ToList();
-        // The response has one odds table. Every seeded chest shares it; a chest given its own table needs a per-chest field (see docs/admin-contracts.md).
+        var counts = await CountFreeAsync(userId, catalog.Chests.SelectMany(chest => new[] { chest.Id, chest.KeyDefId }).ToList(), ct);
+        ChestDto Dto(ChestDef chest) => ToDto(chest, counts.GetValueOrDefault(chest.Id), counts.GetValueOrDefault(chest.KeyDefId));
+        var offSale = catalog.Chests
+            .Where(chest => !chest.Active && (counts.GetValueOrDefault(chest.Id) > 0 || counts.GetValueOrDefault(chest.KeyDefId) > 0))
+            .Select(Dto).ToList();
         var odds = (catalog.ActiveChests.FirstOrDefault()?.DropRates ?? Array.Empty<ChestDropRate>())
             .Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList();
-        return new ChestListDto(chests, odds, await _market.GetWalletAsync(userId, ct));
+        return new ChestListDto(catalog.ActiveChests.Select(Dto).ToList(), odds, offSale, await _market.GetWalletAsync(userId, ct));
     }
+
+    /// <summary>A chest as players see it, with whatever counts the caller says they hold.</summary>
+    internal static ChestDto ToDto(ChestDef chest, int chestCount, int keyCount) => new(
+        chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
+        chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, chest.Prices.Chest, chest.Prices.Key,
+        chestCount, keyCount,
+        chest.Items.Select(MarketService.ToDefDto).ToList(),
+        chest.Look is { } look ? new ChestLookDto(look.Template, look.Light, look.Hi, look.Core) : null,
+        chest.DropRates.Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList(),
+        chest.Active);
 
     private async Task<Dictionary<string, int>> CountFreeAsync(string userId, IReadOnlyCollection<string> defIds, CancellationToken ct)
     {
@@ -292,20 +304,22 @@ public sealed class ChestService
 
     // ------------------------------------------------------------------ shop
 
-    public Task<ChestPurchaseResultDto> BuyKeyAsync(CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default)
+    public Task<ChestPurchaseResultDto> BuyKeyAsync(
+        CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default, long? expectedPrice = null)
     {
         var chest = RequireChest(chestId);
-        return BuyAsync(user, chest, chest.KeyDefId, chest.Prices.Key, idempotencyKey, ct);
+        return BuyAsync(user, chest, chest.KeyDefId, chest.Prices.Key, expectedPrice, idempotencyKey, ct);
     }
 
-    public Task<ChestPurchaseResultDto> BuyChestAsync(CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default)
+    public Task<ChestPurchaseResultDto> BuyChestAsync(
+        CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default, long? expectedPrice = null)
     {
         var chest = RequireChest(chestId);
-        return BuyAsync(user, chest, chest.Id, chest.Prices.Chest, idempotencyKey, ct);
+        return BuyAsync(user, chest, chest.Id, chest.Prices.Chest, expectedPrice, idempotencyKey, ct);
     }
 
     private async Task<ChestPurchaseResultDto> BuyAsync(
-        CurrentUser user, ChestDef chest, string defId, long price, string? idempotencyKey, CancellationToken ct)
+        CurrentUser user, ChestDef chest, string defId, long price, long? expectedPrice, string? idempotencyKey, CancellationToken ct)
     {
         var id = OperationId(user.Id, idempotencyKey);
         await _market.RequireVerifiedAsync(user.Id, ct);
@@ -314,6 +328,9 @@ public sealed class ChestService
         var purchase = await _store.ChestPurchases.Find(p => p.Id == id).FirstOrDefaultAsync(ct);
         if (purchase is null)
         {
+            // Only a new purchase: retrying one that already went through still answers with its result.
+            if (!chest.Active) throw ErrorFor(ChestErrors.NotForSale);
+            if (expectedPrice is not null && expectedPrice != price) throw ErrorFor(ChestErrors.PriceChanged);
             // A price lost to a bad edit must not become a free chest.
             if (MarketRules.ValidatePrice(price) is not null) throw ErrorFor(null);
             if (account.Balance < price) throw ErrorFor(ChestErrors.Funds);

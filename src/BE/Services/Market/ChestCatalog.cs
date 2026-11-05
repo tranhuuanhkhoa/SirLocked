@@ -66,9 +66,9 @@ public sealed class ChestDef
     public IReadOnlyDictionary<string, IReadOnlyList<MarketItemDef>> Pools { get; }
     public IReadOnlyList<ChestDropRate> DropRates { get; }
     public ChestShopPrice Prices { get; }
-    /// <summary>Off means hidden from the chest page. Copies already owned can still be opened. ADMIN-1 adds refusing to sell it.</summary>
+    /// <summary>Off means hidden from the chest page and not sold. Copies already owned can still be opened.</summary>
     public bool Active { get; }
-    /// <summary>The drawing and light colours. Null on the seed classes. Not sent to players yet; see docs/admin-contracts.md.</summary>
+    /// <summary>The drawing and light colours. Null on the seed classes.</summary>
     public CatalogChestLook? Look { get; }
 
     /// <summary>Picks a rarity by <see cref="DropRates"/>, then one item of that rarity uniformly.</summary>
