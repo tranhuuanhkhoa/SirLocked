@@ -13,6 +13,7 @@ import { tr, uiLanguage } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
 import { toast } from '../../utils/toast.js';
 import { errorText } from '../market/marketKit.js';
+import { AvatarFileProblem, squareAvatar } from './avatarFile.js';
 
 const TABS = [
   { id: 'doi', label: () => tr('Exchange for XP', 'Đổi kinh nghiệm') },
@@ -22,8 +23,12 @@ const TABS = [
 ];
 const CATEGORY = { frame: 'FRAME', title: 'TITLE', entrance: 'ENTRANCE' };
 const RESIZE_DEBOUNCE_MS = 200;
-const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
-const UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/* errorText speaks for the market; past the checks made here, what fails is the image host */
+const uploadErrorText = (error) => {
+  if (error instanceof AvatarFileProblem) return error.message;
+  return error?.status >= 500 ? tr('The picture could not be saved. Please try again.', 'Chưa lưu được ảnh. Vui lòng thử lại.') : errorText(error);
+};
 
 const SOURCE_EN = {
   'Mặc định': 'Default',
@@ -81,6 +86,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
   let me = null;
   let activeTab = 'doi';
   let busy = false;
+  let uploading = false;
   let entrance = null;
   let resizeTimer = 0;
   let unavailable = false;
@@ -131,6 +137,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
         <section class="hs-picker" data-hs-picker hidden aria-label="${escapeHtml(tr('Choose an avatar', 'Chọn ảnh đại diện'))}">
           <h3>${escapeHtml(tr('Avatar', 'Ảnh đại diện'))}</h3>
           <div class="hs-avs" data-hs-avatars></div>
+          <p class="hs-picker-note" data-hs-avatars-note hidden>${escapeHtml(tr('Choose a picture from your computer or phone. Its middle is cut to a square.', 'Chọn ảnh từ máy tính hoặc điện thoại. Hệ thống lấy phần giữa ảnh và cắt thành hình vuông.'))}</p>
         </section>
         <div class="hs-tabs" role="tablist" aria-label="${escapeHtml(tr('Profile sections', 'Mục hồ sơ'))}">
           ${tabs.map((tab) => `<button class="hs-tab" role="tab" type="button" id="hs-tab-${tab.id}" data-hs-tab="${tab.id}" aria-controls="hs-p-${tab.id}" aria-selected="false">${escapeHtml(tab.label())}</button>`).join('')}
@@ -506,13 +513,22 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     const open = picker.hidden;
     picker.hidden = !open;
     $('[data-hs-change]').setAttribute('aria-expanded', String(open));
-    if (open) renderAvatars();
+    if (open) {
+      renderAvatars();
+      // On a phone the picker opens below the screen, and a button that seems to do nothing gets no second tap.
+      picker.scrollIntoView({ block: 'nearest', behavior: reduce.matches ? 'auto' : 'smooth' });
+    }
   }
 
   function renderAvatarsIfOpen() {
     const picker = $('[data-hs-picker]');
     if (picker && !picker.hidden) renderAvatars();
   }
+
+  // No capture attribute: that would send a phone straight to the camera and hide the gallery.
+  const uploadTile = () => (uploading
+    ? `<span class="hs-av hs-up" role="status" aria-busy="true">${escapeHtml(tr('Uploading…', 'Đang tải…'))}</span>`
+    : `<label class="hs-av hs-up">${tr('Upload<br>your own', 'Tải ảnh<br>của bạn')}<input type="file" accept="image/*" aria-label="${escapeHtml(tr('Upload your avatar', 'Tải ảnh đại diện của bạn'))}" data-hs-upload></label>`);
 
   function renderAvatars() {
     const avatars = $('[data-hs-avatars]');
@@ -521,7 +537,8 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
         <canvas width="152" height="152" aria-hidden="true"></canvas>
       </button>`).join('')
       + (me.avatarUrl ? `<button class="hs-av" type="button" data-hs-avatar="upload" aria-pressed="${me.avatar === 'upload'}" aria-label="${escapeHtml(tr('Your picture', 'Ảnh của bạn'))}"><img src="${escapeHtml(me.avatarUrl)}" alt=""></button>` : '')
-      + (me.canUploadAvatar ? `<label class="hs-av hs-up">${tr('Upload<br>your own', 'Tải ảnh<br>của bạn')}<input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" aria-label="${escapeHtml(tr('Upload your avatar', 'Tải ảnh đại diện của bạn'))}" data-hs-upload></label>` : '');
+      + (me.canUploadAvatar ? uploadTile() : '');
+    $('[data-hs-avatars-note]').hidden = !me.canUploadAvatar;
     const thumbs = [...avatars.querySelectorAll('[data-hs-avatar] canvas')];
     const stopThumbs = painter.onPaint(() => {
       let waiting = false;
@@ -556,20 +573,28 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
   }
 
   async function uploadAvatar(file) {
-    if (!file || busy) return;
-    if (!UPLOAD_TYPES.includes(file.type)) { toast(tr('Use a JPG, PNG or WebP picture.', 'Hãy dùng ảnh JPG, PNG hoặc WebP.'), 'error'); return; }
-    if (file.size > MAX_UPLOAD_BYTES) { toast(tr('The picture must be 2 MB or smaller.', 'Ảnh phải từ 2 MB trở xuống.'), 'error'); return; }
+    if (!file) return;
+    // Drawing the tiles again also gives a fresh input, so the same file can be picked again.
+    if (busy) { renderAvatars(); return; }
     busy = true;
+    uploading = true;
+    renderAvatars();
+    let stored = false;
     try {
-      me = await progressApi.uploadAvatar(file);
+      me = await progressApi.uploadAvatar(await squareAvatar(file));
+      stored = true;
       if (disposed) return;
-      renderAvatars();
       renderHeader();
       live(tr('Your picture is now your avatar.', 'Đã dùng ảnh của bạn.'));
     } catch (error) {
-      if (!disposed) toast(errorText(error), 'error');
+      if (!disposed) toast(uploadErrorText(error), 'error');
     } finally {
       busy = false;
+      uploading = false;
+      if (!disposed) {
+        renderAvatars();
+        $(stored ? '[data-hs-avatar="upload"]' : '[data-hs-upload]')?.focus({ preventScroll: true });
+      }
     }
   }
 

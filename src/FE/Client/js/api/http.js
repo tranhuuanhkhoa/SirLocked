@@ -50,9 +50,10 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
   return payload?.data;
 }
 
-export async function apiFetchForm(path, formData) {
+export async function apiFetchForm(path, formData, _retry = true) {
   const headers = {};
-  const token = session.token();
+  const requestSession = authSnapshot();
+  const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -69,6 +70,14 @@ export async function apiFetchForm(path, formData) {
     /* empty body */
   }
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      if (_retry) {
+        const refreshed = await refreshAfterUnauthorized(requestSession);
+        if (refreshed && canRetryForAccount(requestSession)) return apiFetchForm(path, formData, false);
+      } else {
+        expireSessionIfCurrent(requestSession);
+      }
+    }
     throw {
       status: response.status,
       message: payload?.message || `Request failed (${response.status}).`,
