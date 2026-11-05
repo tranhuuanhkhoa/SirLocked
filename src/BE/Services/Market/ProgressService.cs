@@ -17,6 +17,9 @@ public interface IPlayerCosmeticsReader
     Task<IReadOnlyDictionary<string, PlayerCosmeticsDto>> GetCosmeticsAsync(IReadOnlyCollection<string> userIds, CancellationToken ct = default);
 }
 
+/// <summary>What an admin's removal of an uploaded picture changed.</summary>
+public sealed record AdminClearedAvatar(string PreviousAvatar, string PreviousUrl, string Avatar);
+
 /// <summary>
 /// Hồ sơ thám tử: level, experience, avatar, earned cosmetics. Like the market it runs on a standalone MongoDB,
 /// so exchanging items is a journaled sequence of conditional writes on one <see cref="XpExchange"/>: lock the
@@ -474,9 +477,54 @@ public sealed class ProgressService : IPlayerCosmeticsReader
             Builders<PlayerProgress>.Update
                 .Set(p => p.Avatar, AvatarImageProcessor.UploadedAvatar)
                 .Set(p => p.AvatarUrl, url)
+                .Set(p => p.AvatarUploadedAt, Now)
                 .Set(p => p.UpdatedAt, Now),
             cancellationToken: ct);
         return await GetMeAsync(userId, ct);
+    }
+
+    // ------------------------------------------------------------------ admin
+
+    /// <summary>
+    /// Puts a detective at a level and XP and grants what that level is owed, once: the operation key sets it once and earned
+    /// items have fixed ids. Nothing is taken back on the way down, so the answer lists what stays above the level.
+    /// </summary>
+    internal async Task<(int Level, int Xp, IReadOnlyList<string> KeptAboveLevel)> AdminSetProgressAsync(
+        string userId, int level, int xp, string opKey, string operationId, CancellationToken ct)
+    {
+        await EnsureProgressAsync(userId, ct);
+        await _store.PlayerProgress.UpdateOneAsync(
+            p => p.Id == userId && !p.Ops.Contains(opKey),
+            Builders<PlayerProgress>.Update
+                .Set(p => p.Level, level)
+                .Set(p => p.Xp, xp)
+                .PushEach(p => p.Ops, new[] { opKey }, slice: -OpsWindow)
+                .Set(p => p.UpdatedAt, Now),
+            cancellationToken: ct);
+        await GrantLevelRewardsAsync(userId, level, operationId, ct);
+
+        var earned = await _store.Items
+            .Find(i => i.OwnerId == userId && i.Source == MarketItemSources.Level)
+            .Project(i => i.DefId)
+            .ToListAsync(ct);
+        return (level, xp, Admin.AdminPlayersRules.RewardsAbove(level, _catalog.Current.LevelRewards, earned));
+    }
+
+    /// <summary>Forgets an uploaded picture. Null when there is none. The default avatar only replaces it if it was the one in use.</summary>
+    internal async Task<AdminClearedAvatar?> AdminClearAvatarAsync(string userId, CancellationToken ct)
+    {
+        var progress = await _store.PlayerProgress.Find(p => p.Id == userId).FirstOrDefaultAsync(ct);
+        if (string.IsNullOrEmpty(progress?.AvatarUrl)) return null;
+        var avatar = progress.Avatar == AvatarImageProcessor.UploadedAvatar ? CosmeticCatalog.DefaultAvatar : progress.Avatar;
+        var cleared = await _store.PlayerProgress.UpdateOneAsync(
+            p => p.Id == userId && p.AvatarUrl == progress.AvatarUrl,
+            Builders<PlayerProgress>.Update
+                .Set(p => p.Avatar, avatar)
+                .Set(p => p.AvatarUrl, null)
+                .Set(p => p.AvatarUploadedAt, null)
+                .Set(p => p.UpdatedAt, Now),
+            cancellationToken: ct);
+        return cleared.ModifiedCount == 0 ? null : new AdminClearedAvatar(progress.Avatar, progress.AvatarUrl, avatar);
     }
 
     // ------------------------------------------------------------------ recovery

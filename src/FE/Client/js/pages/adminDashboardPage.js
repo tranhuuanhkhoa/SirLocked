@@ -1,4 +1,5 @@
 import { adminApi } from '../api/adminApi.js';
+import { adminPlayersApi } from '../api/adminPlayersApi.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
@@ -64,6 +65,25 @@ function playtestSection(summary) {
     <div class="stat-grid">${cards}</div>`;
 }
 
+/** Today's counters, each one a link to where it can be acted on. */
+function liveCards(counts) {
+  if (!counts) return '';
+  const number = (value) => Number(value ?? 0).toLocaleString('vi-VN');
+  const cards = [
+    ['Người chơi mới hôm nay', counts.newPlayersToday, '#/admin/players'],
+    ['Trận hôm nay', counts.gamesToday, '#/admin/economy?tab=phong'],
+    ['Lượt mở hòm hôm nay', counts.chestOpensToday, '#/admin/economy'],
+    ['Xu lưu hành', counts.coinsInCirculation, '#/admin/economy'],
+    ['Giao dịch kẹt', counts.stuckOperations, '#/admin/economy?tab=ket'],
+    ['Ảnh chờ duyệt', counts.pendingAvatars, '#/admin/players?tab=anh'],
+  ];
+  return `
+    <div class="stat-grid adp-cards" data-adp-cards>
+      ${cards.map(([label, value, href]) => `
+        <a class="stat-card adp-card" href="${href}"><span class="muted small">${escapeHtml(label)}</span><strong>${escapeHtml(number(value))}</strong></a>`).join('')}
+    </div>`;
+}
+
 export async function renderAdminDashboardPage(app) {
   render(app, `<div class="page"><p class="muted">${tr('Loading dashboard…', 'Đang tải bảng điều khiển…')}</p></div>`);
 
@@ -82,6 +102,14 @@ export async function renderAdminDashboardPage(app) {
     playtest = await adminApi.playtestSummary();
   } catch {
     playtest = null;
+  }
+
+  // The live counters are extras: if they cannot load, the rest of the dashboard still can.
+  let counts = null;
+  try {
+    counts = await adminPlayersApi.dashboardCounts();
+  } catch {
+    counts = null;
   }
 
   const statCards = [
@@ -125,6 +153,7 @@ export async function renderAdminDashboardPage(app) {
         <a class="btn btn-ghost" href="#/admin/ai">${tr('AI case creator', 'Tạo vụ án AI')}</a>
       </div>
     </div>
+    ${liveCards(counts)}
     <div class="stat-grid">${statCards}</div>
     ${playtestSection(playtest)}
     <h3 class="section-title">${tr('Users', 'Người dùng')}</h3>
