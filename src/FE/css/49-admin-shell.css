@@ -1,0 +1,44 @@
+/* The tab bar shared by every admin page (components/adminNav.js). Owned by ADMIN-0. */
+
+#admin-nav-root { position: relative; z-index: var(--z-raised); }
+#admin-nav-root[hidden] { display: none; }
+
+.admin-nav-scroll {
+  display: flex;
+  gap: var(--s-1);
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0 clamp(16px, 3vw, 40px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(10, 12, 15, .92);
+  border-bottom: 1px solid rgba(239, 212, 134, .16);
+}
+.admin-nav-scroll::-webkit-scrollbar { display: none; }
+
+.admin-nav-tab {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  color: var(--beige-muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+  letter-spacing: .04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.admin-nav-tab:hover { color: var(--gold-light); }
+.admin-nav-tab:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+.admin-nav-tab.is-active { color: var(--gold-light); }
+.admin-nav-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: var(--s-3);
+  right: var(--s-3);
+  bottom: 6px;
+  height: 2px;
+  background: var(--gold);
+}

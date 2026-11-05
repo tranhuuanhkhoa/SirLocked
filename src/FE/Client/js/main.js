@@ -24,6 +24,12 @@ import { renderAdminImportPage } from './pages/adminImportPage.js';
 import { renderAdminAiPage } from './pages/adminAiPage.js';
 import { renderChallengePage } from './pages/challengePage.js';
 import { renderWeeklyAdminPage } from './pages/weeklyAdminPage.js';
+import { renderAdminChestsPage } from './pages/adminChestsPage.js';
+import { renderAdminItemsPage } from './pages/adminItemsPage.js';
+import { renderAdminCosmeticsPage } from './pages/adminCosmeticsPage.js';
+import { renderAdminPlayersPage } from './pages/adminPlayersPage.js';
+import { renderAdminEconomyPage } from './pages/adminEconomyPage.js';
+import { renderAdminAuditPage } from './pages/adminAuditPage.js';
 import { renderOAuthCallbackPage } from './pages/oauthCallbackPage.js';
 import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
 import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
@@ -32,6 +38,7 @@ import { PROFILE_EVENT, detectiveRankLabel, renderTitleMenuPage } from './pages/
 import { renderMarketPage } from './pages/marketPage.js';
 import { renderChestPage } from './pages/chestPage.js';
 import { hydrateWalletChip, walletChipMarkup } from './components/walletChip.js';
+import { syncAdminNav } from './components/adminNav.js';
 
 /**
  * Loading screen (markup lives in index.html so it can show before this
@@ -108,6 +115,12 @@ const routes = [
   { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
   { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
   { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
+  { pattern: /^#\/admin\/chests(?:\/([^/]+))?$/, page: renderAdminChestsPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/items$/, page: renderAdminItemsPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/cosmetics(?:\/([^/]+))?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/players(?:\/([^/]+))?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/economy$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
+  { pattern: /^#\/admin\/audit$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
 ];
 
 const routeLifecycle = createRouteLifecycle();
@@ -379,6 +392,7 @@ async function route({ transition = true } = {}) {
   // The cork board is the backdrop of every screen except the Phaser scene.
   document.body.classList.toggle('bpa-board', r.game !== true);
   renderNav(r);
+  syncAdminNav(r.admin || r.aiAccess);
   try {
     const args = r.lifecycle ? [...m.slice(1), { signal: mount.signal }] : m.slice(1);
     mount.setCleanup(await r.page(app, ...args));
