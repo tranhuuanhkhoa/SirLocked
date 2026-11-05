@@ -335,6 +335,7 @@ export function itemSprite(iconKey) {
   if (COSMETIC_KEY.test(iconKey ?? '')) return borrowedCosmeticSprite(iconKey);
   return once(`item:${iconKey}`, () => {
     if (KEY_SPRITES[iconKey]) return KEY_SPRITES[iconKey]();
+    if (isChestIcon(iconKey)) return { c: closedChestCanvas(iconKey), w: 50, h: 50 };
     return (ITEM_ICONS[iconKey] ?? ITEM_ICONS.magnifier)().render();
   });
 }

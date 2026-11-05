@@ -104,7 +104,10 @@ public sealed class ChestService
         chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
         chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, chest.Prices.Chest, chest.Prices.Key,
         chestCount, keyCount,
-        chest.Items.Select(MarketService.ToDefDto).ToList(),
+        // A rarity with no chance stays out: players pay for this list, so it must not promise what cannot drop.
+        chest.Items
+            .Where(item => chest.DropRates.Any(rate => rate.Rarity == item.Rarity && rate.Weight > 0))
+            .Select(MarketService.ToDefDto).ToList(),
         chest.Look is { } look ? new ChestLookDto(look.Template, look.Light, look.Hi, look.Core) : null,
         chest.DropRates.Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList(),
         chest.Active);

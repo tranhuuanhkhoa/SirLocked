@@ -18,6 +18,7 @@ export async function renderChestLog(host, { signal } = {}) {
   if (signal?.aborted) return;
 
   const filters = { page: 1 };
+  let ticket = 0;
 
   render(host, `
     <div class="page-head"><h2>Nhật ký mở hòm</h2></div>
@@ -40,14 +41,16 @@ export async function renderChestLog(host, { signal } = {}) {
   const rows = host.querySelector('[data-ac-log-rows]');
 
   async function load() {
+    const mine = ++ticket;
     let data;
     try {
       data = await adminChestsApi.openings(filters);
     } catch (error) {
-      if (!signal?.aborted) render(rows, errorsHtml(errorMessages(error)));
+      if (!signal?.aborted && mine === ticket) render(rows, errorsHtml(errorMessages(error)));
       return;
     }
-    if (signal?.aborted) return;
+    // Only the latest search may draw: an older one can answer last.
+    if (signal?.aborted || mine !== ticket) return;
     const items = data?.items ?? [];
     const total = data?.total ?? 0;
     const pageSize = data?.pageSize || 1;

@@ -240,4 +240,8 @@ public sealed class AdminChestGrantRequest
 
     [StringLength(500)]
     public string? Reason { get; set; }
+
+    /// <summary>One per grant on the page, so resending after a lost answer does not give everything twice.</summary>
+    [StringLength(64)]
+    public string? RequestId { get; set; }
 }

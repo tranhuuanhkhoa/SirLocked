@@ -39,9 +39,11 @@ public sealed class AdminChestsStatsService
     private readonly ICatalogProvider _provider;
     private readonly ChestService _chests;
     private readonly IAdminAudit _audit;
+    private readonly MarketService _marketService;
 
-    public AdminChestsStatsService(MongoDbContext db, MarketStore market, ICatalogProvider provider, ChestService chests, IAdminAudit audit)
+    public AdminChestsStatsService(MongoDbContext db, MarketStore market, ICatalogProvider provider, ChestService chests, IAdminAudit audit, MarketService marketService)
     {
+        _marketService = marketService;
         _db = db;
         _market = market;
         _provider = provider;
@@ -157,10 +159,14 @@ public sealed class AdminChestsStatsService
     public async Task<WalletDto> GrantAsync(CurrentUser admin, AdminChestGrantRequest request, CancellationToken ct = default)
     {
         AdminChestsErrors.RequireReason(request.Reason, "cấp hòm hoặc chìa");
-        var wallet = await _chests.AdminGrantAsync(request.UserId ?? string.Empty, request.ChestId ?? string.Empty, request.Chests, request.Keys, ct);
-        await _audit.LogAsync(admin, "chest.grant", "user", request.UserId!, null,
-            new { chestId = request.ChestId, chests = request.Chests, keys = request.Keys }, request.Reason, ct);
-        return wallet;
+        // Several items, one write each: once started it runs to the end and is recorded, whatever happens to the caller.
+        return await _marketService.IdempotentAsync(admin.Id, request.RequestId, async () =>
+        {
+            var wallet = await _chests.AdminGrantAsync(request.UserId ?? string.Empty, request.ChestId ?? string.Empty, request.Chests, request.Keys, CancellationToken.None);
+            await _audit.LogAsync(admin, "chest.grant", "user", request.UserId!, null,
+                new { chestId = request.ChestId, chests = request.Chests, keys = request.Keys }, request.Reason, CancellationToken.None);
+            return wallet;
+        }, ct);
     }
 
     // ------------------------------------------------------------------ helpers

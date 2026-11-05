@@ -318,6 +318,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   function changed() {
     paintTotal();
     state.pending = true;
+    // An answer still on its way is about the draft as it was.
+    state.ticket += 1;
     paintSaveBar();
     clearTimeout(state.timer);
     state.timer = setTimeout(runCheck, CHECK_DEBOUNCE_MS);
@@ -431,6 +433,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   // ---------------------------------------------------------------- trying it out
 
   function openPreview() {
+    if (state.previewOpen) return;
     const overlay = document.createElement('div');
     overlay.className = 'ac-preview';
     overlay.innerHTML = `
@@ -447,7 +450,10 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       state.previewOpen = null;
     };
     state.previewOpen = close;
-    overlay.querySelector('[data-ac-preview-close]').addEventListener('click', close);
+    const closeButton = overlay.querySelector('[data-ac-preview-close]');
+    closeButton.addEventListener('click', close);
+    // Keys go to the screen on top, not to the button left behind it.
+    closeButton.focus();
     renderChestPage(overlay.querySelector('.ac-preview-stage'), {
       signal: controller.signal,
       preview: true,

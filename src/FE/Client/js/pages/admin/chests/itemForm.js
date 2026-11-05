@@ -53,9 +53,10 @@ export function openItemForm({ item = null, nextId = '', signal, onSaved }) {
         <label class="ac-check"><input type="checkbox" name="tradable"${(item?.tradable ?? true) ? ' checked' : ''}> Được bán và trao đổi trên Chợ đồ</label>
       </div>
 
-      <div class="ac-warning" data-ac-rarity-warning hidden>
-        <p>Món này đang có ${number(owned)} bản thuộc về người chơi. Đổi độ hiếm ảnh hưởng đến lượng đổi KN của các bản đó và bảng rơi của mọi hòm chứa món này.</p>
-        <label class="ac-field"><span>Lý do đổi độ hiếm</span><textarea class="field-input" name="reason" rows="2" maxlength="500"></textarea></label>
+      <div class="ac-warning" data-ac-owned-warning hidden>
+        <p data-ac-rarity-warning hidden>Món này đang có ${number(owned)} bản thuộc về người chơi. Đổi độ hiếm ảnh hưởng đến lượng đổi KN của các bản đó và bảng rơi của mọi hòm chứa món này.</p>
+        <p data-ac-tradable-warning hidden>Món này đang có ${number(owned)} bản thuộc về người chơi. Tắt mục này thì các bản đó không bán, không trao đổi và không đổi KN được nữa, nhưng vẫn chiếm ô trong túi; tin rao và lệnh mua đang mở cũng biến mất khỏi Chợ đồ.</p>
+        <label class="ac-field"><span>Lý do</span><textarea class="field-input" name="reason" rows="2" maxlength="500"></textarea></label>
       </div>
 
       <section class="ac-icon-section" aria-label="Hình của vật phẩm">
@@ -153,8 +154,15 @@ export function openItemForm({ item = null, nextId = '', signal, onSaved }) {
     }
   });
 
-  const rarityChanged = () => editing && $('[name="rarity"]').value !== item.rarity && owned > 0;
-  $('[name="rarity"]').addEventListener('change', () => { $('[data-ac-rarity-warning]').hidden = !rarityChanged(); });
+  const rarityChanged = () => editing && owned > 0 && $('[name="rarity"]').value !== item.rarity;
+  const saleStopped = () => editing && owned > 0 && item.tradable && !$('[name="tradable"]').checked;
+  const paintWarnings = () => {
+    $('[data-ac-rarity-warning]').hidden = !rarityChanged();
+    $('[data-ac-tradable-warning]').hidden = !saleStopped();
+    $('[data-ac-owned-warning]').hidden = !rarityChanged() && !saleStopped();
+  };
+  $('[name="rarity"]').addEventListener('change', paintWarnings);
+  $('[name="tradable"]').addEventListener('change', paintWarnings);
 
   $('[data-ac-cancel]').addEventListener('click', close);
   const submit = $('[data-ac-submit]');
@@ -162,8 +170,8 @@ export function openItemForm({ item = null, nextId = '', signal, onSaved }) {
     if (state.uploading) return;
     const value = (name) => $(`[name="${name}"]`).value;
     const reason = value('reason').trim();
-    if (rarityChanged() && !reason) {
-      showErrors(['Hãy nhập lý do đổi độ hiếm.']);
+    if ((rarityChanged() || saleStopped()) && !reason) {
+      showErrors([rarityChanged() ? 'Hãy nhập lý do đổi độ hiếm.' : 'Hãy nhập lý do ngừng cho bán.']);
       return;
     }
     // Old gear may stay drawn by its category; a curio has no such drawing.

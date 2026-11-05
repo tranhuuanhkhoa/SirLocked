@@ -1,4 +1,5 @@
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
+import { newRequestId } from '../../../api/marketApi.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { confirmDialog, errorMessages, errorsHtml, number } from './shared.js';
@@ -96,13 +97,15 @@ export async function renderChestGrant(host, { signal } = {}) {
     showErrors([]);
     const chestId = $('[name="chestId"]').value;
     const chest = chests.find((entry) => entry.id === chestId);
+    // One per grant: confirming again after a lost answer must not give everything twice.
+    const requestId = newRequestId();
     confirmDialog({
       title: `Cấp cho ${selected.name}?`,
       body: `<p>${number(chestCount)} ${escapeHtml(chest?.name ?? chestId)} và ${number(keyCount)} ${escapeHtml(chest?.keyName ?? 'chìa')} cho ${escapeHtml(selected.name)}.</p>`,
       confirmLabel: 'Cấp',
       signal,
       action: async (reason) => {
-        await adminChestsApi.grant({ userId: selected.id, chestId, chests: chestCount, keys: keyCount, reason });
+        await adminChestsApi.grant({ userId: selected.id, chestId, chests: chestCount, keys: keyCount, reason, requestId });
         toast(`Đã cấp cho ${selected.name}.`, 'success');
       },
     });

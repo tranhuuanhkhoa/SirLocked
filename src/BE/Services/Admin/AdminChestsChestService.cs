@@ -71,7 +71,7 @@ public sealed class AdminChestsChestService
         var after = Apply(before, draft);
         var items = await ItemsAsync(ct);
         return new AdminChestCheckDto(
-            AdminChestsRules.Validate(before, after, items),
+            ViolationsOf(before, after, items),
             CatalogRules.ExpectedValue(after, items),
             after.Prices.Chest + after.Prices.Key,
             after.DropWeights.Values.Sum(weight => (long)weight),
@@ -104,14 +104,14 @@ public sealed class AdminChestsChestService
         var after = Apply(before, draft);
         var items = await ItemsAsync(ct);
 
-        var violations = AdminChestsRules.Validate(before, after, items);
+        var violations = ViolationsOf(before, after, items);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
         if (AdminChestsRules.Diff(before, after).IsEmpty)
             throw AdminChestsErrors.Error(400, AdminChestsErrors.NoChange, "Chưa có gì thay đổi để lưu.");
         AdminChestsErrors.RequireReason(draft.Reason, "thay đổi hòm");
 
         await SaveAsync(admin, before, after, draft.ExpectedVersion, "update", draft.Reason, items, ct);
-        await _audit.LogAsync(admin, "chest.update", "chest", id, before, after, draft.Reason, ct);
+        await _audit.LogAsync(admin, "chest.update", "chest", id, before, after, draft.Reason, CancellationToken.None);
         return ToDetail(after, await ItemsAsync(ct));
     }
 
@@ -135,7 +135,7 @@ public sealed class AdminChestsChestService
         AdminChestsErrors.RequireReason(request.Reason, "khôi phục phiên bản");
 
         await SaveAsync(admin, before, after, request.ExpectedVersion, "restore", request.Reason, items, ct);
-        await _audit.LogAsync(admin, "chest.restore", "chest", id, before, after, request.Reason, ct);
+        await _audit.LogAsync(admin, "chest.restore", "chest", id, before, after, request.Reason, CancellationToken.None);
         return ToDetail(after, await ItemsAsync(ct));
     }
 
@@ -174,22 +174,25 @@ public sealed class AdminChestsChestService
             try
             {
                 await _catalog.Items.InsertManyAsync(new[] { chestDef, keyDef }, cancellationToken: ct);
-                await _catalog.Chests.InsertOneAsync(chest, cancellationToken: ct);
+                await _catalog.Chests.InsertOneAsync(chest, cancellationToken: CancellationToken.None);
                 break;
             }
-            catch (Exception exception) when (IsDuplicate(exception) && attempt < MaxIdAttempts)
+            catch (Exception exception)
             {
-                // Another admin cloned at the same moment. Clear what this attempt managed to write, unless it was theirs.
+                // A chest or key type with no chest behind it could never be removed, so whatever this attempt wrote goes.
+                // Only what it wrote: on a duplicate, the other document belongs to the admin who got there first.
+                var (chestDefId, keyDefId) = (chestDef.Id, keyDef.Id);
                 await _catalog.Items.DeleteManyAsync(
-                    i => (i.Id == chestDef.Id || i.Id == keyDef.Id) && i.UpdatedBy == admin.Id && i.CreatedAt == now, ct);
+                    i => (i.Id == chestDefId || i.Id == keyDefId) && i.UpdatedBy == admin.Id && i.CreatedAt == now, CancellationToken.None);
+                if (!IsDuplicate(exception) || attempt >= MaxIdAttempts) throw;
                 taken.Add(chest.Id);
                 taken.Add(chest.KeyDefId);
             }
         }
 
-        await _store.Versions.InsertOneAsync(VersionOf(chest, "clone", admin, request.Reason), cancellationToken: ct);
         _provider.Invalidate();
-        await _audit.LogAsync(admin, "chest.clone", "chest", chest.Id, new { sourceId }, new { chest, chestDef, keyDef }, request.Reason, ct);
+        await _store.Versions.InsertOneAsync(VersionOf(chest, "clone", admin, request.Reason), cancellationToken: CancellationToken.None);
+        await _audit.LogAsync(admin, "chest.clone", "chest", chest.Id, new { sourceId }, new { chest, chestDef, keyDef }, request.Reason, CancellationToken.None);
         return ToDetail(chest, await ItemsAsync(ct));
     }
 
@@ -243,11 +246,30 @@ public sealed class AdminChestsChestService
         await EnsureBaseVersionAsync(before, ct);
         var replaced = await _catalog.Chests.ReplaceOneAsync(c => c.Id == before.Id && c.Version == before.Version, after, cancellationToken: ct);
         if (replaced.ModifiedCount == 0) throw AdminChestsErrors.Conflict();
-        await _store.Versions.ReplaceOneAsync(v => v.Id == ChestVersion.IdOf(after.Id, after.Version),
-            VersionOf(after, action, admin, reason), new ReplaceOptions { IsUpsert = true }, ct);
 
-        await FollowAsync(admin, before, after, items, ct);
-        _provider.Invalidate();
+        // The chest has changed. From here an admin closing the tab must not leave its history and item types behind.
+        try
+        {
+            await _store.Versions.ReplaceOneAsync(v => v.Id == ChestVersion.IdOf(after.Id, after.Version),
+                VersionOf(after, action, admin, reason), new ReplaceOptions { IsUpsert = true }, CancellationToken.None);
+            await FollowAsync(admin, before, after, items, CancellationToken.None);
+        }
+        finally
+        {
+            _provider.Invalidate();
+        }
+    }
+
+    /// <summary>
+    /// The rules a save must pass. Only switching a chest off is exempt: it is what a chest that has gone wrong needs
+    /// first, and it adds nothing a player could buy.
+    /// </summary>
+    private static IReadOnlyList<CatalogRuleViolation> ViolationsOf(CatalogChest before, CatalogChest after, IReadOnlyDictionary<string, CatalogItem> items)
+    {
+        var diff = AdminChestsRules.Diff(before, after);
+        var onlySwitchedOff = before.Active && !after.Active && diff.Added.Count == 0 && diff.Removed.Count == 0
+            && diff.Weights.Count == 0 && !diff.Reordered && diff.Fields.Count == 1;
+        return onlySwitchedOff ? Array.Empty<CatalogRuleViolation>() : AdminChestsRules.Validate(before, after, items);
     }
 
     /// <summary>The state before the first save was never recorded (it came from the seed), and it must stay restorable.</summary>

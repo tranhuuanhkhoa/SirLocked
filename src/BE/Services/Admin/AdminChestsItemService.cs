@@ -54,7 +54,15 @@ public sealed class AdminChestsItemService
                 return ToDto(item, snapshot, owned, chests, deletable);
             })
             .ToList();
-        return new AdminItemListDto(rows, AdminChestsRules.NextCurioId(items.Select(item => item.Id)), snapshot.Problems);
+        var nextId = AdminChestsRules.NextCurioId(await TakenIdsAsync(items, ct));
+        return new AdminItemListDto(rows, nextId, snapshot.Problems);
+    }
+
+    /// <summary>Ids a new item must not take: those in use, and those an old chest version lists, which restoring it would bring back.</summary>
+    private async Task<List<string>> TakenIdsAsync(IEnumerable<CatalogItem> items, CancellationToken ct)
+    {
+        var listed = await _store.Versions.Distinct<string>("snapshot.pool", FilterDefinition<ChestVersion>.Empty).ToListAsync(ct);
+        return items.Select(item => item.Id).Concat(listed).ToList();
     }
 
     private async Task<Dictionary<string, long>> CountCopiesAsync(CancellationToken ct)
@@ -128,7 +136,7 @@ public sealed class AdminChestsItemService
         var violations = AdminChestsRules.ValidateItem(item);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
 
-        var taken = existing.Select(other => other.Id).ToList();
+        var taken = await TakenIdsAsync(existing, ct);
         for (var attempt = 1; ; attempt++)
         {
             item.Id = AdminChestsRules.NextCurioId(taken);
@@ -144,7 +152,7 @@ public sealed class AdminChestsItemService
             }
         }
         _provider.Invalidate();
-        await _audit.LogAsync(admin, "item.create", "catalogItem", item.Id, null, item, null, ct);
+        await _audit.LogAsync(admin, "item.create", "catalogItem", item.Id, null, item, null, CancellationToken.None);
         return await RowAsync(item, ct);
     }
 
@@ -172,12 +180,16 @@ public sealed class AdminChestsItemService
         var violations = AdminChestsRules.ValidateItem(after);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
 
-        if (before.Rarity != after.Rarity && await _market.Items.CountDocumentsAsync(i => i.DefId == id, cancellationToken: ct) > 0)
-            AdminChestsErrors.RequireReason(request.Reason, "đổi độ hiếm khi đã có người sở hữu");
+        if (await _market.Items.CountDocumentsAsync(i => i.DefId == id, cancellationToken: ct) > 0)
+        {
+            if (before.Rarity != after.Rarity) AdminChestsErrors.RequireReason(request.Reason, "đổi độ hiếm khi đã có người sở hữu");
+            // Those copies can then be neither sold nor traded, and each keeps its slot in the bag.
+            if (before.Tradable && !after.Tradable) AdminChestsErrors.RequireReason(request.Reason, "ngừng cho bán khi đã có người sở hữu");
+        }
 
         RefuseIfAChestBreaks(after, items, chests);
         await SaveAsync(admin, before, after, request.ExpectedVersion, ct);
-        await _audit.LogAsync(admin, "item.update", "catalogItem", id, before, after, request.Reason, ct);
+        await _audit.LogAsync(admin, "item.update", "catalogItem", id, before, after, request.Reason, CancellationToken.None);
         return await RowAsync(after, ct);
     }
 
@@ -191,7 +203,7 @@ public sealed class AdminChestsItemService
         after.Retired = retired;
         RefuseIfAChestBreaks(after, items, chests);
         await SaveAsync(admin, before, after, before.Version, ct);
-        await _audit.LogAsync(admin, retired ? "item.retire" : "item.unretire", "catalogItem", id, before, after, reason, ct);
+        await _audit.LogAsync(admin, retired ? "item.retire" : "item.unretire", "catalogItem", id, before, after, reason, CancellationToken.None);
         return await RowAsync(after, ct);
     }
 
@@ -218,7 +230,7 @@ public sealed class AdminChestsItemService
         var deleted = await _catalog.Items.DeleteOneAsync(i => i.Id == id && i.Version == before.Version, ct);
         if (deleted.DeletedCount == 0) throw AdminChestsErrors.Conflict();
         _provider.Invalidate();
-        await _audit.LogAsync(admin, "item.delete", "catalogItem", id, before, null, reason, ct);
+        await _audit.LogAsync(admin, "item.delete", "catalogItem", id, before, null, reason, CancellationToken.None);
     }
 
     private async Task<(CatalogItem Item, Dictionary<string, CatalogItem> Items, List<CatalogChest> Chests)> LoadEditableAsync(string id, CancellationToken ct)

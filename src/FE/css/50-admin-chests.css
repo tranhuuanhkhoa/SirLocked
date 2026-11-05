@@ -81,7 +81,7 @@
   border: var(--bw) solid var(--line-strong);
   border-radius: var(--r-md);
 }
-.ac-warning[hidden] { display: none; }
+.ac-warning[hidden], .ac-warning p[hidden] { display: none; }
 .ac-warning p { margin: 0 0 var(--s-2); }
 .ac-problems { margin-bottom: var(--s-4); padding: var(--s-3); font-size: var(--t-sm); border: var(--bw) solid var(--copper); border-radius: var(--r-md); }
 .ac-problems summary { cursor: pointer; }

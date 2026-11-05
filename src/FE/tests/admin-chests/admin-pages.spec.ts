@@ -345,6 +345,28 @@ test.describe('#/admin/items', () => {
     expect(sent(s, 'PUT', '/api/admin/items/VC-0388')[0].body).toMatchObject({ rarity: 'RARE', reason: 'Hiếm hơn dự kiến', expectedVersion: 1 });
   });
 
+  test('stopping the sale of an owned item warns and demands a reason', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/#/admin/items');
+    await page.locator('tr[data-item-id="VC-0388"] [data-ac-edit]').click();
+    const dialog = page.locator('dialog.ac-dialog[open]');
+
+    await expect(dialog.locator('[data-ac-tradable-warning]')).toBeHidden();
+    await dialog.locator('[name="tradable"]').uncheck();
+    await expect(dialog.locator('[data-ac-tradable-warning]')).toContainText('3 bản');
+    await expect(dialog.locator('[data-ac-tradable-warning]')).toContainText('không bán');
+
+    await dialog.locator('[data-ac-submit]').click();
+    await expect(dialog.locator('.ac-errors')).toContainText('lý do');
+    expect(sent(s, 'PUT', '/api/admin/items/VC-0388')).toHaveLength(0);
+
+    await dialog.locator('[name="reason"]').fill('Món sự kiện');
+    await dialog.locator('[data-ac-submit]').click();
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
+    expect(sent(s, 'PUT', '/api/admin/items/VC-0388')[0].body).toMatchObject({ tradable: false, reason: 'Món sự kiện' });
+  });
+
   test('an owned item can only be retired; one nobody owns can also be deleted, after confirming', async ({ page }) => {
     const s = state();
     await prepare(page, s);
@@ -497,7 +519,7 @@ test.describe('#/admin/chests', () => {
     const column = page.locator('[data-pool-column="EPIC"]');
     await expect(column.locator('[data-pool-item="title_tan-binh"]')).toBeVisible();
     await expect(column.locator('.hs-plaque, svg').first()).toBeVisible();
-    await expect(sent(s, 'POST', '/check').at(-1)!.body!.pool).toContain('title_tan-binh');
+    await expect.poll(() => sent(s, 'POST', '/check').at(-1)!.body!.pool).toContain('title_tan-binh');
 
     await page.locator('[data-pool-item="VC-0402"] [data-ac-remove]').click();
     await expect(page.locator('[data-pool-item="VC-0402"]')).toHaveCount(0);
@@ -574,6 +596,35 @@ test.describe('#/admin/chests', () => {
     expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body!.look).toMatchObject({ template: 'bank', light: '17,34,51' });
   });
 
+  test('a check still on its way when the draft changes again cannot open saving', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    const gates: Array<() => void> = [];
+    const heldAt = (call: number) => new Promise<void>((resolve) => { gates[call] = resolve; });
+    const held = [heldAt(0), heldAt(1)];
+    let checks = 0;
+    await page.route('**/api/admin/chests/chest_np/check', async (route) => {
+      checks += 1;
+      // The first check comes with the page; the next two belong to the test.
+      if (checks >= 2) await held[checks - 2];
+      await route.fallback();
+    });
+    await page.goto('/#/admin/chests/chest_np?tab=thiet-lap');
+    await expect(page.locator('[name="chestPrice"]')).toHaveValue('120');
+
+    await page.locator('[name="chestPrice"]').fill('130');
+    await expect.poll(() => checks).toBe(2);
+    await page.locator('[name="chestPrice"]').fill('140');
+    gates[0](); // The answer about 130 arrives, while 140 waits its turn.
+    await page.waitForTimeout(500);
+    await expect(page.locator('[data-ac-save]')).toBeDisabled();
+
+    await expect.poll(() => checks).toBe(3);
+    gates[1]();
+    await expect(page.locator('[data-ac-save]')).toBeEnabled();
+    await expect(page.locator('[data-ac-cost]')).toContainText('320');
+  });
+
   test('history lists versions and restores an older one after confirming', async ({ page }) => {
     const s = state();
     await prepare(page, s);
@@ -616,6 +667,20 @@ test.describe('#/admin/chests', () => {
     await expect(page.locator('[data-ac-preview]')).toBeVisible();
   });
 
+  test('asking to try a chest out twice opens one screen, and leaving the page closes it', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/#/admin/chests/chest_np');
+
+    await page.locator('[data-ac-preview]').click();
+    await expect(page.locator('.ac-preview #qh-caseName')).toHaveText('Hòm Niêm Phong');
+    await page.evaluate(() => (document.querySelector('[data-ac-preview]') as HTMLElement).click());
+    await expect(page.locator('.ac-preview')).toHaveCount(1);
+
+    await page.evaluate(() => { window.location.hash = '#/admin/items'; });
+    await expect(page.locator('.ac-preview')).toHaveCount(0);
+  });
+
   test('statistics compare real and configured rates, over 7 or 30 days', async ({ page }) => {
     const s = state();
     await prepare(page, s);
@@ -651,6 +716,53 @@ test.describe('#/admin/chests', () => {
     expect(sent(s, 'GET', 'player=')[0].path).toContain(`player=${encodeURIComponent('Bình')}`);
   });
 
+  test('an older search answering late does not replace the newer one', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.route('**/api/admin/chests/openings*', async (route) => {
+      if (new URL(route.request().url()).searchParams.get('player') === 'An') await new Promise((resolve) => setTimeout(resolve, 800));
+      await route.fallback();
+    });
+    await page.goto('/#/admin/chests?tab=nhat-ky');
+    await expect(page.locator('[data-opening]')).toHaveCount(2);
+
+    await page.locator('[name="player"]').fill('An');
+    await page.locator('[data-ac-log-apply]').click();
+    await page.locator('[name="player"]').fill('Bình');
+    await page.locator('[data-ac-log-apply]').click();
+    await expect(page.locator('[data-opening]')).toHaveCount(1);
+
+    await page.waitForTimeout(1200);
+    await expect(page.locator('[data-opening]')).toHaveCount(1);
+    await expect(page.locator('[data-opening]')).toContainText('Bình');
+  });
+
+  test('a grant sent again after a failure keeps its request id, so the server gives once', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    const ids: string[] = [];
+    await page.route('**/api/admin/chests/grant', async (route) => {
+      ids.push(route.request().postDataJSON().requestId);
+      if (ids.length === 1) return route.fulfill({ status: 500, json: { success: false, message: 'Mất kết nối' } });
+      return route.fallback();
+    });
+    await page.goto('/#/admin/chests?tab=cap');
+    await page.locator('[data-ac-player-search]').fill('an');
+    await page.locator('[data-ac-player="u9"]').click();
+    await page.locator('[data-ac-grant]').click();
+    const dialog = page.locator('dialog.ac-dialog[open]');
+    await dialog.locator('[name="reason"]').fill('Đền bù');
+
+    await dialog.locator('[data-ac-confirm]').click();
+    await expect(dialog.locator('.ac-errors')).toBeVisible();
+    await dialog.locator('[data-ac-confirm]').click();
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
+
+    expect(ids).toHaveLength(2);
+    expect(ids[0]).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
+    expect(new Set(ids).size).toBe(1);
+  });
+
   test('granting finds a player by name, then sends chests, keys and a reason', async ({ page }) => {
     const s = state();
     await prepare(page, s);
@@ -667,7 +779,7 @@ test.describe('#/admin/chests', () => {
     await dialog.locator('[data-ac-confirm]').click();
 
     await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
-    expect(sent(s, 'POST', '/api/admin/chests/grant')[0].body).toEqual({ userId: 'u9', chestId: 'chest_np', chests: 2, keys: 1, reason: 'Đền bù' });
+    expect(sent(s, 'POST', '/api/admin/chests/grant')[0].body).toEqual({ userId: 'u9', chestId: 'chest_np', chests: 2, keys: 1, reason: 'Đền bù', requestId: expect.stringMatching(/^[A-Za-z0-9_-]{8,64}$/) });
   });
 
   for (const hash of ['#/admin/chests', '#/admin/chests?tab=nhat-ky', '#/admin/chests?tab=cap', '#/admin/chests/chest_np?tab=thiet-lap', '#/admin/chests/chest_np?tab=bang-roi', '#/admin/chests/chest_np?tab=lich-su', '#/admin/chests/chest_np?tab=thong-ke']) {

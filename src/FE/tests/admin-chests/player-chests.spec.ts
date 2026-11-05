@@ -158,6 +158,21 @@ test('a chest that stopped selling while the page was open says so', async ({ pa
   await expect(page.locator('#toast-root')).toContainText('ngừng bán');
 });
 
+test('a curio that borrows a chest sprite draws that chest, not the fallback icon', async ({ page }) => {
+  await prepare(page, {
+    chests: [chest('chest_a', 'Hòm A', { contents: [def('CU-1', 'Mô hình két', 'COMMON', 'chest_bank'), def('CU-2', 'Không rõ', 'COMMON', 'khong-co-sprite-nay')] })],
+    odds: [],
+    offSale: [],
+    wallet,
+  });
+  await page.goto('/#/kho-ruong');
+
+  const tiles = page.locator('#qh-contents .qh-it canvas');
+  await expect(tiles).toHaveCount(2);
+  const [borrowed, fallback] = await tiles.evaluateAll((canvases: HTMLCanvasElement[]) => canvases.map((canvas) => canvas.toDataURL()));
+  expect(borrowed).not.toBe(fallback);
+});
+
 test('an uploaded picture is what "You may get" and the reel draw', async ({ page }) => {
   // Same origin, so the test may read the pixels back. A real one comes from Cloudinary, which only draws.
   // One magenta pixel, a colour no fallback icon has.

@@ -893,6 +893,153 @@ public sealed class MongoAdminChestsTests
         Assert.Contains("ix_chestPurchases_chest_state_createdAt", await names("chestPurchases"));
     }
 
+    [Fact]
+    public async Task StoppingTheSaleOfAnOwnedItemNeedsAReason_BecauseItsCopiesCanNoLongerBeSold()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        var curio = await env.Items.CreateAsync(Yen, Curio(rarity: MarketRarities.Rare, price: 500));
+        await env.Market.AdminGrantAsync(player.Id, curio.Id, 0);
+        var request = UpdateOf(curio);
+        request.Tradable = false;
+
+        Assert.Equal(AdminChestsErrors.ReasonRequired, Code(await Throws(() => env.Items.UpdateAsync(Yen, curio.Id, request))));
+        Assert.True(env.Provider.Current.Find(curio.Id)!.Tradable);
+
+        request.Reason = "Món sự kiện, không cho bán";
+        await env.Items.UpdateAsync(Yen, curio.Id, request);
+        Assert.False(env.Provider.Current.Find(curio.Id)!.Tradable);
+    }
+
+    [Fact]
+    public async Task StoppingTheSaleOfAnItemNobodyHasNeedsNoReason()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var curio = await env.Items.CreateAsync(Yen, Curio(rarity: MarketRarities.Rare, price: 500));
+        var request = UpdateOf(curio);
+        request.Tradable = false;
+
+        await env.Items.UpdateAsync(Yen, curio.Id, request);
+
+        Assert.False(env.Provider.Current.Find(curio.Id)!.Tradable);
+    }
+
+    [Fact]
+    public async Task AGrantResentWithTheSameRequestIdGivesOnce()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        var request = new AdminChestGrantRequest { UserId = player.Id, ChestId = Seal, Chests = 2, Keys = 1, Reason = "Đền bù", RequestId = NewKey() };
+
+        await env.Stats.GrantAsync(Yen, request);
+        await env.Stats.GrantAsync(Yen, request);
+
+        var dto = (await env.Chests.ListAsync(player.Id)).Chests.Single(c => c.Id == Seal);
+        Assert.Equal(2, dto.ChestCount);
+        Assert.Equal(1, dto.KeyCount);
+        Assert.Equal(1, await env.Catalog.Audit.CountDocumentsAsync(a => a.Action == "chest.grant"));
+    }
+
+    [Fact]
+    public async Task ARarityWithNoChanceIsNotAdvertisedToPlayers()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        var draft = await env.DraftOfAsync(Seal);
+        draft.DropWeights[MarketRarities.Common] += draft.DropWeights[MarketRarities.Mystery];
+        draft.DropWeights[MarketRarities.Mystery] = 0;
+        draft.Reason = "Tắt Bí ẩn";
+
+        await env.Admin.UpdateAsync(Yen, Seal, draft);
+
+        var chest = (await env.Chests.ListAsync(player.Id)).Chests.Single(c => c.Id == Seal);
+        Assert.DoesNotContain(chest.Contents, def => def.Rarity == MarketRarities.Mystery);
+        Assert.Contains(chest.Contents, def => def.Rarity == MarketRarities.Common);
+        // It stays listed for the admin, who sees its chance is nil.
+        Assert.Contains(await env.Admin.GetAsync(Seal) is var detail ? detail.Pool : null!, item => item.Def.Id == "VC-0217" && item.RatePercent == 0m);
+    }
+
+    [Fact]
+    public async Task AChestThatBrokeCanStillBeSwitchedOff_ButNotOtherwiseChanged()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        // A hand edit: the table no longer adds up. Stopping the sale is exactly what such a chest needs.
+        await env.Catalog.Chests.UpdateOneAsync(c => c.Id == Seal, Builders<CatalogChest>.Update.Set("dropWeights.COMMON", 1));
+        env.Provider.Invalidate();
+
+        var other = await env.DraftOfAsync(Seal);
+        other.ChestPrice += 1;
+        other.Reason = "Thử";
+        Assert.Contains(CatalogRuleCodes.WeightsTotal, ViolationCodes(await Throws(() => env.Admin.UpdateAsync(Yen, Seal, other))));
+
+        var off = await env.DraftOfAsync(Seal);
+        off.Active = false;
+        off.Reason = "Dừng bán khẩn cấp";
+        Assert.Empty((await env.Admin.CheckAsync(Seal, off)).Violations);
+        await env.Admin.UpdateAsync(Yen, Seal, off);
+
+        Assert.DoesNotContain((await env.Chests.ListAsync(player.Id)).Chests, chest => chest.Id == Seal);
+    }
+
+    [Fact]
+    public async Task OnceAWriteHasHappenedTheCallerLeavingCannotStopTheRest()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        var spy = new AuditSpy();
+        var items = new AdminChestsItemService(env.Catalog, env.Store, env.AdminStore, env.Provider, spy);
+        var chests = new AdminChestsChestService(env.Catalog, env.Store, env.AdminStore, env.Provider, spy, env.Random);
+        var stats = new AdminChestsStatsService(env.Db, env.Store, env.Provider, env.Chests, spy, env.Market);
+        using var caller = new CancellationTokenSource();
+
+        var curio = await items.CreateAsync(Yen, Curio(), caller.Token);
+        var update = UpdateOf(curio);
+        update.Name = "Tên mới";
+        await items.UpdateAsync(Yen, curio.Id, update, caller.Token);
+        await items.SetRetiredAsync(Yen, curio.Id, true, "Hết mùa", caller.Token);
+        await items.DeleteAsync(Yen, curio.Id, "Tạo nhầm", caller.Token);
+        var draft = await env.DraftOfAsync(Seal);
+        draft.ChestPrice += 1;
+        draft.Reason = "Sửa giá";
+        await chests.UpdateAsync(Yen, Seal, draft, caller.Token);
+        await chests.CloneAsync(Yen, Seal, new AdminChestCloneRequest { Name = "Sao", NameEn = "Copy" }, caller.Token);
+        await chests.RestoreAsync(Yen, Seal, 1, new AdminChestRestoreRequest { ExpectedVersion = 2, Reason = "Trả lại" }, caller.Token);
+        await stats.GrantAsync(Yen, new AdminChestGrantRequest { UserId = player.Id, ChestId = Seal, Chests = 1, Reason = "Tặng" }, caller.Token);
+
+        Assert.Equal(8, spy.Tokens.Count);
+        Assert.All(spy.Tokens, token => Assert.False(token.CanBeCanceled));
+    }
+
+    [Fact]
+    public async Task AnIdListedInAnOldVersionIsNotGivenToANewItem_BecauseRestoringThatVersionWouldBringItIn()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var curio = await env.Items.CreateAsync(Yen, Curio("Món cũ"));
+        var add = await env.DraftOfAsync(Seal);
+        add.Pool.Add(curio.Id);
+        add.Reason = "Thêm";
+        await env.Admin.UpdateAsync(Yen, Seal, add);
+        var remove = await env.DraftOfAsync(Seal);
+        remove.Pool.Remove(curio.Id);
+        remove.Reason = "Bỏ";
+        await env.Admin.UpdateAsync(Yen, Seal, remove);
+        await env.Items.DeleteAsync(Yen, curio.Id, "Tạo nhầm");
+
+        var next = await env.Items.CreateAsync(Yen, Curio("Món mới"));
+
+        Assert.NotEqual(curio.Id, next.Id);
+        Assert.Equal("CU-0002", next.Id);
+        Assert.Equal("CU-0003", (await env.Items.ListAsync()).NextCurioId);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("khong-phai-id")]
@@ -979,6 +1126,20 @@ public sealed class MongoAdminChestsTests
         throw new Xunit.Sdk.XunitException("Expected an ApiException.");
     }
 
+    /// <summary>Notes the token each audit entry was written under, and writes nothing.</summary>
+    private sealed class AuditSpy : IAdminAudit
+    {
+        public List<CancellationToken> Tokens { get; } = new();
+
+        public Task LogAsync(CurrentUser admin, string action, string targetType, string targetId, object? before, object? after, string? reason = null, CancellationToken ct = default)
+        {
+            Tokens.Add(ct);
+            return Task.CompletedTask;
+        }
+
+        public Task<AdminAuditPageDto> QueryAsync(AdminAuditQuery query, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
     private sealed class SettableRandom : IChestRandom
     {
         private readonly Queue<int> _values = new();
@@ -1011,7 +1172,7 @@ public sealed class MongoAdminChestsTests
             AdminStore = new AdminChestsStore(Db);
             Items = new AdminChestsItemService(Catalog, Store, AdminStore, Provider, Audit);
             Admin = new AdminChestsChestService(Catalog, Store, AdminStore, Provider, Audit, Random);
-            Stats = new AdminChestsStatsService(Db, Store, Provider, Chests, Audit);
+            Stats = new AdminChestsStatsService(Db, Store, Provider, Chests, Audit, Market);
         }
 
         public MongoDbContext Db { get; }
