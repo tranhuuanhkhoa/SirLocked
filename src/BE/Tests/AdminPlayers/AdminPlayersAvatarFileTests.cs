@@ -30,7 +30,7 @@ public class AdminPlayersAvatarFileTests
         {
             Calls++;
             if (failure is not null) throw failure;
-            Url = request.RequestUri!.ToString();
+            Url = request.RequestUri!.AbsoluteUri;
             Sent = await request.Content!.ReadAsStringAsync(cancellationToken);
             return new HttpResponseMessage(status) { Content = new StringContent(body) };
         }
