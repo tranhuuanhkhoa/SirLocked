@@ -1,0 +1,582 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6" pages="3">
+  <diagram name="Backend Gameplay Modules" id="0">
+    <mxGraphModel dx="1188" dy="741" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p1_title" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontStyle=1;fontSize=22;fontColor=#1f2933;" value="SirLocked Gameplay Backend Modules&#xa;Data-driven exploration, inventory actions, puzzle solving, and scene unlocks" vertex="1">
+          <mxGeometry height="50" width="920" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_fe_lane" parent="1" style="swimlane;startSize=36;whiteSpace=wrap;html=1;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Frontend Client&#xa;Phaser 4 + DOM overlays" vertex="1">
+          <mxGeometry height="500" width="300" x="20" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_inv_ui" parent="p1_fe_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" value="Inventory Drawer&#xa;Use button&#xa;Combine mode&#xa;selectedInventoryItemId" vertex="1">
+          <mxGeometry height="80" width="230" x="30" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_hotspot_ui" parent="p1_fe_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" value="Phaser Hotspots&#xa;Item / object / transition click&#xa;targetId from scene runtime" vertex="1">
+          <mxGeometry height="80" width="230" x="30" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_puzzle_ui" parent="p1_fe_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" value="Puzzle DOM Overlay&#xa;CODE, SEQUENCE, SYMBOL&#xa;Answer or AnswerSequence posted" vertex="1">
+          <mxGeometry height="80" width="230" x="30" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_game_api" parent="p1_fe_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" value="gameApi.js&#xa;inspectItem() collects items&#xa;useItem(), combineItems()&#xa;solvePuzzle(), goToScene()" vertex="1">
+          <mxGeometry height="80" width="230" x="30" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_ui_api_scene" edge="1" parent="1" source="p1_game_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.82;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="p1_endpoint_scene" value="goToScene()">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="546" />
+              <mxPoint x="370" y="513" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_ui_api_puzzle" edge="1" parent="1" source="p1_game_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.62;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="p1_endpoint_puzzle" value="solvePuzzle()">
+          <mxGeometry relative="1" x="0.603" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_api_lane" parent="1" style="swimlane;startSize=36;whiteSpace=wrap;html=1;rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="API Layer&#xa;GameController" vertex="1">
+          <mxGeometry height="500" width="300" x="390" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_endpoint_use" parent="p1_api_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" value="POST /use-item&#xa;UseItemRequest&#xa;itemId + targetId" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_endpoint_combine" parent="p1_api_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" value="POST /combine-items&#xa;CombineItemsRequest&#xa;itemIds[]" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_endpoint_puzzle" parent="p1_api_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" value="POST /solve-puzzle&#xa;SolvePuzzleRequest&#xa;puzzleId + Answer/AnswerSequence" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_endpoint_scene" parent="p1_api_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" value="POST /go-to-scene&#xa;GoToSceneRequest&#xa;allows visited or unlocked" vertex="1">
+          <mxGeometry height="95" width="230" x="35" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_core_lane" parent="1" style="swimlane;startSize=36;whiteSpace=wrap;html=1;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="Gameplay Core&#xa;GameplayService + GameStateBuilder" vertex="1">
+          <mxGeometry height="860" width="430" x="740" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_service_use" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;" value="UseItemAsync&#xa;role INVESTIGATOR&#xa;inventory item exists&#xa;target in current scene&#xa;match USE_ITEM_ON_TARGET" vertex="1">
+          <mxGeometry height="85" width="350" x="35" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_service_combine" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;" value="CombineItemsAsync&#xa;all selected items in inventory&#xa;match COMBINE_ITEMS rule&#xa;consume components if configured" vertex="1">
+          <mxGeometry height="85" width="350" x="35" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_service_puzzle" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;" value="SolvePuzzleAsync&#xa;find puzzle by puzzleId&#xa;validate supported puzzle type&#xa;required items/clues satisfied&#xa;type-specific answer check" vertex="1">
+          <mxGeometry height="85" width="350" x="35" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_service_scene" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;" value="GoToSceneAsync&#xa;target scene exists&#xa;visited OR unlocked&#xa;set current scene&#xa;add first visit to VisitedSceneIds" vertex="1">
+          <mxGeometry height="85" width="350" x="10" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_effects" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="Mutate GameplayState in memory&#xa;inspect collects item when collectible&#xa;mark UsedInteractionIds / SolvedPuzzleIds&#xa;unlock clue/item/scene&#xa;scene move updates CurrentSceneId / VisitedSceneIds" vertex="1">
+          <mxGeometry height="105" width="350" x="35" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_save_notify" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;" value="TrySaveStateAsync(expectedVersion)&#xa;persist mutated state&#xa;reload/re-evaluate once or 409 Conflict&#xa;ActionLog + SignalR GameStateUpdated with Version" vertex="1">
+          <mxGeometry height="90" width="350" x="35" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_state_builder" parent="p1_core_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;" value="GameStateBuilder&#xa;VisibleScene.Puzzles&#xa;SceneMap.isUnlocked&#xa;CollectedItems metadata&#xa;Versioned authoritative response state" vertex="1">
+          <mxGeometry height="90" width="350" x="35" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_data_lane" parent="1" style="swimlane;startSize=36;whiteSpace=wrap;html=1;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Case Data + Runtime State&#xa;Mongo document contracts" vertex="1">
+          <mxGeometry height="860" width="420" x="1220" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_gamecase" parent="p1_data_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;" value="GameCase&#xa;Interactions[]&#xa;Puzzles[]&#xa;Items / Clues / Scenes" vertex="1">
+          <mxGeometry height="85" width="330" x="40" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_interaction_model" parent="p1_data_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;" value="CaseInteraction&#xa;type, targetId&#xa;requiredItemIds, requiredClueIds&#xa;unlockItemIds, unlockClueIds&#xa;unlockSceneIds, consumeItemIds" vertex="1">
+          <mxGeometry height="105" width="330" x="40" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_puzzle_model" parent="p1_data_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;" value="CasePuzzle&#xa;CODE_PUZZLE&#xa;SEQUENCE_PUZZLE&#xa;SYMBOL_MATCH_PUZZLE&#xa;prompt, options, correctCode, correctSequence" vertex="1">
+          <mxGeometry height="105" width="330" x="40" y="295" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_state_model" parent="p1_data_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;" value="GameplayState&#xa;CurrentSceneId, Version&#xa;CollectedItemIds, UnlockedClueIds&#xa;UsedInteractionIds, SolvedPuzzleIds&#xa;UnlockedSceneIds, VisitedSceneIds&#xa;WrongPuzzleCount" vertex="1">
+          <mxGeometry height="135" width="330" x="40" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_mongo" parent="p1_data_lane" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e2f5e2;strokeColor=#82b366;" value="MongoDB&#xa;GameRoom document&#xa;embedded GameplayState&#xa;Case JSON document" vertex="1">
+          <mxGeometry height="90" width="230" x="90" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ai_lane" parent="1" style="swimlane;startSize=34;whiteSpace=wrap;html=1;rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="AI Generation + Validation" vertex="1">
+          <mxGeometry height="210" width="650" x="40" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ai_prompt" parent="p1_ai_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5eff8;strokeColor=#9673a6;" value="AiCaseService&#xa;prompts AI to output JSON only&#xa;max interactions/puzzles&#xa;mechanic allowlist" vertex="1">
+          <mxGeometry height="85" width="240" x="30" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_validation" parent="p1_ai_lane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5eff8;strokeColor=#9673a6;" value="CaseValidationService&#xa;reject unknown types&#xa;validate references&#xa;reachability pass includes interactions + puzzles" vertex="1">
+          <mxGeometry height="85" width="270" x="350" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_ui_api" edge="1" parent="1" source="p1_game_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.22;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="p1_endpoint_use" value="HTTP JSON">
+          <mxGeometry relative="1" x="0.7583" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="300" y="498" />
+              <mxPoint x="300" y="188" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_ui_api_combine" edge="1" parent="1" source="p1_game_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.42;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="p1_endpoint_combine" value="combineItems()">
+          <mxGeometry relative="1" x="0.6995" y="3" as="geometry">
+            <mxPoint y="1" as="offset" />
+            <Array as="points">
+              <mxPoint x="330" y="514" />
+              <mxPoint x="330" y="293" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_use_service" edge="1" parent="1" source="p1_endpoint_use" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p1_service_use" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_combine_service" edge="1" parent="1" source="p1_endpoint_combine" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p1_service_combine" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_puzzle_service" edge="1" parent="1" source="p1_endpoint_puzzle" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p1_service_puzzle" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_scene_service" edge="1" parent="1" source="p1_endpoint_scene" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p1_service_scene" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_use_effects" edge="1" parent="1" source="p1_service_use" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_effects" value="matched rule">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1160" y="188" />
+              <mxPoint x="1160" y="628" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_combine_effects" edge="1" parent="1" source="p1_service_combine" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_effects" value="matched rule">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1150" y="292.5" />
+              <mxPoint x="1150" y="627.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_puzzle_effects" edge="1" parent="1" source="p1_service_puzzle" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" target="p1_effects" value="correct answer">
+          <mxGeometry relative="1" x="-0.0169" y="-20" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="720" y="398" />
+              <mxPoint x="720" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_scene_effects" edge="1" parent="1" source="p1_service_scene" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_effects" value="scene move">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_effects_save" edge="1" parent="1" source="p1_effects" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_save_notify" value="state already mutated">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_save_state" edge="1" parent="1" source="p1_save_notify" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="p1_mongo" value="persists embedded state">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1190" y="755" />
+              <mxPoint x="1190" y="745" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_state_builder" edge="1" parent="1" source="p1_state_model" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="p1_state_builder" value="build response">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1190" y="580" />
+              <mxPoint x="1190" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_state_to_api" edge="1" parent="1" source="p1_state_builder" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0;exitY=0.85;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" target="p1_api_lane" value="GameActionResponse.State">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="900" />
+              <mxPoint x="700" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_api_to_frontend" edge="1" parent="1" source="p1_api_lane" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_fe_lane" value="authoritative state">
+          <mxGeometry relative="1" x="0.1429" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_models_to_service" edge="1" parent="1" source="p1_gamecase" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_core_lane" value="rules read-only">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_ai_validation" edge="1" parent="1" source="p1_ai_prompt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_validation" value="case JSON">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_edge_validation_case" edge="1" parent="1" source="p1_validation" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="p1_gamecase" value="publish only if valid">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="525" y="1020" />
+              <mxPoint x="1690" y="1020" />
+              <mxPoint x="1690" y="187" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1_edge_mongo" edge="1" parent="1" source="p1_state_model" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p1_mongo" value="persisted document">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_legend" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;fontStyle=1;" value="Legend" vertex="1">
+          <mxGeometry height="150" width="300" x="40" y="900" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg1" parent="p1_legend" style="rounded=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="16" width="30" x="10" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg1t" parent="p1_legend" style="text;html=1;align=left;verticalAlign=middle;" value="Frontend / Phaser / DOM" vertex="1">
+          <mxGeometry height="20" width="220" x="50" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg2" parent="p1_legend" style="rounded=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="" vertex="1">
+          <mxGeometry height="16" width="30" x="10" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg2t" parent="p1_legend" style="text;html=1;align=left;verticalAlign=middle;" value="Controller endpoints" vertex="1">
+          <mxGeometry height="20" width="220" x="50" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg3" parent="p1_legend" style="rounded=0;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="" vertex="1">
+          <mxGeometry height="16" width="30" x="10" y="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg3t" parent="p1_legend" style="text;html=1;align=left;verticalAlign=middle;" value="Gameplay service logic" vertex="1">
+          <mxGeometry height="20" width="220" x="50" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg4" parent="p1_legend" style="rounded=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="" vertex="1">
+          <mxGeometry height="16" width="30" x="10" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_leg4t" parent="p1_legend" style="text;html=1;align=left;verticalAlign=middle;" value="Case/state data contracts" vertex="1">
+          <mxGeometry height="20" width="220" x="50" y="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Execution Flow" id="1">
+    <mxGraphModel dx="1678" dy="1046" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p2_title" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontStyle=1;fontSize=22;fontColor=#1f2933;" value="Gameplay Mechanic Execution Flow&#xa;All mechanics are JSON rules. No AI-generated Phaser or C# code." vertex="1">
+          <mxGeometry height="50" width="900" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_start" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Player action" vertex="1">
+          <mxGeometry height="70" width="170" x="70" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_select_item" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Select item in bag&#xa;then click hotspot target" vertex="1">
+          <mxGeometry height="80" width="230" x="330" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_combine_items" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Select 2+ inventory items&#xa;click Combine" vertex="1">
+          <mxGeometry height="80" width="230" x="330" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_click_puzzle" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Click puzzle object&#xa;open DOM puzzle overlay" vertex="1">
+          <mxGeometry height="80" width="230" x="330" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_use_api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="GameController&#xa;POST /use-item" vertex="1">
+          <mxGeometry height="80" width="230" x="650" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_combine_api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="GameController&#xa;POST /combine-items" vertex="1">
+          <mxGeometry height="80" width="230" x="650" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_puzzle_api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="GameController&#xa;POST /solve-puzzle" vertex="1">
+          <mxGeometry height="80" width="230" x="650" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_use_checks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="UseItemAsync checks&#xa;room in progress&#xa;role INVESTIGATOR&#xa;item in CollectedItemIds&#xa;target available in current scene" vertex="1">
+          <mxGeometry height="100" width="300" x="980" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_combine_checks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="CombineItemsAsync checks&#xa;room in progress&#xa;role INVESTIGATOR&#xa;all supplied items collected&#xa;2+ distinct itemIds" vertex="1">
+          <mxGeometry height="100" width="300" x="980" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_puzzle_checks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="SolvePuzzleAsync checks&#xa;find puzzle by puzzleId&#xa;supported puzzle type&#xa;target visible + requirements&#xa;not already solved" vertex="1">
+          <mxGeometry height="100" width="300" x="980" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_rule_match" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="Find matching CaseInteraction&#xa;USE_ITEM_ON_TARGET or COMBINE_ITEMS&#xa;requirements satisfied&#xa;singleUse not already used" vertex="1">
+          <mxGeometry height="170" width="300" x="1410" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_answer_match" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="Puzzle answer correct?&#xa;CODE: normalized string&#xa;SEQUENCE/SYMBOL: bounded sequence" vertex="1">
+          <mxGeometry height="140" width="230" x="1445" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_precondition_fail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Precondition failed&#xa;hard errors: ApiException 400/403/404/409&#xa;known no-op: changed=false&#xa;no save" vertex="1">
+          <mxGeometry height="85" width="300" x="630" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_rule_fail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="No rule match or missing requirement&#xa;return failureMessage / no-op&#xa;changed=false&#xa;no save" vertex="1">
+          <mxGeometry height="75" width="230" x="1550" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_wrong" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Wrong puzzle answer&#xa;WrongPuzzleCount++&#xa;no unlock effects&#xa;persist counter&#xa;response changed=true" vertex="1">
+          <mxGeometry height="90" width="230" x="1460" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_mark" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Mark mechanic completed&#xa;interaction success: UsedInteractionIds += interactionId&#xa;puzzle success: SolvedPuzzleIds += puzzleId" vertex="1">
+          <mxGeometry height="80" width="330" x="1010" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_effects" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Apply unlock / consume effects&#xa;UnlockedClueIds += unlockClueIds&#xa;CollectedItemIds += unlockItemIds&#xa;UnlockedSceneIds += unlockSceneIds&#xa;CollectedItemIds -= consumeItemIds&#xa;does not auto-move scene" vertex="1">
+          <mxGeometry height="120" width="330" x="1010" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_save" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Save + notify&#xa;TrySaveStateAsync(expectedVersion)&#xa;save success: ActionLog + SignalR&#xa;save fail: retry or 409 Conflict" vertex="1">
+          <mxGeometry height="105" width="270" x="650" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_response" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="GameActionResponse&#xa;state with Version, changed&#xa;unlockedClueIds / itemIds / sceneIds&#xa;message/detail&#xa;frontend applies newest version" vertex="1">
+          <mxGeometry height="110" width="250" x="330" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_transition_available" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Transition becomes available&#xa;UnlockedSceneIds makes map/Phaser transition visible&#xa;player still chooses to move" vertex="1">
+          <mxGeometry height="90" width="290" x="1180" y="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_transition" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Separate GoToScene action&#xa;player clicks transition/map&#xa;POST /go-to-scene&#xa;target visited OR unlocked&#xa;CurrentSceneId = targetSceneId&#xa;VisitedSceneIds += target&#xa;save, build state, notify" vertex="1">
+          <mxGeometry height="150" width="290" x="830" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_open_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" value="OPEN_CONTAINER modeling pattern&#xa;not a standalone runtime mechanic in V1&#xa;with item: USE_ITEM_ON_TARGET&#xa;no item: inspect clue or bounded puzzle" vertex="1">
+          <mxGeometry height="110" width="300" x="1140" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_collect_item" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Collect / inspect item flow&#xa;click collectible item&#xa;POST /inspect-item&#xa;CollectedItemIds += itemId&#xa;save + notify" vertex="1">
+          <mxGeometry height="110" width="260" x="40" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_completion" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="Completion lifecycle&#xa;CompleteScene / CompleteStage / Accuse&#xa;check scene/case conditions&#xa;RoomStatus = COMPLETED on final result&#xa;notify players" vertex="1">
+          <mxGeometry height="120" width="300" x="40" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e1" edge="1" parent="1" source="p2_start" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_select_item" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e2" edge="1" parent="1" source="p2_start" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_combine_items" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e3" edge="1" parent="1" source="p2_start" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_click_puzzle" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="155" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e4" edge="1" parent="1" source="p2_select_item" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_use_api" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e5" edge="1" parent="1" source="p2_combine_items" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_combine_api" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e6" edge="1" parent="1" source="p2_click_puzzle" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_puzzle_api" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e7" edge="1" parent="1" source="p2_use_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_use_checks" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e8" edge="1" parent="1" source="p2_combine_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_combine_checks" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e9" edge="1" parent="1" source="p2_puzzle_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_puzzle_checks" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e10" edge="1" parent="1" source="p2_use_checks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_rule_match" value="interaction rules">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e11" edge="1" parent="1" source="p2_combine_checks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_rule_match" value="combine rules">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e12" edge="1" parent="1" source="p2_puzzle_checks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_answer_match" value="Answer or AnswerSequence">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e_precondition_fail" edge="1" parent="1" source="p2_use_checks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" target="p2_precondition_fail" value="no">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="140" />
+              <mxPoint x="940" y="555" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e_precondition_fail2" edge="1" parent="1" source="p2_combine_checks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="p2_precondition_fail" value="no">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="270" />
+              <mxPoint x="950" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e13" edge="1" parent="1" source="p2_rule_match" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="p2_mark" value="matched">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1515" y="520" />
+              <mxPoint x="1175" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e_rule_fail" edge="1" parent="1" source="p2_rule_match" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="p2_rule_fail" value="no match">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1715" y="240" />
+              <mxPoint x="1785" y="240" />
+              <mxPoint x="1785" y="987" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e14" edge="1" parent="1" source="p2_answer_match" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0;exitY=0.4;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="p2_mark" value="yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e15" edge="1" parent="1" source="p2_answer_match" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="p2_wrong" value="no">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1620" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e_mark_effects" edge="1" parent="1" source="p2_mark" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_effects" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e16" edge="1" parent="1" source="p2_effects" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_save" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e_wrong_save" edge="1" parent="1" source="p2_wrong" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_save" value="persist wrong count">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1520" y="1030" />
+              <mxPoint x="785" y="1030" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e_fail_response" edge="1" parent="1" source="p2_precondition_fail" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_response" value="no save">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e_rule_fail_response" edge="1" parent="1" source="p2_rule_fail" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;exitX=0.717;exitY=1.01;exitDx=0;exitDy=0;exitPerimeter=0;" target="p2_response" value="no save">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1715" y="1060" />
+              <mxPoint x="455" y="1060" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e17" edge="1" parent="1" source="p2_save" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="p2_response" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e19" edge="1" parent="1" source="p2_effects" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_transition_available" value="if unlockSceneIds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e_transition_save" edge="1" parent="1" source="p2_transition" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_save" value="save scene move">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="975" y="840" />
+              <mxPoint x="785" y="840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e_collect_save" edge="1" parent="1" source="p2_collect_item" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_save" value="same save path">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e_completion_save" edge="1" parent="1" source="p2_completion" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;labelBackgroundColor=#ffffff;fontSize=11;" target="p2_save" value="when state changes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Mechanic Mapping" id="2">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p3_title" value="Mechanic Mapping for AI-Generated Exploration Cases&#xa;Use these patterns so AI chooses data contracts, not code." style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontStyle=1;fontSize=22;fontColor=#1f2933;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1040" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_header1" value="Mechanic / Feature" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_header2" value="Backend contract + endpoint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="430" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_header3" value="Rule check" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="100" width="420" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_header4" value="Output / state mutation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="100" width="420" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_use_name" value="USE_ITEM_ON_TARGET&#xa;key on chest, gem on socket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_use_contract" value="CaseInteraction.Type = USE_ITEM_ON_TARGET&#xa;POST /api/game/rooms/{roomId}/use-item&#xa;UseItemRequest(itemId, targetId)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="170" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_use_rule" value="itemId in CollectedItemIds&#xa;targetId visible in current scene&#xa;requiredItemIds all collected&#xa;requiredClueIds all unlocked&#xa;singleUse not already used" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="170" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_use_output" value="ApplyMechanicEffects&#xa;UsedInteractionIds += interactionId&#xa;unlock clue/item/scene&#xa;optional consume item" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="170" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_open_name" value="OPEN_CONTAINER&#xa;chest, coffin, cabinet, locked box" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_open_contract" value="No separate endpoint needed&#xa;Model as CaseItem target&#xa;isCollectible=false&#xa;isInteractivePuzzleObject=true&#xa;purpose is metadata only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="280" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_open_rule" value="V1 runtime supports no OPERATE_TARGET&#xa;Use USE_ITEM_ON_TARGET when item/tool required&#xa;For no-item actions use camera/inspect clue or bounded puzzle" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="280" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_open_output" value="unlockItemIds for loot&#xa;unlockClueIds for inscriptions/evidence&#xa;no scene change required unless container reveals path" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="280" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_transition_name" value="UNLOCK_TRANSITION&#xa;secret door, hidden passage, map route" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="390" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_transition_contract" value="Any interaction or puzzle can set unlockSceneIds[]&#xa;GoToSceneAsync checks VisitedSceneIds OR UnlockedSceneIds&#xa;SceneMapEntryDto.isUnlocked exposed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="390" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_transition_rule" value="unlockSceneIds must reference existing scenes&#xa;GoToSceneAsync accepts target only when visited OR unlocked&#xa;linear progression stays in CompleteScene flow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="390" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_transition_output" value="UnlockedSceneIds += sceneId&#xa;Map overlay shows Open&#xa;Phaser transition button appears&#xa;GoToScene adds VisitedSceneIds on first entry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="390" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_combine_name" value="COMBINE_ITEMS&#xa;map fragments, broken key, torch parts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_combine_contract" value="CaseInteraction.Type = COMBINE_ITEMS&#xa;POST /combine-items&#xa;CombineItemsRequest(itemIds[])" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="500" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_combine_rule" value="2+ selected ids&#xa;all ids in CollectedItemIds&#xa;requiredItemIds set equals submitted set&#xa;requiredClueIds satisfied" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="500" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_combine_output" value="unlockItemIds result item&#xa;consumeItemIds removes components&#xa;optional unlockClueIds/SceneIds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="500" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_sequence_name" value="SEQUENCE_PUZZLE&#xa;rune order, lever order, statue rotation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_sequence_contract" value="CasePuzzle.Type = SEQUENCE_PUZZLE&#xa;POST /solve-puzzle&#xa;SolvePuzzleRequest(PuzzleId, AnswerSequence[])" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="610" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_sequence_rule" value="target visible in current scene&#xa;requiredItemIds and requiredClueIds satisfied&#xa;answerSequence equals correctSequence&#xa;options bounded by validator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="610" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_sequence_output" value="SolvedPuzzleIds += puzzleId&#xa;success unlocks clue/item/scene&#xa;wrong answer increments WrongPuzzleCount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="610" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_symbol_name" value="SYMBOL_MATCH_PUZZLE&#xa;sun, snake, eye, scarab matching" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_symbol_contract" value="CasePuzzle.Type = SYMBOL_MATCH_PUZZLE&#xa;same /solve-puzzle endpoint&#xa;uses AnswerSequence[] with bounded options" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="720" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_symbol_rule" value="No arbitrary expression logic&#xa;options max 12&#xa;correctSequence max 8&#xa;all answer entries must be declared options" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="720" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_symbol_output" value="Works well for pyramid cases&#xa;unlock hidden inscription, clue, artifact, or passage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="720" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_light_name" value="LIGHT_BEAM_PUZZLE&#xa;mirror / crystal / beam door" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="830" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_light_contract" value="Not in current allowlist yet&#xa;Recommended extension: CasePuzzle.Type = LIGHT_BEAM_PUZZLE&#xa;same /solve-puzzle endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="830" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_light_rule" value="Bounded JSON only&#xa;mirrors[] with allowed rotations&#xa;crystals[] with allowed slots&#xa;correctPath or correctSequence&#xa;no generated Phaser code" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="830" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_light_output" value="Frontend may render Phaser lines as visual sugar&#xa;Backend remains authoritative&#xa;success unlocks scene/clue/item" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="830" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_weight_name" value="WEIGHT_PLATE_PUZZLE&#xa;place artifact on pressure plate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="940" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_weight_contract" value="Current safe mapping: USE_ITEM_ON_TARGET&#xa;targetId = item-weight-plate&#xa;requiredItemIds = expected artifact&#xa;optional future weight metadata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="940" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_weight_rule" value="Backend checks requiredItemIds today&#xa;If true weight puzzle needed later, add bounded numeric fields to CaseInteraction and validator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="940" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_weight_output" value="unlock door / hidden scene / clue&#xa;consume item only if case wants permanent placement" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="940" width="420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_validation" value="Validation guardrails&#xa;CaseValidationService rejects OPERATE_TARGET until runtime exists, unknown mechanic types, missing references, target visibility, bounded puzzle options, bounded answers, unlockSceneIds existing, and unreachable final evidence." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="740" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_ai" value="AI generation rule&#xa;AiCaseService prompt asks AI to choose only supported mechanics. AI outputs JSON case data. Backend rejects invalid JSON before publish." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="1080" width="740" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
