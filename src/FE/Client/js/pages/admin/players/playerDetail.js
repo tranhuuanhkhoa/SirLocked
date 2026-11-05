@@ -1,5 +1,5 @@
 import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
-import { EN, T, avatarFor, entranceKey, frameKey, prepareCosmetics, titleHTML, titleKey } from '../../../cosmetics/index.js';
+import { EN, T, avatarFor, entranceKey, frameKey, loadCosmeticCatalog, prepareCosmetics, titleHTML, titleKey } from '../../../cosmetics/index.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
@@ -322,7 +322,8 @@ export function mountPlayerDetail(host, userId, { signal }) {
 
   (async () => {
     try {
-      state = await adminPlayersApi.detail(userId);
+      // What this player wears may have been made on the cosmetics page, which only the catalog can draw.
+      [state] = await Promise.all([adminPlayersApi.detail(userId), loadCosmeticCatalog()]);
     } catch (error) {
       if (!signal?.aborted) host.innerHTML = `<div class="page">${alertBox(error)}<p><a class="adp-link" href="#/admin/players">Về danh sách người chơi</a></p></div>`;
       return;

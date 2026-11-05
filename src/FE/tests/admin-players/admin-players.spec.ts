@@ -176,6 +176,32 @@ test.describe('danh sách người chơi', () => {
 test.describe('chi tiết người chơi', () => {
   const routes = () => ({ [`GET /api/admin/players/${USER_ID}`]: () => detail() });
 
+  test('người chơi đang mặc mỹ phẩm do admin tạo: vẽ đúng, tên đúng, trang không lỗi', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const made = (id: string, category: string, name: string, template: string, params: Record<string, unknown>) => ({
+      id, category, name, rarity: 'RARE', retired: false, visual: { iconKey: null, imageUrl: null, builtinId: null, template, params },
+    });
+    await fakeApi(page, {
+      [`GET /api/admin/players/${USER_ID}`]: () => ({ ...detail(), look: { frameDefId: 'frame_tu-lam', titleDefId: 'title_tu-lam', entranceDefId: 'entrance_tu-lam' } }),
+      'GET /api/cosmetics/catalog': () => ({
+        defaults: {}, rareXp: 150, epicXp: 600,
+        items: [
+          made('frame_tu-lam', 'FRAME', 'Viền Tự Làm', 'builtin-clone', { base: 'dong' }),
+          made('title_tu-lam', 'TITLE', 'Danh Hiệu Tự Làm', 'style', { style: 'ngoc' }),
+          made('entrance_tu-lam', 'ENTRANCE', 'Bước Tự Làm', 'lang-le', {}),
+        ],
+      }),
+    });
+    await page.goto(`/#/admin/players/${USER_ID}`);
+    const look = page.locator('[data-adp-look]');
+    await expect(look.locator('[data-adp-title] .hs-tl')).toHaveAttribute('aria-label', 'Danh hiệu Danh Hiệu Tự Làm');
+    await expect(look).toContainText('Bước Tự Làm');
+    // The painter runs on its own clock: an unknown frame throws on each repaint, not at once.
+    await page.waitForTimeout(1000);
+    expect(errors).toEqual([]);
+  });
+
   test('hiện đủ tài khoản, cấp, xu, kho đồ và mỹ phẩm đang mặc', async ({ page }) => {
     await fakeApi(page, routes());
     await page.goto(`/#/admin/players/${USER_ID}`);
