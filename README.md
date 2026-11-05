@@ -111,7 +111,7 @@ the README there); art is in `src/FE/public/assets/cosmetics/`.
   and the market refuses to list, bid on, trade or exchange it.
 - `title_tho-khoa` ("Giải 25 câu đố ổ khóa") stays closed: rooms record which puzzles were solved, not by whom.
 - `GameHub.JoinRoom` announces an arrival once per seat through SignalR `PlayerEntrance`. A refresh or reconnect plays nothing.
-- Uploaded avatars need Cloudinary; without it the upload button is not offered.
+- Uploaded avatars need `Cloudinary__Enabled=true`, `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret`; without them the upload button is not offered. `bash scripts/set-cloudinary.sh` checks them with Cloudinary and sets them on the server. The browser turns the picked photo into a square of at most 512px before sending it, so phone photos up to 40 MB work. The API then re-encodes it as a 256px WebP.
 
 ## Run Locally
 

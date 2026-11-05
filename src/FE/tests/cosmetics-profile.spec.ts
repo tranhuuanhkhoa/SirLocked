@@ -437,33 +437,193 @@ test('the avatar picker offers the presets, remembers the choice, and hides uplo
   await page.getByRole('button', { name: 'Đổi ảnh đại diện' }).click();
   await expect(page.locator('[data-hs-avatar]')).toHaveCount(4);
   await expect(page.locator('[data-hs-upload]')).toHaveCount(0);
+  await expect(page.locator('[data-hs-avatars-note]')).toBeHidden();
   await page.getByRole('button', { name: 'Kiếm khách' }).click();
   await expect(page.getByRole('button', { name: 'Kiếm khách' })).toHaveAttribute('aria-pressed', 'true');
   expect(state.calls.avatar).toEqual(['kiem']);
 });
 
-test('with an image host the picker can upload, and refuses a wrong file on the spot', async ({ page }) => {
+/** A picture encoded by the browser itself. Noise makes a PNG as heavy as a photo straight from a phone. */
+async function picture(page: Page, { width, height, type = 'image/png', noise = false, left = '#d01010', right = '#1010d0' }: {
+  width: number; height: number; type?: string; noise?: boolean; left?: string; right?: string;
+}) {
+  const base64 = await page.evaluate(({ width, height, type, noise, left, right }) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const c = canvas.getContext('2d')!;
+    if (noise) {
+      const image = c.createImageData(width, height);
+      for (let i = 0; i < image.data.length; i++) image.data[i] = i % 4 === 3 ? 255 : Math.random() * 256;
+      c.putImageData(image, 0, 0);
+    } else {
+      c.fillStyle = left;
+      c.fillRect(0, 0, width / 2, height);
+      c.fillStyle = right;
+      c.fillRect(width / 2, 0, width / 2, height);
+    }
+    return canvas.toDataURL(type).split(',')[1];
+  }, { width, height, type, noise, left, right });
+  return Buffer.from(base64, 'base64');
+}
+
+/** The EXIF tag a phone writes instead of turning the pixels: 6 means "show this turned a quarter clockwise". */
+function withOrientation(jpeg: Buffer, orientation: number) {
+  const tiff = [0x4d, 0x4d, 0, 0x2a, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, orientation, 0, 0, 0, 0, 0, 0];
+  const body = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), Buffer.from(tiff)]);
+  const length = body.length + 2;
+  return Buffer.concat([jpeg.subarray(0, 2), Buffer.from([0xff, 0xe1, length >> 8, length & 255]), body, jpeg.subarray(2)]);
+}
+
+const HOST_URL = 'https://res.cloudinary.com/test/a.webp';
+
+/** A signed-in player on a site with an image host: the file handed to the network is kept for the test to look at. */
+async function prepareUpload(page: Page, answer?: (route: Route, attempt: number) => Promise<unknown>) {
   const state = await prepare(page, progress({ canUploadAvatar: true }));
-  let uploads = 0;
-  await page.route('**/api/progress/avatar/upload', (route) => {
-    uploads++;
-    state.me = progress({ canUploadAvatar: true, avatar: 'upload', avatarUrl: 'https://res.cloudinary.com/test/a.webp' });
-    return ok(route, state.me);
+  await page.addInitScript(() => {
+    const native = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      if (String(input).endsWith('/avatar/upload')) (window as any).__sentAvatar = (init!.body as FormData).get('file');
+      return native(input, init);
+    };
+  });
+  const uploads = { count: 0 };
+  await page.route('**/api/progress/avatar/upload', async (route) => {
+    uploads.count++;
+    const answered = await answer?.(route, uploads.count);
+    if (answered !== undefined) return;
+    state.me = progress({ canUploadAvatar: true, avatar: 'upload', avatarUrl: HOST_URL });
+    await ok(route, state.me);
   });
   await page.goto('/#/detective');
+  const hosted = await picture(page, { width: 64, height: 64, left: '#10c010', right: '#10c010' });
+  await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({
+    contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: hosted,
+  }));
   await page.getByRole('button', { name: 'Đổi ảnh đại diện' }).click();
+  return { state, uploads };
+}
 
-  await page.locator('[data-hs-upload]').setInputFiles({ name: 'evil.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
-  await expect(page.locator('#toast-root')).toContainText('JPG, PNG hoặc WebP');
-  expect(uploads).toBe(0);
+const sentAvatar = (page: Page) => page.evaluate(async () => {
+  const file = (window as any).__sentAvatar as File;
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const c = canvas.getContext('2d')!;
+  c.drawImage(bitmap, 0, 0);
+  const at = (x: number, y: number) => { const [r, g, b] = c.getImageData(x, y, 1, 1).data; return { r, g, b }; };
+  return { type: file.type, size: file.size, width: bitmap.width, height: bitmap.height, top: at(bitmap.width / 2, bitmap.height / 4), bottom: at(bitmap.width / 2, (bitmap.height * 3) / 4) };
+});
 
-  await page.locator('[data-hs-upload]').setInputFiles({ name: 'big.png', mimeType: 'image/png', buffer: Buffer.alloc(2 * 1024 * 1024 + 1) });
-  await expect(page.locator('#toast-root')).toContainText('2 MB');
-  expect(uploads).toBe(0);
+const portraitIsGreen = (page: Page) => page.evaluate(() => {
+  const canvas = document.querySelector('[data-hs-me]') as HTMLCanvasElement;
+  const [r, g, b] = canvas.getContext('2d')!.getImageData(canvas.width / 2, canvas.height / 2, 1, 1).data;
+  return g > r && g > b;
+});
 
-  await page.locator('[data-hs-upload]').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: Buffer.from([1, 2, 3]) });
+const MB = 1024 * 1024;
+
+test('a photo far over 2 MB is made small before it is sent, and what the host returns becomes the portrait', async ({ page }) => {
+  await prepareUpload(page);
+  expect(await portraitIsGreen(page)).toBe(false);
+  const photo = await picture(page, { width: 1600, height: 1200, noise: true });
+  expect(photo.length).toBeGreaterThan(2 * MB);
+
+  await page.locator('[data-hs-upload]').setInputFiles({ name: 'IMG_0001.png', mimeType: 'image/png', buffer: photo });
+
   await expect(page.locator('[data-hs-avatar="upload"]')).toHaveAttribute('aria-pressed', 'true');
-  expect(uploads).toBe(1);
+  const sent = await sentAvatar(page);
+  expect(sent).toMatchObject({ width: 512, height: 512 });
+  expect(sent.size).toBeLessThan(2 * MB);
+  await expect.poll(() => portraitIsGreen(page)).toBe(true);
+});
+
+test('a phone photo stored sideways arrives upright and square', async ({ page }) => {
+  await prepareUpload(page);
+  const stored = await picture(page, { width: 400, height: 200, type: 'image/jpeg' });
+
+  await page.locator('[data-hs-upload]').setInputFiles({ name: 'IMG_0002.jpg', mimeType: 'image/jpeg', buffer: withOrientation(stored, 6) });
+
+  await expect(page.locator('[data-hs-avatar="upload"]')).toHaveAttribute('aria-pressed', 'true');
+  const sent = await sentAvatar(page);
+  expect(sent).toMatchObject({ width: 200, height: 200 });
+  // Turned clockwise, the red left half of the file is on top.
+  expect(sent.top.r).toBeGreaterThan(sent.top.b);
+  expect(sent.bottom.b).toBeGreaterThan(sent.bottom.r);
+});
+
+test('a picture whose type the phone did not report is still accepted', async ({ page }) => {
+  const { uploads } = await prepareUpload(page);
+  const photo = await picture(page, { width: 300, height: 300, type: 'image/jpeg' });
+
+  await page.locator('[data-hs-upload]').setInputFiles({ name: 'photo', mimeType: '', buffer: photo });
+
+  await expect(page.locator('[data-hs-avatar="upload"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(uploads.count).toBe(1);
+});
+
+test('a file that cannot become a picture is refused on the spot, and says why', async ({ page }) => {
+  const { uploads } = await prepareUpload(page);
+
+  await page.locator('[data-hs-upload]').setInputFiles({ name: 'evil.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9"/>') });
+  await expect(page.locator('#toast-root')).toContainText('JPG, PNG hoặc WebP');
+
+  await page.locator('[data-hs-upload]').setInputFiles({ name: 'IMG_0003.heic', mimeType: 'image/heic', buffer: Buffer.from('ftypheic not decodable here') });
+  await expect(page.locator('#toast-root')).toContainText('Không đọc được ảnh này');
+
+  await page.locator('[data-hs-upload]').setInputFiles({ name: 'huge.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(40 * MB + 1) });
+  await expect(page.locator('#toast-root')).toContainText('40 MB');
+
+  expect(uploads.count).toBe(0);
+});
+
+test('while a picture is on its way the tile says so, and after a failure the same file can be sent again', async ({ page }) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const { uploads } = await prepareUpload(page, async (route, attempt) => {
+    if (attempt > 1) return undefined;
+    await held;
+    await route.fulfill({ status: 502, json: { success: false, message: 'The image host rejected the picture.' } });
+    return true;
+  });
+  const photo = { name: 'me.jpg', mimeType: 'image/jpeg', buffer: await picture(page, { width: 300, height: 300, type: 'image/jpeg' }) };
+
+  await page.locator('[data-hs-upload]').setInputFiles(photo);
+  await expect(page.locator('.hs-up')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('.hs-up')).toContainText('Đang tải');
+  await expect(page.locator('[data-hs-upload]')).toHaveCount(0);
+
+  release();
+  await expect(page.locator('#toast-root')).toContainText('Chưa lưu được ảnh');
+  await expect(page.locator('.hs-up')).not.toHaveAttribute('aria-busy', 'true');
+
+  await page.locator('[data-hs-upload]').setInputFiles(photo);
+  await expect(page.locator('[data-hs-avatar="upload"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(uploads.count).toBe(2);
+});
+
+test('on a phone, tapping the button brings the picker into view instead of opening it below the screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await prepareUpload(page);
+
+  await expect(page.locator('.hs-up')).toBeInViewport({ ratio: 1 });
+});
+
+test('on a phone the upload is within reach and offers the gallery as well as the camera', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await prepareUpload(page);
+
+  const input = page.locator('[data-hs-upload]');
+  await expect(input).toHaveAttribute('accept', 'image/*');
+  await expect(input).not.toHaveAttribute('capture');
+  const tile = (await page.locator('.hs-up').boundingBox())!;
+  expect(tile.width).toBeGreaterThanOrEqual(44);
+  expect(tile.height).toBeGreaterThanOrEqual(44);
+  expect(tile.x).toBeGreaterThanOrEqual(0);
+  expect(tile.x + tile.width).toBeLessThanOrEqual(390);
+  await expect(page.locator('[data-hs-avatars-note]')).toBeVisible();
+  await expect(page.locator('[data-hs-avatars-note]')).toContainText('máy tính hoặc điện thoại');
 });
 
 test('a colleague sees the portrait and the level, but no tabs or buttons', async ({ page }) => {

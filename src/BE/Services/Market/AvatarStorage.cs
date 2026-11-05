@@ -17,8 +17,10 @@ public interface IAvatarStorage
 }
 
 /// <summary>The project's existing Cloudinary account. A signed upload to one fixed public id per user, so re-uploading costs no storage.</summary>
-public sealed class CloudinaryAvatarStorage(HttpClient client, IOptions<CloudinarySettings> cloudinary) : IAvatarStorage
+public sealed class CloudinaryAvatarStorage(HttpClient client, IOptions<CloudinarySettings> cloudinary, ILogger<CloudinaryAvatarStorage> logger) : IAvatarStorage
 {
+    private const int MaxLoggedAnswer = 500;
+
     public bool IsAvailable
     {
         get
@@ -49,9 +51,29 @@ public sealed class CloudinaryAvatarStorage(HttpClient client, IOptions<Cloudina
         form.Add(file, "file", "avatar.webp");
 
         using var response = await client.PostAsync($"https://api.cloudinary.com/v1_1/{Uri.EscapeDataString(settings.CloudName)}/image/upload", form, ct);
-        if (!response.IsSuccessStatusCode) throw ApiException.BadGateway("The image host rejected the picture.");
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-        return json.RootElement.GetProperty("secure_url").GetString()
-            ?? throw ApiException.BadGateway("The image host returned no address for the picture.");
+        var answer = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            // Says what Cloudinary disliked, such as a wrong key or signature. Its answers carry no secret.
+            logger.LogError("Cloudinary refused an avatar with HTTP {StatusCode}: {Answer}", (int)response.StatusCode, answer[..Math.Min(answer.Length, MaxLoggedAnswer)]);
+            throw ApiException.BadGateway("The image host rejected the picture.");
+        }
+        return AddressIn(answer) ?? throw ApiException.BadGateway("The image host returned no address for the picture.");
+    }
+
+    private static string? AddressIn(string answer)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(answer);
+            return json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty("secure_url", out var url)
+                && url.ValueKind == JsonValueKind.String
+                && url.GetString() is { Length: > 0 } address ? address : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

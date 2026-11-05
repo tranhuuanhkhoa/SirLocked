@@ -101,11 +101,15 @@ test('moving frames are drawn about 30 times a second, not at the speed of the s
   await page.goto('/#/detective');
   await settle(page);
 
-  const before = await page.evaluate(() => (window as any).__draws as number);
+  // Against the time that really passed: on a busy machine the wait below runs well over its second.
+  const sample = () => page.evaluate(() => ({ draws: (window as any).__draws as number, at: performance.now() }));
+  const before = await sample();
   await page.waitForTimeout(1000);
-  const perSecond = (await page.evaluate(() => (window as any).__draws as number)) - before;
+  const after = await sample();
+  const perSecond = ((after.draws - before.draws) * 1000) / (after.at - before.at);
   expect(perSecond).toBeGreaterThan(5);
-  expect(perSecond).toBeLessThanOrEqual(34);
+  // The painter's 29 ms interval allows 34.5; the speed of the screen would be 60 or more.
+  expect(perSecond).toBeLessThanOrEqual(40);
 });
 
 test('a frame not owned yet is a still picture, a frame owned keeps its motion', async ({ page }) => {

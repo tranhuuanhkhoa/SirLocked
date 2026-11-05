@@ -209,3 +209,43 @@ test('a public login 401 neither refreshes nor revokes an existing session', asy
   expect(refreshCalls).toBe(0);
   expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, hash: '' });
 });
+
+async function sendForm(page: Page) {
+  return page.evaluate(async () => {
+    const modulePath = '/Client/js/api/http.js';
+    const { apiFetchForm } = await import(modulePath);
+    const form = new FormData();
+    form.append('file', new Blob(['picture']), 'a.webp');
+    return apiFetchForm('/api/form-write', form).then((data: unknown) => ({ data }), (error: { status: number }) => ({ status: error.status }));
+  });
+}
+
+test('a form upload with an expired token refreshes once and sends the same form again', async ({ context, page }) => {
+  await prepare(context, page);
+  const seen: Array<{ auth?: string; hasFile: boolean }> = [];
+  await context.route('**/api/auth/refresh', (route) => route.fulfill({ json: { success: true, data: rotated } }));
+  await context.route('**/api/form-write', (route) => {
+    const auth = route.request().headers().authorization;
+    seen.push({ auth, hasFile: route.request().headers()['content-type']?.startsWith('multipart/form-data') ?? false });
+    return auth === 'Bearer new-access'
+      ? route.fulfill({ json: { success: true, data: { stored: true } } })
+      : route.fulfill({ status: 401, json: { success: false, message: 'expired' } });
+  });
+
+  expect(await sendForm(page)).toEqual({ data: { stored: true } });
+
+  expect(seen).toEqual([{ auth: 'Bearer expired-access', hasFile: true }, { auth: 'Bearer new-access', hasFile: true }]);
+  expect((await snapshot(page)).token).toBe('new-access');
+});
+
+test('a form upload refused again after the refresh ends the session instead of trying forever', async ({ context, page }) => {
+  await prepare(context, page);
+  let attempts = 0;
+  await context.route('**/api/auth/refresh', (route) => route.fulfill({ json: { success: true, data: rotated } }));
+  await context.route('**/api/form-write', (route) => { attempts++; return route.fulfill({ status: 401, json: { success: false, message: 'refused' } }); });
+
+  expect(await sendForm(page)).toEqual({ status: 401 });
+
+  expect(attempts).toBe(2);
+  expect((await snapshot(page)).token).toBeNull();
+});
