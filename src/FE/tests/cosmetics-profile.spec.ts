@@ -42,7 +42,7 @@ const ok = (route: Route, data: unknown) => route.fulfill({ json: { success: tru
 const fail = (route: Route, status: number, code: string) =>
   route.fulfill({ status, json: { success: false, message: code, errors: { code, messageKey: `market.${code}` } } });
 
-async function prepare(page: Page, me: Progress, { reduced = true } = {}) {
+async function prepare(page: Page, me: Progress, { reduced = true, account = { verified: true, hasPassword: true } } = {}) {
   await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
   await page.addInitScript(() => {
     localStorage.setItem('sirlocked.token', 'profile-test-token');
@@ -61,7 +61,7 @@ async function prepare(page: Page, me: Progress, { reduced = true } = {}) {
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => ok(route, null));
   await page.route('**/api/market/me', (route) => ok(route, WALLET));
   await page.route('**/api/profile/me', (route) => ok(route, {
-    displayName: 'Tuấn Yên', role: 'PLAYER', casesPlayed: 0, casesSolved: 0, successRate: 0, isEmailVerified: true, hasPassword: false,
+    displayName: 'Tuấn Yên', role: 'PLAYER', casesPlayed: 0, casesSolved: 0, successRate: 0, isEmailVerified: account.verified, hasPassword: account.hasPassword,
     rank: { tier: 'APPRENTICE', tierLabel: 'Tập sự', solved: 0, nextThreshold: 3, nextTierLabel: 'Thám tử', progressPercent: 0 },
   }));
   await page.route('**/api/progress/me', (route) => ok(route, state.me));
@@ -98,7 +98,7 @@ function collectPageErrors(page: Page) {
 
 const tab = (page: Page, name: string) => page.getByRole('tab', { name });
 
-test('the profile keeps what it had and adds the portrait with four tabs', async ({ page }) => {
+test('the profile is the portrait with its tabs, and nothing of the old paper page below it', async ({ page }) => {
   await prepare(page, progress());
   const errors = collectPageErrors(page);
   await page.goto('/#/detective');
@@ -107,11 +107,67 @@ test('the profile keeps what it had and adds the portrait with four tabs', async
   await expect(page.locator('[data-hs-level]')).toHaveText('9');
   await expect(page.locator('[data-hs-xp]')).toHaveText('120 / 520 KN');
   await expect(page.locator('[data-hs-title] .hs-tl')).toHaveAttribute('aria-label', 'Danh hiệu Tân Binh');
-  await expect(page.getByRole('tab')).toHaveText(['Đổi kinh nghiệm', 'Viền avatar', 'Danh hiệu', 'Hiệu ứng vào sảnh']);
-  // What was on the page before.
-  await expect(page.locator('.bpa-profile-id')).toBeVisible();
-  await expect(page.locator('.bpa-profile-cabinet')).toBeVisible();
+  await expect(page.getByRole('tab')).toHaveText(['Đổi kinh nghiệm', 'Viền avatar', 'Danh hiệu', 'Hiệu ứng vào sảnh', 'Tài khoản']);
+  // Gone: the detective card, the case record and the medal cabinet.
+  for (const removed of ['.bpa-profile-id', '.bpa-profile-stats', '.bpa-profile-cabinet', '.bpa-profile-grid', '#ws-badge-mount']) {
+    await expect(page.locator(removed)).toHaveCount(0);
+  }
   expect(errors).toEqual([]);
+});
+
+test('the page no longer asks the server for badges', async ({ page }) => {
+  await prepare(page, progress());
+  const asked: string[] = [];
+  page.on('request', (request) => { if (request.url().includes('/api/badge')) asked.push(request.url()); });
+  await page.goto('/#/detective');
+  await expect(page.locator('.hs-name')).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(asked).toEqual([]);
+});
+
+test('changing the password moved to the account tab, and it still works', async ({ page }) => {
+  await prepare(page, progress());
+  const sent: unknown[] = [];
+  await page.route('**/api/auth/change-password', (route) => { sent.push(route.request().postDataJSON()); return ok(route, null); });
+  await page.goto('/#/detective');
+  await expect(page.locator('#form-change-password')).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Tài khoản' }).click();
+  await page.locator('#bpa-profile-pw-cur').fill('Cu-mat-khau-1');
+  await page.locator('#bpa-profile-pw-new').fill('Moi-mat-khau-2');
+  await expect(page.locator('[data-rule="mix"]')).toHaveClass(/is-ok/);
+  await page.locator('#bpa-profile-pw-conf').fill('Khac-han-3');
+  await page.getByRole('button', { name: 'Lưu mật khẩu' }).click();
+  await expect(page.locator('#toast-root')).toContainText('Mật khẩu xác nhận không khớp');
+  expect(sent).toHaveLength(0);
+
+  await page.locator('#bpa-profile-pw-conf').fill('Moi-mat-khau-2');
+  await page.getByRole('button', { name: 'Lưu mật khẩu' }).click();
+  await expect(page.locator('#toast-root')).toContainText('Đổi mật khẩu thành công');
+  expect(sent).toHaveLength(1);
+});
+
+test('an unverified detective is led from the warning to the account tab, and can resend the email', async ({ page }) => {
+  await prepare(page, progress(), { account: { verified: false, hasPassword: false } });
+  let resent = 0;
+  await page.route('**/api/auth/resend-verification', (route) => { resent++; return ok(route, null); });
+  await page.goto('/#/detective');
+
+  await page.locator('#bpa-profile-alert').click();
+  await expect(page.getByRole('tab', { name: 'Tài khoản' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#hs-p-taikhoan')).toContainText('Email chưa xác minh');
+  await expect(page.locator('#form-change-password')).toHaveCount(0);
+  await page.locator('#btn-resend-verify').click();
+  await expect(page.locator('#verify-token-result')).toContainText('Đã gửi lại email xác minh');
+  expect(resent).toBe(1);
+});
+
+test('the account tab still works when the portrait cannot load', async ({ page }) => {
+  await prepare(page, progress());
+  await page.route('**/api/progress/me', (route) => fail(route, 500, 'BOOM'));
+  await page.goto('/#/detective');
+  await expect(page.locator('.hs-unavailable')).toBeVisible();
+  await expect(page.locator('#form-change-password')).toBeVisible();
 });
 
 test('the title font is requested for the plaques', async ({ page }) => {
@@ -426,15 +482,7 @@ test('a colleague sees the portrait and the level, but no tabs or buttons', asyn
   await expect(page.locator('[data-hs-title] .hs-tl')).toHaveAttribute('aria-label', 'Danh hiệu Chuyên Gia Vân Tay');
   await expect(page.getByRole('tab')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Đổi ảnh đại diện' })).toHaveCount(0);
-});
-
-test('when the portrait cannot load, the rest of the profile still works', async ({ page }) => {
-  await prepare(page, progress());
-  await page.route('**/api/progress/me', (route) => fail(route, 500, 'BOOM'));
-  await page.goto('/#/detective');
-
-  await expect(page.locator('.hs-unavailable')).toBeVisible();
-  await expect(page.locator('.bpa-profile-id')).toBeVisible();
+  await expect(page.locator('#form-change-password')).toHaveCount(0);
 });
 
 test('leaving the page stops every animation and removes its overlays', async ({ page }) => {
@@ -498,7 +546,7 @@ test('the page fits a phone, without scrolling sideways', async ({ page }) => {
   await page.goto('/#/detective');
   await expect(page.locator('.hs-name')).toBeVisible();
 
-  for (const name of ['Đổi kinh nghiệm', 'Viền avatar', 'Danh hiệu', 'Hiệu ứng vào sảnh']) {
+  for (const name of ['Đổi kinh nghiệm', 'Viền avatar', 'Danh hiệu', 'Hiệu ứng vào sảnh', 'Tài khoản']) {
     await tab(page, name).click();
     await page.waitForTimeout(100);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

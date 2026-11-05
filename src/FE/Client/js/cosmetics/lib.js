@@ -15,11 +15,21 @@ const f2 = v => (+v).toFixed(2);
 function rng(seed) { let s = (seed >>> 0) || 1; return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296; }
 const wob = (x, s = 0) => Math.sin(x + s) * 0.55 + Math.sin(x * 2.17 + s * 1.7) * 0.3 + Math.sin(x * 3.71 + s * 2.3) * 0.15; // smooth noise -1..1
 
-/* svg -> image cache (vector art rasterised once per pixel size, then composited every frame) */
+/* svg -> image cache: vector art rasterised once per pixel size, then composited every frame. The bitmap matters: an
+   <img> of an SVG is replayed on every draw, filters included, which on a GPU canvas costs far more than the pixels do. */
 const IMG = new Map();
+// One at a time, when the page has a moment: a burst of sprites arriving together must not be felt. Until then the <img> works.
+const whenIdle = work => ('requestIdleCallback' in window ? requestIdleCallback(work, { timeout: 1000 }) : setTimeout(work, 50));
+function bakeSvg(key, im) {
+  if (!im.naturalWidth) return;
+  const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+  cv.getContext('2d').drawImage(im, 0, 0);
+  cv.complete = true; cv.naturalWidth = im.naturalWidth; cv.naturalHeight = im.naturalHeight;
+  IMG.set(key, cv);
+}
 function svgImg(key, build) {
   let im = IMG.get(key);
-  if (!im) { im = new Image(); im.decoding = 'async'; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(build()); IMG.set(key, im); }
+  if (!im) { im = new Image(); im.decoding = 'async'; im.addEventListener('load', () => whenIdle(() => bakeSvg(key, im)), { once: true }); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(build()); IMG.set(key, im); }
   return im.complete && im.naturalWidth ? im : null;
 }
 const SVG = (w, h, vb, defs, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w)}" height="${Math.round(h)}" viewBox="${vb}"><defs>${defs}</defs>${body}</svg>`;

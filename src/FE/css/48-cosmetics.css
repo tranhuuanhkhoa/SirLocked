@@ -193,6 +193,10 @@
 }
 
 /* ---- what the game adds ---- */
+/* Plaques at rest hold still: a list of them all moving at once is by far the heaviest thing on the profile.
+   No animation at all, the look of reduced motion: a merely paused one would keep a GPU layer per particle.
+   Under a running entrance the whole page rests, so the entrance has the machine to itself. */
+.hs-rest .hs-tl *,.hs-stage-open #app .hs-tl *{animation:none!important}
 .hs-link{color:var(--amber-hi);text-decoration:underline;text-underline-offset:3px}
 .hs-unavailable{margin:0 0 22px;padding:14px 18px;border-radius:14px;background:#0a0c11;color:#8C94A3;font-size:14px}
 .hs-confirm-h{font-size:clamp(24px,4vw,34px)!important}

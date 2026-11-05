@@ -2,25 +2,35 @@
  * Moved as it is from the approved prototype (ho-so-src/stage.js): only imports and exports were added,
  * plus the changes listed in cosmetics/README.md. The drawing is not to be redrawn or simplified.
  */
-import { paintFrame, picImg, raysFx } from './frames.js';
+import { forgetCanvas, paintFrame, picImg, raysFx } from './frames.js';
 import { EN, drawSword, drawWarp, env, leafShape } from './fx.js';
 import { SPR, TAU, clamp, drawWing, easeInOut, easeOut, glow, lerp, motes, rng, smoke, ss, wob } from './lib.js';
-import { T, titleHTML } from './titles.js';
-import { chime } from './chime.js';
+import { T, setPlaqueMotion, titleHTML } from './titles.js';
+import { chime, warmChime } from './chime.js';
 
 const STG = { 'lang-le': [4.2, .6], 'anh-trang': [6.6, 1.5], 'mac-vu': [7, 2.3], 'truc-lam': [6.8, 1.8], 'van-kiem': [7.4, 2.1], 'huyet-nguyet': [7.2, 2.0], 'hac-duc': [7.2, 1.3], 'than-tham': [7.8, 3.3], 'kim-long': [8.2, 3.0], 'phuong-hoang': [8, 2.5] }; // [duration, hero reveal]
 const backOut = k => { k = clamp(k); const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+/* Pixels of the full-screen canvas. Its effects are soft, so 1.5x looks like 2x at about half the cost. A machine that
+   falls behind steps down further while it plays, and the next entrance starts where this one ended; the hero's portrait,
+   name and title are not on this canvas, so they stay sharp. */
+const STAGE_MAX_DPR = 1.5, STAGE_MIN_DPR = .75, STAGE_SLOW_S = .04, STAGE_SLOW_FRAMES = 10;
+let stageQuality = 1;
+const stageDpr = () => Math.max(Math.min(STAGE_MIN_DPR, window.devicePixelRatio || 1), Math.min(STAGE_MAX_DPR, window.devicePixelRatio || 1) * stageQuality);
 let stage = null;
 const stageOpen = () => !!stage;
 /* player: { name, frameId, titleId, avatar: () => Image }. onClose runs when the stage ends by itself or is skipped, not on a silent close. */
 function openStage(id, player, { onClose, skipLabel = 'Bỏ qua', arrivedLabel = 'đã vào sảnh' } = {}) {
   closeStage(true);
+  warmChime();
   const e = EN[id], el = document.createElement('div'); el.className = 'hs-stage'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Hiệu ứng vào sảnh ' + e.n);
   el.innerHTML = `<canvas class="hs-stc" aria-hidden="true"></canvas><div class="hs-hero hs-r-${e.r}"><canvas class="hs-hav" width="190" height="190" aria-hidden="true"></canvas><b class="hs-hn"></b><div class="hs-ht">${titleHTML(T[player.titleId] || T['tan-binh'], { maxW: Math.min(window.innerWidth - 32, 620) })}</div><small></small></div><i class="hs-lb hs-lb-t"></i><i class="hs-lb hs-lb-b"></i><button class="hs-skip" type="button"></button>`;
   el.querySelector('.hs-hn').textContent = player.name; el.querySelector('.hs-hero small').textContent = `${arrivedLabel} · ${e.n}`; el.querySelector('.hs-skip').textContent = skipLabel;
   document.body.append(el);
-  const cv = el.querySelector('.hs-stc'), d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d);
-  stage = { el, cv, c: cv.getContext('2d'), d, id, player, onClose, prevFocus: document.activeElement, t0: performance.now() / 1000, shown: false, parts: null };
+  const cv = el.querySelector('.hs-stc'), d = stageDpr(); cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d);
+  // The entrance has the machine to itself: plaques on the page underneath rest until it ends (see css/48-cosmetics.css).
+  document.body.classList.add('hs-stage-open');
+  setPlaqueMotion(el.querySelector('.hs-ht'), true);
+  stage = { el, cv, c: cv.getContext('2d'), d, id, player, onClose, slow: 0, lastAt: 0, hero: el.querySelector('.hs-hero'), hv: el.querySelector('.hs-hav'), heroAt: null, prevFocus: document.activeElement, t0: performance.now() / 1000, shown: false, parts: null };
   document.addEventListener('keydown', onStageKey); stageRaf = requestAnimationFrame(stageTick);
   requestAnimationFrame(() => el.classList.add('hs-on'));
   el.querySelector('.hs-skip').addEventListener('click', () => closeStage());
@@ -29,6 +39,8 @@ function openStage(id, player, { onClose, skipLabel = 'Bỏ qua', arrivedLabel =
 }
 function closeStage(silent) {
   if (!stage) return; const s = stage; stage = null; cancelAnimationFrame(stageRaf); document.removeEventListener('keydown', onStageKey);
+  document.body.classList.remove('hs-stage-open');
+  forgetCanvas(s.hv);
   s.el.classList.add('hs-out');
   if (s.prevFocus?.isConnected) s.prevFocus.focus?.({ preventScroll: true });
   // onClose waits for the fade: a queued entrance must not start on top of this one.
@@ -37,16 +49,20 @@ function closeStage(silent) {
 function stageFrame(now) {
   if (!stage) return; const S = stage, t = now - S.t0, [D, rv] = STG[S.id];
   if (t > D) { closeStage(); return; }
+  S.slow = S.lastAt && now - S.lastAt > STAGE_SLOW_S ? S.slow + 1 : Math.max(0, S.slow - 1); S.lastAt = now;
+  if (S.slow >= STAGE_SLOW_FRAMES && S.d > STAGE_MIN_DPR) { stageQuality *= .75; S.d = stageDpr(); S.slow = 0; }
   const W = innerWidth, H = innerHeight, c = S.c;
   if (S.cv.width !== Math.round(W * S.d)) { S.cv.width = Math.round(W * S.d); S.cv.height = Math.round(H * S.d); }
   c.setTransform(S.d, 0, 0, S.d, 0, 0); c.clearRect(0, 0, W, H);
-  const hv = S.el.querySelector('.hs-hav'), hr = hv.getBoundingClientRect(), cx = hr.left + hr.width / 2, cy = hr.top + hr.height / 2, m = Math.min(W, H);
-  if (!S.shown && t >= rv) { S.shown = true; S.el.querySelector('.hs-hero').classList.add('hs-show'); chime(EN[S.id].r); }
+  // The hero stays centred while the camera scales it, so where it sits is read twice a second, not every frame.
+  if (!S.heroAt || now - S.heroAt.at > .5) { const hr = S.hv.getBoundingClientRect(); S.heroAt = { at: now, x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 }; }
+  const hv = S.hv, cx = S.heroAt.x, cy = S.heroAt.y, m = Math.min(W, H);
+  if (!S.shown && t >= rv) { S.shown = true; S.hero.classList.add('hs-show'); chime(EN[S.id].r); }
   if (t > D - .6) S.el.classList.add('hs-fading');
   // cinematic camera: slow push-in with a gentle drift, smooth (not jittery) shake
   const cam = 1 + .085 * easeInOut(t / D), dx = Math.sin(t * .35) * m * .012, dy = Math.cos(t * .27) * m * .008;
   const shA = S.shake ? S.shake(t) : 0, sx = shA * Math.sin(t * 47) * .6, sy = shA * Math.cos(t * 39) * .6;
-  S.el.querySelector('.hs-hero').style.scale = (1 + (cam - 1) * .6).toFixed(4);
+  S.hero.style.scale = (1 + (cam - 1) * .6).toFixed(4);
   c.save(); c.translate(W / 2 + dx + sx, H / 2 + dy + sy); c.scale(cam, cam); c.translate(-W / 2, -H / 2);
   const ex = W / 2 + (cx - W / 2) / cam, ey = H / 2 + (cy - H / 2) / cam;
   drawStage(c, S, S.id, t, { W, H, cx: ex, cy: ey, m, D, rv });

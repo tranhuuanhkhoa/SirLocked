@@ -3,8 +3,8 @@ import { marketApi, newRequestId } from '../../api/marketApi.js';
 import { progressApi } from '../../api/progressApi.js';
 import {
   AVS, ENTRANCES, FR, FRAME_PREFIX, ENTRANCE_PREFIX, GROUPS, RAR, T, TITLES, TITLE_PREFIX,
-  avatarFor, avatarImg, chime, closeStage, frameKey, paintFrame, prepareCosmetics, rarOf, reduce, titleHTML, titleKey,
-  entranceKey, whenTitleFontReady,
+  avatarFor, avatarImg, chime, closeStage, forgetCanvas, frameKey, paintFrame, prepareCosmetics, rarOf, reduce, setPlaqueMotion, titleHTML, titleKey,
+  entranceKey, warmEntranceArt, whenTitleFontReady,
 } from '../../cosmetics/index.js';
 import { playEntrance } from '../../cosmetics/entrances.js';
 import { createPainter } from '../../cosmetics/painter.js';
@@ -66,10 +66,12 @@ const fmt = (value) => Number(value).toLocaleString(uiLanguage() === 'vi' ? 'vi-
 /**
  * The cosmetic half of a detective's profile: portrait in its frame, title, level, and for one's own
  * profile the four tabs of the approved design. The server decides everything: what is owned, what is
- * worn, what an exchange pays. Returns how to take it all down again.
+ * worn, what an exchange pays. `extraTabs` adds tabs that need none of that ({ id, label(), render(panel) }).
+ * Returns `dispose` to take it all down again and `openTab(id)`.
  */
-export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName }) {
+export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, extraTabs = [] }) {
   prepareCosmetics();
+  const tabs = [...TABS, ...extraTabs];
   const painter = createPainter();
   const listeners = new AbortController();
   let disposed = false;
@@ -78,6 +80,16 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
   let busy = false;
   let entrance = null;
   let resizeTimer = 0;
+  let unavailable = false;
+  let headerOnScreen = true;
+  // The plaque at the top rests while it is scrolled away, which is most of the time in a long tab.
+  const headerWatch = 'IntersectionObserver' in window
+    ? new IntersectionObserver((entries) => {
+      headerOnScreen = entries[entries.length - 1].isIntersecting;
+      const titleHost = host.querySelector('[data-hs-title]');
+      if (titleHost) setPlaqueMotion(titleHost, headerOnScreen);
+    })
+    : null;
   // One key per user action; kept after a failed request so resending it cannot pay twice.
   let retry = null;
 
@@ -118,13 +130,14 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
           <div class="hs-avs" data-hs-avatars></div>
         </section>
         <div class="hs-tabs" role="tablist" aria-label="${escapeHtml(tr('Profile sections', 'Mục hồ sơ'))}">
-          ${TABS.map((tab) => `<button class="hs-tab" role="tab" type="button" id="hs-tab-${tab.id}" data-hs-tab="${tab.id}" aria-controls="hs-p-${tab.id}" aria-selected="false">${escapeHtml(tab.label())}</button>`).join('')}
+          ${tabs.map((tab) => `<button class="hs-tab" role="tab" type="button" id="hs-tab-${tab.id}" data-hs-tab="${tab.id}" aria-controls="hs-p-${tab.id}" aria-selected="false">${escapeHtml(tab.label())}</button>`).join('')}
         </div>
-        ${TABS.map((tab) => `<section class="hs-panel" id="hs-p-${tab.id}" role="tabpanel" aria-labelledby="hs-tab-${tab.id}" hidden></section>`).join('')}` : ''}
+        ${tabs.map((tab) => `<section class="hs-panel" id="hs-p-${tab.id}" role="tabpanel" aria-labelledby="hs-tab-${tab.id}" hidden></section>`).join('')}` : ''}
         <div class="hs-sr" aria-live="polite" data-hs-live></div>
       </div>
     </section>`;
     painter.add($('[data-hs-me]'), () => look().frameId, () => avatarFor(me));
+    headerWatch?.observe($('[data-hs-title]'));
     if (isOwnProfile) {
       $('[data-hs-change]').addEventListener('click', togglePicker);
       host.querySelectorAll('[data-hs-tab]').forEach((button) => button.addEventListener('click', () => openTab(button.dataset.hsTab)));
@@ -137,6 +150,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
     const titleHost = $('[data-hs-title]');
     const width = Math.max(240, titleHost.parentElement.clientWidth - 4);
     titleHost.innerHTML = titleHTML(T[look().titleId] ?? T[DEFAULT_TITLE], { scale: 1.1, maxW: width });
+    setPlaqueMotion(titleHost, headerOnScreen);
     const bar = $('[data-hs-bar]');
     const text = $('[data-hs-xp]');
     if (!isOwnProfile) {
@@ -154,8 +168,9 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
   // ---- tabs -------------------------------------------------------------------------------
 
   function openTab(id) {
+    if (unavailable) return;
     activeTab = id;
-    for (const tab of TABS) {
+    for (const tab of tabs) {
       $(`#hs-tab-${tab.id}`).setAttribute('aria-selected', String(tab.id === id));
       const panel = $(`#hs-p-${tab.id}`);
       panel.hidden = tab.id !== id;
@@ -163,7 +178,10 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
     }
     painter.clear();
     painter.add($('[data-hs-me]'), () => look().frameId, () => avatarFor(me));
-    ({ doi: renderExchange, vien: renderFrames, danhhieu: renderTitles, sanh: renderEntrances })[id]();
+    const extra = extraTabs.find((tab) => tab.id === id);
+    if (extra) extra.render($(`#hs-p-${id}`));
+    // A tab clicked before the portrait has loaded is drawn when it arrives.
+    else if (me) ({ doi: renderExchange, vien: renderFrames, danhhieu: renderTitles, sanh: renderEntrances })[id]();
   }
 
   const renderActiveTab = () => { if (isOwnProfile) openTab(activeTab); };
@@ -303,7 +321,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
       </div>`);
     const canvas = el.querySelector('canvas');
     const stopPaint = painter.onPaint((now) => paintFrame(canvas, id, now, avatarFor(me)));
-    const finish = () => { stopPaint(); close(); showUnlocks(rest); };
+    const finish = () => { stopPaint(); forgetCanvas(canvas); close(); showUnlocks(rest); };
     el.querySelector('[data-close]').addEventListener('click', finish);
     el.querySelector('[data-use]').addEventListener('click', async () => {
       finish();
@@ -356,7 +374,9 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
       </div>`).join('');
     panel.querySelectorAll('[data-hs-frame]').forEach((button) => {
       const id = button.dataset.hsFrame;
-      painter.add(button.querySelector('canvas'), () => id, () => avatarFor(me));
+      // Dimmed and grey until owned: motion there costs as much as anywhere and shows as nothing.
+      const locked = id !== DEFAULT_FRAME && !owns(FRAME_PREFIX + id);
+      painter.add(button.querySelector('canvas'), () => id, () => avatarFor(me), { still: locked });
       button.addEventListener('click', () => {
         const frame = FR[id];
         if (id === look().frameId) return;
@@ -396,6 +416,18 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
           <span class="hs-meta">${escapeHtml(titleSource(title))}</span>
         </button>`;
     }).join('');
+    list.querySelectorAll('[data-hs-title-id]').forEach((button) => {
+      // Moving is for the plaque being looked at; the one in use already moves at the top of the page.
+      // All of them at once is what made this tab heavy.
+      setPlaqueMotion(button, false);
+      let hovered = false;
+      let focused = false;
+      const update = () => setPlaqueMotion(button, hovered || focused);
+      button.addEventListener('pointerenter', () => { hovered = true; update(); });
+      button.addEventListener('pointerleave', () => { hovered = false; update(); });
+      button.addEventListener('focusin', () => { focused = true; update(); });
+      button.addEventListener('focusout', () => { focused = false; update(); });
+    });
     list.querySelectorAll('[data-hs-title-id]').forEach((button) => button.addEventListener('click', () => {
       const id = button.dataset.hsTitleId;
       const title = T[id];
@@ -413,6 +445,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
   // ---- entrances --------------------------------------------------------------------------
 
   function renderEntrances() {
+    warmEntranceArt();
     const panel = $('#hs-p-sanh');
     const worn = look().entranceId;
     panel.innerHTML = `
@@ -540,8 +573,16 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
       if (disposed) return;
       // The rest of the profile still works; say so only where it matters to the owner.
       me = null;
-      host.innerHTML = isOwnProfile ? `<p class="hs-unavailable" role="status">${escapeHtml(tr('The portrait could not be loaded. Please try again later.', 'Chưa tải được chân dung. Vui lòng thử lại sau.'))}</p>` : '';
       painter.clear();
+      headerWatch?.disconnect();
+      host.innerHTML = isOwnProfile ? `<p class="hs-unavailable" role="status">${escapeHtml(tr('The portrait could not be loaded. Please try again later.', 'Chưa tải được chân dung. Vui lòng thử lại sau.'))}</p>` : '';
+      for (const tab of extraTabs) {
+        const section = document.createElement('section');
+        section.id = `hs-p-${tab.id}`;
+        host.append(section);
+        tab.render(section);
+      }
+      unavailable = true;
       console.warn('Cosmetics could not be loaded', error);
       return;
     }
@@ -565,14 +606,18 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName })
 
   start();
 
-  return () => {
-    if (disposed) return;
-    disposed = true;
-    clearTimeout(resizeTimer);
-    listeners.abort();
-    entrance?.cancel();
-    closeStage(true);
-    painter.dispose();
-    document.querySelector('.hs-unlock')?.remove();
+  return {
+    openTab,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      clearTimeout(resizeTimer);
+      listeners.abort();
+      entrance?.cancel();
+      closeStage(true);
+      painter.dispose();
+      headerWatch?.disconnect();
+      document.querySelector('.hs-unlock')?.remove();
+    },
   };
 }

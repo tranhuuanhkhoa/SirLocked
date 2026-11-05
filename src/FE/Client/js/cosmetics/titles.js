@@ -72,7 +72,7 @@ const ORN = {};
 function ornament(kind) {
   if (ORN[kind] !== undefined) return ORN[kind];
   if ([...IMG.values()].some(im => !im.complete)) return null;
-  const cv = document.createElement('canvas'), c = cv.getContext('2d'); cv.width = 300; cv.height = 240; const right = kind.endsWith('R');
+  const cv = document.createElement('canvas'), c = cv.getContext('2d', { willReadFrequently: true }); cv.width = 300; cv.height = 240; const right = kind.endsWith('R');
   drawWing(c, right ? 14 : 286, 200, right ? 1 : -1, 210, 0, kind.startsWith('wingAsh') ? 'ash' : 'dark', { seed: 4, raise: -0.15, breath: 0 });
   if ([...IMG.values()].some(im => !im.complete)) return null;
   try { ORN[kind] = cv.toDataURL('image/png'); } catch (e) { ORN[kind] = ''; }
@@ -102,6 +102,39 @@ function particles(spec, VW, VH, ml, mt, W, H, seed) {
   }
   return h;
 }
+/* Moving plaques share one clock at 30 ticks a second: each SMIL tick repaints the metal under the sweep, and at the
+   screen's own rate (up to 144 a second) that alone keeps a laptop GPU busy. Under a running entrance only the
+   plaque on the stage ticks. */
+const PLAQUE_TICK_MS = 33;
+const movingPlaques = new Set();
+let plaqueClock = 0;
+function tickPlaques() {
+  const held = document.body.classList.contains('hs-stage-open'), now = performance.now() / 1000;
+  for (const svg of movingPlaques) {
+    if (!svg.isConnected) movingPlaques.delete(svg);
+    else if (!held || svg.closest('.hs-stage')) svg.setCurrentTime(now);
+  }
+  if (movingPlaques.size === 0) { clearInterval(plaqueClock); plaqueClock = 0; }
+}
+/* a plaque moves through CSS and through SMIL inside its SVG; both stop and start together */
+function setPlaqueMotion(root, moving) {
+  root.classList.toggle('hs-rest', !moving);
+  root.querySelectorAll('svg.hs-plq').forEach(svg => {
+    svg.pauseAnimations();
+    if (moving && !reduce.matches) movingPlaques.add(svg); else movingPlaques.delete(svg);
+  });
+  if (movingPlaques.size > 0 && !plaqueClock) plaqueClock = setInterval(tickPlaques, PLAQUE_TICK_MS);
+}
+/* the wing ornaments are painted once, the first time a plaque that wears them is shown */
+const WING_RETRY_MS = 250, WING_RETRIES = 40;
+let wingsAsked = false;
+function askForWings() {
+  if (wingsAsked) return;
+  wingsAsked = true;
+  let tries = 0;
+  const install = () => { if (!wingCss() && ++tries < WING_RETRIES) setTimeout(install, WING_RETRY_MS); };
+  setTimeout(install, 0);
+}
 /* the plaque */
 function titleHTML(t, o = {}) {
   const st = STY[t.sty], L = LVL[t.r], id = 'tt' + (++TID); let sc = o.scale || 1; const bare = !!o.bare, still = reduce.matches;
@@ -110,6 +143,7 @@ function titleHTML(t, o = {}) {
   if (o.maxW && VW * sc > o.maxW) sc = o.maxW / VW;
   const esc = t.n.replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
   const S = bare ? '' : t.sty, P = (d, ins = 0) => platePath(st.shape, W, H, ins);
+  if (S === 'hacduc' || S === 'thienmenh') askForWings();
   let defs = `<linearGradient id="${id}t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${st.txt[0]}"/><stop offset=".55" stop-color="${st.txt[1]}"/><stop offset="1" stop-color="${st.txt[2]}"/></linearGradient>
 <linearGradient id="${id}i" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${st.inner[0]}"/><stop offset="1" stop-color="${st.inner[1]}"/></linearGradient>
 <linearGradient id="${id}hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
@@ -180,4 +214,4 @@ function titleHTML(t, o = {}) {
   return `<span class="hs-tl hs-r-${t.r}${bare ? ' hs-bare' : ''}" style="width:${(VW * sc).toFixed(1)}px;height:${(VH * sc).toFixed(1)}px" role="img" aria-label="Danh hiệu ${esc}">${plate}</span>`;
 }
 
-export { T, TITLES, installTitleDefs, titleHTML, wingCss };
+export { T, TITLES, installTitleDefs, setPlaqueMotion, titleHTML };

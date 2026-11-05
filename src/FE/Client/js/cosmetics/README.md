@@ -10,6 +10,12 @@ Những thay đổi so với bản thử, không có gì khác:
 - `avatars.js`: bỏ biến `userAvatar`, thêm `avatarFor({ avatar, avatarUrl })` cho ảnh tải lên từ máy chủ.
 - `stage.js`: `openStage(id, player, { onClose, skipLabel, arrivedLabel })` nhận dữ liệu qua tham số thay cho `me`,
   `renderLobby`, `avatarImg`; tự chạy vòng lặp `requestAnimationFrame` của mình và nghe phím Esc khi đang mở.
+  Trong lúc mở, trang bên dưới ngừng vẽ, và vị trí nhân vật chỉ đo lại 2 lần mỗi giây.
+- `frames.js`: `paintFrame` lấy kích thước từ `ResizeObserver` thay vì đo mỗi khung hình; thêm `isAnimatedFrame`,
+  `frameArtReady`, `forgetCanvas`.
+- `stage.js`: canvas toàn màn hình tối đa 1.5x và tự hạ độ phân giải khi máy không theo kịp.
+- `titles.js`: thêm `setPlaqueMotion` để dừng hoặc chạy chuyển động của một danh hiệu; SMIL của danh hiệu chạy theo một
+  đồng hồ chung 30 nhịp mỗi giây; viền cánh chỉ vẽ khi có danh hiệu cần đến.
 
 Phần viết mới cho game:
 

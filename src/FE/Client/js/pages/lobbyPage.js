@@ -8,7 +8,7 @@ import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
 import { roomInviteUrl } from '../services/roomInvites.js';
 import '../../../css/48-cosmetics.css';
-import { T, avatarFor, closeStage, frameKey, prepareCosmetics, titleHTML, titleKey, whenTitleFontReady } from '../cosmetics/index.js';
+import { T, avatarFor, closeStage, frameKey, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey, warmEntranceArt, whenTitleFontReady } from '../cosmetics/index.js';
 import { createEntranceQueue } from '../cosmetics/entrances.js';
 import { createPainter } from '../cosmetics/painter.js';
 
@@ -159,6 +159,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
   let shown = null;
 
   prepareCosmetics();
+  warmEntranceArt();
   const painter = createPainter();
   // Only ever plays while this room is still waiting: the game starting ends it.
   const entrances = createEntranceQueue({
@@ -563,6 +564,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     app.querySelectorAll('[data-seat-title]').forEach((slot) => {
       const player = room.players.find((p) => p.userId === slot.dataset.seatTitle);
       slot.innerHTML = titleHTML(T[titleKey(player?.titleDefId)] ?? T['tan-binh'], { scale: 0.74, bare: true, maxW: slot.clientWidth || undefined });
+      setPlaqueMotion(slot, true);
     });
 
     qs('#copy-invite', app)?.addEventListener('click', async () => {

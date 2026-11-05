@@ -1,5 +1,9 @@
 /* sound: a soft bowl-like chime, richer with rarity */
 let AC = null;
+/* `new AudioContext()` stalls the page for a moment: it must not happen at the instant an entrance reveals its hero */
+export function warmChime() {
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* audio unavailable */ }
+}
 export function chime(r) {
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();

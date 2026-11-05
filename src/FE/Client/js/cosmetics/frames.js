@@ -375,8 +375,29 @@ function drawAvatarIn(c, h, img) {
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r = Math.max(w, hh) / 2, g = c.createRadialGradient(cx, cy - r * .1, r * .55, cx, cy, r * 1.02); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)'); c.fillStyle = g; c.fillRect(x0, y0, w, hh);
   c.restore();
 }
+/* a canvas's layout width, kept by one observer: measuring it every frame would force a style pass per canvas, and
+   a measured size follows CSS transforms, so a canvas under a moving camera would be reallocated on every frame */
+const CSS_W = new WeakMap();
+const sizes = 'ResizeObserver' in window ? new ResizeObserver(es => { for (const e of es) CSS_W.set(e.target, e.contentRect.width); }) : null;
+function cssWidth(cv) {
+  let w = CSS_W.get(cv);
+  if (w === undefined) { w = cv.clientWidth; CSS_W.set(cv, w); sizes?.observe(cv); }
+  return w;
+}
+function forgetCanvas(cv) { CSS_W.delete(cv); sizes?.unobserve(cv); }
+/* false when nothing in this frame depends on time, so one paint is all it ever needs */
+function isAnimatedFrame(id) {
+  const f = FR[id] || FR.none;
+  return !!(LIVE[id] || f.back || f.mid || f.rot || f.fx || f.sheen || f.picSheen || f.picFx || f.picRot || f.picUnder);
+}
+/* whether the art this frame draws has arrived, at this canvas size */
+function frameArtReady(id, S) {
+  const f = FR[id] || FR.none;
+  if (f.pic) return !!picImg(f.pic) && (!f.picRot || !!layer(id, 'rot', S));
+  return ['under', 'art', 'rot', 'top'].every(name => !f[name] || !!layer(id, name, S));
+}
 function paintFrame(cv, id, t, img) {
-  const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1), css = r.width || cv.width / dpr;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), css = cssWidth(cv) || cv.width / dpr;
   const S = Math.max(32, Math.round(css * dpr)); if (cv.width !== S) { cv.width = S; cv.height = S; }
   const c = cv.getContext('2d'), k = S / 200, f = FR[id] || FR.none, tt = reduce.matches ? 2.2 : t;
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, S, S); c.setTransform(k, 0, 0, k, 0, 0); c.imageSmoothingQuality = 'high';
@@ -406,4 +427,4 @@ function paintFrame(cv, id, t, img) {
   c.save(); liveFront(c, id, 100, 100, 70, tt); c.restore();
 }
 
-export { FR, GROUPS, LV_FRAMES, blossomSVG, paintFrame, picImg, raysFx, roseSVG };
+export { FR, GROUPS, LV_FRAMES, blossomSVG, forgetCanvas, frameArtReady, isAnimatedFrame, paintFrame, picImg, raysFx, roseSVG };
