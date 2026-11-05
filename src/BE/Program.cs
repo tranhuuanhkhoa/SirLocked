@@ -14,6 +14,8 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Admin;
+using SirLocked.Api.Services.Catalog;
 using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Market;
@@ -213,7 +215,12 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
+builder.Services.AddCatalog(); // Danh mục vật phẩm, hòm, phần thưởng trong MongoDB (ICatalogProvider)
 builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
+builder.Services.AddAdminFoundation(); // Nhật ký admin, tải ảnh admin
+builder.Services.AddAdminChests();
+builder.Services.AddAdminCosmetics();
+builder.Services.AddAdminPlayers();
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddRateLimiter(options =>
@@ -433,6 +440,8 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         await db.PingAsync();
         await db.EnsureIndexesAsync();
+        await scope.ServiceProvider.GetRequiredService<CatalogSeeder>().SeedAsync();
+        await scope.ServiceProvider.GetRequiredService<ICatalogProvider>().RefreshAsync();
         var seedOptions = ResolveAdminSeedOptions(app.Configuration, app.Environment);
         if (seedOptions is not null)
         {

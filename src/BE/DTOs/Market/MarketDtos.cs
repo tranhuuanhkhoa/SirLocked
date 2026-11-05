@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SirLocked.Api.Services.Catalog;
 
 namespace SirLocked.Api.DTOs.Market;
 
@@ -12,7 +13,8 @@ public sealed record ItemDefDto(
     string DescriptionEn,
     long ReferencePrice,
     string? IconKey = null,
-    bool Tradable = true);
+    bool Tradable = true,
+    ItemVisual? Visual = null);
 
 public sealed record WalletDto(
     long Balance,

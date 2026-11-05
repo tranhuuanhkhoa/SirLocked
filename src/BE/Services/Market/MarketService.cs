@@ -9,6 +9,7 @@ using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Models.Market;
+using SirLocked.Api.Services.Catalog;
 
 namespace SirLocked.Api.Services.Market;
 
@@ -24,11 +25,13 @@ public sealed partial class MarketService
 
     private readonly MarketStore _store;
     private readonly ILogger<MarketService> _logger;
+    private readonly ICatalogProvider _catalog;
 
-    public MarketService(MarketStore store, ILogger<MarketService> logger)
+    public MarketService(MarketStore store, ILogger<MarketService> logger, ICatalogProvider? catalog = null)
     {
         _store = store;
         _logger = logger;
+        _catalog = catalog ?? FixedCatalogProvider.Default;
     }
 
     private DateTime Now => _store.Now;
@@ -147,25 +150,38 @@ public sealed partial class MarketService
     // ------------------------------------------------------------------ catalog & browse
 
     public static ItemDefDto ToDefDto(MarketItemDef def) =>
-        new(def.Id, def.Category, def.Rarity, def.Name, def.NameEn, def.Description, def.DescriptionEn, def.ReferencePrice, def.IconKey, def.Tradable);
+        new(def.Id, def.Category, def.Rarity, def.Name, def.NameEn, def.Description, def.DescriptionEn, def.ReferencePrice, def.IconKey, def.Tradable, def.Visual);
 
-    internal static ItemDefDto DefDto(string defId) =>
-        MarketCatalog.Find(defId) is { } def
+    internal ItemDefDto DefDto(string defId) =>
+        _catalog.Current.Find(defId) is { } def
             ? ToDefDto(def)
             : new ItemDefDto(defId, MarketCategories.Magnifier, MarketRarities.Common, defId, defId, string.Empty, string.Empty, 0);
 
-    public IReadOnlyList<ItemDefDto> GetCatalog() => MarketCatalog.All.Select(ToDefDto).ToList();
+    /// <summary>What can be had. A retired item is gone from here, but its name and icon still reach whoever owns one.</summary>
+    public IReadOnlyList<ItemDefDto> GetCatalog() => _catalog.Current.All.Where(def => !def.Retired).Select(ToDefDto).ToList();
+
+    /// <summary>A retired item leaves the market, except while someone still sells or bids for it: those offers must stay reachable.</summary>
+    private async Task<List<MarketItemDef>> WithoutIdleRetiredAsync(List<MarketItemDef> defs, CancellationToken ct)
+    {
+        var retired = defs.Where(def => def.Retired).Select(def => def.Id).ToList();
+        if (retired.Count == 0) return defs;
+        var books = await LoadBooksAsync(retired, ct);
+        return defs
+            .Where(def => !def.Retired || (books.TryGetValue(def.Id, out var book) && (book.AskCount > 0 || book.BidCount > 0)))
+            .ToList();
+    }
 
     public async Task<MarketBrowseDto> BrowseAsync(
         string? query, string? category, IReadOnlyCollection<string>? rarities, string? sort, CancellationToken ct = default)
     {
         var normalized = MarketRules.NormalizeSearch(query);
         var rarityFilter = (rarities ?? Array.Empty<string>()).Where(MarketRarities.IsValid).ToHashSet();
-        var searched = MarketCatalog.All
+        var searched = _catalog.Current.All
             .Where(def => def.Tradable)
             .Where(def => MarketRules.MatchesSearch(def, normalized))
             .Where(def => rarityFilter.Count == 0 || rarityFilter.Contains(def.Rarity))
             .ToList();
+        searched = await WithoutIdleRetiredAsync(searched, ct);
         var counts = MarketCategories.All.ToDictionary(cat => cat, cat => searched.Count(def => def.Category == cat));
         var defs = MarketCategories.IsValid(category) ? searched.Where(def => def.Category == category).ToList() : searched;
 
@@ -274,7 +290,7 @@ public sealed partial class MarketService
 
     public async Task<MarketItemDetailDto> GetItemDetailAsync(string userId, string defId, CancellationToken ct = default)
     {
-        var def = MarketCatalog.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
+        var def = _catalog.Current.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
         var book = (await LoadBooksAsync(new[] { def.Id }, ct))[def.Id];
         var history = (await LoadHistoriesAsync(new[] { def.Id }, 30, ct))[def.Id];
         var listings = await _store.Listings
@@ -307,15 +323,15 @@ public sealed partial class MarketService
             owned);
     }
 
-    internal static ListingDto ToListingDto(MarketListing listing) => new(
+    internal ListingDto ToListingDto(MarketListing listing) => new(
         listing.Id, listing.ItemId, DefDto(listing.DefId), listing.Price,
         MarketRules.Fee(listing.Price), MarketRules.SellerProceeds(listing.Price),
         listing.Status, listing.SoldPrice, listing.CreatedAt, listing.ClosedAt);
 
-    internal static OrderDto ToOrderDto(MarketBuyOrder order) => new(
+    internal OrderDto ToOrderDto(MarketBuyOrder order) => new(
         order.Id, DefDto(order.DefId), order.Price, order.Status, order.FilledPrice, order.CreatedAt, order.ClosedAt);
 
-    internal static SaleDto ToSaleDto(MarketSale sale, string viewerId)
+    internal SaleDto ToSaleDto(MarketSale sale, string viewerId)
     {
         var sold = sale.SellerId == viewerId;
         return new SaleDto(sale.Id, DefDto(sale.DefId), sale.ItemId, sale.Price, sale.Fee,
@@ -400,7 +416,7 @@ public sealed partial class MarketService
             ?? throw Error(404, MarketErrors.ItemNotFound, "This item is not in your inventory.");
         if (item.LockedBy is not null)
             throw Error(409, MarketErrors.ItemLocked, "Items for sale or in a trade cannot be equipped.");
-        var def = MarketCatalog.Find(item.DefId) ?? throw Error(409, MarketErrors.UnknownItemType, "Unknown item type.");
+        var def = _catalog.Current.Find(item.DefId) ?? throw Error(409, MarketErrors.UnknownItemType, "Unknown item type.");
         if (!MarketCategories.IsEquippable(def.Category))
             throw Error(409, MarketErrors.NotEquippable, "Chests, keys and collectibles cannot be put in use.");
         await _store.Accounts.UpdateOneAsync(a => a.Id == userId,
@@ -430,7 +446,7 @@ public sealed partial class MarketService
             .ToDictionary(i => i.Id);
         return MarketCategories.All
             .Where(category => account.Equipped.TryGetValue(category, out var id) && items.TryGetValue(id, out var item)
-                               && MarketCatalog.Find(item.DefId)?.Category == category)
+                               && _catalog.Current.Find(item.DefId)?.Category == category)
             .Select(category =>
             {
                 var item = items[account.Equipped[category]];
@@ -565,7 +581,7 @@ public sealed partial class MarketService
             throw Error(404, MarketErrors.UserNotFound, "No detective with this id was found.");
         if (coins < 0 || coins > 100_000) throw Error(400, MarketErrors.InvalidPrice, "Coins must be between 0 and 100,000.");
         var def = string.IsNullOrWhiteSpace(defId) ? null
-            : MarketCatalog.Find(defId) ?? throw Error(400, MarketErrors.UnknownItemType, "Unknown item type.");
+            : _catalog.Current.Find(defId) ?? throw Error(400, MarketErrors.UnknownItemType, "Unknown item type.");
         await EnsureAccountAsync(userId, ct);
         if (def is not null)
         {

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using SirLocked.Api.Models.Catalog;
 
 namespace SirLocked.Api.Services.Market;
 
@@ -20,12 +21,16 @@ public sealed record ChestDropRate(string Rarity, int Weight)
     public decimal Percent => Weight * 100m / ChestCatalog.RateDenominator;
 }
 
+/// <summary>What the shop charges for one chest and for its key, in xu.</summary>
+public sealed record ChestShopPrice(long Chest, long Key);
+
 /// <summary>One chest type. Its item instances live in inventories under <see cref="Id"/>; <see cref="KeyDefId"/> opens it.</summary>
 public sealed class ChestDef
 {
     public ChestDef(
         string id, string keyDefId, string name, string nameEn, string subtitle, string subtitleEn,
-        string keyName, string keyNameEn, string iconKey, string keyIconKey, IReadOnlyList<MarketItemDef> items)
+        string keyName, string keyNameEn, string iconKey, string keyIconKey, IReadOnlyList<MarketItemDef> items,
+        IReadOnlyList<ChestDropRate>? dropRates = null, ChestShopPrice? prices = null, bool active = true, CatalogChestLook? look = null)
     {
         Id = id;
         KeyDefId = keyDefId;
@@ -38,6 +43,10 @@ public sealed class ChestDef
         IconKey = iconKey;
         KeyIconKey = keyIconKey;
         Items = items;
+        DropRates = dropRates ?? ChestCatalog.DropRates;
+        Prices = prices ?? new ChestShopPrice(0, 0);
+        Active = active;
+        Look = look;
         Pools = MarketRarities.All.ToDictionary(
             rarity => rarity,
             rarity => (IReadOnlyList<MarketItemDef>)items.Where(item => item.Rarity == rarity).ToList());
@@ -55,11 +64,54 @@ public sealed class ChestDef
     public string KeyIconKey { get; }
     public IReadOnlyList<MarketItemDef> Items { get; }
     public IReadOnlyDictionary<string, IReadOnlyList<MarketItemDef>> Pools { get; }
+    public IReadOnlyList<ChestDropRate> DropRates { get; }
+    public ChestShopPrice Prices { get; }
+    /// <summary>Off means hidden from the chest page. Copies already owned can still be opened. ADMIN-1 adds refusing to sell it.</summary>
+    public bool Active { get; }
+    /// <summary>The drawing and light colours. Null on the seed classes. Not sent to players yet; see docs/admin-contracts.md.</summary>
+    public CatalogChestLook? Look { get; }
+
+    /// <summary>Picks a rarity by <see cref="DropRates"/>, then one item of that rarity uniformly.</summary>
+    public MarketItemDef Roll(IChestRandom random)
+    {
+        var ticket = random.NextInt(ChestCatalog.RateDenominator);
+        var rarity = DropRates[^1].Rarity;
+        foreach (var rate in DropRates)
+        {
+            if (ticket < rate.Weight)
+            {
+                rarity = rate.Rarity;
+                break;
+            }
+            ticket -= rate.Weight;
+        }
+        var pool = PoolFor(rarity);
+        return pool[random.NextInt(pool.Count)];
+    }
+
+    /// <summary>Average <see cref="MarketItemDef.ReferencePrice"/> one opening pays out.</summary>
+    public decimal ExpectedValue() =>
+        DropRates.Where(rate => rate.Weight > 0 && PoolFor(rate.Rarity).Count > 0)
+            .Sum(rate => rate.Percent / 100m * (decimal)PoolFor(rate.Rarity).Average(def => def.ReferencePrice));
+
+    /// <summary>
+    /// Retiring an item can empty a rarity that still has a weight. CatalogRules rejects that when a table is saved, so
+    /// this is only the last line of defence: the nearest rarity below (then above) pays, instead of the opening failing.
+    /// </summary>
+    private IReadOnlyList<MarketItemDef> PoolFor(string rarity)
+    {
+        var rank = MarketRarities.Rank(rarity);
+        return MarketRarities.All
+            .OrderBy(other => MarketRarities.Rank(other) <= rank ? 2 * (rank - MarketRarities.Rank(other)) : 2 * (MarketRarities.Rank(other) - rank) + 1)
+            .Select(other => Pools[other])
+            .FirstOrDefault(pool => pool.Count > 0) ?? Array.Empty<MarketItemDef>();
+    }
 }
 
 /// <summary>
 /// The one place that defines what chests contain and how they pay out. A roll first picks a rarity by
 /// <see cref="DropRates"/>, then one item of that rarity uniformly. Shop prices live in ChestSettings.
+/// Seed data only: at runtime read ICatalogProvider, where each chest has its own table, pool and prices.
 /// </summary>
 public static class ChestCatalog
 {
@@ -188,24 +240,8 @@ public static class ChestCatalog
 
     public static ChestDef? Find(string? id) => Chests.FirstOrDefault(chest => chest.Id == id);
 
-    public static MarketItemDef Roll(ChestDef chest, IChestRandom random)
-    {
-        var ticket = random.NextInt(RateDenominator);
-        var rarity = DropRates[^1].Rarity;
-        foreach (var rate in DropRates)
-        {
-            if (ticket < rate.Weight)
-            {
-                rarity = rate.Rarity;
-                break;
-            }
-            ticket -= rate.Weight;
-        }
-        var pool = chest.Pools[rarity];
-        return pool[random.NextInt(pool.Count)];
-    }
+    public static MarketItemDef Roll(ChestDef chest, IChestRandom random) => chest.Roll(random);
 
     /// <summary>Average <see cref="MarketItemDef.ReferencePrice"/> one opening pays out.</summary>
-    public static decimal ExpectedValue(ChestDef chest) =>
-        DropRates.Sum(rate => rate.Percent / 100m * (decimal)chest.Pools[rate.Rarity].Average(def => def.ReferencePrice));
+    public static decimal ExpectedValue(ChestDef chest) => chest.ExpectedValue();
 }

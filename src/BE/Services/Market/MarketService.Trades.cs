@@ -36,7 +36,7 @@ public sealed partial class MarketService
             history.Select(t => ToTradeDto(t, userId, null)).ToList());
     }
 
-    private static TradeOfferDto ToTradeDto(TradeOffer offer, string viewerId, IReadOnlyDictionary<string, MarketItem>? items)
+    private TradeOfferDto ToTradeDto(TradeOffer offer, string viewerId, IReadOnlyDictionary<string, MarketItem>? items)
     {
         bool Available(TradeItemRef reference, string owner) =>
             items is null
@@ -94,7 +94,7 @@ public sealed partial class MarketService
             : (await _store.Items.Find(i => all.Contains(i.Id)).ToListAsync(ct)).ToDictionary(i => i.Id);
         if (MarketRules.ValidateTradeItems(offerIds, requestIds, user.Id, target.Id, items) is { } itemError)
             throw ErrorFor(itemError);
-        if (items.Values.Any(item => MarketCatalog.Find(item.DefId)?.Tradable == false))
+        if (items.Values.Any(item => _catalog.Current.Find(item.DefId)?.Tradable == false))
             throw ErrorFor(MarketErrors.ItemNotTradable);
         if (me.Balance < draft.OfferCoins) throw ErrorFor(MarketErrors.InsufficientFunds);
 
@@ -326,7 +326,7 @@ public sealed partial class MarketService
         foreach (var (itemId, owner) in tx.FromItemIds.Select(id => (id, from)).Concat(tx.ToItemIds.Select(id => (id, to))))
         {
             var item = await _store.Items.Find(i => i.Id == itemId).FirstOrDefaultAsync(ct);
-            if (item is not null && MarketCatalog.Find(item.DefId) is { } def)
+            if (item is not null && _catalog.Current.Find(item.DefId) is { } def)
                 await _store.UnequipItemAsync(owner, def.Category, itemId, ct);
         }
 

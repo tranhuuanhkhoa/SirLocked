@@ -179,7 +179,7 @@ public sealed partial class MarketService
     /// <summary>Settles any lowest ask that is at or below the highest bid (left crossed by a rolled-back match).</summary>
     private async Task<int> MatchCrossedBooksAsync(CancellationToken ct)
     {
-        var ids = MarketCatalog.All.Select(def => def.Id).ToList();
+        var ids = _catalog.Current.All.Select(def => def.Id).ToList();
         var books = await LoadBooksAsync(ids, ct);
         var matches = 0;
         foreach (var (defId, book) in books)

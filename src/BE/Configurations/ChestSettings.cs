@@ -8,7 +8,10 @@ public sealed class ChestPrice
     public long Key { get; set; }
 }
 
-/// <summary>Shop prices of chests and keys in xu, by chest id. Override with Chests__Prices__chest_np__Key.</summary>
+/// <summary>
+/// Prices a chest starts with when the catalog is first seeded, in xu, by chest id. Override with Chests__Prices__chest_np__Key.
+/// Once seeded, the live prices are in the chests collection and this no longer changes them.
+/// </summary>
 public sealed class ChestSettings
 {
     public Dictionary<string, ChestPrice> Prices { get; set; } = new(StringComparer.Ordinal)

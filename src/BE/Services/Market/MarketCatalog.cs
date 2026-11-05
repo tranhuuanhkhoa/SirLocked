@@ -1,3 +1,5 @@
+using SirLocked.Api.Services.Catalog;
+
 namespace SirLocked.Api.Services.Market;
 
 public static class MarketCategories
@@ -59,10 +61,12 @@ public sealed record MarketItemDef(
     string DescriptionEn,
     long ReferencePrice,
     string? IconKey = null,
-    bool Tradable = true);
+    bool Tradable = true,
+    ItemVisual? Visual = null,
+    bool Retired = false);
 
 /// <summary>
-/// The fixed catalog of cosmetic gear (Market.dc.html plus one "Thường" piece per category so the
+/// Seed data only: at runtime read ICatalogProvider. The original catalog of cosmetic gear (Market.dc.html plus one "Thường" piece per category so the
 /// starter grant and every category have an entry-level item), plus what chests add (see
 /// <see cref="ChestCatalog"/>) and the detective profile (see <see cref="CosmeticCatalog"/>). Icons are drawn by the frontend: per category and tinted by rarity,
 /// or from a pixel sprite when <see cref="MarketItemDef.IconKey"/> is set. Nothing here affects gameplay.

@@ -93,7 +93,7 @@ Accusation__RequireConsensus=true
 - `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`).
 - Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
 
-Contents and drop rates live in one place, `Services/Market/ChestCatalog.cs`. Prices live in the `Chests:Prices` section of `appsettings.json`, for example `Chests__Prices__chest_np__Key=200`; the API refuses to start if a chest would pay out more on average than it costs to open.
+Contents, drop rates and prices live in MongoDB (see [admin contracts](docs/admin-contracts.md)) and every read goes through `ICatalogProvider`. `Services/Market/ChestCatalog.cs` and the `Chests:Prices` section of `appsettings.json` only seed an empty database, so changing them later has no effect. At startup the API still refuses to start if the configured seed prices would pay out more on average than an opening costs.
 
 As MongoDB runs standalone, `chestOpenings` is a journal: the reward is rolled and stored before anything is spent, one free chest and key are locked (`LockedBy = chest:<id>`), and a commit flag separates the part that can still fail from the part that only rolls forward. `chestPurchases` does the same for the shop. The market's maintenance worker resumes anything left unfinished for more than 30 seconds.
 
@@ -104,7 +104,7 @@ entrance for the whole room. Drawing code lives in `src/FE/Client/js/cosmetics/`
 the README there); art is in `src/FE/public/assets/cosmetics/`.
 
 - XP to go from level `lv` to `lv + 1` is `200 + 40 * (lv - 1)`, capped at level 50. `POST /api/progress/exchange` burns Rare items
-  for 150 XP and Epic items for 600 XP, journaled in `xpExchanges` with an idempotency key. `GET /api/progress/me` reads it all.
+  for 150 XP and Epic items for 600 XP (the rates are in `gameSettings/progress`), journaled in `xpExchanges` with an idempotency key. `GET /api/progress/me` reads it all.
 - Categories `FRAME`, `TITLE` and `ENTRANCE` hold one equipped item each, through the market's equip API. Ids are prefixed
   (`frame_`, `title_`, `entrance_`) because titles and entrances share names.
 - Chest drops are tradable. What a detective earns (levels, achievements, the defaults) has `Tradable = false`, takes no bag slot,
@@ -112,6 +112,14 @@ the README there); art is in `src/FE/public/assets/cosmetics/`.
 - `title_tho-khoa` ("Giải 25 câu đố ổ khóa") stays closed: rooms record which puzzles were solved, not by whom.
 - `GameHub.JoinRoom` announces an arrival once per seat through SignalR `PlayerEntrance`. A refresh or reconnect plays nothing.
 - Uploaded avatars need `Cloudinary__Enabled=true`, `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret`; without them the upload button is not offered. `bash scripts/set-cloudinary.sh` checks them with Cloudinary and sets them on the server. The browser turns the picked photo into a square of at most 512px before sending it, so phone photos up to 40 MB work. The API then re-encodes it as a 256px WebP.
+
+### Admin catalog
+
+Items, chests, level rewards, achievements and XP rates live in MongoDB (`catalogItems`, `chests`, `levelRewards`, `achievements`,
+`gameSettings`) and are managed from `#/admin`. The API seeds them from code at startup, once per seed version and never over an
+admin's edit. Every admin write records itself in `adminAudit` (`GET /api/admin/audit`). `POST /api/admin/assets` stores admin
+pictures as WebP in the Cloudinary folder `sirlocked/admin` and answers `ASSET_STORAGE_UNAVAILABLE` without Cloudinary. Schemas and
+rules for anyone extending this are in [docs/admin-contracts.md](docs/admin-contracts.md).
 
 ## Run Locally
 
