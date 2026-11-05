@@ -8,6 +8,7 @@ public sealed record LevelReward(int Level, string DefId);
 /// (frames.js, titles.js, fx.js). Ids carry the category as a prefix because titles and entrances share names
 /// ("hac-duc", "kim-long", "phuong-hoang"); the frontend strips it to reach its drawing code.
 /// Chest drops are tradable like any item. What a detective earns (levels, achievements, defaults) is not.
+/// The lists here are seed data only: at runtime read ICatalogProvider. The id prefixes and defaults are still read from here.
 /// </summary>
 public static class CosmeticCatalog
 {
@@ -40,7 +41,7 @@ public static class CosmeticCatalog
         [Lacquer] = ("Tráp Sơn Mài", "the Lacquer Box"),
     };
 
-    private static (string Vi, string En) Kind(string category) => category switch
+    public static (string Vi, string En) Kind(string category) => category switch
     {
         MarketCategories.Frame => ("Viền avatar", "Avatar frame"),
         MarketCategories.Title => ("Danh hiệu", "Title"),

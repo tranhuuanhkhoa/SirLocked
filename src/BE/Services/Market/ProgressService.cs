@@ -6,6 +6,7 @@ using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Market;
+using SirLocked.Api.Services.Catalog;
 
 namespace SirLocked.Api.Services.Market;
 
@@ -30,13 +31,16 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     private readonly MarketService _market;
     private readonly ILogger<ProgressService> _logger;
     private readonly IAvatarStorage? _avatars;
+    private readonly ICatalogProvider _catalog;
 
-    public ProgressService(MarketStore store, MarketService market, ILogger<ProgressService> logger, IAvatarStorage? avatars = null)
+    public ProgressService(
+        MarketStore store, MarketService market, ILogger<ProgressService> logger, IAvatarStorage? avatars = null, ICatalogProvider? catalog = null)
     {
         _store = store;
         _market = market;
         _logger = logger;
         _avatars = avatars;
+        _catalog = catalog ?? FixedCatalogProvider.Default;
     }
 
     private DateTime Now => _store.Now;
@@ -97,14 +101,15 @@ public sealed class ProgressService : IPlayerCosmeticsReader
         var items = await _store.Items.Find(i => i.OwnerId == userId).SortByDescending(i => i.AcquiredAt).ThenBy(i => i.Id).ToListAsync(ct);
         var equippedIds = account.Equipped.Values.ToHashSet(StringComparer.Ordinal);
 
+        var catalog = _catalog.Current;
         var exchangeable = new List<ExchangeableItemDto>();
         var owned = new List<OwnedCosmeticDto>();
         foreach (var item in items)
         {
-            if (MarketCatalog.Find(item.DefId) is not { } def) continue;
+            if (catalog.Find(item.DefId) is not { } def) continue;
             var equipped = item.LockedBy is null && equippedIds.Contains(item.Id);
             if (item.LockedBy is null && !equipped && ProgressRules.IsExchangeable(def))
-                exchangeable.Add(new ExchangeableItemDto(item.Id, MarketService.ToDefDto(def), ProgressRules.XpValue(def)));
+                exchangeable.Add(new ExchangeableItemDto(item.Id, MarketService.ToDefDto(def), catalog.XpValue(def)));
             if (CosmeticCatalog.IsCosmetic(def.Category))
                 owned.Add(new OwnedCosmeticDto(item.Id, def.Id, def.Category, item.Source, item.LockedBy is not null, equipped));
         }
@@ -123,13 +128,13 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     // ------------------------------------------------------------------ what a detective wears
 
     /// <summary>An equipped entry only counts while it still points at a free item of the right category, owned by this account.</summary>
-    private static (string? Frame, string Title, string Entrance) Wear(MarketAccount? account, IReadOnlyCollection<MarketItem> items)
+    private (string? Frame, string Title, string Entrance) Wear(MarketAccount? account, IReadOnlyCollection<MarketItem> items)
     {
         string? Slot(string category)
         {
             if (account is null || !account.Equipped.TryGetValue(category, out var itemId)) return null;
             var item = items.FirstOrDefault(i => i.Id == itemId && i.OwnerId == account.Id && i.LockedBy is null);
-            return item is not null && MarketCatalog.Find(item.DefId)?.Category == category ? item.DefId : null;
+            return item is not null && _catalog.Current.Find(item.DefId)?.Category == category ? item.DefId : null;
         }
         return (
             Slot(MarketCategories.Frame),
@@ -226,12 +231,13 @@ public sealed class ProgressService : IPlayerCosmeticsReader
 
         var items = await _store.Items.Find(i => ids.Contains(i.Id) && i.OwnerId == userId).ToListAsync(ct);
         if (items.Count != ids.Count) throw ErrorFor(ProgressErrors.ItemNotFound);
-        var defs = items.Select(item => MarketCatalog.Find(item.DefId)).ToList();
+        var catalog = _catalog.Current;
+        var defs = items.Select(item => catalog.Find(item.DefId)).ToList();
         if (defs.Any(def => def is null || !ProgressRules.IsExchangeable(def))) throw ErrorFor(ProgressErrors.ItemNotExchangeable);
         if (items.Any(item => item.LockedBy is not null)) throw ErrorFor(ProgressErrors.ItemLocked);
         var account = await _store.FindAccountAsync(userId, ct);
         if (account is not null && items.Any(item => account.Equipped.Values.Contains(item.Id))) throw ErrorFor(ProgressErrors.ItemEquipped);
-        return defs.Sum(def => ProgressRules.XpValue(def!));
+        return defs.Sum(def => catalog.XpValue(def!));
     }
 
     private async Task<ExchangeResultDto> ResultAsync(XpExchange exchange, CancellationToken ct)
@@ -244,10 +250,12 @@ public sealed class ProgressService : IPlayerCosmeticsReader
             .Project(i => i.DefId)
             .ToListAsync(ct);
         var isMax = level >= ProgressRules.MaxLevel;
+        var catalog = _catalog.Current;
+        var newly = catalog.LevelRewards.Where(r => granted.Contains(r.DefId)).Select(r => r.DefId).Distinct(StringComparer.Ordinal).ToList();
         return new ExchangeResultDto(
             level, xp, isMax ? 0 : ProgressRules.XpToNext(level), isMax, exchange.Xp,
-            CosmeticCatalog.LevelRewards.Where(r => r.DefId.StartsWith(CosmeticCatalog.FramePrefix, StringComparison.Ordinal) && granted.Contains(r.DefId)).Select(r => r.DefId).ToList(),
-            CosmeticCatalog.LevelRewards.Where(r => r.DefId.StartsWith(CosmeticCatalog.TitlePrefix, StringComparison.Ordinal) && granted.Contains(r.DefId)).Select(r => r.DefId).ToList(),
+            newly.Where(id => catalog.Find(id)?.Category == MarketCategories.Frame).ToList(),
+            newly.Where(id => catalog.Find(id)?.Category == MarketCategories.Title).ToList(),
             await _market.GetWalletAsync(exchange.UserId, ct));
     }
 
@@ -365,7 +373,7 @@ public sealed class ProgressService : IPlayerCosmeticsReader
 
     private async Task GrantLevelRewardsAsync(string userId, int level, string? exchangeId, CancellationToken ct)
     {
-        foreach (var reward in CosmeticCatalog.LevelRewards.Where(reward => reward.Level <= level))
+        foreach (var reward in _catalog.Current.LevelRewards.Where(reward => reward.Level <= level))
             await GrantAsync(userId, reward.DefId, MarketItemSources.Level, exchangeId, ct);
     }
 
@@ -393,7 +401,7 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     /// <summary>Recounts a detective's record and grants whatever is newly earned. Idempotent; runs when a profile opens and when a game ends.</summary>
     public async Task<IReadOnlyList<AchievementProgress>> SyncAchievementsAsync(string userId, CancellationToken ct = default)
     {
-        var achievements = AchievementRules.Evaluate(await LoadStatsAsync(userId, ct));
+        var achievements = AchievementRules.Evaluate(await LoadStatsAsync(userId, ct), _catalog.Current.Achievements);
         foreach (var achievement in achievements.Where(a => a.Earned))
             await GrantAsync(userId, achievement.Def.TitleDefId, MarketItemSources.Achievement, null, ct);
         return achievements;

@@ -4,6 +4,7 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models.Market;
+using SirLocked.Api.Services.Catalog;
 
 namespace SirLocked.Api.Services.Market;
 
@@ -34,16 +35,18 @@ public sealed class ChestService
     private readonly MarketStore _store;
     private readonly MarketService _market;
     private readonly IChestRandom _random;
-    private readonly ChestSettings _settings;
+    private readonly ICatalogProvider _catalog;
     private readonly ILogger<ChestService> _logger;
 
     public ChestService(
-        MarketStore store, MarketService market, IChestRandom random, IOptions<ChestSettings> settings, ILogger<ChestService> logger)
+        MarketStore store, MarketService market, IChestRandom random, IOptions<ChestSettings> settings, ILogger<ChestService> logger,
+        ICatalogProvider? catalog = null)
     {
         _store = store;
         _market = market;
         _random = random;
-        _settings = settings.Value;
+        // Prices come from the catalog; the settings only price the seed.
+        _catalog = catalog ?? new FixedCatalogProvider(settings.Value);
         _logger = logger;
     }
 
@@ -63,8 +66,8 @@ public sealed class ChestService
         _ => MarketService.Error(409, code ?? MarketErrors.Busy, "The market changed; please try again."),
     };
 
-    private static ChestDef RequireChest(string? chestId) =>
-        ChestCatalog.Find(chestId) ?? throw MarketService.Error(404, MarketErrors.UnknownItemType, "Unknown chest.");
+    private ChestDef RequireChest(string? chestId) =>
+        _catalog.Current.FindChest(chestId) ?? throw MarketService.Error(404, MarketErrors.UnknownItemType, "Unknown chest.");
 
     private static string OperationId(string userId, string? idempotencyKey)
     {
@@ -81,17 +84,16 @@ public sealed class ChestService
     public async Task<ChestListDto> ListAsync(string userId, CancellationToken ct = default)
     {
         await _market.EnsureAccountAsync(userId, ct);
-        var counts = await CountFreeAsync(userId, ChestCatalog.Chests.SelectMany(chest => new[] { chest.Id, chest.KeyDefId }).ToList(), ct);
-        var chests = ChestCatalog.Chests.Select(chest =>
-        {
-            var price = _settings.PriceOf(chest.Id);
-            return new ChestDto(
-                chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
-                chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, price.Chest, price.Key,
-                counts.GetValueOrDefault(chest.Id), counts.GetValueOrDefault(chest.KeyDefId),
-                chest.Items.Select(MarketService.ToDefDto).ToList());
-        }).ToList();
-        var odds = ChestCatalog.DropRates.Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList();
+        var catalog = _catalog.Current;
+        var counts = await CountFreeAsync(userId, catalog.ActiveChests.SelectMany(chest => new[] { chest.Id, chest.KeyDefId }).ToList(), ct);
+        var chests = catalog.ActiveChests.Select(chest => new ChestDto(
+            chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
+            chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, chest.Prices.Chest, chest.Prices.Key,
+            counts.GetValueOrDefault(chest.Id), counts.GetValueOrDefault(chest.KeyDefId),
+            chest.Items.Select(MarketService.ToDefDto).ToList())).ToList();
+        // The response has one odds table. Every seeded chest shares it; a chest given its own table needs a per-chest field (see docs/admin-contracts.md).
+        var odds = (catalog.ActiveChests.FirstOrDefault()?.DropRates ?? Array.Empty<ChestDropRate>())
+            .Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList();
         return new ChestListDto(chests, odds, await _market.GetWalletAsync(userId, ct));
     }
 
@@ -126,6 +128,8 @@ public sealed class ChestService
             var (chests, keys) = await CountChestAsync(user.Id, chest, ct);
             if (chests < 1) throw ErrorFor(ChestErrors.ChestNone);
             if (keys < 1) throw ErrorFor(ChestErrors.KeyNone);
+            // Every item retired: nothing to pay out, and nothing has been spent.
+            if (chest.Items.Count == 0) throw ErrorFor(null);
 
             var now = Now;
             var fresh = new ChestOpening
@@ -134,7 +138,7 @@ public sealed class ChestService
                 UserId = user.Id,
                 ChestDefId = chest.Id,
                 KeyDefId = chest.KeyDefId,
-                RewardDefId = ChestCatalog.Roll(chest, _random).Id,
+                RewardDefId = chest.Roll(_random).Id,
                 RewardItemId = MarketStore.NewId(),
                 CreatedAt = now,
                 UpdatedAt = now
@@ -164,7 +168,7 @@ public sealed class ChestService
     {
         var (chests, keys) = await CountChestAsync(opening.UserId, chest, ct);
         return new ChestOpenResultDto(
-            chest.Id, opening.RewardItemId, MarketService.DefDto(opening.RewardDefId), chests, keys,
+            chest.Id, opening.RewardItemId, _market.DefDto(opening.RewardDefId), chests, keys,
             await _market.GetWalletAsync(opening.UserId, ct));
     }
 
@@ -291,13 +295,13 @@ public sealed class ChestService
     public Task<ChestPurchaseResultDto> BuyKeyAsync(CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default)
     {
         var chest = RequireChest(chestId);
-        return BuyAsync(user, chest, chest.KeyDefId, _settings.PriceOf(chest.Id).Key, idempotencyKey, ct);
+        return BuyAsync(user, chest, chest.KeyDefId, chest.Prices.Key, idempotencyKey, ct);
     }
 
     public Task<ChestPurchaseResultDto> BuyChestAsync(CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default)
     {
         var chest = RequireChest(chestId);
-        return BuyAsync(user, chest, chest.Id, _settings.PriceOf(chest.Id).Chest, idempotencyKey, ct);
+        return BuyAsync(user, chest, chest.Id, chest.Prices.Chest, idempotencyKey, ct);
     }
 
     private async Task<ChestPurchaseResultDto> BuyAsync(
@@ -341,7 +345,7 @@ public sealed class ChestService
         {
             case ChestOpeningStates.Done:
                 var (chests, keys) = await CountChestAsync(user.Id, chest, ct);
-                return new ChestPurchaseResultDto(chest.Id, purchase.ItemId, MarketService.DefDto(purchase.DefId), chests, keys,
+                return new ChestPurchaseResultDto(chest.Id, purchase.ItemId, _market.DefDto(purchase.DefId), chests, keys,
                     await _market.GetWalletAsync(user.Id, ct));
             case ChestOpeningStates.Failed:
                 throw ErrorFor(purchase.Error);

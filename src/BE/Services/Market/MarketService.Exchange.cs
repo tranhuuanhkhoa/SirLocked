@@ -39,7 +39,7 @@ public sealed partial class MarketService
             ?? throw Error(404, MarketErrors.ItemNotFound, "This item is not in your inventory.");
         if (item.LockedBy is not null)
             throw Error(409, MarketErrors.ItemLocked, "This item is already for sale or inside a trade.");
-        var def = MarketCatalog.Find(item.DefId) ?? throw Error(409, MarketErrors.UnknownItemType, "Unknown item type.");
+        var def = _catalog.Current.Find(item.DefId) ?? throw Error(409, MarketErrors.UnknownItemType, "Unknown item type.");
         if (!def.Tradable) throw ErrorFor(MarketErrors.ItemNotTradable);
         var open = await _store.Listings.CountDocumentsAsync(
             l => l.SellerId == user.Id && (l.Status == MarketListingStatus.Opening || l.Status == MarketListingStatus.Active
@@ -147,7 +147,7 @@ public sealed partial class MarketService
     /// <summary>"MUA NGAY": buys the cheapest listing of a type, never above the price the buyer saw.</summary>
     public async Task<PurchaseResultDto> BuyLowestAsync(CurrentUser user, string defId, long maxPrice, CancellationToken ct = default)
     {
-        var def = MarketCatalog.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
+        var def = _catalog.Current.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
         if (!def.Tradable) throw ErrorFor(MarketErrors.ItemNotTradable);
         if (MarketRules.ValidatePrice(maxPrice) is not null) throw ErrorFor(MarketErrors.NoListingAtPrice);
         await RequireVerifiedAsync(user.Id, ct);
@@ -181,7 +181,7 @@ public sealed partial class MarketService
 
     public async Task<OrderResultDto> PlaceOrderAsync(CurrentUser user, string defId, long price, CancellationToken ct = default)
     {
-        var def = MarketCatalog.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
+        var def = _catalog.Current.Find(defId) ?? throw Error(404, MarketErrors.UnknownItemType, "Unknown item type.");
         if (!def.Tradable) throw ErrorFor(MarketErrors.ItemNotTradable);
         if (MarketRules.ValidatePrice(price) is { } priceError)
             throw Error(400, priceError, $"Price must be between {MarketRules.MinPrice} and {MarketRules.MaxPrice} xu.");
