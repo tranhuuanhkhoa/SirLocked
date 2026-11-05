@@ -243,6 +243,11 @@ function drawingKey(def) {
  * Decorative by default; pass `label` to expose it as an image. No character art: only objects.
  */
 export function itemIcon(def, size = 34, label = '') {
+  const imageUrl = COSMETIC_CATEGORIES.has(def?.category) ? '' : def?.visual?.imageUrl;
+  if (imageUrl) {
+    const alt = label ? `alt="${escapeHtml(label)}"` : 'alt="" aria-hidden="true"';
+    return `<img class="bpa-mk-icon" src="${escapeHtml(imageUrl)}" width="${size}" height="${size}" style="object-fit:contain" ${alt} draggable="false" loading="lazy">`;
+  }
   // Cosmetics are painted art with no pixel sprite: they use the category drawing below.
   const pixel = def?.iconKey && !COSMETIC_CATEGORIES.has(def.category) ? pixelIconUrl(def.iconKey) : '';
   if (pixel) {

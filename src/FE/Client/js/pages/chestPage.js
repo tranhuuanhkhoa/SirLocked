@@ -6,9 +6,7 @@ import { tr, uiLanguage } from '../services/i18n.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { AU } from './chest/chestAudio.js';
-import { chestLook, itemSprite } from './chest/chestSprites.js';
-import { cosmeticSprite, isCosmeticDef } from '../cosmetics/icons.js';
-import { prepareCosmetics } from '../cosmetics/index.js';
+import { chestLook, defSprite, paintSprite } from './chest/chestSprites.js';
 import { createChestStage } from './chest/chestStage.js';
 import { errorText, fmt, rarityLabel } from './market/marketKit.js';
 
@@ -41,14 +39,6 @@ function loadFonts() {
   document.head.append(link);
 }
 
-function paintSprite(canvas, sprite) {
-  const x = canvas.getContext('2d');
-  x.imageSmoothingEnabled = !!sprite.smooth;
-  x.clearRect(0, 0, canvas.width, canvas.height);
-  const s = Math.min(canvas.width / sprite.w, canvas.height / sprite.h);
-  x.drawImage(sprite.c, (canvas.width - sprite.w * s) / 2, (canvas.height - sprite.h * s) / 2, sprite.w * s, sprite.h * s);
-}
-
 function percentText(value) {
   return `${Number(value).toLocaleString(uiLanguage() === 'vi' ? 'vi-VN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
@@ -58,14 +48,25 @@ function isTransient(error) {
   return error?.status === 0 || error?.status >= 500 || error?.status === 429 || error?.errors?.code === 'IN_PROGRESS';
 }
 
-/** #/kho-ruong — Mở hòm. The server decides everything; this page only shows what it answers. */
-export async function renderChestPage(app, { signal } = {}) {
+/** Errors only this page can get, on top of the market's. */
+function chestErrorText(error) {
+  const code = error?.errors?.code;
+  if (code === 'CHEST_PRICE_CHANGED') return tr('The price has just changed. Check it, then buy again.', 'Giá vừa thay đổi. Hãy xem lại rồi mua.');
+  if (code === 'CHEST_NOT_FOR_SALE') return tr('This chest is no longer on sale.', 'Hòm này đã ngừng bán.');
+  return errorText(error);
+}
+
+/**
+ * #/kho-ruong — Mở hòm. The server decides everything; this page only shows what it answers.
+ * `api` and `preview` are for the admin's "try it out": the same screen against an API that stores nothing, without a wallet or a shop.
+ */
+export async function renderChestPage(app, { signal, api = chestApi, preview = false } = {}) {
   loadFonts();
   const rarities = Object.fromEntries(Object.entries(RARITY_LOOK).map(([rarity, look]) =>
     [look.r, { color: look.color, name: rarityLabel(rarity) }]));
 
   render(app, `
-    <div class="qh-app" data-mode="idle">
+    <div class="qh-app" data-mode="idle"${preview ? ' data-preview' : ''}>
       <canvas class="qh-stage" id="qh-stage" role="img" aria-label="${tr(
     'The selected chest under the lamp. Use the left and right arrows to change chest.',
     'Rương đang chọn dưới ánh đèn. Dùng mũi tên trái phải để đổi loại rương.')}"></canvas>
@@ -130,13 +131,13 @@ export async function renderChestPage(app, { signal } = {}) {
 
   // The shell stays on screen: the page fills whatever height the header leaves.
   const navRoot = document.getElementById('nav-root');
-  const measureNav = () => root.style.setProperty('--qh-nav', `${navRoot?.offsetHeight ?? 0}px`);
+  const measureNav = () => root.style.setProperty('--qh-nav', `${preview ? 0 : navRoot?.offsetHeight ?? 0}px`);
   measureNav();
-  const navObserver = navRoot ? new ResizeObserver(measureNav) : null;
+  const navObserver = navRoot && !preview ? new ResizeObserver(measureNav) : null;
   navObserver?.observe(navRoot);
 
   const page = {
-    chests: [], odds: [], weights: [], wallet: null, index: 0,
+    chests: [], wallet: null, index: 0,
     opening: false, buying: false, guardUntil: 0, loaded: false,
   };
   let stage = null;
@@ -150,14 +151,14 @@ export async function renderChestPage(app, { signal } = {}) {
 
   function itemFor(def) {
     const look = RARITY_LOOK[def.rarity] ?? RARITY_LOOK.COMMON;
-    return { id: def.id, name: tr(def.nameEn || def.name, def.name), r: look.r, rarity: def.rarity, sp: isCosmeticDef(def) ? cosmeticSprite(def) : itemSprite(def.iconKey), def };
+    return { id: def.id, name: tr(def.nameEn || def.name, def.name), r: look.r, rarity: def.rarity, sp: defSprite(def), def };
   }
 
   /** One cosmetic card for the reel, weighted like the published odds. The result never comes from here. */
   function fillerItem() {
-    const items = cur().items;
-    let ticket = Math.random() * page.weights.reduce((sum, odd) => sum + odd.percent, 0);
-    const odd = page.weights.find((entry) => (ticket -= entry.percent) < 0) ?? page.weights[0];
+    const { items, odds } = cur();
+    let ticket = Math.random() * odds.reduce((sum, odd) => sum + Number(odd.percent), 0);
+    const odd = odds.find((entry) => (ticket -= Number(entry.percent)) < 0) ?? odds[0];
     const pool = items.filter((item) => item.rarity === odd?.rarity);
     const from = pool.length ? pool : items;
     return from[Math.floor(Math.random() * from.length)];
@@ -165,24 +166,25 @@ export async function renderChestPage(app, { signal } = {}) {
 
   function applyList(data) {
     const previous = cur()?.id;
-    page.chests = data.chests.map((chest) => ({
+    // After them, the chests switched off that this player still holds a copy of: those can still be opened.
+    page.chests = [...data.chests, ...(data.offSale ?? [])].map((chest) => ({
       ...chest,
-      ...chestLook(chest.iconKey, chest.keyIconKey),
+      ...chestLook(chest.iconKey, chest.keyIconKey, chest.look),
+      onSale: chest.active !== false,
+      odds: (chest.odds ?? data.odds ?? []).filter((odd) => Number(odd.percent) > 0),
       displayName: tr(chest.nameEn || chest.name, chest.name),
       displaySub: tr(chest.subtitleEn || chest.subtitle, chest.subtitle),
       displayKey: tr(chest.keyNameEn || chest.keyName, chest.keyName),
       items: chest.contents.map(itemFor),
     }));
     page.index = Math.max(0, page.chests.findIndex((chest) => chest.id === previous));
-    page.odds = data.odds;
-    page.weights = data.odds.map((odd) => ({ rarity: odd.rarity, percent: Number(odd.percent) }));
     setWallet(data.wallet);
   }
 
   function setWallet(wallet) {
     if (!wallet) return;
     page.wallet = wallet;
-    publishWallet(wallet);
+    if (!preview) publishWallet(wallet);
   }
 
   /** The server's answer to a purchase or an opening is the only thing that changes these numbers. */
@@ -198,10 +200,15 @@ export async function renderChestPage(app, { signal } = {}) {
 
   async function refresh() {
     try {
-      const data = await chestApi.list();
+      const data = await api.list();
       if (disposed) return;
-      // Sprites and the selection survive; only numbers and contents are replaced.
+      if (data.chests.length + (data.offSale?.length ?? 0) === 0) return;
+      // Sprites and the selection survive; only numbers and contents are replaced. Chests may have come or gone.
+      const shown = cur();
       applyList(data);
+      renderDots();
+      if (shown && cur().id !== shown.id) stage?.showChest(cur(), shown, 1);
+      else stage?.setChest(cur());
       renderCase();
       syncWallet();
     } catch {
@@ -247,7 +254,7 @@ export async function renderChestPage(app, { signal } = {}) {
       ? tr(
         'The connection is too unstable to confirm. If the chest was spent, the item will be in your bag within a few minutes.',
         'Mạng chập chờn nên chưa xác nhận được. Nếu hòm đã bị trừ, vật phẩm sẽ có trong kho sau ít phút.')
-      : errorText(error);
+      : chestErrorText(error);
   }
 
   /* ---------- rendering ---------- */
@@ -272,6 +279,8 @@ export async function renderChestPage(app, { signal } = {}) {
       canvas.height = 72;
       canvas.setAttribute('aria-hidden', 'true');
       paintSprite(canvas, item.sp);
+      // An uploaded picture arrives after this.
+      item.sp.ready?.then(() => { if (!disposed && canvas.isConnected) paintSprite(canvas, item.sp); });
       const name = document.createElement('span');
       name.textContent = item.name;
       el.append(canvas, name);
@@ -279,7 +288,7 @@ export async function renderChestPage(app, { signal } = {}) {
     }
     [...$('dots').children].forEach((dot, index) => dot.setAttribute('aria-current', String(index === page.index)));
     root.style.setProperty('--glow', `rgb(${chest.light})`);
-    $('odds').innerHTML = page.odds.map((odd) => {
+    $('odds').innerHTML = chest.odds.map((odd) => {
       const look = RARITY_LOOK[odd.rarity] ?? RARITY_LOOK.COMMON;
       return `<li style="--rc:${look.color}"><i></i>${escapeHtml(rarityLabel(odd.rarity))} <b>${percentText(odd.percent)}</b></li>`;
     }).join('');
@@ -296,7 +305,13 @@ export async function renderChestPage(app, { signal } = {}) {
 
     const button = $('openBtn'), label = $('openLbl'), meta = $('meta');
     const busy = page.opening || page.buying;
-    if (chests < 1) {
+    $('buy').hidden = preview || !chest.onSale;
+    if ((chests < 1 || keys < 1) && !chest.onSale) {
+      // What is left can still be opened with what the player finds on the market, but the shop has closed.
+      label.textContent = tr('Open', 'Mở');
+      button.disabled = true;
+      meta.textContent = tr('No longer on sale', 'Đã ngừng bán');
+    } else if (chests < 1) {
       label.textContent = tr(`Buy chest · ${fmt(chest.chestPrice)} xu`, `Mua hòm · ${fmt(chest.chestPrice)} xu`);
       button.disabled = busy || !canAfford(chest.chestPrice);
       meta.textContent = canAfford(chest.chestPrice)
@@ -357,7 +372,7 @@ export async function renderChestPage(app, { signal } = {}) {
     page.opening = true;
     const idempotencyKey = newRequestId();
     try {
-      const result = await withRetry(() => chestApi.open(chest.id, idempotencyKey));
+      const result = await withRetry(() => api.open(chest.id, idempotencyKey));
       if (disposed) return;
       page.opening = false;
       applyCounts(result);
@@ -379,10 +394,11 @@ export async function renderChestPage(app, { signal } = {}) {
     page.buying = true;
     syncWallet();
     const idempotencyKey = newRequestId();
+    const price = kind === 'key' ? chest.keyPrice : chest.chestPrice;
     try {
       const result = await withRetry(() => (kind === 'key'
-        ? chestApi.buyKey(chest.id, idempotencyKey)
-        : chestApi.buyChest(chest.id, idempotencyKey)));
+        ? api.buyKey(chest.id, idempotencyKey, price)
+        : api.buyChest(chest.id, idempotencyKey, price)));
       if (disposed) return;
       page.buying = false;
       page.guardUntil = performance.now() + DOUBLE_CLICK_GUARD_MS;
@@ -405,6 +421,7 @@ export async function renderChestPage(app, { signal } = {}) {
   function onMainButton() {
     if (performance.now() < page.guardUntil) return;
     const { chest, key } = has();
+    if ((chest < 1 || key < 1) && !cur().onSale) return;
     if (chest < 1) buy('chest');
     else if (key < 1) buy('key');
     else startOpen();
@@ -507,9 +524,22 @@ export async function renderChestPage(app, { signal } = {}) {
     stage = null;
   }
 
+  function renderDots() {
+    const dots = $('dots');
+    dots.replaceChildren();
+    page.chests.forEach((chest, index) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'qh-dot';
+      dot.setAttribute('aria-label', chest.displayName);
+      on(dot, 'click', () => selectCase(index));
+      dots.append(dot);
+    });
+  }
+
   function showLoadError(error) {
     const empty = $('empty');
-    empty.innerHTML = `<span>${escapeHtml(errorText(error))}</span><button class="qh-btn-ghost" type="button" id="qh-retry">${tr('Try again', 'Thử lại')}</button>`;
+    empty.innerHTML = `<span>${escapeHtml(chestErrorText(error))}</span><button class="qh-btn-ghost" type="button" id="qh-retry">${tr('Try again', 'Thử lại')}</button>`;
     on($('retry'), 'click', () => {
       empty.textContent = tr('Opening the evidence room…', 'Đang mở kho vật chứng…');
       load();
@@ -518,20 +548,17 @@ export async function renderChestPage(app, { signal } = {}) {
 
   async function load() {
     try {
-      const data = await chestApi.list();
+      const data = await api.list();
       if (disposed) return;
       applyList(data);
+      if (page.chests.length === 0) {
+        $('empty').textContent = tr('No chests on sale at the moment.', 'Chưa có hòm nào đang bán.');
+        return;
+      }
       page.loaded = true;
       $('empty').hidden = true;
       root.querySelectorAll('[data-qh-ready]').forEach((el) => { el.hidden = false; });
-      page.chests.forEach((chest, index) => {
-        const dot = document.createElement('button');
-        dot.type = 'button';
-        dot.className = 'qh-dot';
-        dot.setAttribute('aria-label', chest.displayName);
-        on(dot, 'click', () => selectCase(index));
-        $('dots').append(dot);
-      });
+      renderDots();
       renderCase();
       stage = createChestStage({
         app: root,

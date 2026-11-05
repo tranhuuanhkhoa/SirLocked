@@ -441,6 +441,10 @@ export function createChestStage({ app, canvas: cv, spot, keyIcon, chest, rariti
     skip,
     toIdle,
     relayout: () => requestAnimationFrame(() => { if (!disposed) layout(); }),
+    /** The same chest with fresh numbers or colours: nothing moves. */
+    setChest(next) {
+      cur = next;
+    },
     /** Slides `chest` in; `from` slides out towards the opposite side of `dir`. */
     showChest(next, from, dir) {
       st.switchFrom = from; st.switchDir = dir; st.switchAt = now();

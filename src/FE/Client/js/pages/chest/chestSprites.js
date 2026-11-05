@@ -1,3 +1,5 @@
+import { cosmeticSprite, isCosmeticDef } from '../../cosmetics/icons.js';
+
 /*
  * Pixel sprites of Mở hòm, moved as they are from the approved mock-up
  * (hom-niem-phong.html): a small grid-drawing engine, the three chests, their keys and the item icons.
@@ -313,20 +315,95 @@ export function isChestIcon(iconKey) {
   return Object.hasOwn(CHEST_LOOKS, iconKey);
 }
 
+/** Every sprite an item can be given, for the admin's picker. Cosmetic sprites are named after their item: frame_dong. */
+export const SPRITE_KEYS = {
+  items: Object.keys(ITEM_ICONS),
+  keys: Object.keys(KEY_SPRITES),
+  chests: Object.keys(CHEST_LOOKS),
+};
+
+const COSMETIC_KEY = /^(frame|title|entrance)_/;
+const COSMETIC_CATEGORY = { frame: 'FRAME', title: 'TITLE', entrance: 'ENTRANCE' };
+
+/** An item that borrows a cosmetic's drawing, by naming it as its icon. */
+function borrowedCosmeticSprite(iconKey) {
+  return cosmeticSprite({ id: iconKey, category: COSMETIC_CATEGORY[iconKey.match(COSMETIC_KEY)[1]] });
+}
+
 /** Icon of a collectible, or of a key when `iconKey` names one. Unknown keys fall back to the magnifier. */
 export function itemSprite(iconKey) {
+  if (COSMETIC_KEY.test(iconKey ?? '')) return borrowedCosmeticSprite(iconKey);
   return once(`item:${iconKey}`, () => {
     if (KEY_SPRITES[iconKey]) return KEY_SPRITES[iconKey]();
+    if (isChestIcon(iconKey)) return { c: closedChestCanvas(iconKey), w: 50, h: 50 };
     return (ITEM_ICONS[iconKey] ?? ITEM_ICONS.magnifier)().render();
   });
 }
 
-/** Everything the stage needs to draw and open one chest type, with its key. */
-export function chestLook(iconKey, keyIconKey) {
-  return once(`chest:${iconKey}:${keyIconKey}`, () => {
-    const look = CHEST_LOOKS[iconKey] ?? CHEST_LOOKS.chest_seal;
-    return { ...look, sp: { ...look.sprites(), key: itemSprite(keyIconKey) } };
+const IMAGE_SIDE = 192;
+const IMAGE_LOGICAL = 48;
+
+/**
+ * An uploaded picture as a sprite: the canvas is there at once and the picture lands on it when it arrives, which
+ * `ready` announces for whoever copied the canvas meanwhile. A picture that cannot load shows the magnifier.
+ */
+function imageSprite(url) {
+  return once(`image:${url}`, () => {
+    const c = document.createElement('canvas');
+    c.width = IMAGE_SIDE;
+    c.height = IMAGE_SIDE;
+    const x = c.getContext('2d');
+    const ready = new Promise((resolve) => {
+      const image = new Image();
+      image.decoding = 'async';
+      image.onload = () => {
+        const scale = Math.min(IMAGE_SIDE / image.naturalWidth, IMAGE_SIDE / image.naturalHeight);
+        const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
+        x.imageSmoothingQuality = 'high';
+        x.drawImage(image, (IMAGE_SIDE - w) / 2, (IMAGE_SIDE - h) / 2, w, h);
+        resolve();
+      };
+      image.onerror = () => {
+        const fallback = itemSprite('magnifier');
+        x.imageSmoothingEnabled = false;
+        x.drawImage(fallback.c, 0, 0, IMAGE_SIDE, IMAGE_SIDE);
+        resolve();
+      };
+      image.src = url;
+    });
+    return { c, w: IMAGE_LOGICAL, h: IMAGE_LOGICAL, smooth: true, ready };
   });
+}
+
+/** The sprite of any item definition: its cosmetic drawing, then an uploaded picture, then its pixel icon. */
+export function defSprite(def) {
+  if (isCosmeticDef(def)) return cosmeticSprite(def);
+  return def?.visual?.imageUrl ? imageSprite(def.visual.imageUrl) : itemSprite(def?.iconKey);
+}
+
+/** Copies a sprite onto a canvas of any size, centred. */
+export function paintSprite(canvas, sprite) {
+  const x = canvas.getContext('2d');
+  x.imageSmoothingEnabled = !!sprite.smooth;
+  x.clearRect(0, 0, canvas.width, canvas.height);
+  const s = Math.min(canvas.width / sprite.w, canvas.height / sprite.h);
+  x.drawImage(sprite.c, (canvas.width - sprite.w * s) / 2, (canvas.height - sprite.h * s) / 2, sprite.w * s, sprite.h * s);
+}
+
+/** Which chest drawing each template of the catalog means. */
+const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer' };
+
+/**
+ * Everything the stage needs to draw and open one chest type, with its key. `look` is what an admin chose: it picks the
+ * drawing and colours the light. Without one, the drawing follows the icon.
+ */
+export function chestLook(iconKey, keyIconKey, look) {
+  const icon = CHEST_LOOKS[TEMPLATE_ICON[look?.template]] ? TEMPLATE_ICON[look.template] : iconKey;
+  const drawing = once(`chest:${icon}:${keyIconKey}`, () => {
+    const base = CHEST_LOOKS[icon] ?? CHEST_LOOKS.chest_seal;
+    return { ...base, sp: { ...base.sprites(), key: itemSprite(keyIconKey) } };
+  });
+  return look?.light ? { ...drawing, light: look.light, hi: look.hi, core: look.core } : drawing;
 }
 
 function closedChestCanvas(iconKey) {
@@ -343,6 +420,14 @@ function closedChestCanvas(iconKey) {
  * (so callers can fall back to their own drawing).
  */
 export function pixelIconUrl(iconKey) {
+  // A cosmetic's art may still be arriving, so this one is not kept: the next render gets the finished picture.
+  if (COSMETIC_KEY.test(iconKey ?? '')) {
+    try {
+      return borrowedCosmeticSprite(iconKey).c.toDataURL('image/png');
+    } catch {
+      return '';
+    }
+  }
   return once(`url:${iconKey}`, () => {
     try {
       if (isChestIcon(iconKey)) return closedChestCanvas(iconKey).toDataURL('image/png');
