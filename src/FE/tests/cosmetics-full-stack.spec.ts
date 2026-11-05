@@ -94,8 +94,8 @@ test('two detectives: exchange to level 50, wear cosmetics, and enter a room for
   expect(titles).toEqual(['title_van-tay']);
 
   await fill(a);
-  await pageA.goto('/#/market');
-  await pageA.goto('/#/detective');
+  await pageA.goto('/market');
+  await pageA.goto('/detective');
   await expect(pageA.locator('[data-hs-level]')).toHaveText('49');
   await shot(pageA, '01-profile-exchange');
   await pageA.getByRole('button', { name: /Đổi tất cả/ }).click();
@@ -122,8 +122,8 @@ test('two detectives: exchange to level 50, wear cosmetics, and enter a room for
   await grant(b, 'title_long-phung');
   await grant(b, 'entrance_kim-long');
   await grant(a, 'entrance_van-kiem');
-  await pageA.goto('/#/market');
-  await pageA.goto('/#/detective');
+  await pageA.goto('/market');
+  await pageA.goto('/detective');
   await pageA.getByRole('tab', { name: 'Viền avatar' }).click();
   await expect(pageA.locator('[data-hs-frame="truong"]')).toHaveAttribute('aria-pressed', 'true');
   await pageA.waitForTimeout(1200);
@@ -172,7 +172,7 @@ test('two detectives: exchange to level 50, wear cosmetics, and enter a room for
   const cases = await call<Array<{ caseId: string }>>(api, 'GET', '/api/cases/published', a.token);
   expect(cases.length).toBeGreaterThan(0);
   const room = await call<{ roomId: string; roomCode: string }>(api, 'POST', '/api/rooms', a.token, { caseId: cases[0].caseId });
-  await pageA.goto(`/#/lobby/${room.roomId}`);
+  await pageA.goto(`/lobby/${room.roomId}`);
   await expect(pageA.locator('.bpa-lobby-pair')).toBeVisible();
   const stageA = pageA.locator('.hs-stage:not(.hs-out)');
   await expect(stageA.locator('.hs-hn')).toHaveText(nameA);
@@ -187,7 +187,7 @@ test('two detectives: exchange to level 50, wear cosmetics, and enter a room for
   const seenB = joined.players.find((player) => player.userId === b.user.userId)!;
   expect(seenB).toMatchObject({ level: 1, frameDefId: 'frame_kimlong', titleDefId: 'title_long-phung', entranceDefId: 'entrance_kim-long' });
 
-  await pageB.goto(`/#/lobby/${room.roomId}`);
+  await pageB.goto(`/lobby/${room.roomId}`);
   for (const page of [pageA, pageB]) {
     const stage = page.locator('.hs-stage:not(.hs-out)');
     await expect(stage.locator('.hs-hn')).toHaveText(nameB);
@@ -237,7 +237,7 @@ test('two detectives: exchange to level 50, wear cosmetics, and enter a room for
   // A chest lists its cosmetics, and the page still works after leaving the lobby.
   const chests = await call<{ chests: Array<{ id: string; contents: Array<{ id: string }> }> }>(api, 'GET', '/api/chests', a.token);
   expect(chests.chests.find((chest) => chest.id === 'chest_np')!.contents.map((def) => def.id)).toContain('frame_hacduc');
-  await pageA.goto('/#/kho-ruong');
+  await pageA.goto('/kho-ruong');
   await expect(pageA.locator('#qh-contents .qh-it')).toHaveCount(24);
   await pageA.waitForTimeout(1200);
   await shot(pageA, '13-chest-with-cosmetics');
@@ -294,7 +294,7 @@ async function openAs(browser: Browser, auth: Auth, viewport: { width: number; h
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');
   }, auth);
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('.hs-name')).toBeVisible();
   return page;
 }

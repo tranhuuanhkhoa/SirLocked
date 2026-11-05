@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sir Locked — "Bảng phá án": Published cases (#/cases) + case dossier (#/cases/<id>)
+   Sir Locked — "Bảng phá án": Published cases (/cases) + case dossier (/cases/<id>)
    Source: docs/design/bang-pha-an/nguon-canvas/Cases.dc.html (cs-* → bpa-cases-*)
    Imported by casesPage.js and caseDetailPage.js. Uses 20-bpa-foundation.css tokens.
    ========================================================================== */
@@ -830,7 +830,7 @@
 .bpa-cases-ln { fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
 .bpa-cases-pn { transform-box: fill-box; transform-origin: 50% 50%; }
 
-/* ---- standalone #/cases/<id>: the same folder, two columns ---- */
+/* ---- standalone /cases/<id>: the same folder, two columns ---- */
 .bpa-cases-page--detail { padding-top: 34px; }
 .bpa-cases-cover--wide { width: 100%; max-width: 1120px; margin: 0 auto; transform: rotate(.15deg); }
 .bpa-cases-cover--wide .bpa-cases-sheet.bpa-paper { padding: 16px 34px 30px 58px; }

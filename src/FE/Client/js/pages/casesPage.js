@@ -10,6 +10,7 @@ import { createRoomErrorText } from './roomCreateCard.js';
 import {
   caseDossierMarkup, coverArt, countOf, fileNumber, icons, peopleMarkup, sealedPeopleMarkup,
 } from './caseDetailPage.js';
+import { navigate } from '../services/navigation.js';
 
 const ROLE_LABELS = {
   INVESTIGATOR: () => tr('Investigator', 'Điều tra viên'),
@@ -92,7 +93,7 @@ function fileMarkup(c, index) {
           ${facts.length ? `<p class="bpa-cases-fstats">${facts.join(' · ')}</p>` : ''}
         </div>
         <div class="bpa-cases-facts">
-          <a class="bpa-btn bpa-btn--ink bpa-btn--sm bpa-cases-pick" href="#/cases/${encodeURIComponent(c.caseId)}" data-pick="${index}" aria-controls="bpa-cases-cover">${icons.eye()}${tr('Details', 'Chi tiết')}<span class="bpa-sr">: ${title}</span></a>
+          <a class="bpa-btn bpa-btn--ink bpa-btn--sm bpa-cases-pick" href="/cases/${encodeURIComponent(c.caseId)}" data-pick="${index}" aria-controls="bpa-cases-cover">${icons.eye()}${tr('Details', 'Chi tiết')}<span class="bpa-sr">: ${title}</span></a>
           <button type="button" class="bpa-btn bpa-btn--red bpa-btn--sm" data-create="${escapeHtml(c.caseId)}">${icons.plus()}${tr('Create room', 'Tạo phòng')}<span class="bpa-sr">: ${title}</span></button>
         </div>
       </article>
@@ -133,7 +134,7 @@ export async function renderCasesPage(app) {
             <div class="bpa-cases-coderow">
               <input id="bpa-cases-code" class="bpa-code bpa-cases-code" type="text" maxlength="6" placeholder="ABC123"
                      autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="bpa-cases-code-hint">
-              <a class="bpa-btn bpa-btn--red bpa-cases-go" href="#/join">${tr('Join', 'Vào')}</a>
+              <a class="bpa-btn bpa-btn--red bpa-cases-go" href="/join">${tr('Join', 'Vào')}</a>
             </div>
             <p id="bpa-cases-code-hint" class="bpa-cases-hint">${tr('6 characters: letters A–Z and digits 0–9.', 'Gồm 6 ký tự: chữ A–Z và số 0–9.')}</p>
           </form>
@@ -172,7 +173,7 @@ export async function renderCasesPage(app) {
   const syncCode = () => {
     codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     codeCount.textContent = String(codeInput.value.length);
-    codeGo.setAttribute('href', inviteDestination(codeInput.value) || '#/join');
+    codeGo.setAttribute('href', inviteDestination(codeInput.value) || '/join');
     if (codeInput.getAttribute('aria-invalid') === 'true') {
       codeInput.removeAttribute('aria-invalid');
       codeHint.textContent = hintText;
@@ -184,7 +185,7 @@ export async function renderCasesPage(app) {
     if (!code || normalizeRoomCode(code)) {
       if (event.type === 'submit') {
         event.preventDefault();
-        window.location.hash = inviteDestination(code) || '#/join';
+        navigate(inviteDestination(code) || '/join');
       }
       return;
     }
@@ -277,7 +278,7 @@ export async function renderCasesPage(app) {
       const room = await roomApi.create(caseId);
       if (!app.isConnected) return;
       toast(tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
-      window.location.hash = `#/lobby/${room.roomId}`;
+      navigate(`/lobby/${room.roomId}`);
     } catch (err) {
       toast(createRoomErrorText(err), 'error');
       button.disabled = false;

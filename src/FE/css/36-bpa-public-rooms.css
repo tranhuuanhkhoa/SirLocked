@@ -1,6 +1,6 @@
 /* ==========================================================================
-   "Bảng phá án" — Public rooms (#/rooms, roomsPage.js) and the public/private
-   choice of the create card (roomCreateCard.js, also on #/create-room).
+   "Bảng phá án" — Public rooms (/rooms, roomsPage.js) and the public/private
+   choice of the create card (roomCreateCard.js, also on /create-room).
    Design: Rooms.dc.html (rm-* classes). Builds on 30-bpa-rooms.css.
    ========================================================================== */
 

@@ -286,7 +286,7 @@ async function contextFor(browser: Browser, flow: SharedV3Flow, role: Role) {
     (window as unknown as { __sirlockedNoSignalR?: boolean }).__sirlockedNoSignalR = true;
   }, { roomId: flow.roomId, userId });
   await page.route(`**/api/game/rooms/${flow.roomId}/**`, (route) => flow.route(role, route));
-  await page.goto(`/#/game/${flow.roomId}`);
+  await page.goto(`/game/${flow.roomId}`);
   return { context, page };
 }
 

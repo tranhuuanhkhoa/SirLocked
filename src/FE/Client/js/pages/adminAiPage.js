@@ -518,7 +518,7 @@ export async function renderAdminAiPage(app) {
         ${continueButton(d)}
         ${cancelButton(d)}
         ${d.status === STATUS_PUBLISHED || d.importedCaseId
-          ? `<a class="btn btn-ghost btn-sm" href="#/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
+          ? `<a class="btn btn-ghost btn-sm" href="/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
           : ''}
       </td>
     </tr>`;
@@ -656,8 +656,8 @@ export async function renderAdminAiPage(app) {
         : ''}
       ${published && caseId
         ? `<div class="case-actions">
-            <a class="btn btn-primary btn-sm" href="#/cases/${encodeURIComponent(caseId)}">Open published case</a>
-            ${session.isAdmin() ? `<a class="btn btn-ghost btn-sm" href="#/admin/cases/${encodeURIComponent(caseId)}">Admin review</a>` : ''}
+            <a class="btn btn-primary btn-sm" href="/cases/${encodeURIComponent(caseId)}">Open published case</a>
+            ${session.isAdmin() ? `<a class="btn btn-ghost btn-sm" href="/admin/cases/${encodeURIComponent(caseId)}">Admin review</a>` : ''}
           </div>`
         : resumeAction || cancelButton(d)
         ? `<div class="case-actions">${resumeAction}${cancelButton(d)}</div>`

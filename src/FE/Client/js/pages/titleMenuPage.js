@@ -10,6 +10,7 @@ import { session } from '../services/session.js';
 import { tr, uiLanguage } from '../services/i18n.js';
 import { escapeHtml, initials, render } from '../utils/dom.js';
 import { changeText, defName, fmt as formatPrice, itemTile, rarityLabel, rarityOf } from './market/marketKit.js';
+import { navigate } from '../services/navigation.js';
 
 /** Fired with the /profile/me payload so the header chip can reuse it. */
 export const PROFILE_EVENT = 'sirlocked:profile';
@@ -106,12 +107,12 @@ export function renderTitleMenuPage(app) {
                 'Chơi với bạn bè trong phòng riêng, hoặc vào một phòng công khai đang chờ người.',
               )}</p>
               <div class="bpa-home-tiles">
-                <a class="bpa-home-tile" href="#/rooms">
+                <a class="bpa-home-tile" href="/rooms">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
                   <strong class="is-teal">${tr('PUBLIC', 'CÔNG KHAI')}</strong>
                   <span>${tr('Open rooms anyone can join', 'Ai cũng thấy và vào được')}</span>
                 </a>
-                <a class="bpa-home-tile" href="#/create-room">
+                <a class="bpa-home-tile" href="/create-room">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/></svg>
                   <strong class="is-rust">${tr('PRIVATE', 'RIÊNG TƯ')}</strong>
                   <span>${tr('Invite code only', 'Chỉ vào bằng mã mời')}</span>
@@ -124,7 +125,7 @@ export function renderTitleMenuPage(app) {
           </div>
 
           <div class="bpa-home-slot bpa-home-work">
-            <a class="bpa-home-card bpa-home-card--folder bpa-home-cardlink bpa-tilt-r" href="#/workshop">
+            <a class="bpa-home-card bpa-home-card--folder bpa-home-cardlink bpa-tilt-r" href="/workshop">
               <span class="bpa-pin" aria-hidden="true"></span>
               <span class="bpa-pin bpa-pin--red bpa-home-edgepin bpa-home-edgepin--right" aria-hidden="true"></span>
               <p class="bpa-home-head"><span>${tr('FILE 02 · COMMUNITY', 'HỒ SƠ 02 · CỘNG ĐỒNG')}</span><span>WORKSHOP</span></p>
@@ -138,7 +139,7 @@ export function renderTitleMenuPage(app) {
           </div>
 
           <div class="bpa-home-slot bpa-home-center">
-            <a class="bpa-home-who bpa-paper bpa-home-cardlink" href="#/detective" aria-labelledby="home-who-name home-who-go">
+            <a class="bpa-home-who bpa-paper bpa-home-cardlink" href="/detective" aria-labelledby="home-who-name home-who-go">
               <span class="bpa-pin" aria-hidden="true"></span>
               <p class="bpa-home-head bpa-home-head--rule"><span>${tr('DETECTIVE CARD', 'THẺ THÁM TỬ')}</span><span>${escapeHtml(role)}</span></p>
               <div class="bpa-home-who-row">
@@ -174,16 +175,16 @@ export function renderTitleMenuPage(app) {
                   'Ghép đôi với một thám tử khác: một người khám nghiệm hiện trường, một người hỏi nhân chứng.',
                 )}</p>
               </div>
-              <a class="bpa-btn bpa-btn--red bpa-btn--block bpa-home-start" href="#/find-game">
+              <a class="bpa-btn bpa-btn--red bpa-btn--block bpa-home-start" href="/find-game">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg>
                 ${tr('FIND A GAME', 'TÌM TRẬN')}
               </a>
-              <a class="bpa-link bpa-link--gold bpa-home-join" href="#/rooms">${tr('Playing with friends? Create a private room', 'Chơi với bạn bè? Tạo phòng riêng')}</a>
+              <a class="bpa-link bpa-link--gold bpa-home-join" href="/rooms">${tr('Playing with friends? Create a private room', 'Chơi với bạn bè? Tạo phòng riêng')}</a>
             </section>
           </div>
 
           <div class="bpa-home-slot bpa-home-badges bpa-home-market">
-            <a class="bpa-home-card bpa-home-card--ledger bpa-home-cardlink bpa-tilt-r" href="#/market">
+            <a class="bpa-home-card bpa-home-card--ledger bpa-home-cardlink bpa-tilt-r" href="/market">
               <span class="bpa-pin" aria-hidden="true"></span>
               <span class="bpa-pin bpa-pin--red bpa-home-edgepin bpa-home-edgepin--left" aria-hidden="true"></span>
               <p class="bpa-home-head"><span>${tr('TRADING LEDGER', 'SỔ GIAO DỊCH')}</span><span>${tr('BUY · SELL · SWAP', 'MUA · BÁN · ĐỔI')}</span></p>
@@ -196,7 +197,7 @@ export function renderTitleMenuPage(app) {
           </div>
 
           <div class="bpa-home-slot bpa-home-week">
-            <a class="bpa-home-card bpa-home-card--news bpa-home-cardlink bpa-tilt-l" href="#/workshop/challenge">
+            <a class="bpa-home-card bpa-home-card--news bpa-home-cardlink bpa-tilt-l" href="/workshop/challenge">
               <span class="bpa-pin" aria-hidden="true"></span>
               <span class="bpa-pin bpa-pin--red bpa-home-edgepin bpa-home-edgepin--left" aria-hidden="true"></span>
               <p class="bpa-home-masthead"><span>${tr('221B GAZETTE · SPECIAL ISSUE', 'BÁO 221B · SỐ ĐẶC BIỆT')}</span><span id="home-week-no"></span></p>
@@ -222,7 +223,7 @@ export function renderTitleMenuPage(app) {
       // Local sign-out still succeeds if the server cannot revoke the token.
     }
     session.clear();
-    window.location.hash = '#/login';
+    navigate('/login');
   });
 
   // Each card fills itself; a slow or failed request never blocks the others.
@@ -273,7 +274,7 @@ async function loadActiveRooms(app) {
     return;
   }
   // One open room resumes directly; several are listed on the cases page.
-  const href = rooms.length === 1 ? activeRoomDestination(rooms[0]) : '#/cases';
+  const href = rooms.length === 1 ? activeRoomDestination(rooms[0]) : '/cases';
   const label = rooms.length === 1
     ? tr('Resume your open case', 'Tiếp tục ván đang chơi')
     : tr(`${rooms.length} open rooms · resume`, `${rooms.length} phòng đang mở · tiếp tục`);

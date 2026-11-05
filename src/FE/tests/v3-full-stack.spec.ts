@@ -133,8 +133,8 @@ test.describe('Crack V3 full-stack flow on the standard application host', () =>
       await expect(investigator.locator('#accusation-confirm')).toBeDisabled();
       await expect(interrogator.locator('#accusation-confirm')).toBeEnabled();
       await interrogator.locator('#accusation-confirm').click();
-      await expect(investigator).toHaveURL(/#\/result\//);
-      await expect(interrogator).toHaveURL(/#\/result\//);
+      await expect(investigator).toHaveURL(/\/result\//);
+      await expect(interrogator).toHaveURL(/\/result\//);
       await expect(investigator.locator('.result-banner')).toContainText('CASE CLOSED');
       await expect(interrogator.locator('.result-banner')).toContainText('CASE CLOSED');
       await expect(investigator.locator('#toast-root .toast')).toHaveCount(0);
@@ -382,7 +382,7 @@ async function openEndedPlayer(browser: Browser, roomId: string, auth: Auth): Pr
     window.localStorage.setItem('sirlocked.uiLanguage', 'en');
     window.sessionStorage.setItem(`sirlocked.intro.${roomId}`, '1');
   }, { roomId, auth });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   return page;
 }
 
@@ -462,8 +462,8 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await expect(interrogator.locator('[data-accusation-attempt]')).toContainText('Mara Vale');
   await interrogator.locator('#accusation-confirm').click();
 
-  await expect(interrogator).toHaveURL(/#\/result\//);
-  await expect(investigator).toHaveURL(/#\/result\//);
+  await expect(interrogator).toHaveURL(/\/result\//);
+  await expect(investigator).toHaveURL(/\/result\//);
   await expect(interrogator.locator('.result-banner')).toContainText('CASE CLOSED');
   await expect(investigator.locator('.result-banner')).toContainText('CASE CLOSED');
 }

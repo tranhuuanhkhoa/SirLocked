@@ -112,18 +112,18 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
   const adminGrant = (auth: Auth, defId: string) => call(api, 'POST', `/api/admin/players/${auth.user.userId}/items`, admin.token, { defId, reason: 'Chuẩn bị kiểm thử', idempotencyKey: key() });
 
   await test.step('tổng quan có thẻ số liệu dẫn đúng trang', async () => {
-    await adminPage.goto('/#/admin');
+    await adminPage.goto('/admin');
     const cards = adminPage.locator('[data-adp-cards]');
     await expect(cards.getByRole('link', { name: /Ảnh chờ duyệt/ })).toBeVisible();
     await expect(cards.getByRole('link', { name: /Người chơi mới hôm nay/ })).toContainText(/[1-9]/);
     await shot(adminPage, '01-tong-quan-the-so-lieu');
   });
 
-  await test.step('tìm người chơi, cộng xu, thấy số dư đổi ở #/market của người đó', async () => {
-    await playerPage.goto('/#/market');
+  await test.step('tìm người chơi, cộng xu, thấy số dư đổi ở /market của người đó', async () => {
+    await playerPage.goto('/market');
     await expect(playerPage.locator('[data-mk-balance]')).toHaveText('500');
 
-    await adminPage.goto('/#/admin/players');
+    await adminPage.goto('/admin/players');
     await adminPage.getByRole('searchbox', { name: 'Tìm người chơi' }).fill(`An ${run}`);
     await adminPage.getByRole('button', { name: 'Tìm', exact: true }).click();
     const row = adminPage.locator('.adp-table tbody tr', { hasText: nameA });
@@ -223,7 +223,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     await db.collection('playerProgress').updateOne({ _id: b.user.userId as never }, { $set: { avatar: 'upload', avatarUrl: picture, avatarUploadedAt: new Date() } });
     expect((await call(api, 'GET', '/api/progress/me', b.token)).avatarUrl).toBe(picture);
 
-    await adminPage.goto('/#/admin/players?tab=anh');
+    await adminPage.goto('/admin/players?tab=anh');
     const card = adminPage.locator('[data-adp-avatar]', { hasText: nameB });
     await expect(card.locator('img')).toBeVisible();
     await shot(adminPage, '10-luoi-duyet-anh');
@@ -237,7 +237,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     expect(me.avatar).toBe('nonla');
     expect(me.avatarUrl).toBeNull();
     const { page: playerB, context: contextB } = await openAs(browser, b, failures);
-    await playerB.goto('/#/detective');
+    await playerB.goto('/detective');
     await expect(playerB.locator('.hs-name')).toBeVisible();
     await shot(playerB, '12-nguoi-choi-ve-anh-mau');
     await contextB.close();
@@ -250,7 +250,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     const listing = await call(api, 'POST', '/api/market/listings', a.token, { itemId: sold.itemId, price: reference * 20 });
     const before = (await call(api, 'GET', '/api/market/me', a.token)).balance;
 
-    await adminPage.goto('/#/admin/economy?tab=cho');
+    await adminPage.goto('/admin/economy?tab=cho');
     const filter = adminPage.locator('[data-adp-listings-filter]');
     await filter.getByLabel('Người bán').fill(nameA);
     await filter.getByRole('button', { name: 'Lọc' }).click();
@@ -259,11 +259,11 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     await expect(row).toContainText('Giá cao bất thường');
     await shot(adminPage, '13-cho-tin-rao-gia-bat-thuong');
 
-    await adminPage.goto('/#/admin/economy?tab=batthuong');
+    await adminPage.goto('/admin/economy?tab=batthuong');
     await expect(adminPage.locator('[data-adp-economy="batthuong"]').getByRole('link', { name: nameA }).first()).toBeVisible();
     await shot(adminPage, '14-canh-bao-bat-thuong');
 
-    await adminPage.goto('/#/admin/economy?tab=cho');
+    await adminPage.goto('/admin/economy?tab=cho');
     await filter.getByLabel('Người bán').fill(nameA);
     await filter.getByRole('button', { name: 'Lọc' }).click();
     await row.getByRole('button', { name: 'Gỡ' }).click();
@@ -302,7 +302,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     const listed = (await call(api, 'GET', '/api/market/mine', a.token)).listings.find((entry: { itemId: string }) => entry.itemId === forSale.itemId);
     await call(api, 'POST', `/api/market/listings/${listed.listingId}/buy`, b.token);
 
-    await adminPage.goto('/#/admin/economy?tab=lichsu');
+    await adminPage.goto('/admin/economy?tab=lichsu');
     const filter = adminPage.locator('[data-adp-sales-filter]');
     await filter.getByLabel('Người mua hoặc bán').fill(nameB);
     await filter.getByRole('button', { name: 'Lọc' }).click();
@@ -318,7 +318,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
   });
 
   await test.step('tổng quan kinh tế cộng đúng', async () => {
-    await adminPage.goto('/#/admin/economy');
+    await adminPage.goto('/admin/economy');
     const panel = adminPage.locator('[data-adp-economy="tongquan"]');
     await expect(panel.locator('[data-adp-flow] tbody tr')).toHaveCount(7);
     await shot(adminPage, '17-kinh-te-tong-quan-7-ngay');
@@ -335,7 +335,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
       rewardItemId: `${run}${'0'.repeat(24)}`.slice(0, 24), state: 'PENDING', committed: false, createdAt: old, updatedAt: old,
     });
     // The worker sweeps every 30 seconds, so a stuck row can be gone before the page opens. Reads as "listed, or already finished".
-    await adminPage.goto('/#/admin/economy?tab=ket');
+    await adminPage.goto('/admin/economy?tab=ket');
     const panel = adminPage.locator('[data-adp-economy="ket"]');
     await expect(panel.locator('[data-adp-stuck]')).not.toContainText('Đang tải');
     await shot(adminPage, '18-giao-dich-ket');
@@ -350,10 +350,10 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
 
   await test.step('đóng phòng chờ: người trong phòng được báo qua SignalR', async () => {
     const room = await call(api, 'POST', '/api/rooms', a.token, { caseId: PIXEL_CASE, visibility: 'PRIVATE' });
-    await playerPage.goto(`/#/lobby/${room.roomId}`);
+    await playerPage.goto(`/lobby/${room.roomId}`);
     await expect(playerPage.locator('.bpa-lobby-h1')).toBeVisible();
 
-    await adminPage.goto('/#/admin/economy?tab=phong');
+    await adminPage.goto('/admin/economy?tab=phong');
     const panel = adminPage.locator('[data-adp-economy="phong"]');
     const row = panel.locator('tbody tr', { hasText: room.roomCode });
     await expect(row).toBeVisible();
@@ -374,11 +374,11 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     await call(api, 'POST', `/api/rooms/${room.roomId}/ready`, b.token, { isReady: true });
     await call(api, 'POST', `/api/rooms/${room.roomId}/start`, a.token);
     const walletBefore = (await call(api, 'GET', '/api/market/me', a.token)).balance;
-    await playerPage.goto(`/#/game/${room.roomId}`);
+    await playerPage.goto(`/game/${room.roomId}`);
     await expect(playerPage.locator('canvas').first()).toBeVisible({ timeout: 60_000 });
 
     // Already on this address, where going to it again would not read the list anew.
-    await adminPage.goto('/#/admin/economy?tab=phong');
+    await adminPage.goto('/admin/economy?tab=phong');
     await adminPage.reload();
     const row = adminPage.locator('[data-adp-economy="phong"] tbody tr', { hasText: room.roomCode });
     await expect(row).toContainText('Đang chơi');
@@ -402,7 +402,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     const visible = async () => (await (await api.get(`/api/workshop/cases/${PIXEL_CASE}/reviews?pageSize=50`)).json()).data.items.some((item: { id: string }) => item.id === reviewId);
     expect(await visible()).toBe(true);
 
-    await adminPage.goto('/#/admin/economy?tab=danhgia');
+    await adminPage.goto('/admin/economy?tab=danhgia');
     const row = adminPage.locator('[data-adp-economy="danhgia"] tbody tr', { hasText: `Lời lẽ vi phạm ${run}` });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: 'Ẩn' }).click();
@@ -413,19 +413,19 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
   });
 
   await test.step('ép đăng xuất: token cũ hết hiệu lực, trang người chơi về đăng nhập', async () => {
-    await adminPage.goto(`/#/admin/players/${a.user.userId}`);
+    await adminPage.goto(`/admin/players/${a.user.userId}`);
     await adminPage.getByRole('button', { name: 'Ép đăng xuất' }).click();
     await answer(adminPage, 'Tài khoản bị lộ');
     await expect(dialog(adminPage)).toHaveCount(0);
     expect((await api.get('/api/market/me', { headers: { Authorization: `Bearer ${a.token}` } })).status()).toBe(401);
     expect((await api.post('/api/auth/refresh', { data: { refreshToken: a.refreshToken } })).ok()).toBe(false);
-    await playerPage.goto('/#/market');
-    await expect(playerPage).toHaveURL(/#\/login/, { timeout: 20_000 });
+    await playerPage.goto('/market');
+    await expect(playerPage).toHaveURL(/\/login/, { timeout: 20_000 });
     await shot(playerPage, '24-nguoi-choi-bi-ep-dang-xuat');
   });
 
   await test.step('khóa và mở khóa bằng API cũ, có nhật ký', async () => {
-    await adminPage.goto('/#/admin/players');
+    await adminPage.goto('/admin/players');
     await adminPage.getByRole('searchbox', { name: 'Tìm người chơi' }).fill(`Bình ${run}`);
     await adminPage.getByRole('button', { name: 'Tìm', exact: true }).click();
     await adminPage.getByRole('button', { name: `Khóa ${nameB}` }).click();
@@ -437,7 +437,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
   });
 
   await test.step('nhật ký: mọi thao tác đều có, lọc được, xem được trước và sau', async () => {
-    await adminPage.goto('/#/admin/audit');
+    await adminPage.goto('/admin/audit');
     await expect(adminPage.locator('[data-adp-audit] tbody tr').first()).toBeVisible();
     const form = adminPage.locator('[data-adp-audit-filter]');
     await form.getByLabel('Thao tác').fill('player.coins');
@@ -461,7 +461,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     const text = JSON.stringify(log.items);
     expect(text).not.toMatch(/passwordHash|refreshToken|verificationToken/i);
 
-    await adminPage.goto(`/#/admin/players/${a.user.userId}?tab=nhatky`);
+    await adminPage.goto(`/admin/players/${a.user.userId}?tab=nhatky`);
     const related = adminPage.locator('[data-adp-panel="nhatky"]');
     await expect(related.getByText('Bù lỗi sự kiện')).toBeVisible();
     await expect(related.getByText('Giá bất thường')).toBeVisible();
@@ -471,26 +471,26 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
   await test.step('màn điện thoại 390×844', async () => {
     const { page: phone, context } = await openAs(browser, admin, failures, { width: 390, height: 844 });
     const pages: [string, string][] = [
-      ['#/admin', '27-dt-tong-quan'],
-      ['#/admin/players', '28-dt-danh-sach'],
-      ['#/admin/players?tab=anh', '29-dt-duyet-anh'],
-      [`#/admin/players/${b.user.userId}`, '30-dt-chi-tiet'],
-      ['#/admin/economy', '31-dt-kinh-te'],
-      ['#/admin/economy?tab=cho', '32-dt-cho'],
-      ['#/admin/economy?tab=batthuong', '33-dt-bat-thuong'],
-      ['#/admin/economy?tab=ket', '34-dt-ket'],
-      ['#/admin/economy?tab=phong', '35-dt-phong'],
-      ['#/admin/economy?tab=danhgia', '36-dt-danh-gia'],
-      ['#/admin/audit', '37-dt-nhat-ky'],
+      ['/admin', '27-dt-tong-quan'],
+      ['/admin/players', '28-dt-danh-sach'],
+      ['/admin/players?tab=anh', '29-dt-duyet-anh'],
+      [`/admin/players/${b.user.userId}`, '30-dt-chi-tiet'],
+      ['/admin/economy', '31-dt-kinh-te'],
+      ['/admin/economy?tab=cho', '32-dt-cho'],
+      ['/admin/economy?tab=batthuong', '33-dt-bat-thuong'],
+      ['/admin/economy?tab=ket', '34-dt-ket'],
+      ['/admin/economy?tab=phong', '35-dt-phong'],
+      ['/admin/economy?tab=danhgia', '36-dt-danh-gia'],
+      ['/admin/audit', '37-dt-nhat-ky'],
     ];
     for (const [hash, name] of pages) {
-      await phone.goto(`/${hash}`);
+      await phone.goto(hash);
       await phone.reload();
       await expect(phone.locator('#app .page').first()).toBeVisible();
       await expect.poll(() => phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), { timeout: 10_000, message: `${hash} overflows sideways` }).toBeLessThanOrEqual(0);
       await shot(phone, name);
     }
-    await phone.goto(`/#/admin/players/${b.user.userId}`);
+    await phone.goto(`/admin/players/${b.user.userId}`);
     await phone.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await shot(phone, '38-dt-hop-xac-nhan');
     await context.close();

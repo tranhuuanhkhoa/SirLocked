@@ -95,7 +95,7 @@ Món phát miễn phí và phát lại được thì không được có giá tr
 - `COSMETIC_EARNED_COPIES_EXIST`: đã có bản nhận miễn phí thì không bật giao dịch được nữa.
 - Bật hoặc tắt giao dịch cần lý do, vì nó đổi quyền của mọi người đang giữ món đó.
 
-"Ra từ hòm" chỉ hiển thị ở trang này; sửa ở `#/admin/chests` (ADMIN-1).
+"Ra từ hòm" chỉ hiển thị ở trang này; sửa ở `/admin/chests` (ADMIN-1).
 
 ### Mặc định
 

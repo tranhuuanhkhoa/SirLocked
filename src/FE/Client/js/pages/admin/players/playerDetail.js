@@ -6,7 +6,7 @@ import { toast } from '../../../utils/toast.js';
 import { categoryLabel, defName, itemTile, rarityLabel } from '../../market/marketKit.js';
 import { auditTable } from './auditTable.js';
 import {
-  AVATAR_REASONS, TRADE_STATUS, actionDialog, alertBox, coins, dateTime, hashParams, num, pagedList, playerLink, roleChip, statusChip, tableHtml, tabsHtml, writeHashParams,
+  AVATAR_REASONS, TRADE_STATUS, actionDialog, alertBox, coins, dateTime, routeParams, num, pagedList, playerLink, roleChip, statusChip, tableHtml, tabsHtml, writeRouteParams,
 } from './shared.js';
 
 const SOURCES = {
@@ -44,7 +44,7 @@ export function mountPlayerDetail(host, userId, { signal }) {
   prepareCosmetics();
   const painter = createPainter();
   let state = null;
-  let activeTab = TABS.some((tab) => tab.id === hashParams().get('tab')) ? hashParams().get('tab') : 'kho';
+  let activeTab = TABS.some((tab) => tab.id === routeParams().get('tab')) ? routeParams().get('tab') : 'kho';
   const opened = new Map();
 
   const drawSummary = () => {
@@ -116,7 +116,7 @@ export function mountPlayerDetail(host, userId, { signal }) {
 
   const showTab = (id) => {
     activeTab = id;
-    writeHashParams({ tab: id === 'kho' ? '' : id });
+    writeRouteParams({ tab: id === 'kho' ? '' : id });
     host.querySelectorAll('[data-tab]').forEach((button) => {
       const on = button.dataset.tab === id;
       button.classList.toggle('is-active', on);
@@ -325,17 +325,17 @@ export function mountPlayerDetail(host, userId, { signal }) {
       // What this player wears may have been made on the cosmetics page, which only the catalog can draw.
       [state] = await Promise.all([adminPlayersApi.detail(userId), loadCosmeticCatalog()]);
     } catch (error) {
-      if (!signal?.aborted) host.innerHTML = `<div class="page">${alertBox(error)}<p><a class="adp-link" href="#/admin/players">Về danh sách người chơi</a></p></div>`;
+      if (!signal?.aborted) host.innerHTML = `<div class="page">${alertBox(error)}<p><a class="adp-link" href="/admin/players">Về danh sách người chơi</a></p></div>`;
       return;
     }
     if (signal?.aborted) return;
     if (!state) {
-      host.innerHTML = `<div class="page">${alertBox({ message: 'Không tìm thấy người chơi này.' })}<p><a class="adp-link" href="#/admin/players">Về danh sách người chơi</a></p></div>`;
+      host.innerHTML = `<div class="page">${alertBox({ message: 'Không tìm thấy người chơi này.' })}<p><a class="adp-link" href="/admin/players">Về danh sách người chơi</a></p></div>`;
       return;
     }
     host.innerHTML = `
       <div class="page adp-page" data-adp-loaded="true">
-        <p><a class="adp-link" href="#/admin/players">← Danh sách người chơi</a></p>
+        <p><a class="adp-link" href="/admin/players">← Danh sách người chơi</a></p>
         <section class="adp-profile">
           <div class="adp-look" data-adp-look></div>
           <div class="adp-head" data-adp-head></div>

@@ -1,8 +1,8 @@
 /* ==========================================================================
-   "Bảng phá án" — Rooms: #/create-room and #/join (createRoomPage.js, joinRoomPage.js)
+   "Bảng phá án" — Rooms: /create-room and /join (createRoomPage.js, joinRoomPage.js)
    Design: docs/design/bang-pha-an/nguon-canvas/Rooms.dc.html. The public room table
-   (#/rooms) and the public/private choice live in 36-bpa-public-rooms.css; on
-   #/create-room the case picker takes the table's place.
+   (/rooms) and the public/private choice live in 36-bpa-public-rooms.css; on
+   /create-room the case picker takes the table's place.
    ========================================================================== */
 
 .bpa-rooms-page {
@@ -263,7 +263,7 @@
 .bpa-rooms-code:invalid:not(:placeholder-shown):not(:focus) { box-shadow: inset 0 0 0 1.5px var(--bpa-red); }
 .bpa-rooms-joinbtn { flex: none; min-height: 56px; }
 
-/* #/join: the code card is the main element */
+/* /join: the code card is the main element */
 .bpa-rooms-join.is-lead {
   flex: 1 1 560px;
   min-width: 0;

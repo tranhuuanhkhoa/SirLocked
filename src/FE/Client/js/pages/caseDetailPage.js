@@ -4,10 +4,11 @@ import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
+import { navigate } from '../services/navigation.js';
 
 /* ---------------------------------------------------------------------------
-   The case dossier ("bìa chi tiết"). Shared by the #/cases/<id> page and the
-   open folder beside the drawer on #/cases, so both show the same file.
+   The case dossier ("bìa chi tiết"). Shared by the /cases/<id> page and the
+   open folder beside the drawer on /cases, so both show the same file.
    --------------------------------------------------------------------------- */
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
@@ -141,7 +142,7 @@ export function caseDossierMarkup(c, opts) {
     <div class="bpa-cases-dossier${opts.wide ? ' bpa-cases-dossier--wide' : ''}">
       <div class="bpa-cases-dcol bpa-cases-dcol--main">
         <div class="bpa-cases-dtop">
-          <a class="bpa-cases-back" href="#/cases" data-dossier-back>${icons.back()}${tr('All cases', 'Tất cả vụ án')}</a>
+          <a class="bpa-cases-back" href="/cases" data-dossier-back>${icons.back()}${tr('All cases', 'Tất cả vụ án')}</a>
           <span class="bpa-cases-stampbox" aria-hidden="true"><span class="bpa-cases-stamp">${tr('Published', 'Đã xuất bản')}</span></span>
         </div>
         <p class="bpa-kicker bpa-cases-kick">${tr('Co-op case · 2 detectives', 'Vụ án hợp tác · 2 thám tử')}</p>
@@ -182,7 +183,7 @@ export async function renderCaseDetailPage(app, caseId) {
           <span class="bpa-pin bpa-pin--red" aria-hidden="true"></span>
           <p class="bpa-kicker">${tr('Case file unavailable', 'Không mở được hồ sơ')}</p>
           <p class="bpa-cases-notice-text">${escapeHtml(err.message)}</p>
-          <a class="bpa-link" href="#/cases">${icons.back()}${tr('All cases', 'Tất cả vụ án')}</a>
+          <a class="bpa-link" href="/cases">${icons.back()}${tr('All cases', 'Tất cả vụ án')}</a>
         </div>
       </div>`);
     return;
@@ -205,7 +206,7 @@ export async function renderCaseDetailPage(app, caseId) {
             people: peopleMarkup(characters),
             actions: `
               <button type="button" class="bpa-btn bpa-btn--red" id="create-room">${icons.plus(15)}${tr('Create room', 'Tạo phòng')}</button>
-              <a class="bpa-btn bpa-btn--ink" href="#/join">${icons.key()}${tr('Join with code', 'Vào bằng mã phòng')}</a>`,
+              <a class="bpa-btn bpa-btn--ink" href="/join">${icons.key()}${tr('Join with code', 'Vào bằng mã phòng')}</a>`,
           })}
         </div>
       </div>
@@ -218,7 +219,7 @@ export async function renderCaseDetailPage(app, caseId) {
     try {
       const room = await roomApi.create(detail.caseId);
       toast(tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
-      window.location.hash = `#/lobby/${room.roomId}`;
+      navigate(`/lobby/${room.roomId}`);
     } catch (err) {
       toast(err.message, 'error');
       createButton.disabled = false;

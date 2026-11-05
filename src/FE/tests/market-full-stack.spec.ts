@@ -26,8 +26,8 @@ test('two detectives: list → buy with the 5% fee, then an accepted trade offer
   const run = `${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
   const minh = await register(api, `Thám tử Minh ${run}`, `minh.${run}@tests.invalid`);
   const vy = await register(api, `Thám tử Vy ${run}`, `vy.${run}@tests.invalid`);
-  const seller = await openAs(browser, minh, '/#/market/sell');
-  const buyer = await openAs(browser, vy, '/#/market');
+  const seller = await openAs(browser, minh, '/market/sell');
+  const buyer = await openAs(browser, vy, '/market');
   const failures: string[] = [];
   for (const page of [seller, buyer]) page.on('pageerror', (error) => failures.push(error.message));
   const price = 200 + Math.floor(Math.random() * 300);

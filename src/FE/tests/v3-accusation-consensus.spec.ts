@@ -201,7 +201,7 @@ async function contextFor(browser: Browser, flow: SharedAccusationFlow, role: Ro
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.route(`**/api/game/rooms/${flow.roomId}/**`, (route) => flow.route(role, route));
-  await page.goto(`/#/game/${flow.roomId}`);
+  await page.goto(`/game/${flow.roomId}`);
   return { context, page, errors };
 }
 
@@ -267,10 +267,10 @@ test('one detective cannot end the case; both must confirm the same revision', a
 
   // A confirms revision 2, which is the second agreement and closes the case for both.
   await investigator.page.locator('#accusation-confirm').click();
-  await expect(investigator.page).toHaveURL(new RegExp(`#/result/${flow.roomId}$`));
+  await expect(investigator.page).toHaveURL(new RegExp(`/result/${flow.roomId}$`));
 
   await emitState(interrogator.page, flow.version);
-  await expect(interrogator.page).toHaveURL(new RegExp(`#/result/${flow.roomId}$`));
+  await expect(interrogator.page).toHaveURL(new RegExp(`/result/${flow.roomId}$`));
 
   expect(investigator.errors).toEqual([]);
   expect(interrogator.errors).toEqual([]);

@@ -3,9 +3,10 @@ import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
-import { clearRoomInvite, inviteCodeFromHash } from '../services/roomInvites.js';
+import { clearRoomInvite, inviteCodeFromRoute } from '../services/roomInvites.js';
+import { navigate } from '../services/navigation.js';
 
-// Decorative envelope for the main join card (#/join only).
+// Decorative envelope for the main join card (/join only).
 const ENVELOPE_ART = `
   <svg class="bpa-rooms-envelope" viewBox="0 0 200 150" aria-hidden="true" focusable="false">
     <g transform="translate(18 26) rotate(-7 82 50)">
@@ -30,8 +31,8 @@ const ICON_KEY = `
   </svg>`;
 
 /**
- * The "Join with a code" card. #/join shows it as the main element and
- * #/create-room reuses it, so the ids below exist once per page.
+ * The "Join with a code" card. /join shows it as the main element and
+ * /create-room reuses it, so the ids below exist once per page.
  * `form#join-form` holds exactly one button (tests click `#join-form button`).
  */
 export function joinCardHtml({ inviteCode = '', lead = false } = {}) {
@@ -74,7 +75,7 @@ export function bindJoinForm(app) {
       if (!app.isConnected) return;
       clearRoomInvite();
       toast(tr(`Joined room ${room.roomCode}.`, `Đã vào phòng ${room.roomCode}.`), 'success');
-      window.location.hash = room.status === 'IN_PROGRESS' ? `#/game/${room.roomId}` : `#/lobby/${room.roomId}`;
+      navigate(room.status === 'IN_PROGRESS' ? `/game/${room.roomId}` : `/lobby/${room.roomId}`);
     } catch (err) {
       toast(err.message, 'error');
       button.disabled = false;
@@ -83,7 +84,7 @@ export function bindJoinForm(app) {
 }
 
 export async function renderJoinRoomPage(app) {
-  const inviteCode = inviteCodeFromHash();
+  const inviteCode = inviteCodeFromRoute();
   render(app, `
   <div class="bpa-container bpa-rooms-page bpa-rooms-page--join">
     <div class="bpa-rooms-top">
@@ -103,7 +104,7 @@ export async function renderJoinRoomPage(app) {
           <p class="bpa-kicker bpa-rooms-kick">${tr('No code yet?', 'Chưa có mã?')}</p>
           <h2 id="rooms-create-h" class="bpa-rooms-h2">${tr('Create a room', 'Tạo phòng')}</h2>
           <p class="bpa-rooms-note">${tr('Pick a published case, open a lobby, then send the code to your partner.', 'Chọn một vụ án đã xuất bản, mở phòng chờ rồi gửi mã cho đồng đội.')}</p>
-          <a class="bpa-btn bpa-btn--ink bpa-btn--block bpa-rooms-cta" href="#/create-room">${tr('Create a room', 'Tạo phòng')}</a>
+          <a class="bpa-btn bpa-btn--ink bpa-btn--block bpa-rooms-cta" href="/create-room">${tr('Create a room', 'Tạo phòng')}</a>
         </section>
 
         <aside class="bpa-paper bpa-paper--note bpa-rooms-steps" aria-labelledby="rooms-steps-h">

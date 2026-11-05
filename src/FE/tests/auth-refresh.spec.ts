@@ -38,7 +38,7 @@ async function snapshot(page: Page) {
     token: localStorage.getItem('sirlocked.token'),
     refreshToken: localStorage.getItem('sirlocked.refreshToken'),
     userId: JSON.parse(localStorage.getItem('sirlocked.user') || 'null')?.userId ?? null,
-    hash: location.hash,
+    path: location.pathname,
   }));
 }
 
@@ -113,7 +113,7 @@ for (const locksAvailable of [true, false]) {
     response.release();
 
     expect(await pending).toEqual([{ ok: true, value: 'recovered' }]);
-    expect(await snapshot(page)).toMatchObject({ token: rotated.token, refreshToken: rotated.refreshToken, hash: '' });
+    expect(await snapshot(page)).toMatchObject({ token: rotated.token, refreshToken: rotated.refreshToken, path: '/auth-refresh-harness' });
   });
 }
 
@@ -170,7 +170,7 @@ for (const refreshStatus of [200, 401]) {
 
     expect(await pending).toEqual([{ ok: false, status: 401 }]);
     expect(calls).toEqual([`Bearer ${initial.token}`]);
-    expect(await snapshot(page)).toMatchObject({ token: newAccount.token, refreshToken: newAccount.refreshToken, userId: 'account-b', hash: '' });
+    expect(await snapshot(page)).toMatchObject({ token: newAccount.token, refreshToken: newAccount.refreshToken, userId: 'account-b', path: '/auth-refresh-harness' });
   });
 }
 
@@ -183,7 +183,7 @@ for (const failure of ['network', '503']) {
       : route.fulfill({ status: 503, json: { success: false } }));
 
     expect(await request(page)).toEqual([{ ok: false, status: failure === 'network' ? 0 : 503 }]);
-    expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, hash: '' });
+    expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, path: '/auth-refresh-harness' });
   });
 }
 
@@ -193,7 +193,7 @@ test('a definitively revoked unchanged session is cleared', async ({ context, pa
   await context.route('**/api/auth/refresh', (route) => route.fulfill({ status: 401, json: { success: false } }));
 
   expect(await request(page)).toEqual([{ ok: false, status: 401 }]);
-  expect(await snapshot(page)).toMatchObject({ token: null, refreshToken: null, hash: '#/login' });
+  expect(await snapshot(page)).toMatchObject({ token: null, refreshToken: null, path: '/login' });
 });
 
 test('a public login 401 neither refreshes nor revokes an existing session', async ({ context, page }) => {
@@ -207,7 +207,7 @@ test('a public login 401 neither refreshes nor revokes an existing session', asy
 
   expect(await request(page, 1, '/api/auth/login')).toEqual([{ ok: false, status: 401 }]);
   expect(refreshCalls).toBe(0);
-  expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, hash: '' });
+  expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, path: '/auth-refresh-harness' });
 });
 
 async function sendForm(page: Page) {

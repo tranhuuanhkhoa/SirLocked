@@ -52,7 +52,7 @@ export async function renderAdminImportPage(app) {
     try {
       const summary = await adminApi.importCase(json, qs('#overwrite-box', app).checked);
       output.innerHTML = `<div class="notice notice-ok">${tr('Imported', 'Đã nhập')} "${escapeHtml(summary.title)}" ${tr('as draft.', 'dưới dạng bản nháp.')}
-        <a href="#/admin/cases/${encodeURIComponent(summary.caseId)}">${tr('Open it', 'Mở vụ án')}</a> ${tr('to review and publish.', 'để xem lại và xuất bản.')}</div>`;
+        <a href="/admin/cases/${encodeURIComponent(summary.caseId)}">${tr('Open it', 'Mở vụ án')}</a> ${tr('to review and publish.', 'để xem lại và xuất bản.')}</div>`;
       toast(tr('Case imported.', 'Đã nhập vụ án.'), 'success');
     } catch (err) {
       if (Array.isArray(err.errors)) showErrors(err.errors);

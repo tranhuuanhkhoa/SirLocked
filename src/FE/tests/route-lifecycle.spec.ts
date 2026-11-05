@@ -26,11 +26,11 @@ test('a late case response cannot replace the page selected afterward', async ({
     } } });
   });
 
-  await page.goto('/#/cases/slow-case');
+  await page.goto('/cases/slow-case');
   await requestSeen;
   await page.evaluate(() => {
     (window as any).__previousRouteRoot = document.getElementById('app');
-    window.location.hash = '#/menu';
+    history.pushState(null, '', '/menu'); dispatchEvent(new PopStateEvent('popstate'));
   });
   await expect(page.locator('#title-menu-heading')).toBeVisible();
   release();
@@ -39,7 +39,7 @@ test('a late case response cannot replace the page selected afterward', async ({
     (window as any).__previousRouteRoot?.textContent?.includes('The stale case'))).toBe(true);
   await expect(page.locator('#title-menu-heading')).toBeVisible();
   await expect(page.locator('#app')).not.toContainText('The stale case');
-  await expect(page).toHaveURL(/#\/menu$/);
+  await expect(page).toHaveURL(/\/menu$/);
 });
 
 test('a late lobby response cannot redirect the newly selected page into a game', async ({ page }) => {
@@ -53,21 +53,21 @@ test('a late lobby response cannot redirect the newly selected page into a game'
     await responseGate;
     await route.fulfill({ json: { success: true, data: { roomId: 'slow-room', status: 'IN_PROGRESS' } } });
   });
-  await page.goto('/#/lobby/slow-room');
+  await page.goto('/lobby/slow-room');
   await requestSeen;
-  await page.evaluate(() => { window.location.hash = '#/menu'; });
+  await page.evaluate(() => { history.pushState(null, '', '/menu'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('#title-menu-heading')).toBeVisible();
   const response = page.waitForResponse('**/api/rooms/slow-room');
   release();
   await (await response).finished();
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-  await expect(page).toHaveURL(/#\/menu$/);
+  await expect(page).toHaveURL(/\/menu$/);
   await expect(page.locator('#title-menu-heading')).toBeVisible();
 });
 
 test('late cleanup belongs to its original mount and never replaces current cleanup', async ({ page }) => {
   await preparePlayer(page);
-  await page.goto('/#/menu');
+  await page.goto('/menu');
   const outcome = await page.evaluate(async () => {
     // Exercise the production lifecycle with actual DOM roots and async cleanup.
     const modulePath = '/Client/js/services/routeLifecycle.js';
@@ -125,19 +125,19 @@ test('leaving a pending game disposes keyboard input and ignores its late comple
     await route.fulfill({ json: { success: true, data: { roomStatus: 'COMPLETED' } } });
   });
 
-  await page.goto('/#/menu');
+  await page.goto('/menu');
   const initialListeners = await page.evaluate(() => (window as any).__routeKeydownHandlers.size);
-  await page.evaluate(() => { window.location.hash = '#/game/slow-game'; });
+  await page.evaluate(() => { history.pushState(null, '', '/game/slow-game'); dispatchEvent(new PopStateEvent('popstate')); });
   await requestSeen;
   expect(await page.evaluate(() => (window as any).__routeKeydownHandlers.size)).toBeGreaterThan(initialListeners);
-  await page.evaluate(() => { window.location.hash = '#/menu'; });
+  await page.evaluate(() => { history.pushState(null, '', '/menu'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('#title-menu-heading')).toBeVisible();
   expect(await page.evaluate(() => (window as any).__routeKeydownHandlers.size)).toBe(initialListeners);
   const response = page.waitForResponse('**/api/game/rooms/slow-game/state');
   release();
   await (await response).finished();
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-  await expect(page).toHaveURL(/#\/menu$/);
+  await expect(page).toHaveURL(/\/menu$/);
   await expect(page.locator('#title-menu-heading')).toBeVisible();
   expect(await page.evaluate(() => (window as any).__routeKeydownHandlers.size)).toBe(initialListeners);
 });

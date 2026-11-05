@@ -1,11 +1,11 @@
 import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { AVATAR_REASONS, actionDialog, dateTime, hashParams, pageParam, pagedList, playerLink, writeHashParams } from './shared.js';
+import { AVATAR_REASONS, actionDialog, dateTime, routeParams, pageParam, pagedList, playerLink, writeRouteParams } from './shared.js';
 
 /** The newest uploaded pictures. Deleting takes one click on a ready reason; approving takes the picture off the waiting list. */
 export function mountAvatarGrid(host, { signal }) {
-  let pendingOnly = hashParams().get('all') !== 'true';
+  let pendingOnly = routeParams().get('all') !== 'true';
 
   host.innerHTML = `
     <label class="adp-check">
@@ -19,7 +19,7 @@ export function mountAvatarGrid(host, { signal }) {
     startPage: pageParam(),
     empty: 'Không có ảnh nào đang chờ duyệt.',
     load: (page) => adminPlayersApi.avatars({ pending: pendingOnly ? 'true' : 'false', page }),
-    onPage: (page) => writeHashParams({ page }),
+    onPage: (page) => writeRouteParams({ page }),
     draw: (items) => `
       <ul class="adp-avatar-grid">
         ${items.map((item, index) => `
@@ -65,7 +65,7 @@ export function mountAvatarGrid(host, { signal }) {
 
   host.querySelector('[data-adp-pending]').addEventListener('change', (event) => {
     pendingOnly = event.target.checked;
-    writeHashParams({ all: pendingOnly ? '' : 'true', page: 1 });
+    writeRouteParams({ all: pendingOnly ? '' : 'true', page: 1 });
     list.refresh(1);
   }, { signal });
 

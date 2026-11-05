@@ -5,6 +5,7 @@ import { tr } from '../services/i18n.js';
 import { toast } from '../utils/toast.js';
 import { pendingRoomInvite } from '../services/roomInvites.js';
 import { authHead, loginBoardMarkup } from './loginPage.js';
+import { navigate } from '../services/navigation.js';
 
 export async function renderOAuthCallbackPage(app) {
   render(app, loginBoardMarkup(`
@@ -23,14 +24,15 @@ export async function renderOAuthCallbackPage(app) {
       </div>
     </section>`, { threadsClass: 'is-solving' }));
 
-  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  // After the #, so the tokens never reach a server or its logs. A redirect from before this change has them in the query.
+  const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
   const token = params.get('token');
   const refreshToken = params.get('refreshToken');
   const error = params.get('error');
 
   if (error || !token) {
     toast(tr('Google sign-in failed. Please try again.', 'Đăng nhập Google thất bại. Vui lòng thử lại.'), 'error');
-    window.location.hash = '#/login';
+    navigate('/login', { replace: true });
     return;
   }
 
@@ -44,11 +46,12 @@ export async function renderOAuthCallbackPage(app) {
     session.save({ token, refreshToken, refreshTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), user });
 
     toast(tr(`Welcome, ${user.fullName}!`, `Chào mừng, ${user.fullName}!`), 'success');
-    window.location.hash = pendingRoomInvite() || (user.role === 'ADMIN' ? '#/admin' : '#/menu');
+    // Replacing it leaves no address with tokens in the browser's history.
+    navigate(pendingRoomInvite() || (user.role === 'ADMIN' ? '/admin' : '/menu'), { replace: true });
   } catch {
     if (!app.isConnected) return;
     session.clear();
     toast(tr('Google sign-in failed.', 'Đăng nhập Google thất bại.'), 'error');
-    window.location.hash = '#/login';
+    navigate('/login', { replace: true });
   }
 }

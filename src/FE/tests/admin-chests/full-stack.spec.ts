@@ -106,7 +106,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   expect(denied.status()).toBe(403);
 
   // ---- Items: the real refusal without Cloudinary, then an upload.
-  await admin.goto('/#/admin/items');
+  await admin.goto('/admin/items');
   await expect(admin.locator('tr[data-item-id="VC-0217"]')).toBeVisible();
   await shot(admin, 'vat-pham-danh-sach');
 
@@ -140,7 +140,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await shot(admin, 'vat-pham-da-tao');
 
   // ---- The chest: wrong percentages are refused with the server's words.
-  await admin.goto(`/#/admin/chests/${SEAL}?tab=bang-roi`);
+  await admin.goto(`/admin/chests/${SEAL}?tab=bang-roi`);
   await admin.reload();
   const common = admin.locator('input[data-weight="COMMON"]');
   await expect(common).toHaveValue('79.92');
@@ -170,7 +170,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
 
   // ---- The detective sees it, with its picture, everywhere.
   const detective = await openAs(browser, player, { width: 1440, height: 900 }, failures);
-  await detective.goto('/#/kho-ruong');
+  await detective.goto('/kho-ruong');
   await expect(detective.locator('#qh-caseName')).toHaveText('Hòm Niêm Phong');
   await expect(detective.locator('#qh-contents .qh-it', { hasText: itemName })).toBeVisible();
   await shot(detective, 'nguoi-choi-co-the-nhan-duoc');
@@ -179,7 +179,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   expect(list.chests.find((chest) => chest.id === SEAL)!.contents.find((def) => def.id === nextId)!.visual.imageUrl).toBe(PICTURE_URL);
 
   await call(api, 'POST', '/api/market/admin/grant', adminAuth.token, { userId: player.user.userId, defId: nextId, coins: 0 });
-  await detective.goto('/#/market/sell');
+  await detective.goto('/market/sell');
   const copy = detective.locator('.bpa-mk-inv', { hasText: itemName });
   await expectPictureDrawn(copy.locator(`img[src="${PICTURE_URL}"]`));
   await shot(detective, 'nguoi-choi-kho-do-co-anh');
@@ -188,13 +188,13 @@ test('an admin manages items and chests, and players see the result', async ({ b
   const owned = await call<{ items: Array<{ itemId: string; def: { id: string } }> }>(api, 'GET', '/api/market/inventory', player.token);
   const mine = owned.items.find((entry) => entry.def.id === nextId)!;
   await call(api, 'POST', '/api/market/listings', player.token, { itemId: mine.itemId, price: 600, requestId: `e2e-${run}-list` });
-  await detective.goto('/#/market');
+  await detective.goto('/market');
   await detective.locator('.bpa-mk-cat[data-category="CURIO"]').click();
   await expectPictureDrawn(detective.locator(`#mk-rows [data-def="${nextId}"] img[src="${PICTURE_URL}"]`));
   await shot(detective, 'nguoi-choi-cho-do-co-anh');
 
   // ---- The rules that keep it: owned now, so it can no longer be deleted.
-  await admin.goto('/#/admin/items');
+  await admin.goto('/admin/items');
   await admin.reload();
   const ownedRow = admin.locator(`tr[data-item-id="${nextId}"]`);
   await expect(ownedRow.locator('[data-ac-copies]')).toHaveText('1');
@@ -202,7 +202,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await expect(ownedRow).toContainText('Hòm Niêm Phong');
 
   // ---- History: back to the version before the item was added.
-  await admin.goto(`/#/admin/chests/${SEAL}?tab=lich-su`);
+  await admin.goto(`/admin/chests/${SEAL}?tab=lich-su`);
   await admin.reload();
   const versions = admin.locator('[data-version]');
   await expect(versions.first()).toContainText('Thêm món sự kiện');
@@ -215,7 +215,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   expect(restored.chests.find((chest) => chest.id === SEAL)!.contents.map((def) => def.id)).not.toContain(nextId);
 
   // ---- A new chest: cloned, off, then on, bought and opened by a player.
-  await admin.goto('/#/admin/chests');
+  await admin.goto('/admin/chests');
   await admin.reload();
   await expect(admin.locator(`[data-chest-id="${SEAL}"]`)).toBeVisible();
   await shot(admin, 'hom-danh-sach');
@@ -225,12 +225,12 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await clone.locator('[name="name"]').fill(newChestName);
   await clone.locator('[name="nameEn"]').fill(`Test Chest ${run}`);
   await clone.locator('[data-ac-confirm]').click();
-  await expect(admin).toHaveURL(/#\/admin\/chests\/chest_\d+/);
+  await expect(admin).toHaveURL(/\/admin\/chests\/chest_\d+/);
   const newChestId = decodeURIComponent(admin.url().split('/admin/chests/')[1].split('?')[0]);
   await expect(admin.locator('[data-ac-heading]')).toHaveText(newChestName);
   await shot(admin, 'hom-moi-mac-dinh-tat', true);
 
-  await detective.goto('/#/kho-ruong');
+  await detective.goto('/kho-ruong');
   await detective.reload();
   await expect(detective.locator('.qh-dot')).toHaveCount(restored.chests.length);
 
@@ -276,7 +276,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await detective.locator('#qh-keepBtn').click();
 
   // ---- Grant through the page. Then switch off: gone for others, still there for the holder, and not for sale.
-  await admin.goto('/#/admin/chests?tab=cap');
+  await admin.goto('/admin/chests?tab=cap');
   await admin.reload();
   await admin.locator('[data-ac-player-search]').fill(run);
   await admin.locator(`[data-ac-player="${player.user.userId}"]`).click();
@@ -287,7 +287,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await admin.locator('[data-ac-grant]').click();
   await confirmWithReason(admin, 'Kiểm thử cấp hòm');
 
-  await admin.goto('/#/admin/chests');
+  await admin.goto('/admin/chests');
   await admin.reload();
   await admin.locator(`[data-chest-id="${newChestId}"] [data-ac-toggle]`).click();
   await confirmWithReason(admin, 'Kết thúc kiểm thử');
@@ -310,7 +310,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   expect((await denyBuy.json()).errors.code).toBe('CHEST_NOT_FOR_SALE');
 
   // ---- Statistics and the log show the openings above.
-  await admin.goto(`/#/admin/chests/${newChestId}?tab=thong-ke`);
+  await admin.goto(`/admin/chests/${newChestId}?tab=thong-ke`);
   await admin.reload();
   await expect(admin.locator('[data-ac-stat="opens"]')).toHaveText('2');
   await expect(admin.locator('[data-ac-stat="keys"]')).not.toHaveText('0 xu');
@@ -318,7 +318,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await admin.locator('[data-ac-days="30"]').click();
   await expect(admin.locator('[data-ac-stat="opens"]')).toHaveText('2');
 
-  await admin.goto('/#/admin/chests?tab=nhat-ky');
+  await admin.goto('/admin/chests?tab=nhat-ky');
   await admin.reload();
   await admin.locator('[name="player"]').fill(run);
   await admin.locator('[name="chestId"]').selectOption(newChestId);
@@ -336,17 +336,17 @@ test('an admin manages items and chests, and players see the result', async ({ b
   // ---- The same pages on a phone.
   const phone = await openAs(browser, adminAuth, { width: 390, height: 844 }, failures);
   const phonePages: Array<[string, string]> = [
-    ['#/admin/items', 'dien-thoai-vat-pham'],
-    ['#/admin/chests', 'dien-thoai-hom'],
-    [`#/admin/chests/${SEAL}?tab=thiet-lap`, 'dien-thoai-hom-thiet-lap'],
-    [`#/admin/chests/${SEAL}?tab=bang-roi`, 'dien-thoai-hom-bang-roi'],
-    [`#/admin/chests/${SEAL}?tab=lich-su`, 'dien-thoai-hom-lich-su'],
-    [`#/admin/chests/${newChestId}?tab=thong-ke`, 'dien-thoai-thong-ke'],
-    ['#/admin/chests?tab=nhat-ky', 'dien-thoai-nhat-ky'],
-    ['#/admin/chests?tab=cap', 'dien-thoai-cap-hom'],
+    ['/admin/items', 'dien-thoai-vat-pham'],
+    ['/admin/chests', 'dien-thoai-hom'],
+    [`/admin/chests/${SEAL}?tab=thiet-lap`, 'dien-thoai-hom-thiet-lap'],
+    [`/admin/chests/${SEAL}?tab=bang-roi`, 'dien-thoai-hom-bang-roi'],
+    [`/admin/chests/${SEAL}?tab=lich-su`, 'dien-thoai-hom-lich-su'],
+    [`/admin/chests/${newChestId}?tab=thong-ke`, 'dien-thoai-thong-ke'],
+    ['/admin/chests?tab=nhat-ky', 'dien-thoai-nhat-ky'],
+    ['/admin/chests?tab=cap', 'dien-thoai-cap-hom'],
   ];
   for (const [hash, name] of phonePages) {
-    await phone.goto(`/${hash}`);
+    await phone.goto(hash);
     await phone.reload();
     await expect(phone.locator('.ac-page')).toBeVisible();
     await phone.waitForLoadState('networkidle');
@@ -354,7 +354,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
     const overflow = await phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${hash} overflows sideways`).toBeLessThanOrEqual(0);
   }
-  await phone.goto(`/#/admin/chests/${SEAL}`);
+  await phone.goto(`/admin/chests/${SEAL}`);
   await phone.reload();
   await phone.locator('[data-ac-preview]').click();
   await expect(phone.locator('.ac-preview #qh-caseName')).toHaveText('Hòm Niêm Phong');

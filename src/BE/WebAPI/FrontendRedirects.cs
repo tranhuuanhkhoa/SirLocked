@@ -12,9 +12,16 @@ public sealed class FrontendRedirects
         _baseUrl = options.Value.FrontendUrl.TrimEnd('/');
     }
 
-    public string LoginError(string errorCode) =>
-        $"{_baseUrl}/#/login?error={Uri.EscapeDataString(errorCode)}";
+    public string VerifyEmail(string token) =>
+        $"{_baseUrl}/verify-email?token={Uri.EscapeDataString(token)}";
 
+    public string ResetPassword(string token) =>
+        $"{_baseUrl}/reset-password?token={Uri.EscapeDataString(token)}";
+
+    public string LoginError(string errorCode) =>
+        $"{_baseUrl}/login?error={Uri.EscapeDataString(errorCode)}";
+
+    /// <summary>The tokens go after the #: a browser sends that part to nobody, so they stay out of every server log.</summary>
     public string OAuthCallback(string token, string refreshToken) =>
-        $"{_baseUrl}/#/oauth-callback?token={Uri.EscapeDataString(token)}&refreshToken={Uri.EscapeDataString(refreshToken)}";
+        $"{_baseUrl}/oauth-callback#token={Uri.EscapeDataString(token)}&refreshToken={Uri.EscapeDataString(refreshToken)}";
 }

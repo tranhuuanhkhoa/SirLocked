@@ -8,6 +8,7 @@ import { tr } from '../services/i18n.js';
 import { renderReviewSection } from './workshop/reviewSection.js';
 import { renderLeaderboardSection } from './workshop/leaderboardSection.js';
 import { coverArtHtml, fmtInt } from './workshop/caseOfWeekBanner.js';
+import { navigate } from '../services/navigation.js';
 
 const TABS = ['stats', 'reviews', 'leaderboard'];
 
@@ -22,7 +23,7 @@ function clampPct(fraction) {
 const BACK_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>';
 
 function backLink() {
-  return `<a class="bpa-link bpa-link--gold bpa-wsc-back" href="#/workshop">${BACK_ICON}${tr('Back to Workshop', 'Về Workshop')}</a>`;
+  return `<a class="bpa-link bpa-link--gold bpa-wsc-back" href="/workshop">${BACK_ICON}${tr('Back to Workshop', 'Về Workshop')}</a>`;
 }
 
 /* ------------------------------- stats panel ------------------------------- */
@@ -266,7 +267,7 @@ export async function renderWorkshopCasePage(app, caseId) {
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>
             ${tr('Play this case', 'Chơi vụ án này')}
           </button>
-          <a class="bpa-btn bpa-btn--ink" href="#/cases/${id}">
+          <a class="bpa-btn bpa-btn--ink" href="/cases/${id}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h6.2l2 2.3h8.8v11.2h-17z"/><path d="M3.5 11h17"/></svg>
             ${tr('View case details', 'Xem chi tiết case')}
           </a>
@@ -397,7 +398,7 @@ export async function renderWorkshopCasePage(app, caseId) {
     try {
       const room = await roomApi.create(caseId);
       toast(tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
-      window.location.hash = `#/lobby/${room.roomId}`;
+      navigate(`/lobby/${room.roomId}`);
     } catch (err) {
       toast(err.message, 'error');
       btn.disabled = false;

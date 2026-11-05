@@ -5,6 +5,7 @@ import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
 import { renderCaseOfWeekBanner, coverArtHtml, fmtInt, minutesLabel } from './workshop/caseOfWeekBanner.js';
+import { navigate } from '../services/navigation.js';
 
 const SORTS = [
   { key: 'hot', label: () => tr('Hot', 'Hot') },
@@ -49,7 +50,7 @@ function cardHtml(c) {
           ${teaser}
           <div class="bpa-ws-card-cta">
             <button class="bpa-btn bpa-btn--red" type="button" data-create="${escapeHtml(c.caseId)}">${tr('Play', 'Chơi')}<span class="bpa-sr"> — ${title}</span></button>
-            <a class="bpa-btn bpa-btn--ink" href="#/workshop/${encodeURIComponent(c.caseId)}">${tr('Statistics', 'Thống kê')}<span class="bpa-sr"> — ${title}</span></a>
+            <a class="bpa-btn bpa-btn--ink" href="/workshop/${encodeURIComponent(c.caseId)}">${tr('Statistics', 'Thống kê')}<span class="bpa-sr"> — ${title}</span></a>
           </div>
         </div>
       </article>
@@ -78,11 +79,11 @@ export async function renderWorkshopPage(app) {
       </div>
       <p class="bpa-ws-intro">${tr('Cases written by the community. Play them, rate them, and compare notes with other detectives.', 'Vụ án do cộng đồng viết. Chơi, chấm điểm và so tài với các thám tử khác.')}</p>
       <div class="bpa-ws-actions">
-        <a class="bpa-btn bpa-btn--gold" href="#/workshop/challenge">
+        <a class="bpa-btn bpa-btn--gold" href="/workshop/challenge">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V10M9.5 3h5M12 3v3"/></svg>
           ${tr('Weekly challenge', 'Thử thách tuần')}
         </a>
-        <a class="bpa-btn bpa-btn--gold" href="#/cases">
+        <a class="bpa-btn bpa-btn--gold" href="/cases">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h6.2l2 2.3h8.8v11.2h-17z"/><path d="M3.5 11h17"/></svg>
           ${tr('All cases', 'Tất cả vụ án')}
         </a>
@@ -178,7 +179,7 @@ export async function renderWorkshopPage(app) {
       try {
         const room = await roomApi.create(createBtn.dataset.create);
         toast(tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
-        window.location.hash = `#/lobby/${room.roomId}`;
+        navigate(`/lobby/${room.roomId}`);
       } catch (err) {
         toast(err.message, 'error');
         createBtn.disabled = false;

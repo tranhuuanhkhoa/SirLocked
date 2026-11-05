@@ -7,7 +7,7 @@ import { leaderboardTableHtml, sealSvg, teamNames, teamMonogram, formatTime } fr
 import { coverArtHtml, isoWeek, fmtDate, fmtInt, minutesLabel } from './workshop/caseOfWeekBanner.js';
 
 /**
- * Weekly Challenge page (#/workshop/challenge): the active challenge case, a flip-clock countdown
+ * Weekly Challenge page (/workshop/challenge): the active challenge case, a flip-clock countdown
  * to its end, and the week-scoped leaderboard (reuses the Phase 3 table via leaderboardTableHtml).
  * Returns a cleanup function that stops the countdown timer when navigating away.
  *
@@ -50,7 +50,7 @@ function titleRowHtml(week) {
         'One community case a week. Solve it with your partner as fast — or as thoroughly — as you can to get your names on the weekly board.',
         'Mỗi tuần một vụ án cộng đồng. Cùng đồng đội phá án thật nhanh — hoặc thật kỹ — để có tên trên bảng xếp hạng tuần.',
       )}</p>
-      <a class="bpa-link bpa-link--gold bpa-ch-back" href="#/workshop">${BACK_ICON}${tr('Back to Workshop', 'Về Workshop')}</a>
+      <a class="bpa-link bpa-link--gold bpa-ch-back" href="/workshop">${BACK_ICON}${tr('Back to Workshop', 'Về Workshop')}</a>
     </div>`;
 }
 
@@ -72,7 +72,7 @@ function blankPageHtml(title, sub) {
         <span class="bpa-ch-crease" aria-hidden="true"></span>
         <div class="bpa-ch-notice">
           <h2 id="ch-empty-h" class="bpa-ch-emptymsg">${title}${sub ? ` <span>${sub}</span>` : ''}</h2>
-          <a class="bpa-btn bpa-btn--ink" href="#/workshop">${BACK_ICON}${tr('Back to Workshop', 'Về Workshop')}</a>
+          <a class="bpa-btn bpa-btn--ink" href="/workshop">${BACK_ICON}${tr('Back to Workshop', 'Về Workshop')}</a>
         </div>
         <svg class="bpa-ch-mag" viewBox="0 0 170 170" width="150" height="150" aria-hidden="true" focusable="false">
           <defs><radialGradient id="bpa-ch-lens" cx=".38" cy=".34" r=".72"><stop offset="0" stop-color="#fffaf0" stop-opacity=".6"/><stop offset=".6" stop-color="#f3ead7" stop-opacity=".16"/><stop offset="1" stop-color="#b9aa88" stop-opacity=".35"/></radialGradient></defs>
@@ -191,8 +191,8 @@ function pageHtml(challenge, board, { ended, left, hasDeadline }, metric) {
           ${end ? `<div><dt>${ended ? tr('Closed', 'Đã đóng') : tr('Closes', 'Kết thúc')}</dt><dd>${escapeHtml(end)}${endTime ? ` <small>${endTime}</small>` : ''}</dd></div>` : ''}
         </dl>
         ${ended
-          ? `<a class="bpa-btn bpa-btn--red bpa-ch-cta" href="#/workshop/${id}">${FOLDER_ICON}<span>${tr('View the case', 'Xem vụ án')}</span></a>`
-          : `<a class="bpa-btn bpa-btn--red bpa-ch-cta" href="#/cases/${id}">${TIMER_ICON}<span>${tr('Play the challenge', 'Chơi thử thách')}</span></a>`}
+          ? `<a class="bpa-btn bpa-btn--red bpa-ch-cta" href="/workshop/${id}">${FOLDER_ICON}<span>${tr('View the case', 'Xem vụ án')}</span></a>`
+          : `<a class="bpa-btn bpa-btn--red bpa-ch-cta" href="/cases/${id}">${TIMER_ICON}<span>${tr('Play the challenge', 'Chơi thử thách')}</span></a>`}
       </div>
     </section>`;
 

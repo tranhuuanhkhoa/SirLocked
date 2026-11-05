@@ -48,7 +48,7 @@ async function arrange(page: Page, initial: object = baseDraft) {
 }
 
 async function openDraft(page: Page) {
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('[data-view="truth-repair"]').click();
   await expect(page.locator('#ai-output')).toContainText('Truth repair case');
 }
@@ -286,7 +286,7 @@ test('a late repair failure after leaving the route produces no stale error toas
   await openDraft(page);
   await page.locator('[data-truth-review] [data-repair-truth]').click();
   await expect.poll(() => started).toBe(true);
-  await page.evaluate(() => { location.hash = '#/login'; });
+  await page.evaluate(() => { history.pushState(null, '', '/login'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('#ai-output')).toHaveCount(0);
   pending.resolve();
   await page.waitForLoadState('networkidle');
@@ -303,7 +303,7 @@ test('a late draft detail read cannot replace the last selected draft', async ({
     await pending.promise;
     await route.fulfill({ json: envelope(baseDraft) });
   });
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('[data-view="truth-repair"]').click();
   await expect.poll(() => started).toBe(true);
   await page.locator('[data-view="other-truth"]').click();

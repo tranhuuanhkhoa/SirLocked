@@ -8,9 +8,9 @@ import {
 
 /** Where an item that is not managed here is managed. */
 function ownPage(item) {
-  if (item.category === 'CHEST') return { href: `#/admin/chests/${encodeURIComponent(item.id)}`, label: 'Sửa ở trang Hòm' };
-  if (item.category === 'KEY') return { href: `#/admin/chests/${encodeURIComponent(item.id.replace(/^key_/, 'chest_'))}`, label: 'Sửa ở trang Hòm' };
-  return { href: `#/admin/cosmetics/${encodeURIComponent(item.id)}`, label: 'Sửa ở trang Mỹ phẩm' };
+  if (item.category === 'CHEST') return { href: `/admin/chests/${encodeURIComponent(item.id)}`, label: 'Sửa ở trang Hòm' };
+  if (item.category === 'KEY') return { href: `/admin/chests/${encodeURIComponent(item.id.replace(/^key_/, 'chest_'))}`, label: 'Sửa ở trang Hòm' };
+  return { href: `/admin/cosmetics/${encodeURIComponent(item.id)}`, label: 'Sửa ở trang Mỹ phẩm' };
 }
 
 const matches = (item, filters) => {
@@ -25,7 +25,7 @@ const matches = (item, filters) => {
 
 function rowHtml(item) {
   const chests = item.chests.length
-    ? item.chests.map((chest) => `<a href="#/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}</a>`).join(', ')
+    ? item.chests.map((chest) => `<a href="/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}</a>`).join(', ')
     : '<span class="muted">Không</span>';
   const actions = item.editable
     ? `
@@ -53,7 +53,7 @@ function rowHtml(item) {
     </tr>`;
 }
 
-/** #/admin/items: every item type. Curios and old gear are managed here; cosmetics, chests and keys only point at their page. */
+/** /admin/items: every item type. Curios and old gear are managed here; cosmetics, chests and keys only point at their page. */
 export async function renderAdminItemsPage(app, { signal } = {}) {
   render(app, `<div class="page ac-page">${subNav('items')}<p class="muted">Đang tải vật phẩm…</p></div>`);
 

@@ -3,10 +3,11 @@ import { roomApi } from '../api/roomApi.js';
 import { escapeHtml } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
+import { navigate } from '../services/navigation.js';
 
 /**
  * The public / private choice and the case dropdown of "Tạo phòng" (Rooms.dc.html), shared by
- * #/rooms and #/create-room. Private stays the default: the room is reachable only by its code.
+ * /rooms and /create-room. Private stays the default: the room is reachable only by its code.
  */
 export const VISIBILITY = Object.freeze({ PUBLIC: 'PUBLIC', PRIVATE: 'PRIVATE' });
 
@@ -118,7 +119,7 @@ export async function createRoomAndOpen(button, caseId, visibility, app) {
     toast(visibility === VISIBILITY.PUBLIC
       ? tr(`Public room ${room.roomCode} is open.`, `Đã mở phòng công khai ${room.roomCode}.`)
       : tr(`Room ${room.roomCode} created.`, `Đã tạo phòng ${room.roomCode}.`), 'success');
-    window.location.hash = `#/lobby/${room.roomId}`;
+    navigate(`/lobby/${room.roomId}`);
   } catch (err) {
     toast(createRoomErrorText(err), 'error');
     button.disabled = false;

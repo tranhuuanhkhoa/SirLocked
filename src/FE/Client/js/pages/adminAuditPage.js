@@ -2,7 +2,7 @@ import { adminAuditApi } from '../api/adminAuditApi.js';
 import { adminPlayersApi } from '../api/adminPlayersApi.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { auditTable } from './admin/players/auditTable.js';
-import { hashParams, pageParam, writeHashParams } from './admin/players/shared.js';
+import { routeParams, pageParam, writeRouteParams } from './admin/players/shared.js';
 
 const TARGET_TYPES = [
   ['', 'Mọi đối tượng'], ['user', 'Người chơi'], ['listing', 'Tin rao'], ['order', 'Lệnh mua'], ['room', 'Phòng'], ['review', 'Đánh giá'], ['economy', 'Kinh tế'],
@@ -19,9 +19,9 @@ const KNOWN_ACTIONS = [
 const dayStart = (day) => (day ? new Date(`${day}T00:00:00.000+07:00`).toISOString() : '');
 const dayEnd = (day) => (day ? new Date(`${day}T23:59:59.999+07:00`).toISOString() : '');
 
-/** #/admin/audit: everything admins did, filtered on the server, each entry with its before and after. */
+/** /admin/audit: everything admins did, filtered on the server, each entry with its before and after. */
 export async function renderAdminAuditPage(app, { signal } = {}) {
-  const params = hashParams();
+  const params = routeParams();
   const filters = {
     adminId: params.get('adminId') ?? '',
     action: params.get('action') ?? '',
@@ -72,7 +72,7 @@ export async function renderAdminAuditPage(app, { signal } = {}) {
     signal,
     startPage: pageParam(),
     empty: 'Không có thao tác nào khớp bộ lọc này.',
-    onPage: (page) => writeHashParams({ page }),
+    onPage: (page) => writeRouteParams({ page }),
     load: (page) => adminAuditApi.list({
       adminId: filters.adminId,
       action: filters.action,
@@ -88,7 +88,7 @@ export async function renderAdminAuditPage(app, { signal } = {}) {
     event.preventDefault();
     const values = new FormData(event.target);
     for (const key of Object.keys(filters)) filters[key] = String(values.get(key) ?? '').trim();
-    writeHashParams({
+    writeRouteParams({
       adminId: filters.adminId, action: filters.action, targetType: filters.targetType, targetId: filters.targetId, from: filters.fromDay, to: filters.toDay, page: 1,
     });
     log.refresh(1);

@@ -30,7 +30,7 @@ export async function renderAdminCasesPage(app) {
         : `<button class="btn btn-ghost btn-sm" disabled title="${escapeHtml(gate.reason)}">${tr('Publish blocked', 'Chưa thể xuất bản')}</button>`;
     return `
     <tr>
-      <td><a href="#/admin/cases/${encodeURIComponent(c.caseId)}">${escapeHtml(c.title)}</a><br>
+      <td><a href="/admin/cases/${encodeURIComponent(c.caseId)}">${escapeHtml(c.title)}</a><br>
           <span class="muted small">${escapeHtml(c.caseId)}</span>
           ${c.isPixel ? `<br><span class="chip chip-ok">PIXEL</span>` : c.status === 'PUBLISHED' && c.playerVisible === false ? `<br><span class="chip chip-bad" title="${tr('Still in the database and in old rooms, but players cannot pick it.', 'Vẫn còn trong dữ liệu và các phòng cũ, nhưng người chơi không chọn được.')}">${tr('OLD · hidden from players', 'CŨ · ẩn với người chơi')}</span>` : ''}
           ${isV3(c) ? `<br><span class="chip chip-gold">V3 · Crack</span>${c.hasSourceAiDraft ? ` <span class="chip ${c.aiSemanticReviewStatus === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(c.aiSemanticReviewStatus || 'NOT_RUN')}</span>` : ''}` : ''}</td>
@@ -48,8 +48,8 @@ export async function renderAdminCasesPage(app) {
     <div class="page-head">
       <h2>${tr('All Cases', 'Tất cả vụ án')}</h2>
       <div class="case-actions">
-        <a class="btn btn-primary" href="#/admin/import">${tr('Import JSON', 'Nhập JSON')}</a>
-        <a class="btn btn-ghost" href="#/admin/ai">${tr('AI creator', 'Tạo bằng AI')}</a>
+        <a class="btn btn-primary" href="/admin/import">${tr('Import JSON', 'Nhập JSON')}</a>
+        <a class="btn btn-ghost" href="/admin/ai">${tr('AI creator', 'Tạo bằng AI')}</a>
       </div>
     </div>
     <label class="muted small legacy-toggle" style="display:block;margin:0 0 .75rem">

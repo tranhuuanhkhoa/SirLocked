@@ -11,6 +11,7 @@ import '../../../css/48-cosmetics.css';
 import { T, avatarFor, closeStage, frameKey, loadCosmeticCatalog, loadCosmeticsIfUnknown, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey, warmEntranceArt, whenTitleFontReady } from '../cosmetics/index.js';
 import { createEntranceQueue } from '../cosmetics/entrances.js';
 import { createPainter } from '../cosmetics/painter.js';
+import { navigate } from '../services/navigation.js';
 
 // The server owns the room lifecycle; the lobby only reacts to the status/code it is told.
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'ABANDONED']);
@@ -180,7 +181,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     if (disposed) return;
     room = fresh;
     if (room.status === 'IN_PROGRESS') {
-      window.location.hash = `#/game/${roomId}`;
+      navigate(`/game/${roomId}`);
       return;
     }
     draw();
@@ -215,7 +216,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     PlayerLeft: ({ room: r }) => { if (disposed) return; room = r; draw(); toast(tr('A player left the room.', 'Một người chơi đã rời phòng.'), 'info'); },
     RolesUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
     ReadyUpdated: ({ room: r }) => { if (disposed) return; room = r; draw(); },
-    GameStarted: () => { if (!disposed) { entrances.stop(); window.location.hash = `#/game/${roomId}`; } },
+    GameStarted: () => { if (!disposed) { entrances.stop(); navigate(`/game/${roomId}`); } },
     PlayerEntrance: (entrance) => {
       if (disposed || entrance.roomId !== roomId) return;
       entrances.push(entrance);
@@ -361,7 +362,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     </div>`);
 
     qs('#back-to-cases', app)?.addEventListener('click', () => {
-      window.location.hash = '#/cases';
+      navigate('/cases');
     });
   }
 
@@ -620,7 +621,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
       e.currentTarget.disabled = true;
       try {
         await roomApi.start(roomId);
-        if (!disposed) window.location.hash = `#/game/${roomId}`;
+        if (!disposed) navigate(`/game/${roomId}`);
       } catch (err) {
         handleActionError(err);
         draw();
@@ -634,7 +635,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
       } catch {
         /* leaving anyway */
       }
-      if (!disposed) window.location.hash = '#/cases';
+      if (!disposed) navigate('/cases');
     });
   }
 

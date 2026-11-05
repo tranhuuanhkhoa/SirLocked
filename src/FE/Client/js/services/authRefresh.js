@@ -1,4 +1,5 @@
 import { session } from './session.js';
+import { navigate } from './navigation.js';
 
 const REFRESH_LOCK = 'sirlocked.auth-refresh';
 const pendingRefreshes = new Map();
@@ -24,7 +25,7 @@ function hasNewerSession(original) {
 export function expireSessionIfCurrent(original) {
   if (!original.token || !sameSession(original, authSnapshot())) return;
   session.clear();
-  window.location.hash = '#/login';
+  navigate('/login');
 }
 
 export function isPublicAuthRequest(path) {

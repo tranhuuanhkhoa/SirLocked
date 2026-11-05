@@ -51,8 +51,8 @@ export async function renderCaseOfWeekBanner(mount) {
           ${range ? `<span class="bpa-chip">${escapeHtml(range)}</span>` : ''}
         </div>
         <div class="bpa-ws-banner-cta">
-          <a class="bpa-btn bpa-btn--red bpa-ws-banner-play" href="#/cases/${id}">${tr('Play now', 'Chơi ngay')}</a>
-          <a class="bpa-btn bpa-btn--ink" href="#/workshop/${id}">${tr('Statistics', 'Thống kê')}</a>
+          <a class="bpa-btn bpa-btn--red bpa-ws-banner-play" href="/cases/${id}">${tr('Play now', 'Chơi ngay')}</a>
+          <a class="bpa-btn bpa-btn--ink" href="/workshop/${id}">${tr('Statistics', 'Thống kê')}</a>
         </div>
       </div>
     </section>`;

@@ -8,7 +8,7 @@
 ./scripts/start-local-main.ps1
 ```
 
-Script build code mới rồi mở API ở `http://localhost:5215` và frontend ở `http://localhost:5173`. API chạy từ `src/BE`, đọc nguyên `.env` và `appsettings.Development.json` hiện có; không thay database, tài khoản, mock, quota, ngân sách hoặc cấu hình asset bằng giá trị demo. Đăng nhập bằng tài khoản trong database chính và mở `/#/admin/ai` để tạo draft. Các cổng phải còn trống; script không dừng ứng dụng khác.
+Script build code mới rồi mở API ở `http://localhost:5215` và frontend ở `http://localhost:5173`. API chạy từ `src/BE`, đọc nguyên `.env` và `appsettings.Development.json` hiện có; không thay database, tài khoản, mock, quota, ngân sách hoặc cấu hình asset bằng giá trị demo. Đăng nhập bằng tài khoản trong database chính và mở `/admin/ai` để tạo draft. Các cổng phải còn trống; script không dừng ứng dụng khác.
 
 Worker của API tiếp tục tác vụ generation đã xếp hàng theo hành vi thông thường. Draft cũ đang giữ quota vẫn được giữ; nếu cấu hình giới hạn một draft đang hoạt động, phải hoàn tất/hủy draft đó hoặc chủ động điều chỉnh quota trước khi tạo thêm. Trần ngân sách dùng sổ chi tiêu hiện có, không được đặt lại khi khởi động.
 

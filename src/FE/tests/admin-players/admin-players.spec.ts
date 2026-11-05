@@ -89,7 +89,7 @@ async function expectNoPhoneOverflow(page: Page) {
 
 // ------------------------------------------------------------------ list
 
-test('bảng người dùng ở #/admin có email dài không làm tràn màn điện thoại', async ({ page }) => {
+test('bảng người dùng ở /admin có email dài không làm tràn màn điện thoại', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await fakeApi(page, {
     'GET /api/admin/dashboard': () => ({ totalUsers: 1, publishedCases: 0, totalCases: 0, activeRooms: 0, totalRooms: 0, wins: 0, losses: 0, totalAiDrafts: 0, legacyCasesHidden: true }),
@@ -98,7 +98,7 @@ test('bảng người dùng ở #/admin có email dài không làm tràn màn đ
       role: 'PLAYER', status: 'ACTIVE', isEmailVerified: true,
     }],
   });
-  await page.goto('/#/admin');
+  await page.goto('/admin');
   await expect(page.locator('.admin-table')).toContainText('mot.dia.chi.email.rat.dai.de.thu.bang@tests.invalid');
   await expectNoPhoneOverflow(page);
 });
@@ -108,7 +108,7 @@ test.describe('danh sách người chơi', () => {
     const calls = await fakeApi(page, {
       'GET /api/admin/players': (call) => page1([row(Number(call.search.get('page') ?? 1) === 2 ? 7 : 0)], 60, Number(call.search.get('page') ?? 1)),
     });
-    await page.goto('/#/admin/players');
+    await page.goto('/admin/players');
     await expect(page.getByText('Thám tử 0')).toBeVisible();
     await expect(page.getByText('tham.tu.0@tests.invalid')).toBeVisible();
 
@@ -131,7 +131,7 @@ test.describe('danh sách người chơi', () => {
 
   test('bộ lọc đọc từ địa chỉ trang để mở lại đúng chỗ', async ({ page }) => {
     const calls = await fakeApi(page, { 'GET /api/admin/players': () => page1([row(0)], 60, 3) });
-    await page.goto('/#/admin/players?page=3&q=binh&status=LOCKED');
+    await page.goto('/admin/players?page=3&q=binh&status=LOCKED');
     await expect(page.getByText('Thám tử 0')).toBeVisible();
     const asked = calls.find((c) => c.path === '/api/admin/players')!.search;
     expect(asked.get('page')).toBe('3');
@@ -146,7 +146,7 @@ test.describe('danh sách người chơi', () => {
       'GET /api/admin/players': () => page1([row(0, { status: locked ? 'LOCKED' : 'ACTIVE' })]),
       [`PATCH /api/admin/users/${USER_ID}/lock`]: () => { locked = true; return { userId: USER_ID, status: 'LOCKED' }; },
     });
-    await page.goto('/#/admin/players');
+    await page.goto('/admin/players');
     await page.getByRole('button', { name: 'Khóa Thám tử 0' }).click();
 
     await dialog(page).getByRole('button', { name: 'Hủy' }).click();
@@ -167,20 +167,20 @@ test.describe('danh sách người chơi', () => {
     await fakeApi(page, {
       'GET /api/admin/players': () => page1([row(0, { fullName: XSS, email: XSS })]),
     });
-    await page.goto('/#/admin/players');
+    await page.goto('/admin/players');
     await expect(page.locator('.adp-table').getByText(XSS).first()).toBeVisible();
     expect(await page.evaluate(() => (window as any).__xss)).toBeUndefined();
   });
 
   test('không có người chơi nào thì nói rõ, không để trang trắng', async ({ page }) => {
     await fakeApi(page, { 'GET /api/admin/players': () => page1([]) });
-    await page.goto('/#/admin/players');
+    await page.goto('/admin/players');
     await expect(page.getByText('Không có người chơi nào')).toBeVisible();
   });
 
   test('lỗi máy chủ hiện ra thành lời', async ({ page }) => {
     await fakeApi(page, { 'GET /api/admin/players': () => new Failure(500, 'Máy chủ gặp sự cố.') });
-    await page.goto('/#/admin/players');
+    await page.goto('/admin/players');
     await expect(page.getByRole('alert').first()).toContainText('Máy chủ gặp sự cố.');
   });
 });
@@ -207,7 +207,7 @@ test.describe('chi tiết người chơi', () => {
         ],
       }),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     const look = page.locator('[data-adp-look]');
     await expect(look.locator('[data-adp-title] .hs-tl')).toHaveAttribute('aria-label', 'Danh hiệu Danh Hiệu Tự Làm');
     await expect(look).toContainText('Bước Tự Làm');
@@ -218,7 +218,7 @@ test.describe('chi tiết người chơi', () => {
 
   test('hiện đủ tài khoản, cấp, xu, kho đồ và mỹ phẩm đang mặc', async ({ page }) => {
     await fakeApi(page, routes());
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await expect(page.getByRole('heading', { name: 'Thám tử An' })).toBeVisible();
     await expect(page.getByText('an@tests.invalid')).toBeVisible();
     const summary = page.locator('[data-adp-summary]');
@@ -245,7 +245,7 @@ test.describe('chi tiết người chơi', () => {
       ...routes(),
       [`POST /api/admin/players/${USER_ID}/coins`]: () => ({ operationId: 'a:k', kind: 'COINS', userId: USER_ID, balance: 1150, held: 200, slotsUsed: 4, level: 12, xp: 30, grantedRewardDefIds: [], keptRewardDefIds: [] }),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await dialog(page).getByLabel('Số xu').fill('250');
     await confirm(page).click();
@@ -265,7 +265,7 @@ test.describe('chi tiết người chơi', () => {
     const fresh = detail();
     fresh.wallet = { hasAccount: false, balance: 0, held: 0, slotsUsed: 0, slotCap: 12, itemCount: 0, reservedSlots: 0 };
     await fakeApi(page, { [`GET /api/admin/players/${USER_ID}`]: () => fresh });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await expect(page.locator('[data-adp-summary]')).toContainText('Chưa mở ví');
     await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await expect(dialog(page)).toContainText('500 xu quà khởi đầu');
@@ -281,7 +281,7 @@ test.describe('chi tiết người chơi', () => {
         return { operationId: 'a:k', balance: 1000, held: 200, slotsUsed: 4, level: 12, xp: 30, grantedRewardDefIds: [], keptRewardDefIds: [] };
       },
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await dialog(page).getByLabel('Số xu').fill('100');
     await dialog(page).getByLabel('Lý do').fill('Bù lỗi sự kiện');
@@ -299,7 +299,7 @@ test.describe('chi tiết người chơi', () => {
       ...routes(),
       [`POST /api/admin/players/${USER_ID}/coins`]: () => new Failure(409, 'Người chơi không đủ xu.', 'ADMIN_COINS_INSUFFICIENT'),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await dialog(page).getByLabel('Số xu').fill('-99999');
     await dialog(page).getByLabel('Lý do').fill('Phạt gian lận');
@@ -319,7 +319,7 @@ test.describe('chi tiết người chơi', () => {
         return { operationId: 'a:k', balance: 1000, held: 200, slotsUsed: 4, level: 12, xp: 30, grantedRewardDefIds: [], keptRewardDefIds: [] };
       },
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await dialog(page).getByLabel('Số xu').fill('100');
     await dialog(page).getByLabel('Lý do').fill('Bù lỗi sự kiện');
@@ -334,7 +334,7 @@ test.describe('chi tiết người chơi', () => {
       'GET /api/market/catalog': () => [def('VC-0391', 'Đèn bão'), def('VC-0405', 'Huy hiệu sở', 'CURIO', 'EPIC')],
       [`POST /api/admin/players/${USER_ID}/items`]: () => ({ operationId: 'a:k', balance: 900, held: 200, slotsUsed: 5, level: 12, xp: 30, itemId: 'new', defId: 'VC-0405', grantedRewardDefIds: [], keptRewardDefIds: [] }),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Cấp vật phẩm' }).click();
     await dialog(page).getByLabel('Vật phẩm').selectOption('VC-0405');
     await dialog(page).getByLabel('Lý do').fill('Quà sự kiện');
@@ -348,7 +348,7 @@ test.describe('chi tiết người chơi', () => {
       ...routes(),
       [`POST /api/admin/players/${USER_ID}/items/listed1/revoke`]: () => ({ operationId: 'a:k', balance: 900, held: 200, slotsUsed: 3, level: 12, xp: 30, cancelledListingId: 'l1', grantedRewardDefIds: [], keptRewardDefIds: [] }),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Thu hồi Mũ thợ săn' }).click();
     await expect(dialog(page)).toContainText('hủy tin rao');
     await dialog(page).getByLabel('Lý do').fill('Vật phẩm cấp nhầm');
@@ -359,7 +359,7 @@ test.describe('chi tiết người chơi', () => {
 
   test('thu hồi món đang trang bị: nói trước sẽ gỡ', async ({ page }) => {
     await fakeApi(page, routes());
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Thu hồi Viền VIP' }).click();
     await expect(dialog(page)).toContainText('gỡ trang bị');
   });
@@ -369,7 +369,7 @@ test.describe('chi tiết người chơi', () => {
       ...routes(),
       [`POST /api/admin/players/${USER_ID}/items/traded1/revoke`]: () => new Failure(409, 'Vật phẩm đang nằm trong một đề nghị trao đổi.', 'ADMIN_ITEM_IN_TRADE'),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Thu hồi Kính lúp đồng' }).click();
     await dialog(page).getByLabel('Lý do').fill('Vật phẩm cấp nhầm');
     await confirm(page).click();
@@ -381,7 +381,7 @@ test.describe('chi tiết người chơi', () => {
       ...routes(),
       [`POST /api/admin/players/${USER_ID}/progress`]: () => ({ operationId: 'a:k', balance: 900, held: 200, slotsUsed: 4, level: 5, xp: 0, grantedRewardDefIds: [], keptRewardDefIds: ['frame_dong'] }),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Đặt cấp / KN' }).click();
     await dialog(page).getByLabel('Cấp', { exact: true }).fill('5');
     await dialog(page).getByLabel('KN', { exact: true }).fill('0');
@@ -398,7 +398,7 @@ test.describe('chi tiết người chơi', () => {
       [`POST /api/admin/players/${USER_ID}/avatar/remove`]: () => ({ userId: USER_ID, avatar: 'nonla', fileRemoved: false }),
       [`POST /api/admin/players/${USER_ID}/force-logout`]: () => true,
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Xóa ảnh đại diện' }).click();
     await dialog(page).getByRole('button', { name: 'Ảnh phản cảm' }).click();
     await confirm(page).click();
@@ -422,7 +422,7 @@ test.describe('chi tiết người chơi', () => {
       [`GET /api/admin/players/${USER_ID}/trades`]: () => page1([{ id: 't', fromId: 'x', fromName: 'Bình', toId: USER_ID, toName: 'An', fromItems: [def('VC-0391', 'Đèn bão')], toItems: [], fromCoins: 10, toCoins: 0, message: '', status: 'PENDING', failReason: null, createdAt: '2026-10-03T03:00:00Z', respondedAt: null }]),
       [`GET /api/admin/players/${USER_ID}/audit`]: () => page1([{ id: 'e', at: '2026-10-03T03:00:00Z', adminId: 'u1', adminName: 'Yến', action: 'player.coins', targetType: 'user', targetId: USER_ID, before: { balance: 1 }, after: { balance: 2 }, reason: 'Bù lỗi' }]),
     });
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await expect(page.getByRole('heading', { name: 'Thám tử An' })).toBeVisible();
     expect(calls.some((c) => c.path.endsWith('/games'))).toBe(false);
 
@@ -445,7 +445,7 @@ test.describe('chi tiết người chơi', () => {
 
   test('id không có thật thì báo không tìm thấy', async ({ page }) => {
     await fakeApi(page, { 'GET /api/admin/players/u404': () => new Failure(404, 'Không tìm thấy người chơi này.') });
-    await page.goto('/#/admin/players/u404');
+    await page.goto('/admin/players/u404');
     await expect(page.getByRole('alert').first()).toContainText('Không tìm thấy');
   });
 });
@@ -463,7 +463,7 @@ test('duyệt ảnh: lưới có phân trang, xóa nhanh bằng lý do có sẵn
     [`POST /api/admin/players/${USER_ID}/avatar/remove`]: () => { items.shift(); return { userId: USER_ID, avatar: 'nonla', fileRemoved: true }; },
     'POST /api/admin/players/507f1f77bcf86cd799439072/avatar/approve': () => { items.shift(); return true; },
   });
-  await page.goto('/#/admin/players?tab=anh');
+  await page.goto('/admin/players?tab=anh');
   const grid = page.locator('[data-adp-avatars]');
   await expect(grid.getByText('Thám tử An')).toBeVisible();
   await expect(grid.locator('img')).toHaveCount(3);
@@ -498,13 +498,13 @@ const overview = (days: number) => ({
 test.describe('kinh tế và chợ', () => {
   test('tổng quan hiện xu, vật phẩm, dòng xu 7/30 ngày và người giàu nhất', async ({ page }) => {
     const calls = await fakeApi(page, { 'GET /api/admin/economy/overview': (call) => overview(Number(call.search.get('days') ?? 7)) });
-    await page.goto('/#/admin/economy');
+    await page.goto('/admin/economy');
     const panel = page.locator('[data-adp-economy="tongquan"]');
     await expect(panel).toContainText('123.456');
     await expect(panel).toContainText('7.890');
     await expect(panel.locator('[data-adp-flow] tbody tr')).toHaveCount(7);
     await expect(panel.getByText('Đại gia')).toBeVisible();
-    await expect(panel.getByRole('link', { name: 'Đại gia' })).toHaveAttribute('href', `#/admin/players/${USER_ID}`);
+    await expect(panel.getByRole('link', { name: 'Đại gia' })).toHaveAttribute('href', `/admin/players/${USER_ID}`);
     await panel.getByRole('button', { name: '30 ngày' }).click();
     await expect(panel.locator('[data-adp-flow] tbody tr')).toHaveCount(30);
     expect(calls.at(-1)!.search.get('days')).toBe('30');
@@ -519,7 +519,7 @@ test.describe('kinh tế và chợ', () => {
       'GET /api/admin/economy/orders': () => page1([]),
       'POST /api/admin/economy/listings/l1/remove': () => { removed = true; return { listingId: 'l1', status: 'CANCELLED' }; },
     });
-    await page.goto('/#/admin/economy?tab=cho');
+    await page.goto('/admin/economy?tab=cho');
     const row1 = page.locator('[data-adp-listings] tr', { hasText: 'Đèn bão' });
     await expect(row1).toContainText('3.400');
     await expect(row1).toContainText('Giá cao bất thường');
@@ -541,7 +541,7 @@ test.describe('kinh tế và chợ', () => {
       'GET /api/admin/economy/orders': () => page1(cancelled ? [] : [{ id: 'o1', def: def('VC-0391', 'Đèn bão'), userId: USER_ID, userName: 'An', price: 300, referencePrice: 340, priceFlag: null, status: 'ACTIVE', createdAt: '2026-10-03T03:00:00Z' }]),
       'POST /api/admin/economy/orders/o1/cancel': () => { cancelled = true; return { orderId: 'o1', status: 'CANCELLED' }; },
     });
-    await page.goto('/#/admin/economy?tab=cho');
+    await page.goto('/admin/economy?tab=cho');
     await page.locator('[data-adp-orders] tr', { hasText: 'Đèn bão' }).getByRole('button', { name: 'Hủy lệnh' }).click();
     await expect(dialog(page)).toContainText('trả');
     await dialog(page).getByLabel('Lý do').fill('Lệnh mua giá ảo');
@@ -559,7 +559,7 @@ test.describe('kinh tế và chợ', () => {
         return undefined;
       },
     });
-    await page.goto('/#/admin/economy?tab=lichsu');
+    await page.goto('/admin/economy?tab=lichsu');
     await expect(page.locator('[data-adp-sales]').getByText('Đèn bão')).toBeVisible();
     await page.locator('[data-adp-sales-filter]').getByLabel('Người mua hoặc bán').fill('An');
     await page.locator('[data-adp-sales-filter]').getByRole('button', { name: 'Lọc' }).click();
@@ -581,7 +581,7 @@ test.describe('kinh tế và chợ', () => {
         truncated: false,
       }),
     });
-    await page.goto('/#/admin/economy?tab=batthuong');
+    await page.goto('/admin/economy?tab=batthuong');
     const panel = page.locator('[data-adp-economy="batthuong"]');
     await expect(panel.getByText('Đèn bão')).toBeVisible();
     await expect(panel.getByText('Tài khoản chính')).toBeVisible();
@@ -600,7 +600,7 @@ test.describe('kinh tế và chợ', () => {
       }),
       'POST /api/admin/economy/recover': () => { recovered = true; return { resumed: 1, stillStuck: 0 }; },
     });
-    await page.goto('/#/admin/economy?tab=ket');
+    await page.goto('/admin/economy?tab=ket');
     const panel = page.locator('[data-adp-economy="ket"]');
     await expect(panel.locator('tr', { hasText: 'chest_np' })).toContainText('Lượt mở hòm');
     await panel.getByRole('button', { name: 'Chạy khôi phục' }).click();
@@ -622,7 +622,7 @@ test.describe('kinh tế và chợ', () => {
       }]),
       'POST /api/admin/rooms/r1/close': () => { closed = true; return { roomId: 'r1', status: 'ABANDONED' }; },
     });
-    await page.goto('/#/admin/economy?tab=phong');
+    await page.goto('/admin/economy?tab=phong');
     const panel = page.locator('[data-adp-economy="phong"]');
     const room = panel.locator('tr', { hasText: 'ABC123' });
     await expect(room).toContainText('Vụ án A');
@@ -645,7 +645,7 @@ test.describe('kinh tế và chợ', () => {
       'POST /api/admin/reviews/v1/unhide': () => { current = { ...review }; return current; },
       'DELETE /api/admin/reviews/v1': () => { current = null; return true; },
     });
-    await page.goto('/#/admin/economy?tab=danhgia');
+    await page.goto('/admin/economy?tab=danhgia');
     const panel = page.locator('[data-adp-economy="danhgia"]');
     await expect(panel.getByText('Lời lẽ vi phạm')).toBeVisible();
 
@@ -681,7 +681,7 @@ test.describe('nhật ký admin', () => {
 
   test('lọc theo admin, thao tác, đối tượng, ngày đều hỏi máy chủ', async ({ page }) => {
     const calls = await fakeApi(page, { 'GET /api/admin/audit': (call) => page1([entry], 120, Number(call.search.get('page') ?? 1)) });
-    await page.goto('/#/admin/audit');
+    await page.goto('/admin/audit');
     await expect(page.getByText('Bù lỗi sự kiện')).toBeVisible();
 
     const form = page.locator('[data-adp-audit-filter]');
@@ -708,7 +708,7 @@ test.describe('nhật ký admin', () => {
 
   test('xem chi tiết so sánh trước và sau, tô phần đổi', async ({ page }) => {
     await fakeApi(page, { 'GET /api/admin/audit': () => page1([entry]) });
-    await page.goto('/#/admin/audit');
+    await page.goto('/admin/audit');
     await page.getByRole('button', { name: 'Xem chi tiết' }).click();
     const diff = page.locator('[data-adp-diff]');
     const balance = diff.locator('tr', { hasText: 'balance' });
@@ -721,7 +721,7 @@ test.describe('nhật ký admin', () => {
 
   test('thao tác không có trước/sau vẫn mở được', async ({ page }) => {
     await fakeApi(page, { 'GET /api/admin/audit': () => page1([{ ...entry, before: null, after: { url: 'x' }, reason: null }]) });
-    await page.goto('/#/admin/audit');
+    await page.goto('/admin/audit');
     await page.getByRole('button', { name: 'Xem chi tiết' }).click();
     await expect(page.locator('[data-adp-diff]').locator('tr', { hasText: 'url' })).toHaveClass(/is-changed/);
   });
@@ -735,19 +735,19 @@ test('trang tổng quan có các thẻ số liệu mới dẫn tới đúng tran
     'GET /api/admin/users': () => [],
     'GET /api/admin/economy/dashboard': () => ({ newPlayersToday: 11, gamesToday: 22, chestOpensToday: 33, coinsInCirculation: 44444, stuckOperations: 2, pendingAvatars: 5 }),
   });
-  await page.goto('/#/admin');
+  await page.goto('/admin');
   const cards = page.locator('[data-adp-cards]');
   const expectCard = async (label: string, value: string, href: string) => {
     const card = cards.getByRole('link', { name: new RegExp(label) });
     await expect(card).toContainText(value);
     await expect(card).toHaveAttribute('href', href);
   };
-  await expectCard('Người chơi mới hôm nay', '11', '#/admin/players');
-  await expectCard('Trận hôm nay', '22', '#/admin/economy?tab=phong');
-  await expectCard('Lượt mở hòm hôm nay', '33', '#/admin/economy');
-  await expectCard('Xu lưu hành', '44.444', '#/admin/economy');
-  await expectCard('Giao dịch kẹt', '2', '#/admin/economy?tab=ket');
-  await expectCard('Ảnh chờ duyệt', '5', '#/admin/players?tab=anh');
+  await expectCard('Người chơi mới hôm nay', '11', '/admin/players');
+  await expectCard('Trận hôm nay', '22', '/admin/economy?tab=phong');
+  await expectCard('Lượt mở hòm hôm nay', '33', '/admin/economy');
+  await expectCard('Xu lưu hành', '44.444', '/admin/economy');
+  await expectCard('Giao dịch kẹt', '2', '/admin/economy?tab=ket');
+  await expectCard('Ảnh chờ duyệt', '5', '/admin/players?tab=anh');
 });
 
 test('thẻ số liệu lỗi không làm hỏng trang tổng quan', async ({ page }) => {
@@ -756,7 +756,7 @@ test('thẻ số liệu lỗi không làm hỏng trang tổng quan', async ({ pa
     'GET /api/admin/users': () => [],
     'GET /api/admin/economy/dashboard': () => new Failure(500, 'Hỏng'),
   });
-  await page.goto('/#/admin');
+  await page.goto('/admin');
   await expect(page.getByRole('heading', { name: 'Bảng điều khiển quản trị' })).toBeVisible();
   await expect(page.locator('[data-adp-cards]')).toHaveCount(0);
 });
@@ -765,7 +765,7 @@ test('thẻ số liệu lỗi không làm hỏng trang tổng quan', async ({ pa
 
 test('hộp xác nhận nằm giữa màn hình', async ({ page }) => {
   await fakeApi(page, { [`GET /api/admin/players/${USER_ID}`]: () => detail() });
-  await page.goto(`/#/admin/players/${USER_ID}`);
+  await page.goto(`/admin/players/${USER_ID}`);
   await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
   const box = (await dialog(page).boundingBox())!;
   const viewport = page.viewportSize()!;
@@ -775,9 +775,9 @@ test('hộp xác nhận nằm giữa màn hình', async ({ page }) => {
 
 test('người chơi thường không vào được các trang này', async ({ page }) => {
   await fakeApi(page, {}, 'PLAYER');
-  for (const hash of ['#/admin/players', `#/admin/players/${USER_ID}`, '#/admin/economy', '#/admin/audit']) {
-    await page.goto(`/${hash}`);
-    await expect(page).not.toHaveURL(/#\/admin/);
+  for (const hash of ['/admin/players', `/admin/players/${USER_ID}`, '/admin/economy', '/admin/audit']) {
+    await page.goto(hash);
+    await expect(page).not.toHaveURL(/\/admin/);
   }
 });
 
@@ -795,10 +795,10 @@ test.describe('màn điện thoại 390×844', () => {
     'GET /api/admin/audit': () => page1([{ id: 'e1', at: '2026-10-03T03:00:00Z', adminId: 'u1', adminName: 'Yến', action: 'player.coins', targetType: 'user', targetId: USER_ID, before: { balance: 500 }, after: { balance: 750 }, reason: 'Bù lỗi' }]),
   };
 
-  for (const hash of ['#/admin/players', '#/admin/players?tab=anh', `#/admin/players/${USER_ID}`, '#/admin/economy', '#/admin/economy?tab=cho', '#/admin/economy?tab=ket', '#/admin/audit']) {
+  for (const hash of ['/admin/players', '/admin/players?tab=anh', `/admin/players/${USER_ID}`, '/admin/economy', '/admin/economy?tab=cho', '/admin/economy?tab=ket', '/admin/audit']) {
     test(`${hash} không tràn ngang`, async ({ page }) => {
       await fakeApi(page, everything);
-      await page.goto(`/${hash}`);
+      await page.goto(hash);
       await expect(page.locator('#app .page').first()).toBeVisible();
       await expect(page.locator('[data-adp-loaded]').first()).toBeVisible();
       await expectNoPhoneOverflow(page);
@@ -807,7 +807,7 @@ test.describe('màn điện thoại 390×844', () => {
 
   test('hộp xác nhận vừa màn hình và nút đủ lớn để bấm', async ({ page }) => {
     await fakeApi(page, everything);
-    await page.goto(`/#/admin/players/${USER_ID}`);
+    await page.goto(`/admin/players/${USER_ID}`);
     await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     const box = await dialog(page).boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);

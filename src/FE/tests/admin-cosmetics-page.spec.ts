@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import { signInAs } from './helpers/adminSession';
 
 /**
- * #/admin/cosmetics with the API answered here: what the page asks the server to do, and what it shows.
+ * /admin/cosmetics with the API answered here: what the page asks the server to do, and what it shows.
  * The same flows against a real server are in admin-cosmetics-full-stack.spec.ts.
  */
 type Item = Record<string, any>;
@@ -128,7 +128,7 @@ const canvasHasPaint = (page: Page, selector: string) => page.locator(selector).
   return false;
 });
 
-const hashOf = (page: Page) => page.evaluate(() => window.location.hash);
+const hashOf = (page: Page) => page.evaluate(() => window.location.pathname + window.location.search);
 
 async function expectNoSidewaysScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -139,7 +139,7 @@ async function expectNoSidewaysScroll(page: Page) {
 
 test('the frames tab shows every live frame with its owners and how it is obtained', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics');
+  await page.goto('/admin/cosmetics');
 
   await expect(page.getByRole('heading', { name: 'Mỹ phẩm', exact: true })).toBeVisible();
   const dong = page.locator('[data-card="frame_dong"]');
@@ -154,7 +154,7 @@ test('the frames tab shows every live frame with its owners and how it is obtain
 
 test('the filters narrow the grid by rarity, way of getting it and retired', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics');
+  await page.goto('/admin/cosmetics');
   await expect(page.locator('[data-card]')).toHaveCount(2);
 
   await page.locator('[data-filter="rarity"]').selectOption('MYSTERY');
@@ -176,7 +176,7 @@ test('the filters narrow the grid by rarity, way of getting it and retired', asy
 
 test('titles and entrances have their own tabs, drawn as players see them', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics?tab=TITLE');
+  await page.goto('/admin/cosmetics?tab=TITLE');
   await expect(page.locator('[data-card="title_kim-long"] .hs-tl')).toHaveAttribute('aria-label', 'Danh hiệu Kim Long Phá Án');
   await expect(page.locator('[data-card="title_tan-binh"] [data-way]')).toHaveText('Mặc định');
 
@@ -188,7 +188,7 @@ test('titles and entrances have their own tabs, drawn as players see them', asyn
 test('what does not add up in the stored catalog is shown', async ({ page }) => {
   const state = await prepare(page);
   state.page.problems = ['Chest chest_np can roll MYSTERY but has no such item left.'];
-  await page.goto('/#/admin/cosmetics');
+  await page.goto('/admin/cosmetics');
   await expect(page.locator('.acf-problems')).toContainText('1 chỗ không khớp');
 });
 
@@ -196,7 +196,7 @@ test('what does not add up in the stored catalog is shown', async ({ page }) => 
 
 test('a painted frame: upload, line up the hole, choose effects, save', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.goto('/admin/cosmetics/new?type=FRAME');
   await page.locator('#acf-name').fill('Hắc Long');
   await page.locator('[data-picture]').setInputFiles(await picture(page));
   const area = page.locator('[data-align]');
@@ -233,7 +233,7 @@ test('a painted frame: upload, line up the hole, choose effects, save', async ({
   await expect.poll(() => canvasHasPaint(page, '[data-preview-canvas]')).toBe(true);
 
   await page.locator('[data-save]').click();
-  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics/frame_moi');
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/frame_moi');
 
   const created = state.sent.find((call) => call.method === 'POST')!.body;
   expect(created.category).toBe('FRAME');
@@ -249,7 +249,7 @@ test('a painted frame: upload, line up the hole, choose effects, save', async ({
 
 test('a picture with no transparency is warned about, and one of the wrong type is refused', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.goto('/admin/cosmetics/new?type=FRAME');
 
   await page.locator('[data-picture]').setInputFiles(await picture(page, { transparent: false }));
   await expect(page.locator('[data-picture-status]')).toHaveClass(/is-warning/);
@@ -264,14 +264,14 @@ test('a picture with no transparency is warned about, and one of the wrong type 
 test('a missing image store is explained', async ({ page }) => {
   await prepare(page);
   await page.route((url) => url.pathname === '/api/admin/assets', (route) => refuse(route, 503, 'ASSET_STORAGE_UNAVAILABLE', 'no'));
-  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.goto('/admin/cosmetics/new?type=FRAME');
   await page.locator('[data-picture]').setInputFiles(await picture(page));
   await expect(page.getByText('Máy chủ chưa cấu hình nơi lưu ảnh')).toBeVisible();
 });
 
 test('a variant starts from the effects of the frame it borrows', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.goto('/admin/cosmetics/new?type=FRAME');
   await page.locator('#acf-name').fill('Băng Long');
   await page.locator('input[name="acf-template"][value="builtin-clone"]').check();
   await page.locator('[data-base="bang"]').click();
@@ -280,7 +280,7 @@ test('a variant starts from the effects of the frame it borrows', async ({ page 
   await page.locator('[data-effect-on="fall"]').uncheck();
 
   await page.locator('[data-save]').click();
-  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics/frame_moi');
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/frame_moi');
   const body = state.sent.find((call) => call.method === 'POST')!.body;
   expect(body.visual.template).toBe('builtin-clone');
   expect(body.visual.params.base).toBe('bang');
@@ -291,10 +291,10 @@ test('a variant starts from the effects of the frame it borrows', async ({ page 
 
 test('a frame that ships keeps its drawing: only its words can be edited', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_kimlong');
+  await page.goto('/admin/cosmetics/frame_kimlong');
   await expect(page.locator('[data-picture]')).toHaveCount(0);
   await expect(page.locator('[data-effect]')).toHaveCount(0);
-  await expect(page.locator('[data-chests] a')).toHaveAttribute('href', '#/admin/chests/chest_nb');
+  await expect(page.locator('[data-chests] a')).toHaveAttribute('href', '/admin/chests/chest_nb');
   await expect(page.locator('[data-chests]')).toContainText('Đang nằm trong hòm: Két Nhà Băng');
   // Nobody may delete what ships with the game.
   await expect(page.locator('[data-delete]')).toHaveCount(0);
@@ -311,7 +311,7 @@ test('a frame that ships keeps its drawing: only its words can be edited', async
 
 test('how an item is obtained is saved and shown, and a level reward stops being tradable', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_kimlong');
+  await page.goto('/admin/cosmetics/frame_kimlong');
   await expect(page.locator('[data-field="tradable"]')).toBeChecked();
 
   await page.locator('input[name="acf-mode"][value="level"]').check();
@@ -341,7 +341,7 @@ test('how an item is obtained is saved and shown, and a level reward stops being
 
 test('only the fields of the chosen way show', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_kimlong');
+  await page.goto('/admin/cosmetics/frame_kimlong');
   await expect(page.locator('#acf-level')).toBeHidden();
   await page.locator('input[name="acf-mode"][value="level"]').check();
   await expect(page.locator('#acf-level')).toBeVisible();
@@ -354,7 +354,7 @@ test('only the fields of the chosen way show', async ({ page }) => {
 test('a refusal from the server is shown as it is', async ({ page }) => {
   await prepare(page);
   await page.route((url) => url.pathname.endsWith('/acquisition'), (route) => refuse(route, 409, 'COSMETIC_DEFAULT_REQUIRED', 'Nhóm này luôn cần một món mặc định.'));
-  await page.goto('/#/admin/cosmetics/title_tan-binh');
+  await page.goto('/admin/cosmetics/title_tan-binh');
   await page.locator('input[name="acf-mode"][value="admin"]').check();
   await page.locator('[data-save-way]').click();
   await page.locator('#acf-reason').fill('Thử');
@@ -367,7 +367,7 @@ test('saving how an item is obtained, or retiring it, keeps what is still being 
   state.page.items.push(item('frame_moi', 'FRAME', 'Đang Sửa', {
     visual: { iconKey: 'frame_moi', imageUrl: PICTURE, builtinId: null, template: 'painted', params: { hole: { x: 120, y: 120, r: 80 }, live: {} } },
   }));
-  await page.goto('/#/admin/cosmetics/frame_moi');
+  await page.goto('/admin/cosmetics/frame_moi');
   await page.locator('#acf-name').fill('Tên Chưa Lưu');
   await page.locator('[data-effect-on="spark"]').check();
 
@@ -394,7 +394,7 @@ test('saving how an item is obtained, or retiring it, keeps what is still being 
 
 test('turning trading on or off asks why, because it changes what players hold', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_kimlong');
+  await page.goto('/admin/cosmetics/frame_kimlong');
   await page.locator('[data-field="tradable"]').uncheck();
   await page.locator('[data-save]').click();
   const dialog = page.getByRole('dialog');
@@ -411,14 +411,14 @@ test('turning trading on or off asks why, because it changes what players hold',
 
 test('a variant whose base has a sheen can switch it off, and the player sees the same', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.goto('/admin/cosmetics/new?type=FRAME');
   await page.locator('#acf-name').fill('Băng Không Ánh');
   await page.locator('input[name="acf-template"][value="builtin-clone"]').check();
   await page.locator('[data-base="bang"]').click();
   await expect(page.locator('[data-sheen="on"]')).toBeChecked();
   await page.locator('[data-sheen="on"]').uncheck();
   await page.locator('[data-save]').click();
-  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics/frame_moi');
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/frame_moi');
 
   const body = state.sent.find((call) => call.method === 'POST')!.body;
   expect(body.visual.params.sheen.a).toBe(0);
@@ -437,7 +437,7 @@ test('a variant whose base has a sheen can switch it off, and the player sees th
 
 test('a new title: the style grid shows the name being typed, in all 18 styles', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=TITLE');
+  await page.goto('/admin/cosmetics/new?type=TITLE');
   await expect(page.locator('[data-style]')).toHaveCount(18);
 
   await page.locator('#acf-name').fill('Hắc Long Thám Tử');
@@ -450,7 +450,7 @@ test('a new title: the style grid shows the name being typed, in all 18 styles',
   await page.locator('[data-glow-on]').check();
   await page.locator('[data-parts-on]').check();
   await page.locator('[data-save]').click();
-  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics/title_moi');
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/title_moi');
 
   const body = state.sent.find((call) => call.method === 'POST')!.body;
   expect(body.category).toBe('TITLE');
@@ -460,7 +460,7 @@ test('a new title: the style grid shows the name being typed, in all 18 styles',
 
 test('a name with markup stays text in the plaque', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=TITLE');
+  await page.goto('/admin/cosmetics/new?type=TITLE');
   await page.locator('#acf-name').fill('<img src=x onerror=alert(1)>');
   await expect(page.locator('[data-title-full] .hs-tl')).toHaveAttribute('aria-label', 'Danh hiệu <img src=x onerror=alert(1)>');
   await expect(page.locator('[data-title-full] img')).toHaveCount(0);
@@ -470,7 +470,7 @@ test('a name with markup stays text in the plaque', async ({ page }) => {
 
 test('a new entrance: the template decides which picture it can change', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=ENTRANCE');
+  await page.goto('/admin/cosmetics/new?type=ENTRANCE');
   await expect(page.locator('[data-creature]')).toBeVisible();
   await expect(page.locator('[data-sword]')).toBeHidden();
 
@@ -488,7 +488,7 @@ test('a new entrance: the template decides which picture it can change', async (
   await expect(page.locator('[data-creature-status]')).toHaveText('Đang dùng ảnh riêng.');
 
   await page.locator('[data-save]').click();
-  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics/entrance_moi');
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/entrance_moi');
   const body = state.sent.find((call) => call.method === 'POST')!.body;
   expect(body.description).toBe('Rồng đen lượn qua mây.');
   expect(body.visual).toEqual({ template: 'kim-long', imageUrl: null, params: { tint: '120,200,255', imageUrl: PICTURE } });
@@ -499,7 +499,7 @@ test('previewing an entrance runs the full-screen stage without a console error'
   const failures: string[] = [];
   page.on('pageerror', (error) => failures.push(error.message));
   page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()); });
-  await page.goto('/#/admin/cosmetics/new?type=ENTRANCE');
+  await page.goto('/admin/cosmetics/new?type=ENTRANCE');
   await page.locator('[data-tint-on]').check();
   await page.locator('[data-creature-input]').setInputFiles(await picture(page));
   await expect(page.locator('[data-creature-status]')).toHaveText('Đang dùng ảnh riêng.');
@@ -628,7 +628,7 @@ test('placing a picture follows the rule the shipped frames were placed by', asy
 
 test('retiring asks for a reason, and without one nothing is sent', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_kimlong');
+  await page.goto('/admin/cosmetics/frame_kimlong');
   await page.locator('[data-retire]').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Người đang dùng vẫn giữ nguyên');
@@ -647,11 +647,11 @@ test('retiring asks for a reason, and without one nothing is sent', async ({ pag
 test('only an unowned item made here offers to be deleted', async ({ page }) => {
   const state = await prepare(page);
   state.page.items.push(item('frame_moi', 'FRAME', 'Tạo Nhầm', { visual: { iconKey: 'frame_moi', imageUrl: PICTURE, builtinId: null, template: 'painted', params: { hole: { x: 120, y: 120, r: 80 } } } }));
-  await page.goto('/#/admin/cosmetics/frame_moi');
+  await page.goto('/admin/cosmetics/frame_moi');
   await page.locator('[data-delete]').click();
   await page.locator('#acf-reason').fill('Tạo nhầm');
   await page.getByRole('dialog').locator('[data-confirm]').click();
-  await expect.poll(() => hashOf(page)).toBe('#/admin/cosmetics?tab=FRAME');
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics?tab=FRAME');
   expect(state.sent.at(-1)).toMatchObject({ method: 'DELETE', path: '/frame_moi?reason=T%E1%BA%A1o%20nh%E1%BA%A7m' });
 });
 
@@ -659,7 +659,7 @@ test('only an unowned item made here offers to be deleted', async ({ page }) => 
 
 test('granting: find the player, choose the item, say why', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics?tab=grant&def=frame_kimlong');
+  await page.goto('/admin/cosmetics?tab=grant&def=frame_kimlong');
   await expect(page.locator('[data-grant-item]')).toHaveValue('frame_kimlong');
   await expect(page.locator('[data-grant-send]')).toBeDisabled();
 
@@ -675,7 +675,7 @@ test('granting: find the player, choose the item, say why', async ({ page }) => 
 
 test('XP rates need a reason, and the level curve is only shown', async ({ page }) => {
   const state = await prepare(page);
-  await page.goto('/#/admin/cosmetics?tab=xp');
+  await page.goto('/admin/cosmetics?tab=xp');
   await expect(page.locator('[data-rare]')).toHaveValue('150');
   await expect(page.locator('[data-xp]')).toContainText('200 + 40 × (cấp − 1)');
   await expect(page.locator('[data-xp] input')).toHaveCount(2);
@@ -694,14 +694,14 @@ test('XP rates need a reason, and the level curve is only shown', async ({ page 
 
 test('an item that does not exist says so', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_khong-co');
+  await page.goto('/admin/cosmetics/frame_khong-co');
   await expect(page.getByText('Không tìm thấy mỹ phẩm này.')).toBeVisible();
 });
 
 test('a failed load says why', async ({ page }) => {
   await signInAs(page, 'ADMIN');
   await page.route((url) => url.pathname === '/api/admin/cosmetics', (route) => refuse(route, 500, 'BOOM', 'Máy chủ đang bận.'));
-  await page.goto('/#/admin/cosmetics');
+  await page.goto('/admin/cosmetics');
   await expect(page.getByText('Máy chủ đang bận.')).toBeVisible();
 });
 
@@ -709,31 +709,31 @@ test('someone who is not an admin does not get the page', async ({ page }) => {
   await signInAs(page, 'PLAYER');
   let asked = false;
   await page.route((url) => url.pathname === '/api/admin/cosmetics', (route) => { asked = true; return route.abort(); });
-  await page.goto('/#/admin/cosmetics');
+  await page.goto('/admin/cosmetics');
   await expect(page.locator('.acf-page')).toHaveCount(0);
   expect(asked).toBe(false);
 });
 
 test('the admin tab bar stays above the page', async ({ page }) => {
   await prepare(page);
-  await page.goto('/#/admin/cosmetics/frame_dong');
+  await page.goto('/admin/cosmetics/frame_dong');
   await expect(page.locator('#admin-nav-root .admin-nav-tab.is-active')).toHaveText('Mỹ phẩm');
 });
 
 for (const [name, hash] of [
-  ['grid', '#/admin/cosmetics'],
-  ['title grid', '#/admin/cosmetics?tab=TITLE'],
-  ['frame editor', '#/admin/cosmetics/new?type=FRAME'],
-  ['title editor', '#/admin/cosmetics/new?type=TITLE'],
-  ['entrance editor', '#/admin/cosmetics/new?type=ENTRANCE'],
-  ['saved frame', '#/admin/cosmetics/frame_kimlong'],
-  ['grant', '#/admin/cosmetics?tab=grant'],
-  ['xp', '#/admin/cosmetics?tab=xp'],
+  ['grid', '/admin/cosmetics'],
+  ['title grid', '/admin/cosmetics?tab=TITLE'],
+  ['frame editor', '/admin/cosmetics/new?type=FRAME'],
+  ['title editor', '/admin/cosmetics/new?type=TITLE'],
+  ['entrance editor', '/admin/cosmetics/new?type=ENTRANCE'],
+  ['saved frame', '/admin/cosmetics/frame_kimlong'],
+  ['grant', '/admin/cosmetics?tab=grant'],
+  ['xp', '/admin/cosmetics?tab=xp'],
 ] as const) {
   test(`on a 390×844 phone the ${name} fits with no sideways scroll`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await prepare(page);
-    await page.goto(`/${hash}`);
+    await page.goto(hash);
     await expect(page.locator('.acf-page')).toBeVisible();
     await page.waitForLoadState('networkidle');
     // .bpa-rim, the route's lens transition, overflows for a moment on every page.
@@ -746,7 +746,7 @@ test('the hole can be dragged by touch on a phone', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
   const page = await context.newPage();
   await prepare(page);
-  await page.goto('/#/admin/cosmetics/new?type=FRAME');
+  await page.goto('/admin/cosmetics/new?type=FRAME');
   await page.locator('[data-picture]').setInputFiles(await picture(page));
   await expect(page.locator('[data-align]')).toBeVisible();
   await page.locator('[data-ring]').scrollIntoViewIfNeeded();
@@ -766,7 +766,7 @@ test('the hole can be dragged by touch on a phone', async ({ browser }) => {
 
 // ------------------------------------------------------------------ cosmetics made here, on players' pages
 
-/** What #/detective needs around the portrait. */
+/** What /detective needs around the portrait. */
 async function playerProfile(page: Page) {
   await page.route((url) => url.pathname === '/api/market/me', (route) => ok(route, { balance: 0, held: 0, slotsUsed: 0, slotCap: 60, itemCount: 0, reservedSlots: 0, feePercent: 5 }));
   await page.route((url) => url.pathname === '/api/profile/me', (route) => ok(route, {
@@ -810,7 +810,7 @@ test('a player sees what was made here in the tabs of their profile, and wears i
     me.frameDefId = 'frame_moi';
     return ok(route, { items: [] });
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   // The exchange tab reads the rates of the catalog.
   await expect(page.locator('#hs-p-doi')).toContainText('70 KN');
@@ -852,7 +852,7 @@ test('with a default frame of the admin\'s choice, the bare ring is gone and the
     level: 1, xp: 0, xpToNext: 200, maxLevel: 50, isMaxLevel: false, avatar: 'nonla', avatarUrl: null, canUploadAvatar: false,
     frameDefId: 'frame_moi', titleDefId: 'title_tan-binh', entranceDefId: 'entrance_lang-le', exchangeable: [], owned: [], achievements: [],
   }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Viền avatar' }).click();
   await expect(page.locator('[data-hs-frame="moi"]')).not.toHaveClass(/hs-locked/);
   await expect(page.locator('[data-hs-frame="moi"]')).toContainText('Mặc định');

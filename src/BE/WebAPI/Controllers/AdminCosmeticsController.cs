@@ -7,7 +7,7 @@ using SirLocked.Api.Services.Admin;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
-/// <summary>Frames, titles, lobby entrances, how each is obtained, and what an exchanged item pays. The #/admin/cosmetics page.</summary>
+/// <summary>Frames, titles, lobby entrances, how each is obtained, and what an exchanged item pays. The /admin/cosmetics page.</summary>
 [Route("api/admin/cosmetics")]
 [Authorize(Roles = UserRole.Admin)]
 public class AdminCosmeticsController : BaseApiController

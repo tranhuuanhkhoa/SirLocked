@@ -4,17 +4,18 @@ import { toast } from '../../../utils/toast.js';
 import { pixelIconUrl } from '../../chest/chestSprites.js';
 import { draftOf } from './chestDraft.js';
 import { confirmDialog, errorMessages, number, percent, xu } from './shared.js';
+import { navigate } from '../../../services/navigation.js';
 
 function rowHtml(chest) {
   const ratio = chest.cost > 0 ? (chest.expectedValue * 100) / chest.cost : 0;
   const glow = chest.look?.light ? ` style="--ac-glow:rgb(${escapeHtml(chest.look.light)})"` : '';
   return `
     <article class="ac-chest-row${chest.active ? '' : ' is-off'}" data-chest-id="${escapeHtml(chest.id)}">
-      <a class="ac-chest-art"${glow} href="#/admin/chests/${encodeURIComponent(chest.id)}" aria-label="Sửa ${escapeHtml(chest.name)}">
+      <a class="ac-chest-art"${glow} href="/admin/chests/${encodeURIComponent(chest.id)}" aria-label="Sửa ${escapeHtml(chest.name)}">
         <img src="${pixelIconUrl(chest.iconKey)}" alt="" draggable="false">
       </a>
       <div class="ac-chest-main">
-        <h3><a href="#/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}</a></h3>
+        <h3><a href="/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}</a></h3>
         <p class="muted ac-small">${escapeHtml(chest.id)} · ${escapeHtml(chest.keyName)}</p>
         <span class="ac-tag ${chest.active ? 'ac-tag--on' : 'ac-tag--off'}">${chest.active ? 'Đang bán' : 'Đang tắt'}</span>
       </div>
@@ -25,7 +26,7 @@ function rowHtml(chest) {
         <div><dt>Giá trị kỳ vọng / chi phí</dt><dd data-ac-ev>${number(chest.expectedValue)} / ${number(chest.cost)} xu <span class="muted">(${percent(ratio, 0)})</span></dd></div>
       </dl>
       <div class="ac-chest-actions">
-        <a class="btn btn-ghost btn-sm" href="#/admin/chests/${encodeURIComponent(chest.id)}">Sửa</a>
+        <a class="btn btn-ghost btn-sm" href="/admin/chests/${encodeURIComponent(chest.id)}">Sửa</a>
         <button type="button" class="btn btn-ghost btn-sm" data-ac-toggle>${chest.active ? 'Tắt' : 'Bật'}</button>
         <button type="button" class="btn btn-ghost btn-sm" data-ac-clone>Nhân bản</button>
       </div>
@@ -98,7 +99,7 @@ export async function renderChestList(container, { signal } = {}) {
             reason,
           });
           toast(`Đã tạo ${created.name}. Hòm đang tắt.`, 'success');
-          window.location.hash = `#/admin/chests/${encodeURIComponent(created.id)}`;
+          navigate(`/admin/chests/${encodeURIComponent(created.id)}`);
         },
       });
     }

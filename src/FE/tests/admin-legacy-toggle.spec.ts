@@ -40,7 +40,7 @@ test('the case list hides older cases until the switch is on, then asks for incl
     await route.fulfill({ status: 200, contentType: 'application/json', body: envelope(includeLegacy ? [pixelCase, oldCase] : [pixelCase]) });
   });
 
-  await page.goto('/#/admin/cases');
+  await page.goto('/admin/cases');
   await expect(page.getByText('Trâm hồng ngọc mất tích')).toBeVisible();
   await expect(page.getByText('Con dấu vỡ')).toHaveCount(0);
   const toggle = page.locator('#show-legacy');
@@ -60,7 +60,7 @@ test('the case list hides older cases until the switch is on, then asks for incl
 
 test('the dashboard stops offering to recreate older cases while they are hidden', async ({ page }) => {
   await routeDashboard(page, true);
-  await page.goto('/#/admin');
+  await page.goto('/admin');
   await expect(page.locator('#seed-pixel-demo')).toBeVisible();
   await expect(page.locator('#seed-sample')).toHaveCount(0);
   await expect(page.locator('#seed-demo')).toHaveCount(0);
@@ -69,7 +69,7 @@ test('the dashboard stops offering to recreate older cases while they are hidden
 
 test('the dashboard keeps the older seed buttons when the pixel-only catalogue is off', async ({ page }) => {
   await routeDashboard(page, false);
-  await page.goto('/#/admin');
+  await page.goto('/admin');
   await expect(page.locator('#seed-pixel-demo')).toBeVisible();
   await expect(page.locator('#seed-sample')).toBeVisible();
   await expect(page.locator('#seed-demo')).toBeVisible();

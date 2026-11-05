@@ -14,7 +14,7 @@ using SirLocked.Api.Services.Market;
 namespace SirLocked.Api.Services.Admin;
 
 /// <summary>
-/// Frames, titles and lobby entrances for the #/admin/cosmetics page. Every write checks on the server, saves, tells
+/// Frames, titles and lobby entrances for the /admin/cosmetics page. Every write checks on the server, saves, tells
 /// the catalog, then records itself. docs/admin-cosmetics.md has the whole picture.
 /// </summary>
 public sealed class AdminCosmeticsService

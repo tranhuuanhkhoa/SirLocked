@@ -1,7 +1,7 @@
 import { get, post } from './http.js';
 
 /**
- * Find game (#/find-game). Every call returns the caller's MatchmakingStatus:
+ * Find game (/find-game). Every call returns the caller's MatchmakingStatus:
  * { phase: IDLE|SEARCHING|FOUND|ACCEPTED|READY|ENDED, searchStartedAt, match, roomId, endReason, serverTime }.
  */
 export const matchmakingApi = {

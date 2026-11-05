@@ -70,7 +70,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   expect((await call<Progress>(api, 'GET', '/api/progress/me', veteran.token)).level).toBeGreaterThan(5);
 
   // ---- 1. the frame
-  const adminPage = await openAs(browser, admin, { width: 1440, height: 900 }, failures, '/#/admin/cosmetics');
+  const adminPage = await openAs(browser, admin, { width: 1440, height: 900 }, failures, '/admin/cosmetics');
   await adminPage.route((url) => url.pathname === '/api/admin/assets', async (route) => {
     const picture = route.request().postData()?.includes('sinh-vat') ? CREATURE_PICTURE : FRAME_PICTURE;
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { url: picture, width: 247, height: 259 } }) });
@@ -107,7 +107,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   await shot(adminPage, '02-tao-vien-can-lo', { fullPage: true });
   await adminPage.locator('[data-save]').click();
   await expect(adminPage.locator('[data-acquisition]')).toBeVisible();
-  const frameId = decodeURIComponent((await adminPage.evaluate(() => window.location.hash)).split('/').pop()!);
+  const frameId = decodeURIComponent((await adminPage.evaluate(() => window.location.pathname + window.location.search)).split('/').pop()!);
   expect(frameId).toMatch(/^frame_hac-long-/);
 
   await adminPage.locator('input[name="acf-mode"][value="level"]').check();
@@ -144,7 +144,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   // ---- 2. the player reaches level 5 on the page, sees the frame, and wears it
   await grant(player, EPIC);
   await grant(player, EPIC);
-  const playerPage = await openAs(browser, player, { width: 1440, height: 900 }, failures, '/#/detective');
+  const playerPage = await openAs(browser, player, { width: 1440, height: 900 }, failures, '/detective');
   await expect(playerPage.locator('#hs-p-doi')).toContainText('Đổi tất cả');
   await playerPage.getByRole('button', { name: /Đổi tất cả/ }).click();
   await playerPage.getByRole('dialog').locator('[data-ok]').click();
@@ -175,7 +175,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   const room = await call<{ roomId: string; roomCode: string }>(api, 'POST', '/api/rooms', player.token, { caseId: cases[0].caseId });
   const seen = await call<{ players: Array<{ userId: string; frameDefId: string | null }> }>(api, 'GET', `/api/rooms/${room.roomId}`, player.token);
   expect(seen.players.find((one) => one.userId === player.user.userId)?.frameDefId).toBe(frameId);
-  await playerPage.goto(`/#/lobby/${room.roomId}`);
+  await playerPage.goto(`/lobby/${room.roomId}`);
   const seat = playerPage.locator(`[data-seat-avatar="${player.user.userId}"]`);
   await expect(seat).toBeVisible();
   await expect.poll(() => seatPaintsFrame(playerPage, player.user.userId, frameId)).toBe(true);
@@ -183,7 +183,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   await shot(playerPage, '06-sanh-cho-dung-vien');
 
   // ---- 3. the title
-  await adminPage.goto('/#/admin/cosmetics/new?type=TITLE');
+  await adminPage.goto('/admin/cosmetics/new?type=TITLE');
   const titleName = `Hắc Long ${run}`;
   await adminPage.locator('#acf-name').fill(titleName);
   await adminPage.locator('#acf-rarity').selectOption('MYSTERY');
@@ -193,10 +193,10 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   await shot(adminPage, '07-tao-danh-hieu-kimlong', { fullPage: true });
   await adminPage.locator('[data-save]').click();
   await expect(adminPage.locator('[data-acquisition]')).toBeVisible();
-  const titleId = decodeURIComponent((await adminPage.evaluate(() => window.location.hash)).split('/').pop()!);
+  const titleId = decodeURIComponent((await adminPage.evaluate(() => window.location.pathname + window.location.search)).split('/').pop()!);
   await grant(player, titleId);
 
-  await playerPage.goto('/#/detective');
+  await playerPage.goto('/detective');
   await playerPage.getByRole('tab', { name: 'Danh hiệu' }).click();
   const plaque = playerPage.locator(`[data-hs-title-id="${titleId.replace('title_', '')}"]`);
   await expect(plaque.locator('.hs-tl')).toHaveAttribute('aria-label', `Danh hiệu ${titleName}`);
@@ -209,7 +209,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   const consoleErrors: string[] = [];
   adminPage.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   adminPage.on('pageerror', (error) => consoleErrors.push(error.message));
-  await adminPage.goto('/#/admin/cosmetics/new?type=ENTRANCE');
+  await adminPage.goto('/admin/cosmetics/new?type=ENTRANCE');
   await adminPage.locator('#acf-name').fill(`Hắc Long Giáng Thế ${run}`);
   await adminPage.locator('#acf-rarity').selectOption('LEGENDARY');
   await adminPage.locator('#acf-desc').fill('Rồng đen lượn qua mây.');
@@ -231,14 +231,14 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
 
   await adminPage.locator('[data-save]').click();
   await expect(adminPage.locator('[data-acquisition]')).toBeVisible();
-  const entranceId = decodeURIComponent((await adminPage.evaluate(() => window.location.hash)).split('/').pop()!);
+  const entranceId = decodeURIComponent((await adminPage.evaluate(() => window.location.pathname + window.location.search)).split('/').pop()!);
   const stored = await call<{ visual: { template: string; params: Record<string, unknown> } }>(api, 'GET', `/api/admin/cosmetics/${entranceId}`, admin.token);
   expect(stored.visual.template).toBe('kim-long');
   expect(stored.visual.params.imageUrl).toBe(CREATURE_PICTURE);
   expect(consoleErrors).toEqual([]);
 
   // ---- retire leaves what is worn on the player
-  await adminPage.goto(`/#/admin/cosmetics/${frameId}`);
+  await adminPage.goto(`/admin/cosmetics/${frameId}`);
   await adminPage.locator('[data-retire]').click();
   await adminPage.locator('#acf-reason').fill('Thử retire');
   await adminPage.getByRole('dialog').locator('[data-confirm]').click();
@@ -246,7 +246,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   expect((await call<Progress>(api, 'GET', '/api/progress/me', player.token)).frameDefId).toBe(frameId);
 
   // ---- XP rates take effect on the next exchange
-  await adminPage.goto('/#/admin/cosmetics?tab=xp');
+  await adminPage.goto('/admin/cosmetics?tab=xp');
   const rates = { rare: await adminPage.locator('[data-rare]').inputValue(), epic: await adminPage.locator('[data-epic]').inputValue() };
   await adminPage.locator('[data-epic]').fill('333');
   await adminPage.locator('[data-save-xp]').click();
@@ -260,7 +260,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   await call(api, 'PUT', '/api/admin/cosmetics/settings/xp', admin.token, { rareXp: Number(rates.rare), epicXp: Number(rates.epic), reason: 'Trả lại sau khi thử' });
 
   // ---- grant, with the audit trail to show for it
-  await adminPage.goto(`/#/admin/cosmetics?tab=grant&def=${entranceId}`);
+  await adminPage.goto(`/admin/cosmetics?tab=grant&def=${entranceId}`);
   await adminPage.locator('[data-player-search]').fill(run);
   await adminPage.getByRole('option', { name: new RegExp(playerName) }).click();
   await shot(adminPage, '12-cap-cho-nguoi-choi');
@@ -277,7 +277,7 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   expect(grants.items[0].reason).toBe('Quà thử nghiệm');
 
   // ---- the player's entrance reaches the tab of their profile, and the market lists what can be sold
-  await playerPage.goto('/#/detective');
+  await playerPage.goto('/detective');
   await playerPage.reload();
   await playerPage.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await expect(playerPage.locator(`[data-hs-entrance="${entranceId.replace('entrance_', '')}"]`)).toContainText('Rồng đen lượn qua mây.');
@@ -287,22 +287,22 @@ test('an admin makes cosmetics with no code, and a player earns and wears them',
   expect(catalog.some((def) => def.id === frameId)).toBe(false);
 
   // ---- phone
-  const phone = await openAs(browser, admin, { width: 390, height: 844 }, failures, '/#/admin/cosmetics', true);
+  const phone = await openAs(browser, admin, { width: 390, height: 844 }, failures, '/admin/cosmetics', true);
   await expect(phone.locator('[data-card]').first()).toBeVisible();
   await phone.waitForTimeout(1000);
   await shot(phone, '14-dien-thoai-luoi');
   await expectNoSidewaysScroll(phone);
-  await phone.goto(`/#/admin/cosmetics/${frameId}`);
+  await phone.goto(`/admin/cosmetics/${frameId}`);
   await expect(phone.locator('[data-preview]')).toBeVisible();
   await phone.waitForTimeout(1000);
   await shot(phone, '15-dien-thoai-sua-vien');
   await expectNoSidewaysScroll(phone);
-  await phone.goto('/#/admin/cosmetics/new?type=TITLE');
+  await phone.goto('/admin/cosmetics/new?type=TITLE');
   await expect(phone.locator('[data-style]')).toHaveCount(18);
   await phone.waitForTimeout(800);
   await shot(phone, '16-dien-thoai-tao-danh-hieu');
   await expectNoSidewaysScroll(phone);
-  await phone.goto('/#/admin/cosmetics/new?type=ENTRANCE');
+  await phone.goto('/admin/cosmetics/new?type=ENTRANCE');
   await expect(phone.locator('[data-play]')).toBeVisible();
   await phone.waitForTimeout(800);
   await shot(phone, '17-dien-thoai-tao-hieu-ung');

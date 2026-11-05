@@ -3,7 +3,7 @@ import { mountAnomalies, mountStuck } from './admin/players/economyWatch.js';
 import { mountHistory, mountMarket } from './admin/players/economyMarket.js';
 import { mountOverview } from './admin/players/economyOverview.js';
 import { mountReviews, mountRooms } from './admin/players/roomsReviews.js';
-import { hashParams, tabsHtml, writeHashParams } from './admin/players/shared.js';
+import { routeParams, tabsHtml, writeRouteParams } from './admin/players/shared.js';
 
 const TABS = [
   { id: 'tongquan', label: 'Tổng quan', mount: mountOverview },
@@ -15,9 +15,9 @@ const TABS = [
   { id: 'danhgia', label: 'Đánh giá', mount: mountReviews },
 ];
 
-/** #/admin/economy. The address keeps the open tab (?tab=), so a link can point straight at stuck operations or rooms. */
+/** /admin/economy. The address keeps the open tab (?tab=), so a link can point straight at stuck operations or rooms. */
 export async function renderAdminEconomyPage(app, { signal } = {}) {
-  const fromAddress = hashParams().get('tab');
+  const fromAddress = routeParams().get('tab');
   let active = TABS.some((tab) => tab.id === fromAddress) ? fromAddress : 'tongquan';
   render(app, `
     <div class="page adp-page">
@@ -44,9 +44,9 @@ export async function renderAdminEconomyPage(app, { signal } = {}) {
     const tab = event.target.closest('[data-tab]');
     if (!tab || tab.dataset.tab === active) return;
     active = tab.dataset.tab;
-    const address = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
-    writeHashParams(Object.fromEntries([...address.keys()].map((key) => [key, ''])));
-    writeHashParams({ tab: active === 'tongquan' ? '' : active });
+    const address = new URLSearchParams(window.location.search);
+    writeRouteParams(Object.fromEntries([...address.keys()].map((key) => [key, ''])));
+    writeRouteParams({ tab: active === 'tongquan' ? '' : active });
     show();
   }, signal ? { signal } : undefined);
   show();

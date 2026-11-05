@@ -11,7 +11,7 @@ using SirLocked.Api.Services.Market;
 namespace SirLocked.Api.Services.Admin;
 
 /// <summary>
-/// Chests (#/admin/chests): prices, drawing, drop table and pool, saved as a whole with a version behind each save.
+/// Chests (/admin/chests): prices, drawing, drop table and pool, saved as a whole with a version behind each save.
 /// A chest's own item type and its key's follow it, so the market and inventories show the same names and icons.
 /// </summary>
 public sealed class AdminChestsChestService
@@ -341,7 +341,7 @@ public sealed class AdminChestsChestService
 
     // ------------------------------------------------------------------ trying a chest out
 
-    /// <summary>The shape #/kho-ruong reads, for one chest of any state. Pretends the admin owns plenty; nothing is stored.</summary>
+    /// <summary>The shape /kho-ruong reads, for one chest of any state. Pretends the admin owns plenty; nothing is stored.</summary>
     public Task<ChestListDto> PreviewAsync(string id)
     {
         var chest = RequireLive(id);

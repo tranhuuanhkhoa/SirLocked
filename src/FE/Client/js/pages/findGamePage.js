@@ -4,9 +4,10 @@ import { createUserHubConnection } from '../services/userHub.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr, uiLanguage } from '../services/i18n.js';
+import { navigate } from '../services/navigation.js';
 
 /**
- * #/find-game — "Tìm trận" (FindGame.dc.html). The server owns the queue: this page sends the
+ * /find-game — "Tìm trận" (FindGame.dc.html). The server owns the queue: this page sends the
  * settings, then mirrors GET /api/matchmaking/status, refreshed by polling and by the
  * "MatchmakingUpdated" push on /hubs/game. Phases: IDLE → SEARCHING → FOUND (accept within the
  * countdown) → ACCEPTED (waiting for the partner) → READY (go to the lobby).
@@ -155,7 +156,7 @@ function setupHtml() {
     <div class="bpa-fg-actions">
       <div id="fg-notice" aria-live="polite"></div>
       <div id="fg-action"></div>
-      <a class="bpa-link bpa-fg-friends" href="#/rooms">${tr('Playing with friends? Create a private room', 'Muốn chơi với bạn bè? Tạo phòng riêng')}</a>
+      <a class="bpa-link bpa-fg-friends" href="/rooms">${tr('Playing with friends? Create a private room', 'Muốn chơi với bạn bè? Tạo phòng riêng')}</a>
     </div>
   </section>`;
 }
@@ -283,7 +284,7 @@ export async function renderFindGamePage(app, context = {}) {
     slot.innerHTML = `
       <p class="bpa-fg-notice is-${notice.tone}" role="${notice.tone === 'error' ? 'alert' : 'status'}">
         <span>${escapeHtml(notice.text)}</span>
-        ${notice.roomId ? `<a class="bpa-btn bpa-btn--ink bpa-btn--sm" href="#/lobby/${encodeURIComponent(notice.roomId)}">${tr('Open lobby', 'Vào phòng chờ')}</a>` : ''}
+        ${notice.roomId ? `<a class="bpa-btn bpa-btn--ink bpa-btn--sm" href="/lobby/${encodeURIComponent(notice.roomId)}">${tr('Open lobby', 'Vào phòng chờ')}</a>` : ''}
       </p>`;
   }
 
@@ -319,7 +320,7 @@ export async function renderFindGamePage(app, context = {}) {
         <p class="bpa-fg-readyk">${tr('Opening the case file…', 'Đang mở hồ sơ vụ án…')}</p>
         <p class="bpa-fg-readyt">${tr('Your partner is ready. Heading to the lobby.', 'Đồng đội đã sẵn sàng. Chuẩn bị vào phòng chờ.')}</p>
         ${roomId
-          ? `<a class="bpa-btn bpa-btn--red" id="fg-enter-lobby" href="#/lobby/${encodeURIComponent(roomId)}">${tr('Enter the lobby', 'Vào phòng chờ')}</a>`
+          ? `<a class="bpa-btn bpa-btn--red" id="fg-enter-lobby" href="/lobby/${encodeURIComponent(roomId)}">${tr('Enter the lobby', 'Vào phòng chờ')}</a>`
           : `<span class="bpa-btn bpa-btn--red" aria-disabled="true">${tr('Opening the lobby…', 'Đang mở phòng chờ…')}</span>`}
       </div>`;
   }
@@ -436,7 +437,7 @@ export async function renderFindGamePage(app, context = {}) {
     if (next === 'READY' && status.roomId && previous !== 'READY') {
       clearTimeout(redirectTimer);
       redirectTimer = setTimeout(() => {
-        if (!disposed && app.isConnected) window.location.hash = `#/lobby/${status.roomId}`;
+        if (!disposed && app.isConnected) navigate(`/lobby/${status.roomId}`);
       }, REDIRECT_DELAY_MS);
     }
     schedulePoll();
@@ -537,7 +538,7 @@ export async function renderFindGamePage(app, context = {}) {
     await hub.stop();
     // Leaving mid-search frees the partner instead of leaving them a match that will time out.
     // Re-rendering the same route (a UI language switch) keeps the search going.
-    const stillHere = (window.location.hash || '').split('?')[0] === '#/find-game';
+    const stillHere = window.location.pathname === '/find-game';
     if (LIVE_PHASES.has(state.phase) && !stillHere) {
       try { await matchmakingApi.cancel(); } catch { /* best effort */ }
     }

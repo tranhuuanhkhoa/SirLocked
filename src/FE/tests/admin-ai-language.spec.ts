@@ -99,7 +99,7 @@ test('language switch translates the admin dashboard content, not only navigatio
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
   });
 
-  await page.goto('/#/admin');
+  await page.goto('/admin');
   await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible();
   await expect(page.locator('.stat-grid')).toContainText('9/15 published');
 
@@ -111,7 +111,7 @@ test('language switch translates the admin dashboard content, not only navigatio
 });
 
 test('Vietnamese admin AI creator localizes presets and causal workflow guidance', async ({ page }) => {
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('[data-ui-language="vi"]').click();
 
   await expect(page.getByRole('heading', { name: 'Tạo vụ án bằng AI' })).toBeVisible();
@@ -141,7 +141,7 @@ for (const language of ['en', 'vi']) test(`Short Demo exposes the full sampler a
       storyPreview: { title: 'Short sampler preview', summary: 'Mocked creation; no provider call.' },
     },
   } }));
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
   await page.locator('#ai-language-select').selectOption(language);
   await expect(page.locator('#ai-include-crack')).not.toBeChecked();
@@ -205,7 +205,7 @@ test('queued premise appears as soon as polling reaches story approval without r
     await route.fulfill(ok(completedDraft));
   });
 
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('#quick-create-btn').click();
 
   await expect(page.getByRole('heading', { name: 'The Premise Appears Without Reload' })).toBeVisible();
@@ -240,7 +240,7 @@ test('failed drafts expose phase-specific retry actions and endpoints', async ({
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: drafts[1] }) });
   });
 
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.getByRole('button', { name: 'Retry JSON repair' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Regenerate failed scene' })).toBeVisible();
 
@@ -350,7 +350,7 @@ test('causal truth review renders structured gates and forwards scoped repair in
     await route.fulfill(ok(currentDraft));
   });
 
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.getByRole('button', { name: 'View' }).click();
   await expect(page.locator('[data-truth-review]')).toContainText('suspect-a');
   await expect(page.locator('[data-proof-coverage] .proof-coverage-card')).toHaveCount(5);
@@ -401,7 +401,7 @@ test('V3 capability adds Crack to the selected V2 preset without exposing a seco
     });
   });
 
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.locator('#ai-preset-select')).not.toContainText('Crack the Lie V3');
   await expect(page.locator('#ai-include-crack')).toBeVisible();
   await expect(page.getByText('V3 gameplay is disabled.')).toBeVisible();
@@ -491,7 +491,7 @@ test('V3 full-logic review shows one camera and two item evidence choices withou
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: draft }) });
   });
 
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.getByRole('button', { name: 'View' }).click();
 
   await expect(page.getByRole('heading', { name: /V3 Crack/ })).toBeVisible();
@@ -549,7 +549,7 @@ for (const [testimonyCount, evidenceCount] of [[2, 3], [3, 4], [4, 6]]) {
       status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: draft }),
     }));
 
-    await page.goto('/#/admin/ai');
+    await page.goto('/admin/ai');
     await page.getByRole('button', { name: 'View' }).click();
 
     await expect(page.locator('.v3-pair-matrix tbody td')).toHaveCount(testimonyCount * evidenceCount);
@@ -585,14 +585,14 @@ test('V3 ready draft cannot publish from AI Creator while gameplay flag is disab
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [draft] }) });
   });
 
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
 
   await expect(page.getByRole('button', { name: 'Publish blocked' })).toBeDisabled();
   await expect(page.getByText('Review PASSED')).toBeVisible();
 });
 
 test('Vietnamese selector sends language and renders Vietnamese preview', async ({ page }) => {
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.locator('#ai-language-select')).toContainText('Tiếng Việt');
   await page.locator('#ai-language-select').selectOption('vi');
   await page.locator('#ai-case-type-select').selectOption('MISSING_PERSON');

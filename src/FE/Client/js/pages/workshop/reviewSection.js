@@ -176,14 +176,14 @@ function writeAreaHtml(state) {
   if (!session.isLoggedIn()) {
     return noticeHtml(`
       <p>${tr('Sign in to write a review.', 'Đăng nhập để viết đánh giá.')}</p>
-      <a class="bpa-btn bpa-btn--ink" href="#/login">${tr('Sign in', 'Đăng nhập')}</a>`);
+      <a class="bpa-btn bpa-btn--ink" href="/login">${tr('Sign in', 'Đăng nhập')}</a>`);
   }
 
   const reason = state.eligibility?.reason;
   if (reason === 'NOT_PLAYED') {
     return noticeHtml(`
       <p>${tr('Solve the case first to review it.', 'Phải phá án xong mới đánh giá được.')}</p>
-      <a class="bpa-btn bpa-btn--ink" href="#/cases/${encodeURIComponent(state.caseId)}">${tr('Go solve it', 'Đi phá án')}</a>`);
+      <a class="bpa-btn bpa-btn--ink" href="/cases/${encodeURIComponent(state.caseId)}">${tr('Go solve it', 'Đi phá án')}</a>`);
   }
   if (reason === 'OWN_CASE') {
     return noticeHtml(`<p>${tr('You cannot review a case you created.', 'Không thể đánh giá case do chính bạn tạo.')}</p>`);

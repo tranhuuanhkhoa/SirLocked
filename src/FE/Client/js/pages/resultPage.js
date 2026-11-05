@@ -342,7 +342,7 @@ export async function renderResultPage(app, roomId) {
       render(app, `<div class="bpa-container bpa-result-page bpa-result-status"><div class="bpa-paper bpa-paper--note bpa-result-error" role="alert">
         <p class="bpa-kicker">${tr('Verdict unavailable', 'Không tải được phán quyết')}</p>
         <p>${escapeHtml(err.message)}</p>
-        <a class="bpa-link" href="#/cases">${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>
+        <a class="bpa-link" href="/cases">${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>
       </div></div>`);
       return;
     }
@@ -366,9 +366,9 @@ export async function renderResultPage(app, roomId) {
   ].join('');
   const accused = result.selectedCulpritName || '';
   const caseId = result.caseId ? encodeURIComponent(result.caseId) : '';
-  const backToCases = `<a class="bpa-btn ${win ? 'bpa-btn--red' : 'bpa-btn--gold'} bpa-result-fbtn${win ? ' is-first' : ''}" href="#/cases">${ICON_BACK}${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>`;
-  const replay = caseId ? `<a class="bpa-btn ${win ? 'bpa-btn--gold' : 'bpa-btn--red is-first'} bpa-result-fbtn" href="#/cases/${caseId}">${ICON_REPLAY}${tr('Play this case again', 'Chơi lại vụ này')}</a>` : '';
-  const review = caseId ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="#/workshop/${caseId}">${ICON_STAR}${tr('Review the case', 'Đánh giá vụ án')}</a>` : '';
+  const backToCases = `<a class="bpa-btn ${win ? 'bpa-btn--red' : 'bpa-btn--gold'} bpa-result-fbtn${win ? ' is-first' : ''}" href="/cases">${ICON_BACK}${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>`;
+  const replay = caseId ? `<a class="bpa-btn ${win ? 'bpa-btn--gold' : 'bpa-btn--red is-first'} bpa-result-fbtn" href="/cases/${caseId}">${ICON_REPLAY}${tr('Play this case again', 'Chơi lại vụ này')}</a>` : '';
+  const review = caseId ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/workshop/${caseId}">${ICON_STAR}${tr('Review the case', 'Đánh giá vụ án')}</a>` : '';
 
   render(app, `
   <div class="bpa-container bpa-result-page ${win ? 'is-win' : 'is-fail'}${motionOk ? ' is-pending' : ''}">
@@ -427,7 +427,7 @@ export async function renderResultPage(app, roomId) {
         ${backToCases}
         ${replay}
         ${review}
-        <a class="bpa-link bpa-link--gold bpa-result-home" href="#/menu">${tr('Back to home', 'Về trang chủ')}</a>
+        <a class="bpa-link bpa-link--gold bpa-result-home" href="/menu">${tr('Back to home', 'Về trang chủ')}</a>
       </div>
     </nav>
   </div>`);

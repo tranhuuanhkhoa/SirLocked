@@ -65,7 +65,7 @@ Ba document, phân biệt bằng `_id`:
 
 ### `chestVersions` (lớp `ChestVersion`)
 
-`{ _id: "<chestId>:<version>", chestId, version, action, at, adminId, adminName, reason, snapshot }`. `action` là `base` (trạng thái trước lần lưu đầu), `update`, `restore` hoặc `clone`. Tab Lịch sử ở `#/admin/chests/:id` đọc và khôi phục từ đây.
+`{ _id: "<chestId>:<version>", chestId, version, action, at, adminId, adminName, reason, snapshot }`. `action` là `base` (trạng thái trước lần lưu đầu), `update`, `restore` hoặc `clone`. Tab Lịch sử ở `/admin/chests/:id` đọc và khôi phục từ đây.
 
 ### `adminPlayerOps` và `adminAvatarReviews`
 
@@ -154,7 +154,7 @@ await _audit.LogAsync(...);
 
 - `CosmeticCatalog.DefaultAvatar`, tiền tố id, `IsCosmetic` và `MarketCatalog.StarterItemIds` vẫn nằm trong code.
 - `POST /api/chests/admin/grant` cũ không ghi nhật ký. Trang admin dùng `POST /api/admin/chests/grant`.
-- Món không giao dịch được mà admin cấp ở `#/admin/cosmetics` lưu `Source = LEVEL` để không chiếm ô túi, nên trang Người chơi coi nó như phần thưởng và không thu hồi được.
+- Món không giao dịch được mà admin cấp ở `/admin/cosmetics` lưu `Source = LEVEL` để không chiếm ô túi, nên trang Người chơi coi nó như phần thưởng và không thu hồi được.
 
 ## 5. `CatalogRules`
 
@@ -242,16 +242,16 @@ Controller được nhận tự động.
 
 **Thanh tab:** router tự gắn `adminNav` vào `#admin-nav-root` (nằm ngoài `#app`) cho mọi route `admin: true`. **Trang không tự chèn thanh tab.** Trang vẽ lại `app` thoải mái, thanh tab không mất.
 
-**Route đã đăng ký sẵn** trong `main.js`. Hàm trang nhận `app`, rồi `:id` nếu route có (`undefined` khi không có), rồi `{ signal }`, tín hiệu hủy khi rời trang. Hàm trang có thể trả về một hàm dọn dẹp. Các route này nhận thêm chuỗi truy vấn (`#/admin/players?page=2`, `#/admin/players/u42?tab=kho`): `id` không bao gồm phần sau dấu `?`, còn trang tự đọc tham số từ `location.hash`:
+**Route đã đăng ký sẵn** trong `main.js`. Hàm trang nhận `app`, rồi `:id` nếu route có (`undefined` khi không có), rồi `{ signal }`, tín hiệu hủy khi rời trang. Hàm trang có thể trả về một hàm dọn dẹp. Các route này nhận thêm chuỗi truy vấn (`/admin/players?page=2`, `/admin/players/u42?tab=kho`): `id` không bao gồm phần sau dấu `?`, còn trang tự đọc tham số từ `location.hash`:
 
 | Route | Hàm trong file | Agent |
 |---|---|---|
-| `#/admin/chests`, `#/admin/chests/:id` | `renderAdminChestsPage(app, id, { signal })` trong `pages/adminChestsPage.js` | ADMIN-1 |
-| `#/admin/items` | `renderAdminItemsPage(app, { signal })` trong `pages/adminItemsPage.js` | ADMIN-1 |
-| `#/admin/cosmetics`, `#/admin/cosmetics/:defId` | `renderAdminCosmeticsPage(app, defId, { signal })` trong `pages/adminCosmeticsPage.js` | ADMIN-2 |
-| `#/admin/players`, `#/admin/players/:id` | `renderAdminPlayersPage(app, id, { signal })` trong `pages/adminPlayersPage.js` | ADMIN-3 |
-| `#/admin/economy` | `renderAdminEconomyPage(app, { signal })` trong `pages/adminEconomyPage.js` | ADMIN-3 |
-| `#/admin/audit` | `renderAdminAuditPage(app, { signal })` trong `pages/adminAuditPage.js` | ADMIN-3 |
+| `/admin/chests`, `/admin/chests/:id` | `renderAdminChestsPage(app, id, { signal })` trong `pages/adminChestsPage.js` | ADMIN-1 |
+| `/admin/items` | `renderAdminItemsPage(app, { signal })` trong `pages/adminItemsPage.js` | ADMIN-1 |
+| `/admin/cosmetics`, `/admin/cosmetics/:defId` | `renderAdminCosmeticsPage(app, defId, { signal })` trong `pages/adminCosmeticsPage.js` | ADMIN-2 |
+| `/admin/players`, `/admin/players/:id` | `renderAdminPlayersPage(app, id, { signal })` trong `pages/adminPlayersPage.js` | ADMIN-3 |
+| `/admin/economy` | `renderAdminEconomyPage(app, { signal })` trong `pages/adminEconomyPage.js` | ADMIN-3 |
+| `/admin/audit` | `renderAdminAuditPage(app, { signal })` trong `pages/adminAuditPage.js` | ADMIN-3 |
 
 Giữ nguyên tên hàm được export. `tests/admin-nav.spec.ts` không phụ thuộc nội dung trang. Đăng nhập giả cho test nằm ở `tests/helpers/adminSession.ts`.
 

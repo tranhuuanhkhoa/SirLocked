@@ -74,7 +74,7 @@ async function prepare(page: Page, state = fixture()) {
     captured++;
     await route.fulfill({ json: { success: true, data: { state: current, changed: false, captureResult: 'MISS', message: 'No clue here.' } } });
   });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect.poll(async () => page.evaluate(() => {
     const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
     return Boolean(scene?.ready && scene?.localPose && scene?.sceneInteractionEnabled);
@@ -183,7 +183,11 @@ test('a new authoritative scene cancels an approach, and authored exit clicks ex
   await api.update(next);
   await expect.poll(async () => (await readPose(page)).pending).toBe(false);
   expect(api.inspected()).toBe(0);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
+  await expect.poll(async () => page.evaluate(() => {
+    const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+    return Boolean(scene?.ready && scene?.localPose && scene?.sceneInteractionEnabled && (window as any).__sirlockedEmitSignalR);
+  })).toBe(true);
   // Restart the original scene through a new page mount rather than mutating Phaser state.
   const fresh = fixture(); fresh.version = 3;
   await api.update(fresh);

@@ -118,7 +118,7 @@ export function renderV3CaseComplete(
       ${reveal ? `<div class="v3-shared-reveal bpa-ck-fact"><h3 class="bpa-ck-ft">${escape(reveal.title)}</h3><p class="bpa-ck-fd">${escape(reveal.content)}</p></div>` : ''}
       <div class="v3-complete-actions">
         <button class="bpa-btn bpa-btn--gold" id="v3-complete-review" type="button">${tr('Review the solved pair', 'Xem lại cặp đã phá')}</button>
-        <a class="bpa-btn bpa-btn--red" id="v3-complete-exit" href="#/cases">${tr('Exit to case list', 'Thoát về danh sách vụ án')}${bpaIcons.arrow}</a>
+        <a class="bpa-btn bpa-btn--red" id="v3-complete-exit" href="/cases">${tr('Exit to case list', 'Thoát về danh sách vụ án')}${bpaIcons.arrow}</a>
       </div>
     </section>
   </div>`;

@@ -32,7 +32,7 @@ export async function renderAdminCaseDetailPage(app, caseId) {
 
   render(app, `
   <div class="page">
-    <a class="muted small" href="#/admin/cases">&larr; ${tr('All cases', 'Tất cả vụ án')}</a>
+    <a class="muted small" href="/admin/cases">&larr; ${tr('All cases', 'Tất cả vụ án')}</a>
     <div class="page-head">
       <h2>${escapeHtml(gameCase.title)} <span class="chip ${gameCase.status === 'PUBLISHED' ? 'chip-ok' : ''}">${escapeHtml(gameCase.status)}</span></h2>
       <div class="case-actions">

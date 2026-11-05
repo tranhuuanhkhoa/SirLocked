@@ -1,6 +1,7 @@
 import { session } from './services/session.js';
 import { createRouteLifecycle } from './services/routeLifecycle.js';
-import { inviteCodeFromHash, rememberRoomInvite } from './services/roomInvites.js';
+import { inviteCodeFromRoute, rememberRoomInvite } from './services/roomInvites.js';
+import { navigate, onRouteChange, replaceAddress } from './services/navigation.js';
 import { authApi } from './api/authApi.js';
 import { profileApi } from './api/profileApi.js';
 import { escapeHtml, initials, render } from './utils/dom.js';
@@ -71,26 +72,26 @@ const loadingScreen = (() => {
 setTimeout(() => loadingScreen.hide(), BOOT_LOADING_CAP_MS);
 
 const routes = [
-  { pattern: /^#\/login(?:\?[^#]*)?$/, page: renderLoginPage, anonymous: true, authScreen: true },
-  { pattern: /^#\/oauth-callback/, page: renderOAuthCallbackPage, anonymous: true, authScreen: true },
-  { pattern: /^#\/verify-email/, page: renderVerifyEmailPage, anonymous: true, authScreen: true },
-  { pattern: /^#\/reset-password/, page: renderResetPasswordPage, anonymous: true, authScreen: true },
-  { pattern: /^#\/verify-notice$/, page: renderVerifyNoticePage, authScreen: true },
-  { pattern: /^#\/menu$/, page: renderTitleMenuPage, titleMenu: true },
-  { pattern: /^#\/cases$/, page: renderCasesPage },
-  { pattern: /^#\/cases\/([^/]+)$/, page: renderCaseDetailPage },
-  { pattern: /^#\/workshop$/, page: renderWorkshopPage },
-  { pattern: /^#\/market(?:\/(sell|trade|orders))?$/, page: renderMarketPage },
-  { pattern: /^#\/kho-ruong$/, page: renderChestPage, lifecycle: true },
-  { pattern: /^#\/workshop\/challenge$/, page: renderChallengePage },
-  { pattern: /^#\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
-  { pattern: /^#\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
-  { pattern: /^#\/rooms$/, page: renderRoomsPage, requiresVerified: true, lifecycle: true },
-  { pattern: /^#\/find-game$/, page: renderFindGamePage, requiresVerified: true, lifecycle: true },
-  { pattern: /^#\/join(?:\?[^#]*)?$/, page: renderJoinRoomPage, requiresVerified: true },
-  { pattern: /^#\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true, lifecycle: true },
+  { pattern: /^\/login$/, page: renderLoginPage, anonymous: true, authScreen: true },
+  { pattern: /^\/oauth-callback/, page: renderOAuthCallbackPage, anonymous: true, authScreen: true },
+  { pattern: /^\/verify-email/, page: renderVerifyEmailPage, anonymous: true, authScreen: true },
+  { pattern: /^\/reset-password/, page: renderResetPasswordPage, anonymous: true, authScreen: true },
+  { pattern: /^\/verify-notice$/, page: renderVerifyNoticePage, authScreen: true },
+  { pattern: /^\/menu$/, page: renderTitleMenuPage, titleMenu: true },
+  { pattern: /^\/cases$/, page: renderCasesPage },
+  { pattern: /^\/cases\/([^/]+)$/, page: renderCaseDetailPage },
+  { pattern: /^\/workshop$/, page: renderWorkshopPage },
+  { pattern: /^\/market(?:\/(sell|trade|orders))?$/, page: renderMarketPage },
+  { pattern: /^\/kho-ruong$/, page: renderChestPage, lifecycle: true },
+  { pattern: /^\/workshop\/challenge$/, page: renderChallengePage },
+  { pattern: /^\/workshop\/([^/]+)$/, page: renderWorkshopCasePage },
+  { pattern: /^\/create-room$/, page: renderCreateRoomPage, requiresVerified: true },
+  { pattern: /^\/rooms$/, page: renderRoomsPage, requiresVerified: true, lifecycle: true },
+  { pattern: /^\/find-game$/, page: renderFindGamePage, requiresVerified: true, lifecycle: true },
+  { pattern: /^\/join$/, page: renderJoinRoomPage, requiresVerified: true },
+  { pattern: /^\/lobby\/([^/]+)$/, page: renderLobbyPage, requiresVerified: true, lifecycle: true },
   {
-    pattern: /^#\/game\/([^/]+)$/,
+    pattern: /^\/game\/([^/]+)$/,
     page: async (app, roomId, context) => {
       loadingScreen.show();
       let renderGamePage;
@@ -106,21 +107,21 @@ const routes = [
     requiresVerified: true,
     game: true,
   },
-  { pattern: /^#\/result\/([^/]+)$/, page: renderResultPage },
-  { pattern: /^#\/detective$/, page: renderDetectivePage },
-  { pattern: /^#\/detective\/([^/]+)$/, page: renderDetectivePage },
-  { pattern: /^#\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true },
-  { pattern: /^#\/admin$/, page: renderAdminDashboardPage, admin: true },
-  { pattern: /^#\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
-  { pattern: /^#\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
-  { pattern: /^#\/admin\/import$/, page: renderAdminImportPage, admin: true },
-  { pattern: /^#\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
-  { pattern: /^#\/admin\/chests(?:\/([^/?]+))?(?:\?.*)?$/, page: renderAdminChestsPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/items(?:\?.*)?$/, page: renderAdminItemsPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/cosmetics(?:\/([^/?]+))?(?:\?.*)?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/players(?:\/([^/?]+))?(?:\?.*)?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/economy(?:\?.*)?$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
-  { pattern: /^#\/admin\/audit(?:\?.*)?$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
+  { pattern: /^\/result\/([^/]+)$/, page: renderResultPage },
+  { pattern: /^\/detective$/, page: renderDetectivePage },
+  { pattern: /^\/detective\/([^/]+)$/, page: renderDetectivePage },
+  { pattern: /^\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true },
+  { pattern: /^\/admin$/, page: renderAdminDashboardPage, admin: true },
+  { pattern: /^\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
+  { pattern: /^\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
+  { pattern: /^\/admin\/import$/, page: renderAdminImportPage, admin: true },
+  { pattern: /^\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
+  { pattern: /^\/admin\/chests(?:\/([^/]+))?$/, page: renderAdminChestsPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/items$/, page: renderAdminItemsPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/cosmetics(?:\/([^/]+))?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/players(?:\/([^/]+))?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/economy$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/audit$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
 ];
 
 const routeLifecycle = createRouteLifecycle();
@@ -171,7 +172,7 @@ const ICON_LOGOUT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
 
 function brandMarkup() {
   return `
-    <a class="bpa-shell-brand" href="${session.isAdmin() ? '#/admin' : '#/menu'}"
+    <a class="bpa-shell-brand" href="${session.isAdmin() ? '/admin' : '/menu'}"
        aria-label="${tr('Sir Locked, back to the home page', 'Sir Locked, về trang chủ')}">
       <span class="bpa-shell-mark" aria-hidden="true"><span></span><span></span><span></span></span>
       <span class="bpa-shell-word">SIR <span>LOCKED</span></span>
@@ -179,10 +180,10 @@ function brandMarkup() {
 }
 
 function activeHref(hrefs) {
-  // Longest prefix wins so #/admin/cases does not also light up #/admin.
-  const hash = (window.location.hash || '#/menu').split('?')[0];
+  // Longest prefix wins so /admin/cases does not also light up /admin.
+  const path = window.location.pathname === '/' ? '/menu' : window.location.pathname;
   return hrefs
-    .filter((href) => hash === href || hash.startsWith(`${href}/`))
+    .filter((href) => path === href || path.startsWith(`${href}/`))
     .sort((a, b) => b.length - a.length)[0];
 }
 
@@ -237,31 +238,31 @@ function renderNav(r) {
       </div>`);
   } else {
     const roomItems = [
-      { href: '#/rooms', label: tr('Public rooms', 'Phòng công khai'), note: tr('Rooms waiting for a partner', 'Phòng đang chờ người') },
-      { href: '#/create-room', label: tr('Create room', 'Tạo phòng'), note: tr('Host a new investigation', 'Mở phiên điều tra mới') },
-      { href: '#/join', label: tr('Join room', 'Vào phòng'), note: tr('Enter a 6-character code', 'Nhập mã 6 ký tự') },
+      { href: '/rooms', label: tr('Public rooms', 'Phòng công khai'), note: tr('Rooms waiting for a partner', 'Phòng đang chờ người') },
+      { href: '/create-room', label: tr('Create room', 'Tạo phòng'), note: tr('Host a new investigation', 'Mở phiên điều tra mới') },
+      { href: '/join', label: tr('Join room', 'Vào phòng'), note: tr('Enter a 6-character code', 'Nhập mã 6 ký tự') },
     ];
     const staffItems = [
       ...(session.isAdmin()
         ? [
-          { href: '#/admin', label: tr('Dashboard', 'Tổng quan'), note: tr('Operations overview', 'Tổng quan điều hành') },
-          { href: '#/admin/cases', label: tr('Manage cases', 'Quản lý vụ án'), note: tr('Case archive', 'Kho vụ án') },
-          { href: '#/admin/weekly', label: tr('Weekly', 'Hàng tuần'), note: tr('Weekly desk', 'Bàn vụ án tuần') },
+          { href: '/admin', label: tr('Dashboard', 'Tổng quan'), note: tr('Operations overview', 'Tổng quan điều hành') },
+          { href: '/admin/cases', label: tr('Manage cases', 'Quản lý vụ án'), note: tr('Case archive', 'Kho vụ án') },
+          { href: '/admin/weekly', label: tr('Weekly', 'Hàng tuần'), note: tr('Weekly desk', 'Bàn vụ án tuần') },
         ]
         : []),
       ...(session.canGenerateAi()
-        ? [{ href: '#/admin/ai', label: tr('AI Creator', 'Tạo vụ án AI'), note: tr('Case forge', 'Xưởng vụ án') }]
+        ? [{ href: '/admin/ai', label: tr('AI Creator', 'Tạo vụ án AI'), note: tr('Case forge', 'Xưởng vụ án') }]
         : []),
     ];
     const mainItems = [
-      { href: '#/menu', label: tr('Home', 'Trang chủ') },
-      { href: '#/cases', label: tr('Cases', 'Vụ án') },
-      { href: '#/workshop', label: 'Workshop' },
-      { href: '#/find-game', label: tr('Find game', 'Tìm trận') },
-      { href: '#/market', label: tr('Market', 'Chợ đồ') },
-      { href: '#/kho-ruong', label: tr('Open chests', 'Mở hòm') },
+      { href: '/menu', label: tr('Home', 'Trang chủ') },
+      { href: '/cases', label: tr('Cases', 'Vụ án') },
+      { href: '/workshop', label: 'Workshop' },
+      { href: '/find-game', label: tr('Find game', 'Tìm trận') },
+      { href: '/market', label: tr('Market', 'Chợ đồ') },
+      { href: '/kho-ruong', label: tr('Open chests', 'Mở hòm') },
     ];
-    const current = activeHref([...mainItems, ...roomItems, ...staffItems, { href: '#/detective' }].map(({ href }) => href));
+    const current = activeHref([...mainItems, ...roomItems, ...staffItems, { href: '/detective' }].map(({ href }) => href));
     const rankText = navRankText();
 
     render(navRoot, `
@@ -280,8 +281,8 @@ function renderNav(r) {
         <div class="bpa-shell-tools">
           ${walletChipMarkup()}
           ${languageSwitchMarkup('ui-language-switch-nav')}
-          <a class="bpa-shell-profile${current === '#/detective' ? ' is-active' : ''}" id="nav-profile" href="#/detective"
-             ${current === '#/detective' ? 'aria-current="page"' : ''}
+          <a class="bpa-shell-profile${current === '/detective' ? ' is-active' : ''}" id="nav-profile" href="/detective"
+             ${current === '/detective' ? 'aria-current="page"' : ''}
              aria-label="${escapeHtml(`${tr('Detective profile', 'Hồ sơ thám tử')}: ${user.fullName || ''}, ${rankText}`)}">
             <span class="bpa-avatar" aria-hidden="true">${escapeHtml(initials(user.fullName))}</span>
             <span class="bpa-shell-id" aria-hidden="true">
@@ -324,7 +325,7 @@ function renderNav(r) {
       /* logout là best effort — kể cả lỗi vẫn xóa session local */
     }
     session.clear();
-    window.location.hash = '#/login';
+    navigate('/login');
   });
 }
 
@@ -334,56 +335,58 @@ document.addEventListener('click', (event) => {
 
 /* ---------- router ---------- */
 
-function matchRoute(hash) {
-  return routes.map((r) => ({ r, m: hash.match(r.pattern) })).find((x) => x.m) || null;
+function matchRoute(path) {
+  return routes.map((r) => ({ r, m: path.match(r.pattern) })).find((x) => x.m) || null;
 }
 
 async function route({ transition = true } = {}) {
-  let hash = window.location.hash || '#/';
-  const target = hash === '#/' || hash === '#' ? null : matchRoute(hash);
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  // One address for one page: /market/ is /market.
+  if (path !== window.location.pathname) replaceAddress(`${path}${window.location.search}`);
+  const address = `${path}${window.location.search}`;
+  const target = path === '/' ? null : matchRoute(path);
   // Redirects and gameplay skip the lens: Phaser measures its canvas on mount.
   const lens = transition && Boolean(target) && !target.r.game && (target.r.anonymous || session.isLoggedIn());
   const mount = routeLifecycle.begin(document.getElementById('app'), { transition: lens });
   const { app } = mount;
 
-  if (hash === '#/' || hash === '#') {
-    hash = session.isLoggedIn()
-      ? (session.isAdmin() ? '#/admin' : '#/menu')
-      : '#/login';
-    window.location.hash = hash;
+  if (path === '/') {
+    navigate(session.isLoggedIn()
+      ? (session.isAdmin() ? '/admin' : '/menu')
+      : '/login');
     return;
   }
 
   if (!target) {
-    window.location.hash = '#/';
+    navigate('/');
     return;
   }
 
   const { r, m } = target;
   if (!r.anonymous && !session.isLoggedIn()) {
-    rememberRoomInvite(hash);
-    window.location.hash = '#/login';
+    rememberRoomInvite(address);
+    navigate('/login');
     return;
   }
   if (r.admin && !session.isAdmin()) {
-    window.location.hash = '#/cases';
+    navigate('/cases');
     return;
   }
   if (r.requiresVerified && !session.isEmailVerified()) {
-    if (inviteCodeFromHash(hash)) {
-      rememberRoomInvite(hash);
-      window.location.hash = '#/verify-notice';
+    if (inviteCodeFromRoute(address)) {
+      rememberRoomInvite(address);
+      navigate('/verify-notice');
       return;
     }
     alert(tr(
       'You must verify your email before entering the game. Open Profile to verify it.',
       'Bạn cần xác minh email trước khi vào game. Vào trang Hồ sơ để xác minh.',
     ));
-    window.location.hash = '#/detective';
+    navigate('/detective');
     return;
   }
   if (r.aiAccess && !session.canGenerateAi()) {
-    window.location.hash = '#/cases';
+    navigate('/cases');
     return;
   }
 
@@ -407,7 +410,7 @@ async function route({ transition = true } = {}) {
   }
 }
 
-window.addEventListener('hashchange', () => route());
+onRouteChange(() => route());
 window.addEventListener('DOMContentLoaded', () => {
   document.documentElement.lang = uiLanguage();
   route();

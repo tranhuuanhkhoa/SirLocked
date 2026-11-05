@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../../utils/dom.js';
+import { replaceAddress } from '../../../services/navigation.js';
 
 /* What the player, economy and audit admin pages share: the address, tables, paging and the dialog every dangerous action goes through. */
 
@@ -12,31 +13,26 @@ export function dateTime(iso) {
 }
 
 export function playerLink(userId, name) {
-  return userId ? `<a class="adp-link" href="#/admin/players/${encodeURIComponent(userId)}">${escapeHtml(name || userId)}</a>` : escapeHtml(name || '—');
+  return userId ? `<a class="adp-link" href="/admin/players/${encodeURIComponent(userId)}">${escapeHtml(name || userId)}</a>` : escapeHtml(name || '—');
 }
 
-// ---- the address: filters live in the hash, and changing them does not re-run the route or its lens transition ----
+// ---- the address: filters live in the query, and changing them does not re-run the route or its lens transition ----
 
-export function hashParams() {
-  const hash = window.location.hash;
-  const at = hash.indexOf('?');
-  return new URLSearchParams(at < 0 ? '' : hash.slice(at + 1));
+export function routeParams() {
+  return new URLSearchParams(window.location.search);
 }
 
-export function writeHashParams(values) {
-  const hash = window.location.hash;
-  const at = hash.indexOf('?');
-  const base = at < 0 ? hash : hash.slice(0, at);
-  const params = hashParams();
+export function writeRouteParams(values) {
+  const params = routeParams();
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined || value === null || value === '' || value === 1) params.delete(key);
     else params.set(key, value);
   }
   const text = params.toString();
-  window.history.replaceState(window.history.state, '', `${base}${text ? `?${text}` : ''}`);
+  replaceAddress(`${window.location.pathname}${text ? `?${text}` : ''}`);
 }
 
-export const pageParam = () => Math.max(1, Number(hashParams().get('page')) || 1);
+export const pageParam = () => Math.max(1, Number(routeParams().get('page')) || 1);
 
 /** One key per user action, made of the characters the server's idempotency rule accepts. */
 export function newKey() {

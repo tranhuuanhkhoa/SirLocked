@@ -5,11 +5,12 @@ import { tr } from '../services/i18n.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { mountCosmeticsPanel } from './detective/cosmeticsPanel.js';
 import { ICON_ALERT, accountTab } from './detective/accountTab.js';
+import { navigate } from '../services/navigation.js';
 
 export async function renderDetectivePage(app, userIdParam) {
   const userId = userIdParam || session.user()?.userId;
   if (!userId) {
-    window.location.hash = '#/login';
+    navigate('/login');
     return;
   }
 

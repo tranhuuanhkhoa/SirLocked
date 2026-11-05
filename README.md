@@ -86,7 +86,7 @@ Accusation__RequireConsensus=true
 
 ### Mở hòm (chest opening)
 
-`#/kho-ruong` lets a player spend in-game coins on chests and keys and open a chest for one item, which then trades on the market like any other. There is no real-money payment. The server decides every result; the client only animates the answer.
+`/kho-ruong` lets a player spend in-game coins on chests and keys and open a chest for one item, which then trades on the market like any other. There is no real-money payment. The server decides every result; the client only animates the answer.
 
 - `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
 - `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
@@ -100,7 +100,7 @@ As MongoDB runs standalone, `chestOpenings` is a journal: the reward is rolled a
 
 ### Hồ sơ thám tử (detective profile)
 
-`#/detective` adds a framed portrait, a level and four tabs; the lobby shows every player's frame and title and plays their
+`/detective` adds a framed portrait, a level and four tabs; the lobby shows every player's frame and title and plays their
 entrance for the whole room. Drawing code lives in `src/FE/Client/js/cosmetics/`, moved as it is from the approved mock-up (see
 the README there); art is in `src/FE/public/assets/cosmetics/`.
 
@@ -117,14 +117,14 @@ the README there); art is in `src/FE/public/assets/cosmetics/`.
 ### Admin catalog
 
 Items, chests, level rewards, achievements and XP rates live in MongoDB (`catalogItems`, `chests`, `levelRewards`, `achievements`,
-`gameSettings`) and are managed from `#/admin`. The API seeds them from code at startup, once per seed version and never over an
+`gameSettings`) and are managed from `/admin`. The API seeds them from code at startup, once per seed version and never over an
 admin's edit. Every admin write records itself in `adminAudit` (`GET /api/admin/audit`). `POST /api/admin/assets` stores admin
 pictures as WebP in the Cloudinary folder `sirlocked/admin` and answers `ASSET_STORAGE_UNAVAILABLE` without Cloudinary. Schemas and
 rules for anyone extending this are in [docs/admin-contracts.md](docs/admin-contracts.md) and [docs/admin-cosmetics.md](docs/admin-cosmetics.md).
 
-The admin tabs: `#/admin/chests` and `#/admin/items` (chests, items, odds, versions, grants), `#/admin/cosmetics` (frames, titles,
-entrances, how each is earned, XP rates), `#/admin/players` (coins, items, level, avatars, sessions), `#/admin/economy` (listings,
-orders, sales, stuck operations, rooms, reviews) and `#/admin/audit`. Operations on a player are journaled in `adminPlayerOps` and
+The admin tabs: `/admin/chests` and `/admin/items` (chests, items, odds, versions, grants), `/admin/cosmetics` (frames, titles,
+entrances, how each is earned, XP rates), `/admin/players` (coins, items, level, avatars, sessions), `/admin/economy` (listings,
+orders, sales, stuck operations, rooms, reviews) and `/admin/audit`. Operations on a player are journaled in `adminPlayerOps` and
 take an idempotency key.
 
 ## Run Locally

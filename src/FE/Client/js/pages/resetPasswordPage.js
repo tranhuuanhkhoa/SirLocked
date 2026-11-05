@@ -3,6 +3,7 @@ import { render, qs } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
 import { toast } from '../utils/toast.js';
 import { ICON_ARROW, authBoardMarkup, authHead, passwordField, setBoardState, wireRevealButtons } from './loginPage.js';
+import { navigate } from '../services/navigation.js';
 
 /* Board: key ring, padlock, locksmith's receipt. */
 
@@ -155,7 +156,7 @@ function brokenKeyHero() {
 }
 
 export async function renderResetPasswordPage(app) {
-  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
 
   if (!token) {
@@ -167,7 +168,7 @@ export async function renderResetPasswordPage(app) {
         'Open the latest link in your email, or request a new one with “Forgot password?” on the login page.',
         'Hãy mở liên kết mới nhất trong email, hoặc yêu cầu liên kết mới qua “Quên mật khẩu?” ở trang đăng nhập.',
       )}</p>
-      <a href="#/login" class="bpa-auth-primary"><span>${tr('Back to login', 'Về trang đăng nhập')}</span>${ICON_ARROW}</a>`, 'is-cold'));
+      <a href="/login" class="bpa-auth-primary"><span>${tr('Back to login', 'Về trang đăng nhập')}</span>${ICON_ARROW}</a>`, 'is-cold'));
     return;
   }
 
@@ -192,7 +193,7 @@ export async function renderResetPasswordPage(app) {
       <button class="bpa-auth-primary" type="submit"><span>${tr('Reset password', 'Đặt lại mật khẩu')}</span>${ICON_ARROW}</button>
     </form>
     <p class="bpa-auth-center">
-      <a href="#/login" class="bpa-auth-link is-back"><span aria-hidden="true">←</span><span class="u">${tr('Back to login', 'Quay lại đăng nhập')}</span></a>
+      <a href="/login" class="bpa-auth-link is-back"><span aria-hidden="true">←</span><span class="u">${tr('Back to login', 'Quay lại đăng nhập')}</span></a>
     </p>`));
   wireRevealButtons(app);
 
@@ -237,7 +238,7 @@ export async function renderResetPasswordPage(app) {
     try {
       await authApi.resetPassword(token, newPassword);
       toast(tr('Password reset! Please log in again.', 'Đặt lại mật khẩu thành công! Hãy đăng nhập lại.'), 'success');
-      window.location.hash = '#/login';
+      navigate('/login');
     } catch (err) {
       toast(err.message, 'error');
     } finally {

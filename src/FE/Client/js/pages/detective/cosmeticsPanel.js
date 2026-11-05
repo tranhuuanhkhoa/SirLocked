@@ -227,7 +227,7 @@ export function mountCosmeticsPanel(host, { userId, isOwnProfile, displayName, e
     `<b style="color:${RAR.rare.c}">Rare</b> items give <b>${fmt(rates.rare)} XP</b>, <b style="color:${RAR.myth.c}">Epic</b> items give <b>${fmt(rates.epic)} XP</b>. Every 10 levels unlocks a new frame.`,
     `Vật phẩm <b style="color:${RAR.rare.c}">Hiếm</b> đổi được <b>${fmt(rates.rare)} KN</b>, vật phẩm <b style="color:${RAR.myth.c}">Quý</b> đổi được <b>${fmt(rates.epic)} KN</b>. Cứ 10 cấp mở một viền mới.`)}</p>
       ${maxed ? `<p class="hs-hint"><b>${escapeHtml(tr('You are at the highest level.', 'Bạn đã đạt cấp cao nhất.'))}</b></p>` : ''}
-      ${groups.size === 0 ? `<p class="hs-hint">${tr('No Rare or Epic items to exchange yet. <a class="hs-link" href="#/kho-ruong">Open a chest</a> to find some.', 'Chưa có vật phẩm Hiếm hay Quý để đổi. <a class="hs-link" href="#/kho-ruong">Mở hòm</a> để có thêm.')}</p>` : ''}
+      ${groups.size === 0 ? `<p class="hs-hint">${tr('No Rare or Epic items to exchange yet. <a class="hs-link" href="/kho-ruong">Open a chest</a> to find some.', 'Chưa có vật phẩm Hiếm hay Quý để đổi. <a class="hs-link" href="/kho-ruong">Mở hòm</a> để có thêm.')}</p>` : ''}
       <div class="hs-items">
         ${[...groups.values()].map((group) => {
     const rar = rarOf(group.def.rarity);

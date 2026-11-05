@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Mở hòm (#/kho-ruong), moved from the approved mock-up hom-niem-phong.html.
+   Mở hòm (/kho-ruong), moved from the approved mock-up hom-niem-phong.html.
    One quiet screen: case name top-left, wallet top-right, the chest alone in the
    light, one action and one row of possible items at the bottom. Single dark look
    by design. Every class carries the qh- prefix so nothing touches the shared CSS.

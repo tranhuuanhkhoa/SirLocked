@@ -31,7 +31,7 @@ export function walletChipMarkup() {
   const user = session.user();
   const wallet = user && cache.userId === user.userId ? cache.wallet : null;
   return `
-    <a class="bpa-shell-iconbtn bpa-mk-chip" id="nav-wallet" href="#/market" aria-label="${escapeHtml(chipLabel(wallet))}">
+    <a class="bpa-shell-iconbtn bpa-mk-chip" id="nav-wallet" href="/market" aria-label="${escapeHtml(chipLabel(wallet))}">
       ${COIN_SVG(18)}<span data-wallet-balance>${balanceText(wallet)}</span><span class="bpa-mk-chip-unit" aria-hidden="true">xu</span>
     </a>`;
 }

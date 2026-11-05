@@ -9,7 +9,7 @@ using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.Services.Admin;
 
-/// <summary>Curios and old gear (#/admin/items): list, create, edit, retire, delete. Cosmetics, chests and keys only appear here.</summary>
+/// <summary>Curios and old gear (/admin/items): list, create, edit, retire, delete. Cosmetics, chests and keys only appear here.</summary>
 public sealed class AdminChestsItemService
 {
     private const int MaxIdAttempts = 5;

@@ -279,7 +279,7 @@ test('two detectives solve the authored point-and-click case through real scene 
     await expect(interrogator.locator('#accusation-confirm')).toBeEnabled();
     await interrogator.locator('#accusation-confirm').click();
     for (const page of pages) {
-      await expect(page).toHaveURL(/#\/result\//);
+      await expect(page).toHaveURL(/\/result\//);
       await expect(page.locator('.result-banner')).toBeVisible();
     }
     const result = await call<any>(api, 'GET', `/api/game/rooms/${room.roomId}/result`, investigatorAuth.token);
@@ -361,7 +361,7 @@ async function openPlayer(browser: Browser, auth: Auth, roomId: string, language
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', language.toLowerCase());
   }, { auth, language });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#intro-dismiss')).toBeVisible();
   return page;
 }

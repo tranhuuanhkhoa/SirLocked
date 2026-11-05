@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
- * Hồ sơ thám tử (#/detective) with a mocked API: what is owned, worn and earned comes from the server, an
+ * Hồ sơ thám tử (/detective) with a mocked API: what is owned, worn and earned comes from the server, an
  * exchange is confirmed and carries one idempotency key per action, and leaving the page stops every animation.
  */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -101,7 +101,7 @@ const tab = (page: Page, name: string) => page.getByRole('tab', { name });
 test('the profile is the portrait with its tabs, and nothing of the old paper page below it', async ({ page }) => {
   await prepare(page, progress());
   const errors = collectPageErrors(page);
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   await expect(page.locator('.hs-name')).toHaveText('Tuấn Yên');
   await expect(page.locator('[data-hs-level]')).toHaveText('9');
@@ -119,7 +119,7 @@ test('the page no longer asks the server for badges', async ({ page }) => {
   await prepare(page, progress());
   const asked: string[] = [];
   page.on('request', (request) => { if (request.url().includes('/api/badge')) asked.push(request.url()); });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('.hs-name')).toBeVisible();
   await page.waitForTimeout(300);
   expect(asked).toEqual([]);
@@ -129,7 +129,7 @@ test('changing the password moved to the account tab, and it still works', async
   await prepare(page, progress());
   const sent: unknown[] = [];
   await page.route('**/api/auth/change-password', (route) => { sent.push(route.request().postDataJSON()); return ok(route, null); });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('#form-change-password')).toHaveCount(0);
 
   await page.getByRole('tab', { name: 'Tài khoản' }).click();
@@ -151,7 +151,7 @@ test('an unverified detective is led from the warning to the account tab, and ca
   await prepare(page, progress(), { account: { verified: false, hasPassword: false } });
   let resent = 0;
   await page.route('**/api/auth/resend-verification', (route) => { resent++; return ok(route, null); });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   await page.locator('#bpa-profile-alert').click();
   await expect(page.getByRole('tab', { name: 'Tài khoản' })).toHaveAttribute('aria-selected', 'true');
@@ -165,14 +165,14 @@ test('an unverified detective is led from the warning to the account tab, and ca
 test('the account tab still works when the portrait cannot load', async ({ page }) => {
   await prepare(page, progress());
   await page.route('**/api/progress/me', (route) => fail(route, 500, 'BOOM'));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('.hs-unavailable')).toBeVisible();
   await expect(page.locator('#form-change-password')).toBeVisible();
 });
 
 test('the title font is requested for the plaques', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('link[href*="fonts.googleapis.com"]').first()).toHaveAttribute('href', /Cormorant\+SC/);
 });
 
@@ -183,7 +183,7 @@ test('exchanging one item sends its id with a fresh key and shows the new level'
     state.me = progress({ xp: 270, exchangeable: state.me.exchangeable.filter((item) => item.itemId !== 'lamp-1') });
     return ok(route, { level: 9, xp: 270, xpToNext: 520, isMaxLevel: false, xpGained: 150, newFrameDefIds: [], newTitleDefIds: [], wallet: WALLET });
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   const row = page.locator('.hs-ex', { hasText: 'Đèn bão' });
   await expect(row).toContainText('Hiếm · ×2 · +150 KN mỗi món');
@@ -203,7 +203,7 @@ test('exchanging everything asks first, because the items are gone for good', as
     state.me = progress({ level: 10, xp: 0, xpToNext: 560, exchangeable: [] });
     return ok(route, { level: 10, xp: 0, xpToNext: 560, isMaxLevel: false, xpGained: 900, newFrameDefIds: [], newTitleDefIds: [], wallet: WALLET });
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   await page.getByRole('button', { name: /Đổi tất cả · \+900 KN/ }).click();
   const dialog = page.getByRole('dialog');
@@ -230,14 +230,14 @@ test('exchanging everything asks first, because the items are gone for good', as
 test('near the top level, the confirmation warns that XP beyond it is lost', async ({ page }) => {
   // 120 XP short of level 50, with 900 XP on offer: 780 XP would go nowhere.
   await prepare(page, progress({ level: 49, xp: 2000, xpToNext: 2120 }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('button', { name: /Đổi tất cả/ }).click();
   await expect(page.getByRole('dialog')).toContainText('780 KN dư sẽ mất');
 });
 
 test('far from the top level, the confirmation does not mention lost XP', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('button', { name: /Đổi tất cả/ }).click();
   await expect(page.getByRole('dialog')).toContainText('mất vĩnh viễn');
   await expect(page.getByRole('dialog')).not.toContainText('KN dư');
@@ -252,7 +252,7 @@ test('a lost connection resends the same key, so a retry cannot pay twice', asyn
     state.me = progress({ xp: 270 });
     return ok(route, { level: 9, xp: 270, xpToNext: 520, isMaxLevel: false, xpGained: 150, newFrameDefIds: [], newTitleDefIds: [], wallet: WALLET });
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   const row = page.locator('.hs-ex', { hasText: 'Đèn bão' });
   await row.getByRole('button', { name: 'Đổi 1' }).click();
@@ -270,7 +270,7 @@ test('a refusal from the server shows why and starts a new action next time', as
     keys.push(route.request().postDataJSON().idempotencyKey);
     return fail(route, 409, 'XP_ITEM_EQUIPPED');
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   const row = page.locator('.hs-ex', { hasText: 'Đèn bão' });
   await row.getByRole('button', { name: 'Đổi 1' }).click();
@@ -282,7 +282,7 @@ test('a refusal from the server shows why and starts a new action next time', as
 
 test('at the highest level nothing can be exchanged', async ({ page }) => {
   await prepare(page, progress({ level: 50, xp: 0, xpToNext: 0, isMaxLevel: true }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   await expect(page.locator('[data-hs-xp]')).toHaveText('Cấp tối đa');
   await expect(page.locator('#hs-p-doi')).toContainText('Bạn đã đạt cấp cao nhất');
@@ -292,8 +292,8 @@ test('at the highest level nothing can be exchanged', async ({ page }) => {
 
 test('with nothing to exchange the page points at the chests', async ({ page }) => {
   await prepare(page, progress({ exchangeable: [] }));
-  await page.goto('/#/detective');
-  await expect(page.locator('#hs-p-doi a[href="#/kho-ruong"]')).toBeVisible();
+  await page.goto('/detective');
+  await expect(page.locator('#hs-p-doi a[href="/kho-ruong"]')).toBeVisible();
 });
 
 test('a new frame opens the unlock screen, and "use now" equips it', async ({ page }) => {
@@ -302,7 +302,7 @@ test('a new frame opens the unlock screen, and "use now" equips it', async ({ pa
     state.me = progress({ level: 10, xp: 0, xpToNext: 560, owned: [owned('frame-1', 'frame_dong', 'FRAME')] });
     return ok(route, { level: 10, xp: 0, xpToNext: 560, isMaxLevel: false, xpGained: 600, newFrameDefIds: ['frame_dong'], newTitleDefIds: [], wallet: WALLET });
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   await page.locator('.hs-ex', { hasText: 'Huy hiệu sở' }).getByRole('button', { name: 'Đổi 1' }).click();
 
@@ -319,7 +319,7 @@ test('the frames tab shows every frame, locks what is not owned, and equips what
   const state = await prepare(page, progress({
     owned: [owned('stone', 'frame_thach', 'FRAME'), owned('gold', 'frame_kimlong', 'FRAME')],
   }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await tab(page, 'Viền avatar').click();
 
   await expect(page.locator('.hs-fr')).toHaveCount(17);
@@ -347,7 +347,7 @@ test('the frames tab shows every frame, locks what is not owned, and equips what
 
 test('the titles tab shows progress, and a title the record cannot count says so', async ({ page }) => {
   const state = await prepare(page, progress({ owned: [owned('t-1', 'title_long-phung', 'TITLE')] }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await tab(page, 'Danh hiệu').click();
 
   await expect(page.locator('.hs-ti')).toHaveCount(25);
@@ -368,7 +368,7 @@ test('the titles tab shows progress, and a title the record cannot count says so
 
 test('the entrance tab says what really happens, and only owned entrances can be used', async ({ page }) => {
   const state = await prepare(page, progress({ owned: [owned('e-1', 'entrance_anh-trang', 'ENTRANCE')] }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await tab(page, 'Hiệu ứng vào sảnh').click();
 
   await expect(page.locator('.hs-en')).toHaveCount(10);
@@ -387,7 +387,7 @@ test('the entrance tab says what really happens, and only owned entrances can be
 test('previewing runs the full-screen stage even for an entrance not owned, and can be skipped', async ({ page }) => {
   await prepare(page, progress(), { reduced: false });
   const errors = collectPageErrors(page);
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await tab(page, 'Hiệu ứng vào sảnh').click();
 
   await page.locator('[data-hs-entrance="kim-long"] [data-try]').click();
@@ -409,7 +409,7 @@ for (const id of ['lang-le', 'anh-trang', 'mac-vu', 'truc-lam', 'van-kiem', 'huy
   test(`the ${id} stage plays without errors`, async ({ page }) => {
     await prepare(page, progress(), { reduced: false });
     const errors = collectPageErrors(page);
-    await page.goto('/#/detective');
+    await page.goto('/detective');
     await tab(page, 'Hiệu ứng vào sảnh').click();
     await page.locator(`[data-hs-entrance="${id}"] [data-try]`).click();
     await expect(page.locator('.hs-stage')).toBeVisible();
@@ -422,7 +422,7 @@ for (const id of ['lang-le', 'anh-trang', 'mac-vu', 'truc-lam', 'van-kiem', 'huy
 
 test('with reduced motion a preview is a still banner, never the full-screen stage', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await tab(page, 'Hiệu ứng vào sảnh').click();
 
   await page.locator('[data-hs-entrance="kim-long"] [data-try]').click();
@@ -432,7 +432,7 @@ test('with reduced motion a preview is a still banner, never the full-screen sta
 
 test('the avatar picker offers the presets, remembers the choice, and hides upload without an image host', async ({ page }) => {
   const state = await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
 
   await page.getByRole('button', { name: 'Đổi ảnh đại diện' }).click();
   await expect(page.locator('[data-hs-avatar]')).toHaveCount(4);
@@ -495,7 +495,7 @@ async function prepareUpload(page: Page, answer?: (route: Route, attempt: number
     state.me = progress({ canUploadAvatar: true, avatar: 'upload', avatarUrl: HOST_URL });
     await ok(route, state.me);
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   const hosted = await picture(page, { width: 64, height: 64, left: '#10c010', right: '#10c010' });
   await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({
     contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: hosted,
@@ -635,7 +635,7 @@ test('a colleague sees the portrait and the level, but no tabs or buttons', asyn
   await page.route('**/api/progress/users/colleague-7', (route) => ok(route, {
     level: 31, avatar: 'nu', avatarUrl: null, frameDefId: 'frame_ngoc', titleDefId: 'title_van-tay', entranceDefId: 'entrance_lang-le',
   }));
-  await page.goto('/#/detective/colleague-7');
+  await page.goto('/detective/colleague-7');
 
   await expect(page.locator('.hs-name')).toHaveText('Bảo Ngọc');
   await expect(page.locator('[data-hs-xp]')).toHaveText('Cấp 31');
@@ -647,12 +647,12 @@ test('a colleague sees the portrait and the level, but no tabs or buttons', asyn
 
 test('leaving the page stops every animation and removes its overlays', async ({ page }) => {
   await prepare(page, progress(), { reduced: false });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await tab(page, 'Hiệu ứng vào sảnh').click();
   await page.locator('[data-hs-entrance="kim-long"] [data-try]').click();
   await expect(page.locator('.hs-stage')).toBeVisible();
 
-  await page.evaluate(() => { window.location.hash = '#/market'; });
+  await page.evaluate(() => { history.pushState(null, '', '/market'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('.hs-root')).toHaveCount(0);
   await expect(page.locator('.hs-stage')).toHaveCount(0);
 
@@ -665,13 +665,13 @@ test('leaving the page stops every animation and removes its overlays', async ({
 
 test('tiles off screen do not keep the page animating, and going back and forth leaks nothing', async ({ page }) => {
   await prepare(page, progress(), { reduced: false });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('[data-hs-me]')).toBeVisible();
 
   for (let i = 0; i < 4; i++) {
-    await page.evaluate(() => { window.location.hash = '#/market'; });
+    await page.evaluate(() => { history.pushState(null, '', '/market'); dispatchEvent(new PopStateEvent('popstate')); });
     await expect(page.locator('.hs-root')).toHaveCount(0);
-    await page.evaluate(() => { window.location.hash = '#/detective'; });
+    await page.evaluate(() => { history.pushState(null, '', '/detective'); dispatchEvent(new PopStateEvent('popstate')); });
     await expect(page.locator('[data-hs-me]')).toBeVisible();
   }
 
@@ -703,7 +703,7 @@ test('tiles off screen do not keep the page animating, and going back and forth 
 test('the page fits a phone, without scrolling sideways', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await prepare(page, progress({ owned: [owned('t-1', 'title_long-phung', 'TITLE')], titleDefId: 'title_long-phung' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('.hs-name')).toBeVisible();
 
   for (const name of ['Đổi kinh nghiệm', 'Viền avatar', 'Danh hiệu', 'Hiệu ứng vào sảnh', 'Tài khoản']) {
@@ -730,7 +730,7 @@ for (const [id, category, name] of [
     });
     await page.route('**/api/chests', (route) => ok(route, { chests: [chest(1, 1)], odds: [{ rarity: 'COMMON', percent: 50 }, { rarity: 'MYSTERY', percent: 50 }], wallet: WALLET }));
     await page.route('**/api/chests/chest_nb/open', (route) => ok(route, { chestId: 'chest_nb', itemId: 'reward', item: cosmetic, chestCount: 0, keyCount: 0, wallet: WALLET }));
-    await page.goto('/#/kho-ruong');
+    await page.goto('/kho-ruong');
 
     await expect(page.locator('#qh-contents .qh-it', { hasText: name })).toBeVisible();
     await page.locator('#qh-openBtn').click();
@@ -752,12 +752,12 @@ test('the market shows cosmetic categories, and an earned item has no sell form'
   }));
   await page.route('**/api/market/items**', (route) => ok(route, { rows: [], categoryCounts: {}, total: 0 }));
   await page.route('**/api/market/mine', (route) => ok(route, { listings: [], orders: [], history: [] }));
-  await page.goto('/#/market');
+  await page.goto('/market');
   await expect(page.locator('[data-category="FRAME"]')).toContainText('Viền avatar');
   await expect(page.locator('[data-category="TITLE"]')).toContainText('Danh hiệu');
   await expect(page.locator('[data-category="ENTRANCE"]')).toContainText('Hiệu ứng vào sảnh');
 
-  await page.goto('/#/market/sell');
+  await page.goto('/market/sell');
   await page.locator('#mk-grid').getByRole('button', { name: /Đồng Cổ/ }).click();
   await expect(page.locator('#mk-sellpanel')).toContainText('không bán hay trao đổi được');
   await expect(page.locator('#mk-sellform')).toHaveCount(0);

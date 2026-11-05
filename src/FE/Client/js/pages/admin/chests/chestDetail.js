@@ -8,8 +8,8 @@ import { renderChestPage } from '../../chestPage.js';
 import { draftOf, fromHex, toHex, weightOf } from './chestDraft.js';
 import { renderChestStats } from './chestStats.js';
 import {
-  CATEGORY_TEXT, RARITIES, RARITY_COLOR, RARITY_TEXT, confirmDialog, dateTime, errorMessages, errorsHtml, hashParam, itemThumb, mountThumbs,
-  number, openDialog, percent, rarityBadge, setHashParam, subNav, xu,
+  CATEGORY_TEXT, RARITIES, RARITY_COLOR, RARITY_TEXT, confirmDialog, dateTime, errorMessages, errorsHtml, routeParam, itemThumb, mountThumbs,
+  number, openDialog, percent, rarityBadge, setRouteParam, subNav, xu,
 } from './shared.js';
 
 const CHECK_DEBOUNCE_MS = 250;
@@ -43,7 +43,7 @@ function diffHtml(diff, names) {
   return rows.length ? `<ul class="ac-diff">${rows.join('')}</ul>` : '<p class="muted">Không có thay đổi.</p>';
 }
 
-/** #/admin/chests/:id. Everything is edited as one draft, checked by the server as it changes and saved in one piece. */
+/** /admin/chests/:id. Everything is edited as one draft, checked by the server as it changes and saved in one piece. */
 export async function renderChestDetail(app, id, { signal } = {}) {
   render(app, `<div class="page ac-page">${subNav('chests')}<p class="muted">Đang tải hòm…</p></div>`);
 
@@ -53,7 +53,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     [chest, catalog] = await Promise.all([adminChestsApi.chest(id), adminChestsApi.items()]);
   } catch (error) {
     if (!signal?.aborted) {
-      render(app, `<div class="page ac-page">${subNav('chests')}<div class="empty-state">${escapeHtml(errorMessages(error)[0])}</div><p><a href="#/admin/chests">Về danh sách hòm</a></p></div>`);
+      render(app, `<div class="page ac-page">${subNav('chests')}<div class="empty-state">${escapeHtml(errorMessages(error)[0])}</div><p><a href="/admin/chests">Về danh sách hòm</a></p></div>`);
     }
     return;
   }
@@ -76,7 +76,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     pending: false,
     ticket: 0,
     timer: 0,
-    tab: TABS.some((tab) => tab.id === hashParam('tab')) ? hashParam('tab') : 'thiet-lap',
+    tab: TABS.some((tab) => tab.id === routeParam('tab')) ? routeParam('tab') : 'thiet-lap',
     previewOpen: null,
   };
 
@@ -87,7 +87,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       ${subNav('chests')}
       <div class="page-head">
         <div>
-          <p class="ac-crumb"><a href="#/admin/chests">Hòm</a> / <span data-ac-title></span></p>
+          <p class="ac-crumb"><a href="/admin/chests">Hòm</a> / <span data-ac-title></span></p>
           <h2 data-ac-heading></h2>
           <p class="muted ac-small">${escapeHtml(chest.id)} · chìa ${escapeHtml(chest.keyDefId)} · <span data-ac-version></span></p>
         </div>
@@ -470,7 +470,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
 
   function showTab(tab) {
     state.tab = tab;
-    setHashParam('tab', tab === 'thiet-lap' ? null : tab);
+    setRouteParam('tab', tab === 'thiet-lap' ? null : tab);
     app.querySelectorAll('[data-ac-tab]').forEach((button) => {
       const on = button.dataset.acTab === tab;
       button.classList.toggle('is-active', on);

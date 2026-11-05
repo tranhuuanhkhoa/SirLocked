@@ -190,7 +190,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
   const chestName = `Hòm Gộp ${run}`;
 
   await test.step('1. admin: vật phẩm có ảnh, thêm vào hòm, chỉnh tỉ lệ, lưu', async () => {
-    await adminPage.goto('/#/admin/items');
+    await adminPage.goto('/admin/items');
     await expect(adminPage.locator('tr[data-item-id="VC-0217"]')).toBeVisible();
     await adminPage.locator('[data-ac-new-item]').click();
     const form = adminPage.locator('dialog.ac-dialog[open]');
@@ -207,7 +207,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await form.locator('[data-ac-submit]').click();
     await expect(adminPage.locator(`tr[data-item-id="${itemId}"]`)).toContainText(itemName);
 
-    await adminPage.goto(`/#/admin/chests/${SEAL}?tab=bang-roi`);
+    await adminPage.goto(`/admin/chests/${SEAL}?tab=bang-roi`);
     await adminPage.reload();
     const common = adminPage.locator('input[data-weight="COMMON"]');
     const rare = adminPage.locator('input[data-weight="RARE"]');
@@ -230,7 +230,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
 
   await test.step('2. admin: viền vẽ tay căn lỗ, có hiệu ứng, thưởng cấp 5', async () => {
     uploadAnswer = { url: FRAME_PICTURE, width: 247, height: 259 };
-    await adminPage.goto('/#/admin/cosmetics');
+    await adminPage.goto('/admin/cosmetics');
     await expect(adminPage.locator('[data-card="frame_kimlong"]')).toBeVisible();
     await adminPage.locator('[data-new]').click();
     await adminPage.locator('#acf-name').fill(frameName);
@@ -253,7 +253,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await shot(adminPage, 'admin-vien-ve-tay-can-lo-hieu-ung');
     await adminPage.locator('[data-save]').click();
     await expect(adminPage.locator('[data-acquisition]')).toBeVisible();
-    frameId = decodeURIComponent((await adminPage.evaluate(() => window.location.hash)).split('/').pop()!);
+    frameId = decodeURIComponent((await adminPage.evaluate(() => window.location.pathname + window.location.search)).split('/').pop()!);
     await adminPage.locator('input[name="acf-mode"][value="level"]').check();
     await adminPage.locator('#acf-level').fill('5');
     await adminPage.locator('[data-save-way]').click();
@@ -263,8 +263,8 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await shot(adminPage, 'admin-vien-thuong-cap-5');
   });
 
-  await test.step('3. admin: danh hiệu mới, cho vào hòm, hiện ở #/admin/chests và #/kho-ruong', async () => {
-    await adminPage.goto('/#/admin/cosmetics/new?type=TITLE');
+  await test.step('3. admin: danh hiệu mới, cho vào hòm, hiện ở /admin/chests và /kho-ruong', async () => {
+    await adminPage.goto('/admin/cosmetics/new?type=TITLE');
     await adminPage.locator('#acf-name').fill(titleName);
     await adminPage.locator('#acf-rarity').selectOption('MYSTERY');
     await adminPage.locator('[data-style="kimlong"]').click();
@@ -272,10 +272,10 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await adminPage.locator('#acf-price').fill('800');
     await adminPage.locator('[data-save]').click();
     await expect(adminPage.locator('[data-acquisition]')).toBeVisible();
-    titleId = decodeURIComponent((await adminPage.evaluate(() => window.location.hash)).split('/').pop()!);
+    titleId = decodeURIComponent((await adminPage.evaluate(() => window.location.pathname + window.location.search)).split('/').pop()!);
     await shot(adminPage, 'admin-danh-hieu-moi');
 
-    await adminPage.goto(`/#/admin/chests/${SEAL}?tab=bang-roi`);
+    await adminPage.goto(`/admin/chests/${SEAL}?tab=bang-roi`);
     await adminPage.reload();
     await adminPage.locator('[data-ac-add-item]').click();
     const picker = adminPage.locator('dialog.ac-dialog[open]');
@@ -289,7 +289,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await confirmChest(adminPage, 'Thêm danh hiệu');
     await expect(adminPage.locator('[data-ac-save]')).toBeDisabled();
 
-    await pageA.goto('/#/kho-ruong');
+    await pageA.goto('/kho-ruong');
     await expect(pageA.locator('#qh-caseName')).toHaveText('Hòm Niêm Phong');
     await expect(pageA.locator('#qh-contents .qh-it', { hasText: titleName })).toBeVisible();
     await expect(pageA.locator('#qh-contents .qh-it', { hasText: itemName })).toBeVisible();
@@ -298,7 +298,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
 
   await test.step('4. admin: hiệu ứng vào sảnh mới', async () => {
     uploadAnswer = { url: CREATURE_PICTURE, width: 247, height: 259 };
-    await adminPage.goto('/#/admin/cosmetics/new?type=ENTRANCE');
+    await adminPage.goto('/admin/cosmetics/new?type=ENTRANCE');
     await adminPage.locator('#acf-name').fill(entranceName);
     await adminPage.locator('#acf-rarity').selectOption('LEGENDARY');
     await adminPage.locator('#acf-desc').fill('Rồng đen lượn qua mây.');
@@ -308,19 +308,19 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await expect(adminPage.locator('[data-creature-status]')).toHaveText('Đang dùng ảnh riêng.');
     await adminPage.locator('[data-save]').click();
     await expect(adminPage.locator('[data-acquisition]')).toBeVisible();
-    entranceId = decodeURIComponent((await adminPage.evaluate(() => window.location.hash)).split('/').pop()!);
+    entranceId = decodeURIComponent((await adminPage.evaluate(() => window.location.pathname + window.location.search)).split('/').pop()!);
     await shot(adminPage, 'admin-hieu-ung-vao-sanh-moi');
   });
 
   await test.step('5. admin: một hòm chỉ ra danh hiệu mới, cấp hòm và chìa cho A', async () => {
-    await adminPage.goto('/#/admin/chests');
+    await adminPage.goto('/admin/chests');
     await adminPage.reload();
     await adminPage.locator(`[data-chest-id="${SEAL}"] [data-ac-clone]`).click();
     const clone = adminPage.locator('dialog.ac-dialog[open]');
     await clone.locator('[name="name"]').fill(chestName);
     await clone.locator('[name="nameEn"]').fill(`Merge Chest ${run}`);
     await clone.locator('[data-ac-confirm]').click();
-    await expect(adminPage).toHaveURL(/#\/admin\/chests\/chest_\d+/);
+    await expect(adminPage).toHaveURL(/\/admin\/chests\/chest_\d+/);
     chestId = decodeURIComponent(adminPage.url().split('/admin/chests/')[1].split('?')[0]);
 
     // Only the title can come out, so what the wheel gives below is known. The prices are there to pass the expected value rule.
@@ -331,7 +331,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
       dropWeights: { COMMON: 0, RARE: 0, EPIC: 0, LEGENDARY: 0, MYSTERY: 10000 }, pool: [titleId], expectedVersion: detail.version, reason: 'Hòm kiểm thử gộp',
     });
 
-    await adminPage.goto('/#/admin/chests?tab=cap');
+    await adminPage.goto('/admin/chests?tab=cap');
     await adminPage.reload();
     await adminPage.locator('[data-ac-player-search]').fill(`An ${run}`);
     await adminPage.locator(`[data-ac-player="${a.user.userId}"]`).click();
@@ -344,7 +344,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
   });
 
   await test.step('6. A: mở hòm, ra đúng danh hiệu mới', async () => {
-    await pageA.goto('/#/kho-ruong');
+    await pageA.goto('/kho-ruong');
     await pageA.reload();
     await pageA.locator('.qh-dot').last().click();
     await expect(pageA.locator('#qh-caseName')).toHaveText(chestName);
@@ -368,7 +368,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await adminGrant(a, EPIC);
     await call(api, 'POST', `/api/admin/cosmetics/${entranceId}/grant`, admin.token, { userId: a.user.userId, reason: 'Quà kiểm thử' });
 
-    await pageA.goto('/#/detective');
+    await pageA.goto('/detective');
     await expect(pageA.locator('#hs-p-doi')).toContainText('Đổi tất cả');
     await pageA.getByRole('button', { name: /Đổi tất cả/ }).click();
     await pageA.getByRole('dialog').locator('[data-ok]').click();
@@ -388,7 +388,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     expect(me.level).toBe(5);
     expect(me.owned.find((item) => item.defId === titleId)?.source).toBe('CHEST');
 
-    await pageA.goto('/#/detective');
+    await pageA.goto('/detective');
     await pageA.reload();
     await pageA.getByRole('tab', { name: 'Danh hiệu' }).click();
     const plaque = pageA.locator(`[data-hs-title-id="${titleId.replace('title_', '')}"]`);
@@ -409,7 +409,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     const room = await call(api, 'POST', '/api/rooms', a.token, { caseId: PIXEL_CASE, visibility: 'PRIVATE' });
     roomCode = room.roomCode;
     await call(api, 'POST', '/api/rooms/join', b.token, { roomCode });
-    await pageB.goto(`/#/lobby/${room.roomId}`);
+    await pageB.goto(`/lobby/${room.roomId}`);
     await expect(pageB.locator('.bpa-lobby-pair')).toBeVisible();
     await expect(pageB.locator(`[data-seat-user="${b.user.userId}"]`)).toBeVisible();
     // B wears the default entrance, which is only a mist over the seat. Give B's connection time to join the room's group.
@@ -417,7 +417,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
 
     // A arrives while B is already watching.
     const stageB = pageB.locator('.hs-stage:not(.hs-out)');
-    await pageA.goto(`/#/lobby/${room.roomId}`);
+    await pageA.goto(`/lobby/${room.roomId}`);
     await expect(stageB.locator('.hs-hn')).toHaveText(nameA);
     await expect(stageB.locator('.hs-hero small')).toHaveText(`đã vào sảnh · ${entranceName}`);
     await expect(stageB.locator('.hs-tl')).toHaveAttribute('aria-label', `Danh hiệu ${titleName}`);
@@ -434,7 +434,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
   });
 
   await test.step('kiểm tra chéo: món có ảnh hiện ở kho, Chợ đồ, trang người chơi của admin', async () => {
-    await adminPage.goto(`/#/admin/players/${b.user.userId}`);
+    await adminPage.goto(`/admin/players/${b.user.userId}`);
     await expect(adminPage.getByRole('heading', { name: nameB })).toBeVisible();
     await adminPage.getByRole('button', { name: 'Cấp vật phẩm' }).click();
     await dialog(adminPage).getByLabel('Vật phẩm').selectOption(itemId);
@@ -445,7 +445,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await expectPictureDrawn(row.locator(`img[src="${ITEM_PICTURE}"]`));
     await shot(adminPage, 'admin-trang-nguoi-choi-mon-co-anh');
 
-    await pageB.goto('/#/market/sell');
+    await pageB.goto('/market/sell');
     await pageB.reload();
     await expectPictureDrawn(pageB.locator('.bpa-mk-inv', { hasText: itemName }).locator(`img[src="${ITEM_PICTURE}"]`));
     await shot(pageB, 'B-kho-do-mon-co-anh', false);
@@ -453,7 +453,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     const owned = await call(api, 'GET', '/api/market/inventory', b.token);
     const mine = owned.items.find((entry: { def: { id: string } }) => entry.def.id === itemId);
     await call(api, 'POST', '/api/market/listings', b.token, { itemId: mine.itemId, price: 600, requestId: `gop-${run}-list` });
-    await pageB.goto('/#/market');
+    await pageB.goto('/market');
     await pageB.locator('.bpa-mk-cat[data-category="CURIO"]').click();
     await expectPictureDrawn(pageB.locator(`#mk-rows [data-def="${itemId}"] img[src="${ITEM_PICTURE}"]`));
     await shot(pageB, 'B-cho-do-mon-co-anh', false);
@@ -461,7 +461,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
 
   await test.step('9. admin: cộng xu cho B, gỡ listing, xóa avatar của B, đóng phòng treo', async () => {
     const balanceBefore = (await call(api, 'GET', '/api/market/me', b.token)).balance as number;
-    await adminPage.goto(`/#/admin/players/${b.user.userId}`);
+    await adminPage.goto(`/admin/players/${b.user.userId}`);
     await adminPage.reload();
     await adminPage.getByRole('button', { name: 'Cộng / trừ xu' }).click();
     await dialog(adminPage).getByLabel('Số xu').fill('250');
@@ -470,7 +470,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     expect((await call(api, 'GET', '/api/market/me', b.token)).balance).toBe(balanceBefore + 250);
     await shot(adminPage, 'admin-cong-xu-cho-B');
 
-    await adminPage.goto('/#/admin/economy?tab=cho');
+    await adminPage.goto('/admin/economy?tab=cho');
     const filter = adminPage.locator('[data-adp-listings-filter]');
     await filter.getByLabel('Người bán').fill(nameB);
     await filter.getByRole('button', { name: 'Lọc' }).click();
@@ -486,7 +486,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     const picture = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
     await call(api, 'GET', '/api/progress/me', b.token);
     await db.collection('playerProgress').updateOne({ _id: b.user.userId as never }, { $set: { avatar: 'upload', avatarUrl: picture, avatarUploadedAt: new Date() } });
-    await adminPage.goto('/#/admin/players?tab=anh');
+    await adminPage.goto('/admin/players?tab=anh');
     await adminPage.reload();
     const card = adminPage.locator('[data-adp-avatar]', { hasText: nameB });
     await expect(card.locator('img')).toBeVisible();
@@ -499,7 +499,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     expect(profile.avatarUrl).toBeNull();
     await shot(adminPage, 'admin-da-xoa-avatar-cua-B');
 
-    await adminPage.goto('/#/admin/economy?tab=phong');
+    await adminPage.goto('/admin/economy?tab=phong');
     const panel = adminPage.locator('[data-adp-economy="phong"]');
     const room = panel.locator('tbody tr', { hasText: roomCode });
     await expect(room).toBeVisible();
@@ -530,7 +530,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     expect(log.items.some((entry) => entry.action === 'room.close' && entry.reason === 'Phòng treo'), 'room.close').toBe(true);
     expect(JSON.stringify(log.items)).not.toMatch(/passwordHash|refreshToken|verificationToken/i);
 
-    await adminPage.goto('/#/admin/audit');
+    await adminPage.goto('/admin/audit');
     await expect(adminPage.locator('[data-adp-audit] tbody tr').first()).toBeVisible();
     await shot(adminPage, 'admin-nhat-ky-tat-ca');
     const form = adminPage.locator('[data-adp-audit-filter]');
@@ -550,7 +550,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     const tabs = await adminPage.evaluate(async () => (await import('/Client/js/components/adminNav.js' as string)).ADMIN_TABS.map((tab: { href: string; label: string }) => ({ href: tab.href, label: tab.label })));
     expect(tabs.length).toBeGreaterThanOrEqual(9);
     for (const tab of tabs) {
-      await adminPage.goto(`/${tab.href}`);
+      await adminPage.goto(tab.href);
       await expect(adminPage.locator('.admin-nav-tab.is-active')).toHaveText(tab.label);
       await expect(adminPage.locator('#app')).not.toContainText('Đang xây dựng');
     }
@@ -558,7 +558,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
 
   await test.step('màn 390x844', async () => {
     const check = async (page: Page, hash: string, name: string) => {
-      await page.goto(`/${hash}`);
+      await page.goto(hash);
       await page.waitForFunction(() => !document.querySelector('.bpa-rim, .bpa-lens'), undefined, { timeout: 8000 }).catch(() => {});
       await page.waitForTimeout(900);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -567,21 +567,21 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     };
     const { page: phoneAdmin } = await openAs(admin, { width: 390, height: 844 });
     for (const [hash, name] of [
-      ['#/admin', 'tong-quan'],
-      ['#/admin/items', 'vat-pham'],
-      ['#/admin/chests', 'hom'],
-      [`#/admin/chests/${SEAL}?tab=bang-roi`, 'hom-bang-roi'],
-      ['#/admin/cosmetics', 'my-pham'],
-      [`#/admin/cosmetics/${encodeURIComponent(frameId)}`, 'my-pham-vien-moi'],
-      ['#/admin/players', 'nguoi-choi'],
-      [`#/admin/players/${b.user.userId}`, 'nguoi-choi-chi-tiet'],
-      ['#/admin/economy', 'kinh-te'],
-      ['#/admin/audit', 'nhat-ky'],
+      ['/admin', 'tong-quan'],
+      ['/admin/items', 'vat-pham'],
+      ['/admin/chests', 'hom'],
+      [`/admin/chests/${SEAL}?tab=bang-roi`, 'hom-bang-roi'],
+      ['/admin/cosmetics', 'my-pham'],
+      [`/admin/cosmetics/${encodeURIComponent(frameId)}`, 'my-pham-vien-moi'],
+      ['/admin/players', 'nguoi-choi'],
+      [`/admin/players/${b.user.userId}`, 'nguoi-choi-chi-tiet'],
+      ['/admin/economy', 'kinh-te'],
+      ['/admin/audit', 'nhat-ky'],
     ]) await check(phoneAdmin, hash, name);
     const { page: phoneA } = await openAs(a, { width: 390, height: 844 });
-    await check(phoneA, '#/kho-ruong', 'kho-ruong');
-    await check(phoneA, '#/detective', 'ho-so');
-    await check(phoneA, '#/market', 'cho-do');
+    await check(phoneA, '/kho-ruong', 'kho-ruong');
+    await check(phoneA, '/detective', 'ho-so');
+    await check(phoneA, '/market', 'cho-do');
   });
 
   expect(failures, 'no page threw an error').toEqual([]);

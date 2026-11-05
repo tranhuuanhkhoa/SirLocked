@@ -29,7 +29,7 @@ async function player(email) {
   await page.goto('/playtest/access');
   await page.locator('input[name=password]').fill(credentials.accessPassword);
   await page.locator('button').click();
-  try { await page.waitForURL('**/#/login', { timeout: 10000 }); }
+  try { await page.waitForURL('**/login', { timeout: 10000 }); }
   catch (error) {
     console.error('Access navigation:', page.url(), (await page.locator('body').innerText()).slice(0, 500), 'cookie names:', (await context.cookies()).map(c => c.name));
     throw error;
@@ -53,7 +53,7 @@ async function openGame(player) {
   };
   await player.page.addInitScript(initialize, { auth: player.auth, roomId: room.roomId });
   await player.page.evaluate(initialize, { auth: player.auth, roomId: room.roomId });
-  await player.page.goto(`/#/game/${room.roomId}`);
+  await player.page.goto(`/game/${room.roomId}`);
   await expect(player.page.locator('#case-file-btn')).toBeVisible({ timeout: 20000 });
 }
 

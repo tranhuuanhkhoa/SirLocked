@@ -81,6 +81,7 @@ import {
   type AccusationSummaryRow,
 } from '../game/accusationConsensus.js';
 import { buildCaseFileProgress, type AccusationDraft, type CaseFileSection } from '../game/gameUiModel.js';
+import { navigate } from '../services/navigation.js';
 
 type RoomPlayer = {
   userId: string;
@@ -3268,13 +3269,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (fresh.roomStatus === 'COMPLETED') {
       state = fresh;
       void cleanupGamePage();
-      window.location.hash = `#/result/${roomId}`;
+      navigate(`/result/${roomId}`);
       return;
     }
     if (fresh.roomStatus === 'ABANDONED') {
       state = fresh;
       void cleanupGamePage();
-      render(app, `<div class="page"><div class="empty-state"><h2>${escapeHtml(tr('Room ended', 'Phòng đã kết thúc'))}</h2><p>${escapeHtml(tr('This room is no longer active. Games end automatically when a detective stays offline for 5 minutes.', 'Phòng này không còn hoạt động. Ván chơi tự kết thúc khi một thám tử mất kết nối liên tục 5 phút.'))}</p><a class="btn btn-gold" href="#/cases">${escapeHtml(tr('Back to cases', 'Quay lại danh sách vụ án'))}</a></div></div>`);
+      render(app, `<div class="page"><div class="empty-state"><h2>${escapeHtml(tr('Room ended', 'Phòng đã kết thúc'))}</h2><p>${escapeHtml(tr('This room is no longer active. Games end automatically when a detective stays offline for 5 minutes.', 'Phòng này không còn hoạt động. Ván chơi tự kết thúc khi một thám tử mất kết nối liên tục 5 phút.'))}</p><a class="btn btn-gold" href="/cases">${escapeHtml(tr('Back to cases', 'Quay lại danh sách vụ án'))}</a></div></div>`);
       return;
     }
     const isNewScene = state && state.currentSceneId !== fresh.currentSceneId;
@@ -3507,7 +3508,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     GameCompleted: (result: unknown) => {
       if (stopped) return;
       sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
-      window.location.hash = `#/result/${roomId}`;
+      navigate(`/result/${roomId}`);
     },
     RoomError: ({ message }: { message: string }) => toast(message, 'error'),
   }, {
@@ -3536,7 +3537,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       if (stopped) return cleanupGamePage;
     }
     if (state?.roomStatus === 'COMPLETED') {
-      window.location.hash = `#/result/${roomId}`;
+      navigate(`/result/${roomId}`);
       return cleanupGamePage;
     }
     if (state?.roomStatus === 'ABANDONED') {
@@ -3550,7 +3551,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   } catch (err: any) {
     if (stopped) return cleanupGamePage;
     if (err.message?.includes('not started')) {
-      window.location.hash = `#/lobby/${roomId}`;
+      navigate(`/lobby/${roomId}`);
       return cleanupGamePage;
     }
     if (state) draw(); // Keep the saved scene visible with an explicit reconnect action.
@@ -5837,7 +5838,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       partner: person(partner),
       proposerInitials: proposer ? initials(proposer.username) : undefined,
       filed: Boolean(filedAccusation),
-      resultHref: `#/result/${roomId}`,
+      resultHref: `/result/${roomId}`,
       caseTitle: state!.caseTitle,
       sceneTitle: state!.visibleScene.title,
       meta: accusationMeta(),
@@ -6877,7 +6878,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   async function finishUnilateralAccusation(payload: unknown) {
     const result = await gameApi.accuse(roomId, payload);
     sessionStorage.setItem(`sirlocked.result.${roomId}`, JSON.stringify(result));
-    window.location.hash = `#/result/${roomId}`;
+    navigate(`/result/${roomId}`);
   }
 
   // Every consensus command answers with the authoritative state, so the client never patches its own.

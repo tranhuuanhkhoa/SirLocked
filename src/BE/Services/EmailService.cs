@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.WebAPI;
 
 namespace SirLocked.Api.Services;
 
@@ -11,16 +12,18 @@ public class EmailService : IEmailService
 {
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailService> _logger;
+    private readonly FrontendRedirects _links;
 
     public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
     {
         _settings = settings.Value;
         _logger = logger;
+        _links = new FrontendRedirects(settings);
     }
 
     public Task SendVerificationEmailAsync(string toEmail, string fullName, string token)
     {
-        var link = $"{_settings.FrontendUrl.TrimEnd('/')}/#/verify-email?token={Uri.EscapeDataString(token)}";
+        var link = _links.VerifyEmail(token);
         var body = BuildEmail(
             fullName,
             "Cảm ơn bạn đã đăng ký SirLocked. Nhấn nút bên dưới để xác minh email và mở khóa trò chơi:",
@@ -34,7 +37,7 @@ public class EmailService : IEmailService
 
     public Task SendPasswordResetEmailAsync(string toEmail, string fullName, string token)
     {
-        var link = $"{_settings.FrontendUrl.TrimEnd('/')}/#/reset-password?token={Uri.EscapeDataString(token)}";
+        var link = _links.ResetPassword(token);
         var body = BuildEmail(
             fullName,
             "Bạn đã yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tạo mật khẩu mới (liên kết hết hạn sau 30 phút):",

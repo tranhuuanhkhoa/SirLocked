@@ -66,7 +66,7 @@ node src/FE/scripts/build-cases.mjs --case ai-game-docs/reference-case-dem-khoa-
 ```
 
 1. Chạy backend và frontend của dự án như bình thường, bật gameplay V3.
-2. Đăng nhập Admin, mở **Nhập JSON** tại `/#/admin/import`.
+2. Đăng nhập Admin, mở **Nhập JSON** tại `/admin/import`.
 3. Dán nội dung `case.json`, Validate rồi Import. Case có ID riêng `case-reference-dem-khoa-so-vi`, trạng thái DRAFT.
 4. Xem lại trong Admin; Publish khi muốn đưa vào danh sách người chơi.
 5. Hai tài khoản vào cùng phòng, chọn hai vai trò khác nhau rồi bắt đầu.

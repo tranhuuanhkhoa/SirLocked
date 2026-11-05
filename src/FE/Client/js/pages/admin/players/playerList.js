@@ -1,7 +1,7 @@
 import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { actionDialog, coins, dateTime, hashParams, num, pageParam, pagedList, playerLink, roleChip, statusChip, tableHtml, writeHashParams } from './shared.js';
+import { actionDialog, coins, dateTime, routeParams, num, pageParam, pagedList, playerLink, roleChip, statusChip, tableHtml, writeRouteParams } from './shared.js';
 
 const ROLES = [['', 'Mọi vai trò'], ['PLAYER', 'Người chơi'], ['VIP', 'VIP'], ['ADMIN', 'Quản trị']];
 const STATUSES = [['', 'Mọi trạng thái'], ['ACTIVE', 'Đang hoạt động'], ['LOCKED', 'Bị khóa'], ['UNVERIFIED', 'Chưa xác minh email']];
@@ -11,7 +11,7 @@ const options = (list, value) => list.map(([id, label]) => `<option value="${id}
 
 /** The list: every filter and every page is a question for the server, and the address remembers them. */
 export function mountPlayerList(host, { signal }) {
-  const params = hashParams();
+  const params = routeParams();
   const filters = {
     q: params.get('q') ?? '',
     role: params.get('role') ?? '',
@@ -83,7 +83,7 @@ export function mountPlayerList(host, { signal }) {
     empty: 'Không có người chơi nào khớp bộ lọc này.',
     load: (page) => adminPlayersApi.list({ ...filters, asc: filters.asc ? 'true' : '', sort: filters.sort === 'created' ? '' : filters.sort, page }),
     draw: (items) => tableHtml(columns, items),
-    onPage: (page) => writeHashParams({ page }),
+    onPage: (page) => writeRouteParams({ page }),
     actions: {
       lock: (player) => change(player,
         { title: `Khóa ${player.fullName}`, message: 'Người chơi bị đăng xuất ngay và không vào được game cho tới khi mở khóa.', confirmLabel: 'Khóa tài khoản' },
@@ -101,7 +101,7 @@ export function mountPlayerList(host, { signal }) {
   });
 
   const apply = () => {
-    writeHashParams({ q: filters.q, role: filters.role, status: filters.status, sort: filters.sort === 'created' ? '' : filters.sort, asc: filters.asc ? 'true' : '', page: 1 });
+    writeRouteParams({ q: filters.q, role: filters.role, status: filters.status, sort: filters.sort === 'created' ? '' : filters.sort, asc: filters.asc ? 'true' : '', page: 1 });
     list.refresh(1);
   };
   const bind = (id, read) => host.querySelector(id).addEventListener('change', (event) => {

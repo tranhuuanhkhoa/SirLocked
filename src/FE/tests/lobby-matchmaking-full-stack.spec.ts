@@ -52,8 +52,8 @@ test.beforeEach(async () => {
 test('quick match: both accept and land in the same lobby with different roles', async ({ browser }, testInfo) => {
   test.setTimeout(120_000);
   // Player B runs without SignalR, so its side relies on the polling fallback alone.
-  const pageA = await openPlayer(browser, a, '/#/find-game');
-  const pageB = await openPlayer(browser, b, '/#/find-game', { noSignalR: true });
+  const pageA = await openPlayer(browser, a, '/find-game');
+  const pageB = await openPlayer(browser, b, '/find-game', { noSignalR: true });
 
   for (const page of [pageA, pageB]) {
     await expect(page.getByRole('heading', { name: 'Tìm trận', exact: true })).toBeVisible();
@@ -93,8 +93,8 @@ test('quick match: both accept and land in the same lobby with different roles',
   await expect(pageA.locator('#fg-status-title')).toHaveText('Đang chờ đồng đội');
   await pageB.locator('#fg-accept').click();
 
-  await expect(pageA).toHaveURL(/#\/lobby\/[0-9a-f]{24}$/, { timeout: 15_000 });
-  await expect(pageB).toHaveURL(/#\/lobby\/[0-9a-f]{24}$/, { timeout: 15_000 });
+  await expect(pageA).toHaveURL(/\/lobby\/[0-9a-f]{24}$/, { timeout: 15_000 });
+  await expect(pageB).toHaveURL(/\/lobby\/[0-9a-f]{24}$/, { timeout: 15_000 });
   expect(pageA.url().split('#')[1]).toBe(pageB.url().split('#')[1]);
   await expect(pageA.locator('[data-role="INVESTIGATOR"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(pageB.locator('[data-role="INTERROGATOR"]')).toHaveAttribute('aria-pressed', 'true');
@@ -112,7 +112,7 @@ test('quick match: both accept and land in the same lobby with different roles',
 
 test('public room: created by one player, listed for the other, joined with VÀO', async ({ browser }, testInfo) => {
   test.setTimeout(120_000);
-  const pageA = await openPlayer(browser, a, '/#/rooms');
+  const pageA = await openPlayer(browser, a, '/rooms');
   await expect(pageA.getByRole('heading', { name: 'Phòng điều tra', exact: true })).toBeVisible();
   const createCard = pageA.locator('.bpa-rooms-create');
   await expect(createCard.getByRole('button', { name: /Riêng tư/ })).toHaveAttribute('aria-pressed', 'true');
@@ -121,13 +121,13 @@ test('public room: created by one player, listed for the other, joined with VÀO
   await expect(createCard).toContainText('Phòng sẽ xuất hiện ngay trong danh sách công khai');
   await createCard.getByLabel('Vụ án').selectOption('case-point-click-night-ledger-vi');
   await createCard.getByRole('button', { name: 'Tạo phòng' }).click();
-  await expect(pageA).toHaveURL(/#\/lobby\/[0-9a-f]{24}$/);
+  await expect(pageA).toHaveURL(/\/lobby\/[0-9a-f]{24}$/);
   const code = (await pageA.locator('.bpa-lobby-code').textContent())!.trim();
   expect(code).toMatch(/^[A-Z0-9]{6}$/);
   // A private room of the same host must never be listed.
   const hidden = await call<any>(api, 'POST', '/api/rooms', a.token, { caseId: 'case-point-click-night-ledger-vi' });
 
-  const pageB = await openPlayer(browser, b, '/#/rooms');
+  const pageB = await openPlayer(browser, b, '/rooms');
   const row = pageB.locator(`tr[data-room-code="${code}"]`);
   await expect(row).toBeVisible({ timeout: 15_000 });
   await expect(row).toContainText('Đang chờ');
@@ -162,8 +162,8 @@ test('public room: created by one player, listed for the other, joined with VÀO
 
 test('declining sends the partner back to the queue; cancelling leaves it', async ({ browser }) => {
   test.setTimeout(90_000);
-  const pageA = await openPlayer(browser, a, '/#/find-game');
-  const pageB = await openPlayer(browser, b, '/#/find-game');
+  const pageA = await openPlayer(browser, a, '/find-game');
+  const pageB = await openPlayer(browser, b, '/find-game');
   for (const page of [pageA, pageB]) {
     await page.getByRole('button', { name: 'Bất kỳ' }).click();
     await page.getByRole('button', { name: /Ngắn/ }).click();
@@ -196,8 +196,8 @@ test('declining sends the partner back to the queue; cancelling leaves it', asyn
 
 test('an unanswered match times out: the accepter keeps searching, the silent player leaves', async ({ browser }) => {
   test.setTimeout(90_000);
-  const pageA = await openPlayer(browser, a, '/#/find-game');
-  const pageB = await openPlayer(browser, b, '/#/find-game');
+  const pageA = await openPlayer(browser, a, '/find-game');
+  const pageB = await openPlayer(browser, b, '/find-game');
   for (const page of [pageA, pageB]) {
     await page.getByRole('button', { name: 'Ghép nhanh' }).click();
     await page.getByRole('button', { name: 'Bất kỳ' }).click();
@@ -216,7 +216,7 @@ test('an unanswered match times out: the accepter keeps searching, the silent pl
   await expect(pageA.locator('#fg-notice')).toContainText('Đồng đội không xác nhận kịp', { timeout: 10_000 });
   await expect(pageA.locator('#fg-status-title')).toHaveText('Đang tìm đồng đội');
   // Leaving the page while searching takes the ticket out of the queue.
-  await pageA.goto('/#/menu');
+  await pageA.goto('/menu');
   await expect.poll(async () => (await call<any>(api, 'GET', '/api/matchmaking/status', a.token)).phase).toBe('ENDED');
   await pageA.context().close();
   await pageB.context().close();

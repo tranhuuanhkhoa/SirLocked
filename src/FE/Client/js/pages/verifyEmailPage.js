@@ -215,7 +215,7 @@ export function wireResend(app, button, result) {
 }
 
 export async function renderVerifyEmailPage(app) {
-  const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
 
   render(app, verifyBoardMarkup(`
@@ -243,7 +243,7 @@ export async function renderVerifyEmailPage(app) {
     app.querySelector('.bpa-auth-pin')?.classList.toggle('is-lit', threadsState === 'solved');
     qs('[data-swap]', app).classList.add('bpa-wipe-a');
   };
-  const backToLogin = `<a href="#/login" class="bpa-auth-primary"><span>${tr('Back to login', 'Về trang đăng nhập')}</span>${ICON_ARROW}</a>`;
+  const backToLogin = `<a href="/login" class="bpa-auth-primary"><span>${tr('Back to login', 'Về trang đăng nhập')}</span>${ICON_ARROW}</a>`;
 
   if (!token) {
     settle('cold', `
@@ -261,7 +261,7 @@ export async function renderVerifyEmailPage(app) {
     if (!app.isConnected) return;
 
     const invite = pendingRoomInvite();
-    const goHref = session.isLoggedIn() ? (invite || '#/menu') : '#/login';
+    const goHref = session.isLoggedIn() ? (invite || '/menu') : '/login';
     // The invited-room label is pinned by tests/invites-resume.spec.ts, so it stays as it was.
     const goText = session.isLoggedIn()
       ? (invite ? 'Tiếp tục tới phòng được mời' : tr('Enter the game', 'Vào game ngay'))

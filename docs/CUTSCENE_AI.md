@@ -13,7 +13,7 @@ Mỗi vụ pixel có thể có một cutscene mở đầu dạng truyện tranh 
 
 ## Trong game
 
-Lần đầu một người chơi vào màn chơi của phòng: cutscene → màn giới thiệu vai → điều tra. Mỗi người xem độc lập (khóa localStorage theo phòng + người chơi, tải lại không phát lại). Nút "Xem lại mở đầu" nằm cạnh phần Âm thanh. Ở `/#/cases`, phần Chi tiết có nút "Xem mở đầu".
+Lần đầu một người chơi vào màn chơi của phòng: cutscene → màn giới thiệu vai → điều tra. Mỗi người xem độc lập (khóa localStorage theo phòng + người chơi, tải lại không phát lại). Nút "Xem lại mở đầu" nằm cạnh phần Âm thanh. Ở `/cases`, phần Chi tiết có nút "Xem mở đầu".
 
 Phím: Space hoặc nhấp để tua, giữ Esc (hoặc giữ nút) để bỏ qua, M tắt tiếng. Âm thanh theo cài đặt âm thanh chung của game. `prefers-reduced-motion`: không rung, không chớp, không lia camera, bấm để sang khung kế.
 

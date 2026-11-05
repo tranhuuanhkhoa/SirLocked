@@ -197,11 +197,11 @@ async function expectNoSidewaysScroll(page: Page) {
 
 // ------------------------------------------------------------------ items
 
-test.describe('#/admin/items', () => {
+test.describe('/admin/items', () => {
   test('lists every item type with what an admin needs, and filters them', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
 
     const row = page.locator('tr[data-item-id="VC-0388"]');
     await expect(row).toContainText('Sổ tay da bò');
@@ -233,7 +233,7 @@ test.describe('#/admin/items', () => {
   test('creates a curio with a sprite, showing the id it will get before saving', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
 
     await page.locator('[data-ac-new-item]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
@@ -258,7 +258,7 @@ test.describe('#/admin/items', () => {
   test('the sprite picker offers chest, key and cosmetic sprites too', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await page.locator('[data-ac-new-item]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
 
@@ -275,7 +275,7 @@ test.describe('#/admin/items', () => {
   test('creates a curio with an uploaded picture', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await page.locator('[data-ac-new-item]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
     await dialog.locator('[name="name"]').fill('Bức ảnh');
@@ -295,7 +295,7 @@ test.describe('#/admin/items', () => {
     const s = state();
     s.stockAvailable = false;
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await page.locator('[data-ac-new-item]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
 
@@ -310,7 +310,7 @@ test.describe('#/admin/items', () => {
   test('a new item without a picture is stopped with a message in Vietnamese', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await page.locator('[data-ac-new-item]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
     await dialog.locator('[name="name"]').fill('Không ảnh');
@@ -326,7 +326,7 @@ test.describe('#/admin/items', () => {
   test('changing the rarity of an owned item warns and demands a reason', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await page.locator('tr[data-item-id="VC-0388"] [data-ac-edit]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
 
@@ -348,7 +348,7 @@ test.describe('#/admin/items', () => {
   test('stopping the sale of an owned item warns and demands a reason', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await page.locator('tr[data-item-id="VC-0388"] [data-ac-edit]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
 
@@ -370,7 +370,7 @@ test.describe('#/admin/items', () => {
   test('an owned item can only be retired; one nobody owns can also be deleted, after confirming', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
 
     await expect(page.locator('tr[data-item-id="VC-0388"] [data-ac-delete]')).toHaveCount(0);
     await page.locator('tr[data-item-id="VC-0388"] [data-ac-retire]').click();
@@ -393,13 +393,13 @@ test.describe('#/admin/items', () => {
   test('cosmetics, chests and keys cannot be edited here, and point at their own page', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
 
     const frame = page.locator('tr[data-item-id="frame_dong"]');
     await expect(frame.locator('[data-ac-edit], [data-ac-retire], [data-ac-delete]')).toHaveCount(0);
-    await expect(frame.locator('a[href="#/admin/cosmetics/frame_dong"]')).toBeVisible();
+    await expect(frame.locator('a[href="/admin/cosmetics/frame_dong"]')).toBeVisible();
     const chest = page.locator('tr[data-item-id="chest_np"]');
-    await expect(chest.locator('a[href="#/admin/chests/chest_np"]')).toBeVisible();
+    await expect(chest.locator('a[href="/admin/chests/chest_np"]')).toBeVisible();
     const key = page.locator('tr[data-item-id="key_np"]');
     await expect(key.locator('[data-ac-edit]')).toHaveCount(0);
   });
@@ -408,7 +408,7 @@ test.describe('#/admin/items', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/items');
+    await page.goto('/admin/items');
     await expect(page.locator('tr[data-item-id="VC-0388"]')).toBeVisible();
     await expectNoSidewaysScroll(page);
 
@@ -420,7 +420,7 @@ test.describe('#/admin/items', () => {
 
 // ------------------------------------------------------------------ chests
 
-test.describe('#/admin/chests', () => {
+test.describe('/admin/chests', () => {
   test('a cosmetic made on the cosmetics page is drawn in the content list the way players see it', async ({ page }) => {
     const s = state();
     const made = (template: string, params: Json) => ({ iconKey: null, imageUrl: null, builtinId: null, template, params });
@@ -430,7 +430,7 @@ test.describe('#/admin/chests', () => {
     );
     s.chest.poolIds.push('frame_tu-lam', 'title_tu-lam');
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=bang-roi');
+    await page.goto('/admin/chests/chest_np?tab=bang-roi');
     await expect(page.locator('[data-pool-item="frame_tu-lam"] canvas.ac-pool-frame')).toBeVisible();
     await expect(page.locator('[data-pool-item="title_tu-lam"] [data-ac-title-art]')).toContainText('Danh Hiệu Tự Làm');
   });
@@ -438,7 +438,7 @@ test.describe('#/admin/chests', () => {
   test('lists chests with their price, opens and expected value', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests');
+    await page.goto('/admin/chests');
 
     const row = page.locator('[data-chest-id="chest_np"]');
     await expect(row).toContainText('Hòm Niêm Phong');
@@ -448,13 +448,13 @@ test.describe('#/admin/chests', () => {
     await expect(row.locator('[data-ac-ev]')).toContainText('100');
     await expect(row.locator('[data-ac-ev]')).toContainText('300');
     await expect(row.locator('img')).toHaveAttribute('src', /^data:image\/png/);
-    await expect(row.locator('h3 a[href="#/admin/chests/chest_np"]')).toBeVisible();
+    await expect(row.locator('h3 a[href="/admin/chests/chest_np"]')).toBeVisible();
   });
 
   test('switching a chest off asks for a reason and sends the whole chest', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests');
+    await page.goto('/admin/chests');
 
     await page.locator('[data-chest-id="chest_np"] [data-ac-toggle]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
@@ -469,7 +469,7 @@ test.describe('#/admin/chests', () => {
   test('a new chest is cloned from an existing one and opens switched off', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests');
+    await page.goto('/admin/chests');
 
     await page.locator('[data-chest-id="chest_np"] [data-ac-clone]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');
@@ -478,14 +478,14 @@ test.describe('#/admin/chests', () => {
     await dialog.locator('[name="nameEn"]').fill('Winter Safe');
     await dialog.locator('[data-ac-confirm]').click();
 
-    await expect(page).toHaveURL(/#\/admin\/chests\/chest_001/);
+    await expect(page).toHaveURL(/\/admin\/chests\/chest_001/);
     expect(sent(s, 'POST', '/clone')[0].body).toMatchObject({ name: 'Két Mùa Đông', nameEn: 'Winter Safe' });
   });
 
   test('percentages become weights out of 10,000, and a wrong total blocks saving with the server\'s message', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=bang-roi');
+    await page.goto('/admin/chests/chest_np?tab=bang-roi');
 
     const common = page.locator('input[data-weight="COMMON"]');
     await expect(common).toHaveValue('80');
@@ -510,7 +510,7 @@ test.describe('#/admin/chests', () => {
   test('the pool is split by rarity, adding excludes what cannot go in, and each item shows its real rate', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=bang-roi');
+    await page.goto('/admin/chests/chest_np?tab=bang-roi');
 
     await expect(page.locator('[data-pool-column="COMMON"] [data-pool-item]')).toHaveCount(2);
     await expect(page.locator('[data-pool-column="RARE"] [data-pool-item]')).toHaveCount(2);
@@ -542,7 +542,7 @@ test.describe('#/admin/chests', () => {
   test('saving shows what changes, demands a reason, and applies', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=bang-roi');
+    await page.goto('/admin/chests/chest_np?tab=bang-roi');
 
     await expect(page.locator('[data-ac-save]')).toBeDisabled(); // Nothing to save yet.
     await page.locator('[data-pool-item="VC-0402"] [data-ac-remove]').click();
@@ -577,7 +577,7 @@ test.describe('#/admin/chests', () => {
     await page.route('**/api/admin/chests/chest_np', (route) => route.request().method() === 'PUT'
       ? refuse(route, 400, 'ADMIN_VALIDATION', 'Giá trị kỳ vọng quá cao.', [{ code: 'CHEST_EXPECTED_VALUE_TOO_HIGH', message: 'Giá trị kỳ vọng quá cao.' }])
       : route.fallback());
-    await page.goto('/#/admin/chests/chest_np?tab=thiet-lap');
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
 
     await page.locator('[name="chestPrice"]').fill('2');
     await expect(page.locator('[data-ac-save]')).toBeEnabled();
@@ -592,7 +592,7 @@ test.describe('#/admin/chests', () => {
   test('the look shows the real sprite and follows the choice', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=thiet-lap');
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
 
     const preview = page.locator('[data-ac-look-preview] img');
     const before = await preview.getAttribute('src');
@@ -623,7 +623,7 @@ test.describe('#/admin/chests', () => {
       if (checks >= 2) await held[checks - 2];
       await route.fallback();
     });
-    await page.goto('/#/admin/chests/chest_np?tab=thiet-lap');
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
     await expect(page.locator('[name="chestPrice"]')).toHaveValue('120');
 
     await page.locator('[name="chestPrice"]').fill('130');
@@ -642,7 +642,7 @@ test.describe('#/admin/chests', () => {
   test('history lists versions and restores an older one after confirming', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=lich-su');
+    await page.goto('/admin/chests/chest_np?tab=lich-su');
 
     await expect(page.locator('[data-version="2"]')).toContainText('Tăng giá');
     await expect(page.locator('[data-version="2"]')).toContainText('Yến');
@@ -660,7 +660,7 @@ test.describe('#/admin/chests', () => {
   test('trying a chest out plays the real screen against the preview API and spends nothing', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np');
+    await page.goto('/admin/chests/chest_np');
 
     await page.locator('[data-ac-preview]').click();
     const overlay = page.locator('.ac-preview');
@@ -684,21 +684,21 @@ test.describe('#/admin/chests', () => {
   test('asking to try a chest out twice opens one screen, and leaving the page closes it', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np');
+    await page.goto('/admin/chests/chest_np');
 
     await page.locator('[data-ac-preview]').click();
     await expect(page.locator('.ac-preview #qh-caseName')).toHaveText('Hòm Niêm Phong');
     await page.evaluate(() => (document.querySelector('[data-ac-preview]') as HTMLElement).click());
     await expect(page.locator('.ac-preview')).toHaveCount(1);
 
-    await page.evaluate(() => { window.location.hash = '#/admin/items'; });
+    await page.evaluate(() => { history.pushState(null, '', '/admin/items'); dispatchEvent(new PopStateEvent('popstate')); });
     await expect(page.locator('.ac-preview')).toHaveCount(0);
   });
 
   test('statistics compare real and configured rates, over 7 or 30 days', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests/chest_np?tab=thong-ke');
+    await page.goto('/admin/chests/chest_np?tab=thong-ke');
 
     await expect(page.locator('[data-ac-stat="opens"]')).toHaveText('10');
     await expect(page.locator('[data-ac-stat="chests"]')).toContainText('1.200');
@@ -717,7 +717,7 @@ test.describe('#/admin/chests', () => {
   test('the opening log filters and pages', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests?tab=nhat-ky');
+    await page.goto('/admin/chests?tab=nhat-ky');
 
     await expect(page.locator('[data-opening]')).toHaveCount(2);
     await page.locator('[data-ac-next-page]').click();
@@ -737,7 +737,7 @@ test.describe('#/admin/chests', () => {
       if (new URL(route.request().url()).searchParams.get('player') === 'An') await new Promise((resolve) => setTimeout(resolve, 800));
       await route.fallback();
     });
-    await page.goto('/#/admin/chests?tab=nhat-ky');
+    await page.goto('/admin/chests?tab=nhat-ky');
     await expect(page.locator('[data-opening]')).toHaveCount(2);
 
     await page.locator('[name="player"]').fill('An');
@@ -760,7 +760,7 @@ test.describe('#/admin/chests', () => {
       if (ids.length === 1) return route.fulfill({ status: 500, json: { success: false, message: 'Mất kết nối' } });
       return route.fallback();
     });
-    await page.goto('/#/admin/chests?tab=cap');
+    await page.goto('/admin/chests?tab=cap');
     await page.locator('[data-ac-player-search]').fill('an');
     await page.locator('[data-ac-player="u9"]').click();
     await page.locator('[data-ac-grant]').click();
@@ -780,7 +780,7 @@ test.describe('#/admin/chests', () => {
   test('granting finds a player by name, then sends chests, keys and a reason', async ({ page }) => {
     const s = state();
     await prepare(page, s);
-    await page.goto('/#/admin/chests?tab=cap');
+    await page.goto('/admin/chests?tab=cap');
 
     await page.locator('[data-ac-player-search]').fill('an');
     await page.locator('[data-ac-player="u9"]').click();
@@ -796,12 +796,12 @@ test.describe('#/admin/chests', () => {
     expect(sent(s, 'POST', '/api/admin/chests/grant')[0].body).toEqual({ userId: 'u9', chestId: 'chest_np', chests: 2, keys: 1, reason: 'Đền bù', requestId: expect.stringMatching(/^[A-Za-z0-9_-]{8,64}$/) });
   });
 
-  for (const hash of ['#/admin/chests', '#/admin/chests?tab=nhat-ky', '#/admin/chests?tab=cap', '#/admin/chests/chest_np?tab=thiet-lap', '#/admin/chests/chest_np?tab=bang-roi', '#/admin/chests/chest_np?tab=lich-su', '#/admin/chests/chest_np?tab=thong-ke']) {
+  for (const hash of ['/admin/chests', '/admin/chests?tab=nhat-ky', '/admin/chests?tab=cap', '/admin/chests/chest_np?tab=thiet-lap', '/admin/chests/chest_np?tab=bang-roi', '/admin/chests/chest_np?tab=lich-su', '/admin/chests/chest_np?tab=thong-ke']) {
     test(`${hash} fits a phone`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       const s = state();
       await prepare(page, s);
-      await page.goto(`/${hash}`);
+      await page.goto(hash);
       await expect(page.locator('.ac-page')).toBeVisible();
       await page.waitForLoadState('networkidle');
       await expectNoSidewaysScroll(page);
@@ -811,7 +811,7 @@ test.describe('#/admin/chests', () => {
   test('someone who is not an admin does not get the page', async ({ page }) => {
     const s = state();
     await prepare(page, s, 'PLAYER');
-    await page.goto('/#/admin/chests');
+    await page.goto('/admin/chests');
     await expect(page.locator('.ac-page')).toHaveCount(0);
     expect(sent(s, 'GET', '/api/admin/chests')).toHaveLength(0);
   });

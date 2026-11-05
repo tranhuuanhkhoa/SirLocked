@@ -13,11 +13,11 @@ const NEW = 'new';
 const TOOLS = [{ id: 'grant', label: 'Cấp cho người chơi' }, { id: 'xp', label: 'Thiết lập KN' }];
 const EDITORS = { FRAME: mountFrameEditor, TITLE: mountTitleEditor, ENTRANCE: mountEntranceEditor };
 
-const queryOf = () => new URLSearchParams((window.location.hash.split('?')[1]) ?? '');
+const queryOf = () => new URLSearchParams(window.location.search);
 
 const tabsHtml = (active) => `
   <nav class="acf-tabs" aria-label="Khu mỹ phẩm">
-    ${[...CATEGORIES, ...TOOLS].map((tab) => `<a class="acf-tab${tab.id === active ? ' is-active' : ''}" href="#/admin/cosmetics?tab=${tab.id}"${tab.id === active ? ' aria-current="page"' : ''}>${escapeHtml(tab.label)}</a>`).join('')}
+    ${[...CATEGORIES, ...TOOLS].map((tab) => `<a class="acf-tab${tab.id === active ? ' is-active' : ''}" href="/admin/cosmetics?tab=${tab.id}"${tab.id === active ? ' aria-current="page"' : ''}>${escapeHtml(tab.label)}</a>`).join('')}
   </nav>`;
 
 const problemsHtml = (problems) => (problems.length === 0 ? '' : `
@@ -26,7 +26,7 @@ const problemsHtml = (problems) => (problems.length === 0 ? '' : `
     <ul>${problems.map((problem) => `<li>${escapeHtml(problem)}</li>`).join('')}</ul>
   </details>`);
 
-/** #/admin/cosmetics (?tab=FRAME|TITLE|ENTRANCE|grant|xp), #/admin/cosmetics/:defId and #/admin/cosmetics/new?type=FRAME. */
+/** /admin/cosmetics (?tab=FRAME|TITLE|ENTRANCE|grant|xp), /admin/cosmetics/:defId and /admin/cosmetics/new?type=FRAME. */
 export async function renderAdminCosmeticsPage(app, defId, { signal } = {}) {
   prepareCosmetics();
   render(app, '<div class="page acf-page"><p class="muted">Đang tải mỹ phẩm…</p></div>');
@@ -70,7 +70,7 @@ export async function renderAdminCosmeticsPage(app, defId, { signal } = {}) {
   const found = creating ? null : page.items.find((item) => item.id === decodeURIComponent(defId));
   const category = creating ? queryOf().get('type') : found?.category;
   if (!EDITORS[category]) {
-    render(app, `<div class="page acf-page"><div class="empty-state">Không tìm thấy mỹ phẩm này.</div><p><a class="btn btn-ghost" href="#/admin/cosmetics">Về danh sách</a></p></div>`);
+    render(app, `<div class="page acf-page"><div class="empty-state">Không tìm thấy mỹ phẩm này.</div><p><a class="btn btn-ghost" href="/admin/cosmetics">Về danh sách</a></p></div>`);
     return leave;
   }
 
@@ -79,7 +79,7 @@ export async function renderAdminCosmeticsPage(app, defId, { signal } = {}) {
     const label = CATEGORIES.find((entry) => entry.id === category)?.label ?? '';
     render(app, `
       <div class="page acf-page">
-        <p><a href="#/admin/cosmetics?tab=${category}">‹ ${escapeHtml(label)}</a></p>
+        <p><a href="/admin/cosmetics?tab=${category}">‹ ${escapeHtml(label)}</a></p>
         <h2>${item ? escapeHtml(item.name) : `Tạo ${escapeHtml(label.toLowerCase())} mới`}</h2>
         ${item ? `<p class="muted small" data-editor-meta></p>` : ''}
         <div data-editor></div>

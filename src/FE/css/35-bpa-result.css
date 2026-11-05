@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sir Locked — "Bảng phá án" · Result screen (#/result/:roomId)
+   Sir Locked — "Bảng phá án" · Result screen (/result/:roomId)
    Imported by Client/js/pages/resultPage.js. Classes: .bpa-result-*
    Test hooks kept from the old screen: .result-banner, .result-layout,
    .result-verdict-panel, .result-score-panel, .result-comparison,

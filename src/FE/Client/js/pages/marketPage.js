@@ -9,6 +9,7 @@ import { mountBuyTab } from './market/buyTab.js';
 import { mountSellTab } from './market/sellTab.js';
 import { mountTradeTab } from './market/tradeTab.js';
 import { mountOrdersTab } from './market/ordersTab.js';
+import { replaceAddress } from '../services/navigation.js';
 
 const TABS = [
   { key: 'buy', label: ['BUY', 'MUA'], mount: mountBuyTab },
@@ -17,7 +18,7 @@ const TABS = [
   { key: 'orders', label: ['MY ORDERS', 'LỆNH CỦA TÔI'], mount: mountOrdersTab },
 ];
 
-/** #/market[/sell|/trade|/orders] — Chợ đồ (Market.dc.html). */
+/** /market[/sell|/trade|/orders] — Chợ đồ (Market.dc.html). */
 export async function renderMarketPage(app, tabParam) {
   const reducedMotion = (() => {
     try {
@@ -137,8 +138,8 @@ export async function renderMarketPage(app, tabParam) {
     if (animate && !reducedMotion) panel.className = state.flip ? 'bpa-wipe-b' : 'bpa-wipe-a';
     old.replaceWith(panel);
     ctx.panel = panel;
-    const hash = key === 'buy' ? '#/market' : `#/market/${key}`;
-    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
+    const path = key === 'buy' ? '/market' : `/market/${key}`;
+    if (window.location.pathname !== path) replaceAddress(path);
     current = TABS.find((tab) => tab.key === key).mount(ctx);
     // Someone else may have bought from us or filled our order meanwhile.
     if (animate) ctx.refreshWallet();

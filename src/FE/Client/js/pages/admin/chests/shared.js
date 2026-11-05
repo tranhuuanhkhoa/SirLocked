@@ -2,6 +2,7 @@ import { cosmeticSprite, isCosmeticDef } from '../../../cosmetics/icons.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { paintSprite } from '../../chest/chestSprites.js';
 import { itemIcon } from '../../market/marketKit.js';
+import { replaceAddress } from '../../../services/navigation.js';
 
 /* What the chests and items admin pages share: words, numbers, dialogs and item thumbnails. Admin pages are in Vietnamese only. */
 
@@ -22,26 +23,25 @@ export const xu = (value) => `${number(value)} xu`;
 export const percent = (value, digits = 2) => `${Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: digits })}%`;
 export const dateTime = (iso) => (iso ? new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
-/** A parameter of the current route: pages read them from the hash. */
-export function hashParam(name) {
-  return new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(name);
+/** A parameter of the current route: pages read them from the address. */
+export function routeParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
 }
 
 /** Changes the tab in the address without running the router, so whatever is being edited stays on screen. */
-export function setHashParam(name, value) {
-  const [path, search] = window.location.hash.split('?');
-  const params = new URLSearchParams(search ?? '');
+export function setRouteParam(name, value) {
+  const params = new URLSearchParams(window.location.search);
   if (value) params.set(name, value);
   else params.delete(name);
   const text = params.toString();
-  history.replaceState(null, '', `${path}${text ? `?${text}` : ''}`);
+  replaceAddress(`${window.location.pathname}${text ? `?${text}` : ''}`);
 }
 
 const SUB_TABS = [
-  { id: 'chests', href: '#/admin/chests', label: 'Hòm' },
-  { id: 'items', href: '#/admin/items', label: 'Vật phẩm' },
-  { id: 'log', href: '#/admin/chests?tab=nhat-ky', label: 'Nhật ký mở hòm' },
-  { id: 'grant', href: '#/admin/chests?tab=cap', label: 'Cấp hòm & chìa' },
+  { id: 'chests', href: '/admin/chests', label: 'Hòm' },
+  { id: 'items', href: '/admin/items', label: 'Vật phẩm' },
+  { id: 'log', href: '/admin/chests?tab=nhat-ky', label: 'Nhật ký mở hòm' },
+  { id: 'grant', href: '/admin/chests?tab=cap', label: 'Cấp hòm & chìa' },
 ];
 
 export const subNav = (active) => `

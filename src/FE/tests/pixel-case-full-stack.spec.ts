@@ -168,7 +168,7 @@ test('two detectives solve the pixel case through doors, scrolling scenes and ev
     await inv.locator('#accuse-confirm').click();
     await expect(int.locator('#accusation-confirm')).toBeEnabled({ timeout: 20_000 });
     await int.locator('#accusation-confirm').click();
-    for (const page of pages) await expect(page).toHaveURL(/#\/result\//, { timeout: 30_000 });
+    for (const page of pages) await expect(page).toHaveURL(/\/result\//, { timeout: 30_000 });
     const result = await call<any>(api, 'GET', `/api/game/rooms/${room.roomId}/result`, invAuth.token);
     expect(result.success).toBe(true);
     await inv.screenshot({ path: testInfo.outputPath(`${String(++shot).padStart(2, '0')}-case-closed.png`), fullPage: true });
@@ -202,7 +202,7 @@ async function openPlayer(browser: Browser, auth: Auth, roomId: string) {
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');
   }, { auth });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#intro-dismiss')).toBeVisible({ timeout: 30_000 });
   return page;
 }

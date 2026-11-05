@@ -57,7 +57,7 @@ function chestErrorText(error) {
 }
 
 /**
- * #/kho-ruong — Mở hòm. The server decides everything; this page only shows what it answers.
+ * /kho-ruong — Mở hòm. The server decides everything; this page only shows what it answers.
  * `api` and `preview` are for the admin's "try it out": the same screen against an API that stores nothing, without a wallet or a shop.
  */
 export async function renderChestPage(app, { signal, api = chestApi, preview = false } = {}) {
@@ -78,7 +78,7 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
         <div class="qh-wallet">
           <span class="qh-pill" title="${tr('Keys', 'Chìa khóa')}"><canvas id="qh-chipKey" width="42" height="20" aria-hidden="true"></canvas><b id="qh-nKey"></b></span>
           <span class="qh-pill qh-coin" title="${tr('Coins', 'Xu')}"><b id="qh-nCoin"></b> xu</span>
-          <a class="qh-pill qh-inv" href="#/market/sell" title="${tr('Items in your bag', 'Vật phẩm trong kho')}">${tr('Bag', 'Kho')} <b id="qh-nInv"></b></a>
+          <a class="qh-pill qh-inv" href="/market/sell" title="${tr('Items in your bag', 'Vật phẩm trong kho')}">${tr('Bag', 'Kho')} <b id="qh-nInv"></b></a>
           <button class="qh-pill qh-soundBtn" id="qh-soundBtn" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="qh-wave" d="M16.5 8.5a5 5 0 0 1 0 7"/><path class="qh-wave" d="M19 6a8.5 8.5 0 0 1 0 12"/><path class="qh-x" d="M17 9l5 6M22 9l-5 6"/></svg>
           </button>

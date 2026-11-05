@@ -43,7 +43,7 @@ for (const file of ['case-pixel-tram-hong-ngoc-vi.json', 'case-pixel-lo-thuoc-th
       localStorage.setItem('sirlocked.uiLanguage', 'vi');
       localStorage.setItem('sirlocked.audio.v1', JSON.stringify({ music: 0.2, effects: 0.35, muted: true }));
     });
-    await page.goto('/#/login');
+    await page.goto('/login');
     await page.evaluate(async (c) => {
       const player = '/Client/js/game/cutscene/motionComic.ts';
       const settings = '/Client/js/game/cutscene/audioSettings.ts';

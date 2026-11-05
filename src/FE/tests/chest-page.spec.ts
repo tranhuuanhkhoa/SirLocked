@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
- * Mở hòm (#/kho-ruong) with a mocked API. Reduced motion keeps the chest sequence short; the
+ * Mở hòm (/kho-ruong) with a mocked API. Reduced motion keeps the chest sequence short; the
  * rules under test do not depend on it: the server alone decides the result, the reel only stops
  * once that result is known, a retry reuses the idempotency key, and leaving the page stops everything.
  */
@@ -82,12 +82,12 @@ test('the nav link sits next to Chợ đồ and the page shows what the API send
   const customOdds = [{ rarity: 'COMMON', percent: 50.5 }, { rarity: 'MYSTERY', percent: 49.5 }];
   await prepare(page, { chests: 5, keys: 3, balance: 900 }, customOdds);
   const errors = collectPageErrors(page);
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   const links = page.locator('#nav-root .bpa-shell-nav > a.bpa-shell-link');
   const labels = (await links.allInnerTexts()).map((text) => text.trim().toLocaleLowerCase('vi'));
   expect(labels.indexOf('mở hòm')).toBe(labels.indexOf('chợ đồ') + 1);
-  await expect(page.locator('#nav-root a[href="#/kho-ruong"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#nav-root a[href="/kho-ruong"]')).toHaveAttribute('aria-current', 'page');
 
   await expect(page.locator('#qh-caseName')).toHaveText('Hòm Niêm Phong');
   await expect(page.locator('#qh-nChest')).toHaveText('×5');
@@ -120,7 +120,7 @@ test('one click opens one chest: the reel keeps spinning until the server answer
     await answer;
     await ok(route, openResult({ ...counts, chests: 1, keys: 1 }));
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
 
   await page.locator('#qh-openBtn').dblclick();
@@ -160,7 +160,7 @@ test('a flaky connection retries with the same idempotency key and still gets th
     if (keys.length === 3) return fail(route, 409, 'IN_PROGRESS');
     return ok(route, openResult({ ...counts, chests: 0, keys: 0 }, NOTEBOOK));
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await page.locator('#qh-openBtn').click();
 
   await expect(appMode(page)).toHaveAttribute('data-mode', 'reveal', { timeout: 30_000 });
@@ -185,7 +185,7 @@ for (const [code, message] of [
       else counts.chests = 0;
       await fail(route, 409, code);
     });
-    await page.goto('/#/kho-ruong');
+    await page.goto('/kho-ruong');
     await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
     const before = lists.count;
 
@@ -209,7 +209,7 @@ test('an answer that fails while the reel already spins also stops it softly', a
     await answer;
     await fail(route, 409, 'KEY_NONE');
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await page.locator('#qh-openBtn').click();
   await expect(appMode(page)).toHaveAttribute('data-mode', 'spin');
 
@@ -233,7 +233,7 @@ test('buying a key and a chest calls the API with a fresh key each time and show
   };
   await page.route('**/api/chests/chest_np/keys', shop('keys'));
   await page.route('**/api/chests/chest_np/buy', shop('buy'));
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await expect(page.locator('#qh-openLbl')).toContainText('Mua hòm');
   await page.locator('#qh-openBtn').click();
@@ -263,7 +263,7 @@ test('the second click of a double click on a buy button does not open the chest
     await ok(route, { chestId: 'chest_np', itemId: 'k', item: NOTEBOOK, chestCount: counts.chests, keyCount: counts.keys, wallet: wallet(counts) });
   });
   await page.route('**/api/chests/chest_np/open', async (route) => { opens++; await fail(route, 409, 'KEY_NONE'); });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await expect(page.locator('#qh-openLbl')).toContainText('Mua chìa');
 
   await page.locator('#qh-openBtn').dblclick();
@@ -278,7 +278,7 @@ test('a coin shortage on the shop buttons shows the server error in Vietnamese',
   const counts = { chests: 1, keys: 1, balance: 500 };
   await prepare(page, counts);
   await page.route('**/api/chests/chest_np/keys', (route) => fail(route, 409, 'FUNDS'));
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await page.locator('[data-qh-buy="key"]').click();
   await expect(page.locator('#toast-root')).toContainText('Bạn không đủ xu.');
 });
@@ -288,7 +288,7 @@ test('swiping across the chest changes the chest type and never opens one', asyn
   await prepare(page, counts);
   let opens = 0;
   await page.route('**/api/chests/chest_np/open', async (route) => { opens++; await ok(route, openResult(counts)); });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
 
   const box = (await page.locator('.qh-spot').boundingBox())!;
@@ -332,12 +332,12 @@ test('leaving the page stops the loop, the sound, the timers and the key handler
     await route.fulfill({ status: 503, body: '' });
   });
   await page.route('**/api/market/items?*', (route) => ok(route, { rows: [], categoryCounts: {}, totalCount: 0 }));
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await page.locator('#qh-openBtn').click();
   await expect(appMode(page)).toHaveAttribute('data-mode', 'spin');
   await expect.poll(() => page.evaluate(() => (window as any).__draws)).toBeGreaterThan(0);
 
-  await page.evaluate(() => { window.location.hash = '#/market'; });
+  await page.evaluate(() => { history.pushState(null, '', '/market'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('.qh-app')).toHaveCount(0);
   await page.waitForTimeout(150);
   const draws = await page.evaluate(() => (window as any).__draws);
@@ -351,7 +351,7 @@ test('leaving the page stops the loop, the sound, the timers and the key handler
   expect(opens).toBe(1);
   await page.keyboard.press('Escape');
   await page.keyboard.press('ArrowLeft');
-  await expect(page).toHaveURL(/#\/market$/);
+  await expect(page).toHaveURL(/\/market$/);
   expect(errors).toEqual([]);
 });
 
@@ -366,7 +366,7 @@ test('the market lists the new categories, the Mystery rarity and the pixel icon
   await page.route('**/api/market/items?*', (route) => ok(route, {
     rows: [row(WATCH), row(chestDef), row(keyDef)], categoryCounts: { CHEST: 3, KEY: 3, CURIO: 30 }, totalCount: 3,
   }));
-  await page.goto('/#/market');
+  await page.goto('/market');
 
   const rows = page.locator('#mk-rows');
   await expect(rows).toContainText('Đồng hồ 2:17');
@@ -394,7 +394,7 @@ test('the bag offers no USE button for collectibles, and shows their icon', asyn
     def: WATCH, listedCount: 0, lowestAsk: null, bidCount: 0, highestBid: null, listings: [], bids: [],
     history: { days: [], line: [], low: null, high: null, changePercent: null, volume: 0 }, myListings: [], myOrders: [], ownedCount: 1,
   }));
-  await page.goto('/#/market/sell');
+  await page.goto('/market/sell');
 
   const tile = page.locator('#mk-grid').getByRole('button', { name: /Đồng hồ 2:17/ });
   await expect(tile.locator('img.bpa-mk-icon')).toHaveCount(1);
@@ -410,10 +410,10 @@ test.describe('on a phone', () => {
     const counts = { chests: 2, keys: 2, balance: 500 };
     await prepare(page, counts);
     await page.route('**/api/chests/chest_np/open', (route) => ok(route, openResult({ ...counts, chests: 1, keys: 1 })));
-    await page.goto('/#/kho-ruong');
+    await page.goto('/kho-ruong');
     await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
 
-    await expect(page.locator('#nav-root a[href="#/kho-ruong"]')).toBeVisible();
+    await expect(page.locator('#nav-root a[href="/kho-ruong"]')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await expect(page.locator('#qh-openBtn')).toBeInViewport({ ratio: 1 });
     await expect(page.locator('#qh-nextBtn')).toBeInViewport();

@@ -46,7 +46,7 @@ async function open(a, label, viewport = { width: 1440, height: 900 }) {
   const page = await ctx.newPage();
   page.on('pageerror', (e) => { errors.push(`${label}: ${e.message}`); console.log('PAGEERROR', label, e.message); });
   await page.addInitScript((auth) => { localStorage.setItem('sirlocked.token', auth.token); localStorage.setItem('sirlocked.refreshToken', auth.refreshToken); localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry); localStorage.setItem('sirlocked.user', JSON.stringify(auth.user)); localStorage.setItem('sirlocked.uiLanguage', 'vi'); }, a);
-  await page.goto(`${WEB}/#/game/${room.roomId}`);
+  await page.goto(`${WEB}/game/${room.roomId}`);
   try { await page.locator('#intro-dismiss').click({ timeout: 20000 }); } catch { await page.reload(); await page.locator('#intro-dismiss').click({ timeout: 30000 }); }
   await page.waitForTimeout(1200);
   return page;

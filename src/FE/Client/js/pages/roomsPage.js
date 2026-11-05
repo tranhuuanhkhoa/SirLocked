@@ -9,9 +9,10 @@ import { bindJoinForm, joinCardHtml } from './joinRoomPage.js';
 import {
   VISIBILITY, bindVisibilityToggle, caseSelectHtml, createRoomAndOpen, visibilityNoteHtml, visibilityStampHtml, visibilityToggleHtml,
 } from './roomCreateCard.js';
+import { navigate } from '../services/navigation.js';
 
 /**
- * #/rooms — "Phòng điều tra" (Rooms.dc.html): the public room table with language / free-seat
+ * /rooms — "Phòng điều tra" (Rooms.dc.html): the public room table with language / free-seat
  * filters and search, the create card (public or private) and the join-by-code card. VÀO joins
  * through the same POST /api/rooms/join as a typed code.
  */
@@ -279,7 +280,7 @@ export async function renderRoomsPage(app, context = {}) {
       const room = await roomApi.join(code);
       if (signal?.aborted || !app.isConnected) return;
       toast(tr(`Joined room ${room.roomCode}.`, `Đã vào phòng ${room.roomCode}.`), 'success');
-      window.location.hash = room.status === 'IN_PROGRESS' ? `#/game/${room.roomId}` : `#/lobby/${room.roomId}`;
+      navigate(room.status === 'IN_PROGRESS' ? `/game/${room.roomId}` : `/lobby/${room.roomId}`);
     } catch (err) {
       if (signal?.aborted || !app.isConnected) return;
       toast(err.message, 'error');

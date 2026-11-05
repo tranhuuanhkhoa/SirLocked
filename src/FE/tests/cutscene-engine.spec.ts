@@ -27,7 +27,7 @@ async function open(page: Page, cutscene: unknown, options: { muted?: boolean; b
       window.addEventListener('pointerdown', () => { (window as any).__userGesture = true; }, true);
     }
   }, { muted: options.muted ?? true, blockAudio: options.blockAudio ?? false });
-  await page.goto('/#/login');
+  await page.goto('/login');
   await page.evaluate(async (data) => {
     const player = '/Client/js/game/cutscene/motionComic.ts';
     const settings = '/Client/js/game/cutscene/audioSettings.ts';

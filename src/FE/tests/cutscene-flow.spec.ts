@@ -41,7 +41,7 @@ async function skipToEnd(page: Page) {
 test('first visit: opening comic, then role briefing, then the investigation; saved per player', async ({ page }) => {
   await signIn(page);
   await mockGame(page, playable());
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.mc-root')).toBeVisible();
   // The role briefing waits behind the comic.
   await expect(page.locator('#intro-overlay')).toHaveCount(0);
@@ -60,7 +60,7 @@ test('first visit: opening comic, then role briefing, then the investigation; sa
 test('reload does not play it again; "Xem lại mở đầu" does, and ends back in the game', async ({ page }) => {
   await signIn(page);
   await mockGame(page, playable());
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await skipToEnd(page);
   await page.locator('[data-mc-finish]').click();
   await page.locator('#intro-dismiss').click();
@@ -82,7 +82,7 @@ test('reload does not play it again; "Xem lại mở đầu" does, and ends back
 test('a case with no opening comic starts exactly as before', async ({ page }) => {
   await signIn(page);
   await mockGame(page, null);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#intro-overlay')).toBeVisible();
   await expect(page.locator('.mc-root')).toHaveCount(0);
   await expect(page.locator('#game-replay-intro')).toHaveCount(0);
@@ -91,7 +91,7 @@ test('a case with no opening comic starts exactly as before', async ({ page }) =
 test('a failing opening lookup never blocks the game', async ({ page }) => {
   await signIn(page);
   await mockGame(page, 'error');
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#intro-overlay')).toBeVisible();
   await expect(page.locator('.mc-root')).toHaveCount(0);
 });
@@ -99,7 +99,7 @@ test('a failing opening lookup never blocks the game', async ({ page }) => {
 test('a very slow opening lookup is abandoned after a few seconds instead of freezing the start', async ({ page }) => {
   await signIn(page);
   await mockGame(page, 'slow');
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#intro-overlay')).toBeVisible({ timeout: 8000 });
   await expect(page.locator('.mc-root')).toHaveCount(0);
 });
@@ -109,7 +109,7 @@ test('a script with bad art ids still lets the game continue (broken images fall
   const broken = playable();
   broken.assets = { scenes: {}, characters: {}, items: {}, coverUrl: '' } as any;
   await mockGame(page, broken);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.mc-root')).toBeVisible();
   await skipToEnd(page);
   await page.locator('[data-mc-finish]').click();
@@ -124,7 +124,7 @@ test('the partner watches on their own: one player finishing does not skip it fo
     const b = await second.newPage();
     await signIn(a, 'player-1'); await signIn(b, 'player-2');
     await mockGame(a, playable()); await mockGame(b, playable());
-    await a.goto(`/#/game/${roomId}`); await b.goto(`/#/game/${roomId}`);
+    await a.goto(`/game/${roomId}`); await b.goto(`/game/${roomId}`);
     await expect(a.locator('.mc-root')).toBeVisible();
     await expect(b.locator('.mc-root')).toBeVisible();
     await skipToEnd(a);
@@ -140,7 +140,7 @@ test('the partner watches on their own: one player finishing does not skip it fo
 test('Esc during the opening is swallowed by the player and does not open game menus', async ({ page }) => {
   await signIn(page);
   await mockGame(page, playable());
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.mc-root')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('.mc-root')).toBeVisible();
@@ -159,7 +159,7 @@ test('cases list: "Xem mở đầu" appears only for cases that have one and pla
   await page.route('**/api/cases/published', (route) => route.fulfill(ok(publishedCases))); // registered last, so it wins
   await page.route(`**/api/cases/${caseId}/intro-cutscene`, (route) => route.fulfill(ok(playable())));
   await page.route('**/api/cases/case-without-intro/intro-cutscene', (route) => route.fulfill(ok(null)));
-  await page.goto('/#/cases');
+  await page.goto('/cases');
   await expect(page.locator('.bpa-cases-file')).toHaveCount(2);
 
   await page.locator('[data-pick="0"]').click();
@@ -232,7 +232,7 @@ test('admin: generate, preview, edit text (limits enforced), approve, hide, and 
   });
   const rig = adminRig(page);
   await rig.install();
-  await page.goto(`/#/admin/cases/${caseId}`);
+  await page.goto(`/admin/cases/${caseId}`);
   const panel = page.locator('#cutscene-panel');
   await expect(panel.locator('[data-cs-generate]')).toHaveText('Tạo bằng AI');
   await expect(panel.locator('[data-cs-approve]')).toBeDisabled();

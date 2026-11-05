@@ -4,7 +4,7 @@ import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 
 /**
- * Admin page (#/admin/weekly) to set/clear the Case of the Week and the Weekly Challenge.
+ * Admin page (/admin/weekly) to set/clear the Case of the Week and the Weekly Challenge.
  * Admin-gated by the router (admin: true) and by the server ([Authorize(Roles="ADMIN")]).
  */
 

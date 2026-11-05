@@ -3,6 +3,7 @@ import { escapeHtml, render, qs } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
 import { pendingRoomInvite } from '../services/roomInvites.js';
 import { RESEND_ICON, envelopeHero, verifyBoardMarkup, wireResend } from './verifyEmailPage.js';
+import { navigate } from '../services/navigation.js';
 
 export async function renderVerifyNoticePage(app) {
   const user = session.user();
@@ -33,7 +34,7 @@ export async function renderVerifyNoticePage(app) {
     <button type="button" class="bpa-auth-ink" id="btn-resend">${RESEND_ICON}<span>${tr('Resend verification email', 'Gửi lại email xác minh')}</span></button>
     <div id="resend-result" role="status"></div>
     <p class="bpa-auth-center">
-      <a href="#/login" id="link-logout" class="bpa-auth-link">${tr('Sign in with another account', 'Đăng nhập bằng tài khoản khác')}</a>
+      <a href="/login" id="link-logout" class="bpa-auth-link">${tr('Sign in with another account', 'Đăng nhập bằng tài khoản khác')}</a>
     </p>`));
 
   wireResend(app, qs('#btn-resend', app), qs('#resend-result', app));
@@ -41,6 +42,6 @@ export async function renderVerifyNoticePage(app) {
   qs('#link-logout', app).addEventListener('click', (e) => {
     e.preventDefault();
     session.clear();
-    window.location.hash = '#/login';
+    navigate('/login');
   });
 }

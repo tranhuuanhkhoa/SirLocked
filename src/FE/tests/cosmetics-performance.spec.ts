@@ -48,7 +48,7 @@ const settle = (page: Page) => page.waitForTimeout(3500);
 
 test('a portrait with nothing moving stops asking for frames', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('[data-hs-me]')).toBeVisible();
   await settle(page);
 
@@ -59,7 +59,7 @@ test('a portrait with nothing moving stops asking for frames', async ({ page }) 
 
 test('that portrait still gets its picture, even though nothing moves', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await settle(page);
   const painted = await page.locator('[data-hs-me]').evaluate((canvas: HTMLCanvasElement) => {
     const { data } = canvas.getContext('2d')!.getImageData(canvas.width / 2, canvas.height / 2, 1, 1);
@@ -70,7 +70,7 @@ test('that portrait still gets its picture, even though nothing moves', async ({
 
 test('a frame that does move keeps moving', async ({ page }) => {
   await prepare(page, progress({ frameDefId: 'frame_kimlong' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await settle(page);
 
   const first = await pixels(page, '[data-hs-me]');
@@ -80,7 +80,7 @@ test('a frame that does move keeps moving', async ({ page }) => {
 
 test('painting does not measure the canvas every frame, which would force a style pass', async ({ page }) => {
   await prepare(page, progress({ frameDefId: 'frame_kimlong' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await settle(page);
 
   const before = await page.evaluate(() => (window as any).__measured as number);
@@ -98,7 +98,7 @@ test('moving frames are drawn about 30 times a second, not at the speed of the s
       return clear.apply(this, args);
     };
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await settle(page);
 
   // Against the time that really passed: on a busy machine the wait below runs well over its second.
@@ -114,7 +114,7 @@ test('moving frames are drawn about 30 times a second, not at the speed of the s
 
 test('a frame not owned yet is a still picture, a frame owned keeps its motion', async ({ page }) => {
   await prepare(page, progress({ owned: [owned('gold', 'frame_kimlong', 'FRAME')] }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Viền avatar' }).click();
   await page.locator('[data-hs-frame="phuong"]').scrollIntoViewIfNeeded();
   await page.setViewportSize({ width: 1400, height: 1400 });
@@ -129,7 +129,7 @@ test('a frame not owned yet is a still picture, a frame owned keeps its motion',
 
 test('with no frame owned, the frames tab goes quiet too', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Viền avatar' }).click();
   await settle(page);
 
@@ -140,7 +140,7 @@ test('with no frame owned, the frames tab goes quiet too', async ({ page }) => {
 
 test('in the titles tab only the plaque under the pointer moves', async ({ page }) => {
   await prepare(page, progress({ titleDefId: 'title_kim-long', owned: [owned('t', 'title_kim-long', 'TITLE')] }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Danh hiệu' }).click();
   await expect(page.locator('.hs-ti')).toHaveCount(25);
   await page.waitForTimeout(300);
@@ -164,7 +164,7 @@ test('in the titles tab only the plaque under the pointer moves', async ({ page 
 
 test('keyboard focus wakes a plaque the same way the pointer does', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Danh hiệu' }).click();
   // Focus scrolls the list under the resting pointer, and a browser keeps that hover until the mouse next moves.
   await page.mouse.move(0, 0);
@@ -178,7 +178,7 @@ test('keyboard focus wakes a plaque the same way the pointer does', async ({ pag
 test('the plaque in the header rests while it is scrolled off screen', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await prepare(page, progress({ titleDefId: 'title_kim-long' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Danh hiệu' }).click();
   await expect.poll(() => runningOn(page, '[data-hs-title]')).toBeGreaterThan(0);
 
@@ -194,7 +194,7 @@ test('the plaque in the header rests while it is scrolled off screen', async ({ 
 
 test('plaques at rest look like plaques: same size, with their art in place', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Danh hiệu' }).click();
   const plaque = page.locator('[data-hs-title-id="long-phung"] .hs-tl');
   await expect(plaque.locator('svg.hs-plq')).toBeVisible();
@@ -206,7 +206,7 @@ test('while an entrance plays, the page underneath stops drawing and resumes aft
   // Tall enough that the portrait stays on screen: off screen it would stop for another reason.
   await page.setViewportSize({ width: 1400, height: 1500 });
   await prepare(page, progress({ frameDefId: 'frame_kimlong', titleDefId: 'title_kim-long' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await settle(page);
   await expect(page.locator('[data-hs-me]')).toBeInViewport();
@@ -235,7 +235,7 @@ test('while an entrance plays, the page underneath stops drawing and resumes aft
 
 test('the portrait on the stage keeps one size while the camera moves, so its canvas is never reallocated', async ({ page }) => {
   await prepare(page, progress({ frameDefId: 'frame_kimlong' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await page.locator('[data-hs-entrance="kim-long"] [data-try]').click();
   await expect(page.locator('.hs-hero.hs-show')).toBeVisible({ timeout: 8000 });
@@ -254,7 +254,7 @@ test('the portrait on the stage keeps one size while the camera moves, so its ca
 
 test('resizing still sharpens the portrait to its new size', async ({ page }) => {
   await prepare(page, progress({ frameDefId: 'frame_kimlong' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await settle(page);
   const wide = await page.locator('[data-hs-me]').evaluate((canvas: HTMLCanvasElement) => canvas.width);
 
@@ -275,7 +275,7 @@ test('the sound of an entrance is prepared before the hero appears, not at that 
       }
     };
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await page.locator('[data-hs-entrance="kim-long"] [data-try]').click();
   await expect(page.locator('.hs-hero.hs-show')).toBeVisible({ timeout: 8000 });
@@ -287,7 +287,7 @@ test('the sound of an entrance is prepared before the hero appears, not at that 
 
 test('plaques step their sweep about 30 times a second, not at the speed of the screen', async ({ page }) => {
   await prepare(page, progress({ titleDefId: 'title_kim-long' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   const svg = page.locator('[data-hs-title] svg.hs-plq');
   await expect(svg).toBeVisible();
   const ticks = await svg.evaluate(async (node: SVGSVGElement) => {
@@ -312,11 +312,11 @@ test('leaving the page stops the plaque clock', async ({ page }) => {
     window.setInterval = ((fn: TimerHandler, ms?: number) => { const id = set(fn, ms); if (ms === 33) (window as any).__intervals.add(id); return id; }) as typeof window.setInterval;
     window.clearInterval = ((id?: number) => { (window as any).__intervals.delete(id); clear(id); }) as typeof window.clearInterval;
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('[data-hs-title] svg.hs-plq')).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as any).__intervals.size)).toBe(1);
 
-  await page.evaluate(() => { window.location.hash = '#/market'; });
+  await page.evaluate(() => { history.pushState(null, '', '/market'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('.hs-root')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as any).__intervals.size)).toBe(0);
 });
@@ -328,7 +328,7 @@ test('a machine that cannot keep up gets a lighter stage, and the next entrance 
     const native = window.requestAnimationFrame.bind(window);
     window.requestAnimationFrame = (callback) => native((time) => setTimeout(() => callback(performance.now()), 60) && undefined);
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await page.locator('[data-hs-entrance="van-kiem"] [data-try]').click();
   const stage = page.locator('.hs-stc');
@@ -352,7 +352,7 @@ test('the stage canvas never goes above 1.5 times the layout size, even on a sha
   const context = await browser.newContext({ deviceScaleFactor: 2, viewport: { width: 800, height: 600 } });
   const page = await context.newPage();
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await page.locator('[data-hs-entrance="van-kiem"] [data-try]').click();
   await expect(page.locator('.hs-stc')).toBeVisible();
@@ -362,7 +362,7 @@ test('the stage canvas never goes above 1.5 times the layout size, even on a sha
 
 test('opening the first tab does not pay for art it does not show', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('.hs-name')).toBeVisible();
   await page.waitForTimeout(3000);
   // Neither the wing ornaments nor the entrance sprites: both are only needed further on.
@@ -371,7 +371,7 @@ test('opening the first tab does not pay for art it does not show', async ({ pag
 
 test('a title with wings still gets them when it is shown', async ({ page }) => {
   await prepare(page, progress());
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Danh hiệu' }).click();
   const wing = page.locator('[data-hs-title-id="hac-duc"] .hs-ob-wingD');
   await expect(wing).toHaveCount(1);
@@ -388,7 +388,7 @@ test('the art of the entrances is warmed when the entrance tab opens', async ({ 
       set(value: string) { if (String(value).startsWith('data:image/svg')) (window as any).__svgImages++; describe.set!.call(this, value); },
     });
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await expect(page.locator('.hs-name')).toBeVisible();
   await page.waitForTimeout(2500);
   const before = await page.evaluate(() => (window as any).__svgImages as number);
@@ -409,7 +409,7 @@ test('vector art is drawn from a finished bitmap, because replaying its filters 
       return draw.apply(this, args);
     } as typeof CanvasRenderingContext2D.prototype.drawImage;
   });
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await page.getByRole('tab', { name: 'Hiệu ứng vào sảnh' }).click();
   await page.locator('[data-hs-entrance="anh-trang"] [data-try]').click();
   await expect(page.locator('.hs-stage')).toBeVisible();
@@ -423,7 +423,7 @@ test('vector art is drawn from a finished bitmap, because replaying its filters 
 
 test('baked art still looks right: a level frame and the avatar in it are painted', async ({ page }) => {
   await prepare(page, progress({ frameDefId: 'frame_dong' }));
-  await page.goto('/#/detective');
+  await page.goto('/detective');
   await settle(page);
   const opaque = await page.locator('[data-hs-me]').evaluate((canvas: HTMLCanvasElement) => {
     const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);

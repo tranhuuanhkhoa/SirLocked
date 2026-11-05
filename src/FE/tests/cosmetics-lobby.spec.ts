@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
- * Sảnh chờ (#/lobby) with a mocked API and a fake hub: every seat shows the look the server sent, and a
+ * Sảnh chờ (/lobby) with a mocked API and a fake hub: every seat shows the look the server sent, and a
  * PlayerEntrance event plays that player's entrance: one at a time, skippable, never once the game has started.
  */
 const ROOM_ID = 'room-1';
@@ -38,7 +38,7 @@ const emit = (page: Page, event: string, payload: unknown) =>
   page.evaluate(([name, data]) => (window as any).__sirlockedEmitSignalR?.(name, data), [event, payload] as const);
 
 async function openLobby(page: Page) {
-  await page.goto(`/#/lobby/${ROOM_ID}`);
+  await page.goto(`/lobby/${ROOM_ID}`);
   await expect(page.locator('.bpa-lobby-pair')).toBeVisible();
   await expect.poll(() => page.evaluate(() => typeof (window as any).__sirlockedEmitSignalR)).toBe('function');
 }
@@ -190,7 +190,7 @@ test('nothing plays once the game has started', async ({ page }) => {
   await emit(page, 'GameStarted', { roomId: ROOM_ID, room: room('IN_PROGRESS') });
 
   await expect(page.locator('.hs-stage')).toHaveCount(0);
-  await expect(page).toHaveURL(new RegExp(`#/game/${ROOM_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/game/${ROOM_ID}$`));
 });
 
 test('an event from another room is ignored', async ({ page }) => {
@@ -226,7 +226,7 @@ test('leaving the lobby ends the entrance and everything drawn for it', async ({
   await emit(page, 'PlayerEntrance', entrance('b', 'Bảo Ngọc', 'entrance_kim-long'));
   await expect(page.locator('.hs-stage')).toBeVisible();
 
-  await page.evaluate(() => { window.location.hash = '#/market'; });
+  await page.evaluate(() => { history.pushState(null, '', '/market'); dispatchEvent(new PopStateEvent('popstate')); });
 
   await expect(page.locator('.hs-stage')).toHaveCount(0);
   await expect(page.locator('.hs-fx--page')).toHaveCount(0);

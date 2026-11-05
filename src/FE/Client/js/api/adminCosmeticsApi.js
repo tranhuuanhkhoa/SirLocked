@@ -2,7 +2,7 @@ import { apiFetch, get, post, put } from './http.js';
 
 const item = (id) => `/api/admin/cosmetics/${encodeURIComponent(id)}`;
 
-/** Frames, titles, lobby entrances and XP rates for #/admin/cosmetics. Every call needs an admin session. */
+/** Frames, titles, lobby entrances and XP rates for /admin/cosmetics. Every call needs an admin session. */
 export const adminCosmeticsApi = {
   /** { items, metrics, rareXp, epicXp, maxLevel, defaults, problems } */
   list: () => get('/api/admin/cosmetics'),

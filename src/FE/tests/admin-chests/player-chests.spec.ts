@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
- * What #/kho-ruong must do now that chests come from the admin: every chest has its own odds and look, none are written
+ * What /kho-ruong must do now that chests come from the admin: every chest has its own odds and look, none are written
  * into the page, a chest switched off still opens for whoever holds one, and a price that moved is not charged.
  */
 const def = (id: string, name: string, rarity: string, iconKey: string | null, extra: Record<string, unknown> = {}) => ({
@@ -48,7 +48,7 @@ test('each chest shows its own odds, and a rarity with no chance is left out', a
     offSale: [],
     wallet,
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await page.locator('#qh-oddsBtn').click();
   await expect(page.locator('#qh-odds')).toContainText('80,00%');
@@ -61,7 +61,7 @@ test('each chest shows its own odds, and a rarity with no chance is left out', a
 test('a list without per-chest odds still shows the shared table', async ({ page }) => {
   const { odds: _odds, look: _look, active: _active, ...old } = chest('chest_a', 'Hòm A');
   await prepare(page, { chests: [old], odds: [{ rarity: 'COMMON', percent: 99 }, { rarity: 'RARE', percent: 1 }], wallet });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await page.locator('#qh-oddsBtn').click();
   await expect(page.locator('#qh-odds')).toContainText('99,00%');
@@ -79,7 +79,7 @@ test('any number of chests works, with the look the admin chose', async ({ page 
     offSale: [],
     wallet,
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await expect(page.locator('.qh-dot')).toHaveCount(4);
   await page.locator('.qh-dot').nth(3).click();
@@ -91,7 +91,7 @@ test('with nothing on sale the page says so instead of breaking', async ({ page 
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await prepare(page, { chests: [], odds: [], offSale: [], wallet });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await expect(page.locator('#qh-empty')).toContainText('Chưa có hòm');
   expect(errors).toEqual([]);
@@ -110,7 +110,7 @@ test('a chest switched off that the player holds appears, can be opened and offe
       return ok(route, { chestId: 'chest_off', itemId: 'i1', item: NOTEBOOK, chestCount: 0, keyCount: 0, wallet });
     },
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await page.locator('#qh-nextBtn').click();
   await expect(page.locator('#qh-caseName')).toHaveText('Hòm Cũ');
@@ -137,7 +137,7 @@ test('buying sends the price on screen, and a price that moved is explained and 
       return route.fulfill({ status: 409, json: { success: false, message: 'moved', errors: { code: 'CHEST_PRICE_CHANGED', messageKey: 'market.CHEST_PRICE_CHANGED' } } });
     },
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await expect(page.locator('#qh-openLbl')).toContainText('180');
   await page.locator('#qh-openBtn').click();
@@ -151,7 +151,7 @@ test('a chest that stopped selling while the page was open says so', async ({ pa
   await prepare(page, { chests: [chest('chest_a', 'Hòm A', { chestCount: 1 }), chest('chest_b', 'Hòm B')], odds: [], offSale: [], wallet }, {
     '/api/chests/chest_a/keys': (route) => route.fulfill({ status: 409, json: { success: false, message: 'off', errors: { code: 'CHEST_NOT_FOR_SALE', messageKey: 'market.CHEST_NOT_FOR_SALE' } } }),
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   await page.locator('#qh-openBtn').click();
 
@@ -165,7 +165,7 @@ test('a curio that borrows a chest sprite draws that chest, not the fallback ico
     offSale: [],
     wallet,
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   const tiles = page.locator('#qh-contents .qh-it canvas');
   await expect(tiles).toHaveCount(2);
@@ -182,7 +182,7 @@ test('an uploaded picture is what "You may get" and the reel draw', async ({ pag
   await prepare(page, { chests: [chest('chest_a', 'Hòm A', { contents: [picture], chestCount: 1, keyCount: 1 })], odds: [], offSale: [], wallet }, {
     '/api/chests/chest_a/open': (route) => ok(route, { chestId: 'chest_a', itemId: 'i1', item: picture, chestCount: 0, keyCount: 0, wallet }),
   });
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
 
   const tile = page.locator('#qh-contents .qh-it canvas');
   await expect(page.locator('#qh-contents .qh-it')).toContainText('Bức ảnh');

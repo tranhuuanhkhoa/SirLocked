@@ -3,6 +3,7 @@ import { adminAssetsApi } from '../../../api/adminAssetsApi.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { METRICS, RARITIES, askReason, checkPicture, errorText } from './shared.js';
+import { navigate } from '../../../services/navigation.js';
 
 const LEVELS_NOTE = 'Món theo cấp, thành tích hoặc mặc định tự thành không giao dịch được. Người chơi đã vượt cấp đó nhận bù khi mở hồ sơ lần tới.';
 
@@ -66,7 +67,7 @@ export async function saveCosmetic({ item, category, root, visual, button, onSav
     } else {
       const saved = await adminCosmeticsApi.create({ ...basics, category, visual });
       toast('Đã tạo. Giờ có thể đặt cách nhận.', 'success');
-      window.location.hash = `#/admin/cosmetics/${encodeURIComponent(saved.id)}`;
+      navigate(`/admin/cosmetics/${encodeURIComponent(saved.id)}`);
     }
   } catch (error) {
     toast(errorText(error), 'error');
@@ -127,9 +128,9 @@ export function acquisitionHtml(item, page) {
       <div class="acf-actions"><button class="btn btn-primary" type="button" data-save-way>Lưu cách nhận</button></div>
       <h4>Ra từ hòm</h4>
       ${way.chests.length > 0
-    ? `<p class="acf-chests" data-chests>Đang nằm trong hòm: ${way.chests.map((chest) => `<a href="#/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}${chest.active ? '' : ' (đang tắt)'}</a>`).join(', ')}</p>`
+    ? `<p class="acf-chests" data-chests>Đang nằm trong hòm: ${way.chests.map((chest) => `<a href="/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}${chest.active ? '' : ' (đang tắt)'}</a>`).join(', ')}</p>`
     : '<p class="muted small" data-chests>Chưa nằm trong hòm nào.</p>'}
-      <p class="muted small">Việc đưa vào hòm làm ở <a href="#/admin/chests">Hòm &amp; vật phẩm</a>.</p>
+      <p class="muted small">Việc đưa vào hòm làm ở <a href="/admin/chests">Hòm &amp; vật phẩm</a>.</p>
     </section>`;
 }
 
@@ -174,7 +175,7 @@ export function statusHtml(item) {
       <p class="muted small">${item.retired ? 'Đã ngừng phát hành: không còn rơi, không còn trong cửa hàng. Người đã có vẫn dùng bình thường.' : 'Đang phát hành.'} ${item.owners} người đang sở hữu.</p>
       <div class="acf-actions">
         <button class="btn ${item.retired ? 'btn-primary' : 'btn-ghost'}" type="button" data-retire>${item.retired ? 'Phát hành lại' : 'Ngừng phát hành (retire)'}</button>
-        <a class="btn btn-ghost" href="#/admin/cosmetics?tab=grant&def=${encodeURIComponent(item.id)}">Cấp cho người chơi</a>
+        <a class="btn btn-ghost" href="/admin/cosmetics?tab=grant&def=${encodeURIComponent(item.id)}">Cấp cho người chơi</a>
         ${made && item.owners === 0 ? '<button class="btn acf-btn-danger" type="button" data-delete>Xóa hẳn</button>' : ''}
       </div>
     </section>`;
@@ -200,7 +201,7 @@ function wireStatus(root, item, onSaved) {
     try {
       await adminCosmeticsApi.remove(item.id, reason);
       toast('Đã xóa.', 'success');
-      window.location.hash = `#/admin/cosmetics?tab=${item.category}`;
+      navigate(`/admin/cosmetics?tab=${item.category}`);
     } catch (error) {
       toast(errorText(error), 'error');
     }

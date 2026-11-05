@@ -70,12 +70,12 @@ function liveCards(counts) {
   if (!counts) return '';
   const number = (value) => Number(value ?? 0).toLocaleString('vi-VN');
   const cards = [
-    ['Người chơi mới hôm nay', counts.newPlayersToday, '#/admin/players'],
-    ['Trận hôm nay', counts.gamesToday, '#/admin/economy?tab=phong'],
-    ['Lượt mở hòm hôm nay', counts.chestOpensToday, '#/admin/economy'],
-    ['Xu lưu hành', counts.coinsInCirculation, '#/admin/economy'],
-    ['Giao dịch kẹt', counts.stuckOperations, '#/admin/economy?tab=ket'],
-    ['Ảnh chờ duyệt', counts.pendingAvatars, '#/admin/players?tab=anh'],
+    ['Người chơi mới hôm nay', counts.newPlayersToday, '/admin/players'],
+    ['Trận hôm nay', counts.gamesToday, '/admin/economy?tab=phong'],
+    ['Lượt mở hòm hôm nay', counts.chestOpensToday, '/admin/economy'],
+    ['Xu lưu hành', counts.coinsInCirculation, '/admin/economy'],
+    ['Giao dịch kẹt', counts.stuckOperations, '/admin/economy?tab=ket'],
+    ['Ảnh chờ duyệt', counts.pendingAvatars, '/admin/players?tab=anh'],
   ];
   return `
     <div class="stat-grid adp-cards" data-adp-cards>
@@ -149,8 +149,8 @@ export async function renderAdminDashboardPage(app) {
         <button class="btn btn-ghost" id="seed-demo">${tr('Seed demo cases', 'Tạo các vụ án demo')}</button>
         <button class="btn btn-ghost" id="seed-crack-demo">${tr('Seed Crack cases', 'Tạo các vụ án Crack')}</button>`}
         <button class="btn btn-ghost" id="seed-pixel-demo">${tr('Create / refresh pixel cases', 'Tạo/cập nhật vụ án pixel')}</button>
-        <a class="btn btn-ghost" href="#/admin/cases">${tr('Manage cases', 'Quản lý vụ án')}</a>
-        <a class="btn btn-ghost" href="#/admin/ai">${tr('AI case creator', 'Tạo vụ án AI')}</a>
+        <a class="btn btn-ghost" href="/admin/cases">${tr('Manage cases', 'Quản lý vụ án')}</a>
+        <a class="btn btn-ghost" href="/admin/ai">${tr('AI case creator', 'Tạo vụ án AI')}</a>
       </div>
     </div>
     ${liveCards(counts)}

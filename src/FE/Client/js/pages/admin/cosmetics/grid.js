@@ -40,7 +40,7 @@ const previewHtml = (item) => {
 const cardHtml = (item) => {
   const rar = rarOf(item.rarity);
   return `
-    <a class="acf-card${item.retired ? ' is-retired' : ''}" href="#/admin/cosmetics/${encodeURIComponent(item.id)}" data-card="${escapeHtml(item.id)}" style="--rc:${rar.c}">
+    <a class="acf-card${item.retired ? ' is-retired' : ''}" href="/admin/cosmetics/${encodeURIComponent(item.id)}" data-card="${escapeHtml(item.id)}" style="--rc:${rar.c}">
       <div class="acf-card-art hs-root">${previewHtml(item)}</div>
       <div class="acf-card-body">
         <b>${escapeHtml(item.name)}</b>
@@ -132,7 +132,7 @@ export function mountGrid(host, { page, category }) {
       ${select('rarity', [{ id: '', label: 'Mọi độ hiếm' }, ...RARITIES], filters.rarity)}
       ${select('way', WAYS, filters.way)}
       ${select('state', STATES, filters.state)}
-      <a class="btn btn-primary" href="#/admin/cosmetics/new?type=${category}" data-new>Tạo ${escapeHtml(label.toLowerCase())} mới</a>
+      <a class="btn btn-primary" href="/admin/cosmetics/new?type=${category}" data-new>Tạo ${escapeHtml(label.toLowerCase())} mới</a>
     </div>
     <div class="acf-cards" data-cards></div>`;
 

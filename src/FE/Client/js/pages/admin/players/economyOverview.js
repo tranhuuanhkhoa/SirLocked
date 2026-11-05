@@ -1,7 +1,7 @@
 import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { categoryLabel, rarityLabel } from '../../market/marketKit.js';
-import { alertBox, coins, hashParams, num, playerLink, tableHtml, writeHashParams } from './shared.js';
+import { alertBox, coins, routeParams, num, playerLink, tableHtml, writeRouteParams } from './shared.js';
 
 const signedIn = (value) => (value ? `+${num(value)}` : '0');
 const signedOut = (value) => (value ? `−${num(value)}` : '0');
@@ -35,7 +35,7 @@ const countList = (rows, label) => (rows ?? []).map((row) => `
 
 /** Coins in circulation and held, items by rarity and group, daily flows by source, and the richest players. */
 export function mountOverview(host, { signal }) {
-  let days = hashParams().get('days') === '30' ? 30 : 7;
+  let days = routeParams().get('days') === '30' ? 30 : 7;
   let latest = 0;
 
   const draw = async () => {
@@ -91,7 +91,7 @@ export function mountOverview(host, { signal }) {
     const button = event.target.closest('[data-days]');
     if (!button || Number(button.dataset.days) === days) return;
     days = Number(button.dataset.days);
-    writeHashParams({ days: days === 30 ? '30' : '' });
+    writeRouteParams({ days: days === 30 ? '30' : '' });
     draw();
   }, { signal });
 

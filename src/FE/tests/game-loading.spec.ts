@@ -32,7 +32,7 @@ test('the scene is covered by the loading screen until its background has arrive
   await signIn(page);
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill(ok(withBackground(BG))));
   await slow(page, `**${BG}`, 1800);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const loading = page.locator('#game-loading');
   await expect(loading).toHaveClass(/is-on/);
   await expect(loading).toBeVisible();
@@ -54,7 +54,7 @@ test('the scene is covered by the loading screen until its background has arrive
 test('a scene whose art is already cached shows no loading screen at all after the first draw', async ({ page }) => {
   await signIn(page);
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill(ok(smokeState)));
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('canvas').first()).toBeVisible();
   await expect(page.locator('#game-loading')).not.toHaveClass(/is-on/, { timeout: 8000 });
 });
@@ -62,7 +62,7 @@ test('a scene whose art is already cached shows no loading screen at all after t
 test('a background that fails to load never traps the player behind the loading screen', async ({ page }) => {
   await signIn(page);
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill(ok(withBackground('/assets/pixel/does-not-exist.png'))));
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#game-loading')).not.toHaveClass(/is-on/, { timeout: 8000 });
   await expect(page.locator('canvas').first()).toBeVisible();
 });
@@ -84,7 +84,7 @@ test('changing scene shows the loading screen for the request and for the new sc
     await route.fulfill(ok({ state: hall, message: 'Moved.' }));
   });
   await slow(page, `**${BG2}`, 1500);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const loading = page.locator('#game-loading');
   await expect(page.locator('canvas').first()).toBeVisible();
   await expect(loading).not.toHaveClass(/is-on/, { timeout: 8000 });
@@ -104,7 +104,7 @@ test('reduced motion keeps the loading screen but stops the spinner', async ({ p
   await signIn(page);
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill(ok(withBackground(BG))));
   await slow(page, `**${BG}`, 1500);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#game-loading')).toBeVisible();
   expect(await page.locator('.game-loading-spinner').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
 });

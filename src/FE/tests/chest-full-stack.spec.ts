@@ -113,7 +113,7 @@ test('an admin grant, a bought key, all three chest types opened, and the reward
   expect(none.chests.every((chest) => chest.chestCount === 0 && chest.keyCount === 0)).toBe(true);
 
   // ---- The rewards are ordinary items: in the bag with their icon, listable, visible on the market.
-  await page.goto('/#/market/sell');
+  await page.goto('/market/sell');
   const firstReward = (await call<{ items: InventoryItem[] }>(api, 'GET', '/api/market/inventory', player.token))
     .items.find((item) => item.itemId === received[0])!;
   const tile = page.locator(`#mk-grid [data-item="${firstReward.itemId}"]`);
@@ -128,7 +128,7 @@ test('an admin grant, a bought key, all three chest types opened, and the reward
   await expect(page.locator('#toast-root')).toContainText('Đã đăng bán');
   await expect(tile).toContainText('ĐANG RAO');
 
-  await page.goto('/#/market');
+  await page.goto('/market');
   await page.locator('#mk-q').fill(firstReward.def.name);
   const row = page.locator(`#mk-rows [data-def="${firstReward.def.id}"]`);
   await expect(row).toContainText(fmt(price));
@@ -211,7 +211,7 @@ async function openAs(browser: Browser, auth: Auth, viewport: { width: number; h
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');
   }, auth);
-  await page.goto('/#/kho-ruong');
+  await page.goto('/kho-ruong');
   await expect(page.locator('#qh-openBtn')).toBeVisible();
   return page;
 }

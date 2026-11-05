@@ -40,7 +40,7 @@ test('server readiness blockers stay visible in Vietnamese and retry preserves t
     if (route.request().method() === 'POST') creations++;
     return route.fulfill({ json: envelope([]) });
   });
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-readiness-error')).toContainText('Chưa thể tạo vụ án');
   await expect(page.locator('#ai-readiness-error')).toContainText('Máy chủ chưa cấu hình dịch vụ tạo AI');
@@ -67,7 +67,7 @@ test('capability failure blocks creation with retry while a legacy capability re
   await page.route('**/api/admin/ai-cases', (route) => route.fulfill(route.request().method() === 'GET' && ++lists === 1
     ? { status: 503, json: { success: false, message: 'Service unavailable.' } }
     : { json: envelope(route.request().method() === 'GET' ? [] : draft) }));
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-readiness-error')).toContainText('Could not check AI availability');
   await expect(page.getByText('Could not load recent drafts.', { exact: true })).toBeVisible();
@@ -88,7 +88,7 @@ test('creation errors remain visible and every entered field survives a successf
       ? { status: 409, json: { success: false, message: 'Active draft limit.', errors: { code: 'AI_ACTIVE_DRAFT_LIMIT' } } }
       : { json: envelope(draft) });
   });
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
   await page.locator('#ai-language-select').selectOption('vi');
   await page.locator('#ai-case-type-select').selectOption('THEFT');
@@ -123,7 +123,7 @@ test('Crack-specific readiness blocks only the selected extension', async ({ pag
     ...capabilities, canCreateV3Draft: false,
     v3CreationBlockers: [{ code: 'AI_USAGE_PRICE_REQUIRED', message: 'Review model pricing missing.' }],
   }) }));
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeEnabled();
   await page.locator('#ai-include-crack').check();
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
@@ -147,7 +147,7 @@ test('cancellable drafts require confirmation and cancelled drafts offer no canc
     expect(route.request().method()).toBe('POST');
     return route.fulfill({ json: envelope(cancelledDraft) });
   });
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await expect(page.locator('[data-cancel-draft]')).toHaveCount(1);
   page.once('dialog', (dialog) => dialog.dismiss());
   await page.locator('[data-cancel-draft]').click();
@@ -173,7 +173,7 @@ for (const status of [403, 404]) {
       return route.fulfill(polls === 1 ? { status, json: { success: false, message: 'Unavailable.' } }
         : { json: envelope({ ...draft, status: 'CANCELLED', queueState: 'CANCELLED', canCancel: false }) });
     });
-    await page.goto('/#/admin/ai');
+    await page.goto('/admin/ai');
     await page.clock.install();
     // On a loaded page the installed clock keeps running, so "now" may be past by the time it pauses: pause just ahead.
     await page.clock.pauseAt(Date.now() + 1_000);
@@ -195,7 +195,7 @@ for (const status of [403, 404]) {
 test('failed terminal generation shows the configuration issue without a success toast', async ({ page }) => {
   await page.route('**/api/admin/ai-cases', (route) => route.fulfill({ json: envelope(route.request().method() === 'GET'
     ? [] : { ...draft, status: 'GENERATED_INVALID', lastGenerationErrorCode: 'AI_USAGE_PRICE_REQUIRED', storyPreview: null }) }));
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('#quick-create-btn').click();
   await expect(page.locator('#ai-output')).toContainText('Generation invalid');
   await expect(page.locator('#ai-request-error')).toContainText('AI model pricing');
@@ -217,7 +217,7 @@ test('a delayed terminal poll cannot replace the confirmed cancellation', async 
   });
   await page.route('**/api/admin/ai-cases/creation-test', (route) => route.fulfill({ json: envelope(draft) }));
   await page.route('**/api/admin/ai-cases/creation-test/cancel', (route) => route.fulfill({ json: envelope(cancelledDraft) }));
-  await page.goto('/#/admin/ai');
+  await page.goto('/admin/ai');
   await page.locator('#quick-create-btn').click();
   await expect(page.locator('#ai-output')).toContainText('Generating story');
   await expect.poll(() => listReads).toBe(3);
