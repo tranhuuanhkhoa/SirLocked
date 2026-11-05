@@ -55,6 +55,27 @@ public sealed class RoomDisconnectTimeoutService(MongoDbContext db, IGameNotifie
         string cancelledByUserId = "system:disconnect-timeout", CancellationToken cancellationToken = default)
     {
         if (!RoomRecoveryRules.CanAbandon(room, disconnectedPlayer, now)) return false;
+        var playerFilter = Builders<RoomPlayer>.Filter.Eq(player => player.UserId, disconnectedPlayer.UserId)
+            & Builders<RoomPlayer>.Filter.Ne(player => player.IsConnected, true)
+            & Builders<RoomPlayer>.Filter.Eq(player => player.DisconnectedAt, disconnectedPlayer.DisconnectedAt)
+            & Builders<RoomPlayer>.Filter.Eq(player => player.LastConnectedAt, disconnectedPlayer.LastConnectedAt);
+        return await AbandonAsync(room, Builders<GameRoom>.Filter.ElemMatch(candidate => candidate.Players, playerFilter),
+            cancelledByUserId, now, cancellationToken);
+    }
+
+    /// <summary>
+    /// An admin ending a hung game: the same terminal write and the same push as a timeout, without its reconnect window.
+    /// After a crash presence can claim a player is online for good, and the timeout would then never fire.
+    /// </summary>
+    internal async Task<bool> TryForceAbandonAsync(GameRoom room, string closedByUserId, DateTime now, CancellationToken cancellationToken = default)
+    {
+        if (room.Status != RoomStatus.InProgress || room.GameplayState is not { GameStatus: GameStatus.InProgress }) return false;
+        return await AbandonAsync(room, Builders<GameRoom>.Filter.Empty, closedByUserId, now, cancellationToken);
+    }
+
+    private async Task<bool> AbandonAsync(
+        GameRoom room, FilterDefinition<GameRoom> extraFilter, string cancelledByUserId, DateTime now, CancellationToken cancellationToken)
+    {
         var state = room.GameplayState!;
         var expectedVersion = state.Version;
         PairedConfrontationRules.CancelForAbandon(state, cancelledByUserId, now);
@@ -66,15 +87,11 @@ public sealed class RoomDisconnectTimeoutService(MongoDbContext db, IGameNotifie
             state.ActiveAccusation = null;
         }
 
-        var playerFilter = Builders<RoomPlayer>.Filter.Eq(player => player.UserId, disconnectedPlayer.UserId)
-            & Builders<RoomPlayer>.Filter.Ne(player => player.IsConnected, true)
-            & Builders<RoomPlayer>.Filter.Eq(player => player.DisconnectedAt, disconnectedPlayer.DisconnectedAt)
-            & Builders<RoomPlayer>.Filter.Eq(player => player.LastConnectedAt, disconnectedPlayer.LastConnectedAt);
         var filter = Builders<GameRoom>.Filter.Eq(candidate => candidate.Id, room.Id)
             & Builders<GameRoom>.Filter.Eq(candidate => candidate.Status, RoomStatus.InProgress)
             & Builders<GameRoom>.Filter.Eq(candidate => candidate.GameplayState!.GameStatus, GameStatus.InProgress)
             & Builders<GameRoom>.Filter.Eq(candidate => candidate.GameplayState!.Version, expectedVersion)
-            & Builders<GameRoom>.Filter.ElemMatch(candidate => candidate.Players, playerFilter);
+            & extraFilter;
         var update = Builders<GameRoom>.Update
             .Set(candidate => candidate.Status, RoomStatus.Abandoned)
             .Set(candidate => candidate.GameplayState!.GameStatus, GameStatus.Failed)

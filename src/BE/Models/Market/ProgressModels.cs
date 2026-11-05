@@ -16,6 +16,8 @@ public class PlayerProgress
     /// <summary>A preset avatar id, or "upload" for <see cref="AvatarUrl"/>.</summary>
     public string Avatar { get; set; } = "nonla";
     public string? AvatarUrl { get; set; }
+    /// <summary>When <see cref="AvatarUrl"/> was uploaded, so the admin can list new pictures first. Null on pictures older than this field.</summary>
+    public DateTime? AvatarUploadedAt { get; set; }
     /// <summary>Recently applied exchanges (bounded window) so a replayed step pays once.</summary>
     public List<string> Ops { get; set; } = new();
     public DateTime CreatedAt { get; set; }

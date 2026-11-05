@@ -34,6 +34,12 @@ public class CaseReview
     /// <summary>Snapshot of the player's best result at write time (see <see cref="ReviewResultLabels"/>).</summary>
     public string ResultLabel { get; set; } = ReviewResultLabels.WrongAccusation;
 
+    /// <summary>Hidden by an admin: left out of what players read and of the averages. Editing the review does not bring it back.</summary>
+    public bool Hidden { get; set; }
+    public string? HiddenReason { get; set; }
+    public DateTime? HiddenAt { get; set; }
+    public string? HiddenBy { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

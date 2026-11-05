@@ -95,7 +95,7 @@ public class ReviewService : IReviewService
             return new ReviewPageDto { Items = [], Page = page, PageSize = pageSize, Total = 0, HasMore = false };
         }
 
-        var filter = Builders<CaseReview>.Filter.Eq(r => r.CaseId, caseId);
+        var filter = VisibleFilter(caseId);
         var total = await _db.Reviews.CountDocumentsAsync(filter, cancellationToken: ct);
         var items = await _db.Reviews.Find(filter)
             .SortByDescending(r => r.CreatedAt)
@@ -117,7 +117,7 @@ public class ReviewService : IReviewService
     {
         if (await IsHiddenAsync(caseId)) return ReviewRules.Summarize([]);
         var reviews = await _db.Reviews
-            .Find(Builders<CaseReview>.Filter.Eq(r => r.CaseId, caseId))
+            .Find(VisibleFilter(caseId))
             .ToListAsync(ct);
         return ReviewRules.Summarize(reviews);
     }
@@ -127,6 +127,10 @@ public class ReviewService : IReviewService
         var result = await _db.Reviews.DeleteOneAsync(PairFilter(caseId, userId), ct);
         return result.DeletedCount > 0;
     }
+
+    /// <summary>What players may read of a case. Older reviews have no Hidden field, which counts as not hidden.</summary>
+    private static FilterDefinition<CaseReview> VisibleFilter(string caseId) =>
+        Builders<CaseReview>.Filter.Eq(r => r.CaseId, caseId) & Builders<CaseReview>.Filter.Ne(r => r.Hidden, true);
 
     private static FilterDefinition<CaseReview> PairFilter(string caseId, string userId) =>
         Builders<CaseReview>.Filter.And(
