@@ -70,7 +70,7 @@ public class AdminPlayersAvatarFileTests
     public async Task ItDeletesExactlyWhereTheUploadWrites()
     {
         var upload = new FakeHost(HttpStatusCode.OK, """{"secure_url":"https://img.test/a.webp"}""");
-        await new CloudinaryAvatarStorage(new HttpClient(upload), Options.Create(Configured)).UploadAsync(UserId, new byte[] { 1, 2, 3 });
+        await new CloudinaryAvatarStorage(new HttpClient(upload), Options.Create(Configured), NullLogger<CloudinaryAvatarStorage>.Instance).UploadAsync(UserId, new byte[] { 1, 2, 3 });
         var delete = new FakeHost(HttpStatusCode.OK, """{"result":"ok"}""");
 
         await Remover(delete).TryRemoveAsync(UserId);

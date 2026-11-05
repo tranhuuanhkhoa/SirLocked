@@ -1,5 +1,5 @@
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
-import { EN, FR, T, avatarImg, frameKey, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey } from '../../../cosmetics/index.js';
+import { EN, FR, T, applyCosmetic, avatarImg, frameKey, isKnownCosmetic, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey } from '../../../cosmetics/index.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
@@ -195,6 +195,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
 
   /** Cosmetics are shown by their own drawing code, as players see them. */
   function cosmeticView(def) {
+    // Made on the cosmetics page, perhaps: its definition is right here, the same way the chest reel draws it.
+    if (def.visual && !isKnownCosmetic(def.id)) applyCosmetic(def);
     if (def.category === 'FRAME' && FR[frameKey(def.id)]) {
       return `<canvas class="ac-pool-frame" data-ac-frame="${escapeHtml(frameKey(def.id))}" aria-hidden="true"></canvas>`;
     }

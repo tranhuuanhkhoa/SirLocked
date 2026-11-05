@@ -421,6 +421,20 @@ test.describe('#/admin/items', () => {
 // ------------------------------------------------------------------ chests
 
 test.describe('#/admin/chests', () => {
+  test('a cosmetic made on the cosmetics page is drawn in the content list the way players see it', async ({ page }) => {
+    const s = state();
+    const made = (template: string, params: Json) => ({ iconKey: null, imageUrl: null, builtinId: null, template, params });
+    s.items.push(
+      item('frame_tu-lam', 'Viền Tự Làm', 'RARE', { category: 'FRAME', iconKey: null, visual: made('builtin-clone', { base: 'dong' }), editable: false }),
+      item('title_tu-lam', 'Danh Hiệu Tự Làm', 'RARE', { category: 'TITLE', iconKey: null, visual: made('style', { style: 'ngoc' }), editable: false }),
+    );
+    s.chest.poolIds.push('frame_tu-lam', 'title_tu-lam');
+    await prepare(page, s);
+    await page.goto('/#/admin/chests/chest_np?tab=bang-roi');
+    await expect(page.locator('[data-pool-item="frame_tu-lam"] canvas.ac-pool-frame')).toBeVisible();
+    await expect(page.locator('[data-pool-item="title_tu-lam"] [data-ac-title-art]')).toContainText('Danh Hiệu Tự Làm');
+  });
+
   test('lists chests with their price, opens and expected value', async ({ page }) => {
     const s = state();
     await prepare(page, s);

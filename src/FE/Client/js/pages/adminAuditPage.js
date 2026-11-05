@@ -11,6 +11,8 @@ const TARGET_TYPES = [
 const KNOWN_ACTIONS = [
   'player.coins', 'player.grant', 'player.revoke', 'player.progress', 'player.avatar.remove', 'player.avatar.approve', 'player.logout', 'player.lock', 'player.unlock', 'player.role',
   'listing.remove', 'order.cancel', 'economy.recover', 'room.close', 'review.hide', 'review.unhide', 'review.delete', 'asset.upload',
+  'item.create', 'item.update', 'item.acquisition', 'item.retire', 'item.unretire', 'item.delete',
+  'chest.update', 'chest.restore', 'chest.clone', 'chest.grant', 'gameSettings.update',
 ];
 
 // The log stores UTC; these dates are days on the players' calendar (UTC+7), like every other "day" in the economy pages.
