@@ -166,6 +166,8 @@ test('keyboard focus wakes a plaque the same way the pointer does', async ({ pag
   await prepare(page, progress());
   await page.goto('/#/detective');
   await page.getByRole('tab', { name: 'Danh hiệu' }).click();
+  // Focus scrolls the list under the resting pointer, and a browser keeps that hover until the mouse next moves.
+  await page.mouse.move(0, 0);
   await page.locator('[data-hs-title-id="long-phung"]').focus();
   await expect.poll(() => runningOn(page, '[data-hs-title-id="long-phung"]')).toBeGreaterThan(0);
   await page.locator('[data-hs-title-id="kim-long"]').focus();
