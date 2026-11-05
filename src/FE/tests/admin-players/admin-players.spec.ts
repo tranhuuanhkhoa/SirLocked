@@ -221,6 +221,16 @@ test.describe('chi tiết người chơi', () => {
     expect(sent.idempotencyKey).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
   });
 
+  test('người chưa mở ví: nói trước rằng ví được tạo kèm quà khởi đầu', async ({ page }) => {
+    const fresh = detail();
+    fresh.wallet = { hasAccount: false, balance: 0, held: 0, slotsUsed: 0, slotCap: 12, itemCount: 0, reservedSlots: 0 };
+    await fakeApi(page, { [`GET /api/admin/players/${USER_ID}`]: () => fresh });
+    await page.goto(`/#/admin/players/${USER_ID}`);
+    await expect(page.locator('[data-adp-summary]')).toContainText('Chưa mở ví');
+    await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
+    await expect(dialog(page)).toContainText('500 xu quà khởi đầu');
+  });
+
   test('mất mạng giữa chừng: thử lại dùng đúng khóa cũ nên không cộng hai lần', async ({ page }) => {
     let attempts = 0;
     const calls = await fakeApi(page, {
@@ -712,6 +722,16 @@ test('thẻ số liệu lỗi không làm hỏng trang tổng quan', async ({ pa
 });
 
 // ------------------------------------------------------------------ access and phones
+
+test('hộp xác nhận nằm giữa màn hình', async ({ page }) => {
+  await fakeApi(page, { [`GET /api/admin/players/${USER_ID}`]: () => detail() });
+  await page.goto(`/#/admin/players/${USER_ID}`);
+  await page.getByRole('button', { name: 'Cộng / trừ xu' }).click();
+  const box = (await dialog(page).boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(1);
+});
 
 test('người chơi thường không vào được các trang này', async ({ page }) => {
   await fakeApi(page, {}, 'PLAYER');

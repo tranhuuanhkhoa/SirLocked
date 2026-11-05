@@ -156,6 +156,8 @@
 
 .adp-dialog {
   box-sizing: border-box;
+  /* The shared reset removes the margin a modal dialog centres itself with. */
+  margin: auto;
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   padding: var(--s-5);

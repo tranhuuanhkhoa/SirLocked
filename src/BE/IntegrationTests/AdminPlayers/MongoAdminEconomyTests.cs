@@ -35,6 +35,26 @@ public sealed class MongoAdminEconomyTests
         return await env.Store.Items.Find(i => i.Id == result.ItemId).FirstAsync();
     }
 
+    // ------------------------------------------------------------------ indexes
+
+    [Fact]
+    public async Task IndexesLiveBesideTheRestOfTheApps_InEitherOrder_AndAreSafeToRepeat()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminPlayersEnv.CreateAsync();
+
+        await env.Db.EnsureIndexesAsync();
+        await env.AdminStore.EnsureIndexesAsync();
+        await env.Db.EnsureIndexesAsync();
+
+        var names = await (await env.Store.Accounts.Indexes.ListAsync()).ToListAsync();
+        Assert.Contains(names, index => index["name"] == "ix_marketAccounts_balance");
+        var results = await (await env.Db.GameResults.Indexes.ListAsync()).ToListAsync();
+        Assert.Contains(results, index => index["name"] == "ix_gameResults_players_createdAt");
+        var reviews = await (await env.Db.Reviews.Indexes.ListAsync()).ToListAsync();
+        Assert.Contains(reviews, index => index["name"] == "ix_reviews_createdAt");
+    }
+
     // ------------------------------------------------------------------ removing a listing
 
     [Fact]

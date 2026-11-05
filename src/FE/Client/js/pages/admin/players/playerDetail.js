@@ -198,6 +198,7 @@ export function mountPlayerDetail(host, userId, { signal }) {
       signal,
       title: 'Cộng / trừ xu',
       message: `Số dư hiện tại: ${coins(state.wallet.balance)}. Nhập số âm để trừ. Xu đang giữ cho lệnh mua không trừ được.`,
+      notice: state.wallet.hasAccount ? null : 'Người này chưa mở ví. Thao tác này tạo ví cho họ, kèm 500 xu quà khởi đầu như mọi người chơi mới.',
       fields: [{
         name: 'amount',
         label: 'Số xu',
