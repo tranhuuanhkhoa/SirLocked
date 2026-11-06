@@ -276,6 +276,10 @@ body[data-area="admin"] #app .acs-json {
   white-space: pre;
 }
 body[data-area="admin"] #app .acs-json:focus-visible { outline: 2px solid var(--adm-gold); outline-offset: 2px; }
+/* The theme's phone rule for .btn-sm comes before its 38 px base rule with the same weight, so it never applies: set it here. */
+@media (max-width: 900px) {
+  body[data-area="admin"] #app .acs-json-bar .btn-sm { min-height: 44px; }
+}
 
 @media (max-width: 600px) {
   .adm-card.acs-hero { padding: 16px; gap: 16px; }
