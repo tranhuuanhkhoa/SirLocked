@@ -1029,7 +1029,7 @@ body[data-area="admin"] :is(#app, dialog) .notice-bad { background: var(--adm-ba
 /* ---------- 12. Hộp thoại, toast ---------- */
 
 body[data-area="admin"] > dialog {
-  border-radius: var(--adm-r-card);
+  border-radius: 20px;
   border: 1px solid var(--adm-line);
   background: var(--adm-card);
   color: var(--adm-ink);
