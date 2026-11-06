@@ -69,7 +69,9 @@ test('admin case detail exposes every publish gate and deterministic errors', as
 
   await page.goto('/admin/cases/case-v3-ai');
 
-  await expect(page.getByRole('heading', { name: 'V3 case profile' })).toBeVisible();
+  // The V3 case profile is the "Mechanics" card of the redesigned page.
+  await expect(page.locator('.v3-case-profile')).toContainText('Mechanics 3');
+  await expect(page.locator('.v3-case-profile')).toContainText('CAMERA_EMBEDDED · NORMAL_RANDOM');
   await expect(page.getByRole('heading', { name: 'Publish gate' })).toBeVisible();
   await expect(page.locator('.v3-gate-fail').filter({ hasText: 'Deterministic validation' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Publish blocked' })).toBeDisabled();

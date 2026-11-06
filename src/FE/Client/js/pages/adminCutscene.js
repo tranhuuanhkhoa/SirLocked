@@ -16,6 +16,8 @@ const STATUS_LABELS = {
   DISABLED: () => tr('Hidden', 'Đã tắt'),
   SUPERSEDED: () => tr('Replaced', 'Bản cũ'),
 };
+/** Pill colour of each status (adm-pill--*); a draft and an old version stay neutral. */
+const STATUS_TONES = { APPROVED: 'ok', DISABLED: 'bad' };
 
 /** The admin block "Cutscene mở đầu": generate with AI, preview, edit the text, approve, hide. */
 export function mountCutscenePanel(host, caseId) {
@@ -47,17 +49,17 @@ export function mountCutscenePanel(host, caseId) {
       <label class="cs-row"><span class="cs-label">${tr('Title', 'Tên vụ án')}</span><input class="field-input" data-title-field="title" maxlength="${MAX_TITLE}" value="${esc(script.title.title)}"></label>
       <label class="cs-row"><span class="cs-label">${tr('Subtitle', 'Câu mời vào cuộc')}</span><input class="field-input" data-title-field="subtitle" maxlength="${MAX_SUBTITLE}" value="${esc(script.title.subtitle)}"></label>
       ${rows.join('')}
-      <div class="cs-actions"><button class="btn btn-primary btn-sm" type="button" data-cs-save>${tr('Save text', 'Lưu chữ')}</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-cs-cancel>${tr('Cancel', 'Hủy')}</button></div></div>`;
+      <div class="cs-actions cs-editor-actions"><button class="btn btn-primary" type="button" data-cs-save>${tr('Save text', 'Lưu chữ')}</button>
+        <button class="btn btn-ghost" type="button" data-cs-cancel>${tr('Cancel', 'Hủy')}</button></div></div>`;
   }
 
   function summary() {
     const l = latest();
-    if (!l) return `<p class="muted">${tr('No opening cutscene yet. The AI writes one from the public case data only (no solution).', 'Chưa có cutscene mở đầu. AI tự viết từ dữ liệu công khai của vụ án (không đọc lời giải).')}</p>`;
+    if (!l) return `<p class="cs-note">${tr('No opening cutscene yet. The AI writes one from the public case data only (no solution).', 'Chưa có cutscene mở đầu. AI tự viết từ dữ liệu công khai của vụ án (không đọc lời giải).')}</p>`;
     const live = approved();
-    return `<p class="cs-meta"><span class="chip ${l.status === 'APPROVED' ? 'chip-ok' : ''}" data-cs-status>${esc(STATUS_LABELS[l.status]?.() ?? l.status)}</span>
-      v${l.version} · ${esc(l.source)}${l.model ? ` · ${esc(l.model)}` : ''} · ${Number(l.estimatedSeconds).toFixed(0)}s</p>
-      <p class="muted small">${live ? tr(`Players see version ${live.version}.`, `Người chơi đang xem bản ${live.version}.`) : tr('Players do not see any opening cutscene right now.', 'Hiện người chơi không thấy cutscene mở đầu nào.')}</p>`;
+    return `<div class="cs-meta"><span class="adm-pill${STATUS_TONES[l.status] ? ` adm-pill--${STATUS_TONES[l.status]}` : ''}" data-cs-status>${esc(STATUS_LABELS[l.status]?.() ?? l.status)}</span>
+      <span class="cs-meta-code">v${l.version} · ${esc(l.source)}${l.model ? ` · ${esc(l.model)}` : ''} · ${Number(l.estimatedSeconds).toFixed(0)}s</span></div>
+      <p class="cs-note">${live ? tr(`Players see version ${live.version}.`, `Người chơi đang xem bản ${live.version}.`) : tr('Players do not see any opening cutscene right now.', 'Hiện người chơi không thấy cutscene mở đầu nào.')}</p>`;
   }
 
   function messageHtml() {
@@ -69,14 +71,14 @@ export function mountCutscenePanel(host, caseId) {
     if (disposed) return;
     const l = latest();
     const dis = busy ? 'disabled' : '';
-    host.innerHTML = `<div class="page-head"><h3>${tr('Opening cutscene', 'Cutscene mở đầu')}</h3></div>
-      ${summary()}${messageHtml()}
+    // The tab above already names this block ("Cutscene mở đầu"), so it opens straight on the status line.
+    host.innerHTML = `${summary()}${messageHtml()}
       <div class="cs-actions">
-        <button class="btn ${l ? 'btn-ghost' : 'btn-primary'} btn-sm" type="button" data-cs-generate ${dis}>${l ? tr('Generate again with AI', 'Tạo lại bằng AI') : tr('Generate with AI', 'Tạo bằng AI')}</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-cs-preview ${dis || !data?.script ? 'disabled' : ''}>${tr('Preview', 'Xem thử')}</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-cs-edit ${dis || !data?.script ? 'disabled' : ''}>${tr('Edit text', 'Sửa chữ')}</button>
-        <button class="btn btn-primary btn-sm" type="button" data-cs-approve ${dis || !l || l.status === 'APPROVED' ? 'disabled' : ''}>${tr('Approve', 'Duyệt')}</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-cs-disable ${dis || !approved() ? 'disabled' : ''}>${tr('Hide from players', 'Tắt')}</button>
+        <button class="btn ${l ? 'btn-ghost' : 'btn-primary'}" type="button" data-cs-generate ${dis}>${l ? tr('Generate again with AI', 'Tạo lại bằng AI') : tr('Generate with AI', 'Tạo bằng AI')}</button>
+        <button class="btn btn-ghost" type="button" data-cs-preview ${dis || !data?.script ? 'disabled' : ''}>${tr('Preview', 'Xem thử')}</button>
+        <button class="btn btn-ghost" type="button" data-cs-edit aria-pressed="${editing && data?.script ? 'true' : 'false'}" ${dis || !data?.script ? 'disabled' : ''}>${tr('Edit text', 'Sửa chữ')}</button>
+        <button class="btn adm-btn-ok" type="button" data-cs-approve ${dis || !l || l.status === 'APPROVED' ? 'disabled' : ''}>${tr('Approve', 'Duyệt')}</button>
+        <button class="btn adm-btn-danger" type="button" data-cs-disable ${dis || !approved() ? 'disabled' : ''}>${tr('Hide from players', 'Tắt')}</button>
       </div>
       ${editing && data?.script ? beatsEditor() : ''}`;
     if (editing) refreshCounts();
