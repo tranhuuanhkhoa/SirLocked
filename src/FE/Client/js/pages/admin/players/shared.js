@@ -163,15 +163,6 @@ export function pagedList(host, { load, draw, empty, emptyNote = '', emptyHtml =
   return { refresh };
 }
 
-// ---- tabs ----
-
-export function tabsHtml(tabs, active, label) {
-  return `
-    <div class="adp-tabs" role="tablist" aria-label="${escapeHtml(label)}">
-      ${tabs.map((tab) => `<button class="adp-tab${tab.id === active ? ' is-active' : ''}" type="button" role="tab" data-tab="${tab.id}" aria-selected="${tab.id === active}">${escapeHtml(tab.label)}</button>`).join('')}
-    </div>`;
-}
-
 // ---- the dialog ----
 
 /** Reasons offered for a picture, one click each. */

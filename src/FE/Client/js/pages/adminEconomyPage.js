@@ -1,9 +1,10 @@
+import { pageHead, segTabs } from '../components/admin/ui.js';
 import { render } from '../utils/dom.js';
 import { mountAnomalies, mountStuck } from './admin/players/economyWatch.js';
 import { mountHistory, mountMarket } from './admin/players/economyMarket.js';
 import { mountOverview } from './admin/players/economyOverview.js';
 import { mountReviews, mountRooms } from './admin/players/roomsReviews.js';
-import { routeParams, tabsHtml, writeRouteParams } from './admin/players/shared.js';
+import { routeParams, writeRouteParams } from './admin/players/shared.js';
 
 const TABS = [
   { id: 'tongquan', label: 'Tổng quan', mount: mountOverview },
@@ -21,10 +22,11 @@ export async function renderAdminEconomyPage(app, { signal } = {}) {
   let active = TABS.some((tab) => tab.id === fromAddress) ? fromAddress : 'tongquan';
   render(app, `
     <div class="page adp-page">
-      <div class="page-head"><h2>Kinh tế &amp; chợ</h2></div>
-      <div data-adp-tabs></div>
-      <section data-adp-body></section>
+      ${pageHead({ title: 'Kinh tế & chợ' })}
+      <div class="adp-page-tabs" data-adp-tabs></div>
+      <section class="adp-body" data-adp-body></section>
     </div>`);
+  const tabsHost = app.querySelector('[data-adp-tabs]');
 
   // Each tab draws its own controls, and abandons its listeners when another takes over.
   let view = null;
@@ -33,17 +35,17 @@ export async function renderAdminEconomyPage(app, { signal } = {}) {
     view = new AbortController();
     const stop = () => view.abort();
     signal?.addEventListener('abort', stop, { once: true });
-    app.querySelector('[data-adp-tabs]').innerHTML = tabsHtml(TABS, active, 'Mục kinh tế');
+    tabsHost.innerHTML = segTabs(TABS.map((tab) => ({ key: tab.id, label: tab.label, active: tab.id === active })), 'Mục kinh tế');
     const old = app.querySelector('[data-adp-body]');
     const body = old.cloneNode(false);
     body.dataset.adpEconomy = active;
     old.replaceWith(body);
     TABS.find((tab) => tab.id === active).mount(body, { signal: view.signal });
   };
-  app.querySelector('[data-adp-tabs]').addEventListener('click', (event) => {
-    const tab = event.target.closest('[data-tab]');
-    if (!tab || tab.dataset.tab === active) return;
-    active = tab.dataset.tab;
+  tabsHost.addEventListener('click', (event) => {
+    const tab = event.target.closest('[data-adm-tab]');
+    if (!tab || tab.dataset.admTab === active) return;
+    active = tab.dataset.admTab;
     const address = new URLSearchParams(window.location.search);
     writeRouteParams(Object.fromEntries([...address.keys()].map((key) => [key, ''])));
     writeRouteParams({ tab: active === 'tongquan' ? '' : active });

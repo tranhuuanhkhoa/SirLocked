@@ -3,11 +3,14 @@ import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { defName, itemTile } from '../../market/marketKit.js';
 import { tradesTable } from './playerDetail.js';
-import { actionDialog, coins, dateTime, num, pagedList, playerLink, priceFlag, tableHtml, TRADE_STATUS } from './shared.js';
+import { actionDialog, coins, dateTime, num, pagedList, playerLink, priceFlag, sectionCard, tableHtml, TRADE_STATUS } from './shared.js';
 
-const itemCell = (def) => `<span class="adp-item">${itemTile(def, 36, 28)}<span>${escapeHtml(defName(def))}<br><span class="muted small">${escapeHtml(def.id)}</span></span></span>`;
+const itemCell = (def) => `
+  <span class="adp-item">${itemTile(def, 36, 28)}<span class="adp-item-text"><strong>${escapeHtml(defName(def))}</strong><span class="adp-code">${escapeHtml(def.id)}</span></span></span>`;
 
-const priceCell = (row) => `${coins(row.price)}${priceFlag(row.priceFlag)}<br><span class="muted small">Tham chiếu ${num(row.referencePrice)}</span>`;
+const priceCell = (row) => `<strong class="adp-strong">${coins(row.price)}</strong>${priceFlag(row.priceFlag)}<br><span class="adp-muted">Tham chiếu ${num(row.referencePrice)}</span>`;
+
+const dateCell = (iso) => `<span class="adp-date">${escapeHtml(dateTime(iso))}</span>`;
 
 function priceFilters(prefix, userLabel) {
   return `
@@ -19,11 +22,11 @@ function priceFilters(prefix, userLabel) {
       <label class="field-label" for="${prefix}-user">${escapeHtml(userLabel)}</label>
       <input class="field-input" id="${prefix}-user" name="user" maxlength="100">
     </div>
-    <div class="adp-filter">
+    <div class="adp-filter adp-filter--num">
       <label class="field-label" for="${prefix}-min">Giá từ</label>
       <input class="field-input" id="${prefix}-min" name="minPrice" type="number" min="0" inputmode="numeric">
     </div>
-    <div class="adp-filter">
+    <div class="adp-filter adp-filter--num">
       <label class="field-label" for="${prefix}-max">Giá đến</label>
       <input class="field-input" id="${prefix}-max" name="maxPrice" type="number" min="0" inputmode="numeric">
     </div>`;
@@ -31,11 +34,17 @@ function priceFilters(prefix, userLabel) {
 
 const formValues = (form) => Object.fromEntries([...new FormData(form).entries()].map(([key, value]) => [key, String(value).trim()]));
 
-/** A filter form above a server-paged list: submitting asks the server again from the first page. */
-function filtered(host, { filterAttr, formHtml, listAttr, signal, ...options }) {
-  host.insertAdjacentHTML('beforeend', `
-    <form class="adp-filters" ${filterAttr}>${formHtml}<button class="btn btn-primary adp-filter-go" type="submit">Lọc</button></form>
-    <div ${listAttr} aria-live="polite"></div>`);
+/** A card with a filter form above a server-paged list: submitting asks the server again from the first page. */
+function filtered(host, { id, title, sub, headExtra = '', filterAttr, formHtml, listAttr, signal, ...options }) {
+  host.insertAdjacentHTML('beforeend', sectionCard({
+    id,
+    title,
+    sub,
+    headExtra,
+    body: `
+      <form class="adp-filters" ${filterAttr}>${formHtml}<button class="btn btn-primary adp-filter-go" type="submit">Lọc</button></form>
+      <div class="adp-rows" ${listAttr} aria-live="polite"></div>`,
+  }));
   const form = host.querySelector(`[${filterAttr}]`);
   const body = host.querySelector(`[${listAttr}]`);
   const state = { filters: {} };
@@ -56,21 +65,24 @@ function filtered(host, { filterAttr, formHtml, listAttr, signal, ...options }) 
 /** What is for sale and what is being bid for, with the two things an admin can do about them. */
 export function mountMarket(host, { signal }) {
   host.innerHTML = '';
-  host.insertAdjacentHTML('beforeend', '<h3 class="section-title">Tin rao đang mở</h3>');
   const listings = filtered(host, {
     signal,
+    id: 'adp-listings-title',
+    title: 'Tin rao đang mở',
+    sub: 'Vật phẩm đang bán trên chợ. Gỡ tin thì vật phẩm về lại kho người bán.',
     filterAttr: 'data-adp-listings-filter',
     listAttr: 'data-adp-listings',
     formHtml: priceFilters('adp-ls', 'Người bán'),
+    noun: 'tin rao',
     empty: 'Không có tin rao nào khớp bộ lọc này.',
     load: (filters) => adminPlayersApi.listings(filters),
     draw: (items) => tableHtml([
       { label: 'Vật phẩm', cell: (row) => itemCell(row.def) },
       { label: 'Giá', cell: priceCell },
       { label: 'Người bán', cell: (row) => playerLink(row.userId, row.userName) },
-      { label: 'Đăng lúc', cell: (row) => escapeHtml(dateTime(row.createdAt)) },
-      { label: 'Thao tác', className: 'adp-actions', cell: () => '<button class="btn btn-ghost btn-sm" type="button" data-act="remove">Gỡ</button>' },
-    ], items),
+      { label: 'Đăng lúc', cell: (row) => dateCell(row.createdAt) },
+      { label: 'Thao tác', className: 'adp-actions', cell: () => '<button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-act="remove">Gỡ</button>' },
+    ], items, { minWidth: 820 }),
     actions: {
       remove: async (row) => {
         const answer = await actionDialog({
@@ -88,21 +100,24 @@ export function mountMarket(host, { signal }) {
     },
   });
 
-  host.insertAdjacentHTML('beforeend', '<h3 class="section-title">Lệnh mua đang mở</h3>');
   const orders = filtered(host, {
     signal,
+    id: 'adp-orders-title',
+    title: 'Lệnh mua đang mở',
+    sub: 'Người chơi đặt sẵn xu để mua. Hủy lệnh thì xu đang giữ được trả lại.',
     filterAttr: 'data-adp-orders-filter',
     listAttr: 'data-adp-orders',
     formHtml: priceFilters('adp-or', 'Người mua'),
+    noun: 'lệnh mua',
     empty: 'Không có lệnh mua nào khớp bộ lọc này.',
     load: (filters) => adminPlayersApi.orders(filters),
     draw: (items) => tableHtml([
       { label: 'Vật phẩm', cell: (row) => itemCell(row.def) },
       { label: 'Giá', cell: priceCell },
       { label: 'Người mua', cell: (row) => playerLink(row.userId, row.userName) },
-      { label: 'Đặt lúc', cell: (row) => escapeHtml(dateTime(row.createdAt)) },
-      { label: 'Thao tác', className: 'adp-actions', cell: () => '<button class="btn btn-ghost btn-sm" type="button" data-act="cancel">Hủy lệnh</button>' },
-    ], items),
+      { label: 'Đặt lúc', cell: (row) => dateCell(row.createdAt) },
+      { label: 'Thao tác', className: 'adp-actions', cell: () => '<button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-act="cancel">Hủy lệnh</button>' },
+    ], items, { minWidth: 820 }),
     actions: {
       cancel: async (row) => {
         const answer = await actionDialog({
@@ -124,9 +139,13 @@ export function mountMarket(host, { signal }) {
 
 /** The whole market's past: sales, which can be exported with the same filter, and recent trade offers. */
 export function mountHistory(host, { signal }) {
-  host.innerHTML = '<h3 class="section-title">Lịch sử bán</h3>';
+  host.innerHTML = '';
   const sales = filtered(host, {
     signal,
+    id: 'adp-sales-title',
+    title: 'Lịch sử bán',
+    sub: 'Mọi lần bán trên chợ. Xuất CSV theo đúng bộ lọc bên dưới, tối đa 10.000 dòng mới nhất.',
+    headExtra: '<button class="btn btn-ghost btn-sm" type="button" data-adp-export>Xuất CSV</button>',
     filterAttr: 'data-adp-sales-filter',
     listAttr: 'data-adp-sales',
     formHtml: `${priceFilters('adp-sa', 'Người mua hoặc bán')}
@@ -138,21 +157,19 @@ export function mountHistory(host, { signal }) {
         <label class="field-label" for="adp-sa-to">Đến ngày</label>
         <input class="field-input" id="adp-sa-to" name="toDay" type="date">
       </div>`,
+    noun: 'giao dịch',
     empty: 'Không có giao dịch nào khớp bộ lọc này.',
     load: (filters) => adminPlayersApi.marketSales(salesQuery(filters)),
     draw: (items) => tableHtml([
       { label: 'Vật phẩm', cell: (row) => itemCell(row.def) },
-      { label: 'Giá', cell: (row) => `${coins(row.price)}${priceFlag(row.priceFlag)}<br><span class="muted small">Phí ${num(row.fee)}</span>` },
+      { label: 'Giá', cell: (row) => `<strong class="adp-strong">${coins(row.price)}</strong>${priceFlag(row.priceFlag)}<br><span class="adp-muted">Phí ${num(row.fee)}</span>` },
       { label: 'Người bán', cell: (row) => playerLink(row.sellerId, row.sellerName) },
       { label: 'Người mua', cell: (row) => playerLink(row.buyerId, row.buyerName) },
-      { label: 'Lúc', cell: (row) => escapeHtml(dateTime(row.at)) },
-    ], items),
+      { label: 'Lúc', cell: (row) => dateCell(row.at) },
+    ], items, { minWidth: 820 }),
   });
 
-  const exporter = document.createElement('p');
-  exporter.innerHTML = '<button class="btn btn-ghost btn-sm" type="button" data-adp-export>Xuất CSV</button> <span class="muted small">Theo đúng bộ lọc trên, tối đa 10.000 dòng mới nhất.</span>';
-  host.append(exporter);
-  exporter.querySelector('[data-adp-export]').addEventListener('click', async (event) => {
+  host.querySelector('[data-adp-export]').addEventListener('click', async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
     try {
@@ -171,9 +188,11 @@ export function mountHistory(host, { signal }) {
     button.disabled = false;
   }, { signal });
 
-  host.insertAdjacentHTML('beforeend', '<h3 class="section-title">Đề nghị trao đổi gần đây</h3>');
   filtered(host, {
     signal,
+    id: 'adp-trades-title',
+    title: 'Đề nghị trao đổi gần đây',
+    sub: 'Người chơi đổi đồ hoặc xu trực tiếp với nhau.',
     filterAttr: 'data-adp-trades-filter',
     listAttr: 'data-adp-trades',
     formHtml: `
@@ -188,6 +207,7 @@ export function mountHistory(host, { signal }) {
           ${Object.entries(TRADE_STATUS).map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join('')}
         </select>
       </div>`,
+    noun: 'đề nghị',
     empty: 'Chưa có đề nghị trao đổi nào.',
     load: (filters) => adminPlayersApi.marketTrades(filters),
     draw: (items) => tradesTable(items),
@@ -203,3 +223,4 @@ function salesQuery({ fromDay, toDay, ...filters } = {}) {
     to: toDay ? new Date(`${toDay}T23:59:59.999+07:00`).toISOString() : '',
   };
 }
+
