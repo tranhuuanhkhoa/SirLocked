@@ -289,3 +289,58 @@ body[data-area="admin"] #app .acs-json:focus-visible { outline: 2px solid var(--
   /* như thiết kế: ba tab xuống dòng thay vì cuộn ngang (cuộn ngang giấu mất tab JSON) */
   .acs-content > .adm-tabs { flex-wrap: wrap; overflow: visible; }
 }
+
+/* ---------- nhập JSON (/admin/import): trang riêng, vẽ như hộp thoại "Nhập JSON" trong một thẻ ---------- */
+
+.adm-card.acs-import-card {
+  max-width: 760px;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 20px;
+}
+.acs-import-head { display: flex; flex-direction: column; gap: 4px; }
+body[data-area="admin"] #app .acs-import-head h1 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--adm-navy);
+}
+.acs-import-head .adm-card-sub { margin: 0; font-size: 14px; }
+.acs-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.acs-field > label { font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.acs-field .field-hint { margin-top: -4px; }
+.acs-field .field-hint code { font-size: 12px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+body[data-area="admin"] #app .acs-json-input {
+  /* !important: the theme's general input rule outweighs its own .json-input mono rule */
+  font-family: var(--adm-mono) !important;
+  width: 100%;
+  margin: 0;
+  min-height: 260px;
+  padding: 14px;
+  background: var(--adm-paper-2);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.acs-check-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+body[data-area="admin"] #app .acs-check-line input { margin: 0; flex: none; }
+#import-output:empty { display: none; }
+body[data-area="admin"] #app #import-output .notice { margin: 0; }
+body[data-area="admin"] #app #import-output ul { margin: 6px 0 0; padding-left: 20px; overflow-wrap: anywhere; }
+.acs-import-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+@media (max-width: 600px) {
+  .adm-card.acs-import-card { padding: 18px 16px; }
+  .acs-import-actions .btn { flex: 1 1 auto; }
+}
