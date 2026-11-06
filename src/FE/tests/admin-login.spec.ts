@@ -115,9 +115,9 @@ test.describe('what each page offers', () => {
   test('the admin page reads in English too', async ({ page }) => {
     await fakeApi(page);
     await page.goto('/admin/login');
-    await page.locator('.auth-panel [data-ui-language="en"]').click();
+    await page.locator('.adm-login [data-ui-language="en"]').click();
     await expect(page.getByRole('heading', { name: 'Admin sign-in' })).toBeVisible();
-    await page.locator('.auth-panel [data-ui-language="vi"]').click();
+    await page.locator('.adm-login [data-ui-language="vi"]').click();
     await expect(page.getByRole('heading', { name: 'Đăng nhập quản trị' })).toBeVisible();
   });
 

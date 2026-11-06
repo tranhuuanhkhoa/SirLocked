@@ -1,13 +1,11 @@
-import '../../../css/22-bpa-auth.css';
 import { authApi } from '../api/authApi.js';
+import { icon } from '../components/admin/icons.js';
 import { session } from '../services/session.js';
 import { navigate } from '../services/navigation.js';
-import { tr } from '../services/i18n.js';
+import { languageSwitchMarkup, tr } from '../services/i18n.js';
 import { escapeHtml, qs, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
-import { ICON_ARROW, authHead, loginBoardMarkup, passwordField, setBoardState, wireRevealButtons } from './loginPage.js';
-
-const ICON_ALERT = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg>';
+import { wireRevealButtons } from './loginPage.js';
 
 function refusal(error) {
   if (error.status === 401) return tr('Wrong email or password.', 'Sai email hoặc mật khẩu.');
@@ -19,6 +17,7 @@ function refusal(error) {
 /**
  * The admins' own sign-in page; /login is the players'. Someone signed in with a player account still gets the form, since this
  * is how they reach the admin account, and the session they have is only replaced once the server accepts the admin one.
+ * Drawn in the admin "paper file" look (css/60-admin-theme.css, .adm-login): navy panel on the left, the form on the right.
  */
 export async function renderAdminLoginPage(app) {
   if (session.isAdmin()) {
@@ -27,42 +26,55 @@ export async function renderAdminLoginPage(app) {
   }
   const current = session.user();
 
-  const body = `
-    <section class="bpa-auth-section bpa-auth-rise-late" aria-labelledby="admin-login-title">
-      <div class="bpa-auth-card">
-        <span class="bpa-auth-pin" aria-hidden="true"></span>
-        ${authHead(tr('Restricted area', 'Khu vực hạn chế'), 'ADMIN')}
-        <h2 id="admin-login-title" class="bpa-auth-title">${tr('Admin sign-in', 'Đăng nhập quản trị')}</h2>
-        <p class="bpa-auth-sub">${tr('For admin accounts only.', 'Chỉ dành cho tài khoản admin.')}</p>
-        ${current ? `
-          <div class="bpa-auth-note bpa-auth-note--memo">
-            <p>${tr(
-              `You are signed in as <b>${escapeHtml(current.fullName)}</b>. Signing in here replaces that session.`,
-              `Bạn đang đăng nhập với tên <b>${escapeHtml(current.fullName)}</b>. Đăng nhập ở đây sẽ thay thế phiên đó.`,
-            )}</p>
-          </div>` : ''}
-        <div id="admin-login-error"></div>
-        <form id="form-admin-login" class="bpa-auth-form">
-          <div class="bpa-auth-field">
-            <label for="admin-login-email" class="bpa-auth-flabel"><span aria-hidden="true">01 — </span>Email</label>
-            <input id="admin-login-email" class="bpa-auth-input" name="email" type="email" required autocomplete="email" placeholder="admin@example.com">
+  render(app, `
+    <div class="adm-login">
+      <aside class="adm-login-side">
+        <span class="adm-login-brand">${icon('compass', 40)}<span>SIR LOCKED</span></span>
+        <div class="adm-login-pitch">
+          <span class="adm-login-eyebrow">${tr('Restricted area', 'Khu vực hạn chế')}</span>
+          <p class="adm-login-big">${tr('Sir Locked admin desk', 'Bảng quản trị Sir Locked')}</p>
+          <p class="adm-login-lede">${tr(
+    'Cases, chests, cosmetics, players and the game economy in one place.',
+    'Quản lý vụ án, hòm, mỹ phẩm, người chơi và kinh tế của game trong một nơi.',
+  )}</p>
+        </div>
+        <span class="adm-login-foot">sirlocked.id.vn/admin</span>
+      </aside>
+      <main class="adm-login-main">
+        <div class="adm-login-lang">${languageSwitchMarkup('adm-login-switch')}</div>
+        <section class="adm-login-card" aria-labelledby="admin-login-title">
+          <div>
+            <h1 id="admin-login-title">${tr('Admin sign-in', 'Đăng nhập quản trị')}</h1>
+            <p class="adm-login-sub">${tr('For admin accounts only.', 'Chỉ dành cho tài khoản admin.')}</p>
           </div>
-          ${passwordField({
-            id: 'admin-login-password', name: 'password', autocomplete: 'current-password',
-            label: `<span aria-hidden="true">02 — </span>${tr('Password', 'Mật khẩu')}`,
-          })}
-          <button class="bpa-auth-primary" type="submit">
-            <span>${tr('Log in', 'Đăng nhập')}</span>${ICON_ARROW}
-          </button>
-        </form>
-        <p class="bpa-auth-center">
-          <a href="/login" class="bpa-auth-link is-back"><span aria-hidden="true">←</span><span class="u">${tr('To the player sign-in page', 'Về trang đăng nhập người chơi')}</span></a>
-        </p>
-        <p class="bpa-sr" role="status" id="auth-status"></p>
-      </div>
-    </section>`;
-
-  render(app, loginBoardMarkup(body, { notice: Boolean(current) }));
+          ${current ? `
+            <div class="bpa-auth-note adm-login-note">
+              <p>${tr(
+    `You are signed in as <b>${escapeHtml(current.fullName)}</b>. Signing in here replaces that session.`,
+    `Bạn đang đăng nhập với tên <b>${escapeHtml(current.fullName)}</b>. Đăng nhập ở đây sẽ thay thế phiên đó.`,
+  )}</p>
+            </div>` : ''}
+          <div id="admin-login-error"></div>
+          <form id="form-admin-login" class="adm-login-form">
+            <label class="adm-login-field" for="admin-login-email">
+              <span>Email</span>
+              <input id="admin-login-email" name="email" type="email" required autocomplete="email" placeholder="admin@sirlocked.id.vn">
+            </label>
+            <div class="adm-login-field">
+              <label for="admin-login-password">${tr('Password', 'Mật khẩu')}</label>
+              <span class="adm-login-pass">
+                <input id="admin-login-password" name="password" type="password" required autocomplete="current-password" spellcheck="false">
+                <button type="button" class="adm-login-reveal" data-reveal="admin-login-password" aria-pressed="false"
+                        aria-label="${tr('Show password', 'Hiện mật khẩu')}">${icon('magnifier', 20)}</button>
+              </span>
+            </div>
+            <button class="adm-login-submit" type="submit"><span>${tr('Log in', 'Đăng nhập')}</span></button>
+          </form>
+          <a href="/login" class="adm-login-back">${tr('To the player sign-in page', 'Về trang đăng nhập người chơi')}</a>
+          <p class="bpa-sr" role="status" id="auth-status"></p>
+        </section>
+      </main>
+    </div>`);
   wireRevealButtons(app);
 
   const form = qs('#form-admin-login', app);
@@ -77,7 +89,6 @@ export async function renderAdminLoginPage(app) {
     button.disabled = busy;
     label.textContent = busy ? busyLabel : idleLabel;
     status.textContent = busy ? busyLabel : '';
-    setBoardState(app, busy ? 'solving' : '');
   }
 
   form.addEventListener('submit', async (event) => {
@@ -92,11 +103,7 @@ export async function renderAdminLoginPage(app) {
       toast(tr(`Welcome, ${auth.user.fullName}.`, `Chào mừng, ${auth.user.fullName}.`), 'success');
       navigate('/admin');
     } catch (error) {
-      errorBox.innerHTML = `
-        <div class="bpa-auth-note bpa-auth-note--warn" role="alert">
-          ${ICON_ALERT}
-          <p>${escapeHtml(refusal(error))}</p>
-        </div>`;
+      errorBox.innerHTML = `<div class="adm-login-alert" role="alert">${escapeHtml(refusal(error))}</div>`;
     } finally {
       setBusy(false);
     }
