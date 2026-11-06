@@ -1,5 +1,6 @@
 import { weeklyApi } from '../api/weeklyApi.js';
 import { caseApi } from '../api/caseApi.js';
+import { icon, pageHead, stateBox } from '../components/admin/ui.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 
@@ -9,12 +10,14 @@ import { toast } from '../utils/toast.js';
  */
 
 const TYPES = [
-  { key: 'CASE_OF_WEEK', label: 'Vụ án của tuần' },
-  { key: 'WEEKLY_CHALLENGE', label: 'Thử thách tuần' },
+  { key: 'CASE_OF_WEEK', label: 'Vụ án của tuần', hint: 'Hiện trên banner trang chủ.', icon: 'star', tone: 'gold' },
+  { key: 'WEEKLY_CHALLENGE', label: 'Thử thách tuần', hint: 'Case người chơi được thách đấu trong tuần.', icon: 'trophy', tone: 'violet' },
 ];
 
+const HEAD = () => pageHead({ title: 'Quản lý tuần', sub: 'Chọn case nổi bật cho banner và thử thách tuần.' });
+
 export async function renderWeeklyAdminPage(app) {
-  render(app, '<div class="page"><p class="muted">Đang tải…</p></div>');
+  render(app, `<div class="page acs-page ws-weekly-admin">${HEAD()}${stateBox('loading', 'Đang tải…')}</div>`);
 
   let cases;
   let active;
@@ -28,15 +31,16 @@ export async function renderWeeklyAdminPage(app) {
     active = { CASE_OF_WEEK: cow, WEEKLY_CHALLENGE: challenge };
   } catch (err) {
     toast(err.message || 'Không tải được dữ liệu.', 'error');
-    render(app, '<div class="page"><div class="empty-state">Không tải được dữ liệu admin.</div></div>');
+    render(app, `<div class="page acs-page ws-weekly-admin">${HEAD()}${stateBox('error', 'Không tải được dữ liệu admin.')}</div>`);
     return;
   }
 
   render(app, `
-    <div class="page ws-weekly-admin">
-      <h2>Quản lý tuần</h2>
-      <p class="muted">Chọn case nổi bật cho banner và thử thách tuần.</p>
-      ${TYPES.map((t) => formHtml(t, cases, active[t.key])).join('')}
+    <div class="page acs-page ws-weekly-admin">
+      ${HEAD()}
+      <div class="acs-weekly-grid">
+        ${TYPES.map((t) => formHtml(t, cases, active[t.key])).join('')}
+      </div>
     </div>`);
 
   TYPES.forEach((t) => wireForm(app, t.key, cases));
@@ -48,28 +52,35 @@ function formHtml(type, cases, current) {
   const currentLine = current
     ? `Đang chọn: <strong>${escapeHtml(current.caseTitle)}</strong> (${fmtDate(current.weekStart)} – ${fmtDate(current.weekEnd)})`
     : 'Chưa đặt.';
+  const id = `ws-weekly-${type.key.toLowerCase()}`;
 
   return `
-    <form class="ws-weekly-form" data-type="${type.key}">
-      <h3>${escapeHtml(type.label)}</h3>
-      <p class="ws-weekly-current muted">${currentLine}</p>
-      <label class="ws-weekly-label">Case
+    <form class="adm-card ws-weekly-form" data-type="${type.key}" aria-labelledby="${id}-title">
+      <div class="acs-weekly-head">
+        <span class="acs-weekly-icon acs-weekly-icon--${type.tone}" aria-hidden="true">${icon(type.icon, 24)}</span>
+        <div class="acs-weekly-heading">
+          <h2 class="adm-card-title" id="${id}-title">${escapeHtml(type.label)}</h2>
+          <p class="adm-card-sub">${escapeHtml(type.hint)}</p>
+        </div>
+      </div>
+      <p class="ws-weekly-current acs-weekly-state${current ? ' is-set' : ''}" role="status"><span>${currentLine}</span></p>
+      <label class="ws-weekly-label"><span>Case</span>
         <select class="ws-weekly-select" name="caseId" required>
           <option value="">— Chọn case —</option>
           ${options}
         </select>
       </label>
       <div class="ws-weekly-dates">
-        <label class="ws-weekly-label">Bắt đầu
+        <label class="ws-weekly-label"><span>Bắt đầu</span>
           <input class="ws-weekly-input" type="date" name="weekStart" required>
         </label>
-        <label class="ws-weekly-label">Kết thúc
+        <label class="ws-weekly-label"><span>Kết thúc</span>
           <input class="ws-weekly-input" type="date" name="weekEnd" required>
         </label>
       </div>
       <div class="ws-weekly-actions">
         <button type="submit" class="btn btn-primary ws-weekly-save">Lưu</button>
-        <button type="button" class="btn btn-ghost ws-weekly-clear">Xóa</button>
+        <button type="button" class="btn adm-btn-danger ws-weekly-clear">Xóa</button>
       </div>
     </form>`;
 }
@@ -121,5 +132,5 @@ function wireForm(app, type, cases) {
 
 function fmtDate(iso) {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '?' : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? '?' : d.toLocaleDateString('vi-VN');
 }

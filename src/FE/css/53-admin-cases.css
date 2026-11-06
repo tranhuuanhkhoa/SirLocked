@@ -344,3 +344,61 @@ body[data-area="admin"] #app #import-output ul { margin: 6px 0 0; padding-left: 
   .adm-card.acs-import-card { padding: 18px 16px; }
   .acs-import-actions .btn { flex: 1 1 auto; }
 }
+
+/* ---------- hàng tuần (/admin/weekly) ----------
+   Lớp ws-weekly-* có sẵn trong 09-app.css (khu workshop của người chơi dùng chung tên). Chỉ đè ở đây, trong vùng admin. */
+
+.acs-weekly-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; align-items: start; }
+body[data-area="admin"] #app .adm-card.ws-weekly-form {
+  margin: 0;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 20px;
+}
+.acs-weekly-head { display: flex; align-items: center; gap: 14px; }
+.acs-weekly-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+body[data-area="admin"] #app .acs-weekly-heading .adm-card-title { font-size: 22px; }
+.acs-weekly-heading .adm-card-sub { margin: 0; }
+.acs-weekly-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.acs-weekly-icon--gold { background: var(--adm-warn-bg); color: var(--adm-warn); }
+.acs-weekly-icon--violet { background: var(--adm-violet-bg); color: var(--adm-violet); }
+body[data-area="admin"] #app .ws-weekly-current.acs-weekly-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--adm-tile);
+  color: var(--adm-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.acs-weekly-state::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 999px; background: currentColor; }
+body[data-area="admin"] #app .ws-weekly-current.acs-weekly-state.is-set { background: var(--adm-ok-bg); color: var(--adm-ok); }
+.acs-weekly-state strong { color: inherit; }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--adm-text-2);
+}
+body[data-area="admin"] #app .ws-weekly-form :is(.ws-weekly-select, .ws-weekly-input) { width: 100%; font-size: 14px; }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+body[data-area="admin"] #app .ws-weekly-save { padding: 0 22px; }
+@media (max-width: 600px) {
+  body[data-area="admin"] #app .adm-card.ws-weekly-form { padding: 18px 16px; }
+}
