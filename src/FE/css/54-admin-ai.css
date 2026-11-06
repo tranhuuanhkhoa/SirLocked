@@ -3,6 +3,7 @@
    Mọi lớp mang tiền tố aai- (admin AI). File này nạp TRƯỚC 60-admin-theme.css, nên chỗ nào đè lên quy tắc
    của theme (.notice, .btn, .chip, ô nhập, bảng...) thì viết kèm #app để thắng.
    Các lớp cũ .truth-*, .proof-coverage-*, .v3-*, .generation-progress*, .json-* nằm trong 10-game.css và
+   có thể dùng chung: chỉ đè ở đây, trong .aai-page / .aai-output. */
 
 /* ---------- khung trang ---------- */
 
@@ -292,6 +293,313 @@ body[data-area="admin"] #app .aai-drafts-table td:first-child { min-width: 220px
 .aai-cell small { font-size: 12px; color: var(--adm-muted); }
 body[data-area="admin"] #app .aai-drafts-table .aai-review-chip { min-height: 24px; margin-top: 6px; padding: 0 10px; font-size: 12px; }
 
+/* ---------- bản nháp đang mở: các thẻ duyệt xếp dọc ---------- */
+
+.aai-output { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.aai-output:empty { display: none; }
+body[data-area="admin"] #app .aai-output > * { margin: 0; }
+
+/* thẻ đầu: tên, trạng thái, cấu hình, mã, lỗi, thao tác */
+body[data-area="admin"] #app .adm-card.aai-draft-head { gap: 12px; box-shadow: none; }
+.aai-draft-titlebar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; }
+.aai-draft-heading { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+body[data-area="admin"] #app .aai-draft-title {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.aai-draft-meta { margin: 0; font-size: 14px; color: var(--adm-text-2); }
+.aai-codes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--adm-mono);
+  font-size: 12px;
+  color: var(--adm-muted);
+  overflow-wrap: anywhere;
+}
+body[data-area="admin"] #app .aai-codes code { color: var(--adm-text-2); }
+.aai-note { margin: 0; font-size: 13px; color: var(--adm-muted); }
+body[data-area="admin"] #app .aai-output .aai-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: auto; margin: 0; }
+body[data-area="admin"] #app .aai-failure { margin: 0; }
+body[data-area="admin"] #app .aai-failure p { margin: 0; }
+body[data-area="admin"] #app .aai-failure ul { margin: 6px 0 0; padding-left: 20px; overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-failure code,
+body[data-area="admin"] #app .aai-previous code { font-size: 12px; overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-previous ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-previous p { margin: 0; font-size: 13px; color: var(--adm-muted); }
+
+/* thẻ duyệt: .notice/.notice-ok/.notice-bad cũ giữ lại (test và màu trạng thái), vẽ thành thẻ giấy có vạch màu bên trái */
+body[data-area="admin"] #app .aai-output .aai-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 22px;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r-card);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  font-size: 15px;
+  box-shadow: none;
+}
+body[data-area="admin"] #app .aai-output .aai-panel.notice-ok { border-left: 4px solid var(--adm-ok); }
+body[data-area="admin"] #app .aai-output .aai-panel.notice-bad { border-left: 4px solid var(--adm-bad); }
+body[data-area="admin"] #app .aai-output .aai-panel > * { margin: 0; }
+.aai-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+body[data-area="admin"] #app .aai-panel-title { margin: 0; font-family: var(--adm-display); font-size: 20px; font-weight: 700; line-height: 1.25; color: var(--adm-navy); }
+body[data-area="admin"] #app h4.aai-panel-title { font-family: var(--adm-font); font-size: 16px; }
+body[data-area="admin"] #app .aai-output .aai-panel p { line-height: 1.55; }
+body[data-area="admin"] #app .aai-output .aai-panel .muted.small { font-size: 13px; }
+body[data-area="admin"] #app .aai-output .aai-panel .notice { margin: 0; }
+body[data-area="admin"] #app .aai-output .aai-panel .notice ul { margin: 6px 0 0; padding-left: 20px; overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-output .aai-panel h4 { margin: 0; font-family: var(--adm-font); font-size: 15px; font-weight: 700; color: var(--adm-navy); }
+
+/* ô xám bên trong một thẻ (đánh giá bản sửa, phát hiện của reviewer, chứng cứ theo luận điểm) */
+body[data-area="admin"] #app .aai-output .aai-subpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  color: var(--adm-ink);
+  font-size: 14px;
+}
+body[data-area="admin"] #app .aai-output .aai-subpanel.notice-bad { border-left: 4px solid var(--adm-bad); }
+body[data-area="admin"] #app .aai-output .aai-subpanel > * { margin: 0; }
+body[data-area="admin"] #app .aai-output .aai-subpanel ul { margin: 0; padding-left: 20px; }
+body[data-area="admin"] #app .aai-output .aai-subpanel .notice-bad { background: var(--adm-bad-bg); }
+
+.aai-mono-line { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-muted); overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-mono-line code { color: var(--adm-text-2); }
+.aai-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
+.aai-tiles .adm-tile-value { font-size: 24px; }
+.aai-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+.aai-fact,
+.aai-premise-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--adm-tile);
+}
+.aai-fact > span,
+.aai-premise-facts dt { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--adm-muted); }
+.aai-fact > strong { font-size: 15px; font-weight: 600; color: var(--adm-ink); overflow-wrap: anywhere; }
+.aai-pairs { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.aai-pairs dt { display: inline; font-weight: 600; color: var(--adm-navy); }
+.aai-pairs dd { display: inline; margin: 0; overflow-wrap: anywhere; }
+.aai-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; overflow-wrap: anywhere; }
+.aai-list--mono { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-text-2); }
+body[data-area="admin"] #app .aai-output .truth-review-verdicts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+body[data-area="admin"] #app .aai-output .truth-review-verdicts > strong { margin-right: 6px; color: var(--adm-navy); }
+body[data-area="admin"] #app .aai-output ul.aai-alert-list { margin: 0; padding: 12px 16px 12px 36px; }
+
+/* phát hiện của reviewer, nhóm theo artifact */
+.aai-findings { display: flex; flex-direction: column; gap: 6px; }
+body[data-area="admin"] #app .aai-output .aai-findings h4 { font-family: var(--adm-mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--adm-eyebrow); }
+body[data-area="admin"] #app .aai-output .aai-panel .aai-findings > ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.aai-findings li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-output .aai-findings .chip { min-height: 24px; padding: 0 10px; font-size: 12px; }
+.aai-ids { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-muted); }
+
+/* mục mở/đóng (dòng thời gian, ma trận, JSON...): mũi tên, cao 44 px */
+body[data-area="admin"] #app .aai-output :is(.truth-section, .json-details, .artifact-provenance) > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-height: 44px;
+  margin: 0;
+  list-style: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--adm-navy);
+}
+body[data-area="admin"] #app .aai-output :is(.truth-section, .json-details, .artifact-provenance) > summary::-webkit-details-marker { display: none; }
+body[data-area="admin"] #app .aai-output :is(.truth-section, .json-details, .artifact-provenance) > summary::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 2px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--m-fast) var(--ease-out);
+}
+body[data-area="admin"] #app .aai-output :is(.truth-section, .json-details, .artifact-provenance)[open] > summary::before { transform: rotate(45deg); }
+body[data-area="admin"] #app .aai-output .aai-panel :is(.truth-section, .json-details) { padding-top: 4px; border-top: 1px solid var(--adm-line-mid); }
+body[data-area="admin"] #app .aai-output :is(.truth-section, .json-details)[open] > summary { margin-bottom: 8px; }
+body[data-area="admin"] #app .aai-output .aai-previous { margin: 0; padding-top: 0; border-top: 0; }
+/* thẻ là một <details> (nguồn gốc artifact, chẩn đoán, JSON đã tạo): <details> không làm khung flex được ở mọi trình duyệt */
+body[data-area="admin"] #app .aai-output details.aai-panel { display: block; padding: 6px 22px; }
+body[data-area="admin"] #app .aai-output details.aai-panel[open] { padding-bottom: 22px; }
+body[data-area="admin"] #app .aai-output details.aai-panel > :not(summary) { margin-top: 12px; }
+body[data-area="admin"] #app .aai-output details.aai-panel > summary { min-height: 52px; }
+
+/* bảng trong thẻ duyệt: cuộn ngang trong khung riêng */
+body[data-area="admin"] #app .aai-output .aai-panel .table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  background: var(--adm-card);
+  box-shadow: none;
+}
+body[data-area="admin"] #app .aai-output .aai-panel .admin-table { margin: 0; }
+body[data-area="admin"] #app .aai-output .aai-panel .admin-table td { vertical-align: top; }
+body[data-area="admin"] #app .aai-output .aai-panel .admin-table .chip { min-height: 24px; margin: 2px 0; padding: 0 10px; font-size: 12px; }
+body[data-area="admin"] #app .aai-output .truth-table { min-width: 760px; }
+
+/* bao phủ năm nhóm chứng minh, nghi binh */
+body[data-area="admin"] #app .aai-output .proof-coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 10px; margin: 0; }
+body[data-area="admin"] #app .aai-output .proof-coverage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  font-size: 14px;
+}
+body[data-area="admin"] #app .aai-output .proof-coverage-card.is-covered { border-color: var(--adm-ok-line); }
+body[data-area="admin"] #app .aai-output .proof-coverage-card.is-blocked { border-color: var(--adm-bad-line); }
+.aai-output .proof-coverage-card > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.aai-output .proof-coverage-card > div strong,
+.aai-output .proof-coverage-card > strong { color: var(--adm-navy); }
+body[data-area="admin"] #app .aai-output .proof-coverage-card p { margin: 0; }
+.aai-output .proof-coverage-card small { font-size: 12px; color: var(--adm-muted); overflow-wrap: anywhere; }
+
+/* JSON chỉ đọc: nền navy như trang chi tiết vụ án; JSON sửa được: chữ đều trên nền giấy */
+body[data-area="admin"] #app .aai-output .json-view {
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-navy);
+  color: #e9e1cf;
+  font-family: var(--adm-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+}
+body[data-area="admin"] #app .aai-output textarea.json-editor {
+  width: 100%;
+  min-height: 360px;
+  margin: 0;
+  padding: 14px !important;
+  background: var(--adm-paper-2) !important;
+  font-family: var(--adm-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.6;
+  white-space: pre;
+  resize: vertical;
+}
+
+/* sửa truth theo phạm vi */
+body[data-area="admin"] #app .aai-output .aai-repair { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px solid var(--adm-line-mid); }
+body[data-area="admin"] #app .aai-output .aai-repair > * { margin: 0; }
+body[data-area="admin"] #app .aai-output .truth-repair-field { display: flex; flex-direction: column; gap: 6px; max-width: 720px; margin: 0; }
+body[data-area="admin"] #app .aai-output .truth-repair-field > span { font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+body[data-area="admin"] #app .aai-output .truth-repair-field small { font-size: 13px; color: var(--adm-muted); }
+body[data-area="admin"] #app .aai-output .truth-repair-field select { width: fit-content; max-width: 100%; }
+body[data-area="admin"] #app .aai-output .truth-repair-field textarea { width: 100%; resize: vertical; }
+
+/* điều kiện xuất bản V3: như trang chi tiết vụ án */
+.aai-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+body[data-area="admin"] #app .aai-checks > .aai-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--adm-tile);
+}
+.aai-check-mark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+}
+.aai-check-mark svg { stroke-width: 2.4; }
+.aai-check.v3-gate-fail .aai-check-mark { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.aai-check-text { display: flex; flex-direction: column; min-width: 0; }
+.aai-check-text strong { font-size: 14px; font-weight: 600; color: var(--adm-ink); }
+.aai-check-text > span { font-size: 13px; color: var(--adm-muted); overflow-wrap: anywhere; }
+.aai-check.v3-gate-fail .aai-check-text > span { color: var(--adm-bad); }
+
+/* ma trận Crack V3 */
+body[data-area="admin"] #app .aai-output .aai-crack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+}
+body[data-area="admin"] #app .aai-output .aai-crack > * { margin: 0; }
+body[data-area="admin"] #app .aai-output .aai-code-chip { font-family: var(--adm-mono); font-size: 12px; }
+body[data-area="admin"] #app .aai-output .v3-pair-matrix :is(th, td) { min-width: 220px; vertical-align: top; }
+/* 10-game.css vẽ mọi th của .admin-table như đầu bảng (chữ hoa, nhỏ): ô đầu dòng của ma trận là nội dung */
+body[data-area="admin"] #app .aai-output .v3-pair-matrix tbody th {
+  background: #fbf8f2;
+  color: var(--adm-ink);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+}
+body[data-area="admin"] #app .aai-output .v3-pair-matrix tbody th .muted { font-weight: 400; }
+/* đầu cột là câu lời khai: để xuống dòng, không viết hoa */
+body[data-area="admin"] #app .aai-output .v3-pair-matrix thead th:not(:first-child) { font-size: 13px; letter-spacing: 0; text-transform: none; white-space: normal; color: var(--adm-text-2); }
+body[data-area="admin"] #app .aai-output .presentation-editor > [data-open-presentation] { align-self: flex-start; }
+body[data-area="admin"] #app .aai-output .v3-pair-matrix td.v3-pair-correct { background: var(--adm-ok-bg); outline: 1px solid var(--adm-ok-line); outline-offset: -1px; }
+body[data-area="admin"] #app .aai-output .v3-pair-matrix td.v3-pair-reviewer-selected { outline: 2px solid var(--adm-ok); outline-offset: -2px; }
+
+/* tiền đề */
+body[data-area="admin"] #app .aai-premise-name { font-family: var(--adm-display); font-size: 20px; font-weight: 700; line-height: 1.25; color: var(--adm-navy); }
+.aai-premise-summary { font-size: 15px; color: var(--adm-ink); }
+.aai-premise-facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 10px; }
+.aai-premise-facts dd { margin: 0; font-size: 14px; color: var(--adm-ink); overflow-wrap: anywhere; }
+body[data-area="admin"] #app .aai-quality p { font-size: 14px; }
+
 /* ---------- điện thoại ---------- */
 
 @media (max-width: 900px) {
@@ -301,11 +609,17 @@ body[data-area="admin"] #app .aai-drafts-table .aai-review-chip { min-height: 24
 @media (max-width: 600px) {
   /* bảng trống chỉ còn dòng tiêu đề bị cắt: bỏ, giữ lời nhắn */
   .aai-table-wrap--empty { display: none; }
-  body[data-area="admin"] #app :is(.adm-card.aai-step, .adm-card.aai-flow, .adm-card.aai-progress) { padding: 18px 16px; }
+  body[data-area="admin"] #app :is(.adm-card.aai-step, .adm-card.aai-flow, .adm-card.aai-draft-head, .adm-card.aai-progress) { padding: 18px 16px; }
   .aai-summary { padding: 20px 16px; }
+  body[data-area="admin"] #app .aai-output .aai-panel { padding: 18px 16px; }
+  body[data-area="admin"] #app .aai-output details.aai-panel { padding: 4px 16px; }
+  body[data-area="admin"] #app .aai-output details.aai-panel[open] { padding-bottom: 18px; }
   .aai-seg { width: 100%; }
   .aai-seg > label { flex: 1 1 0; min-width: 0; }
   .aai-toggle { padding: 14px; gap: 12px; }
+  body[data-area="admin"] #app .aai-draft-title { font-size: 24px; }
+  body[data-area="admin"] #app .aai-output .aai-actions .btn { flex: 1 1 auto; }
+  body[data-area="admin"] #app .aai-output .aai-crack { padding: 12px; }
 }
 
 /* màu hệ thống (Windows High Contrast): nền bị thay, nên trạng thái đã chọn cần viền */
