@@ -532,7 +532,8 @@ test.describe('/admin/chests', () => {
 
     const column = page.locator('[data-pool-column="EPIC"]');
     await expect(column.locator('[data-pool-item="title_tan-binh"]')).toBeVisible();
-    await expect(column.locator('.hs-plaque, svg').first()).toBeVisible();
+    // The title's own plaque, drawn in the art cell (the remove button beside it is an svg too).
+    await expect(column.locator('[data-pool-item="title_tan-binh"] .ac-pool-art').locator('.hs-plaque, svg').first()).toBeVisible();
     await expect.poll(() => sent(s, 'POST', '/check').at(-1)!.body!.pool).toContain('title_tan-binh');
 
     await page.locator('[data-pool-item="VC-0402"] [data-ac-remove]').click();

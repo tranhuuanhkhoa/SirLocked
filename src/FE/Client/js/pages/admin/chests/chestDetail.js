@@ -1,4 +1,5 @@
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
+import { icon, pill, stateBox } from '../../../components/admin/ui.js';
 import { EN, FR, T, applyCosmetic, avatarImg, frameKey, isKnownCosmetic, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey } from '../../../cosmetics/index.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
@@ -8,8 +9,8 @@ import { renderChestPage } from '../../chestPage.js';
 import { draftOf, fromHex, toHex, weightOf } from './chestDraft.js';
 import { renderChestStats } from './chestStats.js';
 import {
-  CATEGORY_TEXT, RARITIES, RARITY_COLOR, RARITY_TEXT, confirmDialog, dateTime, errorMessages, errorsHtml, routeParam, itemThumb, mountThumbs,
-  number, openDialog, percent, rarityBadge, setRouteParam, subNav, xu,
+  CATEGORY_TEXT, RARITIES, RARITY_COLOR, RARITY_TEXT, acIcon, confirmDialog, dateTime, errorMessages, errorsHtml, routeParam, itemThumb, mountThumbs,
+  number, openDialog, percent, rarityBadge, setRouteParam, xu,
 } from './shared.js';
 
 const CHECK_DEBOUNCE_MS = 250;
@@ -30,6 +31,8 @@ const FIELD_TEXT = {
 const LOOKS = [{ id: 'seal', label: 'Hòm gỗ niêm phong' }, { id: 'bank', label: 'Két sắt nhà băng' }, { id: 'lacquer', label: 'Tráp sơn mài' }];
 const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer' };
 
+const barWidth = (value) => Math.min(100, Math.max(0, Number(value) || 0));
+
 /** What changed, in words. `names` turns ids into names; an item since deleted keeps its id. */
 function diffHtml(diff, names) {
   const line = (label, value) => `<li><span class="muted">${escapeHtml(label)}:</span> ${value}</li>`;
@@ -43,9 +46,11 @@ function diffHtml(diff, names) {
   return rows.length ? `<ul class="ac-diff">${rows.join('')}</ul>` : '<p class="muted">Không có thay đổi.</p>';
 }
 
+const backLink = `<a class="adm-back-link" href="/admin/chests">${icon('arrowLeft', 16)}Về danh sách hòm</a>`;
+
 /** /admin/chests/:id. Everything is edited as one draft, checked by the server as it changes and saved in one piece. */
 export async function renderChestDetail(app, id, { signal } = {}) {
-  render(app, `<div class="page ac-page">${subNav('chests')}<p class="muted">Đang tải hòm…</p></div>`);
+  render(app, `<div class="page ac-page">${backLink}${stateBox('loading', 'Đang tải hòm…')}</div>`);
 
   let chest;
   let catalog;
@@ -53,7 +58,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     [chest, catalog] = await Promise.all([adminChestsApi.chest(id), adminChestsApi.items()]);
   } catch (error) {
     if (!signal?.aborted) {
-      render(app, `<div class="page ac-page">${subNav('chests')}<div class="empty-state">${escapeHtml(errorMessages(error)[0])}</div><p><a href="/admin/chests">Về danh sách hòm</a></p></div>`);
+      render(app, `<div class="page ac-page">${backLink}${stateBox('error', 'Không mở được hòm này', errorMessages(error)[0])}</div>`);
     }
     return;
   }
@@ -84,30 +89,30 @@ export async function renderChestDetail(app, id, { signal } = {}) {
 
   render(app, `
     <div class="page ac-page ac-detail">
-      ${subNav('chests')}
-      <div class="page-head">
-        <div>
-          <p class="ac-crumb"><a href="/admin/chests">Hòm</a> / <span data-ac-title></span></p>
-          <h2 data-ac-heading></h2>
-          <p class="muted ac-small">${escapeHtml(chest.id)} · chìa ${escapeHtml(chest.keyDefId)} · <span data-ac-version></span></p>
+      ${backLink}
+      <div class="ac-detail-head">
+        <span class="ac-chest-art ac-chest-art--lg" data-ac-head-art aria-hidden="true"><img alt="" draggable="false"></span>
+        <div class="ac-detail-title">
+          <div class="ac-detail-name"><h1 data-ac-heading></h1><span data-ac-status></span></div>
+          <p class="ac-detail-sub">
+            <span class="adm-mono">${escapeHtml(chest.id)}</span> · chìa <span class="adm-mono">${escapeHtml(chest.keyDefId)}</span>
+            · Giá trị kỳ vọng <strong data-ac-ev></strong> · Chi phí mở <strong data-ac-cost></strong> · <span data-ac-version></span>
+          </p>
         </div>
-        <button type="button" class="btn btn-ghost" data-ac-preview>Xem thử như người chơi</button>
+        <div class="adm-actions">
+          <button type="button" class="btn btn-ghost" data-ac-preview>${acIcon('eye', 18)}Xem thử như người chơi</button>
+          <button type="button" class="btn btn-primary" data-ac-save-head disabled>Lưu &amp; áp dụng</button>
+        </div>
       </div>
-      <div class="ac-tabs" role="tablist">
-        ${TABS.map((tab) => `<button type="button" class="ac-tab" role="tab" data-ac-tab="${tab.id}">${escapeHtml(tab.label)}</button>`).join('')}
+      <div class="adm-seg ac-detail-tabs" role="tablist" aria-label="Mục của hòm">
+        ${TABS.map((tab) => `<button type="button" class="ac-tab" role="tab" id="ac-tab-${tab.id}" aria-controls="ac-panel-${tab.id}" data-ac-tab="${tab.id}">${escapeHtml(tab.label)}</button>`).join('')}
       </div>
-      <section class="ac-tab-panel" data-ac-panel="thiet-lap"></section>
-      <section class="ac-tab-panel" data-ac-panel="bang-roi"></section>
-      <section class="ac-tab-panel" data-ac-panel="lich-su"></section>
-      <section class="ac-tab-panel" data-ac-panel="thong-ke"></section>
+      ${TABS.map((tab) => `<section class="ac-tab-panel" role="tabpanel" id="ac-panel-${tab.id}" aria-labelledby="ac-tab-${tab.id}" data-ac-panel="${tab.id}"></section>`).join('')}
       <footer class="ac-savebar" data-ac-savebar>
         <div data-ac-violations></div>
         <div class="ac-savebar-row">
-          <dl class="ac-savebar-facts">
-            <div><dt>Giá trị kỳ vọng</dt><dd data-ac-ev></dd></div>
-            <div><dt>Chi phí mở</dt><dd data-ac-cost></dd></div>
-          </dl>
-          <button type="button" class="btn btn-primary" data-ac-save disabled>Lưu &amp; áp dụng</button>
+          <span class="ac-savebar-text">Thay đổi có hiệu lực ngay với người chơi. Lượt mở đang chạy giữ nguyên phần thưởng đã quay.</span>
+          <button type="button" class="btn adm-btn-accent" data-ac-save disabled>Lưu &amp; áp dụng</button>
         </div>
       </footer>
     </div>`);
@@ -120,23 +125,29 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   function renderSettings() {
     const { draft } = state;
     const text = (name, label, value, attrs = '') => `<label class="ac-field"><span>${escapeHtml(label)}</span><input class="field-input" name="${name}" value="${escapeHtml(value)}" ${attrs}></label>`;
-    const colour = (name, label, value) => `<label class="ac-field ac-field--colour"><span>${escapeHtml(label)}</span><input type="color" name="${name}" value="${toHex(value)}"></label>`;
+    const colour = (name, label, value) => `<label class="ac-colour"><span>${escapeHtml(label)}</span><input type="color" name="${name}" value="${toHex(value)}"></label>`;
     render(panel('thiet-lap'), `
-      <div class="ac-settings">
-        <div class="ac-form-grid">
-          ${text('name', 'Tên hòm', draft.name, 'maxlength="80"')}
-          ${text('nameEn', 'Tên hòm (tiếng Anh)', draft.nameEn, 'maxlength="80"')}
-          ${text('subtitle', 'Phụ đề', draft.subtitle, 'maxlength="80"')}
-          ${text('subtitleEn', 'Phụ đề (tiếng Anh)', draft.subtitleEn, 'maxlength="80"')}
-          ${text('keyName', 'Tên chìa', draft.keyName, 'maxlength="80"')}
-          ${text('keyNameEn', 'Tên chìa (tiếng Anh)', draft.keyNameEn, 'maxlength="80"')}
-          ${text('chestPrice', 'Giá hòm (xu)', draft.chestPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
-          ${text('keyPrice', 'Giá chìa (xu)', draft.keyPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
-          ${text('sortOrder', 'Thứ tự hiển thị', draft.sortOrder, 'type="number" min="0" step="1" inputmode="numeric"')}
-          <label class="ac-check"><input type="checkbox" name="active"${draft.active ? ' checked' : ''}> Đang bán (tắt thì ẩn khỏi Kho Rương, hòm và chìa đã có vẫn mở được)</label>
-        </div>
-        <div class="ac-look">
-          <h4>Hình hòm và ánh sáng</h4>
+      <div class="ac-two">
+        <section class="adm-card ac-col-main" aria-labelledby="ac-info-title">
+          <h2 class="adm-card-title" id="ac-info-title">Thông tin &amp; giá</h2>
+          <div class="ac-form-grid">
+            ${text('name', 'Tên hòm', draft.name, 'maxlength="80"')}
+            ${text('nameEn', 'Tên hòm (tiếng Anh)', draft.nameEn, 'maxlength="80"')}
+            ${text('subtitle', 'Phụ đề', draft.subtitle, 'maxlength="80"')}
+            ${text('subtitleEn', 'Phụ đề (tiếng Anh)', draft.subtitleEn, 'maxlength="80"')}
+            ${text('keyName', 'Tên chìa', draft.keyName, 'maxlength="80"')}
+            ${text('keyNameEn', 'Tên chìa (tiếng Anh)', draft.keyNameEn, 'maxlength="80"')}
+            ${text('chestPrice', 'Giá hòm (xu)', draft.chestPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
+            ${text('keyPrice', 'Giá chìa (xu)', draft.keyPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
+            ${text('sortOrder', 'Thứ tự hiển thị', draft.sortOrder, 'type="number" min="0" step="1" inputmode="numeric"')}
+          </div>
+          <label class="ac-switch-row">
+            <span class="ac-switch-text"><strong>Đang bán</strong><span>Tắt thì ẩn khỏi Kho Rương, hòm và chìa đã có vẫn mở được.</span></span>
+            <input type="checkbox" class="ac-switch" role="switch" name="active"${draft.active ? ' checked' : ''}>
+          </label>
+        </section>
+        <section class="adm-card ac-col-side ac-look" aria-labelledby="ac-look-title">
+          <h2 class="adm-card-title" id="ac-look-title">Hình hòm và ánh sáng</h2>
           <div class="ac-look-preview" data-ac-look-preview><img alt="Hình hòm" draggable="false"></div>
           <label class="ac-field"><span>Kiểu hòm</span>
             <select class="field-input" name="template">
@@ -148,7 +159,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
             ${colour('hi', 'Ánh sáng phụ', draft.look.hi)}
             ${colour('core', 'Lõi sáng', draft.look.core)}
           </div>
-        </div>
+        </section>
       </div>`);
     paintLook();
   }
@@ -166,21 +177,34 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   function renderTable() {
     const { draft } = state;
     render(panel('bang-roi'), `
-      <h3 class="ac-section-title">Bảng rơi</h3>
-      <div class="ac-weights">
-        ${RARITIES.map((rarity) => `
-          <label class="ac-weight" style="--rc:${RARITY_COLOR[rarity]}">
-            <span>${escapeHtml(RARITY_TEXT[rarity])}</span>
-            <span class="ac-weight-input"><input class="field-input" type="number" min="0" max="100" step="0.01" inputmode="decimal" data-weight="${rarity}" value="${draft.dropWeights[rarity] / 100}"><i>%</i></span>
-          </label>`).join('')}
-        <div class="ac-weight-total">Tổng <strong data-ac-total></strong></div>
-      </div>
-      <div class="ac-pool-head">
-        <h3 class="ac-section-title">Nội dung hòm</h3>
-        <button type="button" class="btn btn-ghost btn-sm" data-ac-add-item>Thêm vật phẩm</button>
-      </div>
-      <p class="muted ac-small">Tỉ lệ thật của mỗi món bằng tỉ lệ độ hiếm chia đều cho số món cùng độ hiếm đang phát hành.</p>
-      <div class="ac-pool" data-ac-pool></div>`);
+      <div class="ac-two">
+        <section class="adm-card ac-rates-card" aria-labelledby="ac-rates-title">
+          <h2 class="adm-card-title" id="ac-rates-title">Bảng rơi</h2>
+          <div class="ac-weights">
+            ${RARITIES.map((rarity) => `
+              <div class="ac-weight">
+                <div class="ac-weight-line">
+                  <span class="ac-weight-name">${rarityBadge(rarity)}</span>
+                  <label class="ac-weight-input">
+                    <span class="bpa-sr">Tỉ lệ ${escapeHtml(RARITY_TEXT[rarity])} (%)</span>
+                    <input class="field-input" type="number" min="0" max="100" step="0.01" inputmode="decimal" data-weight="${rarity}" value="${draft.dropWeights[rarity] / 100}">
+                    <i aria-hidden="true">%</i>
+                  </label>
+                </div>
+                <span class="ac-weight-bar" aria-hidden="true"><span data-ac-weight-bar="${rarity}" style="width:${barWidth(draft.dropWeights[rarity] / 100)}%;background:${RARITY_COLOR[rarity]}"></span></span>
+              </div>`).join('')}
+          </div>
+          <div class="ac-weight-total"><strong>Tổng</strong><strong data-ac-total></strong></div>
+          <p class="ac-card-note">Tỉ lệ thật của mỗi món bằng tỉ lệ độ hiếm chia đều cho số món cùng độ hiếm đang phát hành.</p>
+        </section>
+        <section class="adm-card ac-pool-card" aria-labelledby="ac-pool-title">
+          <div class="ac-pool-head">
+            <h2 class="adm-card-title" id="ac-pool-title">Nội dung hòm <span class="ac-title-note" data-ac-pool-count></span></h2>
+            <button type="button" class="btn btn-primary btn-sm" data-ac-add-item>${icon('plus', 16)}Thêm vật phẩm</button>
+          </div>
+          <div class="ac-pool" data-ac-pool></div>
+        </section>
+      </div>`);
     paintTotal();
     paintPool();
   }
@@ -201,24 +225,26 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       return `<canvas class="ac-pool-frame" data-ac-frame="${escapeHtml(frameKey(def.id))}" aria-hidden="true"></canvas>`;
     }
     if (def.category === 'TITLE' && T[titleKey(def.id)]) return `<div class="ac-pool-title" data-ac-title-art>${titleHTML(T[titleKey(def.id)], { maxW: 150 })}</div>`;
-    return itemThumb(def, 56);
+    return itemThumb(def, 44);
   }
 
   function poolCard(defId) {
     const def = defs.get(defId);
     const retired = Boolean(def?.retired);
-    const art = ['FRAME', 'TITLE', 'ENTRANCE'].includes(def?.category) ? cosmeticView(def) : itemThumb(def ?? { id: defId }, 48);
+    const art = ['FRAME', 'TITLE', 'ENTRANCE'].includes(def?.category) ? cosmeticView(def) : itemThumb(def ?? { id: defId }, 40);
     const rate = state.check?.rates?.[defId] ?? null;
     return `
       <div class="ac-pool-item${retired ? ' is-retired' : ''}" data-pool-item="${escapeHtml(defId)}">
-        <div class="ac-pool-art">${art}</div>
+        <div class="ac-pool-art${def?.category === 'TITLE' ? ' ac-pool-art--title' : ''}">${art}</div>
         <div class="ac-pool-text">
           <strong>${escapeHtml(nameOf(defId))}</strong>
-          <span class="muted ac-small">${escapeHtml(defId)}${def ? ` · ${escapeHtml(CATEGORY_TEXT[def.category] ?? def.category)}` : ''}</span>
-          ${retired ? '<span class="ac-tag ac-tag--off">Đã ngừng, không rơi</span>' : ''}
+          <span class="ac-pool-code"><span class="adm-mono">${escapeHtml(defId)}</span>${retired ? ' · <span class="ac-retired-note">Đã ngừng, không rơi</span>' : ''}</span>
+        </div>
+        <div class="ac-pool-meta">
+          ${def ? `<span>${escapeHtml(CATEGORY_TEXT[def.category] ?? def.category)}</span>` : ''}
           <span class="ac-rate" data-ac-rate data-ac-rate-of="${escapeHtml(defId)}">${rate === null ? '' : percent(rate, 4)}</span>
         </div>
-        <button type="button" class="ac-remove" data-ac-remove aria-label="Gỡ ${escapeHtml(nameOf(defId))} khỏi hòm" title="Gỡ khỏi hòm">×</button>
+        <button type="button" class="ac-remove" data-ac-remove aria-label="Gỡ ${escapeHtml(nameOf(defId))} khỏi hòm" title="Gỡ khỏi hòm">${icon('x', 18)}</button>
       </div>`;
   }
 
@@ -230,16 +256,25 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     return peers === 0 ? 0 : (state.draft.dropWeights[def.rarity] / 100) / peers;
   }
 
+  /** "3 món · mỗi món 26,64%": the same split as localRate, for the head of a rarity's group. */
+  function groupNote(rarity) {
+    const ids = state.draft.pool.filter((defId) => (defs.get(defId)?.rarity ?? 'COMMON') === rarity);
+    const live = ids.filter((defId) => !defs.get(defId)?.retired).length;
+    const each = live === 0 ? '' : ` · mỗi món ${percent((state.draft.dropWeights[rarity] / 100) / live, 4)}`;
+    return `${number(ids.length)} món${each}`;
+  }
+
   function paintPool() {
     const pool = $('[data-ac-pool]');
     if (!pool) return;
     painter.clear();
+    $('[data-ac-pool-count]').textContent = `· ${number(state.draft.pool.length)} món`;
     pool.innerHTML = RARITIES.map((rarity) => {
       const ids = state.draft.pool.filter((defId) => (defs.get(defId)?.rarity ?? 'COMMON') === rarity);
       return `
-        <section class="ac-pool-column" data-pool-column="${rarity}" style="--rc:${RARITY_COLOR[rarity]}">
-          <header>${rarityBadge(rarity)} <span class="muted ac-small">${percent(state.draft.dropWeights[rarity] / 100)} · ${number(ids.length)} món</span></header>
-          ${ids.map(poolCard).join('') || '<p class="muted ac-small">Chưa có món nào.</p>'}
+        <section class="ac-pool-group" data-pool-column="${rarity}" aria-label="${escapeHtml(RARITY_TEXT[rarity])}">
+          <header>${rarityBadge(rarity)}<span class="ac-group-note" data-ac-group-note>${groupNote(rarity)}</span></header>
+          ${ids.map(poolCard).join('') || '<p class="ac-pool-empty">Chưa có món nào.</p>'}
         </section>`;
     }).join('');
     pool.querySelectorAll('canvas[data-ac-frame]').forEach((canvas) => {
@@ -264,15 +299,20 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       .filter((def) => !def.retired && def.category !== 'CHEST' && def.category !== 'KEY' && !state.draft.pool.includes(def.id));
     const { dialog } = openDialog({
       title: 'Thêm vật phẩm vào hòm',
-      wide: true,
       signal,
       body: `
         <div class="ac-toolbar">
-          <input class="field-input" type="search" placeholder="Tìm theo tên hoặc mã" aria-label="Tìm vật phẩm" data-ac-pick-search>
-          <select class="field-input" aria-label="Nhóm" data-ac-pick-category>
-            <option value="">Mọi nhóm</option>
-            ${Object.entries(CATEGORY_TEXT).filter(([value]) => value !== 'CHEST' && value !== 'KEY').map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join('')}
-          </select>
+          <label class="adm-search-box ac-search">
+            ${icon('search', 18)}
+            <span class="bpa-sr">Tìm vật phẩm</span>
+            <input type="search" placeholder="Tìm theo tên hoặc mã" data-ac-pick-search>
+          </label>
+          <label class="ac-select"><span class="bpa-sr">Nhóm</span>
+            <select class="field-input" data-ac-pick-category>
+              <option value="">Mọi nhóm</option>
+              ${Object.entries(CATEGORY_TEXT).filter(([value]) => value !== 'CHEST' && value !== 'KEY').map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join('')}
+            </select>
+          </label>
         </div>
         <div class="ac-picker" data-ac-picker></div>`,
     });
@@ -286,10 +326,11 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       const list = dialog.querySelector('[data-ac-picker]');
       list.innerHTML = shown.map((def) => `
         <button type="button" class="ac-pick" data-pick-item="${escapeHtml(def.id)}">
-          ${itemThumb(def, 36)}
-          <span><strong>${escapeHtml(def.name)}</strong><span class="muted ac-small">${escapeHtml(def.id)} · ${escapeHtml(CATEGORY_TEXT[def.category] ?? def.category)}</span></span>
+          <span class="ac-pick-art">${itemThumb(def, 36)}</span>
+          <span class="ac-pick-text"><strong>${escapeHtml(def.name)}</strong><small><span class="adm-mono">${escapeHtml(def.id)}</span> · ${escapeHtml(CATEGORY_TEXT[def.category] ?? def.category)}</small></span>
           ${rarityBadge(def.rarity)}
-        </button>`).join('') || '<p class="muted">Không còn món nào khớp.</p>';
+          <span class="ac-pick-add" aria-hidden="true">${icon('plus', 16)}Thêm</span>
+        </button>`).join('') || '<p class="ac-picker-empty">Không còn món nào khớp.</p>';
       mountThumbs(list, closing.signal);
     };
     dialog.querySelector('[data-ac-pick-search]').addEventListener('input', paint);
@@ -313,7 +354,9 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     $('[data-ac-cost]').textContent = xu(check?.cost ?? (Number(draft.chestPrice) + Number(draft.keyPrice)));
     const messages = checkFailed ? [checkFailed] : (check?.violations ?? []).map((violation) => violation.message);
     $('[data-ac-violations]').innerHTML = errorsHtml(messages);
-    $('[data-ac-save]').disabled = !dirty() || state.pending || messages.length > 0;
+    const blocked = !dirty() || state.pending || messages.length > 0;
+    $('[data-ac-save]').disabled = blocked;
+    $('[data-ac-save-head]').disabled = blocked;
   }
 
   /** The server holds the rules, so it is asked every time the draft changes. */
@@ -360,9 +403,13 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   }
 
   function paintHead() {
-    $('[data-ac-title]').textContent = state.chest.name;
-    $('[data-ac-heading]').textContent = state.chest.name;
-    $('[data-ac-version]').textContent = `phiên bản ${state.chest.version}${state.chest.active ? '' : ' · đang tắt'}`;
+    const { chest: current } = state;
+    $('[data-ac-heading]').textContent = current.name;
+    $('[data-ac-status]').innerHTML = current.active ? pill('Đang bán', 'ok', { dot: true }) : pill('Đang tắt', '', { dot: true });
+    $('[data-ac-version]').textContent = `phiên bản ${current.version}`;
+    const art = $('[data-ac-head-art]');
+    art.querySelector('img').src = pixelIconUrl(current.iconKey);
+    if (current.look?.light) art.style.setProperty('--ac-glow', `rgb(${current.look.light})`);
   }
 
   // ---------------------------------------------------------------- saving
@@ -386,7 +433,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
 
   async function renderHistory() {
     const host = panel('lich-su');
-    render(host, '<p class="muted">Đang tải lịch sử…</p>');
+    render(host, stateBox('loading', 'Đang tải lịch sử…'));
     let versions;
     try {
       versions = await adminChestsApi.versions(id);
@@ -396,21 +443,23 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     }
     if (signal?.aborted) return;
     render(host, `
-      <p class="muted ac-small">Mỗi lần lưu tạo một phiên bản. Khôi phục tạo một phiên bản mới giống bản cũ; trạng thái bật/tắt và thứ tự giữ nguyên như hiện tại.</p>
-      <div class="ac-versions">
-        ${(versions ?? []).map((version) => `
-          <article class="ac-version" data-version="${version.version}">
-            <header>
-              <strong>Phiên bản ${version.version}</strong>
-              ${version.current ? '<span class="ac-tag ac-tag--on">Đang dùng</span>' : ''}
-              <span class="muted ac-small">${dateTime(version.at)}${version.adminName ? ` · ${escapeHtml(version.adminName)}` : ''}</span>
-            </header>
-            ${version.reason ? `<p>${escapeHtml(version.reason)}</p>` : ''}
-            <p class="muted ac-small">Hòm ${xu(version.chestPrice)} · chìa ${xu(version.keyPrice)} · ${number(version.poolCount)} món · ${RARITIES.map((rarity) => `${RARITY_TEXT[rarity]} ${percent((version.dropWeights?.[rarity] ?? 0) / 100)}`).join(' · ')}</p>
-            ${version.diff?.isEmpty ? '' : diffHtml(version.diff ?? {}, nameOf)}
-            ${version.current ? '' : '<button type="button" class="btn btn-ghost btn-sm" data-ac-restore>Khôi phục phiên bản này</button>'}
-          </article>`).join('')}
-      </div>`);
+      <section class="adm-card ac-history">
+        <p class="ac-card-note">Mỗi lần lưu tạo một phiên bản. Khôi phục tạo một phiên bản mới giống bản cũ; trạng thái bật/tắt và thứ tự giữ nguyên như hiện tại.</p>
+        <div class="ac-versions">
+          ${(versions ?? []).map((version) => `
+            <article class="ac-version${version.current ? ' is-current' : ''}" data-version="${version.version}">
+              <header>
+                <strong>Phiên bản ${version.version}</strong>
+                ${version.current ? pill('Đang dùng', 'ok', { small: true }) : ''}
+                <span class="ac-version-when">${dateTime(version.at)}${version.adminName ? ` · ${escapeHtml(version.adminName)}` : ''}</span>
+                ${version.current ? '' : '<button type="button" class="btn btn-ghost btn-sm" data-ac-restore>Khôi phục phiên bản này</button>'}
+              </header>
+              ${version.reason ? `<p class="ac-version-reason">${escapeHtml(version.reason)}</p>` : ''}
+              <p class="ac-version-sum">Hòm ${xu(version.chestPrice)} · chìa ${xu(version.keyPrice)} · ${number(version.poolCount)} món · ${RARITIES.map((rarity) => `${RARITY_TEXT[rarity]} ${percent((version.dropWeights?.[rarity] ?? 0) / 100)}`).join(' · ')}</p>
+              ${version.diff?.isEmpty ? '' : diffHtml(version.diff ?? {}, nameOf)}
+            </article>`).join('')}
+        </div>
+      </section>`);
   }
 
   function restore(version) {
@@ -441,7 +490,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     overlay.innerHTML = `
       <div class="ac-preview-bar">
         <span>Xem thử theo bản đã lưu: không tạo vật phẩm, không trừ xu</span>
-        <button type="button" class="btn btn-primary btn-sm" data-ac-preview-close>Thoát xem thử</button>
+        <button type="button" class="ac-preview-close" data-ac-preview-close>Thoát xem thử</button>
       </div>
       <div class="ac-preview-stage"></div>`;
     document.body.append(overlay);
@@ -509,11 +558,14 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     changed();
   });
 
+  /** A rarity's percentage changed: its bar, and the "each item" split in its group of the content list. */
   function paintPoolHeaders() {
+    for (const rarity of RARITIES) {
+      const bar = app.querySelector(`[data-ac-weight-bar="${rarity}"]`);
+      if (bar) bar.style.width = `${barWidth(state.draft.dropWeights[rarity] / 100)}%`;
+    }
     app.querySelectorAll('[data-pool-column]').forEach((column) => {
-      const rarity = column.dataset.poolColumn;
-      const ids = state.draft.pool.filter((defId) => (defs.get(defId)?.rarity ?? 'COMMON') === rarity);
-      column.querySelector('header .muted').textContent = `${percent(state.draft.dropWeights[rarity] / 100)} · ${number(ids.length)} món`;
+      column.querySelector('[data-ac-group-note]').textContent = groupNote(column.dataset.poolColumn);
     });
   }
 
@@ -522,7 +574,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     if (tab) { showTab(tab.dataset.acTab); return; }
     if (event.target.closest('[data-ac-add-item]')) { openPicker(); return; }
     if (event.target.closest('[data-ac-preview]')) { openPreview(); return; }
-    if (event.target.closest('[data-ac-save]')) { save(); return; }
+    if (event.target.closest('[data-ac-save], [data-ac-save-head]')) { save(); return; }
     const remove = event.target.closest('[data-ac-remove]');
     if (remove) {
       const defId = remove.closest('[data-pool-item]').dataset.poolItem;
