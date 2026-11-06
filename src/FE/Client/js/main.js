@@ -1,4 +1,5 @@
 import { session } from './services/session.js';
+import { renderPaymentsPage } from './pages/paymentsPage.js';
 import { createRouteLifecycle } from './services/routeLifecycle.js';
 import { inviteCodeFromRoute, rememberRoomInvite } from './services/roomInvites.js';
 import { navigate, onRouteChange, replaceAddress } from './services/navigation.js';
@@ -73,6 +74,7 @@ const loadingScreen = (() => {
 setTimeout(() => loadingScreen.hide(), BOOT_LOADING_CAP_MS);
 
 const routes = [
+  { pattern: /^\/payments(?:\/(\d+))?$/, page: renderPaymentsPage, lifecycle: true },
   { pattern: /^\/login$/, page: renderLoginPage, anonymous: true, authScreen: true },
   { pattern: /^\/admin\/login$/, page: renderAdminLoginPage, anonymous: true, authScreen: true },
   { pattern: /^\/oauth-callback/, page: renderOAuthCallbackPage, anonymous: true, authScreen: true },

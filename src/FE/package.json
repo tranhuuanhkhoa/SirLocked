@@ -19,7 +19,8 @@
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
     "lucide": "^1.20.0",
-    "phaser": "^4.1.0"
+    "phaser": "^4.1.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

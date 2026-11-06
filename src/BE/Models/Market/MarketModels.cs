@@ -22,6 +22,8 @@ public class MarketAccount
     public Dictionary<string, string> Equipped { get; set; } = new();
     /// <summary>Recently applied wallet operation keys (bounded window) so a replayed step is a no-op.</summary>
     public List<string> Ops { get; set; } = new();
+    /// <summary>Permanent money-backed credit receipts. Never prune with the bounded game-operation window.</summary>
+    public List<long> PaidTopUpIds { get; set; } = new();
     public bool StarterItemsIssued { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
