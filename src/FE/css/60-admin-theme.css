@@ -443,7 +443,7 @@ body[data-area="admin"] :is(input, select, textarea, button, a, summary, [tabind
   outline-offset: 2px;
 }
 
-.page-head,
+body[data-area="admin"] .page-head,
 .adm-head {
   display: flex;
   flex-wrap: wrap;

@@ -1,3 +1,4 @@
+import { tr, uiLanguage } from '../../services/i18n.js';
 import { escapeHtml, initials } from '../../utils/dom.js';
 import { icon } from './icons.js';
 
@@ -120,22 +121,23 @@ export function pager({ page, pageSize, total, noun = 'mục', perPageHtml = '' 
   }
   return `
     <div class="adm-pager">
-      <span>Hiển thị <strong>${from}–${to}</strong> / ${total.toLocaleString('vi-VN')} ${escapeHtml(noun)}</span>
+      <span>${tr('Showing', 'Hiển thị')} <strong>${from}–${to}</strong> / ${total.toLocaleString('vi-VN')} ${escapeHtml(noun)}</span>
       <div class="adm-pager-nav">
         ${perPageHtml}
-        <button type="button" class="adm-page-btn" data-adm-page="${page - 1}" aria-label="Trang trước"${page <= 1 ? ' disabled' : ''}>${icon('chevronLeft', 16)}</button>
+        <button type="button" class="adm-page-btn" data-adm-page="${page - 1}" aria-label="${tr('Previous page', 'Trang trước')}"${page <= 1 ? ' disabled' : ''}>${icon('chevronLeft', 16)}</button>
         ${numbers.map((n) => (n === '…'
     ? '<span aria-hidden="true">…</span>'
-    : `<button type="button" class="adm-page-btn" data-adm-page="${n}"${n === page ? ' aria-current="page"' : ''} aria-label="Trang ${n}">${n}</button>`)).join('')}
-        <button type="button" class="adm-page-btn" data-adm-page="${page + 1}" aria-label="Trang sau"${page >= pages ? ' disabled' : ''}>${icon('chevronRight', 16)}</button>
+    : `<button type="button" class="adm-page-btn" data-adm-page="${n}"${n === page ? ' aria-current="page"' : ''} aria-label="${tr(`Page ${n}`, `Trang ${n}`)}">${n}</button>`)).join('')}
+        <button type="button" class="adm-page-btn" data-adm-page="${page + 1}" aria-label="${tr('Next page', 'Trang sau')}"${page >= pages ? ' disabled' : ''}>${icon('chevronRight', 16)}</button>
       </div>
     </div>`;
 }
 
-/** Ngày giờ kiểu thiết kế: "THỨ SÁU · 06/11/2026". */
+/** Ngày giờ kiểu thiết kế: "THỨ SÁU · 06/11/2026" (tiếng Anh: "FRIDAY · 06/11/2026"). */
 export function todayEyebrow(date = new Date()) {
-  const day = date.toLocaleDateString('vi-VN', { weekday: 'long' });
-  const stamp = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const locale = uiLanguage() === 'vi' ? 'vi-VN' : 'en-GB';
+  const day = date.toLocaleDateString(locale, { weekday: 'long' });
+  const stamp = date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   return `${day} · ${stamp}`.toUpperCase();
 }
 

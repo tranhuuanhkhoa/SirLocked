@@ -140,9 +140,10 @@ function todoCard(stats, counts) {
     </section>`;
 }
 
-const ROLE_PILL = { ADMIN: ['Admin', 'gold'], VIP: ['VIP', 'violet'], PLAYER: [tr('Player', 'Người chơi'), ''] };
-const STATUS_PILL = { ACTIVE: [tr('Active', 'Hoạt động'), 'ok'], LOCKED: [tr('Locked', 'Đã khóa'), 'bad'], DELETED: [tr('Deleted', 'Đã xóa'), ''] };
-const FILTERS = [
+// Functions, not constants: the language switch re-renders the page without reloading the module.
+const rolePill = (role) => ({ ADMIN: ['Admin', 'gold'], VIP: ['VIP', 'violet'], PLAYER: [tr('Player', 'Người chơi'), ''] })[role];
+const statusPill = (status) => ({ ACTIVE: [tr('Active', 'Hoạt động'), 'ok'], LOCKED: [tr('Locked', 'Đã khóa'), 'bad'], DELETED: [tr('Deleted', 'Đã xóa'), ''] })[status];
+const filters = () => [
   ['all', tr('All', 'Tất cả'), () => true],
   ['ADMIN', 'Admin', (u) => u.role === 'ADMIN'],
   ['VIP', 'VIP', (u) => u.role === 'VIP'],
@@ -151,8 +152,8 @@ const FILTERS = [
 ];
 
 function userRow(u) {
-  const [roleLabel, roleTone] = ROLE_PILL[u.role] ?? [u.role, ''];
-  const [statusLabel, statusTone] = STATUS_PILL[u.status] ?? [u.status, ''];
+  const [roleLabel, roleTone] = rolePill(u.role) ?? [u.role, ''];
+  const [statusLabel, statusTone] = statusPill(u.status) ?? [u.status, ''];
   const actions = u.role === 'ADMIN'
     ? `<span class="muted small">${tr('Admin account', 'Tài khoản quản trị')}</span>`
     : `
@@ -186,7 +187,7 @@ function usersCard(users) {
         </label>
       </div>
       <div class="adm-filters" role="group" aria-label="${tr('Filter by role', 'Lọc theo vai trò')}" style="padding: 0 22px 16px">
-        ${FILTERS.map(([key, label, match], index) => `
+        ${filters().map(([key, label, match], index) => `
           <button type="button" class="adm-filter" data-adp-filter="${key}" aria-pressed="${index === 0}">${escapeHtml(label)}<small>${users.filter(match).length}</small></button>`).join('')}
       </div>
       <div class="adm-table-wrap">
@@ -323,7 +324,7 @@ function wireUsers(app, users) {
   let filter = 'all';
 
   const draw = () => {
-    const match = FILTERS.find(([key]) => key === filter)?.[2] ?? (() => true);
+    const match = filters().find(([key]) => key === filter)?.[2] ?? (() => true);
     const q = search.value.trim().toLowerCase();
     const list = users.filter((u) => match(u)
       && (!q || String(u.fullName || '').toLowerCase().includes(q) || String(u.email || '').toLowerCase().includes(q)));

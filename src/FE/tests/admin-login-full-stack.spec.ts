@@ -68,7 +68,7 @@ test('players and admins each use their own sign-in page', async ({ browser }) =
 
   await test.step('the same player is refused on the admin page, with the right password', async () => {
     await page.goto('/admin/login');
-    await expect(page.locator('.bpa-auth-note--memo')).toContainText('Thám tử TEST');
+    await expect(page.locator('.adm-login-note')).toContainText('Thám tử TEST');
     await fill(page, '#form-admin-login', playerEmail, PLAYER_PASSWORD);
     await expect(page.getByRole('alert')).toContainText('không có quyền admin');
     await picture(page, '02-nguoi-choi-bi-tu-choi');

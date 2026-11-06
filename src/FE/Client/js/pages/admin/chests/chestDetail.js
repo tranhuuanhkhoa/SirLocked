@@ -527,6 +527,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     });
     app.querySelectorAll('[data-ac-panel]').forEach((section) => { section.hidden = section.dataset.acPanel !== tab; });
     $('[data-ac-savebar]').hidden = tab === 'lich-su' || tab === 'thong-ke';
+    // The header copy of "Lưu & áp dụng" goes with the bar: there it would save with no reasons shown and leave the history stale.
+    $('[data-ac-save-head]').hidden = tab === 'lich-su' || tab === 'thong-ke';
     if (tab === 'lich-su') renderHistory();
     if (tab === 'thong-ke') renderChestStats(panel('thong-ke'), id, { signal });
   }

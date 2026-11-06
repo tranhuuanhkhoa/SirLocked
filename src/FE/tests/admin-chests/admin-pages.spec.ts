@@ -658,6 +658,17 @@ test.describe('/admin/chests', () => {
     expect(sent(s, 'POST', '/versions/1/restore')[0].body).toEqual({ expectedVersion: 2, reason: 'Giá cũ tốt hơn' });
   });
 
+  test('the header save button goes away on the history tab, like the save bar, and comes back on the settings tab', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/admin/chests/chest_np?tab=lich-su');
+    await expect(page.locator('[data-version="2"]')).toBeVisible();
+    await expect(page.locator('[data-ac-savebar]')).toBeHidden();
+    await expect(page.locator('[data-ac-save-head]')).toBeHidden();
+    await page.locator('[data-ac-tab="thiet-lap"]').click();
+    await expect(page.locator('[data-ac-save-head]')).toBeVisible();
+  });
+
   test('trying a chest out plays the real screen against the preview API and spends nothing', async ({ page }) => {
     const s = state();
     await prepare(page, s);

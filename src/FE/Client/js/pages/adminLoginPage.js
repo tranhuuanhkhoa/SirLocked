@@ -40,7 +40,7 @@ export async function renderAdminLoginPage(app) {
         </div>
         <span class="adm-login-foot">sirlocked.id.vn/admin</span>
       </aside>
-      <main class="adm-login-main">
+      <div class="adm-login-main">
         <div class="adm-login-lang">${languageSwitchMarkup('adm-login-switch')}</div>
         <section class="adm-login-card" aria-labelledby="admin-login-title">
           <div>
@@ -73,7 +73,7 @@ export async function renderAdminLoginPage(app) {
           <a href="/login" class="adm-login-back">${tr('To the player sign-in page', 'Về trang đăng nhập người chơi')}</a>
           <p class="bpa-sr" role="status" id="auth-status"></p>
         </section>
-      </main>
+      </div>
     </div>`);
   wireRevealButtons(app);
 

@@ -164,10 +164,9 @@ export function adminTopMarkup() {
         <label class="adm-search-box">
           ${icon('search', 18)}
           <span class="bpa-sr">${tr('Search the admin pages', 'Tìm trong trang quản trị')}</span>
-          <input type="search" name="q" autocomplete="off" placeholder="${tr('Find players, items, cases…', 'Tìm người chơi, vật phẩm, vụ án…')}"
-                 aria-controls="adm-search-menu" aria-expanded="false">
+          <input type="search" name="q" autocomplete="off" placeholder="${tr('Find players, items, cases…', 'Tìm người chơi, vật phẩm, vụ án…')}">
         </label>
-        <div class="adm-search-menu" id="adm-search-menu" role="menu" hidden></div>
+        <div class="adm-search-menu" id="adm-search-menu" hidden></div>
       </form>
       <div class="adm-top-tools">${languageSwitchMarkup('adm-lang')}</div>
     </div>`;
@@ -179,7 +178,7 @@ function wireSearch(root) {
   const input = form.querySelector('input');
   const menu = form.querySelector('.adm-search-menu');
   const links = () => [...menu.querySelectorAll('a')];
-  const close = () => { menu.hidden = true; input.setAttribute('aria-expanded', 'false'); };
+  const close = () => { menu.hidden = true; };
   const paint = () => {
     const q = input.value.trim();
     if (!q) {
@@ -187,11 +186,10 @@ function wireSearch(root) {
       return;
     }
     menu.innerHTML = SEARCH_TARGETS.map((target, index) => `
-      <a role="menuitem" href="${target.href}?q=${encodeURIComponent(q)}"${index === 0 ? ' class="is-current"' : ''}>
+      <a href="${target.href}?q=${encodeURIComponent(q)}"${index === 0 ? ' class="is-current"' : ''}>
         ${escapeHtml(target.label)}: “${escapeHtml(q)}”<small>${escapeHtml(target.note)}</small>
       </a>`).join('');
     menu.hidden = false;
-    input.setAttribute('aria-expanded', 'true');
   };
   input.addEventListener('input', paint);
   input.addEventListener('focus', paint);
@@ -220,6 +218,8 @@ function wireSearch(root) {
     if (!form.contains(event.relatedTarget)) close();
   });
   menu.addEventListener('click', close);
+  // Safari does not focus a link on click: without this the box blurs on mousedown, the menu hides, and the click is lost.
+  menu.addEventListener('mousedown', (event) => event.preventDefault());
 }
 
 /**
