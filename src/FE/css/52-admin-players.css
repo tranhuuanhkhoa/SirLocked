@@ -496,8 +496,10 @@ body[data-area="admin"] #app .adp-profile-actions [hidden] { display: none; }
   .adp-review-text { max-width: none; }
   .adp-entry { padding: 14px 16px; }
   .adp-entry-diff { padding: 0 16px 16px; }
-  .adp-entry-toggle { width: auto; }
   /* fingers need 44 px */
+  .adp-page .adm-seg > :is(a, button),
+  .adp-page .adm-seg.adp-seg-sm > button,
+  .adp-page .adm-tabs > button { min-height: 44px; }
   body[data-area="admin"] #app .adp-page .btn-sm,
   body[data-area="admin"] #app .adp-page .adm-page-btn { min-height: 44px; min-width: 44px; }
   .adp-per-page select { min-height: 44px !important; height: 44px; }
