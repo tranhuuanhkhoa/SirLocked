@@ -1,158 +1,166 @@
-/* Players and economy admin pages. Owned by ADMIN-3. */
+/* Players, economy and audit admin pages (ADMIN-3), in the "Hồ sơ giấy" design. Tokens --adm-* come from 60-admin-theme.css. */
 
-.adp-page { max-width: var(--shell-max, var(--page-w)); }
+/* ---- page frame ---- */
 
-.adp-link { color: var(--gold-light); text-decoration: underline; text-underline-offset: 2px; }
-.adp-link:hover { color: var(--white); }
+.adp-page { display: flex; flex-direction: column; gap: 22px; }
+.adp-page > .adm-head { margin-bottom: 0; }
+.adp-page > .adm-head + .adp-page-tabs { margin-top: -6px; }
+.adp-page .adm-back-link { margin-bottom: -4px; width: fit-content; }
+.adp-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.adp-link { color: var(--adm-gold-text); text-decoration: underline; text-underline-offset: 2px; }
+.adp-link:hover { color: #5f450b; }
 .adp-break { overflow-wrap: anywhere; }
-.adp-code { font-family: var(--font-mono); font-size: var(--t-xs); overflow-wrap: anywhere; }
+.adp-code { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+.adp-muted { font-size: 13px; color: var(--adm-muted); }
+.adp-strong { font-weight: 600; color: var(--adm-ink); }
+.adp-date { font-size: 13px; color: var(--adm-text-2); white-space: nowrap; }
+.adp-pills { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 
-/* ---- tabs ---- */
-
-.adp-tabs {
-  display: flex;
-  gap: var(--s-1);
-  margin-bottom: var(--s-4);
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-bottom: var(--bw) solid var(--line);
-}
-.adp-tabs::-webkit-scrollbar { display: none; }
-
-.adp-tab {
-  flex: none;
-  min-height: 44px;
-  padding: 0 var(--s-3);
-  color: var(--beige-muted);
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  font-family: var(--font-body);
-  font-size: var(--t-sm);
+/* a person in a table: the name is the link to their page */
+.adp-person .adm-avatar { width: 36px; height: 36px; font-size: 12px; }
+.adp-person-name {
+  font-weight: 600;
+  color: var(--adm-navy) !important;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
 }
-.adp-tab:hover { color: var(--gold-light); }
-.adp-tab:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
-.adp-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold); }
+.adp-person-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.adp-person .adm-person-text { max-width: 320px; }
 
-/* ---- filters ---- */
+/* ---- cards ---- */
 
-.adp-filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--s-3);
-  align-items: end;
-  margin-bottom: var(--s-4);
-}
-.adp-filter { min-width: 0; }
-.adp-filter .field-label { margin-bottom: var(--s-1); }
-.adp-filter--wide { grid-column: span 2; }
-.adp-filter-go { min-height: 40px; }
+.adp-card-heading { flex: 1 1 280px; min-width: 0; }
+.adp-card .adm-card-sub { font-size: 14px; }
+.adp-rows { min-width: 0; }
+
+/* ---- filters: labels above the fields, a row that wraps ---- */
+
+.adp-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; }
+.adp-filters--bar { padding: 18px 22px; }
+.adm-card--flush > .adm-card-head + .adp-filters { padding: 0 22px 18px; }
+.adp-filter { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.adp-filter .field-label { margin: 0; }
+.adp-filter--grow { flex: 1 1 260px; }
+.adp-filter select { padding-right: 34px; }
+.adp-search-row { display: flex; gap: 8px; }
+.adp-search-row input { flex: 1; min-width: 0; }
+.adp-input-soft { background: var(--adm-paper-2) !important; }
+.adp-filter-go { flex: none; }
 
 .adp-check {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: 10px;
   min-height: 44px;
-  margin-bottom: var(--s-3);
-  color: var(--beige);
-  font-size: var(--t-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--adm-text-2);
   cursor: pointer;
 }
 
-/* ---- tables ---- */
+/* ---- tables: they scroll inside their own frame, the page never does ---- */
 
-.adp-table-wrap { max-width: 100%; overflow-x: auto; }
-.adp-table { font-size: var(--t-sm); }
-.adp-table td { vertical-align: top; overflow-wrap: anywhere; }
-.adp-actions { white-space: nowrap; }
-.adp-actions .btn { min-height: 32px; }
+.adp-table-wrap { border-top: 1px solid var(--adm-line-mid); }
+.adm-card:not(.adm-card--flush) .adp-table-wrap { border: 1px solid var(--adm-line); border-radius: var(--adm-r-tile); }
+.adp-table td { overflow-wrap: anywhere; }
+.adp-table td.adm-num,
+.adp-table th.adm-num { white-space: nowrap; }
+body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: right; white-space: nowrap; }
+.adp-table .adp-actions .adm-table-actions { flex-wrap: nowrap; }
+.adp-item { display: inline-flex; align-items: center; gap: 10px; }
 
-.adp-item { display: inline-flex; align-items: center; gap: var(--s-2); }
+/* states inside a flush card: no box of their own */
+.adm-card--flush .adp-rows > .adm-state:not(.adm-state--error),
+.adm-card--flush [data-adp-panel] > .adm-state:not(.adm-state--error) {
+  border: 0;
+  border-top: 1px solid var(--adm-line-soft);
+  border-radius: 0;
+  background: transparent;
+}
+.adm-card--flush .adp-rows > .adm-state--error,
+.adm-card--flush [data-adp-panel] > .adm-state--error { margin: 0 22px 22px; }
+.adp-per-page { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; }
+.adp-per-page select { min-height: 36px !important; height: 36px; padding: 0 28px 0 10px !important; border-radius: 10px !important; font-size: 13px !important; }
 
-.adp-pager {
+.adp-ok-empty {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--s-2);
-  margin: var(--s-3) 0 var(--s-5);
+  justify-content: center;
+  gap: 10px;
+  margin: 0 22px 22px;
+  padding: 28px 16px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  color: var(--adm-text-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
 }
+.adp-ok-empty svg { flex: none; color: var(--adm-ok); }
 
-.adp-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--s-3);
-  margin-bottom: var(--s-3);
-}
-.adp-section-head p { flex: 1 1 280px; margin: 0; }
-.adp-toggle { display: inline-flex; gap: var(--s-1); }
-.adp-flow-total { margin: 0 0 var(--s-2); }
-.adp-subtitle { margin: 0 0 var(--s-2); color: var(--beige-muted); font-size: var(--t-sm); font-weight: 400; }
+/* ---- players list ---- */
 
-.adp-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-4); margin-bottom: var(--s-5); }
-.adp-count-list { margin: 0; padding: 0; list-style: none; }
-.adp-count-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--s-3);
-  padding: var(--s-1) 0;
-  border-bottom: var(--bw) solid var(--line);
-  font-size: var(--t-sm);
-}
-.adp-count-list strong { color: var(--gold-light); }
+.adp-list-card .adp-table tbody tr { height: 74px; }
 
-.adp-room-player { margin-bottom: var(--s-1); }
-.adp-review-text { display: block; max-width: 44ch; white-space: pre-wrap; }
-
-/* ---- the player ---- */
-
-.adp-profile { display: flex; flex-wrap: wrap; gap: var(--s-5); align-items: center; margin-bottom: var(--s-4); }
-.adp-look { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
-.adp-look canvas { width: 168px; height: 168px; }
-.adp-look-text { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
-.adp-head { flex: 1 1 280px; min-width: 0; }
-.adp-head p { margin: 0 0 var(--s-2); }
-.adp-name { margin: 0 0 var(--s-1); overflow-wrap: anywhere; }
-.adp-chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
-.adp-summary .stat-card { gap: var(--s-1); }
-.adp-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-4) 0; }
-.adp-toolbar [hidden] { display: none; }
-
-/* ---- pictures ---- */
+/* ---- pictures waiting for review ---- */
 
 .adp-avatar-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: var(--s-3);
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
   margin: 0;
-  padding: 0;
+  padding: 0 22px 22px;
   list-style: none;
 }
 .adp-avatar-card {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  padding: var(--s-3);
-  background: var(--panel);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  min-width: 0;
 }
 .adp-avatar-card img {
+  display: block;
   width: 100%;
   height: auto;
   aspect-ratio: 1;
   object-fit: cover;
-  background: var(--charcoal);
-  border-radius: var(--r-md);
+  background: var(--adm-tile-2);
+  border-radius: 10px;
 }
-.adp-avatar-who { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; overflow-wrap: anywhere; }
-.adp-avatar-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: auto; }
+.adp-avatar-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.adp-avatar-who .adm-avatar { width: 32px; height: 32px; font-size: 11px; }
+.adp-avatar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.adp-avatar-actions .btn { flex: 1 1 auto; }
+.adp-avatars-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px 56px;
+  border-top: 1px solid var(--adm-line-soft);
+  text-align: center;
+  color: var(--adm-muted);
+  font-size: 14px;
+}
+.adp-avatars-empty strong { font-size: 16px; color: var(--adm-ink); }
+.adp-avatars-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-/* ---- the dialog ---- */
+/* ---- the dialog every dangerous action goes through ---- */
 
 .adp-dialog {
   box-sizing: border-box;
@@ -160,78 +168,139 @@
   margin: auto;
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
-  padding: var(--s-5);
+  padding: 24px;
   overflow-y: auto;
-  color: var(--beige);
-  background: var(--panel-strong);
-  border: var(--bw) solid var(--line-strong);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-lg);
+  color: var(--adm-ink);
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(16, 32, 58, .25);
 }
-.adp-dialog::backdrop { background: var(--fog); }
-.adp-dialog-title { margin: 0 0 var(--s-2); color: var(--gold-light); overflow-wrap: anywhere; }
-.adp-dialog-message { margin: 0 0 var(--s-3); font-size: var(--t-sm); }
+.adp-dialog::backdrop { background: rgba(16, 32, 58, .45); }
+.adp-dialog-form { position: relative; display: flex; flex-direction: column; gap: 14px; }
+.adp-dialog-title {
+  margin: 0;
+  padding-right: 44px;
+  font-family: var(--adm-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.adp-dialog-close {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--adm-text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.adp-dialog-close:hover { background: var(--adm-tile); color: var(--adm-navy); }
+.adp-dialog-message { margin: 0; font-size: 14px; color: var(--adm-text-2); }
 .adp-dialog-notice {
-  margin: 0 0 var(--s-3);
-  padding: var(--s-2) var(--s-3);
-  border-left: 3px solid var(--copper);
-  background: var(--well, var(--charcoal));
-  font-size: var(--t-sm);
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--adm-warn-bg);
+  color: #5f450b;
+  font-size: 14px;
 }
-.adp-dialog-error { min-height: 0; margin: 0 0 var(--s-3); font-size: var(--t-sm); }
-.adp-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-2); }
-.adp-dialog-actions .btn { min-height: 44px; }
-.adp-presets { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-bottom: var(--s-2); }
-.adp-presets .btn { min-height: 36px; }
+.adp-dialog .field { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.adp-dialog .field-label { margin: 0; }
+.adp-dialog-error { margin: 0; font-size: 13px; font-weight: 600; }
+/* an empty alert stays in the page (so it is announced when filled) but takes no room */
+.adp-dialog-error:empty { margin-top: -14px; }
+.adp-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.adp-dialog-actions .btn { min-width: 96px; }
+/* The theme's solid-red rule for dialogs loses to its own #app rule (the :is() lists share one specificity), so it is restated here. */
+.adp-dialog .adp-btn-danger { background: var(--adm-bad) !important; border-color: var(--adm-bad) !important; color: #fffdf9 !important; }
+.adp-dialog .adp-btn-danger:hover:not(:disabled) { background: #7f3820 !important; border-color: #7f3820 !important; }
+.adp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 .adp-reason { resize: vertical; }
 
-.adp-btn-danger { color: var(--white); background: var(--copper); border: var(--bw) solid var(--copper); }
-.adp-btn-danger:hover:not(:disabled) { background: var(--gold-dim); border-color: var(--gold-dim); }
-.adp-btn-danger:disabled { opacity: .6; }
+/* ---- legacy pieces still used by the pages not converted yet ---- */
 
-/* ---- what changed ---- */
+.adp-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--adm-line-mid);
+}
+.adp-tabs::-webkit-scrollbar { display: none; }
+.adp-tab {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  color: var(--adm-muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--adm-font);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.adp-tab:hover { color: var(--adm-navy); }
+.adp-tab.is-active { color: var(--adm-navy); border-bottom-color: var(--adm-gold); }
 
-.adp-diff { font-size: var(--t-xs); }
-.adp-diff th[scope="row"] { color: var(--beige-muted); font-weight: 400; text-align: left; text-transform: none; letter-spacing: 0; background: none; }
+.adp-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.adp-section-head p { flex: 1 1 280px; margin: 0; }
+.adp-toggle { display: inline-flex; gap: 4px; }
+.adp-flow-total { margin: 0 0 8px; }
+.adp-subtitle { margin: 0 0 8px; color: var(--adm-muted); font-size: 14px; font-weight: 400; }
+.adp-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.adp-count-list { margin: 0; padding: 0; list-style: none; }
+.adp-count-list li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--adm-line); font-size: 14px; }
+.adp-room-player { margin-bottom: 4px; }
+.adp-review-text { display: block; max-width: 44ch; white-space: pre-wrap; }
+
+.adp-profile { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.adp-look { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.adp-look canvas { width: 168px; height: 168px; }
+.adp-look-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.adp-head { flex: 1 1 280px; min-width: 0; }
+.adp-head p { margin: 0 0 8px; }
+.adp-name { margin: 0 0 4px; overflow-wrap: anywhere; }
+.adp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.adp-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.adp-toolbar [hidden] { display: none; }
+
+.adp-diff { font-size: 13px; }
+.adp-diff th[scope="row"] { color: var(--adm-muted); font-weight: 400; text-align: left; text-transform: none; letter-spacing: 0; background: none; }
 .adp-diff tr.is-changed td,
-.adp-diff tr.is-changed th[scope="row"] { color: var(--gold-light); font-weight: 600; }
-.adp-detail-row td { background: var(--well, var(--charcoal)); }
+.adp-diff tr.is-changed th[scope="row"] { color: var(--adm-navy); font-weight: 600; }
+.adp-detail-row td { background: var(--adm-tile); }
 
-/* ---- dashboard cards ---- */
-
-.adp-cards { margin-bottom: var(--s-3); }
-.adp-card { color: inherit; text-decoration: none; transition: border-color .15s ease; }
-.adp-card:hover,
-.adp-card:focus-visible { border-color: var(--line-strong); outline: none; }
-
-/* ---- phones: a row becomes a card, every cell says what it is ---- */
+/* ---- phones ---- */
 
 @media (max-width: 720px) {
-  .adp-filter--wide { grid-column: 1 / -1; }
-  .adp-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .adp-filter-go { grid-column: 1 / -1; min-height: 44px; }
-  .adp-table-wrap { overflow-x: visible; }
-  .adp-table, .adp-table tbody, .adp-table tr, .adp-table td { display: block; width: 100%; box-sizing: border-box; }
-  .adp-table thead { display: none; }
-  .adp-table tr { padding: var(--s-2) 0; border-bottom: var(--bw) solid var(--line-strong); }
-  .adp-table td {
-    display: grid;
-    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
-    gap: var(--s-2);
-    padding: var(--s-1) var(--s-3);
-    border-bottom: 0;
-  }
-  .adp-table td::before { content: attr(data-label); color: var(--beige-muted); font-size: var(--t-xs); }
-  .adp-table td > * { min-width: 0; }
-  .adp-table .adp-actions { white-space: normal; }
-  .adp-table .adp-actions .btn { min-height: 44px; margin: 0 var(--s-1) var(--s-1) 0; }
-  .adp-table tr.adp-detail-row td { display: block; }
-  .adp-table tr.adp-detail-row td::before { content: none; }
-  .adp-pager .btn { min-height: 44px; }
-  .adp-tab { font-size: var(--t-sm); }
+  .adp-filters--bar { padding: 16px; }
+  .adm-card--flush > .adm-card-head + .adp-filters { padding: 0 16px 16px; }
+  .adp-filter--grow { flex-basis: 100%; }
+  .adp-avatar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 16px 16px; gap: 10px; }
+  .adp-avatar-actions .btn { flex: 1 1 100%; }
   .adp-look canvas { width: 132px; height: 132px; }
-  .adp-toolbar .btn { flex: 1 1 calc(50% - var(--s-2)); min-height: 44px; }
-  .adp-avatar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .adp-avatar-actions .btn { flex: 1 1 auto; min-height: 44px; }
   .adp-review-text { max-width: none; }
+  /* fingers need 44 px */
+  body[data-area="admin"] #app .adp-page .btn-sm,
+  body[data-area="admin"] #app .adp-page .adm-page-btn { min-height: 44px; min-width: 44px; }
+  .adp-per-page select { min-height: 44px !important; height: 44px; }
+  body[data-area="admin"] .adp-dialog .btn-sm { min-height: 44px; }
 }

@@ -1,11 +1,15 @@
 import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
+import { pill } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { actionDialog, coins, dateTime, routeParams, num, pageParam, pagedList, playerLink, roleChip, statusChip, tableHtml, writeRouteParams } from './shared.js';
+import {
+  actionDialog, dateTime, num, pageParam, pagedList, personLink, roleChip, routeParams, sizeParam, statusChip, tableHtml, writeRouteParams,
+} from './shared.js';
 
 const ROLES = [['', 'Mọi vai trò'], ['PLAYER', 'Người chơi'], ['VIP', 'VIP'], ['ADMIN', 'Quản trị']];
 const STATUSES = [['', 'Mọi trạng thái'], ['ACTIVE', 'Đang hoạt động'], ['LOCKED', 'Bị khóa'], ['UNVERIFIED', 'Chưa xác minh email']];
 const SORTS = [['created', 'Ngày tạo'], ['level', 'Cấp'], ['coins', 'Số xu']];
+const SIZES = [10, 25, 50, 100];
 
 const options = (list, value) => list.map(([id, label]) => `<option value="${id}"${id === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('');
 
@@ -21,51 +25,60 @@ export function mountPlayerList(host, { signal }) {
   };
 
   host.innerHTML = `
-    <form class="adp-filters" data-adp-player-filter role="search">
-      <div class="adp-filter adp-filter--wide">
-        <label class="field-label" for="adp-q">Tìm theo tên hoặc email</label>
-        <input class="field-input" id="adp-q" type="search" aria-label="Tìm người chơi" value="${escapeHtml(filters.q)}" maxlength="100">
-      </div>
-      <div class="adp-filter">
-        <label class="field-label" for="adp-role">Vai trò</label>
-        <select class="field-input" id="adp-role">${options(ROLES, filters.role)}</select>
-      </div>
-      <div class="adp-filter">
-        <label class="field-label" for="adp-status">Trạng thái</label>
-        <select class="field-input" id="adp-status">${options(STATUSES, filters.status)}</select>
-      </div>
-      <div class="adp-filter">
-        <label class="field-label" for="adp-sort">Sắp xếp</label>
-        <select class="field-input" id="adp-sort">${options(SORTS, filters.sort)}</select>
-      </div>
-      <div class="adp-filter">
-        <label class="field-label" for="adp-order">Chiều</label>
-        <select class="field-input" id="adp-order">${options([['desc', 'Giảm dần'], ['asc', 'Tăng dần']], filters.asc ? 'asc' : 'desc')}</select>
-      </div>
-      <button class="btn btn-primary adp-filter-go" type="submit">Tìm</button>
-    </form>
-    <div data-adp-player-rows aria-live="polite"></div>`;
+    <section class="adm-card adm-card--flush adp-list-card" aria-label="Danh sách người chơi">
+      <form class="adp-filters adp-filters--bar" data-adp-player-filter role="search">
+        <div class="adp-filter adp-filter--grow">
+          <label class="field-label" for="adp-q">Tìm người chơi</label>
+          <div class="adp-search-row">
+            <input class="field-input adp-input-soft" id="adp-q" type="search" aria-label="Tìm người chơi" placeholder="Tìm theo tên hoặc email" value="${escapeHtml(filters.q)}" maxlength="100">
+            <button class="btn btn-primary" type="submit">Tìm</button>
+          </div>
+        </div>
+        <div class="adp-filter">
+          <label class="field-label" for="adp-role">Vai trò</label>
+          <select class="field-input" id="adp-role">${options(ROLES, filters.role)}</select>
+        </div>
+        <div class="adp-filter">
+          <label class="field-label" for="adp-status">Trạng thái</label>
+          <select class="field-input" id="adp-status">${options(STATUSES, filters.status)}</select>
+        </div>
+        <div class="adp-filter">
+          <label class="field-label" for="adp-sort">Sắp xếp</label>
+          <select class="field-input" id="adp-sort">${options(SORTS, filters.sort)}</select>
+        </div>
+        <div class="adp-filter">
+          <label class="field-label" for="adp-order">Chiều</label>
+          <select class="field-input" id="adp-order">${options([['desc', 'Giảm dần'], ['asc', 'Tăng dần']], filters.asc ? 'asc' : 'desc')}</select>
+        </div>
+      </form>
+      <div class="adp-rows" data-adp-player-rows aria-live="polite"></div>
+    </section>`;
 
   const rows = host.querySelector('[data-adp-player-rows]');
 
   const columns = [
-    { label: 'Người chơi', cell: (player) => `${playerLink(player.userId, player.fullName)}<br><span class="muted small adp-break">${escapeHtml(player.email)}</span>` },
+    { label: 'Người chơi', cell: (player) => personLink(player.userId, player.fullName, player.email) },
     { label: 'Vai trò', cell: (player) => roleChip(player.role) },
-    { label: 'Trạng thái', cell: (player) => `${statusChip(player.status)}${player.isEmailVerified ? '' : ' <span class="chip">Chưa xác minh</span>'}` },
-    { label: 'Cấp', cell: (player) => num(player.level) },
-    { label: 'Số xu', cell: (player) => coins(player.balance) },
-    { label: 'Ngày tạo', cell: (player) => escapeHtml(dateTime(player.createdAt)) },
+    {
+      label: 'Trạng thái',
+      cell: (player) => `<span class="adp-pills">${statusChip(player.status)}${player.isEmailVerified ? '' : pill('Chưa xác minh', '', { small: true })}</span>`,
+    },
+    { label: 'Cấp', num: true, cell: (player) => num(player.level) },
+    { label: 'Số xu', num: true, cell: (player) => `<strong class="adp-strong">${num(player.balance)} xu</strong>` },
+    { label: 'Ngày tạo', cell: (player) => `<span class="adp-date">${escapeHtml(dateTime(player.createdAt))}</span>` },
     {
       label: 'Thao tác',
       className: 'adp-actions',
       cell: (player) => {
-        if (player.role === 'ADMIN') return '<span class="muted small">Không áp dụng</span>';
+        if (player.role === 'ADMIN') return '<span class="adp-muted">Không áp dụng</span>';
         const name = escapeHtml(player.fullName);
         return `
-          <button class="btn btn-ghost btn-sm" type="button" data-act="role" aria-label="${player.role === 'VIP' ? 'Đổi thành người chơi' : 'Nâng lên VIP'}: ${name}">${player.role === 'VIP' ? 'Về người chơi' : 'Lên VIP'}</button>
-          ${player.status === 'ACTIVE'
-    ? `<button class="btn btn-ghost btn-sm" type="button" data-act="lock" aria-label="Khóa ${name}">Khóa</button>`
-    : `<button class="btn btn-ghost btn-sm" type="button" data-act="unlock" aria-label="Mở khóa ${name}">Mở khóa</button>`}`;
+          <span class="adm-table-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-act="role" aria-label="${player.role === 'VIP' ? 'Đổi thành người chơi' : 'Nâng lên VIP'}: ${name}">${player.role === 'VIP' ? 'Về người chơi' : 'Lên VIP'}</button>
+            ${player.status === 'ACTIVE'
+    ? `<button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-act="lock" aria-label="Khóa ${name}">Khóa</button>`
+    : `<button class="btn btn-ghost btn-sm adm-btn-ok" type="button" data-act="unlock" aria-label="Mở khóa ${name}">Mở khóa</button>`}
+          </span>`;
       },
     },
   ];
@@ -80,10 +93,15 @@ export function mountPlayerList(host, { signal }) {
   const list = pagedList(rows, {
     signal,
     startPage: pageParam(),
+    sizes: SIZES,
+    startSize: sizeParam(SIZES),
+    noun: 'người chơi',
     empty: 'Không có người chơi nào khớp bộ lọc này.',
-    load: (page) => adminPlayersApi.list({ ...filters, asc: filters.asc ? 'true' : '', sort: filters.sort === 'created' ? '' : filters.sort, page }),
-    draw: (items) => tableHtml(columns, items),
+    emptyNote: 'Thử từ khóa khác hoặc bỏ bớt bộ lọc.',
+    load: (page, pageSize) => adminPlayersApi.list({ ...filters, asc: filters.asc ? 'true' : '', sort: filters.sort === 'created' ? '' : filters.sort, page, pageSize }),
+    draw: (items) => tableHtml(columns, items, { minWidth: 1000 }),
     onPage: (page) => writeRouteParams({ page }),
+    onSize: (size) => writeRouteParams({ size, page: 1 }),
     actions: {
       lock: (player) => change(player,
         { title: `Khóa ${player.fullName}`, message: 'Người chơi bị đăng xuất ngay và không vào được game cho tới khi mở khóa.', confirmLabel: 'Khóa tài khoản' },

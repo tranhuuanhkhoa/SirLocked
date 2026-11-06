@@ -1,5 +1,6 @@
-import { escapeHtml } from '../../../utils/dom.js';
+import { escapeHtml, initials } from '../../../utils/dom.js';
 import { replaceAddress } from '../../../services/navigation.js';
+import { icon, pager, pill, stateBox } from '../../../components/admin/ui.js';
 
 /* What the player, economy and audit admin pages share: the address, tables, paging and the dialog every dangerous action goes through. */
 
@@ -14,6 +15,19 @@ export function dateTime(iso) {
 
 export function playerLink(userId, name) {
   return userId ? `<a class="adp-link" href="/admin/players/${encodeURIComponent(userId)}">${escapeHtml(name || userId)}</a>` : escapeHtml(name || '—');
+}
+
+/** A person in a table: initials, the name linking to their page, and a second line (email). */
+export function personLink(userId, name, sub = '') {
+  const shown = name || userId || '—';
+  return `
+    <span class="adm-person adp-person">
+      <span class="adm-avatar" aria-hidden="true">${escapeHtml(initials(shown))}</span>
+      <span class="adm-person-text">
+        ${userId ? `<a class="adp-person-name" href="/admin/players/${encodeURIComponent(userId)}">${escapeHtml(shown)}</a>` : `<strong>${escapeHtml(shown)}</strong>`}
+        ${sub ? `<small>${escapeHtml(sub)}</small>` : ''}
+      </span>
+    </span>`;
 }
 
 // ---- the address: filters live in the query, and changing them does not re-run the route or its lens transition ----
@@ -34,6 +48,12 @@ export function writeRouteParams(values) {
 
 export const pageParam = () => Math.max(1, Number(routeParams().get('page')) || 1);
 
+/** The page size the address asks for, if it is one of `sizes`; otherwise the server's own default (null). */
+export function sizeParam(sizes) {
+  const size = Number(routeParams().get('size'));
+  return sizes.includes(size) ? size : null;
+}
+
 /** One key per user action, made of the characters the server's idempotency rule accepts. */
 export function newKey() {
   if (crypto.randomUUID) return crypto.randomUUID();
@@ -42,67 +62,86 @@ export function newKey() {
 
 export const errorMessage = (error) => error?.message || 'Có lỗi xảy ra. Hãy thử lại.';
 
-export const alertBox = (error) => `<div class="empty-state" role="alert">${escapeHtml(errorMessage(error))}</div>`;
+export const alertBox = (error) => stateBox('error', errorMessage(error));
+
+/** "Nothing to worry about" inside a card: a tick and one line. */
+export const okEmpty = (text) => `<div class="adp-ok-empty">${icon('check', 18)}<span>${escapeHtml(text)}</span></div>`;
 
 // ---- tables ----
 
 /**
- * `columns` are { label, cell(row), className? }. Each cell carries its label so that on a phone a row becomes a card.
- * Whatever `cell` returns is markup: it must escape what it was given.
+ * `columns` are { label, cell(row), className?, num? }. `num` right-aligns the column (numbers).
+ * Whatever `cell` returns is markup: it must escape what it was given. A wide table scrolls inside its own frame.
  */
-export function tableHtml(columns, rows, { attrs = '' } = {}) {
+export function tableHtml(columns, rows, { attrs = '', minWidth = 0 } = {}) {
+  const classOf = (column) => [column.className, column.num && 'adm-num'].filter(Boolean).join(' ');
   return `
-    <div class="adp-table-wrap">
-      <table class="admin-table adp-table" ${attrs}>
-        <thead><tr>${columns.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join('')}</tr></thead>
+    <div class="adm-table-wrap adp-table-wrap">
+      <table class="adm-table admin-table adp-table" ${attrs}${minWidth ? ` style="min-width: ${Number(minWidth)}px"` : ''}>
+        <thead><tr>${columns.map((column) => `<th scope="col"${classOf(column) ? ` class="${classOf(column)}"` : ''}>${escapeHtml(column.label)}</th>`).join('')}</tr></thead>
         <tbody>
           ${rows.map((row, index) => `<tr data-row="${index}">${columns.map((column) => `
-            <td data-label="${escapeHtml(column.label)}"${column.className ? ` class="${column.className}"` : ''}>${column.cell(row, index)}</td>`).join('')}</tr>`).join('')}
+            <td data-label="${escapeHtml(column.label)}"${classOf(column) ? ` class="${classOf(column)}"` : ''}>${column.cell(row, index)}</td>`).join('')}</tr>`).join('')}
         </tbody>
       </table>
     </div>`;
 }
 
-export function pagerHtml(data) {
+/** The strip under a list: "Hiển thị 1–25 / 60 …", an optional page-size choice and the page buttons. */
+export function pagerHtml(data, { noun = 'mục', sizes = null } = {}) {
   const pageSize = data?.pageSize || 1;
   const total = data?.total ?? 0;
   const page = data?.page ?? 1;
-  const last = Math.max(1, Math.ceil(total / pageSize));
-  return `
-    <nav class="adp-pager" aria-label="Phân trang">
-      <button class="btn btn-ghost btn-sm" type="button" data-page="${page - 1}"${page <= 1 ? ' disabled' : ''}>Trang trước</button>
-      <span class="muted small">Trang ${num(page)}/${num(last)} · ${num(total)} mục</span>
-      <button class="btn btn-ghost btn-sm" type="button" data-page="${page + 1}"${page >= last ? ' disabled' : ''}>Trang sau</button>
-    </nav>`;
+  let perPageHtml = '';
+  if (sizes) {
+    const choices = [...new Set([...sizes, pageSize])].sort((a, b) => a - b);
+    perPageHtml = `
+      <label class="adp-per-page">Mỗi trang
+        <select data-adp-size>${choices.map((size) => `<option value="${size}"${size === pageSize ? ' selected' : ''}>${size}</option>`).join('')}</select>
+      </label>`;
+  }
+  return pager({ page, pageSize, total, noun, perPageHtml });
 }
 
 /**
- * A server-paged list in `host`. `load(page)` asks the server, `draw(items, data)` returns the markup, `actions` maps a
+ * A server-paged list in `host`. `load(page, size)` asks the server, `draw(items, data)` returns the markup, `actions` maps a
  * button's data-act to what it does with its row. An answer that arrives after a newer request, or after leaving the page, is dropped.
+ * `sizes` offers a page-size choice; `size` is null until someone picks one, so the server's default applies.
  */
-export function pagedList(host, { load, draw, empty, actions = {}, signal, startPage = 1, onPage }) {
+export function pagedList(host, { load, draw, empty, emptyNote = '', emptyHtml = null, noun = 'mục', actions = {}, signal, startPage = 1, onPage, sizes = null, startSize = null, onSize }) {
   let page = startPage;
+  let size = startSize;
   let items = [];
   let latest = 0;
+  const options = signal ? { signal } : undefined;
 
   host.addEventListener('click', (event) => {
-    const pager = event.target.closest?.('[data-page]');
-    if (pager && !pager.disabled) {
-      refresh(Number(pager.dataset.page));
+    const pagerButton = event.target.closest?.('[data-adm-page], [data-page]');
+    if (pagerButton && !pagerButton.disabled) {
+      refresh(Number(pagerButton.dataset.admPage ?? pagerButton.dataset.page));
       return;
     }
     const button = event.target.closest?.('[data-act]');
     if (!button || button.disabled) return;
     const row = items[Number(button.closest('[data-row]')?.dataset.row)];
     actions[button.dataset.act]?.(row, button);
-  }, signal ? { signal } : undefined);
+  }, options);
+
+  host.addEventListener('change', (event) => {
+    const select = event.target.closest?.('[data-adp-size]');
+    if (!select) return;
+    size = Number(select.value);
+    onSize?.(size);
+    refresh(1);
+  }, options);
 
   async function refresh(nextPage = page) {
     page = nextPage;
     const mine = ++latest;
     host.setAttribute('aria-busy', 'true');
+    if (!host.firstElementChild) host.innerHTML = stateBox('loading', 'Đang tải…');
     try {
-      const data = await load(page);
+      const data = await load(page, size ?? undefined);
       if (mine !== latest || signal?.aborted) return;
       items = data?.items ?? [];
       // The last row of the last page went away: the page before it still has rows.
@@ -111,8 +150,8 @@ export function pagedList(host, { load, draw, empty, actions = {}, signal, start
         return;
       }
       host.innerHTML = items.length
-        ? `${draw(items, data)}${pagerHtml(data)}`
-        : `<div class="empty-state">${escapeHtml(empty)}</div>`;
+        ? `${draw(items, data)}${pagerHtml(data, { noun, sizes })}`
+        : (emptyHtml?.() || stateBox('empty', empty, emptyNote));
       onPage?.(page);
     } catch (error) {
       if (mine !== latest || signal?.aborted) return;
@@ -166,23 +205,25 @@ export function actionDialog({ title, message, notice, fields = [], askReason = 
     const dialog = document.createElement('dialog');
     dialog.className = 'adp-dialog';
     dialog.setAttribute('aria-labelledby', 'adp-dialog-title');
+    // The close button comes last in the markup, so the first field still gets the focus when the dialog opens.
     dialog.innerHTML = `
       <form method="dialog" class="adp-dialog-form" novalidate>
-        <h3 id="adp-dialog-title" class="adp-dialog-title">${escapeHtml(title)}</h3>
+        <h2 id="adp-dialog-title" class="adp-dialog-title">${escapeHtml(title)}</h2>
         ${message ? `<p class="adp-dialog-message">${escapeHtml(message)}</p>` : ''}
         ${notice ? `<p class="adp-dialog-notice">${escapeHtml(notice)}</p>` : ''}
         ${fields.map(fieldHtml).join('')}
         ${askReason ? `
-          ${presets.length ? `<div class="adp-presets">${presets.map((preset) => `<button class="btn btn-ghost btn-sm" type="button" data-preset="${escapeHtml(preset)}">${escapeHtml(preset)}</button>`).join('')}</div>` : ''}
+          ${presets.length ? `<div class="adp-presets" role="group" aria-label="Lý do có sẵn">${presets.map((preset) => `<button class="btn btn-ghost btn-sm" type="button" data-preset="${escapeHtml(preset)}">${escapeHtml(preset)}</button>`).join('')}</div>` : ''}
           <div class="field">
             <label class="field-label" for="adp-field-reason">Lý do</label>
-            <textarea class="field-input adp-reason" id="adp-field-reason" name="reason" rows="2" maxlength="500"></textarea>
+            <textarea class="field-input adp-reason" id="adp-field-reason" name="reason" rows="2" maxlength="500" placeholder="Ít nhất 3 ký tự"></textarea>
           </div>` : ''}
         <p class="field-error adp-dialog-error" role="alert"></p>
         <div class="adp-dialog-actions">
           <button class="btn btn-ghost" type="button" data-cancel>Hủy</button>
           <button class="btn ${danger ? 'adp-btn-danger' : 'btn-primary'}" type="submit" data-confirm>${escapeHtml(confirmLabel)}</button>
         </div>
+        <button class="adp-dialog-close" type="button" data-close aria-label="Đóng">${icon('x', 20)}</button>
       </form>`;
     document.body.append(dialog);
 
@@ -208,7 +249,7 @@ export function actionDialog({ title, message, notice, fields = [], askReason = 
       event.preventDefault();
       if (!busy) cancel();
     });
-    dialog.querySelector('[data-cancel]').addEventListener('click', () => { if (!busy) cancel(); });
+    dialog.querySelectorAll('[data-cancel], [data-close]').forEach((button) => button.addEventListener('click', () => { if (!busy) cancel(); }));
     dialog.querySelectorAll('[data-preset]').forEach((button) => button.addEventListener('click', () => {
       form.elements.reason.value = button.dataset.preset;
     }));
@@ -249,22 +290,39 @@ export function actionDialog({ title, message, notice, fields = [], askReason = 
 
 export const STATUS_LABELS = { ACTIVE: 'Đang hoạt động', LOCKED: 'Bị khóa', DELETED: 'Đã xóa' };
 export const ROLE_LABELS = { PLAYER: 'Người chơi', VIP: 'VIP', ADMIN: 'Quản trị' };
+const STATUS_TONES = { ACTIVE: 'ok', LOCKED: 'bad' };
+const ROLE_TONES = { ADMIN: 'gold', VIP: 'violet' };
 
 export function statusChip(status) {
-  return `<span class="chip ${status === 'ACTIVE' ? 'chip-ok' : 'chip-bad'}">${escapeHtml(STATUS_LABELS[status] ?? status)}</span>`;
+  return pill(STATUS_LABELS[status] ?? status, STATUS_TONES[status] ?? '', { dot: true, small: true });
 }
 
 export function roleChip(role) {
-  return `<span class="chip ${role === 'ADMIN' || role === 'VIP' ? 'chip-gold' : ''}">${escapeHtml(ROLE_LABELS[role] ?? role)}</span>`;
+  return pill(ROLE_LABELS[role] ?? role, ROLE_TONES[role] ?? '', { small: true });
 }
 
 export const PRICE_FLAGS = { HIGH: 'Giá cao bất thường', LOW: 'Giá thấp bất thường' };
 
 export function priceFlag(flag) {
-  return flag ? ` <span class="chip chip-bad">${escapeHtml(PRICE_FLAGS[flag] ?? flag)}</span>` : '';
+  return flag ? ` ${pill(PRICE_FLAGS[flag] ?? flag, 'bad', { small: true })}` : '';
 }
 
 export const TRADE_STATUS = {
   PENDING: 'Đang chờ', ACCEPTING: 'Đang chấp nhận', ACCEPTED: 'Đã chấp nhận', DECLINED: 'Đã từ chối',
   CANCELLED: 'Đã hủy', COUNTERED: 'Đã phản đề nghị', FAILED: 'Thất bại',
 };
+
+/** A titled white card. `flush` lets a table touch its edges; `headExtra` sits on the right of the title. */
+export function sectionCard({ title, sub = '', headExtra = '', body = '', flush = true, id, attrs = '' }) {
+  return `
+    <section class="adm-card${flush ? ' adm-card--flush' : ''} adp-card" aria-labelledby="${id}"${attrs ? ` ${attrs}` : ''}>
+      <div class="adm-card-head">
+        <div class="adp-card-heading">
+          <h2 class="adm-card-title" id="${id}">${escapeHtml(title)}</h2>
+          ${sub ? `<p class="adm-card-sub">${escapeHtml(sub)}</p>` : ''}
+        </div>
+        ${headExtra}
+      </div>
+      ${body}
+    </section>`;
+}
