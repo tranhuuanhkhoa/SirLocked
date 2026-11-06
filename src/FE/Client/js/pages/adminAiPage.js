@@ -3,6 +3,7 @@ import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
+import { icon, pageHead, pill, stateBox } from '../components/admin/ui.js';
 import { isV3, v3PublishGate } from './adminV3Gates.js';
 import { mountPresentationEditor, presentationPlaceholder } from './adminPresentation.js';
 
@@ -16,6 +17,7 @@ const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
 const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID, 'CANCELLED']);
 const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED']);
+const AWAITING_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL]);
 const isTerminalDraft = (draft) => draft?.status === 'CANCELLED'
   || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState));
 // A queued or running draft still carries the failurePhase/validationErrors of the attempt before
@@ -105,6 +107,28 @@ function caseTypeLabel(caseType) {
   const labels = CASE_TYPES[caseType];
   return labels ? tr(labels[0], labels[1]) : (caseType || tr('Legacy / unknown', 'Case cũ / chưa xác định'));
 }
+
+// The case-type pills and the summary card use a shorter name for "random"; the <select> keeps the full labels.
+const CASE_TYPE_SHORT = { RANDOM: ['Random', 'Ngẫu nhiên'] };
+
+function caseTypeShortLabel(caseType) {
+  const labels = CASE_TYPE_SHORT[caseType];
+  return labels ? tr(labels[0], labels[1]) : caseTypeLabel(caseType);
+}
+
+/** The first sentence of a preset description: the preset cards show it, the summary card shows all of it. */
+function firstSentence(text) {
+  return String(text).match(/^.*?\.(?=\s|$)/)?.[0] ?? text;
+}
+
+/** The manual gates every AI draft passes after creation, in order (the "review steps" card). */
+const REVIEW_STEPS = [
+  ['Approve the premise', 'Duyệt tiền đề'],
+  ['Approve the case truth', 'Duyệt sự thật vụ án'],
+  ['Approve the full logic', 'Duyệt logic đầy đủ'],
+  ['Approve the layout', 'Duyệt bố cục'],
+  ['Publish', 'Xuất bản'],
+];
 
 function legacyCrackBudget(presetKey) {
   switch (presetKey) {
@@ -298,7 +322,7 @@ const PROGRESS_STATES = {
 };
 
 export async function renderAdminAiPage(app) {
-  render(app, '<div class="page"><p class="muted">Loading AI case creator...</p></div>');
+  render(app, `<div class="page aai-page">${stateBox('loading', tr('Loading the AI case creator…', 'Đang tải trang tạo vụ án AI…'))}</div>`);
 
   let drafts = [];
   let capabilities = {
@@ -382,14 +406,17 @@ export async function renderAdminAiPage(app) {
     const blockers = crackSelected && Array.isArray(capabilities.v3CreationBlockers)
       ? capabilities.v3CreationBlockers : capabilities.creationBlockers || [];
     const errorMarkup = (error) => `<p>${escapeHtml(aiErrorText(error))}</p>${error?.code || error?.errors?.code ? `<small>${tr('Code', 'Mã lỗi')}: <code>${escapeHtml(error.code || error.errors.code)}</code></small>` : ''}`;
-    slot.innerHTML = `${creationBlocked() ? `<div class="notice notice-bad" role="alert" id="ai-readiness-error">
-      <strong>${capabilitiesError ? tr('Could not check AI availability.', 'Chưa kiểm tra được trạng thái AI.') : tr('Case creation is unavailable.', 'Chưa thể tạo vụ án.')}</strong>
-      ${capabilitiesError ? errorMarkup(capabilitiesError) : blockers.length ? blockers.map(errorMarkup).join('') : `<p>${tr('The server has disabled case creation. Ask the administrator to review its AI settings.', 'Máy chủ đang tắt chức năng tạo vụ án. Hãy nhờ quản trị viên kiểm tra thiết lập AI.')}</p>`}
-    </div>` : ''}
-    ${creationError ? `<div class="notice notice-bad" role="alert" id="ai-request-error"><strong>${tr('AI request could not be completed.', 'Chưa thể hoàn tất yêu cầu AI.')}</strong>${errorMarkup(creationError)}</div>` : ''}
-    ${draftListError ? `<div class="notice notice-bad" role="alert"><strong>${tr('Could not load recent drafts.', 'Không tải được bản nháp gần đây.')}</strong>${errorMarkup(draftListError)}</div>` : ''}
-    ${creationBlocked() || draftListError ? `<button class="btn btn-ghost" type="button" id="ai-check-readiness" ${checkingReadiness ? 'disabled' : ''}>${checkingReadiness ? tr('Checking…', 'Đang kiểm tra…') : tr('Check again', 'Kiểm tra lại')}</button>` : ''}
-    ${pollingError ? `<div class="notice notice-bad" role="alert" id="ai-poll-error"><strong>${tr('Draft status could not be loaded.', 'Không tải được trạng thái bản nháp.')}</strong>${errorMarkup(pollingError.error)}<button class="btn btn-ghost" type="button" id="ai-retry-status">${tr('Retry status check', 'Thử tải trạng thái lại')}</button></div>` : ''}`;
+    // Built as a list so an empty slot stays truly empty (and takes no room in the page).
+    slot.innerHTML = [
+      creationBlocked() ? `<div class="notice notice-bad" role="alert" id="ai-readiness-error">
+        <strong>${capabilitiesError ? tr('Could not check AI availability.', 'Chưa kiểm tra được trạng thái AI.') : tr('Case creation is unavailable.', 'Chưa thể tạo vụ án.')}</strong>
+        ${capabilitiesError ? errorMarkup(capabilitiesError) : blockers.length ? blockers.map(errorMarkup).join('') : `<p>${tr('The server has disabled case creation. Ask the administrator to review its AI settings.', 'Máy chủ đang tắt chức năng tạo vụ án. Hãy nhờ quản trị viên kiểm tra thiết lập AI.')}</p>`}
+      </div>` : '',
+      creationError ? `<div class="notice notice-bad" role="alert" id="ai-request-error"><strong>${tr('AI request could not be completed.', 'Chưa thể hoàn tất yêu cầu AI.')}</strong>${errorMarkup(creationError)}</div>` : '',
+      draftListError ? `<div class="notice notice-bad" role="alert"><strong>${tr('Could not load recent drafts.', 'Không tải được bản nháp gần đây.')}</strong>${errorMarkup(draftListError)}</div>` : '',
+      creationBlocked() || draftListError ? `<button class="btn btn-ghost" type="button" id="ai-check-readiness" ${checkingReadiness ? 'disabled' : ''}>${icon('refresh', 18)}${checkingReadiness ? tr('Checking…', 'Đang kiểm tra…') : tr('Check again', 'Kiểm tra lại')}</button>` : '',
+      pollingError ? `<div class="notice notice-bad" role="alert" id="ai-poll-error"><strong>${tr('Draft status could not be loaded.', 'Không tải được trạng thái bản nháp.')}</strong>${errorMarkup(pollingError.error)}<button class="btn btn-ghost btn-sm" type="button" id="ai-retry-status">${icon('refresh', 16)}${tr('Retry status check', 'Thử tải trạng thái lại')}</button></div>` : '',
+    ].filter(Boolean).join('');
     slot.querySelector('#ai-check-readiness')?.addEventListener('click', async () => {
       if (checkingReadiness) return;
       checkingReadiness = true;
@@ -409,7 +436,18 @@ export async function renderAdminAiPage(app) {
 
   function cancelButton(draft) {
     return draft.canCancel === true && !['PUBLISHED', 'IMPORTED', 'CANCELLED'].includes(draft.status)
-      ? `<button class="btn btn-ghost btn-sm" type="button" data-cancel-draft="${escapeHtml(draft.draftId)}">${tr('Cancel draft', 'Hủy bản nháp')}</button>` : '';
+      ? `<button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-cancel-draft="${escapeHtml(draft.draftId)}">${tr('Cancel draft', 'Hủy bản nháp')}</button>` : '';
+  }
+
+  /** Pill colour of a draft status: running or cancelled neutral, waiting for a person gold, done green, failed red. */
+  function statusTone(d) {
+    if (isGeneratingDraft(d) || d.status === 'CANCELLED') return '';
+    if (AWAITING_STATUSES.has(d.status)) return 'gold';
+    return isSuccessStatus(d.status) ? 'ok' : 'bad';
+  }
+
+  function statusPill(d) {
+    return pill(statusLabel(d.status), statusTone(d), { dot: true });
   }
 
   function isSuccessStatus(status) {
@@ -507,21 +545,164 @@ export async function renderAdminAiPage(app) {
     const preset = presetLabel(d.settings?.generationPreset);
     const language = d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English';
     const effectiveCaseType = d.storyDiversity?.caseType || d.settings?.caseType;
+    const presetMeta = [effectiveCaseType ? caseTypeLabel(effectiveCaseType) : '', language].filter(Boolean).join(' · ');
     return `
     <tr>
-      <td>${escapeHtml(title)}<br><span class="muted small">${escapeHtml(prompt.slice(0, 70))}</span></td>
-      <td><span class="chip">${escapeHtml(d.provider)}</span></td>
-      <td><span class="chip">${escapeHtml(preset)}</span>${effectiveCaseType ? ` <span class="chip">${escapeHtml(caseTypeLabel(effectiveCaseType))}</span>` : ''}${isV3Draft(d) ? ` <span class="chip ${d.v3SemanticReview?.status === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(d.v3SemanticReview?.status || 'NOT_RUN')}</span>` : ''}<br><span class="muted small">${escapeHtml(language)}</span></td>
-      <td><span class="chip ${isGeneratingDraft(d) ? '' : isSuccessStatus(d.status) ? 'chip-ok' : 'chip-bad'}">${escapeHtml(statusLabel(d.status))}</span></td>
+      <td><span class="aai-cell"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(prompt.slice(0, 70))}</small></span></td>
+      <td>${escapeHtml(d.provider)}</td>
+      <td><span class="aai-cell"><strong>${escapeHtml(preset)}</strong><small>${escapeHtml(presetMeta)}</small></span>${isV3Draft(d) ? `<span class="chip aai-review-chip ${d.v3SemanticReview?.status === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(d.v3SemanticReview?.status || 'NOT_RUN')}</span>` : ''}</td>
+      <td>${statusPill(d)}</td>
       <td>
-        <button class="btn btn-ghost btn-sm" data-view="${d.draftId}">${tr('View', 'Xem')}</button>
-        ${continueButton(d)}
-        ${cancelButton(d)}
-        ${d.status === STATUS_PUBLISHED || d.importedCaseId
-          ? `<a class="btn btn-ghost btn-sm" href="/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
-          : ''}
+        <div class="adm-table-actions">
+          <button class="btn btn-ghost btn-sm" type="button" data-view="${escapeHtml(d.draftId)}">${tr('View', 'Xem')}</button>
+          ${continueButton(d, 'btn-ghost')}
+          ${cancelButton(d)}
+          ${d.status === STATUS_PUBLISHED || d.importedCaseId
+            ? `<a class="btn btn-ghost btn-sm" href="/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
+            : ''}
+        </div>
       </td>
     </tr>`;
+  }
+
+  /** "Bản nháp AI gần đây": the drafts in a table, or why there is none. */
+  function draftsCard() {
+    const table = (rows) => `
+      <div class="adm-table-wrap${rows ? '' : ' aai-table-wrap--empty'}">
+        <table class="adm-table admin-table aai-drafts-table">
+          <thead><tr><th>${tr('Draft', 'Bản nháp')}</th><th>${tr('Provider', 'Nhà cung cấp')}</th><th>${tr('Preset', 'Cấu hình')}</th><th>${tr('Status', 'Trạng thái')}</th><th class="aai-th-actions">${tr('Actions', 'Thao tác')}</th></tr></thead>
+          ${rows ? `<tbody>${rows}</tbody>` : ''}
+        </table>
+      </div>`;
+    // The error itself, with "Check again", is in the status area at the top of the page.
+    const body = draftListError && drafts.length === 0
+      ? stateBox('error', tr('The draft list is unavailable.', 'Chưa tải được danh sách bản nháp.'), tr('The reason and a “Check again” button are at the top of the page.', 'Lý do và nút “Kiểm tra lại” ở đầu trang.'))
+      : drafts.length === 0
+        ? `${table('')}${stateBox('empty', tr('No drafts yet.', 'Chưa có bản nháp.'), tr('New drafts appear here so you can review them step by step.', 'Bản nháp vừa tạo sẽ hiện ở đây để bạn duyệt từng bước.'))}`
+        : table(drafts.map(draftRow).join(''));
+    return `
+      <section class="adm-card adm-card--flush aai-drafts" aria-labelledby="aai-drafts-title">
+        <div class="adm-card-head"><h2 class="adm-card-title" id="aai-drafts-title">${tr('Recent AI drafts', 'Bản nháp AI gần đây')}</h2></div>
+        ${body}
+      </section>`;
+  }
+
+  /** The creation form: numbered cards on the left, the navy summary with "Create" and the review steps on the right. */
+  function creationLayout() {
+    const presetKey = PRESETS[formFields['ai-preset-select']] ? formFields['ai-preset-select'] : 'NORMAL_RANDOM';
+    const v3Enabled = Boolean(capabilities.aiCaseV3PresetEnabled);
+    let stepNumber = 0;
+    const stepHead = (id, title) => `
+      <div class="aai-step-head">
+        <span class="aai-step-num" aria-hidden="true">${String(++stepNumber).padStart(2, '0')}</span>
+        <h2 class="adm-card-title" id="${id}">${escapeHtml(title)}</h2>
+      </div>`;
+    // The <select>s stay the source of truth (the form reads and restores them); the cards, segments and pills
+    // are the visible radio controls kept in sync with them. Hidden from assistive tech: the radios carry the meaning.
+    const hiddenSelect = (id, options) => `<select id="${id}" class="aai-sr" tabindex="-1" aria-hidden="true">${options}</select>`;
+    const lockLabel = (table, value) => (table[value] ? tr(table[value][0], table[value][1]) : tr('Automatic', 'Tự động'));
+    const lockField = (id, label, table) => `
+      <div class="aai-field">
+        <label class="aai-label" for="${id}">${label}</label>
+        <select class="field-input" id="${id}"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(table).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select>
+      </div>`;
+    const summaryRow = (key, label, value) => `<dt>${label}</dt><dd data-aai-sum="${key}">${escapeHtml(value)}</dd>`;
+
+    const presetCard = `
+      <section class="adm-card aai-step" aria-labelledby="aai-preset-title">
+        ${stepHead('aai-preset-title', tr('Generation preset', 'Cấu hình tạo'))}
+        ${hiddenSelect('ai-preset-select', Object.keys(PRESETS).map((value) => `<option value="${value}" ${presetKey === value ? 'selected' : ''}>${escapeHtml(presetLabel(value))}</option>`).join(''))}
+        <div class="aai-presets" role="radiogroup" aria-labelledby="aai-preset-title">
+          ${Object.keys(PRESETS).map((value) => `
+            <label class="aai-preset">
+              <span class="aai-preset-top">
+                <strong id="aai-preset-${value}">${escapeHtml(presetLabel(value))}</strong>
+                <input type="radio" name="aai-preset" value="${value}" ${presetKey === value ? 'checked' : ''} aria-labelledby="aai-preset-${value}" aria-describedby="aai-preset-${value}-desc">
+              </span>
+              <span class="aai-preset-desc" id="aai-preset-${value}-desc">${escapeHtml(firstSentence(presetDescription(value)))}</span>
+            </label>`).join('')}
+        </div>
+      </section>`;
+
+    const languageCard = `
+      <section class="adm-card aai-step aai-step--language" aria-labelledby="aai-language-title">
+        ${stepHead('aai-language-title', tr('Case language', 'Ngôn ngữ nội dung vụ án'))}
+        <div class="aai-field">
+          ${hiddenSelect('ai-language-select', `<option value="en" ${selectedLanguage === 'en' ? 'selected' : ''}>English</option><option value="vi" ${selectedLanguage === 'vi' ? 'selected' : ''}>Tiếng Việt</option>`)}
+          <div class="aai-seg" role="radiogroup" aria-labelledby="aai-language-title" aria-describedby="aai-language-help">
+            ${[['en', 'English'], ['vi', 'Tiếng Việt']].map(([value, label]) => `<label><input type="radio" class="aai-sr" name="aai-language" value="${value}" ${selectedLanguage === value ? 'checked' : ''}><span>${label}</span></label>`).join('')}
+          </div>
+          <p class="aai-help" id="aai-language-help">${tr('Applies to the title, story, clues, dialogue, and ending.', 'Áp dụng cho tiêu đề, cốt truyện, manh mối, hội thoại và kết thúc.')}</p>
+        </div>
+        <div class="aai-field">
+          <h3 class="aai-field-title" id="aai-case-type-title">${tr('Case type', 'Loại vụ án')}</h3>
+          ${hiddenSelect('ai-case-type-select', Object.keys(CASE_TYPES).map((value) => `<option value="${value}" ${selectedCaseType === value ? 'selected' : ''}>${escapeHtml(caseTypeLabel(value))}</option>`).join(''))}
+          <div class="aai-chips" role="radiogroup" aria-labelledby="aai-case-type-title" aria-describedby="aai-case-type-help">
+            ${Object.keys(CASE_TYPES).map((value) => `<label class="aai-chip"><input type="radio" class="aai-sr" name="aai-case-type" value="${value}" ${selectedCaseType === value ? 'checked' : ''}><span>${escapeHtml(caseTypeShortLabel(value))}</span></label>`).join('')}
+          </div>
+          <p class="aai-help" id="aai-case-type-help">${tr('Separate from gameplay preset. Random receives a new server diversity seed for every draft.', 'Tách biệt với cấu hình gameplay. Chế độ ngẫu nhiên nhận seed đa dạng mới từ máy chủ cho mỗi bản nháp.')}</p>
+        </div>
+      </section>`;
+
+    const crackCard = v3Enabled ? `
+      <section class="adm-card aai-step" aria-labelledby="aai-extension-title">
+        ${stepHead('aai-extension-title', tr('Gameplay extension', 'Mở rộng gameplay'))}
+        <label class="aai-toggle" for="ai-include-crack">
+          <span class="aai-toggle-text">
+            <span class="aai-toggle-name"><strong id="aai-crack-title">${tr('Include Crack the Lie', 'Thêm Phá Vỡ Lời Dối')}</strong><span id="ai-crack-badge" class="adm-pill aai-v3-pill">V3 · Crack</span></span>
+            <span class="aai-toggle-desc" id="aai-crack-desc">${tr('Keeps the selected V2 preset and adds private evidence, testimony and Joint Review loops.', 'Giữ preset V2 đã chọn và thêm chứng cứ riêng, lời khai riêng cùng vòng Cùng xem xét.')}</span>
+            <span class="aai-mono" id="ai-crack-budget">${crackBudget(presetKey, capabilities.crackBudgets)}</span>
+          </span>
+          <input id="ai-include-crack" class="aai-switch" type="checkbox" role="switch" ${includeCrack ? 'checked' : ''} aria-labelledby="aai-crack-title" aria-describedby="aai-crack-desc ai-crack-budget">
+        </label>
+        ${!capabilities.gameplayV3Enabled
+          ? `<div class="notice notice-bad"><strong>${tr('V3 gameplay is disabled.', 'Gameplay V3 đang tắt.')}</strong> ${tr('V3 drafts can be generated and reviewed, but cannot be published.', 'Có thể tạo và kiểm tra bản nháp V3 nhưng chưa thể xuất bản.')}</div>`
+          : ''}
+      </section>` : '';
+
+    const briefCard = `
+      <section class="adm-card aai-step" aria-labelledby="aai-brief-title">
+        ${stepHead('aai-brief-title', tr('Creator direction', 'Định hướng sáng tác'))}
+        <div class="aai-field">
+          <label class="aai-label" for="ai-creator-direction">${tr('Note for the AI', 'Ghi chú cho AI')} <span>${tr('(optional)', '(không bắt buộc)')}</span></label>
+          <textarea class="field-input aai-textarea" id="ai-creator-direction" rows="3" maxlength="1200" placeholder="${tr('Optional setting, tone, characters, or mystery direction. Do not include the Crack answer.', 'Bối cảnh, sắc thái, nhân vật hoặc hướng bí ẩn (không tiết lộ đáp án Crack).')}">${escapeHtml(formFields['ai-creator-direction'])}</textarea>
+        </div>
+        <div class="aai-locks">
+          ${lockField('ai-setting-lock', tr('Setting lock', 'Khóa bối cảnh'), CREATIVE_SETTINGS)}
+          ${lockField('ai-tone-lock', tr('Tone lock', 'Khóa sắc thái'), CREATIVE_TONES)}
+          ${lockField('ai-mechanic-lock', tr('Investigation mechanic', 'Khóa cơ chế điều tra'), CREATIVE_MECHANICS)}
+        </div>
+      </section>`;
+
+    const aside = `
+      <aside class="aai-aside" aria-labelledby="aai-summary-title">
+        <section class="aai-summary">
+          <h2 id="aai-summary-title">${tr('Draft to create', 'Bản nháp sẽ tạo')}</h2>
+          <dl class="aai-summary-list">
+            ${summaryRow('preset', tr('Preset', 'Cấu hình'), presetLabel(presetKey))}
+            ${summaryRow('language', tr('Language', 'Ngôn ngữ'), selectedLanguage === 'vi' ? 'Tiếng Việt' : 'English')}
+            ${summaryRow('caseType', tr('Case type', 'Loại vụ án'), caseTypeShortLabel(selectedCaseType))}
+            ${v3Enabled ? summaryRow('crack', tr('Crack the Lie', 'Phá Vỡ Lời Dối'), includeCrack ? tr('On', 'Bật') : tr('Off', 'Tắt')) : ''}
+            ${summaryRow('setting', tr('Setting', 'Bối cảnh'), lockLabel(CREATIVE_SETTINGS, formFields['ai-setting-lock']))}
+            ${summaryRow('tone', tr('Tone', 'Sắc thái'), lockLabel(CREATIVE_TONES, formFields['ai-tone-lock']))}
+            ${summaryRow('mechanic', tr('Mechanic', 'Cơ chế'), lockLabel(CREATIVE_MECHANICS, formFields['ai-mechanic-lock']))}
+          </dl>
+          <p class="aai-summary-note" id="ai-preset-help">${escapeHtml(presetDescription(presetKey))}</p>
+          <button class="btn aai-create" type="button" id="quick-create-btn" ${creationBlocked() || creating ? 'disabled' : ''}>${icon('sparkle', 18)}${creating ? tr('Creating case...', 'Đang tạo vụ án...') : tr('Create new case', 'Tạo vụ án mới')}</button>
+        </section>
+        <section class="adm-card aai-flow" aria-labelledby="aai-flow-title">
+          <h2 class="aai-flow-title" id="aai-flow-title">${tr('Review steps after creation', 'Các bước duyệt sau khi tạo')}</h2>
+          <ol class="aai-flow-list">
+            ${REVIEW_STEPS.map(([en, vi], index) => `<li><span class="aai-flow-num${index === REVIEW_STEPS.length - 1 ? ' aai-flow-num--ok' : ''}" aria-hidden="true">${index + 1}</span>${escapeHtml(tr(en, vi))}</li>`).join('')}
+          </ol>
+        </section>
+      </aside>`;
+
+    return `
+      <div class="aai-layout">
+        <div class="aai-form">${presetCard}${languageCard}${crackCard}${briefCard}</div>
+        ${aside}
+      </div>`;
   }
 
   function draw(activeDraft = null) {
@@ -530,82 +711,32 @@ export async function renderAdminAiPage(app) {
     visibleDraft = activeDraft;
     disposePresentation();
     disposePresentation = () => {};
-    const availablePresets = Object.entries(PRESETS);
+    // The progress and the open draft sit above the form: "Create" and "View" both lead the eye (and the scroll) there.
     render(app, `
-    <div class="page">
-      <h2>${tr('AI Case Creator', 'Tạo vụ án bằng AI')}</h2>
-      <p class="muted">${tr('Create a premise, approve its immutable causal truth, then project that truth into playable clues, dialogue, puzzles, and a five-claim accusation.', 'Tạo tiền đề, duyệt nguồn sự thật nhân quả bất biến, rồi chuyển truth thành manh mối, hội thoại, câu đố và cáo buộc năm luận điểm.')}</p>
+    <div class="page aai-page">
+      ${pageHead({
+    title: tr('AI Case Creator', 'Tạo vụ án bằng AI'),
+    sub: tr('Create a premise, approve its immutable causal truth, then project that truth into playable clues, dialogue, puzzles, and a five-claim accusation.', 'Tạo tiền đề, duyệt nguồn sự thật nhân quả bất biến, rồi chuyển truth thành manh mối, hội thoại, câu đố và cáo buộc năm luận điểm.'),
+  })}
 
-      <div id="ai-creation-status"></div>
+      <div id="ai-creation-status" class="aai-status"></div>
 
-      <div class="ai-quick-create">
-        <label class="ai-preset-field">
-          <span>${tr('Generation preset', 'Cấu hình tạo')}</span>
-          <select class="field-input" id="ai-preset-select">
-            ${availablePresets.map(([value]) => `<option value="${value}" ${formFields['ai-preset-select'] === value ? 'selected' : ''}>${escapeHtml(presetLabel(value))}</option>`).join('')}
-          </select>
-        </label>
-        <label class="ai-preset-field ai-language-field">
-          <span>${tr('Case language', 'Ngôn ngữ nội dung vụ án')}</span>
-          <select class="field-input" id="ai-language-select">
-            <option value="en" ${selectedLanguage === 'en' ? 'selected' : ''}>English</option>
-            <option value="vi" ${selectedLanguage === 'vi' ? 'selected' : ''}>Tiếng Việt</option>
-          </select>
-          <small class="muted">${tr('Applies to the title, story, clues, dialogue, and ending.', 'Áp dụng cho tiêu đề, cốt truyện, manh mối, hội thoại và kết thúc.')}</small>
-        </label>
-        <label class="ai-preset-field ai-language-field ai-case-type-field">
-          <span>${tr('Case type', 'Loại vụ án')}</span>
-          <select class="field-input" id="ai-case-type-select">
-            ${Object.keys(CASE_TYPES).map((value) => `<option value="${value}" ${selectedCaseType === value ? 'selected' : ''}>${escapeHtml(caseTypeLabel(value))}</option>`).join('')}
-          </select>
-          <small class="muted">${tr('Separate from gameplay preset. Random receives a new server diversity seed for every draft.', 'Tách biệt với cấu hình gameplay. Chế độ ngẫu nhiên nhận seed đa dạng mới từ máy chủ cho mỗi bản nháp.')}</small>
-        </label>
-        ${capabilities.aiCaseV3PresetEnabled ? `<label class="ai-preset-field ai-crack-toggle">
-          <span>${tr('Gameplay extension', 'Mở rộng gameplay')}</span>
-          <span><input id="ai-include-crack" type="checkbox" ${includeCrack ? 'checked' : ''}> ${tr('Include Crack the Lie', 'Thêm Phá Vỡ Lời Dối')} <span id="ai-crack-badge" class="chip chip-gold" hidden>V3 · Crack</span></span>
-          <small class="muted">${tr('Keeps the selected V2 preset and adds private evidence, testimony and Joint Review loops.', 'Giữ preset V2 đã chọn và thêm chứng cứ riêng, lời khai riêng cùng vòng Cùng xem xét.')}</small>
-          <small class="muted" id="ai-crack-budget">${crackBudget('NORMAL_RANDOM', capabilities.crackBudgets)}</small>
-        </label>` : ''}
-        <label class="ai-preset-field ai-creator-direction">
-          <span>${tr('Creator direction', 'Định hướng sáng tác')}</span>
-          <textarea class="field-input" id="ai-creator-direction" rows="3" maxlength="1200" placeholder="${tr('Optional setting, tone, characters, or mystery direction. Do not include the Crack answer.', 'Bối cảnh, sắc thái, nhân vật hoặc hướng bí ẩn (không tiết lộ đáp án Crack).')}">${escapeHtml(formFields['ai-creator-direction'])}</textarea>
-        </label>
-        <div class="ai-creative-constraints">
-          <label class="ai-preset-field"><span>${tr('Setting lock', 'Khóa bối cảnh')}</span><select class="field-input" id="ai-setting-lock"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(CREATIVE_SETTINGS).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select></label>
-          <label class="ai-preset-field"><span>${tr('Tone lock', 'Khóa sắc thái')}</span><select class="field-input" id="ai-tone-lock"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(CREATIVE_TONES).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select></label>
-          <label class="ai-preset-field"><span>${tr('Investigation mechanic', 'Khóa cơ chế điều tra')}</span><select class="field-input" id="ai-mechanic-lock"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(CREATIVE_MECHANICS).map(([value, labels]) => `<option value="${value}">${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select></label>
-        </div>
-        <button class="btn btn-gold" type="button" id="quick-create-btn" ${creationBlocked() || creating ? 'disabled' : ''}>${creating ? tr('Creating case...', 'Đang tạo vụ án...') : tr('Create new case', 'Tạo vụ án mới')}</button>
-        <span class="muted small" id="ai-preset-help">${escapeHtml(presetDescription('NORMAL_RANDOM'))}</span>
-      </div>
-      ${capabilities.aiCaseV3PresetEnabled && !capabilities.gameplayV3Enabled
-        ? `<div class="notice notice-bad"><strong>${tr('V3 gameplay is disabled.', 'Gameplay V3 đang tắt.')}</strong> ${tr('V3 drafts can be generated and reviewed, but cannot be published.', 'Có thể tạo và kiểm tra bản nháp V3 nhưng chưa thể xuất bản.')}</div>`
-        : ''}
-
-      <section class="generation-progress" id="generation-progress" hidden aria-live="polite">
+      <section class="adm-card aai-progress generation-progress" id="generation-progress" hidden aria-live="polite">
         <div class="generation-progress-heading">
           <strong id="generation-progress-title">${tr('Preparing...', 'Đang chuẩn bị...')}</strong>
           <span id="generation-progress-percent">0%</span>
         </div>
-        <div class="generation-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="generation-progress-track" role="progressbar" aria-labelledby="generation-progress-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="generation-progress-fill" id="generation-progress-fill"></div>
         </div>
         <p class="muted small" id="generation-progress-detail"></p>
       </section>
 
-      <div id="ai-output">${activeDraft ? draftDetail(activeDraft) : ''}</div>
+      <div id="ai-output" class="aai-output">${activeDraft ? draftDetail(activeDraft) : ''}</div>
 
-      ${canManageDrafts ? `<h3 class="section-title">${tr('Recent AI drafts', 'Bản nháp AI gần đây')}</h3>` : ''}
-      ${!canManageDrafts
-        ? ''
-        : draftListError && drafts.length === 0
-        ? ''
-        : drafts.length === 0
-        ? `<div class="empty-state small">${tr('No drafts yet.', 'Chưa có bản nháp.')}</div>`
-        : `<table class="admin-table">
-            <thead><tr><th>${tr('Draft', 'Bản nháp')}</th><th>${tr('Provider', 'Nhà cung cấp')}</th><th>${tr('Preset', 'Cấu hình')}</th><th>${tr('Status', 'Trạng thái')}</th><th></th></tr></thead>
-            <tbody>${drafts.map(draftRow).join('')}</tbody>
-          </table>`}
+      ${creationLayout()}
+
+      ${canManageDrafts ? draftsCard() : ''}
     </div>`);
     for (const id of ['ai-setting-lock', 'ai-tone-lock', 'ai-mechanic-lock']) {
       qs(`#${id}`, app).value = formFields[id];
@@ -1141,7 +1272,6 @@ export async function renderAdminAiPage(app) {
     const languageSelect = qs('#ai-language-select', app);
     const caseTypeSelect = qs('#ai-case-type-select', app);
     const crackToggle = qs('#ai-include-crack', app);
-    const crackBadge = qs('#ai-crack-badge', app);
     const crackBudgetText = qs('#ai-crack-budget', app);
     const settingLock = qs('#ai-setting-lock', app);
     const toneLock = qs('#ai-tone-lock', app);
@@ -1159,7 +1289,7 @@ export async function renderAdminAiPage(app) {
           : '';
       presetHelp.textContent = `${presetDescription(presetKey)}${confrontationHelp ? ` ${confrontationHelp}` : ''}`;
       if (crackBudgetText) crackBudgetText.textContent = crackBudget(presetKey, capabilities.crackBudgets);
-      if (crackBadge) crackBadge.hidden = !crackToggle?.checked;
+      // The "V3 · Crack" pill names the feature and stays visible (as in the design); the switch shows the state.
     };
     syncCrackProfile();
     presetSelect?.addEventListener('change', () => {
@@ -1179,6 +1309,39 @@ export async function renderAdminAiPage(app) {
       window.localStorage.setItem('sirlocked.aiCaseType', selectedCaseType);
     });
 
+    // "Bản nháp sẽ tạo": every row follows the form as it changes.
+    const optionText = (select) => select?.selectedOptions?.[0]?.textContent ?? '';
+    const syncSummary = () => {
+      const set = (key, text) => {
+        const cell = app.querySelector(`[data-aai-sum="${key}"]`);
+        if (cell) cell.textContent = text;
+      };
+      set('preset', presetLabel(presetSelect?.value));
+      set('language', languageSelect?.value === 'vi' ? 'Tiếng Việt' : 'English');
+      set('caseType', caseTypeShortLabel(caseTypeSelect?.value));
+      set('crack', crackToggle?.checked ? tr('On', 'Bật') : tr('Off', 'Tắt'));
+      set('setting', optionText(settingLock));
+      set('tone', optionText(toneLock));
+      set('mechanic', optionText(mechanicLock));
+    };
+    // The preset cards, language segment and case-type pills are radios mirroring the hidden <select>s:
+    // a radio sets its select and fires its "change" (so the handlers above run); a select change moves the radio.
+    for (const [select, name] of [[presetSelect, 'aai-preset'], [languageSelect, 'aai-language'], [caseTypeSelect, 'aai-case-type']]) {
+      if (!select) continue;
+      const radios = [...app.querySelectorAll(`input[type="radio"][name="${name}"]`)];
+      radios.forEach((radio) => radio.addEventListener('change', () => {
+        if (!radio.checked || select.value === radio.value) return;
+        select.value = radio.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }));
+      select.addEventListener('change', () => {
+        radios.forEach((radio) => { radio.checked = radio.value === select.value; });
+        syncSummary();
+      });
+    }
+    for (const control of [crackToggle, settingLock, toneLock, mechanicLock]) control?.addEventListener('change', syncSummary);
+    syncSummary();
+
     qs('#quick-create-btn', app).addEventListener('click', async () => {
       if (creationBlocked() || creating) return;
       creating = true;
@@ -1197,6 +1360,8 @@ export async function renderAdminAiPage(app) {
       button.disabled = true;
       button.textContent = tr('Creating case...', 'Đang tạo vụ án...');
       updateProgress('GENERATING_STORY');
+      // The progress sits above the form; on a phone the button is far below it.
+      qs('#generation-progress', app)?.scrollIntoView({ block: 'nearest' });
       startProgressClock();
 
       try {
