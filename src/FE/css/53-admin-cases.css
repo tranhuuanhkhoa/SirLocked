@@ -1,2 +1,141 @@
-/* Khu vụ án trong admin: danh sách, chi tiết, nhập JSON, tạo vụ án AI, hàng tuần.
-   Chỉ áp dụng trong body[data-area="admin"]; hệ thiết kế chung ở 60-admin-theme.css. */
+/* Khu vụ án trong admin: danh sách, chi tiết, nhập JSON, hàng tuần (/admin/ai làm riêng).
+   Chỉ áp dụng trong body[data-area="admin"]; hệ thiết kế chung ở 60-admin-theme.css.
+   Mọi lớp mang tiền tố acs- (admin cases). File này nạp TRƯỚC 60-admin-theme.css, nên chỗ nào đè lên
+   .adm-card / .btn của theme thì viết hai lớp (.adm-card.acs-...) hoặc có #app. */
+
+/* ---------- khung trang ---------- */
+
+.acs-page { display: flex; flex-direction: column; gap: 24px; min-width: 0; line-height: 1.5; }
+.acs-page > .adm-head { margin-bottom: 0; }
+.acs-page > .adm-back-link { margin-bottom: -6px; width: fit-content; }
+.acs-code {
+  font-family: var(--adm-mono);
+  font-size: 12px;
+  color: var(--adm-muted);
+  overflow-wrap: anywhere;
+}
+.acs-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.adm-pill.acs-pill-pixel { background: var(--adm-navy); color: #f0d48c; letter-spacing: .04em; }
+.adm-pill.acs-status { min-height: 30px; }
+body[data-area="admin"] #app .acs-ai-btn svg { color: var(--adm-gold-bright); }
+
+/* ảnh bìa, hoặc ô xanh "Chưa có ảnh bìa" */
+.acs-cover {
+  display: block;
+  width: 176px;
+  height: 99px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--adm-navy);
+  image-rendering: pixelated;
+}
+.acs-cover--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--adm-on-navy-3);
+  font-size: 12px;
+  text-align: center;
+}
+.acs-cover--empty svg { color: var(--adm-gold-bright); stroke-width: 1.6; }
+
+/* ---------- danh sách vụ án ---------- */
+
+.adm-card.acs-filter-card { padding: 18px 20px; gap: 14px; }
+.acs-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.acs-search { flex: 1 1 300px; min-width: 0; background: var(--adm-paper-2) !important; }
+.acs-filter-row .adm-filter { min-height: 40px; }
+.acs-legacy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  font-size: 14px;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+body[data-area="admin"] #app .acs-legacy input { margin: 0; flex: none; }
+.acs-legacy small { font-size: 13px; color: var(--adm-muted); }
+
+.acs-case-list { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.adm-card.acs-case {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 16px;
+  transition: border-color var(--m-fast);
+}
+.adm-card.acs-case:hover { border-color: #cdb27a; }
+.acs-case-main { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+body[data-area="admin"] #app .acs-case-title {
+  font-family: var(--adm-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--adm-navy);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+body[data-area="admin"] #app .acs-case-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.acs-case-stats { display: flex; gap: 8px; }
+.acs-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--adm-tile);
+  text-align: center;
+}
+.acs-mini strong { font-size: 18px; font-weight: 700; line-height: 1.3; color: var(--adm-navy); }
+.acs-mini span { font-size: 12px; color: var(--adm-muted); white-space: nowrap; }
+.acs-case-status { flex: 0 0 132px; display: flex; justify-content: center; }
+.acs-case-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+body[data-area="admin"] #app .acs-case-actions .btn-sm { min-height: 40px; }
+.acs-case-reason {
+  flex: 1 1 100%;
+  margin: -8px 0 0;
+  font-size: 13px;
+  color: var(--adm-bad);
+  text-align: right;
+}
+
+.adm-card.acs-pager-card { padding: 0; border-radius: 16px; box-shadow: none; }
+.acs-pager-card .adm-pager { border-top: 0; padding: 10px 16px; }
+.acs-per-page { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; white-space: nowrap; }
+/* !important: the theme's input rule carries an id and five attribute selectors */
+body[data-area="admin"] #app .acs-per-page select {
+  width: auto;
+  min-height: 36px !important;
+  height: 36px;
+  padding: 0 28px 0 10px !important;
+  border-radius: var(--adm-r-sm) !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 720px) {
+  .acs-case-main { flex-basis: 100%; }
+  .acs-case-stats { flex: 1 1 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .acs-mini { min-width: 0; }
+  .acs-mini span { white-space: normal; }
+  .acs-case-status { flex: 0 1 auto; justify-content: flex-start; }
+  .acs-case-reason { text-align: left; margin-top: 0; }
+}
+@media (max-width: 900px) {
+  /* chạm bằng ngón tay */
+  body[data-area="admin"] #app .acs-case-actions .btn-sm,
+  .acs-pager-card .adm-page-btn { min-height: 44px; height: 44px; }
+  body[data-area="admin"] #app .acs-per-page select { min-height: 44px !important; height: 44px; }
+  .acs-pager-card .adm-page-btn { min-width: 44px; }
+  .acs-filter-row .adm-filter { min-height: 44px; }
+  .acs-legacy { min-height: 44px; }
+}
