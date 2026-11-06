@@ -123,12 +123,50 @@ Gõ chữ rồi chọn nơi tìm: Người chơi (`/admin/players?q=`), Vật ph
 | `dang-nhap.html` | `/admin/login` (`adminLoginPage.js`) | a | |
 | `phuong-an-A-nen-toi.html` | | | phương án nền tối để so sánh, không làm |
 
-Mục 5 và 6 được điền khi làm xong từng khu.
-
 ## 5. Thiết kế có nhưng chưa có chức năng
 
-(điền khi làm)
+Không làm giả. Mỗi mục dưới đây cần API hoặc nghiệp vụ mới; Yen quyết có làm không.
+
+| Trang | Thiết kế có | Vì sao chưa làm |
+|---|---|---|
+| Thanh trên | Một ô tìm chung trả kết quả gộp người chơi, vụ án, vật phẩm | Chưa có API tìm chung. Đã làm bản thật nhỏ hơn: gõ chữ rồi chọn nơi tìm, trang đó mở với ô tìm điền sẵn (`?q=`). |
+| Tổng quan | "Bản nháp AI · Chờ xem lại và xuất bản" | API chỉ trả tổng số bản nháp (`totalAiDrafts`), không đếm bản đang chờ. Trang ghi "Tổng số bản nháp đã tạo". |
+| Vụ án | Nút "Xóa" bản nháp và hộp thoại "Xóa bản nháp?" | Không có API xóa vụ án. |
+| Vụ án | Bộ lọc "Đã gỡ" | Gỡ xuất bản đưa vụ án về bản nháp, không có trạng thái riêng. Trang có "Đã lưu trữ" khi có vụ án ARCHIVED. |
+| Vụ án | Ghi chú "Không có vụ án cũ nào đang ẩn." | API không cho biết vụ án nào là vụ án cũ đang bị ẩn. |
+| Nhật ký | Email của admin trong từng dòng | API chỉ trả `adminName`. |
+| Nhật ký | Tên đối tượng dễ đọc (email người chơi, tên vật phẩm) | API chỉ trả `targetType` và `targetId`; trang hiện mã. |
+| Nhật ký | Bảng trước/sau dễ đọc ("Trạng thái: Đang hoạt động → Bị khóa") | Cần bảng ánh xạ tên trường và giá trị; trang hiện đường dẫn JSON và giá trị gốc. |
+| Nhật ký | Nhãn "Kinh tế" cho cộng/trừ xu | Nhãn lấy từ `targetType` thật, với cộng xu là "Người chơi". |
+| Mỹ phẩm | "Ra từ hòm" là một lựa chọn trong ô "Cách nhận" | API chỉ có theo cấp, thành tích, mặc định, admin cấp. Món nào rơi từ hòm nào đặt ở trang sửa hòm; trình sửa mỹ phẩm hiện danh sách hòm chỉ đọc kèm liên kết. |
+
+Thêm từ API sẵn có, không đổi backend: số ảnh chờ duyệt trên tab, nút Khóa/Mở khóa ở trang chi tiết người chơi, "Mỗi trang" ở danh sách người chơi và nhật ký, "Sao chép JSON" ở chi tiết vụ án, đếm vụ án và người dùng trên sidebar.
 
 ## 6. Trang không có thiết kế, đã dựng theo hệ thiết kế mới
 
-(điền khi làm)
+| Khu | Phần |
+|---|---|
+| Tổng quan | Khối "Đo đạc phiên chơi thử" (chỉ hiện khi bật đo đạc) |
+| Vụ án | Trình sửa chữ cutscene; điều kiện xuất bản bị chặn (✕ đỏ, "CHƯA ĐẠT"); danh sách lỗi kiểm tra, xuất bản, nhập; vụ án bị chặn xuất bản kèm lý do; nhãn "CŨ · ẩn với người chơi"; bộ storyboard và chi phí |
+| Hòm | Tab Lịch sử và Thống kê của trang sửa hòm; thanh "Xem thử như người chơi"; thông báo "Danh mục có N chỗ chưa khớp" |
+| Mỹ phẩm | Tab Danh hiệu, Hiệu ứng vào sảnh; công thức KN ở Thiết lập KN; toàn bộ trình sửa viền, danh hiệu, hiệu ứng (tạo mới và sửa) |
+| Người chơi | Lưới duyệt ảnh đại diện; các tab Lịch sử trận, Mở hòm, Giao dịch chợ, Trao đổi, Nhật ký admin ở trang chi tiết; hộp thoại thao tác |
+| Kinh tế | Các tab Chợ, Lịch sử & trao đổi (Xuất CSV), Bất thường, Giao dịch kẹt, Phòng chơi, Đánh giá; chế độ 30 ngày của biểu đồ |
+| Tạo vụ án AI | Toàn bộ luồng duyệt sau khi tạo: thẻ tiến độ, thẻ đầu bản nháp, duyệt tiền đề, sự thật vụ án (bảng cuộn trong khung, form sửa có phạm vi, bản sửa đề xuất), duyệt mù, nguồn gốc, điều kiện xuất bản V3, ma trận Crack, chẩn đoán, JSON sửa được và chỉ đọc |
+| Nhật ký | Bảng trước/sau khi bấm "Xem chi tiết" |
+| Mọi trang | Trạng thái đang tải, lỗi, trống |
+
+## 7. Khác thiết kế có chủ ý
+
+- Danh sách vật phẩm mặc định 50 dòng một trang, mỹ phẩm 24 thẻ: các bộ test full-stack cần món ở trang đầu (VC-0217, Kim Long).
+- Bật/tắt hòm vẫn bắt nhập lý do (thiết kế để tùy chọn), như quy tắc cũ.
+- Hình thật thay hình mẫu: hòm pixel, viền có avatar mẫu bên trong, bảng tên danh hiệu thật, sân khấu hiệu ứng thật, ảnh đại diện trong viền ở trang chi tiết người chơi.
+- Tạo và sửa mỹ phẩm mở trang trình sửa đầy đủ thay vì ngăn kéo bên: ngăn kéo không chứa được tải ảnh, căn lỗ và hiệu ứng.
+- Nhập JSON là một trang riêng vẽ như hộp thoại trong thẻ (địa chỉ `/admin/import` giữ nguyên).
+- Trang đăng nhập admin có thêm nút đổi ngôn ngữ EN/VI.
+- Thanh lưu ở trang sửa hòm và trình sửa mỹ phẩm dính đáy màn hình.
+- Trang Tạo vụ án AI: ba ô chọn cũ (cấu hình, ngôn ngữ, loại vụ án) vẫn nằm trong trang làm nguồn dữ liệu, ẩn đi; thẻ, khay và nút hiện ra là radio thật đồng bộ với chúng. Bản nháp đang mở và thẻ tiến độ nằm trên form.
+
+## 8. Còn có thể làm gọn
+
+Một số mẫu đang lặp ở CSS từng khu, có thể chuyển vào theme và `ui.js` sau: công tắc bật/tắt (`ac-switch`, `acf-switch`, `aai-switch`), thanh lưu tối dính đáy (`ac-savebar`, `acf-savebar`), ô chọn số dòng trong phân trang (`ac-/adp-/acs-/acf-per-page`), đầu hộp thoại có nút đóng (`ac-dialog-*`, `acf-modal-*`, `adp-dialog`), ô tải ảnh, thẻ chọn kiểu radio, icon tải lên và thùng rác. Chưa gộp để tránh làm vỡ các trang vừa xong.

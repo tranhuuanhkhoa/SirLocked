@@ -110,6 +110,9 @@ body[data-area="admin"] > .adm-layer,
 
 /* ---------- 2. Nền và khung trang ---------- */
 
+/* .adm-card, .adm-pill, .chip... đặt display nên đè thuộc tính hidden; trong vùng admin hidden luôn ẩn */
+body[data-area="admin"] [hidden] { display: none !important; }
+
 body[data-area="admin"] {
   background: #f4efe6;
   color: #1d2738;
@@ -146,6 +149,8 @@ body[data-area="admin"] > #app > div > .page {
   padding: 32px var(--adm-gutter) 56px;
   box-sizing: border-box;
 }
+/* người chỉ có quyền AI (không có sidebar): trang nằm giữa */
+body[data-area="admin"]:not(.adm-has-side) > #app > .page { margin: 0 auto; }
 
 /* sidebar */
 #admin-nav-root .adm-side {
@@ -590,7 +595,8 @@ body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(
   font-size: 15px;
   box-shadow: none;
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(textarea, textarea.field-input, .json-input) {
+/* #adm-weight không tồn tại; nó cho :is() độ ưu tiên của một id để thắng quy tắc ô nhập chung ở trên */
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(textarea, textarea.field-input, .json-input, #adm-weight) {
   padding: 12px 14px;
   line-height: 1.5;
 }
@@ -915,6 +921,14 @@ body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) thead th
   white-space: nowrap;
 }
 body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) tbody tr:hover > td { background: #faf6ee; }
+/* tiêu đề hàng trong thân bảng không viết hoa như tiêu đề cột (10-game.css vẽ mọi th như đầu bảng) */
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) tbody th {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--adm-ink);
+}
 body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) :is(th, td):first-child { padding-left: 22px; }
 body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) :is(th, td):last-child { padding-right: 22px; }
 .adm-num { text-align: right !important; font-variant-numeric: tabular-nums; }
