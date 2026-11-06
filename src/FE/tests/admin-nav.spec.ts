@@ -111,22 +111,28 @@ for (const address of ['/admin/chests', '/admin/cosmetics/frame_kimlong', '/admi
   });
 }
 
-test('on a phone the bar scrolls by itself, the page does not, and the current tab is in view', async ({ page }) => {
+test('on a phone the sidebar folds into a menu, the page does not scroll sideways, and the current tab is in reach', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAs(page, 'ADMIN');
   await page.goto('/admin/audit');
   const active = activeTab(page);
   await expect(active).toHaveText('Nhật ký');
-  await expect(active).toBeInViewport({ ratio: 1 });
 
   // The route's lens transition overflows for a moment on every page; measure once it is gone.
   await expect(page.locator('.bpa-rim')).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 
-  const scroller = page.locator('.admin-nav-scroll');
-  const { scrollWidth, clientWidth } = await scroller.evaluate((node) => ({ scrollWidth: node.scrollWidth, clientWidth: node.clientWidth }));
-  expect(scrollWidth).toBeGreaterThan(clientWidth);
+  // The folded bar names the current page; opening it shows every tab with the current one in view.
+  const toggle = page.locator('#admin-nav-root [data-adm-menu]');
+  await expect(toggle).toContainText('Nhật ký');
+  await expect(active).toBeHidden();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(tabs(page)).toHaveCount(9);
+  await expect(active).toBeInViewport({ ratio: 1 });
   const box = await active.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
+  await page.keyboard.press('Escape');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 });

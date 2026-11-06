@@ -40,7 +40,7 @@ import { PROFILE_EVENT, detectiveRankLabel, renderTitleMenuPage } from './pages/
 import { renderMarketPage } from './pages/marketPage.js';
 import { renderChestPage } from './pages/chestPage.js';
 import { hydrateWalletChip, walletChipMarkup } from './components/walletChip.js';
-import { syncAdminNav } from './components/adminNav.js';
+import { syncAdminArea, syncAdminNav } from './components/admin/shell.js';
 
 /**
  * Loading screen (markup lives in index.html so it can show before this
@@ -349,7 +349,9 @@ async function route({ transition = true } = {}) {
   const address = `${path}${window.location.search}`;
   const target = path === '/' ? null : matchRoute(path);
   // Redirects and gameplay skip the lens: Phaser measures its canvas on mount.
-  const lens = transition && Boolean(target) && !target.r.game && (target.r.anonymous || session.isLoggedIn());
+  // Admin pages open without the magnifier lens: the admin area is a quiet paper desk, not a game screen.
+  const lens = transition && Boolean(target) && !target.r.game && !target.r.admin && !target.r.aiAccess
+    && (target.r.anonymous || session.isLoggedIn());
   const mount = routeLifecycle.begin(document.getElementById('app'), { transition: lens });
   const { app } = mount;
 
@@ -397,7 +399,8 @@ async function route({ transition = true } = {}) {
   document.body.classList.toggle('title-menu-active', r.titleMenu === true);
   // The cork board is the backdrop of every screen except the Phaser scene.
   document.body.classList.toggle('bpa-board', r.game !== true);
-  renderNav(r);
+  // An admin route gets the admin top bar instead of the player one; leaving the area restores the player bar.
+  if (!syncAdminArea(r)) renderNav(r);
   syncAdminNav(r.admin || r.aiAccess);
   try {
     const args = r.lifecycle ? [...m.slice(1), { signal: mount.signal }] : m.slice(1);
