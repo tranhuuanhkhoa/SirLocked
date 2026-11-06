@@ -80,6 +80,7 @@ body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: ri
   border-radius: 0;
   background: transparent;
 }
+.adm-card--flush [data-adp-panel] > .adm-state:not(.adm-state--error) { border-top: 0; }
 .adm-card--flush .adp-rows > .adm-state--error,
 .adm-card--flush [data-adp-panel] > .adm-state--error { margin: 0 22px 22px; }
 .adp-per-page { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; }
@@ -226,6 +227,78 @@ body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: ri
 .adp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 .adp-reason { resize: vertical; }
 
+/* ---- one player ---- */
+
+/* the account card: what they wear on the left, who they are in the middle, account actions on the right */
+.adm-card.adp-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(210px, auto);
+  grid-template-areas: "pic info acts" "pic worn acts";
+  align-items: center;
+  gap: 8px 22px;
+  border-radius: 20px;
+}
+/* The look box keeps its own element (tests and the painter find it) but lays its two parts into the card's grid. */
+.adp-look { display: contents; }
+.adp-look-pic { grid-area: pic; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.adp-look-pic canvas { display: block; width: 136px; height: 136px; }
+.adp-look-title { display: flex; justify-content: center; max-width: 200px; }
+.adp-look-text { grid-area: worn; align-self: start; margin: 0; font-size: 13px; color: var(--adm-text-2); }
+.adp-look-text strong { font-weight: 600; color: var(--adm-ink); }
+.adp-head { grid-area: info; align-self: end; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.adp-name {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.adp-email { color: var(--adm-text-2); }
+.adp-created { font-size: 13px; color: var(--adm-muted); }
+.adp-profile-actions { grid-area: acts; display: flex; flex-direction: column; gap: 8px; }
+body[data-area="admin"] #app .adp-profile-actions [hidden] { display: none; }
+
+/* the four numbers, each with the action that changes it */
+.adp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+.adp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+}
+.adp-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; font-size: 13px; color: var(--adm-muted); }
+/* a text link in look, a 44 px target in fact (the negative margin keeps the row 20 px tall) */
+.adp-stat-act {
+  min-height: 44px;
+  margin: -12px -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-gold-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adp-stat-act:hover { text-decoration: underline; text-underline-offset: 2px; }
+.adp-stat-value { font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--adm-navy); }
+.adp-stat--gold .adp-stat-value { color: var(--adm-warn); }
+.adp-stat small { font-size: 12px; color: var(--adm-muted); }
+
+/* the tabs and what they hold */
+.adp-panel > .adp-table-wrap { border-top: 0; }
+[data-adp-panel="kho"] .adp-table tbody tr { height: 70px; }
+.adp-item-text { display: flex; flex-direction: column; min-width: 0; }
+.adp-item-text strong { font-weight: 600; color: var(--adm-ink); }
+.adp-free { color: var(--adm-ok); font-weight: 600; }
+
 /* ---- legacy pieces still used by the pages not converted yet ---- */
 
 .adp-tabs {
@@ -271,17 +344,6 @@ body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: ri
 .adp-room-player { margin-bottom: 4px; }
 .adp-review-text { display: block; max-width: 44ch; white-space: pre-wrap; }
 
-.adp-profile { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
-.adp-look { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-.adp-look canvas { width: 168px; height: 168px; }
-.adp-look-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.adp-head { flex: 1 1 280px; min-width: 0; }
-.adp-head p { margin: 0 0 8px; }
-.adp-name { margin: 0 0 4px; overflow-wrap: anywhere; }
-.adp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.adp-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
-.adp-toolbar [hidden] { display: none; }
-
 .adp-diff { font-size: 13px; }
 .adp-diff th[scope="row"] { color: var(--adm-muted); font-weight: 400; text-align: left; text-transform: none; letter-spacing: 0; background: none; }
 .adp-diff tr.is-changed td,
@@ -296,7 +358,9 @@ body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: ri
   .adp-filter--grow { flex-basis: 100%; }
   .adp-avatar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 16px 16px; gap: 10px; }
   .adp-avatar-actions .btn { flex: 1 1 100%; }
-  .adp-look canvas { width: 132px; height: 132px; }
+  .adm-card.adp-profile { grid-template-columns: minmax(0, 1fr); grid-template-areas: "pic" "info" "worn" "acts"; align-items: start; justify-items: start; gap: 12px; }
+  .adp-name { font-size: 28px; }
+  .adp-profile-actions { width: 100%; }
   .adp-review-text { max-width: none; }
   /* fingers need 44 px */
   body[data-area="admin"] #app .adp-page .btn-sm,
