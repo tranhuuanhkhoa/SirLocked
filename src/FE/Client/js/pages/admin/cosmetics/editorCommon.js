@@ -1,32 +1,70 @@
 import { adminCosmeticsApi } from '../../../api/adminCosmeticsApi.js';
 import { adminAssetsApi } from '../../../api/adminAssetsApi.js';
+import { pill } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { METRICS, RARITIES, askReason, checkPicture, errorText } from './shared.js';
+import { METRICS, RARITIES, acfIcon, askReason, categoryOf, checkPicture, errorText } from './shared.js';
 import { navigate } from '../../../services/navigation.js';
 
 const LEVELS_NOTE = 'Món theo cấp, thành tích hoặc mặc định tự thành không giao dịch được. Người chơi đã vượt cấp đó nhận bù khi mở hồ sơ lần tới.';
+
+/** A card of the editor: a title, an optional line under it, then its body. */
+export const blockHtml = ({ id, title, sub = '', body, attrs = '' }) => `
+  <section class="adm-card acf-block"${attrs} aria-labelledby="${id}">
+    <div class="acf-block-head">
+      <h2 class="adm-card-title" id="${id}">${escapeHtml(title)}</h2>
+      ${sub ? `<p class="adm-card-sub">${escapeHtml(sub)}</p>` : ''}
+    </div>
+    ${body}
+  </section>`;
+
+/**
+ * An upload button for one picture. The file input stays in the tab order (visually hidden), so the button can be
+ * reached and opened from the keyboard.
+ */
+export const uploadHtml = ({ label, attr, note = '', small = false, statusAttr, statusText = '' }) => `
+  <div class="acf-upload-box${small ? ' acf-upload-box--small' : ''}">
+    <label class="btn btn-ghost${small ? ' btn-sm' : ''} acf-upload">${acfIcon('upload', 18)}${escapeHtml(label)}
+      <input class="acf-file" type="file" accept="image/png,image/webp" ${attr}></label>
+    ${note ? `<span class="acf-hint">${escapeHtml(note)}</span>` : ''}
+    <p class="acf-status" ${statusAttr}>${escapeHtml(statusText)}</p>
+  </div>`;
+
+/** The dark bar under the form: what its button saves, and the button. */
+export const saveBarHtml = (item, category) => {
+  const noun = categoryOf(category)?.noun ?? '';
+  return `
+    <div class="acf-savebar">
+      <span class="acf-savebar-text">${item
+    ? 'Tên, độ hiếm, giá, hình và hiệu ứng chỉ lưu khi bấm nút này. Cách nhận và trạng thái bên dưới lưu riêng.'
+    : `Tạo xong mới đặt được cách nhận và trạng thái của ${escapeHtml(noun)}.`}</span>
+      <button class="btn adm-btn-accent" type="button" data-save>${item ? `Lưu ${escapeHtml(noun)}` : `Tạo ${escapeHtml(noun)}`}</button>
+    </div>`;
+};
 
 /** Name, rarity and the rest of what every cosmetic has. */
 export function basicFieldsHtml(item, { withDescription = false } = {}) {
   const value = (field) => escapeHtml(item?.[field] ?? '');
   return `
     <div class="acf-grid2">
-      <div><label class="field-label" for="acf-name">Tên tiếng Việt</label>
+      <div class="acf-field"><label for="acf-name">Tên tiếng Việt</label>
         <input class="field-input" id="acf-name" data-field="name" maxlength="60" required value="${value('name')}"></div>
-      <div><label class="field-label" for="acf-name-en">Tên tiếng Anh</label>
+      <div class="acf-field"><label for="acf-name-en">Tên tiếng Anh</label>
         <input class="field-input" id="acf-name-en" data-field="nameEn" maxlength="60" value="${value('nameEn')}" placeholder="Để trống thì dùng tên tiếng Việt"></div>
-      <div><label class="field-label" for="acf-rarity">Độ hiếm</label>
+      <div class="acf-field"><label for="acf-rarity">Độ hiếm</label>
         <select class="field-input" id="acf-rarity" data-field="rarity">
           ${RARITIES.map((rarity) => `<option value="${rarity.id}"${(item?.rarity ?? 'RARE') === rarity.id ? ' selected' : ''}>${rarity.label}</option>`).join('')}
         </select></div>
-      <div><label class="field-label" for="acf-price">Giá tham chiếu (xu)</label>
-        <input class="field-input" id="acf-price" data-field="referencePrice" type="number" min="2" max="1000000" value="${value('referencePrice')}" placeholder="Theo độ hiếm"></div>
+      <div class="acf-field"><label for="acf-price">Giá tham chiếu (xu)</label>
+        <input class="field-input" id="acf-price" data-field="referencePrice" type="number" min="2" max="1000000" inputmode="numeric" value="${value('referencePrice')}" placeholder="Theo độ hiếm"></div>
     </div>
     ${withDescription ? `
-    <label class="field-label" for="acf-desc">Mô tả</label>
-    <textarea class="field-input" id="acf-desc" data-field="description" rows="2" maxlength="300" placeholder="Để trống thì dùng mô tả của mẫu">${value('description')}</textarea>` : ''}
-    <label class="acf-check"><input type="checkbox" data-field="tradable"${item?.tradable ?? true ? ' checked' : ''}> Được bán và trao đổi</label>`;
+    <div class="acf-field"><label for="acf-desc">Mô tả</label>
+      <textarea class="field-input" id="acf-desc" data-field="description" rows="2" maxlength="300" placeholder="Để trống thì dùng mô tả của mẫu">${value('description')}</textarea></div>` : ''}
+    <label class="acf-switch-row">
+      <span class="acf-switch-text"><strong>Được bán và trao đổi</strong><span>Bật thì món lên chợ, trao đổi được và đổi được KN nếu đủ độ hiếm.</span></span>
+      <input type="checkbox" class="acf-switch" role="switch" data-field="tradable"${item?.tradable ?? true ? ' checked' : ''}>
+    </label>`;
 }
 
 /** The fields of basicFieldsHtml as a request body. */
@@ -105,33 +143,38 @@ export function wirePictureInput(input, { needsAlpha = true, status, onPicture }
 /** How this cosmetic is obtained, and which chests it sits in. */
 export function acquisitionHtml(item, page) {
   const way = item.acquisition;
-  const radio = (mode, label) => `<label class="acf-check"><input type="radio" name="acf-mode" value="${mode}"${way.mode === mode ? ' checked' : ''}> ${label}</label>`;
+  const radio = (mode, label) => `<label class="acf-choice"><input type="radio" name="acf-mode" value="${mode}"${way.mode === mode ? ' checked' : ''}> ${label}</label>`;
   const metric = way.metric ?? page.metrics[0];
-  return `
-    <section class="acf-section" data-acquisition>
-      <h3>Cách nhận</h3>
-      <div class="acf-modes">
+  return blockHtml({
+    id: 'acf-way-title',
+    title: 'Cách nhận',
+    sub: 'Lưu riêng bằng nút của phần này, áp dụng ngay cho mọi người chơi.',
+    attrs: ' data-acquisition',
+    body: `
+      <div class="acf-modes" role="radiogroup" aria-labelledby="acf-way-title">
         ${radio('level', 'Theo cấp')}
         ${radio('achievement', 'Thành tích')}
         ${radio('default', 'Mặc định (mỗi nhóm một món)')}
         ${radio('admin', 'Chỉ admin cấp')}
       </div>
-      <div data-mode-fields="level"><label class="field-label" for="acf-level">Cấp nhận (1–${page.maxLevel})</label>
-        <input class="field-input acf-short" id="acf-level" type="number" min="1" max="${page.maxLevel}" value="${way.level ?? 10}"></div>
+      <div class="acf-field acf-field--short" data-mode-fields="level"><label for="acf-level">Cấp nhận (1–${page.maxLevel})</label>
+        <input class="field-input" id="acf-level" type="number" min="1" max="${page.maxLevel}" inputmode="numeric" value="${way.level ?? 10}"></div>
       <div data-mode-fields="achievement" class="acf-grid2">
-        <div><label class="field-label" for="acf-metric">Chỉ số</label>
+        <div class="acf-field"><label for="acf-metric">Chỉ số</label>
           <select class="field-input" id="acf-metric">${page.metrics.map((name) => `<option value="${name}"${name === metric ? ' selected' : ''}>${escapeHtml(METRICS[name] ?? name)}</option>`).join('')}</select></div>
-        <div><label class="field-label" for="acf-target">Mục tiêu</label>
-          <input class="field-input" id="acf-target" type="number" min="1" value="${way.target ?? 1}"></div>
+        <div class="acf-field"><label for="acf-target">Mục tiêu</label>
+          <input class="field-input" id="acf-target" type="number" min="1" inputmode="numeric" value="${way.target ?? 1}"></div>
       </div>
-      <p class="muted small">${LEVELS_NOTE}</p>
-      <div class="acf-actions"><button class="btn btn-primary" type="button" data-save-way>Lưu cách nhận</button></div>
-      <h4>Ra từ hòm</h4>
-      ${way.chests.length > 0
+      <p class="acf-note">${LEVELS_NOTE}</p>
+      <div><button class="btn btn-primary" type="button" data-save-way>Lưu cách nhận</button></div>
+      <div class="acf-subblock">
+        <h3 class="acf-subhead">Ra từ hòm</h3>
+        ${way.chests.length > 0
     ? `<p class="acf-chests" data-chests>Đang nằm trong hòm: ${way.chests.map((chest) => `<a href="/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}${chest.active ? '' : ' (đang tắt)'}</a>`).join(', ')}</p>`
-    : '<p class="muted small" data-chests>Chưa nằm trong hòm nào.</p>'}
-      <p class="muted small">Việc đưa vào hòm làm ở <a href="/admin/chests">Hòm &amp; vật phẩm</a>.</p>
-    </section>`;
+    : '<p class="acf-chests acf-chests--none" data-chests>Chưa nằm trong hòm nào.</p>'}
+        <p class="acf-note">Việc đưa vào hòm làm ở <a href="/admin/chests">Hòm &amp; vật phẩm</a>.</p>
+      </div>`,
+  });
 }
 
 function wireAcquisition(root, item, onSaved) {
@@ -169,16 +212,21 @@ function wireAcquisition(root, item, onSaved) {
 /** Retire, bring back, delete, and a way to give one to a player. */
 export function statusHtml(item) {
   const made = !item.visual?.builtinId;
-  return `
-    <section class="acf-section" data-status>
-      <h3>Trạng thái</h3>
-      <p class="muted small">${item.retired ? 'Đã ngừng phát hành: không còn rơi, không còn trong cửa hàng. Người đã có vẫn dùng bình thường.' : 'Đang phát hành.'} ${item.owners} người đang sở hữu.</p>
-      <div class="acf-actions">
-        <button class="btn ${item.retired ? 'btn-primary' : 'btn-ghost'}" type="button" data-retire>${item.retired ? 'Phát hành lại' : 'Ngừng phát hành (retire)'}</button>
-        <a class="btn btn-ghost" href="/admin/cosmetics?tab=grant&def=${encodeURIComponent(item.id)}">Cấp cho người chơi</a>
-        ${made && item.owners === 0 ? '<button class="btn acf-btn-danger" type="button" data-delete>Xóa hẳn</button>' : ''}
+  return blockHtml({
+    id: 'acf-state-title',
+    title: 'Trạng thái',
+    attrs: ' data-status',
+    body: `
+      <div class="acf-state-row">
+        ${item.retired ? pill('Đã retire', 'bad', { dot: true }) : pill('Đang phát hành', 'ok', { dot: true })}
+        <p class="acf-state-text">${item.retired ? 'Đã ngừng phát hành: không còn rơi, không còn trong cửa hàng. Người đã có vẫn dùng bình thường.' : 'Đang rơi từ hòm và bán trong cửa hàng nếu đang nằm trong đó.'} ${Number(item.owners ?? 0).toLocaleString('vi-VN')} người đang sở hữu.</p>
       </div>
-    </section>`;
+      <div class="acf-actions">
+        <button class="btn ${item.retired ? 'btn-ghost adm-btn-ok' : 'btn-ghost acf-btn-warn'}" type="button" data-retire>${item.retired ? 'Phát hành lại' : 'Ngừng phát hành (retire)'}</button>
+        <a class="btn btn-ghost" href="/admin/cosmetics?tab=grant&def=${encodeURIComponent(item.id)}">Cấp cho người chơi</a>
+        ${made && item.owners === 0 ? `<button class="btn btn-ghost adm-btn-danger" type="button" data-delete>${acfIcon('trash', 18)}Xóa hẳn</button>` : ''}
+      </div>`,
+  });
 }
 
 function wireStatus(root, item, onSaved) {

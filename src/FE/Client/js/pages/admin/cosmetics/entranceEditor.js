@@ -4,8 +4,8 @@ import { defineEntrance } from '../../../cosmetics/fx.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { paintStageThumb } from '../../../cosmetics/stage.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { basicFieldsHtml, mountSections, saveCosmetic, wirePictureInput } from './editorCommon.js';
-import { hexOf, keyOf, rgbOf } from './shared.js';
+import { basicFieldsHtml, blockHtml, mountSections, saveBarHtml, saveCosmetic, uploadHtml, wirePictureInput } from './editorCommon.js';
+import { acfIcon, hexOf, keyOf, rgbOf } from './shared.js';
 
 const PREVIEW_ID = '__pv_entrance';
 const TEMPLATES = ['lang-le', 'anh-trang', 'mac-vu', 'truc-lam', 'van-kiem', 'huyet-nguyet', 'hac-duc', 'than-tham', 'kim-long', 'phuong-hoang'];
@@ -65,49 +65,53 @@ export function mountEntranceEditor(host, { item, page, onSaved, onChanged }) {
     if (sword) sword.hidden = state.template !== SWORD_TEMPLATE;
   };
 
+  const template = blockHtml({
+    id: 'acf-template-title',
+    title: 'Mẫu',
+    sub: 'Chuyển động lấy từ một hiệu ứng có sẵn. Đổi được màu và thời lượng; vài mẫu đổi được cả ảnh.',
+    body: `
+      <div class="acf-field"><label for="acf-template">Kiểu chuyển động</label>
+        <select class="field-input" id="acf-template" data-template>
+          ${TEMPLATES.map((id) => `<option value="${id}"${state.template === id ? ' selected' : ''}>${escapeHtml(EN[id]?.n ?? id)}</option>`).join('')}
+        </select></div>
+      <div class="acf-effects">
+        <div class="acf-effect">
+          <label class="acf-check"><input type="checkbox" data-tint-on${state.tintOn ? ' checked' : ''}> Đổi màu chủ đạo</label>
+          <div class="acf-effect-body"><input type="color" value="${hexOf(state.tint)}" data-tint aria-label="Màu chủ đạo">
+            <span class="acf-hint">Đổi màu ánh sáng và hạt. Ảnh vẽ tay giữ nguyên màu của ảnh.</span></div>
+        </div>
+        <div class="acf-effect">
+          <div class="acf-effect-body">
+            <label class="acf-slider"><span>Thời lượng (giây)</span> <output data-duration-text>${state.duration ?? 'theo mẫu'}</output>
+              <input type="range" min="4" max="12" step="0.5" value="${state.duration ?? 8}" data-duration aria-label="Thời lượng"></label>
+            <button class="btn btn-ghost btn-sm" type="button" data-duration-reset>Dùng thời lượng của mẫu</button>
+          </div>
+        </div>
+      </div>
+      <div class="acf-template" data-creature>
+        ${uploadHtml({ label: 'Tải ảnh sinh vật (PNG/WebP)', attr: 'data-creature-input', statusAttr: 'data-creature-status', statusText: state.imageUrl ? 'Đang dùng ảnh riêng.' : 'Đang dùng ảnh của mẫu.' })}
+        <p class="acf-note" data-creature-note></p>
+      </div>
+      <div class="acf-template" data-sword>
+        ${uploadHtml({ label: 'Tải ảnh kiếm (PNG/WebP, mũi kiếm quay sang phải)', attr: 'data-sword-input', statusAttr: 'data-sword-status', statusText: state.swordUrl ? 'Đang dùng ảnh riêng.' : 'Đang dùng ảnh của mẫu.' })}
+      </div>`,
+  });
   host.innerHTML = `
     <div class="acf-editor">
       <div class="acf-editor-main">
-        <section class="acf-section">
-          <h3>Thông tin hiệu ứng</h3>
-          ${basicFieldsHtml(item, { withDescription: true })}
-        </section>
-        ${shipped ? '<p class="muted small">Hiệu ứng có sẵn của game giữ nguyên hình. Muốn đổi màu hay đổi ảnh, hãy tạo hiệu ứng mới từ mẫu của nó.</p>' : `
-        <section class="acf-section">
-          <h3>Mẫu</h3>
-          <label class="field-label" for="acf-template">Kiểu chuyển động</label>
-          <select class="field-input" id="acf-template" data-template>
-            ${TEMPLATES.map((id) => `<option value="${id}"${state.template === id ? ' selected' : ''}>${escapeHtml(EN[id]?.n ?? id)}</option>`).join('')}
-          </select>
-          <div class="acf-effect">
-            <label class="acf-check"><input type="checkbox" data-tint-on${state.tintOn ? ' checked' : ''}> Đổi màu chủ đạo</label>
-            <div class="acf-effect-body"><input type="color" value="${hexOf(state.tint)}" data-tint aria-label="Màu chủ đạo"></div>
-            <p class="muted small">Đổi màu ánh sáng và hạt. Ảnh vẽ tay giữ nguyên màu của ảnh.</p>
-          </div>
-          <label class="acf-slider">Thời lượng (giây) <output data-duration-text>${state.duration ?? 'theo mẫu'}</output>
-            <input type="range" min="4" max="12" step="0.5" value="${state.duration ?? 8}" data-duration aria-label="Thời lượng"></label>
-          <button class="btn btn-ghost btn-sm" type="button" data-duration-reset>Dùng thời lượng của mẫu</button>
-          <div data-creature>
-            <label class="btn btn-ghost acf-upload">Tải ảnh sinh vật (PNG/WebP)
-              <input type="file" accept="image/png,image/webp" data-creature-input hidden></label>
-            <p class="muted small" data-creature-note></p>
-            <p class="acf-status" data-creature-status>${state.imageUrl ? 'Đang dùng ảnh riêng.' : 'Đang dùng ảnh của mẫu.'}</p>
-          </div>
-          <div data-sword>
-            <label class="btn btn-ghost acf-upload">Tải ảnh kiếm (PNG/WebP, mũi kiếm quay sang phải)
-              <input type="file" accept="image/png,image/webp" data-sword-input hidden></label>
-            <p class="acf-status" data-sword-status>${state.swordUrl ? 'Đang dùng ảnh riêng.' : 'Đang dùng ảnh của mẫu.'}</p>
-          </div>
-        </section>`}
-        <div class="acf-actions"><button class="btn btn-primary" type="button" data-save>${item ? 'Lưu hiệu ứng' : 'Tạo hiệu ứng'}</button></div>
+        <div class="acf-form">
+          ${blockHtml({ id: 'acf-info-title', title: 'Thông tin', body: basicFieldsHtml(item, { withDescription: true }) })}
+          ${shipped ? '<p class="acf-shipped">Hiệu ứng có sẵn của game giữ nguyên hình. Muốn đổi màu hay đổi ảnh, hãy tạo hiệu ứng mới từ mẫu của nó.</p>' : template}
+          ${saveBarHtml(item, 'ENTRANCE')}
+        </div>
         ${item ? '<div class="acf-sections" data-sections></div>' : ''}
       </div>
-      <aside class="acf-preview" data-preview aria-label="Xem trước">
-        <h3>Xem trước</h3>
+      <aside class="adm-card acf-preview" data-preview aria-labelledby="acf-preview-title">
+        <div class="acf-preview-head"><h2 class="adm-card-title" id="acf-preview-title">Xem trước</h2></div>
         <div class="acf-preview-stage hs-root" data-stage="black">
           <canvas class="acf-stage-thumb" data-thumb width="480" height="270" role="img" aria-label="Hiệu ứng thu nhỏ"></canvas>
         </div>
-        <button class="btn btn-primary" type="button" data-play>Xem thử toàn màn hình</button>
+        <button class="btn btn-primary" type="button" data-play>${acfIcon('play', 18)}Xem thử toàn màn hình</button>
       </aside>
     </div>`;
 

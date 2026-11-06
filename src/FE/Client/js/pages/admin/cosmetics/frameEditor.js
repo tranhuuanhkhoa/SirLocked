@@ -2,7 +2,7 @@ import { avatarImg, FR, forgetCanvas, paintFrame } from '../../../cosmetics/inde
 import { defineFrame, liveOf, sheenOf } from '../../../cosmetics/frames.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { basicFieldsHtml, mountSections, saveCosmetic, wirePictureInput } from './editorCommon.js';
+import { basicFieldsHtml, blockHtml, mountSections, saveBarHtml, saveCosmetic, uploadHtml, wirePictureInput } from './editorCommon.js';
 import { hexOf, keyOf, rgbOf } from './shared.js';
 
 const PREVIEW_ID = '__pv';
@@ -62,26 +62,27 @@ const sheenValue = (sheen) => (sheen.on ? { rgb: sheen.color, a: sheen.a, period
 
 function effectsHtml(effects, sheen) {
   const slider = (key, index, def, value) => `
-    <label class="acf-slider">${escapeHtml(def.label)} <output>${value}</output>
+    <label class="acf-slider"><span>${escapeHtml(def.label)}</span> <output>${value}</output>
       <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" value="${value}" data-effect-value="${key}" data-index="${index}" aria-label="${escapeHtml(def.label)}"></label>`;
   return `
     ${EFFECTS.map((effect) => {
     const state = effects[effect.key];
+    const hasBody = effect.color || effect.kinds || effect.sliders.length > 0;
     return `<div class="acf-effect" data-effect="${effect.key}">
         <label class="acf-check"><input type="checkbox" data-effect-on="${effect.key}"${state.on ? ' checked' : ''}> ${escapeHtml(effect.label)}</label>
-        <div class="acf-effect-body">
+        ${hasBody ? `<div class="acf-effect-body">
           ${effect.color ? `<input type="color" value="${hexOf(state.color)}" data-effect-color="${effect.key}" aria-label="Màu ${escapeHtml(effect.label)}">` : ''}
-          ${effect.kinds ? `<select class="field-input acf-short" data-effect-kind="${effect.key}" aria-label="Loại">${effect.kinds.map(([id, label]) => `<option value="${id}"${state.kind === id ? ' selected' : ''}>${label}</option>`).join('')}</select>` : ''}
+          ${effect.kinds ? `<select class="field-input acf-kind" data-effect-kind="${effect.key}" aria-label="Loại">${effect.kinds.map(([id, label]) => `<option value="${id}"${state.kind === id ? ' selected' : ''}>${label}</option>`).join('')}</select>` : ''}
           ${effect.sliders.map((def, index) => slider(effect.key, index, def, state.values[index])).join('')}
-        </div>
+        </div>` : ''}
       </div>`;
   }).join('')}
     <div class="acf-effect" data-effect="sheen">
       <label class="acf-check"><input type="checkbox" data-sheen="on"${sheen.on ? ' checked' : ''}> Ánh kim lướt</label>
       <div class="acf-effect-body">
         <input type="color" value="${hexOf(sheen.color)}" data-sheen="color" aria-label="Màu ánh kim">
-        <label class="acf-slider">Cường độ <output>${sheen.a}</output><input type="range" min="0" max="1" step="0.01" value="${sheen.a}" data-sheen="a" aria-label="Cường độ ánh kim"></label>
-        <label class="acf-slider">Chu kỳ (giây) <output>${sheen.period}</output><input type="range" min="2" max="20" step="0.5" value="${sheen.period}" data-sheen="period" aria-label="Chu kỳ ánh kim"></label>
+        <label class="acf-slider"><span>Cường độ</span> <output>${sheen.a}</output><input type="range" min="0" max="1" step="0.01" value="${sheen.a}" data-sheen="a" aria-label="Cường độ ánh kim"></label>
+        <label class="acf-slider"><span>Chu kỳ (giây)</span> <output>${sheen.period}</output><input type="range" min="2" max="20" step="0.5" value="${sheen.period}" data-sheen="period" aria-label="Chu kỳ ánh kim"></label>
         <label class="acf-check"><input type="checkbox" data-sheen="conic"${sheen.conic ? ' checked' : ''}> Xoay tròn</label>
       </div>
     </div>`;
@@ -132,52 +133,52 @@ export function mountFrameEditor(host, { item, page, onSaved, onChanged }) {
   const previewId = () => (shipped ? key : PREVIEW_ID);
 
   const render = () => {
+    const look = blockHtml({
+      id: 'acf-look-title',
+      title: 'Hình ảnh',
+      body: `
+        <div class="acf-modes" role="radiogroup" aria-labelledby="acf-look-title">
+          <label class="acf-choice"><input type="radio" name="acf-template" value="painted"${state.template === 'painted' ? ' checked' : ''}> Ảnh vẽ tay tải lên</label>
+          <label class="acf-choice"><input type="radio" name="acf-template" value="builtin-clone"${state.template === 'builtin-clone' ? ' checked' : ''}> Biến thể từ viền có sẵn</label>
+        </div>
+        <div class="acf-template" data-for-template="painted">
+          ${uploadHtml({ label: 'Chọn ảnh PNG/WebP nền trong suốt', attr: 'data-picture', note: 'Dưới 5 MB; lỗ avatar cần trong suốt để không che avatar.', statusAttr: 'data-picture-status' })}
+          <div class="acf-align-wrap" data-align-wrap></div>
+          <div class="acf-grid3" data-hole-fields>
+            <div class="acf-field"><label for="acf-hole-x">Tâm X (px)</label><input class="field-input" id="acf-hole-x" type="number" min="0" inputmode="numeric" data-hole="x"></div>
+            <div class="acf-field"><label for="acf-hole-y">Tâm Y (px)</label><input class="field-input" id="acf-hole-y" type="number" min="0" inputmode="numeric" data-hole="y"></div>
+            <div class="acf-field"><label for="acf-hole-r">Bán kính (px)</label><input class="field-input" id="acf-hole-r" type="number" min="1" inputmode="numeric" data-hole="r"></div>
+          </div>
+          ${uploadHtml({ label: 'Lớp phát sáng (tùy chọn)', attr: 'data-glow', small: true, statusAttr: 'data-glow-status', statusText: state.glowUrl ? 'Đã có lớp phát sáng.' : '' })}
+        </div>
+        <div class="acf-template" data-for-template="builtin-clone">
+          <p class="acf-note">Dùng lại hình của viền có sẵn, đổi hiệu ứng và màu bên dưới.</p>
+          <div class="acf-bases" role="radiogroup" aria-label="Viền gốc">
+            ${FRAME_BASES.map((id) => `<button class="acf-base${state.base === id ? ' is-on' : ''}" type="button" role="radio" aria-checked="${state.base === id}" data-base="${id}" title="${escapeHtml(FR[id].name)}"><canvas width="84" height="84" aria-hidden="true"></canvas><span>${escapeHtml(FR[id].name)}</span></button>`).join('')}
+          </div>
+        </div>`,
+    });
+    const effects = blockHtml({
+      id: 'acf-effects-title',
+      title: 'Hiệu ứng sống',
+      sub: 'Bật, chọn màu và kéo thanh; khung xem trước đổi theo ngay.',
+      body: `<div class="acf-effects">${effectsHtml(state.effects, state.sheen)}</div>`,
+    });
     host.innerHTML = `
       <div class="acf-editor">
         <div class="acf-editor-main">
-          <section class="acf-section">
-            <h3>${shipped ? 'Thông tin' : 'Thông tin viền'}</h3>
-            ${basicFieldsHtml(item)}
-          </section>
-          ${shipped ? '<p class="muted small">Viền có sẵn của game giữ nguyên hình. Muốn đổi hiệu ứng, hãy tạo một biến thể từ nó.</p>' : `
-          <section class="acf-section">
-            <h3>Hình ảnh</h3>
-            <div class="acf-modes">
-              <label class="acf-check"><input type="radio" name="acf-template" value="painted"${state.template === 'painted' ? ' checked' : ''}> Ảnh vẽ tay tải lên</label>
-              <label class="acf-check"><input type="radio" name="acf-template" value="builtin-clone"${state.template === 'builtin-clone' ? ' checked' : ''}> Biến thể từ viền có sẵn</label>
-            </div>
-            <div data-for-template="painted">
-              <label class="btn btn-ghost acf-upload">Chọn ảnh PNG/WebP nền trong suốt
-                <input type="file" accept="image/png,image/webp" data-picture hidden></label>
-              <p class="acf-status" data-picture-status></p>
-              <div class="acf-align-wrap" data-align-wrap></div>
-              <div class="acf-grid3" data-hole-fields>
-                <div><label class="field-label" for="acf-hole-x">Tâm X (px)</label><input class="field-input" id="acf-hole-x" type="number" min="0" data-hole="x"></div>
-                <div><label class="field-label" for="acf-hole-y">Tâm Y (px)</label><input class="field-input" id="acf-hole-y" type="number" min="0" data-hole="y"></div>
-                <div><label class="field-label" for="acf-hole-r">Bán kính (px)</label><input class="field-input" id="acf-hole-r" type="number" min="1" data-hole="r"></div>
-              </div>
-              <label class="btn btn-ghost btn-sm acf-upload">Lớp phát sáng (tùy chọn)
-                <input type="file" accept="image/png,image/webp" data-glow hidden></label>
-              <p class="acf-status" data-glow-status>${state.glowUrl ? 'Đã có lớp phát sáng.' : ''}</p>
-            </div>
-            <div data-for-template="builtin-clone">
-              <p class="muted small">Dùng lại hình của viền có sẵn, đổi hiệu ứng và màu bên dưới.</p>
-              <div class="acf-bases" role="radiogroup" aria-label="Viền gốc">
-                ${FRAME_BASES.map((id) => `<button class="acf-base${state.base === id ? ' is-on' : ''}" type="button" role="radio" aria-checked="${state.base === id}" data-base="${id}" title="${escapeHtml(FR[id].name)}"><canvas width="84" height="84" aria-hidden="true"></canvas><span>${escapeHtml(FR[id].name)}</span></button>`).join('')}
-              </div>
-            </div>
-          </section>
-          <section class="acf-section">
-            <h3>Hiệu ứng sống</h3>
-            ${effectsHtml(state.effects, state.sheen)}
-          </section>`}
-          <div class="acf-actions"><button class="btn btn-primary" type="button" data-save>${item ? 'Lưu viền' : 'Tạo viền'}</button></div>
+          <div class="acf-form">
+            ${blockHtml({ id: 'acf-info-title', title: 'Thông tin', body: basicFieldsHtml(item) })}
+            ${shipped ? '<p class="acf-shipped">Viền có sẵn của game giữ nguyên hình. Muốn đổi hiệu ứng, hãy tạo một biến thể từ nó.</p>' : look + effects}
+            ${saveBarHtml(item, 'FRAME')}
+          </div>
           ${item ? '<div class="acf-sections" data-sections></div>' : ''}
         </div>
-        <aside class="acf-preview" data-preview aria-label="Xem trước">
+        <aside class="adm-card acf-preview" data-preview aria-labelledby="acf-preview-title">
           <div class="acf-preview-head">
-            <h3>Xem trước</h3>
-            <select class="field-input acf-short" data-background aria-label="Nền xem trước">${BACKGROUNDS.map((background) => `<option value="${background.id}">${background.label}</option>`).join('')}</select>
+            <h2 class="adm-card-title" id="acf-preview-title">Xem trước</h2>
+            <label class="acf-select"><span class="bpa-sr">Nền xem trước</span>
+              <select class="field-input" data-background>${BACKGROUNDS.map((background) => `<option value="${background.id}">${background.label}</option>`).join('')}</select></label>
           </div>
           <div class="acf-preview-stage hs-root" data-stage="profile">
             <figure><canvas data-preview-canvas style="width:236px;height:236px" width="236" height="236" aria-label="Xem trước cỡ 236 px" role="img"></canvas><figcaption>236 px, ở hồ sơ</figcaption></figure>
@@ -239,10 +240,10 @@ export function mountFrameEditor(host, { item, page, onSaved, onChanged }) {
     const wrap = host.querySelector('[data-align-wrap]');
     if (!wrap) return;
     if (!state.imageUrl) {
-      wrap.innerHTML = '<p class="muted small">Chưa có ảnh. Sau khi tải ảnh, kéo vòng tròn vào đúng lỗ avatar.</p>';
+      wrap.innerHTML = '<p class="acf-align-empty">Chưa có ảnh. Sau khi tải ảnh, kéo vòng tròn vào đúng lỗ avatar.</p>';
       return;
     }
-    wrap.innerHTML = '<p class="muted small">Đang mở ảnh…</p>';
+    wrap.innerHTML = '<p class="acf-note">Đang mở ảnh…</p>';
     const image = new Image();
     image.crossOrigin = state.imageUrl.startsWith('/') ? null : 'anonymous';
     image.onerror = () => { wrap.innerHTML = '<p class="acf-status is-warning">Không mở được ảnh này.</p>'; };
@@ -256,7 +257,7 @@ export function mountFrameEditor(host, { item, page, onSaved, onChanged }) {
           <div class="acf-align-ring" data-ring role="slider" aria-label="Vị trí lỗ avatar. Kéo để di chuyển" tabindex="0" aria-valuetext="Vòng tròn lỗ avatar"></div>
           <div class="acf-align-handle" data-handle role="slider" aria-label="Bán kính lỗ avatar. Kéo để đổi" tabindex="0" aria-valuetext="Nút đổi bán kính"></div>
         </div>
-        <p class="muted small">${image.naturalWidth}×${image.naturalHeight} px. Kéo vòng tròn, kéo nút để đổi bán kính; phím mũi tên chỉnh từng điểm.</p>`;
+        <p class="acf-note">${image.naturalWidth}×${image.naturalHeight} px. Kéo vòng tròn, kéo nút để đổi bán kính; phím mũi tên chỉnh từng điểm.</p>`;
       wireAligner();
       paintSample(wrap.querySelector('[data-sample]'));
       placeHole();

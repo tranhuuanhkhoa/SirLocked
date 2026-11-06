@@ -1,7 +1,7 @@
 import { RARITY_OF_SERVER, T, prepareCosmetics, setPlaqueMotion, titleHTML, whenTitleFontReady } from '../../../cosmetics/index.js';
 import { STYLE_KEYS, titleFrom } from '../../../cosmetics/titles.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { basicFieldsHtml, mountSections, saveCosmetic } from './editorCommon.js';
+import { basicFieldsHtml, blockHtml, mountSections, saveBarHtml, saveCosmetic } from './editorCommon.js';
 import { hexOf, keyOf, rgbOf } from './shared.js';
 
 const STYLE_LABELS = {
@@ -66,7 +66,9 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
     const grid = host.querySelector('[data-styles]');
     if (!grid) return;
     watcher?.disconnect();
-    const cell = Math.max(200, (grid.clientWidth || 600) / (grid.clientWidth > 700 ? 2 : 1) - 24);
+    // As wide as one cell of the grid, however many columns its CSS gives it.
+    const columns = Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').filter((track) => track && track !== 'none').length);
+    const cell = Math.max(200, (grid.clientWidth || 600) / columns - 24);
     grid.innerHTML = STYLE_KEYS.map((key) => `
       <button class="acf-style${state.style === key ? ' is-on' : ''}" type="button" role="radio" aria-checked="${state.style === key}" data-style="${key}">
         ${titleHTML(plaque(key), { maxW: cell })}
@@ -94,9 +96,9 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
   const particleRowsHtml = () => state.parts.map((row, index) => `
     <div class="acf-part" data-part="${index}">
       <select class="field-input" data-part-kind aria-label="Loại hạt">${PARTICLES.map(([id, label]) => `<option value="${id}"${row[0] === id ? ' selected' : ''}>${label}</option>`).join('')}</select>
-      <input class="field-input acf-short" type="number" min="1" max="12" value="${row[1]}" data-part-count aria-label="Số hạt">
+      <input class="field-input acf-count" type="number" min="1" max="12" inputmode="numeric" value="${row[1]}" data-part-count aria-label="Số hạt">
       <input type="color" value="${hexOf(row[2])}" data-part-color aria-label="Màu hạt">
-      <button class="btn btn-ghost btn-sm" type="button" data-part-remove aria-label="Bỏ dòng này">Bỏ</button>
+      <button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-part-remove aria-label="Bỏ dòng này">Bỏ</button>
     </div>`).join('');
 
   const wireParticles = () => {
@@ -123,36 +125,41 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
     return { template: 'style', imageUrl: null, params: body };
   };
 
+  const styles = blockHtml({
+    id: 'acf-styles-title',
+    title: 'Kiểu bảng tên',
+    sub: 'Mỗi ô vẽ đúng tên đang gõ, như người chơi sẽ thấy.',
+    body: '<div class="acf-styles hs-root" data-styles role="radiogroup" aria-labelledby="acf-styles-title"></div>',
+  });
+  const overrides = blockHtml({
+    id: 'acf-over-title',
+    title: 'Ghi đè',
+    sub: 'Không bật thì dùng màu và hạt của kiểu đã chọn.',
+    body: `
+      <div class="acf-effects">
+        <div class="acf-effect">
+          <label class="acf-check"><input type="checkbox" data-glow-on${state.glowOn ? ' checked' : ''}> Đổi màu phát sáng</label>
+          <div class="acf-effect-body"><input type="color" value="${hexOf(state.glow)}" data-glow-color aria-label="Màu phát sáng"></div>
+        </div>
+        <div class="acf-effect">
+          <label class="acf-check"><input type="checkbox" data-parts-on${state.partsOn ? ' checked' : ''}> Đổi hạt bay</label>
+          <div class="acf-parts" data-parts></div>
+          <div><button class="btn btn-ghost btn-sm" type="button" data-part-add>Thêm loại hạt</button></div>
+        </div>
+      </div>`,
+  });
   host.innerHTML = `
     <div class="acf-editor">
       <div class="acf-editor-main">
-        <section class="acf-section">
-          <h3>Thông tin danh hiệu</h3>
-          ${basicFieldsHtml(item)}
-          <p class="muted small">Chữ trên bảng tên chính là tên tiếng Việt.</p>
-        </section>
-        ${shipped ? '<p class="muted small">Danh hiệu có sẵn của game giữ nguyên kiểu.</p>' : `
-        <section class="acf-section">
-          <h3>Kiểu bảng tên</h3>
-          <div class="acf-styles hs-root" data-styles role="radiogroup" aria-label="Kiểu bảng tên"></div>
-        </section>
-        <section class="acf-section">
-          <h3>Ghi đè</h3>
-          <div class="acf-effect">
-            <label class="acf-check"><input type="checkbox" data-glow-on${state.glowOn ? ' checked' : ''}> Đổi màu phát sáng</label>
-            <div class="acf-effect-body"><input type="color" value="${hexOf(state.glow)}" data-glow-color aria-label="Màu phát sáng"></div>
-          </div>
-          <div class="acf-effect">
-            <label class="acf-check"><input type="checkbox" data-parts-on${state.partsOn ? ' checked' : ''}> Đổi hạt bay</label>
-            <div data-parts></div>
-            <button class="btn btn-ghost btn-sm" type="button" data-part-add>Thêm loại hạt</button>
-          </div>
-        </section>`}
-        <div class="acf-actions"><button class="btn btn-primary" type="button" data-save>${item ? 'Lưu danh hiệu' : 'Tạo danh hiệu'}</button></div>
+        <div class="acf-form">
+          ${blockHtml({ id: 'acf-info-title', title: 'Thông tin', sub: 'Chữ trên bảng tên chính là tên tiếng Việt.', body: basicFieldsHtml(item) })}
+          ${shipped ? '<p class="acf-shipped">Danh hiệu có sẵn của game giữ nguyên kiểu.</p>' : styles + overrides}
+          ${saveBarHtml(item, 'TITLE')}
+        </div>
         ${item ? '<div class="acf-sections" data-sections></div>' : ''}
       </div>
-      <aside class="acf-preview" data-preview aria-label="Xem trước">
-        <h3>Xem trước</h3>
+      <aside class="adm-card acf-preview" data-preview aria-labelledby="acf-preview-title">
+        <div class="acf-preview-head"><h2 class="adm-card-title" id="acf-preview-title">Xem trước</h2></div>
         <div class="acf-preview-stage hs-root" data-stage="profile">
           <figure><div data-title-full class="acf-title-box"></div><figcaption>Cỡ đầy đủ, ở hồ sơ</figcaption></figure>
           <figure><div data-title-bare class="acf-title-box"></div><figcaption>Cỡ thu nhỏ, trong sảnh</figcaption></figure>
