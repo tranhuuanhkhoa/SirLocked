@@ -408,10 +408,13 @@ body[data-area="admin"] > #app > div > .page {
   #admin-nav-root .adm-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
   #nav-root.adm-topbar { position: static; }
   .adm-top { padding: 12px var(--adm-gutter); gap: 12px; }
-  .adm-search { flex-basis: 100%; max-width: none; order: 2; }
-  .adm-top-tools { order: 1; }
+  .adm-top { flex-wrap: nowrap; }
+  .adm-search { flex: 1 1 auto; min-width: 0; max-width: none; }
+  .adm-top-tools { flex: none; }
   body[data-area="admin"] > #app > .page,
   body[data-area="admin"] > #app > div > .page { padding: 24px var(--adm-gutter) 48px; }
+  /* chạm bằng ngón tay: nút nhỏ cũng cao 44 px */
+  body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn-sm { min-height: 44px; }
 }
 
 /* ---------- 3. Chữ và đầu trang ---------- */
@@ -427,7 +430,7 @@ body[data-area="admin"] > #app { font-family: var(--adm-font); }
 :where(body[data-area="admin"] > #app) :where(p, li, td, th, label, span, small, button, input, select, textarea, summary, dt, dd) {
   font-family: var(--adm-font);
 }
-:where(body[data-area="admin"] > #app) :where(code, pre, kbd, .adm-mono) { font-family: var(--adm-mono); }
+:where(body[data-area="admin"] > :is(#app, dialog, .acf-modal, .adm-layer)) :where(code, pre, kbd, .adm-mono) { font-family: var(--adm-mono); }
 :where(body[data-area="admin"] > #app) :where(a) { color: var(--adm-gold-text); }
 :where(body[data-area="admin"] > #app) :where(a:hover) { color: #5f450b; }
 body[data-area="admin"] > #app .muted,
@@ -550,13 +553,14 @@ body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.adm-btn-d
   background: var(--adm-bad-bg);
   color: var(--adm-bad);
 }
-/* nút xác nhận nguy hiểm trong hộp thoại: nền đỏ đất đặc */
-body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger) {
+/* nút xác nhận nguy hiểm trong hộp thoại: nền đỏ đất đặc.
+   #adm-weight không tồn tại; nó chỉ cho :is() độ ưu tiên của một id để thắng quy tắc viền ở trên (cũng có #app). */
+body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer, #adm-weight) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger) {
   background: var(--adm-bad);
   border-color: var(--adm-bad);
   color: #fffdf9;
 }
-body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger):hover:not(:disabled) {
+body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer, #adm-weight) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger):hover:not(:disabled) {
   background: #7f3820;
   color: #fffdf9;
 }
@@ -836,11 +840,7 @@ body[data-area="admin"] :is(#app, dialog) .chip {
   box-shadow: 0 1px 2px rgba(29, 39, 56, .08);
 }
 .adm-seg small, .adm-seg .adm-count { font-size: 12px; }
-@media (max-width: 600px) {
-  .adm-seg { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .adm-seg::-webkit-scrollbar { display: none; }
-  .adm-seg > :is(a, button) { flex: none; }
-}
+/* trên điện thoại khay xuống dòng như thiết kế, không cuộn ngang (cuộn ngang giấu mất tab cuối) */
 
 /* tab gạch chân (Cutscene · Cấu trúc · JSON, Kho đồ · Lịch sử trận ...) */
 .adm-tabs {
