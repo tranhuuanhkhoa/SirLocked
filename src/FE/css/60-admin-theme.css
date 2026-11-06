@@ -413,11 +413,6 @@ body[data-area="admin"] > #app > div > .page {
   .adm-top-tools { flex: none; }
   body[data-area="admin"] > #app > .page,
   body[data-area="admin"] > #app > div > .page { padding: 24px var(--adm-gutter) 48px; }
-  /* chạm bằng ngón tay: nút nhỏ, tab khay, nút trang và ô chọn số dòng cũng cao 44 px */
-  body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn-sm { min-height: 44px; }
-  .adm-seg > :is(a, button) { min-height: 44px; }
-  .adm-page-btn { min-width: 44px; height: 44px; }
-  .adm-pager select { min-height: 44px !important; }
 }
 
 /* ---------- 3. Chữ và đầu trang ---------- */
@@ -599,7 +594,8 @@ body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(textarea, 
   padding: 12px 14px;
   line-height: 1.5;
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.json-input, textarea.json-input, .json-editor textarea) {
+/* ô JSON chữ đều: cùng độ ưu tiên với quy tắc ô nhập chung ở trên và đứng sau nó */
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.json-input, textarea.json-input, .json-editor textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
   font-family: var(--adm-mono);
   font-size: 13px;
 }
@@ -632,6 +628,7 @@ body[data-area="admin"] #app .panel--dossier {
   color: var(--adm-ink);
 }
 body[data-area="admin"] #app .panel--dossier::before { content: none; }
+body[data-area="admin"] #app :is(.panel, .panel--dossier) { clip-path: none; }
 .adm-card { padding: 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .adm-card--flush { padding: 0; gap: 0; overflow: hidden; }
 .adm-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
@@ -874,10 +871,7 @@ body[data-area="admin"] :is(#app, dialog) .chip {
   color: var(--adm-navy) !important;
   border-bottom-color: var(--adm-gold);
 }
-@media (max-width: 600px) {
-  .adm-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .adm-tabs > :is(a, button) { flex: none; }
-}
+/* trên điện thoại tab gạch chân xuống dòng như thiết kế */
 
 /* ---------- 9. Bảng ---------- */
 
@@ -1198,4 +1192,14 @@ body[data-area="admin"] > #toast-root .toast-error { background: var(--adm-bad);
   .adm-login-main { padding: 72px 24px 48px; align-items: flex-start; }
   .adm-login-lang { top: 16px; right: 16px; }
   .adm-login-card { padding: 28px 24px; }
+}
+
+/* ---------- 14. Điện thoại: vùng chạm 44 px ----------
+   Để cuối file để thắng các quy tắc cơ sở cùng độ ưu tiên ở trên. */
+@media (max-width: 900px) {
+  body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn-sm { min-height: 44px; }
+  .adm-seg > :is(a, button),
+  .adm-seg-tab { min-height: 44px; }
+  .adm-page-btn { min-width: 44px; height: 44px; }
+  body[data-area="admin"] :is(#app, dialog) .adm-pager select { min-height: 44px; }
 }
