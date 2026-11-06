@@ -1,168 +1,247 @@
-/* Chests and items admin pages. Owned by ADMIN-1. Every class carries the ac- prefix. */
+/* Chests and items admin pages (/admin/chests, /admin/chests/:id, /admin/items). Owned by ADMIN-1.
+   Every class carries the ac- prefix. Colours, cards, buttons, inputs, tabs and tables come from 60-admin-theme.css
+   (adm-* classes and --adm-* tokens); this file only lays out what is particular to these pages. */
 
-/* The site background is a busy texture: everything on these pages sits on one dark sheet, so small text stays readable. */
-.ac-page {
-  margin-top: var(--s-5);
-  margin-bottom: var(--s-7);
-  padding: var(--s-5);
-  background: var(--panel-strong);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-}
-@media (max-width: 760px) {
-  .ac-page { margin-top: var(--s-2); margin-bottom: var(--s-4); padding: var(--s-3); }
-}
-.ac-page button, .ac-dialog button { font-family: inherit; }
-/* A link styled as a button sits its text at the top otherwise, next to real buttons. */
-.ac-page a.btn.btn-sm { display: inline-flex; align-items: center; }
-.ac-page h2 { margin: 0; }
-.ac-small { font-size: var(--t-xs); }
-.ac-page a:not(.btn):not(.ac-subnav-tab) { color: var(--gold-light); }
-.ac-crumb { margin: 0 0 var(--s-1); color: var(--beige-muted); font-size: var(--t-sm); }
+/* ---------- page and area head ---------- */
 
-/* ----- sub tabs of this area ----- */
-.ac-subnav { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-5); }
-.ac-subnav-tab {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 var(--s-3);
-  color: var(--beige-muted);
-  font-size: var(--t-sm);
-  text-decoration: none;
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-}
-.ac-subnav-tab:hover { color: var(--gold-light); }
-.ac-subnav-tab.is-active { color: var(--ink); background: var(--btn-fill); border-color: var(--gold-light); }
+.ac-page { display: flex; flex-direction: column; gap: 24px; min-width: 0; line-height: 1.5; }
+.ac-page > .adm-back-link { margin-bottom: -8px; width: fit-content; }
+.ac-tab-content { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-/* ----- small pieces ----- */
-.ac-rarity {
-  display: inline-block;
-  padding: 1px var(--s-2);
-  color: var(--rc, var(--beige));
-  font-size: var(--t-xs);
-  white-space: nowrap;
-  border: var(--bw) solid color-mix(in srgb, var(--rc, var(--beige)) 55%, transparent);
-  border-radius: var(--r-md);
+.ac-area-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.ac-area-title { display: flex; flex-direction: column; gap: 16px; min-width: 0; max-width: 100%; }
+body[data-area="admin"] .ac-area-title h1 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1.15;
+  color: var(--adm-navy);
 }
-.ac-tag { display: inline-block; padding: 1px var(--s-2); font-size: var(--t-xs); border-radius: var(--r-md); white-space: nowrap; }
-.ac-tag--on { color: var(--teal); background: var(--ok-wash); }
-.ac-tag--off { color: var(--copper); background: color-mix(in srgb, var(--copper) 16%, transparent); }
-.ac-chip {
-  min-height: 36px;
-  padding: 0 var(--s-3);
-  color: var(--beige-muted);
-  font-size: var(--t-sm);
-  background: var(--well);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-  cursor: pointer;
+@media (max-width: 600px) {
+  body[data-area="admin"] .ac-area-title h1 { font-size: 30px; }
+  /* As in the design: on a phone the tab trays of this area wrap onto a second row, so no tab hides off-screen. */
+  .ac-area-title .adm-seg { width: 100%; flex-wrap: wrap; overflow: visible; }
+  .ac-area-head > .adm-actions { width: 100%; }
 }
-.ac-chip:hover { color: var(--gold-light); }
-.ac-chip.is-active { color: var(--ink); background: var(--btn-fill); border-color: var(--gold-light); }
-.ac-btn-danger { color: var(--white); background: var(--copper); border-color: var(--copper); }
-.ac-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--copper) 82%, var(--white)); }
+
+.ac-lead { margin: 0; color: var(--adm-muted); font-size: 15px; }
+.ac-card-note { margin: 4px 0 0; color: var(--adm-muted); font-size: 13px; line-height: 1.5; }
+.ac-pad { padding: 0 22px 22px; }
 .ac-thumb { display: block; }
-.ac-errors {
-  margin: var(--s-3) 0;
-  padding: var(--s-3) var(--s-3) var(--s-3) var(--s-6);
-  color: var(--white);
-  font-size: var(--t-sm);
-  background: color-mix(in srgb, var(--copper) 22%, transparent);
-  border: var(--bw) solid var(--copper);
-  border-radius: var(--r-md);
+
+.ac-problems {
+  padding: 12px 16px;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-bad-bg);
+  border: 1px solid var(--adm-bad-line);
+  color: var(--adm-bad);
+  font-size: 14px;
 }
+.ac-problems summary { cursor: pointer; font-weight: 600; min-height: 28px; }
+.ac-problems ul { margin: 8px 0 0; padding-left: 20px; }
+
+/* Small buttons are 38 px in the theme; on a phone they keep a full finger's height here. */
+@media (max-width: 600px) {
+  body[data-area="admin"] #app .ac-page .btn-sm,
+  body[data-area="admin"] > dialog.ac-dialog .btn-sm { min-height: 44px; }
+}
+
+/* ---------- forms ---------- */
+
+.ac-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.ac-field > span:first-child { color: var(--adm-text-2); }
+.ac-field .field-input { width: 100%; box-sizing: border-box; }
+.ac-optional { font-weight: 400; font-size: 13px; color: var(--adm-muted); }
+.ac-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; }
+.ac-check { display: flex; align-items: center; gap: 10px; grid-column: 1 / -1; min-height: 44px; width: fit-content; font-size: 14px; color: var(--adm-ink); cursor: pointer; }
+body[data-area="admin"] .ac-input-soft { background: var(--adm-paper-2) !important; }
+.ac-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ac-search { flex: 1 1 260px; background: var(--adm-paper-2) !important; }
+.ac-select { display: flex; flex: 0 1 auto; min-width: 0; }
+.ac-select select { min-width: 0; max-width: 100%; }
+
+.ac-errors {
+  margin: 0;
+  padding: 10px 12px;
+  list-style: none;
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-bad-bg);
+  color: #8a3b20;
+  font-size: 14px;
+  font-weight: 600;
+}
+.ac-errors li + li { margin-top: 4px; }
 .ac-warning {
-  margin: var(--s-3) 0;
-  padding: var(--s-3);
-  font-size: var(--t-sm);
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
-  border: var(--bw) solid var(--line-strong);
-  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-warn-bg);
+  color: var(--adm-warn);
+  font-size: 14px;
 }
 .ac-warning[hidden], .ac-warning p[hidden] { display: none; }
-.ac-warning p { margin: 0 0 var(--s-2); }
-.ac-problems { margin-bottom: var(--s-4); padding: var(--s-3); font-size: var(--t-sm); border: var(--bw) solid var(--copper); border-radius: var(--r-md); }
-.ac-problems summary { cursor: pointer; }
-.ac-section-title { margin: var(--s-5) 0 var(--s-3); font-size: var(--t-lg); }
+.ac-warning p { margin: 0; }
 
-/* ----- forms ----- */
-.ac-field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; color: var(--beige-muted); font-size: var(--t-sm); }
-.ac-field .field-input { width: 100%; box-sizing: border-box; }
-.ac-check { display: flex; align-items: flex-start; gap: var(--s-2); grid-column: 1 / -1; font-size: var(--t-sm); }
-.ac-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
-.ac-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
-.ac-toolbar .field-input { flex: 1 1 160px; min-width: 0; box-sizing: border-box; }
-.ac-toolbar .btn { flex: none; }
-.ac-inline-field { display: flex; flex: 1 1 180px; align-items: center; gap: var(--s-2); min-width: 0; color: var(--beige-muted); font-size: var(--t-sm); }
+/* ---------- chest cards (/admin/chests) ---------- */
 
-/* ----- tables: cards on a phone ----- */
-.ac-table { margin-bottom: var(--s-3); }
-.ac-table th, .ac-table td { padding: var(--s-2) var(--s-3); font-size: var(--t-sm); vertical-align: middle; }
-.ac-table .is-retired { opacity: .72; }
-.ac-cell-icon { width: 48px; }
-.ac-cell-icon img, .ac-cell-icon svg, .ac-cell-icon canvas { display: block; }
-.ac-cell-actions { white-space: nowrap; text-align: right; }
-.ac-cell-actions .btn { margin: 2px; }
-
-@media (max-width: 760px) {
-  .ac-table { display: block; background: none; border: 0; }
-  .ac-table thead { display: none; }
-  .ac-table tbody { display: flex; flex-direction: column; gap: var(--s-2); }
-  .ac-table tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--s-1) var(--s-3);
-    padding: var(--s-3);
-    background: var(--panel);
-    border: var(--bw) solid var(--line);
-    border-radius: var(--r-md);
-  }
-  .ac-table td { display: block; min-width: 0; padding: 0; overflow-wrap: anywhere; border: 0; }
-  .ac-table td[data-label]::before { content: attr(data-label); display: block; color: var(--beige-muted); font-size: var(--t-xs); }
-  .ac-cell-icon, .ac-cell-actions { grid-column: 1 / -1; width: auto; }
-  .ac-cell-actions { white-space: normal; text-align: left; }
-  .ac-form-grid { grid-template-columns: minmax(0, 1fr); }
-}
-
-/* ----- chest list ----- */
-.ac-chest-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.ac-chest-row {
-  display: grid;
-  grid-template-columns: 96px minmax(160px, 1fr) minmax(0, 2fr) auto;
-  align-items: center;
-  gap: var(--s-4);
-  padding: var(--s-3) var(--s-4);
-  background: var(--panel);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-}
-.ac-chest-row.is-off { opacity: .78; }
-.ac-chest-row h3 { margin: 0; font-size: var(--t-lg); }
-.ac-chest-row p { margin: 0 0 var(--s-1); }
+.ac-chest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
+.adm-card.ac-chest-card { padding: 20px; border-radius: 20px; }
+.ac-chest-card.is-off .ac-chest-art { opacity: .65; }
+.ac-chest-top { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .ac-chest-art {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 96px;
-  height: 96px;
-  background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--ac-glow, var(--gold)) 38%, transparent), transparent 70%);
-  border-radius: var(--r-md);
+  width: 76px;
+  height: 76px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 62%, color-mix(in srgb, var(--ac-glow, #e2bd66) 45%, transparent), transparent 68%), #10203a;
+  overflow: hidden;
 }
-.ac-chest-art img { width: 80px; height: 80px; image-rendering: pixelated; }
-.ac-chest-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--s-2) var(--s-4); margin: 0; }
-.ac-chest-facts dt { color: var(--beige-muted); font-size: var(--t-xs); }
-.ac-chest-facts dd { margin: 0; font-size: var(--t-sm); }
-.ac-chest-actions { display: flex; flex-wrap: wrap; gap: var(--s-1); justify-content: flex-end; }
+.ac-chest-art img { width: 60px; height: 60px; image-rendering: pixelated; }
+.ac-chest-art--lg { width: 72px; height: 72px; }
+.ac-chest-art--lg img { width: 56px; height: 56px; }
+.ac-chest-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+body[data-area="admin"] .ac-chest-name { margin: 0; font-family: var(--adm-display); font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--adm-navy); overflow-wrap: anywhere; }
+body[data-area="admin"] .ac-chest-name a { color: inherit; text-decoration: none; }
+body[data-area="admin"] .ac-chest-name a:hover { color: var(--adm-gold-text); }
+.ac-chest-code { font-size: 13px; color: var(--adm-muted); overflow-wrap: anywhere; }
+.ac-chest-code .adm-mono { font-size: 12px; }
 
-@media (max-width: 900px) {
-  .ac-chest-row { grid-template-columns: 72px minmax(0, 1fr); }
-  .ac-chest-art { width: 72px; height: 72px; }
-  .ac-chest-art img { width: 60px; height: 60px; }
-  .ac-chest-facts, .ac-chest-actions { grid-column: 1 / -1; }
-  .ac-chest-actions { justify-content: flex-start; }
+.ac-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.ac-facts > div { padding: 10px 12px; border-radius: var(--adm-r-ctl); background: var(--adm-tile); min-width: 0; }
+.ac-facts dt { font-size: 12px; line-height: 1.5; color: var(--adm-muted); }
+.ac-facts dd { margin: 0; line-height: 1.5; font-weight: 700; color: var(--adm-navy); overflow-wrap: anywhere; }
+
+.ac-ev { display: flex; flex-direction: column; gap: 6px; }
+.ac-ev-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; font-size: 13px; color: var(--adm-muted); }
+.ac-ev-line strong { color: var(--adm-navy); }
+.adm-meter.ac-ev-meter { height: 8px; background: var(--adm-seg); }
+.ac-chest-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- opening log ---------- */
+
+.ac-log-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  align-items: end;
+  gap: 12px;
+  padding: 18px 20px;
 }
+.ac-field--wide { grid-column: span 2; }
+@media (max-width: 600px) { .ac-field--wide { grid-column: auto; } }
+.ac-log-filters .btn { width: 100%; }
+.ac-log .adm-table-wrap { border-top: 1px solid var(--adm-line-mid); }
+.ac-log-table { min-width: 760px; }
+.ac-nowrap { white-space: nowrap; }
+.ac-muted-cell { color: var(--adm-text-2) !important; }
+.ac-item-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ac-item-cell img, .ac-item-cell svg, .ac-item-cell canvas { flex: none; }
+.ac-empty-cell { padding: 40px 20px !important; text-align: center !important; color: var(--adm-text-2); font-weight: 600; }
 
+/* ---------- grant ---------- */
+
+.adm-card.ac-grant { max-width: 720px; padding: 24px; border-radius: 20px; }
+.adm-card.ac-grant .ac-card-note { font-size: 14px; }
+.ac-grant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px; }
+.ac-player-results { display: flex; flex-direction: column; gap: 6px; }
+.ac-player-results:empty { display: none; }
+.ac-player-chosen {
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ac-player-chosen[hidden] { display: none; }
+body[data-area="admin"] #app .ac-btn-wide { padding: 0 24px; }
+
+/* a row to pick: a player here, an item in the picker dialog */
+.ac-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-tile);
+  color: var(--adm-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ac-pick:hover { background: #efe7d9; }
+
+/* ---------- dialogs (openDialog / confirmDialog in pages/admin/chests/shared.js) ---------- */
+
+.ac-dialog {
+  /* A reset elsewhere clears the margin the browser centres a modal with. */
+  margin: auto;
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+}
+.ac-dialog--wide { width: min(720px, calc(100vw - 32px)); }
+.ac-dialog-head { display: flex; align-items: flex-start; gap: 12px; }
+.ac-dialog-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+body[data-area="admin"] > dialog .ac-dialog-heading h2 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.ac-dialog-sub { margin: 0; font-size: 13px; color: var(--adm-muted); }
+.ac-dialog-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px 0 0;
+  border: 0;
+  border-radius: var(--adm-r-ctl);
+  background: transparent;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+.ac-dialog-close:hover { background: var(--adm-tile); color: var(--adm-navy); }
+.ac-dialog-body { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.ac-dialog-body > p { margin: 0; font-size: 14px; color: var(--adm-text-2); }
+.ac-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+@media (max-width: 600px) {
+  .ac-dialog { padding: 20px 16px; }
+  .ac-dialog-actions .btn { flex: 1 1 auto; }
+}
+.ac-dialog :is(code, .adm-mono) { font-family: var(--adm-mono); }
+/* The confirm button of a dangerous step is solid brick red, as in the design. The theme means to do this too, but its
+   outline rule for #app and dialogs carries an id in :is() and always wins; :is(#ac-x) lifts this one above it. */
+body[data-area="admin"] > dialog:is(.ac-dialog, #ac-x) .btn.ac-btn-danger { background: var(--adm-bad); border-color: var(--adm-bad); color: #fffdf9; }
+body[data-area="admin"] > dialog:is(.ac-dialog, #ac-x) .btn.ac-btn-danger:hover:not(:disabled) { background: #7f3820; border-color: #7f3820; color: #fffdf9; }
+
+/* ==========================================================================
+   Chest edit: /admin/chests/:id (chestDetail.js, chestStats.js), the item picker, the preview overlay
+   ========================================================================== */
+
+/* Chest edit page, as it was before the new design (replaced by its own commit). */
+.ac-crumb { margin: 0 0 var(--s-1); color: var(--beige-muted); font-size: var(--t-sm); }
+.ac-section-title { margin: var(--s-5) 0 var(--s-3); font-size: var(--t-lg); }
 /* ----- chest detail ----- */
 .ac-tabs { display: flex; gap: var(--s-1); margin-bottom: var(--s-4); overflow-x: auto; scrollbar-width: none; border-bottom: var(--bw) solid var(--line); }
 .ac-tabs::-webkit-scrollbar { display: none; }
@@ -278,7 +357,6 @@
 .ac-version { padding: var(--s-3) var(--s-4); background: var(--panel); border: var(--bw) solid var(--line); border-radius: var(--r-md); overflow-wrap: anywhere; }
 .ac-version header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
 .ac-version p { margin: var(--s-1) 0; }
-
 /* ----- statistics ----- */
 .ac-range { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
 .ac-stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-3); }
@@ -292,38 +370,77 @@
 .ac-rank { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
 .ac-rank li { display: flex; align-items: center; gap: var(--s-2); min-width: 0; font-size: var(--t-sm); overflow-wrap: anywhere; }
 .ac-rank li > span:not(.ac-rarity) { flex: 1; min-width: 0; }
-
-/* ----- log and grant ----- */
-.ac-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s-3); }
-.ac-grant { display: flex; flex-direction: column; gap: var(--s-3); max-width: 560px; }
-.ac-grant .btn { align-self: flex-start; }
-.ac-player-results { display: flex; flex-direction: column; gap: var(--s-1); }
-.ac-player-chosen { margin: 0; color: var(--gold-light); }
-.ac-player-chosen[hidden] { display: none; }
-
-/* ----- dialogs ----- */
-.ac-dialog {
-  /* A reset elsewhere clears the margin the browser centres a modal with. */
-  margin: auto;
-  width: min(560px, calc(100vw - var(--s-5)));
-  max-height: calc(100dvh - var(--s-5));
-  padding: 0;
-  color: var(--beige);
+.ac-picker { display: flex; flex-direction: column; gap: var(--s-1); max-height: 52vh; overflow-y: auto; }
+.ac-picker .ac-pick { padding: var(--s-2); }
+.ac-pick > span:not(.ac-rarity):not(.adm-rarity) { display: flex; flex: 1; flex-direction: column; min-width: 0; overflow-wrap: anywhere; font-size: var(--t-sm); }
+/* ----- trying a chest out ----- */
+.ac-preview { position: fixed; inset: 0; z-index: var(--z-overlay); display: flex; flex-direction: column; background: #090b10; }
+.ac-preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  color: var(--gold-light);
+  font-size: var(--t-sm);
   background: var(--panel-strong);
-  border: var(--bw) solid var(--line-strong);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden auto;
+  border-bottom: var(--bw) solid var(--line-strong);
 }
-.ac-dialog--wide { width: min(760px, calc(100vw - var(--s-5))); }
-.ac-dialog::backdrop { background: rgba(5, 10, 18, .72); }
-.ac-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-bottom: var(--bw) solid var(--line); }
-.ac-dialog-head h3 { margin: 0; font-size: var(--t-lg); overflow-wrap: anywhere; }
-.ac-dialog-body { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4); }
-.ac-dialog-body p { margin: 0; }
-.ac-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-2); }
-.ac-item-id code { color: var(--gold-light); font-family: var(--font-mono); }
+.ac-preview-stage { flex: 1; min-height: 0; overflow-y: auto; }
+.ac-preview-stage .qh-app { height: 100%; }
+.qh-app[data-preview] .qh-wallet { display: none; }
 
+/* ==========================================================================
+   Items: /admin/items (adminItemsPage.js) and the item form (itemForm.js)
+   ========================================================================== */
+
+/* Items page and pieces the old pages share, as they were before the new design (replaced by its own commit). */
+.ac-small { font-size: var(--t-xs); }
+.ac-tag { display: inline-block; padding: 1px var(--s-2); font-size: var(--t-xs); border-radius: var(--r-md); white-space: nowrap; }
+.ac-tag--on { color: var(--teal); background: var(--ok-wash); }
+.ac-tag--off { color: var(--copper); background: color-mix(in srgb, var(--copper) 16%, transparent); }
+.ac-chip {
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  color: var(--beige-muted);
+  font-size: var(--t-sm);
+  background: var(--well);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+.ac-chip:hover { color: var(--gold-light); }
+.ac-chip.is-active { color: var(--ink); background: var(--btn-fill); border-color: var(--gold-light); }
+/* ----- tables: cards on a phone ----- */
+.ac-table { margin-bottom: var(--s-3); }
+.ac-table th, .ac-table td { padding: var(--s-2) var(--s-3); font-size: var(--t-sm); vertical-align: middle; }
+.ac-table .is-retired { opacity: .72; }
+.ac-cell-icon { width: 48px; }
+.ac-cell-icon img, .ac-cell-icon svg, .ac-cell-icon canvas { display: block; }
+.ac-cell-actions { white-space: nowrap; text-align: right; }
+.ac-cell-actions .btn { margin: 2px; }
+
+@media (max-width: 760px) {
+  .ac-table { display: block; background: none; border: 0; }
+  .ac-table thead { display: none; }
+  .ac-table tbody { display: flex; flex-direction: column; gap: var(--s-2); }
+  .ac-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-1) var(--s-3);
+    padding: var(--s-3);
+    background: var(--panel);
+    border: var(--bw) solid var(--line);
+    border-radius: var(--r-md);
+  }
+  .ac-table td { display: block; min-width: 0; padding: 0; overflow-wrap: anywhere; border: 0; }
+  .ac-table td[data-label]::before { content: attr(data-label); display: block; color: var(--beige-muted); font-size: var(--t-xs); }
+  .ac-cell-icon, .ac-cell-actions { grid-column: 1 / -1; width: auto; }
+  .ac-cell-actions { white-space: normal; text-align: left; }
+  .ac-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.ac-item-id code { color: var(--gold-light); font-family: var(--font-mono); }
 .ac-icon-section h4 { margin: 0 0 var(--s-2); }
 .ac-upload { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2); font-size: var(--t-xs); }
 .ac-upload-btn { cursor: pointer; }
@@ -352,38 +469,3 @@
 .ac-icon-cell canvas { image-rendering: auto; }
 .ac-icon-cell:hover { border-color: var(--line-strong); }
 .ac-icon-cell[aria-pressed="true"] { color: var(--gold-light); border-color: var(--gold-light); box-shadow: var(--e-glow); }
-
-.ac-picker { display: flex; flex-direction: column; gap: var(--s-1); max-height: 52vh; overflow-y: auto; }
-.ac-pick {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  width: 100%;
-  padding: var(--s-2);
-  color: var(--beige);
-  text-align: left;
-  background: var(--well);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-  cursor: pointer;
-}
-.ac-pick:hover { border-color: var(--line-strong); }
-.ac-pick > span:not(.ac-rarity) { display: flex; flex: 1; flex-direction: column; min-width: 0; overflow-wrap: anywhere; font-size: var(--t-sm); }
-
-/* ----- trying a chest out ----- */
-.ac-preview { position: fixed; inset: 0; z-index: var(--z-overlay); display: flex; flex-direction: column; background: #090b10; }
-.ac-preview-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-2);
-  padding: var(--s-2) var(--s-4);
-  color: var(--gold-light);
-  font-size: var(--t-sm);
-  background: var(--panel-strong);
-  border-bottom: var(--bw) solid var(--line-strong);
-}
-.ac-preview-stage { flex: 1; min-height: 0; overflow-y: auto; }
-.ac-preview-stage .qh-app { height: 100%; }
-.qh-app[data-preview] .qh-wallet { display: none; }

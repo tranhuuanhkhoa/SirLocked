@@ -448,7 +448,7 @@ test.describe('/admin/chests', () => {
     await expect(row.locator('[data-ac-ev]')).toContainText('100');
     await expect(row.locator('[data-ac-ev]')).toContainText('300');
     await expect(row.locator('img')).toHaveAttribute('src', /^data:image\/png/);
-    await expect(row.locator('h3 a[href="/admin/chests/chest_np"]')).toBeVisible();
+    await expect(row.locator('h2 a[href="/admin/chests/chest_np"]')).toBeVisible();
   });
 
   test('switching a chest off asks for a reason and sends the whole chest', async ({ page }) => {

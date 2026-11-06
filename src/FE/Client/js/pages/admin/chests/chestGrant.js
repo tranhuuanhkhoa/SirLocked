@@ -1,5 +1,6 @@
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
 import { newRequestId } from '../../../api/marketApi.js';
+import { person, stateBox } from '../../../components/admin/ui.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { confirmDialog, errorMessages, errorsHtml, number } from './shared.js';
@@ -13,7 +14,7 @@ export async function renderChestGrant(host, { signal } = {}) {
   try {
     chests = (await adminChestsApi.chests())?.chests ?? [];
   } catch (error) {
-    if (!signal?.aborted) render(host, `<div class="empty-state">${escapeHtml(errorMessages(error)[0])}</div>`);
+    if (!signal?.aborted) render(host, stateBox('error', 'Không tải được danh sách hòm', errorMessages(error)[0]));
     return;
   }
   if (signal?.aborted) return;
@@ -24,26 +25,28 @@ export async function renderChestGrant(host, { signal } = {}) {
   signal?.addEventListener('abort', () => clearTimeout(timer), { once: true });
 
   render(host, `
-    <div class="page-head"><h2>Cấp hòm &amp; chìa</h2></div>
-    <p class="muted ac-small">Món được cấp vào túi của người chơi và chiếm ô như đồ mua (tối đa 12 ô). Hòm đang tắt vẫn cấp được.</p>
-    <div class="ac-grant">
-      <label class="ac-field"><span>Tìm người chơi theo tên hoặc email</span>
-        <input class="field-input" type="search" autocomplete="off" data-ac-player-search>
+    <section class="adm-card ac-grant" aria-labelledby="ac-grant-title">
+      <div>
+        <h2 class="adm-card-title" id="ac-grant-title">Cấp hòm &amp; chìa</h2>
+        <p class="ac-card-note">Món được cấp vào túi của người chơi và chiếm ô như đồ mua (tối đa 12 ô). Hòm đang tắt vẫn cấp được.</p>
+      </div>
+      <label class="ac-field"><span>Người nhận</span>
+        <input class="field-input ac-input-soft" type="search" autocomplete="off" placeholder="Tìm người chơi theo tên hoặc email" data-ac-player-search>
       </label>
       <div class="ac-player-results" data-ac-player-results></div>
       <p class="ac-player-chosen" data-ac-player-chosen hidden></p>
-      <label class="ac-field"><span>Hòm</span>
-        <select class="field-input" name="chestId">
-          ${chests.map((chest) => `<option value="${escapeHtml(chest.id)}">${escapeHtml(chest.name)}${chest.active ? '' : ' (đang tắt)'}</option>`).join('')}
-        </select>
-      </label>
-      <div class="ac-form-grid">
+      <div class="ac-grant-grid">
+        <label class="ac-field"><span>Hòm</span>
+          <select class="field-input" name="chestId">
+            ${chests.map((chest) => `<option value="${escapeHtml(chest.id)}">${escapeHtml(chest.name)}${chest.active ? '' : ' (đang tắt)'}</option>`).join('')}
+          </select>
+        </label>
         <label class="ac-field"><span>Số hòm</span><input class="field-input" type="number" name="chests" min="0" max="${MAX_PER_GRANT}" step="1" value="1" inputmode="numeric"></label>
         <label class="ac-field"><span>Số chìa</span><input class="field-input" type="number" name="keys" min="0" max="${MAX_PER_GRANT}" step="1" value="1" inputmode="numeric"></label>
       </div>
       <div data-ac-errors></div>
-      <button type="button" class="btn btn-primary" data-ac-grant>Cấp</button>
-    </div>`);
+      <div><button type="button" class="btn btn-primary ac-btn-wide" data-ac-grant>Cấp</button></div>
+    </section>`);
 
   const $ = (selector) => host.querySelector(selector);
   const results = $('[data-ac-player-results]');
@@ -60,8 +63,8 @@ export async function renderChestGrant(host, { signal } = {}) {
       if (signal?.aborted || mine !== ticket) return;
       results.innerHTML = (players ?? []).map((player) => `
         <button type="button" class="ac-pick" data-ac-player="${escapeHtml(player.id)}" data-name="${escapeHtml(player.fullName)}">
-          <span><strong>${escapeHtml(player.fullName)}</strong><span class="muted ac-small">${escapeHtml(player.email)}</span></span>
-        </button>`).join('') || '<p class="muted ac-small">Không tìm thấy ai.</p>';
+          ${person(player.fullName, player.email)}
+        </button>`).join('') || '<p class="ac-card-note">Không tìm thấy ai.</p>';
     } catch (error) {
       if (!signal?.aborted && mine === ticket) results.innerHTML = errorsHtml(errorMessages(error));
     }

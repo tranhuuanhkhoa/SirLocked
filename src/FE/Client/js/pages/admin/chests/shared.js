@@ -1,4 +1,5 @@
 import { cosmeticSprite, isCosmeticDef } from '../../../cosmetics/icons.js';
+import { icon, rarityPill, segTabs } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { paintSprite } from '../../chest/chestSprites.js';
 import { itemIcon } from '../../market/marketKit.js';
@@ -8,15 +9,26 @@ import { replaceAddress } from '../../../services/navigation.js';
 
 export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
 export const RARITY_TEXT = { COMMON: 'Thường', RARE: 'Hiếm', EPIC: 'Quý', LEGENDARY: 'Huyền thoại', MYSTERY: 'Bí ẩn' };
-export const RARITY_COLOR = { COMMON: '#9AA3B2', RARE: '#5B8BE6', EPIC: '#A270F2', LEGENDARY: '#E2503F', MYSTERY: '#E8B53A' };
+/** The text colour of each rarity's label in the admin design: bars and meters use it too, so they read as the same rarity. */
+export const RARITY_COLOR = { COMMON: '#4d4538', RARE: '#245a92', EPIC: '#53409a', LEGENDARY: '#8a5a0c', MYSTERY: '#9b2f3a' };
 
 export const CATEGORY_TEXT = {
   MAGNIFIER: 'Kính lúp', STAMP: 'Con dấu', PINS: 'Ghim', FOLDER: 'Bìa hồ sơ', BADGE: 'Huy hiệu', BOARD: 'Bảng', WATCH: 'Đồng hồ',
   CHEST: 'Hòm', KEY: 'Chìa', CURIO: 'Sưu tầm', FRAME: 'Viền', TITLE: 'Danh hiệu', ENTRANCE: 'Hiệu ứng vào sảnh',
 };
 
-export const rarityBadge = (rarity) =>
-  `<span class="ac-rarity" style="--rc:${RARITY_COLOR[rarity] ?? RARITY_COLOR.COMMON}">${escapeHtml(RARITY_TEXT[rarity] ?? rarity)}</span>`;
+export const rarityBadge = (rarity) => rarityPill(rarity, RARITY_TEXT[rarity] ?? rarity);
+
+/** Icons this area needs that the shared set does not have yet. Same stroke as components/admin/icons.js. */
+const LOCAL_ICONS = {
+  trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
+  upload: '<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 19.5h14"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+};
+export function acIcon(name, size = 18) {
+  if (!LOCAL_ICONS[name]) return icon(name, size);
+  return `<svg aria-hidden="true" focusable="false" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LOCAL_ICONS[name]}</svg>`;
+}
 
 export const number = (value) => Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 });
 export const xu = (value) => `${number(value)} xu`;
@@ -44,10 +56,17 @@ const SUB_TABS = [
   { id: 'grant', href: '/admin/chests?tab=cap', label: 'Cấp hòm & chìa' },
 ];
 
-export const subNav = (active) => `
-  <nav class="ac-subnav" aria-label="Hòm và vật phẩm">
-    ${SUB_TABS.map((tab) => `<a class="ac-subnav-tab${tab.id === active ? ' is-active' : ''}" href="${tab.href}"${tab.id === active ? ' aria-current="page"' : ''}>${escapeHtml(tab.label)}</a>`).join('')}
-  </nav>`;
+export const subNav = (active) => segTabs(SUB_TABS.map((tab) => ({ ...tab, active: tab.id === active })), 'Mục hòm và vật phẩm');
+
+/** The head every page of this area shares: the area's title, its tabs, and buttons on the right (`actionsHtml`). */
+export const areaHead = (active, actionsHtml = '') => `
+  <div class="ac-area-head">
+    <div class="ac-area-title">
+      <h1>Hòm &amp; vật phẩm</h1>
+      ${subNav(active)}
+    </div>
+    ${actionsHtml ? `<div class="adm-actions">${actionsHtml}</div>` : ''}
+  </div>`;
 
 // ------------------------------------------------------------------ errors
 
@@ -80,13 +99,20 @@ export const errorsHtml = (messages) => (messages.length === 0 ? '' : `
  * A modal on top of the page, removed when closed. `signal` closes it when the page goes away, because a dialog lives
  * on the document and the router only replaces the page.
  */
-export function openDialog({ title, body, wide = false, signal }) {
+let dialogCount = 0;
+
+export function openDialog({ title, subHtml = '', body, wide = false, signal }) {
   const dialog = document.createElement('dialog');
+  const titleId = `ac-dialog-title-${++dialogCount}`;
   dialog.className = `ac-dialog${wide ? ' ac-dialog--wide' : ''}`;
+  dialog.setAttribute('aria-labelledby', titleId);
   dialog.innerHTML = `
     <header class="ac-dialog-head">
-      <h3>${escapeHtml(title)}</h3>
-      <button type="button" class="btn btn-ghost btn-sm" data-ac-dialog-close aria-label="Đóng">Đóng</button>
+      <div class="ac-dialog-heading">
+        <h2 id="${titleId}">${escapeHtml(title)}</h2>
+        ${subHtml ? `<p class="ac-dialog-sub">${subHtml}</p>` : ''}
+      </div>
+      <button type="button" class="ac-dialog-close" data-ac-dialog-close aria-label="Đóng" title="Đóng">${icon('x', 20)}</button>
     </header>
     <div class="ac-dialog-body">${body}</div>`;
   document.body.append(dialog);
@@ -95,6 +121,8 @@ export function openDialog({ title, body, wide = false, signal }) {
   dialog.addEventListener('close', () => dialog.remove());
   signal?.addEventListener('abort', close, { once: true });
   dialog.showModal();
+  // Start where the typing starts (a reason, a name, a search), not on the close button.
+  dialog.querySelector('.ac-dialog-body :is(input:not([type="hidden"]):not([hidden]):not([type="checkbox"]), textarea, select)')?.focus();
   return { dialog, close };
 }
 
@@ -107,13 +135,12 @@ export function confirmDialog({ title, body = '', confirmLabel = 'Xác nhận', 
     const { dialog, close } = openDialog({
       title,
       signal,
-      wide: true,
       body: `
         ${body}
         ${extra}
         ${reason === 'none' ? '' : `
           <label class="ac-field">
-            <span>${escapeHtml(reasonLabel)}${reason === 'required' ? '' : ' (không bắt buộc)'}</span>
+            <span>${escapeHtml(reasonLabel)}${reason === 'required' ? '' : ' <small class="ac-optional">(không bắt buộc)</small>'}</span>
             <textarea class="field-input" name="reason" rows="2" maxlength="500"></textarea>
           </label>`}
         <div data-ac-errors></div>

@@ -1,4 +1,5 @@
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
+import { pill, stateBox } from '../../../components/admin/ui.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { pixelIconUrl } from '../../chest/chestSprites.js';
@@ -6,28 +7,40 @@ import { draftOf } from './chestDraft.js';
 import { confirmDialog, errorMessages, number, percent, xu } from './shared.js';
 import { navigate } from '../../../services/navigation.js';
 
-function rowHtml(chest) {
-  const ratio = chest.cost > 0 ? (chest.expectedValue * 100) / chest.cost : 0;
+/** The chest's own sprite on the navy tile of the design, lit by the chest's light colour. */
+export const chestArt = (chest, href = '') => {
   const glow = chest.look?.light ? ` style="--ac-glow:rgb(${escapeHtml(chest.look.light)})"` : '';
+  const img = `<img src="${pixelIconUrl(chest.iconKey)}" alt="" draggable="false">`;
+  return href
+    ? `<a class="ac-chest-art"${glow} href="${href}" aria-label="Sửa ${escapeHtml(chest.name)}" tabindex="-1">${img}</a>`
+    : `<span class="ac-chest-art"${glow} aria-hidden="true">${img}</span>`;
+};
+
+function cardHtml(chest) {
+  const ratio = chest.cost > 0 ? (chest.expectedValue * 100) / chest.cost : 0;
+  const href = `/admin/chests/${encodeURIComponent(chest.id)}`;
   return `
-    <article class="ac-chest-row${chest.active ? '' : ' is-off'}" data-chest-id="${escapeHtml(chest.id)}">
-      <a class="ac-chest-art"${glow} href="/admin/chests/${encodeURIComponent(chest.id)}" aria-label="Sửa ${escapeHtml(chest.name)}">
-        <img src="${pixelIconUrl(chest.iconKey)}" alt="" draggable="false">
-      </a>
-      <div class="ac-chest-main">
-        <h3><a href="/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}</a></h3>
-        <p class="muted ac-small">${escapeHtml(chest.id)} · ${escapeHtml(chest.keyName)}</p>
-        <span class="ac-tag ${chest.active ? 'ac-tag--on' : 'ac-tag--off'}">${chest.active ? 'Đang bán' : 'Đang tắt'}</span>
+    <article class="adm-card ac-chest-card${chest.active ? '' : ' is-off'}" data-chest-id="${escapeHtml(chest.id)}">
+      <div class="ac-chest-top">
+        ${chestArt(chest, href)}
+        <div class="ac-chest-main">
+          <h2 class="ac-chest-name"><a href="${href}">${escapeHtml(chest.name)}</a></h2>
+          <span class="ac-chest-code"><span class="adm-mono">${escapeHtml(chest.id)}</span> · ${escapeHtml(chest.keyName)}</span>
+          <span>${chest.active ? pill('Đang bán', 'ok', { dot: true, small: true }) : pill('Đang tắt', '', { dot: true, small: true })}</span>
+        </div>
       </div>
-      <dl class="ac-chest-facts">
+      <dl class="ac-facts">
         <div><dt>Giá hòm</dt><dd>${xu(chest.chestPrice)}</dd></div>
         <div><dt>Giá chìa</dt><dd>${xu(chest.keyPrice)}</dd></div>
         <div><dt>Mở 7 ngày</dt><dd data-ac-opens>${number(chest.opensLast7Days)}</dd></div>
-        <div><dt>Giá trị kỳ vọng / chi phí</dt><dd data-ac-ev>${number(chest.expectedValue)} / ${number(chest.cost)} xu <span class="muted">(${percent(ratio, 0)})</span></dd></div>
       </dl>
+      <div class="ac-ev">
+        <span class="ac-ev-line"><span>Giá trị kỳ vọng / chi phí</span><strong data-ac-ev>${number(chest.expectedValue)} / ${number(chest.cost)} xu · ${percent(ratio, 0)}</strong></span>
+        <span class="adm-meter adm-meter--gold ac-ev-meter" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, ratio))}%"></span></span>
+      </div>
       <div class="ac-chest-actions">
-        <a class="btn btn-ghost btn-sm" href="/admin/chests/${encodeURIComponent(chest.id)}">Sửa</a>
-        <button type="button" class="btn btn-ghost btn-sm" data-ac-toggle>${chest.active ? 'Tắt' : 'Bật'}</button>
+        <a class="btn btn-primary btn-sm" href="${href}">Sửa</a>
+        <button type="button" class="btn btn-ghost btn-sm ${chest.active ? 'adm-btn-danger' : 'adm-btn-ok'}" data-ac-toggle>${chest.active ? 'Tắt' : 'Bật'}</button>
         <button type="button" class="btn btn-ghost btn-sm" data-ac-clone>Nhân bản</button>
       </div>
     </article>`;
@@ -43,16 +56,17 @@ export async function renderChestList(container, { signal } = {}) {
     chests = data?.chests ?? [];
     const problems = data?.problems ?? [];
     render(container, `
-      <div class="page-head"><h2>Hòm</h2></div>
       ${problems.length ? `<details class="ac-problems"><summary>Danh mục có ${problems.length} chỗ chưa khớp</summary><ul>${problems.map((problem) => `<li>${escapeHtml(problem)}</li>`).join('')}</ul></details>` : ''}
-      <p class="muted ac-small">Hòm mới được tạo bằng cách nhân bản một hòm có sẵn.</p>
-      <div class="ac-chest-list">${chests.map(rowHtml).join('') || '<p class="muted">Chưa có hòm nào.</p>'}</div>`);
+      <p class="ac-lead">Hòm mới được tạo bằng cách nhân bản một hòm có sẵn.</p>
+      ${chests.length
+    ? `<div class="ac-chest-grid">${chests.map(cardHtml).join('')}</div>`
+    : stateBox('empty', 'Chưa có hòm nào.')}`);
   }
 
   try {
     await load();
   } catch (error) {
-    if (!signal?.aborted) render(container, `<div class="empty-state">${escapeHtml(errorMessages(error)[0])}</div>`);
+    if (!signal?.aborted) render(container, stateBox('error', 'Không tải được danh sách hòm', errorMessages(error)[0]));
     return;
   }
 
