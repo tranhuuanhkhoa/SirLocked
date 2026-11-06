@@ -132,7 +132,7 @@ body[data-area="admin"] #app .acf-per-page select {
 
 /* ---------- tools: grant, XP ---------- */
 
-.adm-card.acf-tool { max-width: 720px; padding: 24px; border-radius: 20px; gap: 14px; }
+.adm-card.acf-tool { padding: 24px; border-radius: 20px; gap: 14px; }
 body[data-area="admin"] .acf-tool .adm-card-title { font-size: 22px; }
 .acf-players { display: flex; flex-direction: column; gap: 6px; }
 .acf-players:empty { display: none; }
@@ -572,4 +572,25 @@ body[data-area="admin"] #app .acf-savebar .btn:disabled { opacity: .5; }
   /* The bar keeps only its button on a phone; the cards above say what it saves. */
   .acf-savebar-text { display: none; }
   body[data-area="admin"] #app .acf-savebar .btn { width: 100%; }
+}
+
+/* Thẻ Cấp cho người chơi và Thiết lập KN trên màn rộng: hai cột, thẻ giãn hết bề ngang */
+@media (min-width: 1200px) {
+  .adm-card.acf-tool {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 40px;
+    row-gap: 14px;
+    align-items: start;
+  }
+  .adm-card.acf-tool > .adm-card-title { grid-column: 1 / -1; }
+  .acf-tool[data-grant] > .acf-field:has([data-player-search]) { grid-column: 1; grid-row: 2; }
+  .acf-tool[data-grant] > .acf-players { grid-column: 1; grid-row: 3; }
+  .acf-tool[data-grant] > .acf-chosen { grid-column: 1; grid-row: 4; }
+  .acf-tool[data-grant] > .acf-field:has([data-grant-item]) { grid-column: 2; grid-row: 2; }
+  .acf-tool[data-grant] > .acf-note { grid-column: 2; grid-row: 3; }
+  .acf-tool[data-grant] > div:last-child { grid-column: 2; grid-row: 4; }
+  .acf-tool[data-xp] > .acf-grid2 { grid-column: 1; grid-row: 2; }
+  .acf-tool[data-xp] > div:has([data-save-xp]) { grid-column: 1; grid-row: 3; }
+  .acf-tool[data-xp] > .acf-formula { grid-column: 2; grid-row: 2 / span 2; }
 }

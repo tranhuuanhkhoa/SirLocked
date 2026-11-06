@@ -263,7 +263,7 @@ body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: ri
 body[data-area="admin"] #app .adp-profile-actions [hidden] { display: none; }
 
 /* the four numbers, each with the action that changes it */
-.adp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+.adp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
 .adp-stat {
   display: flex;
   flex-direction: column;
