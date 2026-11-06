@@ -1,10 +1,19 @@
 import { adminChestsApi } from '../api/adminChestsApi.js';
+import { icon, pager, pill, stateBox } from '../components/admin/ui.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { openItemForm } from './admin/chests/itemForm.js';
 import {
-  CATEGORY_TEXT, RARITIES, RARITY_TEXT, confirmDialog, errorMessages, itemThumb, mountThumbs, number, rarityBadge, subNav, xu,
+  CATEGORY_TEXT, RARITIES, RARITY_TEXT, acIcon, areaHead, confirmDialog, errorMessages, itemThumb, mountThumbs, number, rarityBadge, routeParam,
+  setRouteParam, xu,
 } from './admin/chests/shared.js';
+
+/**
+ * Rows per page. The whole catalogue is loaded at once and paged here; 50 keeps the seeded curios on the first page,
+ * where admins (and the end-to-end suites) look for them first.
+ */
+const PAGE_SIZES = [20, 50, 100];
+const DEFAULT_PAGE_SIZE = 50;
 
 /** Where an item that is not managed here is managed. */
 function ownPage(item) {
@@ -26,43 +35,48 @@ const matches = (item, filters) => {
 function rowHtml(item) {
   const chests = item.chests.length
     ? item.chests.map((chest) => `<a href="/admin/chests/${encodeURIComponent(chest.id)}">${escapeHtml(chest.name)}</a>`).join(', ')
-    : '<span class="muted">Không</span>';
+    : '<span class="ac-none">Không</span>';
   const actions = item.editable
     ? `
       <button type="button" class="btn btn-ghost btn-sm" data-ac-edit>Sửa</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-ac-retire>${item.retired ? 'Phát hành lại' : 'Ngừng phát hành'}</button>
-      ${item.deletable ? '<button type="button" class="btn btn-ghost btn-sm" data-ac-delete>Xóa</button>' : ''}`
+      <button type="button" class="btn btn-ghost btn-sm ${item.retired ? 'adm-btn-ok' : 'adm-btn-danger'}" data-ac-retire>${item.retired ? 'Phát hành lại' : 'Ngừng phát hành'}</button>
+      ${item.deletable ? `<button type="button" class="btn btn-ghost btn-sm adm-btn-danger ac-icon-btn" data-ac-delete aria-label="Xóa ${escapeHtml(item.name)}" title="Xóa">${acIcon('trash', 16)}</button>` : ''}`
     : (() => {
       const page = ownPage(item);
-      return `<a class="btn btn-ghost btn-sm" href="${page.href}">${escapeHtml(page.label)}</a>`;
+      return `<a class="ac-link" href="${page.href}">${escapeHtml(page.label)}</a>`;
     })();
   return `
     <tr data-item-id="${escapeHtml(item.id)}"${item.retired ? ' class="is-retired"' : ''}>
-      <td class="ac-cell-icon">${itemThumb(item)}</td>
-      <td data-label="Tên">
-        <strong>${escapeHtml(item.name)}</strong>
-        <div class="muted ac-small">${escapeHtml(item.id)} · ${escapeHtml(CATEGORY_TEXT[item.category] ?? item.category)}</div>
-        ${item.retired ? '<span class="ac-tag ac-tag--off">Đã ngừng phát hành</span>' : ''}
+      <td>
+        <span class="ac-item-name">
+          <span class="ac-item-art">${itemThumb(item)}</span>
+          <span class="ac-item-text">
+            <strong>${escapeHtml(item.name)}</strong>
+            <small><span class="adm-mono">${escapeHtml(item.id)}</span> · ${escapeHtml(CATEGORY_TEXT[item.category] ?? item.category)}</small>
+            ${item.retired ? pill('Đã ngừng phát hành', 'bad', { small: true }) : ''}
+          </span>
+        </span>
       </td>
-      <td data-label="Độ hiếm">${rarityBadge(item.rarity)}</td>
-      <td data-label="Giá tham chiếu">${xu(item.referencePrice)}</td>
-      <td data-label="Được bán">${item.tradable ? 'Có' : 'Không'}</td>
-      <td data-label="Đang lưu hành"><span data-ac-copies>${number(item.circulating)}</span></td>
-      <td data-label="Trong hòm">${chests}</td>
-      <td class="ac-cell-actions">${actions}</td>
+      <td>${rarityBadge(item.rarity)}</td>
+      <td class="adm-num ac-price">${xu(item.referencePrice)}</td>
+      <td>${item.tradable ? '<span class="ac-yes">Có</span>' : '<span class="ac-none">Không</span>'}</td>
+      <td class="adm-num"><span data-ac-copies>${number(item.circulating)}</span></td>
+      <td class="ac-in-chests">${chests}</td>
+      <td><div class="adm-table-actions">${actions}</div></td>
     </tr>`;
 }
 
 /** /admin/items: every item type. Curios and old gear are managed here; cosmetics, chests and keys only point at their page. */
 export async function renderAdminItemsPage(app, { signal } = {}) {
-  render(app, `<div class="page ac-page">${subNav('items')}<p class="muted">Đang tải vật phẩm…</p></div>`);
+  const newButton = `<button type="button" class="btn btn-primary" data-ac-new-item>${icon('plus', 18)}Tạo vật phẩm sưu tầm</button>`;
+  render(app, `<div class="page ac-page">${areaHead('items')}${stateBox('loading', 'Đang tải vật phẩm…')}</div>`);
 
   let data;
   try {
     data = await adminChestsApi.items();
   } catch (error) {
     if (signal?.aborted) return;
-    render(app, `<div class="page ac-page">${subNav('items')}<div class="empty-state">${escapeHtml(errorMessages(error)[0])}</div></div>`);
+    render(app, `<div class="page ac-page">${areaHead('items')}${stateBox('error', 'Không tải được danh sách vật phẩm', errorMessages(error)[0])}</div>`);
     return;
   }
   if (signal?.aborted) return;
@@ -71,65 +85,100 @@ export async function renderAdminItemsPage(app, { signal } = {}) {
     items: data?.items ?? [],
     nextId: data?.nextCurioId ?? '',
     problems: data?.problems ?? [],
-    filters: { search: '', category: '', rarity: '', status: '' },
+    // The search on the top bar sends people here with ?q=.
+    filters: { search: routeParam('q') ?? '', category: '', rarity: '', status: '' },
+    page: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
   };
 
   render(app, `
     <div class="page ac-page ac-items">
-      ${subNav('items')}
-      <div class="page-head">
-        <h2>Vật phẩm</h2>
-        <button type="button" class="btn btn-primary" data-ac-new-item>Tạo vật phẩm sưu tầm</button>
-      </div>
+      ${areaHead('items', newButton)}
       ${state.problems.length ? `<details class="ac-problems"><summary>Danh mục có ${state.problems.length} chỗ chưa khớp</summary><ul>${state.problems.map((problem) => `<li>${escapeHtml(problem)}</li>`).join('')}</ul></details>` : ''}
-      <div class="ac-toolbar">
-        <input class="field-input" type="search" placeholder="Tìm theo tên hoặc mã" aria-label="Tìm vật phẩm" data-ac-search>
-        <select class="field-input" aria-label="Nhóm" data-ac-filter="category">
-          <option value="">Mọi nhóm</option>
-          ${Object.entries(CATEGORY_TEXT).map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join('')}
-        </select>
-        <select class="field-input" aria-label="Độ hiếm" data-ac-filter="rarity">
-          <option value="">Mọi độ hiếm</option>
-          ${RARITIES.map((rarity) => `<option value="${rarity}">${RARITY_TEXT[rarity]}</option>`).join('')}
-        </select>
-        <select class="field-input" aria-label="Trạng thái" data-ac-filter="status">
-          <option value="">Mọi trạng thái</option>
-          <option value="live">Đang dùng</option>
-          <option value="retired">Đã ngừng phát hành</option>
-        </select>
-      </div>
-      <p class="muted ac-small" data-ac-count></p>
-      <table class="admin-table ac-table">
-        <thead><tr><th></th><th>Tên</th><th>Độ hiếm</th><th>Giá tham chiếu</th><th>Được bán</th><th>Đang lưu hành</th><th>Trong hòm</th><th></th></tr></thead>
-        <tbody data-ac-rows></tbody>
-      </table>
+      <section class="adm-card adm-card--flush ac-items-card" aria-label="Danh sách vật phẩm">
+        <div class="ac-toolbar ac-items-toolbar">
+          <label class="adm-search-box ac-search">
+            ${icon('search', 18)}
+            <span class="bpa-sr">Tìm vật phẩm</span>
+            <input type="search" placeholder="Tìm theo tên hoặc mã" data-ac-search value="${escapeHtml(state.filters.search)}">
+          </label>
+          <label class="ac-select"><span class="bpa-sr">Nhóm</span>
+            <select class="field-input" data-ac-filter="category">
+              <option value="">Mọi nhóm</option>
+              ${Object.entries(CATEGORY_TEXT).map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="ac-select"><span class="bpa-sr">Độ hiếm</span>
+            <select class="field-input" data-ac-filter="rarity">
+              <option value="">Mọi độ hiếm</option>
+              ${RARITIES.map((rarity) => `<option value="${rarity}">${RARITY_TEXT[rarity]}</option>`).join('')}
+            </select>
+          </label>
+          <label class="ac-select"><span class="bpa-sr">Trạng thái</span>
+            <select class="field-input" data-ac-filter="status">
+              <option value="">Mọi trạng thái</option>
+              <option value="live">Đang dùng</option>
+              <option value="retired">Đã ngừng phát hành</option>
+            </select>
+          </label>
+        </div>
+        <div class="adm-table-wrap">
+          <table class="adm-table ac-items-table">
+            <thead><tr><th>Tên</th><th>Độ hiếm</th><th class="adm-num">Giá tham chiếu</th><th>Được bán</th><th class="adm-num">Lưu hành</th><th>Trong hòm</th><th class="ac-th-actions">Thao tác</th></tr></thead>
+            <tbody data-ac-rows></tbody>
+          </table>
+        </div>
+        <div data-ac-pager></div>
+      </section>
     </div>`);
 
   const rows = app.querySelector('[data-ac-rows]');
-  const count = app.querySelector('[data-ac-count]');
+  const pagerHost = app.querySelector('[data-ac-pager]');
 
   function paintRows() {
     const shown = state.items.filter((item) => matches(item, state.filters));
-    count.textContent = `${number(shown.length)} / ${number(state.items.length)} vật phẩm`;
+    const pages = Math.max(1, Math.ceil(shown.length / state.pageSize));
+    state.page = Math.min(Math.max(1, state.page), pages);
+    const start = (state.page - 1) * state.pageSize;
     rows.innerHTML = shown.length
-      ? shown.map(rowHtml).join('')
-      : '<tr><td colspan="8" class="muted">Không có vật phẩm nào khớp.</td></tr>';
+      ? shown.slice(start, start + state.pageSize).map(rowHtml).join('')
+      : '<tr><td colspan="7" class="ac-empty-cell">Không có vật phẩm nào khớp.</td></tr>';
+    const filtered = shown.length !== state.items.length;
+    pagerHost.innerHTML = pager({
+      page: state.page,
+      pageSize: state.pageSize,
+      total: shown.length,
+      noun: filtered ? `vật phẩm (lọc từ ${number(state.items.length)})` : 'vật phẩm',
+      perPageHtml: `
+        <label class="ac-per-page">Mỗi trang
+          <select class="field-input" data-ac-page-size>
+            ${PAGE_SIZES.map((size) => `<option value="${size}"${size === state.pageSize ? ' selected' : ''}>${size}</option>`).join('')}
+          </select>
+        </label>`,
+    });
     mountThumbs(rows, signal);
   }
 
+  /** Turns to the page that holds `id`, so what was just made or changed is on screen. */
+  function reveal(id) {
+    const index = state.items.filter((item) => matches(item, state.filters)).findIndex((item) => item.id === id);
+    if (index >= 0) state.page = Math.floor(index / state.pageSize) + 1;
+  }
+
   /** The server worked out circulation and references, so a change reloads the whole list. */
-  async function reload() {
+  async function reload(revealId) {
     const next = await adminChestsApi.items();
     if (signal?.aborted) return;
     state.items = next?.items ?? [];
     state.nextId = next?.nextCurioId ?? '';
+    if (revealId) reveal(revealId);
     paintRows();
   }
 
-  const refreshAfter = async (message) => {
+  const refreshAfter = async (message, revealId) => {
     toast(message, 'success');
     try {
-      await reload();
+      await reload(revealId);
     } catch (error) {
       toast(errorMessages(error)[0], 'error');
     }
@@ -137,15 +186,34 @@ export async function renderAdminItemsPage(app, { signal } = {}) {
 
   app.querySelector('[data-ac-search]').addEventListener('input', (event) => {
     state.filters.search = event.target.value;
+    state.page = 1;
+    setRouteParam('q', event.target.value.trim() || null);
     paintRows();
   });
   app.querySelectorAll('[data-ac-filter]').forEach((select) => select.addEventListener('change', () => {
     state.filters[select.dataset.acFilter] = select.value;
+    state.page = 1;
     paintRows();
   }));
 
+  pagerHost.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-adm-page]');
+    if (!button || button.disabled) return;
+    state.page = Number(button.dataset.admPage);
+    paintRows();
+    // The buttons are under the table: bring the top of the new page back into view, below the sticky top bar.
+    const top = app.querySelector('.ac-items-card')?.getBoundingClientRect().top ?? 0;
+    if (top < 0) window.scrollBy(0, top - 96);
+  });
+  pagerHost.addEventListener('change', (event) => {
+    if (!event.target.matches('[data-ac-page-size]')) return;
+    state.pageSize = Number(event.target.value) || DEFAULT_PAGE_SIZE;
+    state.page = 1;
+    paintRows();
+  });
+
   app.querySelector('[data-ac-new-item]').addEventListener('click', () => {
-    openItemForm({ nextId: state.nextId, signal, onSaved: (saved) => refreshAfter(`Đã tạo ${saved.id}.`) });
+    openItemForm({ nextId: state.nextId, signal, onSaved: (saved) => refreshAfter(`Đã tạo ${saved.id}.`, saved.id) });
   });
 
   rows.addEventListener('click', (event) => {
@@ -155,7 +223,7 @@ export async function renderAdminItemsPage(app, { signal } = {}) {
     if (!item) return;
 
     if (button.hasAttribute('data-ac-edit')) {
-      openItemForm({ item, signal, onSaved: (saved) => refreshAfter(`Đã lưu ${saved.name}.`) });
+      openItemForm({ item, signal, onSaved: (saved) => refreshAfter(`Đã lưu ${saved.name}.`, saved.id) });
     } else if (button.hasAttribute('data-ac-retire')) {
       const retiring = !item.retired;
       confirmDialog({

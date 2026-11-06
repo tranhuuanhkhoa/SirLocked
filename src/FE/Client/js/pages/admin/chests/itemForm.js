@@ -3,7 +3,7 @@ import { adminChestsApi } from '../../../api/adminChestsApi.js';
 import { EN, FR, T } from '../../../cosmetics/index.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { SPRITE_KEYS, pixelIconUrl } from '../../chest/chestSprites.js';
-import { RARITIES, RARITY_TEXT, errorMessages, errorsHtml, mountThumbs, number, openDialog } from './shared.js';
+import { RARITIES, RARITY_TEXT, acIcon, errorMessages, errorsHtml, mountThumbs, number, openDialog } from './shared.js';
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
@@ -35,10 +35,10 @@ export function openItemForm({ item = null, nextId = '', signal, onSaved }) {
 
   const { dialog, close } = openDialog({
     title: editing ? `Sửa ${item.name}` : 'Tạo vật phẩm sưu tầm',
+    subHtml: `<span class="ac-item-id">Mã vật phẩm: <code data-ac-next-id>${escapeHtml(editing ? item.id : nextId)}</code>${editing ? '' : ' (tự sinh)'}</span>`,
     wide: true,
     signal,
     body: `
-      <p class="ac-item-id">Mã vật phẩm: <code data-ac-next-id>${escapeHtml(editing ? item.id : nextId)}</code>${editing ? '' : ' <span class="muted">(tự sinh)</span>'}</p>
       <div class="ac-form-grid">
         <label class="ac-field"><span>Tên (tiếng Việt)</span><input class="field-input" name="name" maxlength="80" value="${escapeHtml(item?.name ?? '')}"></label>
         <label class="ac-field"><span>Tên (tiếng Anh)</span><input class="field-input" name="nameEn" maxlength="80" value="${escapeHtml(item?.nameEn ?? '')}"></label>
@@ -59,15 +59,15 @@ export function openItemForm({ item = null, nextId = '', signal, onSaved }) {
         <label class="ac-field"><span>Lý do</span><textarea class="field-input" name="reason" rows="2" maxlength="500"></textarea></label>
       </div>
 
-      <section class="ac-icon-section" aria-label="Hình của vật phẩm">
-        <h4>Hình của vật phẩm</h4>
+      <section class="ac-icon-section" aria-labelledby="ac-icon-title">
+        <h3 class="ac-subhead" id="ac-icon-title">Hình của vật phẩm</h3>
         <div class="ac-upload">
-          <label class="btn btn-ghost btn-sm ac-upload-btn">Tải ảnh lên<input type="file" accept="image/png,image/webp,image/jpeg" hidden></label>
-          <span class="muted">PNG, WebP hoặc JPG, tối đa 5 MB. Hoặc chọn một sprite có sẵn bên dưới.</span>
+          <label class="btn btn-ghost btn-sm ac-upload-btn">${acIcon('upload', 16)}Tải ảnh lên<input type="file" accept="image/png,image/webp,image/jpeg" hidden></label>
+          <span class="ac-upload-note">PNG, WebP hoặc JPG, tối đa 5 MB. Hoặc chọn một sprite có sẵn bên dưới.</span>
           <span data-ac-upload-state class="ac-upload-state"></span>
         </div>
         <div class="ac-image-holder" data-ac-image-holder></div>
-        <div class="ac-icon-tabs" role="tablist">
+        <div class="adm-seg ac-icon-tabs" role="tablist" aria-label="Nhóm sprite">
           ${ICON_GROUPS.map((group) => `<button type="button" class="ac-chip" role="tab" data-icon-group="${group.id}">${escapeHtml(group.label)}</button>`).join('')}
         </div>
         <div class="ac-icon-grid" data-ac-icon-grid></div>

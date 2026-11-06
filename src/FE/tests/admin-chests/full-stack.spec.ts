@@ -194,7 +194,8 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await shot(detective, 'nguoi-choi-cho-do-co-anh');
 
   // ---- The rules that keep it: owned now, so it can no longer be deleted.
-  await admin.goto('/admin/items');
+  // The list is paged and a new item sorts last, so it is looked up through the search the top bar links to.
+  await admin.goto(`/admin/items?q=${encodeURIComponent(nextId)}`);
   await admin.reload();
   const ownedRow = admin.locator(`tr[data-item-id="${nextId}"]`);
   await expect(ownedRow.locator('[data-ac-copies]')).toHaveText('1');
