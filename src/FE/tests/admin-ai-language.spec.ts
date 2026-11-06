@@ -100,13 +100,15 @@ test('language switch translates the admin dashboard content, not only navigatio
   });
 
   await page.goto('/admin');
-  await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible();
-  await expect(page.locator('.stat-grid')).toContainText('9/15 published');
+  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
+  await expect(page.locator('[data-adp-system]')).toContainText('9 / 15');
+  await expect(page.locator('[data-adp-system]')).toContainText('published');
 
   await page.locator('[data-ui-language="vi"]').click();
-  await expect(page.getByRole('heading', { name: 'Bảng điều khiển quản trị' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tổng quan', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Tạo và xuất bản vụ án mẫu' })).toBeVisible();
-  await expect(page.locator('.stat-grid')).toContainText('9/15 đã xuất bản');
+  await expect(page.locator('[data-adp-system]')).toContainText('9 / 15');
+  await expect(page.locator('[data-adp-system]')).toContainText('đã xuất bản');
   await expect(page.locator('.admin-table thead')).toContainText('Vai trò');
 });
 

@@ -115,7 +115,7 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     await adminPage.goto('/admin');
     const cards = adminPage.locator('[data-adp-cards]');
     await expect(cards.getByRole('link', { name: /Ảnh chờ duyệt/ })).toBeVisible();
-    await expect(cards.getByRole('link', { name: /Người chơi mới hôm nay/ })).toContainText(/[1-9]/);
+    await expect(cards.getByRole('link', { name: /Người chơi mới/ })).toContainText(/[1-9]/);
     await shot(adminPage, '01-tong-quan-the-so-lieu');
   });
 

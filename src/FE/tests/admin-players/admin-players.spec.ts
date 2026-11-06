@@ -742,9 +742,9 @@ test('trang tổng quan có các thẻ số liệu mới dẫn tới đúng tran
     await expect(card).toContainText(value);
     await expect(card).toHaveAttribute('href', href);
   };
-  await expectCard('Người chơi mới hôm nay', '11', '/admin/players');
-  await expectCard('Trận hôm nay', '22', '/admin/economy?tab=phong');
-  await expectCard('Lượt mở hòm hôm nay', '33', '/admin/economy');
+  await expectCard('Người chơi mới', '11', '/admin/players');
+  await expectCard('Trận đã chơi', '22', '/admin/economy?tab=phong');
+  await expectCard('Lượt mở hòm', '33', '/admin/economy');
   await expectCard('Xu lưu hành', '44.444', '/admin/economy');
   await expectCard('Giao dịch kẹt', '2', '/admin/economy?tab=ket');
   await expectCard('Ảnh chờ duyệt', '5', '/admin/players?tab=anh');
@@ -757,7 +757,7 @@ test('thẻ số liệu lỗi không làm hỏng trang tổng quan', async ({ pa
     'GET /api/admin/economy/dashboard': () => new Failure(500, 'Hỏng'),
   });
   await page.goto('/admin');
-  await expect(page.getByRole('heading', { name: 'Bảng điều khiển quản trị' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tổng quan', exact: true })).toBeVisible();
   await expect(page.locator('[data-adp-cards]')).toHaveCount(0);
 });
 
