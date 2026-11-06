@@ -17,6 +17,7 @@ using SirLocked.Api.Services;
 using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Payments;
 using SirLocked.Api.Services.Projection;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
@@ -214,6 +215,7 @@ builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
 builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
+builder.Services.AddPayments(builder.Configuration);
 builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
 
 builder.Services.AddRateLimiter(options =>
@@ -278,6 +280,10 @@ builder.Services.AddRateLimiter(options =>
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         }));
+
+    options.AddPolicy("payments", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 
     // Trả về 429 với message rõ ràng
     options.OnRejected = async (context, token) =>

@@ -86,7 +86,7 @@ Accusation__RequireConsensus=true
 
 ### Mở hòm (chest opening)
 
-`#/kho-ruong` lets a player spend in-game coins on chests and keys and open a chest for one item, which then trades on the market like any other. There is no real-money payment. The server decides every result; the client only animates the answer.
+`#/kho-ruong` lets a player spend in-game coins on chests and keys and open a chest for one item, which then trades on the market like any other. Chests spend coins; optional payOS coin top-ups are documented below. The server decides every result; the client only animates the answer.
 
 - `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
 - `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
@@ -113,7 +113,17 @@ the README there); art is in `src/FE/public/assets/cosmetics/`.
 - `GameHub.JoinRoom` announces an arrival once per seat through SignalR `PlayerEntrance`. A refresh or reconnect plays nothing.
 - Uploaded avatars need Cloudinary; without it the upload button is not offered.
 
+## payOS coin top-ups (disabled by default)
+
+Players can open **Market → Top up coins** (`#/payments`) to select a server-priced package,
+view a transfer QR or open payOS checkout, cancel an unpaid order and view recent top-ups.
+Signed webhooks and background reconciliation confirm payment before an atomic, permanently deduplicated wallet credit.
+Configure a dedicated payOS channel using [the local setup and webhook guide](docs/PAYOS_TOPUP_VI.md)
+and [configuration example](config/payos.env.example). No real payment is enabled without credentials and `PayOS__Enabled=true`.
+payOS has no separate sandbox; automated tests use a fake provider and isolated local MongoDB.
+
 ## Run Locally
+
 
 To run the project with your existing database and accounts, keep the repository-root `.env` configuration and start the backend and frontend below. The backend connects to the database specified by `MongoDb__ConnectionString` and `MongoDb__DatabaseName`.
 

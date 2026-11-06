@@ -58,6 +58,7 @@ export async function renderMarketPage(app, tabParam) {
             <span class="bpa-mk-walletv"><span data-mk-balance>…</span> <span class="bpa-mk-walletu">xu</span></span>
             <span class="bpa-mk-walletheld" data-mk-held hidden></span></div>
         </div>
+        <a class="bpa-btn" href="#/payments">${tr('Top up coins', 'Nạp xu')} →</a>
       </div>
       <div class="bpa-mk-book-wrap">
         <div class="bpa-mk-tabs" role="tablist" aria-label="${tr('Market sections', 'Các mục của chợ')}">
