@@ -1,4 +1,5 @@
 import { adminCosmeticsApi } from '../../../api/adminCosmeticsApi.js';
+import { person } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { CATEGORIES, askReason, errorText, rarityLabel } from './shared.js';
@@ -17,16 +18,21 @@ export function mountGrantTool(host, { page, defId }) {
     </optgroup>`).join('');
 
   host.innerHTML = `
-    <section class="acf-section acf-narrow" data-grant>
-      <h3>Cấp mỹ phẩm cho người chơi</h3>
-      <label class="field-label" for="acf-player">Tìm người chơi theo tên hoặc email</label>
-      <input class="field-input" id="acf-player" data-player-search autocomplete="off" placeholder="Gõ ít nhất 2 ký tự">
+    <section class="adm-card acf-tool" data-grant aria-labelledby="acf-grant-title">
+      <h2 class="adm-card-title" id="acf-grant-title">Cấp mỹ phẩm cho người chơi</h2>
+      <div class="acf-field">
+        <label for="acf-player">Người chơi</label>
+        <input class="field-input acf-input-soft" id="acf-player" type="search" data-player-search autocomplete="off" placeholder="Tìm người chơi theo tên hoặc email" aria-describedby="acf-player-hint">
+        <span class="acf-hint" id="acf-player-hint">Gõ ít nhất 2 ký tự</span>
+      </div>
       <div class="acf-players" data-players role="listbox" aria-label="Kết quả tìm kiếm"></div>
-      <p class="muted small" data-player-chosen>Chưa chọn người chơi.</p>
-      <label class="field-label" for="acf-grant-item">Món được cấp</label>
-      <select class="field-input" id="acf-grant-item" data-grant-item>${options}</select>
-      <p class="muted small">Món giao dịch được sẽ chiếm một ô trong túi, túi đầy thì không cấp được. Món không giao dịch được thì không chiếm ô.</p>
-      <div class="acf-actions"><button class="btn btn-primary" type="button" data-grant-send disabled>Cấp cho người chơi</button></div>
+      <p class="acf-chosen" data-player-chosen>Chưa chọn người chơi.</p>
+      <div class="acf-field">
+        <label for="acf-grant-item">Món được cấp</label>
+        <select class="field-input" id="acf-grant-item" data-grant-item>${options}</select>
+      </div>
+      <p class="acf-note">Món giao dịch được sẽ chiếm một ô trong túi, túi đầy thì không cấp được. Món không giao dịch được thì không chiếm ô.</p>
+      <div><button class="btn btn-primary acf-btn-wide" type="button" data-grant-send disabled>Cấp</button></div>
     </section>`;
 
   const results = host.querySelector('[data-players]');
@@ -39,12 +45,13 @@ export function mountGrantTool(host, { page, defId }) {
       const found = await adminCosmeticsApi.searchPlayers(text);
       if (ticket !== asked) return;
       results.innerHTML = found.length === 0
-        ? '<p class="muted small">Không tìm thấy ai.</p>'
-        : found.map((one, index) => `<button class="acf-player" type="button" role="option" aria-selected="false" data-index="${index}"><b>${escapeHtml(one.fullName)}</b><span>${escapeHtml(one.email)} · Cấp ${one.level}</span></button>`).join('');
+        ? '<p class="acf-hint">Không tìm thấy ai.</p>'
+        : found.map((one, index) => `<button class="acf-player" type="button" role="option" aria-selected="false" data-index="${index}">${person(one.fullName, `${one.email} · Cấp ${one.level}`)}</button>`).join('');
       results.querySelectorAll('[data-index]').forEach((button) => button.addEventListener('click', () => {
         player = found[Number(button.dataset.index)];
         results.querySelectorAll('[data-index]').forEach((other) => other.setAttribute('aria-selected', String(other === button)));
         chosen.textContent = `Đã chọn: ${player.fullName} (${player.email})`;
+        chosen.classList.add('is-chosen');
         send.disabled = false;
       }));
     } catch (error) {
@@ -86,17 +93,19 @@ export function mountGrantTool(host, { page, defId }) {
 /** What an exchanged item pays. The level curve lives in code and is only shown. */
 export function mountXpTool(host, { page }) {
   host.innerHTML = `
-    <section class="acf-section acf-narrow" data-xp>
-      <h3>Thiết lập kinh nghiệm</h3>
+    <section class="adm-card acf-tool" data-xp aria-labelledby="acf-xp-title">
+      <h2 class="adm-card-title" id="acf-xp-title">Thiết lập kinh nghiệm</h2>
       <div class="acf-grid2">
-        <div><label class="field-label" for="acf-rare-xp">KN khi đổi một món Hiếm</label>
-          <input class="field-input" id="acf-rare-xp" type="number" min="1" max="100000" value="${page.rareXp}" data-rare></div>
-        <div><label class="field-label" for="acf-epic-xp">KN khi đổi một món Quý</label>
-          <input class="field-input" id="acf-epic-xp" type="number" min="1" max="100000" value="${page.epicXp}" data-epic></div>
+        <div class="acf-field"><label for="acf-rare-xp">KN khi đổi một món Hiếm</label>
+          <input class="field-input" id="acf-rare-xp" type="number" min="1" max="100000" inputmode="numeric" value="${page.rareXp}" data-rare></div>
+        <div class="acf-field"><label for="acf-epic-xp">KN khi đổi một món Quý</label>
+          <input class="field-input" id="acf-epic-xp" type="number" min="1" max="100000" inputmode="numeric" value="${page.epicXp}" data-epic></div>
       </div>
-      <div class="acf-actions"><button class="btn btn-primary" type="button" data-save-xp>Lưu</button></div>
-      <h4>Công thức cấp (chỉ xem)</h4>
-      <p class="muted small">KN để lên cấp tiếp theo = 200 + 40 × (cấp − 1). Cấp tối đa: ${page.maxLevel}. Đến cấp tối đa thì KN dừng lại.</p>
+      <div><button class="btn btn-primary acf-btn-wide" type="button" data-save-xp>Lưu</button></div>
+      <div class="acf-formula">
+        <h3>Công thức cấp (chỉ xem)</h3>
+        <p>KN để lên cấp tiếp theo = 200 + 40 × (cấp − 1). Cấp tối đa: ${page.maxLevel}. Đến cấp tối đa thì KN dừng lại.</p>
+      </div>
     </section>`;
   const rare = host.querySelector('[data-rare]');
   const epic = host.querySelector('[data-epic]');

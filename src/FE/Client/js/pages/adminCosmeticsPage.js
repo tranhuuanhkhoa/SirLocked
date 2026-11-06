@@ -1,11 +1,12 @@
 import '../../../css/48-cosmetics.css';
 import { adminCosmeticsApi } from '../api/adminCosmeticsApi.js';
+import { segTabs, stateBox } from '../components/admin/ui.js';
 import { applyCosmetic, prepareCosmetics } from '../cosmetics/index.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { mountEntranceEditor } from './admin/cosmetics/entranceEditor.js';
 import { mountFrameEditor } from './admin/cosmetics/frameEditor.js';
 import { mountGrid } from './admin/cosmetics/grid.js';
-import { CATEGORIES, catalogEntryOf, errorText, rarityLabel } from './admin/cosmetics/shared.js';
+import { CATEGORIES, catalogEntryOf, errorText, rarityLabel, tabOf } from './admin/cosmetics/shared.js';
 import { mountTitleEditor } from './admin/cosmetics/titleEditor.js';
 import { mountGrantTool, mountXpTool } from './admin/cosmetics/tools.js';
 
@@ -15,13 +16,15 @@ const EDITORS = { FRAME: mountFrameEditor, TITLE: mountTitleEditor, ENTRANCE: mo
 
 const queryOf = () => new URLSearchParams(window.location.search);
 
-const tabsHtml = (active) => `
-  <nav class="acf-tabs" aria-label="Khu mỹ phẩm">
-    ${[...CATEGORIES, ...TOOLS].map((tab) => `<a class="acf-tab${tab.id === active ? ' is-active' : ''}" href="/admin/cosmetics?tab=${tab.id}"${tab.id === active ? ' aria-current="page"' : ''}>${escapeHtml(tab.label)}</a>`).join('')}
-  </nav>`;
+/** The area's title and its tab tray, as in the design: Viền · Danh hiệu · Hiệu ứng vào sảnh · Cấp cho người chơi · Thiết lập KN. */
+const headHtml = (active) => `
+  <div class="acf-head">
+    <h1>Mỹ phẩm</h1>
+    ${segTabs([...CATEGORIES, ...TOOLS].map((tab) => ({ label: tab.label, href: `/admin/cosmetics?tab=${tab.id}`, active: tab.id === active })), 'Khu mỹ phẩm')}
+  </div>`;
 
 const problemsHtml = (problems) => (problems.length === 0 ? '' : `
-  <details class="notice notice-bad acf-problems">
+  <details class="acf-problems">
     <summary>Dữ liệu danh mục có ${problems.length} chỗ không khớp</summary>
     <ul>${problems.map((problem) => `<li>${escapeHtml(problem)}</li>`).join('')}</ul>
   </details>`);
@@ -29,14 +32,17 @@ const problemsHtml = (problems) => (problems.length === 0 ? '' : `
 /** /admin/cosmetics (?tab=FRAME|TITLE|ENTRANCE|grant|xp), /admin/cosmetics/:defId and /admin/cosmetics/new?type=FRAME. */
 export async function renderAdminCosmeticsPage(app, defId, { signal } = {}) {
   prepareCosmetics();
-  render(app, '<div class="page acf-page"><p class="muted">Đang tải mỹ phẩm…</p></div>');
+  const listing = !defId;
+  const tab = tabOf(queryOf().get('tab'));
+  const frame = (body) => `<div class="page acf-page">${listing ? headHtml(tab) : ''}${body}</div>`;
+  render(app, frame(stateBox('loading', 'Đang tải mỹ phẩm…')));
 
   let page;
   try {
     page = await adminCosmeticsApi.list();
   } catch (error) {
     if (signal?.aborted) return undefined;
-    render(app, `<div class="page acf-page"><div class="empty-state">${escapeHtml(errorText(error))}</div></div>`);
+    render(app, frame(stateBox('error', 'Không tải được mỹ phẩm', errorText(error))));
     return undefined;
   }
   if (signal?.aborted) return undefined;
@@ -50,19 +56,14 @@ export async function renderAdminCosmeticsPage(app, defId, { signal } = {}) {
   const leave = () => { cleanup?.(); cleanup = null; };
   signal?.addEventListener('abort', leave, { once: true });
 
-  if (!defId) {
-    const tab = queryOf().get('tab') ?? 'FRAME';
-    render(app, `
-      <div class="page acf-page">
-        <h2>Mỹ phẩm</h2>
-        ${problemsHtml(page.problems)}
-        ${tabsHtml(tab)}
-        <div data-tab-body></div>
-      </div>`);
+  if (listing) {
+    render(app, frame(`
+      ${problemsHtml(page.problems)}
+      <div class="acf-tab-body" data-tab-body></div>`));
     const host = app.querySelector('[data-tab-body]');
     if (tab === 'grant') mount(mountGrantTool, host, { page, defId: queryOf().get('def') });
     else if (tab === 'xp') mount(mountXpTool, host, { page });
-    else mount(mountGrid, host, { page, category: EDITORS[tab] ? tab : 'FRAME' });
+    else mount(mountGrid, host, { page, category: tab });
     return leave;
   }
 

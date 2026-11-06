@@ -1,10 +1,41 @@
+import { icon } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 
+/** `noun` is how the design names one of them in a sentence: "Tạo viền mới", "16 viền". */
 export const CATEGORIES = [
-  { id: 'FRAME', label: 'Viền' },
-  { id: 'TITLE', label: 'Danh hiệu' },
-  { id: 'ENTRANCE', label: 'Hiệu ứng vào sảnh' },
+  { id: 'FRAME', label: 'Viền', noun: 'viền' },
+  { id: 'TITLE', label: 'Danh hiệu', noun: 'danh hiệu' },
+  { id: 'ENTRANCE', label: 'Hiệu ứng vào sảnh', noun: 'hiệu ứng' },
 ];
+
+export const categoryOf = (id) => CATEGORIES.find((entry) => entry.id === id) ?? null;
+
+/**
+ * The tab named in the address. The links of this page write FRAME, TITLE, ENTRANCE, grant and xp; older links and
+ * the design say frames, titles, entrances, which land on the same tab.
+ */
+export function tabOf(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return 'FRAME';
+  const lower = text.toLowerCase();
+  if (lower === 'grant' || lower === 'xp') return lower;
+  const upper = text.toUpperCase();
+  if (categoryOf(upper)) return upper;
+  if (upper.endsWith('S') && categoryOf(upper.slice(0, -1))) return upper.slice(0, -1);
+  return 'FRAME';
+}
+
+/** Icons this area needs that the shared set does not have yet. Same stroke as components/admin/icons.js. */
+const LOCAL_ICONS = {
+  upload: '<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 19.5h14"/>',
+  trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
+  play: '<circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.6l5 3.4-5 3.4z"/>',
+  pause: '<path d="M8 5.5v13M16 5.5v13"/>',
+};
+export function acfIcon(name, size = 18) {
+  if (!LOCAL_ICONS[name]) return icon(name, size);
+  return `<svg aria-hidden="true" focusable="false" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${LOCAL_ICONS[name]}</svg>`;
+}
 
 export const RARITIES = [
   { id: 'COMMON', label: 'Thường' },
@@ -106,6 +137,9 @@ export async function checkPicture(file, { needsAlpha = true } = {}) {
   return { warnings };
 }
 
+let modalCount = 0;
+const FOCUSABLE = 'button:not([disabled]), textarea, input, select, a[href]';
+
 /**
  * A confirmation that needs a reason, for what changes things for players. Resolves to the reason, or null when
  * cancelled. The reason goes into the audit log.
@@ -114,17 +148,23 @@ export function askReason({ heading, detail, confirmLabel, danger = false }) {
   return new Promise((resolve) => {
     const previous = document.activeElement;
     const overlay = document.createElement('div');
+    const titleId = `acf-modal-title-${++modalCount}`;
     overlay.className = 'acf-modal';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', heading);
+    overlay.setAttribute('aria-labelledby', titleId);
     overlay.innerHTML = `
       <form class="acf-modal-box">
-        <h3>${escapeHtml(heading)}</h3>
-        <p class="muted">${escapeHtml(detail)}</p>
-        <label class="field-label" for="acf-reason">Lý do (ghi vào nhật ký)</label>
-        <textarea class="field-input" id="acf-reason" rows="2" maxlength="500" required></textarea>
-        <div class="acf-actions">
+        <header class="acf-modal-head">
+          <h2 id="${titleId}">${escapeHtml(heading)}</h2>
+          <button class="acf-modal-close" type="button" data-close aria-label="Đóng" title="Đóng">${icon('x', 20)}</button>
+        </header>
+        <p class="acf-modal-detail">${escapeHtml(detail)}</p>
+        <div class="acf-field">
+          <label for="acf-reason">Lý do (ghi vào nhật ký)</label>
+          <textarea class="field-input" id="acf-reason" rows="3" maxlength="500" required></textarea>
+        </div>
+        <div class="acf-modal-actions">
           <button class="btn btn-ghost" type="button" data-cancel>Hủy</button>
           <button class="btn ${danger ? 'acf-btn-danger' : 'btn-primary'}" type="submit" data-confirm>${escapeHtml(confirmLabel)}</button>
         </div>
@@ -135,9 +175,30 @@ export function askReason({ heading, detail, confirmLabel, danger = false }) {
       if (previous?.isConnected) previous.focus?.({ preventScroll: true });
       resolve(value);
     };
-    const onKey = (event) => { if (event.key === 'Escape') finish(null); };
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        finish(null);
+        return;
+      }
+      // The page behind is covered, so Tab goes round the dialog instead of into it.
+      if (event.key !== 'Tab') return;
+      const stops = [...overlay.querySelectorAll(FOCUSABLE)];
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (!overlay.contains(document.activeElement)) {
+        event.preventDefault();
+        first?.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
     overlay.querySelector('[data-cancel]').addEventListener('click', () => finish(null));
+    overlay.querySelector('[data-close]').addEventListener('click', () => finish(null));
     overlay.addEventListener('click', (event) => { if (event.target === overlay) finish(null); });
     overlay.querySelector('form').addEventListener('submit', (event) => {
       event.preventDefault();

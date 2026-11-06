@@ -144,7 +144,7 @@ test('the frames tab shows every live frame with its owners and how it is obtain
   await expect(page.getByRole('heading', { name: 'Mỹ phẩm', exact: true })).toBeVisible();
   const dong = page.locator('[data-card="frame_dong"]');
   await expect(dong).toContainText('Đồng Cổ');
-  await expect(dong.locator('[data-owners]')).toHaveText('3 người sở hữu');
+  await expect(dong.locator('[data-owners]')).toHaveText('3 sở hữu');
   await expect(dong.locator('[data-way]')).toHaveText('Cấp 10');
   await expect(page.locator('[data-card="frame_kimlong"] [data-way]')).toContainText('Hòm: Két Nhà Băng');
   // Retired items wait behind the filter.
@@ -183,6 +183,34 @@ test('titles and entrances have their own tabs, drawn as players see them', asyn
   await page.getByRole('link', { name: 'Hiệu ứng vào sảnh' }).click();
   await expect(page.locator('[data-card="entrance_kim-long"]')).toBeVisible();
   await expect.poll(() => canvasHasPaint(page, '[data-card="entrance_kim-long"] canvas')).toBe(true);
+});
+
+test('a long list is paged, and the page size can be changed', async ({ page }) => {
+  const state = await prepare(page);
+  for (let n = 1; n <= 28; n++) state.page.items.push(item(`frame_moi-${n}`, 'FRAME', `Viền ${n}`));
+  await page.goto('/admin/cosmetics');
+  await expect(page.locator('[data-card]')).toHaveCount(24);
+  await expect(page.locator('.adm-pager')).toContainText('Hiển thị 1–24 / 30 viền');
+
+  await page.getByRole('button', { name: 'Trang 2' }).click();
+  await expect(page.locator('[data-card]')).toHaveCount(6);
+  await expect(page.locator('[data-card="frame_moi-28"]')).toBeVisible();
+
+  await page.locator('[data-page-size]').selectOption('12');
+  await expect(page.locator('[data-card]')).toHaveCount(12);
+  await expect(page.locator('.adm-pager')).toContainText('Hiển thị 1–12 / 30 viền');
+  // A filter starts again from the first page.
+  await page.getByRole('button', { name: 'Trang 3' }).click();
+  await expect(page.locator('[data-card]')).toHaveCount(6);
+  await page.locator('[data-filter="rarity"]').selectOption('RARE');
+  await expect(page.locator('.adm-pager')).toContainText('Hiển thị 1–12 / 28 viền');
+});
+
+test('the old tab names of the address land on the same tab', async ({ page }) => {
+  await prepare(page);
+  await page.goto('/admin/cosmetics?tab=titles');
+  await expect(page.locator('[data-card="title_kim-long"]')).toBeVisible();
+  await expect(page.locator('.adm-seg [aria-current="page"]')).toHaveText('Danh hiệu');
 });
 
 test('what does not add up in the stored catalog is shown', async ({ page }) => {

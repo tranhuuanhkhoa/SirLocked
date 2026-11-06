@@ -1,39 +1,259 @@
-/* Cosmetics admin pages. Owned by ADMIN-2. */
+/* Cosmetics admin pages (/admin/cosmetics, /admin/cosmetics/:defId). Owned by ADMIN-2.
+   Every class carries the acf- prefix. Colours, cards, buttons, inputs, tabs, pager and states come from
+   60-admin-theme.css (adm-* classes and --adm-* tokens), which loads after this file: an override here needs a more
+   specific selector than the theme's. How a cosmetic is drawn lives in 48-cosmetics.css and is not touched here;
+   this file only places the drawings (navy picture areas, dark preview stages). */
+
+/* ---------- page and area head ---------- */
+
+.acf-page { display: flex; flex-direction: column; gap: 22px; min-width: 0; line-height: 1.5; }
+.acf-page [hidden] { display: none !important; }
+.acf-head { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+body[data-area="admin"] .acf-head h1 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1.15;
+  color: var(--adm-navy);
+}
+.acf-tab-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.acf-problems {
+  padding: 12px 16px;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-bad-bg);
+  border: 1px solid var(--adm-bad-line);
+  color: var(--adm-bad);
+  font-size: 14px;
+}
+.acf-problems summary { cursor: pointer; font-weight: 600; min-height: 28px; }
+.acf-problems ul { margin: 8px 0 0; padding-left: 20px; }
+
+/* ---------- fields shared by the tools, the editor and the reason dialog ---------- */
+
+.acf-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.acf-field > label,
+.acf-field > .acf-label { font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.acf-field .field-input { width: 100%; }
+.acf-hint { margin: 0; font-size: 13px; font-weight: 400; color: var(--adm-muted); }
+.acf-note { margin: 0; font-size: 13px; color: var(--adm-muted); }
+.acf-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+body[data-area="admin"] .acf-input-soft { background: var(--adm-paper-2) !important; }
+body[data-area="admin"] #app .btn.acf-btn-wide { padding: 0 24px; }
+
+/* ---------- grid: filters, cards, pager ---------- */
+
+.acf-grid-area { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.acf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+}
+.adm-search-box.acf-search { flex: 1 1 240px; background: var(--adm-paper-2); }
+.acf-select { display: flex; flex: 0 1 auto; min-width: 0; }
+/* The theme's input rule is (1,6,2) specific; these few sizes of the design need !important to reach it. */
+body[data-area="admin"] #app .acf-select select { min-width: 0; max-width: 100%; padding: 0 30px 0 12px !important; font-size: 14px !important; }
+.acf-new { flex: none; }
+
+.acf-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 14px; }
+.acf-cards.is-empty { display: block; }
+.acf-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--adm-line);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+.acf-card:hover { border-color: #b9a27a; transform: translateY(-2px); color: var(--adm-ink); }
+@media (prefers-reduced-motion: reduce) {
+  .acf-card { transition: none; }
+  .acf-card:hover { transform: none; }
+}
+/* The navy picture area of the design. The drawing inside is the one players see, on a transparent canvas. */
+.acf-card-art.hs-root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 190px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: var(--adm-navy);
+  overflow: hidden;
+}
+.acf-card.is-retired .acf-card-art > * { opacity: .6; filter: saturate(.6); }
+.acf-card-frame { display: block; width: 160px; height: 160px; }
+.acf-card-art--entrance.hs-root { padding: 14px; }
+/* The stage keeps its 16:9 picture and the lobby's dark behind it, like a small screen on the navy. */
+.acf-card-stage { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; border-radius: 10px; background: #07080c; }
+.acf-card-title { display: grid; place-items: center; width: 100%; padding: 0 6px; }
+.acf-card-body { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 14px 16px 16px; }
+.acf-card-name {
+  font-family: var(--adm-display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.acf-card-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.acf-card-note { font-size: 12px; color: var(--adm-muted); }
+.acf-card-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--adm-text-2); }
+.acf-card-way { min-width: 0; overflow-wrap: anywhere; }
+.acf-card-owners { flex: none; color: var(--adm-muted); white-space: nowrap; }
+
+.acf-pager { border-radius: 16px; background: var(--adm-card); border: 1px solid var(--adm-line); }
+.acf-pager .adm-pager { border-top: 0; padding: 10px 16px; }
+.acf-per-page { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; white-space: nowrap; }
+body[data-area="admin"] #app .acf-per-page select {
+  width: auto;
+  min-height: 36px !important;
+  height: 36px;
+  padding: 0 28px 0 10px !important;
+  border-radius: var(--adm-r-sm) !important;
+  font-size: 13px !important;
+}
+@media (max-width: 900px) {
+  body[data-area="admin"] #app .acf-per-page select { min-height: 44px !important; height: 44px; }
+}
+
+/* ---------- tools: grant, XP ---------- */
+
+.adm-card.acf-tool { max-width: 720px; padding: 24px; border-radius: 20px; gap: 14px; }
+body[data-area="admin"] .acf-tool .adm-card-title { font-size: 22px; }
+.acf-players { display: flex; flex-direction: column; gap: 6px; }
+.acf-players:empty { display: none; }
+.acf-player {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-tile);
+  color: var(--adm-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.acf-player:hover { background: #efe7d9; }
+.acf-player[aria-selected="true"] { border-color: var(--adm-navy); background: var(--adm-card); box-shadow: inset 0 0 0 1px var(--adm-navy); }
+.acf-player .adm-person { width: 100%; }
+.acf-chosen { margin: 0; font-size: 14px; color: var(--adm-muted); }
+.acf-chosen.is-chosen {
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.acf-formula { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: var(--adm-r-tile); background: var(--adm-tile); }
+body[data-area="admin"] .acf-formula h3 { margin: 0; font-family: var(--adm-font); font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.acf-formula p { margin: 0; font-size: 14px; color: var(--adm-ink); }
+
+/* ---------- the reason dialog (askReason in pages/admin/cosmetics/shared.js) ---------- */
+
+.acf-modal { position: fixed; inset: 0; z-index: 9300; display: grid; place-items: center; padding: 16px; background: rgba(16, 32, 58, .45); }
+.acf-modal-box {
+  box-sizing: border-box;
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid var(--adm-line);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  box-shadow: 0 24px 64px rgba(16, 32, 58, .18);
+}
+.acf-modal-head { display: flex; align-items: flex-start; gap: 12px; }
+body[data-area="admin"] .acf-modal-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-top: 4px;
+  font-family: var(--adm-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.acf-modal-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px 0 0;
+  border: 0;
+  border-radius: var(--adm-r-ctl);
+  background: transparent;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+.acf-modal-close:hover { background: var(--adm-tile); color: var(--adm-navy); }
+.acf-modal-close:focus-visible { outline: 2px solid var(--adm-gold); outline-offset: 2px; }
+.acf-modal-detail { margin: 0; font-size: 14px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+.acf-modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+@media (max-width: 600px) {
+  .acf-modal-box { padding: 20px 16px; }
+  .acf-modal-actions .btn { flex: 1 1 auto; }
+}
+/* The confirm button of a dangerous step is solid brick red, as in the design. The theme means to do this too, but its
+   outline rule for #app and dialogs carries an id in :is() and always wins; :is(#acf-x) lifts this one above it. */
+body[data-area="admin"] > .acf-modal:is(.acf-modal, #acf-x) .btn.acf-btn-danger { background: var(--adm-bad); border-color: var(--adm-bad); color: #fffdf9; }
+body[data-area="admin"] > .acf-modal:is(.acf-modal, #acf-x) .btn.acf-btn-danger:hover:not(:disabled) { background: #7f3820; border-color: #7f3820; color: #fffdf9; }
+
+/* ---------- phone ---------- */
+
+/* The theme sets these to 44 px for fingers, but its phone rule comes before the tab and pager rules of the same
+   weight and loses to them; here they are lifted by one class. */
+@media (max-width: 900px) {
+  .acf-head .adm-seg > :is(a, button) { min-height: 44px; }
+  .acf-pager .adm-page-btn { min-width: 44px; height: 44px; }
+}
+
+@media (max-width: 600px) {
+  body[data-area="admin"] .acf-head h1 { font-size: 30px; }
+  /* As in the design: on a phone the tab tray wraps onto more rows, so no tab hides off-screen. */
+  .acf-head .adm-seg { width: 100%; flex-wrap: wrap; overflow: visible; }
+  .acf-toolbar { padding: 14px; }
+  .adm-search-box.acf-search { flex-basis: 100%; }
+  .adm-card.acf-tool { padding: 20px 16px; }
+}
+
+/* ==========================================================================
+   Editor of one cosmetic: /admin/cosmetics/:defId and /admin/cosmetics/new?type=
+   ========================================================================== */
 
 .acf-page h3 { margin: 0 0 var(--s-3); color: var(--gold-light); font-size: var(--t-base); }
 .acf-page h4 { margin: var(--s-4) 0 var(--s-2); color: var(--beige-muted); font-size: var(--t-sm); }
-.acf-page [hidden] { display: none !important; }
-
-.acf-tabs { display: flex; gap: var(--s-1); margin: var(--s-3) 0 var(--s-4); overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
-.acf-tabs::-webkit-scrollbar { display: none; }
-.acf-tab { flex: none; padding: var(--s-2) var(--s-3); color: var(--beige-muted); text-decoration: none; font-size: var(--t-sm); border-bottom: 2px solid transparent; }
-.acf-tab:hover { color: var(--gold-light); }
-.acf-tab:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
-.acf-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold); }
-.acf-problems { margin-bottom: var(--s-3); }
-
-.acf-toolbar { display: grid; grid-template-columns: minmax(160px, 1.6fr) repeat(3, minmax(120px, 1fr)) auto; gap: var(--s-2); align-items: center; margin-bottom: var(--s-4); }
-.acf-toolbar .field-input { margin: 0; }
-.acf-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s-3); }
-.acf-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; color: var(--beige); text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-top: 2px solid var(--rc, var(--line)); border-radius: var(--r-md); }
-.acf-card:hover { border-color: var(--line-strong); border-top-color: var(--rc, var(--line-strong)); }
-.acf-card:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
-.acf-card.is-retired .acf-card-art { opacity: 0.55; filter: saturate(0.5); }
-.acf-card-art.hs-root { display: grid; place-items: center; min-height: 176px; margin: 0; padding: var(--s-2); border-radius: 0; overflow: hidden; }
-.acf-card-frame { width: 160px; height: 160px; }
-.acf-card-stage { width: 100%; aspect-ratio: 16 / 9; height: auto; background: #07080c; }
-.acf-card-title { width: 100%; display: grid; place-items: center; min-height: 120px; }
-.acf-card-body { display: grid; gap: 2px; padding: var(--s-2) var(--s-3) var(--s-3); min-width: 0; }
-.acf-card-body b { overflow-wrap: anywhere; }
-.acf-card-body small { color: var(--beige-muted); font-size: var(--t-xs); overflow-wrap: anywhere; }
-.acf-rarity { color: var(--rc, var(--beige-muted)); font-size: var(--t-xs); }
 
 .acf-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: var(--s-5); align-items: start; }
 .acf-editor-main { display: grid; gap: var(--s-4); min-width: 0; }
 .acf-sections { display: grid; gap: var(--s-4); min-width: 0; }
 .acf-section { min-width: 0; padding: var(--s-4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); }
-.acf-narrow { max-width: 640px; }
-.acf-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2) var(--s-3); }
 .acf-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2) var(--s-3); margin: var(--s-3) 0; }
 .acf-short { max-width: 140px; }
 .acf-check { display: flex; align-items: center; gap: var(--s-2); min-height: 32px; margin: var(--s-1) 0; color: var(--beige); font-size: var(--t-sm); }
@@ -44,8 +264,6 @@
 .acf-status { min-height: 1.2em; margin: var(--s-1) 0; color: var(--beige-muted); font-size: var(--t-xs); }
 .acf-status.is-warning { color: var(--bad, #e2503f); font-weight: 600; }
 .acf-chests a { color: var(--gold-light); }
-.acf-btn-danger { color: #fff; background: #8e2a1f; border-color: #c2452f; }
-.acf-btn-danger:hover:not(:disabled) { background: #a83325; }
 
 .acf-effect { padding: var(--s-2) 0; border-top: 1px solid var(--line); }
 .acf-effect-body { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; }
@@ -88,29 +306,13 @@
 .acf-stage-thumb { width: 100%; aspect-ratio: 16 / 9; height: auto; background: #07080c; }
 .acf-title-box { display: grid; place-items: center; width: 100%; min-height: 96px; }
 
-.acf-players { display: grid; gap: var(--s-1); margin: var(--s-2) 0; }
-.acf-player { display: grid; gap: 2px; padding: var(--s-2) var(--s-3); color: var(--beige); font: inherit; text-align: left; background: rgba(232, 224, 204, 0.04); border: 1px solid var(--line); border-radius: var(--r-md); cursor: pointer; overflow-wrap: anywhere; }
-.acf-player span { color: var(--beige-muted); font-size: var(--t-xs); }
-.acf-player[aria-selected="true"] { border-color: var(--gold-light); box-shadow: 0 0 0 1px var(--gold-light); }
-.acf-player:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
-
-.acf-modal { position: fixed; inset: 0; z-index: 9300; display: grid; place-items: center; padding: var(--s-4); background: rgba(4, 6, 10, 0.72); }
-.acf-modal-box { width: min(480px, 100%); padding: var(--s-4); color: var(--beige); background: #101826; border: 1px solid var(--line-strong); border-radius: var(--r-md); }
-.acf-modal-box h3 { margin: 0 0 var(--s-2); color: var(--gold-light); font-size: var(--t-base); overflow-wrap: anywhere; }
-.acf-modal-box textarea { width: 100%; }
-
 @media (max-width: 900px) {
   .acf-editor { grid-template-columns: minmax(0, 1fr); }
   /* On a phone the preview comes first and stays reachable: it is what every control below changes. */
   .acf-preview { position: static; order: -1; }
-  .acf-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .acf-toolbar input[type="search"], .acf-toolbar [data-new] { grid-column: 1 / -1; }
-  .acf-toolbar [data-new] { justify-self: stretch; text-align: center; }
 }
 
 @media (max-width: 520px) {
-  .acf-grid2 { grid-template-columns: minmax(0, 1fr); }
-  .acf-cards { grid-template-columns: minmax(0, 1fr); }
   .acf-styles.hs-root { grid-template-columns: minmax(0, 1fr); }
   .acf-section { padding: var(--s-3); }
   .acf-page canvas[data-preview-canvas] { max-width: 100%; }
