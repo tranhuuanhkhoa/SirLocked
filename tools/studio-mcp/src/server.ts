@@ -11,6 +11,7 @@ import {
 import { librarySearch, librarySync } from './tools/library.js';
 import { playtest } from './tools/playtest.js';
 import { blipPreview, sfxSearch, TIMES_OF_DAY, weatherPreview, WEATHER_TYPES } from './tools/atmosphere.js';
+import { musicSearch } from './tools/music.js';
 import { VARIANT_TYPES } from './image/variant.js';
 
 export const TOOL_NAMES = [
@@ -18,7 +19,7 @@ export const TOOL_NAMES = [
   'draft_get', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
   'assets_needed', 'asset_upload', 'assets_complete',
   'library_search', 'library_sync', 'asset_process', 'asset_variant', 'playtest',
-  'weather_preview', 'blip_preview', 'sfx_search',
+  'weather_preview', 'blip_preview', 'sfx_search', 'music_search',
 ] as const;
 
 type Handler = (args: any) => Promise<unknown> | unknown;
@@ -132,17 +133,19 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
 
   // ---------------------------------------------------------------- sound and weather (VUAN-4)
   tool('weather_preview', [
-    'Quay 5–8 giây một cảnh trên MÁY NÀY (Vite local, API giả lập, không cần Mongo) với thời tiết và thời điểm cho trước:',
+    'Quay 5–20 giây một cảnh trên MÁY NÀY (Vite local, API giả lập, không cần Mongo) với thời tiết và thời điểm cho trước:',
     'weather NONE|RAIN|WIND|SNOW|STORM, intensity 0–1, timeOfDay DAY|DUSK|NIGHT (đặt weather khác NONE thì cảnh thành ngoài trời).',
-    'Trả video WebM (MP4 khi có ffmpeg và format mp4), ảnh chụp giữa đoạn, số hạt, chớp, tiếng thời tiết có chạy không.',
+    'Trả video WebM (MP4 khi có ffmpeg và format mp4) có tiếng của trang (nhạc khu, mưa gió, sấm; sound: false để tắt), ảnh chụp giữa đoạn, số hạt, chớp, tiếng thời tiết có chạy không.',
+    'musicId (id từ music_search) đặt bài đó làm nhạc của cảnh trước khi quay.',
     'Ảnh nền đêm/hoàng hôn làm trước bằng asset_variant rồi đưa vào backgroundUrl nếu case chưa trỏ tới.',
   ].join(' '), {
     casePath: z.string().optional(), draftId: id.optional(), sceneId: z.string().optional(),
     weather: z.enum(WEATHER_TYPES).optional(), intensity: z.number().min(0).max(1).optional(), timeOfDay: z.enum(TIMES_OF_DAY).optional(),
-    backgroundUrl: z.string().optional(), seconds: z.number().min(5).max(8).optional(),
+    backgroundUrl: z.string().optional(), seconds: z.number().min(5).max(20).optional(),
     width: z.number().int().min(390).max(1920).optional(), height: z.number().int().min(400).max(1080).optional(),
     webUrl: z.string().optional(), outDir: z.string().optional(), name: z.string().optional(), format: z.enum(['webm', 'mp4']).optional(),
     quality: z.union([z.literal(1), z.literal(0.5), z.literal(0.25)]).optional().describe('số hạt: 1 đầy đủ, 0.5 hoặc 0.25 như máy yếu'),
+    musicId: z.string().optional().describe('id bài trong thư viện nhạc (music_search)'), sound: z.boolean().optional(),
   }, (args) => weatherPreview(ctx, args));
   tool('blip_preview', 'Xuất file WAV nghe thử tiếng bíp của từng nhân vật trong case (render offline, cùng code với game). Nhân vật không có voice.blip dùng giọng mặc định theo characterId. Báo các nhân vật nghe gần giống nhau.',
     { casePath: z.string().optional(), draftId: id.optional(), characterIds: z.array(z.string()).optional(), text: z.string().max(400).optional(), outDir: z.string().optional() },
@@ -150,6 +153,15 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
   tool('sfx_search', 'Tìm trong gói tiếng CC0 của game (src/FE/public/assets/audio/sfx/LICENSES.json): theo cue giao diện (dialogue, discovery, reveal, scene, ping, interact, error), loại giải đố, event (tap, probe, solve, wrong) hoặc nhãn (không cần dấu). Trả file, nguồn, giấy phép.',
     { query: z.string().optional(), cue: z.string().optional(), kind: z.string().optional(), event: z.string().optional(), includeFallback: z.boolean().optional(), limit: z.number().int().min(1).max(200).optional() },
     (args) => sfxSearch(ctx, args));
+  tool('music_search', [
+    'Tìm nhạc nền trong thư viện của game (src/FE/public/assets/audio/music/index.json, ~30 bài CC0/tự viết, lặp liền, -16 LUFS):',
+    'world HANG_DUONG_VICTORIAN|TAISHO_JAPAN|SHANGHAI_1930|ALL, area (street, harbor, tea_house... hoặc tên tiếng Việt, hoặc key/nhãn thư viện hình như j-map-pho-den-long),',
+    'mood (dieu-tra-yen, cang-thang, bi-an, lat-mat, buon, ket-thuc, am-ap, yen-tinh, nhon-nhip, sang-trong, vui), query (không cần dấu).',
+    'Trả id, url .ogg/.mp3, tác giả, nguồn, tóm tắt giấy phép và object music để ghi thẳng vào scenes[].atmosphere.audio.music.',
+  ].join(' '), {
+    world: z.string().optional(), area: z.string().optional(), mood: z.string().optional(), query: z.string().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+  }, (args) => musicSearch(ctx, args));
 
   return server;
 }
