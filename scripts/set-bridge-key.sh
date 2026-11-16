@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Chay tu may local (Git Bash): bash scripts/set-bridge-key.sh
 # Dat khoa bridge cho bot Claude tren server: hoi khoa (khong hien khi go), ghi Bridge__Key vao file env cua API,
-# khoi dong lai API, kiem /health va GET /api/bridge/ping bang chinh khoa do. Loi thi tra lai file cu.
+# chuyen server sang che do bot Claude (MOCK_AI_RESPONSES=false, SKIP_ASSET_GENERATION=false: don that vao hang cho
+# Claude thay vi duoc tra loi mock ngay), khoi dong lai API, kiem /health va GET /api/bridge/ping bang chinh khoa do.
+# Loi thi tra lai file cu (ca khoa lan che do).
 # Khoa chi di qua stdin cua SSH va curl: khong nam tren dong lenh, trong file tam hay trong log.
 # Tao khoa moi (vi du): openssl rand -hex 32
 set -euo pipefail
@@ -24,8 +26,9 @@ SVC=sirlocked-v5-api
 API_PORT=5216
 umask 077
 cp "$ENV_FILE" "$ENV_FILE.bak"
-grep -vE '^[[:space:]]*(export[[:space:]]+)?Bridge__Key=' "$ENV_FILE" > "$ENV_FILE.new" || true
-printf 'Bridge__Key=%s\n' "$bridge_key" >> "$ENV_FILE.new"
+# Switch the server to the Claude bot: real orders wait for Claude instead of getting instant mock answers.
+grep -vE '^[[:space:]]*(export[[:space:]]+)?(Bridge__Key|MOCK_AI_RESPONSES|SKIP_ASSET_GENERATION|AiGeneration__MockAiResponses|AiGeneration__SkipAssetGeneration)=' "$ENV_FILE" > "$ENV_FILE.new" || true
+printf 'Bridge__Key=%s\nMOCK_AI_RESPONSES=false\nSKIP_ASSET_GENERATION=false\n' "$bridge_key" >> "$ENV_FILE.new"
 mv "$ENV_FILE.new" "$ENV_FILE"
 healthy() {
   for _ in $(seq 1 30); do
@@ -54,7 +57,10 @@ if ! bridge_ok; then
   exit 1
 fi
 rm -f "$ENV_FILE.bak"
-echo "OK: da dat khoa bridge; /health va /api/bridge/ping deu dat."
+echo "OK: da dat khoa bridge va chuyen sang che do bot Claude; /health va /api/bridge/ping deu dat."
+if ! grep -qE '^[[:space:]]*(export[[:space:]]+)?Cloudinary__Enabled=true' "$ENV_FILE"; then
+  echo "Luu y: Cloudinary chua bat. Bot se khong tai hinh len duoc cho toi khi chay bash scripts/set-cloudinary.sh."
+fi
 REMOTE
 } | ssh -p "$PORT" "$SERVER" 'bash -s'
 unset bridge_key
