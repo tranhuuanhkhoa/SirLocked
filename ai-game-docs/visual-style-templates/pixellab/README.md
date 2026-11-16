@@ -38,7 +38,8 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
 - **NPC thư viện chung cũng đi đúng ba bước trên** (`character-front` → `character-rotate` → `character-idle`, 14 lượt mỗi NPC).
   - Không tạo thẳng bằng `create_character` từ chữ.
   - Không ghi "chibi", "large head" hay kiểu viền vào prompt.
-  - Đi đúng quy trình thì ảnh tự ra đúng phong cách: tỉ lệ người thật như Sherlock, Watson và NPC vụ Lò thuốc. Người cao, người thấp, trẻ em là tùy nhân vật, đều trong khung 96×96. Không khóa chiều cao theo pixel.
+  - Đi đúng quy trình thì ảnh tự ra đúng phong cách: tỉ lệ người thật như Sherlock, Watson và NPC vụ Lò thuốc. Người cao, người thấp, trẻ em là tùy nhân vật, đều trong khung 96×96. Khung 96×96 là trần, cùng khung với Sherlock và Watson V3 96, nên NPC không bao giờ to hơn hai nhân vật chính. Không khóa chiều cao theo pixel. Studio chỉ chặn hai thứ: sprite không phải 96×96 (`NPC_FORMAT`) và nhân vật PixelLab có prompt chibi/đầu to (`NPC_STYLE`).
+  - Bộ mẫu phong cách Yen đã chốt (PixelLab, 96×96, 8 hướng): Sherlock V3 96, Watson V3 96, 6 NPC vụ Lò thuốc (Hoc Viec, Dang Buu, To Khanh, Trinh Luc, Ly Hanh, Lam The Bao), 4 NPC màn tân thủ (Tan Thu A Phuc, Tan Thu Hamilton, Tan Thu Co Lan, Tan Thu Ong Luu).
   - Đợt 0 (16/11) làm tắt (3 lượt mỗi NPC) nên ra kiểu chibi đầu to, mắt to. 39 NPC đó đã khóa (`retired`) trong `tools/studio-mcp/library/index.json`, chờ vẽ lại.
 - **Mask và ảnh tham chiếu ngoại thất lấy từ bản đồ NATIVE 512**, không dùng bản phóng to. Ghép animation môi trường lại đúng toạ độ crop.
 - **Nội thất:** isometric 2:1, một sàn + hai tường sau, mặt trước và ngưỡng cửa để trống, không NPC. Vật phẩm điều tra của cảnh phải có trong mô tả vì pixel mode vẽ vật vào nền.

@@ -144,6 +144,7 @@ Production bật `CaseCatalog:PixelOnly=true`, nên đơn mới làm **vụ pixe
 | Kế hoạch | `PUT asset-plan`: thư viện, biến thể 0 lượt; chỗ mới thành request PixelLab theo `ai-game-docs/visual-style-templates/pixellab/templates.json` (server nhúng file này lúc build, cùng nguồn với `scripts/build_pixellab_requests.mjs`; test golden giữ hai bên cùng prompt). Tổng lượt ≤ `pixelLabCap`, vượt thì bị chặn và chưa tải ảnh được |
 | Bố cục | Cảnh ngoài trời (`atmosphere.indoor = false`) là topdown, trong nhà là isometric. Bot trả `walkGrid` (128×128 ô 16), `foreground` (có `baseY`), spawn, cửa, ô bấm trên vật đã vẽ vào nền, chân NPC; server dựng `runtime.render` theo số đo của Trâm hồng ngọc (2048×2048, ×4, `cameraZoom`, `actorScale`, `walkSpeed`, `interactRadius`) |
 | Kiểm | `PixelDraftRules` chặn: cảnh không pixel, thiếu `walkGrid`, spawn/cửa ngoài vùng đi được, ô vật/NPC không đi tới được, ô ra ngoài khung, `foreground` sai `baseY`, sprite sheet/chân dung/icon sai cỡ. Bước kiểm vị trí bằng ảnh cắt (`VerifyScenePlacement`) bỏ cho vụ pixel vì vật đã vẽ vào nền |
+| Phong cách NPC | Lấy từ quy trình PixelLab của `templates.json` (mặt trước có ảnh Sherlock làm mẫu → `create_character` v3 → idle v3), sprite south 96×96: khung trần, cùng khung với Sherlock và Watson V3 96. Tỉ lệ người thật như Sherlock, Watson, NPC vụ Lò thuốc; cao thấp tùy nhân vật, không khóa pixel; không chibi. `asset_process` của studio từ chối sprite không phải 96×96 (`NPC_FORMAT`) và zip PixelLab có prompt chibi (`NPC_STYLE`). 39 NPC chibi của thư viện Đợt 0 đã khóa (`retired`) |
 | Âm | Nhạc, thời tiết, bíp như VUAN-4, VUAN-5; cảnh pixel thiếu tiếng giao diện thì server ghi 7 cue CC0 `/assets/audio/sfx/ui/<cue>.ogg` |
 
 Chế độ mock không ảnh (`MockAiResponses` + `SkipAssetGeneration`, dùng cho `start-local-demo.ps1`) vẫn dựng bố cục kiểu cũ vì không có ảnh nào để dựng cảnh pixel.
@@ -211,6 +212,15 @@ PixelLab giới hạn số job chạy cùng lúc và số lần gọi.
 2. Đợi 1–2 phút rồi chạy tiếp, mỗi lần ít job hơn (skill cho tối đa 10 job cùng lúc; gặp 429 thì hạ xuống 3–5).
 3. Không vòng lặp gọi lại liên tục. Gặp 429 nhiều lần liền: `bridge_release` yêu cầu `ASSETS`, ghi vào `report.md`, báo Yen và để lần gõ sau làm tiếp.
 4. Hết lượt của gói (không phải 429): dừng, báo Yen. Không vượt `order.pixelLabCap` khi Yen chưa đồng ý; có thể làm tiếp bằng thư viện và `asset_variant` (0 lượt).
+
+### Studio báo `NPC_STYLE` hoặc `NPC_FORMAT`
+
+- `NPC_STYLE`: nhân vật PixelLab tạo với prompt chibi/đầu to, lệch phong cách game.
+- `NPC_FORMAT`: sprite south không phải 96×96.
+
+1. Bot dừng NPC đó, ghi vào `report.md`, báo Yen. Không sửa hay thu nhỏ ảnh cho lọt.
+2. Vẽ lại theo `character-front` (ảnh Sherlock V3 96 làm mẫu) → `create_character` v3 → idle v3. Đây là tạo lại nên bot phải hỏi Yen trước.
+3. Rẻ hơn: nếu trong 4 ứng viên mặt trước đã có (giữ ở `tmp/pixellab/<draftId>/`) có ứng viên nhìn thẳng, đúng phong cách, thì xoay lại và làm idle lại từ ứng viên đó, chỉ tốn 4 lượt thay vì 14. Vẫn phải hỏi Yen trước.
 
 ### Hết hạn mức Claude giữa chừng
 

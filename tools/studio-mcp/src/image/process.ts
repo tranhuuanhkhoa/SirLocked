@@ -155,6 +155,8 @@ export interface NpcSources {
   south: Rgba;
   /** PixelLab idle frames (south), empty when the character has no animation yet. */
   idle: Rgba[];
+  /** The character's PixelLab prompt (metadata.json of the zip), when there is one. */
+  prompt?: string;
 }
 
 /** Reads a PixelLab character zip: rotations/south.png and animations/idle/south/frame_*.png. */
@@ -167,7 +169,17 @@ export async function npcFromZip(zip: Uint8Array): Promise<NpcSources> {
   const south = await loadRgba(Buffer.from(files[southName]));
   const idle: Rgba[] = [];
   for (const name of frameNames) idle.push(await loadRgba(Buffer.from(files[name])));
-  return { south, idle };
+  let prompt: string | undefined;
+  if (files['metadata.json']) {
+    try {
+      const metadata = JSON.parse(Buffer.from(files['metadata.json']).toString('utf8'));
+      const value = metadata?.states?.[0]?.character?.prompt ?? metadata?.character?.prompt;
+      if (typeof value === 'string') prompt = value;
+    } catch {
+      // A zip without readable metadata still has its pictures.
+    }
+  }
+  return { south, idle, prompt };
 }
 
 /** Breathing done in code, 0 credits: the upper body (above 55% of the height) dips one pixel and comes back. */
@@ -224,6 +236,43 @@ export function idleSheet(npc: NpcSources): { image: Rgba; source: 'pixellab-idl
 /** Portrait as the two pixel cases do it: the south sprite scaled to 288x288, nearest neighbour (96px x 3). */
 export function portrait(south: Rgba, size = 288): Rgba {
   return resizeNearest(south, size, size);
+}
+
+// ------------------------------------------------------------------------------------------------ NPC standard
+
+/**
+ * NPC standard (ai-game-docs/visual-style-templates/pixellab): every NPC comes out of the PixelLab workflow of
+ * templates.json (character-front with the Sherlock V3 96 style reference -> create_character v3 -> idle v3), so its
+ * style matches Sherlock, Watson and the Lò thuốc NPCs by construction. The figure's height is the character's own
+ * (tall, short, a child): it is never locked in pixels. What is refused:
+ * - a south sprite that is not 96x96: 96 is the ceiling, the same canvas as Sherlock and Watson V3 96, so no NPC is drawn
+ *   bigger than the two detectives (and the game's sheets and portraits are built from 96);
+ * - a character whose PixelLab prompt asks for the chibi look (big head), as the first library batch did.
+ */
+export const NPC_CANVAS = 96;
+export const CHIBI_WORDS = /\b(chibi|super[ -]?deformed|large head|big head|oversized head|bobblehead)\b/i;
+
+export interface NpcCheck {
+  /** Each one refuses the NPC: [code, message]. */
+  problems: Array<{ code: 'NPC_FORMAT' | 'NPC_STYLE'; message: string }>;
+}
+
+const REDRAW = 'Vẽ lại theo templates.json: character-front (create_image_pro 96x96, ảnh Sherlock V3 96 làm mẫu phong cách) '
+  + '-> create_character v3 từ ứng viên nhìn thẳng -> animate_character idle v3. Không sửa hay thu nhỏ ảnh cho lọt.';
+
+export function npcCheck(npc: NpcSources): NpcCheck {
+  const problems: NpcCheck['problems'] = [];
+  if (npc.south.width !== NPC_CANVAS || npc.south.height !== NPC_CANVAS) {
+    problems.push({ code: 'NPC_FORMAT', message: `Sprite south của NPC phải ${NPC_CANVAS}x${NPC_CANVAS} như PixelLab trả về, đang ${npc.south.width}x${npc.south.height}. ${REDRAW}` });
+  } else if (!opaqueBounds(npc.south, 16)) {
+    problems.push({ code: 'NPC_FORMAT', message: 'Sprite south của NPC trống.' });
+  }
+  const chibi = npc.prompt ? CHIBI_WORDS.exec(npc.prompt) : null;
+  if (chibi) {
+    problems.push({ code: 'NPC_STYLE', message: `Nhân vật PixelLab này tạo với prompt "${chibi[0]}": kiểu chibi đầu to, lệch phong cách game `
+      + `(tỉ lệ người thật như Sherlock, Watson, NPC vụ Lò thuốc). ${REDRAW}` });
+  }
+  return { problems };
 }
 
 // ------------------------------------------------------------------------------------------------ cover

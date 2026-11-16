@@ -143,7 +143,8 @@
       "notes": [
         "Chỉ dùng cho nhân vật mới. Sherlock và Watson V3 96 đã có, không tạo lại.",
         "Chọn ứng viên nhìn thẳng (straight-on) hướng south; ứng viên xoay nghiêng làm bản xoay 8 hướng bị lệch.",
-        "Ảnh tham chiếu Sherlock chỉ để khớp mật độ pixel, viền, đổ bóng và tỉ lệ cơ thể trên canvas."
+        "Ảnh tham chiếu Sherlock chỉ để khớp mật độ pixel, viền, đổ bóng và tỉ lệ cơ thể trên canvas.",
+        "Phong cách chuẩn: tỉ lệ người thật như Sherlock, Watson, NPC vụ Lò thuốc; cao thấp tùy nhân vật, không khóa pixel; không chibi đầu to. asset_process của studio từ chối sprite không phải 96x96 (NPC_FORMAT) và nhân vật có prompt chibi (NPC_STYLE)."
       ],
       "example": {
         "requestId": "hoc-viec-front",
