@@ -18,12 +18,43 @@ const SORTS = [
   ['name', 'Name', 'Tên A–Z'],
 ];
 
-/** MUA: categories, rarity filter, search, sort, the ledger of item types and the item detail with its chart. */
+/** Rows of the ledger per page: the server cuts the sorted list, so only one page of rows and sparklines travels. */
+export const PAGE_SIZE = 12;
+
+/**
+ * The page numbers to show, with `null` for a gap: always the first and the last page, the current one and `near`
+ * pages on each side. Near either end the window grows instead, so the row of buttons keeps its length and a gap
+ * never hides a single page.
+ */
+export function pageList(current, total, near = 1) {
+  const width = 2 * near + 1;
+  if (total <= width + 4) return Array.from({ length: total }, (_, index) => index + 1);
+  let from = Math.max(2, current - near);
+  let to = Math.min(total - 1, current + near);
+  if (from <= 3) {
+    from = 2;
+    to = Math.max(to, width + 2);
+  }
+  if (to >= total - 2) {
+    to = total - 1;
+    from = Math.min(from, total - width - 1);
+  }
+  const pages = [1];
+  if (from > 2) pages.push(null);
+  for (let page = from; page <= to; page += 1) pages.push(page);
+  if (to < total - 1) pages.push(null);
+  pages.push(total);
+  return pages;
+}
+
+/** MUA: categories, rarity filter, search, sort, the ledger of item types (one page at a time) and the item detail with its chart. */
 export function mountBuyTab(ctx) {
   const { panel, state } = ctx;
   let searchTimer = 0;
   let browseSeq = 0;
   let detailSeq = 0;
+  let pageCount = 1;
+  let pagerFocus = null;
 
   panel.innerHTML = `
     <div class="bpa-mk-buy">
@@ -53,6 +84,10 @@ export function mountBuyTab(ctx) {
         </div>
         <div class="bpa-mk-th" aria-hidden="true"><span></span><span>${tr('ITEM', 'VẬT PHẨM')}</span><span class="bpa-mk-hide-sm">${tr('RARITY', 'ĐỘ HIẾM')}</span><span class="bpa-mk-hide-sm">${tr('LISTED', 'ĐANG BÁN')}</span><span>${tr('FROM', 'GIÁ TỪ')}</span><span class="bpa-mk-hide-sm">${tr('10 DAYS', '10 NGÀY')}</span></div>
         <ul class="bpa-mk-rows" id="mk-rows" aria-busy="true"><li class="bpa-mk-wait">${tr('Opening the ledger…', 'Đang mở sổ giao dịch…')}</li></ul>
+        <nav class="bpa-mk-pager" id="mk-pager" aria-label="${tr('Pages', 'Phân trang')}" hidden>
+          <p class="bpa-mk-pageinfo" id="mk-pageinfo" aria-live="polite"></p>
+          <div class="bpa-mk-pages" id="mk-pages"></div>
+        </nav>
       </div>
 
       <aside class="bpa-mk-detail" id="mk-detail" aria-label="${tr('Item details', 'Chi tiết vật phẩm')}"></aside>
@@ -61,6 +96,9 @@ export function mountBuyTab(ctx) {
   const rowsEl = panel.querySelector('#mk-rows');
   const catsEl = panel.querySelector('#mk-cats');
   const detailEl = panel.querySelector('#mk-detail');
+  const pagerEl = panel.querySelector('#mk-pager');
+  const pageInfoEl = panel.querySelector('#mk-pageinfo');
+  const pagesEl = panel.querySelector('#mk-pages');
 
   function renderCategories(browse) {
     const counts = browse?.categoryCounts || {};
@@ -97,11 +135,66 @@ export function mountBuyTab(ctx) {
     rowsEl.innerHTML = browse.rows.map(rowMarkup).join('');
   }
 
-  async function loadBrowse({ keepDetail = false } = {}) {
+  function pagerButton(key, label, content, { disabled = false, current = false } = {}) {
+    return `<button type="button" class="bpa-mk-pg" data-page="${key}" aria-label="${escapeHtml(label)}"${current ? ' aria-current="page"' : ''}${disabled ? ' disabled' : ''}>${content}</button>`;
+  }
+
+  /** An older server, or a mocked one, sends no paging fields: then everything is one page and the pager stays hidden. */
+  function renderPager(browse) {
+    const size = browse.pageSize > 0 ? browse.pageSize : 0;
+    const matches = browse.matchCount ?? browse.rows.length;
+    pageCount = size ? Math.max(1, Math.ceil(matches / size)) : 1;
+    const current = Math.min(Math.max(1, browse.page || 1), pageCount);
+    pagerEl.hidden = pageCount <= 1;
+    if (pageCount <= 1) {
+      pagesEl.innerHTML = '';
+      pageInfoEl.textContent = '';
+      return;
+    }
+    const first = (current - 1) * size + 1;
+    const last = first + browse.rows.length - 1;
+    pageInfoEl.textContent = tr(`${fmt(first)}–${fmt(last)} of ${fmt(matches)} items`, `${fmt(first)}–${fmt(last)} trên ${fmt(matches)} vật phẩm`);
+    const near = window.matchMedia('(max-width: 480px)').matches ? 0 : 1;
+    pagesEl.innerHTML = [
+      pagerButton('prev', tr('Previous page', 'Trang trước'), '<span aria-hidden="true">‹</span>', { disabled: current <= 1 }),
+      ...pageList(current, pageCount, near).map((page) => (page == null
+        ? '<span class="bpa-mk-pggap" aria-hidden="true">…</span>'
+        : pagerButton(page, tr(`Page ${page}`, `Trang ${page}`), String(page), { current: page === current }))),
+      pagerButton('next', tr('Next page', 'Trang sau'), '<span aria-hidden="true">›</span>', { disabled: current >= pageCount }),
+    ].join('');
+    // The clicked button was replaced: put the focus back on its successor, or on the current page once it is disabled.
+    if (pagerFocus && (document.activeElement === document.body || pagerEl.contains(document.activeElement))) {
+      const target = pagesEl.querySelector(`[data-page="${pagerFocus}"]:not(:disabled)`) || pagesEl.querySelector('[aria-current="page"]');
+      target?.focus({ preventScroll: true });
+    }
+    pagerFocus = null;
+  }
+
+  function goToPage(key) {
+    const target = key === 'prev' ? state.page - 1 : key === 'next' ? state.page + 1 : Number(key);
+    if (!Number.isInteger(target) || target < 1 || target > pageCount || target === state.page) return;
+    state.page = target;
+    pagerFocus = key;
+    loadBrowse({ keepDetail: true, keepSelection: true });
+    // From the pager under a long list, the new page starts above the screen.
+    const head = panel.querySelector('.bpa-mk-listhead');
+    if (head && head.getBoundingClientRect().top < 0) {
+      head.scrollIntoView({ behavior: ctx.reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  }
+
+  /**
+   * keepSelection: the item in the detail stays even when it is not on this page (turning pages, re-sorting,
+   * refreshing after a trade). A new search or filter still moves the detail to its first match.
+   */
+  async function loadBrowse({ keepDetail = false, keepSelection = false } = {}) {
     const seq = ++browseSeq;
     let browse;
+    rowsEl.setAttribute('aria-busy', 'true');
     try {
-      browse = await marketApi.browse({ q: state.q, category: state.category, rarities: [...state.rarities], sort: state.sort });
+      browse = await marketApi.browse({
+        q: state.q, category: state.category, rarities: [...state.rarities], sort: state.sort, page: state.page, pageSize: PAGE_SIZE,
+      });
     } catch (error) {
       if (seq !== browseSeq || !ctx.isActive()) return;
       rowsEl.removeAttribute('aria-busy');
@@ -110,9 +203,14 @@ export function mountBuyTab(ctx) {
     }
     if (seq !== browseSeq || !ctx.isActive()) return;
     state.browse = browse;
+    // The server answers with the last page when the one asked for no longer exists.
+    if (browse.page > 0) state.page = browse.page;
     renderCategories(browse);
-    if (!browse.rows.some((row) => row.def.id === state.selectedDef)) state.selectedDef = browse.rows[0]?.def.id || null;
+    if (!browse.rows.some((row) => row.def.id === state.selectedDef) && !(keepSelection && state.selectedDef)) {
+      state.selectedDef = browse.rows[0]?.def.id || null;
+    }
     renderRows(browse);
+    renderPager(browse);
     if (state.selectedDef) {
       if (!keepDetail || state.detail?.def.id !== state.selectedDef) loadDetail(state.selectedDef);
       else renderDetail(state.detail);
@@ -240,7 +338,7 @@ export function mountBuyTab(ctx) {
   }
 
   async function refreshAfterTrade() {
-    await Promise.all([loadBrowse({ keepDetail: true }), state.selectedDef ? loadDetail(state.selectedDef, { animate: false }) : null, ctx.refreshWallet()]);
+    await Promise.all([loadBrowse({ keepDetail: true, keepSelection: true }), state.selectedDef ? loadDetail(state.selectedDef, { animate: false }) : null, ctx.refreshWallet()]);
   }
 
   // ----- events
@@ -249,7 +347,10 @@ export function mountBuyTab(ctx) {
     if (event.target.id === 'mk-q') {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
-        state.q = event.target.value.trim();
+        const q = event.target.value.trim();
+        if (q === state.q) return;
+        state.q = q;
+        state.page = 1;
         loadBrowse();
       }, 250);
     }
@@ -260,10 +361,12 @@ export function mountBuyTab(ctx) {
     if (rarity) {
       if (event.target.checked) state.rarities.add(rarity);
       else state.rarities.delete(rarity);
+      state.page = 1;
       loadBrowse();
     } else if (event.target.id === 'mk-sort') {
       state.sort = event.target.value;
-      loadBrowse({ keepDetail: true });
+      state.page = 1;
+      loadBrowse({ keepDetail: true, keepSelection: true });
     }
   });
 
@@ -301,9 +404,15 @@ export function mountBuyTab(ctx) {
   });
 
   panel.addEventListener('click', (event) => {
+    const pageButton = event.target.closest('[data-page]');
+    if (pageButton) {
+      if (!pageButton.disabled) goToPage(pageButton.dataset.page);
+      return;
+    }
     const category = event.target.closest('[data-category]');
     if (category) {
       state.category = category.dataset.category;
+      state.page = 1;
       catsEl.querySelectorAll('[data-category]').forEach((button) => button.setAttribute('aria-pressed', String(button === category)));
       loadBrowse();
       return;
@@ -375,9 +484,10 @@ export function mountBuyTab(ctx) {
   if (state.browse) {
     renderCategories(state.browse);
     renderRows(state.browse);
+    renderPager(state.browse);
     if (state.detail && state.detail.def.id === state.selectedDef) renderDetail(state.detail);
   }
-  loadBrowse({ keepDetail: true });
+  loadBrowse({ keepDetail: true, keepSelection: true });
 
   return {
     dispose() {

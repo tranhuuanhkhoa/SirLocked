@@ -32,7 +32,7 @@ export async function renderMarketPage(app, tabParam) {
     wallet: null,
     flip: false,
     // MUA
-    q: '', category: '', rarities: new Set(RARITIES), sort: 'popular', browse: null, selectedDef: null, detail: null, detailFlip: false, bidOpen: false,
+    q: '', category: '', rarities: new Set(RARITIES), sort: 'popular', page: 1, browse: null, selectedDef: null, detail: null, detailFlip: false, bidOpen: false,
     // BÁN
     inventory: null, selectedItemId: null, price: '',
     // TRAO ĐỔI

@@ -300,6 +300,33 @@ public sealed class MongoMarketTests
     }
 
     [Fact]
+    public async Task Browse_CutsTheSortedLedgerIntoPages_AndClampsAPagePastTheEnd()
+    {
+        if (!Enabled) return;
+        await using var env = await MarketEnv.CreateAsync();
+        var all = await env.Market.BrowseAsync(null, MarketCategories.Magnifier, null, "name");
+        Assert.Equal(3, all.MatchCount);
+        Assert.Equal(1, all.Page);
+
+        var first = await env.Market.BrowseAsync(null, MarketCategories.Magnifier, null, "name", page: 1, pageSize: 2);
+        var second = await env.Market.BrowseAsync(null, MarketCategories.Magnifier, null, "name", page: 2, pageSize: 2);
+        Assert.Equal(all.Rows.Take(2).Select(r => r.Def.Id), first.Rows.Select(r => r.Def.Id));
+        Assert.Equal(all.Rows[2].Def.Id, Assert.Single(second.Rows).Def.Id);
+        Assert.Equal((3, 2, 2), (second.MatchCount, second.Page, second.PageSize));
+        // The category and "All" counts describe the whole search, not the page.
+        Assert.Equal(all.TotalCount, second.TotalCount);
+        Assert.Equal(3, second.CategoryCounts[MarketCategories.Magnifier]);
+
+        var past = await env.Market.BrowseAsync(null, MarketCategories.Magnifier, null, "name", page: 9, pageSize: 2);
+        Assert.Equal(2, past.Page);
+        Assert.Equal(second.Rows.Select(r => r.Def.Id), past.Rows.Select(r => r.Def.Id));
+
+        var none = await env.Market.BrowseAsync("khong co mon nao ten nhu vay", null, null, null, page: 3, pageSize: 2);
+        Assert.Empty(none.Rows);
+        Assert.Equal((0, 1), (none.MatchCount, none.Page));
+    }
+
+    [Fact]
     public async Task ParallelListingsAgainstOneBid_FillItOnce()
     {
         if (!Enabled) return;

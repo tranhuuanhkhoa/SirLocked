@@ -171,8 +171,13 @@ public sealed partial class MarketService
             .ToList();
     }
 
+    /// <summary>
+    /// The ledger of item types, filtered and sorted, then cut to one page. A <paramref name="pageSize"/> of 0 returns
+    /// every row; a page past the end returns the last one, so a list that shrank meanwhile still shows something.
+    /// </summary>
     public async Task<MarketBrowseDto> BrowseAsync(
-        string? query, string? category, IReadOnlyCollection<string>? rarities, string? sort, CancellationToken ct = default)
+        string? query, string? category, IReadOnlyCollection<string>? rarities, string? sort,
+        int page = 1, int pageSize = 0, CancellationToken ct = default)
     {
         var normalized = MarketRules.NormalizeSearch(query);
         var rarityFilter = (rarities ?? Array.Empty<string>()).Where(MarketRarities.IsValid).ToHashSet();
@@ -214,7 +219,12 @@ public sealed partial class MarketService
                 .ThenByDescending(row => row.BidCount)
                 .ThenByDescending(row => MarketRarities.Rank(row.Def.Rarity))
         };
-        return new MarketBrowseDto(rows.ToList(), counts, searched.Count);
+        var sorted = rows.ToList();
+        if (pageSize <= 0) return new MarketBrowseDto(sorted, counts, searched.Count, sorted.Count, 1, sorted.Count);
+        var lastPage = Math.Max(1, (sorted.Count + pageSize - 1) / pageSize);
+        var current = Math.Clamp(page, 1, lastPage);
+        var slice = sorted.Skip((current - 1) * pageSize).Take(pageSize).ToList();
+        return new MarketBrowseDto(slice, counts, searched.Count, sorted.Count, current, pageSize);
     }
 
     private sealed record BookSummary(long? LowestAsk, int AskCount, long? HighestBid, int BidCount);

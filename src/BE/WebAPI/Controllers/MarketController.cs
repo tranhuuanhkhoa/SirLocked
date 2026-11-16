@@ -28,11 +28,15 @@ public class MarketController : BaseApiController
     [HttpGet("items")]
     public async Task<ActionResult<ApiResponse<MarketBrowseDto>>> Browse(
         [FromQuery] string? q, [FromQuery] string? category, [FromQuery] string? rarity, [FromQuery] string? sort,
-        CancellationToken ct)
+        [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
         var rarities = (rarity ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return Ok(await _market.BrowseAsync(q?.Length > 60 ? q[..60] : q, category, rarities, sort, ct));
+        // No pageSize (or 0): the whole ledger, as before paging existed. Otherwise at most MaxBrowsePageSize rows.
+        var size = pageSize is null or <= 0 ? 0 : Math.Min(pageSize.Value, MaxBrowsePageSize);
+        return Ok(await _market.BrowseAsync(q?.Length > 60 ? q[..60] : q, category, rarities, sort, page ?? 1, size, ct));
     }
+
+    private const int MaxBrowsePageSize = 100;
 
     [HttpGet("items/{defId}")]
     public async Task<ActionResult<ApiResponse<MarketItemDetailDto>>> Item(string defId, CancellationToken ct) =>

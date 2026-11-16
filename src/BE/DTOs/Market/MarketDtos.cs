@@ -35,10 +35,17 @@ public sealed record MarketRowDto(
     int? ChangePercent,
     int Volume30);
 
+/// <summary>
+/// One page of the ledger. <c>TotalCount</c> counts every category (the "All" button), <c>MatchCount</c> the rows of
+/// the chosen category across all pages; <c>Page</c> is the page actually returned, which may differ from the one asked.
+/// </summary>
 public sealed record MarketBrowseDto(
     IReadOnlyList<MarketRowDto> Rows,
     IReadOnlyDictionary<string, int> CategoryCounts,
-    int TotalCount);
+    int TotalCount,
+    int MatchCount,
+    int Page,
+    int PageSize);
 
 public sealed record DailyPriceDto(string Day, long? Average, long? Low, long? High, int Volume);
 

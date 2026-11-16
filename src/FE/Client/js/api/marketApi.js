@@ -13,12 +13,16 @@ export function newRequestId() {
 
 export const marketApi = {
   wallet: () => get('/api/market/me'),
-  browse: ({ q = '', category = '', rarities = [], sort = 'popular' } = {}) => {
+  browse: ({ q = '', category = '', rarities = [], sort = 'popular', page = 1, pageSize = 0 } = {}) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (category) params.set('category', category);
     if (rarities.length) params.set('rarity', rarities.join(','));
     if (sort) params.set('sort', sort);
+    if (pageSize > 0) {
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
+    }
     return get(`/api/market/items?${params}`);
   },
   item: (defId) => get(`/api/market/items/${enc(defId)}`),
