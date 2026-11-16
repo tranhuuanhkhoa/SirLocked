@@ -350,6 +350,8 @@ export async function renderLoginPage(app) {
   }
 
   tabs.forEach((tab) => tab.addEventListener('click', () => showForm(tab.dataset.tab)));
+  // "Tạo tài khoản" on the introduction page links here as /login?tab=register.
+  if (new URLSearchParams(window.location.search).get('tab') === 'register') showForm('register');
   app.querySelectorAll('[data-open]').forEach((button) =>
     button.addEventListener('click', () => showForm(button.dataset.open, { focusTitle: true })));
 

@@ -546,7 +546,7 @@ test('a picture that fails to load falls back to what ships, with no error', asy
   await prepare(page, { reduced: false });
   const failures: string[] = [];
   page.on('pageerror', (error) => failures.push(error.message));
-  await page.goto('/');
+  await page.goto('/admin');
   const fell = await page.evaluate(async () => {
     const frames = await import('/Client/js/cosmetics/frames.js' as string);
     const avatars = await import('/Client/js/cosmetics/avatars.js' as string);
@@ -577,7 +577,7 @@ test('a picture is fetched once, however many cosmetics and canvases use it', as
   await prepare(page);
   let fetched = 0;
   await page.route((url) => url.pathname === '/assets/cosmetics/vien-mac.webp', (route) => { fetched += 1; return route.continue(); });
-  await page.goto('/');
+  await page.goto('/admin');
   await page.evaluate(async () => {
     const frames = await import('/Client/js/cosmetics/frames.js' as string);
     const url = '/assets/cosmetics/vien-mac.webp?once';
@@ -596,7 +596,7 @@ test('a picture is fetched once, however many cosmetics and canvases use it', as
 });
 
 test('the slices of an uploaded creature leave no stripes in its soft parts', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const spread = await page.evaluate(async () => {
     const fx = await import('/Client/js/cosmetics/fx.js' as string);
     const source: any = document.createElement('canvas');
@@ -631,7 +631,7 @@ test('the slices of an uploaded creature leave no stripes in its soft parts', as
 });
 
 test('placing a picture follows the rule the shipped frames were placed by', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const rows = await page.evaluate(async () => {
     const frames = await import('/Client/js/cosmetics/frames.js' as string);
     const { ARTM } = await import('/Client/js/cosmetics/art-manifest.js' as string);
@@ -888,7 +888,7 @@ test('with a default frame of the admin\'s choice, the bare ring is gone and the
 });
 
 test('the market shows a painted frame with its own picture, and other cosmetics with the category drawing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const html = await page.evaluate(async () => {
     const kit = await import('/Client/js/pages/market/marketKit.js' as string);
     return {
@@ -905,7 +905,7 @@ test('the market shows a painted frame with its own picture, and other cosmetics
 });
 
 test('the chest reel draws a frame it has never heard of from the definition it is given', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const painted = await page.evaluate(async () => {
     const icons = await import('/Client/js/cosmetics/icons.js' as string);
     const frames = await import('/Client/js/cosmetics/frames.js' as string);
@@ -921,7 +921,7 @@ test('the chest reel draws a frame it has never heard of from the definition it 
 });
 
 test('the chest page does not overwrite how a known item is obtained', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const words = await page.evaluate(async () => {
     const index = await import('/Client/js/cosmetics/index.js' as string);
     const icons = await import('/Client/js/cosmetics/icons.js' as string);
@@ -937,7 +937,7 @@ test('the chest page does not overwrite how a known item is obtained', async ({ 
 });
 
 test('an edited description of a shipped entrance reaches the profile', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const words = await page.evaluate(async () => {
     const index = await import('/Client/js/cosmetics/index.js' as string);
     index.applyCosmetic({ id: 'entrance_anh-trang', category: 'ENTRANCE', rarity: 'RARE', name: 'Ánh Trăng Soi Lối', description: 'Mô tả mới của admin.', visual: { builtinId: 'anh-trang' }, chests: ['Hòm Niêm Phong'], activeChestCount: 3 });
@@ -951,7 +951,7 @@ test('an edited description of a shipped entrance reaches the profile', async ({
 });
 
 test('in the market, a painted frame whose picture fails falls back to the category drawing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const swapped = await page.evaluate(async () => {
     const kit = await import('/Client/js/pages/market/marketKit.js' as string);
     const host = document.createElement('div');
@@ -964,7 +964,7 @@ test('in the market, a painted frame whose picture fails falls back to the categ
 });
 
 test('with a tint, colours change hue and keep their lightness; without one they come back untouched', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin');
   const out = await page.evaluate(async () => {
     const { retint } = await import('/Client/js/cosmetics/lib.js' as string);
     return {
