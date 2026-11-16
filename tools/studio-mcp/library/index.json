@@ -9,8 +9,8 @@
       "tags": [],
       "nameVi": "Ảnh chân dung cũ",
       "nameEn": "Old portrait photograph",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837865/sirlocked/cases/library/all-item-anh-chan-dung/main-df0a717a9bf6.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837865/sirlocked/cases/library/all-item-anh-chan-dung/main-df0a717a9bf6.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -28,6 +28,9 @@
         },
         "sha256": {
           "main": "df0a717a9bf6cb50c8e208379de79151bdd9e097a5336055954c68440cab5619"
+        },
+        "uploadedSha256": {
+          "main": "df0a717a9bf6cb50c8e208379de79151bdd9e097a5336055954c68440cab5619"
         }
       }
     },
@@ -38,8 +41,8 @@
       "tags": [],
       "nameVi": "Bản đồ gấp",
       "nameEn": "Folded map",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837866/sirlocked/cases/library/all-item-ban-do-gap/main-cb4025dea847.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837866/sirlocked/cases/library/all-item-ban-do-gap/main-cb4025dea847.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -57,6 +60,9 @@
         },
         "sha256": {
           "main": "cb4025dea847fb14ff0765dbbde5b9f2f19e07ee1a2d6a1b186cca19756cdab8"
+        },
+        "uploadedSha256": {
+          "main": "cb4025dea847fb14ff0765dbbde5b9f2f19e07ee1a2d6a1b186cca19756cdab8"
         }
       }
     },
@@ -67,8 +73,8 @@
       "tags": [],
       "nameVi": "Biên lai",
       "nameEn": "Receipt",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837866/sirlocked/cases/library/all-item-bien-lai/main-7d75d02323ea.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837866/sirlocked/cases/library/all-item-bien-lai/main-7d75d02323ea.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -86,6 +92,9 @@
         },
         "sha256": {
           "main": "7d75d02323ea814023d8c8e33961cea2253eba11dccb38e965ceaa3e497a90e7"
+        },
+        "uploadedSha256": {
+          "main": "7d75d02323ea814023d8c8e33961cea2253eba11dccb38e965ceaa3e497a90e7"
         }
       }
     },
@@ -96,8 +105,8 @@
       "tags": [],
       "nameVi": "Bình nước hoa",
       "nameEn": "Perfume bottle",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837867/sirlocked/cases/library/all-item-binh-nuoc-hoa/main-47fd72db703c.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837867/sirlocked/cases/library/all-item-binh-nuoc-hoa/main-47fd72db703c.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -115,6 +124,9 @@
         },
         "sha256": {
           "main": "47fd72db703c4122f6304f9a6312725e364c0231bc01f2fee3780272a2e9f7ad"
+        },
+        "uploadedSha256": {
+          "main": "47fd72db703c4122f6304f9a6312725e364c0231bc01f2fee3780272a2e9f7ad"
         }
       }
     },
@@ -125,8 +137,8 @@
       "tags": [],
       "nameVi": "Bình thủy tinh",
       "nameEn": "Chemist flask",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837868/sirlocked/cases/library/all-item-binh-thuy-tinh/main-5b0892e9be2c.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837868/sirlocked/cases/library/all-item-binh-thuy-tinh/main-5b0892e9be2c.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -144,6 +156,9 @@
         },
         "sha256": {
           "main": "5b0892e9be2c73d3f715bd6e1f84a9fc8ec9d2bd1a60a61b771b2702e36974c0"
+        },
+        "uploadedSha256": {
+          "main": "5b0892e9be2c73d3f715bd6e1f84a9fc8ec9d2bd1a60a61b771b2702e36974c0"
         }
       }
     },
@@ -154,8 +169,8 @@
       "tags": [],
       "nameVi": "Bộ mở khóa",
       "nameEn": "Lockpick roll",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837869/sirlocked/cases/library/all-item-bo-mo-khoa/main-f5ea11ecf57e.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837869/sirlocked/cases/library/all-item-bo-mo-khoa/main-f5ea11ecf57e.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -173,6 +188,9 @@
         },
         "sha256": {
           "main": "f5ea11ecf57e692ed1f589be520b072bb9bbf68ebd06811c52f4817b357b10df"
+        },
+        "uploadedSha256": {
+          "main": "f5ea11ecf57e692ed1f589be520b072bb9bbf68ebd06811c52f4817b357b10df"
         }
       }
     },
@@ -183,8 +201,8 @@
       "tags": [],
       "nameVi": "Chìa khóa đồng",
       "nameEn": "Brass key",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837869/sirlocked/cases/library/all-item-chia-khoa-dong/main-bd7e05712b87.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837869/sirlocked/cases/library/all-item-chia-khoa-dong/main-bd7e05712b87.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -202,6 +220,9 @@
         },
         "sha256": {
           "main": "bd7e05712b878ae1944953e38e7fb9e524f3dd30c12ceef07a860729cbecbbfd"
+        },
+        "uploadedSha256": {
+          "main": "bd7e05712b878ae1944953e38e7fb9e524f3dd30c12ceef07a860729cbecbbfd"
         }
       }
     },
@@ -212,8 +233,8 @@
       "tags": [],
       "nameVi": "Chìa khóa sắt",
       "nameEn": "Iron key",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837870/sirlocked/cases/library/all-item-chia-khoa-sat/main-aa397b046c05.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837870/sirlocked/cases/library/all-item-chia-khoa-sat/main-aa397b046c05.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -231,6 +252,9 @@
         },
         "sha256": {
           "main": "aa397b046c0548a52607f47b8a52bba388e33a97c5468d45885fc416a64f5f6e"
+        },
+        "uploadedSha256": {
+          "main": "aa397b046c0548a52607f47b8a52bba388e33a97c5468d45885fc416a64f5f6e"
         }
       }
     },
@@ -241,8 +265,8 @@
       "tags": [],
       "nameVi": "Chùm chìa khóa",
       "nameEn": "Key ring",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837871/sirlocked/cases/library/all-item-chum-chia-khoa/main-9a46e053e1e6.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837871/sirlocked/cases/library/all-item-chum-chia-khoa/main-9a46e053e1e6.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -260,6 +284,9 @@
         },
         "sha256": {
           "main": "9a46e053e1e6a9f00697417984569249071dbf8d5f451d1c6abef1b8c5b004f5"
+        },
+        "uploadedSha256": {
+          "main": "9a46e053e1e6a9f00697417984569249071dbf8d5f451d1c6abef1b8c5b004f5"
         }
       }
     },
@@ -270,8 +297,8 @@
       "tags": [],
       "nameVi": "Cối chày đá",
       "nameEn": "Mortar and pestle",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837871/sirlocked/cases/library/all-item-coi-chay/main-64b540b68bb2.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837871/sirlocked/cases/library/all-item-coi-chay/main-64b540b68bb2.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -289,6 +316,9 @@
         },
         "sha256": {
           "main": "64b540b68bb29262373f438d12f41c69221d0d77c817dead6fa6a200b1721af3"
+        },
+        "uploadedSha256": {
+          "main": "64b540b68bb29262373f438d12f41c69221d0d77c817dead6fa6a200b1721af3"
         }
       }
     },
@@ -299,8 +329,8 @@
       "tags": [],
       "nameVi": "Giá ống nghiệm",
       "nameEn": "Test tube rack",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837872/sirlocked/cases/library/all-item-gia-ong-nghiem/main-0a8b1a6f759f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837872/sirlocked/cases/library/all-item-gia-ong-nghiem/main-0a8b1a6f759f.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -318,6 +348,9 @@
         },
         "sha256": {
           "main": "0a8b1a6f759f442c5ae73068bc9602b314de3a49cb8e224a5ab61d2d0b170b3d"
+        },
+        "uploadedSha256": {
+          "main": "0a8b1a6f759f442c5ae73068bc9602b314de3a49cb8e224a5ab61d2d0b170b3d"
         }
       }
     },
@@ -328,8 +361,8 @@
       "tags": [],
       "nameVi": "Gói bột trắng",
       "nameEn": "Packet of white powder",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837873/sirlocked/cases/library/all-item-goi-bot/main-b44a87a62b1a.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837873/sirlocked/cases/library/all-item-goi-bot/main-b44a87a62b1a.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -347,6 +380,9 @@
         },
         "sha256": {
           "main": "b44a87a62b1aab1b99cc170903fe793a6b6e76d31b1607c3f1b4ffce937fa7c1"
+        },
+        "uploadedSha256": {
+          "main": "b44a87a62b1aab1b99cc170903fe793a6b6e76d31b1607c3f1b4ffce937fa7c1"
         }
       }
     },
@@ -357,8 +393,8 @@
       "tags": [],
       "nameVi": "Hòm gỗ",
       "nameEn": "Wooden strongbox",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837874/sirlocked/cases/library/all-item-hom-go/main-aefb4e03c464.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837874/sirlocked/cases/library/all-item-hom-go/main-aefb4e03c464.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -376,6 +412,9 @@
         },
         "sha256": {
           "main": "aefb4e03c464728940425b45abe52d576791f30ee9d8595a2c3a8eaefbe55cc2"
+        },
+        "uploadedSha256": {
+          "main": "aefb4e03c464728940425b45abe52d576791f30ee9d8595a2c3a8eaefbe55cc2"
         }
       }
     },
@@ -386,8 +425,8 @@
       "tags": [],
       "nameVi": "Hộp khóa số",
       "nameEn": "Number-dial lockbox",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837874/sirlocked/cases/library/all-item-hop-khoa-so/main-928e0e8e6475.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837874/sirlocked/cases/library/all-item-hop-khoa-so/main-928e0e8e6475.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -405,6 +444,9 @@
         },
         "sha256": {
           "main": "928e0e8e647591e60993050b886000ccf8fa3a494d80e2f08994838caeaa14ef"
+        },
+        "uploadedSha256": {
+          "main": "928e0e8e647591e60993050b886000ccf8fa3a494d80e2f08994838caeaa14ef"
         }
       }
     },
@@ -415,8 +457,8 @@
       "tags": [],
       "nameVi": "Hộp thuốc bằng thiếc",
       "nameEn": "Tin pill box",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837875/sirlocked/cases/library/all-item-hop-thuoc-thiec/main-504f3cc67206.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837875/sirlocked/cases/library/all-item-hop-thuoc-thiec/main-504f3cc67206.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -434,6 +476,9 @@
         },
         "sha256": {
           "main": "504f3cc67206e7d5096058469c0cc1080a0e4685d456b5860596af2bee3a97d6"
+        },
+        "uploadedSha256": {
+          "main": "504f3cc67206e7d5096058469c0cc1080a0e4685d456b5860596af2bee3a97d6"
         }
       }
     },
@@ -444,8 +489,8 @@
       "tags": [],
       "nameVi": "Két sắt nhỏ",
       "nameEn": "Small safe",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837876/sirlocked/cases/library/all-item-ket-sat-nho/main-55ea09c4f95e.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837876/sirlocked/cases/library/all-item-ket-sat-nho/main-55ea09c4f95e.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -463,6 +508,9 @@
         },
         "sha256": {
           "main": "55ea09c4f95ed3f69054f56241889a58eff2f27485e000ea21b5216a8137d20e"
+        },
+        "uploadedSha256": {
+          "main": "55ea09c4f95ed3f69054f56241889a58eff2f27485e000ea21b5216a8137d20e"
         }
       }
     },
@@ -473,8 +521,8 @@
       "tags": [],
       "nameVi": "Kính lúp",
       "nameEn": "Magnifying glass",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837877/sirlocked/cases/library/all-item-kinh-lup/main-1ad780b68c9b.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837877/sirlocked/cases/library/all-item-kinh-lup/main-1ad780b68c9b.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -492,6 +540,9 @@
         },
         "sha256": {
           "main": "1ad780b68c9bca7ab3cd14306f3f2b78fd9135a8a85dda6eb2184ae432dddeb2"
+        },
+        "uploadedSha256": {
+          "main": "1ad780b68c9bca7ab3cd14306f3f2b78fd9135a8a85dda6eb2184ae432dddeb2"
         }
       }
     },
@@ -502,8 +553,8 @@
       "tags": [],
       "nameVi": "Lọ thuốc nâu",
       "nameEn": "Brown medicine bottle",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837878/sirlocked/cases/library/all-item-lo-thuoc-nau/main-7677dd45286a.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837878/sirlocked/cases/library/all-item-lo-thuoc-nau/main-7677dd45286a.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -521,6 +572,9 @@
         },
         "sha256": {
           "main": "7677dd45286af8703d08500628fd5f90a0a72769b644fdd7368117ab9dc44251"
+        },
+        "uploadedSha256": {
+          "main": "7677dd45286af8703d08500628fd5f90a0a72769b644fdd7368117ab9dc44251"
         }
       }
     },
@@ -531,8 +585,8 @@
       "tags": [],
       "nameVi": "Mảnh thư xé",
       "nameEn": "Torn letter fragments",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837879/sirlocked/cases/library/all-item-manh-thu-xe/main-f9600c3558e4.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837879/sirlocked/cases/library/all-item-manh-thu-xe/main-f9600c3558e4.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -553,6 +607,9 @@
         },
         "sha256": {
           "main": "f9600c3558e4136f2da22b39db85501c486108e16b760f7c5e126bb6929841f0"
+        },
+        "uploadedSha256": {
+          "main": "f9600c3558e4136f2da22b39db85501c486108e16b760f7c5e126bb6929841f0"
         }
       }
     },
@@ -563,8 +620,8 @@
       "tags": [],
       "nameVi": "Nhật ký có khóa",
       "nameEn": "Diary with a clasp",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837879/sirlocked/cases/library/all-item-nhat-ky-khoa/main-6ba9afaa88cb.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837879/sirlocked/cases/library/all-item-nhat-ky-khoa/main-6ba9afaa88cb.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -582,6 +639,9 @@
         },
         "sha256": {
           "main": "6ba9afaa88cba593fd2f4987b95c21d7e87838bc7f9b070d8994178521875195"
+        },
+        "uploadedSha256": {
+          "main": "6ba9afaa88cba593fd2f4987b95c21d7e87838bc7f9b070d8994178521875195"
         }
       }
     },
@@ -592,8 +652,8 @@
       "tags": [],
       "nameVi": "Ổ khóa vỡ",
       "nameEn": "Broken padlock",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837881/sirlocked/cases/library/all-item-o-khoa-vo/main-5cd9be0b4bfb.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837881/sirlocked/cases/library/all-item-o-khoa-vo/main-5cd9be0b4bfb.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -611,6 +671,9 @@
         },
         "sha256": {
           "main": "5cd9be0b4bfbcda85b433bb89f4861b3f19aaec2489a3fc456ce1ccab46b33d2"
+        },
+        "uploadedSha256": {
+          "main": "5cd9be0b4bfbcda85b433bb89f4861b3f19aaec2489a3fc456ce1ccab46b33d2"
         }
       }
     },
@@ -621,8 +684,8 @@
       "tags": [],
       "nameVi": "Ống tiêm cổ",
       "nameEn": "Antique syringe",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837881/sirlocked/cases/library/all-item-ong-tiem/main-1d9de029df01.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837881/sirlocked/cases/library/all-item-ong-tiem/main-1d9de029df01.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -640,6 +703,9 @@
         },
         "sha256": {
           "main": "1d9de029df01dc49611d74eadf77bc619b05834fc5df7c5d9e0cf7c38d83b64f"
+        },
+        "uploadedSha256": {
+          "main": "1d9de029df01dc49611d74eadf77bc619b05834fc5df7c5d9e0cf7c38d83b64f"
         }
       }
     },
@@ -650,8 +716,8 @@
       "tags": [],
       "nameVi": "Phong bì niêm sáp",
       "nameEn": "Wax-sealed envelope",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837882/sirlocked/cases/library/all-item-phong-bi-niem/main-009e1a97ac8b.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837882/sirlocked/cases/library/all-item-phong-bi-niem/main-009e1a97ac8b.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -669,6 +735,9 @@
         },
         "sha256": {
           "main": "009e1a97ac8bb9ac5fc7e05231a24674f724c6037c6c77979ac54c2cb89dca8a"
+        },
+        "uploadedSha256": {
+          "main": "009e1a97ac8bb9ac5fc7e05231a24674f724c6037c6c77979ac54c2cb89dca8a"
         }
       }
     },
@@ -679,8 +748,8 @@
       "tags": [],
       "nameVi": "Quân cờ mã",
       "nameEn": "Chess knight",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837883/sirlocked/cases/library/all-item-quan-co-ma/main-a09c029ce4a7.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837883/sirlocked/cases/library/all-item-quan-co-ma/main-a09c029ce4a7.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -698,6 +767,9 @@
         },
         "sha256": {
           "main": "a09c029ce4a7bba64f2db4c72586c33014d2e60be9429d7eead5dc754eb63550"
+        },
+        "uploadedSha256": {
+          "main": "a09c029ce4a7bba64f2db4c72586c33014d2e60be9429d7eead5dc754eb63550"
         }
       }
     },
@@ -708,8 +780,8 @@
       "tags": [],
       "nameVi": "Sổ cái",
       "nameEn": "Ledger",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837883/sirlocked/cases/library/all-item-so-cai/main-99fa2a6efbac.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837883/sirlocked/cases/library/all-item-so-cai/main-99fa2a6efbac.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -727,6 +799,9 @@
         },
         "sha256": {
           "main": "99fa2a6efbac2174582d03b2c14c3cbf645f53a04ce7577d5137cb4f48b15630"
+        },
+        "uploadedSha256": {
+          "main": "99fa2a6efbac2174582d03b2c14c3cbf645f53a04ce7577d5137cb4f48b15630"
         }
       }
     },
@@ -737,8 +812,8 @@
       "tags": [],
       "nameVi": "Sổ tay nhỏ",
       "nameEn": "Pocket notebook",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837884/sirlocked/cases/library/all-item-so-tay-nho/main-3e1d52b14d6f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837884/sirlocked/cases/library/all-item-so-tay-nho/main-3e1d52b14d6f.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -756,6 +831,9 @@
         },
         "sha256": {
           "main": "3e1d52b14d6fa3e15a3f3c72f61785811e8b0ebf129a6d10bcaff491383b39a3"
+        },
+        "uploadedSha256": {
+          "main": "3e1d52b14d6fa3e15a3f3c72f61785811e8b0ebf129a6d10bcaff491383b39a3"
         }
       }
     },
@@ -766,8 +844,8 @@
       "tags": [],
       "nameVi": "Lá bài",
       "nameEn": "Playing card",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837885/sirlocked/cases/library/all-item-the-bai/main-ba0318ba3a5d.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837885/sirlocked/cases/library/all-item-the-bai/main-ba0318ba3a5d.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -785,6 +863,9 @@
         },
         "sha256": {
           "main": "ba0318ba3a5dd26f1ef976a3cc09f460c880ecfabeb2cc419cf3f5a1da65f1ae"
+        },
+        "uploadedSha256": {
+          "main": "ba0318ba3a5dd26f1ef976a3cc09f460c880ecfabeb2cc419cf3f5a1da65f1ae"
         }
       }
     },
@@ -795,8 +876,8 @@
       "tags": [],
       "nameVi": "Trang giấy trắng",
       "nameEn": "Blank sheet of paper",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837886/sirlocked/cases/library/all-item-trang-giay-trang/main-a17a946012e3.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837886/sirlocked/cases/library/all-item-trang-giay-trang/main-a17a946012e3.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -817,6 +898,9 @@
         },
         "sha256": {
           "main": "a17a946012e3b3350ed02ae5699689dd3f299eee697086f4865b86a4f40a14d7"
+        },
+        "uploadedSha256": {
+          "main": "a17a946012e3b3350ed02ae5699689dd3f299eee697086f4865b86a4f40a14d7"
         }
       }
     },
@@ -827,8 +911,8 @@
       "tags": [],
       "nameVi": "Bến sông",
       "nameEn": "Riverside bund",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837887/sirlocked/cases/library/c-map-ben-song/main-3f9460e6ea3b.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837888/sirlocked/cases/library/c-map-ben-song/thumb-9bb55faffcfa.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -837,7 +921,9 @@
       "pixelLabJobId": "54ffec31-4c5d-4f16-b1dd-64de615b8b2b",
       "firstUsedByCaseId": "",
       "prompt": "Top-down, front-facing pixel art map, not isometric. 1930s Shanghai riverside bund: grand stone bank buildings with columns and a clock tower, a wide promenade with lamp posts, river with junks and a small steamer at the top, rickshaws, trees. Clear walkable paths, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837888/sirlocked/cases/library/c-map-ben-song/thumb-9bb55faffcfa.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/c-map-ben-song.png",
@@ -846,6 +932,10 @@
           "thumb": "tmp/library-build/c-map-ben-song/thumb.webp"
         },
         "sha256": {
+          "main": "3f9460e6ea3bd249e0acf5feedd47a207e94fdff0d23b94cb3fc7a921b2a9f85",
+          "thumb": "9bb55faffcfa6e778d5e60efc20b6bc3880461a4df7115ba16986b186d20f714"
+        },
+        "uploadedSha256": {
           "main": "3f9460e6ea3bd249e0acf5feedd47a207e94fdff0d23b94cb3fc7a921b2a9f85",
           "thumb": "9bb55faffcfa6e778d5e60efc20b6bc3880461a4df7115ba16986b186d20f714"
         }
@@ -858,8 +948,8 @@
       "tags": [],
       "nameVi": "Ngõ nhà cổng đá",
       "nameEn": "Shikumen lane",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837889/sirlocked/cases/library/c-map-ngo-thach-kho-mon/main-78e0ba101cb9.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837890/sirlocked/cases/library/c-map-ngo-thach-kho-mon/thumb-5de58c519c80.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -868,7 +958,9 @@
       "pixelLabJobId": "0574f1f0-afcb-4075-863d-147d547c0af3",
       "firstUsedByCaseId": "",
       "prompt": "Top-down, front-facing pixel art map, not isometric. 1930s Shanghai shikumen lane neighbourhood: rows of grey brick terraced houses with stone-framed black gates, narrow alleys, laundry poles, potted plants, a small street food stall, a water tap, bicycles. Clear walkable paths, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837890/sirlocked/cases/library/c-map-ngo-thach-kho-mon/thumb-5de58c519c80.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/c-map-ngo-thach-kho-mon.png",
@@ -877,6 +969,10 @@
           "thumb": "tmp/library-build/c-map-ngo-thach-kho-mon/thumb.webp"
         },
         "sha256": {
+          "main": "78e0ba101cb962eef674eaeb11bdd1ed565f5223ccc7ce266869f6a92df6f9ae",
+          "thumb": "5de58c519c800a2161d6894e2d1ff53d524190607b682040f541a475b1ce27a2"
+        },
+        "uploadedSha256": {
           "main": "78e0ba101cb962eef674eaeb11bdd1ed565f5223ccc7ce266869f6a92df6f9ae",
           "thumb": "5de58c519c800a2161d6894e2d1ff53d524190607b682040f541a475b1ce27a2"
         }
@@ -893,8 +989,8 @@
       ],
       "nameVi": "Phố tô giới",
       "nameEn": "Concession street",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837892/sirlocked/cases/library/c-map-pho-to-gioi/main-43abfc1a253e.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837893/sirlocked/cases/library/c-map-pho-to-gioi/thumb-f9232a96fcd7.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -903,7 +999,9 @@
       "pixelLabJobId": "6dd8e78d-af96-425e-9da9-83a7035020b9",
       "firstUsedByCaseId": "",
       "prompt": "1930s Shanghai concession street (style ref pho.png)",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837893/sirlocked/cases/library/c-map-pho-to-gioi/thumb-f9232a96fcd7.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/c-map-pho-to-gioi.png",
@@ -912,6 +1010,10 @@
           "thumb": "tmp/library-build/c-map-pho-to-gioi/thumb.webp"
         },
         "sha256": {
+          "main": "43abfc1a253e81b1c67307bfecf9e23d0cbf7830dd10cdfdf808e579634182ed",
+          "thumb": "f9232a96fcd70bb62bc8749e140ce1488f82502a592cfd551fa8d75c6ef5bd8b"
+        },
+        "uploadedSha256": {
           "main": "43abfc1a253e81b1c67307bfecf9e23d0cbf7830dd10cdfdf808e579634182ed",
           "thumb": "f9232a96fcd70bb62bc8749e140ce1488f82502a592cfd551fa8d75c6ef5bd8b"
         }
@@ -927,8 +1029,8 @@
       ],
       "nameVi": "Đồng hồ bỏ túi vỡ mặt",
       "nameEn": "Cracked pocket watch",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837894/sirlocked/cases/library/item-dong-ho-bo-tui-vo/main-0b4a0eb90dd8.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837894/sirlocked/cases/library/item-dong-ho-bo-tui-vo/main-0b4a0eb90dd8.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -946,6 +1048,9 @@
         },
         "sha256": {
           "main": "0b4a0eb90dd8061f54d6b5c297003836e9dcde9420aef8cc5a73a82fed3696d9"
+        },
+        "uploadedSha256": {
+          "main": "0b4a0eb90dd8061f54d6b5c297003836e9dcde9420aef8cc5a73a82fed3696d9"
         }
       }
     },
@@ -959,8 +1064,8 @@
       ],
       "nameVi": "Lọ thuốc độc",
       "nameEn": "Poison vial",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837894/sirlocked/cases/library/item-lo-thuoc-doc/main-2a5ce3a75092.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837894/sirlocked/cases/library/item-lo-thuoc-doc/main-2a5ce3a75092.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -978,6 +1083,9 @@
         },
         "sha256": {
           "main": "2a5ce3a75092dad90d3bc1215ae9d76e8a97792b557699b773e3261269f0c718"
+        },
+        "uploadedSha256": {
+          "main": "2a5ce3a75092dad90d3bc1215ae9d76e8a97792b557699b773e3261269f0c718"
         }
       }
     },
@@ -992,8 +1100,8 @@
       ],
       "nameVi": "Vé tàu rách",
       "nameEn": "Torn train ticket",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837895/sirlocked/cases/library/item-ve-tau-rach/main-907841abd7e6.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837895/sirlocked/cases/library/item-ve-tau-rach/main-907841abd7e6.webp",
       "width": 64,
       "height": 64,
       "parentKey": "",
@@ -1014,6 +1122,9 @@
         },
         "sha256": {
           "main": "907841abd7e6ba07d75fbdd971f52be4a02b8a1bc08f0da984f56db6d91f58c6"
+        },
+        "uploadedSha256": {
+          "main": "907841abd7e6ba07d75fbdd971f52be4a02b8a1bc08f0da984f56db6d91f58c6"
         }
       }
     },
@@ -1024,8 +1135,8 @@
       "tags": [],
       "nameVi": "Đền và vườn",
       "nameEn": "Shrine and garden",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837896/sirlocked/cases/library/j-map-den-vuon/main-c0979a9e25f0.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837897/sirlocked/cases/library/j-map-den-vuon/thumb-3af2f6d36e2a.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1034,7 +1145,9 @@
       "pixelLabJobId": "2798f1b9-f9d1-442c-810b-dd09e414d7c2",
       "firstUsedByCaseId": "",
       "prompt": "Top-down, front-facing pixel art map, not isometric. Taisho-era Japanese shrine and garden: a red torii gate, a wooden shrine hall with a curved roof, stone lanterns, a koi pond with a small bridge, raked gravel, pine and maple trees, a stone path. Clear walkable paths, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837897/sirlocked/cases/library/j-map-den-vuon/thumb-3af2f6d36e2a.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/j-map-den-vuon.png",
@@ -1043,6 +1156,10 @@
           "thumb": "tmp/library-build/j-map-den-vuon/thumb.webp"
         },
         "sha256": {
+          "main": "c0979a9e25f0338a48d2ec39b8ac47832e6c93da8f197d5bc4c0bdd57aaffa51",
+          "thumb": "3af2f6d36e2a2fda03acb91fc3187383557210a782142fe03b4ea845fddfc367"
+        },
+        "uploadedSha256": {
           "main": "c0979a9e25f0338a48d2ec39b8ac47832e6c93da8f197d5bc4c0bdd57aaffa51",
           "thumb": "3af2f6d36e2a2fda03acb91fc3187383557210a782142fe03b4ea845fddfc367"
         }
@@ -1055,8 +1172,8 @@
       "tags": [],
       "nameVi": "Ga xe điện",
       "nameEn": "Tram station plaza",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837898/sirlocked/cases/library/j-map-ga-xe-dien/main-44081badceea.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837899/sirlocked/cases/library/j-map-ga-xe-dien/thumb-fd4976e61f08.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1065,7 +1182,9 @@
       "pixelLabJobId": "a952aff9-7203-4fa5-a814-1cef21750223",
       "firstUsedByCaseId": "",
       "prompt": "Top-down, front-facing pixel art map, not isometric. Taisho-era Japanese tram station plaza around 1920: a Western-style brick and wood station with a clock, tram tracks with a tram car, rickshaws waiting, gas lamps, cherry trees, stone paving with puddles. Clear walkable paths, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837899/sirlocked/cases/library/j-map-ga-xe-dien/thumb-fd4976e61f08.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/j-map-ga-xe-dien.png",
@@ -1074,6 +1193,10 @@
           "thumb": "tmp/library-build/j-map-ga-xe-dien/thumb.webp"
         },
         "sha256": {
+          "main": "44081badceea9a84d3a282280f7bead28918ad29c95d733458dd61068d56b824",
+          "thumb": "fd4976e61f08fa03dca9cbfdd9b5e02beb721ed344ac52e523d67ea805149541"
+        },
+        "uploadedSha256": {
           "main": "44081badceea9a84d3a282280f7bead28918ad29c95d733458dd61068d56b824",
           "thumb": "fd4976e61f08fa03dca9cbfdd9b5e02beb721ed344ac52e523d67ea805149541"
         }
@@ -1090,8 +1213,8 @@
       ],
       "nameVi": "Phố đèn lồng bên kênh",
       "nameEn": "Lantern street by the canal",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837900/sirlocked/cases/library/j-map-pho-den-long/main-c4b2342ded24.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837901/sirlocked/cases/library/j-map-pho-den-long/thumb-4a0990fef2e2.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1100,7 +1223,9 @@
       "pixelLabJobId": "fdca3325-0c4b-4fc1-b5ff-dc43625f9fde",
       "firstUsedByCaseId": "",
       "prompt": "Taisho machiya street with canal (style ref pho.png)",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837901/sirlocked/cases/library/j-map-pho-den-long/thumb-4a0990fef2e2.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/j-map-pho-den-long.png",
@@ -1109,6 +1234,10 @@
           "thumb": "tmp/library-build/j-map-pho-den-long/thumb.webp"
         },
         "sha256": {
+          "main": "c4b2342ded246ddada4ba9e60852295362c70d7d4c063d6da2b51a5cf4503e6e",
+          "thumb": "4a0990fef2e23c8da68934c6fb49369c0749ab362dc43397ffbfb31144fe1593"
+        },
+        "uploadedSha256": {
           "main": "c4b2342ded246ddada4ba9e60852295362c70d7d4c063d6da2b51a5cf4503e6e",
           "thumb": "4a0990fef2e23c8da68934c6fb49369c0749ab362dc43397ffbfb31144fe1593"
         }
@@ -1123,8 +1252,8 @@
       ],
       "nameVi": "Geisha",
       "nameEn": "Geisha",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837902/sirlocked/cases/library/j-npc-01-geisha/main-fbedad541e92.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837902/sirlocked/cases/library/j-npc-01-geisha/main-fbedad541e92.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1133,7 +1262,11 @@
       "pixelLabJobId": "024e59bc-ed7e-4195-9c15-2b58a42583ff",
       "firstUsedByCaseId": "",
       "prompt": "Taisho-era Japanese geisha, elaborate kimono with obi, hair ornaments, white makeup, folding fan, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837903/sirlocked/cases/library/j-npc-01-geisha/sprite-0e91efe4fce9.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837904/sirlocked/cases/library/j-npc-01-geisha/idle-7ae8762a1166.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837902/sirlocked/cases/library/j-npc-01-geisha/main-fbedad541e92.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-01-geisha.zip",
@@ -1144,6 +1277,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "fbedad541e92805be467550bc45de13a0656c68b055d85e94836021684ef343d",
+          "sprite": "0e91efe4fce9b68e26155eac365e03e9c9cc1a75fec0d7835075f9adcd34200e",
+          "idle": "7ae8762a1166965534f6a0e5607f20f24441f1061cd5f0f6e9ad7ecf485442d2"
+        },
+        "uploadedSha256": {
           "main": "fbedad541e92805be467550bc45de13a0656c68b055d85e94836021684ef343d",
           "sprite": "0e91efe4fce9b68e26155eac365e03e9c9cc1a75fec0d7835075f9adcd34200e",
           "idle": "7ae8762a1166965534f6a0e5607f20f24441f1061cd5f0f6e9ad7ecf485442d2"
@@ -1159,8 +1297,8 @@
       ],
       "nameVi": "Phu xe kéo",
       "nameEn": "Rickshaw puller",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837905/sirlocked/cases/library/j-npc-02-phu-xe-keo/main-0878493434f3.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837905/sirlocked/cases/library/j-npc-02-phu-xe-keo/main-0878493434f3.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1169,7 +1307,11 @@
       "pixelLabJobId": "10bbc40a-d4ca-4079-a708-7de6297edd96",
       "firstUsedByCaseId": "",
       "prompt": "Japanese rickshaw puller, happi coat, headband, straw sandals, lean and strong, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837906/sirlocked/cases/library/j-npc-02-phu-xe-keo/sprite-3ac39149bf8e.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837907/sirlocked/cases/library/j-npc-02-phu-xe-keo/idle-e95702751ca4.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837905/sirlocked/cases/library/j-npc-02-phu-xe-keo/main-0878493434f3.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-02-phu-xe-keo.zip",
@@ -1180,6 +1322,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "0878493434f343f1eef7a87e5cb2c3697bace2a7c53170f26a4d16a67a99a4a5",
+          "sprite": "3ac39149bf8e37aba42765c62efe7584bda57610fe7c3098a93d70947ffa28be",
+          "idle": "e95702751ca449d9f802cadf73ddc7f1c7773662097c25ee98e3b8e9e474d1ec"
+        },
+        "uploadedSha256": {
           "main": "0878493434f343f1eef7a87e5cb2c3697bace2a7c53170f26a4d16a67a99a4a5",
           "sprite": "3ac39149bf8e37aba42765c62efe7584bda57610fe7c3098a93d70947ffa28be",
           "idle": "e95702751ca449d9f802cadf73ddc7f1c7773662097c25ee98e3b8e9e474d1ec"
@@ -1195,8 +1342,8 @@
       ],
       "nameVi": "Cảnh sát",
       "nameEn": "Policeman",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837908/sirlocked/cases/library/j-npc-03-canh-sat/main-011f5da909fa.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837908/sirlocked/cases/library/j-npc-03-canh-sat/main-011f5da909fa.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1205,7 +1352,11 @@
       "pixelLabJobId": "ca765359-9d05-4a55-b493-db97f1c01a44",
       "firstUsedByCaseId": "",
       "prompt": "Taisho-era Japanese policeman, dark western-style uniform, peaked cap, sabre at the hip, mustache, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837909/sirlocked/cases/library/j-npc-03-canh-sat/sprite-407197ebc5ce.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837910/sirlocked/cases/library/j-npc-03-canh-sat/idle-7bd64eb39b46.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837908/sirlocked/cases/library/j-npc-03-canh-sat/main-011f5da909fa.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-03-canh-sat.zip",
@@ -1216,6 +1367,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "011f5da909fac8ae2dfd855a64c11157ad3d281d5d3b3adb69ffc3c764cdba6e",
+          "sprite": "407197ebc5ce6e5738aefca856652e779f7d35c8fcab3e0e9f554042d8076126",
+          "idle": "7bd64eb39b46fe81ff5f38e4607735f3ccd6b6e4f6f7918b36c8caa35735cda2"
+        },
+        "uploadedSha256": {
           "main": "011f5da909fac8ae2dfd855a64c11157ad3d281d5d3b3adb69ffc3c764cdba6e",
           "sprite": "407197ebc5ce6e5738aefca856652e779f7d35c8fcab3e0e9f554042d8076126",
           "idle": "7bd64eb39b46fe81ff5f38e4607735f3ccd6b6e4f6f7918b36c8caa35735cda2"
@@ -1231,8 +1387,8 @@
       ],
       "nameVi": "Nữ sinh",
       "nameEn": "Schoolgirl",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837911/sirlocked/cases/library/j-npc-04-nu-sinh/main-89746658b0ce.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837911/sirlocked/cases/library/j-npc-04-nu-sinh/main-89746658b0ce.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1241,7 +1397,11 @@
       "pixelLabJobId": "01653fa4-61a0-4e1c-9744-d118f1d5a5c0",
       "firstUsedByCaseId": "",
       "prompt": "Taisho-era Japanese schoolgirl, maroon hakama over a patterned kimono, big hair ribbon, books in arms, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837912/sirlocked/cases/library/j-npc-04-nu-sinh/sprite-f4cbf47ad4fa.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837913/sirlocked/cases/library/j-npc-04-nu-sinh/idle-af24941cae9f.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837911/sirlocked/cases/library/j-npc-04-nu-sinh/main-89746658b0ce.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-04-nu-sinh.zip",
@@ -1252,6 +1412,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "89746658b0ce586ffb332e9a1e755a79adc2665f353d2566cc4a084677e0f966",
+          "sprite": "f4cbf47ad4fa12dd933a9fcb4befbdba499a36f87bc3a54b98896aa7b8ad33d0",
+          "idle": "af24941cae9f4aa3d50807f223523c0c93c65edcb8ea6c526b28c4098eb026ba"
+        },
+        "uploadedSha256": {
           "main": "89746658b0ce586ffb332e9a1e755a79adc2665f353d2566cc4a084677e0f966",
           "sprite": "f4cbf47ad4fa12dd933a9fcb4befbdba499a36f87bc3a54b98896aa7b8ad33d0",
           "idle": "af24941cae9f4aa3d50807f223523c0c93c65edcb8ea6c526b28c4098eb026ba"
@@ -1267,8 +1432,8 @@
       ],
       "nameVi": "Thương gia mặc vest",
       "nameEn": "Businessman",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837914/sirlocked/cases/library/j-npc-05-thuong-gia/main-232b5b17ea3c.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837914/sirlocked/cases/library/j-npc-05-thuong-gia/main-232b5b17ea3c.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1277,7 +1442,11 @@
       "pixelLabJobId": "c9de3837-3d3f-42ce-8d42-e7b671246e46",
       "firstUsedByCaseId": "",
       "prompt": "Taisho-era Japanese businessman, three-piece western suit, round glasses, bowler hat, briefcase, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837914/sirlocked/cases/library/j-npc-05-thuong-gia/sprite-1af29ddf2c76.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837915/sirlocked/cases/library/j-npc-05-thuong-gia/idle-09d8c36edf2f.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837914/sirlocked/cases/library/j-npc-05-thuong-gia/main-232b5b17ea3c.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-05-thuong-gia.zip",
@@ -1288,6 +1457,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "232b5b17ea3c9e24ca2208490d6d32b02d6c8de34a2c2f2d524834d7e59c124b",
+          "sprite": "1af29ddf2c76e62ba707069c02d480a5c558f2d2f7f3dde6c8a38f5070e241ce",
+          "idle": "09d8c36edf2f2b719c00bfb2aaffc89b9ecbb116cfc3d1be01a6c5ccb2e6b9a0"
+        },
+        "uploadedSha256": {
           "main": "232b5b17ea3c9e24ca2208490d6d32b02d6c8de34a2c2f2d524834d7e59c124b",
           "sprite": "1af29ddf2c76e62ba707069c02d480a5c558f2d2f7f3dde6c8a38f5070e241ce",
           "idle": "09d8c36edf2f2b719c00bfb2aaffc89b9ecbb116cfc3d1be01a6c5ccb2e6b9a0"
@@ -1303,8 +1477,8 @@
       ],
       "nameVi": "Nhà sư",
       "nameEn": "Buddhist monk",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837916/sirlocked/cases/library/j-npc-06-nha-su/main-3b03b0a2c702.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837916/sirlocked/cases/library/j-npc-06-nha-su/main-3b03b0a2c702.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1313,7 +1487,11 @@
       "pixelLabJobId": "16b30e2e-91ee-4b15-aba3-93b947d82881",
       "firstUsedByCaseId": "",
       "prompt": "Japanese Buddhist monk, black and grey robes, shaved head, prayer beads, straw hat in hand, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837917/sirlocked/cases/library/j-npc-06-nha-su/sprite-eeff5b254095.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837918/sirlocked/cases/library/j-npc-06-nha-su/idle-cac0b93e1eab.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837916/sirlocked/cases/library/j-npc-06-nha-su/main-3b03b0a2c702.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-06-nha-su.zip",
@@ -1324,6 +1502,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "3b03b0a2c70239ef3a2feda3653f8295f69fe9f0a9c37c4063dc93ba312c4742",
+          "sprite": "eeff5b2540951915e8c771fba7a1421bed3d1eb96dd6f5fdccdae8b9bfd28b3c",
+          "idle": "cac0b93e1eab12d6af24bab6bbfae505174779aaee3ae882a4c0d273033a0c44"
+        },
+        "uploadedSha256": {
           "main": "3b03b0a2c70239ef3a2feda3653f8295f69fe9f0a9c37c4063dc93ba312c4742",
           "sprite": "eeff5b2540951915e8c771fba7a1421bed3d1eb96dd6f5fdccdae8b9bfd28b3c",
           "idle": "cac0b93e1eab12d6af24bab6bbfae505174779aaee3ae882a4c0d273033a0c44"
@@ -1339,8 +1522,8 @@
       ],
       "nameVi": "Cô bán hàng",
       "nameEn": "Shop girl",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837919/sirlocked/cases/library/j-npc-07-co-ban-hang/main-3eea063000f4.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837919/sirlocked/cases/library/j-npc-07-co-ban-hang/main-3eea063000f4.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1349,7 +1532,11 @@
       "pixelLabJobId": "ea8c9ef9-f3ac-42f3-90cc-86b60b35f629",
       "firstUsedByCaseId": "",
       "prompt": "young Japanese shop girl, simple striped kimono, white apron, hair in a bun, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837920/sirlocked/cases/library/j-npc-07-co-ban-hang/sprite-c16511738c4b.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837921/sirlocked/cases/library/j-npc-07-co-ban-hang/idle-e47be71b052c.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837919/sirlocked/cases/library/j-npc-07-co-ban-hang/main-3eea063000f4.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-07-co-ban-hang.zip",
@@ -1360,6 +1547,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "3eea063000f46c4d4eb53ac155e74af290cec4d9f58ed8f2a6e9c1b8a19a1fc9",
+          "sprite": "c16511738c4b608955a9504a0d03ef5e1ea56329b191c9a61976a46371b46efd",
+          "idle": "e47be71b052ccbebe5accd4fbbab8014b7b885214f9bedab795fae15bbc4bf3f"
+        },
+        "uploadedSha256": {
           "main": "3eea063000f46c4d4eb53ac155e74af290cec4d9f58ed8f2a6e9c1b8a19a1fc9",
           "sprite": "c16511738c4b608955a9504a0d03ef5e1ea56329b191c9a61976a46371b46efd",
           "idle": "e47be71b052ccbebe5accd4fbbab8014b7b885214f9bedab795fae15bbc4bf3f"
@@ -1375,8 +1567,8 @@
       ],
       "nameVi": "Họa sĩ",
       "nameEn": "Painter",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837922/sirlocked/cases/library/j-npc-08-hoa-si/main-7c37727f7add.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837922/sirlocked/cases/library/j-npc-08-hoa-si/main-7c37727f7add.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1385,7 +1577,11 @@
       "pixelLabJobId": "dd28e5b8-afeb-4fc6-a70d-af430cbecc7b",
       "firstUsedByCaseId": "",
       "prompt": "Taisho-era Japanese painter, beret, loose kimono jacket, paint brush and sketchbook, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837922/sirlocked/cases/library/j-npc-08-hoa-si/sprite-99cae9632a48.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837923/sirlocked/cases/library/j-npc-08-hoa-si/idle-c56f17e1e616.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837922/sirlocked/cases/library/j-npc-08-hoa-si/main-7c37727f7add.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-08-hoa-si.zip",
@@ -1396,6 +1592,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "7c37727f7addc6f1b15c965634e36924052cd11f6e0aa6444f203feb67ae26fc",
+          "sprite": "99cae9632a487444946710a28017c49e0461d44e07a2fdded45b12e900edbd0c",
+          "idle": "c56f17e1e6167729873cc17cdeb2fe5dda30f4cac863f132b030dbddea015bac"
+        },
+        "uploadedSha256": {
           "main": "7c37727f7addc6f1b15c965634e36924052cd11f6e0aa6444f203feb67ae26fc",
           "sprite": "99cae9632a487444946710a28017c49e0461d44e07a2fdded45b12e900edbd0c",
           "idle": "c56f17e1e6167729873cc17cdeb2fe5dda30f4cac863f132b030dbddea015bac"
@@ -1411,8 +1612,8 @@
       ],
       "nameVi": "Bà chủ nhà trà",
       "nameEn": "Teahouse proprietress",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837924/sirlocked/cases/library/j-npc-09-chu-quan/main-2226c820884d.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837924/sirlocked/cases/library/j-npc-09-chu-quan/main-2226c820884d.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1421,7 +1622,11 @@
       "pixelLabJobId": "3c63a39f-7307-442d-974c-3c7552308a79",
       "firstUsedByCaseId": "",
       "prompt": "middle-aged Japanese teahouse proprietress, elegant dark kimono, neat hair, gentle smile, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837924/sirlocked/cases/library/j-npc-09-chu-quan/sprite-272e67cfe8d0.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837925/sirlocked/cases/library/j-npc-09-chu-quan/idle-49f30147e644.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837924/sirlocked/cases/library/j-npc-09-chu-quan/main-2226c820884d.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-09-chu-quan.zip",
@@ -1432,6 +1637,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "2226c820884d14a3a0297803f5f693bd09c0c8972dfb1f095db1e24747ea4a9b",
+          "sprite": "272e67cfe8d04cabe5c49acee6629bcd7d72d196af6f3da23c922e4d822f4ce3",
+          "idle": "49f30147e644e2cfeaaab75f84e1425d832379483d4ad7efe27667f2051f1d36"
+        },
+        "uploadedSha256": {
           "main": "2226c820884d14a3a0297803f5f693bd09c0c8972dfb1f095db1e24747ea4a9b",
           "sprite": "272e67cfe8d04cabe5c49acee6629bcd7d72d196af6f3da23c922e4d822f4ce3",
           "idle": "49f30147e644e2cfeaaab75f84e1425d832379483d4ad7efe27667f2051f1d36"
@@ -1447,8 +1657,8 @@
       ],
       "nameVi": "Thợ mộc",
       "nameEn": "Carpenter",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837926/sirlocked/cases/library/j-npc-10-tho-moc/main-d8e2b663d4af.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837926/sirlocked/cases/library/j-npc-10-tho-moc/main-d8e2b663d4af.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1457,7 +1667,11 @@
       "pixelLabJobId": "213e584f-19bf-4d2a-8d77-4b15729a9edf",
       "firstUsedByCaseId": "",
       "prompt": "Japanese carpenter, work clothes, headband, wooden toolbox over the shoulder, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837926/sirlocked/cases/library/j-npc-10-tho-moc/sprite-434b240d4703.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837927/sirlocked/cases/library/j-npc-10-tho-moc/idle-c3ef57df2265.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837926/sirlocked/cases/library/j-npc-10-tho-moc/main-d8e2b663d4af.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-10-tho-moc.zip",
@@ -1468,6 +1682,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "d8e2b663d4afeb4fd60b2d66a424631646193604a3c4838f883dd7e94fff7a69",
+          "sprite": "434b240d4703ceeb16ccab6b6eab14e8a899f2aa5b93f515bdbeb1c5b26dcd03",
+          "idle": "c3ef57df22653ca60e56a7b9258422a2f884fddf70b804d1050cbb4b21069d65"
+        },
+        "uploadedSha256": {
           "main": "d8e2b663d4afeb4fd60b2d66a424631646193604a3c4838f883dd7e94fff7a69",
           "sprite": "434b240d4703ceeb16ccab6b6eab14e8a899f2aa5b93f515bdbeb1c5b26dcd03",
           "idle": "c3ef57df22653ca60e56a7b9258422a2f884fddf70b804d1050cbb4b21069d65"
@@ -1483,8 +1702,8 @@
       ],
       "nameVi": "Nhà văn",
       "nameEn": "Novelist",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837927/sirlocked/cases/library/j-npc-11-nha-van/main-96f2455150b0.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837927/sirlocked/cases/library/j-npc-11-nha-van/main-96f2455150b0.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1493,7 +1712,11 @@
       "pixelLabJobId": "9f27f939-8633-4537-aef4-3a66f3ea8ad5",
       "firstUsedByCaseId": "",
       "prompt": "Taisho-era Japanese novelist, dark kimono with a western scarf, round glasses, tired eyes, manuscript pages, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837928/sirlocked/cases/library/j-npc-11-nha-van/sprite-72b645473499.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837929/sirlocked/cases/library/j-npc-11-nha-van/idle-76ef7f08b9c6.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837927/sirlocked/cases/library/j-npc-11-nha-van/main-96f2455150b0.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-11-nha-van.zip",
@@ -1504,6 +1727,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "96f2455150b01bf7c148d2f5fe5008e901f61c983ea5525afbc5f90721b0f3a5",
+          "sprite": "72b64547349969dabff35e0c06e55bcdd01df21baa54646d3a0d1e64bb70240d",
+          "idle": "76ef7f08b9c66e48cd1f70939790c3ad488891a3827176db90fe939595561b61"
+        },
+        "uploadedSha256": {
           "main": "96f2455150b01bf7c148d2f5fe5008e901f61c983ea5525afbc5f90721b0f3a5",
           "sprite": "72b64547349969dabff35e0c06e55bcdd01df21baa54646d3a0d1e64bb70240d",
           "idle": "76ef7f08b9c66e48cd1f70939790c3ad488891a3827176db90fe939595561b61"
@@ -1519,8 +1747,8 @@
       ],
       "nameVi": "Quý bà",
       "nameEn": "Wealthy lady",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837929/sirlocked/cases/library/j-npc-12-quy-ba/main-21ccc20e9182.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837929/sirlocked/cases/library/j-npc-12-quy-ba/main-21ccc20e9182.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1529,7 +1757,11 @@
       "pixelLabJobId": "c1b1c0e0-b28c-4311-93b1-a8195f1aefb2",
       "firstUsedByCaseId": "",
       "prompt": "wealthy Taisho-era Japanese lady, western dress and cloche hat, pearl necklace, parasol, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837930/sirlocked/cases/library/j-npc-12-quy-ba/sprite-9b73e8bfa9ab.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837931/sirlocked/cases/library/j-npc-12-quy-ba/idle-7f7cb434df93.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837929/sirlocked/cases/library/j-npc-12-quy-ba/main-21ccc20e9182.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-12-quy-ba.zip",
@@ -1540,6 +1772,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "21ccc20e9182f6a1cb1f54c69f069fe102f06f6f5f79077327b5424106a17e7c",
+          "sprite": "9b73e8bfa9abfae70c053d3d5ffc9eb21d293c53372b7c0cad4e84d6b728d2a6",
+          "idle": "7f7cb434df9304dcf01ea2c03f16de058ca083f0a7550473db28aa8dadc21058"
+        },
+        "uploadedSha256": {
           "main": "21ccc20e9182f6a1cb1f54c69f069fe102f06f6f5f79077327b5424106a17e7c",
           "sprite": "9b73e8bfa9abfae70c053d3d5ffc9eb21d293c53372b7c0cad4e84d6b728d2a6",
           "idle": "7f7cb434df9304dcf01ea2c03f16de058ca083f0a7550473db28aa8dadc21058"
@@ -1555,8 +1792,8 @@
       ],
       "nameVi": "Ông lão",
       "nameEn": "Old man",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837931/sirlocked/cases/library/j-npc-13-ong-lao/main-579f9bed77ae.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837931/sirlocked/cases/library/j-npc-13-ong-lao/main-579f9bed77ae.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1565,7 +1802,11 @@
       "pixelLabJobId": "8507655e-0195-40a7-bb6d-5dc75ba2e6af",
       "firstUsedByCaseId": "",
       "prompt": "old Japanese man, grey kimono, white beard, wooden cane, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837932/sirlocked/cases/library/j-npc-13-ong-lao/sprite-ae55e20abcaf.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837933/sirlocked/cases/library/j-npc-13-ong-lao/idle-72a33c5fe538.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837931/sirlocked/cases/library/j-npc-13-ong-lao/main-579f9bed77ae.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-13-ong-lao.zip",
@@ -1576,6 +1817,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "579f9bed77aea5bc2d546a82cca86336d46dbeff5ebd79c1bc0bd17746a1d53f",
+          "sprite": "ae55e20abcaf2f8bfaee2ca2139d7ad3ff02f5da66ca250a00fc71a28c4f8b0a",
+          "idle": "72a33c5fe538eb54eff52c9686a8f47859c32299eddf3c2ee4cc1500d93618a4"
+        },
+        "uploadedSha256": {
           "main": "579f9bed77aea5bc2d546a82cca86336d46dbeff5ebd79c1bc0bd17746a1d53f",
           "sprite": "ae55e20abcaf2f8bfaee2ca2139d7ad3ff02f5da66ca250a00fc71a28c4f8b0a",
           "idle": "72a33c5fe538eb54eff52c9686a8f47859c32299eddf3c2ee4cc1500d93618a4"
@@ -1591,8 +1837,8 @@
       ],
       "nameVi": "Cậu bé giao hàng",
       "nameEn": "Delivery boy",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837933/sirlocked/cases/library/j-npc-14-cau-be/main-44e68845f520.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837933/sirlocked/cases/library/j-npc-14-cau-be/main-44e68845f520.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1601,7 +1847,11 @@
       "pixelLabJobId": "99c05fb4-b505-47e4-bfaf-4378ab7eda4a",
       "firstUsedByCaseId": "",
       "prompt": "Japanese delivery boy, short kimono, cap, wooden delivery box, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837934/sirlocked/cases/library/j-npc-14-cau-be/sprite-f8bcf28d3ee6.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837935/sirlocked/cases/library/j-npc-14-cau-be/idle-cd763c57ee72.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837933/sirlocked/cases/library/j-npc-14-cau-be/main-44e68845f520.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-14-cau-be.zip",
@@ -1615,6 +1865,11 @@
           "main": "44e68845f52095192f01c2fccd6aee93b823084440c69822e4e3c38bb146fbc9",
           "sprite": "f8bcf28d3ee6d8fa7e48bd645340a8d370b3bb83513596a79dc8ae5b9c3670ec",
           "idle": "cd763c57ee728f30dd353d5a56fc40dc7af4eb601fe89f51a1cc34ca6fadedc0"
+        },
+        "uploadedSha256": {
+          "main": "44e68845f52095192f01c2fccd6aee93b823084440c69822e4e3c38bb146fbc9",
+          "sprite": "f8bcf28d3ee6d8fa7e48bd645340a8d370b3bb83513596a79dc8ae5b9c3670ec",
+          "idle": "cd763c57ee728f30dd353d5a56fc40dc7af4eb601fe89f51a1cc34ca6fadedc0"
         }
       }
     },
@@ -1625,8 +1880,8 @@
       "tags": [],
       "nameVi": "Cửa hàng bách hóa kiểu Tây",
       "nameEn": "Western-style department store",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837936/sirlocked/cases/library/j-room-bach-hoa/main-b4a9710ef0c9.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837937/sirlocked/cases/library/j-room-bach-hoa/thumb-0086acc3e769.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1635,7 +1890,9 @@
       "pixelLabJobId": "e3c003a7-9dc5-4e49-b7ff-f6ee0def24a0",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese western-style department store floor with glass display cases of hats, perfume and umbrellas, mannequins, a wooden staircase, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837937/sirlocked/cases/library/j-room-bach-hoa/thumb-0086acc3e769.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-bach-hoa.png",
@@ -1649,6 +1906,10 @@
         "sha256": {
           "main": "b4a9710ef0c9ee236e7aa105d150e2f5a18ab0a6f57e1e10ee6797966758faae",
           "thumb": "0086acc3e769f83c60067b3433db3f91afb337261311034bdc7f4f9c7707d859"
+        },
+        "uploadedSha256": {
+          "main": "b4a9710ef0c9ee236e7aa105d150e2f5a18ab0a6f57e1e10ee6797966758faae",
+          "thumb": "0086acc3e769f83c60067b3433db3f91afb337261311034bdc7f4f9c7707d859"
         }
       }
     },
@@ -1659,8 +1920,8 @@
       "tags": [],
       "nameVi": "Đồn cảnh sát",
       "nameEn": "Police box",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837938/sirlocked/cases/library/j-room-don-canh-sat/main-46f5193b0691.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837939/sirlocked/cases/library/j-room-don-canh-sat/thumb-7615ec378368.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1669,7 +1930,9 @@
       "pixelLabJobId": "77ed12c6-b38e-40fa-86b1-548e086c034f",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese police box office with a wooden desk, a telephone, a wall map without text, a sabre rack, a bench, a small stove, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837939/sirlocked/cases/library/j-room-don-canh-sat/thumb-7615ec378368.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-don-canh-sat.png",
@@ -1683,6 +1946,10 @@
         "sha256": {
           "main": "46f5193b069185f46d1057cc497a4787f441423f80162d2d147ddb7eb6a8ec49",
           "thumb": "7615ec37836848e688f219d859a5a0e72f00b3fe159b3de074e77d9113db0e68"
+        },
+        "uploadedSha256": {
+          "main": "46f5193b069185f46d1057cc497a4787f441423f80162d2d147ddb7eb6a8ec49",
+          "thumb": "7615ec37836848e688f219d859a5a0e72f00b3fe159b3de074e77d9113db0e68"
         }
       }
     },
@@ -1693,8 +1960,8 @@
       "tags": [],
       "nameVi": "Hậu trường kabuki",
       "nameEn": "Kabuki backstage",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837940/sirlocked/cases/library/j-room-hau-truong-kabuki/main-2b1bbcd06f87.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837940/sirlocked/cases/library/j-room-hau-truong-kabuki/thumb-af3b29ca94ef.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1703,7 +1970,9 @@
       "pixelLabJobId": "c7a62424-c35f-4229-af9e-d99e1513c7fb",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, kabuki theatre backstage room with makeup mirrors, wigs on stands, colourful costumes on racks, painted masks, wooden props, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837940/sirlocked/cases/library/j-room-hau-truong-kabuki/thumb-af3b29ca94ef.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-hau-truong-kabuki.png",
@@ -1717,6 +1986,10 @@
         "sha256": {
           "main": "2b1bbcd06f87077daccb6ab979dd2d8a6e66fd69f29604a6e330ca025bb899c1",
           "thumb": "af3b29ca94ef69ff22c3da913cd00f224a062528babfd2468fe5aa30ce30b106"
+        },
+        "uploadedSha256": {
+          "main": "2b1bbcd06f87077daccb6ab979dd2d8a6e66fd69f29604a6e330ca025bb899c1",
+          "thumb": "af3b29ca94ef69ff22c3da913cd00f224a062528babfd2468fe5aa30ce30b106"
         }
       }
     },
@@ -1727,8 +2000,8 @@
       "tags": [],
       "nameVi": "Nhà tắm công cộng",
       "nameEn": "Public bathhouse",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837941/sirlocked/cases/library/j-room-nha-tam/main-485ce1e6408d.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837942/sirlocked/cases/library/j-room-nha-tam/thumb-9657d0ac17d9.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1737,7 +2010,9 @@
       "pixelLabJobId": "630dd544-a684-4a2b-849e-724b4c3ad2b3",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese public bathhouse changing room with wooden lockers, baskets, a mirror, a tiled wall with a painted mountain mural, wooden buckets, empty, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837942/sirlocked/cases/library/j-room-nha-tam/thumb-9657d0ac17d9.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-nha-tam.png",
@@ -1751,6 +2026,10 @@
         "sha256": {
           "main": "485ce1e6408d916e0f47d97bf277ec939e94a57e1bed06ec44954b08d67a4061",
           "thumb": "9657d0ac17d98bf51c537b971585d89581b261e9c5425d94c266a15a09b1160a"
+        },
+        "uploadedSha256": {
+          "main": "485ce1e6408d916e0f47d97bf277ec939e94a57e1bed06ec44954b08d67a4061",
+          "thumb": "9657d0ac17d98bf51c537b971585d89581b261e9c5425d94c266a15a09b1160a"
         }
       }
     },
@@ -1761,8 +2040,8 @@
       "tags": [],
       "nameVi": "Nhà trà",
       "nameEn": "Teahouse",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837943/sirlocked/cases/library/j-room-nha-tra/main-46ebba33ae85.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837944/sirlocked/cases/library/j-room-nha-tra/thumb-1e2b05510738.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1771,7 +2050,9 @@
       "pixelLabJobId": "74a12251-e998-4fbe-9713-d22a83d1deef",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese teahouse room with tatami mats, low tables, floor cushions, a tokonoma alcove with a hanging scroll and flower arrangement, sliding shoji doors, a kettle on a brazier, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837944/sirlocked/cases/library/j-room-nha-tra/thumb-1e2b05510738.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-nha-tra.png",
@@ -1785,6 +2066,10 @@
         "sha256": {
           "main": "46ebba33ae85c08b30b12f5e2931696b6dc646f37c6446357b12f9a8e1879147",
           "thumb": "1e2b05510738f19dfec45f0e1474c0ed9994ea5d81e720fbef5bc7f301efa79b"
+        },
+        "uploadedSha256": {
+          "main": "46ebba33ae85c08b30b12f5e2931696b6dc646f37c6446357b12f9a8e1879147",
+          "thumb": "1e2b05510738f19dfec45f0e1474c0ed9994ea5d81e720fbef5bc7f301efa79b"
         }
       }
     },
@@ -1795,8 +2080,8 @@
       "tags": [],
       "nameVi": "Phòng trọ chiếu tatami",
       "nameEn": "Tatami boarding room",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837944/sirlocked/cases/library/j-room-phong-tro/main-a608dc449b4f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837945/sirlocked/cases/library/j-room-phong-tro/thumb-9cae41350997.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1805,7 +2090,9 @@
       "pixelLabJobId": "f1994778-a69a-4e9b-90f4-fd09956e923c",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese boarding house room with tatami floor, a futon, a low writing desk with books, a paper lantern, a small window, a western-style coat on a hook, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837945/sirlocked/cases/library/j-room-phong-tro/thumb-9cae41350997.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-phong-tro.png",
@@ -1819,6 +2106,10 @@
         "sha256": {
           "main": "a608dc449b4f48695607c7126e1e3f36d4260e55c7efc1d70503081b5f4b8e1b",
           "thumb": "9cae413509970140b2d3e17953e50e341f96dc2c41c8bfcb5c3100bd3d8f57eb"
+        },
+        "uploadedSha256": {
+          "main": "a608dc449b4f48695607c7126e1e3f36d4260e55c7efc1d70503081b5f4b8e1b",
+          "thumb": "9cae413509970140b2d3e17953e50e341f96dc2c41c8bfcb5c3100bd3d8f57eb"
         }
       }
     },
@@ -1829,8 +2120,8 @@
       "tags": [],
       "nameVi": "Tiệm kimono",
       "nameEn": "Kimono shop",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837946/sirlocked/cases/library/j-room-tiem-kimono/main-58f703f56480.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837947/sirlocked/cases/library/j-room-tiem-kimono/thumb-d90c50f98661.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1839,7 +2130,9 @@
       "pixelLabJobId": "3f63c10d-74b4-42d9-9947-ee2893a389cf",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese kimono shop with folded kimono on wooden shelves, rolls of patterned silk, a low counter with an abacus, a display kimono on a stand, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837947/sirlocked/cases/library/j-room-tiem-kimono/thumb-d90c50f98661.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-tiem-kimono.png",
@@ -1853,6 +2146,10 @@
         "sha256": {
           "main": "58f703f56480dc9bb5786ca0507bef08fb57ed0e508d00af76f989fe2a2c4dd9",
           "thumb": "d90c50f9866112e6308e7f7608fec2002a0618e213d9beb89f1303523a501b48"
+        },
+        "uploadedSha256": {
+          "main": "58f703f56480dc9bb5786ca0507bef08fb57ed0e508d00af76f989fe2a2c4dd9",
+          "thumb": "d90c50f9866112e6308e7f7608fec2002a0618e213d9beb89f1303523a501b48"
         }
       }
     },
@@ -1863,8 +2160,8 @@
       "tags": [],
       "nameVi": "Tiệm thuốc",
       "nameEn": "Pharmacy",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837948/sirlocked/cases/library/j-room-tiem-thuoc/main-dcab0ba0275e.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837949/sirlocked/cases/library/j-room-tiem-thuoc/thumb-8fdc2f2deddd.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1873,7 +2170,9 @@
       "pixelLabJobId": "927fcab6-b5e4-4e6d-bf80-ecbfd0a3ac92",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Taisho-era Japanese pharmacy with wooden medicine drawers, glass jars of herbs, a counter with a scale, hanging dried herbs, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837949/sirlocked/cases/library/j-room-tiem-thuoc/thumb-8fdc2f2deddd.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/j-room-tiem-thuoc.png",
@@ -1885,6 +2184,10 @@
           "thumb": "tmp/library-build/j-room-tiem-thuoc/thumb.webp"
         },
         "sha256": {
+          "main": "dcab0ba0275e2d2b68539a5cc6a958cc744550beb3e5f98bbfb7fcb7387b2d2a",
+          "thumb": "8fdc2f2dedddd2549ceab36e5c50c9648ec7adf061b5d0f69b231f8dda40ab9d"
+        },
+        "uploadedSha256": {
           "main": "dcab0ba0275e2d2b68539a5cc6a958cc744550beb3e5f98bbfb7fcb7387b2d2a",
           "thumb": "8fdc2f2dedddd2549ceab36e5c50c9648ec7adf061b5d0f69b231f8dda40ab9d"
         }
@@ -1902,8 +2205,8 @@
       ],
       "nameVi": "Bến cảng",
       "nameEn": "Harbour",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837950/sirlocked/cases/library/map-ben-cang/main-3e64deb4555a.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837951/sirlocked/cases/library/map-ben-cang/thumb-cc486defd311.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1912,7 +2215,9 @@
       "pixelLabJobId": "b1eb32a8-9f4f-4c62-9eff-6bdcae80a7f3",
       "firstUsedByCaseId": "",
       "prompt": "Top-down, front-facing pixel art map, not isometric. Victorian gaslight town harbor district: wooden piers with moored rowboats on dark water at the top, a stone quay with iron bollards and coiled ropes, two brick warehouses with slate roofs and big wooden doors, stacked crates and barrels, a small customs office with a lantern, gas street lamps, cobblestone streets with rain puddles, a horse-drawn cart parked by a warehouse. Clear walkable streets, no people.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837951/sirlocked/cases/library/map-ben-cang/thumb-cc486defd311.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/map-ben-cang.png",
@@ -1924,6 +2229,167 @@
         "sha256": {
           "main": "3e64deb4555a085deb338e051fc8075817ed577709a89608c3a1fc7ee83c8505",
           "thumb": "cc486defd31157c4c4141a075d0dfd7417d0f3883aa8a149e69d52b3e529c84f"
+        },
+        "uploadedSha256": {
+          "main": "3e64deb4555a085deb338e051fc8075817ed577709a89608c3a1fc7ee83c8505",
+          "thumb": "cc486defd31157c4c4141a075d0dfd7417d0f3883aa8a149e69d52b3e529c84f"
+        }
+      }
+    },
+    {
+      "key": "map-ben-cang-dem",
+      "kind": "OUTDOOR_MAP",
+      "world": "HANG_DUONG_VICTORIAN",
+      "tags": [
+        "ngoai-troi",
+        "ben-cang",
+        "kho-hang",
+        "co-thoi-tiet",
+        "dem",
+        "bien-the:night"
+      ],
+      "nameVi": "Bến cảng (ban đêm)",
+      "nameEn": "Harbour (night)",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837952/sirlocked/cases/library/map-ben-cang-dem/main-019f4bb6d77d.png",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837952/sirlocked/cases/library/map-ben-cang-dem/thumb-22eaf6574f15.png",
+      "width": 512,
+      "height": 512,
+      "parentKey": "map-ben-cang",
+      "variant": "{\"type\":\"night\",\"lights\":[[233,145,30],[233,267,30],[322,342,30],[484,85,26],[281,250,16]],\"windows\":[[32,203,57,229],[88,203,113,229],[144,203,169,229],[32,245,57,271],[144,245,169,271],[32,425,57,452],[144,425,169,452],[447,196,463,214],[414,396,430,412]]}",
+      "source": "VARIANT",
+      "pixelLabJobId": "",
+      "firstUsedByCaseId": "",
+      "prompt": "Top-down, front-facing pixel art map, not isometric. Victorian gaslight town harbor district: wooden piers with moored rowboats on dark water at the top, a stone quay with iron bollards and coiled ropes, two brick warehouses with slate roofs and big wooden doors, stacked crates and barrels, a small customs office with a lantern, gas street lamps, cobblestone streets with rain puddles, a horse-drawn cart parked by a warehouse. Clear walkable streets, no people.",
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837952/sirlocked/cases/library/map-ben-cang-dem/thumb-22eaf6574f15.png"
+      },
+      "retired": false,
+      "local": {
+        "files": {
+          "main": "tmp/variants/map-ben-cang-dem/map-ben-cang-dem.png",
+          "thumb": "tmp/variants/map-ben-cang-dem/map-ben-cang-dem-thumb.png"
+        },
+        "origin": "tmp/library-build/map-ben-cang/main.webp",
+        "uploadedSha256": {
+          "main": "019f4bb6d77d33be898d567d22025cd6738d1c4139ed82770dc49e59fd3fe3ce",
+          "thumb": "22eaf6574f15467aeb19b22700436023fcf35b43c6c64e0da8c20995d7645b75"
+        }
+      }
+    },
+    {
+      "key": "map-ben-cang-hoang-hon",
+      "kind": "OUTDOOR_MAP",
+      "world": "HANG_DUONG_VICTORIAN",
+      "tags": [
+        "ngoai-troi",
+        "ben-cang",
+        "kho-hang",
+        "co-thoi-tiet",
+        "bien-the:dusk"
+      ],
+      "nameVi": "Bến cảng (hoàng hôn)",
+      "nameEn": "Harbour (dusk)",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837954/sirlocked/cases/library/map-ben-cang-hoang-hon/main-d18def2df6d1.png",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837954/sirlocked/cases/library/map-ben-cang-hoang-hon/thumb-0c20c44c4a71.png",
+      "width": 512,
+      "height": 512,
+      "parentKey": "map-ben-cang",
+      "variant": "{\"type\":\"dusk\"}",
+      "source": "VARIANT",
+      "pixelLabJobId": "",
+      "firstUsedByCaseId": "",
+      "prompt": "Top-down, front-facing pixel art map, not isometric. Victorian gaslight town harbor district: wooden piers with moored rowboats on dark water at the top, a stone quay with iron bollards and coiled ropes, two brick warehouses with slate roofs and big wooden doors, stacked crates and barrels, a small customs office with a lantern, gas street lamps, cobblestone streets with rain puddles, a horse-drawn cart parked by a warehouse. Clear walkable streets, no people.",
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837954/sirlocked/cases/library/map-ben-cang-hoang-hon/thumb-0c20c44c4a71.png"
+      },
+      "retired": false,
+      "local": {
+        "files": {
+          "main": "tmp/variants/map-ben-cang-hoang-hon/map-ben-cang-hoang-hon.png",
+          "thumb": "tmp/variants/map-ben-cang-hoang-hon/map-ben-cang-hoang-hon-thumb.png"
+        },
+        "origin": "tmp/library-build/map-ben-cang/main.webp",
+        "uploadedSha256": {
+          "main": "d18def2df6d1f92860e062b8744adbea67502f9738be0d3665b3b31188b02662",
+          "thumb": "0c20c44c4a71a49eb7d9e30da6578d702169f204245a0f4fc2e578b94594f045"
+        }
+      }
+    },
+    {
+      "key": "map-ben-cang-sau-mua",
+      "kind": "OUTDOOR_MAP",
+      "world": "HANG_DUONG_VICTORIAN",
+      "tags": [
+        "ngoai-troi",
+        "ben-cang",
+        "kho-hang",
+        "co-thoi-tiet",
+        "bien-the:after-rain"
+      ],
+      "nameVi": "Bến cảng (sau mưa)",
+      "nameEn": "Harbour (after rain)",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837956/sirlocked/cases/library/map-ben-cang-sau-mua/main-20581ef7c178.png",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837957/sirlocked/cases/library/map-ben-cang-sau-mua/thumb-01ea16bdbdc2.png",
+      "width": 512,
+      "height": 512,
+      "parentKey": "map-ben-cang",
+      "variant": "{\"type\":\"after_rain\",\"lights\":[[233,145,30],[233,267,30],[322,342,30],[484,85,26]],\"puddles\":[[300,310,14,5],[150,330,12,4],[420,320,10,4]]}",
+      "source": "VARIANT",
+      "pixelLabJobId": "",
+      "firstUsedByCaseId": "",
+      "prompt": "Top-down, front-facing pixel art map, not isometric. Victorian gaslight town harbor district: wooden piers with moored rowboats on dark water at the top, a stone quay with iron bollards and coiled ropes, two brick warehouses with slate roofs and big wooden doors, stacked crates and barrels, a small customs office with a lantern, gas street lamps, cobblestone streets with rain puddles, a horse-drawn cart parked by a warehouse. Clear walkable streets, no people.",
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837957/sirlocked/cases/library/map-ben-cang-sau-mua/thumb-01ea16bdbdc2.png"
+      },
+      "retired": false,
+      "local": {
+        "files": {
+          "main": "tmp/variants/map-ben-cang-sau-mua/map-ben-cang-sau-mua.png",
+          "thumb": "tmp/variants/map-ben-cang-sau-mua/map-ben-cang-sau-mua-thumb.png"
+        },
+        "origin": "tmp/library-build/map-ben-cang/main.webp",
+        "uploadedSha256": {
+          "main": "20581ef7c1786f2fcd848e05e84d9bc90b5d83154f3232b329629cb36052546f",
+          "thumb": "01ea16bdbdc200fb7b839e95150b81c4b07f764d64e263ea91cc3f7bb0ccb755"
+        }
+      }
+    },
+    {
+      "key": "map-ben-cang-tuyet",
+      "kind": "OUTDOOR_MAP",
+      "world": "HANG_DUONG_VICTORIAN",
+      "tags": [
+        "ngoai-troi",
+        "ben-cang",
+        "kho-hang",
+        "co-thoi-tiet",
+        "bien-the:snow"
+      ],
+      "nameVi": "Bến cảng (tuyết)",
+      "nameEn": "Harbour (snow)",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837958/sirlocked/cases/library/map-ben-cang-tuyet/main-6a5e7130bfa6.png",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837959/sirlocked/cases/library/map-ben-cang-tuyet/thumb-a4e71612d7d9.png",
+      "width": 512,
+      "height": 512,
+      "parentKey": "map-ben-cang",
+      "variant": "{\"type\":\"snow\"}",
+      "source": "VARIANT",
+      "pixelLabJobId": "",
+      "firstUsedByCaseId": "",
+      "prompt": "Top-down, front-facing pixel art map, not isometric. Victorian gaslight town harbor district: wooden piers with moored rowboats on dark water at the top, a stone quay with iron bollards and coiled ropes, two brick warehouses with slate roofs and big wooden doors, stacked crates and barrels, a small customs office with a lantern, gas street lamps, cobblestone streets with rain puddles, a horse-drawn cart parked by a warehouse. Clear walkable streets, no people.",
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837959/sirlocked/cases/library/map-ben-cang-tuyet/thumb-a4e71612d7d9.png"
+      },
+      "retired": false,
+      "local": {
+        "files": {
+          "main": "tmp/variants/map-ben-cang-tuyet/map-ben-cang-tuyet.png",
+          "thumb": "tmp/variants/map-ben-cang-tuyet/map-ben-cang-tuyet-thumb.png"
+        },
+        "origin": "tmp/library-build/map-ben-cang/main.webp",
+        "uploadedSha256": {
+          "main": "6a5e7130bfa67859d8fe3b7ae5b027a40cd74a66e8d80c45e00f47985215c647",
+          "thumb": "a4e71612d7d9e082407d63e7e9938eafc6880316aa5a8c9d609641154d9290f2"
         }
       }
     },
@@ -1940,8 +2406,8 @@
       ],
       "nameVi": "Cô bán hoa",
       "nameEn": "Flower seller",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837959/sirlocked/cases/library/npc-01-co-ban-hoa/main-a849afab3c48.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837959/sirlocked/cases/library/npc-01-co-ban-hoa/main-a849afab3c48.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -1950,7 +2416,11 @@
       "pixelLabJobId": "a8cd8e14-babd-44f1-aa04-9b8bd3eb1ae0",
       "firstUsedByCaseId": "",
       "prompt": "Victorian era young flower seller woman, brown hair in a bun, knitted shawl over a long faded blue dress, white apron, wicker basket of flowers on her arm, kind tired face, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837960/sirlocked/cases/library/npc-01-co-ban-hoa/sprite-bc320293b80f.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837961/sirlocked/cases/library/npc-01-co-ban-hoa/idle-e447b730c273.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837959/sirlocked/cases/library/npc-01-co-ban-hoa/main-a849afab3c48.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/npc-01-co-ban-hoa.zip",
@@ -1961,6 +2431,11 @@
         },
         "idleSource": "pixellab-idle",
         "sha256": {
+          "main": "a849afab3c488e8267eaf7cd64bac291590a996c6583ba97875952d7e068fd81",
+          "sprite": "bc320293b80fb0b3e74f7458f27b197f022e410779aca50a5b798a4473e63aca",
+          "idle": "e447b730c273b62b3eb818262d8f32d605ce66dceaa2a91dc12e70531c017165"
+        },
+        "uploadedSha256": {
           "main": "a849afab3c488e8267eaf7cd64bac291590a996c6583ba97875952d7e068fd81",
           "sprite": "bc320293b80fb0b3e74f7458f27b197f022e410779aca50a5b798a4473e63aca",
           "idle": "e447b730c273b62b3eb818262d8f32d605ce66dceaa2a91dc12e70531c017165"
@@ -1978,8 +2453,8 @@
       ],
       "nameVi": "Tiệm đồng hồ",
       "nameEn": "Clockmaker's shop",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837962/sirlocked/cases/library/room-tiem-dong-ho/main-43bb1961ad38.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837963/sirlocked/cases/library/room-tiem-dong-ho/thumb-66a11f0648f9.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -1988,7 +2463,9 @@
       "pixelLabJobId": "f2069275-32c0-4fbe-8d15-37eaa49a0e9c",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one wooden plank floor and two back walls, Victorian clockmaker's workshop: wall shelves full of mantel clocks and pocket watches, a workbench with a magnifier lamp and tiny brass gears, a tall grandfather clock in the corner, cuckoo clocks on the wall, warm hanging lantern light, a window with soft daylight, dark wood and green wallpaper, open floor space in front, no people.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837963/sirlocked/cases/library/room-tiem-dong-ho/thumb-66a11f0648f9.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/room-tiem-dong-ho.png",
@@ -2003,6 +2480,87 @@
         "sha256": {
           "main": "43bb1961ad386d251184bb328e9603c53f35014f91ac1eb61ee369a841b6420f",
           "thumb": "66a11f0648f9d0735f6840126a21ad5c762bb3e0dddb3870d598a99c996577bc"
+        },
+        "uploadedSha256": {
+          "main": "43bb1961ad386d251184bb328e9603c53f35014f91ac1eb61ee369a841b6420f",
+          "thumb": "66a11f0648f9d0735f6840126a21ad5c762bb3e0dddb3870d598a99c996577bc"
+        }
+      }
+    },
+    {
+      "key": "room-tiem-dong-ho-do-ruou",
+      "kind": "INTERIOR",
+      "world": "HANG_DUONG_VICTORIAN",
+      "tags": [
+        "trong-nha",
+        "tiem",
+        "dong-ho",
+        "bien-the:mirror",
+        "bien-the:recolor"
+      ],
+      "nameVi": "Tiệm đồng hồ (lật gương, tường đỏ rượu)",
+      "nameEn": "Clockmaker shop (mirrored, oxblood wallpaper)",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837964/sirlocked/cases/library/room-tiem-dong-ho-do-ruou/main-4c38e45cc4a0.png",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837965/sirlocked/cases/library/room-tiem-dong-ho-do-ruou/thumb-83c3d6d059a5.png",
+      "width": 512,
+      "height": 512,
+      "parentKey": "room-tiem-dong-ho-lat",
+      "variant": "{\"type\":\"recolor\",\"hueFrom\":[100,200],\"hueTo\":350,\"satMul\":1.6,\"minSat\":15}",
+      "source": "VARIANT",
+      "pixelLabJobId": "",
+      "firstUsedByCaseId": "",
+      "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one wooden plank floor and two back walls, Victorian clockmaker's workshop: wall shelves full of mantel clocks and pocket watches, a workbench with a magnifier lamp and tiny brass gears, a tall grandfather clock in the corner, cuckoo clocks on the wall, warm hanging lantern light, a window with soft daylight, dark wood and green wallpaper, open floor space in front, no people.",
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837965/sirlocked/cases/library/room-tiem-dong-ho-do-ruou/thumb-83c3d6d059a5.png"
+      },
+      "retired": false,
+      "local": {
+        "files": {
+          "main": "tmp/variants/room-tiem-dong-ho-do-ruou/room-tiem-dong-ho-do-ruou.png",
+          "thumb": "tmp/variants/room-tiem-dong-ho-do-ruou/room-tiem-dong-ho-do-ruou-thumb.png"
+        },
+        "origin": "tmp/variants/room-tiem-dong-ho-lat/room-tiem-dong-ho-lat.png",
+        "uploadedSha256": {
+          "main": "4c38e45cc4a00a53853ef0e51445a42d627149caaa39bf8836f05b000a0c86d0",
+          "thumb": "83c3d6d059a504fd37110327149ee3823ec64de5f9aa7214829f4e51ee8ac08e"
+        }
+      }
+    },
+    {
+      "key": "room-tiem-dong-ho-lat",
+      "kind": "INTERIOR",
+      "world": "HANG_DUONG_VICTORIAN",
+      "tags": [
+        "trong-nha",
+        "tiem",
+        "dong-ho",
+        "bien-the:mirror"
+      ],
+      "nameVi": "Tiệm đồng hồ (lật gương)",
+      "nameEn": "Clockmaker's shop (mirror)",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837966/sirlocked/cases/library/room-tiem-dong-ho-lat/main-86cb31e0e0f8.png",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837966/sirlocked/cases/library/room-tiem-dong-ho-lat/thumb-3231ac7804ae.png",
+      "width": 512,
+      "height": 512,
+      "parentKey": "room-tiem-dong-ho",
+      "variant": "{\"type\":\"mirror\"}",
+      "source": "VARIANT",
+      "pixelLabJobId": "",
+      "firstUsedByCaseId": "",
+      "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one wooden plank floor and two back walls, Victorian clockmaker's workshop: wall shelves full of mantel clocks and pocket watches, a workbench with a magnifier lamp and tiny brass gears, a tall grandfather clock in the corner, cuckoo clocks on the wall, warm hanging lantern light, a window with soft daylight, dark wood and green wallpaper, open floor space in front, no people.",
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837966/sirlocked/cases/library/room-tiem-dong-ho-lat/thumb-3231ac7804ae.png"
+      },
+      "retired": false,
+      "local": {
+        "files": {
+          "main": "tmp/variants/room-tiem-dong-ho-lat/room-tiem-dong-ho-lat.png",
+          "thumb": "tmp/variants/room-tiem-dong-ho-lat/room-tiem-dong-ho-lat-thumb.png"
+        },
+        "origin": "tmp/library-build/room-tiem-dong-ho/main.webp",
+        "uploadedSha256": {
+          "main": "86cb31e0e0f8375117e5b56808354690d58d3e73da431d05243424aeb1c0c830",
+          "thumb": "3231ac7804ae25f696eaab5ddd7c66877e8ed14d14e54cd52a7825ac5dd75b07"
         }
       }
     },
@@ -2469,8 +3027,8 @@
       ],
       "nameVi": "Khu biệt thự",
       "nameEn": "Villa district",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837967/sirlocked/cases/library/v-map-biet-thu/main-034185187871.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837968/sirlocked/cases/library/v-map-biet-thu/thumb-e1d35154b949.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -2479,7 +3037,9 @@
       "pixelLabJobId": "de894f2b-2df3-4d54-8d72-7a7bce090b0d",
       "firstUsedByCaseId": "",
       "prompt": "villa district (style ref pho.png)",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837968/sirlocked/cases/library/v-map-biet-thu/thumb-e1d35154b949.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/v-map-biet-thu.png",
@@ -2488,6 +3048,10 @@
           "thumb": "tmp/library-build/v-map-biet-thu/thumb.webp"
         },
         "sha256": {
+          "main": "034185187871aa7840c704859d80eccbb6cd2cce1cff550ec8ed174b1a1488cb",
+          "thumb": "e1d35154b9490d4b8a057b765406f2ee826980168e9eaca3c237b3774211ef91"
+        },
+        "uploadedSha256": {
           "main": "034185187871aa7840c704859d80eccbb6cd2cce1cff550ec8ed174b1a1488cb",
           "thumb": "e1d35154b9490d4b8a057b765406f2ee826980168e9eaca3c237b3774211ef91"
         }
@@ -2503,8 +3067,8 @@
       ],
       "nameVi": "Phố chợ",
       "nameEn": "Market street",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837969/sirlocked/cases/library/v-map-cho/main-5e5a4d2d2c91.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837970/sirlocked/cases/library/v-map-cho/thumb-e5c715429637.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -2513,7 +3077,9 @@
       "pixelLabJobId": "4065ce6a-1aee-4783-b689-4776d16d63fa",
       "firstUsedByCaseId": "",
       "prompt": "market street (style ref pho.png)",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837970/sirlocked/cases/library/v-map-cho/thumb-e5c715429637.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/v-map-cho.png",
@@ -2522,6 +3088,10 @@
           "thumb": "tmp/library-build/v-map-cho/thumb.webp"
         },
         "sha256": {
+          "main": "5e5a4d2d2c9100b9de48e549a0981df84966b6ac837024504856db2f53026ef8",
+          "thumb": "e5c715429637257afaf916c8dad5c9315c46394eb94f50201eb8c5067af6be18"
+        },
+        "uploadedSha256": {
           "main": "5e5a4d2d2c9100b9de48e549a0981df84966b6ac837024504856db2f53026ef8",
           "thumb": "e5c715429637257afaf916c8dad5c9315c46394eb94f50201eb8c5067af6be18"
         }
@@ -2538,8 +3108,8 @@
       ],
       "nameVi": "Công viên bờ hồ",
       "nameEn": "Lakeside park",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837970/sirlocked/cases/library/v-map-cong-vien-ho/main-89c3c73bd301.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837971/sirlocked/cases/library/v-map-cong-vien-ho/thumb-0474679fab63.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -2548,7 +3118,9 @@
       "pixelLabJobId": "32dcca2c-f058-4a7d-b151-b63273e26670",
       "firstUsedByCaseId": "",
       "prompt": "lakeside park (style ref pho.png)",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837971/sirlocked/cases/library/v-map-cong-vien-ho/thumb-0474679fab63.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/v-map-cong-vien-ho.png",
@@ -2557,6 +3129,10 @@
           "thumb": "tmp/library-build/v-map-cong-vien-ho/thumb.webp"
         },
         "sha256": {
+          "main": "89c3c73bd3016c4ba2346362b66f99af91805b9c5966aa5104d63b98c0fbcba7",
+          "thumb": "0474679fab6316fff4917b954a7d7e97d41f1e9dbfda19686ecbdc2579445872"
+        },
+        "uploadedSha256": {
           "main": "89c3c73bd3016c4ba2346362b66f99af91805b9c5966aa5104d63b98c0fbcba7",
           "thumb": "0474679fab6316fff4917b954a7d7e97d41f1e9dbfda19686ecbdc2579445872"
         }
@@ -2573,8 +3149,8 @@
       ],
       "nameVi": "Ga tàu và quảng trường",
       "nameEn": "Railway station and square",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837972/sirlocked/cases/library/v-map-ga-tau/main-a1972b7bf9d9.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837973/sirlocked/cases/library/v-map-ga-tau/thumb-61f2c33533e5.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -2583,7 +3159,9 @@
       "pixelLabJobId": "40c60a59-0ad9-4fbc-acf4-1be1d836b69a",
       "firstUsedByCaseId": "",
       "prompt": "railway station and square (style ref pho.png)",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837973/sirlocked/cases/library/v-map-ga-tau/thumb-61f2c33533e5.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/outdoor_map/v-map-ga-tau.png",
@@ -2592,6 +3170,10 @@
           "thumb": "tmp/library-build/v-map-ga-tau/thumb.webp"
         },
         "sha256": {
+          "main": "a1972b7bf9d906ddea83ff5cfce54be608825c41a592b7b1c2fc83cba8f004ea",
+          "thumb": "61f2c33533e55768f3712fcddf31c939dd3093e1b02a6d779c1a8026158c33b1"
+        },
+        "uploadedSha256": {
           "main": "a1972b7bf9d906ddea83ff5cfce54be608825c41a592b7b1c2fc83cba8f004ea",
           "thumb": "61f2c33533e55768f3712fcddf31c939dd3093e1b02a6d779c1a8026158c33b1"
         }
@@ -2609,8 +3191,8 @@
       ],
       "nameVi": "Quản gia già",
       "nameEn": "Elderly butler",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837974/sirlocked/cases/library/v-npc-02-quan-gia/main-ffa46e67dec5.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837974/sirlocked/cases/library/v-npc-02-quan-gia/main-ffa46e67dec5.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2619,7 +3201,11 @@
       "pixelLabJobId": "cbdbc7ab-3984-42ff-9d0b-78a130fd6117",
       "firstUsedByCaseId": "",
       "prompt": "elderly Victorian butler",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837974/sirlocked/cases/library/v-npc-02-quan-gia/sprite-a08135c5f75b.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837975/sirlocked/cases/library/v-npc-02-quan-gia/idle-961f513af9fe.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837974/sirlocked/cases/library/v-npc-02-quan-gia/main-ffa46e67dec5.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-02-quan-gia.zip",
@@ -2633,6 +3219,11 @@
         },
         "idleSource": "pixellab-idle",
         "sha256": {
+          "main": "ffa46e67dec5152adb98ccc21ff6a169d30d50507f55a8d663a16a1f3512160d",
+          "sprite": "a08135c5f75b89cc861e03a4b3667fc1bc9f4c17bc0b8818f2c0d8846b3d21fd",
+          "idle": "961f513af9fe16ffdd507c78ee55a30136a170bcfe4622d7e61469b7aeb03698"
+        },
+        "uploadedSha256": {
           "main": "ffa46e67dec5152adb98ccc21ff6a169d30d50507f55a8d663a16a1f3512160d",
           "sprite": "a08135c5f75b89cc861e03a4b3667fc1bc9f4c17bc0b8818f2c0d8846b3d21fd",
           "idle": "961f513af9fe16ffdd507c78ee55a30136a170bcfe4622d7e61469b7aeb03698"
@@ -2651,8 +3242,8 @@
       ],
       "nameVi": "Hầu gái trẻ",
       "nameEn": "Young housemaid",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837976/sirlocked/cases/library/v-npc-03-hau-gai/main-8163007e0818.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837976/sirlocked/cases/library/v-npc-03-hau-gai/main-8163007e0818.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2661,7 +3252,11 @@
       "pixelLabJobId": "50daf6d0-b365-4fcd-8d56-d960a1adeb94",
       "firstUsedByCaseId": "",
       "prompt": "young Victorian housemaid",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837977/sirlocked/cases/library/v-npc-03-hau-gai/sprite-ae9efa916d2b.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837977/sirlocked/cases/library/v-npc-03-hau-gai/idle-23bc0cf64149.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837976/sirlocked/cases/library/v-npc-03-hau-gai/main-8163007e0818.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-03-hau-gai.zip",
@@ -2675,6 +3270,11 @@
         },
         "idleSource": "pixellab-idle",
         "sha256": {
+          "main": "8163007e0818a52627485e4f2e40a45d4fdb31148e476a8b2427ebbc5ea6b8e5",
+          "sprite": "ae9efa916d2bb8aca16fda3bd13d00c7937c97fde2382cbcf8a0ac7e09b54f8c",
+          "idle": "23bc0cf64149ca318901914b3d2db5b0b025d61761e25d12f84072f61da6fe71"
+        },
+        "uploadedSha256": {
           "main": "8163007e0818a52627485e4f2e40a45d4fdb31148e476a8b2427ebbc5ea6b8e5",
           "sprite": "ae9efa916d2bb8aca16fda3bd13d00c7937c97fde2382cbcf8a0ac7e09b54f8c",
           "idle": "23bc0cf64149ca318901914b3d2db5b0b025d61761e25d12f84072f61da6fe71"
@@ -2692,8 +3292,8 @@
       ],
       "nameVi": "Cảnh sát tuần tra",
       "nameEn": "Police constable",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837978/sirlocked/cases/library/v-npc-04-canh-sat/main-b51b77fcf2a7.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837978/sirlocked/cases/library/v-npc-04-canh-sat/main-b51b77fcf2a7.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2702,7 +3302,11 @@
       "pixelLabJobId": "c3cc1a9f-4455-49bb-a62e-559c3f176894",
       "firstUsedByCaseId": "",
       "prompt": "Victorian police constable",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837978/sirlocked/cases/library/v-npc-04-canh-sat/sprite-28c1d2189901.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837979/sirlocked/cases/library/v-npc-04-canh-sat/idle-fc8305f58f41.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837978/sirlocked/cases/library/v-npc-04-canh-sat/main-b51b77fcf2a7.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-04-canh-sat.zip",
@@ -2716,6 +3320,11 @@
         },
         "idleSource": "pixellab-idle",
         "sha256": {
+          "main": "b51b77fcf2a7d275abc0fed7f79600236e66c57062378a8f49a89fd7ea1ff348",
+          "sprite": "28c1d21899012e28488710b80130e79965f6666e4bb5edd4b9296eff6a6e02c1",
+          "idle": "fc8305f58f416b3c0bd9ae3b945a933aba32bdcf9825cccd9344f85cbc175183"
+        },
+        "uploadedSha256": {
           "main": "b51b77fcf2a7d275abc0fed7f79600236e66c57062378a8f49a89fd7ea1ff348",
           "sprite": "28c1d21899012e28488710b80130e79965f6666e4bb5edd4b9296eff6a6e02c1",
           "idle": "fc8305f58f416b3c0bd9ae3b945a933aba32bdcf9825cccd9344f85cbc175183"
@@ -2733,8 +3342,8 @@
       ],
       "nameVi": "Thanh tra cảnh sát",
       "nameEn": "Police inspector",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837980/sirlocked/cases/library/v-npc-05-thanh-tra/main-05fb98e88bf5.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837980/sirlocked/cases/library/v-npc-05-thanh-tra/main-05fb98e88bf5.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2743,7 +3352,11 @@
       "pixelLabJobId": "47098041-7406-4c56-9cfa-0d26ec5e7112",
       "firstUsedByCaseId": "",
       "prompt": "Victorian police inspector",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837980/sirlocked/cases/library/v-npc-05-thanh-tra/sprite-cae5d8eee9b7.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837981/sirlocked/cases/library/v-npc-05-thanh-tra/idle-ccc74ca8d968.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837980/sirlocked/cases/library/v-npc-05-thanh-tra/main-05fb98e88bf5.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-05-thanh-tra.zip",
@@ -2754,6 +3367,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "05fb98e88bf53d1f2687662f936c3c81b0e9f01ded0a411dfcdc48481830c832",
+          "sprite": "cae5d8eee9b7eed3facde84616bc3478e11f834757ce1d8ebbcf839712099a0f",
+          "idle": "ccc74ca8d968d005f50aea5f98b32d300833ed10a2617fa3100a65ad382c5db4"
+        },
+        "uploadedSha256": {
           "main": "05fb98e88bf53d1f2687662f936c3c81b0e9f01ded0a411dfcdc48481830c832",
           "sprite": "cae5d8eee9b7eed3facde84616bc3478e11f834757ce1d8ebbcf839712099a0f",
           "idle": "ccc74ca8d968d005f50aea5f98b32d300833ed10a2617fa3100a65ad382c5db4"
@@ -2772,8 +3390,8 @@
       ],
       "nameVi": "Nhà báo trẻ",
       "nameEn": "Young reporter",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837982/sirlocked/cases/library/v-npc-06-nha-bao/main-d3aea35a4ded.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837982/sirlocked/cases/library/v-npc-06-nha-bao/main-d3aea35a4ded.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2782,7 +3400,11 @@
       "pixelLabJobId": "a76672b0-11e9-41b8-b807-f8d583886ccf",
       "firstUsedByCaseId": "",
       "prompt": "young Victorian newspaper reporter",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837982/sirlocked/cases/library/v-npc-06-nha-bao/sprite-b18c2c9f86ea.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837983/sirlocked/cases/library/v-npc-06-nha-bao/idle-7acea730810c.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837982/sirlocked/cases/library/v-npc-06-nha-bao/main-d3aea35a4ded.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-06-nha-bao.zip",
@@ -2793,6 +3415,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "d3aea35a4dedfeed3c2153e422c929d5ff72a9aacb608faedfb0caf7c9a3326b",
+          "sprite": "b18c2c9f86ea31e8cd5d4b67d13ea1111dedc848421b9ef504336242f6001545",
+          "idle": "7acea730810cb4539181994e59d4946c7d509043e6cc6567c17d09c6a99e3d00"
+        },
+        "uploadedSha256": {
           "main": "d3aea35a4dedfeed3c2153e422c929d5ff72a9aacb608faedfb0caf7c9a3326b",
           "sprite": "b18c2c9f86ea31e8cd5d4b67d13ea1111dedc848421b9ef504336242f6001545",
           "idle": "7acea730810cb4539181994e59d4946c7d509043e6cc6567c17d09c6a99e3d00"
@@ -2811,8 +3438,8 @@
       ],
       "nameVi": "Bác sĩ già",
       "nameEn": "Elderly doctor",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837984/sirlocked/cases/library/v-npc-07-bac-si/main-e527de881011.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837984/sirlocked/cases/library/v-npc-07-bac-si/main-e527de881011.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2821,7 +3448,11 @@
       "pixelLabJobId": "fe6efa0a-3d1e-4cd3-b261-6d0c6ba9002c",
       "firstUsedByCaseId": "",
       "prompt": "elderly Victorian doctor",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837985/sirlocked/cases/library/v-npc-07-bac-si/sprite-8f206ca5344f.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837986/sirlocked/cases/library/v-npc-07-bac-si/idle-cd8edb0be4d2.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837984/sirlocked/cases/library/v-npc-07-bac-si/main-e527de881011.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-07-bac-si.zip",
@@ -2832,6 +3463,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "e527de881011908ce6ee201888830a2077874e0a8da61a02bce04320f0425043",
+          "sprite": "8f206ca5344f2cee3bca99abee2baec01e7ecc1cc7b1ddad4e0237b744ae0afa",
+          "idle": "cd8edb0be4d208179a0538046de6ee5765c98ac15f9d8485d6677acbfe11b78c"
+        },
+        "uploadedSha256": {
           "main": "e527de881011908ce6ee201888830a2077874e0a8da61a02bce04320f0425043",
           "sprite": "8f206ca5344f2cee3bca99abee2baec01e7ecc1cc7b1ddad4e0237b744ae0afa",
           "idle": "cd8edb0be4d208179a0538046de6ee5765c98ac15f9d8485d6677acbfe11b78c"
@@ -2849,8 +3485,8 @@
       ],
       "nameVi": "Y tá",
       "nameEn": "Nurse",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837986/sirlocked/cases/library/v-npc-08-y-ta/main-d928ff0b8ca3.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837986/sirlocked/cases/library/v-npc-08-y-ta/main-d928ff0b8ca3.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2859,7 +3495,11 @@
       "pixelLabJobId": "59de047e-92d5-4d31-8edb-508a281a943e",
       "firstUsedByCaseId": "",
       "prompt": "Victorian nurse",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837987/sirlocked/cases/library/v-npc-08-y-ta/sprite-43a57bd28327.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837988/sirlocked/cases/library/v-npc-08-y-ta/idle-b4863fa4d94a.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837986/sirlocked/cases/library/v-npc-08-y-ta/main-d928ff0b8ca3.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-08-y-ta.zip",
@@ -2870,6 +3510,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "d928ff0b8ca301a361ff9cc78c8c43c88ab265b338af83e8e0e9b620f5239e5f",
+          "sprite": "43a57bd28327adde884f060ede0b9bde63f6f080b4a3e153e7855ca6d03ac085",
+          "idle": "b4863fa4d94a5622d08c8b4837d8c34894c41c52b140e1bb53bc72b290aeb1d3"
+        },
+        "uploadedSha256": {
           "main": "d928ff0b8ca301a361ff9cc78c8c43c88ab265b338af83e8e0e9b620f5239e5f",
           "sprite": "43a57bd28327adde884f060ede0b9bde63f6f080b4a3e153e7855ca6d03ac085",
           "idle": "b4863fa4d94a5622d08c8b4837d8c34894c41c52b140e1bb53bc72b290aeb1d3"
@@ -2887,8 +3532,8 @@
       ],
       "nameVi": "Ca sĩ opera",
       "nameEn": "Opera singer",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837989/sirlocked/cases/library/v-npc-09-ca-si-opera/main-4223155d7391.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837989/sirlocked/cases/library/v-npc-09-ca-si-opera/main-4223155d7391.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2897,7 +3542,11 @@
       "pixelLabJobId": "1ddad15e-31a8-460c-8b4b-332cc49ed62a",
       "firstUsedByCaseId": "",
       "prompt": "Victorian opera singer",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837989/sirlocked/cases/library/v-npc-09-ca-si-opera/sprite-c847362a8429.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837990/sirlocked/cases/library/v-npc-09-ca-si-opera/idle-4d70247de154.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837989/sirlocked/cases/library/v-npc-09-ca-si-opera/main-4223155d7391.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-09-ca-si-opera.zip",
@@ -2908,6 +3557,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "4223155d7391f9503b5caa9bd9b2e5eff1f7e7540141a37047a3803694b7658e",
+          "sprite": "c847362a84295c274a1efae7402e60e64f68504a7f151a14a5461e4470a6002a",
+          "idle": "4d70247de1544043f0b3d3ca5b9723a4593b9d8f78d7cedcf5e4b923327d20ef"
+        },
+        "uploadedSha256": {
           "main": "4223155d7391f9503b5caa9bd9b2e5eff1f7e7540141a37047a3803694b7658e",
           "sprite": "c847362a84295c274a1efae7402e60e64f68504a7f151a14a5461e4470a6002a",
           "idle": "4d70247de1544043f0b3d3ca5b9723a4593b9d8f78d7cedcf5e4b923327d20ef"
@@ -2925,8 +3579,8 @@
       ],
       "nameVi": "Nhạc công vĩ cầm",
       "nameEn": "Violinist",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837991/sirlocked/cases/library/v-npc-10-nhac-cong/main-087658e0d3e0.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837991/sirlocked/cases/library/v-npc-10-nhac-cong/main-087658e0d3e0.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2935,7 +3589,11 @@
       "pixelLabJobId": "730039c4-1945-422e-a490-9d892780f85a",
       "firstUsedByCaseId": "",
       "prompt": "Victorian violinist",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837992/sirlocked/cases/library/v-npc-10-nhac-cong/sprite-3a45b42be7b0.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837992/sirlocked/cases/library/v-npc-10-nhac-cong/idle-2dd518c6544a.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837991/sirlocked/cases/library/v-npc-10-nhac-cong/main-087658e0d3e0.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-10-nhac-cong.zip",
@@ -2946,6 +3604,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "087658e0d3e0833f366ec9d32762fab3b92e36adb87b0834ecd1c8ec970508e2",
+          "sprite": "3a45b42be7b0b44431c09afe02d864c0aad52d0705204a707a455ad4701af45f",
+          "idle": "2dd518c6544ab6ab0cddbda310280fb2c177f5b42ef3c5c90eb983d6aa7a6191"
+        },
+        "uploadedSha256": {
           "main": "087658e0d3e0833f366ec9d32762fab3b92e36adb87b0834ecd1c8ec970508e2",
           "sprite": "3a45b42be7b0b44431c09afe02d864c0aad52d0705204a707a455ad4701af45f",
           "idle": "2dd518c6544ab6ab0cddbda310280fb2c177f5b42ef3c5c90eb983d6aa7a6191"
@@ -2963,8 +3626,8 @@
       ],
       "nameVi": "Thủy thủ",
       "nameEn": "Sailor",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837993/sirlocked/cases/library/v-npc-11-thuy-thu/main-1b4ee1d2df60.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837993/sirlocked/cases/library/v-npc-11-thuy-thu/main-1b4ee1d2df60.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -2973,7 +3636,11 @@
       "pixelLabJobId": "5bc9dd69-8bd6-4866-a800-b42708d27a82",
       "firstUsedByCaseId": "",
       "prompt": "Victorian sailor",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837994/sirlocked/cases/library/v-npc-11-thuy-thu/sprite-b8baca86f769.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837994/sirlocked/cases/library/v-npc-11-thuy-thu/idle-8af448f8659d.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837993/sirlocked/cases/library/v-npc-11-thuy-thu/main-1b4ee1d2df60.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-11-thuy-thu.zip",
@@ -2984,6 +3651,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "1b4ee1d2df607e0aa1573a433c25cdc3bcefd156f2eefd041f1ff303c9a95880",
+          "sprite": "b8baca86f76937c1e3db30ce9e4aae10bcffd973823d69ee3b34c030c0c6e93f",
+          "idle": "8af448f8659db5982cea94643eb8e0707770ee63b8df131a4a571b5fdb6d4a0c"
+        },
+        "uploadedSha256": {
           "main": "1b4ee1d2df607e0aa1573a433c25cdc3bcefd156f2eefd041f1ff303c9a95880",
           "sprite": "b8baca86f76937c1e3db30ce9e4aae10bcffd973823d69ee3b34c030c0c6e93f",
           "idle": "8af448f8659db5982cea94643eb8e0707770ee63b8df131a4a571b5fdb6d4a0c"
@@ -3001,8 +3673,8 @@
       ],
       "nameVi": "Phu bến cảng",
       "nameEn": "Dock worker",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837996/sirlocked/cases/library/v-npc-12-phu-ben-cang/main-59aadb34ed5b.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837996/sirlocked/cases/library/v-npc-12-phu-ben-cang/main-59aadb34ed5b.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3011,7 +3683,11 @@
       "pixelLabJobId": "d06b7e10-9780-49c8-a1a9-766e00e9117e",
       "firstUsedByCaseId": "",
       "prompt": "Victorian dock worker",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837996/sirlocked/cases/library/v-npc-12-phu-ben-cang/sprite-a975610e8e4d.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837997/sirlocked/cases/library/v-npc-12-phu-ben-cang/idle-becb7de75cd0.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837996/sirlocked/cases/library/v-npc-12-phu-ben-cang/main-59aadb34ed5b.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-12-phu-ben-cang.zip",
@@ -3022,6 +3698,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "59aadb34ed5bb3f29b1703fe92157e0c6ff127ddc3022fb5241e9d96aab6eaf3",
+          "sprite": "a975610e8e4d76ee2ffac4f3d14441a31cd9b3b18c5332f70e4e2da5e99550a4",
+          "idle": "becb7de75cd035a1f005993b63b7bc09bd307b5066f5d13f199378c9eb651b45"
+        },
+        "uploadedSha256": {
           "main": "59aadb34ed5bb3f29b1703fe92157e0c6ff127ddc3022fb5241e9d96aab6eaf3",
           "sprite": "a975610e8e4d76ee2ffac4f3d14441a31cd9b3b18c5332f70e4e2da5e99550a4",
           "idle": "becb7de75cd035a1f005993b63b7bc09bd307b5066f5d13f199378c9eb651b45"
@@ -3039,8 +3720,8 @@
       ],
       "nameVi": "Trẻ bán báo",
       "nameEn": "Newsboy",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837997/sirlocked/cases/library/v-npc-13-tre-ban-bao/main-43d15a0d68ad.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837997/sirlocked/cases/library/v-npc-13-tre-ban-bao/main-43d15a0d68ad.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3049,7 +3730,11 @@
       "pixelLabJobId": "f8c012c7-f4a3-461d-84e0-01cce2e5a275",
       "firstUsedByCaseId": "",
       "prompt": "Victorian newsboy",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837998/sirlocked/cases/library/v-npc-13-tre-ban-bao/sprite-7bda35375f39.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837999/sirlocked/cases/library/v-npc-13-tre-ban-bao/idle-68813b1c8f66.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837997/sirlocked/cases/library/v-npc-13-tre-ban-bao/main-43d15a0d68ad.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-13-tre-ban-bao.zip",
@@ -3060,6 +3745,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "43d15a0d68ad71f13bee975e499df65e133d74f216f4ba6c6d568e6c3ad8f87f",
+          "sprite": "7bda35375f397f39e9f70b5ccc2af9578b9a3c7d2f57e34344e04c29b1855080",
+          "idle": "68813b1c8f66a13a6176a3f921304c868265d166717cbce9b926bc602696edec"
+        },
+        "uploadedSha256": {
           "main": "43d15a0d68ad71f13bee975e499df65e133d74f216f4ba6c6d568e6c3ad8f87f",
           "sprite": "7bda35375f397f39e9f70b5ccc2af9578b9a3c7d2f57e34344e04c29b1855080",
           "idle": "68813b1c8f66a13a6176a3f921304c868265d166717cbce9b926bc602696edec"
@@ -3077,8 +3767,8 @@
       ],
       "nameVi": "Quý bà",
       "nameEn": "Wealthy lady",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837999/sirlocked/cases/library/v-npc-14-quy-ba/main-4a2a823199e2.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837999/sirlocked/cases/library/v-npc-14-quy-ba/main-4a2a823199e2.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3087,7 +3777,11 @@
       "pixelLabJobId": "48c19220-c48b-40c2-bce7-edcebcfeb426",
       "firstUsedByCaseId": "",
       "prompt": "wealthy Victorian lady",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838000/sirlocked/cases/library/v-npc-14-quy-ba/sprite-967010b256cd.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838001/sirlocked/cases/library/v-npc-14-quy-ba/idle-c6434be26c7a.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837999/sirlocked/cases/library/v-npc-14-quy-ba/main-4a2a823199e2.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-14-quy-ba.zip",
@@ -3098,6 +3792,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "4a2a823199e2d0eb6030f29c0f2f48af65b9e4ce95276b11f6d7fe3d342c9bba",
+          "sprite": "967010b256cddb8c453d81866aa3e05f53709a96be6fee46a054ee57a92e88e7",
+          "idle": "c6434be26c7a9ef2591011ee88ee8f1fabad209e5f4471eabe3d88d63074efab"
+        },
+        "uploadedSha256": {
           "main": "4a2a823199e2d0eb6030f29c0f2f48af65b9e4ce95276b11f6d7fe3d342c9bba",
           "sprite": "967010b256cddb8c453d81866aa3e05f53709a96be6fee46a054ee57a92e88e7",
           "idle": "c6434be26c7a9ef2591011ee88ee8f1fabad209e5f4471eabe3d88d63074efab"
@@ -3113,8 +3812,8 @@
       ],
       "nameVi": "Quý ông",
       "nameEn": "Wealthy gentleman",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838001/sirlocked/cases/library/v-npc-15-quy-ong/main-1edc55c31eca.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838001/sirlocked/cases/library/v-npc-15-quy-ong/main-1edc55c31eca.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3123,7 +3822,11 @@
       "pixelLabJobId": "9ba038bf-445c-42f9-94be-ae41562a338b",
       "firstUsedByCaseId": "",
       "prompt": "wealthy Victorian gentleman, black top hat, black frock coat, silver-handled cane, monocle, neat mustache, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838002/sirlocked/cases/library/v-npc-15-quy-ong/sprite-c0ce2618e293.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838003/sirlocked/cases/library/v-npc-15-quy-ong/idle-c9f6f9992421.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838001/sirlocked/cases/library/v-npc-15-quy-ong/main-1edc55c31eca.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-15-quy-ong.zip",
@@ -3134,6 +3837,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "1edc55c31ecafa08c4ec4772f6f33954d0e8c293e0b84d71201051b56af53ff9",
+          "sprite": "c0ce2618e293c3c5a97f356a0730b269bc08270aec4647cef46781f5ba2c3db0",
+          "idle": "c9f6f99924217126198c9f548beb631e2bff39540ee19154e2f428c80a6418b2"
+        },
+        "uploadedSha256": {
           "main": "1edc55c31ecafa08c4ec4772f6f33954d0e8c293e0b84d71201051b56af53ff9",
           "sprite": "c0ce2618e293c3c5a97f356a0730b269bc08270aec4647cef46781f5ba2c3db0",
           "idle": "c9f6f99924217126198c9f548beb631e2bff39540ee19154e2f428c80a6418b2"
@@ -3149,8 +3857,8 @@
       ],
       "nameVi": "Ông lão",
       "nameEn": "Frail old man",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838003/sirlocked/cases/library/v-npc-16-ong-lao/main-0c4e935cc4e4.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838003/sirlocked/cases/library/v-npc-16-ong-lao/main-0c4e935cc4e4.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3159,7 +3867,11 @@
       "pixelLabJobId": "23071194-3dbc-4ec3-9a65-f422c8c55ef2",
       "firstUsedByCaseId": "",
       "prompt": "frail old Victorian man, wispy white hair, wooden walking stick, wool shawl over shoulders, slippers, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838004/sirlocked/cases/library/v-npc-16-ong-lao/sprite-899d449653fc.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838005/sirlocked/cases/library/v-npc-16-ong-lao/idle-a44bc9ab3e86.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838003/sirlocked/cases/library/v-npc-16-ong-lao/main-0c4e935cc4e4.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-16-ong-lao.zip",
@@ -3170,6 +3882,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "0c4e935cc4e419ec7a2d3738aba4d01e25fc7ef2bdfaa494ecf57e5db80dcf3d",
+          "sprite": "899d449653fce5099369b76208306aaeea2fb3afcdde3ab36673fcb1d1c8510f",
+          "idle": "a44bc9ab3e86cad519360d855642a54845df014fcc9af380c2ff290ce12ac477"
+        },
+        "uploadedSha256": {
           "main": "0c4e935cc4e419ec7a2d3738aba4d01e25fc7ef2bdfaa494ecf57e5db80dcf3d",
           "sprite": "899d449653fce5099369b76208306aaeea2fb3afcdde3ab36673fcb1d1c8510f",
           "idle": "a44bc9ab3e86cad519360d855642a54845df014fcc9af380c2ff290ce12ac477"
@@ -3185,8 +3902,8 @@
       ],
       "nameVi": "Bà góa",
       "nameEn": "Old widow",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838005/sirlocked/cases/library/v-npc-17-ba-goa/main-e1e1c18a0596.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838005/sirlocked/cases/library/v-npc-17-ba-goa/main-e1e1c18a0596.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3195,7 +3912,11 @@
       "pixelLabJobId": "852e4dc4-e6d8-4c97-adc5-0ef51764b2e9",
       "firstUsedByCaseId": "",
       "prompt": "old Victorian widow, black mourning dress, black lace cap, cameo brooch, stern face, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838006/sirlocked/cases/library/v-npc-17-ba-goa/sprite-3e4f18bcdd9b.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838007/sirlocked/cases/library/v-npc-17-ba-goa/idle-e3eb4ef9f5cb.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838005/sirlocked/cases/library/v-npc-17-ba-goa/main-e1e1c18a0596.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-17-ba-goa.zip",
@@ -3206,6 +3927,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "e1e1c18a059624ef0a0e8bc49d1a1a77d9eebdda9f24d216b0fe435509e2abd6",
+          "sprite": "3e4f18bcdd9bc922d0d7d9e8b67fb788a13ceca73e430c86c20ce89a4acd50b4",
+          "idle": "e3eb4ef9f5cb27327b83ce17c6d68aaace2cf42b5753536e526f5636edbb63c7"
+        },
+        "uploadedSha256": {
           "main": "e1e1c18a059624ef0a0e8bc49d1a1a77d9eebdda9f24d216b0fe435509e2abd6",
           "sprite": "3e4f18bcdd9bc922d0d7d9e8b67fb788a13ceca73e430c86c20ce89a4acd50b4",
           "idle": "e3eb4ef9f5cb27327b83ce17c6d68aaace2cf42b5753536e526f5636edbb63c7"
@@ -3221,8 +3947,8 @@
       ],
       "nameVi": "Thợ đồng hồ",
       "nameEn": "Clockmaker",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838008/sirlocked/cases/library/v-npc-18-tho-dong-ho/main-64126520e9fe.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838008/sirlocked/cases/library/v-npc-18-tho-dong-ho/main-64126520e9fe.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3231,7 +3957,11 @@
       "pixelLabJobId": "02a804cc-1d4f-4825-b0b4-76f9197d6c73",
       "firstUsedByCaseId": "",
       "prompt": "Victorian clockmaker, magnifying loupe pushed up on forehead, leather apron, sleeve garters, tiny screwdriver in hand, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838008/sirlocked/cases/library/v-npc-18-tho-dong-ho/sprite-e7ac1d953a36.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838009/sirlocked/cases/library/v-npc-18-tho-dong-ho/idle-f466214f8c15.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838008/sirlocked/cases/library/v-npc-18-tho-dong-ho/main-64126520e9fe.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-18-tho-dong-ho.zip",
@@ -3242,6 +3972,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "64126520e9feae848c1ec252c552075a097612c0f544a89ce9558a66167d4815",
+          "sprite": "e7ac1d953a36a1fab745f5ad570cbc4e075e6fa7c509134eb26f08598af64795",
+          "idle": "f466214f8c15f01001174c95294f1365e592fab93296ce41485d932798548538"
+        },
+        "uploadedSha256": {
           "main": "64126520e9feae848c1ec252c552075a097612c0f544a89ce9558a66167d4815",
           "sprite": "e7ac1d953a36a1fab745f5ad570cbc4e075e6fa7c509134eb26f08598af64795",
           "idle": "f466214f8c15f01001174c95294f1365e592fab93296ce41485d932798548538"
@@ -3257,8 +3992,8 @@
       ],
       "nameVi": "Chủ quán rượu",
       "nameEn": "Pub landlord",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838010/sirlocked/cases/library/v-npc-19-chu-quan-ruou/main-27f06867bc1f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838010/sirlocked/cases/library/v-npc-19-chu-quan-ruou/main-27f06867bc1f.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3267,7 +4002,11 @@
       "pixelLabJobId": "d8b70d76-6bb2-4d55-b767-09356ea983e1",
       "firstUsedByCaseId": "",
       "prompt": "stout Victorian pub landlord, red cheeks, bushy mustache, white apron, rolled sleeves, drying a beer mug, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838010/sirlocked/cases/library/v-npc-19-chu-quan-ruou/sprite-1ec37dd46a30.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838011/sirlocked/cases/library/v-npc-19-chu-quan-ruou/idle-b2959868cba1.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838010/sirlocked/cases/library/v-npc-19-chu-quan-ruou/main-27f06867bc1f.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-19-chu-quan-ruou.zip",
@@ -3278,6 +4017,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "27f06867bc1f4151aeb5f088ba5e4da59ad9a17e5795cfcc5ad7edce4e410fd5",
+          "sprite": "1ec37dd46a3082d3ccf2869136c8b21ad45ac5fdcaf78d18d04edf5057e9e69c",
+          "idle": "b2959868cba1bd9ca5c4aa8b3f4318d52fccf62ffd83c4333cb97692760c3b44"
+        },
+        "uploadedSha256": {
           "main": "27f06867bc1f4151aeb5f088ba5e4da59ad9a17e5795cfcc5ad7edce4e410fd5",
           "sprite": "1ec37dd46a3082d3ccf2869136c8b21ad45ac5fdcaf78d18d04edf5057e9e69c",
           "idle": "b2959868cba1bd9ca5c4aa8b3f4318d52fccf62ffd83c4333cb97692760c3b44"
@@ -3293,8 +4037,8 @@
       ],
       "nameVi": "Cô phục vụ phòng trà",
       "nameEn": "Tea room waitress",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838012/sirlocked/cases/library/v-npc-20-hau-ban-tra/main-298dba4deaf9.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838012/sirlocked/cases/library/v-npc-20-hau-ban-tra/main-298dba4deaf9.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3303,7 +4047,11 @@
       "pixelLabJobId": "61230942-d21a-4f06-b768-d305d10468ff",
       "firstUsedByCaseId": "",
       "prompt": "young Victorian tea room waitress, black dress, white lace apron, tray with a teapot, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838013/sirlocked/cases/library/v-npc-20-hau-ban-tra/sprite-fac972fdc5d6.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838013/sirlocked/cases/library/v-npc-20-hau-ban-tra/idle-7ad9d339c031.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838012/sirlocked/cases/library/v-npc-20-hau-ban-tra/main-298dba4deaf9.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-20-hau-ban-tra.zip",
@@ -3314,6 +4062,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "298dba4deaf91196274a4581ec79d59f65ba4133235e19074189705d97546cd4",
+          "sprite": "fac972fdc5d64973d42a2d073a060e6f7661d7b1a16c709426729f7b4b54a5c5",
+          "idle": "7ad9d339c031f05be5395748ef1685f1ffe763b3c6bfb52dba1e1cd19b47d575"
+        },
+        "uploadedSha256": {
           "main": "298dba4deaf91196274a4581ec79d59f65ba4133235e19074189705d97546cd4",
           "sprite": "fac972fdc5d64973d42a2d073a060e6f7661d7b1a16c709426729f7b4b54a5c5",
           "idle": "7ad9d339c031f05be5395748ef1685f1ffe763b3c6bfb52dba1e1cd19b47d575"
@@ -3329,8 +4082,8 @@
       ],
       "nameVi": "Linh mục",
       "nameEn": "Priest",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838014/sirlocked/cases/library/v-npc-21-linh-muc/main-c61576361ff7.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838014/sirlocked/cases/library/v-npc-21-linh-muc/main-c61576361ff7.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3339,7 +4092,11 @@
       "pixelLabJobId": "85005a42-8146-450c-a351-ee92b758b2a8",
       "firstUsedByCaseId": "",
       "prompt": "Victorian priest, black cassock, white collar, small prayer book, gentle old face, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838014/sirlocked/cases/library/v-npc-21-linh-muc/sprite-a7a3d15b2d82.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838015/sirlocked/cases/library/v-npc-21-linh-muc/idle-a889902125c0.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838014/sirlocked/cases/library/v-npc-21-linh-muc/main-c61576361ff7.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-21-linh-muc.zip",
@@ -3350,6 +4107,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "c61576361ff7812c108543fbbe847541712627a27616a596c31abbd373157c3b",
+          "sprite": "a7a3d15b2d822dff7ec2dce5700697cbf9d5c91720ab6cb64bc09e8d7a8ec7b1",
+          "idle": "a889902125c0f16e6754d9a48267dd88a7354cece54c85e2594393ff807fc909"
+        },
+        "uploadedSha256": {
           "main": "c61576361ff7812c108543fbbe847541712627a27616a596c31abbd373157c3b",
           "sprite": "a7a3d15b2d822dff7ec2dce5700697cbf9d5c91720ab6cb64bc09e8d7a8ec7b1",
           "idle": "a889902125c0f16e6754d9a48267dd88a7354cece54c85e2594393ff807fc909"
@@ -3365,8 +4127,8 @@
       ],
       "nameVi": "Thợ ảnh rong",
       "nameEn": "Street photographer",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838016/sirlocked/cases/library/v-npc-22-tho-anh-rong/main-9f0812312add.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838016/sirlocked/cases/library/v-npc-22-tho-anh-rong/main-9f0812312add.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3375,7 +4137,11 @@
       "pixelLabJobId": "ed59f9fe-3c73-4f88-8c1d-fc870d8496d2",
       "firstUsedByCaseId": "",
       "prompt": "Victorian street photographer, checked waistcoat, bowler hat, wooden box camera on a tripod, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838017/sirlocked/cases/library/v-npc-22-tho-anh-rong/sprite-142ff3a2872b.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838017/sirlocked/cases/library/v-npc-22-tho-anh-rong/idle-5cc36f8bef16.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838016/sirlocked/cases/library/v-npc-22-tho-anh-rong/main-9f0812312add.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-22-tho-anh-rong.zip",
@@ -3386,6 +4152,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "9f0812312add382806b7707205d5492fbbcda29b1b6685626ce69d44a14eb953",
+          "sprite": "142ff3a2872b1d07b69cb88da3268edb0d8155a6bba85e313cda3e190feba44e",
+          "idle": "5cc36f8bef169e871c559de7540a06ae235365176c12de11ce2945d776721cde"
+        },
+        "uploadedSha256": {
           "main": "9f0812312add382806b7707205d5492fbbcda29b1b6685626ce69d44a14eb953",
           "sprite": "142ff3a2872b1d07b69cb88da3268edb0d8155a6bba85e313cda3e190feba44e",
           "idle": "5cc36f8bef169e871c559de7540a06ae235365176c12de11ce2945d776721cde"
@@ -3401,8 +4172,8 @@
       ],
       "nameVi": "Giáo sư",
       "nameEn": "Professor",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838018/sirlocked/cases/library/v-npc-23-giao-su/main-c59ac938682c.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838018/sirlocked/cases/library/v-npc-23-giao-su/main-c59ac938682c.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3411,7 +4182,11 @@
       "pixelLabJobId": "14cc3543-392b-4fef-acdf-6ff3c0c214ae",
       "firstUsedByCaseId": "",
       "prompt": "Victorian professor, tweed jacket with elbow patches, pipe, stack of books under the arm, round glasses, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838018/sirlocked/cases/library/v-npc-23-giao-su/sprite-aecb5d583b0f.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838019/sirlocked/cases/library/v-npc-23-giao-su/idle-64fdb4bcfcf2.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838018/sirlocked/cases/library/v-npc-23-giao-su/main-c59ac938682c.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-23-giao-su.zip",
@@ -3422,6 +4197,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "c59ac938682c473bf1d05bf547d299634866210aadcbf3c87116d24013cd5736",
+          "sprite": "aecb5d583b0fcc585d12e8e2e69791e14b35b9c66be0dcf04c7c4c4917e58bb0",
+          "idle": "64fdb4bcfcf207b89f7687aac0aad07bbe1b97c4569a47fe820be147b791759d"
+        },
+        "uploadedSha256": {
           "main": "c59ac938682c473bf1d05bf547d299634866210aadcbf3c87116d24013cd5736",
           "sprite": "aecb5d583b0fcc585d12e8e2e69791e14b35b9c66be0dcf04c7c4c4917e58bb0",
           "idle": "64fdb4bcfcf207b89f7687aac0aad07bbe1b97c4569a47fe820be147b791759d"
@@ -3437,8 +4217,8 @@
       ],
       "nameVi": "Xà phu xe ngựa",
       "nameEn": "Hansom cab driver",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838020/sirlocked/cases/library/v-npc-24-xa-phu/main-16bb589d5288.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838020/sirlocked/cases/library/v-npc-24-xa-phu/main-16bb589d5288.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3447,7 +4227,11 @@
       "pixelLabJobId": "c6ea9b5e-e8af-41a4-a777-3c874481f683",
       "firstUsedByCaseId": "",
       "prompt": "Victorian hansom cab driver, long caped coat, battered top hat, scarf, horse whip, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838020/sirlocked/cases/library/v-npc-24-xa-phu/sprite-1f5a0a901716.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838021/sirlocked/cases/library/v-npc-24-xa-phu/idle-a265d9637851.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838020/sirlocked/cases/library/v-npc-24-xa-phu/main-16bb589d5288.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-24-xa-phu.zip",
@@ -3458,6 +4242,11 @@
         },
         "idleSource": "code-breathing",
         "sha256": {
+          "main": "16bb589d52880f0908bce4852cdd257b1390a4b34e5da03e0a56a94d7b8fdac5",
+          "sprite": "1f5a0a901716646e7d9ac2f48c8fcfd1ac002e8175390161c4916bba387e4296",
+          "idle": "a265d9637851a2a4b1851e54e6a8e07f11aabd4cc98431ac753cb00f3a4ef702"
+        },
+        "uploadedSha256": {
           "main": "16bb589d52880f0908bce4852cdd257b1390a4b34e5da03e0a56a94d7b8fdac5",
           "sprite": "1f5a0a901716646e7d9ac2f48c8fcfd1ac002e8175390161c4916bba387e4296",
           "idle": "a265d9637851a2a4b1851e54e6a8e07f11aabd4cc98431ac753cb00f3a4ef702"
@@ -3473,8 +4262,8 @@
       ],
       "nameVi": "Kẻ móc túi",
       "nameEn": "Pickpocket",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838022/sirlocked/cases/library/v-npc-25-ke-moc-tui/main-d6ff39445272.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838022/sirlocked/cases/library/v-npc-25-ke-moc-tui/main-d6ff39445272.webp",
       "width": 288,
       "height": 288,
       "parentKey": "",
@@ -3483,7 +4272,11 @@
       "pixelLabJobId": "f094b282-e818-42a6-9997-78f431e5a5a9",
       "firstUsedByCaseId": "",
       "prompt": "shifty young Victorian pickpocket, worn coat, fingerless gloves, flat cap pulled low, chibi proportions with a slightly large head, standing straight",
-      "files": {},
+      "files": {
+        "sprite": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838022/sirlocked/cases/library/v-npc-25-ke-moc-tui/sprite-c76bcf887e7b.webp",
+        "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838023/sirlocked/cases/library/v-npc-25-ke-moc-tui/idle-e48758b4038d.webp",
+        "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838022/sirlocked/cases/library/v-npc-25-ke-moc-tui/main-d6ff39445272.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-25-ke-moc-tui.zip",
@@ -3497,6 +4290,11 @@
           "main": "d6ff394452728767f7ce7d7257fb6b531d8bc96002643cc37d63183dd7b809e7",
           "sprite": "c76bcf887e7ba820e7120fe0b4f7a857f6221a4a203f62c887378dbd90c47e20",
           "idle": "e48758b4038d92836bba6c7bb1e2bd6c38864b38d5c24756bf13d7286a471c1a"
+        },
+        "uploadedSha256": {
+          "main": "d6ff394452728767f7ce7d7257fb6b531d8bc96002643cc37d63183dd7b809e7",
+          "sprite": "c76bcf887e7ba820e7120fe0b4f7a857f6221a4a203f62c887378dbd90c47e20",
+          "idle": "e48758b4038d92836bba6c7bb1e2bd6c38864b38d5c24756bf13d7286a471c1a"
         }
       }
     },
@@ -3507,8 +4305,8 @@
       "tags": [],
       "nameVi": "Gác xép",
       "nameEn": "Attic",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838024/sirlocked/cases/library/v-room-gac-xep/main-755daaa2a389.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838025/sirlocked/cases/library/v-room-gac-xep/thumb-f255a83a0264.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3517,7 +4315,9 @@
       "pixelLabJobId": "e953d64a-c6ce-4163-ad23-0f90583bc3c2",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian attic under a sloped roof with dusty trunks, old furniture under sheets, a rocking horse, a small round window, cobwebs, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838025/sirlocked/cases/library/v-room-gac-xep/thumb-f255a83a0264.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-gac-xep.png",
@@ -3531,6 +4331,10 @@
         "sha256": {
           "main": "755daaa2a389400e5b84de38c24a71b99d36c431557f426b950722bf1f6ec6a6",
           "thumb": "f255a83a0264503f57fe741f7cf03e42f63ab173746e6d60568642da55f170fd"
+        },
+        "uploadedSha256": {
+          "main": "755daaa2a389400e5b84de38c24a71b99d36c431557f426b950722bf1f6ec6a6",
+          "thumb": "f255a83a0264503f57fe741f7cf03e42f63ab173746e6d60568642da55f170fd"
         }
       }
     },
@@ -3541,8 +4345,8 @@
       "tags": [],
       "nameVi": "Hầm rượu",
       "nameEn": "Wine cellar",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838026/sirlocked/cases/library/v-room-ham-ruou/main-0ceb00fe727c.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838026/sirlocked/cases/library/v-room-ham-ruou/thumb-751c83f7149b.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3551,7 +4355,9 @@
       "pixelLabJobId": "08fd17e8-a1f8-401a-b5d7-c68ef7017d5a",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian wine cellar with brick vaulted walls, wine racks full of bottles, oak barrels, a single hanging lantern, a stone stair, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838026/sirlocked/cases/library/v-room-ham-ruou/thumb-751c83f7149b.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-ham-ruou.png",
@@ -3565,6 +4371,10 @@
         "sha256": {
           "main": "0ceb00fe727cf5848b6e6357b08474ad5bfe634de6b5958c0774bf8fb8af42d9",
           "thumb": "751c83f7149b0f0d76192ba6430f1df3135657d8b660db16038ccaf3962d8932"
+        },
+        "uploadedSha256": {
+          "main": "0ceb00fe727cf5848b6e6357b08474ad5bfe634de6b5958c0774bf8fb8af42d9",
+          "thumb": "751c83f7149b0f0d76192ba6430f1df3135657d8b660db16038ccaf3962d8932"
         }
       }
     },
@@ -3575,8 +4385,8 @@
       "tags": [],
       "nameVi": "Hậu trường nhà hát",
       "nameEn": "Theatre backstage",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838027/sirlocked/cases/library/v-room-hau-truong/main-7cf955c6e656.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838028/sirlocked/cases/library/v-room-hau-truong/thumb-6eac3661c596.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3585,7 +4395,9 @@
       "pixelLabJobId": "a451eafd-1b78-4bdb-ba05-9d539843f682",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian theatre backstage dressing room with a mirror framed by bulbs, costume racks, a makeup table, theatre masks on the wall, a trunk of props, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838028/sirlocked/cases/library/v-room-hau-truong/thumb-6eac3661c596.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-hau-truong.png",
@@ -3599,6 +4411,10 @@
         "sha256": {
           "main": "7cf955c6e656799088fba37589f3163e2dbb3f1b19a68003ebc927b7e6939f91",
           "thumb": "6eac3661c596b670a9349d8dd7f096ff32b60721a3393712e5929c0664eca210"
+        },
+        "uploadedSha256": {
+          "main": "7cf955c6e656799088fba37589f3163e2dbb3f1b19a68003ebc927b7e6939f91",
+          "thumb": "6eac3661c596b670a9349d8dd7f096ff32b60721a3393712e5929c0664eca210"
         }
       }
     },
@@ -3609,8 +4425,8 @@
       "tags": [],
       "nameVi": "Hiệu may",
       "nameEn": "Tailor's shop",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838029/sirlocked/cases/library/v-room-hieu-may/main-993f8add2f5f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838030/sirlocked/cases/library/v-room-hieu-may/thumb-a41e00085c9c.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3619,7 +4435,9 @@
       "pixelLabJobId": "c3752859-f09c-4201-af8d-6b2afd4dbdab",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian tailor's shop with dress forms, bolts of fabric on shelves, a large cutting table with scissors and chalk, a sewing machine, a fitting mirror, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838030/sirlocked/cases/library/v-room-hieu-may/thumb-a41e00085c9c.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-hieu-may.png",
@@ -3633,6 +4451,10 @@
         "sha256": {
           "main": "993f8add2f5f633a94f1dbce9a35cfe85a905da61132f7e667b6fa0648fab5ea",
           "thumb": "a41e00085c9c7f4af5476abd3a49fdf25663181547e426b4644fe7ea56838445"
+        },
+        "uploadedSha256": {
+          "main": "993f8add2f5f633a94f1dbce9a35cfe85a905da61132f7e667b6fa0648fab5ea",
+          "thumb": "a41e00085c9c7f4af5476abd3a49fdf25663181547e426b4644fe7ea56838445"
         }
       }
     },
@@ -3643,8 +4465,8 @@
       "tags": [],
       "nameVi": "Hiệu sách",
       "nameEn": "Bookshop",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838031/sirlocked/cases/library/v-room-hieu-sach/main-6e8b852e2e69.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838031/sirlocked/cases/library/v-room-hieu-sach/thumb-d72550a14b59.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3653,7 +4475,9 @@
       "pixelLabJobId": "aba3abf3-5253-4ed4-b6b2-78b5b5179712",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian bookshop with tall bookshelves to the ceiling, a rolling ladder, a reading armchair, stacks of books on the floor, a counter with a brass bell, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838031/sirlocked/cases/library/v-room-hieu-sach/thumb-d72550a14b59.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-hieu-sach.png",
@@ -3667,6 +4491,10 @@
         "sha256": {
           "main": "6e8b852e2e69e2e3094968c71f30831901976c36eeec3fc9fa05ce814b5f2c20",
           "thumb": "d72550a14b596fd875110e391475bf41a2a3a7a68d0687ff24f8e3f6174d45be"
+        },
+        "uploadedSha256": {
+          "main": "6e8b852e2e69e2e3094968c71f30831901976c36eeec3fc9fa05ce814b5f2c20",
+          "thumb": "d72550a14b596fd875110e391475bf41a2a3a7a68d0687ff24f8e3f6174d45be"
         }
       }
     },
@@ -3677,8 +4505,8 @@
       "tags": [],
       "nameVi": "Hiệu vàng",
       "nameEn": "Goldsmith's shop",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838032/sirlocked/cases/library/v-room-hieu-vang/main-01f7a1923957.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838033/sirlocked/cases/library/v-room-hieu-vang/thumb-8974d7a8ab9c.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3687,7 +4515,9 @@
       "pixelLabJobId": "1e019d6c-d8e7-40a5-a3a2-c48cb4c4d07a",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian jeweler's shop with glass display counters of rings and necklaces, a velvet-lined tray, a small safe, wall mirror, gas lamps, dark wood and burgundy wallpaper, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838033/sirlocked/cases/library/v-room-hieu-vang/thumb-8974d7a8ab9c.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-hieu-vang.png",
@@ -3701,6 +4531,10 @@
         "sha256": {
           "main": "01f7a1923957d5e76ecac4b9005e6f4094a607be5e59f93039f66dd7dd1a9b02",
           "thumb": "8974d7a8ab9cf0ec6e388a90b5e76c5c30c10b8895e08cefd89c3c0089736d39"
+        },
+        "uploadedSha256": {
+          "main": "01f7a1923957d5e76ecac4b9005e6f4094a607be5e59f93039f66dd7dd1a9b02",
+          "thumb": "8974d7a8ab9cf0ec6e388a90b5e76c5c30c10b8895e08cefd89c3c0089736d39"
         }
       }
     },
@@ -3711,8 +4545,8 @@
       "tags": [],
       "nameVi": "Phòng khách sạn",
       "nameEn": "Hotel room",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838034/sirlocked/cases/library/v-room-phong-khach-san/main-8effeb616e64.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838035/sirlocked/cases/library/v-room-phong-khach-san/thumb-a67b51c32f03.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3721,7 +4555,9 @@
       "pixelLabJobId": "b1a41c1f-7f91-44f7-b1a9-13586781e02f",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian hotel bedroom with a canopy bed, a wardrobe, a writing desk, a travel trunk, a washstand with a basin, heavy curtains, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838035/sirlocked/cases/library/v-room-phong-khach-san/thumb-a67b51c32f03.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-phong-khach-san.png",
@@ -3735,6 +4571,10 @@
         "sha256": {
           "main": "8effeb616e64e4056d9d7f061a421bff08aab0f005035b06dddf35f9f930a008",
           "thumb": "a67b51c32f035ba2b9d18f0db5b708e04c10870606a4fddfd77236add7a1c400"
+        },
+        "uploadedSha256": {
+          "main": "8effeb616e64e4056d9d7f061a421bff08aab0f005035b06dddf35f9f930a008",
+          "thumb": "a67b51c32f035ba2b9d18f0db5b708e04c10870606a4fddfd77236add7a1c400"
         }
       }
     },
@@ -3745,8 +4585,8 @@
       "tags": [],
       "nameVi": "Phòng khám",
       "nameEn": "Doctor's surgery",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838036/sirlocked/cases/library/v-room-phong-kham/main-7e9883750549.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838037/sirlocked/cases/library/v-room-phong-kham/thumb-b08f8088fc39.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3755,7 +4595,9 @@
       "pixelLabJobId": "ccfae11e-0d09-437a-a884-484b99edb545",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian doctor's clinic with an examination table, a glass medicine cabinet, a skeleton model, a desk with a stethoscope, a folding screen, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838037/sirlocked/cases/library/v-room-phong-kham/thumb-b08f8088fc39.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-phong-kham.png",
@@ -3769,6 +4611,10 @@
         "sha256": {
           "main": "7e9883750549ee03b14a8a4a1db7d3b9d48aec4e489f80b7ac17936f574af130",
           "thumb": "b08f8088fc399089980eac72d343a2823deb2cbf4f85932dfe67b3fef31a87f6"
+        },
+        "uploadedSha256": {
+          "main": "7e9883750549ee03b14a8a4a1db7d3b9d48aec4e489f80b7ac17936f574af130",
+          "thumb": "b08f8088fc399089980eac72d343a2823deb2cbf4f85932dfe67b3fef31a87f6"
         }
       }
     },
@@ -3779,8 +4625,8 @@
       "tags": [],
       "nameVi": "Phòng ngủ",
       "nameEn": "Bedroom",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838038/sirlocked/cases/library/v-room-phong-ngu/main-f32d76bdf724.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838038/sirlocked/cases/library/v-room-phong-ngu/thumb-d753ebbe076a.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3789,7 +4635,9 @@
       "pixelLabJobId": "d68bf1c1-d521-4194-957f-bd8fe71210cc",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian bedroom with a brass bed, a dressing table with perfume bottles, a wardrobe, a rug, a window with lace curtains, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838038/sirlocked/cases/library/v-room-phong-ngu/thumb-d753ebbe076a.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-phong-ngu.png",
@@ -3803,6 +4651,10 @@
         "sha256": {
           "main": "f32d76bdf724253948f241e85e1e5896408f785c5ddd3117dab3d3089bf9a532",
           "thumb": "d753ebbe076a1534b889174fc38d11a1276b63bb5fc0a94ab8ed31c9917a3b56"
+        },
+        "uploadedSha256": {
+          "main": "f32d76bdf724253948f241e85e1e5896408f785c5ddd3117dab3d3089bf9a532",
+          "thumb": "d753ebbe076a1534b889174fc38d11a1276b63bb5fc0a94ab8ed31c9917a3b56"
         }
       }
     },
@@ -3813,8 +4665,8 @@
       "tags": [],
       "nameVi": "Phòng trà",
       "nameEn": "Tea room",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838039/sirlocked/cases/library/v-room-phong-tra/main-bdd0efa30c3c.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838041/sirlocked/cases/library/v-room-phong-tra/thumb-61da8fc8df69.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3823,7 +4675,9 @@
       "pixelLabJobId": "48fc8a2d-1ca6-4a13-be6f-02c1a4a88d2e",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian tea room with small round tables with lace tablecloths, a cake display, potted palms, floral wallpaper, a tea counter, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838041/sirlocked/cases/library/v-room-phong-tra/thumb-61da8fc8df69.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-phong-tra.png",
@@ -3837,6 +4691,10 @@
         "sha256": {
           "main": "bdd0efa30c3c82c1f1fbc1eeb586a54ad04b1a47b9bbe916ff80be978b78e6c5",
           "thumb": "61da8fc8df6905502dbd1547b1fba92b926ab9959f4054692150d40d7500d45f"
+        },
+        "uploadedSha256": {
+          "main": "bdd0efa30c3c82c1f1fbc1eeb586a54ad04b1a47b9bbe916ff80be978b78e6c5",
+          "thumb": "61da8fc8df6905502dbd1547b1fba92b926ab9959f4054692150d40d7500d45f"
         }
       }
     },
@@ -3847,8 +4705,8 @@
       "tags": [],
       "nameVi": "Quán rượu",
       "nameEn": "Pub",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838042/sirlocked/cases/library/v-room-quan-ruou/main-2e801a6aff8d.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838042/sirlocked/cases/library/v-room-quan-ruou/thumb-068ffdd5b636.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3857,7 +4715,9 @@
       "pixelLabJobId": "943d2fc1-2752-457d-a9cc-1019d9bbce0b",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian pub interior with a long wooden bar, beer taps, bottles on shelves, round tables and stools, a dartboard, a fireplace, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838042/sirlocked/cases/library/v-room-quan-ruou/thumb-068ffdd5b636.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-quan-ruou.png",
@@ -3871,6 +4731,10 @@
         "sha256": {
           "main": "2e801a6aff8d63935d40a9446998f13f9f3aad42f7519b4bd40df56e9ede8def",
           "thumb": "068ffdd5b6369e4268f2da7db572168721c8a438de0996f9e3f312263a2fb9da"
+        },
+        "uploadedSha256": {
+          "main": "2e801a6aff8d63935d40a9446998f13f9f3aad42f7519b4bd40df56e9ede8def",
+          "thumb": "068ffdd5b6369e4268f2da7db572168721c8a438de0996f9e3f312263a2fb9da"
         }
       }
     },
@@ -3881,8 +4745,8 @@
       "tags": [],
       "nameVi": "Sảnh khách sạn",
       "nameEn": "Hotel lobby",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838043/sirlocked/cases/library/v-room-sanh-khach-san/main-63e56a82238f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838044/sirlocked/cases/library/v-room-sanh-khach-san/thumb-2390a1c18e93.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3891,7 +4755,9 @@
       "pixelLabJobId": "5bdc28ac-edda-4a5f-ba33-9043b939863c",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, grand Victorian hotel lobby with a reception desk and key board, a chandelier, marble floor, velvet sofas, a luggage cart, potted palms, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838044/sirlocked/cases/library/v-room-sanh-khach-san/thumb-2390a1c18e93.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-sanh-khach-san.png",
@@ -3905,6 +4771,10 @@
         "sha256": {
           "main": "63e56a82238f84dbe420787018e2213f96cba985a72e5ffc6872466ae0eebbf2",
           "thumb": "2390a1c18e93a4e404c7ba5c89d83a7f7cc135533562551d36167c9536f690ae"
+        },
+        "uploadedSha256": {
+          "main": "63e56a82238f84dbe420787018e2213f96cba985a72e5ffc6872466ae0eebbf2",
+          "thumb": "2390a1c18e93a4e404c7ba5c89d83a7f7cc135533562551d36167c9536f690ae"
         }
       }
     },
@@ -3915,8 +4785,8 @@
       "tags": [],
       "nameVi": "Sở cảnh sát",
       "nameEn": "Police station",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838045/sirlocked/cases/library/v-room-so-canh-sat/main-16358d664631.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838046/sirlocked/cases/library/v-room-so-canh-sat/thumb-e37571fa4ca0.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3925,7 +4795,9 @@
       "pixelLabJobId": "982bcb07-39b4-47be-80f9-2b1b312040b5",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian police station office with wooden desks, a wanted-poster board without text, a holding cell with bars, filing cabinets, a coat rack with helmets, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838046/sirlocked/cases/library/v-room-so-canh-sat/thumb-e37571fa4ca0.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-so-canh-sat.png",
@@ -3939,6 +4811,10 @@
         "sha256": {
           "main": "16358d664631e1dc547cb614a050937690948833fc62098bcad64529623c5225",
           "thumb": "e37571fa4ca0581d177db8c1f837cfc594e94a45284c5875b46f261b4ff8283a"
+        },
+        "uploadedSha256": {
+          "main": "16358d664631e1dc547cb614a050937690948833fc62098bcad64529623c5225",
+          "thumb": "e37571fa4ca0581d177db8c1f837cfc594e94a45284c5875b46f261b4ff8283a"
         }
       }
     },
@@ -3949,8 +4825,8 @@
       "tags": [],
       "nameVi": "Thư phòng",
       "nameEn": "Study",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838047/sirlocked/cases/library/v-room-thu-phong/main-0fe7b5d9ea00.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838048/sirlocked/cases/library/v-room-thu-phong/thumb-5864a886550a.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3959,7 +4835,9 @@
       "pixelLabJobId": "bf062608-6c42-442e-9376-41d081fe93de",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian gentleman's study with a large desk, a leather armchair, bookcases, a globe, a fireplace with a mantel clock, a hunting painting, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838048/sirlocked/cases/library/v-room-thu-phong/thumb-5864a886550a.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-thu-phong.png",
@@ -3973,6 +4851,10 @@
         "sha256": {
           "main": "0fe7b5d9ea0035868c31f144e9420fd5b0da0b00622deef00d81c40f95d9d76a",
           "thumb": "5864a886550ab8ba6ed0adb7ad68fca366996f6442e34607e0899a8b3e8859b2"
+        },
+        "uploadedSha256": {
+          "main": "0fe7b5d9ea0035868c31f144e9420fd5b0da0b00622deef00d81c40f95d9d76a",
+          "thumb": "5864a886550ab8ba6ed0adb7ad68fca366996f6442e34607e0899a8b3e8859b2"
         }
       }
     },
@@ -3983,8 +4865,8 @@
       "tags": [],
       "nameVi": "Tòa soạn báo",
       "nameEn": "Newspaper office",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838049/sirlocked/cases/library/v-room-toa-soan/main-1f53ac01929a.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838050/sirlocked/cases/library/v-room-toa-soan/thumb-be612cf35b09.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -3993,7 +4875,9 @@
       "pixelLabJobId": "0c2a44cc-bca0-494e-9075-a73e877db9df",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian newspaper office with desks covered in papers, typewriters, a telephone, pinned photographs on a cork board, stacks of newspapers, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838050/sirlocked/cases/library/v-room-toa-soan/thumb-be612cf35b09.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-toa-soan.png",
@@ -4007,6 +4891,10 @@
         "sha256": {
           "main": "1f53ac01929a2fb5b034290750c84bab85f9867eda37d0ada0816ecf4ae2f33b",
           "thumb": "be612cf35b09dde0c7eac6dc53cf9f272b792339e764bf4762a2295233c72e1e"
+        },
+        "uploadedSha256": {
+          "main": "1f53ac01929a2fb5b034290750c84bab85f9867eda37d0ada0816ecf4ae2f33b",
+          "thumb": "be612cf35b09dde0c7eac6dc53cf9f272b792339e764bf4762a2295233c72e1e"
         }
       }
     },
@@ -4017,8 +4905,8 @@
       "tags": [],
       "nameVi": "Xưởng in",
       "nameEn": "Print shop",
-      "url": "",
-      "thumbUrl": "",
+      "url": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838051/sirlocked/cases/library/v-room-xuong-in/main-bbf1ad76c23f.webp",
+      "thumbUrl": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838051/sirlocked/cases/library/v-room-xuong-in/thumb-30dc7efc4cd8.webp",
       "width": 512,
       "height": 512,
       "parentKey": "",
@@ -4027,7 +4915,9 @@
       "pixelLabJobId": "8ec055be-013e-4c19-9cb4-46cddff9c6ff",
       "firstUsedByCaseId": "",
       "prompt": "Isometric 2:1 pixel art room diorama, cutaway view with one floor and two back walls, Victorian print shop with a large iron printing press, type cases, hanging paper sheets drying, ink-stained workbench, open floor space in front, no people, no readable text.",
-      "files": {},
+      "files": {
+        "thumb": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838051/sirlocked/cases/library/v-room-xuong-in/thumb-30dc7efc4cd8.webp"
+      },
       "retired": false,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/interior/v-room-xuong-in.png",
@@ -4039,6 +4929,10 @@
           "thumb": "tmp/library-build/v-room-xuong-in/thumb.webp"
         },
         "sha256": {
+          "main": "bbf1ad76c23ff22d55066887f93a995bcbdee485f5e1066227ae31ee24117c2b",
+          "thumb": "30dc7efc4cd8d488fbf0634e9800924809c0838e501c68903351dcdf269767a2"
+        },
+        "uploadedSha256": {
           "main": "bbf1ad76c23ff22d55066887f93a995bcbdee485f5e1066227ae31ee24117c2b",
           "thumb": "30dc7efc4cd8d488fbf0634e9800924809c0838e501c68903351dcdf269767a2"
         }
