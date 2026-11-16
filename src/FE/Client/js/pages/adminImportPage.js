@@ -46,12 +46,18 @@ export async function renderAdminImportPage(app) {
 
   const okNotice = (html) => `<div class="notice notice-ok acs-banner" role="status">${icon('check', 18)}<span>${html}</span></div>`;
 
+  /** Non-blocking findings, e.g. an existing case that predates the three-hint rule (VUAN-6). */
+  const warningNotice = (warnings) => (Array.isArray(warnings) && warnings.length
+    ? `<div class="notice notice-warn acs-import-warnings" role="status"><strong>${warnings.length} ${tr('warning(s), not blocking:', 'cảnh báo, không chặn:')}</strong>
+      <ul>${warnings.map((w) => `<li><code>${escapeHtml(w.code)}</code> ${escapeHtml(w.path)} — ${escapeHtml(w.message)}</li>`).join('')}</ul></div>`
+    : '');
+
   qs('#validate-btn', app).addEventListener('click', async () => {
     const json = parseInput();
     if (!json) return;
     try {
       const result = await adminApi.validateCase(json);
-      if (result.isValid) output.innerHTML = okNotice(tr('Validation passed — ready to import.', 'Kiểm tra thành công — sẵn sàng nhập.'));
+      if (result.isValid) output.innerHTML = okNotice(tr('Validation passed — ready to import.', 'Kiểm tra thành công — sẵn sàng nhập.')) + warningNotice(result.warnings);
       else showErrors(result.errors);
     } catch (err) {
       toast(err.message, 'error');
@@ -66,7 +72,8 @@ export async function renderAdminImportPage(app) {
     try {
       const summary = await adminApi.importCase(json, qs('#overwrite-box', app).checked);
       output.innerHTML = okNotice(`${tr('Imported', 'Đã nhập')} "${escapeHtml(summary.title)}" ${tr('as draft.', 'dưới dạng bản nháp.')}
-        <a href="/admin/cases/${encodeURIComponent(summary.caseId)}">${tr('Open it', 'Mở vụ án')}</a> ${tr('to review and publish.', 'để xem lại và xuất bản.')}`);
+        <a href="/admin/cases/${encodeURIComponent(summary.caseId)}">${tr('Open it', 'Mở vụ án')}</a> ${tr('to review and publish.', 'để xem lại và xuất bản.')}`)
+        + warningNotice(summary.validationWarnings);
       toast(tr('Case imported.', 'Đã nhập vụ án.'), 'success');
     } catch (err) {
       if (Array.isArray(err.errors)) showErrors(err.errors);

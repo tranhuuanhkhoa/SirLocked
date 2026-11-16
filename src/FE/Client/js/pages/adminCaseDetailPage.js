@@ -260,9 +260,16 @@ const OK_ICON = icon('check', 18);
 
 function validationResultHtml(result) {
   if (!result) return `<div class="notice notice-bad" role="alert">${tr('Deterministic validation could not be verified. Refresh before publishing.', 'Chưa xác minh được kiểm tra tất định. Hãy tải lại trang trước khi xuất bản.')}</div>`;
-  if (result.isValid) return `<div class="notice notice-ok acs-banner" role="status">${OK_ICON}<span>${tr('Validation passed — this case is playable.', 'Kiểm tra thành công — vụ án có thể chơi được.')}</span></div>`;
+  if (result.isValid) return `<div class="notice notice-ok acs-banner" role="status">${OK_ICON}<span>${tr('Validation passed — this case is playable.', 'Kiểm tra thành công — vụ án có thể chơi được.')}</span></div>${warningsHtml(result.warnings)}`;
   return `<div class="notice notice-bad" role="alert"><strong>${result.errors?.length ?? 0} ${tr('validation error(s):', 'lỗi kiểm tra:')}</strong>
     <ul>${(result.errors || []).map((error) => `<li><code>${escapeHtml(error.code)}</code> ${escapeHtml(error.path)} — ${escapeHtml(error.message)}</li>`).join('')}</ul></div>`;
+}
+
+/** Non-blocking findings, e.g. questions without three hint levels in a case that predates that rule (VUAN-6). */
+function warningsHtml(warnings) {
+  if (!Array.isArray(warnings) || !warnings.length) return '';
+  return `<div class="notice notice-warn acs-import-warnings" role="status"><strong>${warnings.length} ${tr('warning(s), not blocking:', 'cảnh báo, không chặn:')}</strong>
+    <ul>${warnings.map((item) => `<li><code>${escapeHtml(item.code)}</code> ${escapeHtml(item.path)} — ${escapeHtml(item.message)}</li>`).join('')}</ul></div>`;
 }
 
 function apiFailureHtml(error) {

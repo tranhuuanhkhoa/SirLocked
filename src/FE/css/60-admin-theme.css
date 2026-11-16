@@ -1045,6 +1045,9 @@ body[data-area="admin"] :is(#app, dialog) .notice {
 }
 body[data-area="admin"] :is(#app, dialog) .notice-ok { background: var(--adm-ok-bg); border-color: var(--adm-ok-line); color: var(--adm-ok); }
 body[data-area="admin"] :is(#app, dialog) .notice-bad { background: var(--adm-bad-bg); border-color: var(--adm-bad-line); color: var(--adm-bad); }
+body[data-area="admin"] :is(#app, dialog) .notice-warn { background: var(--adm-warn-bg); border-color: var(--adm-warn); color: var(--adm-warn); }
+body[data-area="admin"] #app .acs-import-warnings { margin-top: 10px; }
+body[data-area="admin"] #app .acs-import-warnings ul { margin: 6px 0 0; padding-left: 18px; overflow-wrap: anywhere; }
 
 /* ---------- 12. Hộp thoại, toast ---------- */
 
