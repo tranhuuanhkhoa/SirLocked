@@ -303,6 +303,10 @@ Only the latest 40 entries are returned in `GameStateResponse.actionLog`.
 
 ## aiCaseDrafts
 
+> Historical example from the OpenAI era. Since VUAN-1 new drafts store `"provider": "Claude"`, images come from the
+> bot (PixelLab and the shared library) and `assetManifest` has no image model. `OPENAI_GENERATED_VALID` is kept as a
+> stored status name so older drafts still load. Current fields: `docs/AI_CASE_SETUP_VI.md`.
+
 ```json
 {
   "_id": "ObjectId",

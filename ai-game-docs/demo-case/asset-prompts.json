@@ -304,7 +304,7 @@
   "itemOverlays": [
     {
       "itemId": "item-celeste-body",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/body.png",
       "sceneId": "scene-dressing-room",
       "targetSlotPx": {
@@ -317,7 +317,7 @@
     },
     {
       "itemId": "item-makeup-kit",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/makeup-kit.png",
       "sceneId": "scene-dressing-room",
       "targetSlotPx": {
@@ -330,7 +330,7 @@
     },
     {
       "itemId": "item-threatening-letter",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/letter.png",
       "sceneId": "scene-dressing-room",
       "targetSlotPx": {
@@ -343,7 +343,7 @@
     },
     {
       "itemId": "item-love-letter",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/love-letter.png",
       "sceneId": "scene-backstage-hallway",
       "targetSlotPx": {
@@ -356,7 +356,7 @@
     },
     {
       "itemId": "item-scratched-photo",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/scratched-photo.png",
       "sceneId": "scene-backstage-hallway",
       "targetSlotPx": {
@@ -369,7 +369,7 @@
     },
     {
       "itemId": "item-ledger",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/ledger.png",
       "sceneId": "scene-owners-office",
       "targetSlotPx": {
@@ -382,7 +382,7 @@
     },
     {
       "itemId": "item-spare-key",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/key.png",
       "sceneId": "scene-owners-office",
       "targetSlotPx": {
@@ -395,7 +395,7 @@
     },
     {
       "itemId": "item-cyanide-bottle",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/cyanide-bottle.png",
       "sceneId": "scene-props-room",
       "targetSlotPx": {
@@ -408,7 +408,7 @@
     },
     {
       "itemId": "item-pawn-ticket",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/items/pawn-ticket.png",
       "sceneId": "scene-props-room",
       "targetSlotPx": {
@@ -519,7 +519,7 @@
       "role": "INTERROGATOR",
       "name": "Sherlock Holmes",
       "look": "tall lean young detective, sharp focused face, tousled dark brown hair under a brown deerstalker cap, long dark charcoal inverness overcoat, a deep plum-purple wool scarf around the neck",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/players/holmes.png",
       "sizePx": {
         "width": 256,
@@ -532,7 +532,7 @@
       "role": "INVESTIGATOR",
       "name": "Dr John Watson",
       "look": "shorter sturdy older doctor, neat grey hair, trimmed grey moustache, kind determined face, dark navy field jacket with a brown fur collar over a buttoned shirt, leather wristwatch",
-      "generator": "gpt-image-transparent",
+      "generator": "transparent-cutout",
       "target": "/assets/players/watson.png",
       "sizePx": {
         "width": 256,

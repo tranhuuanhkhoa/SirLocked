@@ -23,6 +23,9 @@ The active code path is OpenAI-only. The creator first approves a spoiler-free s
 
 ## Configuration
 
+> **Removed in VUAN-1.** The `OpenAI__*` keys below no longer exist; the server reads `Bridge__Key` and
+> `Cloudinary__*` instead (see `docs/AI_CASE_SETUP_VI.md`). The block is kept only as the history of the pipeline.
+
 ```env
 OpenAI__ApiKey=
 OpenAI__LogicModel=gpt-5.5
