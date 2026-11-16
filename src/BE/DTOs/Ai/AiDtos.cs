@@ -416,6 +416,20 @@ public sealed class AiCaseCapabilitiesResponse
     public List<AiCreativeOptionResponse> CreativeInvestigationMechanics { get; set; } = new();
 }
 
+/// <summary>The caller's weekly AI order allowance (GET /api/admin/ai-cases/quota).</summary>
+public sealed class AiOrderQuotaResponse
+{
+    public string Role { get; set; } = string.Empty;
+    /// <summary>ADMIN orders have no weekly limit; the counts below are then zero.</summary>
+    public bool Unlimited { get; set; }
+    public int WeeklyLimit { get; set; }
+    /// <summary>Orders of this quota week that count against the limit (rejected orders do not).</summary>
+    public int UsedThisWeek { get; set; }
+    public int Remaining { get; set; }
+    /// <summary>The Monday (Vietnam time) the quota week started, yyyy-MM-dd.</summary>
+    public string WeekStart { get; set; } = string.Empty;
+}
+
 public sealed record AiCreationBlockerResponse(string Code, string Message, string MessageKey, string MessageVi = "");
 
 public sealed class AiCreativeOptionResponse

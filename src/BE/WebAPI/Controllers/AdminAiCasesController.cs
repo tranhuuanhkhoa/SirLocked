@@ -79,6 +79,11 @@ public class AdminAiCasesController : BaseApiController
         return Ok(saved, "AI case settings saved.");
     }
 
+    /// <summary>How many orders the caller has left this week (VIP); ADMIN orders are unlimited.</summary>
+    [HttpGet("quota")]
+    public async Task<ActionResult<ApiResponse<AiOrderQuotaResponse>>> GetQuota() =>
+        Ok(await _aiCaseService.GetOrderQuotaAsync(Caller));
+
     /// <summary>The shared image library for the order form (places and NPCs), filtered by world and kind.</summary>
     [HttpGet("library")]
     public async Task<ActionResult<ApiResponse<List<AssetLibraryEntry>>>> Library(

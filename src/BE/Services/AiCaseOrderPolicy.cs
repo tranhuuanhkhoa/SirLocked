@@ -47,13 +47,16 @@ public static class AiCaseOrderPolicy
             ReviewMode = Pick(requested.ReviewMode, AiCaseReviewModes.All, AiCaseReviewModes.Full, "reviewMode")
         };
         if (order.SuspectCount is < AiCaseOrder.MinSuspects or > AiCaseOrder.MaxSuspects)
-            throw Invalid("suspectCount must be between 3 and 6.");
+            throw Invalid("suspectCount must be between 3 and 6.", "suspectCount");
+        // Room for every suspect plus a few side characters (witnesses, the victim, a returning face).
+        if (order.NpcIds.Count > order.SuspectCount + AiCaseOrder.ExtraNpcPicks)
+            throw Invalid($"npcIds accepts at most {order.SuspectCount + AiCaseOrder.ExtraNpcPicks} entries for {order.SuspectCount} suspects.", "npcIds");
         if (order.CharacterNotes.Length > AiCaseOrder.MaxCharacterNotes)
-            throw Invalid("characterNotes must be at most 600 characters.");
+            throw Invalid("characterNotes must be at most 600 characters.", "characterNotes");
         if (!AiCaseOrder.PlayMinuteOptions.Contains(order.PlayMinutes))
-            throw Invalid("playMinutes must be 20, 30, 45 or 60.");
+            throw Invalid("playMinutes must be 20, 30, 45 or 60.", "playMinutes");
         if (!AiCaseOrder.PixelLabCapOptions.Contains(order.PixelLabCap))
-            throw Invalid("pixelLabCap must be 0, 30, 60 or 100.");
+            throw Invalid("pixelLabCap must be 0, 30, 60 or 100.", "pixelLabCap");
 
         if (!string.Equals(role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
         {
@@ -68,7 +71,7 @@ public static class AiCaseOrderPolicy
     {
         if (string.IsNullOrWhiteSpace(value)) return fallback;
         var normalized = value.Trim().ToUpperInvariant();
-        return allowed.Contains(normalized) ? normalized : throw Invalid($"{field} '{value}' is not supported.");
+        return allowed.Contains(normalized) ? normalized : throw Invalid($"{field} '{value}' is not supported.", field);
     }
 
     private static List<string> NormalizeKeys(List<string>? keys, string field)
@@ -78,14 +81,15 @@ public static class AiCaseOrderPolicy
             .Select(key => key.Trim())
             .Distinct(StringComparer.Ordinal)
             .ToList();
-        if (normalized.Count > MaxLibraryPicks) throw Invalid($"{field} accepts at most {MaxLibraryPicks} entries.");
+        if (normalized.Count > MaxLibraryPicks) throw Invalid($"{field} accepts at most {MaxLibraryPicks} entries.", field);
         if (normalized.Any(key => key.Length > 120 || key.Any(char.IsWhiteSpace)))
-            throw Invalid($"{field} must contain library keys without spaces.");
+            throw Invalid($"{field} must contain library keys without spaces.", field);
         return normalized;
     }
 
-    private static ApiException Invalid(string message) =>
-        ApiException.BadRequest(message, new ApiErrorDetails("AI_ORDER_INVALID", "ai.order.invalid"));
+    /// <param name="field">The order field at fault (camelCase); the error names it as <c>order.&lt;field&gt;</c>.</param>
+    private static ApiException Invalid(string message, string field) =>
+        ApiException.BadRequest(message, new ApiErrorDetails("AI_ORDER_INVALID", "ai.order.invalid") { Field = $"order.{field}" });
 
     /// <summary>
     /// The order as an explicit block appended to every step's prompt. Drafts created before orders existed have no

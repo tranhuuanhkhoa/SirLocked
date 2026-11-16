@@ -424,16 +424,36 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
         var vip = AiCaseOrderPolicy.Normalize(new AiCaseOrder { ReviewMode = "FAST", PixelLabCap = 100 }, UserRole.Vip);
         Assert.Equal(("FULL", 30), (vip.ReviewMode, vip.PixelLabCap));
 
-        foreach (var invalid in new[]
+        // Every refusal names the field at fault, so the order form can show it next to that field.
+        foreach (var (invalid, field) in new (AiCaseOrder, string)[]
                  {
-                     new AiCaseOrder { SuspectCount = 2 }, new AiCaseOrder { SuspectCount = 7 }, new AiCaseOrder { PlayMinutes = 25 },
-                     new AiCaseOrder { PixelLabCap = 50 }, new AiCaseOrder { World = "MARS" }, new AiCaseOrder { Weather = "FOG" },
-                     new AiCaseOrder { CharacterNotes = new string('x', 601) }, new AiCaseOrder { LocationIds = ["has space"] }
+                     (new AiCaseOrder { SuspectCount = 2 }, "order.suspectCount"), (new AiCaseOrder { SuspectCount = 7 }, "order.suspectCount"),
+                     (new AiCaseOrder { PlayMinutes = 25 }, "order.playMinutes"), (new AiCaseOrder { PixelLabCap = 50 }, "order.pixelLabCap"),
+                     (new AiCaseOrder { World = "MARS" }, "order.world"), (new AiCaseOrder { Weather = "FOG" }, "order.weather"),
+                     (new AiCaseOrder { CharacterNotes = new string('x', 601) }, "order.characterNotes"),
+                     (new AiCaseOrder { LocationIds = ["has space"] }, "order.locationIds"),
+                     (new AiCaseOrder { SuspectCount = 3, NpcIds = ["n1", "n2", "n3", "n4", "n5", "n6", "n7"] }, "order.npcIds")
                  })
         {
             var error = Assert.Throws<ApiException>(() => AiCaseOrderPolicy.Normalize(invalid, UserRole.Admin));
-            Assert.Equal("AI_ORDER_INVALID", Assert.IsType<ApiErrorDetails>(error.Errors).Code);
+            var details = Assert.IsType<ApiErrorDetails>(error.Errors);
+            Assert.Equal(("AI_ORDER_INVALID", field), (details.Code, details.Field));
         }
+
+        // Suspects plus three side characters is the most an order may name.
+        var cast = AiCaseOrderPolicy.Normalize(new AiCaseOrder { SuspectCount = 3, NpcIds = ["n1", "n2", "n3", "n4", "n5", "n6"] }, UserRole.Admin);
+        Assert.Equal(6, cast.NpcIds.Count);
+    }
+
+    [Fact]
+    public void ErrorDetails_WriteTheFieldOnlyWhenAnErrorIsAboutOne()
+    {
+        var plain = System.Text.Json.JsonSerializer.Serialize<object>(new ApiErrorDetails("X", "x.key"),
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Equal("{\"code\":\"X\",\"messageKey\":\"x.key\"}", plain);
+        var withField = System.Text.Json.JsonSerializer.Serialize<object>(new ApiErrorDetails("X", "x.key") { Field = "order.world" },
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        Assert.Equal("{\"code\":\"X\",\"messageKey\":\"x.key\",\"field\":\"order.world\"}", withField);
     }
 
     [Fact]

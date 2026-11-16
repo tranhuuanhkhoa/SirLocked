@@ -29,6 +29,9 @@ Người chơi chỉ nhận vụ đã đăng, không bao giờ gọi tới Claud
 - **ADMIN** đặt đơn: vào hàng chờ ngay (`QUEUED_FOR_CLAUDE`).
 - **VIP** đặt đơn: `AWAITING_OWNER_APPROVAL`, chưa có yêu cầu bridge nào; server ép `reviewMode = FULL` và `pixelLabCap = 30`. ADMIN duyệt bằng `POST /api/admin/ai-cases/{id}/approve-order` hoặc từ chối bằng `POST …/reject-order` với `{ "reason": "…" }`. Cả hai ghi vào nhật ký admin (`ai-order.approve`, `ai-order.reject`). Đơn bị từ chối không tính vào hạn mức tuần.
 - Mỗi VIP đặt tối đa **2 đơn mỗi tuần** (thứ Hai–Chủ nhật, giờ Việt Nam). ADMIN đổi bằng `GET/PUT /api/admin/ai-cases/settings` với `{ "vipWeeklyOrderLimit": n }` (ghi nhật ký `ai-settings.update`).
+- `GET /api/admin/ai-cases/quota` (ADMIN và VIP, từ VUAN-3): số đơn còn lại trong tuần của người gọi, `{ unlimited, weeklyLimit, usedThisWeek, remaining, weekStart }`. ADMIN nhận `unlimited: true`. Form dùng nó để hiện "Còn x/y đơn trong tuần này" và khóa nút khi hết.
+- `npcIds` tối đa **số nghi phạm + 3** (vẫn không quá 12).
+- Lỗi `AI_ORDER_INVALID` có thêm `errors.field` (ví dụ `order.suspectCount`, `order.npcIds`) để form hiện lỗi ngay cạnh ô sai. Lỗi khác không có trường này.
 - Trạng thái đơn (`orderStatus`, kèm `orderStatusHistory` có mốc thời gian): `AWAITING_OWNER_APPROVAL` → `QUEUED_FOR_CLAUDE` → `CLAUDE_WORKING` → `AWAITING_GATE` → … → `SUBMITTED` (sẵn sàng đăng hoặc đã import). Thêm `REJECTED`, `CANCELLED`.
 
 ## Hàng chờ Claude (park/resume)
@@ -69,6 +72,12 @@ Xác thực chỉ bằng header `X-Bridge-Key` (so khớp thời gian hằng, kh
 | `POST /api/bridge/library/files` | Multipart `key` + `role` + `file` (PNG/WebP thật, ≤ 5 MB): lưu ảnh thư viện lên Cloudinary ở `<folder>/library/<key>/<role>-<sha12>`, trả URL; gửi lại cùng ảnh ra cùng địa chỉ |
 
 Thư viện cho form: `GET /api/admin/ai-cases/library?world=&kind=` (ADMIN và VIP), không có mục `retired`.
+
+### Màn đặt đơn `/admin/ai` (VUAN-3)
+
+Bảy thẻ theo thứ tự: **Thế giới và địa điểm** (4 thẻ thế giới có ảnh nhỏ lấy từ bản đồ ngoài trời đầu tiên của thế giới; chọn nhiều địa điểm từ thư viện, lọc Tất cả / Ngoài trời / Trong nhà; thay ô Khóa bối cảnh cũ), **Cấu hình tạo** (5 preset, số chặng, độ khó, thời lượng 20/30/45/60 phút; preset nào cố định chặng và độ khó thì form chỉ cho chọn đúng giá trị server chấp nhận), **Ngôn ngữ và loại vụ án** (thêm mức nội dung Nhẹ/Thường), **Nhân vật** (3–6 nghi phạm, chân dung NPC của thế giới, mô tả ≤ 600 ký tự), **Không khí** (thời tiết, thời điểm, khóa sắc thái), **Mở rộng gameplay** (Phá Vỡ Lời Dối), **Ý tưởng** (2.000 ký tự, bộ đếm, chip chèn Nạn nhân / Hung khí / Bí mật / Bầu không khí, khóa cơ chế điều tra).
+
+Khung "Bản nháp sẽ tạo" tóm tắt đơn; chỉ ADMIN thấy **Lượt PixelLab tối đa** và **Chế độ duyệt** (chế độ nhanh rút "Các bước duyệt" còn 2) cùng ô giới hạn đơn VIP mỗi tuần. VIP thấy "Đơn sẽ chờ Yen duyệt" và số đơn còn lại. Mặc định khi mở: Phố Hàng Đường, bot chọn thời tiết và thời điểm, Nhẹ, 30 lượt, đầy đủ 4 cổng. Bảng "Bản nháp AI gần đây" có cột Người đặt và Trạng thái đơn (kèm giờ); ADMIN duyệt hoặc từ chối đơn VIP ngay trong bảng, lý do từ chối nhập trong hộp của trang. Chi tiết draft hiện `report.md` của bot dạng Markdown đã lọc (không chèn HTML thô).
 
 Phía bot (MCP `sirlocked-studio`, skill `/tao-vu-an`, cách cài trên máy Yen và VPS studio): xem [docs/studio-vps.md](studio-vps.md).
 

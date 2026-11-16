@@ -163,8 +163,15 @@ public sealed class MongoAiDraftQuotaTests
             var request = new GenerateAiCaseRequest { GenerationPreset = AiGenerationPresets.ShortDemo };
 
             Assert.Equal(AiCaseSettingsStore.DefaultVipWeeklyOrderLimit, (await new AiCaseSettingsStore(db).GetAsync()).VipWeeklyOrderLimit);
+            var fresh = await service.GetOrderQuotaAsync(vip);
+            Assert.Equal((false, 2, 0, 2), (fresh.Unlimited, fresh.WeeklyLimit, fresh.UsedThisWeek, fresh.Remaining));
+            Assert.Equal(AiCaseService.VietnamQuotaWeek(DateTime.UtcNow), fresh.WeekStart);
+            var adminQuota = await service.GetOrderQuotaAsync(admin);
+            Assert.True(adminQuota.Unlimited);
             var first = await service.CreatePreviewAsync(vip, request, "week-1");
             await service.CreatePreviewAsync(vip, request, "week-2");
+            var spent = await service.GetOrderQuotaAsync(vip);
+            Assert.Equal((2, 0), (spent.UsedThisWeek, spent.Remaining));
             var third = await Assert.ThrowsAsync<ApiException>(() => service.CreatePreviewAsync(vip, request, "week-3"));
             Assert.Equal("AI_WEEKLY_LIMIT", Assert.IsType<ApiErrorDetails>(third.Errors).Code);
             // Replaying an accepted order is not a new order.
@@ -179,6 +186,7 @@ public sealed class MongoAiDraftQuotaTests
             var change = rejected.OrderStatusHistory.Last();
             Assert.Equal((AiOrderStatuses.Rejected, admin.Id), (change.Status, change.ByUserId));
             Assert.Null((await db.AiCaseDrafts.Find(item => item.Id == first.DraftId).SingleAsync()).WeeklyQuotaKey);
+            Assert.Equal(1, (await service.GetOrderQuotaAsync(vip)).Remaining);
 
             await service.CreatePreviewAsync(vip, request, "week-3"); // the rejected order's slot is free again
             var fourth = await Assert.ThrowsAsync<ApiException>(() => service.CreatePreviewAsync(vip, request, "week-4"));

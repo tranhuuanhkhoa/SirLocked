@@ -29,4 +29,5 @@ public interface IAiCaseService
     Task<CaseSummaryResponse> ImportDraftAsync(CurrentUser user, string draftId, bool overwrite, bool publish);
     Task<AiDraftResponse> ApproveOrderAsync(CurrentUser user, string draftId);
     Task<AiDraftResponse> RejectOrderAsync(CurrentUser user, string draftId, string reason);
+    Task<AiOrderQuotaResponse> GetOrderQuotaAsync(CurrentUser user);
 }

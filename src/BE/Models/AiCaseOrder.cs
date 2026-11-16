@@ -70,6 +70,8 @@ public class AiCaseOrder
     public const int MinSuspects = 3;
     public const int MaxSuspects = 6;
     public const int MaxCharacterNotes = 600;
+    /// <summary>Library NPCs an order may name beyond its suspects (witnesses, the victim, returning faces).</summary>
+    public const int ExtraNpcPicks = 3;
     public static readonly IReadOnlyList<int> PlayMinuteOptions = [20, 30, 45, 60];
     public static readonly IReadOnlyList<int> PixelLabCapOptions = [0, 30, 60, 100];
     public const int VipPixelLabCap = 30;

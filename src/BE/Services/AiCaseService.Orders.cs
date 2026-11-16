@@ -2,6 +2,7 @@ using MongoDB.Driver;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.Models;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Bridge;
 
 namespace SirLocked.Api.Services;
@@ -95,6 +96,28 @@ public partial class AiCaseService
                 "AI_WORKFLOW_CONFLICT", "ai.workflow.conflict");
         await new AiBridgeRequestStore(_db, TimeProvider.System).CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, rejected.Id);
         return AiDraftResponse.From(rejected, includeJson: false);
+    }
+
+    /// <summary>
+    /// The caller's weekly order allowance, for the order form. ADMIN orders have no weekly limit; a VIP sees the
+    /// limit, the orders that count against it this week (rejected ones do not) and what is left.
+    /// </summary>
+    public async Task<AiOrderQuotaResponse> GetOrderQuotaAsync(CurrentUser user)
+    {
+        var week = VietnamQuotaWeek(DateTime.UtcNow);
+        if (string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
+            return new AiOrderQuotaResponse { Role = UserRole.Admin, Unlimited = true, WeekStart = week };
+        var limit = (await new AiCaseSettingsStore(_db).GetAsync()).VipWeeklyOrderLimit;
+        var used = (int)await _db.AiCaseDrafts.CountDocumentsAsync(item => item.CreatedByUserId == user.Id
+            && item.QuotaWeek == week && item.WeeklyQuotaKey != null);
+        return new AiOrderQuotaResponse
+        {
+            Role = user.Role,
+            WeeklyLimit = limit,
+            UsedThisWeek = used,
+            Remaining = Math.Max(0, limit - used),
+            WeekStart = week
+        };
     }
 
     private static void EnsureOrderApproved(AiCaseDraft draft)

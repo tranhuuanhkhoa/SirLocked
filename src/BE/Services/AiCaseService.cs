@@ -225,7 +225,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             && order.World != AiCaseWorlds.HangDuongVictorian)
             throw ApiException.BadRequest(
                 "The setting lock belongs to the Victorian world. Pick locations from the chosen world instead.",
-                new ApiErrorDetails("AI_CREATIVE_CONSTRAINT_WORLD_MISMATCH", "ai.creativeConstraints.worldMismatch"));
+                new ApiErrorDetails("AI_CREATIVE_CONSTRAINT_WORLD_MISMATCH", "ai.creativeConstraints.worldMismatch")
+                {
+                    Field = "creativeConstraints.settingId"
+                });
         var isAdmin = string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase);
         var creatorPrompt = request.Prompt?.Trim() ?? string.Empty;
         var draftId = ObjectId.GenerateNewId().ToString();
