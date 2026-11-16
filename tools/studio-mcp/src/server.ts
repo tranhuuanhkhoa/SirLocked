@@ -10,6 +10,7 @@ import {
 } from './tools/draft.js';
 import { librarySearch, librarySync } from './tools/library.js';
 import { playtest } from './tools/playtest.js';
+import { blipPreview, sfxSearch, TIMES_OF_DAY, weatherPreview, WEATHER_TYPES } from './tools/atmosphere.js';
 import { VARIANT_TYPES } from './image/variant.js';
 
 export const TOOL_NAMES = [
@@ -17,6 +18,7 @@ export const TOOL_NAMES = [
   'draft_get', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
   'assets_needed', 'asset_upload', 'assets_complete',
   'library_search', 'library_sync', 'asset_process', 'asset_variant', 'playtest',
+  'weather_preview', 'blip_preview', 'sfx_search',
 ] as const;
 
 type Handler = (args: any) => Promise<unknown> | unknown;
@@ -127,6 +129,27 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
       draftId: id.optional(), casePath: z.string().optional(), apiUrl: z.string().optional(), webUrl: z.string().optional(),
       screenshots: z.boolean().optional(), reimport: z.boolean().optional(), timeoutMinutes: z.number().int().min(2).max(60).optional(),
     }, (args) => playtest(ctx, args));
+
+  // ---------------------------------------------------------------- sound and weather (VUAN-4)
+  tool('weather_preview', [
+    'Quay 5–8 giây một cảnh trên MÁY NÀY (Vite local, API giả lập, không cần Mongo) với thời tiết và thời điểm cho trước:',
+    'weather NONE|RAIN|WIND|SNOW|STORM, intensity 0–1, timeOfDay DAY|DUSK|NIGHT (đặt weather khác NONE thì cảnh thành ngoài trời).',
+    'Trả video WebM (MP4 khi có ffmpeg và format mp4), ảnh chụp giữa đoạn, số hạt, chớp, tiếng thời tiết có chạy không.',
+    'Ảnh nền đêm/hoàng hôn làm trước bằng asset_variant rồi đưa vào backgroundUrl nếu case chưa trỏ tới.',
+  ].join(' '), {
+    casePath: z.string().optional(), draftId: id.optional(), sceneId: z.string().optional(),
+    weather: z.enum(WEATHER_TYPES).optional(), intensity: z.number().min(0).max(1).optional(), timeOfDay: z.enum(TIMES_OF_DAY).optional(),
+    backgroundUrl: z.string().optional(), seconds: z.number().min(5).max(8).optional(),
+    width: z.number().int().min(390).max(1920).optional(), height: z.number().int().min(400).max(1080).optional(),
+    webUrl: z.string().optional(), outDir: z.string().optional(), name: z.string().optional(), format: z.enum(['webm', 'mp4']).optional(),
+    quality: z.union([z.literal(1), z.literal(0.5), z.literal(0.25)]).optional().describe('số hạt: 1 đầy đủ, 0.5 hoặc 0.25 như máy yếu'),
+  }, (args) => weatherPreview(ctx, args));
+  tool('blip_preview', 'Xuất file WAV nghe thử tiếng bíp của từng nhân vật trong case (render offline, cùng code với game). Nhân vật không có voice.blip dùng giọng mặc định theo characterId. Báo các nhân vật nghe gần giống nhau.',
+    { casePath: z.string().optional(), draftId: id.optional(), characterIds: z.array(z.string()).optional(), text: z.string().max(400).optional(), outDir: z.string().optional() },
+    (args) => blipPreview(ctx, args));
+  tool('sfx_search', 'Tìm trong gói tiếng CC0 của game (src/FE/public/assets/audio/sfx/LICENSES.json): theo cue giao diện (dialogue, discovery, reveal, scene, ping, interact, error), loại giải đố, event (tap, probe, solve, wrong) hoặc nhãn (không cần dấu). Trả file, nguồn, giấy phép.',
+    { query: z.string().optional(), cue: z.string().optional(), kind: z.string().optional(), event: z.string().optional(), includeFallback: z.boolean().optional(), limit: z.number().int().min(1).max(200).optional() },
+    (args) => sfxSearch(ctx, args));
 
   return server;
 }

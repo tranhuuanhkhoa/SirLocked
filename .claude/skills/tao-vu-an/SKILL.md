@@ -30,7 +30,7 @@ Bạn là bot viết vụ án cho Sir Locked. Server giữ prompt, schema, valid
 | 5 | Bot | **Logic chơi**: cảnh, vật phẩm, giải đố có đủ tham số, hội thoại, đối chất, gợi ý, kết thúc. Bước đánh giá của server do agent `kiem-dinh` trả lời. → **Cổng 3 LOGIC** | như trên, `player_view` |
 | 6 | Bot | **Bố cục cảnh**: hotspot, vùng đi được, chỗ đặt vật và người. → **Cổng 4 LAYOUT** | như trên, `asset_process walkable` |
 | 7 | Bot | **Hình**: thư viện trước, biến thể sau, PixelLab cuối cùng; mask, walk grid trên máy; tải lên qua server | `assets_needed`, `library_search`, `asset_variant`, `asset_process`, `asset_upload`, `assets_complete` |
-| 8 | Bot | **Âm thanh**: nhạc mỗi khu, giọng bíp từng nhân vật, thời tiết cảnh ngoài trời (trong nhà để trống) — ghi thẳng trong JSON | (trong JSON) |
+| 8 | Bot | **Âm thanh và thời tiết**: nhạc mỗi khu, giọng bíp từng nhân vật (nghe thử, không ai trùng giọng), thời tiết cảnh ngoài trời theo đơn (trong nhà `indoor: true`), thời điểm; quay thử cảnh ngoài trời; tiếng giao diện chọn trong gói CC0 — ghi thẳng trong JSON | `blip_preview`, `weather_preview`, `sfx_search` |
 | 9 | Bot → Yen | **Chạy thử**: import (không đăng), Playwright tự chơi theo lời giải, viết `report.md`. Yen chơi thử rồi tự bấm Xuất bản | `draft_import`, `playtest`, `draft_report` |
 
 Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại (yêu cầu vẫn mở); không làm lại từ đầu. Draft dừng ở `CASE_TRUTH_INVALID` / `GENERATED_INVALID` thì báo Yen dùng "sửa theo phạm vi" trên admin.
@@ -108,7 +108,7 @@ Viết vào `tmp/bridge/<draftId>/report.md` rồi `draft_report { draftId }`. C
 
 ## Âm thanh
 
-- Nhạc từng khu, bíp từng nhân vật, thời tiết từng cảnh ngoài trời.
+- Nhạc từng khu, bíp từng nhân vật (`blip_preview`, không ai trùng giọng), thời tiết và thời điểm từng cảnh ngoài trời (video `weather_preview`), cảnh trong nhà `indoor: true`.
 
 ## Cần Yen xem
 
@@ -148,9 +148,16 @@ Dàn diễn viên: một NPC có thể đóng vai khác ở vụ khác (đổi t
 3. `asset_upload { draftId, slotId, file }` từng ô; xong hết thì `assets_complete { draftId }`.
 4. Vùng đi được: `asset_process mask_from_shapes` (hình chữ nhật, hình thoi sàn isometric) rồi `walkable { picture }`; mở ảnh phủ xanh/đỏ để kiểm trước khi đưa `walkGrid`, `walkableArea`, `navigationObstacles` vào bố cục.
 
-## Âm thanh trong JSON
+## Bước 8: âm thanh và thời tiết trong JSON
 
-Theo `docs/case-audio-weather.md`: `characters[].voice.blip` cho mọi nhân vật (mỗi người một cao độ/tốc độ/sóng); `scenes[].atmosphere` gồm `audio.music` (mỗi khu một bài, có `title`, `source`, `license`), `weather` (chỉ cảnh ngoài trời, theo `order.weather`), `indoor`, `timeOfDay` (theo `order.timeOfDay`). Cảnh trong nhà: `indoor: true`, không có weather.
+Theo `docs/case-audio-weather.md`. Không dùng PixelLab cho âm thanh.
+
+1. **Giọng bíp:** `characters[].voice.blip` cho mọi nhân vật (`pitch` 80–1200, `speed` 10–40, `wave`, `variance` 0–1), mỗi người một cao độ, tốc độ, sóng hợp tính cách (già chậm và trầm, trẻ nhanh và cao). Nhân vật thiếu `voice` vẫn có giọng mặc định sinh từ id, nhưng bot luôn tự đặt. Kiểm bằng `blip_preview { draftId }` (hoặc `casePath`): mỗi nhân vật một file WAV trong `tmp/blip-preview/`; `similarVoices` phải rỗng, có tên nào thì đổi `pitch` hoặc `wave` rồi chạy lại.
+2. **Nhạc khu:** `scenes[].atmosphere.audio.music` (mỗi khu một bài, có `title`, `source`, `license`, `volume`, `loopStartSec`/`loopEndSec` nếu bài có đoạn lặp). Hai khu cạnh nhau dùng cùng bài thì game phát tiếp, khác bài thì chuyển chéo 1,5 giây.
+3. **Thời tiết và thời điểm:** cảnh **ngoài trời** đặt `weather` theo `order.weather` (`RAIN`, `WIND`, `SNOW`, `STORM`, `intensity` 0–1; đơn để bot chọn thì chọn theo truyện), `indoor: false`. Cảnh **trong nhà**: `indoor: true`, không có weather (validator báo `IndoorWeather`). `timeOfDay` theo `order.timeOfDay`; đêm và hoàng hôn cần ảnh nền biến thể (`asset_variant night` / `dusk`), game tự tô màu nhân vật và vật phẩm cho khớp.
+4. **Quay thử:** `weather_preview { draftId, sceneId, format: "mp4" }` cho từng cảnh ngoài trời (mặc định cảnh ngoài trời đầu tiên, giữ thời tiết của case; truyền `weather`, `intensity`, `timeOfDay` để thử kiểu khác). Mở ảnh chụp tool trả về để tự nhìn: hạt mưa/tuyết thấy rõ nhưng không che nhân vật, giông có chớp. Video lưu ở `tmp/weather-preview/`.
+5. **Tiếng giao diện:** để trống `audio.cues` thì game dùng tiếng mặc định; muốn chỉ định thì `sfx_search { cue }` (hoặc `query` theo nhãn, không cần dấu) và ghi `runtime.audio.cues.<cue>` = file `.ogg` của gói. Tiếng 11 loại giải đố game tự chọn theo `kind`, không ghi vào case.
+6. Ghi vào mục "Âm thanh" của `report.md`: nhạc từng khu, giọng từng nhân vật (kết quả `blip_preview`), thời tiết/thời điểm từng cảnh, đường dẫn video `weather_preview`.
 
 ## Bước 9: chạy thử và báo cáo
 
