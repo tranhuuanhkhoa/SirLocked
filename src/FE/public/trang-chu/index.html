@@ -374,9 +374,7 @@ html:not(.js) .iris, .no-iris .iris { display: none; }
 
 /* ---------- Loot ---------- */
 .sec-loot { overflow: hidden; padding-top: clamp(150px, 16vw, 210px); background: radial-gradient(900px 620px at 74% 46%, rgba(199, 162, 75, .13), transparent 70%), #0a0807; }
-.dragon-lane { position: absolute; left: 0; right: 0; top: clamp(18px, 2vw, 36px); height: 220px; pointer-events: none; z-index: 0; }
-.dragon { position: absolute; left: 0; top: 0; width: clamp(240px, 34vw, 460px); animation: fly 26s linear 2s infinite both; }
-.dragon img { display: block; width: 100%; filter: drop-shadow(0 0 26px rgba(255, 140, 40, .35)); animation: bob 3.2s ease-in-out infinite alternate; }
+.fireworks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; will-change: transform; }
 .loot-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(40px, 6vw, 96px); align-items: center; }
 .loot-copy { min-width: 0; display: flex; flex-direction: column; gap: 22px; }
 .loot-copy > p { margin: 0; font-size: 20px; color: var(--fg-2); max-width: 30em; }
@@ -488,8 +486,6 @@ html:not(.js) .iris, .no-iris .iris { display: none; }
 @keyframes spin { to { rotate: 360deg; } }
 @keyframes flash { 0% { opacity: 0; } 25% { opacity: .95; } 100% { opacity: 0; } }
 @keyframes shake { 0%, 100% { transform: none; } 10% { transform: rotate(-2deg); } 20% { transform: rotate(2.5deg); } 30% { transform: rotate(-3deg) translateY(-2px); } 40% { transform: rotate(3.5deg) translateY(-3px); } 50% { transform: rotate(-4deg) translateY(-4px); } 60% { transform: rotate(4deg) translateY(-5px); } 70% { transform: rotate(-3deg) translateY(-6px) scale(1.03); } 80% { transform: rotate(2deg) translateY(-6px) scale(1.04); } 90% { transform: rotate(-1deg) translateY(-3px) scale(1.02); } }
-@keyframes fly { 0% { transform: translate3d(-40vw, 60px, 0) scale(.85); } 52% { transform: translate3d(110vw, -10px, 0) scale(1); } 100% { transform: translate3d(110vw, -10px, 0) scale(1); } }
-@keyframes bob { from { transform: translateY(-8px) rotate(-1.5deg); } to { transform: translateY(8px) rotate(1.5deg); } }
 @keyframes drift { from { transform: scale(1.15) translate(2%, 1%); } to { transform: scale(1.28) translate(-3%, -2%); } }
 @keyframes breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 @keyframes breathe2 { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.004, 1.008); } }
@@ -503,10 +499,10 @@ html:not(.js) .iris, .no-iris .iris { display: none; }
 @keyframes eq { from { height: 3px; } to { height: 14px; } }
 
 html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
-html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html.calm .glint { display: none; }
+html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.calm .glint { display: none; }
 @media (prefers-reduced-motion: reduce) {
   html:not(.motion-ok) *, html:not(.motion-ok) *::before, html:not(.motion-ok) *::after { animation-duration: .001ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
-  html:not(.motion-ok) .dragon-lane, html:not(.motion-ok) .rain, html:not(.motion-ok) .iris, html:not(.motion-ok) .smoke, html:not(.motion-ok) .glint { display: none; }
+  html:not(.motion-ok) .fireworks, html:not(.motion-ok) .rain, html:not(.motion-ok) .iris, html:not(.motion-ok) .smoke, html:not(.motion-ok) .glint { display: none; }
 }
 </style>
 
@@ -724,7 +720,7 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   </section>
 
   <section class="sec sec-loot" id="kho-do" aria-labelledby="loot-title">
-    <div class="dragon-lane" aria-hidden="true"><div class="dragon"><img src="/trang-chu/assets/rong-bay.webp" alt="" width="558" height="290" loading="lazy"></div></div>
+    <canvas class="fireworks" id="fireworks" aria-hidden="true"></canvas>
     <div class="wrap loot-grid">
       <div class="loot-copy">
         <h2 class="h2" id="loot-title">Mở hòm. <em>Săn đồ hiếm.</em></h2>
@@ -1239,6 +1235,522 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   }
   $$('canvas.rain').forEach(function (c) { new Rain(c); });
 
+  /* ---- Pháo hoa ở khu Mở hòm (thay con rồng bay ngang) ----
+     Một màn trình diễn có kịch bản, diễn lặp lại: mở màn, song tấu, liễu vàng, hoa văn, bão màu, kết màn, nghỉ vài giây rồi diễn lại.
+     Mỗi kiểu nổ là một hàm trong TYPES: mẫu đơn có nhụy, cúc kéo đuôi, liễu vàng rủ, liễu bạc, vòng nghiêng, vòng đôi, sao Thổ,
+     chữ thập tự tách, cây cọ, nhấp nháy, đổi màu, đa sắc chia múi, nổ lách tách, và hình kính lúp / trái tim / ngôi sao.
+     Pháo nổ quanh tiêu đề và hòm; tâm nổ rơi vào đoạn chữ nhỏ thì được dời lên trên hoặc sang bên.
+     Chỉ chạy khi khu này đang hiện và không bật "Tắt hiệu ứng". Mở thử hòm thì bắn thêm từ miệng hòm, càng hiếm càng rực. */
+  function Fireworks(canvas) {
+    var ctx = canvas.getContext('2d'), sec = canvas.parentNode;
+    var w = 0, h = 0, U = 1, dens = 1, raf = 0, visible = false, last = 0, away = 0;
+    var rockets = [], stars = [], sparks = [], flashes = [], timers = [];
+    var clock = 0, act = 0, nextAct = .3;
+    var TAU = Math.PI * 2;
+    var C = {
+      gold: '255,204,102', amber: '255,150,50', red: '255,64,58', crimson: '235,30,90', pink: '255,105,180',
+      magenta: '235,70,255', violet: '160,120,255', blue: '70,150,255', cyan: '70,230,240', teal: '40,225,170',
+      green: '110,240,90', lime: '205,255,80', white: '255,250,238', silver: '214,222,255', willow: '255,196,96'
+    };
+    var RAINBOW = [C.red, C.amber, C.gold, C.lime, C.green, C.cyan, C.blue, C.violet, C.magenta];
+    var MIX = [C.red, C.gold, C.green, C.cyan, C.blue, C.violet, C.magenta, C.pink, C.amber, C.teal];
+    var rnd = function (a, b) { return a + Math.random() * (b - a); };
+    var pick = function (list) { return list[Math.floor(Math.random() * list.length)]; };
+    var rgbCache = {}, hotCache = {}, glowCache = {};
+    function rgb(c) { return rgbCache[c] || (rgbCache[c] = 'rgb(' + c + ')'); }
+    // Màu lúc sao vừa bung: gần trắng, rồi mới ra màu thật.
+    function hot(c) {
+      return hotCache[c] || (hotCache[c] = c.split(',').map(function (n) { return Math.round(+n + (255 - n) * .62); }).join(','));
+    }
+    // Quầng sáng vẽ sẵn cho từng màu, rẻ hơn shadowBlur nhiều.
+    function glow(c) {
+      if (glowCache[c]) return glowCache[c];
+      var g = document.createElement('canvas'); g.width = g.height = 32;
+      var x = g.getContext('2d'), rg = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+      rg.addColorStop(0, 'rgba(' + c + ',1)'); rg.addColorStop(.28, 'rgba(' + c + ',.42)'); rg.addColorStop(1, 'rgba(' + c + ',0)');
+      x.fillStyle = rg; x.fillRect(0, 0, 32, 32);
+      return (glowCache[c] = g);
+    }
+
+    // Hạt pháo tính theo tọa độ của cả khu (w x h). Canvas thì chỉ cao bằng màn hình cộng hai mép EDGE và trượt theo
+    // khi cuộn (off), nên mỗi khung chỉ vẽ lại chừng đó điểm ảnh chứ không phải cả khu cao gần gấp đôi màn hình.
+    var dpr = 1, ch = 0, off = -1, EDGE = 120;
+    function size() {
+      var r = sec.getBoundingClientRect();
+      dpr = Math.min(1.25, window.devicePixelRatio || 1);
+      w = r.width; h = r.height;
+      if (!w || !h) return;
+      ch = Math.min(h, innerHeight + EDGE * 2);
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(ch * dpr);
+      canvas.style.height = ch + 'px';
+      off = -1;
+      U = clamp(Math.min(w, innerHeight * 1.6) / 1400, .5, 1.15);
+      dens = clamp(U * 1.15, .55, 1);
+    }
+    function follow() {
+      var o = Math.round(clamp(-sec.getBoundingClientRect().top - EDGE, 0, Math.max(0, h - ch)));
+      if (o !== off) { off = o; canvas.style.transform = 'translateY(' + o + 'px)'; }
+    }
+    function wipe() { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    function rad(o) { return 175 * U * (o.size || 1); }
+
+    // Phần của khu đang nằm trong màn hình (tọa độ của khu), chừa thanh trên cùng.
+    function stage() {
+      var r = sec.getBoundingClientRect();
+      var top = Math.max(0, 76 - r.top), bot = Math.min(h, innerHeight - r.top);
+      if (bot - top < 240) { top = 0; bot = Math.min(h, Math.max(240, innerHeight)); }
+      return { top: top, bot: bot };
+    }
+    var quietEls = $$('.loot-copy > p, .loot-copy .chests, .loot-copy .odds', sec);
+    function quiet() {
+      var cr = sec.getBoundingClientRect(), q = null;
+      quietEls.forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (!r.width) return;
+        var b = { l: r.left - cr.left, t: r.top - cr.top, r: r.right - cr.left, b: r.bottom - cr.top };
+        q = q ? { l: Math.min(q.l, b.l), t: Math.min(q.t, b.t), r: Math.max(q.r, b.r), b: Math.max(q.b, b.b) } : b;
+      });
+      return q;
+    }
+    // fx: 0..1 theo bề ngang; fy: 0..1 theo phần trên của đoạn đang thấy. Không nổ ngay sau đoạn chữ nhỏ.
+    function place(fx, fy, st) {
+      var R = 175 * U, x = fx * w, y = st.top + 20 * U + fy * (st.bot - st.top) * .78;
+      var q = quiet(), pad = R * .55;
+      if (q && x > q.l - pad && x < q.r + pad && y > q.t - pad && y < q.b + pad) {
+        var opts = [];
+        if (q.t - pad > st.top + R * .4) opts.push({ x: x, y: q.t - pad, d: y - q.t + pad });
+        if (q.r + pad < w - R * .3) opts.push({ x: q.r + pad, y: y, d: q.r + pad - x });
+        if (q.l - pad > R * .3) opts.push({ x: q.l - pad, y: y, d: x - q.l + pad });
+        opts.sort(function (a, b) { return a.d - b.d; });
+        if (opts[0]) { x = opts[0].x; y = opts[0].y; }
+      }
+      return { x: x, y: y };
+    }
+
+    function shoot(sx, sy, tx, ty, type, o, fly) {
+      rockets.push({ sx: sx, sy: sy, tx: tx, ty: ty, x: sx, y: sy, px: sx, py: sy, t: 0, d: fly, type: type, o: o || {} });
+    }
+    // Bắn từ mép dưới đoạn đang thấy lên điểm nổ.
+    function launch(fx, fy, type, o, fly) {
+      if (!w) return;
+      var st = stage(), p = place(fx, fy, st);
+      shoot(p.x + rnd(-50, 50) * U, st.bot + 8, p.x, p.y, type, o, fly || rnd(.95, 1.3));
+    }
+    function spark(x, y, vx, vy, c, life, s, g) {
+      if (sparks.length >= 6000 * dens) return;
+      sparks.push({ x: x, y: y, vx: vx, vy: vy, c: c, t: 0, life: life, s: s || 1.3, g: g == null ? 40 : g });
+    }
+    function star(x, y, vx, vy, c, life, o) {
+      if (stars.length >= 2600 * dens) return;
+      stars.push({
+        x: x, y: y, vx: vx, vy: vy, c: c, t: 0, life: o.pop ? life : life * rnd(.85, 1.1),
+        k: o.k || 2.6, g: o.g == null ? 55 : o.g, w: o.w || 2.5, hot: o.hot == null ? .14 : o.hot,
+        c2: o.c2 || null, glit: o.glit || 0, gc: o.gc || c, gl: o.gl || .6, acc: Math.random(),
+        strobe: o.strobe || 0, ph: Math.random() * TAU, split: o.split || 0, sc: o.sc || c, R: o.R || 0, pop: o.pop || 0, tl: o.tl || .045
+      });
+    }
+    function flash(x, y, r, c, a) { flashes.push({ x: x, y: y, r: r, c: c, a: a || .3, t: 0, life: .34 }); }
+
+    // n hướng rải đều trên mặt cầu (xoắn Fibonacci), nghiêng ngẫu nhiên rồi chiếu xuống mặt phẳng: trông như quả cầu thật.
+    function sphere(n) {
+      var out = [], ga = Math.PI * (3 - Math.sqrt(5)), spin = rnd(0, TAU), tl = rnd(0, TAU), ct = Math.cos(tl), st = Math.sin(tl);
+      for (var i = 0; i < n; i++) {
+        var z = 1 - 2 * (i + .5) / n, r = Math.sqrt(1 - z * z), a = i * ga + spin, y = r * Math.sin(a);
+        out.push([r * Math.cos(a), y * ct - z * st]);
+      }
+      return out;
+    }
+    // c là một màu, hoặc một dãy màu thì chia múi theo hướng bay (pháo đa sắc).
+    function ball(x, y, n, R, c, life, o) {
+      o = o || {};
+      var v = R * (o.k || 2.6), multi = Array.isArray(c);
+      sphere(Math.max(12, Math.round(n * dens))).forEach(function (d) {
+        var col = multi ? c[Math.floor((Math.atan2(d[1], d[0]) + Math.PI) / TAU * c.length) % c.length] : c, s = v * rnd(.94, 1.04);
+        star(x, y, d[0] * s, d[1] * s, col, life, o);
+      });
+    }
+    function ringStars(x, y, n, R, c, tilt, spin, life, wd) {
+      var ct = Math.cos(tilt), cs = Math.cos(spin), ss = Math.sin(spin), v = R * 2.6;
+      n = Math.max(16, Math.round(n * dens));
+      for (var i = 0; i < n; i++) {
+        var a = i / n * TAU, px = Math.cos(a), py = Math.sin(a) * ct, s = v * rnd(.98, 1.02);
+        star(x, y, (px * cs - py * ss) * s, (px * ss + py * cs) * s, c, life, { w: wd || 2.2, g: 38 });
+      }
+    }
+    var SHAPES = {
+      // Kính lúp của thám tử: vòng kính và cán cầm chéo xuống bên phải.
+      lens: function () {
+        var pts = [], cx = -.2, cy = -.2, r = .58, i;
+        for (i = 0; i < 40; i++) { var a = i / 40 * TAU; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
+        var ex = cx + r * .7071, ey = cy + r * .7071;
+        for (i = 1; i <= 9; i++) { var k = i / 9, hx = ex + (.92 - ex) * k, hy = ey + (.92 - ey) * k; pts.push([hx - .04, hy + .04], [hx + .04, hy - .04]); }
+        return pts;
+      },
+      heart: function () {
+        var pts = [];
+        for (var i = 0; i < 44; i++) {
+          var t = i / 44 * TAU, s = Math.sin(t);
+          pts.push([16 * s * s * s / 17, -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 17 - .2]);
+        }
+        return pts;
+      },
+      star: function () {
+        var v = [], pts = [], i;
+        for (i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .42 : 1; v.push([Math.cos(a) * r, Math.sin(a) * r]); }
+        for (i = 0; i < 10; i++) { var p = v[i], q = v[(i + 1) % 10]; for (var j = 0; j < 5; j++) pts.push([p[0] + (q[0] - p[0]) * j / 5, p[1] + (q[1] - p[1]) * j / 5]); }
+        return pts;
+      }
+    };
+
+    var TYPES = {
+      // Mẫu đơn: quả cầu sao một màu, có thể có nhụy là quả cầu nhỏ màu khác ở giữa.
+      peony: function (x, y, o) {
+        var R = rad(o), c = o.c || pick(MIX);
+        ball(x, y, o.n || 100, R, c, o.life || 1.5);
+        if (o.pistil) ball(x, y, (o.n || 100) * .42, R * .42, o.pistil, 1.2, { w: 1.8 });
+        flash(x, y, R * 1.2, c);
+      },
+      // Cúc: sao kéo đuôi tàn lửa.
+      chrys: function (x, y, o) {
+        var R = rad(o), c = o.c || C.gold;
+        ball(x, y, o.n || 78, R, c, 1.8, { glit: 24, gc: hot(c), gl: .55, w: 1.9 });
+        flash(x, y, R * 1.3, c, .36);
+      },
+      // Đa sắc: một quả chia múi nhiều màu.
+      dahlia: function (x, y, o) {
+        var R = rad(o), cols = [C.red, C.gold, C.green, C.cyan, C.violet, C.magenta];
+        ball(x, y, o.n || 112, R, cols, 1.7, { w: 2.5 });
+        if (o.pistil) ball(x, y, 36, R * .4, o.pistil, 1.2, { w: 1.8 });
+        flash(x, y, R * 1.3, C.white, .32);
+      },
+      // Đổi màu: bay nửa đường thì chuyển sang màu thứ hai.
+      chameleon: function (x, y, o) {
+        var R = rad(o), c = o.c || pick(MIX);
+        ball(x, y, o.n || 100, R, c, 1.9, { c2: o.c2 || pick(MIX), w: 2.5 });
+        flash(x, y, R * 1.2, c);
+      },
+      // Liễu vàng: đuôi dài, rơi rủ xuống chậm.
+      willow: function (x, y, o) {
+        var R = rad(o) * .95;
+        ball(x, y, 72, R, C.willow, 3.2, { k: 1.9, g: 105, glit: 22, gc: C.amber, gl: 1.3, w: 1.9, hot: .05, tl: .14 });
+        flash(x, y, R * 1.1, C.willow, .26);
+      },
+      // Liễu bạc.
+      kamuro: function (x, y, o) {
+        var R = rad(o) * .9;
+        ball(x, y, 70, R, C.silver, 2.9, { k: 1.9, g: 95, glit: 20, gc: C.silver, gl: 1.2, w: 1.8, hot: .06, tl: .12 });
+        flash(x, y, R, C.silver, .26);
+      },
+      ring: function (x, y, o) {
+        var R = rad(o), c = o.c || pick(MIX);
+        ringStars(x, y, o.n || 56, R, c, rnd(.95, 1.3), rnd(0, TAU), 1.6);
+        flash(x, y, R, c, .24);
+      },
+      doubleRing: function (x, y, o) {
+        var R = rad(o), s = rnd(0, TAU);
+        ringStars(x, y, 56, R, o.c || C.cyan, 1.15, s, 1.7);
+        ringStars(x, y, 56, R, o.c2 || C.magenta, 1.15, s + Math.PI / 2, 1.7);
+        flash(x, y, R * 1.1, C.white, .3);
+      },
+      // Sao Thổ: quả cầu nhỏ ở giữa, vòng gần nằm ngang bao quanh.
+      saturn: function (x, y, o) {
+        var R = rad(o), c = o.c || C.violet;
+        ball(x, y, 50, R * .55, c, 1.6, { w: 2.3 });
+        ringStars(x, y, 64, R * 1.1, o.c2 || C.gold, rnd(1.15, 1.3), rnd(-.45, .45), 1.8, 2);
+        flash(x, y, R * 1.2, c, .3);
+      },
+      // Chữ thập: ít sao to, mỗi sao tự tách làm bốn.
+      crossette: function (x, y, o) {
+        var R = rad(o) * .75, c = o.c || pick(MIX), n = 12, base = rnd(0, TAU), v = R * 2.6;
+        for (var i = 0; i < n; i++) {
+          var a = base + i / n * TAU + rnd(-.1, .1);
+          star(x, y, Math.cos(a) * v, Math.sin(a) * v, c, 1.4, { w: 2.7, glit: 16, gl: .4, split: rnd(.5, .62), sc: o.sc || C.white, R: R });
+        }
+        flash(x, y, R, c, .26);
+      },
+      // Cây cọ: vài nhánh to, đuôi vàng dày.
+      palm: function (x, y, o) {
+        var R = rad(o), c = o.c || C.gold, n = 9, base = rnd(0, TAU);
+        for (var i = 0; i < n; i++) {
+          var a = base + i / n * TAU + rnd(-.12, .12), v = R * 2.2 * rnd(.95, 1.05);
+          star(x, y, Math.cos(a) * v, Math.sin(a) * v - R * .5, c, 2.1, { k: 2.2, g: 80, w: 3.6, glit: 55, gc: C.amber, gl: .85, hot: .2 });
+        }
+        flash(x, y, R * 1.4, c, .4);
+      },
+      // Nhấp nháy bạc.
+      strobe: function (x, y, o) {
+        var R = rad(o);
+        ball(x, y, 64, R, C.white, 2.4, { strobe: rnd(9, 13), k: 2.8, g: 30, w: 2 });
+        flash(x, y, R, C.white, .22);
+      },
+      // Lách tách: hạt bay tản ra rồi nổ lốp đốp, mỗi hạt một lúc.
+      crackle: function (x, y, o) {
+        var R = rad(o) * .85;
+        sphere(Math.round(110 * dens)).forEach(function (d, i) {
+          var v = R * 2.6 * rnd(.25, 1), pop = rnd(.25, 1.05);
+          star(x, y, d[0] * v, d[1] * v, i % 3 ? C.white : C.gold, pop + rnd(.18, .3), { pop: pop, w: rnd(1.6, 2.6), g: 30 });
+        });
+        flash(x, y, R * .55, C.white, .3);
+      },
+      // Hình vẽ: kính lúp, trái tim, ngôi sao. Mọi sao cùng chậm dần theo một tỉ lệ nên hình giữ nguyên lúc nở.
+      shape: function (x, y, o) {
+        var R = rad(o) * 1.05, c = o.c || C.gold, v = R * 2.6, rot = o.shape === 'lens' ? 0 : rnd(-.22, .22), cr = Math.cos(rot), sr = Math.sin(rot);
+        SHAPES[o.shape || 'star']().forEach(function (p) {
+          var px = p[0] * cr - p[1] * sr, py = p[0] * sr + p[1] * cr;
+          star(x, y, px * v, py * v, c, 2.2, { g: 22, w: 2.4, glit: 5, gl: .4, hot: .1 });
+        });
+        flash(x, y, R * 1.2, c, .34);
+      }
+    };
+    function burst(type, x, y, o) { (TYPES[type] || TYPES.peony)(x, y, o || {}); }
+
+    function at(t, fn) { timers.push({ at: clock + t, fn: fn }); }
+    // Kịch bản. Mỗi màn hẹn giờ các quả của nó và trả về độ dài của màn (giây).
+    var SHOW = [
+      // Các màn gối lên nhau: quả đầu của màn sau rời bệ khi quả cuối của màn trước còn đang nở, nên trời không trống.
+      // 1. Mở màn: từng quả trái phải, một bông cúc vàng giữa trời, đôi màu đối nhau, vòng, lách tách, hai quả đổi màu.
+      function () {
+        at(0, function () { launch(.14, .34, 'peony', { c: C.red, pistil: C.gold }); });
+        at(.6, function () { launch(.86, .3, 'peony', { c: C.blue, pistil: C.white }); });
+        at(1.3, function () { launch(.5, .1, 'chrys', { c: C.gold, size: 1.25 }); });
+        at(2.1, function () { launch(.3, .2, 'peony', { c: C.green, pistil: C.magenta }); launch(.7, .2, 'peony', { c: C.magenta, pistil: C.green }); });
+        at(2.9, function () { launch(.62, .36, 'ring', { c: C.cyan }); });
+        at(3.3, function () { launch(.4, .06, 'crackle', {}); });
+        at(3.9, function () { launch(.06, .52, 'chameleon', { c: C.amber, c2: C.teal }); launch(.94, .52, 'chameleon', { c: C.teal, c2: C.amber }); });
+        return 5;
+      },
+      // 2. Song tấu: bốn cặp đối xứng hai bên leo dần lên, rồi sao Thổ ở giữa và hai quả nhấp nháy.
+      function () {
+        var cols = [C.red, C.amber, C.teal, C.violet], kinds = ['peony', 'ring', 'chameleon', 'crossette'];
+        kinds.forEach(function (kind, i) {
+          at(i * .55, function () {
+            var o = { c: cols[i], c2: cols[(i + 2) % 4], sc: C.white };
+            launch(.08 + i * .09, .5 - i * .12, kind, o);
+            launch(.92 - i * .09, .5 - i * .12, kind, o);
+          });
+        });
+        at(2.4, function () { launch(.5, .14, 'saturn', { c: C.violet, c2: C.gold, size: 1.15 }); });
+        at(3.2, function () { launch(.22, .08, 'strobe', {}); launch(.78, .08, 'strobe', {}); });
+        return 4.4;
+      },
+      // 3. Liễu vàng: bốn cây liễu nối nhau thành sóng, một cây cọ, hai chùm liễu bạc và ba tràng lách tách.
+      function () {
+        [.16, .38, .62, .84].forEach(function (fx, i) { at(i * .4, function () { launch(fx, .06 + Math.abs(1.5 - i) * .06, 'willow', {}); }); });
+        at(2, function () { launch(.5, .14, 'palm', { c: C.gold }); });
+        at(2.7, function () { launch(.3, .24, 'kamuro', {}); launch(.7, .24, 'kamuro', {}); });
+        at(3.6, function () { launch(.5, .06, 'crackle', {}); launch(.08, .44, 'crackle', {}); launch(.92, .44, 'crackle', {}); });
+        return 5;
+      },
+      // 4. Hoa văn: kính lúp của thám tử, trái tim và ngôi sao, vòng đôi, hai quả đổi màu, ba quả chữ thập.
+      function () {
+        at(0, function () { launch(.5, .18, 'shape', { shape: 'lens', c: C.gold, size: 1.2 }); });
+        at(1.3, function () { launch(.18, .26, 'shape', { shape: 'heart', c: C.pink }); launch(.82, .26, 'shape', { shape: 'star', c: C.lime }); });
+        at(2.6, function () { launch(.5, .12, 'doubleRing', { c: C.cyan, c2: C.magenta }); });
+        at(3.5, function () { launch(.3, .3, 'chameleon', { c: C.green, c2: C.violet }); launch(.7, .3, 'chameleon', { c: C.gold, c2: C.red }); });
+        at(4.3, function () {
+          [[.12, C.red, C.gold], [.5, C.cyan, C.white], [.88, C.gold, C.magenta]].forEach(function (s, i) { launch(s[0], .12 + (i % 2) * .1, 'crossette', { c: s[1], sc: s[2] }); });
+        });
+        return 5.6;
+      },
+      // 5. Bão màu: chín quả bảy sắc quét từ trái sang phải thành cầu vồng, quét ngược bằng vòng, rồi một quả đa sắc lớn.
+      function () {
+        RAINBOW.forEach(function (c, i) {
+          at(i * .22, function () { launch(.08 + i * .105, .36 - Math.sin(i / 8 * Math.PI) * .26, 'peony', { c: c, size: .65, n: 54 }, .8); });
+        });
+        RAINBOW.slice().reverse().forEach(function (c, i) {
+          at(2.2 + i * .18, function () { launch(.92 - i * .105, .14 + Math.sin(i / 8 * Math.PI) * .14, 'ring', { c: c, size: .6, n: 40 }, .8); });
+        });
+        at(4, function () { launch(.5, .16, 'dahlia', { size: 1.35 }); });
+        return 5.2;
+      },
+      // 6. Kết màn: dồn dập đủ kiểu, liễu vàng phủ trời, lách tách khắp nơi, quả đa sắc cuối kèm hai vòng đôi. Nghỉ rồi diễn lại.
+      function () {
+        var kinds = ['peony', 'chrys', 'dahlia', 'ring', 'peony', 'chameleon', 'saturn', 'strobe', 'crossette', 'peony', 'chrys'];
+        for (var i = 0; i < 22; i++) (function (i) {
+          at(i * .15, function () {
+            launch(rnd(.05, .95), rnd(.04, .5), kinds[i % kinds.length], { c: pick(MIX), c2: pick(MIX), sc: pick(MIX), pistil: i % 3 ? null : C.white, size: rnd(.75, 1.1) }, rnd(.75, 1.1));
+          });
+        })(i);
+        at(3.2, function () { [.1, .36, .64, .9].forEach(function (fx) { launch(fx, .05, 'willow', { size: 1.1 }); }); });
+        at(4, function () { [.2, .5, .8].forEach(function (fx) { launch(fx, rnd(.15, .3), 'crackle', {}); }); });
+        at(4.8, function () {
+          launch(.5, .14, 'dahlia', { size: 1.5, pistil: C.white });
+          launch(.14, .3, 'doubleRing', { c: C.gold, c2: C.red }); launch(.86, .3, 'doubleRing', { c: C.gold, c2: C.blue });
+        });
+        return 9;
+      }
+    ];
+
+    function step(dt) {
+      var i, j, s, f, k, n;
+      for (i = rockets.length - 1; i >= 0; i--) {
+        var r = rockets[i];
+        r.t += dt;
+        k = Math.min(1, r.t / r.d);
+        var e = 1 - Math.pow(1 - k, 2.2);
+        r.px = r.x; r.py = r.y;
+        r.x = r.sx + (r.tx - r.sx) * e + Math.sin(r.t * 9 + r.sx) * 1.5 * (1 - k);
+        r.y = r.sy + (r.ty - r.sy) * e;
+        if (Math.random() < .9) spark(r.x, r.y, rnd(-14, 14), rnd(10, 50), C.amber, rnd(.3, .6), 1.3, 30);
+        if (k >= 1) { rockets.splice(i, 1); burst(r.type, r.tx, r.ty, r.o); }
+      }
+      for (i = 0, j = 0; i < stars.length; i++) {
+        s = stars[i];
+        s.t += dt;
+        if (s.t >= s.life) continue;
+        f = Math.exp(-s.k * dt);
+        s.vx *= f; s.vy = s.vy * f + s.g * dt;
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        var p = s.t / s.life;
+        if (s.glit && p < .85) {
+          s.acc += s.glit * dt;
+          while (s.acc >= 1) { s.acc -= 1; spark(s.x + rnd(-1, 1), s.y + rnd(-1, 1), s.vx * .08 + rnd(-8, 8), s.vy * .08 + rnd(-4, 12), s.gc, s.gl * rnd(.6, 1.1), rnd(.9, 1.6) * s.w / 1.7, 46); }
+        }
+        if (s.c2 && p >= .48) { s.c = s.c2; s.c2 = null; for (n = 0; n < 2; n++) spark(s.x, s.y, rnd(-30, 30), rnd(-30, 30), C.white, .25, 1.6, 20); }
+        if (s.pop && !s.popped && s.t >= s.pop) { s.popped = 1; for (n = 0; n < 3; n++) spark(s.x, s.y, rnd(-80, 80), rnd(-80, 80), C.white, rnd(.15, .3), 1.4, 20); }
+        if (s.split && s.t >= s.split) {
+          var base = rnd(0, TAU), v = s.R * .55 * 2.6;
+          for (n = 0; n < 4; n++) { var a = base + n * Math.PI / 2; star(s.x, s.y, s.vx * .3 + Math.cos(a) * v, s.vy * .3 + Math.sin(a) * v, s.sc, .9, { w: 1.9, glit: 10, gc: s.sc, gl: .35 }); }
+          flash(s.x, s.y, s.R * .35, s.sc, .22);
+          continue;
+        }
+        stars[j++] = s;
+      }
+      stars.length = j;
+      for (i = 0, j = 0; i < sparks.length; i++) {
+        s = sparks[i];
+        s.t += dt;
+        if (s.t >= s.life) continue;
+        f = Math.exp(-1.6 * dt);
+        s.vx *= f; s.vy = s.vy * f + s.g * dt;
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        sparks[j++] = s;
+      }
+      sparks.length = j;
+      for (i = 0, j = 0; i < flashes.length; i++) { flashes[i].t += dt; if (flashes[i].t < flashes[i].life) flashes[j++] = flashes[i]; }
+      flashes.length = j;
+    }
+
+    function draw() {
+      var i, s, a, p, lc = '', gs, top = off - 60, bot = off + ch + 60;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      wipe();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, -off * dpr);
+      ctx.globalCompositeOperation = 'lighter';
+      for (i = 0; i < flashes.length; i++) {
+        var fl = flashes[i], fk = fl.t / fl.life, rg = ctx.createRadialGradient(fl.x, fl.y, 0, fl.x, fl.y, fl.r);
+        rg.addColorStop(0, 'rgba(' + fl.c + ',' + (fl.a * (1 - fk) * (1 - fk)).toFixed(3) + ')');
+        rg.addColorStop(1, 'rgba(' + fl.c + ',0)');
+        ctx.fillStyle = rg; lc = '';
+        ctx.fillRect(fl.x - fl.r, fl.y - fl.r, fl.r * 2, fl.r * 2);
+      }
+      for (i = 0; i < sparks.length; i++) {
+        s = sparks[i];
+        if (s.y < top || s.y > bot) continue;
+        a = Math.pow(1 - s.t / s.life, 1.4) * (.55 + Math.random() * .45);
+        if (s.c !== lc) { ctx.fillStyle = rgb(s.c); lc = s.c; }
+        ctx.globalAlpha = a;
+        ctx.fillRect(s.x - s.s * .5, s.y - s.s * .5, s.s, s.s);
+      }
+      // Đầu nét vuông nhẹ hơn đầu nét tròn nhiều (kết màn ~45 lên ~58 khung/giây trên Iris Xe). Sao bay chậm thì
+      // vệt quá ngắn, nên kéo dài lên trên cho bằng bề ngang nét để vẫn thành một chấm sáng.
+      ctx.lineCap = 'butt';
+      lc = '';
+      for (i = 0; i < stars.length; i++) {
+        s = stars[i];
+        if ((s.pop && s.t < s.pop) || s.y < top || s.y > bot) continue;
+        p = s.t / s.life;
+        if (s.pop) a = 1 - (s.t - s.pop) / (s.life - s.pop);
+        else a = p < .1 ? 1 : 1 - Math.pow((p - .1) / .9, 1.7);
+        if (p > .62) a *= .55 + Math.random() * .45;
+        if (s.strobe && Math.sin(s.t * s.strobe * TAU + s.ph) < -.2) a *= .06;
+        if (a <= .01) continue;
+        var col = p < s.hot ? hot(s.c) : s.c;
+        if (s.w >= 1.8 && p < .75) {
+          gs = s.w * 7 * (1 - p * .4);
+          ctx.globalAlpha = a * .5;
+          ctx.drawImage(glow(s.c), s.x - gs / 2, s.y - gs / 2, gs, gs);
+        }
+        if (col !== lc) { ctx.strokeStyle = rgb(col); lc = col; }
+        ctx.globalAlpha = a;
+        var lw = s.w * (1 - p * .45), dx = s.vx * s.tl, dy = s.vy * s.tl;
+        if (Math.abs(dx) + Math.abs(dy) < lw) dy -= lw;
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.moveTo(s.x - dx, s.y - dy);
+        ctx.lineTo(s.x, s.y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = rgb(hot(C.gold));
+      for (i = 0; i < rockets.length; i++) {
+        s = rockets[i];
+        ctx.globalAlpha = .85;
+        ctx.drawImage(glow(C.amber), s.x - 9, s.y - 9, 18, 18);
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(s.px, s.py + 7); ctx.lineTo(s.x, s.y); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function frame(t) {
+      var dt = last ? Math.min(.05, (t - last) / 1000) : .016;
+      last = t;
+      clock += dt;
+      if (clock >= nextAct) { nextAct = clock + SHOW[act](); act = (act + 1) % SHOW.length; }
+      for (var i = 0; i < timers.length; i++) if (timers[i].at <= clock) { var fn = timers[i].fn; timers.splice(i--, 1); fn(); }
+      step(dt);
+      follow();
+      draw();
+      raf = requestAnimationFrame(frame);
+    }
+    function reset() { rockets = []; stars = []; sparks = []; flashes = []; timers = []; act = 0; nextAct = clock + .5; }
+    function sync() {
+      if (!w) size();
+      var run = visible && !isCalm() && w > 0;
+      if (run && !raf) {
+        // Rời khu này hơn 5 giây thì lúc quay lại diễn lại từ màn mở đầu.
+        if (away && performance.now() - away > 5000) reset();
+        last = 0; raf = requestAnimationFrame(frame);
+      }
+      if (!run && raf) { cancelAnimationFrame(raf); raf = 0; away = performance.now(); wipe(); }
+    }
+
+    // Mở thử hòm: bắn từ miệng hòm lên quanh khung phần thưởng; Thường một quả, Bí ẩn thành một màn nhỏ.
+    function celebrate(rar) {
+      if (!raf || !w) return;
+      var cr = sec.getBoundingClientRect(), vs = $('.vault-stage', sec).getBoundingClientRect(), chest = $('.chest', sec).getBoundingClientRect();
+      var sx = (chest.left + chest.right) / 2 - cr.left, sy = chest.top - cr.top + chest.height * .3;
+      var L = vs.left - cr.left, T = vs.top - cr.top, W = vs.width, H = vs.height;
+      var spots = [[L + W * .06, T + H * .2], [L + W * .94, T + H * .2], [L + W * .5, T - H * .1], [L + W * .16, T - H * .04], [L + W * .84, T - H * .04]];
+      function fire(i, type, o, delay) {
+        at(delay || 0, function () { var s = spots[i]; shoot(sx + rnd(-20, 20), sy, s[0] + rnd(-12, 12), s[1] + rnd(-12, 12), type, o, rnd(.5, .65)); });
+      }
+      if (rar === 'C') fire(2, 'peony', { c: C.silver, size: .6, n: 40 });
+      if (rar === 'R') { fire(2, 'peony', { c: C.blue, pistil: C.white, size: .8 }); fire(0, 'peony', { c: C.cyan, size: .5, n: 36 }, .25); fire(1, 'peony', { c: C.cyan, size: .5, n: 36 }, .4); }
+      if (rar === 'E') { fire(2, 'saturn', { c: C.violet, c2: C.gold, size: .9 }); fire(0, 'crossette', { c: C.pink, sc: C.white }, .3); fire(1, 'crossette', { c: C.violet, sc: C.cyan }, .45); }
+      if (rar === 'L') { fire(2, 'palm', { c: C.gold }); fire(0, 'willow', { size: .8 }, .3); fire(1, 'willow', { size: .8 }, .45); fire(3, 'crackle', {}, .9); fire(4, 'crackle', {}, 1); }
+      if (rar === 'M') {
+        fire(2, 'shape', { shape: 'lens', c: C.red });
+        fire(0, 'dahlia', { size: .8 }, .25); fire(1, 'dahlia', { size: .8 }, .35);
+        fire(3, 'strobe', { size: .7 }, .7); fire(4, 'strobe', { size: .7 }, .8);
+        fire(0, 'ring', { c: C.gold }, 1.1); fire(1, 'ring', { c: C.crimson }, 1.2); fire(2, 'crackle', {}, 1.4);
+      }
+    }
+
+    size();
+    // Khu đổi cỡ (ảnh tải xong, xoay máy) hoặc màn hình đổi chiều cao thì tính lại canvas.
+    if ('ResizeObserver' in window) new ResizeObserver(function () { size(); }).observe(sec);
+    addEventListener('resize', function () { size(); });
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }).observe(sec);
+    else { visible = true; sync(); }
+    onCalmChange(sync);
+    return { celebrate: celebrate };
+  }
+  var fireworks = Fireworks($('#fireworks'));
+
   /* ---- Hero flashlight + clue hunt ---- */
   var hero = $('#top'), stage = $('#stage'), clues = $$('.clue'), huntCount = $('#hunt-count');
   var shFig = $('#fig-sherlock'), waFig = $('#fig-watson'), textEl = $('.hero-text'), deduce = $('#deduce'), SH_R = 809 / 1083, WA_R = 472 / 985;
@@ -1530,6 +2042,7 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
       show(rar, item);
       vault.classList.remove('shake');
       vault.classList.add('open');
+      fireworks.celebrate(rar);
       opens += 1;
       if (!best || ORDER[rar] > ORDER[best]) best = rar;
       logUI();
