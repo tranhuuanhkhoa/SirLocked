@@ -4,6 +4,9 @@ import { expect, test, type Page, type Route } from '@playwright/test';
  * What keeps Hồ sơ thám tử light: nothing draws unless it can change, painting never forces a style pass, and a
  * full-screen entrance has the machine to itself. These check the mechanisms, so a slow CI machine cannot fail them.
  */
+// Trace snapshots read each canvas's bounding box and schedule their own frames, so these counters would count Playwright too.
+test.use({ trace: 'off' });
+
 const WALLET = { balance: 500, held: 0, slotsUsed: 3, slotCap: 12, itemCount: 3, reservedSlots: 0, feePercent: 5 };
 const progress = (overrides: Record<string, unknown> = {}) => ({
   level: 1, xp: 0, xpToNext: 200, maxLevel: 50, isMaxLevel: false, avatar: 'nonla', avatarUrl: null, canUploadAvatar: false,
