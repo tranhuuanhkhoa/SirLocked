@@ -854,7 +854,7 @@ test('scene audio switches authored loops, ducks dialogue, persists settings and
       released: w.__media.every((media: any) => media.paused && media.src === ''), closes: w.__context.closes };
   });
   expect(result).toEqual({ beforeGesture: 0, ducked: .06, unducked: .2, muted: true, oldStopped: true, hiddenStopped: true, resumed: true,
-    volume: .4, settings: { music: .4, effects: .6, muted: false }, released: true, closes: 1 });
+    volume: .4, settings: { music: .4, effects: .6, muted: false, blips: .5, weatherEffects: true }, released: true, closes: 1 });
 });
 
 test('scene audio recovers a blocked gesture and uses generated fallback for missing media or unsafe URLs', async ({ page }) => {
