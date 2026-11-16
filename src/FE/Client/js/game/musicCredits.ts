@@ -51,23 +51,27 @@ export function createMusicCredits(root: ParentNode, tr: (en: string, vi: string
   const heard = new Map<string, SceneMusic>();
   let disposed = false;
   let paintRevision = 0;
+  /** The list on screen matches `heard` (the sound panel may not exist yet when the first area loads). */
+  let shown = false;
   async function paint() {
     const revision = ++paintRevision;
     const tracks = await loadLibrary();
     if (disposed || revision !== paintRevision) return;
     const box = root.querySelector<HTMLElement>('[data-audio-credits]');
     const list = box?.querySelector<HTMLElement>('[data-audio-credit-list]');
-    if (!box || !list) return;
+    if (!box || !list) { shown = false; return; }
     const entries = [...heard.entries()].reverse();
     list.innerHTML = entries.map(([path, music]) => creditLine(music, tracks.get(path), tr)).join('');
     box.hidden = entries.length === 0;
     box.closest('details')?.classList.toggle('has-credits', entries.length > 0);
+    shown = true;
   }
   return {
     add(music: SceneMusic | null | undefined) {
       if (disposed || !music || typeof music.url !== 'string' || !music.url) return;
       const path = key(music.url);
-      if ([...heard.keys()].at(-1) === path) return; // same area song as before: nothing to repaint
+      if (shown && [...heard.keys()].at(-1) === path) return; // same area song, already on screen
+      shown = false;
       if (heard.has(path)) heard.delete(path);
       heard.set(path, music);
       while (heard.size > MAX_CREDITS) heard.delete(heard.keys().next().value as string);

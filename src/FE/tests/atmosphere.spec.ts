@@ -173,10 +173,14 @@ test('the sound panel credits the songs heard: title, author, licence, link to t
   const errors: string[] = [];
   await openGame(page, sampleCase, DOCK, errors);
   await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/ben-cang-dem-mua.ogg');
+  // The first area's song is credited too, though it loaded before the sound panel was drawn.
+  const credits = page.locator('[data-audio-credits]');
+  await page.locator('.game-audio-controls > summary').click();
+  await expect(credits.locator('li')).toHaveCount(1);
+  await page.locator('.game-audio-controls > summary').click();
   await goTo(page, SHOP);
   await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/tiem-hop-nhac.ogg');
   await page.locator('.game-audio-controls > summary').click();
-  const credits = page.locator('[data-audio-credits]');
   await expect(credits).toBeVisible();
   await expect(credits).toContainText('Âm nhạc');
   const items = credits.locator('li');
