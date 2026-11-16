@@ -174,9 +174,14 @@ test('a storm flashes the screen and thunder follows; reduced motion keeps the t
   await openGame(page, weatherCase, 'scene-px-nha-xe', errors);
   await expect.poll(async () => (await weather(page)).particles, { timeout: 15_000 }).toBeGreaterThan(20);
   expect(await weather(page)).toMatchObject({ type: 'STORM', intensity: 0.9 });
+  const boltNow = () => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').stormBoltSoon());
+  // A natural bolt may already have come (the first one is 2–5 s in); one bolt now puts the next natural one 6–12 s away.
+  await boltNow();
+  await expect.poll(async () => (await weather(page)).bolts).toBeGreaterThanOrEqual(1);
+  const start = await weather(page);
   const before = await audio(page);
-  await page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').stormBoltSoon());
-  await expect.poll(async () => (await weather(page)).flashes).toBe(1);
+  await boltNow();
+  await expect.poll(async () => (await weather(page)).flashes).toBe(start.flashes + 1);
   await expect.poll(async () => (await audio(page)).counters.thunders).toBe(before.counters.thunders + 1);
   const after = await weather(page);
   expect(after.nextBoltInMs).toBeGreaterThanOrEqual(5000);
@@ -191,10 +196,12 @@ test('a storm flashes the screen and thunder follows; reduced motion keeps the t
   for (const tint of await npcTints()) expect(tint).toBe(0xffd2a8);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').stormBoltSoon());
-  await expect.poll(async () => (await weather(page)).bolts).toBe(2);
-  expect((await weather(page)).flashes).toBe(1);
-  await expect.poll(async () => (await audio(page)).counters.thunders).toBe(before.counters.thunders + 2);
+  const calm = await weather(page);
+  const calmAudio = await audio(page);
+  await boltNow();
+  await expect.poll(async () => (await weather(page)).bolts).toBe(calm.bolts + 1);
+  expect((await weather(page)).flashes).toBe(calm.flashes);
+  await expect.poll(async () => (await audio(page)).counters.thunders).toBe(calmAudio.counters.thunders + 1);
 
   // An indoor scene of the same case: nothing.
   await goTo(page, 'scene-px-hieu-thuoc');

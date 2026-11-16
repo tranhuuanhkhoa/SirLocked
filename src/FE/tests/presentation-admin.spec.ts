@@ -72,7 +72,7 @@ test('optional sound and ping helpers keep settings bounded and reject private o
       valid: ping.renderPartnerPing({ kind: 'COMPARE', senderUserId: 'x', expiresAt: new Date(Date.now() + 8000).toISOString() }, translate)
     };
   });
-  expect(result.settings).toEqual({ music: 1, effects: 0, muted: false });
+  expect(result.settings).toEqual({ music: 1, effects: 0, muted: false, blips: .5, weatherEffects: true });
   expect(result.invalid).toBe(''); expect(result.expired).toBe('');
   expect(result.valid).toContain('Let’s compare');
 });

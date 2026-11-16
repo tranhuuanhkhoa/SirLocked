@@ -92,7 +92,8 @@ export function createAudioController() {
   const counters = { blips: 0, blipsDropped: 0, thunders: 0, crossfades: 0, sfxFiles: 0 };
   const recentBlips: { characterId: string; wave: string; pitch: number }[] = [];
   let canPlayOgg = true;
-  try { canPlayOgg = Boolean(new Audio().canPlayType?.('audio/ogg; codecs="vorbis"')); } catch { canPlayOgg = true; }
+  // A detached <audio> element answers the question without creating a media player of the game's own.
+  try { canPlayOgg = Boolean(document.createElement('audio').canPlayType?.('audio/ogg; codecs="vorbis"')); } catch { canPlayOgg = true; }
   const cues: Record<AudioCue, number[]> = { dialogue: [330], discovery: [392, 523.25], reveal: [261.63, 329.63, 392], scene: [196], ping: [440, 554.37], interact: [294], error: [220, 196] };
   const audible = () => unlocked && !disposed && !settings.muted && !document.hidden;
   const running = () => Boolean(context && context.state === 'running');
@@ -258,8 +259,10 @@ export function createAudioController() {
     if (change === 'none') return;
     if (change === 'stop') { fadeOut(musicPlaying!); musicPlaying = null; return; }
     if (change === 'keep') {
+      // Same song in the next area: keep playing; only an authored volume change moves its level (never mid fade-in).
+      const volumeChanged = musicPlaying!.track.volume !== wanted!.volume;
       musicPlaying!.track = wanted!;
-      musicPlaying!.gain.gain.setTargetAtTime(wanted!.volume, context.currentTime, .3);
+      if (volumeChanged) musicPlaying!.gain.gain.setTargetAtTime(wanted!.volume, context.currentTime, .3);
       return;
     }
     const revision = ++musicRevision;
