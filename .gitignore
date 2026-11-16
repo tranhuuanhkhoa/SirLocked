@@ -44,6 +44,9 @@ docs/diagrams/.$*.bkp
 Thumbs.db
 desktop.ini
 
+# Python bytecode (scripts/test_playtest_kit.py)
+__pycache__/
+
 # Logs
 *.log
 logs/

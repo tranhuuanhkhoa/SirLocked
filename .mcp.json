@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "sirlocked-studio": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["tools/studio-mcp/dist/src/index.js"],
+      "env": {
+        "SIRLOCKED_API": "${SIRLOCKED_API:-https://sirlocked.id.vn}",
+        "SIRLOCKED_BRIDGE_KEY": "${SIRLOCKED_BRIDGE_KEY:-}"
+      }
+    },
+    "pixellab": {
+      "type": "http",
+      "url": "https://api.pixellab.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${PIXELLAB_API_KEY}"
+      }
+    }
+  }
+}

@@ -1,0 +1,252 @@
+#!/usr/bin/env node
+/**
+ * Chạy trọn vòng xưởng trên máy, không cần Claude thật, 0 lượt PixelLab:
+ *   backend local ở chế độ bridge (Mongo + API + web tự dựng, như tool playtest) + MCP server thật (stdio),
+ *   gọi các tool đúng thứ tự skill /tao-vu-an:
+ *   bridge_list -> bridge_take -> bridge_check -> bridge_submit (JSON mock của server) -> ... cổng ...
+ *   -> assets_needed -> ảnh thư viện (library_search, asset_variant, asset_process) -> asset_upload -> assets_complete
+ *   -> player_view -> draft_import -> playtest -> draft_report; thêm library_sync lên server local.
+ *
+ *   cd tools/studio-mcp && npm run e2e:local            (đơn chế độ nhanh: bot qua cổng STORY/LOGIC/LAYOUT)
+ *   node scripts/e2e-local.mjs --full                    (đơn đủ 4 cổng: "Yen" duyệt bằng API admin local)
+ *   node scripts/e2e-local.mjs --keep                    (giữ stack chạy sau khi xong)
+ * Cổng mặc định: API 5251, web 5252, Mongo 27051 (E2E_API_PORT, E2E_WEB_PORT, E2E_MONGO_PORT).
+ * Khóa bridge của lần chạy là khóa ngẫu nhiên chỉ dùng cho stack local này, không in ra.
+ */
+import { randomBytes, randomUUID } from 'node:crypto';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const studio = path.resolve(here, '..');
+const repo = path.resolve(studio, '..', '..');
+const { startStack } = await import(pathToFileURL(path.join(studio, 'dist', 'src', 'playtest', 'stack.js')).href);
+
+const full = process.argv.includes('--full');
+const keep = process.argv.includes('--keep');
+const ports = {
+  api: Number(process.env.E2E_API_PORT) || 5251,
+  web: Number(process.env.E2E_WEB_PORT) || 5252,
+  mongo: Number(process.env.E2E_MONGO_PORT) || 27051,
+};
+const started = Date.now();
+const deadline = started + 25 * 60_000;
+const work = path.join(repo, 'tmp', 'e2e-local');
+mkdirSync(work, { recursive: true });
+const log = (line) => console.log(`[e2e ${String(Math.round((Date.now() - started) / 1000)).padStart(4)}s] ${line}`);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const calls = [];
+const results = { order: full ? 'FULL' : 'FAST', jsonAnswers: 0, imageRequests: 0, images: 0, botGates: 0, adminGates: 0 };
+
+// A throwaway key for this local stack only (the stack and the MCP server read it from the environment).
+process.env.SIRLOCKED_BRIDGE_KEY = randomBytes(32).toString('hex');
+
+let stack;
+let client;
+try {
+  log(`Dựng stack local chế độ bridge (API ${ports.api}, web ${ports.web}, Mongo ${ports.mongo})...`);
+  stack = await startStack({ repoRoot: repo, apiPort: ports.api, webPort: ports.web, mongoPort: ports.mongo, bridge: true, log: (line) => log(`  stack: ${line}`) });
+  log(`Stack sẵn sàng: ${stack.apiUrl}`);
+
+  // ------------------------------------------------------------------ admin (plays Yen)
+  const admin = async (method, route, body, extraHeaders = {}) => {
+    const response = await fetch(`${stack.apiUrl}${route}`, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}), ...extraHeaders },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await response.text();
+    if (!response.ok) throw new Error(`${method} ${route} -> ${response.status} ${text.slice(0, 400)}`);
+    return text ? JSON.parse(text).data : null;
+  };
+  let adminToken = '';
+  adminToken = (await admin('POST', '/api/auth/admin/login', { email: stack.adminEmail, password: stack.adminPassword })).token;
+
+  // ------------------------------------------------------------------ the real MCP server over stdio
+  const indexCopy = path.join(work, 'library-index.json');
+  copyFileSync(path.join(studio, 'library', 'index.json'), indexCopy);
+  client = new Client({ name: 'e2e-local', version: '1.0.0' });
+  await client.connect(new StdioClientTransport({
+    command: process.execPath,
+    args: [path.join(studio, 'dist', 'src', 'index.js')],
+    cwd: repo,
+    env: {
+      ...process.env,
+      SIRLOCKED_API: stack.apiUrl,
+      SIRLOCKED_LIBRARY_INDEX: path.relative(repo, indexCopy),
+      SIRLOCKED_REPO_ROOT: repo,
+    },
+    stderr: 'ignore',
+  }));
+  const tools = (await client.listTools()).tools.map((tool) => tool.name);
+  log(`MCP sirlocked-studio: ${tools.length} tool (${tools.join(', ')})`);
+
+  const tool = async (name, args = {}) => {
+    const begun = Date.now();
+    const result = await client.callTool({ name, arguments: args }, undefined, { timeout: 30 * 60_000 });
+    const text = result.content?.[0]?.text ?? '{}';
+    const data = JSON.parse(text);
+    calls.push({ tool: name, ms: Date.now() - begun, ok: !result.isError });
+    if (result.isError) throw new Error(`${name}: ${data.error} ${data.message}`);
+    return data;
+  };
+
+  // ------------------------------------------------------------------ 1. order (Yen, on /admin/ai)
+  const order = await admin('POST', '/api/admin/ai-cases', {
+    prompt: 'E2E xưởng: một chiếc đồng hồ bỏ túi dừng lúc nửa đêm ở bến cảng.',
+    generationPreset: 'SHORT_DEMO', language: 'vi',
+    order: { world: 'HANG_DUONG_VICTORIAN', weather: 'RAIN', timeOfDay: 'NIGHT', reviewMode: full ? 'FULL' : 'FAST', pixelLabCap: 0, contentLevel: 'LIGHT' },
+  }, { 'Idempotency-Key': randomUUID() });
+  const draftId = order.draftId;
+  log(`1. Đơn ${draftId} (${order.orderStatus}), chế độ ${results.order}.`);
+
+  // ------------------------------------------------------------------ library pictures used for the image slots
+  const scenes = await tool('library_search', { world: 'HANG_DUONG_VICTORIAN', tags: ['vu-pixel-co-san'], limit: 50, download: true });
+  const sceneFiles = scenes.results.filter((row) => row.kind !== 'NPC').map((row) => row.cached.main);
+  const npcs = scenes.results.filter((row) => row.kind === 'NPC');
+  let items = (await tool('library_search', { kind: 'ITEM', world: 'ALL', limit: 12, download: true })).results.filter((row) => row.cached?.main);
+  if (!items.length) {
+    // Library batch 0 not imported on this machine: the items that ship with the two pixel cases.
+    const folder = 'src/FE/public/assets/pixel/lo-thuoc-thu-nam/items';
+    items = ['kinh-lup', 'chia-khoa', 'so-tay', 'phieu-cam'].map((name) => ({ key: name, cached: { main: `${folder}/${name}.png` } }));
+  }
+  const variant = await tool('asset_variant', {
+    type: 'night', input: 'v-case-pho', saveToLibrary: false, key: 'e2e-pho-dem',
+    params: { lights: [[120, 200, 24], [380, 200, 24]], windows: [[60, 150, 90, 180]] },
+  });
+  log(`   Thư viện: ${sceneFiles.length} cảnh, ${npcs.length} NPC, ${items.length} vật phẩm; biến thể đêm ${variant.output} (0 lượt).`);
+  const backgrounds = [variant.output, ...sceneFiles];
+  const coverFile = (await tool('asset_process', {
+    op: 'cover', output: path.relative(repo, path.join(work, 'cover.png')),
+    params: { scene: variant.output, portraits: npcs.slice(0, 3).map((row) => row.cached.main) },
+  })).output;
+
+  async function answerImages() {
+    const needed = await tool('assets_needed', { draftId, onlyRequested: true });
+    let index = 0;
+    for (const slot of needed.slots) {
+      let file;
+      if (slot.kind === 'cover') file = coverFile;
+      else if (slot.kind === 'background') file = backgrounds[index++ % backgrounds.length];
+      else if (slot.kind === 'character-sprite') {
+        const npc = npcs[(results.images + index++) % npcs.length];
+        file = npc.cached.sprite ?? npc.cached.idle ?? npc.cached.main;
+      } else if (slot.kind === 'character-portrait') file = npcs[(results.images + index++) % npcs.length].cached.main;
+      else file = items[(results.images + index++) % items.length].cached.main;
+      const checked = await tool('asset_process', { op: 'check_size', input: file, params: { transparent: slot.transparent } });
+      await tool('asset_upload', { draftId, slotId: slot.slotId, file });
+      results.images++;
+      if (!checked.ok) results.sizeNotes = (results.sizeNotes ?? 0) + 1;
+    }
+    const done = await tool('assets_complete', { draftId });
+    if (!done.accepted) throw new Error(`assets_complete refused: ${done.errors.join('; ')}`);
+    results.imageRequests++;
+    log(`   ${needed.slots.length} ảnh thư viện đã tải lên, assets_complete đạt.`);
+  }
+
+  // ------------------------------------------------------------------ 2-8. the bot loop
+  const adminGate = { STORY: 'approve', TRUTH: 'approve-truth', LOGIC: 'approve-full-logic', LAYOUT: 'approve-scene-layout' };
+  let playerViewDone = false;
+  while (true) {
+    if (Date.now() > deadline) throw new Error(`Hết giờ: ${JSON.stringify(results)}`);
+    const draft = await tool('draft_get', { draftId });
+    if (draft.status === 'READY_TO_PUBLISH' && (!draft.queueState || draft.queueState === 'NONE')) break;
+    if (['GENERATED_INVALID', 'CASE_TRUTH_INVALID', 'CANCELLED'].includes(draft.status) && (!draft.queueState || draft.queueState === 'NONE')) {
+      throw new Error(`Draft dừng ở ${draft.status}: ${draft.validator.firstErrors.join(' | ')}`);
+    }
+    if (draft.waitingGate) {
+      if (draft.waitingGate === 'TRUTH' || full) {
+        await admin('POST', `/api/admin/ai-cases/${draftId}/${adminGate[draft.waitingGate]}`);
+        results.adminGates++;
+        log(`   Cổng ${draft.waitingGate}: "Yen" duyệt trên admin (API admin local).`);
+      } else {
+        if (draft.waitingGate === 'LOGIC' && !playerViewDone) {
+          const view = await tool('player_view', { draftId });
+          const text = readFileSync(path.join(repo, view.file), 'utf8');
+          if (/"(finalLogic|culpritId|correctMotiveId|correctMethodId)"/.test(text)) throw new Error('player-view.json lộ lời giải.');
+          playerViewDone = true;
+          log(`   player_view: ${view.file} (${view.kilobytes} KB, không có lời giải) cho thám tử mù.`);
+        }
+        await tool('draft_approve_gate', { draftId, gate: draft.waitingGate, allChecksPassed: true });
+        results.botGates++;
+        log(`   Cổng ${draft.waitingGate}: bot qua (chế độ nhanh).`);
+      }
+      continue;
+    }
+    const pending = await tool('bridge_list', { draftId });
+    for (const request of pending.requests) {
+      const taken = await tool('bridge_take', { requestId: request.requestId });
+      if (taken.kind === 'ASSETS') {
+        await answerImages();
+        continue;
+      }
+      if (!taken.files.devMockAnswer) throw new Error('Server không trả JSON mock (cần Bridge__ExposeMockResponses=true, ngoài Production).');
+      copyFileSync(path.join(repo, taken.files.devMockAnswer), path.join(repo, taken.files.answer));
+      const check = await tool('bridge_check', { requestId: request.requestId });
+      if (!check.valid) throw new Error(`bridge_check ${taken.step}: ${check.errors.join('; ')}`);
+      const submitted = await tool('bridge_submit', { requestId: request.requestId });
+      if (!submitted.accepted) throw new Error(`bridge_submit ${taken.step}: ${submitted.errors.join('; ')}`);
+      results.jsonAnswers++;
+      log(`   ${taken.step}: take -> check -> submit đạt (prompt ${taken.promptKB} KB nằm trong ${taken.dir}).`);
+    }
+    await sleep(pending.count ? 200 : 700);
+  }
+  log(`2-8. READY_TO_PUBLISH: ${results.jsonAnswers} JSON, ${results.imageRequests} lượt ảnh (${results.images} ảnh), bot qua ${results.botGates} cổng, "Yen" duyệt ${results.adminGates} cổng.`);
+  if (!playerViewDone) await tool('player_view', { draftId });
+
+  const stale = await tool('bridge_list', { draftId, status: 'STALE', limit: 500 });
+  if (stale.count) throw new Error(`${stale.count} yêu cầu STALE.`);
+
+  // ------------------------------------------------------------------ 9. import, playtest, report
+  const imported = await tool('draft_import', { draftId });
+  log(`9. draft_import: ${imported.caseId} (chưa đăng), case JSON ở ${imported.caseFile}.`);
+  const publishRoute = await fetch(`${stack.apiUrl}/api/bridge/drafts/${draftId}/publish`, { method: 'POST', headers: { 'X-Bridge-Key': process.env.SIRLOCKED_BRIDGE_KEY } });
+  if (publishRoute.status !== 404 && publishRoute.status !== 405) throw new Error(`bridge publish route answered ${publishRoute.status}`);
+  const play = await tool('playtest', { draftId, apiUrl: stack.apiUrl, webUrl: stack.webUrl });
+  results.playtest = {
+    ok: play.ok, accusationSuccess: play.summary?.accusationSuccess, scenes: play.summary?.scenesVisited, screenshots: play.screenshots.length,
+    consoleErrors: play.summary?.consoleErrors, pageErrors: play.summary?.pageErrors, estimatedMinutes: play.estimatedMinutes, report: play.report,
+    audio: play.audioChecks,
+  };
+  log(`   playtest: ok=${play.ok}, buộc tội đúng=${play.summary?.accusationSuccess}, ${play.screenshots.length} ảnh, ước tính ${play.estimatedMinutes} phút, lỗi console ${play.summary?.consoleErrors}.`);
+  if (!play.ok) throw new Error(`playtest không đạt: ${JSON.stringify(play.summary ?? play.error)}`);
+
+  const reportFile = path.join(repo, 'tmp', 'bridge', draftId, 'report.md');
+  writeFileSync(reportFile, [
+    '# Báo cáo của bot (e2e-local)', '',
+    '| Lớp | Kết quả | Ghi chú |', '| --- | --- | --- |',
+    `| 1. Schema | Đạt | ${results.jsonAnswers} câu trả lời qua bridge_check rồi bridge_submit |`,
+    '| 2. Validator server | Đạt | Draft tới READY_TO_PUBLISH |',
+    '| 3. Thám tử mù | Bỏ qua | e2e không có Claude thật; player_view đã kiểm không lộ lời giải |',
+    '| 4. Biên tập | Bỏ qua | e2e dùng JSON mock của server |',
+    `| 5. Chạy thử | ${play.ok ? 'Đạt' : 'Trượt'} | ${play.summary?.scenesVisited} cảnh, ${play.screenshots.length} ảnh, ${play.summary?.consoleErrors} lỗi console, ước tính ${play.estimatedMinutes} phút |`,
+    '', `Tài nguyên: ${results.images} ảnh từ thư viện, 1 biến thể đêm, 0 lượt PixelLab.`,
+  ].join('\n'));
+  const pushed = await tool('draft_report', { draftId });
+  log(`   draft_report: ${pushed.length} ký tự đã lưu lên draft.`);
+
+  // ------------------------------------------------------------------ library sync with the (local) server
+  const syncKeys = ['v-case-pho', 'v-case-npc-ly-hanh', 'map-ben-cang', 'v-npc-11-thuy-thu', 'all-item-kinh-lup', 'all-item-trang-giay-trang']
+    .filter((key) => JSON.parse(readFileSync(indexCopy, 'utf8')).items.some((item) => item.key === key));
+  const sync = await tool('library_sync', { direction: 'both', keys: syncKeys });
+  const onServer = await tool('library_search', { fromServer: true, includeRetired: true, query: '', limit: 500 });
+  results.librarySync = { keys: syncKeys.length, push: sync.push, pull: sync.pull };
+  log(`   library_sync: ${sync.push.filesUploaded} file lên server local, upsert ${JSON.stringify(sync.push.upsert)}; library_search fromServer thấy ${onServer.count} mục.`);
+
+  results.durationSec = Math.round((Date.now() - started) / 1000);
+  results.toolCalls = calls.length;
+  results.toolsUsed = [...new Set(calls.map((call) => call.tool))];
+  writeFileSync(path.join(work, 'result.json'), `${JSON.stringify({ ...results, calls }, null, 2)}\n`);
+  log(`XONG: ${JSON.stringify({ ...results, calls: undefined })}`);
+} catch (error) {
+  console.error(`[e2e] THẤT BẠI: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
+  if (stack) console.error(`[e2e] log stack: ${JSON.stringify(stack.logs)}`);
+  process.exitCode = 1;
+} finally {
+  await client?.close().catch(() => undefined);
+  if (stack && !keep) await stack.stop();
+  if (stack && keep) log(`Giữ stack: API ${stack.apiUrl}, web ${stack.webUrl} (dừng: xem ${path.join(stack.workDir, 'pids.json')}).`);
+}
