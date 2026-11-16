@@ -3,10 +3,13 @@ import { tr } from '../services/i18n.js';
 import { PresentationMedia, type CharacterPresentation } from './presentationMedia.js';
 import { rememberFocusedControl, restoreFocusedControl } from './modalFocus.js';
 import { gameIcon } from './gameShell.js';
+import { blipPlan, resolveBlipVoice, type BlipStep, type CharacterVoice, type ResolvedBlipVoice } from './atmosphere/blipCore.js';
 
 type Line = { speaker: 'SIRLOCKED' | 'NPC'; text: string };
+/** Called for every letter that blips while a witness's line is typed out (the game plays it through the audio controller). */
+export type DialogueBlip = (voice: ResolvedBlipVoice, step: BlipStep) => void;
 type DialogueView = {
-  character: { characterId: string; name: string; role: string; description: string; imageUrl?: string; presentation?: CharacterPresentation };
+  character: { characterId: string; name: string; role: string; description: string; imageUrl?: string; presentation?: CharacterPresentation; voice?: CharacterVoice };
   lines: Line[];
   topicsHtml: string;
   challengeHtml: string;
@@ -30,6 +33,8 @@ export class DialoguePresenter {
   private returnFocus: HTMLElement | null = null;
   private returnFocusId = '';
   private portraitKey = '';
+  private speech: { key: string; voice: ResolvedBlipVoice; plan: BlipStep[] } | null = null;
+  private lastBlipAt = 0;
   private onMotionChange = () => {
     if (!this.motion.matches || !this.view) return;
     this.stopTimer();
@@ -39,7 +44,7 @@ export class DialoguePresenter {
     if (video) { video.pause(); video.hidden = true; }
   };
 
-  constructor(private onClose: () => void) { this.motion.addEventListener('change', this.onMotionChange); }
+  constructor(private onClose: () => void, private options: { onBlip?: DialogueBlip } = {}) { this.motion.addEventListener('change', this.onMotionChange); }
 
   update(host: HTMLElement, view: DialogueView) {
     const opening = this.view?.character.characterId !== view.character.characterId;
@@ -148,12 +153,7 @@ export class DialoguePresenter {
     });
     if (this.motion.matches) this.revealed = line?.text.length ?? 0;
     this.paint();
-    this.timer = setInterval(() => {
-      const text = this.view?.lines[this.index]?.text ?? '';
-      if (this.revealed >= text.length) { this.stopTimer(); return; }
-      this.revealed += 2;
-      this.paint();
-    }, 28);
+    this.startReveal();
     restoreFocusedControl(this.host, focused, '[data-vn-advance]');
   }
 
@@ -186,13 +186,13 @@ export class DialoguePresenter {
     if (!this.view) return;
     const line = this.view.lines[this.index];
     if (!line) return;
-    if (this.revealed < line.text.length) { this.revealed = line.text.length; this.paint(); return; }
+    if (this.revealed < line.text.length) { this.stopTimer(); this.revealed = line.text.length; this.paint(); return; }
     if (this.index < this.view.lines.length - 1) {
       this.index++;
       this.revealed = this.motion.matches ? this.view.lines[this.index].text.length : 0;
       this.stopTimer();
       this.paint();
-      this.timer = setInterval(() => { this.revealed += 2; this.paint(); if (this.revealed >= (this.view?.lines[this.index]?.text.length ?? 0)) this.stopTimer(); }, 28);
+      this.startReveal();
     } else this.host?.querySelector<HTMLButtonElement>('.conversation-choices button')?.focus();
   }
 
@@ -215,7 +215,61 @@ export class DialoguePresenter {
     return false;
   }
 
-  private stopTimer() { if (this.timer) clearInterval(this.timer); this.timer = null; }
+  /** The witness's voice and blip plan of the current line (detective lines do not blip). */
+  private speechPlan() {
+    const line = this.view?.lines[this.index];
+    if (!this.view || !line || line.speaker !== 'NPC') return null;
+    const key = `${this.view.character.characterId}|${this.index}|${line.text}`;
+    if (this.speech?.key !== key) {
+      const voice = resolveBlipVoice(this.view.character.characterId, this.view.character.voice);
+      this.speech = { key, voice, plan: blipPlan(line.text, voice) };
+    }
+    return this.speech;
+  }
+
+  private emitBlip(voice: ResolvedBlipVoice, step: BlipStep) {
+    this.lastBlipAt = performance.now();
+    try { this.options.onBlip?.(voice, step); } catch { /* sound never breaks the dialogue */ }
+  }
+
+  /**
+   * Types the current line out. A witness whose voice the case wrote speaks at its own speed, holding longer on
+   * punctuation, one blip per letter. Every other line keeps the original pace (two characters every 28 ms); a
+   * witness without a written voice still blips with the default voice made from its id, at most every 60 ms.
+   */
+  private startReveal() {
+    this.stopTimer();
+    const text = this.view?.lines[this.index]?.text ?? '';
+    if (this.motion.matches || this.revealed >= text.length) return;
+    const speech = this.speechPlan();
+    if (speech?.voice.authored) {
+      const tick = () => {
+        this.timer = null;
+        const current = this.view?.lines[this.index]?.text;
+        if (current !== text || this.revealed >= text.length) return;
+        const step = speech.plan.find((entry) => entry.end > this.revealed);
+        if (!step) { this.revealed = text.length; this.paint(); return; }
+        this.revealed = step.end;
+        this.paint();
+        if (step.blip) this.emitBlip(speech.voice, step);
+        this.timer = setTimeout(tick, step.delayMs);
+      };
+      tick();
+      return;
+    }
+    this.timer = setInterval(() => {
+      const current = this.view?.lines[this.index]?.text ?? '';
+      if (this.revealed >= current.length) { this.stopTimer(); return; }
+      const before = this.revealed;
+      this.revealed += 2;
+      this.paint();
+      if (!speech || current !== text) return;
+      const step = speech.plan.find((entry) => entry.blip && entry.end > before && entry.end <= this.revealed);
+      if (step && performance.now() - this.lastBlipAt >= 60) this.emitBlip(speech.voice, step);
+    }, 28);
+  }
+
+  private stopTimer() { if (this.timer) { clearInterval(this.timer); clearTimeout(this.timer); } this.timer = null; }
   clear() {
     if (!this.view) return;
     this.stopTimer(); this.media.clear(); this.signature = ''; this.portraitKey = ''; this.view = null;

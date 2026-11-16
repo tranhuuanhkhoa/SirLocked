@@ -23,6 +23,11 @@ export interface PuzzleHostOptions {
   submit: (puzzleId: string, answer: Record<string, unknown>) => Promise<PuzzleSubmitResult>;
   probe: (puzzleId: string, payload: Record<string, unknown>) => Promise<PuzzleProbeResult>;
   onClose: () => void;
+  /**
+   * Puzzle sounds (CC0 pack, one set per kind): `tap` when the player handles the puzzle, `probe` for a server query,
+   * `solve` and `wrong` for the verdict of an answer. Optional: the lab and older callers stay silent.
+   */
+  sound?: (kind: string, event: 'tap' | 'probe' | 'solve' | 'wrong') => void;
 }
 
 export interface PuzzleHost {
@@ -52,6 +57,22 @@ export function createPuzzleHost(options: PuzzleHostOptions): PuzzleHost {
   let localSubmit = false;
 
   const reduced = () => Boolean(options.reducedMotion?.() ?? window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  // A drag or a held key must not rattle: one tap sound per 90 ms at most.
+  let lastTap = 0;
+  const sound = (event: 'tap' | 'probe' | 'solve' | 'wrong') => {
+    if (!model) return;
+    try { options.sound?.(model.kind, event); } catch { /* sound never breaks a puzzle */ }
+  };
+  const tap = () => {
+    const now = performance.now();
+    if (now - lastTap < 90) return;
+    lastTap = now;
+    sound('tap');
+  };
+  const onBodyPointer = (event: PointerEvent) => { if (event.isPrimary !== false) tap(); };
+  const onBodyKey = (event: KeyboardEvent) => {
+    if (!event.repeat && /^(Enter| |Arrow(Up|Down|Left|Right))$/.test(event.key)) tap();
+  };
 
   function runView(m: PuzzleHostModel): PuzzleRunView {
     return { attempts: 0, probesUsed: 0, hints: [], ...(m.run ?? {}) } as PuzzleRunView;
@@ -73,13 +94,14 @@ export function createPuzzleHost(options: PuzzleHostOptions): PuzzleHost {
         localSubmit = true;
         try {
           const result = await options.submit(m.puzzleId, answer);
+          sound(result.solved ? 'solve' : 'wrong');
           if (result.solved) window.setTimeout(showWin, reduced() ? 0 : 1600);
           return result;
         } finally {
           localSubmit = false;
         }
       },
-      probe: (payload) => options.probe(m.puzzleId, payload),
+      probe: (payload) => { sound('probe'); return options.probe(m.puzzleId, payload); },
       setStatus,
     };
   }
@@ -129,6 +151,8 @@ export function createPuzzleHost(options: PuzzleHostOptions): PuzzleHost {
     root.addEventListener('click', onClick);
     root.addEventListener('keydown', onKeydown);
     const body = root.querySelector<HTMLElement>('[data-pzh-body]')!;
+    body.addEventListener('pointerdown', onBodyPointer);
+    body.addEventListener('keydown', onBodyKey);
     if (!kind) {
       body.innerHTML = `<p class="pzh-missing">${tr('This puzzle needs a newer game version.', 'Câu đố này cần bản game mới hơn.')} (${esc(m.kind)})</p>`;
       handle = null;
@@ -199,6 +223,9 @@ export function createPuzzleHost(options: PuzzleHostOptions): PuzzleHost {
     handle = null;
     root?.removeEventListener('click', onClick);
     root?.removeEventListener('keydown', onKeydown);
+    const body = root?.querySelector<HTMLElement>('[data-pzh-body]');
+    body?.removeEventListener('pointerdown', onBodyPointer);
+    body?.removeEventListener('keydown', onBodyKey);
     root = null;
     slot.innerHTML = '';
     if (lastFocus instanceof HTMLElement && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });

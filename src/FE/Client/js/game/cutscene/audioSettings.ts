@@ -17,6 +17,13 @@ export function storedAudioSettings(): AudioSettingsAccess {
   };
   return {
     get: read,
-    set(partial) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...read(), ...partial })); } catch { /* session-only */ } },
+    // Keeps the game's other stored fields (character blips, weather effects) that this reader does not know.
+    set(partial) {
+      try {
+        let stored: Record<string, unknown> = {};
+        try { const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); if (raw && typeof raw === 'object') stored = raw; } catch { /* corrupt value */ }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...stored, ...read(), ...partial }));
+      } catch { /* session-only */ }
+    },
   };
 }
