@@ -104,7 +104,8 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     'clean_text {rects:[[x0,y0,x1,y1]], mode:"fill"|"inpaint"} (xóa chữ vô nghĩa AI vẽ lên vật phẩm) |',
     'cover {scene, portraits[]} (ảnh bìa ghép) | idle_breathe (hoạt ảnh thở bằng code, sheet 1152x128) |',
     'sprite_sheet (zip PixelLab có idle thì dùng, không thì thở) | portrait (288x288 nearest) | npc_bundle (sprite+idle+portrait) |',
-    'mask_from_shapes {width,height,walk:[{rect}|{diamond}],block:[...]} | walkable {picture} (mask -> walkGrid, walkableArea, navigationObstacles + ảnh phủ để tự kiểm).',
+    'mask_from_shapes {width,height,walk:[{rect}|{diamond}],block:[...]} | walkable {picture} (mask -> walkGrid, walkableArea, navigationObstacles + ảnh phủ để tự kiểm) |',
+    'fit {width,height,mode:"contain"|"cover"} (đưa ảnh pixel vào ô khác kích thước bằng phóng nguyên lần, không nhòe).',
   ].join(' '),
     { op: z.enum(PROCESS_OPS), input: z.string().optional(), inputs: z.array(z.string()).optional(), output: z.string().optional(), params: z.record(z.string(), z.any()).optional() },
     (args) => assetProcess(ctx, args));

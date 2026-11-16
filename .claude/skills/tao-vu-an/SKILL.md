@@ -43,7 +43,10 @@ Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại
    - Yêu cầu **đánh giá** (bước có chữ `Review`, `Verify`, `Audit`, hoặc chỉ dẫn bảo chấm/đánh giá nội dung có sẵn): giao cho agent `kiem-dinh` với đường dẫn thư mục; nó viết `answer.json`. Bạn không tự chấm bài mình viết.
    - Yêu cầu **viết**: viết `answer.json` đúng schema → `bridge_check` → sửa tới khi đạt → `bridge_submit`. Server từ chối thì đọc `errors`, sửa, nộp lại.
    - Kind `ASSETS`: xem mục "Hình".
+   - `ownerType = CUTSCENE` (nút "Tạo bằng AI" của cutscene trên admin): làm như yêu cầu viết JSON, không có draft.
    - Bỏ dở (hết hạn mức, cần Yen quyết): `bridge_release`.
+   - Model: bước sự thật và logic dùng model mạnh nhất đang có; phần hình và âm có thể giao agent chạy Sonnet cho đỡ hạn mức.
+   - Đơn "Thế giới mới" (`NEW_WORLD`): thư viện chưa có hình; trước khi viết, báo Yen số lượt PixelLab ước tính (bảng giá bên dưới) và chờ Yen đồng ý.
 3. Sau mỗi lần nộp: `draft_get { draftId }` xem `nextAction`, `waitingGate`. Cổng của Yen (FULL, hoặc TRUTH): báo Yen một dòng (draft, cổng, link `/admin/ai`) rồi chuyển sang đơn khác hoặc dừng.
 4. `READY_TO_PUBLISH`: bước 9.
 
@@ -141,7 +144,7 @@ Dàn diễn viên: một NPC có thể đóng vai khác ở vụ khác (đổi t
 ### Làm từng ô hình
 
 1. `assets_needed { draftId, onlyRequested: true }`.
-2. Chọn ảnh theo luật trên; `asset_process` (`cut_background`, `to_webp`, `check_size`, `npc_bundle`, `walkable`…) cho đúng ô.
+2. Chọn ảnh theo luật trên; `asset_process` (`cut_background`, `to_webp`, `check_size`, `npc_bundle`, `walkable`…) cho đúng ô. Kích thước ô hiện do pipeline AI của server đặt theo kiểu cảnh cũ (bìa 1024×1024, nền 1600×900, sprite 1024×1536, vật phẩm 1024×1024), khác ảnh pixel của thư viện (512×512, 96×96, 64×64): dùng `asset_process fit { width, height, mode }` để phóng nguyên lần (không nhòe) và chèn viền/cắt giữa; ghi trong report nếu ảnh không vừa ô.
 3. `asset_upload { draftId, slotId, file }` từng ô; xong hết thì `assets_complete { draftId }`.
 4. Vùng đi được: `asset_process mask_from_shapes` (hình chữ nhật, hình thoi sàn isometric) rồi `walkable { picture }`; mở ảnh phủ xanh/đỏ để kiểm trước khi đưa `walkGrid`, `walkableArea`, `navigationObstacles` vào bố cục.
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { StudioError } from '../bridge-client.js';
 import { display, requireFile, resolveInput, tmpDir, writeJsonFile } from '../files.js';
 import {
-  checkSize, cleanText, cover, cutBackground, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
+  checkSize, cleanText, cover, cutBackground, fit, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
   walkOverlay, type NpcSources, type WalkShape,
 } from '../image/process.js';
 import { loadRgba, resizeNearest, saveRgba, sideBySide, type Rgba } from '../image/raster.js';
@@ -16,7 +16,7 @@ import type { ToolContext } from './context.js';
 
 export const PROCESS_OPS = [
   'inspect', 'cut_background', 'to_webp', 'check_size', 'clean_text', 'cover', 'idle_breathe', 'sprite_sheet', 'portrait',
-  'npc_bundle', 'walkable', 'mask_from_shapes',
+  'npc_bundle', 'walkable', 'mask_from_shapes', 'fit',
 ] as const;
 export type ProcessOp = (typeof PROCESS_OPS)[number];
 
@@ -138,6 +138,14 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
         dir: display(ctx.config, dir), files: Object.fromEntries(Object.entries(files).map(([key, file]) => [key, display(ctx.config, file)])),
         idleSource: sheet.source, anchorY: sheet.anchorY, sprite: `${npc.south.width}x${npc.south.height}`,
       };
+    }
+    case 'fit': {
+      if (!p.width || !p.height) throw new StudioError('BAD_ARGS', 'fit cần params.width và params.height (kích thước ô hình).');
+      const { image } = await loadPicture(ctx, args.input ?? '');
+      const result = fit(image, p.width, p.height, { mode: p.mode, background: p.background });
+      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, `${p.width}x${p.height}`, '.png');
+      await saveRgba(result.image, output);
+      return { output: display(ctx.config, output), width: p.width, height: p.height, mode: p.mode ?? 'contain', scale: result.scale };
     }
     case 'mask_from_shapes': {
       const width = p.width ?? 512, height = p.height ?? 512;

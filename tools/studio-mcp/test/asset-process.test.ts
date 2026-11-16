@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, test } from 'node:test';
 import { zipSync } from 'fflate';
 import {
-  breatheFrames, checkSize, cleanText, cover, cutBackground, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
+  breatheFrames, checkSize, cleanText, cover, cutBackground, fit, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
 } from '../src/image/process.js';
 import { encode, loadRgba, opaqueBounds } from '../src/image/raster.js';
 import { assetProcess } from '../src/tools/assets.js';
@@ -91,6 +91,22 @@ describe('asset_process building blocks', () => {
     assert.equal(pixel(out, 5, 340)[0] < 120, true, 'band darkens the bottom');
     assert.deepEqual(pixel(out, 5, 5), [200, 200, 200, 255]);
     for (let i = 3; i < out.data.length; i += 4) assert.equal(out.data[i], 255);
+  });
+});
+
+describe('fit a pixel picture into a slot', () => {
+  test('contain scales by a whole factor and letterboxes; cover fills and crops', () => {
+    const map = paint(512, 512, (x, y) => (x === 0 || y === 0 || x === 511 || y === 511 ? [10, 20, 30, 255] : [x % 256, y % 256, 90, 255]));
+    const contain = fit(map, 1600, 900);
+    assert.equal(contain.scale, 1);
+    assert.deepEqual(pixel(contain.image, 0, 0), [10, 20, 30, 255], 'border colour fills the sides');
+    assert.deepEqual(pixel(contain.image, 544 + 5, 194 + 7), pixel(map, 5, 7));
+    const cover = fit(map, 1600, 900, { mode: 'cover' });
+    assert.equal(cover.scale, 4);
+    // 2048x2048 centred: left -224, top -574 -> output (0,0) is source pixel (56, 143).
+    assert.deepEqual(pixel(cover.image, 0, 0), pixel(map, 56, 143));
+    const small = fit(paint(64, 64, () => [1, 2, 3, 255]), 256, 256);
+    assert.equal(small.scale, 4);
   });
 });
 

@@ -232,6 +232,44 @@ export function cover(scene: Rgba, portraits: Rgba[], options: { size?: number }
   return base;
 }
 
+// ------------------------------------------------------------------------------------------------ fit
+
+/**
+ * Fits a pixel-art picture into a slot of another size without blurring: nearest-neighbour by a whole factor, then
+ * "contain" (letterbox with a flat colour, default the average border colour) or "cover" (centre crop).
+ * Example: a 512x512 library map into a 1600x900 background slot -> x1 = 512x512 centred (contain) or x4 cropped (cover).
+ */
+export function fit(source: Rgba, width: number, height: number, options: { mode?: 'contain' | 'cover'; background?: [number, number, number, number] } = {}): { image: Rgba; scale: number } {
+  const mode = options.mode ?? 'contain';
+  const ratio = mode === 'cover' ? Math.max(width / source.width, height / source.height) : Math.min(width / source.width, height / source.height);
+  const scale = mode === 'cover' ? Math.max(1, Math.ceil(ratio)) : Math.max(1, Math.floor(ratio));
+  const scaled = ratio < 1 && mode === 'contain'
+    ? resizeNearest(source, Math.max(1, Math.floor(source.width * ratio)), Math.max(1, Math.floor(source.height * ratio)))
+    : resizeNearest(source, source.width * scale, source.height * scale);
+  let background = options.background;
+  if (!background) {
+    let r = 0, g = 0, b = 0, a = 0, n = 0;
+    for (let x = 0; x < source.width; x++) for (const y of [0, source.height - 1]) {
+      const at = (y * source.width + x) * 4;
+      r += source.data[at]; g += source.data[at + 1]; b += source.data[at + 2]; a += source.data[at + 3]; n++;
+    }
+    background = [Math.round(r / n), Math.round(g / n), Math.round(b / n), Math.round(a / n)];
+  }
+  const out = blank(width, height, background);
+  const left = Math.round((width - scaled.width) / 2);
+  const top = Math.round((height - scaled.height) / 2);
+  for (let y = 0; y < scaled.height; y++) {
+    const ty = y + top;
+    if (ty < 0 || ty >= height) continue;
+    for (let x = 0; x < scaled.width; x++) {
+      const tx = x + left;
+      if (tx < 0 || tx >= width) continue;
+      scaled.data.copy(out.data, (ty * width + tx) * 4, (y * scaled.width + x) * 4, (y * scaled.width + x) * 4 + 4);
+    }
+  }
+  return { image: out, scale: ratio < 1 && mode === 'contain' ? ratio : scale };
+}
+
 // ------------------------------------------------------------------------------------------------ walkable
 
 export interface WalkShape {
