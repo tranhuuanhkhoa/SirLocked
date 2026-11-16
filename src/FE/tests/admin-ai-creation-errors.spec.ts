@@ -93,7 +93,10 @@ test('creation errors remain visible and every entered field survives a successf
   await page.locator('#ai-case-type-select').selectOption('THEFT');
   await page.locator('#ai-include-crack').check();
   await page.locator('#ai-creator-direction').fill('The <clock> vanishes from the theatre.');
-  await page.locator('#ai-setting-lock').selectOption('theatre');
+  // The old setting lock is gone (VUAN-3): the world, weather and suspects of the order must survive instead.
+  await page.locator('[data-world="TAISHO_JAPAN"]').click();
+  await page.locator('[data-field="weather"] label', { hasText: 'Mưa' }).click();
+  await page.locator('[data-field="suspectCount"] label', { hasText: '5' }).click();
   await page.locator('#ai-tone-lock').selectOption('tense');
   await page.locator('#ai-mechanic-lock').selectOption('timeline');
   await page.locator('#quick-create-btn').click();
@@ -107,7 +110,10 @@ test('creation errors remain visible and every entered field survives a successf
   await expect(page.locator('#ai-case-type-select')).toHaveValue('THEFT');
   await expect(page.locator('#ai-include-crack')).toBeChecked();
   await expect(page.locator('#ai-creator-direction')).toHaveValue('The <clock> vanishes from the theatre.');
-  await expect(page.locator('#ai-setting-lock')).toHaveValue('theatre');
+  await expect(page.locator('#ai-setting-lock')).toHaveCount(0);
+  await expect(page.locator('[data-world="TAISHO_JAPAN"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('input[name="aai-weather"][value="RAIN"]')).toBeChecked();
+  await expect(page.locator('input[name="aai-suspects"][value="5"]')).toBeChecked();
   await expect(page.locator('#ai-tone-lock')).toHaveValue('tense');
   await expect(page.locator('#ai-mechanic-lock')).toHaveValue('timeline');
   await page.locator('#quick-create-btn').click();
