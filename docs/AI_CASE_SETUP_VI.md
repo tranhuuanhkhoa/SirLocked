@@ -20,7 +20,8 @@ Bài này là hướng dẫn trọn vẹn cách tạo vụ bằng bot Claude: ph
 | 7 | Bot | Viết logic chơi: cảnh, giải đố, hội thoại, đối chất, **gợi ý 3 mức cho mọi câu hỏi**, kết thúc; agent `kiem-dinh` trả lời bước đánh giá → **cổng 3 LOGIC** | — |
 | 8 | Bot | Hình nền cảnh (vụ pixel: khai `asset_plan`, thư viện → biến thể → PixelLab trong trần lượt) và bố cục pixel → **cổng 4 LAYOUT**; rồi sprite, chân dung, icon; nhạc, bíp, thời tiết | — |
 | 9 | Bot | Import bản nháp (không đăng), Playwright tự chơi, viết `report.md` 5 lớp | chi tiết draft hiện `report.md` |
-| 10 | Yen | Chơi thử bản import bằng tài khoản ADMIN trên máy tính và điện thoại; ưng thì tự bấm **Xuất bản** | `/admin/cases/<caseId>` |
+| 10 | Yen, hoặc VIP đã đặt đơn | Bấm **Chơi thử** ở bản nháp "Đã import, chưa đăng": mở phòng riêng, gửi **liên kết mời** cho một người chơi vai thứ hai (liên kết chỉ dùng được một lần; chỉ có mã phòng thì không vào được). Ván chơi thử không tính xếp hạng, không nhận thưởng. Chơi trên máy tính và điện thoại | `/admin/ai` |
+| 11 | Yen | Ưng thì tự bấm **Xuất bản** | `/admin/cases/<caseId>` |
 
 Chế độ nhanh (`reviewMode = FAST`, chỉ ADMIN chọn): bot tự qua STORY, LOGIC, LAYOUT khi cả 5 lớp kiểm tra đạt; Yen chỉ duyệt TRUTH và bản cuối. Bot **không bao giờ** publish: bridge không có đường publish.
 
@@ -146,6 +147,17 @@ Production bật `CaseCatalog:PixelOnly=true`, nên đơn mới làm **vụ pixe
 | Âm | Nhạc, thời tiết, bíp như VUAN-4, VUAN-5; cảnh pixel thiếu tiếng giao diện thì server ghi 7 cue CC0 `/assets/audio/sfx/ui/<cue>.ogg` |
 
 Chế độ mock không ảnh (`MockAiResponses` + `SkipAssetGeneration`, dùng cho `start-local-demo.ps1`) vẫn dựng bố cục kiểu cũ vì không có ảnh nào để dựng cảnh pixel.
+
+### Chơi thử bản nháp chưa đăng (VUAN-6B phần C)
+
+Bản nháp bot đã import có trạng thái **"Đã import, chưa đăng"**. Vụ của nó vẫn là `DRAFT`, nên không hiện ở danh sách vụ, không vào ghép trận và không có trang công khai.
+
+- **Ai mở được:** ADMIN, hoặc VIP đã đặt đơn (tác giả). Nút **Chơi thử** nằm ở hàng bản nháp và thẻ chi tiết trên `/admin/ai`. API: `POST /api/admin/ai-cases/{draftId}/playtest`; bấm lại thì trả về phòng đang mở.
+- **Phòng:** riêng tư (`GameRoom.playtest`), 2 ghế như phòng thường.
+- **Mời người thứ hai:** phòng chờ hiện liên kết `/join?code=…&invite=…`. Người đầu tiên vào bằng liên kết thì liên kết gắn với người đó. Người khác có liên kết hay chỉ có mã phòng đều bị chặn (403 `PLAYTEST_FORBIDDEN`). ADMIN và tác giả vào bằng mã phòng mà không cần liên kết.
+- **Không tính gì:** ván chơi thử không ghi `gameResults`. Vì vậy không có bảng xếp hạng, hồ sơ, thành tích, đánh giá hay xu thưởng. Kết quả đọc lại từ chính phòng; trang kết quả ghi "Ván chơi thử".
+- Phòng chơi thử không bao giờ hiện ở bảng phòng công khai. Thành viên phòng đọc được chi tiết vụ và cutscene mở màn đã duyệt qua `?roomId=`.
+- Khi phòng chơi thử còn mở (chờ hoặc đang chơi), server vẫn chặn **nhập đè** vụ đó (`CASE_IMMUTABLE_WHILE_ACTIVE`, luật có sẵn). Bấm Xuất bản ở `/admin/cases/<caseId>` không bị chặn.
 
 ## Cutscene
 
