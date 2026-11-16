@@ -97,7 +97,7 @@ test('harbour rain and its own music; entering the shop stops the rain and chang
   await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/ben-cang-dem-mua.ogg');
   const outside = await audio(page);
   expect(outside.music.mode).toBe('music');
-  expect(outside.music.loop).toEqual({ start: 0, end: 50.526, loop: true });
+  expect(outside.music.loop).toEqual({ start: 0, end: 50.526327, loop: true });
   expect(outside.weather).toMatchObject({ type: 'RAIN', effective: { type: 'RAIN', intensity: 0.7 } });
   expect(outside.weather.target).toBeGreaterThan(0);
 
@@ -106,7 +106,7 @@ test('harbour rain and its own music; entering the shop stops the rain and chang
   await expect.poll(async () => (await weather(page)).active).toBe(false);
   expect(await weather(page)).toMatchObject({ type: 'NONE', particles: 0, drawn: false, indoor: true });
   await expect.poll(async () => (await audio(page)).weather.running).toBe(false);
-  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/tiem-dong-ho.ogg');
+  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/tiem-hop-nhac.ogg');
   const inside = await audio(page);
   expect(inside.counters.crossfades).toBe(1);
   expect(inside.weather.effective.type).toBe('NONE');
@@ -166,6 +166,33 @@ test('the blip slider and the weather switch work from the sound panel and are r
   await weatherOff.uncheck();
   await expect.poll(async () => (await weather(page)).particles).toBeGreaterThan(20);
   await expect.poll(async () => (await audio(page)).weather.running).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('the sound panel credits the songs heard: title, author, licence, link to the original page; own songs say so', async ({ page }) => {
+  const errors: string[] = [];
+  await openGame(page, sampleCase, DOCK, errors);
+  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/ben-cang-dem-mua.ogg');
+  await goTo(page, SHOP);
+  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 20_000 }).toContain('/hang-duong/tiem-hop-nhac.ogg');
+  await page.locator('.game-audio-controls > summary').click();
+  const credits = page.locator('[data-audio-credits]');
+  await expect(credits).toBeVisible();
+  await expect(credits).toContainText('Âm nhạc');
+  const items = credits.locator('li');
+  await expect(items).toHaveCount(2);
+  // Newest first: the shop's music box (CC0, from OpenGameArt), then the harbour song written for the game.
+  await expect(items.nth(0)).toContainText('Music Box: Cute Tune');
+  await expect(items.nth(0)).toContainText('Aureolus_Omicron');
+  await expect(items.nth(0)).toContainText('CC0 1.0');
+  await expect(items.nth(0).locator('a')).toHaveAttribute('href', 'https://opengameart.org/content/4-music-box-tracks');
+  await expect(items.nth(0).locator('a')).toHaveAttribute('rel', /noopener/);
+  await expect(items.nth(1)).toContainText('Bến cảng đêm mưa');
+  await expect(items.nth(1)).toContainText('Sir Locked tự sáng tác');
+  // Under the sliders, not over them.
+  const last = await page.locator('.game-audio-controls > label').last().boundingBox();
+  const box = await credits.boundingBox();
+  expect(box!.y).toBeGreaterThanOrEqual(last!.y + last!.height - 1);
   expect(errors).toEqual([]);
 });
 

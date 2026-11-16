@@ -384,13 +384,13 @@
         "dialogue": "/assets/audio/sfx/ui/dialogue.ogg"
        },
        "music": {
-        "url": "/assets/audio/music/hang-duong/tiem-dong-ho.ogg",
-        "fallbackUrl": "/assets/audio/music/hang-duong/tiem-dong-ho.mp3",
-        "title": "Tiệm đồng hồ",
-        "source": "claude-8bit",
-        "license": "Sir Locked (tự sáng tác bằng code)",
+        "url": "/assets/audio/music/hang-duong/tiem-hop-nhac.ogg",
+        "fallbackUrl": "/assets/audio/music/hang-duong/tiem-hop-nhac.mp3",
+        "title": "Music Box: Cute Tune",
+        "source": "opengameart",
+        "license": "CC0 1.0",
         "loopStartSec": 0,
-        "loopEndSec": 40.0,
+        "loopEndSec": 68.568027,
         "volume": 0.5
        }
       },
@@ -792,9 +792,9 @@
         "fallbackUrl": "/assets/audio/music/hang-duong/ben-cang-dem-mua.mp3",
         "title": "Bến cảng đêm mưa",
         "source": "claude-8bit",
-        "license": "Sir Locked (tự sáng tác bằng code)",
+        "license": "Sir Locked (tự sáng tác)",
         "loopStartSec": 0,
-        "loopEndSec": 50.526,
+        "loopEndSec": 50.526327,
         "volume": 0.55
        }
       },
