@@ -5,6 +5,8 @@ import { plural, tr, uiLanguage } from '../services/i18n.js';
 import { session } from '../services/session.js';
 import { CutsceneController } from '../game/cutsceneController.js';
 import { hydrateRewardChip } from '../components/walletChip.js';
+import { forgetTutorialStatus } from '../services/tutorial.js';
+import { TUTORIAL_CASE_ID } from '../game/tutorialSteps.ts';
 
 /* Rank ladder used by the backend (GameplayV2Rules.BuildScoreSummary): S ≥ 90, A ≥ 75, B ≥ 60, else C.
    A failed accusation always ranks D. */
@@ -366,13 +368,20 @@ export async function renderResultPage(app, roomId) {
   ].join('');
   const accused = result.selectedCulpritName || '';
   const caseId = result.caseId ? encodeURIComponent(result.caseId) : '';
-  const backToCases = `<a class="bpa-btn ${win ? 'bpa-btn--red' : 'bpa-btn--gold'} bpa-result-fbtn${win ? ' is-first' : ''}" href="/cases">${ICON_BACK}${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>`;
+  // Màn tân thủ: the verdict leads into real play instead of the catalogue, and the gate is re-read.
+  const tutorial = result.caseId === TUTORIAL_CASE_ID;
+  if (tutorial) forgetTutorialStatus();
   // A playtest of an unpublished draft: nothing was ranked or rewarded, and the case has no public page to replay or review.
   const playtest = result.isPlaytest === true;
-  const replay = playtest
-    ? (session.canGenerateAi() ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/admin/ai" data-playtest-back>${ICON_REPLAY}${tr('Back to the AI drafts', 'Về trang bản nháp AI')}</a>` : '')
-    : caseId ? `<a class="bpa-btn ${win ? 'bpa-btn--gold' : 'bpa-btn--red is-first'} bpa-result-fbtn" href="/cases/${caseId}">${ICON_REPLAY}${tr('Play this case again', 'Chơi lại vụ này')}</a>` : '';
-  const review = caseId && !playtest ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/workshop/${caseId}">${ICON_STAR}${tr('Review the case', 'Đánh giá vụ án')}</a>` : '';
+  const backToCases = tutorial
+    ? `<a class="bpa-btn bpa-btn--red bpa-result-fbtn is-first" href="/find-game">${ICON_BACK}${tr('Play a real case', 'Chơi vụ án thật')}</a>`
+    : `<a class="bpa-btn ${win ? 'bpa-btn--red' : 'bpa-btn--gold'} bpa-result-fbtn${win ? ' is-first' : ''}" href="/cases">${ICON_BACK}${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>`;
+  const replay = tutorial
+    ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/menu">${ICON_REPLAY}${tr('Back to the menu', 'Về sảnh')}</a>`
+    : playtest
+      ? (session.canGenerateAi() ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/admin/ai" data-playtest-back>${ICON_REPLAY}${tr('Back to the AI drafts', 'Về trang bản nháp AI')}</a>` : '')
+      : caseId ? `<a class="bpa-btn ${win ? 'bpa-btn--gold' : 'bpa-btn--red is-first'} bpa-result-fbtn" href="/cases/${caseId}">${ICON_REPLAY}${tr('Play this case again', 'Chơi lại vụ này')}</a>` : '';
+  const review = tutorial || playtest ? '' : caseId ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/workshop/${caseId}">${ICON_STAR}${tr('Review the case', 'Đánh giá vụ án')}</a>` : '';
 
   render(app, `
   <div class="bpa-container bpa-result-page ${win ? 'is-win' : 'is-fail'}${motionOk ? ' is-pending' : ''}">

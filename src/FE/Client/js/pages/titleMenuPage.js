@@ -7,6 +7,7 @@ import { weeklyApi } from '../api/weeklyApi.js';
 import { workshopApi } from '../api/workshopApi.js';
 import { activeRoomDestination } from '../services/roomInvites.js';
 import { session } from '../services/session.js';
+import { hydrateTutorialBanner } from '../services/tutorial.js';
 import { tr, uiLanguage } from '../services/i18n.js';
 import { escapeHtml, initials, render } from '../utils/dom.js';
 import { changeText, defName, fmt as formatPrice, itemTile, rarityLabel, rarityOf } from './market/marketKit.js';
@@ -93,6 +94,7 @@ export function renderTitleMenuPage(app) {
     <section class="title-menu-screen bpa-home" aria-labelledby="title-menu-heading">
       <div class="bpa-container bpa-home-wrap">
         <h1 id="title-menu-heading" class="bpa-sr">${tr('Sir Locked home', 'Trang chủ Sir Locked')}</h1>
+        <div class="tt-menu-banner" id="home-tutorial" hidden></div>
         <div class="bpa-home-grid">
           ${threadsMarkup()}
 
@@ -228,6 +230,7 @@ export function renderTitleMenuPage(app) {
   });
 
   // Each card fills itself; a slow or failed request never blocks the others.
+  void hydrateTutorialBanner(app);
   loadProfile(app);
   loadActiveRooms(app);
   loadOpenRoomCount(app);

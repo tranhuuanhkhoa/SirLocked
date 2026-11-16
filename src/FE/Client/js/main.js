@@ -39,6 +39,8 @@ import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
 import { renderVerifyNoticePage } from './pages/verifyNoticePage.js';
 import { PROFILE_EVENT, detectiveRankLabel, renderTitleMenuPage } from './pages/titleMenuPage.js';
 import { renderMarketPage } from './pages/marketPage.js';
+import { renderTutorialPage } from './pages/tutorialPage.js';
+import { TUTORIAL_PATH, ensureTutorialChoice, tutorialBlocks } from './services/tutorial.js';
 import { renderChestPage } from './pages/chestPage.js';
 import { hydrateWalletChip, walletChipMarkup } from './components/walletChip.js';
 import { syncAdminArea, syncAdminNav } from './components/admin/shell.js';
@@ -82,6 +84,7 @@ const routes = [
   { pattern: /^\/reset-password/, page: renderResetPasswordPage, anonymous: true, authScreen: true },
   { pattern: /^\/verify-notice$/, page: renderVerifyNoticePage, authScreen: true },
   { pattern: /^\/menu$/, page: renderTitleMenuPage, titleMenu: true },
+  { pattern: /^\/tan-thu$/, page: renderTutorialPage, requiresVerified: true, lifecycle: true },
   { pattern: /^\/cases$/, page: renderCasesPage },
   { pattern: /^\/cases\/([^/]+)$/, page: renderCaseDetailPage },
   { pattern: /^\/workshop$/, page: renderWorkshopPage },
@@ -397,6 +400,17 @@ async function route({ transition = true } = {}) {
   if (r.aiAccess && !session.canGenerateAi()) {
     navigate('/cases');
     return;
+  }
+  // Màn tân thủ: a new account picks Kỳ cựu / Nhập môn once; a beginner finishes the tutorial before rooms open.
+  if (!r.anonymous && !r.authScreen && !r.admin && !r.aiAccess && !session.isAdmin() && session.isEmailVerified()) {
+    if (await tutorialBlocks(path)) {
+      if (!mount.active) return;
+      navigate(TUTORIAL_PATH);
+      return;
+    }
+    if (!mount.active) return;
+    // The choice is asked on the home screen, where a new account lands after signing in.
+    if (r.titleMenu) void ensureTutorialChoice();
   }
 
   document.body.classList.toggle('game-page-active', r.game === true);

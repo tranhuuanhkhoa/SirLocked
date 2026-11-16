@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
 import { caseApi } from '../api/caseApi.js';
+import { tutorialApi } from '../api/tutorialApi.js';
+import { createTutorialCoach, type TutorialCoach } from '../game/tutorialCoach';
+import { roleForHotspot } from '../game/tutorialSteps';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { createStateRefetcher } from '../services/stateRefetcher.js';
@@ -383,6 +386,8 @@ type GameState = {
   caseId?: string;
   /** A playtest room of an unpublished AI draft (VUAN-6B): its case is read through the room. */
   isPlaytest?: boolean;
+  /** Solo newcomer tutorial room (màn tân thủ): the coach shows and the role switches by itself. */
+  isTutorial?: boolean;
   roomId: string;
   roomCode: string;
   hostUserId: string;
@@ -868,6 +873,22 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   /** Screen point (canvas px) of the doorway leading to a scene, for the room transition. */
+  /** Page coordinates of a runtime point of the scene on screen (null before the scene is drawn); used by the tutorial coach. */
+  pagePointOfRuntime(point: RuntimePoint): { x: number; y: number } | null {
+    if (!this.ready || !this.state || !this.game?.canvas) return null;
+    const world = this.worldPoint(point);
+    const scroll = this.viewScroll();
+    const rect = this.game.canvas.getBoundingClientRect();
+    const ratioX = rect.width / (this.scale.width || rect.width || 1);
+    const ratioY = rect.height / (this.scale.height || rect.height || 1);
+    return { x: rect.left + (world.x - scroll.x) * ratioX, y: rect.top + (world.y - scroll.y) * ratioY };
+  }
+
+  /** The local detective's position (runtime units), for the tutorial coach's "you walked" step. */
+  localRuntimePose(): { x: number; y: number } | null {
+    return this.localPose ? { x: this.localPose.x, y: this.localPose.y } : null;
+  }
+
   transitionPoint(targetSceneId: string | null | undefined) {
     if (!this.ready || !this.state) return null;
     const transition = this.sceneRuntime()?.transitions?.find((candidate) => candidate.targetSceneId === targetSceneId);
@@ -2810,6 +2831,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
   let uiMode: GameUiMode = { kind: 'EXPLORE' };
   let puzzleHost: PuzzleHost | null = null;
+  // Màn tân thủ: the coach card + pointer, and a role switch in flight (one at a time).
+  let tutorialCoach: TutorialCoach | null = null;
+  let tutorialRoleSwitch: Promise<boolean> | null = null;
   // Open co-op case wall (Sơ đồ vụ án): keeps its own drag/hold/animation state across redraws.
   // Dev builds only: lets end-to-end scripts open a scene puzzle without aiming at the canvas.
   if (import.meta.env.DEV) {
@@ -3243,6 +3267,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     }
     if (triggerId) returnFocusId = triggerId;
     uiMode = next;
+    tutorialCoach?.update(state, next.kind);
     if (next.kind === 'CASE_FILE' && next.section !== 'map') recordGuideAction('notebook');
     if (next.kind !== 'INVENTORY') {
       combineMode = false;
@@ -3382,6 +3407,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     rememberAskableDialogues(fresh);
     rememberAccusationRevision(fresh);
     state = fresh;
+    if (fresh.isTutorial) startTutorialCoach();
+    tutorialCoach?.update(fresh, uiMode.kind);
     audio.setScene(fresh.currentSceneId, fresh.visibleScene.runtime?.audio);
     musicCredits.add(fresh.visibleScene.runtime?.audio?.music);
     audio.setWeather(fresh.visibleScene.runtime?.weather, fresh.visibleScene.runtime?.indoor);
@@ -3600,6 +3627,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   try {
     state = await gameApi.state(roomId);
     if (stopped) return cleanupGamePage;
+    // Màn tân thủ: the coach (and its welcome instead of the role briefing) starts with the first state.
+    if (state?.isTutorial && state.roomStatus === 'IN_PROGRESS') startTutorialCoach();
     if (state?.roomStatus !== 'COMPLETED' && state?.roomStatus !== 'ABANDONED') {
       await loadIntroCutscene(state);
       if (stopped) return cleanupGamePage;
@@ -3616,6 +3645,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (stopped || !state) return cleanupGamePage;
     recordV3UiEvent('ReconnectRestored');
     draw();
+    tutorialCoach?.update(state, uiMode.kind);
   } catch (err: any) {
     if (stopped) return cleanupGamePage;
     if (err.message?.includes('not started')) {
@@ -3632,6 +3662,43 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function myRole() {
     return state?.players.find((p) => p.userId === me.userId)?.role ?? null;
+  }
+
+  function startTutorialCoach() {
+    if (tutorialCoach || stopped) return;
+    // The coach's welcome replaces the two-player role briefing.
+    try { sessionStorage.setItem(introKey, '1'); } catch { /* the briefing then shows once, harmless */ }
+    tutorialCoach = createTutorialCoach({
+      roomId,
+      tr,
+      escapeHtml,
+      project: (point) => phaserScene?.pagePointOfRuntime(point) ?? null,
+      pose: () => phaserScene?.localRuntimePose() ?? null,
+      onLeave: () => navigate('/menu'),
+    });
+  }
+
+  /** Màn tân thủ: switches the solo player to `role` (Sherlock questions, Watson handles objects). */
+  function switchTutorialRole(role: 'INVESTIGATOR' | 'INTERROGATOR'): Promise<boolean> {
+    if (!state?.isTutorial) return Promise.resolve(false);
+    if (myRole() === role) return Promise.resolve(true);
+    if (tutorialRoleSwitch) return tutorialRoleSwitch;
+    tutorialRoleSwitch = (async () => {
+      try {
+        await tutorialApi.switchRole(roomId, role);
+        applyState(await gameApi.state(roomId));
+        toast(role === 'INVESTIGATOR'
+          ? tr('Now playing Watson: he examines objects and takes photos.', 'Giờ bạn là Watson: khám vật và chụp ảnh.')
+          : tr('Now playing Sherlock: he questions people.', 'Giờ bạn là Sherlock: hỏi chuyện mọi người.'), 'info', 2600);
+        return myRole() === role;
+      } catch (error: any) {
+        toast(error?.message || tr('Could not switch detective.', 'Chưa đổi được vai.'), 'error');
+        return false;
+      } finally {
+        tutorialRoleSwitch = null;
+      }
+    })();
+    return tutorialRoleSwitch;
   }
 
   function isV3CaseComplete(current = state) {
@@ -6442,6 +6509,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   function toggleCameraMode() {
+    if (myRole() !== 'INVESTIGATOR' && state?.isTutorial) {
+      void switchTutorialRole('INVESTIGATOR').then((switched) => { if (switched && myRole() === 'INVESTIGATOR') toggleCameraMode(); });
+      return;
+    }
     if (myRole() !== 'INVESTIGATOR') {
       toast(tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.'), 'info');
       return;
@@ -6488,6 +6559,13 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   async function onHotspot({ type, target, locked, label }: HotspotClick) {
     if (isSceneInputBlocked()) return;
+
+    // Màn tân thủ: one player plays both detectives, so the room switches to the role this hotspot needs.
+    if (state?.isTutorial && !selectedInventoryItemId && locked !== 'true') {
+      const needed = roleForHotspot(type);
+      const puzzleTarget = state.visibleScene.puzzles?.some((candidate) => candidate.targetId === target && !candidate.isSolved && !candidate.isLocked);
+      if (needed && !puzzleTarget && myRole() !== needed && !(await switchTutorialRole(needed))) return;
+    }
 
     if (selectedInventoryItemId) {
       await useSelectedItemOnTarget(target);
@@ -7027,6 +7105,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   function cleanupGamePage() {
     if (stopped) return;
     stopped = true;
+    tutorialCoach?.destroy();
+    tutorialCoach = null;
     clearTimeout(loadingHideTimer); clearTimeout(loadingGiveUpTimer);
     signal?.removeEventListener('abort', cleanupGamePage);
     caseWall.destroy();
