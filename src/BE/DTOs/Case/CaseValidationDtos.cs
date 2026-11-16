@@ -8,13 +8,46 @@ public class CaseValidationError
     public string? RefId { get; set; }
 }
 
+/// <summary>Validation codes of the hint rule: every scene, confrontation and deduction has hints at order 1, 2 and 3; every interactive puzzle has at least three solution hints.</summary>
+public static class CaseHintCodes
+{
+    public const string MissingHintLevel = "MissingHintLevel";
+    public const string DuplicateHintLevel = "DuplicateHintLevel";
+    public const string MissingPuzzleHints = "MissingPuzzleHints";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        MissingHintLevel, DuplicateHintLevel, MissingPuzzleHints
+    };
+}
+
 public class CaseValidationResult
 {
     public bool IsValid => Errors.Count == 0;
     public List<CaseValidationError> Errors { get; set; } = new();
+    /// <summary>Problems that do not block (for example a published case that predates the hint rule).</summary>
+    public List<CaseValidationError> Warnings { get; set; } = new();
 
     public void Add(string code, string path, string message, string? refId = null) =>
         Errors.Add(new CaseValidationError { Code = code, Path = path, Message = message, RefId = refId });
+
+    public void AddWarning(string code, string path, string message, string? refId = null) =>
+        Warnings.Add(new CaseValidationError { Code = code, Path = path, Message = message, RefId = refId });
+
+    /// <summary>
+    /// Applies the hint rule (VUAN-6) strictly: hint warnings become errors. Used for new cases and AI drafts;
+    /// cases that already existed keep them as warnings.
+    /// </summary>
+    public CaseValidationResult RequireHints()
+    {
+        var hintIssues = Warnings.Where(warning => CaseHintCodes.All.Contains(warning.Code)).ToList();
+        foreach (var issue in hintIssues)
+        {
+            Warnings.Remove(issue);
+            Errors.Add(issue);
+        }
+        return this;
+    }
 
     public void Deduplicate() =>
         Errors = Errors

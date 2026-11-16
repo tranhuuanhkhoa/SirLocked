@@ -127,7 +127,10 @@ public static class AiPlayerViewBuilder
                 Options = deduction.Options.Select(option => new { option.Id, option.Label }),
                 deduction.FailureResponse
             }),
-            Hints = gameCase.Hints.Select(hint => new { hint.ContextType, hint.TargetId, hint.Order, hint.Text }),
+            // Only the first, general hint of each question: orders 2 and 3 point at the answer (the player
+            // has to ask for them), so showing them would make the blind detective's test meaningless.
+            Hints = gameCase.Hints.Where(hint => hint.Order <= 1)
+                .Select(hint => new { hint.ContextType, hint.TargetId, hint.Order, hint.Text }),
             Timeline = gameCase.Timeline is not { } timeline ? null : new
             {
                 timeline.Title,

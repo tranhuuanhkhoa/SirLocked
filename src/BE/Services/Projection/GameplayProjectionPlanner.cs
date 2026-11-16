@@ -688,32 +688,30 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         }
     }
 
+    /// <summary>
+    /// Three escalating hint slots (order 1, 2, 3) per scene, challenge and deduction: the hint rule of
+    /// <see cref="CaseHintRules"/>. Level 1 keeps the historical ID so the first hint of a target is stable.
+    /// </summary>
     private static void CreateHints(GameCase skeleton)
     {
+        void Add(string contextType, string targetId, string baseId)
+        {
+            foreach (var level in CaseHintRules.Levels)
+                skeleton.Hints.Add(new CaseHint
+                {
+                    HintId = level == 1 ? baseId : $"{baseId}-level-{level}",
+                    ContextType = contextType,
+                    TargetId = targetId,
+                    Order = level
+                });
+        }
+
         foreach (var scene in skeleton.Stages.SelectMany(stage => stage.Scenes))
-            skeleton.Hints.Add(new CaseHint
-            {
-                HintId = $"hint-scene-{scene.SceneId}",
-                ContextType = HintContextTypes.Scene,
-                TargetId = scene.SceneId,
-                Order = 1
-            });
+            Add(HintContextTypes.Scene, scene.SceneId, $"hint-scene-{scene.SceneId}");
         foreach (var challenge in skeleton.EvidenceChallenges)
-            skeleton.Hints.Add(new CaseHint
-            {
-                HintId = $"hint-{challenge.ChallengeId}",
-                ContextType = HintContextTypes.Confrontation,
-                TargetId = challenge.ChallengeId,
-                Order = 1
-            });
+            Add(HintContextTypes.Confrontation, challenge.ChallengeId, $"hint-{challenge.ChallengeId}");
         foreach (var deduction in skeleton.Deductions)
-            skeleton.Hints.Add(new CaseHint
-            {
-                HintId = $"hint-{deduction.DeductionId}",
-                ContextType = HintContextTypes.Deduction,
-                TargetId = deduction.DeductionId,
-                Order = 1
-            });
+            Add(HintContextTypes.Deduction, deduction.DeductionId, $"hint-{deduction.DeductionId}");
     }
 
     private static void CreateFinalLogic(GameCase skeleton, CaseTruthPackage truth)

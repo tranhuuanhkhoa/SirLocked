@@ -2149,14 +2149,17 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             {
                 var selected = result.SelectedEvidenceLinks.FirstOrDefault(link =>
                     link.ClaimType.Equals(required.ClaimType, StringComparison.OrdinalIgnoreCase));
+                var accepted = required.Accepts(selected?.EvidenceId);
+                // An accepted alternative is this team's correct evidence; otherwise show the authored one.
+                var correctId = accepted ? selected!.EvidenceId : required.EvidenceId;
                 return new EvidenceClaimResult
                 {
                     ClaimType = required.ClaimType,
                     SelectedEvidenceId = selected?.EvidenceId ?? string.Empty,
                     SelectedEvidenceTitle = selected is null ? string.Empty : ClueTitle(selected.EvidenceId),
-                    CorrectEvidenceId = required.EvidenceId,
-                    CorrectEvidenceTitle = ClueTitle(required.EvidenceId),
-                    IsCorrect = selected?.EvidenceId == required.EvidenceId
+                    CorrectEvidenceId = correctId,
+                    CorrectEvidenceTitle = ClueTitle(correctId),
+                    IsCorrect = accepted
                 };
             }).ToList()
             : new List<EvidenceClaimResult>();

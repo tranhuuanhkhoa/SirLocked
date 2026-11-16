@@ -1021,6 +1021,7 @@ internal static class AiCaseMockFactory
 
     private static string SerializeGeneratedLogicForProvider(GeneratedCaseLogic logic)
     {
+        MockCaseFactory.CompleteHintLevels(logic.Stages, logic.EvidenceChallenges, logic.Deductions, logic.Hints);
         var root = JsonSerializer.SerializeToNode(logic, PrettyJson)!.AsObject();
         foreach (var stage in root["stages"]!.AsArray())
         foreach (var scene in stage!["scenes"]!.AsArray())

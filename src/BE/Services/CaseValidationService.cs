@@ -27,6 +27,9 @@ public class CaseValidationService : ICaseValidationService
         ValidateFinalLogic(gameCase, result);
         ValidateRuleSet(gameCase, result);
         CaseAtmosphere.Validate(gameCase, result);
+        ValidateAcceptedEvidence(gameCase, result);
+        // Warnings here; new cases and AI drafts promote them with RequireHints().
+        CaseHintRules.Check(gameCase, result);
         if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV2)
         {
             ValidateInvestigationV2(gameCase, result);
@@ -1138,6 +1141,42 @@ public class CaseValidationService : ICaseValidationService
             result.Add("MissingField", "timeline.events", "A timeline needs at least one fixed event to anchor the others.");
     }
 
+    /// <summary>
+    /// Optional <c>acceptedEvidenceIds</c> of a final evidence link (VUAN-6): other evidence that proves the same
+    /// claim. Each must be a real isEvidence clue, differ from the link's own evidence, appear once, and not be
+    /// the evidence of another claim (the accusation needs different evidence per claim, so it would block that claim).
+    /// </summary>
+    private static void ValidateAcceptedEvidence(GameCase c, CaseValidationResult result)
+    {
+        var links = c.FinalLogic.RequiredEvidenceLinks;
+        var clueById = c.Clues.GroupBy(clue => clue.ClueId).ToDictionary(group => group.Key, group => group.First());
+        for (var i = 0; i < links.Count; i++)
+        {
+            var link = links[i];
+            if (link.AcceptedEvidenceIds is not { } accepted) continue;
+            var path = $"finalLogic.requiredEvidenceLinks[{i}].acceptedEvidenceIds";
+            if (accepted.Count > 8)
+                result.Add("InvalidValue", path, "A claim accepts at most 8 alternative evidence clues.", link.ClaimType);
+            if (accepted.Distinct(StringComparer.Ordinal).Count() != accepted.Count)
+                result.Add("InvalidValue", path, "Accepted alternative evidence must not repeat.", link.ClaimType);
+            for (var j = 0; j < accepted.Count; j++)
+            {
+                var alternativeId = accepted[j];
+                if (string.IsNullOrWhiteSpace(alternativeId))
+                    result.Add("InvalidValue", $"{path}[{j}]", "Accepted alternative evidence must be a clue ID.", link.ClaimType);
+                else if (!clueById.TryGetValue(alternativeId, out var clue))
+                    result.Add("MissingReference", $"{path}[{j}]", "Accepted alternative evidence clue does not exist.", alternativeId);
+                else if (!clue.IsEvidence)
+                    result.Add("InvalidEvidenceFlag", $"{path}[{j}]", "Accepted alternative evidence must set isEvidence: true.", alternativeId);
+                if (alternativeId == link.EvidenceId)
+                    result.Add("InvalidValue", $"{path}[{j}]", "An accepted alternative repeats the claim's own evidence.", alternativeId);
+                else if (links.Where((_, other) => other != i).Any(other => other.EvidenceId == alternativeId))
+                    result.Add("InvalidValue", $"{path}[{j}]",
+                        "An accepted alternative cannot be the evidence of another claim: each claim needs different evidence.", alternativeId);
+            }
+        }
+    }
+
     private static void ValidateFinalLogic(GameCase c, CaseValidationResult result)
     {
         var final = c.FinalLogic;
@@ -1417,6 +1456,14 @@ public class CaseValidationService : ICaseValidationService
             result.Add("UndiscoverableEvidence", "finalLogic.requiredEvidenceLinks",
                 $"Final evidence clue '{evidenceId}' is never unlocked by any reachable action.", evidenceId);
         }
+        foreach (var evidenceId in c.FinalLogic.RequiredEvidenceLinks
+                     .SelectMany(link => link.AcceptedEvidenceIds ?? new List<string>())
+                     .Distinct()
+                     .Where(id => !unlockedClues.Contains(id)))
+        {
+            result.Add("UndiscoverableEvidence", "finalLogic.requiredEvidenceLinks.acceptedEvidenceIds",
+                $"Accepted alternative evidence clue '{evidenceId}' is never unlocked by any reachable action.", evidenceId);
+        }
     }
 
     private static bool ApplyReachableConversationNodes(
@@ -1695,6 +1742,16 @@ public class CaseValidationService : ICaseValidationService
                      string.IsNullOrWhiteSpace(link.ConclusionId)))
             result.Add("MissingProofLink", "finalLogic.requiredEvidenceLinks.conclusionId",
                 "Contract-v2 final evidence must identify its exact proof conclusion.", link.EvidenceId);
+        foreach (var link in c.FinalLogic.RequiredEvidenceLinks.Where(link => !string.IsNullOrWhiteSpace(link.ConclusionId)))
+        {
+            foreach (var alternativeId in link.AcceptedEvidenceIds ?? new List<string>())
+            {
+                var alternative = c.Clues.FirstOrDefault(clue => clue.ClueId == alternativeId);
+                if (alternative is not null && !alternative.SupportsConclusionIds.Contains(link.ConclusionId))
+                    result.Add("ClaimOverreach", "finalLogic.requiredEvidenceLinks.acceptedEvidenceIds",
+                        $"Accepted alternative '{alternativeId}' does not support conclusion '{link.ConclusionId}' of its claim.", alternativeId);
+            }
+        }
 
         for (var i = 0; i < c.Clues.Count; i++)
         {

@@ -30,6 +30,9 @@ public class CaseSummaryResponse
     /// <summary>False when the case is hidden from players (a draft, or not a pixel case while the catalogue is pixel-only). Set on the admin list.</summary>
     public bool PlayerVisible { get; set; } = true;
     public DateTime UpdatedAt { get; set; }
+    /// <summary>Non-blocking validation findings of an import or publish (for example missing hint levels on an existing case). Absent elsewhere.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<CaseValidationError>? ValidationWarnings { get; set; }
 
     public CaseSummaryResponse WithPlayerVisible(bool visible)
     {
@@ -151,4 +154,6 @@ public class CaseValidationResponse
 {
     public bool IsValid { get; set; }
     public List<CaseValidationError> Errors { get; set; } = new();
+    /// <summary>Non-blocking findings, such as missing hint levels on a case that already existed.</summary>
+    public List<CaseValidationError> Warnings { get; set; } = new();
 }

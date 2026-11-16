@@ -567,6 +567,17 @@ public static class AiStrictSchemaProvider
                 properties["atmosphere"] = CaseAtmosphereSchemas.SceneAtmosphere();
                 continue;
             }
+            // Optional other evidence that proves the same claim (VUAN-6): an array or null, never required.
+            if (type == typeof(RequiredEvidenceLink) && property.Name == nameof(RequiredEvidenceLink.AcceptedEvidenceIds))
+            {
+                properties["acceptedEvidenceIds"] = new JsonObject
+                {
+                    ["type"] = new JsonArray("array", "null"),
+                    ["items"] = new JsonObject { ["type"] = "string" },
+                    ["maxItems"] = 8
+                };
+                continue;
+            }
             if (!property.CanRead || IsExcluded(type, property.Name)
                 || (!includeV3Fields && type == typeof(GeneratedCaseLogic) && property.Name == nameof(GeneratedCaseLogic.TestimonyFragments)))
                 continue;

@@ -82,7 +82,8 @@ public static class GameResultFactory
             {
                 ClaimType = link.ClaimType,
                 ConclusionId = link.ConclusionId,
-                EvidenceId = link.EvidenceId
+                EvidenceId = link.EvidenceId,
+                AcceptedEvidenceIds = link.AcceptedEvidenceIds?.ToList()
             }).ToList()
         },
         Presentation = gameCase.Presentation is not { } presentation ? null : new CasePresentation

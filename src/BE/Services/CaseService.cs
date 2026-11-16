@@ -177,8 +177,32 @@ public class CaseService : ICaseService, IPixelCaseSeeder
     {
         var gameCase = ParseCase(caseJson);
         var result = _validator.Validate(gameCase);
-        return new CaseValidationResponse { IsValid = result.IsValid, Errors = result.Errors };
+        return new CaseValidationResponse { IsValid = result.IsValid, Errors = result.Errors, Warnings = result.Warnings };
     }
+
+    public async Task<CaseValidationResponse> ValidateJsonForImportAsync(JsonElement caseJson)
+    {
+        var gameCase = ParseCase(caseJson);
+        var result = _validator.Validate(gameCase);
+        // The admin import strips AI metadata, so judge the case as a manual import would.
+        if (await IsNewCaseAsync(gameCase.CaseId)) result.RequireHints();
+        return new CaseValidationResponse { IsValid = result.IsValid, Errors = result.Errors, Warnings = result.Warnings };
+    }
+
+    /// <summary>Case IDs that ship with the server (seed and demo files). They predate the hint rule and only warn.</summary>
+    private static readonly IReadOnlySet<string> BundledCaseIds = CrackDemoFiles
+        .Concat(PointClickDemoFiles).Concat(PixelDemoFiles)
+        .Select(Path.GetFileNameWithoutExtension)
+        .OfType<string>()
+        .Concat(["case-week2-manor", "case-demo-opera-diamond"])
+        .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// A "new case" for the hint rule (VUAN-6): its caseId is neither in the database nor bundled with the server.
+    /// Cases that already exist (published or not) keep missing hints as warnings.
+    /// </summary>
+    private async Task<bool> IsNewCaseAsync(string caseId) =>
+        !BundledCaseIds.Contains(caseId) && await FindCaseAsync(caseId) is null;
 
     public async Task<CaseSummaryResponse> ImportJsonAsync(JsonElement caseJson, bool overwrite, bool preserveServerMetadata = false)
     {
@@ -198,7 +222,9 @@ public class CaseService : ICaseService, IPixelCaseSeeder
             gameCase.ProjectionCompilerVersion = string.Empty;
             gameCase.ProjectionBuildMode = string.Empty;
         }
-        return await UpsertValidatedAsync(gameCase, overwrite, forceDraft: true);
+        // AI-sourced cases (bridge import, metadata kept) were held to the hint rule by the AI pipeline itself.
+        var requireHints = string.IsNullOrWhiteSpace(gameCase.SourceAiDraftId) && await IsNewCaseAsync(gameCase.CaseId);
+        return await UpsertValidatedAsync(gameCase, overwrite, forceDraft: true, requireHints);
     }
 
     public async Task<CaseSummaryResponse> PublishAsync(string caseId)
@@ -243,7 +269,10 @@ public class CaseService : ICaseService, IPixelCaseSeeder
             throw ApiException.Unprocessable("Case validation failed; it cannot be published.", validation.Errors);
         }
 
-        return await SetStatusAsync(gameCase, CaseStatus.Published);
+        // The hint rule only warns here: a new case met it at import, an older one is never blocked by it.
+        var published = await SetStatusAsync(gameCase, CaseStatus.Published);
+        if (validation.Warnings.Count > 0) published.ValidationWarnings = validation.Warnings;
+        return published;
     }
 
     public async Task<CaseSummaryResponse> UnpublishAsync(string caseId)
@@ -354,7 +383,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder
         return seeded;
     }
 
-    private async Task<CaseSummaryResponse> UpsertValidatedAsync(GameCase gameCase, bool overwrite, bool forceDraft)
+    private async Task<CaseSummaryResponse> UpsertValidatedAsync(GameCase gameCase, bool overwrite, bool forceDraft, bool requireHints = false)
     {
         if (forceDraft)
         {
@@ -364,6 +393,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder
         // Interactive puzzles get their per-case answers here (deterministic per case and puzzle).
         Services.PuzzleKinds.PuzzleKindRegistry.FillMissing(gameCase);
         var validation = _validator.Validate(gameCase);
+        if (requireHints) validation.RequireHints();
         if (!validation.IsValid)
         {
             throw ApiException.Unprocessable("Case validation failed.", validation.Errors);
@@ -419,7 +449,9 @@ public class CaseService : ICaseService, IPixelCaseSeeder
 
         _cache.Invalidate(gameCase.CaseId);
         _logger.LogInformation("Case '{CaseId}' imported/seeded with status {Status}.", gameCase.CaseId, gameCase.Status);
-        return CaseSummaryResponse.From(gameCase);
+        var summary = CaseSummaryResponse.From(gameCase);
+        if (validation.Warnings.Count > 0) summary.ValidationWarnings = validation.Warnings;
+        return summary;
     }
 
     private async Task<CaseSummaryResponse> SetStatusAsync(GameCase gameCase, string status)

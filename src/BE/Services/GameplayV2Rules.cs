@@ -70,9 +70,10 @@ public static class GameplayV2Rules
         request.CulpritId == gameCase.FinalLogic.CulpritId
         && request.MotiveId == gameCase.FinalLogic.CorrectMotiveId
         && request.MethodId == gameCase.FinalLogic.CorrectMethodId
+        // A claim accepts its authored evidence or any listed alternative (acceptedEvidenceIds, VUAN-6).
         && gameCase.FinalLogic.RequiredEvidenceLinks.All(required => request.EvidenceLinks.Any(selected =>
             selected.ClaimType.Equals(required.ClaimType, StringComparison.OrdinalIgnoreCase)
-            && selected.EvidenceId == required.EvidenceId));
+            && required.Accepts(selected.EvidenceId)));
 
     public static ConfrontationRuleResult ApplyEvidence(
         GameplayState state,

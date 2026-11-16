@@ -36,9 +36,9 @@ public class AdminCasesController : BaseApiController
         Ok(await _caseService.GetCaseAsync(caseId));
 
     [HttpPost("validate")]
-    public ActionResult<ApiResponse<CaseValidationResponse>> Validate([FromBody] CaseJsonRequest request)
+    public async Task<ActionResult<ApiResponse<CaseValidationResponse>>> Validate([FromBody] CaseJsonRequest request)
     {
-        var result = _caseService.ValidateJson(request.CaseJson);
+        var result = await _caseService.ValidateJsonForImportAsync(request.CaseJson);
         return Ok(result, result.IsValid ? "Case is valid." : "Case validation failed.");
     }
 

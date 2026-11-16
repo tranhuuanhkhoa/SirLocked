@@ -914,7 +914,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             fixes.Add("No item-based final evidence needed camera repair.");
         }
 
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         var candidateJson = JsonSerializer.Serialize(gameCase, PrettyJson);
@@ -963,7 +963,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 "AI_REPAIR_NOT_AVAILABLE_FOR_V3",
                 "ai.v3Preset.cameraRepairUnavailable");
         gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (!validation.IsValid)
@@ -1487,7 +1487,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     {
         await ApplyCaseAutoRepairAsync(draft, gameCase);
         var preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-        var fullLogicValidation = _validator.ValidateFullLogic(gameCase);
+        var fullLogicValidation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         fullLogicValidation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -1513,7 +1513,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             {
                 ApplyDeterministicMockSceneLayout(gameCase);
                 preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                var mockLayoutValidation = _validator.ValidateSceneLayout(gameCase);
+                var mockLayoutValidation = ApplyHintRule(draft, _validator.ValidateSceneLayout(gameCase));
                 if (!mockLayoutValidation.IsValid)
                 {
                     var errors = ValidationMessages(mockLayoutValidation);
@@ -1570,7 +1570,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets: false, forceAssetIds: forceAssetIds);
         draft.AssetManifest = assetManifest;
 
-        var validation = _validator.ValidateSceneLayout(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateSceneLayout(gameCase));
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
         {
@@ -1656,7 +1656,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
 
         await ApplyCaseAutoRepairAsync(draft, gameCase);
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(
             draft.Settings.GenerationPreset,
             draft.Settings.StageCount).Validate(gameCase, draft.Settings).Errors);
@@ -1957,7 +1957,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         draft.V3SemanticReview = reScoredReview;
 
         await ApplyCaseAutoRepairAsync(draft, gameCase);
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -2075,7 +2075,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         gameCase.CharacterStyle = AiVisualStyleDefaults.CharacterStyle;
         NormalizeVisualMetadata(gameCase);
 
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -2240,7 +2240,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate: false, includeFinalAssets: true);
         draft.AssetManifest = assetManifest;
-        var validation = _validator.Validate(gameCase);
+        var validation = ApplyHintRule(draft, _validator.Validate(gameCase));
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
         if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
@@ -2579,6 +2579,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "ai.v3Preset.semanticReviewRequired");
     }
 
+    /// <summary>
+    /// AI drafts follow the hint rule strictly (<see cref="CaseHintRules"/>), except a draft whose persisted projection plan
+    /// predates it: that plan is immutable, so its missing hint levels stay warnings instead of failing the draft for ever.
+    /// </summary>
+    private static CaseValidationResult ApplyHintRule(AiCaseDraft draft, CaseValidationResult validation) =>
+        CaseHintRules.PlanPredatesRule(draft.ProjectionPlan) ? validation : validation.RequireHints();
+
     private static int MaxFullCaseOutputTokens(AiCaseDraft draft) =>
         AiGenerationPresets.Normalize(draft.Settings.GenerationPreset) == AiGenerationPresets.FullFeature
             ? 28000
@@ -2628,6 +2635,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                         + "visualDescription in printable English/ASCII: it is art direction for the image "
                         + "pipeline, never shown to players.")
             .AppendLine(VisualArtDirectionRules)
+            .AppendLine("Each hint slot carries its contextType, targetId and order; write its text for that level.")
+            .AppendLine(HintLevelRequirement)
             .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
             .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
             .AppendLine(ShortDemoSamplerRequirements(draft.Settings))
@@ -3225,7 +3234,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             fixes = CaseAutoRepair.Repair(gameCase);
         await LogCaseAutoRepairAsync(draft, fixes);
 
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -3529,9 +3538,15 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "correctOptionId": "deduce-1", "successResponse": "...", "failureResponse": "...", "unlockClueIds": [] }],
           "requiredTeamworkChains": [{ "chainId": "chain-1", "investigatorClueId": "clue-1",
             "interrogatorChallengeId": "challenge-1", "deductionId": "deduction-1", "description": "..." }],
-          "hints": [{ "hintId": "hint-scene-1", "contextType": "SCENE", "targetId": "scene-1", "order": 1, "text": "..." },
-            { "hintId": "hint-challenge-1", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 1, "text": "..." },
-            { "hintId": "hint-deduction-1", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 1, "text": "..." }],
+          "hints": [{ "hintId": "hint-scene-1-1", "contextType": "SCENE", "targetId": "scene-1", "order": 1, "text": "..." },
+            { "hintId": "hint-scene-1-2", "contextType": "SCENE", "targetId": "scene-1", "order": 2, "text": "..." },
+            { "hintId": "hint-scene-1-3", "contextType": "SCENE", "targetId": "scene-1", "order": 3, "text": "..." },
+            { "hintId": "hint-challenge-1-1", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 1, "text": "..." },
+            { "hintId": "hint-challenge-1-2", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 2, "text": "..." },
+            { "hintId": "hint-challenge-1-3", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 3, "text": "..." },
+            { "hintId": "hint-deduction-1-1", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 1, "text": "..." },
+            { "hintId": "hint-deduction-1-2", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 2, "text": "..." },
+            { "hintId": "hint-deduction-1-3", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 3, "text": "..." }],
           "interactions": [{ "interactionId": "interaction-open-chest", "type": "USE_ITEM_ON_TARGET",
             "targetId": "item-locked-chest", "requiredItemIds": ["item-rusty-key"], "requiredClueIds": [],
             "unlockItemIds": ["item-ancient-map"], "unlockClueIds": ["clue-chest-inscription"], "unlockSceneIds": [],
@@ -3634,7 +3649,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - Create exactly {contract.EvidenceChallenges} evidenceChallenges. challengeId must use prefix "challenge-" and be unique. Each challenge references an existing dialogue, accepts one isEvidence clue, and unlocks at least one clue.
         - Create at least one deduction. deductionId must use prefix "deduction-", require at least one clue and one resolved challenge, have at least three options, and have a valid correctOptionId.
         - Create at least one requiredTeamworkChain. chainId must use prefix "chain-" and connect one investigator clue, one interrogator challenge, and one deduction.
-        - Create at least one SCENE hint per scene, one CONFRONTATION hint per challenge, and one DEDUCTION hint per deduction.
+        {HintLevelRequirement}
+        - finalLogic.requiredEvidenceLinks[].acceptedEvidenceIds is optional (null or an array): other isEvidence clue IDs that prove the same claim just as well, so a player who reasons correctly with them is not marked wrong. Never list the claim's own evidenceId or another claim's evidenceId; leave it null when only one clue truly proves the claim.
         - finalLogic must have at least three motiveOptions and three methodOptions with unique IDs and valid correctMotiveId/correctMethodId.
         {requiredEvidenceLinksRequirement}
         - finalLogic.requiredDeductionIds must reference the required deduction(s), and finalLogic.requiredTeamworkChainIds must reference the required teamwork chain(s).
@@ -3695,9 +3711,20 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - INSPECT_ENVIRONMENT uses an ENVIRONMENT hotspot whose targetId equals interactionId, requires no inventory item, and can unlock clues/items/scenes through the existing interaction contract.
         - Candidate evidence and source testimony must be reachable before their challenge. A challenge reveal is downstream, is not a candidate, and cannot be unlocked by any other source.
         - testimonyFragmentId and correctEvidenceId remain the authored correct pair. Failure feedback must be generic and must not identify or quote the correct pair or reveal.
-        - Every challenge needs prompt, successResponse, failureResponse, revealTitle, at least one reveal clue, and a CONFRONTATION hint. Deductions and finalLogic may depend on resolved challengeIds normally.
+        - Every challenge needs prompt, successResponse, failureResponse, revealTitle, at least one reveal clue, and CONFRONTATION hints at order 1, 2 and 3. Deductions and finalLogic may depend on resolved challengeIds normally.
         """;
     }
+
+    /// <summary>
+    /// The hint rule (VUAN-6, <see cref="CaseHintRules"/>) as the writer must follow it: three escalating hints per
+    /// question. Shared by the full-case prompt and the projection prompt.
+    /// </summary>
+    internal const string HintLevelRequirement =
+        "- Hints: every scene, every evidence challenge (CONFRONTATION) and every deduction has exactly three hints, at order 1, 2 and 3. "
+        + "Order 1 gives a general direction (who to question, what kind of thing to look for); order 2 points to where to look "
+        + "(a place, an object, a statement); order 3 is almost the answer. Orders 1 and 2 must never name or imply the culprit; "
+        + "order 3 may point at the exact evidence or contradiction but never states the final accusation. "
+        + "Every interactive puzzle carries at least three solution hints in the same 1-2-3 progression.";
 
     private static string BuildV3FullCasePrompt(AiCaseDraft draft, string? correction, string? previousJson)
     {

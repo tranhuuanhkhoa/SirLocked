@@ -921,6 +921,19 @@ public class RequiredEvidenceLink
     /// <summary>Required for causal contract-v2 cases; empty on legacy three-claim cases.</summary>
     public string ConclusionId { get; set; } = string.Empty;
     public string EvidenceId { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional other evidence clues that prove the same claim just as well (VUAN-6). The accusation is scored
+    /// correct for this claim when the player presents <see cref="EvidenceId"/> or any of these. Absent (null)
+    /// keeps the original one-answer rule, and is left out of the stored document and of canonical hashes.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? AcceptedEvidenceIds { get; set; }
+
+    /// <summary>True when <paramref name="evidenceId"/> answers this claim: the authored evidence or an accepted alternative.</summary>
+    public bool Accepts(string? evidenceId) =>
+        !string.IsNullOrEmpty(evidenceId)
+        && (evidenceId == EvidenceId || AcceptedEvidenceIds?.Contains(evidenceId, StringComparer.Ordinal) == true);
 }
 
 [BsonIgnoreExtraElements]
