@@ -198,6 +198,9 @@ export interface VariantArgs {
 
 const lights = (value: any) => (value ?? []).map((light: any) => (Array.isArray(light) ? { x: light[0], y: light[1], r: light[2] } : light));
 const rects = (value: any) => (value ?? []).map(asRect);
+const puddles = (value: any) => (value ?? [])
+  .map((entry: any) => (Array.isArray(entry) ? { x: entry[0], y: entry[1], rx: entry[2], ry: entry[3] } : entry))
+  .filter((entry: any) => [entry?.x, entry?.y, entry?.rx, entry?.ry].every((n) => Number.isFinite(n)) && entry.rx > 0 && entry.ry > 0);
 
 export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
   if (!VARIANT_TYPES.includes(args.type)) throw new StudioError('BAD_ARGS', `type phải là một trong: ${VARIANT_TYPES.join(', ')}`);
@@ -221,7 +224,7 @@ export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
       image = await snow(source, { amount: p.amount, palette: p.palette });
       break;
     case 'after_rain':
-      image = await afterRain(source, { lights: lights(p.lights), puddles: p.puddles, darken: p.darken, palette: p.palette });
+      image = await afterRain(source, { lights: lights(p.lights), puddles: puddles(p.puddles), darken: p.darken, palette: p.palette });
       break;
     case 'mirror': {
       const result = mirror(source, { boxes: p.boxes, points: p.points, coordinateWidth: p.coordinateWidth });

@@ -111,8 +111,8 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     (args) => assetProcess(ctx, args));
   tool('asset_variant', [
     'Biến thể miễn phí từ ảnh/mục thư viện có sẵn (input = đường dẫn hoặc key thư viện). type:',
-    'night {lights:[{x,y,r}], windows:[{x0,y0,x1,y1}]} (Claude tự nhìn ảnh để chấm đèn, cửa) | dusk | snow {amount} |',
-    'after_rain {lights, puddles:[{x,y,rx,ry}]} | mirror {boxes, points, coordinateWidth, mask} | recolor {hueFrom:[min,max], hueTo, satMul, minSat, region} |',
+    'night {lights:[[x,y,r]], windows:[[x0,y0,x1,y1]]} (Claude tự nhìn ảnh để chấm đèn, cửa) | dusk | snow {amount} |',
+    'after_rain {lights, puddles:[[x,y,rx,ry]]} | mirror {boxes, points, coordinateWidth, mask} | recolor {hueFrom:[min,max], hueTo, satMul, minSat, region} |',
     'compose {add:[{source,x,y,scale,flip,shadow}], remove:[[x0,y0,x1,y1]]}. Không đổi được hình khối (thêm tầng, đổi phòng): cần PixelLab.',
     'Lưu vào index thư viện (parentKey, variant, source VARIANT) và ghi ảnh so sánh trước/sau.',
   ].join(' '),

@@ -174,8 +174,10 @@ export interface SnowParams {
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((value) => (value + 0.5) / 16);
 
 /**
- * White on upward-facing flat surfaces (roofs, ground, ledges), keeping dark outlines and edges, cool winter tint
- * elsewhere. Coverage is dithered with a 4x4 Bayer pattern so the result stays pixel art.
+ * Snow on the surfaces seen from above in these maps: grey ground, stone, slate roofs and ledges (low saturation)
+ * get covered; coloured walls (brick, wood), grass and water keep their colour under a cool winter tint; dark
+ * outlines and strong edges stay. Full cover where the surface is clearly grey, a 4x4 Bayer dither only on the
+ * borders, and the stone pattern shows faintly through the snow, so the result stays pixel art.
  */
 export async function snow(source: Rgba, params: SnowParams = {}): Promise<Rgba> {
   const { width: W, height: H, data } = source;
@@ -187,24 +189,30 @@ export async function snow(source: Rgba, params: SnowParams = {}): Promise<Rgba>
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
       const at = i * 4;
+      const r0 = data[at], g0 = data[at + 1], b0 = data[at + 2];
       out.data[at + 3] = data[at + 3];
       // Cool, slightly dim winter light everywhere.
-      const r = data[at] * 0.9, g = data[at + 1] * 0.95, b = Math.min(255, data[at + 2] * 1.06 + 6);
-      out.data[at] = toByte(r); out.data[at + 1] = toByte(g); out.data[at + 2] = toByte(b);
+      out.data[at] = toByte(r0 * 0.88); out.data[at + 1] = toByte(g0 * 0.93); out.data[at + 2] = toByte(Math.min(255, b0 * 1.05 + 8));
       if (data[at + 3] === 0 || x === 0 || y === 0 || x === W - 1 || y === H - 1) continue;
-      const outline = lum[i] < 55;
+      if (lum[i] < 55) continue; // outlines
+      const max = Math.max(r0, g0, b0), min = Math.min(r0, g0, b0);
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      const water = b0 > r0 + 25 && b0 >= g0 && saturation > 0.2;
+      if (water) continue;
       const edge = Math.abs(lum[i] - lum[i - 1]) + Math.abs(lum[i] - lum[i + 1]) + Math.abs(lum[i] - lum[i - W]) + Math.abs(lum[i] - lum[i + W]);
-      if (outline || edge > 90) continue;
-      const flat = Math.max(0, 1 - edge / 90);
-      // Upward-facing: the surface is at least as bright as the pixel below it (light comes from above), and caps
-      // form right under a dark outline (the top edge of a roof or wall).
-      const upward = lum[i] >= lum[i + W] - 4 ? 1 : 0.45;
-      const cap = lum[i - W] < 55 ? 0.35 : 0;
-      const cover = Math.min(1, amount * flat * upward + cap * amount);
-      if (cover > BAYER4[(y % 4) * 4 + (x % 4)]) {
-        const shade = 228 + Math.round((lum[i] / 255) * 22);
-        out.data[at] = shade; out.data[at + 1] = Math.min(255, shade + 4); out.data[at + 2] = 255;
-      }
+      if (edge > 110) continue;
+      const grey = Math.max(0, 1 - saturation / 0.3);
+      const bright = Math.max(0, Math.min(1, (lum[i] - 55) / 110));
+      // Snow piles on the top edge of a surface (right under a dark outline) even on coloured parts.
+      const cap = lum[i - W] < 55 && lum[i - 2 * W] < 55 ? 0.6 : lum[i - W] < 55 ? 0.45 : 0;
+      const cover = Math.min(1, amount * (grey * (0.55 + 0.45 * bright) + cap) * (1 - Math.min(1, edge / 160)));
+      const threshold = BAYER4[(y % 4) * 4 + (x % 4)];
+      const covered = cover >= 0.62 || (cover > 0.3 && (cover - 0.3) / 0.32 > threshold);
+      if (!covered) continue;
+      // Keep a little of the surface pattern: brighter stones stay a touch brighter under the snow.
+      const around = (lum[i - 1] + lum[i + 1] + lum[i - W] + lum[i + W]) / 4;
+      const shade = Math.round(234 + Math.max(-14, Math.min(10, (lum[i] - around) * 0.35)));
+      out.data[at] = toByte(shade - 4); out.data[at + 1] = toByte(shade); out.data[at + 2] = toByte(Math.min(255, shade + 12));
     }
   }
   return quantizeKeepAlpha(out, params.palette ?? 96, alphaOf(source));
@@ -242,11 +250,11 @@ export async function afterRain(source: Rgba, params: AfterRainParams = {}): Pro
         // A puddle mirrors what stands above it, tinted like the sky, with a lighter rim.
         const my = Math.max(0, puddle.y - puddle.ry - (y - (puddle.y - puddle.ry)));
         const src = (my * W + x) * 4;
-        const rim = d > 0.72 ? 0.25 : 0;
-        const sky = [96, 112, 142];
+        const rim = d > 0.72 ? 1 : 0;
+        const sky = [150, 168, 196];
         for (let c = 0; c < 3; c++) {
           const mirrored = data[src + c] * darken * 0.7;
-          out.data[at + c] = toByte(mirrored * 0.45 + sky[c] * 0.55 + rim * 120);
+          out.data[at + c] = toByte(mirrored * 0.35 + sky[c] * 0.65 + rim * 28);
         }
       }
     }
