@@ -498,10 +498,43 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   html:not(.motion-ok) *, html:not(.motion-ok) *::before, html:not(.motion-ok) *::after { animation-duration: .001ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
   html:not(.motion-ok) .dragon-lane, html:not(.motion-ok) .rain, html:not(.motion-ok) .iris, html:not(.motion-ok) .smoke, html:not(.motion-ok) .glint { display: none; }
 }
+
+/* Màn "Bấm để vào": trình duyệt cấm phát tiếng trước cú bấm đầu tiên, nên khi nó chặn nhạc thì cú bấm vào trang cũng là cú bật nhạc.
+   Trình duyệt cho phát luôn (người đã quen trang) thì màn này không hiện. Trong lúc chờ, hiệu ứng mở đầu phía sau đứng yên. */
+html.gated { overflow: hidden; }
+html.gated body > :not(.gate), html.gated body > :not(.gate) * { animation-play-state: paused !important; }
+.gate { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px var(--gr) 24px var(--gl); cursor: pointer; text-align: center;
+  background: radial-gradient(ellipse 70% 60% at 50% 46%, rgba(11, 8, 6, .5), rgba(11, 8, 6, .93) 72%), url("/trang-chu/assets/hero-night.webp") center / cover var(--night);
+  transition: opacity .7s var(--ease-out), visibility 0s linear 0s; }
+.gate[hidden] { display: none; }
+.gate.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .7s var(--ease-out), visibility 0s linear .7s; }
+.gate-card { max-width: 560px; }
+.gate-k { margin: 0 0 20px; color: var(--brass); font: 600 12px var(--data); letter-spacing: .4em; }
+.gate-title { margin: 0; font: 800 clamp(54px, 9vw, 92px)/.95 var(--display); letter-spacing: -.012em; color: var(--paper); }
+.gate-title .w-sir { font-style: italic; font-weight: 600; color: var(--gold); margin-right: .12em; }
+.gate-sub { margin: 16px 0 36px; font: italic 600 clamp(21px, 2.4vw, 27px)/1.3 var(--display); color: #e8dcc6; }
+.gate-go { min-width: 250px; animation: ready 2.4s ease-in-out infinite; }
+.gate-note { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 24px 0 4px; color: var(--fg-3); font: 600 12px var(--data); letter-spacing: .22em; text-transform: uppercase; }
+.gate-note .ico { width: 16px; height: 16px; }
+.gate-quiet { min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--fg-2); font: 17px var(--body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.gate-quiet:hover, .gate-quiet:focus-visible { color: var(--gold); }
 </style>
 
 </head>
 <body>
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-note" hidden>
+  <div class="gate-card">
+    <p class="gate-k">HỒ SƠ 221B · TUYỆT MẬT</p>
+    <h2 class="gate-title" id="gate-title"><span class="w-sir">Sir</span>Locked</h2>
+    <p class="gate-sub">Hai thám tử. Một vụ án bí ẩn.</p>
+    <button class="btn btn-key gate-go" id="gate-go" type="button">
+      <svg class="ico key" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="12" r="4.2"/><path d="M11.7 12H21M18 12v3.4M15.4 12v2.4"/></svg>
+      Bấm để vào
+    </button>
+    <p class="gate-note" id="gate-note"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Trang có nhạc nền</p>
+    <button class="gate-quiet" id="gate-quiet" type="button">Vào không bật nhạc</button>
+  </div>
+</div>
 <a class="skip" href="#hai-vai">Bỏ qua phần mở đầu</a>
 <div class="grain" aria-hidden="true"></div>
 
@@ -883,7 +916,8 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
 
   /* ---- Background music: tự bật khi vào trang ----
      Trình duyệt chỉ cho phát tiếng sau khi người xem đã chạm, bấm hoặc gõ phím (hoặc đã quen trang này).
-     Nên thử phát ngay; bị chặn thì phát ở lần chạm, bấm hay gõ phím đầu tiên ở bất kỳ đâu trên trang.
+     Nên thử phát ngay; bị chặn thì che trang bằng màn "Bấm để vào" (#gate), cú bấm đó bật nhạc.
+     Sau đó, nhạc chưa chạy thì phát ở lần chạm, bấm hay gõ phím đầu tiên ở bất kỳ đâu trên trang.
      Ai đã bấm Tắt nhạc thì lần sau không tự bật nữa (localStorage sl-music = 0). */
   var bgm = $('#bgm'), musicBtn = $('#music-btn'), musicLabel = $('#music-label');
   var wantMusic = true, playing = false, waiting = false, fadeRaf = 0, VOL = .5;
@@ -903,17 +937,47 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
       if (k < 1) fadeRaf = requestAnimationFrame(step); else if (done) done();
     })(t0);
   }
+  // mayGate: màn "Bấm để vào" chỉ hiện khi chính lần thử phát lúc mở trang bị chặn, trước mọi tương tác.
+  var gate = $('#gate'), gated = false, mayGate = true;
   function onGesture(e) {
-    // Nút nhạc tự xử lý cú bấm của nó.
-    if (e.target && e.target.closest && e.target.closest('#music-btn')) return;
+    // Nút nhạc và nút "Vào không bật nhạc" tự xử lý cú bấm của chúng.
+    if (e.target && e.target.closest && e.target.closest('#music-btn, #gate-quiet')) return;
+    mayGate = false;
     if (wantMusic && !playing) startMusic();
   }
+  function showGate() {
+    gated = true;
+    gate.hidden = false;
+    root.classList.add('gated');
+    $$('body > *').forEach(function (el) { if (el !== gate && el.tagName !== 'SCRIPT') el.inert = true; });
+    try { $('#gate-go').focus({ preventScroll: true }); } catch (e) {}
+  }
+  function enter(withMusic, remember) {
+    if (!gated) return;
+    gated = false;
+    if (withMusic) {
+      // Gọi ngay trong cú bấm, khi trình duyệt cho phép phát tiếng.
+      wantMusic = true;
+      startMusic();
+    } else {
+      wantMusic = false;
+      waitForGesture(false);
+      if (remember) { try { localStorage.setItem('sl-music', '0'); } catch (e) {} }
+    }
+    $$('body > *').forEach(function (el) { el.inert = false; });
+    root.classList.remove('gated');
+    gate.classList.add('is-leaving');
+    setTimeout(function () { gate.hidden = true; }, isCalm() ? 0 : 750);
+  }
+  gate.addEventListener('click', function (e) { enter(!(e.target.closest && e.target.closest('#gate-quiet')), true); });
+  gate.addEventListener('keydown', function (e) { if (e.key === 'Escape') enter(false, false); });
   function waitForGesture(on) {
     if (waiting === on) return;
     waiting = on;
     GESTURES.forEach(function (type) { window[on ? 'addEventListener' : 'removeEventListener'](type, onGesture, true); });
   }
   function started() {
+    mayGate = false;
     if (!wantMusic) { bgm.pause(); return; }
     playing = true;
     waitForGesture(false);
@@ -925,7 +989,10 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
     if (!bgm.paused) return;
     playing = false;
     musicUI();
-    if (wantMusic) waitForGesture(true);
+    if (!wantMusic) return;
+    waitForGesture(true);
+    if (mayGate) showGate();
+    mayGate = false;
   }
   function startMusic() {
     if (!playing) bgm.volume = 0;
