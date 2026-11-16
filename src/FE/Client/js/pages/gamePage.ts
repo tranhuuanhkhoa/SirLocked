@@ -3495,16 +3495,18 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       queueStateRefetch(version);
     },
     ItemFound: ({ userId }: { userId: string }) => {
-      if (userId !== me.userId) toast('Your partner found something.', 'info');
+      if (userId !== me.userId) toast(tr('Your partner found something.', 'Đồng đội vừa tìm thấy một thứ.'), 'info');
     },
     ClueUnlocked: ({ clueId, userId }: { clueId: string; userId: string }) => {
       if (userId !== me.userId) {
         const clue = state?.unlockedClues.find((c) => c.clueId === clueId);
-        toast(`Evidence added to the case file${clue ? `: ${clue.title}` : '.'}`, 'success');
+        toast(clue
+          ? tr(`Evidence added to the case file: ${clue.title}`, `Đã thêm chứng cứ vào hồ sơ: ${clue.title}`)
+          : tr('Evidence added to the case file.', 'Đã thêm chứng cứ vào hồ sơ.'), 'success');
       }
     },
     DialogueAnswered: ({ userId }: { userId: string }) => {
-      if (userId !== me.userId) toast('Your partner unlocked new testimony.', 'info');
+      if (userId !== me.userId) toast(tr('Your partner unlocked new testimony.', 'Đồng đội vừa mở được lời khai mới.'), 'info');
     },
     InvestigationUpdate: (update: InvestigationUpdatePayload) => {
       showPartnerActivity(update);
@@ -3514,24 +3516,32 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       if (update.type === 'DIALOGUE_UNLOCKED' && update.targetId) {
         newDialogueIds.add(update.targetId);
         const name = namedCharacter ?? dialogueCharacter(update.targetId)?.character.name;
-        toast(`New testimony available${name ? ` from ${name}` : ''}.`, update.actorUserId === me.userId ? 'success' : 'info', 4800);
+        toast(name
+          ? tr(`New testimony available from ${name}.`, `Có lời khai mới từ ${name}.`)
+          : tr('New testimony available.', 'Có lời khai mới.'), update.actorUserId === me.userId ? 'success' : 'info', 4800);
       } else if ((update.type === 'CONVERSATION_NODE_UNLOCKED' || update.type === 'CONVERSATION_CHOICE_UNLOCKED') && update.targetId) {
         addTreeCue(update.characterId, update.targetId);
-        toast(`New conversation lead${namedCharacter ? ` from ${namedCharacter}` : ''}.`, update.actorUserId === me.userId ? 'success' : 'info', 4800);
+        toast(namedCharacter
+          ? tr(`New conversation lead from ${namedCharacter}.`, `Có hướng hỏi chuyện mới với ${namedCharacter}.`)
+          : tr('New conversation lead.', 'Có hướng hỏi chuyện mới.'), update.actorUserId === me.userId ? 'success' : 'info', 4800);
       } else if (update.actorUserId !== me.userId) {
-        toast(update.message || 'The investigation has a new lead.', 'info', 4200);
+        toast(update.message || tr('The investigation has a new lead.', 'Cuộc điều tra có manh mối mới.'), 'info', 4200);
       }
       // The version-only GameStateUpdated event performs the single authoritative refetch.
     },
     SceneChanged: ({ userId }: { userId: string }) => {
-      toast(userId === me.userId ? 'You moved to a new location.' : 'Your partner moved to another location.', 'info');
+      toast(userId === me.userId
+        ? tr('You moved to a new location.', 'Bạn đã sang địa điểm mới.')
+        : tr('Your partner moved to another location.', 'Đồng đội đã sang địa điểm khác.'), 'info');
     },
     StageChanged: ({ isFinalStageCompleted, userId }: { isFinalStageCompleted: boolean; userId: string }) => {
       if (isFinalStageCompleted) {
-        toast('The final confrontation is ready.', 'success', 5500);
+        toast(tr('The final confrontation is ready.', 'Màn đối chất cuối cùng đã sẵn sàng.'), 'success', 5500);
         return;
       }
-      toast(userId === me.userId ? 'A new lead opens the next location.' : 'Your partner opened a new lead.', 'success', 5500);
+      toast(userId === me.userId
+        ? tr('A new lead opens the next location.', 'Manh mối mới mở ra địa điểm tiếp theo.')
+        : tr('Your partner opened a new lead.', 'Đồng đội vừa mở một manh mối mới.'), 'success', 5500);
     },
     PlayerPoseUpdated: (pose: PlayerPose) => {
       if (!pose?.userId || pose.userId === me.userId) return;
@@ -3552,7 +3562,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         player.reconnectGraceEndsAt = isConnected ? null : (graceEndsAt || player.reconnectGraceEndsAt);
       }
       if (userId !== me.userId) {
-        toast(isConnected ? 'Your partner reconnected.' : 'Your partner disconnected. Waiting for reconnect...', isConnected ? 'success' : 'info', 5000);
+        toast(isConnected
+          ? tr('Your partner reconnected.', 'Đồng đội đã kết nối lại.')
+          : tr('Your partner disconnected. Waiting for reconnect...', 'Đồng đội bị mất kết nối. Đang chờ kết nối lại...'), isConnected ? 'success' : 'info', 5000);
       }
       draw();
     },
@@ -3573,7 +3585,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       phaserScene?.cancelNavigation();
       syncRecoveryActive = true;
       poseErrorShown = false;
-      toast('Reconnected. Syncing the room...', 'info');
+      toast(tr('Reconnected. Syncing the room...', 'Đã kết nối lại. Đang đồng bộ phòng...'), 'info');
       stateRefetcher.retry();
     },
     onStatusChange: (status: string) => {
@@ -3823,7 +3835,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         }).catch((err: any) => {
           if (!poseErrorShown) {
             poseErrorShown = true;
-            toast(`Realtime movement sync failed: ${err?.message ?? 'hub error'}`, 'error', 5500);
+            const reason = err?.message ?? 'hub error';
+            toast(tr(`Realtime movement sync failed: ${reason}`, `Không đồng bộ được di chuyển với đồng đội: ${reason}`), 'error', 5500);
           }
           console.warn('UpdatePlayerPose failed', err);
         });

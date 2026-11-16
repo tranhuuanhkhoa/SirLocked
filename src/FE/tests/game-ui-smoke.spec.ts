@@ -1222,6 +1222,36 @@ test('Vietnamese language applies inside gameplay overlays', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Đóng' })).toBeVisible();
 });
 
+for (const language of ['vi', 'en'] as const) {
+  test(`partner and connection notices follow the interface language (${language})`, async ({ page }) => {
+    await page.addInitScript((value) => window.localStorage.setItem('sirlocked.uiLanguage', value), language);
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto(`/game/${roomId}`);
+    await expect(page.locator('canvas').first()).toBeVisible();
+    await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
+    const vi = language === 'vi';
+    // The game page keeps one toast at a time, so each notice is read right after its event.
+    const notices: Array<[string, unknown, string]> = [
+      ['PlayerPresenceChanged', { userId: 'player-2', isConnected: false }, vi ? 'Đồng đội bị mất kết nối. Đang chờ kết nối lại...' : 'Your partner disconnected. Waiting for reconnect...'],
+      ['PlayerPresenceChanged', { userId: 'player-2', isConnected: true }, vi ? 'Đồng đội đã kết nối lại.' : 'Your partner reconnected.'],
+      ['ItemFound', { userId: 'player-2' }, vi ? 'Đồng đội vừa tìm thấy một thứ.' : 'Your partner found something.'],
+      ['DialogueAnswered', { userId: 'player-2' }, vi ? 'Đồng đội vừa mở được lời khai mới.' : 'Your partner unlocked new testimony.'],
+      ['ClueUnlocked', { clueId: 'clue-unknown', userId: 'player-2' }, vi ? 'Đã thêm chứng cứ vào hồ sơ.' : 'Evidence added to the case file.'],
+      ['SceneChanged', { userId: 'player-2' }, vi ? 'Đồng đội đã sang địa điểm khác.' : 'Your partner moved to another location.'],
+      ['StageChanged', { isFinalStageCompleted: false, userId: 'player-2' }, vi ? 'Đồng đội vừa mở một manh mối mới.' : 'Your partner opened a new lead.'],
+      ['StageChanged', { isFinalStageCompleted: true, userId: 'player-2' }, vi ? 'Màn đối chất cuối cùng đã sẵn sàng.' : 'The final confrontation is ready.'],
+      ['InvestigationUpdate', { type: 'DIALOGUE_UNLOCKED', targetId: 'dlg-new', characterId: 'char-witness', actorUserId: 'player-2' }, vi ? 'Có lời khai mới từ Witness.' : 'New testimony available from Witness.'],
+      ['InvestigationUpdate', { type: 'ACTIVITY', actorUserId: 'player-2' }, vi ? 'Cuộc điều tra có manh mối mới.' : 'The investigation has a new lead.'],
+    ];
+    for (const [event, payload, text] of notices) {
+      await page.evaluate(([name, data]) => {
+        (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR(name as string, data);
+      }, [event, payload] as const);
+      await expect(page.locator('#toast-root .toast').last(), `${event} → ${text}`).toHaveText(text);
+    }
+  });
+}
+
 test('two-player presence recovers and version events coalesce to one state refetch', async ({ page }) => {
   let stateRequests = 0;
   await page.unroute(`**/api/game/rooms/${roomId}/state`);
