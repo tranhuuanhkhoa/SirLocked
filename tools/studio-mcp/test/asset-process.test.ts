@@ -107,6 +107,10 @@ describe('fit a pixel picture into a slot', () => {
     assert.deepEqual(pixel(cover.image, 0, 0), pixel(map, 56, 143));
     const small = fit(paint(64, 64, () => [1, 2, 3, 255]), 256, 256);
     assert.equal(small.scale, 4);
+    const forced = fit(map, 1600, 900, { scale: 2 });
+    assert.equal(forced.scale, 2);
+    // 1024x1024 centred in 1600x900: left 288, top -62 -> output (288, 0) is source pixel (0, 31).
+    assert.deepEqual(pixel(forced.image, 288, 0), pixel(map, 0, 31));
   });
 });
 

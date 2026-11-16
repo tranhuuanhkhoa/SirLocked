@@ -239,10 +239,11 @@ export function cover(scene: Rgba, portraits: Rgba[], options: { size?: number }
  * "contain" (letterbox with a flat colour, default the average border colour) or "cover" (centre crop).
  * Example: a 512x512 library map into a 1600x900 background slot -> x1 = 512x512 centred (contain) or x4 cropped (cover).
  */
-export function fit(source: Rgba, width: number, height: number, options: { mode?: 'contain' | 'cover'; background?: [number, number, number, number] } = {}): { image: Rgba; scale: number } {
+export function fit(source: Rgba, width: number, height: number, options: { mode?: 'contain' | 'cover'; background?: [number, number, number, number]; scale?: number } = {}): { image: Rgba; scale: number } {
   const mode = options.mode ?? 'contain';
-  const ratio = mode === 'cover' ? Math.max(width / source.width, height / source.height) : Math.min(width / source.width, height / source.height);
-  const scale = mode === 'cover' ? Math.max(1, Math.ceil(ratio)) : Math.max(1, Math.floor(ratio));
+  const forced = options.scale && Number.isInteger(options.scale) && options.scale >= 1 && options.scale <= 16 ? options.scale : 0;
+  const ratio = forced || (mode === 'cover' ? Math.max(width / source.width, height / source.height) : Math.min(width / source.width, height / source.height));
+  const scale = forced || (mode === 'cover' ? Math.max(1, Math.ceil(ratio)) : Math.max(1, Math.floor(ratio)));
   const scaled = ratio < 1 && mode === 'contain'
     ? resizeNearest(source, Math.max(1, Math.floor(source.width * ratio)), Math.max(1, Math.floor(source.height * ratio)))
     : resizeNearest(source, source.width * scale, source.height * scale);

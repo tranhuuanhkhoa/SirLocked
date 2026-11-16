@@ -142,7 +142,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
     case 'fit': {
       if (!p.width || !p.height) throw new StudioError('BAD_ARGS', 'fit cần params.width và params.height (kích thước ô hình).');
       const { image } = await loadPicture(ctx, args.input ?? '');
-      const result = fit(image, p.width, p.height, { mode: p.mode, background: p.background });
+      const result = fit(image, p.width, p.height, { mode: p.mode, background: p.background, scale: p.scale });
       const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, `${p.width}x${p.height}`, '.png');
       await saveRgba(result.image, output);
       return { output: display(ctx.config, output), width: p.width, height: p.height, mode: p.mode ?? 'contain', scale: result.scale };
