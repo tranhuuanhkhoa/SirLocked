@@ -15,6 +15,7 @@ Các biến môi trường dùng chung:
 | `PIXELLAB_API_KEY` | khi vẽ mới | Token PixelLab; `.mcp.json` đưa vào header `Authorization: Bearer ${PIXELLAB_API_KEY}` |
 | `SIRLOCKED_API` | không | Mặc định `https://sirlocked.id.vn`; thử trên máy: `http://localhost:5000` |
 | `MCP_TOOL_TIMEOUT` | không | Đặt `1800000` (30 phút) nếu tool `playtest` bị Claude Code cắt giữa chừng |
+| `FFMPEG_PATH` | không | ffmpeg cho `weather_preview` (cắt đoạn tải trang, xuất MP4). Không có thì tool trả WebM nguyên đoạn. Ubuntu: `sudo apt install ffmpeg` (có trên PATH là đủ) |
 
 ## A. Máy Windows của Yen (PowerShell)
 

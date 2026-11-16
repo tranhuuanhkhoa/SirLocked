@@ -68,7 +68,22 @@ Luật (validator báo lỗi, không bao giờ văng exception):
 - `indoor = true` thì `weather` phải là `NONE` hoặc không có (`IndoorWeather`).
 - Giá trị ngoài khoảng, giá trị lạ, URL không phải `https://` hoặc `/assets/…` đều bị báo lỗi kèm đường dẫn trường.
 
-Trong game (VUAN-4): thời tiết chỉ có ở cảnh ngoài trời; vào nhà tắt hết tiếng và hình thời tiết, chỉ còn nhạc khu; ra ngoài thì bật lại; giông có chớp sáng rồi sấm sau vài giây; đêm phủ lớp tối và ánh đèn bằng code.
+Trong game (VUAN-4): thời tiết chỉ có ở cảnh ngoài trời; vào nhà tắt hết tiếng và hình thời tiết, chỉ còn nhạc khu; ra ngoài thì bật lại; giông có chớp sáng rồi sấm sau vài giây; đêm và hoàng hôn dùng ảnh nền biến thể, game tô màu nhân vật và vật phẩm cho khớp.
+
+## Trong game (VUAN-4)
+
+| Phần | Cách làm | File |
+| --- | --- | --- |
+| Bíp | WebAudio, một tiếng mỗi chữ cái/chữ số khi lời nhân chứng chạy ra; khoảng trắng, dấu câu không kêu, dấu câu ngừng lâu gấp 5; cao độ dao động theo `variance` bằng bộ ngẫu nhiên có seed theo `characterId`; tối đa 3 tiếng cùng lúc. Nhân vật có `voice.blip` thì chữ chạy theo `speed`; nhân vật không có thì giữ tốc độ cũ và dùng giọng mặc định sinh từ id. Lời của thám tử không kêu | `Client/js/game/atmosphere/blipCore.js`, `dialoguePresenter.ts` |
+| Nhạc | Tải và giải mã khi vào khu (lazy), giữ tối đa 4 bài đã tải; lặp liền bằng `loopStartSec`/`loopEndSec`; cùng bài thì phát tiếp, khác bài chuyển chéo 1,5 giây; có thoại thì còn 40 %; `.ogg` trước, trình duyệt không phát Ogg thì `.mp3`; không có `music` thì như cũ (`ambienceUrl` hoặc nền tổng hợp) | `audioController.ts`, `atmosphere/musicCore.js` |
+| Tiếng thời tiết | Nhiễu lọc: mưa (high-pass + low-pass), gió (LFO trên bộ lọc), tuyết (gió nhẹ), giông (mưa to + sấm sau chớp 1–3 giây); độ to theo `intensity`, đi theo thanh Hiệu ứng | `audioController.ts`, `atmosphere/weatherCore.js` |
+| Hình thời tiết | Lớp Phaser trên cảnh, dưới nhãn cửa và giao diện; hạt vuông theo lưới pixel của cảnh; mưa xiên + tóe nước, tuyết lượn, lá và bụi bay ngang, giông có chớp cả màn hình 6–12 giây một lần (tắt chớp khi `prefers-reduced-motion`) | `weatherLayer.ts` |
+| Máy yếu | Màn nhỏ + ít nhân CPU bắt đầu ở nửa số hạt; 8 giây đầu đo FPS theo cửa sổ 2 giây, dưới 40 thì giảm còn nửa rồi một phần tư; nút "Tắt hiệu ứng thời tiết" | `weatherCore.js` |
+| Thời điểm | `NIGHT` tô xanh tối, `DUSK` tô cam nhẹ cho nhân vật, người chơi, vật phẩm, lớp cảnh trước | `gamePage.ts` |
+| Tiếng hiệu ứng | Gói CC0 của Kenney ở `public/assets/audio/sfx/` (`LICENSES.json`); cue cũ `/assets/audio/point-click/<cue>.wav` của vụ đã đăng tự chuyển sang gói mới, file cũ làm dự phòng; cue trỏ vào `sfx/ui/` có bộ tự tổng hợp `sfx/tu-tong-hop/` làm dự phòng; 11 bộ tiếng giải đố (10 loại tương tác + giải đố cổ điển) | `atmosphere/sfxCatalog.js`, `puzzles/host.ts`, `scripts/build-sfx-pack.mjs` |
+| Cài đặt | Thanh Nhạc, Hiệu ứng, Bíp nhân vật, nút Tắt hiệu ứng thời tiết; lưu trong `localStorage` `sirlocked.audio.v1` (thêm `blips`, `weatherEffects`) | `audioController.ts` |
+
+Công cụ của bot (`tools/studio-mcp`): `blip_preview` (WAV từng nhân vật, cùng code với game), `weather_preview` (video 5–8 giây một cảnh với thời tiết/thời điểm cho trước), `sfx_search` (tìm trong gói CC0).
 
 ## Đường đi qua server
 
