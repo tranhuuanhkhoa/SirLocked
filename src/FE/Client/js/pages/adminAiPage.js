@@ -2582,6 +2582,57 @@ export async function renderAdminAiPage(app) {
     </details>`;
   }
 
+  /**
+   * Asks in a dialog of the page (never the browser's confirm) whether to cancel a draft. Resolves to true only when the
+   * admin or VIP confirms; Esc, the close button and "Keep the draft" resolve to false.
+   */
+  function confirmCancelDialog() {
+    return new Promise((resolve) => {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'ac-dialog aai-cancel-dialog';
+      dialog.setAttribute('aria-labelledby', 'aai-cancel-title');
+      dialog.setAttribute('aria-describedby', 'aai-cancel-sub');
+      dialog.innerHTML = `
+        <header class="ac-dialog-head">
+          <div class="ac-dialog-heading">
+            <h2 id="aai-cancel-title">${tr('Cancel this draft?', 'Hủy bản nháp này?')}</h2>
+            <p class="ac-dialog-sub" id="aai-cancel-sub">${tr(
+              "Generation stops and open Claude requests are closed. Cancelling does not reset today's creation limit.",
+              'Các bước tạo tiếp theo sẽ dừng và các yêu cầu đang chờ Claude sẽ bị đóng. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
+            )}</p>
+          </div>
+          <button type="button" class="ac-dialog-close" data-cancel-keep aria-label="${tr('Close', 'Đóng')}">${icon('x', 20)}</button>
+        </header>
+        <div class="ac-dialog-body">
+          <div class="ac-dialog-actions">
+            <button type="button" class="btn btn-ghost" data-cancel-keep>${tr('Keep the draft', 'Giữ bản nháp')}</button>
+            <button type="button" class="btn ac-btn-danger" data-cancel-confirm>${tr('Cancel draft', 'Hủy bản nháp')}</button>
+          </div>
+        </div>`;
+      document.body.append(dialog);
+      let settled = false;
+      const finish = (confirmed) => {
+        if (settled) return;
+        settled = true;
+        pageAbort.signal.removeEventListener('abort', keep);
+        if (dialog.open) dialog.close();
+        dialog.remove();
+        resolve(confirmed);
+      };
+      const keep = () => finish(false);
+      pageAbort.signal.addEventListener('abort', keep, { once: true });
+      dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        keep();
+      });
+      dialog.querySelectorAll('[data-cancel-keep]').forEach((button) => button.addEventListener('click', keep));
+      dialog.querySelector('[data-cancel-confirm]').addEventListener('click', () => finish(true));
+      dialog.showModal();
+      // The safe choice has the focus, so Enter never cancels a draft by accident.
+      dialog.querySelector('.ac-dialog-actions [data-cancel-keep]')?.focus();
+    });
+  }
+
   /** "Chơi thử": opens (or reopens) the private playtest room of an imported draft and goes to its lobby. */
   async function startPlaytest(draftId, button) {
     button.disabled = true;
@@ -2601,10 +2652,14 @@ export async function renderAdminAiPage(app) {
   }
 
   async function cancelDraft(draftId, button) {
-    if (!window.confirm(tr(
-      "Cancel this draft and stop future generation? Open Claude requests are closed. Cancelling does not reset today's creation limit.",
-      'Hủy bản nháp này và dừng các bước tạo tiếp theo? Các yêu cầu đang chờ Claude sẽ bị đóng. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
-    ))) return;
+    button.disabled = true;
+    const confirmed = await confirmCancelDialog();
+    if (disposed) return;
+    if (!confirmed) {
+      button.disabled = false;
+      button.focus();
+      return;
+    }
     const version = ++runVersion;
     stopPolling();
     stopProgressClock();

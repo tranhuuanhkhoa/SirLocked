@@ -1,8 +1,9 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
- * VUAN-6B part C in the browser, every API mocked (no backend): the "Chơi thử" button on /admin/ai, the
- * playtest lobby and its single-use invite link, the join page with the invite secret and the playtest result page.
+ * VUAN-6B part C and D in the browser, every API mocked (no backend): the "Chơi thử" button on /admin/ai, the
+ * playtest lobby and its single-use invite link, the join page with the invite secret, the playtest result page,
+ * and the in-page confirmation that replaced confirm() when a draft is cancelled.
  */
 
 const TOKEN = 'Pt0ken_Pt0ken-Pt0kenPt0k';
@@ -235,4 +236,41 @@ test('an ordinary result is unchanged: review and replay links, and the reward i
   await expect(page.locator('a[href="/cases/case-pixel-tram-hong-ngoc-vi"]')).toBeVisible();
   await expect(page.locator('[data-playtest-note]')).toHaveCount(0);
   await expect.poll(() => rewardReads).toBe(1);
+});
+
+test('cancelling a draft asks in a dialog of the page, in Vietnamese, and only "Hủy bản nháp" cancels', async ({ page }, testInfo) => {
+  await signIn(page, ADMIN);
+  const cancellable = { ...base, draftId: 'draft-running', status: 'STORY_AWAITING_APPROVAL', canCancel: true, caseTitle: 'Bản nháp đang làm', storyPreview: { title: 'Bản nháp đang làm', summary: 'Tiền đề.' } };
+  let cancelled = false;
+  let cancels = 0;
+  await mockAdminAi(page, ADMIN, []);
+  await page.route((url) => url.pathname === '/api/admin/ai-cases', (route) => ok(route, [cancelled
+    ? { ...cancellable, status: 'CANCELLED', queueState: 'CANCELLED', canCancel: false }
+    : cancellable]));
+  await page.route((url) => url.pathname === '/api/admin/ai-cases/draft-running/cancel', (route) => {
+    cancels++;
+    cancelled = true;
+    return ok(route, { ...cancellable, status: 'CANCELLED', queueState: 'CANCELLED', canCancel: false });
+  });
+  const nativeDialogs: string[] = [];
+  page.on('dialog', (dialog) => { nativeDialogs.push(dialog.type()); void dialog.dismiss(); });
+
+  await page.goto('/admin/ai');
+  const cancel = page.locator('[data-draft-row="draft-running"] [data-cancel-draft]');
+  await expect(cancel).toHaveText('Hủy bản nháp');
+  await cancel.click();
+  const dialog = page.getByRole('dialog', { name: 'Hủy bản nháp này?' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Hủy bản nháp không đặt lại hạn mức tạo hôm nay.');
+  await page.screenshot({ path: testInfo.outputPath('cancel-dialog-1440.png') });
+  await dialog.getByRole('button', { name: 'Giữ bản nháp' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(cancels).toBe(0);
+
+  await cancel.click();
+  await dialog.getByRole('button', { name: 'Hủy bản nháp' }).click();
+  await expect(page.locator('#ai-output')).toContainText('Đã hủy');
+  await expect(page.locator('.toast-success')).toContainText('Đã hủy bản nháp.');
+  expect(cancels).toBe(1);
+  expect(nativeDialogs).toEqual([]);
 });

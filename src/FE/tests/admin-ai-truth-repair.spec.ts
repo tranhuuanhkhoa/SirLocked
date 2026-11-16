@@ -220,8 +220,8 @@ test('a late repair response cannot replace a confirmed cancellation', async ({ 
   await openDraft(page);
   await page.locator('[data-truth-review] [data-repair-truth]').click();
   await expect.poll(() => repairStarted).toBe(true);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#ai-output [data-cancel-draft]').click();
+  await page.locator('dialog.aai-cancel-dialog [data-cancel-confirm]').click();
   await expect(page.locator('#ai-output')).toContainText('Cancelled');
   pending.resolve();
   await page.waitForLoadState('networkidle');
@@ -243,8 +243,8 @@ test('a late repair list refresh cannot restore stale action buttons after cance
   await openDraft(page);
   await page.locator('[data-truth-review] [data-repair-truth]').click();
   await expect.poll(() => lists).toBe(2);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#ai-output [data-cancel-draft]').click();
+  await page.locator('dialog.aai-cancel-dialog [data-cancel-confirm]').click();
   await expect(page.locator('#ai-output')).toContainText('Cancelled');
   pending.resolve();
   await page.waitForLoadState('networkidle');

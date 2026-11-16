@@ -40,9 +40,9 @@ async function openAs(browser: Browser, auth: Auth, viewport = { width: 1440, he
   page.on('pageerror', (error) => failures.push(`${auth.user.role} pageerror: ${error.message}`));
   page.on('console', (message) => { if (message.type() === 'error') failures.push(`${auth.user.role} console: ${message.text()}`); });
   page.on('dialog', (dialog) => {
-    // Only the old cancel confirmation may use a browser dialog; approving and rejecting must not.
-    if (dialog.type() !== 'confirm') failures.push(`${auth.user.role} browser ${dialog.type()}: ${dialog.message()}`);
-    void dialog.accept();
+    // Cancelling, approving and rejecting all ask inside the page: no browser dialog is expected at all.
+    failures.push(`${auth.user.role} browser ${dialog.type()}: ${dialog.message()}`);
+    void dialog.dismiss();
   });
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
@@ -244,6 +244,7 @@ test('VUAN-3 order form: ADMIN and VIP orders, approval, rejection, weekly limit
 
   // The ADMIN test order is cancelled again, as on production ("đặt thử 1 đơn rồi hủy").
   await rowOf(a, created.draftId).getByRole('button', { name: 'Hủy bản nháp' }).click();
+  await a.locator('dialog.aai-cancel-dialog').getByRole('button', { name: 'Hủy bản nháp' }).click();
   await expect(rowOf(a, created.draftId).locator('[data-order-status]')).toHaveText('Đã hủy');
   await shot(a, 'admin-1440-bang-ban-nhap');
 

@@ -138,7 +138,7 @@ test('Crack-specific readiness blocks only the selected extension', async ({ pag
   await expect(page.locator('#ai-readiness-error')).toHaveCount(0);
 });
 
-test('cancellable drafts require confirmation and cancelled drafts offer no cancellation or continuation', async ({ page }) => {
+test('cancellable drafts require confirmation in the page and cancelled drafts offer no cancellation or continuation', async ({ page }) => {
   let cancelled = false;
   let cancellations = 0;
   const cancelledDraft = { ...draft, status: 'CANCELLED', queueState: 'CANCELLED', canCancel: false, canContinue: false };
@@ -152,17 +152,32 @@ test('cancellable drafts require confirmation and cancelled drafts offer no canc
     expect(route.request().method()).toBe('POST');
     return route.fulfill({ json: envelope(cancelledDraft) });
   });
+  // The browser's own confirm() is gone: any native dialog fails the test.
+  const nativeDialogs: string[] = [];
+  page.on('dialog', (dialog) => { nativeDialogs.push(dialog.type()); void dialog.dismiss(); });
   await page.goto('/admin/ai');
   await expect(page.locator('[data-cancel-draft]')).toHaveCount(1);
-  page.once('dialog', (dialog) => dialog.dismiss());
+  const dialog = page.locator('dialog.aai-cancel-dialog');
+  // Keeping the draft (button, close icon or Esc) cancels nothing.
   await page.locator('[data-cancel-draft]').click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("does not reset today's creation limit");
+  await expect(dialog.getByRole('button', { name: 'Keep the draft' })).toBeFocused();
+  await dialog.getByRole('button', { name: 'Keep the draft' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('[data-cancel-draft]')).toBeFocused();
+  await page.locator('[data-cancel-draft]').click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await page.locator('[data-cancel-draft]').click();
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(dialog).toHaveCount(0);
   expect(cancellations).toBe(0);
-  page.once('dialog', async (dialog) => {
-    expect(dialog.message()).toContain("does not reset today's creation limit");
-    await dialog.accept();
-  });
   await page.locator('[data-cancel-draft]').click();
+  await dialog.getByRole('button', { name: 'Cancel draft' }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(page.locator('#ai-output')).toContainText('Cancelled');
+  expect(nativeDialogs).toEqual([]);
   await expect(page.locator('[data-cancel-draft]')).toHaveCount(0);
   await expect(page.locator('[data-continue], [data-approve-story]')).toHaveCount(0);
   expect(cancellations).toBe(1);
@@ -226,8 +241,8 @@ test('a delayed terminal poll cannot replace the confirmed cancellation', async 
   await page.locator('#quick-create-btn').click();
   await expect(page.locator('#ai-output')).toContainText('Generating story');
   await expect.poll(() => listReads).toBe(3);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#ai-output [data-cancel-draft]').click();
+  await page.locator('dialog.aai-cancel-dialog [data-cancel-confirm]').click();
   await expect(page.locator('#ai-output')).toContainText('Cancelled');
   releaseList!();
   // With every API mocked, network idle confirms the delayed list read has completed.
