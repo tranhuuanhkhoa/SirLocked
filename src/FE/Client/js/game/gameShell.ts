@@ -32,6 +32,7 @@ const ICON_PATHS: Record<string, string> = {
   wait: '<path d="M6.5 3.5h11M6.5 20.5h11"/><path d="M8 3.5c0 4.6 8 4.6 8 8.5s-8 3.9-8 8.5"/><path d="M16 3.5c0 4.6-8 4.6-8 8.5s8 3.9 8 8.5"/>',
   arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
   next: '<path d="M9 6l6 6-6 6"/>',
+  swap: '<path d="M4 8h14"/><path d="M15 4.5 18.5 8 15 11.5"/><path d="M20 16H6"/><path d="M9 12.5 5.5 16 9 19.5"/>',
   merge: '<path d="M3 6h7l-1.6 2.4L10 11l-1.6 2.4L10 16H3z"/><path d="M21 8h-7l1.6 2.4L14 13l1.6 2.4L14 18h7z"/>',
   door: '<path d="M3.5 20.5h17"/><path d="M6 20.5V3.5h9v17"/><path d="M12 12.3v.2"/><path d="M15 12h6"/><path d="M18.5 9.5L21 12l-2.5 2.5"/>',
   wifiOff: '<path d="M3 3l18 18"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.5a10 10 0 0 1 4.2-2.4"/><path d="M12.4 9.8A10 10 0 0 1 19 12.5"/><path d="M12 20h.01"/>',

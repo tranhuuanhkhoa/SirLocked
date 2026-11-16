@@ -44,6 +44,27 @@
 .tt-coach .tt-title { color: var(--bpa-ink, #07111f); margin: 0 0 6px; font-family: var(--bpa-font-display, 'Playfair Display', Georgia, serif); font-size: 20px; line-height: 1.2; }
 .tt-coach .tt-text { margin: 0; font-size: 17px; line-height: 1.4; color: var(--bpa-ink-2, #2a2318); }
 .tt-actions { display: flex; gap: 8px; margin-top: 12px; }
+.tt-role-chip { color: var(--bpa-ink, #07111f); letter-spacing: .08em; }
+.tt-coach .tt-role-need {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--bpa-red, #9e3f2a);
+  background: rgba(158, 63, 42, .08);
+  color: var(--bpa-ink, #07111f);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* ---------- "Đổi nhân vật": the tray tool that exists only in the tutorial room ---------- */
+.bpa-g-tool.tt-role-tool { color: var(--bpa-gold, #efd486); }
+.bpa-g-tool.tt-role-tool .tt-role-who { font-size: 9px; letter-spacing: .06em; opacity: .8; font-weight: 600; }
+.bpa-g-tool.tt-role-tool.is-flash { animation: tt-role-flash .9s ease-in-out 2; }
+@keyframes tt-role-flash {
+  50% { background: var(--bpa-gold, #efd486); color: var(--bpa-ink, #07111f); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bpa-g-tool.tt-role-tool.is-flash { animation: none; background: var(--bpa-gold, #efd486); color: var(--bpa-ink, #07111f); }
+}
 
 /* ---------- pointer ---------- */
 .tt-pointer {

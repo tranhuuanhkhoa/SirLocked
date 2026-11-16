@@ -17,7 +17,7 @@ Nhạc: `thuong-hai-tra-lau` (trong nhà), `thuong-hai-ngo-thach-kho-mon` (ngoà
 
 ## Dạy những gì (theo thứ tự hướng dẫn)
 
-Đi lại → hỏi ông Lưu → hỏi thêm → khám sổ khách (tự đổi sang Watson) → chụp ảnh khay trà → ghép thư xé → mở Hồ sơ vụ án → hỏi cô Mỹ Lan → bấm Gợi ý → ra ngõ (mưa) → hỏi A Phúc → mở hòm gỗ → xem Túi đồ → hỏi ngài Hamilton → vạch lời nói dối bằng sổ khách → lập cáo buộc.
+Hai vai và nút Đổi nhân vật (phím Q, chỉ màn tân thủ có) → đi lại → Sherlock hỏi ông Lưu → hỏi thêm → đổi sang Watson, khám sổ khách → chụp ảnh khay trà → ghép thư xé (vai nào cũng được) → mở Hồ sơ vụ án (dùng chung) → đổi lại Sherlock, hỏi cô Mỹ Lan → bấm Gợi ý → ra ngõ (mưa) → hỏi A Phúc → Watson mở hòm gỗ → xem Túi đồ (chỉ Watson) → Sherlock hỏi ngài Hamilton → vạch lời nói dối bằng sổ khách → lập cáo buộc.
 
 Các bước nằm ở `src/FE/Client/js/game/tutorialSteps.ts`; thẻ hướng dẫn và mũi tên vàng ở `tutorialCoach.ts`.
 

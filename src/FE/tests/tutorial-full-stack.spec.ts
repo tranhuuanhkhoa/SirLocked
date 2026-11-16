@@ -4,7 +4,8 @@ import { expect, request, test, type APIRequestContext, type Page } from '@playw
  * Màn tân thủ against the real API and a seeded loopback MongoDB (tools/FullStackTestSeeder seeds it_newcomer,
  * an account that has not picked Kỳ cựu / Nhập môn yet):
  * the choice on the home screen, the gate on matchmaking, the solo room opened from /tan-thu with its coach,
- * the automatic switch to Watson on an object, and a Crack the Lie confirmed by the single player.
+ * the hand switch between Sherlock and Watson (tray tool and Q) that only the tutorial has, and a Crack the Lie
+ * confirmed by the single player.
  *
  *   SIRLOCKED_RUN_TUTORIAL_FULL_STACK=true SIRLOCKED_TEST_API_URL=http://localhost:5215 SIRLOCKED_TEST_PASSWORD=...
  *   SIRLOCKED_PLAYWRIGHT_EXTERNAL_SERVER=1 npx playwright test tests/tutorial-full-stack.spec.ts
@@ -66,16 +67,28 @@ test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone',
   expect((await state()).isTutorial).toBe(true);
   expect((await state()).players).toHaveLength(1);
   await coach.getByRole('button', { name: 'Bắt đầu' }).click();
+  await expect(coach).toContainText('Chơi thử cả hai vai');
+  await coach.getByRole('button', { name: 'Tiếp' }).click();
   await coach.getByRole('button', { name: 'Ẩn' }).click();
 
-  // 4. Clicking the guestbook as Sherlock switches the room to Watson, then inspects it.
+  // 4. The guestbook as Sherlock does nothing; the switch tool makes the player Watson, who then inspects it.
   await waitForScene(page);
-  const point = await page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene')
+  const guestbook = () => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene')
     .pagePointOfRuntime({ x: 928, y: 1250 }));
+  let point = await guestbook();
   await page.mouse.click(point.x, point.y);
+  await expect(page.locator('#toast-root')).toContainText('việc của Watson', { timeout: 30_000 });
+  expect((await state()).players[0].role).toBe('INTERROGATOR');
+  expect((await state()).unlockedClues.map((clue: any) => clue.clueId)).not.toContain('evidence-tt-so-khach');
+  await page.locator('#tutorial-role-btn').click();
   await expect.poll(async () => (await state()).players[0].role, { timeout: 30_000 }).toBe('INVESTIGATOR');
+  point = await guestbook();
+  await page.mouse.click(point.x, point.y);
   await expect.poll(async () => (await state()).unlockedClues.map((clue: any) => clue.clueId), { timeout: 30_000 })
     .toContain('evidence-tt-so-khach');
+  // Q switches back to Sherlock.
+  await page.keyboard.press('q');
+  await expect.poll(async () => (await state()).players[0].role, { timeout: 30_000 }).toBe('INTERROGATOR');
 
   // 5. One player is enough to confirm a Crack the Lie in the solo room.
   await call(api, 'POST', `/api/tutorial/rooms/${roomId}/role`, auth.token, { role: 'INTERROGATOR' });

@@ -1,6 +1,6 @@
 import '../../../css/55-tutorial.css';
 import {
-  TUTORIAL_STEPS, nextStepIndex, tutorialSnapshot,
+  ROLE_BUTTON_SELECTORS, TUTORIAL_STEPS, needsRoleSwitch, nextStepIndex, tutorialRoleName, tutorialSnapshot,
   type TutorialEvent, type TutorialSnapshot, type TutorialTarget,
 } from './tutorialSteps';
 
@@ -127,22 +127,28 @@ export function createTutorialCoach(options: TutorialCoachOptions): TutorialCoac
       card.innerHTML = `
         <p class="tt-kicker">${escapeHtml(tr('Tutorial', 'Màn tân thủ'))} · ${escapeHtml(tr('done', 'hoàn thành'))}</p>
         <h3 class="tt-title">${escapeHtml(tr('Case closed!', 'Phá án xong!'))}</h3>
-        <p class="tt-text">${escapeHtml(tr('You know the whole loop now. Find a partner and take a real case.', 'Bạn đã biết cách chơi. Giờ hãy tìm đồng đội và nhận vụ án thật.'))}</p>
+        <p class="tt-text">${escapeHtml(tr('You have played both detectives. In a real case you and your partner each keep one role for the whole case, so work together.', 'Bạn đã chơi thử cả Sherlock lẫn Watson. Vào vụ thật, bạn và đồng đội mỗi người giữ một vai suốt vụ án, không đổi được, nên phải phối hợp. Giờ hãy tìm đồng đội và nhận vụ án thật.'))}</p>
         <div class="tt-actions"><button type="button" class="bpa-btn bpa-btn--red bpa-btn--sm" data-tt-leave>${escapeHtml(tr('Back to the menu', 'Về sảnh'))}</button></div>`;
       pointer.hidden = true;
       return;
     }
     const step = steps[index];
-    card.className = `tt-coach${collapsed ? ' is-collapsed' : ''}`;
+    const now = snapshot();
+    const switchNeeded = needsRoleSwitch(step, now);
+    card.className = `tt-coach${collapsed ? ' is-collapsed' : ''}${switchNeeded ? ' needs-role' : ''}`;
     card.dataset.step = step.id;
+    card.dataset.role = now.role;
     card.innerHTML = `
       <div class="tt-head">
-        <p class="tt-kicker">${escapeHtml(tr('Tutorial', 'Màn tân thủ'))} · ${escapeHtml(tr('step', 'bước'))} ${index + 1}/${total}</p>
+        <p class="tt-kicker">${escapeHtml(tr('Tutorial', 'Màn tân thủ'))} · ${escapeHtml(tr('step', 'bước'))} ${index + 1}/${total}${now.role ? ` · <span class="tt-role-chip" data-tt-role="${escapeHtml(now.role)}">${escapeHtml(tr('playing', 'đang là'))} ${escapeHtml(now.role === 'INVESTIGATOR' ? 'Watson' : 'Sherlock')}</span>` : ''}</p>
         <button type="button" class="tt-toggle" data-tt-toggle aria-expanded="${!collapsed}">${escapeHtml(collapsed ? tr('Show', 'Hiện') : tr('Hide', 'Ẩn'))}</button>
       </div>
       <div class="tt-progress" aria-hidden="true"><span style="width:${Math.round((index / total) * 100)}%"></span></div>
       <h3 class="tt-title">${escapeHtml(step.title)}</h3>
       ${collapsed ? '' : `<p class="tt-text">${escapeHtml(step.text)}</p>`}
+      ${switchNeeded && step.role ? `<p class="tt-role-need" data-testid="tutorial-role-need">${escapeHtml(tr(
+        `This step needs ${step.role === 'INVESTIGATOR' ? 'Watson' : 'Sherlock'}. Press "Switch detective" (key Q).`,
+        `Bước này cần ${tutorialRoleName(step.role)}. Bạn đang là ${tutorialRoleName(now.role)}: bấm Đổi nhân vật (phím Q).`))}</p>` : ''}
       ${step.manual && !collapsed ? `<div class="tt-actions"><button type="button" class="bpa-btn bpa-btn--red bpa-btn--sm" data-tt-next>${escapeHtml(index === 0 ? tr('Start', 'Bắt đầu') : tr('Next', 'Tiếp'))}</button></div>` : ''}`;
     placePointer();
   }
@@ -150,7 +156,11 @@ export function createTutorialCoach(options: TutorialCoachOptions): TutorialCoac
   function placePointer() {
     if (destroyed) return;
     const step = steps[index];
-    const target = step && !collapsed ? step.target(snapshot()) : null;
+    const now = snapshot();
+    // Even with the card hidden, a step that needs the other detective keeps pointing at the switch button.
+    const target = !step ? null
+      : needsRoleSwitch(step, now) ? { kind: 'dom' as const, selectors: ROLE_BUTTON_SELECTORS }
+        : collapsed ? null : step.target(now);
     const point = target ? locate(target) : null;
     if (!point) {
       pointer.hidden = true;

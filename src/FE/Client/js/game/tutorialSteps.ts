@@ -3,6 +3,10 @@
  * Pure data and progress rules (no DOM): the coach in tutorialCoach.ts draws the card and the pointer.
  * Progress only moves forward. A step is done when the server state shows it (a clue unlocked, a scene reached)
  * or when the page reports the player did it (walked, opened the case file, the bag or a hint).
+ *
+ * The tutorial teaches both detectives. In a real case each player keeps one role for the whole case (Sherlock the
+ * Interrogator questions people, Watson the Investigator handles objects); only this tutorial room lets the single
+ * player switch, with the "Đổi nhân vật" button (key Q). A step that needs the other detective points at that button.
  */
 
 export const TUTORIAL_CASE_ID = 'case-pixel-tan-thu-vi';
@@ -25,7 +29,24 @@ export type TutorialSnapshot = {
   hasActiveConfrontation: boolean;
   confrontationTestimonyId: string;
   confrontationEvidenceId: string;
+  /** The solo player's current detective (INTERROGATOR = Sherlock, INVESTIGATOR = Watson); empty before the state. */
+  role: string;
 };
+
+export type TutorialRole = 'INVESTIGATOR' | 'INTERROGATOR';
+/** The tray button that switches detective; it exists only in the tutorial room. */
+export const ROLE_BUTTON_SELECTORS = ['#tutorial-role-btn'];
+
+/** Who each role is, as the tutorial names them. */
+export function tutorialRoleName(role: string): string {
+  return role === 'INVESTIGATOR' ? 'Watson (Điều tra viên)' : 'Sherlock (Thẩm vấn viên)';
+}
+
+/** The step needs the other detective now: the coach points at the switch button instead of the target. */
+export function needsRoleSwitch(step: TutorialStep | undefined, snapshot: TutorialSnapshot): boolean {
+  if (!step?.role || !snapshot.role || snapshot.role === step.role) return false;
+  return snapshot.uiKind === 'EXPLORE';
+}
 
 /**
  * Where the pointer goes. `world` is a runtime point of a scene (2048 space); `dom` is a CSS selector, the first
@@ -44,8 +65,8 @@ export type TutorialStep = {
   done: (snapshot: TutorialSnapshot) => boolean;
   /** Pointer for the current moment of the step (null hides it). */
   target: (snapshot: TutorialSnapshot) => TutorialTarget | null;
-  /** Which detective the step needs; the room switches automatically when the player acts. */
-  role?: 'INVESTIGATOR' | 'INTERROGATOR';
+  /** Which detective the step needs; the player switches with the "Đổi nhân vật" button when it is the other one. */
+  role?: TutorialRole;
 };
 
 const world = (sceneId: string, x: number, y: number): TutorialTarget => ({ kind: 'world', sceneId, x, y });
@@ -65,10 +86,18 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Chào thám tử mới!',
-    text: 'Đây là màn tân thủ: một vụ án nhỏ để học cách chơi. Mũi tên vàng chỉ chỗ cần bấm, làm xong một bước thì bước sau tự hiện. Ở vụ thật bạn chơi cùng một người: Sherlock hỏi chuyện, Watson tìm vật chứng. Ở đây bạn làm cả hai, game tự đổi vai cho bạn.',
+    text: 'Đây là màn tân thủ: một vụ án nhỏ để học cách chơi. Mũi tên vàng chỉ chỗ cần bấm, làm xong một bước thì bước sau tự hiện. Sir Locked chơi hai người, mỗi người giữ một vai: Sherlock (Thẩm vấn viên) hỏi chuyện nhân vật, Watson (Điều tra viên) khám đồ vật, chụp ảnh hiện trường và giữ Túi đồ. Hai người dùng chung Hồ sơ vụ án, cùng giải đố, cùng vạch lời nói dối và cùng chốt cáo buộc.',
     manual: true,
     done: () => false,
     target: () => null,
+  },
+  {
+    id: 'roles',
+    title: 'Chơi thử cả hai vai',
+    text: 'Riêng màn tân thủ, bạn được chơi cả Sherlock lẫn Watson: bấm nút Đổi nhân vật (phím Q) để đổi qua lại. Ô Đội điều tra ở góc trên phải ghi bạn đang là ai. Bạn bắt đầu là Sherlock. Vào vụ thật với người khác thì mỗi người một vai, không đổi được giữa chừng, nên hai người phải phối hợp.',
+    manual: true,
+    done: () => false,
+    target: () => dom(...ROLE_BUTTON_SELECTORS),
   },
   {
     id: 'move',
@@ -80,7 +109,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'talk-luu',
     title: 'Hỏi chuyện chủ trà lâu',
-    text: 'Bấm vào ông Lưu: thám tử đi tới và mở hội thoại. Chọn câu "Chuyện gì đã xảy ra?". Hỏi chuyện là việc của Sherlock.',
+    text: 'Hỏi chuyện là việc của Sherlock (Thẩm vấn viên). Bấm vào ông Lưu: thám tử đi tới và mở hội thoại. Chọn câu "Chuyện gì đã xảy ra?".',
     role: 'INTERROGATOR',
     done: (s) => has(s, 'fact-tt-mat-am'),
     target: (s) => s.uiKind === 'DIALOGUE'
@@ -100,7 +129,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'guestbook',
     title: 'Tìm vật chứng',
-    text: 'Bấm vào cuốn sổ khách trên quầy. Khám vật là việc của Watson: game tự đổi vai cho bạn.',
+    text: 'Khám đồ vật là việc của Watson (Điều tra viên). Bấm Đổi nhân vật (phím Q) để sang Watson, rồi bấm vào cuốn sổ khách trên quầy. Ở vụ thật, Sherlock không khám được vật: phải nhờ đồng đội Watson.',
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'evidence-tt-so-khach'),
     target: (s) => toScene(s, TRA_LAU, world(TRA_LAU, 928, 1250)),
@@ -108,7 +137,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'camera',
     title: 'Chụp ảnh hiện trường',
-    text: 'Bấm nút Máy ảnh (phím Z). Đưa khung ngắm vào khay trà ở đầu quầy rồi bấm để chụp. Ảnh chụp đúng chỗ thành manh mối.',
+    text: 'Máy ảnh cũng là đồ nghề của Watson. Bấm nút Máy ảnh (phím Z), đưa khung ngắm vào khay trà ở đầu quầy rồi bấm để chụp. Ảnh chụp đúng chỗ thành manh mối.',
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'clue-tt-vong-nuoc'),
     target: (s) => s.uiKind === 'CAMERA'
@@ -118,21 +147,21 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'puzzle',
     title: 'Giải đố',
-    text: 'Bấm vào mấy mảnh thư dưới chân quầy rồi ghép lại: kéo từng mảnh vào khung, nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Bí thì bấm gợi ý ngay trong câu đố.',
+    text: 'Câu đố thì vai nào giải cũng được. Bấm vào mấy mảnh thư dưới chân quầy rồi ghép lại: kéo từng mảnh vào khung, nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Bí thì bấm gợi ý ngay trong câu đố.',
     done: (s) => s.solvedPuzzleIds.has('puzzle-tt-thu-xe') || has(s, 'evidence-tt-thu-tra-gia'),
     target: (s) => s.uiKind === 'PUZZLE' ? null : toScene(s, TRA_LAU, world(TRA_LAU, 512, 1630)),
   },
   {
     id: 'case-file',
     title: 'Hồ sơ vụ án',
-    text: 'Mọi lời khai và vật chứng nằm trong Hồ sơ vụ án. Bấm nút Hồ sơ vụ án để xem, rồi đóng lại.',
+    text: 'Hồ sơ vụ án dùng chung cho cả hai: lời khai Sherlock hỏi được và vật chứng Watson tìm được đều nằm ở đây. Bấm nút Hồ sơ vụ án để xem, rồi đóng lại.',
     done: (s) => s.events.has('caseFile'),
     target: () => dom(...CASE_FILE_BUTTON),
   },
   {
     id: 'talk-lan',
     title: 'Hỏi nhân chứng',
-    text: 'Hỏi cô Mỹ Lan "Chiều nay cô thấy gì?". Nhân chứng thường kể điều mình tận mắt thấy.',
+    text: 'Đổi lại Sherlock (phím Q) rồi hỏi cô Mỹ Lan "Chiều nay cô thấy gì?". Nhân chứng thường kể điều mình tận mắt thấy.',
     role: 'INTERROGATOR',
     done: (s) => has(s, 'fact-tt-lan-thay'),
     target: (s) => s.uiKind === 'DIALOGUE'
@@ -156,7 +185,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'talk-phuc',
     title: 'Hỏi người kéo xe',
-    text: 'Bấm vào A Phúc ở đầu ngõ phía trên và hỏi "Anh đang chờ chở ai?".',
+    text: 'Sherlock hỏi chuyện: bấm vào A Phúc ở đầu ngõ phía trên và hỏi "Anh đang chờ chở ai?".',
     role: 'INTERROGATOR',
     done: (s) => has(s, 'fact-tt-phuc-cho'),
     target: (s) => s.uiKind === 'DIALOGUE'
@@ -166,7 +195,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'box',
     title: 'Mở hòm gỗ',
-    text: 'Bấm vào chiếc hòm gỗ trên xe kéo để mở ra xem.',
+    text: 'Mở đồ là việc của Watson: đổi sang Watson (phím Q) rồi bấm vào chiếc hòm gỗ trên xe kéo.',
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'evidence-tt-am-men-lam'),
     target: (s) => toScene(s, NGO, world(NGO, 1328, 860)),
@@ -174,14 +203,15 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'bag',
     title: 'Túi đồ',
-    text: 'Vật nhặt được nằm trong Túi đồ. Bấm Túi đồ để xem chiếc ấm men lam, rồi đóng lại.',
+    text: 'Vật nhặt được nằm trong Túi đồ, chỉ Watson mở được (phím B). Bấm Túi đồ để xem chiếc ấm men lam, rồi đóng lại.',
+    role: 'INVESTIGATOR',
     done: (s) => s.events.has('bag') || s.collectedItemIds.size === 0,
     target: () => dom('#floating-bag-btn', '#mobile-inventory-btn'),
   },
   {
     id: 'talk-hamilton',
     title: 'Hỏi nghi phạm',
-    text: 'Bấm vào ngài Hamilton (quý ông đội mũ cao ở phía dưới ngõ) và hỏi "Chiều nay ngài ở đâu?". Nghe kỹ: có một câu không đúng sự thật.',
+    text: 'Đổi lại Sherlock (phím Q), bấm vào ngài Hamilton (quý ông đội mũ cao ở phía dưới ngõ) và hỏi "Chiều nay ngài ở đâu?". Nghe kỹ: có một câu không đúng sự thật.',
     role: 'INTERROGATOR',
     done: (s) => has(s, 'fact-tt-ham-khai'),
     target: (s) => s.uiKind === 'DIALOGUE'
@@ -191,7 +221,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'crack',
     title: 'Vạch trần lời nói dối',
-    text: 'Ngài Hamilton nói chưa hề vào trà lâu, nhưng sổ khách có chữ ký của ngài. Mở Hồ sơ vụ án, bấm "Bắt lỗi câu này" ở câu "Tôi chưa hề bước chân vào trà lâu…", chọn chứng cứ "Chữ ký trong sổ khách" rồi bấm Xác nhận.',
+    text: 'Ngài Hamilton nói chưa hề vào trà lâu, nhưng sổ khách có chữ ký của ngài. Mở Hồ sơ vụ án, bấm "Bắt lỗi câu này" ở câu "Tôi chưa hề bước chân vào trà lâu…", chọn chứng cứ "Chữ ký trong sổ khách" rồi bấm Xác nhận. Ở vụ thật hai người làm chung: một người bắt lỗi câu khai, người kia đưa chứng cứ, rồi cả hai cùng bấm Xác nhận.',
     done: (s) => s.resolvedChallengeIds.has('challenge-tt-chua-vao') || has(s, 'reveal-tt-ham-o-tra-lau'),
     target: (s) => {
       if (s.uiKind !== 'CASE_FILE') return dom(...CASE_FILE_BUTTON);
@@ -204,7 +234,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'accuse',
     title: 'Buộc tội',
-    text: 'Đủ chứng cứ rồi! Trong Hồ sơ vụ án bấm "Lập cáo buộc". Chọn thủ phạm Ngài Hamilton; động cơ: muốn có chiếc ấm ông Lưu không chịu bán; cách làm: lúc ông Lưu vào kho, cất ấm vào hòm gỗ. Gắn chứng cứ: động cơ = Thư trả giá, cách làm = Ấm men lam trong hòm, cơ hội = Chữ ký trong sổ khách. Rồi bấm Tiếp và Xác nhận.',
+    text: 'Đủ chứng cứ rồi! Trong Hồ sơ vụ án bấm "Lập cáo buộc". Chọn thủ phạm Ngài Hamilton; động cơ: muốn có chiếc ấm ông Lưu không chịu bán; cách làm: lúc ông Lưu vào kho, cất ấm vào hòm gỗ. Gắn chứng cứ: động cơ = Thư trả giá, cách làm = Ấm men lam trong hòm, cơ hội = Chữ ký trong sổ khách. Rồi bấm Tiếp và Xác nhận. Ở vụ thật một người lập cáo buộc, người kia phải đồng ý thì mới chốt.',
     done: (s) => s.roomStatus === 'COMPLETED',
     target: (s) => s.uiKind === 'ACCUSATION'
       ? dom('#accuse-confirm', '#accuse-next', '#accuse-review')
@@ -226,6 +256,7 @@ export function nextStepIndex(steps: TutorialStep[], from: number, snapshot: Tut
 
 type StateLike = {
   caseId?: string;
+  players?: Array<{ role?: string | null }>;
   currentSceneId?: string;
   roomStatus?: string;
   unlockedClues?: Array<{ clueId: string }>;
@@ -250,11 +281,13 @@ export function tutorialSnapshot(state: StateLike | null, uiKind: string, events
     hasActiveConfrontation: Boolean(active),
     confrontationTestimonyId: active?.testimony?.testimonyFragmentId ?? '',
     confrontationEvidenceId: active?.evidence?.clueId ?? '',
+    // The tutorial room has one player.
+    role: state?.players?.[0]?.role ?? '',
   };
 }
 
 /** The role a hotspot needs in a two-player room: people are questioned by Sherlock, things are handled by Watson. */
-export function roleForHotspot(type: string): 'INVESTIGATOR' | 'INTERROGATOR' | null {
+export function roleForHotspot(type: string): TutorialRole | null {
   if (type === 'CHARACTER') return 'INTERROGATOR';
   if (type === 'ITEM' || type === 'OBJECT' || type === 'CLUE' || type === 'ENVIRONMENT') return 'INVESTIGATOR';
   return null;
