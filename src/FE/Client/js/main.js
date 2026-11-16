@@ -358,14 +358,16 @@ async function route({ transition = true } = {}) {
   const { app } = mount;
 
   if (path === '/') {
-    navigate(session.isLoggedIn()
-      ? (session.isAdmin() ? '/admin' : '/menu')
-      : '/login');
+    // The root is the introduction page, a static file of its own (see the first script in index.html).
+    window.location.replace(`/trang-chu/index.html${window.location.search}`);
     return;
   }
 
   if (!target) {
-    navigate('/');
+    // An address nobody knows goes to the game's home of whoever is here, not to the introduction page.
+    navigate(session.isLoggedIn()
+      ? (session.isAdmin() ? '/admin' : '/menu')
+      : '/login');
     return;
   }
 

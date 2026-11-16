@@ -153,7 +153,7 @@ test('a server without paging fields shows every row and no pager', async ({ pag
 });
 
 test('pageList keeps first, last, current and neighbours and never hides a single page', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/login');
   const lists = await page.evaluate(async () => {
     const { pageList } = await import('/Client/js/pages/market/buyTab.js' as string);
     return {

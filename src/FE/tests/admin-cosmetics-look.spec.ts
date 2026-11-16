@@ -27,7 +27,7 @@ async function open(page: Page) {
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: null }),
   }));
-  await page.goto('/');
+  await page.goto('/login');
   await page.waitForLoadState('domcontentloaded');
 }
 

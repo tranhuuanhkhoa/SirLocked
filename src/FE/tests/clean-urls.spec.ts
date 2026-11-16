@@ -83,10 +83,14 @@ test.describe('clean addresses', () => {
     expect(await page.evaluate(() => history.length)).toBe(before);
   });
 
-  test('the root goes to the home of whoever is signed in', async ({ page }) => {
-    await signInAs(page, 'PLAYER');
+  test('the root is the introduction page, signed in or not, and keeps its address', async ({ page }) => {
     await page.goto('/');
-    await expectAddress(page, '/menu');
+    await expect(page.locator('#hero-title')).toBeVisible();
+    await expectAddress(page, '/');
+    await signInAs(page, 'PLAYER');
+    await page.goto('/?ref=zalo');
+    await expect(page.locator('#hero-title')).toBeVisible();
+    await expectAddress(page, '/?ref=zalo');
   });
 
   test('someone signed out is sent to the login page', async ({ page }) => {
@@ -148,7 +152,8 @@ test.describe('old links with #', () => {
   test('a crafted one cannot take anyone off the site', async ({ page }) => {
     await signInAs(page, 'PLAYER');
     await page.goto('/#//evil.example/phish');
-    await expectAddress(page, '/menu');
+    await expect(page.locator('#hero-title')).toBeVisible();
+    await expectAddress(page, '/');
     expect(new URL(page.url()).host).toBe(new URL(test.info().project.use.baseURL!).host);
   });
 
