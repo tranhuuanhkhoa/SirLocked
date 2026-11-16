@@ -6,10 +6,13 @@ const newIdempotencyKey = () => typeof globalThis.crypto?.randomUUID === 'functi
 
 export const aiCaseApi = {
   capabilities: () => get('/api/admin/ai-cases/capabilities'),
-  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM', idempotencyKey = newIdempotencyKey(), creativeConstraints = null) =>
-    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType, creativeConstraints }, {
+  /** `order` is the AiCaseOrder of the Claude bot (world, places, cast, weather...); left out when null. */
+  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM', idempotencyKey = newIdempotencyKey(), creativeConstraints = null, order = null) =>
+    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType, creativeConstraints, ...(order ? { order } : {}) }, {
       headers: { 'Idempotency-Key': idempotencyKey },
     }),
+  /** The caller's orders left this week (VIP); ADMIN answers { unlimited: true }. */
+  quota: () => get('/api/admin/ai-cases/quota'),
   replaceJson: (draftId, caseJson, storyPreview = null) =>
     put(`/api/admin/ai-cases/${draftId}/case-json`, { caseJson, storyPreview }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),
