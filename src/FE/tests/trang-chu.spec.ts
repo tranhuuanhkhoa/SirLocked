@@ -30,7 +30,7 @@ test('every picture and the music of the introduction page load while the addres
     }
     return { count: paths.length, bad };
   });
-  expect(broken.count).toBeGreaterThan(20);
+  expect(broken.count).toBeGreaterThanOrEqual(20);
   expect(broken.bad).toEqual([]);
   // A relative assets/... would now resolve against / and get the game's index.html instead.
   expect(await page.evaluate(() => document.documentElement.outerHTML.match(/["']assets\//g))).toBeNull();
@@ -183,4 +183,52 @@ test('the language switch fits the top bar of a small phone in both languages', 
     expect(fit.right).toBeLessThanOrEqual(fit.width);
     expect(fit.left).toBeGreaterThanOrEqual(fit.brandRight);
   }
+});
+
+const litPixels = (page: Page) => page.locator('#fireworks').evaluate((canvas: HTMLCanvasElement) => {
+  const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+  let lit = 0;
+  for (let i = 3; i < data.length; i += 4) if (data[i]) lit += 1;
+  return lit;
+});
+const showChests = (page: Page) => page.locator('#kho-do').evaluate((section) => {
+  window.scrollTo({ top: section.getBoundingClientRect().top + scrollY, behavior: 'instant' as ScrollBehavior });
+});
+
+test('fireworks replace the flying dragon and play while the chest section is on screen', async ({ page }) => {
+  await openRoot(page);
+  await expect(page.locator('img[src*="rong-bay"], .dragon-lane')).toHaveCount(0);
+  expect(await litPixels(page)).toBe(0);
+
+  await showChests(page);
+  await expect.poll(() => litPixels(page), { timeout: 6000 }).toBeGreaterThan(200);
+  // The canvas covers the screen plus a margin and follows the scroll, instead of the whole (much taller) section.
+  const size = await page.evaluate(() => ({
+    canvas: document.querySelector('#fireworks')!.getBoundingClientRect().height,
+    section: document.querySelector('#kho-do')!.getBoundingClientRect().height,
+    screen: innerHeight,
+  }));
+  expect(size.canvas).toBeLessThanOrEqual(Math.min(size.section, size.screen + 240));
+});
+
+test('"Tắt hiệu ứng" and reduced motion stop the fireworks', async ({ page }) => {
+  await openRoot(page);
+  await showChests(page);
+  await expect.poll(() => litPixels(page), { timeout: 6000 }).toBeGreaterThan(200);
+
+  await page.locator('#calm-btn').click();
+  await expect(page.locator('#fireworks')).toBeHidden();
+  expect(await litPixels(page)).toBe(0);
+  await page.locator('#calm-btn').click();
+  await expect(page.locator('#fireworks')).toBeVisible();
+  await expect.poll(() => litPixels(page), { timeout: 6000 }).toBeGreaterThan(200);
+
+  await page.evaluate(() => localStorage.removeItem('sl-calm'));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  await expect(page.locator('#hero-title')).toBeVisible();
+  await showChests(page);
+  await expect(page.locator('#fireworks')).toBeHidden();
+  await page.waitForTimeout(1500);
+  expect(await litPixels(page)).toBe(0);
 });
