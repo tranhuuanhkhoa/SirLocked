@@ -108,6 +108,14 @@ public sealed class BridgeController(
     public async Task<ActionResult<ApiResponse<object>>> AssetsNeeded(string id, CancellationToken ct) =>
         Ok(await bridge.AssetsNeededAsync(id, ct));
 
+    /// <summary>
+    /// Pixel drafts (VUAN-6B): <c>{ "choices": [{ "subject": "scene:&lt;id&gt;", "source": "LIBRARY", "libraryKey": "v-case-pho" }] }</c>.
+    /// Returns the PixelLab request plan; 409 AI_PIXELLAB_CAP_EXCEEDED when it needs more than the order's pixelLabCap.
+    /// </summary>
+    [HttpPut("drafts/{id}/asset-plan")]
+    public async Task<ActionResult<ApiResponse<object>>> PutAssetPlan(string id, [FromBody] BridgeAssetPlanRequest request, CancellationToken ct) =>
+        Ok(await bridge.PutAssetPlanAsync(id, request.Choices, ct), "Asset plan accepted.");
+
     /// <summary>Multipart form: <c>slotId</c> and <c>file</c> (PNG or WebP).</summary>
     [HttpPost("drafts/{id}/assets")]
     [RequestSizeLimit(6 * 1024 * 1024)]
@@ -204,4 +212,9 @@ public sealed class BridgeReportRequest
 public sealed class BridgeGateRequest
 {
     public string Gate { get; set; } = string.Empty;
+}
+
+public sealed class BridgeAssetPlanRequest
+{
+    public List<AiAssetChoice> Choices { get; set; } = new();
 }

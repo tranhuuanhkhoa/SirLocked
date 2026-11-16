@@ -290,6 +290,32 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
 
 public static class ProjectionContentMockFactory
 {
+    /// <summary>Library music (docs/case-audio-weather.md): rain on the harbour outside, the music-box tune in the rooms.</summary>
+    internal static SceneAtmosphereContent MockAtmosphere(bool outdoor) => new()
+    {
+        Indoor = !outdoor,
+        Weather = outdoor ? new SceneWeather { Type = SceneWeatherTypes.Rain, Intensity = 0.6 } : null,
+        TimeOfDay = "NIGHT",
+        Audio = new SceneAtmosphereAudioContent
+        {
+            Music = outdoor
+                ? new SceneMusic
+                {
+                    Url = "/assets/audio/music/hang-duong/ben-cang-dem-mua.ogg",
+                    FallbackUrl = "/assets/audio/music/hang-duong/ben-cang-dem-mua.mp3",
+                    Title = "Bến cảng đêm mưa", Source = "claude-8bit", License = "Sir Locked (tự sáng tác)",
+                    LoopStartSec = 0, LoopEndSec = 50.526327, Volume = 0.55
+                }
+                : new SceneMusic
+                {
+                    Url = "/assets/audio/music/hang-duong/tiem-hop-nhac.ogg",
+                    FallbackUrl = "/assets/audio/music/hang-duong/tiem-hop-nhac.mp3",
+                    Title = "Music Box: Cute Tune", Source = "opengameart", License = "CC0 1.0",
+                    LoopStartSec = 0, LoopEndSec = 68.568027, Volume = 0.55
+                }
+        }
+    };
+
     public static GameplayProjectionContent Build(GameplayProjectionPlan plan)
     {
         var vi = plan.Skeleton.Language == CaseLanguages.Vietnamese;
@@ -320,6 +346,8 @@ public static class ProjectionContentMockFactory
                 StageId = stage.StageId,
                 Title = T($"Investigation {stage.Order}", $"Chặng điều tra {stage.Order}")
             };
+        var firstSceneId = plan.Skeleton.Stages.OrderBy(stage => stage.Order).SelectMany(stage => stage.Scenes)
+            .Select(scene => scene.SceneId).FirstOrDefault();
         foreach (var (id, slot) in plan.Scenes)
             content.Scenes[id] = new SceneProjectionContent
             {
@@ -329,8 +357,11 @@ public static class ProjectionContentMockFactory
                 Description = T(
                     "A controlled crime scene where physical traces and witness accounts can be compared.",
                     "Một hiện trường được kiểm soát, nơi dấu vết vật lý và lời khai nhân chứng có thể được đối chiếu."),
-                VisualDescription = "Victorian investigation room with dark wood, brass fixtures, deep teal walls, clear floor surfaces, restrained warm lighting, and visible physical wear."
+                VisualDescription = "Victorian investigation room with dark wood, brass fixtures, deep teal walls, clear floor surfaces, restrained warm lighting, and visible physical wear.",
+                // VUAN-4/5/6B: the first place is outdoors in the rain, the others are rooms; every place has library music.
+                Atmosphere = MockAtmosphere(id == firstSceneId)
             };
+        var waves = new[] { "square", "triangle", "sine", "sawtooth" };
         foreach (var (character, index) in plan.Skeleton.Characters.Select((value, index) => (value, index)))
             content.Characters[character.CharacterId] = new CharacterProjectionContent
             {
@@ -340,7 +371,12 @@ public static class ProjectionContentMockFactory
                 Description = T(
                     "A person connected to the approved timeline and available for careful questioning.",
                     "Một người liên quan đến dòng thời gian đã phê duyệt và sẵn sàng trả lời thẩm vấn."),
-                VisualDescription = "Adult Victorian witness with a distinct silhouette, expressive face, natural skin tone, dark styled hair, layered teal and oxblood clothing, and one brass role accessory."
+                VisualDescription = "Adult Victorian witness with a distinct silhouette, expressive face, natural skin tone, dark styled hair, layered teal and oxblood clothing, and one brass role accessory.",
+                // One distinct blip voice per character (pitch and wave differ).
+                Voice = new CharacterVoice
+                {
+                    Blip = new VoiceBlip { Pitch = 140 + index * 110, Speed = 14 + index % 4 * 6, Wave = waves[index % waves.Length], Variance = 0.2 }
+                }
             };
         foreach (var (item, index) in plan.Skeleton.Items.Select((value, index) => (value, index)))
             content.Items[item.ItemId] = new ItemProjectionContent

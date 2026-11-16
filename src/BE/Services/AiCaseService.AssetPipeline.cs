@@ -45,6 +45,7 @@ public partial class AiCaseService
     /// <summary>Every image slot of one asset phase, with its art direction, target size and current picture.</summary>
     internal static List<AiAssetSlot> BuildAssetSlots(AiCaseDraft draft, GameCase gameCase, string phase)
     {
+        if (PixelCasePipeline.IsPixel(draft)) return BuildPixelAssetSlots(draft, gameCase, phase);
         var uploads = LatestUploads(draft);
         string Current(string slotId, string fallback) =>
             uploads.TryGetValue(slotId, out var upload) ? upload.Url : fallback ?? string.Empty;
@@ -113,6 +114,8 @@ public partial class AiCaseService
         bool includeFinalAssets,
         IReadOnlySet<string>? forceAssetIds = null)
     {
+        if (PixelCasePipeline.IsPixel(draft))
+            return await GeneratePixelAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets, forceAssetIds);
         var phase = includeFinalAssets ? AiAssetPhases.FinalAssets : AiAssetPhases.SceneLayout;
         var status = includeFinalAssets ? AiDraftStatus.GeneratingFinalAssets : AiDraftStatus.GeneratingSceneLayout;
         var slots = BuildAssetSlots(draft, gameCase, phase);
@@ -289,26 +292,31 @@ public partial class AiCaseService
                     if (item is not null) item.ImageUrl = upload.Url;
                     break;
             }
-            manifest.Assets.RemoveAll(asset => asset.AssetType == slot.Kind && asset.TargetId == slot.TargetId);
-            manifest.Assets.Add(new AiGeneratedAsset
-            {
-                AssetType = slot.Kind,
-                TargetId = slot.TargetId,
-                Url = upload.Url,
-                SecureUrl = upload.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? upload.Url : string.Empty,
-                Prompt = slot.ArtDirection,
-                PromptSha256 = Sha256(slot.ArtDirection),
-                Model = "claude-upload",
-                PipelineVersion = ClaudeUploadPipelineVersion,
-                SourceWidth = upload.Width,
-                SourceHeight = upload.Height,
-                NormalizedWidth = upload.Width,
-                NormalizedHeight = upload.Height,
-                HasAlpha = upload.HasAlpha,
-                ProcessingStatus = "UPLOADED",
-                CloudinaryPublicId = upload.StorageId
-            });
+            RecordUploadedAsset(manifest, slot, upload, ClaudeUploadPipelineVersion);
         }
+    }
+
+    private static void RecordUploadedAsset(AiAssetManifest manifest, AiAssetSlot slot, AiBridgeAssetUpload upload, string pipelineVersion)
+    {
+        manifest.Assets.RemoveAll(asset => asset.AssetType == slot.Kind && asset.TargetId == slot.TargetId);
+        manifest.Assets.Add(new AiGeneratedAsset
+        {
+            AssetType = slot.Kind,
+            TargetId = slot.TargetId,
+            Url = upload.Url,
+            SecureUrl = upload.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? upload.Url : string.Empty,
+            Prompt = slot.ArtDirection,
+            PromptSha256 = Sha256(slot.ArtDirection),
+            Model = "claude-upload",
+            PipelineVersion = pipelineVersion,
+            SourceWidth = upload.Width,
+            SourceHeight = upload.Height,
+            NormalizedWidth = upload.Width,
+            NormalizedHeight = upload.Height,
+            HasAlpha = upload.HasAlpha,
+            ProcessingStatus = "UPLOADED",
+            CloudinaryPublicId = upload.StorageId
+        });
     }
 
     private static List<SceneImageReference> BuildLayoutImageReferences(

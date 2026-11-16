@@ -88,12 +88,13 @@ public partial class AiCaseService
         string prompt,
         IReadOnlyList<SceneImageReference> images,
         int maxOutputTokens,
-        Func<string>? mockResponseFactory = null)
+        Func<string>? mockResponseFactory = null,
+        string runtimeSpace = "1600x900 runtime space")
     {
         if (images.Count == 0)
             throw ApiException.BadGateway("A scene inspection step needs at least one image.");
         var builder = new StringBuilder(prompt.TrimEnd());
-        builder.AppendLine().AppendLine().AppendLine("IMAGES TO INSPECT (open each URL; coordinates use the 1600x900 runtime space):");
+        builder.AppendLine().AppendLine().AppendLine($"IMAGES TO INSPECT (open each URL; coordinates use the {runtimeSpace}):");
         foreach (var image in images)
             builder.Append("- ").Append(image.Label).Append(": ").AppendLine(image.Url);
         var visionPrompt = builder.ToString();
@@ -177,6 +178,11 @@ public partial class AiCaseService
                 ? "Upload NEW pictures for: " + string.Join(", ", regenerate)
                 : "Slots that already have a picture may keep it.")
             .AppendLine(string.IsNullOrWhiteSpace(note) ? string.Empty : $"Why: {note}")
+            .AppendLine(PixelCasePipeline.IsPixel(draft)
+                ? $"Pixel case (VUAN-6B): first declare where each picture comes from with PUT /api/bridge/drafts/{draft.Id}/asset-plan "
+                  + "(library -> variant -> PixelLab, within the order's pixelLabCap); uploads are refused until a plan fits. "
+                  + "Sizes: backgrounds 512x512, NPC idle sheets 1152x128 (9 frames of 128), portraits 288x288, inventory icons 64x64."
+                : string.Empty)
             .ToString();
         var created = await store.InsertPendingAsync(new AiBridgeRequest
         {

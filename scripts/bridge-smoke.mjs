@@ -95,13 +95,32 @@ const gates = {
   SCENE_LAYOUT_AWAITING_APPROVAL: 'approve-scene-layout',
 };
 
+// VUAN-6B pixel drafts: uploads wait for an asset plan within pixelLabCap. The smoke bot checks that an all-new plan is
+// refused, then declares library pictures only (0 PixelLab generations).
+const smokeLibrary = { OUTDOOR_MAP: 'smoke-pixel-map', INTERIOR: 'smoke-pixel-room', NPC: 'smoke-pixel-npc', ITEM: 'smoke-pixel-item' };
+let capRefusal = '';
+async function declarePixelPlan(draftId, pixel) {
+  if (pixel.planAccepted) return;
+  const refused = await call('PUT', `/api/bridge/drafts/${draftId}/asset-plan`, { bridge: true, body: { choices: [] }, expect: [409] });
+  if (refused.json?.errors?.code !== 'AI_PIXELLAB_CAP_EXCEEDED') throw new Error(`An all-new plan was not refused: ${JSON.stringify(refused.json)}`);
+  capRefusal = refused.json.message;
+  await call('PUT', '/api/bridge/library', { bridge: true, body: { items: Object.entries(smokeLibrary).map(([kind, key]) => ({ key, kind, world: 'HANG_DUONG_VICTORIAN', url: `/assets/library/${key}.webp` })) } });
+  const choices = pixel.subjects.map((subject) => ({ subject: subject.subject, source: 'LIBRARY', libraryKey: smokeLibrary[subject.libraryKind] }));
+  const plan = (await call('PUT', `/api/bridge/drafts/${draftId}/asset-plan`, { bridge: true, body: { choices } })).data;
+  if (plan.estimatedGenerations !== 0) throw new Error(`Library-only plan should need 0 generations: ${plan.estimatedGenerations}`);
+  console.log(`   asset plan: ${choices.length} library pictures, 0 PixelLab generations (all-new plan refused: ${capRefusal.slice(0, 90)}...)`);
+}
+
 async function uploadRequestedImages(draftId) {
   const needed = (await call('GET', `/api/bridge/drafts/${draftId}/assets-needed`, { bridge: true })).data;
+  if (needed.pixel) await declarePixelPlan(draftId, needed.pixel);
   let uploaded = 0;
   for (const slot of needed.slots.filter((item) => item.requestedNow)) {
     const form = new FormData();
     form.append('slotId', slot.slotId);
-    form.append('file', new Blob([png(96, 54, slot.transparent)], { type: 'image/png' }), `${slot.slotId.replace(/[^a-z0-9-]/gi, '-')}.png`);
+    // Pixel slots take exact sizes: 512 scenes, 1152x128 idle sheets, 288 portraits, 64 icons (transparent but scenes).
+    const picture = needed.pixel ? png(slot.width, slot.height, slot.transparent || slot.kind !== 'background') : png(96, 54, slot.transparent);
+    form.append('file', new Blob([picture], { type: 'image/png' }), `${slot.slotId.replace(/[^a-z0-9-]/gi, '-')}.png`);
     await call('POST', `/api/bridge/drafts/${draftId}/assets`, { bridge: true, form });
     uploaded++;
   }
@@ -169,6 +188,14 @@ async function main() {
   if (published.some((item) => item.caseId === imported.caseId)) throw new Error('The imported case is visible to players.');
   const publishRoute = await call('POST', `/api/bridge/drafts/${draftId}/publish`, { bridge: true, expect: [404, 405] });
   console.log(`4. Imported ${imported.caseId} as an unpublished draft (bridge publish route: HTTP ${publishRoute.status}).`);
+  const caseJson = (await call('GET', `/api/bridge/drafts/${draftId}/case-json`, { bridge: true })).data.caseJson;
+  const scenes = caseJson.stages.flatMap((stage) => stage.scenes);
+  const pixel = scenes.every((scene) => scene.runtime?.render?.mode === 'pixel');
+  if (!pixel) throw new Error('The imported AI case is not a pixel case (VUAN-6B).');
+  const outdoor = scenes.filter((scene) => scene.runtime.render.projection === 'topdown');
+  console.log(`   pixel case: ${scenes.map((scene) => `${scene.runtime.render.projection} ${scene.runtime.width}x${scene.runtime.height} actorScale ${scene.runtime.render.actorScale}`).join(' | ')}; `
+    + `music ${scenes.every((scene) => scene.runtime.audio?.music?.url)}, rain outside ${outdoor.every((scene) => scene.runtime.weather?.type === 'RAIN')}, `
+    + `blips ${caseJson.characters.every((character) => character.voice?.blip)}, hints 3 levels ${new Set(caseJson.hints.map((hint) => hint.order)).size === 3}.`);
   const requests = (await call('GET', '/api/bridge/requests?status=ACCEPTED&limit=500', { bridge: true })).data.filter((item) => item.draftId === draftId);
   const stale = (await call('GET', '/api/bridge/requests?status=STALE&limit=500', { bridge: true })).data.filter((item) => item.draftId === draftId);
   if (stale.length) throw new Error(`${stale.length} request(s) went stale: a replay changed its prompt.`);

@@ -302,6 +302,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ActiveQuotaKey = !_settings.BlocksAiCalls && _quota.Enabled ? user.Id : null,
             DailyQuotaKey = !_settings.BlocksAiCalls && _quota.Enabled ? $"{user.Id}:{VietnamQuotaDay(now)}" : null,
             Order = order,
+            // VUAN-6B: every new order makes a pixel case (PixelLab pictures in the shape of "Tram hong ngoc").
+            VisualPipeline = AiVisualPipelines.PixelV1,
             OrderStatus = orderStatus,
             OrderStatusHistory = [new AiOrderStatusChange { Status = orderStatus, At = now, ByUserId = user.Id }],
             StoryHistorySnapshot = recentHistory.Select(item => new AiStoryHistorySnapshotEntry
@@ -1571,6 +1573,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         draft.AssetManifest = assetManifest;
 
         var validation = ApplyHintRule(draft, _validator.ValidateSceneLayout(gameCase));
+        if (PixelCasePipeline.IsPixel(draft)) PixelDraftRules.ValidateLayout(gameCase, validation);
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
         {
@@ -2246,6 +2249,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
             validation.Errors.AddRange(_projectionGraphValidator
                 .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+        if (PixelCasePipeline.IsPixel(draft)) PixelDraftRules.ValidateFinal(gameCase, LatestUploads(draft), validation);
         validation.Deduplicate();
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)

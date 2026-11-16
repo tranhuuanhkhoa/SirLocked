@@ -285,6 +285,43 @@ public sealed class AiBridgeService(
             throw ApiException.Conflict("This draft has no case JSON yet.", "BRIDGE_DRAFT_HAS_NO_CASE", "ai.bridge.noCase");
         var gameCase = caseService.ParseCase(draft.GeneratedJson);
         var open = await OpenAssetRequestAsync(draftId, ct);
+        object? pixel = null;
+        if (PixelCasePipeline.IsPixel(draft))
+        {
+            var library = await db.AssetLibrary.Find(Builders<AssetLibraryEntry>.Filter.Empty).ToListAsync(ct);
+            var cap = draft.Order?.PixelLabCap ?? 0;
+            var preview = PixelAssetPlanning.Plan(gameCase, draft.AssetPlan?.Choices ?? new List<AiAssetChoice>(), library, cap, RecordRoot(draftId));
+            pixel = new
+            {
+                pipeline = draft.VisualPipeline,
+                pixelLabCap = cap,
+                planAccepted = draft.AssetPlan is not null,
+                planAcceptedAt = draft.AssetPlan?.AcceptedAt,
+                estimatedGenerations = preview.EstimatedGenerations,
+                withinCap = preview.WithinCap,
+                planErrors = preview.Errors,
+                next = draft.AssetPlan is null
+                    ? "Declare where every picture comes from: PUT asset-plan { choices: [{ subject, source: LIBRARY|VARIANT|PIXELLAB, libraryKey, parentKey, variant }] }. Undeclared subjects count as new PixelLab pictures."
+                    : "The plan fits pixelLabCap: run the PixelLab requests in order (first creation only), process, then upload each slot.",
+                subjects = preview.Subjects.Select(subject => new
+                {
+                    subject.Subject,
+                    subject.Kind,
+                    subject.TargetId,
+                    subject.Name,
+                    subject.Projection,
+                    libraryKind = PixelAssetPlanning.LibraryKindFor(subject.Kind, subject.Projection),
+                    slots = subject.SlotIds,
+                    declared = draft.AssetPlan?.Choices.Any(choice => choice.Subject == subject.Subject) == true,
+                    subject.Source,
+                    subject.LibraryKey,
+                    subject.ParentKey,
+                    subject.Variant,
+                    suggestions = PixelAssetPlanning.Suggestions(draft.Order, subject.Kind, subject.Projection, library)
+                }),
+                plan = preview.Plan
+            };
+        }
         var slots = AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.SceneLayout)
             .Concat(AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.FinalAssets))
             .Select(slot => new
@@ -310,7 +347,74 @@ public sealed class AiBridgeService(
             maxBytes = bridge.Value.MaxAssetBytes,
             formats = new[] { "image/png", "image/webp" },
             openRequest = open is null ? null : new { requestId = open.Id, open.Step, open.AssetPhase, open.Status, open.Prompt },
+            pixel,
             slots
+        };
+    }
+
+    /// <summary>Where the bot keeps originals, requests and receipts of a draft (outside src/FE/public).</summary>
+    private static string RecordRoot(string draftId) => $"tmp/pixellab/{draftId}";
+
+    /// <summary>
+    /// Pixel drafts: the bot declares where every picture comes from (library, variant, PixelLab). The server builds the
+    /// PixelLab request plan from templates.json; a plan over the order's pixelLabCap is refused and nothing may start.
+    /// </summary>
+    public async Task<object> PutAssetPlanAsync(string draftId, List<AiAssetChoice>? choices, CancellationToken ct)
+    {
+        var draft = await RequireDraftAsync(draftId, ct);
+        if (!PixelCasePipeline.IsPixel(draft))
+            throw ApiException.Conflict("Only pixel drafts (made after VUAN-6B) take an asset plan; this draft keeps the classic image slots.",
+                "AI_ASSET_PLAN_NOT_PIXEL", "ai.assetPlan.notPixel");
+        if (draft.Status is AiDraftStatus.Cancelled or AiDraftStatus.Published or AiDraftStatus.Imported)
+            throw ApiException.Conflict("This draft no longer accepts images.", "BRIDGE_DRAFT_CLOSED", "ai.bridge.draftClosed");
+        if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
+            throw ApiException.Conflict("This draft has no case JSON yet.", "BRIDGE_DRAFT_HAS_NO_CASE", "ai.bridge.noCase");
+        var gameCase = caseService.ParseCase(draft.GeneratedJson);
+        var library = await db.AssetLibrary.Find(Builders<AssetLibraryEntry>.Filter.Empty).ToListAsync(ct);
+        var cap = draft.Order?.PixelLabCap ?? 0;
+        var result = PixelAssetPlanning.Plan(gameCase, choices ?? new List<AiAssetChoice>(), library, cap, RecordRoot(draftId));
+        if (result.Errors.Count > 0)
+            throw ApiException.BadRequest("The asset plan has errors: " + string.Join(" | ", result.Errors.Take(12)),
+                new { code = "AI_ASSET_PLAN_INVALID", messageKey = "ai.assetPlan.invalid", errors = result.Errors });
+        if (!result.WithinCap)
+            throw ApiException.Conflict(PixelLabPlanBuilder.CapMessage(result.Plan), new
+            {
+                code = "AI_PIXELLAB_CAP_EXCEEDED",
+                messageKey = "ai.assetPlan.capExceeded",
+                estimatedGenerations = result.EstimatedGenerations,
+                pixelLabCap = cap,
+                requests = result.Plan["requests"]!.AsArray().Select(node => new
+                {
+                    id = node!["id"]!.GetValue<string>(), estimatedGenerations = node["estimatedGenerations"]!.GetValue<int>()
+                }).ToList()
+            });
+        var planJson = result.Plan.ToJsonString();
+        var accepted = new AiAssetPlan
+        {
+            Choices = result.Subjects.Select(subject => new AiAssetChoice
+            {
+                Subject = subject.Subject, Source = subject.Source, LibraryKey = subject.LibraryKey,
+                ParentKey = subject.ParentKey, Variant = subject.Variant,
+                Note = (choices ?? new()).FirstOrDefault(choice => choice.Subject == subject.Subject)?.Note ?? string.Empty
+            }).ToList(),
+            EstimatedGenerations = result.EstimatedGenerations,
+            PixelLabCap = cap,
+            Requests = result.Plan["summary"]!["requests"]!.GetValue<int>(),
+            PlanJson = planJson,
+            PlanSha256 = AiBridgeSchemaValidator.Sha256(planJson),
+            AcceptedAt = DateTime.UtcNow
+        };
+        await db.AiCaseDrafts.UpdateOneAsync(item => item.Id == draftId,
+            Builders<AiCaseDraft>.Update.Set(item => item.AssetPlan, accepted).Set(item => item.UpdatedAt, DateTime.UtcNow),
+            cancellationToken: ct);
+        return new
+        {
+            draftId,
+            accepted = true,
+            estimatedGenerations = result.EstimatedGenerations,
+            pixelLabCap = cap,
+            requests = accepted.Requests,
+            plan = result.Plan
         };
     }
 
@@ -328,7 +432,35 @@ public sealed class AiBridgeService(
         if (!known)
             throw ApiException.BadRequest($"Slot '{slotId}' is not an image slot of this draft. See assets-needed.",
                 new ApiErrorDetails("BRIDGE_UNKNOWN_SLOT", "ai.bridge.unknownSlot"));
+        double? feetAnchorY = null;
+        if (PixelCasePipeline.IsPixel(draft))
+        {
+            if (draft.AssetPlan is null)
+                throw ApiException.Conflict(
+                    "Declare the asset plan first (PUT asset-plan): library pictures, variants and PixelLab requests within pixelLabCap.",
+                    "AI_ASSET_PLAN_REQUIRED", "ai.assetPlan.required");
+            var slot = AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.SceneLayout)
+                .Concat(AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.FinalAssets))
+                .First(entry => entry.SlotId == slotId);
+            var info = BridgeAssetStorage.Inspect(bytes, Math.Max(1024, bridge.Value.MaxAssetBytes));
+            if (info.Width != slot.Width || info.Height != slot.Height)
+                throw ApiException.BadRequest(
+                    $"Slot '{slotId}' needs {slot.Width}x{slot.Height} (pixel case); the picture is {info.Width}x{info.Height}.",
+                    new ApiErrorDetails("ASSET_WRONG_SIZE", "ai.bridge.assetWrongSize"));
+            if (slot.Kind != AiAssetSlotKinds.Background && !info.HasAlpha)
+                throw ApiException.BadRequest($"Slot '{slotId}' needs a transparent background (PNG/WebP with alpha).",
+                    new ApiErrorDetails("ASSET_NEEDS_ALPHA", "ai.bridge.assetNeedsAlpha"));
+            if (slot.Kind == AiAssetSlotKinds.CharacterSprite)
+            {
+                feetAnchorY = PixelCasePipeline.MeasureFeetAnchorY(bytes);
+                if (feetAnchorY is not > 0.5)
+                    throw ApiException.BadRequest(
+                        $"Slot '{slotId}': frame 0 of the idle sheet must show the NPC with the feet in the lower half of the 128px frame.",
+                        new ApiErrorDetails("ASSET_SPRITE_EMPTY", "ai.bridge.assetSpriteEmpty"));
+            }
+        }
         var upload = await assetStorage.SaveAsync(draftId, slotId, bytes, ct);
+        upload.FeetAnchorY = feetAnchorY;
         await db.AiCaseDrafts.UpdateOneAsync(
             item => item.Id == draftId,
             Builders<AiCaseDraft>.Update

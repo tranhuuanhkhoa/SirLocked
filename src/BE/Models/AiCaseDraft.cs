@@ -345,6 +345,11 @@ public class AiCaseDraft
     /// </summary>
     public string OperationRunId { get; set; } = string.Empty;
     public List<AiBridgeAssetUpload> BridgeAssets { get; set; } = new();
+    /// <summary><see cref="AiVisualPipelines"/>: empty for drafts made before VUAN-6B (classic 1600x900 scenes).</summary>
+    public string VisualPipeline { get; set; } = AiVisualPipelines.Classic;
+    /// <summary>Pixel drafts: the picture plan the bot declared (library, variant, PixelLab) once it fits pixelLabCap.</summary>
+    [BsonIgnoreIfNull]
+    public AiAssetPlan? AssetPlan { get; set; }
     /// <summary>The bot's report.md (results of its five checks), shown to admins.</summary>
     public string BridgeReport { get; set; } = string.Empty;
     public DateTime? BridgeReportUpdatedAt { get; set; }

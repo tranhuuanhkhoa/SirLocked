@@ -33,54 +33,10 @@ const ICON_GRID = { columns: 4, rows: 4, cell: 64, maxItems: 16 };
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
   'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
 
-// Vietnamese keyword -> English art direction. Matched on lower-case text WITH diacritics, in list order,
-// title before description. Results are drafts: every request that uses them is flagged needsReview.
-const PLACE_GLOSSARY = [
-  // [keyword, exterior on the outdoor map, interior room subject]
-  ['hiệu thuốc', 'a narrow apothecary shop with a shopfront and display windows full of glass bottles', 'apothecary shop'],
-  ['nhà thuốc', 'a narrow apothecary shop with a shopfront and display windows full of glass bottles', 'apothecary shop'],
-  ['hiệu ảnh', "a photographer's studio with a glass skylight roof section, large front windows and a striped awning", "photographer's studio"],
-  ['tiệm ảnh', "a photographer's studio with a glass skylight roof section, large front windows and a striped awning", "photographer's studio"],
-  ['cầm đồ', "a pawnbroker's shop with a dark timber shopfront, barred windows and a hanging sign of three brass balls", "pawnbroker's shop"],
-  ['nhà xe', 'a small wooden carriage house with wide open doors', 'wooden carriage house'],
-  ['chuồng ngựa', 'a wooden stable with a hay loft door', 'wooden stable'],
-  ['phòng trưng bày', 'a large two-storey red-brick townhouse with a slate roof and white window frames', "collector's townhouse room, a combined gallery and study"],
-  ['thư viện', 'a stone library with tall arched windows', 'library reading room'],
-  ['nhà hát', 'a small theatre with a columned entrance and a canopy', 'theatre backstage room'],
-  ['khách sạn', 'a three-storey hotel with a canopy over the entrance', 'hotel room'],
-  ['quán rượu', 'a corner tavern with a wooden shopfront and hanging lanterns', 'tavern'],
-  ['quán cà phê', 'a small cafe with a striped awning', 'cafe'],
-  ['tiệm bánh', 'a bakery with a bay window', 'bakery'],
-  ['tiệm may', "a tailor's shop with a display window", "tailor's shop"],
-  ['bưu điện', 'a post office with a clock above the door', 'post office'],
-  ['ngân hàng', 'a stone bank with columns', 'bank hall'],
-  ['đồn cảnh sát', 'a police station with a lamp over the door', 'police station office'],
-  ['văn phòng', 'an office building with a brass plate by the door', 'office'],
-  ['nhà kho', 'a brick warehouse with wide loading doors', 'warehouse'],
-  ['xưởng', 'a workshop with wide wooden doors', 'workshop'],
-  ['biệt thự', 'a large villa with a small garden', 'villa drawing room'],
-  ['nhà số', 'a two-storey red-brick townhouse with a slate roof', 'townhouse room'],
-];
-const AREA_GLOSSARY = [
-  ['bến tàu', 'harbour quay'], ['bến cảng', 'harbour quay'], ['bến đò', 'riverside ferry quay'], ['cảng', 'harbour quay'],
-  ['quảng trường', 'town square'], ['chợ', 'market street'], ['công viên', 'park'], ['làng', 'village'],
-  ['nhà ga', 'railway station forecourt'], ['ga tàu', 'railway station forecourt'],
-  ['phố', 'street block'], ['ngõ', 'narrow lane'], ['đường', 'street block'], ['khu', 'town quarter'],
-];
-const TIME_GLOSSARY = [
-  ['bình minh', 'at dawn'], ['sáng', 'on a clear morning'], ['trưa', 'at noon'], ['chiều', 'in the late afternoon'],
-  ['hoàng hôn', 'at sunset'], ['khuya', 'late at night'], ['đêm', 'at night'], ['tối', 'in the evening'],
-];
-const ROLE_GLOSSARY = [
-  ['học việc hiệu thuốc', 'apothecary apprentice'], ['học việc hiệu ảnh', "photographer's apprentice"], ['học việc', 'apprentice'],
-  ['giúp việc', 'household servant'], ['quản gia', 'butler'], ['tài xế', 'coachman'], ['xà ích', 'coachman'],
-  ['thợ ảnh', 'photographer'], ['cầm đồ', 'pawnbroker'], ['dược sĩ', 'apothecary'], ['bác sĩ', 'doctor'], ['y tá', 'nurse'],
-  ['thanh tra', 'police inspector'], ['cảnh sát', 'police constable'], ['luật sư', 'lawyer'], ['công chứng', 'notary'],
-  ['thư ký', 'secretary'], ['kế toán', 'bookkeeper'], ['đầu bếp', 'cook'], ['làm vườn', 'gardener'], ['nhà báo', 'journalist'],
-  ['giáo sư', 'professor'], ['diễn viên', 'actor'], ['ca sĩ', 'singer'], ['thợ may', 'tailor'], ['thợ khóa', 'locksmith'],
-  ['lái đò', 'ferryman'], ['thủy thủ', 'sailor'], ['chủ tiệm', 'shopkeeper'], ['chủ quán', 'innkeeper'],
-  ['cháu', 'young relative of the household'],
-];
+// Vietnamese keyword -> English art direction lives in templates.json (`glossaries`), shared with the server's
+// PixelLabPlanBuilder. Matched on lower-case text WITH diacritics, in list order, title before description.
+// Results are drafts: every request that uses them is flagged needsReview.
+//   place: [keyword, exterior on the outdoor map, interior room subject]; area, time, role: [keyword, English]
 
 // ------------------------------------------------------------------ text helpers
 
@@ -204,6 +160,9 @@ export function buildPlan(gameCase, options = {}) {
   const templates = options.templates ?? loadTemplates();
   const T = templates.byId;
   const era = templates.shared.era;
+  const {
+    place: PLACE_GLOSSARY, area: AREA_GLOSSARY, time: TIME_GLOSSARY, role: ROLE_GLOSSARY,
+  } = templates.glossaries;
   const styleRef = options.styleRef || templates.shared.styleReference.url;
   const slug = caseSlug(gameCase.caseId ?? 'case');
   const art = `art/${slug}`;

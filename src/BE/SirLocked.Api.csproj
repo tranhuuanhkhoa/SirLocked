@@ -28,6 +28,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- One source for the PixelLab wording: the JS plan builder and the server read the same file (VUAN-6B). -->
+    <EmbeddedResource Include="..\..\ai-game-docs\visual-style-templates\pixellab\templates.json" LogicalName="SirLocked.PixelLab.templates.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="JsonSchema.Net" Version="7.3.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.6" />

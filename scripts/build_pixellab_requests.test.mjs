@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -266,6 +266,34 @@ test('templates reproduce the prompts that were actually sent for this case', ()
   // Fixed interior wording is identical for all five rooms.
   const suffix = renderTemplate(templates.byId.interior, { roomSubject: 'x', roomContents: 'y' }).split(' y ')[1];
   for (const request of record.requests.filter((r) => r.stage === 'interior')) assert.ok(request.prompt.endsWith(suffix), request.id);
+});
+
+// The server's PixelLabPlanBuilder (C#) is a port of this builder for new AI drafts. Both are tied to one golden file:
+// this test checks the JS plan of the sample case against it, src/BE/Tests/PixelLabPlanTests.cs checks the C# plan.
+// Regenerate after a deliberate wording change: UPDATE_PIXELLAB_GOLDEN=1 node --test scripts/build_pixellab_requests.test.mjs
+const SAMPLE_CASE = join(ROOT, 'src', 'BE', 'Tests', 'Fixtures', 'case-pixel-dong-ho-dem-mua-vi.json');
+const GOLDEN_FILE = join(ROOT, 'src', 'BE', 'Tests', 'Fixtures', 'pixellab-plan-dong-ho.golden.json');
+
+function goldenSubset(fullPlan) {
+  return fullPlan.requests.map((request) => ({
+    id: request.id, order: request.order, step: request.step, stage: request.stage, tool: request.tool, template: request.template,
+    params: request.params, promptParam: request.promptParam, prompt: request.prompt,
+    references: request.references.map((ref) => ({ param: ref.param, url: ref.url, usage: ref.usage, usageSent: ref.usageSent, prepare: ref.prepare ?? null })),
+    dependsOn: request.dependsOn, calls: request.calls, estimatedGenerations: request.estimatedGenerations,
+    needsReview: Boolean(request.needsReview),
+    missingInputs: request.missingInputs.map((entry) => entry.placeholder),
+    inputsFromDependencies: request.inputsFromDependencies.map((entry) => entry.placeholder),
+    buildings: (request.buildings ?? []).map((building) => `${building.sceneId}@${building.position}`),
+    grid: (request.grid ?? []).map((cell) => ({ cell: cell.cell, row: cell.row, col: cell.col, box: cell.box, icon: cell.icon, itemIds: cell.itemIds, text: cell.text })),
+  }));
+}
+
+test('the sample case plan matches the golden file shared with the server builder', () => {
+  const subset = goldenSubset(buildPlan(readJson(SAMPLE_CASE), { templates }));
+  const text = `${JSON.stringify(subset, null, 2)}\n`;
+  if (process.env.UPDATE_PIXELLAB_GOLDEN === '1') writeFileSync(GOLDEN_FILE, text, 'utf8');
+  assert.deepEqual(subset, readJson(GOLDEN_FILE));
+  assert.ok(subset.length >= 10, 'map, 3 NPCs x 3, mask, interior, icon sheet');
 });
 
 test('the consolidated record of sent requests is internally consistent', () => {

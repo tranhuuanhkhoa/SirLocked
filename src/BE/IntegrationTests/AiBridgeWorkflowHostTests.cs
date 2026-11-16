@@ -125,6 +125,46 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             Assert.Contains("CREATOR ORDER", requests.First(item => item.Kind == AiBridgeKinds.Json).Prompt);
         }
 
+        // VUAN-6B: a new order makes a pixel case in the shape of "Tram hong ngoc mat tich".
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+            var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.DraftId).SingleAsync();
+            Assert.Equal(AiVisualPipelines.PixelV1, stored.VisualPipeline);
+            Assert.Equal(0, stored.AssetPlan!.EstimatedGenerations);
+            var pixelCase = JsonSerializer.Deserialize<GameCase>(stored.GeneratedJson, Web)!;
+            Assert.True(CaseCatalogRules.IsPixel(pixelCase));
+            var tram = JsonSerializer.Deserialize<GameCase>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "SeedData", "V3", "case-pixel-tram-hong-ngoc-vi.json")), Web)!;
+            var reference = tram.Stages.SelectMany(stage => stage.Scenes).Select(scene => scene.Runtime!.Render!)
+                .GroupBy(render => render.Projection).ToDictionary(group => group.Key, group => group.First());
+            var scenes = pixelCase.Stages.SelectMany(stage => stage.Scenes).ToList();
+            Assert.Contains(scenes, scene => scene.Runtime!.Render!.Projection == SceneRenderModes.TopDown);
+            foreach (var scene in scenes)
+            {
+                var render = scene.Runtime!.Render!;
+                var expected = reference[render.Projection];
+                Assert.Equal((2048, 2048), (scene.Runtime.Width, scene.Runtime.Height));
+                Assert.Equal((expected.NativeWidth, expected.PixelScale, expected.CameraZoom, expected.ActorScale, expected.WalkSpeed, expected.InteractRadius),
+                    (render.NativeWidth, render.PixelScale, render.CameraZoom, render.ActorScale, render.WalkSpeed, render.InteractRadius));
+                Assert.Equal((16, 128, 128), (render.WalkGrid!.CellSize, render.WalkGrid.Cols, render.WalkGrid.Rows));
+                Assert.All(scene.Runtime.ItemPlacements, placement => Assert.Equal(string.Empty, placement.Asset));
+                Assert.All(scene.Runtime.CharacterPlacements, placement => Assert.Equal(128 * render.ActorScale, placement.Size.Width));
+                Assert.NotNull(scene.Runtime.Audio?.Music);
+                Assert.Equal(render.Projection == SceneRenderModes.TopDown ? "RAIN" : null, scene.Runtime.Weather?.Type);
+            }
+            Assert.All(pixelCase.Characters.Where(character => scenes.Any(scene => scene.CharacterIds.Contains(character.CharacterId))), character =>
+            {
+                var sheet = character.Presentation!.SpriteSheet!;
+                Assert.Equal((128, 128, 9, 6, 0.5), (sheet.FrameWidth, sheet.FrameHeight, sheet.FrameCount, sheet.Fps, sheet.AnchorX));
+                Assert.NotNull(character.Voice?.Blip);
+            });
+            Assert.Contains(pixelCase.CoverImageUrl, scenes.Select(scene => scene.BackgroundUrl));
+            var sizes = AiCaseService.LatestUploads(stored).Values.Select(upload => (upload.SlotId.Split(':')[0], upload.Width, upload.Height)).Distinct().ToList();
+            Assert.Contains(("character-sprite", 1152, 128), sizes);
+            Assert.Contains(("character-portrait", 288, 288), sizes);
+            Assert.All(sizes.Where(size => size.Item1 == "background"), size => Assert.Equal((512, 512), (size.Width, size.Height)));
+        }
+
         // Player view for the blind detective: no solution field anywhere.
         var view = await GetData<JsonObject>(bot, $"/api/bridge/drafts/{draft.DraftId}/player-view");
         var names = new List<string>();
@@ -568,6 +608,7 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
                 if (request["kind"]!.GetValue<string>() == AiBridgeKinds.Assets)
                 {
                     await TakeAsync(bot, requestId);
+                    await EnsurePixelPlanAsync(bot, draftId);
                     await UploadRequestedImagesAsync(bot, draftId);
                     var complete = await bot.PostAsync($"/api/bridge/drafts/{draftId}/assets/complete", null);
                     var body = await complete.Content.ReadAsStringAsync();
@@ -628,6 +669,57 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
     }
 
+    /// <summary>
+    /// Pixel drafts (VUAN-6B): uploads wait for an asset plan within pixelLabCap. The test bot first checks the guards
+    /// (no plan, all-new plan over the cap), then declares a library-only plan (0 PixelLab generations).
+    /// </summary>
+    private static async Task EnsurePixelPlanAsync(HttpClient bot, string draftId)
+    {
+        var needed = await GetData<JsonObject>(bot, $"/api/bridge/drafts/{draftId}/assets-needed");
+        if (needed["pixel"] is not JsonObject pixel || pixel["planAccepted"]!.GetValue<bool>()) return;
+
+        var firstSlot = needed["slots"]!.AsArray().Select(item => item!.AsObject()).First(item => item["requestedNow"]!.GetValue<bool>());
+        using (var early = new MultipartFormDataContent())
+        {
+            early.Add(new StringContent(firstSlot["slotId"]!.GetValue<string>()), "slotId");
+            var picture = new ByteArrayContent(TestImages.Png(true, firstSlot["width"]!.GetValue<int>(), firstSlot["height"]!.GetValue<int>()));
+            picture.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            early.Add(picture, "file", "slot.png");
+            var refused = await bot.PostAsync($"/api/bridge/drafts/{draftId}/assets", early);
+            Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+            Assert.Contains("AI_ASSET_PLAN_REQUIRED", await refused.Content.ReadAsStringAsync());
+        }
+
+        // Everything new is far over the default cap of 60: refused with the number of generations it needs.
+        var overCap = await bot.PutAsJsonAsync($"/api/bridge/drafts/{draftId}/asset-plan", new { choices = Array.Empty<object>() });
+        var overCapBody = await overCap.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.Conflict, overCap.StatusCode);
+        Assert.Contains("AI_PIXELLAB_CAP_EXCEEDED", overCapBody);
+        Assert.Contains("PixelLab generations but this order allows", overCapBody);
+
+        var keys = new Dictionary<string, string>
+        {
+            ["OUTDOOR_MAP"] = "it-pixel-map", ["INTERIOR"] = "it-pixel-room", ["NPC"] = "it-pixel-npc", ["ITEM"] = "it-pixel-item"
+        };
+        var library = await bot.PutAsJsonAsync("/api/bridge/library", new
+        {
+            items = keys.Select(pair => new { key = pair.Value, kind = pair.Key, world = "HANG_DUONG_VICTORIAN", url = $"/assets/library/{pair.Value}.webp" })
+        });
+        Assert.True(library.IsSuccessStatusCode, await library.Content.ReadAsStringAsync());
+        var choices = pixel["subjects"]!.AsArray().Select(item => new
+        {
+            subject = item!["subject"]!.GetValue<string>(),
+            source = "LIBRARY",
+            libraryKey = keys[item["libraryKind"]!.GetValue<string>()]
+        }).ToList();
+        var accepted = await bot.PutAsJsonAsync($"/api/bridge/drafts/{draftId}/asset-plan", new { choices });
+        var acceptedBody = await accepted.Content.ReadAsStringAsync();
+        Assert.True(accepted.IsSuccessStatusCode, acceptedBody);
+        var plan = JsonNode.Parse(acceptedBody)!["data"]!;
+        Assert.Equal(0, plan["estimatedGenerations"]!.GetValue<int>());
+        Assert.Empty(plan["plan"]!["requests"]!.AsArray());
+    }
+
     private static async Task UploadRequestedImagesAsync(HttpClient bot, string draftId)
     {
         var needed = await GetData<JsonObject>(bot, $"/api/bridge/drafts/{draftId}/assets-needed");
@@ -637,7 +729,10 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             var transparent = slot["transparent"]!.GetValue<bool>();
             using var form = new MultipartFormDataContent();
             form.Add(new StringContent(slot["slotId"]!.GetValue<string>()), "slotId");
-            var file = new ByteArrayContent(TestImages.Png(transparent));
+            // Pixel slots take exact sizes (512 scenes, 1152x128 idle sheets, 288 portraits, 64 icons).
+            var file = new ByteArrayContent(needed["pixel"] is JsonObject
+                ? TestImages.Png(transparent || slot["kind"]!.GetValue<string>() != "background", slot["width"]!.GetValue<int>(), slot["height"]!.GetValue<int>())
+                : TestImages.Png(transparent));
             file.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             form.Add(file, "file", "slot.png");
             var upload = await bot.PostAsync($"/api/bridge/drafts/{draftId}/assets", form);

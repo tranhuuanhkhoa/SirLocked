@@ -122,4 +122,66 @@ public class AiBridgeAssetUpload
     public string Sha256 { get; set; } = string.Empty;
     public string StorageId { get; set; } = string.Empty;
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+    /// Pixel drafts, NPC idle sheets only: the feet line of frame 0 as a fraction of the 128px frame
+    /// ((lowest opaque row + 1) / 128, as the two bundled pixel cases), measured when the sheet is uploaded.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? FeetAnchorY { get; set; }
+}
+
+/// <summary>How the pictures of an AI draft are made and laid out.</summary>
+public static class AiVisualPipelines
+{
+    /// <summary>Drafts made before VUAN-6B (empty field): classic 1600x900 scenes, 1024px sprites. Kept as is.</summary>
+    public const string Classic = "";
+    /// <summary>
+    /// VUAN-6B: PixelLab pictures in the shape of "Tram hong ngoc mat tich": 512x512 native scenes at x4 (2048x2048
+    /// runtime, topdown outside, isometric rooms), walk grid, foreground layers, 128px idle sheets, 288px portraits,
+    /// 64px inventory icons; investigation items are painted into the backgrounds.
+    /// </summary>
+    public const string PixelV1 = "pixel-v1";
+}
+
+public static class AiAssetSources
+{
+    /// <summary>A library picture used as it is (0 PixelLab generations).</summary>
+    public const string Library = "LIBRARY";
+    /// <summary>A local variant of a library picture: night, dusk, snow, mirror... (0 generations).</summary>
+    public const string Variant = "VARIANT";
+    /// <summary>A new PixelLab picture, planned from ai-game-docs/visual-style-templates/pixellab/templates.json.</summary>
+    public const string PixelLab = "PIXELLAB";
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Library, Variant, PixelLab };
+}
+
+/// <summary>Where the bot takes the pictures of one subject (a scene, an NPC or an inventory icon) from.</summary>
+[BsonIgnoreExtraElements]
+public class AiAssetChoice
+{
+    /// <summary><c>scene:&lt;sceneId&gt;</c>, <c>character:&lt;characterId&gt;</c> or <c>item:&lt;itemId&gt;</c>.</summary>
+    public string Subject { get; set; } = string.Empty;
+    public string Source { get; set; } = AiAssetSources.PixelLab;
+    /// <summary>LIBRARY: the library key used. VARIANT: the key of the new variant (optional).</summary>
+    public string LibraryKey { get; set; } = string.Empty;
+    /// <summary>VARIANT: the library picture the variant is made from.</summary>
+    public string ParentKey { get; set; } = string.Empty;
+    /// <summary>VARIANT: night, dusk, snow, after_rain, mirror, recolor or compose.</summary>
+    public string Variant { get; set; } = string.Empty;
+    public string Note { get; set; } = string.Empty;
+}
+
+/// <summary>The accepted picture plan of a pixel draft: library first, PixelLab only for what is really new.</summary>
+[BsonIgnoreExtraElements]
+public class AiAssetPlan
+{
+    public List<AiAssetChoice> Choices { get; set; } = new();
+    /// <summary>Planned PixelLab generations (sum of the requests' estimates); at most the order's pixelLabCap.</summary>
+    public int EstimatedGenerations { get; set; }
+    public int PixelLabCap { get; set; }
+    public int Requests { get; set; }
+    /// <summary>The full plan as returned to the bot (requests with prompts, dependencies, targets).</summary>
+    public string PlanJson { get; set; } = string.Empty;
+    public string PlanSha256 { get; set; } = string.Empty;
+    public DateTime AcceptedAt { get; set; } = DateTime.UtcNow;
 }

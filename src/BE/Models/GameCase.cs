@@ -326,6 +326,21 @@ public class ScenePlacementPlan
     public List<PlannedPlacement> Placements { get; set; } = new();
     public List<ClueZone> ClueZones { get; set; } = new();
     public List<TransitionZone> Transitions { get; set; } = new();
+    /// <summary>Pixel drafts (VUAN-6B) only: topdown or isometric, decided by the server from the scene's indoor flag.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? Projection { get; set; }
+    /// <summary>Pixel drafts only: the walk grid the bot built from the walk mask (128x128 cells of 16).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public SceneWalkGrid? WalkGrid { get; set; }
+    /// <summary>Pixel drafts only: layers cut from the native map, drawn over actors standing behind their baseY.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<SceneForegroundLayer>? Foreground { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? BackdropColor { get; set; }
 }
 
 [BsonIgnoreExtraElements]

@@ -1,0 +1,504 @@
+[
+  {
+    "id": "map.dh-ben-cang",
+    "order": 1,
+    "step": 1,
+    "stage": "outdoor-map",
+    "tool": "create_image_pro",
+    "template": "outdoor-map",
+    "params": {
+      "width": 512,
+      "height": 512,
+      "no_background": false,
+      "seed": 707
+    },
+    "promptParam": "description",
+    "prompt": "Top-down, front-facing pixel art map, not isometric. A compact Victorian harbour quay at night, one complete scene filling the whole square canvas. {{layoutDetails}} One building, fully visible with roof, front wall, windows and ONE clearly visible front door opening onto the street or square, with walkable pavement around it: 1) West: {{buildingExterior:dh-tiem-dong-ho}}. Cobblestone streets connect every door, and a street leaves the map at the bottom centre. Small details: barrels, crates, a hand cart, street trees, window flower boxes, a few puddles. No people, no animals, no readable text or letters on any sign. Clear walkable paths; buildings never overlap each other.",
+    "references": [],
+    "dependsOn": [],
+    "calls": 1,
+    "estimatedGenerations": 25,
+    "needsReview": true,
+    "missingInputs": [
+      "{{layoutDetails}}",
+      "{{buildingExterior:dh-tiem-dong-ho}}"
+    ],
+    "inputsFromDependencies": [],
+    "buildings": [
+      "scene-dh-tiem-dong-ho@West"
+    ],
+    "grid": []
+  },
+  {
+    "id": "front.dh-ong-tu",
+    "order": 2,
+    "step": 2,
+    "stage": "character-front",
+    "tool": "create_image_pro",
+    "template": "character-front",
+    "params": {
+      "width": 96,
+      "height": 96,
+      "no_background": true,
+      "seed": 707
+    },
+    "promptParam": "description",
+    "prompt": "{{characterAppearance}} Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+    "references": [
+      {
+        "param": "reference_images",
+        "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+        "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity",
+        "usageSent": true,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [],
+    "calls": 1,
+    "estimatedGenerations": 10,
+    "needsReview": false,
+    "missingInputs": [
+      "{{characterAppearance}}"
+    ],
+    "inputsFromDependencies": [],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "front.dh-co-hanh",
+    "order": 3,
+    "step": 2,
+    "stage": "character-front",
+    "tool": "create_image_pro",
+    "template": "character-front",
+    "params": {
+      "width": 96,
+      "height": 96,
+      "no_background": true,
+      "seed": 707
+    },
+    "promptParam": "description",
+    "prompt": "{{characterAppearance}} Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+    "references": [
+      {
+        "param": "reference_images",
+        "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+        "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity",
+        "usageSent": true,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [],
+    "calls": 1,
+    "estimatedGenerations": 10,
+    "needsReview": false,
+    "missingInputs": [
+      "{{characterAppearance}}"
+    ],
+    "inputsFromDependencies": [],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "front.dh-anh-bay",
+    "order": 4,
+    "step": 2,
+    "stage": "character-front",
+    "tool": "create_image_pro",
+    "template": "character-front",
+    "params": {
+      "width": 96,
+      "height": 96,
+      "no_background": true,
+      "seed": 707
+    },
+    "promptParam": "description",
+    "prompt": "{{characterAppearance}} Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+    "references": [
+      {
+        "param": "reference_images",
+        "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+        "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity",
+        "usageSent": true,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [],
+    "calls": 1,
+    "estimatedGenerations": 10,
+    "needsReview": false,
+    "missingInputs": [
+      "{{characterAppearance}}"
+    ],
+    "inputsFromDependencies": [],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "rotate.dh-ong-tu",
+    "order": 5,
+    "step": 2,
+    "stage": "character-rotate",
+    "tool": "create_character",
+    "template": "character-rotate",
+    "params": {
+      "mode": "v3",
+      "n_directions": 8
+    },
+    "promptParam": "description",
+    "prompt": "{{characterShortDescription}}",
+    "references": [
+      {
+        "param": "reference_image_url",
+        "url": "{{frontCandidateUrl}}",
+        "usage": "ứng viên mặt trước nhìn thẳng đã chọn: https://api.pixellab.ai/mcp/images/<front_job_id>/download?index=<n>",
+        "usageSent": false,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [
+      "front.dh-ong-tu"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 2,
+    "needsReview": false,
+    "missingInputs": [
+      "{{characterShortDescription}}"
+    ],
+    "inputsFromDependencies": [
+      "{{frontCandidateUrl}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "rotate.dh-co-hanh",
+    "order": 6,
+    "step": 2,
+    "stage": "character-rotate",
+    "tool": "create_character",
+    "template": "character-rotate",
+    "params": {
+      "mode": "v3",
+      "n_directions": 8
+    },
+    "promptParam": "description",
+    "prompt": "{{characterShortDescription}}",
+    "references": [
+      {
+        "param": "reference_image_url",
+        "url": "{{frontCandidateUrl}}",
+        "usage": "ứng viên mặt trước nhìn thẳng đã chọn: https://api.pixellab.ai/mcp/images/<front_job_id>/download?index=<n>",
+        "usageSent": false,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [
+      "front.dh-co-hanh"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 2,
+    "needsReview": false,
+    "missingInputs": [
+      "{{characterShortDescription}}"
+    ],
+    "inputsFromDependencies": [
+      "{{frontCandidateUrl}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "rotate.dh-anh-bay",
+    "order": 7,
+    "step": 2,
+    "stage": "character-rotate",
+    "tool": "create_character",
+    "template": "character-rotate",
+    "params": {
+      "mode": "v3",
+      "n_directions": 8
+    },
+    "promptParam": "description",
+    "prompt": "{{characterShortDescription}}",
+    "references": [
+      {
+        "param": "reference_image_url",
+        "url": "{{frontCandidateUrl}}",
+        "usage": "ứng viên mặt trước nhìn thẳng đã chọn: https://api.pixellab.ai/mcp/images/<front_job_id>/download?index=<n>",
+        "usageSent": false,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [
+      "front.dh-anh-bay"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 2,
+    "needsReview": false,
+    "missingInputs": [
+      "{{characterShortDescription}}"
+    ],
+    "inputsFromDependencies": [
+      "{{frontCandidateUrl}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "idle.dh-ong-tu",
+    "order": 8,
+    "step": 3,
+    "stage": "character-idle",
+    "tool": "animate_character",
+    "template": "character-idle",
+    "params": {
+      "mode": "v3",
+      "frame_count": 8,
+      "keep_first_frame": true,
+      "character_id": "{{characterId}}",
+      "direction": "south"
+    },
+    "promptParam": "action",
+    "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+    "references": [],
+    "dependsOn": [
+      "rotate.dh-ong-tu"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 2,
+    "needsReview": false,
+    "missingInputs": [],
+    "inputsFromDependencies": [
+      "{{characterId}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "idle.dh-co-hanh",
+    "order": 9,
+    "step": 3,
+    "stage": "character-idle",
+    "tool": "animate_character",
+    "template": "character-idle",
+    "params": {
+      "mode": "v3",
+      "frame_count": 8,
+      "keep_first_frame": true,
+      "character_id": "{{characterId}}",
+      "direction": "south"
+    },
+    "promptParam": "action",
+    "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+    "references": [],
+    "dependsOn": [
+      "rotate.dh-co-hanh"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 2,
+    "needsReview": false,
+    "missingInputs": [],
+    "inputsFromDependencies": [
+      "{{characterId}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "idle.dh-anh-bay",
+    "order": 10,
+    "step": 3,
+    "stage": "character-idle",
+    "tool": "animate_character",
+    "template": "character-idle",
+    "params": {
+      "mode": "v3",
+      "frame_count": 8,
+      "keep_first_frame": true,
+      "character_id": "{{characterId}}",
+      "direction": "south"
+    },
+    "promptParam": "action",
+    "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+    "references": [],
+    "dependsOn": [
+      "rotate.dh-anh-bay"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 2,
+    "needsReview": false,
+    "missingInputs": [],
+    "inputsFromDependencies": [
+      "{{characterId}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "mask.dh-ben-cang",
+    "order": 11,
+    "step": 5,
+    "stage": "object-mask",
+    "tool": "edit_image",
+    "template": "object-mask",
+    "params": {
+      "width": 512,
+      "height": 512,
+      "no_background": false
+    },
+    "promptParam": "description",
+    "prompt": "Convert this exact map into a flat black-and-white object mask with the same framing and coordinates. Paint WHITE every visible solid object: buildings with roofs and walls, chimneys, shop fronts, window boxes, iron fences and railings, gates, lamp posts, trees and bushes, benches, flower planters, barrels, crates, signs on brackets, carts and carriages with their wheels, boats and wooden piers. Paint BLACK all open ground: cobblestones, paving, the square floor, puddles and any water. Gaps where the ground shows between objects stay black. Pure white and pure black only, no grey, no outlines, no texture, no shading.",
+    "references": [
+      {
+        "param": "image_urls",
+        "url": "{{mapImageUrl}}",
+        "usage": "bản đồ NATIVE 512x512 nguyên vẹn: https://api.pixellab.ai/mcp/images/<map_job_id>/download?index=0, không phóng to, không nhân vật",
+        "usageSent": false,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [
+      "map.dh-ben-cang"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 25,
+    "needsReview": true,
+    "missingInputs": [],
+    "inputsFromDependencies": [
+      "{{mapImageUrl}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "interior.dh-tiem-dong-ho",
+    "order": 12,
+    "step": 7,
+    "stage": "interior",
+    "tool": "create_image_pro",
+    "template": "interior",
+    "params": {
+      "width": 512,
+      "height": 512,
+      "no_background": false,
+      "seed": 707
+    },
+    "promptParam": "description",
+    "prompt": "Interior of a Victorian {{roomSubject}}. {{roomContents}} Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+    "references": [
+      {
+        "param": "reference_images",
+        "url": "{{exteriorCropRef}}",
+        "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera",
+        "usageSent": true,
+        "prepare": "Crop this building (roof, front wall and door) from the NATIVE 512 map of map.dh-ben-cang, no upscale; upload it and pass the returned upload:<id> ref (uploads expire after a few days)."
+      }
+    ],
+    "dependsOn": [
+      "map.dh-ben-cang"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 25,
+    "needsReview": false,
+    "missingInputs": [
+      "{{roomSubject}}",
+      "{{roomContents}}"
+    ],
+    "inputsFromDependencies": [
+      "{{exteriorCropRef}}"
+    ],
+    "buildings": [],
+    "grid": []
+  },
+  {
+    "id": "icons.1",
+    "order": 13,
+    "step": 7,
+    "stage": "icon-sheet",
+    "tool": "create_image_pro",
+    "template": "icon-sheet",
+    "params": {
+      "width": 256,
+      "height": 256,
+      "no_background": true,
+      "seed": 707
+    },
+    "promptParam": "description",
+    "prompt": "Inventory icon sheet for a Victorian detective game: three separate small objects arranged in a neat 4 by 4 grid, each object centred in its own 64 by 64 cell with empty space around it, all drawn at the same scale, front three-quarter view, dark outline, warm muted Victorian palette. Row 1: {{itemVisual:ve-tau}}; {{itemVisual:dong-ho}}; {{itemVisual:giay-no}}. The remaining thirteen cells after the last object stay empty. No text, no letters, no numbers, no grid lines, no background.",
+    "references": [
+      {
+        "param": "style_image_url",
+        "url": "{{interiorImageUrl}}",
+        "usage": "một nội thất đã xong của cùng case (https://api.pixellab.ai/mcp/images/<interior_job_id>/download?index=0) để icon cùng bảng màu, viền và đổ bóng với các phòng",
+        "usageSent": false,
+        "prepare": null
+      }
+    ],
+    "dependsOn": [
+      "interior.dh-tiem-dong-ho"
+    ],
+    "calls": 1,
+    "estimatedGenerations": 10,
+    "needsReview": false,
+    "missingInputs": [
+      "{{itemVisual:ve-tau}}",
+      "{{itemVisual:dong-ho}}",
+      "{{itemVisual:giay-no}}"
+    ],
+    "inputsFromDependencies": [
+      "{{interiorImageUrl}}"
+    ],
+    "buildings": [],
+    "grid": [
+      {
+        "cell": 0,
+        "row": 1,
+        "col": 1,
+        "box": [
+          0,
+          0,
+          64,
+          64
+        ],
+        "icon": "ve-tau",
+        "itemIds": [
+          "item-dh-ve-tau"
+        ],
+        "text": "{{itemVisual:ve-tau}}"
+      },
+      {
+        "cell": 1,
+        "row": 1,
+        "col": 2,
+        "box": [
+          64,
+          0,
+          128,
+          64
+        ],
+        "icon": "dong-ho",
+        "itemIds": [
+          "item-dh-dong-ho"
+        ],
+        "text": "{{itemVisual:dong-ho}}"
+      },
+      {
+        "cell": 2,
+        "row": 1,
+        "col": 3,
+        "box": [
+          128,
+          0,
+          192,
+          64
+        ],
+        "icon": "giay-no",
+        "itemIds": [
+          "item-dh-giay-no"
+        ],
+        "text": "{{itemVisual:giay-no}}"
+      }
+    ]
+  }
+]
