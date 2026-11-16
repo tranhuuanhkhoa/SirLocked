@@ -242,6 +242,9 @@
 }
 .bpa-lobby-linkfield:focus-visible { box-shadow: inset 0 0 0 1.5px var(--bpa-gold); color: var(--bpa-white); }
 .bpa-lobby-help { margin: 6px 0 0; font-size: 16px; font-style: italic; line-height: 1.35; color: var(--bpa-on-dark-2); }
+/* Playtest of an unpublished draft (VUAN-6B): a gold line above the invite, not a new panel. */
+.bpa-lobby-playtest { margin: 0 0 10px; font-style: normal; }
+.bpa-lobby-playtest strong { color: var(--bpa-gold); text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* ---- section labels on the cork ---- */
 .bpa-lobby-sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 18px; }

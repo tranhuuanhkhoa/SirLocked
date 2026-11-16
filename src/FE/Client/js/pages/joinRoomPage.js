@@ -3,7 +3,7 @@ import { roomApi } from '../api/roomApi.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
-import { clearRoomInvite, inviteCodeFromRoute } from '../services/roomInvites.js';
+import { clearRoomInvite, inviteCodeFromRoute, inviteTokenFromRoute } from '../services/roomInvites.js';
 import { navigate } from '../services/navigation.js';
 
 // Decorative envelope for the main join card (/join only).
@@ -35,7 +35,7 @@ const ICON_KEY = `
  * /create-room reuses it, so the ids below exist once per page.
  * `form#join-form` holds exactly one button (tests click `#join-form button`).
  */
-export function joinCardHtml({ inviteCode = '', lead = false } = {}) {
+export function joinCardHtml({ inviteCode = '', inviteToken = '', lead = false } = {}) {
   return `
   <section class="bpa-paper bpa-rooms-card bpa-rooms-join${lead ? ' is-lead' : ''}" aria-labelledby="rooms-join-h">
     <span class="bpa-pin" aria-hidden="true"></span>
@@ -44,7 +44,8 @@ export function joinCardHtml({ inviteCode = '', lead = false } = {}) {
     <h2 id="rooms-join-h" class="bpa-rooms-h2">${tr('Join with a code', 'Vào bằng mã')}</h2>
     <p class="bpa-rooms-note" id="join-room-hint">${tr('Enter the 6-character code your partner shared with you.', 'Nhập mã 6 ký tự mà đồng đội đã chia sẻ.')}</p>
     ${inviteCode ? `<p class="bpa-rooms-invite" id="invite-ready" role="status">${ICON_KEY}<span>${tr('Your invitation is ready. Choose Join room to continue.', 'Đã điền mã từ lời mời. Bấm Vào phòng để tiếp tục.')}</span></p>` : ''}
-    <form id="join-form" class="bpa-rooms-joinform">
+    ${inviteCode && inviteToken ? `<p class="bpa-rooms-note" id="invite-playtest" role="note">${tr('This is an invitation to playtest an unpublished case. The game is not ranked and gives no rewards.', 'Đây là lời mời chơi thử một vụ án chưa đăng. Ván chơi thử không tính xếp hạng và không nhận thưởng.')}</p>` : ''}
+    <form id="join-form" class="bpa-rooms-joinform"${inviteToken ? ` data-invite-token="${escapeHtml(inviteToken)}"` : ''}>
       <label class="bpa-rooms-codelabel" for="join-room-code">${tr('Room code', 'Mã phòng')}</label>
       <div class="bpa-rooms-coderow">
         <input class="bpa-code bpa-rooms-code" id="join-room-code" name="code" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" required
@@ -71,13 +72,19 @@ export function bindJoinForm(app) {
     const button = e.target.querySelector('button');
     button.disabled = true;
     try {
-      const room = await roomApi.join(input.value.trim());
+      // A playtest secret only belongs to the code it came with.
+      const code = input.value.trim();
+      const token = form.dataset.inviteToken && code.toUpperCase() === inviteCodeFromRoute() ? form.dataset.inviteToken : '';
+      const room = await roomApi.join(code, token);
       if (!app.isConnected) return;
       clearRoomInvite();
       toast(tr(`Joined room ${room.roomCode}.`, `Đã vào phòng ${room.roomCode}.`), 'success');
       navigate(room.status === 'IN_PROGRESS' ? `/game/${room.roomId}` : `/lobby/${room.roomId}`);
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err?.errors?.code === 'PLAYTEST_FORBIDDEN'
+        ? tr('This room is a private playtest of an unpublished case. Only an admin, the author and the invited player can join.',
+          'Phòng này là phòng chơi thử một vụ án chưa đăng. Chỉ ADMIN, tác giả và người được mời mới vào được.')
+        : err.message, 'error');
       button.disabled = false;
     }
   });
@@ -85,6 +92,7 @@ export function bindJoinForm(app) {
 
 export async function renderJoinRoomPage(app) {
   const inviteCode = inviteCodeFromRoute();
+  const inviteToken = inviteCode ? inviteTokenFromRoute() : '';
   render(app, `
   <div class="bpa-container bpa-rooms-page bpa-rooms-page--join">
     <div class="bpa-rooms-top">
@@ -96,7 +104,7 @@ export async function renderJoinRoomPage(app) {
     </div>
 
     <div class="bpa-rooms-cols bpa-rooms-cols--join">
-      ${joinCardHtml({ inviteCode, lead: true })}
+      ${joinCardHtml({ inviteCode, inviteToken, lead: true })}
 
       <div class="bpa-rooms-side">
         <section class="bpa-paper bpa-paper--kraft bpa-rooms-card bpa-rooms-create" aria-labelledby="rooms-create-h">

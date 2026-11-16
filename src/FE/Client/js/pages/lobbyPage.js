@@ -190,7 +190,8 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
   const loadCase = () => {
     if (caseRequested || !room?.caseId) return;
     caseRequested = true;
-    caseApi.detail(room.caseId)
+    // A playtest room reads its unpublished draft through the room.
+    caseApi.detail(room.caseId, room.playtest ? roomId : '')
       .then((detail) => {
         if (disposed || !detail) return;
         caseInfo = detail;
@@ -441,6 +442,29 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
       </article>`;
     };
 
+    // A playtest of an unpublished draft: the invite link carries a single-use secret, the code alone lets nobody in.
+    const playtest = room.playtest || null;
+    const inviteBlock = () => {
+      const note = playtest
+        ? `<p class="bpa-lobby-help bpa-lobby-playtest" id="lobby-playtest" role="note"><strong>${tr('Playtest', 'Chơi thử')}</strong> · ${tr('Unpublished draft: this game is not ranked and gives no rewards.', 'Bản nháp chưa đăng: ván này không tính xếp hạng và không nhận thưởng.')}</p>`
+        : '';
+      if (playtest && !playtest.inviteToken) {
+        return `${note}
+            <p class="bpa-lobby-help" id="lobby-invite-help">${playtest.inviteClaimed
+              ? tr('The invitation has been used. Only an admin, the author and the invited player can join this room.', 'Lời mời đã có người nhận. Chỉ ADMIN, tác giả và người được mời mới vào được phòng này.')
+              : tr('Only an admin, the author and the invited player can join this room.', 'Chỉ ADMIN, tác giả và người được mời mới vào được phòng này.')}</p>`;
+      }
+      return `${note}
+            <div class="bpa-lobby-invhead">
+              <label class="bpa-lobby-h3" id="room-invite-heading" for="room-invite-link">${playtest ? tr('Invite one playtester', 'Mời một người chơi thử') : tr('Invite your partner', 'Mời đồng đội')}</label>
+              <button type="button" class="bpa-btn bpa-btn--gold bpa-lobby-linkbtn" id="copy-invite">${ICON.link}${tr('Copy invite link', 'Sao chép liên kết mời')}</button>
+            </div>
+            <input class="bpa-lobby-linkfield" id="room-invite-link" type="url" readonly value="${escapeHtml(roomInviteUrl(room.roomCode, playtest?.inviteToken || ''))}" aria-describedby="lobby-invite-help">
+            <p class="bpa-lobby-help" id="lobby-invite-help">${playtest
+              ? tr('This link works for one person only. The room code alone does not open a playtest.', 'Liên kết này chỉ dùng được cho một người. Chỉ có mã phòng thì không vào được phòng chơi thử.')
+              : tr('Your partner can sign in, then choose to join.', 'Đồng đội đăng nhập rồi bấm vào phòng.')}</p>`;
+    };
+
     const emptySeat = `
       <article class="bpa-lobby-id bpa-lobby-id--b bpa-lobby-id--empty" aria-labelledby="lobby-seat-b">
         <div class="bpa-lobby-idhead"><span class="bpa-lobby-mini">${tr('Detective card', 'Thẻ thám tử')}</span></div>
@@ -450,7 +474,9 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           </span>
           <div class="bpa-lobby-whotxt">
             <h3 id="lobby-seat-b" class="bpa-lobby-name is-pending">${tr('Waiting for your partner', 'Đang chờ đồng đội')}<span class="bpa-lobby-dots" aria-hidden="true">…</span></h3>
-            <p class="bpa-lobby-emptynote">${tr('Share the room code or the invite link.', 'Gửi mã phòng hoặc liên kết mời cho đồng đội.')}</p>
+            <p class="bpa-lobby-emptynote">${playtest
+              ? tr('Send the invite link to the one person who will playtest with you.', 'Gửi liên kết mời cho người sẽ chơi thử cùng bạn.')
+              : tr('Share the room code or the invite link.', 'Gửi mã phòng hoặc liên kết mời cho đồng đội.')}</p>
           </div>
         </div>
       </article>`;
@@ -514,12 +540,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
               <button type="button" class="bpa-btn bpa-btn--gold bpa-lobby-copy" id="copy-code">${ICON.copy}${ICON.copied}${tr('Copy', 'Sao chép')}</button>
             </div>
             <div class="bpa-lobby-invrule" aria-hidden="true"></div>
-            <div class="bpa-lobby-invhead">
-              <label class="bpa-lobby-h3" id="room-invite-heading" for="room-invite-link">${tr('Invite your partner', 'Mời đồng đội')}</label>
-              <button type="button" class="bpa-btn bpa-btn--gold bpa-lobby-linkbtn" id="copy-invite">${ICON.link}${tr('Copy invite link', 'Sao chép liên kết mời')}</button>
-            </div>
-            <input class="bpa-lobby-linkfield" id="room-invite-link" type="url" readonly value="${escapeHtml(roomInviteUrl(room.roomCode))}" aria-describedby="lobby-invite-help">
-            <p class="bpa-lobby-help" id="lobby-invite-help">${tr('Your partner can sign in, then choose to join.', 'Đồng đội đăng nhập rồi bấm vào phòng.')}</p>
+            ${inviteBlock()}
           </section>
         </div>
 

@@ -355,6 +355,8 @@
 }
 .bpa-result-footnote { display: flex; flex-direction: column; gap: 4px; flex: 0 1 340px; min-width: 0; font-size: 18px; line-height: 1.3; color: #e9dfcc; }
 .bpa-result-footnote .bpa-kicker { color: var(--bpa-gold); }
+/* Playtest of an unpublished AI draft (VUAN-6B): said once, plainly, where the coin reward would be. */
+.bpa-result-playtest { font-size: 15px; font-style: italic; color: var(--bpa-gold); }
 .bpa-result-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 12px; margin-left: auto; }
 .bpa-result-page .bpa-result-fbtn { padding: 0 16px; font-size: 12px; letter-spacing: .11em; }
 .bpa-result-fbtn svg { flex: none; }

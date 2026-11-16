@@ -33,6 +33,8 @@ export const aiCaseApi = {
   drafts: () => get('/api/admin/ai-cases'),
   draft: (draftId) => get(`/api/admin/ai-cases/${draftId}`),
   cancelDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/cancel`),
+  /** "Chơi thử": the caller's private playtest room of an imported, unpublished draft (ADMIN or the draft's author). */
+  playtest: (draftId) => post(`/api/admin/ai-cases/${encodeURIComponent(draftId)}/playtest`),
   approveOrder: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-order`),
   rejectOrder: (draftId, reason) => post(`/api/admin/ai-cases/${draftId}/reject-order`, { reason }),
   settings: () => get('/api/admin/ai-cases/settings'),

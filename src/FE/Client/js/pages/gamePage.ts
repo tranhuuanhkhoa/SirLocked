@@ -381,6 +381,8 @@ type MissingRequirements = {
 type GameState = {
   presentation?: CasePresentation;
   caseId?: string;
+  /** A playtest room of an unpublished AI draft (VUAN-6B): its case is read through the room. */
+  isPlaytest?: boolean;
   roomId: string;
   roomCode: string;
   hostUserId: string;
@@ -2765,7 +2767,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (!first?.caseId) return;
     try {
       // A slow or failed lookup must never hold the game back: waiting is capped, and a late answer is ignored.
-      const data = await Promise.race([caseApi.introCutscene(first.caseId), new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500))]);
+      const lookup = caseApi.introCutscene(first.caseId, first.isPlaytest ? roomId : '');
+      const data = await Promise.race([lookup, new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500))]);
       if (!data?.script?.pages?.length) return;
       introCutsceneId = `mc-intro:${first.caseId}`;
       introVersion = first.presentation?.version;

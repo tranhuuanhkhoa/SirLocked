@@ -367,8 +367,12 @@ export async function renderResultPage(app, roomId) {
   const accused = result.selectedCulpritName || '';
   const caseId = result.caseId ? encodeURIComponent(result.caseId) : '';
   const backToCases = `<a class="bpa-btn ${win ? 'bpa-btn--red' : 'bpa-btn--gold'} bpa-result-fbtn${win ? ' is-first' : ''}" href="/cases">${ICON_BACK}${tr('Back to cases', 'Quay lại danh sách vụ án')}</a>`;
-  const replay = caseId ? `<a class="bpa-btn ${win ? 'bpa-btn--gold' : 'bpa-btn--red is-first'} bpa-result-fbtn" href="/cases/${caseId}">${ICON_REPLAY}${tr('Play this case again', 'Chơi lại vụ này')}</a>` : '';
-  const review = caseId ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/workshop/${caseId}">${ICON_STAR}${tr('Review the case', 'Đánh giá vụ án')}</a>` : '';
+  // A playtest of an unpublished draft: nothing was ranked or rewarded, and the case has no public page to replay or review.
+  const playtest = result.isPlaytest === true;
+  const replay = playtest
+    ? (session.canGenerateAi() ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/admin/ai" data-playtest-back>${ICON_REPLAY}${tr('Back to the AI drafts', 'Về trang bản nháp AI')}</a>` : '')
+    : caseId ? `<a class="bpa-btn ${win ? 'bpa-btn--gold' : 'bpa-btn--red is-first'} bpa-result-fbtn" href="/cases/${caseId}">${ICON_REPLAY}${tr('Play this case again', 'Chơi lại vụ này')}</a>` : '';
+  const review = caseId && !playtest ? `<a class="bpa-btn bpa-btn--gold bpa-result-fbtn" href="/workshop/${caseId}">${ICON_STAR}${tr('Review the case', 'Đánh giá vụ án')}</a>` : '';
 
   render(app, `
   <div class="bpa-container bpa-result-page ${win ? 'is-win' : 'is-fail'}${motionOk ? ' is-pending' : ''}">
@@ -422,7 +426,9 @@ export async function renderResultPage(app, roomId) {
       <p class="bpa-result-footnote"><span class="bpa-kicker">${tr('What next', 'Bước tiếp theo')}</span><span>${win
     ? tr('The file is stamped and archived.', 'Hồ sơ đã đóng dấu và lưu kho.')
     : tr('Open the file again and follow the threads you missed.', 'Mở lại hồ sơ và lần theo những sợi dây đã bỏ lỡ.')}</span>
-        <span class="bpa-mk-reward" data-market-reward hidden></span></p>
+        ${playtest
+    ? `<span class="bpa-result-playtest" data-playtest-note>${tr('Playtest of an unpublished draft: not ranked, no rewards.', 'Ván chơi thử bản nháp chưa đăng: không tính xếp hạng, không nhận thưởng.')}</span>`
+    : '<span class="bpa-mk-reward" data-market-reward hidden></span>'}</p>
       <div class="bpa-result-actions">
         ${backToCases}
         ${replay}
@@ -433,7 +439,7 @@ export async function renderResultPage(app, roomId) {
   </div>`);
 
   const page = app.querySelector('.bpa-result-page');
-  hydrateRewardChip(app.querySelector('[data-market-reward]'), roomId); // Chợ đồ: "+120 xu phần thưởng"
+  if (!playtest) hydrateRewardChip(app.querySelector('[data-market-reward]'), roomId); // Chợ đồ: "+120 xu phần thưởng"
   const cinematicHost = document.createElement('div');
   app.append(cinematicHost);
 

@@ -2,6 +2,7 @@ import { aiCaseApi } from '../api/aiCaseApi.js';
 import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
+import { navigate } from '../services/navigation.js';
 import { plural, tr } from '../services/i18n.js';
 import { renderSafeMarkdown } from '../utils/safeMarkdown.js';
 import { icon, pageHead, pill, stateBox, tile } from '../components/admin/ui.js';
@@ -262,6 +263,7 @@ const STATUS_LABELS = {
   SCENE_LAYOUT_AWAITING_APPROVAL: ['Layout awaiting approval', 'Chờ duyệt bố cục'],
   GENERATING_FINAL_ASSETS: ['Generating final assets', 'Đang tạo tài nguyên cuối'],
   READY_TO_PUBLISH: ['Ready to publish', 'Sẵn sàng xuất bản'],
+  IMPORTED: ['Imported, not published', 'Đã import, chưa đăng'],
   GENERATED_INVALID: ['Generation invalid', 'Kết quả sinh không hợp lệ'],
   PUBLISHED: ['Published', 'Đã xuất bản'],
 };
@@ -610,6 +612,18 @@ export async function renderAdminAiPage(app) {
     });
   }
 
+  /** "Chơi thử": an imported draft that is not published yet (the server checks ADMIN or the draft's author). */
+  function canPlaytest(draft) {
+    return draft.status === 'IMPORTED' && Boolean(draft.importedCaseId);
+  }
+
+  function playtestButton(draft, style = 'btn-ghost') {
+    return canPlaytest(draft)
+      ? `<button class="btn ${style} btn-sm" type="button" data-playtest-draft="${escapeHtml(draft.draftId)}"
+          title="${escapeHtml(tr('Open a private room for this unpublished draft and invite one player by link', 'Mở phòng riêng cho bản nháp chưa đăng và mời một người bằng liên kết'))}">${tr('Playtest', 'Chơi thử')}</button>`
+      : '';
+  }
+
   function cancelButton(draft) {
     return draft.canCancel === true && !['PUBLISHED', 'IMPORTED', 'CANCELLED'].includes(draft.status)
       ? `<button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-cancel-draft="${escapeHtml(draft.draftId)}">${tr('Cancel draft', 'Hủy bản nháp')}</button>` : '';
@@ -662,6 +676,7 @@ export async function renderAdminAiPage(app) {
       status === STATUS_FULL_LOGIC_AWAITING_APPROVAL ||
       status === STATUS_SCENE_LAYOUT_AWAITING_APPROVAL ||
       status === STATUS_READY_TO_PUBLISH ||
+      status === 'IMPORTED' ||
       status === STATUS_PUBLISHED ||
       status === 'OPENAI_GENERATED_VALID' ||
       status === 'ASSETS_GENERATED';
@@ -766,7 +781,8 @@ export async function renderAdminAiPage(app) {
           ${orderButtons(d)}
           ${continueButton(d, 'btn-ghost')}
           ${cancelButton(d)}
-          ${d.status === STATUS_PUBLISHED || d.importedCaseId
+          ${playtestButton(d)}
+          ${d.status === STATUS_PUBLISHED || (d.importedCaseId && !canPlaytest(d))
             ? `<a class="btn btn-ghost btn-sm" href="/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
             : ''}
         </div>
@@ -1530,10 +1546,15 @@ export async function renderAdminAiPage(app) {
       d.jsonFolderPath ? `Bundle: ${escapeHtml(d.jsonFolderPath)}` : '',
       d.assetManifest?.assetRootUrl ? `Assets: ${escapeHtml(d.assetManifest.assetRootUrl)} (${d.assetManifest.assets?.length ?? 0})` : '',
     ].filter(Boolean);
-    const actions = published && caseId
-      ? `<a class="btn btn-primary btn-sm" href="/cases/${encodeURIComponent(caseId)}">${tr('Open published case', 'Mở vụ án đã xuất bản')}</a>
-          ${session.isAdmin() ? `<a class="btn btn-ghost btn-sm" href="/admin/cases/${encodeURIComponent(caseId)}">${tr('Admin review', 'Xem trong quản trị vụ án')}</a>` : ''}`
-      : `${resumeAction}${cancelButton(d)}`;
+    const adminReview = session.isAdmin() && caseId
+      ? `<a class="btn btn-ghost btn-sm" href="/admin/cases/${encodeURIComponent(caseId)}">${tr('Admin review', 'Xem trong quản trị vụ án')}</a>` : '';
+    const actions = canPlaytest(d)
+      ? `${playtestButton(d, 'btn-primary')}
+          ${adminReview}`
+      : published && caseId
+        ? `<a class="btn btn-primary btn-sm" href="/cases/${encodeURIComponent(caseId)}">${tr('Open published case', 'Mở vụ án đã xuất bản')}</a>
+          ${adminReview}`
+        : `${resumeAction}${cancelButton(d)}`;
     return `
     <section class="adm-card aai-draft-head" aria-labelledby="aai-draft-title">
       <div class="aai-draft-titlebar">
@@ -1554,6 +1575,7 @@ export async function renderAdminAiPage(app) {
           )}</p>`
         : ''}
       ${actions.trim() ? `<div class="case-actions aai-actions">${actions}</div>` : ''}
+      ${canPlaytest(d) ? `<p class="aai-note" data-playtest-help>${tr('Imported, not published yet. Playtest opens a private room that only you (or an admin) and one player invited by link can join; it is not ranked and gives no rewards.', 'Đã import, chưa đăng. Chơi thử mở một phòng riêng chỉ bạn (hoặc ADMIN) và một người được mời bằng liên kết vào được; ván này không tính xếp hạng, không nhận thưởng.')}</p>` : ''}
     </section>
     ${bridgeReportPanel(d)}
     ${qualitySummary(d)}
@@ -2221,6 +2243,9 @@ export async function renderAdminAiPage(app) {
     app.querySelectorAll('[data-cancel-draft]').forEach((btn) =>
       btn.addEventListener('click', () => cancelDraft(btn.dataset.cancelDraft, btn)));
 
+    app.querySelectorAll('[data-playtest-draft]').forEach((btn) =>
+      btn.addEventListener('click', () => startPlaytest(btn.dataset.playtestDraft, btn)));
+
     app.querySelectorAll('[data-approve-order]').forEach((btn) =>
       btn.addEventListener('click', () => decideOrder(btn.dataset.approveOrder, btn, true)));
 
@@ -2555,6 +2580,24 @@ export async function renderAdminAiPage(app) {
       <summary>${tr('Bot report (report.md)', 'Báo cáo của bot (report.md)')}<span class="aai-report-time">${updated}</span></summary>
       <div class="aai-report">${renderSafeMarkdown(d.bridgeReport)}</div>
     </details>`;
+  }
+
+  /** "Chơi thử": opens (or reopens) the private playtest room of an imported draft and goes to its lobby. */
+  async function startPlaytest(draftId, button) {
+    button.disabled = true;
+    try {
+      const room = await aiCaseApi.playtest(draftId);
+      if (disposed) return;
+      navigate(`/lobby/${encodeURIComponent(room.roomId)}`);
+    } catch (error) {
+      if (disposed) return;
+      button.disabled = false;
+      toast(error?.errors?.code === 'PLAYTEST_FORBIDDEN'
+        ? tr('Only an admin or the author of this draft can playtest it.', 'Chỉ ADMIN hoặc tác giả bản nháp mới chơi thử được.')
+        : error?.errors?.code === 'PLAYTEST_NOT_IMPORTED'
+          ? tr('This draft has not been imported as a case yet.', 'Bản nháp này chưa được import thành vụ án.')
+          : aiErrorText(error), 'error');
+    }
   }
 
   async function cancelDraft(draftId, button) {

@@ -13,7 +13,8 @@ export const roomApi = {
     const query = params.toString();
     return get(`/api/rooms/public${query ? `?${query}` : ''}`);
   },
-  join: (roomCode) => post('/api/rooms/join', { roomCode }),
+  /** `inviteToken`: the secret of a playtest invite link; left out of the body for ordinary rooms. */
+  join: (roomCode, inviteToken = '') => post('/api/rooms/join', inviteToken ? { roomCode, inviteToken } : { roomCode }),
   get: (roomId) => get(`/api/rooms/${roomId}`),
   leave: (roomId) => post(`/api/rooms/${roomId}/leave`),
   selectRole: (roomId, role) => post(`/api/rooms/${roomId}/select-role`, { role }),
