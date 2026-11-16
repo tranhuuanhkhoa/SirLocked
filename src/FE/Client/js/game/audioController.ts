@@ -2,6 +2,7 @@ import { BLIP_ENVELOPE, MAX_BLIP_VOICES, type ResolvedBlipVoice } from './atmosp
 import { effectiveWeather, weatherGain, WEATHER_SOUND, NONE as NO_WEATHER, type Weather } from './atmosphere/weatherCore.js';
 import { cueCandidates, puzzleSfxBase, withFormats, PUZZLE_FALLBACK_CUE } from './atmosphere/sfxCatalog.js';
 import { CROSSFADE_SEC, LEGACY_DUCK, loopPoints, musicBusLevel, musicTransition } from './atmosphere/musicCore.js';
+import { renderMusicCredits } from './musicCredits.js';
 
 /** `blips` is the character speech volume; `weatherEffects` false turns weather sound and particles off. */
 export type AudioSettings = { music: number; effects: number; muted: boolean; blips: number; weatherEffects: boolean };
@@ -515,7 +516,8 @@ export function renderAudioControls(settings: AudioSettings, tr: (en: string, vi
     ${slider('music', tr('Music', 'Nhạc'))}
     ${slider('effects', tr('Effects', 'Hiệu ứng'))}
     ${slider('blips', tr('Character blips', 'Bíp nhân vật'))}
-    <label><input type="checkbox" data-audio-weather-off ${settings.weatherEffects ? '' : 'checked'}> ${tr('Turn off weather effects', 'Tắt hiệu ứng thời tiết')}</label></details>`;
+    <label><input type="checkbox" data-audio-weather-off ${settings.weatherEffects ? '' : 'checked'}> ${tr('Turn off weather effects', 'Tắt hiệu ứng thời tiết')}</label>
+    ${renderMusicCredits(tr)}</details>`;
 }
 export function bindAudioControls(root: ParentNode, audio: ReturnType<typeof createAudioController>, onChange?: (settings: AudioSettings) => void): () => void {
   const controller = new AbortController();

@@ -21,6 +21,7 @@ import { PIXEL_PLAYER_SHEETS, advanceMotion, facingFromVector, isFacing, motionF
   type Facing, type PixelMotionState } from '../game/pixelActors.js';
 import type { CharacterPresentation, CasePresentation, Cutscene } from '../game/presentationMedia.js';
 import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio, type SceneWeatherInput } from '../game/audioController.js';
+import { createMusicCredits } from '../game/musicCredits.js';
 import { WeatherLayer } from '../game/weatherLayer.js';
 import { timeOfDayTint } from '../game/atmosphere/weatherCore.js';
 import { blipDuration, type CharacterVoice } from '../game/atmosphere/blipCore.js';
@@ -2738,6 +2739,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   const me = session.user();
   const introKey = `sirlocked.intro.${roomId}`;
   const audio = createAudioController();
+  const musicCredits = createMusicCredits(app, tr);
   const modalFocus = createModalFocusManager(app);
   const unlockAudio = () => audio.unlock();
   window.addEventListener('pointerdown', unlockAudio, { once: true });
@@ -3378,6 +3380,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     rememberAccusationRevision(fresh);
     state = fresh;
     audio.setScene(fresh.currentSceneId, fresh.visibleScene.runtime?.audio);
+    musicCredits.add(fresh.visibleScene.runtime?.audio?.music);
     audio.setWeather(fresh.visibleScene.runtime?.weather, fresh.visibleScene.runtime?.indoor);
     if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
     if (fresh.availableForAccusation && !finalReadyAnnounced) {
@@ -3666,6 +3669,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const model = uiModel();
     const scene = state.visibleScene;
     audio.setScene(state.currentSceneId, scene.runtime?.audio);
+    musicCredits.add(scene.runtime?.audio?.music);
     audio.setWeather(scene.runtime?.weather, scene.runtime?.indoor);
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
@@ -7012,6 +7016,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     caseWall.destroy();
     stateRefetcher.dispose();
     audio.dispose();
+    musicCredits.dispose();
     modalFocus.dispose();
     disposeAudioControls?.();
     disposePingControls?.();
