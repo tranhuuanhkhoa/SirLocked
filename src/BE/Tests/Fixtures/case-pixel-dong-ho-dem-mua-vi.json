@@ -1232,7 +1232,71 @@
  ],
  "deductions": [],
  "requiredTeamworkChains": [],
- "hints": [],
+ "hints": [
+  {
+   "hintId": "hint-dh-tiem-1",
+   "contextType": "SCENE",
+   "targetId": "scene-dh-tiem-dong-ho",
+   "order": 1,
+   "text": "Người thợ lúc nào cũng biết mình làm gì với từng chiếc đồng hồ. Hỏi ông Tư trước."
+  },
+  {
+   "hintId": "hint-dh-tiem-2",
+   "contextType": "SCENE",
+   "targetId": "scene-dh-tiem-dong-ho",
+   "order": 2,
+   "text": "Kẻ lấy đồng hồ đã đứng ngay cạnh bàn thợ. Nhìn xuống sàn quanh bàn."
+  },
+  {
+   "hintId": "hint-dh-tiem-3",
+   "contextType": "SCENE",
+   "targetId": "scene-dh-tiem-dong-ho",
+   "order": 3,
+   "text": "Dưới gầm bàn thợ có một tấm thẻ còn ướt nước mưa."
+  },
+  {
+   "hintId": "hint-dh-ben-1",
+   "contextType": "SCENE",
+   "targetId": "scene-dh-ben-cang",
+   "order": 1,
+   "text": "Hai người có mặt quanh tiệm tối nay đều đang ở bến. Nói chuyện với cả hai."
+  },
+  {
+   "hintId": "hint-dh-ben-2",
+   "contextType": "SCENE",
+   "targetId": "scene-dh-ben-cang",
+   "order": 2,
+   "text": "Cô Hạnh thấy có người ôm một vật đi vội ra cầu tàu. Tìm vật đó."
+  },
+  {
+   "hintId": "hint-dh-ben-3",
+   "contextType": "SCENE",
+   "targetId": "scene-dh-ben-cang",
+   "order": 3,
+   "text": "Xem hòm gỗ cạnh cầu tàu và mẩu giấy ướt dưới cột neo."
+  },
+  {
+   "hintId": "hint-dh-doi-chat-1",
+   "contextType": "CONFRONTATION",
+   "targetId": "challenge-dh-vao-tiem",
+   "order": 1,
+   "text": "Có người nói mình chỉ đứng ngoài hiên."
+  },
+  {
+   "hintId": "hint-dh-doi-chat-2",
+   "contextType": "CONFRONTATION",
+   "targetId": "challenge-dh-vao-tiem",
+   "order": 2,
+   "text": "Đồ vật nào chứng minh chủ của nó đã ở trong tiệm?"
+  },
+  {
+   "hintId": "hint-dh-doi-chat-3",
+   "contextType": "CONFRONTATION",
+   "targetId": "challenge-dh-vao-tiem",
+   "order": 3,
+   "text": "Đặt câu \"chưa hề bước chân vào tiệm\" cạnh tấm thẻ thủy thủ dưới gầm bàn."
+  }
+ ],
  "interactions": [],
  "puzzles": [
   {
@@ -1308,7 +1372,8 @@
     "card": "bay",
     "hints": [
      "Người ta cầm khay ở mép đồng.",
-     "Tìm vết sẹo cắt chéo các đường vân."
+     "Tìm vết sẹo cắt chéo các đường vân.",
+     "Thẻ có vân hình móc và một vết sẹo chéo là của người làm nghề dây thừng."
     ]
    },
    "reveal": {
@@ -1482,7 +1547,10 @@
    },
    {
     "claimType": "OPPORTUNITY",
-    "evidenceId": "evidence-dh-ve-tau"
+    "evidenceId": "evidence-dh-ve-tau",
+    "acceptedEvidenceIds": [
+     "evidence-dh-van-tay"
+    ]
    }
   ],
   "requiredDeductionIds": [],

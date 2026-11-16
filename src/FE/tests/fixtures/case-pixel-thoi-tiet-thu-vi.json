@@ -3833,11 +3833,39 @@
       "text": "Thẩm vấn viên hỏi bà Hạnh ở cổng nhà số 7. Đồng hồ quảng trường dùng sau, khi đã có đủ các mốc giờ."
     },
     {
+      "hintId": "hint-px-1-level-2",
+      "contextType": "SCENE",
+      "targetId": "scene-px-pho",
+      "order": 2,
+      "text": "Bà Hạnh biết giờ ông Vinh uống thuốc mỗi tối; nhớ con số đó."
+    },
+    {
+      "hintId": "hint-px-1-level-3",
+      "contextType": "SCENE",
+      "targetId": "scene-px-pho",
+      "order": 3,
+      "text": "Đồng hồ quảng trường chậm hay nhanh? Dùng nó để xếp lại các mốc giờ của hộp thuốc."
+    },
+    {
       "hintId": "hint-px-2",
       "contextType": "SCENE",
       "targetId": "scene-px-nha-so-7",
       "order": 1,
       "text": "Soi lọ thuốc bằng máy ảnh và kính lúp, mở ngăn kéo bàn làm việc. Mã tủ kính nằm trong lời bà Hạnh."
+    },
+    {
+      "hintId": "hint-px-2-level-2",
+      "contextType": "SCENE",
+      "targetId": "scene-px-nha-so-7",
+      "order": 2,
+      "text": "Lọ \"Thứ Năm\" có con tem niêm lạ; tủ kính có thứ đáng giá bên trong."
+    },
+    {
+      "hintId": "hint-px-2-level-3",
+      "contextType": "SCENE",
+      "targetId": "scene-px-nha-so-7",
+      "order": 3,
+      "text": "Soi tem lọ bằng kính lúp: tem bị rạch hai lần. Mã tủ kính là 21 giờ: 2100."
     },
     {
       "hintId": "hint-px-3",
@@ -3847,11 +3875,39 @@
       "text": "Đọc sổ giao nhận trên quầy và xem khay tem niêm. Cậu Tùng nhớ rõ người nhận thuốc."
     },
     {
+      "hintId": "hint-px-3-level-2",
+      "contextType": "SCENE",
+      "targetId": "scene-px-hieu-thuoc",
+      "order": 2,
+      "text": "Sổ giao nhận ghi ai nhận thuốc hộ và lúc mấy giờ."
+    },
+    {
+      "hintId": "hint-px-3-level-3",
+      "contextType": "SCENE",
+      "targetId": "scene-px-hieu-thuoc",
+      "order": 3,
+      "text": "Phiếu nhận thuốc hộ ghi Bảo ký lúc 17:05, sớm hơn lời anh ta khai cả giờ."
+    },
+    {
       "hintId": "hint-px-4",
       "contextType": "SCENE",
       "targetId": "scene-px-nha-xe",
       "order": 1,
       "text": "Sổ xe nằm trên bàn thợ. Hỏi Lực về tối thứ Năm."
+    },
+    {
+      "hintId": "hint-px-4-level-2",
+      "contextType": "SCENE",
+      "targetId": "scene-px-nha-xe",
+      "order": 2,
+      "text": "Lực có nói thật về chuyện chiều thứ Hai và tối thứ Năm không?"
+    },
+    {
+      "hintId": "hint-px-4-level-3",
+      "contextType": "SCENE",
+      "targetId": "scene-px-nha-xe",
+      "order": 3,
+      "text": "Sổ xe cho biết chiều thứ Hai Lực đang chở ông Vinh, không ở gần hộp thuốc."
     },
     {
       "hintId": "hint-px-5",
@@ -3861,11 +3917,39 @@
       "text": "Sổ nợ và phiếu cầm nằm trên quầy; chụp chiếc nhẫn trong tủ kính."
     },
     {
+      "hintId": "hint-px-5-level-2",
+      "contextType": "SCENE",
+      "targetId": "scene-px-cam-do",
+      "order": 2,
+      "text": "Ai đã mang chiếc nhẫn ngọc bích tới cầm, và để làm gì?"
+    },
+    {
+      "hintId": "hint-px-5-level-3",
+      "contextType": "SCENE",
+      "targetId": "scene-px-cam-do",
+      "order": 3,
+      "text": "Phiếu cầm nhẫn ngọc bích đứng tên Trịnh Lực; sổ nợ cho thấy anh ta cần tiền."
+    },
+    {
       "hintId": "hint-px-6",
       "contextType": "SCENE",
       "targetId": "scene-px-hieu-anh",
       "order": 1,
       "text": "Ghép lá thư trắng với thuốc hiện ảnh trong túi đồ. Hũ keo trên kệ đáng soi kỹ."
+    },
+    {
+      "hintId": "hint-px-6-level-2",
+      "contextType": "SCENE",
+      "targetId": "scene-px-hieu-anh",
+      "order": 2,
+      "text": "Hiệu ảnh có thứ keo giống lớp keo dưới tem lọ thuốc."
+    },
+    {
+      "hintId": "hint-px-6-level-3",
+      "contextType": "SCENE",
+      "targetId": "scene-px-hieu-anh",
+      "order": 3,
+      "text": "Keo ép ảnh của hiệu Tô Khánh trùng lớp keo dưới tem; lá thư mực ẩn nói ai đã mượn buồng tối."
     },
     {
       "hintId": "hint-px-7",
@@ -3875,11 +3959,39 @@
       "text": "So giờ Bảo khai với giờ ghi trong sổ giao nhận của hiệu thuốc."
     },
     {
+      "hintId": "hint-px-7-level-2",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-px-gio-nhan-thuoc",
+      "order": 2,
+      "text": "Hiệu thuốc có giữ giấy tờ ghi giờ người nhận ký tên."
+    },
+    {
+      "hintId": "hint-px-7-level-3",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-px-gio-nhan-thuoc",
+      "order": 3,
+      "text": "Đưa ra phiếu nhận thuốc hộ: Bảo ký nhận lúc 17:05, không phải gần sáu giờ."
+    },
+    {
       "hintId": "hint-px-8",
       "contextType": "CONFRONTATION",
       "targetId": "challenge-px-ke-trom-nhan",
       "order": 1,
       "text": "Ai đứng tên trên phiếu cầm chiếc nhẫn?"
+    },
+    {
+      "hintId": "hint-px-8-level-2",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-px-ke-trom-nhan",
+      "order": 2,
+      "text": "Tiệm cầm đồ ghi lại ai mang nhẫn tới."
+    },
+    {
+      "hintId": "hint-px-8-level-3",
+      "contextType": "CONFRONTATION",
+      "targetId": "challenge-px-ke-trom-nhan",
+      "order": 3,
+      "text": "Đưa ra phiếu cầm nhẫn ngọc bích đứng tên Lực."
     },
     {
       "hintId": "hint-px-9",
@@ -3889,11 +4001,39 @@
       "text": "Lực vào phòng lúc mấy giờ, còn ông Vinh uống thuốc lúc mấy giờ?"
     },
     {
+      "hintId": "hint-px-9-level-2",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-px-luc",
+      "order": 2,
+      "text": "Xem sổ xe chiều thứ Hai và giờ Lực vào phòng tối thứ Năm."
+    },
+    {
+      "hintId": "hint-px-9-level-3",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-px-luc",
+      "order": 3,
+      "text": "Lực vào phòng lúc 22:15, sau khi ông Vinh đã uống thuốc lúc 21:00: anh ta trộm nhẫn chứ không pha thuốc."
+    },
+    {
       "hintId": "hint-px-10",
       "contextType": "DEDUCTION",
       "targetId": "deduction-px-keo",
       "order": 1,
       "text": "Keo bóng, dẻo, mùi giấm — loại đó có ở đâu?"
+    },
+    {
+      "hintId": "hint-px-10-level-2",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-px-keo",
+      "order": 2,
+      "text": "So lớp keo dưới tem với các loại keo bạn đã thấy ở hiệu thuốc và hiệu ảnh."
+    },
+    {
+      "hintId": "hint-px-10-level-3",
+      "contextType": "DEDUCTION",
+      "targetId": "deduction-px-keo",
+      "order": 3,
+      "text": "Đó là keo ép ảnh của hiệu Tô Khánh; người từng học nghề ở đó và giữ hộp thuốc một giờ không ai thấy."
     }
   ],
   "interactions": [
