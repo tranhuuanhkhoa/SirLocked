@@ -23,6 +23,7 @@ Phá án như người chơi giỏi, rồi trả lời bằng tiếng Việt the
 - Động cơ: <…>
 - Phương thức: <…>
 - Chứng cứ then chốt: <chứng cứ> → chứng minh <động cơ | phương thức | cơ hội> (mỗi ý một dòng, trích đúng tên chứng cứ/lời khai trong player view)
+- Chứng cứ khác cũng đủ cho một ô: <ô> ← <chứng cứ> vì <lý do> (nếu có; xưởng dùng mục này để ô buộc tội nhận nhiều đáp án hợp lý)
 
 ## Loại trừ từng nghi phạm khác
 - <tên>: vì sao KHÔNG thể là người này (chứng cứ nào loại trừ). Nếu không loại trừ được bằng chứng cứ trong player view, ghi rõ "KHÔNG LOẠI TRỪ ĐƯỢC".
@@ -35,6 +36,9 @@ Phá án như người chơi giỏi, rồi trả lời bằng tiếng Việt the
 
 ## Góp ý fair play
 - Mỗi chỗ khiến bạn phải đoán, chỗ mâu thuẫn, chi tiết lạ không được giải thích, ngoại hình trong chứng cứ không khớp mô tả, mốc giờ lệch, nhãn dòng thời gian hay dây bảng tường lộ kết luận, động cơ khó tin (đồ đáng bao nhiêu, bán ở đâu), dấu vết của chính chủ nhà chưa được giải thích. Ghi cụ thể chỗ nào trong player view.
+
+## Gợi ý
+- Player view chỉ có gợi ý mức 1 của mỗi câu hỏi. Gợi ý nào lộ hung thủ hay đáp án ngay ở mức 1: ghi ra.
 
 ## Kết quả
 ĐẠT nếu chỉ một nghi phạm khớp và mọi nghi phạm khác bị loại trừ bằng chứng cứ; ngược lại TRƯỢT kèm lý do.

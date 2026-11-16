@@ -27,7 +27,7 @@ Bạn là bot viết vụ án cho Sir Locked. Server giữ prompt, schema, valid
 | 2 | Yen | Mở Claude Code ở gốc repo, gõ `/tao-vu-an` | — |
 | 3 | Bot | **Xem trước truyện**: tiêu đề, bối cảnh, vụ mở đầu, nghi phạm, không lộ hung thủ. → **Cổng 1 STORY** | `bridge_list`, `bridge_take`, `bridge_check`, `bridge_submit` |
 | 4 | Bot | **Sự thật**: hung thủ, động cơ, phương thức, dòng thời gian thật, chứng cứ, lời khai, đồ thị chứng minh. Thám tử mù thử trước khi nộp bước logic. → **Cổng 2 TRUTH (luôn Yen)** | như trên |
-| 5 | Bot | **Logic chơi**: cảnh, vật phẩm, giải đố có đủ tham số, hội thoại, đối chất, gợi ý, kết thúc. Bước đánh giá của server do agent `kiem-dinh` trả lời. → **Cổng 3 LOGIC** | như trên, `player_view` |
+| 5 | Bot | **Logic chơi**: cảnh, vật phẩm, giải đố có đủ tham số, hội thoại, đối chất, **gợi ý 3 mức cho mọi câu hỏi** (mục "Gợi ý 3 mức"), kết thúc. Bước đánh giá của server do agent `kiem-dinh` trả lời. → **Cổng 3 LOGIC** | như trên, `player_view` |
 | 6 | Bot | **Bố cục cảnh**: hotspot, vùng đi được, chỗ đặt vật và người. → **Cổng 4 LAYOUT** | như trên, `asset_process walkable` |
 | 7 | Bot | **Hình**: thư viện trước, biến thể sau, PixelLab cuối cùng; mask, walk grid trên máy; tải lên qua server | `assets_needed`, `library_search`, `asset_variant`, `asset_process`, `asset_upload`, `assets_complete` |
 | 8 | Bot | **Âm thanh và thời tiết**: nhạc mỗi khu chọn trong thư viện nhạc, giọng bíp từng nhân vật (nghe thử, không ai trùng giọng), thời tiết cảnh ngoài trời theo đơn (trong nhà `indoor: true`), thời điểm; quay thử cảnh ngoài trời; tiếng giao diện chọn trong gói CC0 — ghi thẳng trong JSON | `music_search`, `blip_preview`, `weather_preview`, `sfx_search` |
@@ -75,6 +75,30 @@ Rút từ 7 góp ý của thám tử mù ở vụ mẫu "Đồng hồ bỏ túi 
 - [ ] Phương án gây nhiễu (nghi phạm giả, động cơ giả) nghe hợp lý và có lời giải thích.
 - [ ] Dấu vết của chính chủ nhà (vân tay trên đồ của mình, giày trong nhà mình) được giải thích, không thành chứng cứ giả.
 - [ ] Mọi manh mối cần cho kết luận xuất hiện trước lúc buộc tội; hung thủ xuất hiện sớm; không siêu nhiên; lời nói dối nào cũng có chứng cứ bác bỏ.
+- [ ] **Gợi ý:** mọi cảnh, mọi lần đối chất, mọi suy luận có đủ 3 mức (`order` 1, 2, 3); mọi câu đố tương tác có ít nhất 3 `solution.hints`. Mức 1 và 2 không nêu tên, không ám chỉ hung thủ; mức 3 gần như đáp án nhưng không nói thẳng lời buộc tội.
+- [ ] **Ô chứng cứ khi buộc tội:** chứng cứ nào khác cũng chứng minh đúng ô đó (thám tử mù gắn khác mà vẫn hợp lý) thì cho ô nhận thêm (`acceptedEvidenceIds`, mục "Ô chứng cứ nhận nhiều đáp án").
+
+### Gợi ý 3 mức (bắt buộc từ VUAN-6)
+
+Mọi câu hỏi trong vụ phải có gợi ý để sau này gắn quảng cáo hoặc thu xu. Server **từ chối** bản nháp AI và vụ mới thiếu gợi ý (lỗi `MissingHintLevel`, `DuplicateHintLevel`, `MissingPuzzleHints`, đường dẫn chỉ đúng chỗ, ví dụ `hints[SCENE:scene-x]` hay `puzzles[0].solution.hints`); vụ đã đăng thiếu gợi ý chỉ bị cảnh báo.
+
+| Mức | Nội dung | Ví dụ (vụ mẫu, tiệm đồng hồ) |
+| --- | --- | --- |
+| 1 | Hướng chung: nên hỏi ai, tìm loại gì | "Người thợ lúc nào cũng biết mình làm gì với từng chiếc đồng hồ. Hỏi ông Tư trước." |
+| 2 | Chỉ chỗ cần xem: nơi, đồ vật, câu khai | "Kẻ lấy đồng hồ đã đứng ngay cạnh bàn thợ. Nhìn xuống sàn quanh bàn." |
+| 3 | Gần như đáp án, nhưng không nói thẳng lời buộc tội | "Dưới gầm bàn thợ có một tấm thẻ còn ướt nước mưa." |
+
+- Áp cho: mỗi cảnh (`SCENE`), mỗi lần đối chất (`CONFRONTATION`, theo `challengeId`), mỗi suy luận (`DEDUCTION`); mỗi mức đúng một gợi ý. Câu đố tương tác (`INTERACTIVE_PUZZLE`): `solution.hints` ít nhất 3 câu theo cùng thứ tự 1 → 3. Câu đố cổ điển (mã số, thứ tự, ký hiệu) không có `solution`, gợi ý của cảnh chứa nó lo phần này.
+- Bước logic theo projection: server đã lập sẵn 3 ô gợi ý cho mỗi câu hỏi (ô có `order`), bot chỉ viết chữ đúng mức.
+- Mức 1, 2 không được nêu tên hay ám chỉ hung thủ. Thám tử mù chỉ thấy gợi ý mức 1 trong `player_view` (mức 2, 3 người chơi phải xin), nên gợi ý không làm hỏng lớp 3.
+
+### Ô chứng cứ nhận nhiều đáp án (`acceptedEvidenceIds`)
+
+Mỗi mục `finalLogic.requiredEvidenceLinks` có thể có `acceptedEvidenceIds` (tùy chọn): các chứng cứ khác chứng minh **đúng ô đó** cũng hợp lý. Người chơi gắn chứng cứ nào trong danh sách cũng được tính đúng; không có thì giữ một đáp án như cũ. Ví dụ vụ mẫu: ô cơ hội nhận `evidence-dh-ve-tau` (thẻ thủy thủ dưới gầm bàn) và cả `evidence-dh-van-tay` (dấu tay trên khay cũng chứng minh anh Bảy đã ở cạnh bàn).
+
+- Chỉ dùng chứng cứ `isEvidence: true`, tìm được trước lúc buộc tội; không lặp lại chứng cứ chính của ô; **không** dùng chứng cứ chính của ô khác (mỗi ô cần một chứng cứ khác nhau, nên làm vậy là chặn ô kia). Vụ hợp đồng 5 ô (`conclusionId`): chứng cứ thêm phải hỗ trợ đúng `conclusionId` đó.
+- Khi nào thêm: thám tử mù kết luận đúng nhưng gắn chứng cứ khác cho một ô và lý lẽ đứng vững.
+- Bước JSON đầy đủ (schema có `acceptedEvidenceIds`) và vụ viết tay thì điền thẳng. Bước projection (mọi đơn mới) do server tự lập các ô buộc tội, schema không có trường này: ghi vào mục "Cần Yen xem" của `report.md` (ô nào, chứng cứ nào, vì sao) để Yen quyết; không tự sửa JSON của vụ đã import.
 
 ### Tham số giải đố
 
@@ -95,8 +119,8 @@ Viết vào `tmp/bridge/<draftId>/report.md` rồi `draft_report { draftId }`. C
 | --- | --- | --- |
 | 1. Schema | Đạt / Trượt | số lần sửa |
 | 2. Validator server | Đạt / Trượt | lỗi đã sửa |
-| 3. Thám tử mù | Đạt / Trượt | kết luận, độ khó x/5, góp ý đã sửa |
-| 4. Biên tập | Đạt / Trượt | sửa gì |
+| 3. Thám tử mù | Đạt / Trượt | kết luận, độ khó x/5, góp ý đã sửa, ô chứng cứ nhận thêm đáp án nào |
+| 4. Biên tập | Đạt / Trượt | sửa gì; gợi ý 3 mức đủ và không lộ hung thủ ở mức 1, 2 |
 | 5. Chạy thử | Đạt / Trượt / Một phần | số cảnh, ảnh, lỗi console, ước tính phút, âm thanh |
 
 ## Tài nguyên (<n> lượt PixelLab)
@@ -171,6 +195,10 @@ Theo `docs/case-audio-weather.md`. Không dùng PixelLab cho âm thanh.
 - `BRIDGE_KEY_MISSING` / `BRIDGE_KEY_INVALID`: dừng, chép hướng dẫn tool trả về cho Yen.
 - `BRIDGE_NOT_CONFIGURED`: server chưa có khóa; Yen chạy `bash scripts/set-bridge-key.sh`.
 - `ASSET_STORAGE_UNAVAILABLE`: server chưa bật Cloudinary; Yen chạy `bash scripts/set-cloudinary.sh`.
-- `BRIDGE_REQUEST_NOT_TAKEABLE`: yêu cầu đang do phiên khác giữ; bỏ qua, làm cái khác.
+- `BRIDGE_REQUEST_NOT_TAKEABLE`: yêu cầu đang do phiên khác giữ; bỏ qua, làm cái khác. Phiên cũ đã tắt (lease treo tới 2 giờ): `bridge_list { status: "TAKEN" }`, chắc không còn phiên nào làm nó thì `bridge_release` rồi nhận lại.
+- PixelLab 429: dừng tạo job mới, `wait_for_jobs`, đợi 1–2 phút, chạy tiếp với 3–5 job cùng lúc; lặp lại nhiều lần thì `bridge_release` yêu cầu `ASSETS`, ghi report, báo Yen.
+- `MissingHintLevel` / `MissingPuzzleHints`: thiếu gợi ý 3 mức đúng ở đường dẫn server báo; viết thêm mức đó và nộp lại.
 - Hết hạn mức Claude giữa chừng: không sao, draft đứng yên trong hàng chờ; lần sau gõ lại `/tao-vu-an` là làm tiếp.
 - Tool `playtest` quá giờ trong Claude Code: đặt `MCP_TOOL_TIMEOUT=1800000` rồi mở lại phiên.
+
+Chi tiết từng sự cố (401, 503, lease, PixelLab 429, hết hạn mức): mục "Xử lý sự cố" của `docs/AI_CASE_SETUP_VI.md`.

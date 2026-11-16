@@ -4,7 +4,52 @@ Từ đợt VUAN-1, server **không gọi API AI nào**. Mọi bước tạo v�
 
 Người chơi chỉ nhận vụ đã đăng, không bao giờ gọi tới Claude. Bot **không bao giờ publish**: chỉ ADMIN bấm Xuất bản trên admin.
 
-## Cấu hình
+Bài này là hướng dẫn trọn vẹn cách tạo vụ bằng bot Claude: phần đầu cho người làm (Yen), phần sau là chi tiết server. Cài đặt máy chạy bot: [docs/studio-vps.md](studio-vps.md). Luật viết vụ: [docs/case-style-guide.md](case-style-guide.md). Âm thanh, thời tiết, bíp: [docs/case-audio-weather.md](case-audio-weather.md). Quy trình của bot: skill `.claude/skills/tao-vu-an/SKILL.md`.
+
+## Tạo một vụ từ đầu đến cuối
+
+| # | Ai | Làm gì | Ở đâu |
+| --- | --- | --- | --- |
+| 0 | Yen, một lần | Đặt khóa `SIRLOCKED_BRIDGE_KEY`, `PIXELLAB_API_KEY` vào biến môi trường của máy chạy bot; `cd tools/studio-mcp && npm ci`; `claude mcp list` thấy `sirlocked-studio` và `pixellab` là Connected | [studio-vps.md](studio-vps.md) mục A hoặc B |
+| 1 | Yen (ADMIN) hoặc VIP | Đặt đơn: thế giới, địa điểm, nghi phạm, thời tiết, thời điểm, preset, mức nội dung, trần PixelLab, chế độ duyệt, ý tưởng. Bấm "Gửi đơn cho Claude" | `/admin/ai` |
+| 2 | Yen | Đơn VIP: bấm **Duyệt đơn** (hoặc Từ chối). Đơn ADMIN vào hàng chờ ngay | bảng "Bản nháp AI gần đây" ở `/admin/ai` |
+| 3 | Yen | Mở Claude Code ở gốc repo (`claude`), gõ `/tao-vu-an` | máy Yen hoặc VPS studio trong `tmux` |
+| 4 | Bot | Viết xem trước truyện → dừng ở **cổng 1 STORY** | — |
+| 5 | Yen | Đọc truyện, duyệt; gõ lại `/tao-vu-an` | `/admin/ai` → chi tiết draft |
+| 6 | Bot | Viết sự thật, cho thám tử mù thử → **cổng 2 TRUTH** (luôn là Yen, kể cả chế độ nhanh) | — |
+| 7 | Bot | Viết logic chơi: cảnh, giải đố, hội thoại, đối chất, **gợi ý 3 mức cho mọi câu hỏi**, kết thúc; agent `kiem-dinh` trả lời bước đánh giá → **cổng 3 LOGIC** | — |
+| 8 | Bot | Bố cục cảnh → **cổng 4 LAYOUT**; rồi hình (thư viện → biến thể → PixelLab trong trần lượt), nhạc, bíp, thời tiết | — |
+| 9 | Bot | Import bản nháp (không đăng), Playwright tự chơi, viết `report.md` 5 lớp | chi tiết draft hiện `report.md` |
+| 10 | Yen | Chơi thử bản import bằng tài khoản ADMIN trên máy tính và điện thoại; ưng thì tự bấm **Xuất bản** | `/admin/cases/<caseId>` |
+
+Chế độ nhanh (`reviewMode = FAST`, chỉ ADMIN chọn): bot tự qua STORY, LOGIC, LAYOUT khi cả 5 lớp kiểm tra đạt; Yen chỉ duyệt TRUTH và bản cuối. Bot **không bao giờ** publish: bridge không có đường publish.
+
+Mỗi lần gõ `/tao-vu-an`, bot làm các đơn đang chờ rồi dừng ở cổng của Yen hoặc khi hết việc. Không có vòng lặp tự động; đơn chờ trong hàng tới lần gõ sau.
+
+## Luật nội dung từ VUAN-6
+
+### Gợi ý 3 mức cho mọi câu hỏi
+
+Mọi câu hỏi trong vụ có gợi ý, để sau này gắn quảng cáo hoặc thu xu khi người chơi xin gợi ý.
+
+- Mỗi cảnh (`SCENE`), mỗi lần đối chất (`CONFRONTATION`, theo `challengeId`), mỗi suy luận (`DEDUCTION`) có `hints` ở **đủ** `order` 1, 2, 3: mức 1 hướng chung, mức 2 chỉ chỗ cần xem, mức 3 gần như đáp án. Mức 1 và 2 không nêu tên hay ám chỉ hung thủ.
+- Mỗi câu đố tương tác (`INTERACTIVE_PUZZLE`) có ít nhất 3 `solution.hints`. Câu đố cổ điển (mã số, thứ tự, ký hiệu) không có `solution`; gợi ý của cảnh chứa nó lo phần này.
+- Mã lỗi: `MissingHintLevel`, `DuplicateHintLevel` (đường dẫn `hints[SCENE:<sceneId>]`, `hints[CONFRONTATION:<challengeId>]`, `hints[DEDUCTION:<deductionId>]`), `MissingPuzzleHints` (`puzzles[i].solution.hints`).
+- **Áp dụng chặt** (báo lỗi, chặn) cho: mọi bản nháp AI (các bước logic, bố cục, tài nguyên cuối) và mọi vụ **mới** nhập ở `/admin/import` (`caseId` chưa có trong database và không phải vụ đi kèm server).
+- **Chỉ cảnh báo** (không chặn) cho: vụ đã có trong database (nhập đè, xuất bản), các vụ đi kèm server trong `src/BE/SeedData/` (gồm 2 vụ pixel đang đăng), vụ AI nhập qua bridge (pipeline AI đã kiểm chặt trước đó), và bản nháp AI có projection plan lập trước luật này (plan không đổi được). Cảnh báo hiện ở `/admin/import` và ô "Điều kiện xuất bản" của chi tiết vụ; API trả trong `warnings` (`/validate`) và `validationWarnings` (import, publish).
+- Bước logic theo projection: server lập sẵn 3 ô gợi ý (`order` 1, 2, 3) cho mỗi câu hỏi, bot chỉ viết chữ. `player_view` cho thám tử mù chỉ có gợi ý mức 1.
+
+### Ô chứng cứ khi buộc tội nhận nhiều đáp án
+
+`finalLogic.requiredEvidenceLinks[].acceptedEvidenceIds` (tùy chọn): các chứng cứ khác chứng minh **đúng ô đó** cũng hợp lý. Người chơi gắn chứng cứ chính hoặc một chứng cứ trong danh sách đều được chấm đúng; màn kết quả hiện chứng cứ đội đã gắn là chứng cứ đúng. Không có trường này thì chấm y như cũ (một đáp án mỗi ô).
+
+```json
+{ "claimType": "OPPORTUNITY", "evidenceId": "evidence-dh-ve-tau", "acceptedEvidenceIds": ["evidence-dh-van-tay"] }
+```
+
+Validator kiểm: chứng cứ có thật và `isEvidence: true`; tìm được trước lúc buộc tội; không lặp, không trùng chứng cứ chính của ô; **không** là chứng cứ chính của ô khác (mỗi ô cần một chứng cứ khác nhau, nên làm vậy là chặn ô kia); tối đa 8; vụ hợp đồng 5 ô thì phải hỗ trợ đúng `conclusionId` của ô. Kết quả đã chơi lưu kèm định nghĩa lúc buộc tội (cả `acceptedEvidenceIds`), nên sửa vụ sau này không chấm lại ván cũ. Schema JSON đầy đủ của AI có trường này (mảng hoặc null, không bắt buộc). Ở bước projection (mọi đơn mới), các ô buộc tội do server lập từ đồ thị chứng minh nên bot **chưa điền được** trường này: bot ghi đề xuất vào mục "Cần Yen xem" của `report.md` (ô nào, chứng cứ nào, vì sao). Cho server tự thêm chứng cứ cùng `conclusionId` vào ô là việc của đợt sau. Vụ viết tay (như vụ mẫu) thì ghi thẳng trong JSON trước khi nhập.
+
+## Cấu hình server
 
 | Khóa | Ý nghĩa |
 | --- | --- |
@@ -95,15 +140,68 @@ Nút "Tạo bằng AI" của cutscene tạo yêu cầu bridge `ownerType = CUTSC
 - Xưởng của bot trọn vòng (MCP thật, không cần Claude): `cd tools/studio-mcp && npm run e2e:local`.
 - `POST /api/admin/cases/import-json` nhận thêm `preserveServerMetadata: true` để giữ metadata AI (preset, phiên bản hợp đồng) khi import: **chỉ có tác dụng ngoài Production** (stack chạy thử của bot dùng); Production luôn bỏ qua cờ này.
 - Chạy qua bridge bằng mock: `scripts/start-local-demo.ps1 -Bridge`, rồi `node scripts/bridge-smoke.mjs` với cùng `SIRLOCKED_BRIDGE_KEY` trong biến môi trường. Script tạo đơn → nhận từng yêu cầu → nộp JSON mock (`AiCaseMockFactory`) → qua các cổng → tải hình giả → `READY_TO_PUBLISH` → import (không publish), và báo lỗi nếu có yêu cầu nào thành `STALE`.
+- Kiểm một vụ viết tay trước khi nhập, không cần database: `dotnet run --project tools/ValidateCase -- --new <case.json> [report.json]`. Có `--new` thì luật gợi ý 3 mức chặn như với vụ mới; bỏ `--new` thì thiếu gợi ý chỉ là cảnh báo (`warnings`).
 
-## Khi tạo chưa được
+## Xử lý sự cố
+
+Tool của `sirlocked-studio` trả mã lỗi kèm cách sửa; bot chép nguyên hướng dẫn đó cho Yen. Không ai dán khóa vào chat.
+
+### Bridge trả 401 (`BRIDGE_KEY_INVALID`, `BRIDGE_KEY_MISSING`)
+
+Server không nhận khóa bot gửi.
+
+1. Kiểm máy chạy bot có biến mà không in giá trị: PowerShell `[bool]$env:SIRLOCKED_BRIDGE_KEY`, bash `test -n "$SIRLOCKED_BRIDGE_KEY" && echo co`.
+2. Biến vừa đặt mà phiên Claude Code cũ không thấy: đóng hẳn VS Code và mọi terminal, mở lại (Windows); `source ~/.config/sirlocked/env` hoặc SSH lại (VPS studio).
+3. Khóa trên máy và trên server lệch nhau (vừa đổi khóa ở một bên): chạy lại `bash scripts/set-bridge-key.sh` trên máy Yen. Script đặt cùng một khóa cho server và biến Windows; VPS studio thì sửa `~/.config/sirlocked/env`.
+4. Kiểm: `GET https://sirlocked.id.vn/api/bridge/ping` có header `X-Bridge-Key` phải ra 200; không có header ra 401. Bot gọi được bằng `bridge_list`.
+
+401 khi gọi API admin bằng khóa bridge là **đúng thiết kế**: khóa bridge không mở được API admin, JWT của admin không mở được bridge.
+
+### Bridge trả 503
+
+- `BRIDGE_NOT_CONFIGURED`: server chưa có `Bridge__Key`. Yen chạy `bash scripts/set-bridge-key.sh` (đặt khóa và tắt `MOCK_AI_RESPONSES`, `SKIP_ASSET_GENERATION`).
+- 502/503 không có mã, vài giây rồi hết: API đang khởi động lại sau deploy. Đợi `GET /health` trả `Healthy` rồi gõ lại `/tao-vu-an`.
+- `ASSET_STORAGE_UNAVAILABLE` (lúc tải hình): server chưa bật Cloudinary. Yen chạy `bash scripts/set-cloudinary.sh`; `ping` trả `assetStorage: true` là được.
+- `RATE_LIMITED` (429 của bridge): bot gọi quá 240 lần một phút. Đợi một phút rồi làm tiếp.
+
+### Yêu cầu bị treo do lease
+
+Khi bot nhận một yêu cầu (`bridge_take`), yêu cầu thành `TAKEN` trong `Bridge__LeaseHours` (mặc định 2 giờ, tối đa 24). Phiên Claude Code tắt giữa chừng thì yêu cầu nằm đó: `bridge_list` mặc định không hiện nó, nhận lại thì báo `BRIDGE_REQUEST_NOT_TAKEABLE` kèm giờ hết lease.
+
+1. Xem: `bridge_list { status: "TAKEN" }` (cột `leaseExpiresAt`), hoặc `draft_get { draftId }`.
+2. Chắc chắn không còn phiên nào khác đang làm yêu cầu đó (chỉ một phiên `/tao-vu-an` mỗi lúc), rồi `bridge_release { requestId }` và `bridge_take` lại. Còn file trong `tmp/bridge/<requestId>/` thì có thể sửa `answer.json` và `bridge_submit` luôn: yêu cầu `TAKEN` vẫn nộp được.
+3. Không làm gì cũng được: hết lease thì yêu cầu tự hiện lại trong `bridge_list` như `PENDING`.
+
+Yêu cầu bị server từ chối (`REJECTED`) vẫn mở: đọc `errors`, sửa, nộp lại. Yêu cầu `STALE` (server chạy lại bước với prompt khác) thì bỏ, làm yêu cầu mới server vừa tạo.
+
+### PixelLab báo 429
+
+PixelLab giới hạn số job chạy cùng lúc và số lần gọi.
+
+1. Dừng tạo job mới. Chờ job đang chạy xong bằng `wait_for_jobs` hoặc xem `list_jobs` (job bị từ chối vì 429 không chạy, xem lại số dư bằng `get_balance` trước khi tính lượt).
+2. Đợi 1–2 phút rồi chạy tiếp, mỗi lần ít job hơn (skill cho tối đa 10 job cùng lúc; gặp 429 thì hạ xuống 3–5).
+3. Không vòng lặp gọi lại liên tục. Gặp 429 nhiều lần liền: `bridge_release` yêu cầu `ASSETS`, ghi vào `report.md`, báo Yen và để lần gõ sau làm tiếp.
+4. Hết lượt của gói (không phải 429): dừng, báo Yen. Không vượt `order.pixelLabCap` khi Yen chưa đồng ý; có thể làm tiếp bằng thư viện và `asset_variant` (0 lượt).
+
+### Hết hạn mức Claude giữa chừng
+
+Không mất gì. Mọi câu trả lời đã nộp nằm trên server; draft đỗ ở trạng thái chờ Claude (`queueState = AWAITING_CLAUDE`) và đứng yên trong hàng chờ.
+
+1. Khi hạn mức hồi lại, mở phiên Claude Code mới ở gốc repo và gõ `/tao-vu-an`: bot thấy yêu cầu đang chờ và làm tiếp đúng bước đó.
+2. Yêu cầu đang dở có thể còn `TAKEN` tới hết lease: làm như mục "Yêu cầu bị treo do lease".
+3. Đơn FAST bị dừng giữa lúc chạy thử: gõ lại `/tao-vu-an`, bot `draft_get` rồi chạy tiếp `playtest`.
+4. Hay hết hạn mức: chia việc như skill dặn (bước sự thật và logic dùng model mạnh nhất; hình và âm giao agent chạy Sonnet), và làm từng đơn một.
+
+### Lỗi khi đặt đơn hoặc nhập vụ
 
 - `BRIDGE_NOT_CONFIGURED`: server chưa có `Bridge__Key`. Chạy `bash scripts/set-bridge-key.sh`.
 - `AI_WEEKLY_LIMIT`: VIP đã dùng hết số đơn của tuần.
-- `AI_ORDER_INVALID`: một lựa chọn trong `order` không hợp lệ.
+- `AI_ORDER_INVALID`: một lựa chọn trong `order` không hợp lệ (`errors.field` chỉ ô sai).
 - `AI_ORDER_AWAITING_APPROVAL`: đơn VIP chưa được duyệt.
 - `AI_ACTIVE_DRAFT_LIMIT`, `AI_DAILY_LIMIT`: hạn mức số bản nháp khi `AiQuota__Enabled=true`.
 - `ASSET_STORAGE_UNAVAILABLE`: bot tải hình khi server chưa có Cloudinary.
+- `MissingHintLevel`, `DuplicateHintLevel`, `MissingPuzzleHints`: thiếu gợi ý 3 mức (mục "Gợi ý 3 mức cho mọi câu hỏi"). Bản nháp AI: bot sửa đúng chỗ và nộp lại. Vụ mới ở `/admin/import`: thêm gợi ý rồi nhập lại.
+- Tool `playtest` bị cắt giữa chừng trong Claude Code: đặt `MCP_TOOL_TIMEOUT=1800000` rồi mở lại phiên.
 
 ## Sửa chất lượng từ checkpoint
 
