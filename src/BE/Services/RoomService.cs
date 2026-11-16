@@ -85,6 +85,8 @@ public partial class RoomService : IRoomService
         {
             throw ApiException.Forbidden("Vui lòng xác minh email trước khi vào game.");
         }
+        // Người mới chọn "Nhập môn" phải chơi xong màn tân thủ trước.
+        TutorialRules.EnsureNotRequired(account);
     }
 
     public async Task<RoomResponse> CreateAsync(CurrentUser user, string caseId, string? visibility = null)
@@ -482,25 +484,9 @@ public partial class RoomService : IRoomService
             }
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
-            var firstScene = firstStage.Scenes.First();
 
             room.Status = RoomStatus.InProgress;
-            room.GameplayState = new GameplayState
-            {
-                CurrentStageId = firstStage.StageId,
-                CurrentSceneId = firstScene.SceneId,
-                PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
-                Version = 1,
-                VisitedSceneIds = new List<string> { firstScene.SceneId },
-                // Open-coop cases let both detectives roam every place from the first second.
-                UnlockedSceneIds = CaseRuleSets.IsOpenCoop(gameCase)
-                    ? gameCase.Stages.OrderBy(s => s.Order).SelectMany(s => s.Scenes).Select(s => s.SceneId).ToList()
-                    : new List<string> { firstScene.SceneId },
-                GameStatus = GameStatus.InProgress,
-                StartedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            room.GameplayState = CreateInitialGameplayState(gameCase, room.Players.Select(p => p.UserId));
             // READY is the only startable stored status, so two concurrent starts cannot both commit.
             if (!await TrySaveLobbyAsync(room, RoomLifecycle.StartableStatuses))
             {
@@ -512,6 +498,29 @@ public partial class RoomService : IRoomService
             await _notifier.GameStarted(roomId, response);
             return response;
         }
+    }
+
+    /// <summary>The gameplay state a room starts with (also used by the solo tutorial room).</summary>
+    internal static GameplayState CreateInitialGameplayState(GameCase gameCase, IEnumerable<string> userIds)
+    {
+        var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
+        var firstScene = firstStage.Scenes.First();
+        var now = DateTime.UtcNow;
+        return new GameplayState
+        {
+            CurrentStageId = firstStage.StageId,
+            CurrentSceneId = firstScene.SceneId,
+            PlayerSceneIds = userIds.Distinct().ToDictionary(userId => userId, _ => firstScene.SceneId),
+            Version = 1,
+            VisitedSceneIds = new List<string> { firstScene.SceneId },
+            // Open-coop cases let both detectives roam every place from the first second.
+            UnlockedSceneIds = CaseRuleSets.IsOpenCoop(gameCase)
+                ? gameCase.Stages.OrderBy(s => s.Order).SelectMany(s => s.Scenes).Select(s => s.SceneId).ToList()
+                : new List<string> { firstScene.SceneId },
+            GameStatus = GameStatus.InProgress,
+            StartedAt = now,
+            UpdatedAt = now
+        };
     }
 
     /// <summary>Virtual so lifecycle guards can be exercised against an in-memory room without MongoDB.</summary>

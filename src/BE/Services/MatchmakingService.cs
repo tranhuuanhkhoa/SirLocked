@@ -779,5 +779,7 @@ public sealed class MatchmakingService
         var account = await _db.Users.Find(u => u.Id == user.Id).FirstOrDefaultAsync(ct);
         if (account is null || !account.IsEmailVerified)
             throw ApiException.Forbidden("Vui lòng xác minh email trước khi vào game.");
+        // Người mới chọn "Nhập môn" phải chơi xong màn tân thủ trước khi tìm trận.
+        TutorialRules.EnsureNotRequired(account);
     }
 }

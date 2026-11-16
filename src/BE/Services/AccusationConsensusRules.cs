@@ -32,7 +32,8 @@ public static class AccusationConsensusRules
         string playerSceneId,
         AccusationProposalContent content,
         IReadOnlyCollection<string> roomUserIds,
-        DateTime now)
+        DateTime now,
+        int requiredPlayers = 2)
     {
         RequirePlayerRole(role);
         RequireValue(attemptId, nameof(attemptId));
@@ -70,7 +71,7 @@ public static class AccusationConsensusRules
         // Authoring a proposal is a confirmation of it; the partner supplies the second one.
         active.Confirmations.Add(NewConfirmation(userId, role, active.Revision, now));
         state.ActiveAccusation = active;
-        return Advance(state, active, roomUserIds);
+        return Advance(state, active, roomUserIds, requiredPlayers);
     }
 
     public static AccusationTransition Amend(
@@ -81,7 +82,8 @@ public static class AccusationConsensusRules
         AccusationProposalContent content,
         int expectedRevision,
         IReadOnlyCollection<string> roomUserIds,
-        DateTime now)
+        DateTime now,
+        int requiredPlayers = 2)
     {
         RequirePlayerRole(role);
         RequireValue(content.CulpritId, nameof(content.CulpritId));
@@ -102,7 +104,7 @@ public static class AccusationConsensusRules
         Apply(active, content);
         active.Confirmations.Add(NewConfirmation(userId, role, active.Revision, now));
         active.UpdatedAt = now;
-        return Advance(state, active, roomUserIds);
+        return Advance(state, active, roomUserIds, requiredPlayers);
     }
 
     public static AccusationTransition Confirm(
@@ -112,7 +114,8 @@ public static class AccusationConsensusRules
         string role,
         int expectedRevision,
         IReadOnlyCollection<string> roomUserIds,
-        DateTime now)
+        DateTime now,
+        int requiredPlayers = 2)
     {
         RequirePlayerRole(role);
         if (FindTerminal(state, attemptId) is { } terminal)
@@ -132,7 +135,7 @@ public static class AccusationConsensusRules
 
         active.Confirmations.Add(NewConfirmation(userId, role, active.Revision, now));
         active.UpdatedAt = now;
-        return Advance(state, active, roomUserIds);
+        return Advance(state, active, roomUserIds, requiredPlayers);
     }
 
     public static AccusationTransition Cancel(
@@ -170,9 +173,10 @@ public static class AccusationConsensusRules
     private static AccusationTransition Advance(
         GameplayState state,
         AccusationProposalState active,
-        IReadOnlyCollection<string> roomUserIds)
+        IReadOnlyCollection<string> roomUserIds,
+        int requiredPlayers)
     {
-        if (!HasFullConsensus(active, roomUserIds))
+        if (!HasFullConsensus(active, roomUserIds, requiredPlayers))
         {
             return AccusationTransition.ChangedTo(active);
         }
@@ -185,10 +189,11 @@ public static class AccusationConsensusRules
 
     /// <summary>
     /// The team agrees only when every player in the room has confirmed the revision on the table.
-    /// A room that is not a full pair can never resolve this way, which is the whole point.
+    /// A room that is not a full pair can never resolve this way, which is the whole point; the only exception is
+    /// the solo newcomer tutorial room, which asks for one player (<paramref name="requiredPlayers"/> = 1).
     /// </summary>
-    private static bool HasFullConsensus(AccusationProposalState active, IReadOnlyCollection<string> roomUserIds) =>
-        roomUserIds.Count > 1
+    private static bool HasFullConsensus(AccusationProposalState active, IReadOnlyCollection<string> roomUserIds, int requiredPlayers) =>
+        roomUserIds.Count >= Math.Max(1, requiredPlayers)
         && roomUserIds.All(userId => active.Confirmations.Any(confirmation =>
             confirmation.Revision == active.Revision && confirmation.UserId == userId));
 

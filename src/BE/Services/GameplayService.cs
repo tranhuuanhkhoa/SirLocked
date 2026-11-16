@@ -76,7 +76,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 ?? throw ApiException.Conflict("This completed room has no recoverable final accusation snapshot.");
             return ToPlaytestAware(ToResultResponse(GameResultFactory.CreateResult(room.Id, snapshot), gameCase), room);
         }
-        var result = await _gameResults.FindByRoomIdAsync(roomId);
+        var result = await ResultsFor(room).FindByRoomIdAsync(roomId);
         if (result is null)
         {
             if (room.Status == RoomStatus.Completed && room.GameplayState?.FinalAccusationSnapshot is null)
@@ -86,7 +86,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                     room.Id,
                     room.CaseId);
             }
-            result = await GameResultPersistenceCoordinator.MaterializeFromCompletedRoomAsync(room, _gameResults);
+            result = await GameResultPersistenceCoordinator.MaterializeFromCompletedRoomAsync(room, ResultsFor(room));
         }
         return ToResultResponse(result, gameCase);
     }
@@ -1850,11 +1850,15 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             throw ApiException.Conflict("The game state changed; please retry.");
         }
 
+        // Màn tân thủ: the account is marked as having finished it (won or lost), and no result is stored, so the
+        // tutorial gives no XP, coins, leaderboard rows, badges or reviews.
+        if (TutorialRules.IsTutorialRoom(room))
+            await TutorialService.MarkCompletedAsync(_db, room.Players.Select(player => player.UserId), completedAt);
         // A playtest of an unpublished draft writes no GameResult, so no leaderboard, reward, achievement, profile or
         // review ever counts it; the result lives only in the room's final snapshot.
         var result = room.Playtest is not null
             ? GameResultFactory.CreateResult(roomId, snapshot)
-            : await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, _gameResults);
+            : await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, ResultsFor(room));
 
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
         await LogAsync(gameCase, roomId, user.Id, "ACCUSE",
@@ -1870,6 +1874,10 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
     }
 
     // ----- Helpers -----
+
+    /// <summary>The tutorial room keeps its result in memory only (see <see cref="TutorialResultStore"/>).</summary>
+    private IGameResultStore ResultsFor(GameRoom room) =>
+        TutorialRules.IsTutorialRoom(room) ? TutorialResultStore.Instance : _gameResults;
 
     private async Task<(GameRoom Room, GameCase Case, RoomPlayer Player)> LoadContextAsync(string userId, string roomId, bool requireInProgress)
     {

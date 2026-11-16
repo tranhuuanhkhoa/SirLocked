@@ -12,8 +12,11 @@ using SirLocked.Api.Services.Projection;
 
 namespace SirLocked.Api.Services;
 
-public class CaseService : ICaseService, IPixelCaseSeeder
+public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
 {
+    /// <summary>Set once the tutorial case was refreshed from its bundled file in this process.</summary>
+    private static int _tutorialRefreshed;
+
     internal static System.Linq.Expressions.Expression<Func<GameRoom, bool>> ReferencingActiveCase(string caseId) =>
         room => room.CaseId == caseId && (room.Status == RoomStatus.Waiting || room.Status == RoomStatus.Ready || room.Status == RoomStatus.InProgress);
 
@@ -191,7 +194,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder
 
     /// <summary>Case IDs that ship with the server (seed and demo files). They predate the hint rule and only warn.</summary>
     private static readonly IReadOnlySet<string> BundledCaseIds = CrackDemoFiles
-        .Concat(PointClickDemoFiles).Concat(PixelDemoFiles)
+        .Concat(PointClickDemoFiles).Concat(PixelDemoFiles).Append(TutorialRules.CaseFile)
         .Select(Path.GetFileNameWithoutExtension)
         .OfType<string>()
         .Concat(["case-week2-manor", "case-demo-opera-diamond"])
@@ -229,6 +232,10 @@ public class CaseService : ICaseService, IPixelCaseSeeder
 
     public async Task<CaseSummaryResponse> PublishAsync(string caseId)
     {
+        // The newcomer tutorial is played only through its solo room; publishing it would put it in the catalogue.
+        if (TutorialRules.IsTutorialCase(caseId))
+            throw ApiException.Conflict("Màn tân thủ không đăng công khai; người chơi vào qua nút Màn tân thủ.",
+                "TUTORIAL_NOT_PUBLISHABLE", "tutorial.notPublishable");
         var gameCase = await GetCaseAsync(caseId);
 
         if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
@@ -383,6 +390,31 @@ public class CaseService : ICaseService, IPixelCaseSeeder
         return seeded;
     }
 
+    public async Task<GameCase> EnsureTutorialCaseAsync(CancellationToken ct = default)
+    {
+        var existing = await FindCaseAsync(TutorialRules.CaseId);
+        if (existing is null || Interlocked.Exchange(ref _tutorialRefreshed, 1) == 0)
+        {
+            ct.ThrowIfCancellationRequested();
+            var bundled = LoadBundledDemoCase(TutorialRules.CaseFile);
+            try
+            {
+                await UpsertValidatedAsync(bundled, overwrite: true, forceDraft: true);
+            }
+            catch (ApiException error) when (existing is not null
+                && error.Errors is ApiErrorDetails { Code: "CASE_IMMUTABLE_WHILE_ACTIVE" })
+            {
+                // Someone is playing the tutorial right now: keep the stored copy until the next restart.
+                _logger.LogWarning("Tutorial case left unchanged while a tutorial room is active.");
+            }
+            catch (ApiException error) when (existing is null && error.StatusCode == 409)
+            {
+                _logger.LogInformation("Tutorial case was seeded by another instance.");
+            }
+        }
+        return await GetCaseAsync(TutorialRules.CaseId);
+    }
+
     private async Task<CaseSummaryResponse> UpsertValidatedAsync(GameCase gameCase, bool overwrite, bool forceDraft, bool requireHints = false)
     {
         if (forceDraft)
@@ -487,7 +519,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder
 
     private GameCase LoadBundledDemoCase(string fileName)
     {
-        if (!CrackDemoFiles.Concat(PointClickDemoFiles).Concat(PixelDemoFiles).Contains(fileName, StringComparer.Ordinal))
+        if (!CrackDemoFiles.Concat(PointClickDemoFiles).Concat(PixelDemoFiles).Append(TutorialRules.CaseFile).Contains(fileName, StringComparer.Ordinal))
         {
             throw new InvalidOperationException($"Unsupported demo fixture '{fileName}'.");
         }

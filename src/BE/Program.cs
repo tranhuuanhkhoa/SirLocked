@@ -150,6 +150,8 @@ builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>(
 builder.Services.AddScoped<CaseService>();
 builder.Services.AddScoped<ICaseService>(services => services.GetRequiredService<CaseService>());
 builder.Services.AddScoped<IPixelCaseSeeder>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddScoped<ITutorialCaseSeeder>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddScoped<ITutorialService, TutorialService>();
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
 builder.Services.AddScoped<AiBridgeRequestStore>();
