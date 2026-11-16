@@ -10,7 +10,7 @@ using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.Services;
 
-public class RoomService : IRoomService
+public partial class RoomService : IRoomService
 {
     public const int MaxPlayers = 2;
     public const int MyRoomsLimit = 20;
@@ -120,24 +120,28 @@ public class RoomService : IRoomService
             }
         };
 
-        // Room codes are random; retry on the rare unique-index collision.
+        await InsertWithRoomCodeAsync(room);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
+    }
+
+    /// <summary>Room codes are random; retry on the rare unique-index collision.</summary>
+    private async Task InsertWithRoomCodeAsync(GameRoom room)
+    {
         for (var attempt = 0; ; attempt++)
         {
             room.RoomCode = GenerateRoomCode();
             try
             {
                 await _db.Rooms.InsertOneAsync(room);
-                break;
+                return;
             }
             catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey && attempt < 5)
             {
             }
         }
-
-        return await ToLobbyResponseAsync(room, gameCase.Title);
     }
 
-    public async Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode)
+    public async Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode, string? inviteToken = null)
     {
         await EnsureEmailVerifiedAsync(user);
 
@@ -152,6 +156,11 @@ public class RoomService : IRoomService
             // Re-joining your own room (e.g. page refresh) is idempotent.
             return await ToLobbyResponseAsync(room, gameCase.Title);
         }
+
+        // A playtest of an unpublished draft: the room code alone lets nobody in (checked before "full" or "started",
+        // so a stranger learns nothing about the room).
+        var entry = room.Playtest is null ? PlaytestEntry.Allowed : PlaytestRoomRules.Evaluate(room.Playtest, user, inviteToken);
+        if (entry == PlaytestEntry.Forbidden) throw PlaytestRoomRules.Forbidden();
 
         if (room.Status is RoomStatus.InProgress or RoomStatus.Completed)
         {
@@ -173,9 +182,21 @@ public class RoomService : IRoomService
             Builders<GameRoom>.Filter.Eq(r => r.Id, room.Id),
             Builders<GameRoom>.Filter.Eq(r => r.Status, RoomStatus.Waiting),
             Builders<GameRoom>.Filter.SizeLt(r => r.Players, MaxPlayers));
+        if (entry == PlaytestEntry.ClaimsInvite)
+        {
+            // The invite is single use: whoever claims it first is the only one it ever lets in.
+            joinFilter &= Builders<GameRoom>.Filter.Eq(r => r.Playtest!.InvitedUserId, null);
+            update = update.Set(r => r.Playtest!.InvitedUserId, user.Id);
+        }
         var result = await _db.Rooms.UpdateOneAsync(joinFilter, update);
         if (result.ModifiedCount == 0)
         {
+            if (entry == PlaytestEntry.ClaimsInvite)
+            {
+                var latest = await RequireRoomAsync(room.Id);
+                if (latest.Playtest is { } claimed && PlaytestRoomRules.Evaluate(claimed, user, inviteToken) == PlaytestEntry.Forbidden)
+                    throw PlaytestRoomRules.Forbidden();
+            }
             throw ApiException.Conflict("This room is already full or has started.");
         }
 
@@ -208,7 +229,7 @@ public class RoomService : IRoomService
             {
                 Id = room.Id, RoomCode = room.RoomCode, CaseId = room.CaseId,
                 HostUserId = room.HostUserId, Status = room.Status, Players = room.Players,
-                Visibility = room.Visibility, CreatedAt = room.CreatedAt
+                Visibility = room.Visibility, CreatedAt = room.CreatedAt, Playtest = room.Playtest
             })
             .ToListAsync(cancellationToken);
         if (rooms.Count == 0) return [];

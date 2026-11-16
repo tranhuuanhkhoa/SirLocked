@@ -521,6 +521,9 @@ public class GameStateResponse
     /// <summary>Open co-op: wrong accusations left before the case is lost.</summary>
     public int AccusationAttemptsLeft { get; set; }
     public GamePresentationDto? Presentation { get; set; }
+    /// <summary>A playtest room of an unpublished AI draft. Left out of the JSON for every other room.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsPlaytest { get; set; }
     public string RoomId { get; set; } = string.Empty;
     public string RoomCode { get; set; } = string.Empty;
     public string HostUserId { get; set; } = string.Empty;

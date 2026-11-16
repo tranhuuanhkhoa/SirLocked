@@ -20,6 +20,25 @@ public class JoinRoomRequest
 {
     [Required]
     public string RoomCode { get; set; } = string.Empty;
+
+    /// <summary>The secret of a playtest invite link (<c>/join?code=…&amp;invite=…</c>); ignored by ordinary rooms.</summary>
+    [MaxLength(128)]
+    public string? InviteToken { get; set; }
+}
+
+/// <summary>What a member sees of a playtest room. The invite secret is shown only while nobody has claimed it.</summary>
+public class RoomPlaytestDto
+{
+    public string DraftId { get; set; } = string.Empty;
+    public bool InviteClaimed { get; set; }
+    public string? InviteToken { get; set; }
+
+    public static RoomPlaytestDto? From(RoomPlaytest? playtest) => playtest is null ? null : new()
+    {
+        DraftId = playtest.DraftId,
+        InviteClaimed = !string.IsNullOrWhiteSpace(playtest.InvitedUserId),
+        InviteToken = string.IsNullOrWhiteSpace(playtest.InvitedUserId) ? playtest.InviteToken : null
+    };
 }
 
 public class SelectRoleRequest
@@ -77,6 +96,9 @@ public class RoomResponse
     public string Visibility { get; set; } = RoomVisibility.Private;
     public List<RoomPlayerDto> Players { get; set; } = new();
     public DateTime CreatedAt { get; set; }
+    /// <summary>Only on playtest rooms of unpublished AI drafts.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public RoomPlaytestDto? Playtest { get; set; }
 
     public static RoomResponse From(GameRoom room, string caseTitle) => new()
     {
@@ -89,7 +111,8 @@ public class RoomResponse
         Visibility = room.Visibility,
         Players = room.Players.Select(player => RoomPlayerDto.From(player,
             room.Status == RoomStatus.InProgress ? room.GameplayState?.StartedAt : null)).ToList(),
-        CreatedAt = room.CreatedAt
+        CreatedAt = room.CreatedAt,
+        Playtest = RoomPlaytestDto.From(room.Playtest)
     };
 }
 

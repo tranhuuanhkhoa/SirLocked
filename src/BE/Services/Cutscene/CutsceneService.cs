@@ -24,12 +24,15 @@ public sealed class CutsceneService(
 
     // ---------------------------------------------------------------- players
 
-    /// <summary>The approved intro for a case players can open, or null (no cutscene, disabled, or the case is hidden).</summary>
-    public async Task<PlayerCutsceneDto?> GetPlayerIntroAsync(string caseId, CancellationToken ct = default)
+    /// <summary>
+    /// The approved intro for a case players can open, or null (no cutscene, disabled, or the case is hidden).
+    /// <paramref name="playtest"/>: the caller sits in a playtest room of this unpublished case, so it is shown anyway.
+    /// </summary>
+    public async Task<PlayerCutsceneDto?> GetPlayerIntroAsync(string caseId, CancellationToken ct = default, bool playtest = false)
     {
         if (!settings.Value.Enabled) return null;
         var gameCase = await cases.FindCaseAsync(caseId);
-        if (gameCase is null || !catalog.IsPlayable(gameCase)) return null;
+        if (gameCase is null || (!playtest && !catalog.IsPlayable(gameCase))) return null;
         var approved = (await store.ListAsync(caseId, Trigger, ct)).FirstOrDefault(c => c.Status == CutsceneStatus.Approved);
         var script = approved is null ? null : TryParse(approved.ScriptJson);
         if (approved is null || script is null) return null;

@@ -30,6 +30,8 @@ public static class PublicRoomRules
                 f.Gte(r => r.CreatedAt, now - NewRoomGrace)));
         return f.And(
             f.Eq(r => r.Visibility, RoomVisibility.Public),
+            // A playtest of an unpublished draft is private by construction; never list one even if it were public.
+            f.Eq(r => r.Playtest, null),
             f.Or(waitingWithSeat, f.Eq(r => r.Status, RoomStatus.InProgress)));
     }
 

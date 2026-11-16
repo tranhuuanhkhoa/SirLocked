@@ -26,7 +26,7 @@ namespace SirLocked.IntegrationTests;
 /// The pixel catalogue against a real loopback MongoDB (SIRLOCKED_RUN_MONGO_IT=true): with PixelOnly on,
 /// players only see and play pixel cases; older cases stay in the database and old rooms keep working.
 /// </summary>
-public sealed class MongoCaseCatalogTests
+public sealed partial class MongoCaseCatalogTests
 {
     private const string Classic = "case-v3-broken-seal-vi";
     private const string ClassicEn = "case-v3-broken-seal-en";

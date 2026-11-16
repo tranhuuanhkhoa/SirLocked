@@ -28,12 +28,32 @@ public class GameRoom
     public string? MatchId { get; set; }
     /// <summary>Optimistic-concurrency version for lobby mutations before gameplay starts.</summary>
     public long LobbyVersion { get; set; } = 1;
+    /// <summary>
+    /// Set only for a playtest of an imported, unpublished AI draft (see <c>PlaytestRoomRules</c>): only an admin, the
+    /// draft's author and the one player who claimed the invite link can join, and the finished game writes no result.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    public RoomPlaytest? Playtest { get; set; }
 
     /// <summary>Embedded authoritative runtime state; null until the game starts.</summary>
     public GameplayState? GameplayState { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class RoomPlaytest
+{
+    public string DraftId { get; set; } = string.Empty;
+    /// <summary>The user who ordered the draft (<c>AiCaseDraft.CreatedByUserId</c>); may join without the invite.</summary>
+    public string AuthorUserId { get; set; } = string.Empty;
+    public string CreatedByUserId { get; set; } = string.Empty;
+    /// <summary>Secret of the invite link. The first other player who joins with it becomes <see cref="InvitedUserId"/>.</summary>
+    public string InviteToken { get; set; } = string.Empty;
+    /// <summary>Null until the invite link is used; after that the link lets no one else in.</summary>
+    [BsonIgnoreIfNull]
+    public string? InvitedUserId { get; set; }
 }
 
 [BsonIgnoreExtraElements]

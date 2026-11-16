@@ -25,7 +25,7 @@ public class RoomsController : BaseApiController
 
     [HttpPost("join")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Join([FromBody] JoinRoomRequest request) =>
-        Ok(await _roomService.JoinAsync(Caller, request.RoomCode), "Joined room.");
+        Ok(await _roomService.JoinAsync(Caller, request.RoomCode, request.InviteToken), "Joined room.");
 
     [HttpGet("mine")]
     public async Task<ActionResult<ApiResponse<List<RoomResponse>>>> Mine(CancellationToken cancellationToken) =>

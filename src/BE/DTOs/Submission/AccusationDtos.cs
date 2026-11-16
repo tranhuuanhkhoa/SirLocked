@@ -68,4 +68,7 @@ public class GameResultResponse
     public List<EvidenceClaimResult> EvidenceResults { get; set; } = new();
     public ScoreSummary? ScoreSummary { get; set; }
     public DateTime CompletedAt { get; set; }
+    /// <summary>A playtest of an unpublished draft: nothing was ranked or rewarded. Left out of the JSON otherwise.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsPlaytest { get; set; }
 }

@@ -30,6 +30,7 @@ public class GameStateBuilder : IGameStateBuilder
         var sceneId = state.PlayerSceneIds.GetValueOrDefault(userId, state.CurrentSceneId);
         return new GameStateResponse
         {
+            IsPlaytest = room.Playtest is not null,
             RoomId = room.Id,
             RoomCode = room.RoomCode,
             HostUserId = room.HostUserId,
@@ -154,6 +155,7 @@ public class GameStateBuilder : IGameStateBuilder
 
         var response = new GameStateResponse
         {
+            IsPlaytest = room.Playtest is not null,
             RoomId = room.Id,
             RoomCode = room.RoomCode,
             HostUserId = room.HostUserId,

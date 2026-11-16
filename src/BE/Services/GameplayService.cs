@@ -68,6 +68,14 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
     public async Task<GameResultResponse> GetResultAsync(string userId, string roomId)
     {
         var (room, gameCase, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
+        if (room.Playtest is not null)
+        {
+            // A playtest never stored a result: rebuild it from the room's own final snapshot.
+            if (room.Status != RoomStatus.Completed) throw ApiException.NotFound("No result for this room yet.");
+            var snapshot = room.GameplayState?.FinalAccusationSnapshot
+                ?? throw ApiException.Conflict("This completed room has no recoverable final accusation snapshot.");
+            return ToPlaytestAware(ToResultResponse(GameResultFactory.CreateResult(room.Id, snapshot), gameCase), room);
+        }
         var result = await _gameResults.FindByRoomIdAsync(roomId);
         if (result is null)
         {
@@ -1842,14 +1850,18 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             throw ApiException.Conflict("The game state changed; please retry.");
         }
 
-        var result = await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, _gameResults);
+        // A playtest of an unpublished draft writes no GameResult, so no leaderboard, reward, achievement, profile or
+        // review ever counts it; the result lives only in the room's final snapshot.
+        var result = room.Playtest is not null
+            ? GameResultFactory.CreateResult(roomId, snapshot)
+            : await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, _gameResults);
 
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
         await LogAsync(gameCase, roomId, user.Id, "ACCUSE",
             success ? $"{user.FullName} accused {accusedName} — the case is solved!" : $"{user.FullName} accused {accusedName} — the accusation failed.",
             new { request.CulpritId, request.MotiveId, request.MethodId, EvidenceIds = submittedEvidenceIds });
 
-        var resultResponse = ToResultResponse(result, gameCase);
+        var resultResponse = ToPlaytestAware(ToResultResponse(result, gameCase), room);
         if (ShouldBroadcastDetailedEvents(gameCase))
             await _notifier.GameCompleted(roomId, resultResponse);
         var completedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
@@ -2131,6 +2143,12 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
             ? ApiException.BadRequest(message)
             : ApiException.BadRequest(message, details);
+
+    private static GameResultResponse ToPlaytestAware(GameResultResponse response, GameRoom room)
+    {
+        response.IsPlaytest = room.Playtest is not null;
+        return response;
+    }
 
     internal static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {

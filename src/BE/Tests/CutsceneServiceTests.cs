@@ -175,6 +175,25 @@ public sealed class CutsceneServiceTests
     }
 
     [Fact]
+    public async Task PlaytestMembers_SeeTheApprovedIntroOfAnUnpublishedCase_StillNeverADraftScript()
+    {
+        var unpublished = new Rig(published: false);
+        var draftId = (await unpublished.Service.GenerateAsync(unpublished.Case.CaseId, false, "admin")).Latest!.Id;
+        Assert.Null(await unpublished.Service.GetPlayerIntroAsync(unpublished.Case.CaseId, playtest: true)); // not approved yet
+        await unpublished.Service.ApproveAsync(unpublished.Case.CaseId, draftId, "admin");
+
+        Assert.Null(await unpublished.Service.GetPlayerIntroAsync(unpublished.Case.CaseId)); // ordinary players: hidden
+        var playtest = await unpublished.Service.GetPlayerIntroAsync(unpublished.Case.CaseId, playtest: true);
+        Assert.NotNull(playtest);
+        Assert.Equal(unpublished.Case.CaseId, playtest!.CaseId);
+
+        var off = new Rig(cutscene: new CutsceneSettings { Enabled = false }, published: false);
+        var offId = (await off.Service.GenerateAsync(off.Case.CaseId, false, "admin")).Latest!.Id;
+        await off.Service.ApproveAsync(off.Case.CaseId, offId, "admin");
+        Assert.Null(await off.Service.GetPlayerIntroAsync(off.Case.CaseId, playtest: true)); // the master switch still wins
+    }
+
+    [Fact]
     public void Controllers_RequireTheRightRoles()
     {
         var admin = typeof(AdminCutscenesController).GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().Single();

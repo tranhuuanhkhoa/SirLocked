@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.DTOs.Case;
+using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
@@ -61,6 +62,14 @@ public class AdminAiCasesController : BaseApiController
                 new { before.OrderStatus, before.CreatedByUserId }, new { rejected.OrderStatus }, request.Reason, ct);
         return Ok(rejected, "Order rejected.");
     }
+
+    /// <summary>
+    /// "Chơi thử": opens (or reopens) the caller's private playtest room of an imported, unpublished draft. ADMIN or the
+    /// draft's author only; the second seat is taken through the room's single-use invite link.
+    /// </summary>
+    [HttpPost("{draftId}/playtest")]
+    public async Task<ActionResult<ApiResponse<RoomResponse>>> Playtest(string draftId, [FromServices] IRoomService rooms) =>
+        Ok(await rooms.CreatePlaytestAsync(Caller, draftId), "Playtest room ready.");
 
     [HttpGet("settings")]
     [Authorize(Roles = UserRole.Admin)]
