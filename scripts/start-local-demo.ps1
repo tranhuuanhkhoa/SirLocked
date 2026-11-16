@@ -7,7 +7,11 @@ param(
     [switch]$NoBuild,
     # Old (non-pixel) demo cases are hidden and no longer seeded. This switch turns the pixel-only catalogue off
     # and seeds them again, for the legacy test flows.
-    [switch]$LegacyCases
+    [switch]$LegacyCases,
+    # Runs AI orders through the Claude bridge instead of the instant mock answers: orders then wait for Claude
+    # ("Cho Claude"). The key comes from $env:SIRLOCKED_BRIDGE_KEY (the bot's variable) or is random and never shown.
+    # scripts/bridge-smoke.mjs can play the bot against this demo with the same key.
+    [switch]$Bridge
 )
 
 $ErrorActionPreference = 'Stop'
@@ -139,6 +143,21 @@ $overrides = @{
     GameplayV3__PlaytestInstrumentationEnabled = 'false'
 }
 if ($LegacyCases) { $overrides['CaseCatalog__PixelOnly'] = 'false' }
+if ($Bridge) {
+    $bridgeKey = $env:SIRLOCKED_BRIDGE_KEY
+    if (!$bridgeKey -or $bridgeKey.Length -lt 32) {
+        $keyBytes = New-Object byte[] 32
+        $keyRng = [Security.Cryptography.RandomNumberGenerator]::Create()
+        try { $keyRng.GetBytes($keyBytes) } finally { $keyRng.Dispose() }
+        $bridgeKey = -join ($keyBytes | ForEach-Object { $_.ToString('x2') })
+    }
+    $overrides.Remove('MOCK_AI_RESPONSES')
+    $overrides.Remove('SKIP_ASSET_GENERATION')
+    $overrides['AiGeneration__MockAiResponses'] = 'false'
+    $overrides['Bridge__Key'] = $bridgeKey
+    $overrides['Bridge__ExposeMockResponses'] = 'true'
+    $overrides['Bridge__AllowLocalAssetStorage'] = 'true'
+}
 try {
     $ownedProcesses += Start-DemoProcess 'mongo' $MongoExecutable @(
         '--bind_ip', '127.0.0.1', '--port', $MongoPort,
@@ -197,6 +216,7 @@ try {
     Write-Host "Local demo password: $demoPassword"
     Write-Host 'Open two browser profiles/private windows, select different roles, ready both players, then start.'
     Write-Host 'Pick a pixel case (Tram hong ngoc mat tich / Lo thuoc thu Nam). Older cases are hidden; use -LegacyCases to bring them back.'
+    if ($Bridge) { Write-Host 'AI orders wait for the Claude bridge. Play the bot: node scripts/bridge-smoke.mjs (same SIRLOCKED_BRIDGE_KEY).' }
     Write-Host 'Stop with ./scripts/stop-local-demo.ps1. Saved local matches are retained.'
 }
 catch {
