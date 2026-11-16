@@ -35,6 +35,11 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
 - **Nhân vật mới: vẽ mặt trước nhìn thẳng hướng south trước, rồi mới xoay.** Tham chiếu là sprite Sherlock V3 96 hướng south, usage chỉ lấy phong cách: "art style reference only ... do NOT copy his face, hat, coat or identity". Chọn ứng viên nhìn thẳng. Ứng viên nghiêng làm 8 hướng lệch.
 - **Không tạo lại Sherlock và Watson.** Hai nhân vật người chơi đã có sẵn ở PixelLab và trong `/assets/pixel/players/`.
 - **Idle dùng đúng câu action thở của Sherlock.** NPC chỉ cần idle theo hướng đang đứng.
+- **NPC thư viện chung cũng đi đúng ba bước trên** (`character-front` → `character-rotate` → `character-idle`, 14 lượt mỗi NPC).
+  - Không tạo thẳng bằng `create_character` từ chữ.
+  - Không ghi "chibi", "large head" hay kiểu viền vào prompt.
+  - Đi đúng quy trình thì ảnh tự ra đúng phong cách: tỉ lệ người thật như Sherlock, Watson và NPC vụ Lò thuốc. Người cao, người thấp, trẻ em là tùy nhân vật, đều trong khung 96×96. Không khóa chiều cao theo pixel.
+  - Đợt 0 (16/11) làm tắt (3 lượt mỗi NPC) nên ra kiểu chibi đầu to, mắt to. 39 NPC đó đã khóa (`retired`) trong `tools/studio-mcp/library/index.json`, chờ vẽ lại.
 - **Mask và ảnh tham chiếu ngoại thất lấy từ bản đồ NATIVE 512**, không dùng bản phóng to. Ghép animation môi trường lại đúng toạ độ crop.
 - **Nội thất:** isometric 2:1, một sàn + hai tường sau, mặt trước và ngưỡng cửa để trống, không NPC. Vật phẩm điều tra của cảnh phải có trong mô tả vì pixel mode vẽ vật vào nền.
 - **Lần tạo đầu theo yêu cầu thì chạy. Tạo lại hoặc reroll bằng AI phải hỏi chủ dự án trước.** Kể cả khi kết quả chưa đẹp: báo vấn đề, đề xuất sửa prompt, chờ đồng ý.

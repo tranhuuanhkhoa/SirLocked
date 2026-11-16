@@ -1,6 +1,6 @@
 # Màn tân thủ "Nhập môn: Ấm men lam"
 
-Vụ pixel cực dễ để dạy cách chơi. Thượng Hải 1930, chơi một mình, khoảng 10 phút. Không tốn lượt PixelLab nào: mọi hình lấy lại từ thư viện Đợt 0.
+Vụ pixel cực dễ để dạy cách chơi. Thượng Hải 1930, chơi một mình, khoảng 10 phút. Cảnh và vật lấy lại từ thư viện Đợt 0 (0 lượt). 4 NPC vẽ mới theo chuẩn PixelLab (56 lượt, 17/11/2026).
 
 ## Cốt truyện
 
@@ -11,7 +11,7 @@ Chiếc ấm men lam đời Minh của trà lâu Vọng Nguyệt biến mất kh
 | Trà lâu Vọng Nguyệt (trong nhà, isometric, không mưa) | `c-room-tra-lau` | Ông Lưu, cô Tô Mỹ Lan, sổ khách, thư xé (giải đố `torn_paper`), khay trà (chụp ảnh) |
 | Ngõ Thạch Khố Môn (ngoài trời, mưa phùn) | `c-map-ngo-thach-kho-mon` | A Phúc phu xe kéo, ngài Hamilton, hòm gỗ trên xe kéo |
 
-Nhân vật: `c-npc-02-chu-tra-lau` (ông Lưu), `c-npc-01-ca-si` (Mỹ Lan), `j-npc-02-phu-xe-keo` (A Phúc), `v-npc-15-quy-ong` (Hamilton). Thư viện chưa có hoạt ảnh đứng cho họ nên ảnh thở làm bằng code; chân dung 288×288 là hướng south 96×96 phóng ×3. Icon ấm men lam vẽ bằng code (`draw_teapot.py`).
+Nhân vật: 4 NPC PixelLab vẽ theo quy trình chuẩn `ai-game-docs/visual-style-templates/pixellab` (mặt trước có ảnh Sherlock làm mẫu → `create_character` v3 → idle thở v3 9 khung), cùng phong cách với Sherlock, Watson và NPC vụ Lò thuốc. ID PixelLab ghi trong `build_assets.py`. Bản đầu dùng NPC chibi của thư viện Đợt 0 (to và bè hơn Sherlock) nên đã thay. Chân dung 288×288 là hướng south 96×96 phóng ×3. Icon ấm men lam vẽ bằng code (`draw_teapot.py`).
 
 Nhạc: `thuong-hai-tra-lau` (trong nhà), `thuong-hai-ngo-thach-kho-mon` (ngoài ngõ). Mỗi nhân vật một tiếng bíp riêng. Đủ gợi ý 3 mức cho 2 cảnh, lần đối chất, và 3 gợi ý trong câu đố.
 
@@ -24,7 +24,7 @@ Các bước nằm ở `src/FE/Client/js/game/tutorialSteps.ts`; thẻ hướng 
 ## Dựng lại
 
 ```bash
-python3 ai-game-docs/pixel-case-tan-thu/build_assets.py <thư mục files của thư viện Đợt 0> src/FE/public/assets/pixel/tan-thu
+python3 ai-game-docs/pixel-case-tan-thu/build_assets.py <thư mục files của thư viện Đợt 0> <thư mục 4 zip NPC: ong-luu.zip, co-lan.zip, hamilton.zip, a-phuc.zip> src/FE/public/assets/pixel/tan-thu
 python3 ai-game-docs/pixel-case-tan-thu/build_case.py
 ```
 

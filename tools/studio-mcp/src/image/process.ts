@@ -190,16 +190,34 @@ export function breatheFrames(south: Rgba): Rgba[] {
 export const IDLE_SEQUENCE = [0, 1, 2, 3, 3, 2, 1, 0, 0];
 
 /**
+ * The 9 frames of the idle sheet. The templates.json idle (animate_character v3, 8 frames + the kept first frame)
+ * already has 9 frames and plays in order; a 4-frame template clip plays 0-1-2-3-3-2-1-0-0; none: the code breathes.
+ */
+export function idleFrames(npc: NpcSources): Rgba[] {
+  if (npc.idle.length === 0) return breatheFrames(npc.south);
+  if (npc.idle.length >= 9) return npc.idle.slice(0, 9);
+  return IDLE_SEQUENCE.map((index) => npc.idle[index % npc.idle.length]);
+}
+
+/**
  * The game's NPC idle sheet: 9 frames of 128x128 side by side (1152x128), feet at y=104 of each frame, x offset 16
- * (as in the two pixel cases). PixelLab idle frames play 0-1-2-3-3-2-1-0-0; without them the code breathes.
+ * (as in the two pixel cases). v3 animation frames sit on a larger canvas than the 96 sprite (108-116 px, the
+ * character centred with room to move): each frame is shifted back by half the difference so the character lands
+ * where its south sprite would, and clipped to its own cell.
  */
 export function idleSheet(npc: NpcSources): { image: Rgba; source: 'pixellab-idle' | 'code-breathing'; anchorY: number } {
-  const frames = npc.idle.length > 0 ? IDLE_SEQUENCE.map((index) => npc.idle[index % npc.idle.length]) : breatheFrames(npc.south);
+  const frames = idleFrames(npc);
   const sheet = blank(128 * 9, 128);
   const bounds = opaqueBounds(npc.south);
   const feet = bounds ? bounds.y1 : npc.south.height - 1;
   const dy = 104 - feet;
-  frames.forEach((frame, index) => alphaComposite(sheet, frame, index * 128 + 16, dy));
+  frames.forEach((frame, index) => {
+    const ox = Math.round((frame.width - npc.south.width) / 2);
+    const oy = Math.round((frame.height - npc.south.height) / 2);
+    const cell = blank(128, 128);
+    alphaComposite(cell, frame, 16 - ox, dy - oy);
+    alphaComposite(sheet, cell, index * 128, 0);
+  });
   return { image: sheet, source: npc.idle.length > 0 ? 'pixellab-idle' : 'code-breathing', anchorY: Math.round((105 / 128) * 10000) / 10000 };
 }
 

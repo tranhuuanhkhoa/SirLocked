@@ -6,11 +6,13 @@ import { zipSync } from 'fflate';
 import {
   breatheFrames, checkSize, cleanText, cover, cutBackground, fit, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
 } from '../src/image/process.js';
-import { encode, loadRgba, opaqueBounds } from '../src/image/raster.js';
+import { crop, encode, loadRgba, opaqueBounds, type Rgba } from '../src/image/raster.js';
 import { assetProcess } from '../src/tools/assets.js';
 import { paint, pixel, realRepoRoot, tempRepo, testContext } from './helpers.js';
 
 /** A 96x96 chibi stand-in: transparent canvas, opaque body from y=20 to y=85. */
+const crop9 = (image: Rgba, index: number) => crop(image, index * 128, 0, 128, 128);
+
 const sprite = () => paint(96, 96, (x, y) => (x >= 30 && x < 66 && y >= 20 && y <= 85 ? [120 + (y % 7), 60, 40, 255] : [0, 0, 0, 0]));
 
 describe('asset_process building blocks', () => {
@@ -75,6 +77,29 @@ describe('asset_process building blocks', () => {
     assert.equal(sheet.source, 'pixellab-idle');
     const shades = Array.from({ length: 9 }, (_, index) => pixel(sheet.image, index * 128 + 16 + 40, 70)[0]);
     assert.deepEqual(shades, [10, 20, 30, 40, 40, 30, 20, 10, 10]);
+  });
+
+  test('a v3 idle of 9 frames on a 116 canvas plays in order with the feet at y=104, where the south sprite stands', async () => {
+    // As PixelLab returns templates.json's character-idle: the 96 character centred on 116x116 (10 px of room).
+    const frame = (shade: number) => paint(116, 116, (x, y) => (x >= 40 && x < 76 && y >= 30 && y <= 95 ? [shade, shade, shade, 255] : [0, 0, 0, 0]));
+    const zip = zipSync({
+      'Idle/rotations/south.png': new Uint8Array(await encode(sprite(), 'png')),
+      ...Object.fromEntries(await Promise.all(Array.from({ length: 9 }, async (_, index) => [
+        `Idle/animations/npc_idle_south/south/frame_00${index}.png`, new Uint8Array(await encode(frame(10 + index * 10), 'png')),
+      ]))),
+    });
+    const npc = await npcFromZip(zip);
+    assert.equal(npc.idle.length, 9);
+    const sheet = idleSheet(npc);
+    assert.equal(sheet.source, 'pixellab-idle');
+    assert.equal(sheet.image.width, 1152);
+    const shades = Array.from({ length: 9 }, (_, index) => pixel(sheet.image, index * 128 + 16 + 40, 70)[0]);
+    assert.deepEqual(shades, [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    for (let index = 0; index < 9; index++) {
+      const cell = opaqueBounds(crop9(sheet.image, index))!;
+      // Same place as the code-breathing sheet of the same sprite: x 46..81, feet on y=104.
+      assert.deepEqual([cell.x0, cell.x1, cell.y1], [46, 81, 104], `frame ${index}`);
+    }
   });
 
   test('portrait is 288x288 nearest neighbour (each sprite pixel becomes 3x3)', () => {

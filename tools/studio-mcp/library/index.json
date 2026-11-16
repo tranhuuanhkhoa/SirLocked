@@ -1267,7 +1267,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837904/sirlocked/cases/library/j-npc-01-geisha/idle-7ae8762a1166.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837902/sirlocked/cases/library/j-npc-01-geisha/main-fbedad541e92.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-01-geisha.zip",
         "files": {
@@ -1285,7 +1285,10 @@
           "main": "fbedad541e92805be467550bc45de13a0656c68b055d85e94836021684ef343d",
           "sprite": "0e91efe4fce9b68e26155eac365e03e9c9cc1a75fec0d7835075f9adcd34200e",
           "idle": "7ae8762a1166965534f6a0e5607f20f24441f1061cd5f0f6e9ad7ecf485442d2"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1312,7 +1315,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837907/sirlocked/cases/library/j-npc-02-phu-xe-keo/idle-e95702751ca4.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837905/sirlocked/cases/library/j-npc-02-phu-xe-keo/main-0878493434f3.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-02-phu-xe-keo.zip",
         "files": {
@@ -1330,7 +1333,10 @@
           "main": "0878493434f343f1eef7a87e5cb2c3697bace2a7c53170f26a4d16a67a99a4a5",
           "sprite": "3ac39149bf8e37aba42765c62efe7584bda57610fe7c3098a93d70947ffa28be",
           "idle": "e95702751ca449d9f802cadf73ddc7f1c7773662097c25ee98e3b8e9e474d1ec"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1357,7 +1363,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837910/sirlocked/cases/library/j-npc-03-canh-sat/idle-7bd64eb39b46.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837908/sirlocked/cases/library/j-npc-03-canh-sat/main-011f5da909fa.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-03-canh-sat.zip",
         "files": {
@@ -1375,7 +1381,10 @@
           "main": "011f5da909fac8ae2dfd855a64c11157ad3d281d5d3b3adb69ffc3c764cdba6e",
           "sprite": "407197ebc5ce6e5738aefca856652e779f7d35c8fcab3e0e9f554042d8076126",
           "idle": "7bd64eb39b46fe81ff5f38e4607735f3ccd6b6e4f6f7918b36c8caa35735cda2"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1402,7 +1411,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837913/sirlocked/cases/library/j-npc-04-nu-sinh/idle-af24941cae9f.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837911/sirlocked/cases/library/j-npc-04-nu-sinh/main-89746658b0ce.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-04-nu-sinh.zip",
         "files": {
@@ -1420,7 +1429,10 @@
           "main": "89746658b0ce586ffb332e9a1e755a79adc2665f353d2566cc4a084677e0f966",
           "sprite": "f4cbf47ad4fa12dd933a9fcb4befbdba499a36f87bc3a54b98896aa7b8ad33d0",
           "idle": "af24941cae9f4aa3d50807f223523c0c93c65edcb8ea6c526b28c4098eb026ba"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1447,7 +1459,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837915/sirlocked/cases/library/j-npc-05-thuong-gia/idle-09d8c36edf2f.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837914/sirlocked/cases/library/j-npc-05-thuong-gia/main-232b5b17ea3c.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-05-thuong-gia.zip",
         "files": {
@@ -1465,7 +1477,10 @@
           "main": "232b5b17ea3c9e24ca2208490d6d32b02d6c8de34a2c2f2d524834d7e59c124b",
           "sprite": "1af29ddf2c76e62ba707069c02d480a5c558f2d2f7f3dde6c8a38f5070e241ce",
           "idle": "09d8c36edf2f2b719c00bfb2aaffc89b9ecbb116cfc3d1be01a6c5ccb2e6b9a0"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1492,7 +1507,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837918/sirlocked/cases/library/j-npc-06-nha-su/idle-cac0b93e1eab.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837916/sirlocked/cases/library/j-npc-06-nha-su/main-3b03b0a2c702.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-06-nha-su.zip",
         "files": {
@@ -1510,7 +1525,10 @@
           "main": "3b03b0a2c70239ef3a2feda3653f8295f69fe9f0a9c37c4063dc93ba312c4742",
           "sprite": "eeff5b2540951915e8c771fba7a1421bed3d1eb96dd6f5fdccdae8b9bfd28b3c",
           "idle": "cac0b93e1eab12d6af24bab6bbfae505174779aaee3ae882a4c0d273033a0c44"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1537,7 +1555,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837921/sirlocked/cases/library/j-npc-07-co-ban-hang/idle-e47be71b052c.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837919/sirlocked/cases/library/j-npc-07-co-ban-hang/main-3eea063000f4.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-07-co-ban-hang.zip",
         "files": {
@@ -1555,7 +1573,10 @@
           "main": "3eea063000f46c4d4eb53ac155e74af290cec4d9f58ed8f2a6e9c1b8a19a1fc9",
           "sprite": "c16511738c4b608955a9504a0d03ef5e1ea56329b191c9a61976a46371b46efd",
           "idle": "e47be71b052ccbebe5accd4fbbab8014b7b885214f9bedab795fae15bbc4bf3f"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1582,7 +1603,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837923/sirlocked/cases/library/j-npc-08-hoa-si/idle-c56f17e1e616.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837922/sirlocked/cases/library/j-npc-08-hoa-si/main-7c37727f7add.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-08-hoa-si.zip",
         "files": {
@@ -1600,7 +1621,10 @@
           "main": "7c37727f7addc6f1b15c965634e36924052cd11f6e0aa6444f203feb67ae26fc",
           "sprite": "99cae9632a487444946710a28017c49e0461d44e07a2fdded45b12e900edbd0c",
           "idle": "c56f17e1e6167729873cc17cdeb2fe5dda30f4cac863f132b030dbddea015bac"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1627,7 +1651,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837925/sirlocked/cases/library/j-npc-09-chu-quan/idle-49f30147e644.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837924/sirlocked/cases/library/j-npc-09-chu-quan/main-2226c820884d.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-09-chu-quan.zip",
         "files": {
@@ -1645,7 +1669,10 @@
           "main": "2226c820884d14a3a0297803f5f693bd09c0c8972dfb1f095db1e24747ea4a9b",
           "sprite": "272e67cfe8d04cabe5c49acee6629bcd7d72d196af6f3da23c922e4d822f4ce3",
           "idle": "49f30147e644e2cfeaaab75f84e1425d832379483d4ad7efe27667f2051f1d36"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1672,7 +1699,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837927/sirlocked/cases/library/j-npc-10-tho-moc/idle-c3ef57df2265.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837926/sirlocked/cases/library/j-npc-10-tho-moc/main-d8e2b663d4af.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-10-tho-moc.zip",
         "files": {
@@ -1690,7 +1717,10 @@
           "main": "d8e2b663d4afeb4fd60b2d66a424631646193604a3c4838f883dd7e94fff7a69",
           "sprite": "434b240d4703ceeb16ccab6b6eab14e8a899f2aa5b93f515bdbeb1c5b26dcd03",
           "idle": "c3ef57df22653ca60e56a7b9258422a2f884fddf70b804d1050cbb4b21069d65"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1717,7 +1747,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837929/sirlocked/cases/library/j-npc-11-nha-van/idle-76ef7f08b9c6.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837927/sirlocked/cases/library/j-npc-11-nha-van/main-96f2455150b0.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-11-nha-van.zip",
         "files": {
@@ -1735,7 +1765,10 @@
           "main": "96f2455150b01bf7c148d2f5fe5008e901f61c983ea5525afbc5f90721b0f3a5",
           "sprite": "72b64547349969dabff35e0c06e55bcdd01df21baa54646d3a0d1e64bb70240d",
           "idle": "76ef7f08b9c66e48cd1f70939790c3ad488891a3827176db90fe939595561b61"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1762,7 +1795,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837931/sirlocked/cases/library/j-npc-12-quy-ba/idle-7f7cb434df93.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837929/sirlocked/cases/library/j-npc-12-quy-ba/main-21ccc20e9182.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-12-quy-ba.zip",
         "files": {
@@ -1780,7 +1813,10 @@
           "main": "21ccc20e9182f6a1cb1f54c69f069fe102f06f6f5f79077327b5424106a17e7c",
           "sprite": "9b73e8bfa9abfae70c053d3d5ffc9eb21d293c53372b7c0cad4e84d6b728d2a6",
           "idle": "7f7cb434df9304dcf01ea2c03f16de058ca083f0a7550473db28aa8dadc21058"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1807,7 +1843,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837933/sirlocked/cases/library/j-npc-13-ong-lao/idle-72a33c5fe538.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837931/sirlocked/cases/library/j-npc-13-ong-lao/main-579f9bed77ae.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-13-ong-lao.zip",
         "files": {
@@ -1825,7 +1861,10 @@
           "main": "579f9bed77aea5bc2d546a82cca86336d46dbeff5ebd79c1bc0bd17746a1d53f",
           "sprite": "ae55e20abcaf2f8bfaee2ca2139d7ad3ff02f5da66ca250a00fc71a28c4f8b0a",
           "idle": "72a33c5fe538eb54eff52c9686a8f47859c32299eddf3c2ee4cc1500d93618a4"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -1852,7 +1891,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837935/sirlocked/cases/library/j-npc-14-cau-be/idle-cd763c57ee72.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837933/sirlocked/cases/library/j-npc-14-cau-be/main-44e68845f520.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/j-npc-14-cau-be.zip",
         "files": {
@@ -1870,7 +1909,10 @@
           "main": "44e68845f52095192f01c2fccd6aee93b823084440c69822e4e3c38bb146fbc9",
           "sprite": "f8bcf28d3ee6d8fa7e48bd645340a8d370b3bb83513596a79dc8ae5b9c3670ec",
           "idle": "cd763c57ee728f30dd353d5a56fc40dc7af4eb601fe89f51a1cc34ca6fadedc0"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -2421,7 +2463,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837961/sirlocked/cases/library/npc-01-co-ban-hoa/idle-e447b730c273.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837959/sirlocked/cases/library/npc-01-co-ban-hoa/main-a849afab3c48.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/npc-01-co-ban-hoa.zip",
         "files": {
@@ -2439,7 +2481,10 @@
           "main": "a849afab3c488e8267eaf7cd64bac291590a996c6583ba97875952d7e068fd81",
           "sprite": "bc320293b80fb0b3e74f7458f27b197f022e410779aca50a5b798a4473e63aca",
           "idle": "e447b730c273b62b3eb818262d8f32d605ce66dceaa2a91dc12e70531c017165"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3206,11 +3251,12 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837975/sirlocked/cases/library/v-npc-02-quan-gia/idle-961f513af9fe.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837974/sirlocked/cases/library/v-npc-02-quan-gia/main-ffa46e67dec5.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-02-quan-gia.zip",
         "notes": [
-          "Hoạt ảnh đứng yên PixelLab: job 25123942-ae9a-43c2-aa04-7d1629c34e5c."
+          "Hoạt ảnh đứng yên PixelLab: job 25123942-ae9a-43c2-aa04-7d1629c34e5c.",
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
         ],
         "files": {
           "main": "tmp/library-build/v-npc-02-quan-gia/portrait.webp",
@@ -3257,11 +3303,12 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837977/sirlocked/cases/library/v-npc-03-hau-gai/idle-23bc0cf64149.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837976/sirlocked/cases/library/v-npc-03-hau-gai/main-8163007e0818.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-03-hau-gai.zip",
         "notes": [
-          "Hoạt ảnh đứng yên PixelLab: job 228a1a09-afbc-4ac8-9194-293da53ae763."
+          "Hoạt ảnh đứng yên PixelLab: job 228a1a09-afbc-4ac8-9194-293da53ae763.",
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
         ],
         "files": {
           "main": "tmp/library-build/v-npc-03-hau-gai/portrait.webp",
@@ -3307,11 +3354,12 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837979/sirlocked/cases/library/v-npc-04-canh-sat/idle-fc8305f58f41.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837978/sirlocked/cases/library/v-npc-04-canh-sat/main-b51b77fcf2a7.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-04-canh-sat.zip",
         "notes": [
-          "Hoạt ảnh đứng yên PixelLab: job b3995c6d-ae3d-4780-b1ef-6e093f0e14d5."
+          "Hoạt ảnh đứng yên PixelLab: job b3995c6d-ae3d-4780-b1ef-6e093f0e14d5.",
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
         ],
         "files": {
           "main": "tmp/library-build/v-npc-04-canh-sat/portrait.webp",
@@ -3357,7 +3405,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837981/sirlocked/cases/library/v-npc-05-thanh-tra/idle-ccc74ca8d968.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837980/sirlocked/cases/library/v-npc-05-thanh-tra/main-05fb98e88bf5.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-05-thanh-tra.zip",
         "files": {
@@ -3375,7 +3423,10 @@
           "main": "05fb98e88bf53d1f2687662f936c3c81b0e9f01ded0a411dfcdc48481830c832",
           "sprite": "cae5d8eee9b7eed3facde84616bc3478e11f834757ce1d8ebbcf839712099a0f",
           "idle": "ccc74ca8d968d005f50aea5f98b32d300833ed10a2617fa3100a65ad382c5db4"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3405,7 +3456,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837983/sirlocked/cases/library/v-npc-06-nha-bao/idle-7acea730810c.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837982/sirlocked/cases/library/v-npc-06-nha-bao/main-d3aea35a4ded.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-06-nha-bao.zip",
         "files": {
@@ -3423,7 +3474,10 @@
           "main": "d3aea35a4dedfeed3c2153e422c929d5ff72a9aacb608faedfb0caf7c9a3326b",
           "sprite": "b18c2c9f86ea31e8cd5d4b67d13ea1111dedc848421b9ef504336242f6001545",
           "idle": "7acea730810cb4539181994e59d4946c7d509043e6cc6567c17d09c6a99e3d00"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3453,7 +3507,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837986/sirlocked/cases/library/v-npc-07-bac-si/idle-cd8edb0be4d2.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837984/sirlocked/cases/library/v-npc-07-bac-si/main-e527de881011.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-07-bac-si.zip",
         "files": {
@@ -3471,7 +3525,10 @@
           "main": "e527de881011908ce6ee201888830a2077874e0a8da61a02bce04320f0425043",
           "sprite": "8f206ca5344f2cee3bca99abee2baec01e7ecc1cc7b1ddad4e0237b744ae0afa",
           "idle": "cd8edb0be4d208179a0538046de6ee5765c98ac15f9d8485d6677acbfe11b78c"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3500,7 +3557,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837988/sirlocked/cases/library/v-npc-08-y-ta/idle-b4863fa4d94a.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837986/sirlocked/cases/library/v-npc-08-y-ta/main-d928ff0b8ca3.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-08-y-ta.zip",
         "files": {
@@ -3518,7 +3575,10 @@
           "main": "d928ff0b8ca301a361ff9cc78c8c43c88ab265b338af83e8e0e9b620f5239e5f",
           "sprite": "43a57bd28327adde884f060ede0b9bde63f6f080b4a3e153e7855ca6d03ac085",
           "idle": "b4863fa4d94a5622d08c8b4837d8c34894c41c52b140e1bb53bc72b290aeb1d3"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3547,7 +3607,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837990/sirlocked/cases/library/v-npc-09-ca-si-opera/idle-4d70247de154.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837989/sirlocked/cases/library/v-npc-09-ca-si-opera/main-4223155d7391.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-09-ca-si-opera.zip",
         "files": {
@@ -3565,7 +3625,10 @@
           "main": "4223155d7391f9503b5caa9bd9b2e5eff1f7e7540141a37047a3803694b7658e",
           "sprite": "c847362a84295c274a1efae7402e60e64f68504a7f151a14a5461e4470a6002a",
           "idle": "4d70247de1544043f0b3d3ca5b9723a4593b9d8f78d7cedcf5e4b923327d20ef"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3594,7 +3657,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837992/sirlocked/cases/library/v-npc-10-nhac-cong/idle-2dd518c6544a.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837991/sirlocked/cases/library/v-npc-10-nhac-cong/main-087658e0d3e0.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-10-nhac-cong.zip",
         "files": {
@@ -3612,7 +3675,10 @@
           "main": "087658e0d3e0833f366ec9d32762fab3b92e36adb87b0834ecd1c8ec970508e2",
           "sprite": "3a45b42be7b0b44431c09afe02d864c0aad52d0705204a707a455ad4701af45f",
           "idle": "2dd518c6544ab6ab0cddbda310280fb2c177f5b42ef3c5c90eb983d6aa7a6191"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3641,7 +3707,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837994/sirlocked/cases/library/v-npc-11-thuy-thu/idle-8af448f8659d.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837993/sirlocked/cases/library/v-npc-11-thuy-thu/main-1b4ee1d2df60.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-11-thuy-thu.zip",
         "files": {
@@ -3659,7 +3725,10 @@
           "main": "1b4ee1d2df607e0aa1573a433c25cdc3bcefd156f2eefd041f1ff303c9a95880",
           "sprite": "b8baca86f76937c1e3db30ce9e4aae10bcffd973823d69ee3b34c030c0c6e93f",
           "idle": "8af448f8659db5982cea94643eb8e0707770ee63b8df131a4a571b5fdb6d4a0c"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3688,7 +3757,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837997/sirlocked/cases/library/v-npc-12-phu-ben-cang/idle-becb7de75cd0.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837996/sirlocked/cases/library/v-npc-12-phu-ben-cang/main-59aadb34ed5b.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-12-phu-ben-cang.zip",
         "files": {
@@ -3706,7 +3775,10 @@
           "main": "59aadb34ed5bb3f29b1703fe92157e0c6ff127ddc3022fb5241e9d96aab6eaf3",
           "sprite": "a975610e8e4d76ee2ffac4f3d14441a31cd9b3b18c5332f70e4e2da5e99550a4",
           "idle": "becb7de75cd035a1f005993b63b7bc09bd307b5066f5d13f199378c9eb651b45"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3735,7 +3807,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837999/sirlocked/cases/library/v-npc-13-tre-ban-bao/idle-68813b1c8f66.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837997/sirlocked/cases/library/v-npc-13-tre-ban-bao/main-43d15a0d68ad.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-13-tre-ban-bao.zip",
         "files": {
@@ -3753,7 +3825,10 @@
           "main": "43d15a0d68ad71f13bee975e499df65e133d74f216f4ba6c6d568e6c3ad8f87f",
           "sprite": "7bda35375f397f39e9f70b5ccc2af9578b9a3c7d2f57e34344e04c29b1855080",
           "idle": "68813b1c8f66a13a6176a3f921304c868265d166717cbce9b926bc602696edec"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3782,7 +3857,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838001/sirlocked/cases/library/v-npc-14-quy-ba/idle-c6434be26c7a.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794837999/sirlocked/cases/library/v-npc-14-quy-ba/main-4a2a823199e2.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-14-quy-ba.zip",
         "files": {
@@ -3800,7 +3875,10 @@
           "main": "4a2a823199e2d0eb6030f29c0f2f48af65b9e4ce95276b11f6d7fe3d342c9bba",
           "sprite": "967010b256cddb8c453d81866aa3e05f53709a96be6fee46a054ee57a92e88e7",
           "idle": "c6434be26c7a9ef2591011ee88ee8f1fabad209e5f4471eabe3d88d63074efab"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3827,7 +3905,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838003/sirlocked/cases/library/v-npc-15-quy-ong/idle-c9f6f9992421.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838001/sirlocked/cases/library/v-npc-15-quy-ong/main-1edc55c31eca.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-15-quy-ong.zip",
         "files": {
@@ -3845,7 +3923,10 @@
           "main": "1edc55c31ecafa08c4ec4772f6f33954d0e8c293e0b84d71201051b56af53ff9",
           "sprite": "c0ce2618e293c3c5a97f356a0730b269bc08270aec4647cef46781f5ba2c3db0",
           "idle": "c9f6f99924217126198c9f548beb631e2bff39540ee19154e2f428c80a6418b2"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3872,7 +3953,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838005/sirlocked/cases/library/v-npc-16-ong-lao/idle-a44bc9ab3e86.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838003/sirlocked/cases/library/v-npc-16-ong-lao/main-0c4e935cc4e4.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-16-ong-lao.zip",
         "files": {
@@ -3890,7 +3971,10 @@
           "main": "0c4e935cc4e419ec7a2d3738aba4d01e25fc7ef2bdfaa494ecf57e5db80dcf3d",
           "sprite": "899d449653fce5099369b76208306aaeea2fb3afcdde3ab36673fcb1d1c8510f",
           "idle": "a44bc9ab3e86cad519360d855642a54845df014fcc9af380c2ff290ce12ac477"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3917,7 +4001,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838007/sirlocked/cases/library/v-npc-17-ba-goa/idle-e3eb4ef9f5cb.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838005/sirlocked/cases/library/v-npc-17-ba-goa/main-e1e1c18a0596.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-17-ba-goa.zip",
         "files": {
@@ -3935,7 +4019,10 @@
           "main": "e1e1c18a059624ef0a0e8bc49d1a1a77d9eebdda9f24d216b0fe435509e2abd6",
           "sprite": "3e4f18bcdd9bc922d0d7d9e8b67fb788a13ceca73e430c86c20ce89a4acd50b4",
           "idle": "e3eb4ef9f5cb27327b83ce17c6d68aaace2cf42b5753536e526f5636edbb63c7"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -3962,7 +4049,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838009/sirlocked/cases/library/v-npc-18-tho-dong-ho/idle-f466214f8c15.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838008/sirlocked/cases/library/v-npc-18-tho-dong-ho/main-64126520e9fe.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-18-tho-dong-ho.zip",
         "files": {
@@ -3980,7 +4067,10 @@
           "main": "64126520e9feae848c1ec252c552075a097612c0f544a89ce9558a66167d4815",
           "sprite": "e7ac1d953a36a1fab745f5ad570cbc4e075e6fa7c509134eb26f08598af64795",
           "idle": "f466214f8c15f01001174c95294f1365e592fab93296ce41485d932798548538"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4007,7 +4097,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838011/sirlocked/cases/library/v-npc-19-chu-quan-ruou/idle-b2959868cba1.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838010/sirlocked/cases/library/v-npc-19-chu-quan-ruou/main-27f06867bc1f.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-19-chu-quan-ruou.zip",
         "files": {
@@ -4025,7 +4115,10 @@
           "main": "27f06867bc1f4151aeb5f088ba5e4da59ad9a17e5795cfcc5ad7edce4e410fd5",
           "sprite": "1ec37dd46a3082d3ccf2869136c8b21ad45ac5fdcaf78d18d04edf5057e9e69c",
           "idle": "b2959868cba1bd9ca5c4aa8b3f4318d52fccf62ffd83c4333cb97692760c3b44"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4052,7 +4145,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838013/sirlocked/cases/library/v-npc-20-hau-ban-tra/idle-7ad9d339c031.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838012/sirlocked/cases/library/v-npc-20-hau-ban-tra/main-298dba4deaf9.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-20-hau-ban-tra.zip",
         "files": {
@@ -4070,7 +4163,10 @@
           "main": "298dba4deaf91196274a4581ec79d59f65ba4133235e19074189705d97546cd4",
           "sprite": "fac972fdc5d64973d42a2d073a060e6f7661d7b1a16c709426729f7b4b54a5c5",
           "idle": "7ad9d339c031f05be5395748ef1685f1ffe763b3c6bfb52dba1e1cd19b47d575"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4097,7 +4193,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838015/sirlocked/cases/library/v-npc-21-linh-muc/idle-a889902125c0.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838014/sirlocked/cases/library/v-npc-21-linh-muc/main-c61576361ff7.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-21-linh-muc.zip",
         "files": {
@@ -4115,7 +4211,10 @@
           "main": "c61576361ff7812c108543fbbe847541712627a27616a596c31abbd373157c3b",
           "sprite": "a7a3d15b2d822dff7ec2dce5700697cbf9d5c91720ab6cb64bc09e8d7a8ec7b1",
           "idle": "a889902125c0f16e6754d9a48267dd88a7354cece54c85e2594393ff807fc909"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4142,7 +4241,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838017/sirlocked/cases/library/v-npc-22-tho-anh-rong/idle-5cc36f8bef16.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838016/sirlocked/cases/library/v-npc-22-tho-anh-rong/main-9f0812312add.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-22-tho-anh-rong.zip",
         "files": {
@@ -4160,7 +4259,10 @@
           "main": "9f0812312add382806b7707205d5492fbbcda29b1b6685626ce69d44a14eb953",
           "sprite": "142ff3a2872b1d07b69cb88da3268edb0d8155a6bba85e313cda3e190feba44e",
           "idle": "5cc36f8bef169e871c559de7540a06ae235365176c12de11ce2945d776721cde"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4187,7 +4289,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838019/sirlocked/cases/library/v-npc-23-giao-su/idle-64fdb4bcfcf2.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838018/sirlocked/cases/library/v-npc-23-giao-su/main-c59ac938682c.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-23-giao-su.zip",
         "files": {
@@ -4205,7 +4307,10 @@
           "main": "c59ac938682c473bf1d05bf547d299634866210aadcbf3c87116d24013cd5736",
           "sprite": "aecb5d583b0fcc585d12e8e2e69791e14b35b9c66be0dcf04c7c4c4917e58bb0",
           "idle": "64fdb4bcfcf207b89f7687aac0aad07bbe1b97c4569a47fe820be147b791759d"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4232,7 +4337,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838021/sirlocked/cases/library/v-npc-24-xa-phu/idle-a265d9637851.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838020/sirlocked/cases/library/v-npc-24-xa-phu/main-16bb589d5288.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-24-xa-phu.zip",
         "files": {
@@ -4250,7 +4355,10 @@
           "main": "16bb589d52880f0908bce4852cdd257b1390a4b34e5da03e0a56a94d7b8fdac5",
           "sprite": "1f5a0a901716646e7d9ac2f48c8fcfd1ac002e8175390161c4916bba387e4296",
           "idle": "a265d9637851a2a4b1851e54e6a8e07f11aabd4cc98431ac753cb00f3a4ef702"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
@@ -4277,7 +4385,7 @@
         "idle": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838023/sirlocked/cases/library/v-npc-25-ke-moc-tui/idle-e48758b4038d.webp",
         "portrait": "https://res.cloudinary.com/dwlq7l00c/image/upload/v1794838022/sirlocked/cases/library/v-npc-25-ke-moc-tui/main-d6ff39445272.webp"
       },
-      "retired": false,
+      "retired": true,
       "local": {
         "origin": "Claude outputs/thu-vien-dot0/files/npc/v-npc-25-ke-moc-tui.zip",
         "files": {
@@ -4295,7 +4403,10 @@
           "main": "d6ff394452728767f7ce7d7257fb6b531d8bc96002643cc37d63183dd7b809e7",
           "sprite": "c76bcf887e7ba820e7120fe0b4f7a857f6221a4a203f62c887378dbd90c47e20",
           "idle": "e48758b4038d92836bba6c7bb1e2bd6c38864b38d5c24756bf13d7286a471c1a"
-        }
+        },
+        "notes": [
+          "NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json."
+        ]
       }
     },
     {
