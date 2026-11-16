@@ -18,7 +18,7 @@ Bài này là hướng dẫn trọn vẹn cách tạo vụ bằng bot Claude: ph
 | 5 | Yen | Đọc truyện, duyệt; gõ lại `/tao-vu-an` | `/admin/ai` → chi tiết draft |
 | 6 | Bot | Viết sự thật, cho thám tử mù thử → **cổng 2 TRUTH** (luôn là Yen, kể cả chế độ nhanh) | — |
 | 7 | Bot | Viết logic chơi: cảnh, giải đố, hội thoại, đối chất, **gợi ý 3 mức cho mọi câu hỏi**, kết thúc; agent `kiem-dinh` trả lời bước đánh giá → **cổng 3 LOGIC** | — |
-| 8 | Bot | Bố cục cảnh → **cổng 4 LAYOUT**; rồi hình (thư viện → biến thể → PixelLab trong trần lượt), nhạc, bíp, thời tiết | — |
+| 8 | Bot | Hình nền cảnh (vụ pixel: khai `asset_plan`, thư viện → biến thể → PixelLab trong trần lượt) và bố cục pixel → **cổng 4 LAYOUT**; rồi sprite, chân dung, icon; nhạc, bíp, thời tiết | — |
 | 9 | Bot | Import bản nháp (không đăng), Playwright tự chơi, viết `report.md` 5 lớp | chi tiết draft hiện `report.md` |
 | 10 | Yen | Chơi thử bản import bằng tài khoản ADMIN trên máy tính và điện thoại; ưng thì tự bấm **Xuất bản** | `/admin/cases/<caseId>` |
 
@@ -47,7 +47,9 @@ Mọi câu hỏi trong vụ có gợi ý, để sau này gắn quảng cáo ho�
 { "claimType": "OPPORTUNITY", "evidenceId": "evidence-dh-ve-tau", "acceptedEvidenceIds": ["evidence-dh-van-tay"] }
 ```
 
-Validator kiểm: chứng cứ có thật và `isEvidence: true`; tìm được trước lúc buộc tội; không lặp, không trùng chứng cứ chính của ô; **không** là chứng cứ chính của ô khác (mỗi ô cần một chứng cứ khác nhau, nên làm vậy là chặn ô kia); tối đa 8; vụ hợp đồng 5 ô thì phải hỗ trợ đúng `conclusionId` của ô. Kết quả đã chơi lưu kèm định nghĩa lúc buộc tội (cả `acceptedEvidenceIds`), nên sửa vụ sau này không chấm lại ván cũ. Schema JSON đầy đủ của AI có trường này (mảng hoặc null, không bắt buộc). Ở bước projection (mọi đơn mới), các ô buộc tội do server lập từ đồ thị chứng minh nên bot **chưa điền được** trường này: bot ghi đề xuất vào mục "Cần Yen xem" của `report.md` (ô nào, chứng cứ nào, vì sao). Cho server tự thêm chứng cứ cùng `conclusionId` vào ô là việc của đợt sau. Vụ viết tay (như vụ mẫu) thì ghi thẳng trong JSON trước khi nhập.
+Validator kiểm: chứng cứ có thật và `isEvidence: true`; tìm được trước lúc buộc tội; không lặp, không trùng chứng cứ chính của ô; **không** là chứng cứ chính của ô khác (mỗi ô cần một chứng cứ khác nhau, nên làm vậy là chặn ô kia); tối đa 8; vụ hợp đồng 5 ô thì phải hỗ trợ đúng `conclusionId` của ô. Kết quả đã chơi lưu kèm định nghĩa lúc buộc tội (cả `acceptedEvidenceIds`), nên sửa vụ sau này không chấm lại ván cũ. Schema JSON đầy đủ của AI có trường này (mảng hoặc null, không bắt buộc).
+
+**Server tự điền (VUAN-6B phần B).** Ở bước projection (mọi đơn mới), các ô buộc tội do server lập từ đồ thị chứng minh. Lúc biên dịch vụ, server thêm vào mỗi ô các chứng cứ `isEvidence` khác cùng chứng minh `conclusionId` của ô (`AcceptedEvidencePolicy`): không phải chứng cứ chính của ô nào, không phải manh mối gây nhiễu, tối đa 8; chứng cứ nào validator báo không tìm được trước lúc buộc tội thì bị bỏ. Chỉ thêm, không xóa. Bot vẫn ghi đề xuất khác vào mục "Cần Yen xem" của `report.md`; ADMIN sửa được trong case JSON trên trang duyệt. Vụ viết tay (như vụ mẫu, không có `conclusionId`) thì ghi thẳng trong JSON trước khi nhập; server không đổi gì ở các vụ này.
 
 ## Cấu hình server
 
@@ -107,8 +109,9 @@ Xác thực chỉ bằng header `X-Bridge-Key` (so khớp thời gian hằng, kh
 | `GET /api/bridge/drafts/{id}` | Trạng thái, cổng đang chờ, báo cáo validator, việc cần làm tiếp |
 | `GET /api/bridge/drafts/{id}/player-view` | Những gì người chơi thấy, đã bỏ lời giải (cho thám tử mù) |
 | `GET /api/bridge/drafts/{id}/case-json` | Case JSON đầy đủ, có lời giải, cho tool chạy thử trên máy bot: sau import là vụ đã lưu (`source: IMPORTED`, giữ metadata của server), trước đó là JSON của draft (`DRAFT`) |
-| `GET /api/bridge/drafts/{id}/assets-needed` | Các ô hình (bìa, nền cảnh, sprite, chân dung, vật phẩm), mô tả mỹ thuật, kích thước, url hiện tại |
-| `POST /api/bridge/drafts/{id}/assets` | Multipart `slotId` + `file`: PNG/WebP thật, ≤ 5 MB, giữ alpha, lên Cloudinary |
+| `GET /api/bridge/drafts/{id}/assets-needed` | Các ô hình, mô tả mỹ thuật, kích thước, url hiện tại. Vụ pixel: thêm `pixel` gồm chủ thể (cảnh, NPC, icon) với loại thư viện và gợi ý từ đơn, kế hoạch request PixelLab, tổng lượt so với `pixelLabCap` |
+| `PUT /api/bridge/drafts/{id}/asset-plan` | Vụ pixel: `{ choices: [{ subject, source: LIBRARY\|VARIANT\|PIXELLAB, libraryKey, parentKey, variant }] }` → kế hoạch request PixelLab theo `templates.json`. Vượt trần: 409 `AI_PIXELLAB_CAP_EXCEEDED` |
+| `POST /api/bridge/drafts/{id}/assets` | Multipart `slotId` + `file`: PNG/WebP thật, ≤ 5 MB, giữ alpha, lên Cloudinary. Vụ pixel: cần kế hoạch đã duyệt (`AI_ASSET_PLAN_REQUIRED`), đúng cỡ ô (`ASSET_WRONG_SIZE`), có alpha trừ ô nền (`ASSET_NEEDS_ALPHA`) |
 | `POST /api/bridge/drafts/{id}/assets/complete` | Báo đủ hình, pipeline đi tiếp |
 | `PUT /api/bridge/drafts/{id}/report` | Lưu `report.md` của bot; admin xem trong chi tiết draft |
 | `POST /api/bridge/drafts/{id}/approve-gate` | Chỉ đơn `reviewMode = FAST`, cổng `STORY`, `LOGIC`, `LAYOUT`. Cổng `TRUTH` luôn trả 403 |
@@ -128,7 +131,21 @@ Phía bot (MCP `sirlocked-studio`, skill `/tao-vu-an`, cách cài trên máy Yen
 
 ## Tài nguyên: chế độ "Claude tải lên"
 
-Không còn gpt-image. Bước bố cục và bước tài nguyên cuối mỗi bước tạo một yêu cầu `ASSETS`: bot xem `assets-needed`, tải từng hình, gọi `assets/complete`. Sau đó server hỏi Claude bố cục cảnh (`PlanScenePlacement`) và kiểm tra vị trí (`VerifyScenePlacement`) như các bước JSON khác; prompt liệt kê URL các hình. QA nền hoặc vị trí trượt thì server xin tải lại đúng ô đó một lần rồi mới báo lỗi. `regenerate-assets` và `regenerate-failed-assets` tạo lại yêu cầu `ASSETS` cho các ô cần thay.
+Không còn gpt-image. Bước bố cục và bước tài nguyên cuối mỗi bước tạo một yêu cầu `ASSETS`: bot xem `assets-needed`, tải từng hình, gọi `assets/complete`. Sau đó server hỏi Claude bố cục cảnh (`PlanScenePlacement`) như các bước JSON khác; prompt liệt kê URL các hình. QA nền trượt thì server xin tải lại đúng ô đó một lần rồi mới báo lỗi. `regenerate-assets` và `regenerate-failed-assets` tạo lại yêu cầu `ASSETS` cho các ô cần thay.
+
+### Vụ pixel (VUAN-6B, mọi đơn mới)
+
+Production bật `CaseCatalog:PixelOnly=true`, nên đơn mới làm **vụ pixel** đúng dạng "Trâm hồng ngọc mất tích" (`AiCaseDraft.visualPipeline = pixel-v1`). Bản nháp làm trước đó (trường rỗng) giữ nguyên kiểu cũ 1600×900 và vẫn đọc được.
+
+| Phần | Vụ pixel |
+| --- | --- |
+| Ô hình | nền mỗi cảnh 512×512; sprite thở mỗi NPC 1152×128 (9 khung 128, server đo `anchorY` ở chân khung 0); chân dung 288×288; icon 64×64 cho vật nhặt được; **không có ô bìa** (bìa là ảnh một phòng có người) |
+| Kế hoạch | `PUT asset-plan`: thư viện, biến thể 0 lượt; chỗ mới thành request PixelLab theo `ai-game-docs/visual-style-templates/pixellab/templates.json` (server nhúng file này lúc build, cùng nguồn với `scripts/build_pixellab_requests.mjs`; test golden giữ hai bên cùng prompt). Tổng lượt ≤ `pixelLabCap`, vượt thì bị chặn và chưa tải ảnh được |
+| Bố cục | Cảnh ngoài trời (`atmosphere.indoor = false`) là topdown, trong nhà là isometric. Bot trả `walkGrid` (128×128 ô 16), `foreground` (có `baseY`), spawn, cửa, ô bấm trên vật đã vẽ vào nền, chân NPC; server dựng `runtime.render` theo số đo của Trâm hồng ngọc (2048×2048, ×4, `cameraZoom`, `actorScale`, `walkSpeed`, `interactRadius`) |
+| Kiểm | `PixelDraftRules` chặn: cảnh không pixel, thiếu `walkGrid`, spawn/cửa ngoài vùng đi được, ô vật/NPC không đi tới được, ô ra ngoài khung, `foreground` sai `baseY`, sprite sheet/chân dung/icon sai cỡ. Bước kiểm vị trí bằng ảnh cắt (`VerifyScenePlacement`) bỏ cho vụ pixel vì vật đã vẽ vào nền |
+| Âm | Nhạc, thời tiết, bíp như VUAN-4, VUAN-5; cảnh pixel thiếu tiếng giao diện thì server ghi 7 cue CC0 `/assets/audio/sfx/ui/<cue>.ogg` |
+
+Chế độ mock không ảnh (`MockAiResponses` + `SkipAssetGeneration`, dùng cho `start-local-demo.ps1`) vẫn dựng bố cục kiểu cũ vì không có ảnh nào để dựng cảnh pixel.
 
 ## Cutscene
 

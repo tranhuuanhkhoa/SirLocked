@@ -4,6 +4,8 @@
 
 `scripts/build_pixellab_requests.mjs` đọc tệp này để dựng kế hoạch request cho một case. Sửa câu chữ ở `templates.json` thì builder đổi theo.
 
+Server cũng đọc đúng tệp này (nhúng vào API lúc build, `PixelLabPlanBuilder`) để dựng kế hoạch request cho bản nháp AI pixel (VUAN-6B, `PUT /api/bridge/drafts/{id}/asset-plan`): chỉ chủ thể bot khai là mới (`PIXELLAB`) mới ra request; hình thư viện và biến thể 0 lượt. Mục `glossaries` (từ khóa tiếng Việt → bản nháp tiếng Anh) dùng chung cho cả hai. File golden `src/BE/Tests/Fixtures/pixellab-plan-dong-ho.golden.json` giữ hai builder ra cùng prompt: sửa câu chữ có chủ ý thì chạy `UPDATE_PIXELLAB_GOLDEN=1 node --test scripts/build_pixellab_requests.test.mjs` rồi chạy test C#.
+
 ## Quy trình và template
 
 Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trước: ID nhân vật, URL ảnh, crop ngoại thất.
