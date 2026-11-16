@@ -6,7 +6,7 @@ import { assetProcess, assetVariant, PROCESS_OPS } from './tools/assets.js';
 import { bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from './tools/bridge.js';
 import type { ToolContext } from './tools/context.js';
 import {
-  assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
+  assetPlan, assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
 } from './tools/draft.js';
 import { librarySearch, librarySync } from './tools/library.js';
 import { playtest } from './tools/playtest.js';
@@ -17,7 +17,7 @@ import { VARIANT_TYPES } from './image/variant.js';
 export const TOOL_NAMES = [
   'bridge_list', 'bridge_take', 'bridge_check', 'bridge_submit', 'bridge_release',
   'draft_get', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
-  'assets_needed', 'asset_upload', 'assets_complete',
+  'assets_needed', 'asset_plan', 'asset_upload', 'assets_complete',
   'library_search', 'library_sync', 'asset_process', 'asset_variant', 'playtest',
   'weather_preview', 'blip_preview', 'sfx_search', 'music_search',
 ] as const;
@@ -82,8 +82,16 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     { draftId: id }, (args) => playerView(ctx, args));
 
   // ---------------------------------------------------------------- pictures of a draft
-  tool('assets_needed', 'Danh sách ô hình của draft (bìa, nền cảnh, sprite, chân dung, vật phẩm): kích thước, nền trong suốt, mô tả mỹ thuật, ô nào đang được xin. Bản đầy đủ ở tmp/bridge/<draftId>/assets-needed.json.',
+  tool('assets_needed', 'Danh sách ô hình của draft: kích thước, nền trong suốt, mô tả, ô nào đang được xin. Vụ pixel (VUAN-6B): nền 512x512, sprite thở 1152x128, chân dung 288x288, icon 64x64, không có ô bìa; kèm subjects (cảnh, NPC, icon) với gợi ý thư viện và kế hoạch request PixelLab (tmp/bridge/<draftId>/pixellab-plan.json). Bản đầy đủ ở tmp/bridge/<draftId>/assets-needed.json.',
     { draftId: id, onlyRequested: z.boolean().optional() }, (args) => assetsNeeded(ctx, args));
+  tool('asset_plan', 'Vụ pixel: khai nguồn từng hình trước khi tải lên. choices: [{ subject: "scene:<id>" | "character:<id>" | "item:<id>", source: LIBRARY | VARIANT | PIXELLAB, libraryKey, parentKey, variant }]. Thư viện và biến thể 0 lượt; PIXELLAB thành request theo templates.json. Tổng lượt vượt pixelLabCap của đơn thì server từ chối (AI_PIXELLAB_CAP_EXCEEDED): dùng thêm thư viện hoặc hỏi Yen. Chưa có kế hoạch đạt thì server không nhận ảnh.',
+    {
+      draftId: id,
+      choices: z.array(z.object({
+        subject: z.string().min(1), source: z.enum(['LIBRARY', 'VARIANT', 'PIXELLAB']), libraryKey: z.string().optional(),
+        parentKey: z.string().optional(), variant: z.string().optional(), note: z.string().optional(),
+      })),
+    }, (args) => assetPlan(ctx, args));
   tool('asset_upload', 'Tải hình (PNG/WebP, ≤ 5 MB) cho một ô của draft qua bridge (server đưa lên Cloudinary).',
     { draftId: id, slotId: z.string().min(1), file: z.string().min(1), width: z.number().int().optional(), height: z.number().int().optional(), transparent: z.boolean().optional() },
     (args) => assetUpload(ctx, args));
@@ -107,8 +115,10 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     'clean_text {rects:[[x0,y0,x1,y1]], mode:"fill"|"inpaint"} (xóa chữ vô nghĩa AI vẽ lên vật phẩm) |',
     'cover {scene, portraits[]} (ảnh bìa ghép) | idle_breathe (hoạt ảnh thở bằng code, sheet 1152x128) |',
     'sprite_sheet (zip PixelLab có idle thì dùng, không thì thở) | portrait (288x288 nearest) | npc_bundle (sprite+idle+portrait) |',
-    'mask_from_shapes {width,height,walk:[{rect}|{diamond}],block:[...]} | walkable {picture} (mask -> walkGrid, walkableArea, navigationObstacles + ảnh phủ để tự kiểm) |',
-    'fit {width,height,mode:"contain"|"cover",scale} (đưa ảnh pixel vào ô khác kích thước bằng phóng nguyên lần, không nhòe; scale ép hệ số, ví dụ 2 cho bản đồ 512 vào ô 1600x900).',
+    'mask_from_shapes {width,height,walk:[{rect}|{diamond}],block:[...]} | walkable {picture} (mask -> walkGrid 128x128 ô 16, walkableArea, navigationObstacles + ảnh phủ để tự kiểm) |',
+    'foreground {map, mask, rect:[x0,y0,x1,y1], id, baseRow} (cắt đồ che từ bản đồ NATIVE 512 theo mask, trả layer x,y,width,height,baseY đơn vị runtime x4) |',
+    'icon_sheet {names:[...]} (cắt tấm icon PixelLab 256x256 lưới 4x4 thành ô 64x64) |',
+    'fit {width,height,mode:"contain"|"cover",scale} (CHỈ cho vụ cũ 1600x900; vụ pixel không dùng).',
   ].join(' '),
     { op: z.enum(PROCESS_OPS), input: z.string().optional(), inputs: z.array(z.string()).optional(), output: z.string().optional(), params: z.record(z.string(), z.any()).optional() },
     (args) => assetProcess(ctx, args));

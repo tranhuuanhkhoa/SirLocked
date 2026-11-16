@@ -271,6 +271,76 @@ export function fit(source: Rgba, width: number, height: number, options: { mode
   return { image: out, scale: ratio < 1 && mode === 'contain' ? ratio : scale };
 }
 
+// ------------------------------------------------------------------------------------------------ foreground (VUAN-6B)
+
+export interface ForegroundLayer {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  baseY: number;
+}
+
+/**
+ * A foreground layer as in case-pixel-tram-hong-ngoc-vi.json (lamps, trees, carts): RGB from the NATIVE map, alpha
+ * from the object mask (white = solid object) inside a native rectangle, cropped tight. The PNG stays native size; the
+ * runtime box is native x pixelScale (16x74 lamp -> 64x296). baseY is the ground-contact line in runtime units: the
+ * row under the lowest opaque pixel (or the bottom of the rectangle with tight: false), or params baseRow (native) for
+ * objects whose foot is above the bottom of the cut.
+ */
+export function foregroundLayer(map: Rgba, mask: Rgba, rect: Rect, options: { pixelScale?: number; threshold?: number; invert?: boolean; baseRow?: number; tight?: boolean } = {}): { image: Rgba; layer: ForegroundLayer; pixels: number } {
+  const scale = options.pixelScale ?? 4;
+  const threshold = options.threshold ?? 128;
+  const x0 = Math.max(0, Math.min(rect.x0, rect.x1)), x1 = Math.min(map.width - 1, Math.max(rect.x0, rect.x1));
+  const y0 = Math.max(0, Math.min(rect.y0, rect.y1)), y1 = Math.min(map.height - 1, Math.max(rect.y0, rect.y1));
+  const solid = (x: number, y: number) => {
+    const mx = Math.min(mask.width - 1, Math.floor((x * mask.width) / map.width));
+    const my = Math.min(mask.height - 1, Math.floor((y * mask.height) / map.height));
+    const at = (my * mask.width + mx) * 4;
+    const luma = mask.data[at + 3] === 0 ? 0 : 0.299 * mask.data[at] + 0.587 * mask.data[at + 1] + 0.114 * mask.data[at + 2];
+    return options.invert ? luma < threshold : luma >= threshold;
+  };
+  let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1, pixels = 0;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (!solid(x, y) || map.data[(y * map.width + x) * 4 + 3] === 0) continue;
+    pixels++;
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  if (pixels === 0) throw new Error('No solid pixel of the mask inside the rectangle (white = object; use invert if the mask is the other way round).');
+  // tight: false keeps the rectangle as the canvas (as the bundled street layers), with the ground line at its bottom.
+  if (options.tight === false) { minX = x0; maxX = x1; minY = y0; maxY = y1; }
+  const image = blank(maxX - minX + 1, maxY - minY + 1);
+  for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+    if (!solid(x, y)) continue;
+    map.data.copy(image.data, ((y - minY) * image.width + (x - minX)) * 4, (y * map.width + x) * 4, (y * map.width + x) * 4 + 4);
+  }
+  const baseRow = options.baseRow !== undefined ? Math.max(minY, Math.min(maxY, options.baseRow)) : maxY;
+  return {
+    image,
+    pixels,
+    layer: { x: minX * scale, y: minY * scale, width: image.width * scale, height: image.height * scale, baseY: (baseRow + 1) * scale },
+  };
+}
+
+// ------------------------------------------------------------------------------------------------ icon sheet (VUAN-6B)
+
+/** Cuts a PixelLab icon-sheet (256x256, 4x4 grid of 64x64 cells, left to right, top to bottom) into its cells. */
+export function iconSheetCells(sheet: Rgba, options: { columns?: number; rows?: number; cell?: number } = {}): { cell: number; row: number; col: number; image: Rgba; empty: boolean }[] {
+  const columns = options.columns ?? 4, rows = options.rows ?? 4, size = options.cell ?? 64;
+  if (sheet.width < columns * size || sheet.height < rows * size) {
+    throw new Error(`The icon sheet is ${sheet.width}x${sheet.height}; a ${columns}x${rows} grid of ${size}px cells needs ${columns * size}x${rows * size}.`);
+  }
+  const cells = [];
+  for (let row = 0; row < rows; row++) for (let col = 0; col < columns; col++) {
+    const image = crop(sheet, col * size, row * size, size, size);
+    let opaque = 0;
+    for (let i = 3; i < image.data.length; i += 4) if (image.data[i] !== 0) opaque++;
+    cells.push({ cell: row * columns + col, row: row + 1, col: col + 1, image, empty: opaque === 0 });
+  }
+  return cells;
+}
+
 // ------------------------------------------------------------------------------------------------ walkable
 
 export interface WalkShape {

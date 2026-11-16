@@ -4,8 +4,8 @@ import path from 'node:path';
 import { StudioError } from '../bridge-client.js';
 import { display, requireFile, resolveInput, tmpDir, writeJsonFile } from '../files.js';
 import {
-  checkSize, cleanText, cover, cutBackground, fit, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
-  walkOverlay, type NpcSources, type WalkShape,
+  checkSize, cleanText, cover, cutBackground, fit, foregroundLayer, iconSheetCells, idleSheet, inspect, maskFromShapes, npcFromZip,
+  portrait, walkableFromMask, walkOverlay, type NpcSources, type WalkShape,
 } from '../image/process.js';
 import { loadRgba, resizeNearest, saveRgba, sideBySide, type Rgba } from '../image/raster.js';
 import {
@@ -16,7 +16,7 @@ import type { ToolContext } from './context.js';
 
 export const PROCESS_OPS = [
   'inspect', 'cut_background', 'to_webp', 'check_size', 'clean_text', 'cover', 'idle_breathe', 'sprite_sheet', 'portrait',
-  'npc_bundle', 'walkable', 'mask_from_shapes', 'fit',
+  'npc_bundle', 'walkable', 'mask_from_shapes', 'foreground', 'icon_sheet', 'fit',
 ] as const;
 export type ProcessOp = (typeof PROCESS_OPS)[number];
 
@@ -139,7 +139,46 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
         idleSource: sheet.source, anchorY: sheet.anchorY, sprite: `${npc.south.width}x${npc.south.height}`,
       };
     }
+    case 'foreground': {
+      // VUAN-6B: a layer drawn over actors standing behind it (lamp, tree, cart), cut from the NATIVE map by the mask.
+      const mapRef = p.map ?? args.input;
+      if (!mapRef || !p.mask || !p.rect) {
+        throw new StudioError('BAD_ARGS', 'foreground cần params.map (bản đồ NATIVE 512), params.mask (mask vật thể: trắng = vật) và params.rect [x0,y0,x1,y1] (pixel native bao quanh vật).');
+      }
+      const map = (await loadPicture(ctx, mapRef)).image;
+      const mask = (await loadPicture(ctx, p.mask)).image;
+      if (map.width !== 512 || map.height !== 512) {
+        throw new StudioError('BAD_ARGS', `foreground cắt từ bản đồ NATIVE 512x512, không dùng bản phóng to (ảnh là ${map.width}x${map.height}).`);
+      }
+      const result = foregroundLayer(map, mask, asRect(p.rect), { pixelScale: p.pixelScale, threshold: p.threshold, invert: p.invert, baseRow: p.baseRow, tight: p.tight });
+      const id = String(p.id ?? 'layer').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, mapRef.split('#')[0], `fg-${id}`, '.png');
+      await saveRgba(result.image, output);
+      return {
+        output: display(ctx.config, output), native: `${result.image.width}x${result.image.height}`, pixels: result.pixels,
+        layer: { id, url: `<URL sau khi tải lên thư viện: POST /api/bridge/library/files, role fg-${id}>`, ...result.layer },
+        hint: 'Đưa layer vào foreground[] của câu trả lời bố cục (đơn vị runtime = native x 4). baseY là đường chạm đất; cây, cột đèn có gốc cao hơn đáy vết cắt thì truyền params.baseRow (hàng native của gốc).',
+      };
+    }
+    case 'icon_sheet': {
+      // VUAN-6B: a PixelLab icon-sheet (256x256, 4x4) -> one 64x64 PNG per item (items[].imageUrl).
+      const { image } = await loadPicture(ctx, args.input ?? '');
+      const names: (string | null | undefined)[] = p.names ?? [];
+      const base = path.basename(args.input ?? 'icons').replace(/\.[^.]+$/, '');
+      const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', base);
+      const cells = iconSheetCells(image, { columns: p.columns, rows: p.rows, cell: p.cell });
+      const files = [];
+      for (const cell of cells) {
+        const name = names[cell.cell] ?? null;
+        if (cell.empty && !name) continue;
+        const file = path.join(dir, `${name ?? `cell-${cell.cell}`}.png`);
+        await saveRgba(cell.image, file);
+        files.push({ cell: cell.cell, row: cell.row, col: cell.col, name, empty: cell.empty, file: display(ctx.config, file), size: '64x64' });
+      }
+      return { dir: display(ctx.config, dir), cells: files.length, files, hint: 'Đối chiếu từng ô với grid của request icons.N trong kế hoạch rồi asset_upload vào ô item:<itemId>.' };
+    }
     case 'fit': {
+      // Classic 1600x900 drafts only (made before VUAN-6B). Pixel drafts take the 512 / 1152x128 / 288 / 64 pictures as they are.
       if (!p.width || !p.height) throw new StudioError('BAD_ARGS', 'fit cần params.width và params.height (kích thước ô hình).');
       const { image } = await loadPicture(ctx, args.input ?? '');
       const result = fit(image, p.width, p.height, { mode: p.mode, background: p.background, scale: p.scale });

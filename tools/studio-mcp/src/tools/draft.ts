@@ -113,8 +113,30 @@ export async function assetsNeeded(ctx: ToolContext, args: { draftId: string; on
   const file = path.join(bridgeDir(ctx.config, draftId), 'assets-needed.json');
   writeJsonFile(file, data);
   const slots = (data?.slots ?? []).filter((slot: any) => !args.onlyRequested || slot.requestedNow || slot.mustReplace);
+  const pixel = data?.pixel;
+  let planFile: string | undefined;
+  if (pixel?.plan) {
+    planFile = path.join(bridgeDir(ctx.config, draftId), 'pixellab-plan.json');
+    writeJsonFile(planFile, pixel.plan);
+  }
   return {
     draftId, file: display(ctx.config, file), storageAvailable: data?.storageAvailable, maxBytes: data?.maxBytes, formats: data?.formats,
+    // VUAN-6B pixel drafts: where each picture comes from, and the PixelLab request plan built from templates.json.
+    pixel: pixel ? {
+      pixelLabCap: pixel.pixelLabCap, planAccepted: pixel.planAccepted, estimatedGenerations: pixel.estimatedGenerations,
+      withinCap: pixel.withinCap, planErrors: pixel.planErrors, next: pixel.next,
+      planFile: planFile ? display(ctx.config, planFile) : undefined,
+      requests: (pixel.plan?.requests ?? []).map((request: any) => ({
+        id: request.id, order: request.order, tool: request.tool, estimatedGenerations: request.estimatedGenerations,
+        dependsOn: request.dependsOn, dependsOnLibrary: request.dependsOnLibrary, missingInputs: (request.missingInputs ?? []).length,
+        slots: request.target?.slots,
+      })),
+      subjects: (pixel.subjects ?? []).map((subject: any) => ({
+        subject: subject.subject, kind: subject.kind, name: subject.name, projection: subject.projection ?? undefined,
+        libraryKind: subject.libraryKind, slots: subject.slots, declared: subject.declared, source: subject.source,
+        libraryKey: subject.libraryKey || undefined, parentKey: subject.parentKey || undefined, suggestions: subject.suggestions,
+      })),
+    } : null,
     openRequest: data?.openRequest ? { requestId: data.openRequest.requestId, step: data.openRequest.step, phase: data.openRequest.assetPhase } : null,
     total: data?.slots?.length ?? 0,
     requestedNow: (data?.slots ?? []).filter((slot: any) => slot.requestedNow).length,
@@ -152,5 +174,41 @@ export async function assetsComplete(ctx: ToolContext, args: { draftId: string }
   return {
     draftId, accepted: Boolean(data?.accepted), errors: (data?.errors ?? []).slice(0, 40), next: data?.next ?? null,
     hint: data?.accepted ? 'Server đi tiếp (bố cục, kiểm tra vị trí...). Xem bridge_list.' : 'Còn ô chưa có ảnh: tải nốt rồi gọi lại.',
+  };
+}
+
+export interface AssetChoice {
+  subject: string;
+  source: 'LIBRARY' | 'VARIANT' | 'PIXELLAB';
+  libraryKey?: string;
+  parentKey?: string;
+  variant?: string;
+  note?: string;
+}
+
+/**
+ * Pixel drafts (VUAN-6B): declares where every picture comes from. The server builds the PixelLab request plan from
+ * templates.json; a plan over the order's pixelLabCap is refused (AI_PIXELLAB_CAP_EXCEEDED) and no upload is accepted
+ * before a plan fits. Subjects left out count as new PixelLab pictures.
+ */
+export async function assetPlan(ctx: ToolContext, args: { draftId: string; choices: AssetChoice[] }) {
+  const draftId = safeId(args.draftId, 'draftId');
+  if (!Array.isArray(args.choices)) throw new StudioError('BAD_ARGS', 'choices là mảng { subject, source: LIBRARY|VARIANT|PIXELLAB, libraryKey, parentKey, variant } (xem subjects của assets_needed).');
+  const { data } = await ctx.client.call<any>('PUT', `/api/bridge/drafts/${draftId}/asset-plan`, { json: { choices: args.choices } });
+  const file = path.join(bridgeDir(ctx.config, draftId), 'pixellab-plan.json');
+  writeJsonFile(file, data?.plan ?? {});
+  const requests = (data?.plan?.requests ?? []) as any[];
+  return {
+    draftId, accepted: Boolean(data?.accepted), estimatedGenerations: data?.estimatedGenerations, pixelLabCap: data?.pixelLabCap,
+    file: display(ctx.config, file),
+    requests: requests.map((request) => ({
+      id: request.id, order: request.order, tool: request.tool, size: request.params?.width && request.params?.height ? `${request.params.width}x${request.params.height}` : undefined,
+      estimatedGenerations: request.estimatedGenerations, dependsOn: request.dependsOn, dependsOnLibrary: request.dependsOnLibrary,
+      missingInputs: (request.missingInputs ?? []).map((entry: any) => entry.placeholder), slots: request.target?.slots,
+    })),
+    reused: (data?.plan?.reuse ?? []).length,
+    next: requests.length
+      ? 'Chạy từng request theo thứ tự (lần tạo đầu). Điền missingInputs bằng tiếng Anh, không tên người. Tạo lại/reroll phải hỏi Yen. Giữ PNG gốc, request, job ID ở tmp/pixellab/<draftId>/ (ngoài src/FE/public).'
+      : 'Kế hoạch 0 lượt PixelLab: lấy ảnh thư viện/biến thể rồi asset_upload từng ô.',
   };
 }
