@@ -43,6 +43,9 @@ jobs:
       - name: Test speech blips, music, weather and the CC0 sound pack
         working-directory: src/FE
         run: npm run test:atmosphere
+      - name: Test the music library index (files, sha256, licences, areas, sizes)
+        working-directory: src/FE
+        run: npm run test:music
       - name: Install browser for UI tests
         working-directory: src/FE
         run: npx playwright install --with-deps chromium
