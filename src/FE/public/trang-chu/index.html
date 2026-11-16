@@ -23,6 +23,9 @@
     try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
     try { var s = localStorage.getItem('sl-calm'); if (s === '1') calm = true; if (s === '0') { calm = false; d.classList.add('motion-ok'); } } catch (e) {}
     try { seen = sessionStorage.getItem('sl-iris') === '1'; sessionStorage.setItem('sl-iris', '1'); } catch (e) {}
+    // Ngôn ngữ dùng chung với game (sirlocked.uiLanguage). Trang viết bằng tiếng Việt; EN được dịch ở cuối trang,
+    // nên che trang tới lúc dịch xong để không chớp chữ Việt (tự mở sau 1,5 giây nếu có lỗi).
+    try { if (localStorage.getItem('sirlocked.uiLanguage') === 'en') { d.lang = 'en'; d.classList.add('i18n-wait'); setTimeout(function () { d.classList.remove('i18n-wait'); }, 1500); } } catch (e) {}
     if (calm) d.classList.add('calm');
     if (seen) d.classList.add('no-iris');
     d.classList.add('js');
@@ -114,6 +117,13 @@ p { text-wrap: pretty; }
 .nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg-2); text-decoration: none; font: 600 12px var(--data); letter-spacing: .16em; text-transform: uppercase; transition: color .2s; }
 .nav a:hover { color: var(--paper); }
 .top-act { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+html.i18n-wait body { visibility: hidden; }
+.lang-switch { display: inline-flex; min-height: 44px; border: 1px solid rgba(207, 196, 177, .22); border-radius: 3px; overflow: hidden; }
+.lang-opt { min-width: 38px; padding: 0 9px; border: 0; background: transparent; color: var(--fg-3); font: 600 11px var(--data); letter-spacing: .12em; cursor: pointer; transition: color .2s, background-color .2s; }
+.lang-opt + .lang-opt { border-left: 1px solid rgba(207, 196, 177, .22); }
+.lang-opt:hover { color: var(--paper); }
+.lang-opt[aria-pressed="true"] { color: #120d09; background: var(--gold); cursor: default; }
+@media (max-width: 420px) { .lang-opt { min-width: 32px; padding: 0 5px; } }
 .calm-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; background: transparent; border: 1px solid rgba(207, 196, 177, .22); border-radius: 3px; color: var(--fg-2); font: 600 11px var(--data); letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: color .2s, border-color .2s; }
 .calm-btn:hover { color: var(--paper); border-color: rgba(207, 196, 177, .5); }
 .calm-btn .ico { width: 16px; height: 16px; }
@@ -518,6 +528,10 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
       <a href="#kho-do">Kho đồ</a>
     </nav>
     <div class="top-act">
+      <div class="lang-switch" role="group" aria-label="Ngôn ngữ giao diện">
+        <button class="lang-opt" type="button" data-lang="en" aria-pressed="false">EN</button>
+        <button class="lang-opt" type="button" data-lang="vi" aria-pressed="true">VI</button>
+      </div>
       <button class="calm-btn music-btn" id="music-btn" type="button" aria-pressed="false" aria-label="Bật nhạc nền">
         <svg class="ico note" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
         <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -863,13 +877,228 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   var listeners = [];
   var onCalmChange = function (fn) { listeners.push(fn); };
 
+  /* ---- Ngôn ngữ VI / EN ----
+     Lựa chọn dùng chung với game (localStorage sirlocked.uiLanguage): chọn ở đây thì vào game cũng theo, và ngược lại.
+     Chưa chọn bao giờ thì trang chủ là tiếng Việt. Chữ trên trang viết bằng tiếng Việt; EN dịch từng mẩu chữ
+     (từng text node, aria-label, alt, title) theo bảng dưới. Tên riêng (người, phố, viền, danh hiệu) giữ như trong game.
+     Chữ do script tạo ra thì đi qua t(), chữ có ghép số thì vẽ lại khi đổi ngôn ngữ (onLangChange). */
+  var LANG_KEY = 'sirlocked.uiLanguage';
+  var lang = root.lang === 'en' ? 'en' : 'vi';
+  var EN = {
+    'Trang chủ Sir Locked': 'Sir Locked — co-op detective game',
+    'Sir Locked — game phá án co-op cho hai người, chơi ngay trên trình duyệt.': 'Sir Locked — a co-op detective game for two, played right in your browser.',
+    'Ngôn ngữ giao diện': 'Interface language',
+    'Bỏ qua phần mở đầu': 'Skip the intro',
+    'Sir Locked, về đầu trang': 'Sir Locked, back to top',
+    'Điều hướng chính': 'Main navigation',
+    'Cách chơi': 'How to play',
+    'Vụ án': 'Cases',
+    'Khu phố': 'Neighbourhood',
+    'Kho đồ': 'Loot',
+    'Bật nhạc': 'Music on',
+    'Tắt nhạc': 'Music off',
+    'Bật nhạc nền': 'Turn on background music',
+    'Tắt nhạc nền': 'Turn off background music',
+    'Bật hiệu ứng': 'Effects on',
+    'Tắt hiệu ứng': 'Effects off',
+    'Bật hiệu ứng chuyển động': 'Turn on motion effects',
+    'Tắt hiệu ứng chuyển động': 'Turn off motion effects',
+    'Đăng nhập': 'Sign in',
+    'HIỆN TRƯỜNG VỤ ÁN · KHÔNG PHẬN SỰ MIỄN VÀO ·': 'CRIME SCENE · DO NOT CROSS ·',
+    'SIR LOCKED · HỒ SƠ ĐANG ĐIỀU TRA ·': 'SIR LOCKED · CASE UNDER INVESTIGATION ·',
+    'Phố đêm ướt mưa với cổng sắt, đèn đường và tháp đồng hồ phía xa': 'A rain-soaked night street with an iron gate, street lamps and a distant clock tower',
+    'Sherlock cầm tẩu, đang suy luận': 'Sherlock holding his pipe, deep in thought',
+    'Watson đứng quan sát hiện trường': 'Watson standing, observing the scene',
+    'Hai thám tử. Một vụ án bí ẩn.': 'Two detectives. One mystery.',
+    'Game phá án co-op cho hai người, chơi ngay trên trình duyệt. Watson lục hiện trường tìm chứng cứ, Sherlock hỏi nhân chứng và suy luận, cả hai cùng gọi tên hung thủ.': 'A co-op detective game for two, played right in your browser. Watson searches the scene for evidence, Sherlock questions witnesses and reasons it out, and together they name the culprit.',
+    'Bắt đầu phá án': 'Start investigating',
+    'Xem cách chơi': 'See how to play',
+    'Rê đèn tìm manh mối': 'Sweep the lamp to find clues',
+    'Chạm vào ảnh để rọi đèn': 'Tap to shine the lamp',
+    'Đã tìm đủ manh mối': 'All clues found',
+    'ĐỦ': 'DONE',
+    '“Đủ manh mối rồi, Watson.”': '“That will do, Watson.”',
+    'Đèn đường còn sáng': 'The street lamp is still lit',
+    'Cửa sổ tầng hai còn sáng': 'A second-floor window is still lit',
+    'Dấu giày trên đá ướt': 'Shoe prints on wet stone',
+    'Manh mối 1: Đèn đường còn sáng': 'Clue 1: The street lamp is still lit',
+    'Manh mối 2: Cửa sổ tầng hai còn sáng': 'Clue 2: A second-floor window is still lit',
+    'Manh mối 3: Dấu giày trên đá ướt': 'Clue 3: Shoe prints on wet stone',
+    'HỒ SƠ 221B': 'CASE FILE 221B',
+    'Hai vai.': 'Two roles.',
+    'Một sự thật.': 'One truth.',
+    'Watson là điều tra viên: lục hiện trường, tìm vật chứng. Sherlock là thẩm vấn viên: hỏi nhân chứng, lấy lời khai. Mọi thứ hai người tìm được đều ghim lên một bảng phá án chung, và lời nói dối chỉ vỡ khi hai nửa gặp nhau.': 'Watson is the investigator: searching scenes, finding evidence. Sherlock is the interrogator: questioning witnesses, taking statements. Everything the two of you find is pinned to one shared case board, and a lie only breaks when the two halves meet.',
+    'Watson · Điều tra viên': 'Watson · Investigator',
+    'Vật chứng vừa tìm được': 'Evidence just found',
+    'Cuống vé 20:42': '20:42 ticket stub',
+    'Một cuống vé đặt một hành khách chưa rõ danh tính trên tuyến tàu buổi tối.': 'A ticket stub places an unidentified passenger on the evening train.',
+    'Không khớp': 'No match',
+    'Hai lớp sáp xanh': 'Overlapping blue wax',
+    'Con dấu gốc của gói tài liệu đã bị phá rồi được phủ bằng một lớp sáp xanh thứ hai.': 'The packet’s original seal was broken and covered by a second application of blue wax.',
+    'Sợi chỉ áo dính bùn': 'Muddy coat thread',
+    'Một sợi xơ từ hành lang mắc dưới bàn lưu trữ.': 'A corridor fiber was caught below the archive desk.',
+    'Sherlock · Thẩm vấn viên': 'Sherlock · Interrogator',
+    'Lời khai của nhân chứng': 'Witness testimony',
+    'Lời khai của Mara Vale': 'Mara Vale’s testimony',
+    'Mara Vale · thủ kho lưu trữ': 'Mara Vale · archive clerk',
+    'Hãy kể lại lúc cô đóng kho lưu trữ.': 'Walk me through the archive closing.',
+    '“Tôi rời đi lúc 21:00.': '“I left at 21:00.',
+    'Con dấu vẫn nguyên': 'The seal remained intact',
+    ', tôi không mang túi và không quay lại sau khi bảo vệ bắt đầu tuần tra.”': ', I carried no bag, and I never returned after the guard began his rounds.”',
+    'PHÁ ÁN': 'SOLVED',
+    'CON DẤU ĐÃ BỊ THAY': 'THE SEAL WAS REPLACED',
+    'Câu hỏi đối chất': 'Confrontation question',
+    'Dấu vết vật lý nào trực tiếp mâu thuẫn với lời khai đã chọn? Chọn một vật chứng để đặt lên bàn.': 'Which physical trace directly contradicts the selected testimony? Choose one piece of evidence to put on the table.',
+    'Cặp này chưa tạo ra mâu thuẫn trực tiếp. Hãy kiểm tra lại dấu vết thực sự chứng minh được điều gì.': 'That pair does not establish a direct contradiction. Recheck what the trace can actually prove.',
+    'Hai lớp sáp chồng lên nhau chứng minh gói tài liệu đã bị mở rồi niêm phong lại sau khi con dấu gốc bị phá.': 'The overlapping wax layers prove the packet was opened and resealed after the original seal was broken.',
+    'Chơi lại': 'Play again',
+    'Lượt chơi mẫu trích từ vụ «Con Dấu Bị Phá».': 'A sample round from the case “The Broken Seal”.',
+    'Hồ sơ đang mở': 'Open cases',
+    'Mỗi vụ là một khu phố vẽ bằng pixel, với nhiều hiện trường, nhân chứng và hàng chục manh mối giấu trong đồ vật.': 'Each case is a pixel-art neighbourhood with several scenes, witnesses and dozens of clues hidden in everyday objects.',
+    'Lọ thuốc thứ Năm': 'The Thursday Vial',
+    '06:40 sáng thứ Sáu, bà Lý Hạnh thấy ông Lâm Thế Vinh bất động trên ghế bành ở nhà số 7 phố Hàng Đường, sau một liều thuốc tim đặc bất thường. Hộp nữ trang mở toang, tờ di chúc có dấu bị sửa.': '6:40 on Friday morning, Mrs. Lý Hạnh finds Mr. Lâm Thế Vinh motionless in his armchair at No. 7 Hàng Đường Street, after an unusually strong dose of heart medicine. The jewellery box lies wide open, and the will shows signs of tampering.',
+    'Giai đoạn': 'Stages',
+    'Hiện trường': 'Scenes',
+    'Manh mối': 'Clues',
+    'Thời lượng': 'Length',
+    'Mở hồ sơ': 'Open the file',
+    'Mở hồ sơ Lọ thuốc thứ Năm': 'Open the file: The Thursday Vial',
+    'Trâm hồng ngọc mất tích': 'The Missing Ruby Hairpin',
+    'Mở hồ sơ Trâm hồng ngọc mất tích': 'Open the file: The Missing Ruby Hairpin',
+    'Sáng thứ Bảy, chủ tiệm cầm đồ Đặng Bửu báo mất chiếc trâm hồng ngọc bà Lâm cầm ở tiệm và đổ cho tài xế Trịnh Lực. Hai thám tử tự do đi khắp phố Hàng Đường để xem chuyện gì thật sự xảy ra đêm thứ Sáu.': 'On Saturday morning, pawnbroker Đặng Bửu reports that the ruby hairpin Mrs. Lâm pawned at his shop has vanished, and blames the driver Trịnh Lực. Two freelance detectives comb Hàng Đường Street to find out what really happened on Friday night.',
+    'Vụ án cộng đồng': 'Community cases',
+    'Hồ sơ do người chơi tự viết. Chọn một vụ và thử tài cùng đồng đội.': 'Cases written by players. Pick one and test your wits with a partner.',
+    'Năm căn nhà': 'Five houses',
+    'quanh một quảng trường': 'around one square',
+    'Trong «Lọ thuốc thứ Năm», hai thám tử có một buổi sáng để lần theo hộp thuốc tuần qua từng căn nhà quanh phố Hàng Đường.': 'In “The Thursday Vial”, the two detectives have one morning to follow a weekly pill box through every house around Hàng Đường Street.',
+    'Quảng trường đồng hồ phố Hàng Đường vẽ bằng pixel': 'The clock square of Hàng Đường Street in pixel art',
+    'Phố Hàng Đường': 'Hàng Đường Street',
+    'Nhà số 7 — phòng trưng bày': 'No. 7 — the showroom',
+    'Phòng trưng bày nhà số 7': 'The showroom at No. 7',
+    'Hiệu thuốc Hưng Long': 'Hưng Long Pharmacy',
+    'Tiệm cầm đồ': 'Pawnshop',
+    'Hiệu ảnh Tô Khánh': 'Tô Khánh Photo Studio',
+    'Nhà xe': 'Garage',
+    'Mở hòm.': 'Open chests.',
+    'Săn đồ hiếm.': 'Hunt rare loot.',
+    'Viền ảnh đại diện, danh hiệu, hiệu ứng vào sảnh và đồ sưu tầm rơi ra từ hòm. Món nào giao dịch được thì đem lên Chợ đồ để mua, bán hay đổi với thám tử khác.': 'Avatar frames, titles, lobby entrances and collectibles drop from chests. Anything tradable can go to the Market to buy, sell or swap with other detectives.',
+    'Hòm Niêm Phong': 'Sealed Case',
+    'Két Nhà Băng': 'Bank Safe',
+    'Tráp Sơn Mài': 'Lacquer Box',
+    '· Hòm Niêm Phong': '· Sealed Case',
+    '· Két Nhà Băng': '· Bank Safe',
+    '· Tráp Sơn Mài': '· Lacquer Box',
+    'Chìa kính lúp': 'Loupe key',
+    'Chìa bánh răng': 'Gear key',
+    'Chìa ngọc bích': 'Jade key',
+    'Tỉ lệ rơi công khai': 'Published drop rates',
+    'Thường 79,92%': 'Common 79.92%',
+    'Hiếm 15,98%': 'Rare 15.98%',
+    'Quý 3,20%': 'Epic 3.20%',
+    'Huyền thoại 0,64%': 'Legendary 0.64%',
+    'Bí ẩn 0,26%': 'Mystery 0.26%',
+    'Thường 79,92%, Hiếm 15,98%, Quý 3,20%, Huyền thoại 0,64%, Bí ẩn 0,26%': 'Common 79.92%, Rare 15.98%, Epic 3.20%, Legendary 0.64%, Mystery 0.26%',
+    'Thường': 'Common',
+    'Hiếm': 'Rare',
+    'Quý': 'Epic',
+    'Huyền thoại': 'Legendary',
+    'Bí ẩn': 'Mystery',
+    'Mở thử Hòm Niêm Phong': 'Try opening a Sealed Case',
+    'Mở hòm khác': 'Open another',
+    'Mô phỏng theo bảng rơi thật của Hòm Niêm Phong. Không tốn chìa, không nhận đồ.': 'Simulated from the real drop table of the Sealed Case. No key spent, no item received.',
+    'Đồ hiếm đang nằm trong hòm': 'Rare loot waiting in the chests',
+    'Viền Kim Long': 'Kim Long frame',
+    'Viền U Linh Giáo Đường': 'U Linh Giáo Đường frame',
+    'Viền Hỏa Luân': 'Hỏa Luân frame',
+    'Viền Hàn Băng': 'Hàn Băng frame',
+    'Viền Tinh Không Nguyệt Dạ': 'Tinh Không Nguyệt Dạ frame',
+    'Sưu tầm': 'Collectible',
+    'Viền': 'Frame',
+    'Danh hiệu': 'Title',
+    'Hiệu ứng vào sảnh': 'Lobby entrance',
+    'Sổ tay da bò': 'Leather notebook',
+    'Phiếu vân tay': 'Fingerprint card',
+    'Kính lúp': 'Field magnifier',
+    'Đèn bão': 'Storm lantern',
+    'Mũ thợ săn': 'Deerstalker hat',
+    'Kính lúp đồng': 'Bronze magnifier',
+    'Huy hiệu sở': 'Precinct badge',
+    'Tẩu thạch nam': 'Briar pipe',
+    'Trâm hồng ngọc': 'Ruby hairpin',
+    'Đồng hồ 2:17': 'The 2:17 watch',
+    'Một vệt trăng rọi xuống, bụi bạc rơi chậm': 'A shaft of moonlight falls as silver dust drifts down',
+    'Đôi cánh đen mở ra, lông vũ rơi': 'Black wings unfold as feathers fall',
+    'Kính lúp đồng soi ra dấu chân, đóng dấu phá án': 'A bronze magnifier reveals the footprints and stamps the case solved',
+    'Báo 221B': 'The 221B Gazette',
+    'Số đặc biệt': 'Special issue',
+    'Thử thách tuần': 'Weekly challenge',
+    'Đội nào phá án nhanh nhất?': 'Which team cracks it fastest?',
+    'Mỗi tuần có một vụ án của tuần. Phá án nhanh nhất để có tên trên bảng vàng.': 'Every week brings a case of the week. Solve it fastest to put your names on the leaderboard.',
+    'Tham gia thử thách': 'Join the challenge',
+    'Sẵn sàng': 'Ready to',
+    'phá án?': 'crack the case?',
+    'Ghép đôi với một thám tử khác: một người khám nghiệm hiện trường, một người hỏi nhân chứng.': 'Team up with another detective: one examines the scene, the other questions the witnesses.',
+    'Tạo tài khoản': 'Create account',
+    'Liên kết cuối trang': 'Footer links'
+  };
+  var VI_OF = {};
+  Object.keys(EN).forEach(function (vi) { VI_OF[EN[vi]] = vi; });
+  var t = function (vi) { return lang === 'en' && EN[vi] ? EN[vi] : vi; };
+  var langListeners = [];
+  var onLangChange = function (fn) { langListeners.push(fn); };
+  // Đổi một mẩu chữ sang ngôn ngữ đang chọn, giữ khoảng trắng hai đầu. Nhận cả bản Việt lẫn bản Anh, nên đổi qua lại được mãi.
+  function swapText(value) {
+    var core = value.replace(/\s+/g, ' ').trim();
+    if (!core) return value;
+    var vi = VI_OF[core] || core;
+    var next = lang === 'en' ? (EN[vi] || vi) : vi;
+    if (next === core) return value;
+    return value.match(/^\s*/)[0] + next + value.match(/\s*$/)[0];
+  }
+  function translate(scope) {
+    (function visit(node) {
+      for (var c = node.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) {
+          var v = swapText(c.nodeValue);
+          if (v !== c.nodeValue) c.nodeValue = v;
+        } else if (c.nodeType === 1 && c.tagName !== 'SCRIPT' && c.tagName !== 'STYLE') {
+          ['aria-label', 'alt', 'title'].forEach(function (a) {
+            var x = c.getAttribute(a);
+            if (x) { var y = swapText(x); if (y !== x) c.setAttribute(a, y); }
+          });
+          visit(c);
+        }
+      }
+    })(scope);
+    document.title = swapText(document.title);
+    var desc = $('meta[name="description"]');
+    if (desc) desc.setAttribute('content', swapText(desc.getAttribute('content')));
+  }
+  function langUI() {
+    $$('.lang-opt').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang)); });
+  }
+  function setLang(next) {
+    lang = next === 'en' ? 'en' : 'vi';
+    root.lang = lang;
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+    translate(document.body);
+    langUI();
+    langListeners.forEach(function (fn) { fn(); });
+  }
+  $$('.lang-opt').forEach(function (b) {
+    b.addEventListener('click', function () { if (b.getAttribute('data-lang') !== lang) setLang(b.getAttribute('data-lang')); });
+  });
+  if (lang === 'en') translate(document.body);
+  langUI();
+  root.classList.remove('i18n-wait');
+
   /* ---- Motion toggle ---- */
   var calmBtn = $('#calm-btn'), calmLabel = $('#calm-label');
   function syncCalmUI() {
     var c = isCalm();
     calmBtn.setAttribute('aria-pressed', String(c));
-    calmLabel.textContent = c ? 'Bật hiệu ứng' : 'Tắt hiệu ứng';
-    calmBtn.setAttribute('aria-label', c ? 'Bật hiệu ứng chuyển động' : 'Tắt hiệu ứng chuyển động');
+    calmLabel.textContent = t(c ? 'Bật hiệu ứng' : 'Tắt hiệu ứng');
+    calmBtn.setAttribute('aria-label', t(c ? 'Bật hiệu ứng chuyển động' : 'Tắt hiệu ứng chuyển động'));
   }
   calmBtn.addEventListener('click', function () {
     var next = !isCalm();
@@ -891,8 +1120,8 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   try { wantMusic = localStorage.getItem('sl-music') !== '0'; } catch (e) {}
   function musicUI() {
     musicBtn.setAttribute('aria-pressed', String(playing));
-    musicLabel.textContent = playing ? 'Tắt nhạc' : 'Bật nhạc';
-    musicBtn.setAttribute('aria-label', playing ? 'Tắt nhạc nền' : 'Bật nhạc nền');
+    musicLabel.textContent = t(playing ? 'Tắt nhạc' : 'Bật nhạc');
+    musicBtn.setAttribute('aria-label', t(playing ? 'Tắt nhạc nền' : 'Bật nhạc nền'));
   }
   function fadeTo(target, ms, done) {
     cancelAnimationFrame(fadeRaf);
@@ -1031,7 +1260,7 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   var IMG_W = 1672, IMG_H = 941, POS_X = .55, POS_Y = .5;
   var touchLike = false;
   try { touchLike = matchMedia('(hover: none)').matches; } catch (e) {}
-  if (touchLike) $('.hunt-how').textContent = 'Chạm vào ảnh để rọi đèn';
+  if (touchLike) $('.hunt-how').textContent = t('Chạm vào ảnh để rọi đèn');
   var S = { w: 0, h: 0, ox: 0, oy: 0, r: 220, x: 0, y: 0, tx: 0, ty: 0, user: -1e9, raf: 0, visible: true, found: 0, t: 0 };
   function layoutHero() {
     var sr = stage.getBoundingClientRect(), hr = hero.getBoundingClientRect();
@@ -1099,7 +1328,7 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
     if (S.found === 3) {
       hero.classList.add('solved');
       drawDeduce();
-      $('#hunt-text').innerHTML = 'Đã tìm đủ manh mối · <b>3/3</b>';
+      $('#hunt-text').innerHTML = '<span>' + t('Đã tìm đủ manh mối') + '</span> · <b>3/3</b>';
     }
   }
   function loop(t) {
@@ -1183,7 +1412,7 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
   function wrong(btn) {
     btn.classList.remove('nope'); void btn.offsetWidth; btn.classList.add('nope', 'tried');
     verdict.className = 'verdict bad';
-    verdict.textContent = FAIL;
+    verdict.textContent = t(FAIL);
   }
   function solve(btn) {
     chosen = btn;
@@ -1196,7 +1425,7 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
     buildCrack(); placeCrack();
     statement.classList.add('broken');
     verdict.className = 'verdict good';
-    verdict.textContent = WIN;
+    verdict.textContent = t(WIN);
     replay.hidden = false;
     var sr = statement.getBoundingClientRect();
     if (sr.bottom < 80 || sr.top > innerHeight) statement.scrollIntoView({ block: 'center', behavior: isCalm() ? 'auto' : 'smooth' });
@@ -1267,7 +1496,15 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
     'Viền': '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5.5"/><path d="M3.5 9C1.8 7.4 2 5.2 3.8 4.6M20.5 9c1.7-1.6 1.5-3.8-.3-4.4"/></svg>'
   };
   var vault = $('#vault'), openBtn = $('#open-chest'), openLabel = $('#open-label'), log = $('#vault-log');
-  var opens = 0, best = null, busy = false;
+  var opens = 0, best = null, busy = false, shown = null;
+  function logUI() {
+    if (!opens) return;
+    log.textContent = lang === 'en'
+      ? 'Opened ' + opens + (opens === 1 ? ' chest' : ' chests') + ' · rarest: ' + t(RAR[best][0])
+      : 'Đã mở ' + opens + ' hòm · hiếm nhất: ' + RAR[best][0];
+  }
+  // Dòng loại đồ và dòng đếm hòm có ghép chữ với số, bảng dịch không khớp nguyên câu được, nên vẽ lại.
+  onLangChange(function () { if (shown) show(shown[0], shown[1]); logUI(); });
   function roll() { var r = Math.random() * 100; for (var i = 0; i < RATES.length; i++) { r -= RATES[i][1]; if (r < 0) return RATES[i][0]; } return 'C'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function show(rar, item) {
@@ -1276,9 +1513,10 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
     if (item[2]) vis.innerHTML = '<img src="' + item[2] + '" alt="">';
     else if (item[1] === 'Danh hiệu') vis.innerHTML = '<span class="rw-plate">' + esc(item[0]) + '</span>';
     else vis.innerHTML = ICONS[item[1]] || ICONS['Sưu tầm'];
-    $('#rw-rar').textContent = RAR[rar][0];
-    $('#rw-name').textContent = item[0];
-    $('#rw-type').textContent = item[3] ? item[1] + ' · ' + item[3] : item[1];
+    shown = [rar, item];
+    $('#rw-rar').textContent = t(RAR[rar][0]);
+    $('#rw-name').textContent = t(item[0]);
+    $('#rw-type').textContent = item[3] ? t(item[1]) + ' · ' + t(item[3]) : t(item[1]);
   }
   openBtn.addEventListener('click', function () {
     if (busy) return;
@@ -1294,8 +1532,8 @@ html.calm .dragon-lane, html.calm .rain, html.calm .iris, html.calm .smoke, html
       vault.classList.add('open');
       opens += 1;
       if (!best || ORDER[rar] > ORDER[best]) best = rar;
-      log.textContent = 'Đã mở ' + opens + ' hòm · hiếm nhất: ' + RAR[best][0];
-      openLabel.textContent = 'Mở hòm khác';
+      logUI();
+      openLabel.textContent = t('Mở hòm khác');
       setTimeout(function () { busy = false; openBtn.disabled = false; }, calm ? 0 : 450);
     }, calm ? 0 : 760);
   });

@@ -90,3 +90,97 @@ test('the sign-in buttons lead to the game login page', async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.locator('#form-login')).toBeVisible();
 });
+
+/** Text a visitor reads or hears (text, aria-label, alt, title) that still holds a common Vietnamese word. */
+const untranslated = (page: Page) => page.evaluate(() => {
+  const vietnamese = /(^|[\s“«(,])(và|của|một|được|các|cho|không|là|trên|với|người|đã|để|những|trong|khi|này|có|từ|bằng|đang)(?=[\s.,:;!?”»)]|$)/;
+  const found: string[] = [];
+  const visit = (node: Node) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === 3) { const text = child.nodeValue!.trim(); if (vietnamese.test(text)) found.push(text); }
+      else if (child.nodeType === 1 && !['SCRIPT', 'STYLE'].includes((child as Element).tagName)) {
+        for (const name of ['aria-label', 'alt', 'title']) {
+          const value = (child as Element).getAttribute(name);
+          if (value && vietnamese.test(value)) found.push(`${name}: ${value}`);
+        }
+        visit(child);
+      }
+    }
+  };
+  visit(document.body);
+  return found;
+});
+
+test('with no language chosen the page is Vietnamese; EN translates all of it and VI brings it back exactly', async ({ page }) => {
+  // Music off, so the first click (on EN) does not also change the music button between the two snapshots.
+  await page.addInitScript(() => localStorage.setItem('sl-music', '0'));
+  await openRoot(page);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
+  await expect(page.locator('.lang-opt[data-lang="vi"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.lede')).toContainText('Game phá án co-op');
+  const vietnameseText = await page.evaluate(() => document.body.textContent);
+
+  await page.locator('.lang-opt[data-lang="en"]').click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('.lede')).toContainText('A co-op detective game for two');
+  await expect(page.locator('.top-act a[href="/login"]')).toHaveText('Sign in');
+  await expect(page).toHaveTitle('Sir Locked — co-op detective game');
+  expect(await untranslated(page)).toEqual([]);
+  expect(await page.evaluate(() => localStorage.getItem('sirlocked.uiLanguage'))).toBe('en');
+
+  await page.locator('.lang-opt[data-lang="vi"]').click();
+  await expect(page.locator('.lede')).toContainText('Game phá án co-op');
+  expect(await page.evaluate(() => document.body.textContent)).toBe(vietnameseText);
+  expect(await page.evaluate(() => localStorage.getItem('sirlocked.uiLanguage'))).toBe('vi');
+});
+
+test('the language is shared with the game, both ways', async ({ page }) => {
+  await openRoot(page);
+  // Chosen in the game: the page opens in it straight away.
+  await page.evaluate(() => localStorage.setItem('sirlocked.uiLanguage', 'en'));
+  await page.reload();
+  await expect(page.locator('.lede')).toContainText('A co-op detective game for two');
+  await expect(page.locator('.lang-opt[data-lang="en"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => document.documentElement.classList.contains('i18n-wait'))).toBe(false);
+
+  // Chosen on the page: the game opens in it.
+  await page.locator('.lang-opt[data-lang="vi"]').click();
+  await page.locator('.top-act a[href="/login"]').click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.locator('.bpa-auth-tab').first()).toHaveText('Đăng nhập');
+  await page.evaluate(() => localStorage.setItem('sirlocked.uiLanguage', 'en'));
+  await page.reload();
+  await expect(page.locator('.bpa-auth-tab').first()).toHaveText('Log in');
+});
+
+test('the chest simulator speaks the chosen language, also after switching', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openRoot(page);
+  await page.locator('.lang-opt[data-lang="en"]').click();
+  await page.locator('#open-chest').click();
+  await expect(page.locator('#vault-log')).toHaveText(/^Opened 1 chest · rarest: (Common|Rare|Epic|Legendary|Mystery)$/);
+  await expect(page.locator('#rw-rar')).toHaveText(/^(Common|Rare|Epic|Legendary|Mystery)$/);
+  await expect(page.locator('#rw-type')).toHaveText(/^(Collectible|Frame|Title|Lobby entrance)( · .+)?$/);
+  await expect(page.locator('#open-label')).toHaveText('Open another');
+
+  await page.locator('.lang-opt[data-lang="vi"]').click();
+  await expect(page.locator('#vault-log')).toHaveText(/^Đã mở 1 hòm · hiếm nhất: (Thường|Hiếm|Quý|Huyền thoại|Bí ẩn)$/);
+  await expect(page.locator('#rw-type')).toHaveText(/^(Sưu tầm|Viền|Danh hiệu|Hiệu ứng vào sảnh)( · .+)?$/);
+  await expect(page.locator('#open-label')).toHaveText('Mở hòm khác');
+});
+
+test('the language switch fits the top bar of a small phone in both languages', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await openRoot(page);
+  for (const lang of ['vi', 'en']) {
+    await page.locator(`.lang-opt[data-lang="${lang}"]`).click();
+    const fit = await page.evaluate(() => {
+      const act = document.querySelector('.top-act')!.getBoundingClientRect();
+      const brand = document.querySelector('.top .brand')!.getBoundingClientRect();
+      return { right: act.right, left: act.left, brandRight: brand.right, width: innerWidth, overflow: document.documentElement.scrollWidth - innerWidth };
+    });
+    expect(fit.overflow).toBe(0);
+    expect(fit.right).toBeLessThanOrEqual(fit.width);
+    expect(fit.left).toBeGreaterThanOrEqual(fit.brandRight);
+  }
+});
