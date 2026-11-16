@@ -3191,6 +3191,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
             AiV3GenerationProfile.ApplyServerOwnedFields(draft, gameCase, resetGeneratedAssets: true);
             ApplyTruthServerOwnedFields(draft, gameCase);
+            // VUAN-6B part B: the server lays out the accusation claims, so it also lets each claim accept the other
+            // evidence proving the same conclusion (only what the validator confirms is found before the accusation).
+            if (compiledProjection)
+                AcceptedEvidencePolicy.Fill(gameCase, candidate => _validator.ValidateFullLogic(candidate));
             if (!compiledProjection && draft.CaseBlueprint is not null)
                 AiCaseBlueprintPolicy.ApplyLockedCrackContract(draft.CaseBlueprint, gameCase);
         }
