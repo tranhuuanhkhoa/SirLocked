@@ -37,7 +37,7 @@ test('storyboard edits invalidate quote approval and generation submits exactly 
   await expect(page.locator('[data-save-storyboard]')).toBeDisabled();
 });
 
-test('unknown generation and costs stay explicit and never trigger an automatic resubmission', async ({ page }) => {
+test('unknown generation stays explicit and never triggers an automatic resubmission', async ({ page }) => {
   let posts = 0;
   await page.route('**/test-editor', (route) => route.fulfill({ contentType: 'text/html', body: '<main id="editor"></main>' }));
   await page.route('**/api/admin/ai-cases/draft/presentation', (route) => {
@@ -48,19 +48,13 @@ test('unknown generation and costs stay explicit and never trigger an automatic 
       clips: [{ id: 'opening', kind: 'INTRO', prompt: '<script>window.injected=true</script>', sourceImageUrl: '', durationSeconds: 6, generateVideo: true, status: 'SUBMISSION_UNKNOWN', errorCode: 'SUBMISSION_UNKNOWN' }]
     } } });
   });
-  await page.route('**/api/admin/ai-cases/draft/usage', (route) => route.fulfill({ json: { success: true, data: {
-    calls: 1, inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, measuredCostUsd: 0, calculatedCostUsd: 0, unknownCalls: 1, reservedUsd: .5,
-    events: [{ step: 'GenerateVideo', model: 'mock', state: 'UNKNOWN', costUsd: null, costSource: 'UNKNOWN' }]
-  } } }));
   await page.goto('/test-editor');
   await page.evaluate(async () => { const { mountPresentationEditor } = await import('/Client/js/pages/adminPresentation.js'); mountPresentationEditor(document.querySelector('#editor'), 'draft'); });
   await expect(page.locator('[data-generate-video]')).toBeDisabled();
   await expect(page.locator('[data-clip-field="prompt"]')).toHaveValue('<script>window.injected=true</script>');
   expect(await page.evaluate(() => (window as any).injected)).toBeUndefined();
-  await page.locator('.presentation-usage summary').click();
-  await page.locator('[data-load-usage]').click();
-  await expect(page.locator('[data-usage-output]')).toContainText('Unknown calls: 1');
-  await expect(page.locator('[data-usage-output] tbody')).toContainText('Unknown');
+  // The retired USD ledger has no panel any more.
+  await expect(page.locator('.presentation-usage')).toHaveCount(0);
   expect(posts).toBe(0);
 });
 

@@ -16,7 +16,8 @@ const STATUS_READY_TO_PUBLISH = 'READY_TO_PUBLISH';
 const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
 const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID, 'CANCELLED']);
-const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED']);
+// AWAITING_CLAUDE: the run is parked until the Claude bot answers through the bridge.
+const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED', 'AWAITING_CLAUDE']);
 const AWAITING_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL]);
 const isTerminalDraft = (draft) => draft?.status === 'CANCELLED'
   || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState));
@@ -202,12 +203,36 @@ function statusLabel(status) {
   return localizedPair(STATUS_LABELS[status]) || status || tr('Unknown', 'Không xác định');
 }
 
+/** Order states of the Claude bot workflow (docs/AI_CASE_SETUP_VI.md). */
+const ORDER_STATUS_LABELS = {
+  AWAITING_OWNER_APPROVAL: ['Waiting for admin approval', 'Chờ Yen duyệt'],
+  QUEUED_FOR_CLAUDE: ['Waiting for Claude', 'Chờ Claude'],
+  CLAUDE_WORKING: ['Claude is working', 'Claude đang làm'],
+  AWAITING_GATE: ['Waiting for review', 'Chờ duyệt cổng'],
+  SUBMITTED: ['Submitted', 'Đã nộp'],
+  REJECTED: ['Rejected', 'Đã từ chối'],
+  CANCELLED: ['Cancelled', 'Đã hủy'],
+};
+
+function orderStatusLabel(status) {
+  return localizedPair(ORDER_STATUS_LABELS[status]) || status || '';
+}
+
+function orderedByLabel(role) {
+  return role === 'ADMIN' ? 'ADMIN' : role === 'VIP' ? 'VIP' : (role || tr('Unknown', 'Không rõ'));
+}
+
 const CREATION_ERROR_LABELS = {
-  AI_PROVIDER_UNCONFIGURED: ['AI generation is not configured on the server. Ask the administrator to configure the provider.', 'Máy chủ chưa cấu hình dịch vụ tạo AI. Hãy nhờ quản trị viên cấu hình nhà cung cấp.'],
-  AI_QUOTA_UNCONFIGURED: ['AI creation limits and budget have not been enabled and configured. Ask the administrator to finish the AI setup.', 'Hạn mức và ngân sách tạo AI chưa được bật và cấu hình. Hãy nhờ quản trị viên hoàn tất thiết lập AI.'],
-  AI_ASSET_STORAGE_UNCONFIGURED: ['AI asset storage is not configured. Ask the administrator to configure Cloudinary.', 'Kho lưu tài nguyên AI chưa được cấu hình. Hãy nhờ quản trị viên cấu hình Cloudinary.'],
-  AI_USAGE_PRICE_REQUIRED: ['AI model pricing and per-call cost reservations are missing. Ask the administrator to complete the cost settings.', 'Chưa cấu hình giá mô hình AI và khoản dự trù cho mỗi lần gọi. Hãy nhờ quản trị viên hoàn tất thiết lập chi phí.'],
-  AI_REQUEST_BUDGET_LIMIT: ['This request exceeds the trial size or output limit. No AI request was sent; review the saved draft before changing the limits.', 'Yêu cầu vượt giới hạn kích thước hoặc lượng đầu ra của đợt thử. Chưa gửi yêu cầu tới AI; hãy kiểm tra bản nháp đã lưu trước khi đổi giới hạn.'],
+  BRIDGE_NOT_CONFIGURED: ['The Claude bridge key is not set on the server yet, so no bot can take orders. The administrator runs scripts/set-bridge-key.sh.', 'Máy chủ chưa có khóa bridge của Claude nên chưa bot nào nhận được đơn. Quản trị viên chạy scripts/set-bridge-key.sh.'],
+  ASSET_STORAGE_UNAVAILABLE: ['Cloudinary is not configured, so the bot cannot upload case images yet.', 'Chưa cấu hình Cloudinary nên bot chưa tải được hình của vụ.'],
+  AI_WEEKLY_LIMIT: ['You have used this week\'s AI case orders. A new week starts on Monday (Vietnam time).', 'Bạn đã dùng hết số đơn tạo vụ của tuần này. Tuần mới bắt đầu từ thứ Hai (giờ Việt Nam).'],
+  AI_ORDER_INVALID: ['Some order options are not valid. Check them and try again.', 'Một số lựa chọn của đơn chưa hợp lệ. Hãy kiểm tra lại rồi gửi lại.'],
+  AI_ORDER_AWAITING_APPROVAL: ['This order is waiting for an admin to approve it.', 'Đơn này đang chờ quản trị viên duyệt.'],
+  AI_ORDER_REJECTED: ['This order was rejected.', 'Đơn này đã bị từ chối.'],
+  AI_ORDER_NOT_AWAITING_APPROVAL: ['Only an order waiting for approval can be approved or rejected.', 'Chỉ duyệt hoặc từ chối được đơn đang chờ duyệt.'],
+  AI_ORDER_REASON_REQUIRED: ['Write a reason for the rejection.', 'Hãy ghi lý do từ chối.'],
+  AI_CREATIVE_CONSTRAINT_WORLD_MISMATCH: ['The setting lock belongs to the Victorian world.', 'Khóa bối cảnh chỉ dùng cho thế giới kiểu Victoria.'],
+  AI_BRIDGE_RUN_REQUIRED: ['Claude answers this step inside a queued run. Use Continue or retry.', 'Claude chỉ trả lời bước này trong lượt chạy của hàng chờ. Hãy bấm Tiếp tục hoặc thử lại.'],
   AI_TRUTH_REPAIR_PENDING: ['Review and accept or reject the pending truth repair before continuing with gameplay or assets.', 'Hãy kiểm tra và chấp nhận hoặc từ chối bản sửa truth đang chờ trước khi tiếp tục gameplay hoặc tài nguyên.'],
   AI_WORKFLOW_CONFLICT: ['This draft is running or has changed. Refresh its details before trying again.', 'Bản nháp đang chạy hoặc đã thay đổi. Hãy tải lại chi tiết trước khi thử lại.'],
   AI_TRUTH_REPAIR_CANDIDATE_UNAVAILABLE: ['This repair candidate is no longer available. Refresh the draft before continuing.', 'Bản sửa này không còn khả dụng. Hãy tải lại bản nháp trước khi tiếp tục.'],
@@ -216,7 +241,6 @@ const CREATION_ERROR_LABELS = {
   UNSAFE_TRUTH_REPAIR_SCOPE: ['Choose the recommended repair scope or an earlier one so every affected artifact can be repaired.', 'Hãy chọn phạm vi sửa được khuyến nghị hoặc sớm hơn để sửa đủ các phần bị ảnh hưởng.'],
   AI_ACTIVE_DRAFT_LIMIT: ['You have reached your active-draft limit. Complete or cancel a draft in Recent AI drafts before creating another.', 'Bạn đã đạt giới hạn bản nháp đang hoạt động. Hãy hoàn tất hoặc hủy một bản nháp trong Bản nháp AI gần đây trước khi tạo vụ án khác.'],
   AI_DAILY_LIMIT: ["You have reached today's creation limit. Continue an existing draft or try again after the daily limit resets; cancellation does not reset this limit.", 'Bạn đã đạt giới hạn tạo vụ án hôm nay. Hãy tiếp tục bản nháp hiện có hoặc thử lại khi hạn mức ngày được đặt lại; hủy bản nháp không đặt lại hạn mức này.'],
-  AI_GLOBAL_BUDGET_EXHAUSTED: ['The remaining AI budget cannot cover this request. Ask the administrator to review usage and the configured budget.', 'Ngân sách AI còn lại không đủ cho yêu cầu này. Hãy nhờ quản trị viên kiểm tra mức sử dụng và ngân sách đã cấu hình.'],
   AI_V3_PRESET_DISABLED: ['Crack the Lie generation is disabled. Uncheck it or ask the administrator to enable it.', 'Tính năng tạo Phá Vỡ Lời Dối đang tắt. Hãy bỏ chọn tính năng này hoặc nhờ quản trị viên bật.'],
 };
 
@@ -453,6 +477,20 @@ export async function renderAdminAiPage(app) {
     return pill(statusLabel(d.status), statusTone(d), { dot: true });
   }
 
+  /** Where the order stands with the Claude bot; VIP orders first wait for an admin. */
+  function orderStatusPill(d) {
+    if (!d.orderStatus) return '';
+    const tone = d.orderStatus === 'AWAITING_OWNER_APPROVAL' || d.orderStatus === 'AWAITING_GATE' ? 'gold'
+      : d.orderStatus === 'SUBMITTED' ? 'ok' : d.orderStatus === 'REJECTED' ? 'bad' : '';
+    return `<span data-order-status="${escapeHtml(d.orderStatus)}">${pill(orderStatusLabel(d.orderStatus), tone, { dot: true })}</span>`;
+  }
+
+  function orderButtons(d) {
+    if (!session.isAdmin() || d.orderStatus !== 'AWAITING_OWNER_APPROVAL') return '';
+    return `<button class="btn btn-primary btn-sm" type="button" data-approve-order="${escapeHtml(d.draftId)}">${tr('Approve order', 'Duyệt đơn')}</button>
+      <button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-reject-order="${escapeHtml(d.draftId)}">${tr('Reject order', 'Từ chối đơn')}</button>`;
+  }
+
   function isSuccessStatus(status) {
     return status === STATUS_AWAITING_APPROVAL ||
       status === STATUS_TRUTH_AWAITING_APPROVAL ||
@@ -552,12 +590,13 @@ export async function renderAdminAiPage(app) {
     return `
     <tr>
       <td><span class="aai-cell"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(prompt.slice(0, 70))}</small></span></td>
-      <td>${escapeHtml(d.provider)}</td>
+      <td><span class="aai-cell"><strong>${escapeHtml(orderedByLabel(d.createdByRole))}</strong>${orderStatusPill(d)}</span></td>
       <td><span class="aai-cell"><strong>${escapeHtml(preset)}</strong><small>${escapeHtml(presetMeta)}</small></span>${isV3Draft(d) ? `<span class="chip aai-review-chip ${d.v3SemanticReview?.status === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(d.v3SemanticReview?.status || 'NOT_RUN')}</span>` : ''}</td>
       <td>${statusPill(d)}</td>
       <td>
         <div class="adm-table-actions">
           <button class="btn btn-ghost btn-sm" type="button" data-view="${escapeHtml(d.draftId)}">${tr('View', 'Xem')}</button>
+          ${orderButtons(d)}
           ${continueButton(d, 'btn-ghost')}
           ${cancelButton(d)}
           ${d.status === STATUS_PUBLISHED || d.importedCaseId
@@ -573,7 +612,7 @@ export async function renderAdminAiPage(app) {
     const table = (rows) => `
       <div class="adm-table-wrap${rows ? '' : ' aai-table-wrap--empty'}">
         <table class="adm-table admin-table aai-drafts-table">
-          <thead><tr><th>${tr('Draft', 'Bản nháp')}</th><th>${tr('Provider', 'Nhà cung cấp')}</th><th>${tr('Preset', 'Cấu hình')}</th><th>${tr('Status', 'Trạng thái')}</th><th class="aai-th-actions">${tr('Actions', 'Thao tác')}</th></tr></thead>
+          <thead><tr><th>${tr('Draft', 'Bản nháp')}</th><th>${tr('Ordered by', 'Người đặt')}</th><th>${tr('Preset', 'Cấu hình')}</th><th>${tr('Status', 'Trạng thái')}</th><th class="aai-th-actions">${tr('Actions', 'Thao tác')}</th></tr></thead>
           ${rows ? `<tbody>${rows}</tbody>` : ''}
         </table>
       </div>`;
@@ -668,7 +707,7 @@ export async function renderAdminAiPage(app) {
         ${stepHead('aai-brief-title', tr('Creator direction', 'Định hướng sáng tác'))}
         <div class="aai-field">
           <label class="aai-label" for="ai-creator-direction">${tr('Note for the AI', 'Ghi chú cho AI')} <span>${tr('(optional)', '(không bắt buộc)')}</span></label>
-          <textarea class="field-input aai-textarea" id="ai-creator-direction" rows="3" maxlength="1200" placeholder="${tr('Optional setting, tone, characters, or mystery direction. Do not include the Crack answer.', 'Bối cảnh, sắc thái, nhân vật hoặc hướng bí ẩn (không tiết lộ đáp án Crack).')}">${escapeHtml(formFields['ai-creator-direction'])}</textarea>
+          <textarea class="field-input aai-textarea" id="ai-creator-direction" rows="3" maxlength="2000" placeholder="${tr('Optional setting, tone, characters, or mystery direction. Do not include the Crack answer.', 'Bối cảnh, sắc thái, nhân vật hoặc hướng bí ẩn (không tiết lộ đáp án Crack).')}">${escapeHtml(formFields['ai-creator-direction'])}</textarea>
         </div>
         <div class="aai-locks">
           ${lockField('ai-setting-lock', tr('Setting lock', 'Khóa bối cảnh'), CREATIVE_SETTINGS)}
@@ -786,11 +825,12 @@ export async function renderAdminAiPage(app) {
     <section class="adm-card aai-draft-head" aria-labelledby="aai-draft-title">
       <div class="aai-draft-titlebar">
         <div class="aai-draft-heading">
-          <span class="adm-eyebrow">${tr('AI draft', 'Bản nháp AI')}${d.provider ? ` · ${escapeHtml(d.provider)}` : ''}</span>
+          <span class="adm-eyebrow">${tr('AI draft', 'Bản nháp AI')} · ${escapeHtml(orderedByLabel(d.createdByRole))}</span>
           <h2 class="aai-draft-title" id="aai-draft-title">${escapeHtml(title)}</h2>
         </div>
         ${statusPill(d)}
       </div>
+      ${orderSummary(d)}
       <p class="aai-draft-meta">${tr('Preset', 'Cấu hình')}: ${escapeHtml(presetLabel(d.settings?.generationPreset))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</p>
       ${codes.length ? `<ul class="aai-codes">${codes.map((line) => `<li>${line}</li>`).join('')}</ul>` : ''}
       ${failureBlock(d, generating)}
@@ -1479,6 +1519,12 @@ export async function renderAdminAiPage(app) {
     app.querySelectorAll('[data-cancel-draft]').forEach((btn) =>
       btn.addEventListener('click', () => cancelDraft(btn.dataset.cancelDraft, btn)));
 
+    app.querySelectorAll('[data-approve-order]').forEach((btn) =>
+      btn.addEventListener('click', () => decideOrder(btn.dataset.approveOrder, btn, true)));
+
+    app.querySelectorAll('[data-reject-order]').forEach((btn) =>
+      btn.addEventListener('click', () => decideOrder(btn.dataset.rejectOrder, btn, false)));
+
     app.querySelectorAll('[data-retry-json]').forEach((btn) =>
       btn.addEventListener('click', () => retryFailedDraft(btn.dataset.retryJson, btn, 'json')));
 
@@ -1535,10 +1581,46 @@ export async function renderAdminAiPage(app) {
     return tr(preset.description, preset.descriptionVi);
   }
 
+  /** Admin decision on a VIP order. Rejection needs a reason, which the VIP sees. */
+  async function decideOrder(draftId, button, approve) {
+    let reason = '';
+    if (!approve) {
+      reason = window.prompt(tr('Why is this order rejected? The VIP sees this reason.', 'Lý do từ chối đơn? VIP sẽ thấy lý do này.')) || '';
+      if (!reason.trim()) return;
+    }
+    const version = ++runVersion;
+    button.disabled = true;
+    try {
+      const draft = approve ? await aiCaseApi.approveOrder(draftId) : await aiCaseApi.rejectOrder(draftId, reason.trim());
+      if (disposed || version !== runVersion) return;
+      await loadDraftList();
+      if (disposed || version !== runVersion) return;
+      draw(visibleDraft?.draftId === draftId ? draft : visibleDraft);
+      toast(approve ? tr('Order approved; it now waits for Claude.', 'Đã duyệt đơn; đơn đang chờ Claude.') : tr('Order rejected.', 'Đã từ chối đơn.'), 'success');
+    } catch (error) {
+      if (disposed || version !== runVersion) return;
+      button.disabled = false;
+      toast(aiErrorText(error), 'error');
+    }
+  }
+
+  /** Order line of the draft card: status with times, the step Claude is on, and the bot's report. */
+  function orderSummary(d) {
+    if (!d.orderStatus) return '';
+    const history = (d.orderStatusHistory || []).slice(-4)
+      .map((change) => `${escapeHtml(orderStatusLabel(change.status))} · ${escapeHtml(new Date(change.at).toLocaleString())}`)
+      .join(' → ');
+    const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${tr('Waiting for Claude on step', 'Đang chờ Claude ở bước')} <code>${escapeHtml(d.claudeWait.step)}</code></p>` : '';
+    const rejected = d.orderRejectReason ? `<p class="aai-note">${tr('Rejection reason', 'Lý do từ chối')}: ${escapeHtml(d.orderRejectReason)}</p>` : '';
+    const report = session.isAdmin() && d.bridgeReport
+      ? `<details class="aai-bridge-report"><summary>${tr('Bot report (report.md)', 'Báo cáo của bot (report.md)')}</summary><pre>${escapeHtml(d.bridgeReport)}</pre></details>` : '';
+    return `<div class="aai-order"><p class="aai-draft-meta">${tr('Order', 'Đơn')}: ${orderStatusPill(d)} ${orderButtons(d)}</p>${history ? `<p class="muted small">${history}</p>` : ''}${waiting}${rejected}${report}</div>`;
+  }
+
   async function cancelDraft(draftId, button) {
     if (!window.confirm(tr(
-      "Cancel this draft and stop future generation? Work already performed may still incur cost. Cancelling does not reset today's creation limit.",
-      'Hủy bản nháp này và dừng các bước tạo tiếp theo? Công việc đã thực hiện vẫn có thể phát sinh chi phí. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
+      "Cancel this draft and stop future generation? Open Claude requests are closed. Cancelling does not reset today's creation limit.",
+      'Hủy bản nháp này và dừng các bước tạo tiếp theo? Các yêu cầu đang chờ Claude sẽ bị đóng. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
     ))) return;
     const version = ++runVersion;
     stopPolling();

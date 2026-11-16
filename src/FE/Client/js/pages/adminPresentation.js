@@ -66,8 +66,7 @@ export function mountPresentationEditor(host, draftId) {
         <div class="case-actions"><button class="btn btn-secondary" data-save-storyboard ${active() ? 'disabled' : ''}>${tr('Save storyboard', 'Lưu storyboard')}</button>
         <button class="btn btn-primary" data-generate-video disabled>${tr('Generate approved videos', 'Tạo video đã duyệt dự toán')}</button>
         <button class="btn btn-secondary" data-approve-presentation ${active() || !(state.clips || []).length ? 'disabled' : ''}>${tr('Approve presentation', 'Duyệt bộ trình diễn')}</button>
-        <button class="btn btn-ghost" data-refresh-presentation>${tr('Refresh', 'Làm mới')}</button></div>` : `<p role="status">${tr('Loading storyboard…', 'Đang tải storyboard…')}</p>`}
-      <details class="presentation-usage"><summary>${tr('AI usage and cost', 'Token và chi phí AI')}</summary><button class="btn btn-ghost btn-sm" data-load-usage>${tr('Load usage', 'Xem số liệu')}</button><div data-usage-output></div></details>`;
+        <button class="btn btn-ghost" data-refresh-presentation>${tr('Refresh', 'Làm mới')}</button></div>` : `<p role="status">${tr('Loading storyboard…', 'Đang tải storyboard…')}</p>`}`;
     bind();
     if (needsRecovery()) {
       const message = document.createElement('p'); message.className = 'notice notice-bad';
@@ -171,19 +170,6 @@ export function mountPresentationEditor(host, draftId) {
       const img = document.createElement('img'); img.className = 'presentation-preview'; img.alt = tr('Reference frame', 'Khung hình tham chiếu');
       button.replaceWith(img); void loadMedia(img, button.dataset.previewPoster);
     }, options));
-    host.querySelector('[data-load-usage]')?.addEventListener('click', async (event) => {
-      event.currentTarget.disabled = true;
-      const output = host.querySelector('[data-usage-output]');
-      try {
-        const usage = await get(`/api/admin/ai-cases/${encodeURIComponent(draftId)}/usage`);
-        if (disposed || !output.isConnected) return;
-        output.innerHTML = `<p>${usage.calls} ${tr('calls', 'lần gọi')} · ${usage.inputTokens} input / ${usage.outputTokens} output · ${usage.cachedInputTokens} cached</p>
-          <p>${tr('Provider billed', 'Provider báo phí')}: ${money(usage.measuredCostUsd)} · ${tr('Calculated from usage', 'Tính theo usage')}: ${money(usage.calculatedCostUsd)} · ${tr('Unknown calls', 'Lần gọi chưa rõ phí')}: ${usage.unknownCalls} · ${tr('Reserved', 'Đang dự phòng')}: ${money(usage.reservedUsd)}</p>
-          ${usage.isTruncated ? `<p>${tr('Only the latest 5,000 calls are shown.', 'Chỉ hiển thị 5.000 lần gọi gần nhất.')}</p>` : ''}
-          <div class="table-scroll"><table class="admin-table"><thead><tr><th>${tr('Step', 'Bước')}</th><th>Model</th><th>Tokens</th><th>${tr('Cost', 'Chi phí')}</th></tr></thead><tbody>${(usage.events || []).slice(0, 30).map((row) => `<tr><td>${esc(row.step)}<br>${esc(row.state)}</td><td>${esc(row.model)}</td><td>${row.inputTokens ?? '—'} / ${row.outputTokens ?? '—'}</td><td>${money(row.costUsd)}<br><small>${esc(row.costSource)}</small></td></tr>`).join('')}</tbody></table></div>`;
-      } catch (failure) { if (!disposed && output.isConnected) output.textContent = failure.message; }
-      finally { if (host.isConnected) host.querySelector('[data-load-usage]').disabled = false; }
-    }, options);
   }
   draw(); void perform(() => get(base));
   return () => { disposed = true; clearTimeout(timer); disposeMedia(); };

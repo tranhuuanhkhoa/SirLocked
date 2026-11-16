@@ -30,6 +30,11 @@ export const aiCaseApi = {
   drafts: () => get('/api/admin/ai-cases'),
   draft: (draftId) => get(`/api/admin/ai-cases/${draftId}`),
   cancelDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/cancel`),
+  approveOrder: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-order`),
+  rejectOrder: (draftId, reason) => post(`/api/admin/ai-cases/${draftId}/reject-order`, { reason }),
+  settings: () => get('/api/admin/ai-cases/settings'),
+  saveSettings: (vipWeeklyOrderLimit) => put('/api/admin/ai-cases/settings', { vipWeeklyOrderLimit }),
+  library: (world = '', kind = '') => get(`/api/admin/ai-cases/library?world=${encodeURIComponent(world)}&kind=${encodeURIComponent(kind)}`),
   importDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/import?overwrite=${overwrite}`),
   publishDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/publish?overwrite=${overwrite}`),
 };

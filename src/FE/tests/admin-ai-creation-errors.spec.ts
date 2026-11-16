@@ -31,7 +31,8 @@ test('server readiness blockers stay visible in Vietnamese and retry preserves t
   await page.addInitScript(() => localStorage.setItem('sirlocked.uiLanguage', 'vi'));
   let checks = 0;
   let creations = 0;
-  const blockers = ['AI_PROVIDER_UNCONFIGURED', 'AI_QUOTA_UNCONFIGURED', 'AI_ASSET_STORAGE_UNCONFIGURED', 'AI_USAGE_PRICE_REQUIRED']
+  // The server no longer calls an AI provider: the one readiness blocker is the missing Claude bridge key.
+  const blockers = ['BRIDGE_NOT_CONFIGURED']
     .map((code) => ({ code, message: 'Server configuration is incomplete.', messageKey: 'ai.setup' }));
   await page.route('**/api/admin/ai-cases/capabilities', (route) => route.fulfill({ json: envelope(
     ++checks === 1 ? { ...capabilities, canCreateDraft: false, creationBlockers: blockers } : capabilities,
@@ -43,10 +44,8 @@ test('server readiness blockers stay visible in Vietnamese and retry preserves t
   await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-readiness-error')).toContainText('Chưa thể tạo vụ án');
-  await expect(page.locator('#ai-readiness-error')).toContainText('Máy chủ chưa cấu hình dịch vụ tạo AI');
-  await expect(page.locator('#ai-readiness-error')).toContainText('Hạn mức và ngân sách');
-  await expect(page.locator('#ai-readiness-error')).toContainText('Cloudinary');
-  await expect(page.locator('#ai-readiness-error')).toContainText('giá mô hình AI');
+  await expect(page.locator('#ai-readiness-error')).toContainText('Máy chủ chưa có khóa bridge của Claude');
+  await expect(page.locator('#ai-readiness-error')).toContainText('scripts/set-bridge-key.sh');
   await page.screenshot({ path: testInfo.outputPath('ai-readiness-blockers-vi-desktop.png'), fullPage: true });
   await page.locator('#ai-creator-direction').fill('Giữ lại hướng điều tra ở nhà hát.');
   await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
@@ -121,13 +120,13 @@ test('creation errors remain visible and every entered field survives a successf
 test('Crack-specific readiness blocks only the selected extension', async ({ page }) => {
   await page.route('**/api/admin/ai-cases/capabilities', (route) => route.fulfill({ json: envelope({
     ...capabilities, canCreateV3Draft: false,
-    v3CreationBlockers: [{ code: 'AI_USAGE_PRICE_REQUIRED', message: 'Review model pricing missing.' }],
+    v3CreationBlockers: [{ code: 'AI_V3_PRESET_DISABLED', message: 'Crack generation is off.' }],
   }) }));
   await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeEnabled();
   await page.locator('#ai-include-crack').check();
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
-  await expect(page.locator('#ai-readiness-error')).toContainText('AI model pricing');
+  await expect(page.locator('#ai-readiness-error')).toContainText('Crack the Lie generation is disabled');
   await page.locator('#ai-include-crack').uncheck();
   await expect(page.locator('#quick-create-btn')).toBeEnabled();
   await expect(page.locator('#ai-readiness-error')).toHaveCount(0);
@@ -194,11 +193,11 @@ for (const status of [403, 404]) {
 
 test('failed terminal generation shows the configuration issue without a success toast', async ({ page }) => {
   await page.route('**/api/admin/ai-cases', (route) => route.fulfill({ json: envelope(route.request().method() === 'GET'
-    ? [] : { ...draft, status: 'GENERATED_INVALID', lastGenerationErrorCode: 'AI_USAGE_PRICE_REQUIRED', storyPreview: null }) }));
+    ? [] : { ...draft, status: 'GENERATED_INVALID', lastGenerationErrorCode: 'BRIDGE_NOT_CONFIGURED', storyPreview: null }) }));
   await page.goto('/admin/ai');
   await page.locator('#quick-create-btn').click();
   await expect(page.locator('#ai-output')).toContainText('Generation invalid');
-  await expect(page.locator('#ai-request-error')).toContainText('AI model pricing');
+  await expect(page.locator('#ai-request-error')).toContainText('Claude bridge key');
   await expect(page.locator('.toast-success')).toHaveCount(0);
 });
 
