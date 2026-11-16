@@ -264,7 +264,7 @@ const PROGRESS_STATES = {
   GENERATING_STORY: {
     percent: 8,
     title: ['Creating the case premise', 'Đang tạo tiền đề vụ án'],
-    detail: ['GPT is preparing a spoiler-free mystery outline.', 'GPT đang chuẩn bị dàn ý bí ẩn không tiết lộ đáp án.'],
+    detail: ['Claude prepares a spoiler-free mystery outline (the order waits until the bot takes it).', 'Claude chuẩn bị dàn ý bí ẩn không tiết lộ đáp án (đơn chờ tới khi bot nhận).'],
   },
   STORY_AWAITING_APPROVAL: {
     percent: 18,
