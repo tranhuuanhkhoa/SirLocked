@@ -1,0 +1,17 @@
+{
+ "title": "Tiệm đồng hồ",
+ "description": "Tiệm đồng hồ ấm: Rê thứ, hộp nhạc sine rải hợp âm, tiếng tích tắc mỗi phách, giai điệu xung thưa.",
+ "bpm": 96,
+ "beatsPerBar": 4,
+ "bars": 16,
+ "chords": ["Dm", "A#", "C", "A7", "Dm", "Gm", "A7", "Dm"],
+ "parts": [
+  {"name": "bass", "wave": "tri", "gain": 0.45, "pattern": "root", "octave": 2, "velocity": 0.8, "durBeats": 3.8, "env": [0.01, 0.3, 0.5, 0.3]},
+  {"name": "music-box", "wave": "sine", "gain": 0.3, "pattern": "arp", "octave": 5, "arp": [0, 1, 2, 1, 0, 2, 1, 2], "stepBeats": 0.5, "durBeats": 0.5, "accent": [0.45, 0.3], "pan": -0.25, "env": [0.002, 0.25, 0.05, 0.1]},
+  {"name": "lead", "wave": "pulse", "duty": 0.25, "gain": 0.1, "pattern": "melody", "stepBeats": 4, "startBeat": 2, "durRatio": 0.45, "velocity": 0.4, "pan": 0.25, "env": [0.02, 0.3, 0.5, 0.4],
+   "melody": "A5 . F5 D5 | E5 . F5 G5 | A5 . C6 A5 | G5 . E5 ."},
+  {"name": "ticks", "pattern": "hits", "gain": 0.35, "pan": 0.1, "hits": [{"beat": 0, "everyBeats": 1, "tone": [1800, 1300], "vel": [0.8, 0.6], "durSec": 0.05, "noise": 0.4, "decaySec": 0.012}]}
+ ],
+ "delay": {"leftBeats": 0.75, "rightBeats": 0.5, "feedback": 0.35, "mix": 0.5},
+ "lowpassHz": 7000
+}

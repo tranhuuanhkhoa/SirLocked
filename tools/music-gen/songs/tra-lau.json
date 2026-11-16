@@ -1,0 +1,19 @@
+{
+ "title": "Trà lâu",
+ "description": "Trà lâu Thượng Hải 1930: ngũ cung Rê, đàn gảy kiểu cổ tranh rải hợp âm, giai điệu kéo kiểu nhị hồ có rung, mõ gỗ phách 2 và 4, chậm và yên.",
+ "bpm": 84,
+ "beatsPerBar": 4,
+ "bars": 16,
+ "chords": ["D", "Bm", "G", "A", "D", "Em", "A", "D", "G", "D", "Em", "A", "D", "Bm", "A", "D"],
+ "parts": [
+  {"name": "bass", "wave": "tri", "gain": 0.42, "pattern": "root-fifth", "octave": 2, "accent": [0.8, 0.55], "durBeats": 1.8, "env": [0.01, 0.25, 0.5, 0.25]},
+  {"name": "guzheng", "wave": "pluck", "gain": 0.26, "pattern": "arp", "octave": 4, "arp": [0, 1, 2, 3, 2, 1, 3, 4], "stepBeats": 0.5, "durBeats": 1.2, "decaySec": 0.45, "accent": [0.6, 0.42], "pan": -0.3, "env": [0.002, 0.1, 0.8, 0.1]},
+  {"name": "erhu", "wave": "saw", "gain": 0.13, "pattern": "melody", "stepBeats": 1, "durRatio": 0.95, "velocity": 0.6, "vibrato": 0.006, "pan": 0.2, "env": [0.07, 0.2, 0.75, 0.15],
+   "melody": "A4 - B4 A4 | F#4 - E4 D4 | E4 - F#4 A4 | B4 - - . | D5 - B4 A4 | B4 A4 F#4 E4 | F#4 - E4 - | D4 - - . | B4 - D5 B4 | A4 - F#4 A4 | B4 - A4 F#4 | E4 - - . | F#4 A4 B4 D5 | E5 - D5 B4 | A4 - E4 F#4 | D4 - - ."},
+  {"name": "pad", "wave": "sine", "gain": 0.08, "pattern": "pad", "octave": 3, "velocity": 0.3, "durBeats": 4, "pan": 0.0, "env": [0.8, 0.5, 0.7, 0.9]},
+  {"name": "woodblock", "pattern": "hits", "gain": 0.22, "pan": 0.25, "hits": [{"beat": 1, "everyBeats": 2, "tone": 1150, "vel": [0.7, 0.55], "durSec": 0.06, "noise": 0.15, "decaySec": 0.018}]},
+  {"name": "bell", "pattern": "hits", "gain": 0.12, "pan": -0.1, "hits": [{"beat": 0, "everyBeats": 16, "tone": 2350, "vel": 0.6, "durSec": 1.2, "noise": 0.0, "decaySec": 0.35}]}
+ ],
+ "delay": {"leftBeats": 0.75, "rightBeats": 1.0, "feedback": 0.3, "mix": 0.35},
+ "lowpassHz": 5200
+}
