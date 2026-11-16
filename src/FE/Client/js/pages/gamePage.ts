@@ -20,7 +20,10 @@ import { advancePath, findApproachPath, findPath, gridApproachPoint, insideBound
 import { PIXEL_PLAYER_SHEETS, advanceMotion, facingFromVector, isFacing, motionFrame,
   type Facing, type PixelMotionState } from '../game/pixelActors.js';
 import type { CharacterPresentation, CasePresentation, Cutscene } from '../game/presentationMedia.js';
-import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio } from '../game/audioController.js';
+import { createAudioController, renderAudioControls, bindAudioControls, type SceneAudio, type SceneWeatherInput } from '../game/audioController.js';
+import { WeatherLayer } from '../game/weatherLayer.js';
+import { timeOfDayTint } from '../game/atmosphere/weatherCore.js';
+import { blipDuration, type CharacterVoice } from '../game/atmosphere/blipCore.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
 import { renderOpenCoopTimeline, renderOpenCoopCrack, type OpenCoopContext, type OpenCoopEvidence, type OpenCoopTestimony, type TimelineView } from '../game/openCoopCaseFile';
@@ -202,6 +205,10 @@ type SceneRuntime = {
   clueZones?: RuntimeClueZone[];
   cameraRules?: CameraRules;
   audio?: SceneAudio;
+  /** Outdoor weather, indoor flag and time of day (docs/case-audio-weather.md); absent on older cases. */
+  weather?: SceneWeatherInput;
+  indoor?: boolean | null;
+  timeOfDay?: 'DAY' | 'DUSK' | 'NIGHT' | string | null;
 };
 
 type SceneItem = {
@@ -220,6 +227,8 @@ type SceneCharacter = {
   imageUrl: string;
   description: string;
   presentation?: CharacterPresentation;
+  /** Speech blip (characters[].voice); absent on older cases, which get a default voice from the id. */
+  voice?: CharacterVoice;
 };
 
 type SceneDialogue = {
@@ -479,6 +488,10 @@ type PhaserCallbacks = {
   onPose: (pose: PlayerPose) => void;
   /** Scene art is still downloading: the page shows a loading screen so characters never appear before their background. */
   onLoading?: (status: { loading: boolean; remaining: number; total: number; progress: number }) => void;
+  /** The player's "weather effects" setting (read every frame). */
+  weatherEnabled?: () => boolean;
+  /** A storm's lightning flashed; thunder follows after the delay. */
+  onLightning?: (thunderDelayMs: number) => void;
 };
 
 type SceneFrame = {
@@ -546,10 +559,32 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private approachCache = new Map<string, NavigationPoint | null>();
   /** Screen position of the pixel-scene "continue" shortcut (null when hidden); read by end-to-end tests. */
   proceedButtonPoint: { x: number; y: number } | null = null;
+  private weatherLayer: WeatherLayer;
+  private weatherKey = '';
 
   constructor(callbacks: PhaserCallbacks) {
     super('SirLockedPhaserScene');
     this.callbacks = callbacks;
+    this.weatherLayer = new WeatherLayer({
+      enabled: () => callbacks.weatherEnabled?.() ?? true,
+      reducedMotion: () => this.reducedMotion.matches,
+      onBolt: (delay) => callbacks.onLightning?.(delay),
+    });
+  }
+
+  /** Weather layer state (type, particles, quality, flashes) for tests and QA tools. */
+  weatherState() { return this.weatherLayer.inspect(); }
+  /** Test hook: a storm's next lightning comes on the next frame. */
+  stormBoltSoon() { this.weatherLayer.boltSoon(); }
+  /** Previews and tests: fixed particle quality, no automatic lowering. */
+  pinWeatherQuality(quality: number) { this.weatherLayer.pinQuality(quality); }
+
+  /** Sprite tint so characters and objects match a night or dusk background; day and older cases: none. */
+  private timeTint() { return timeOfDayTint(this.sceneRuntime()); }
+  private applyTimeTint(object: { setTint: (color: number) => unknown; clearTint: () => unknown } | null | undefined) {
+    if (!object) return;
+    const tint = this.timeTint();
+    if (tint === null) object.clearTint(); else object.setTint(tint);
   }
 
   preload() {
@@ -630,6 +665,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
 
   update(time: number, delta: number) {
     if (!this.ready) return;
+    this.weatherLayer.update(delta, time);
     this.animatePlayers(time);
     for (const animation of this.npcAnimations) {
       const frame = this.reducedMotion.matches ? 0 : idleFrameAt(animation.sheet, time, animation.phase);
@@ -752,6 +788,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
       this.approachCache.clear();
     }
     this.state = state;
+    const runtime = state.visibleScene.runtime;
+    const weatherKey = JSON.stringify([state.currentSceneId, runtime?.weather ?? null, runtime?.indoor ?? null]);
+    if (weatherKey !== this.weatherKey) { this.weatherKey = weatherKey; this.weatherLayer.setRuntime(runtime); }
     const selectionChanged = this.selectedInventoryItemId !== selectedInventoryItemId;
     this.selectedInventoryItemId = selectedInventoryItemId;
     if (this.ready && changed) this.draw();
@@ -929,6 +968,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
     this.drawCameraOverlay(width, height);
     this.drawDebugOverlay(scene, width, height);
     this.drawDestinationMarker();
+    const pixel = this.pixelRender();
+    this.weatherLayer.attach(this, pixel ? this.pixelViewScale(pixel) * pixel.pixelScale : 3);
     this.updatePixelCamera(0, this.cameraNeedsSnap);
     this.cameraNeedsSnap = false;
     this.flushTextures();
@@ -1118,6 +1159,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
             .setOrigin(anchor.x, anchor.y)
             .setDepth(placement?.depth ?? 5);
           image.setDisplaySize(size.width, size.height);
+          this.applyTimeTint(image);
           itemImage = image;
         } else {
           this.queueTexture(itemKey, itemUrl);
@@ -1148,7 +1190,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
         this.placeHoverTag(label, x + w / 2, y - 6);
       });
       hitbox.on('pointerout', () => {
-        itemImage?.clearTint();
+        this.applyTimeTint(itemImage);
         outline?.setVisible(false);
         label.setVisible(false);
       });
@@ -1323,7 +1365,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
       : this.add.zone(0, -npcH / 2, npcW, npcH).setInteractive({ useHandCursor: true });
     interactionZone.on('pointerdown', open);
     interactionZone.on('pointerover', () => { this.placeHoverTag(name, x, y - (pixelNpc ? npcH * 0.72 : npcH) - 6); if (body instanceof Phaser.GameObjects.Image) body.setTint(0xffe9b0); });
-    interactionZone.on('pointerout', () => { name.setVisible(false); if (body instanceof Phaser.GameObjects.Image) body.clearTint(); });
+    interactionZone.on('pointerout', () => { name.setVisible(false); if (body instanceof Phaser.GameObjects.Image) this.applyTimeTint(body); });
+    if (body instanceof Phaser.GameObjects.Image) this.applyTimeTint(body);
 
     group.add(newBadge ? [shadow, body, initialText, newBadge, interactionZone] : [shadow, body, initialText, interactionZone]);
   }
@@ -1377,6 +1420,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     if (sheetKey) {
       const image = this.add.image(0, 0, sheetKey, 'player-frame-0').setOrigin(0.5, 1);
       image.setDisplaySize(spriteH * (PLAYER_FRAME.width / PLAYER_FRAME.height), spriteH);
+      this.applyTimeTint(image);
       body = image;
     } else {
       body = this.add.rectangle(0, 0, spriteH * 0.4, spriteH, this.playerColor(pose.role, isLocal), 0.9)
@@ -2475,8 +2519,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
       if (!this.textures.exists(key)) { this.queueTexture(key, url); continue; }
       const point = this.worldPoint({ x: layer.x, y: layer.y });
       const size = this.worldSize({ width: layer.width, height: layer.height });
-      this.add.image(point.x, point.y, key).setOrigin(0, 0).setDisplaySize(size.width, size.height)
-        .setDepth(this.depthForRuntimeY(layer.baseY));
+      this.applyTimeTint(this.add.image(point.x, point.y, key).setOrigin(0, 0).setDisplaySize(size.width, size.height)
+        .setDepth(this.depthForRuntimeY(layer.baseY)));
     }
   }
 
@@ -2613,6 +2657,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     const columns = sheet.textures.find((texture) => texture.key === standing.texture)!.columns;
     const body = this.add.image(0, 0, standing.texture, this.ensurePixelFrame(standing.texture, columns, sheet.cell, standing.frame))
       .setOrigin(sheet.pivot.x / sheet.cell, sheet.pivot.y / sheet.cell).setScale(scale);
+    this.applyTimeTint(body);
     const shadow = this.add.ellipse(0, -1, 24 * scale, 6 * scale, 0x000000, 0.3);
     const name = this.add.text(0, 6, this.playerLabel(pose), {
       fontFamily: 'Crimson Text, serif',
@@ -2700,7 +2745,9 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   let disposeAudioControls: (() => void) | undefined;
   let disposePingControls: (() => void) | undefined;
   let partnerPingTimer: ReturnType<typeof setTimeout> | undefined;
-  const dialoguePresenter = new DialoguePresenter(() => closeUiMode());
+  const dialoguePresenter = new DialoguePresenter(() => closeUiMode(), {
+    onBlip: (voice, step) => { audio.blip(voice, step.pitch, blipDuration(voice)); },
+  });
   // The AI-written opening comic of this case (null when the case has none). It plays before the role briefing.
   let introCutscene: Cutscene | null = null;
   let introCutsceneId = '';
@@ -2763,6 +2810,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   if (import.meta.env.DEV) {
     (window as any).__sirlockedTest = {
       openPuzzle: (puzzleId: string) => setUiMode({ kind: 'PUZZLE', view: 'SOLVE', puzzleId }),
+      talkTo: (characterId: string) => setUiMode({ kind: 'DIALOGUE', characterId }),
+      goToScene: (sceneId: string) => goToScene(sceneId),
       state: () => state,
     };
   }
@@ -3329,6 +3378,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     rememberAccusationRevision(fresh);
     state = fresh;
     audio.setScene(fresh.currentSceneId, fresh.visibleScene.runtime?.audio);
+    audio.setWeather(fresh.visibleScene.runtime?.weather, fresh.visibleScene.runtime?.indoor);
     if (myRole() !== 'INVESTIGATOR' && uiMode.kind === 'CAMERA') uiMode = { kind: 'EXPLORE' };
     if (fresh.availableForAccusation && !finalReadyAnnounced) {
       finalReadyAnnounced = true;
@@ -3616,6 +3666,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     const model = uiModel();
     const scene = state.visibleScene;
     audio.setScene(state.currentSceneId, scene.runtime?.audio);
+    audio.setWeather(scene.runtime?.weather, scene.runtime?.indoor);
     const hud = app.querySelector('#game-hud-slot');
     if (hud) {
       hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, tr, hudExtras());
@@ -3751,6 +3802,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         goToScene(sceneId);
       },
       onLoading: (status) => { sceneArtLoading = status; syncLoadingScreen(); },
+      weatherEnabled: () => audio.getSettings().weatherEffects,
+      onLightning: (delay) => { audio.thunder(delay); },
       onPose: (pose) => {
         if (hub.connection.state !== 'Connected') return;
         hub.connection.invoke('UpdatePlayerPose', roomId, {
@@ -3795,6 +3848,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     syncPhaserInputState();
     // Debug handle for QA tooling (canvas snapshots, state inspection).
     (window as unknown as Record<string, unknown>).__sirlockedGame = phaserGame;
+    // Read-only sound state (music, weather, blips) for the same tooling; inspect() never changes anything.
+    (window as unknown as Record<string, unknown>).__sirlockedAudio = { inspect: () => audio.inspect() };
   }
 
   function playersHtml() {
@@ -5347,6 +5402,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         // closeUiMode redraws; closeOverlay only flips the mode, which left the puzzle sheet on screen until
         // some unrelated state push happened to redraw the page.
         onClose: () => closeUiMode(),
+        sound: (kind, event) => audio.puzzle(kind, event),
       });
     }
     puzzleHost.sync(interactivePuzzleModel());
@@ -6180,6 +6236,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       const draft = puzzleDrafts.get(puzzle.puzzleId) ?? [];
       if (draft.length < Math.max(1, puzzle.answerLength || 1)) draft.push(option);
       puzzleDrafts.set(puzzle.puzzleId, draft);
+      audio.puzzle('classic', 'tap');
       draw();
     }));
     app.querySelector('#puzzle-clear-btn')?.addEventListener('click', () => {
@@ -6548,6 +6605,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     try {
       const res = await gameApi.solvePuzzle(roomId, puzzle.puzzleId, answer, answerSequence);
       const solved = Boolean(res.state?.solvedPuzzleIds?.includes(puzzle.puzzleId));
+      audio.puzzle('classic', solved ? 'solve' : 'wrong');
       toast(res.detail || res.message || 'Puzzle checked.', solved ? 'success' : 'info', 5200);
       if (solved) {
         puzzleDrafts.delete(puzzle.puzzleId);
