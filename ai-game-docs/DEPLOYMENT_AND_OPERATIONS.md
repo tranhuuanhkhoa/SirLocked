@@ -21,19 +21,15 @@ Required for backend startup:
 - `Jwt__Issuer`
 - `Jwt__Audience`
 
-Required for AI case creation:
+Required for AI case creation (the Claude bot answers through the bridge; the server calls no AI API):
 
-- `OpenAI__ApiKey`
-- `OpenAI__LogicModel`
-- `OpenAI__ImageModel`
-- `OpenAI__BaseUrl`
-- `OpenAI__TimeoutSeconds`
+- `Bridge__Key` (32+ characters), set with `bash scripts/set-bridge-key.sh`
+- `Cloudinary__*` before the bot uploads case images
 
 Required for public AI generation:
 
 - `Cloudinary__Enabled=true`, `Cloudinary__CloudName`, `Cloudinary__ApiKey`, and `Cloudinary__ApiSecret`
 - `AiQuota__Enabled=true`, `AiQuota__MaxActiveDraftsPerUser=1`, and `AiQuota__MaxCasesPerUserPerDay=1`
-- `AiQuota__EstimatedCaseCostUsd` and `AiQuota__GlobalBudgetUsd` set by the operator; paid admission is refused when they are missing or exhausted
 - SMTP host, port, sender, username, and password; production startup validation refuses incomplete SMTP configuration
 - `TrustedProxies__0` (and additional entries) only for known HTTPS reverse proxies
 

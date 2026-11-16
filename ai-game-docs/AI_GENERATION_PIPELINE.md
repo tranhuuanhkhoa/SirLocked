@@ -1,5 +1,10 @@
 # AI Generation Pipeline
 
+> **Since VUAN-1 (2026-11-16) the server calls no AI API.** Every step below that says "OpenAI" is now answered
+> by the Claude bot through the bridge queue (`aiBridgeRequests`, `/api/bridge/*`), with the same prompts, schemas
+> and validators; images are uploaded by the bot instead of gpt-image. Configuration and the API are in
+> `docs/AI_CASE_SETUP_VI.md`. The rest of this page is kept as the history of the pipeline.
+
 Last synced with code: 2026-07-14 (`ai-case-prompt-v2`, `story-preview-v2`, `case-logic-v2`).
 
 > Note: the code now uses separate full-logic, scene-layout, and final-asset

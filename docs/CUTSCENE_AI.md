@@ -21,12 +21,12 @@ Phím: Space hoặc nhấp để tua, giữ Esc (hoặc giữ nút) để bỏ q
 
 ```
 Cutscene__Enabled=true                    # false: ẩn mọi cutscene khỏi người chơi
-Cutscene__AutoGenerateForPixelCases=true  # vụ pixel chưa có cutscene -> tự tạo 1 bản DRAFT (chỉ khi có khóa OpenAI và không ở chế độ mock)
+Cutscene__AutoGenerateForPixelCases=true  # đã ngừng dùng: khởi động server không tự xếp cutscene cho bot
 Cutscene__AutoApprove=false               # true: bản qua kiểm tra được duyệt luôn
-Cutscene__Model=                          # rỗng: dùng OpenAI__LogicModel
+Cutscene__Model=                          # đã ngừng dùng: kịch bản do bot Claude viết
 ```
 
-Tạo bằng AI thật cần cấu hình như tạo vụ án bằng AI: `OpenAI__ApiKey`, `AiQuota__Enabled=true`, `AiQuota__GlobalBudgetUsd`, và bảng giá `AiUsage__Models__<model>__...` (chi phí được ghi qua `AiUsageAccounting`). Khi `MOCK_AI_RESPONSES=true` thì nút "Tạo bằng AI" cho ra kịch bản mẫu giả lập, không tốn phí.
+"Tạo bằng AI" đưa yêu cầu vào hàng chờ của bot Claude (`ownerType = CUTSCENE`, xem `docs/AI_CASE_SETUP_VI.md`); trang hiện "đang chờ Claude" tới khi bot nộp, rồi bản nháp mới xuất hiện để duyệt. Cần `Bridge__Key` trên server. Khi `MOCK_AI_RESPONSES=true` thì nút cho ra kịch bản mẫu giả lập ngay.
 
 ## Đưa lên server
 

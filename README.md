@@ -6,11 +6,11 @@ AI-assisted cooperative detective game MVP.
 
 - Backend: ASP.NET Core Web API, MongoDB, JWT, SignalR
 - Frontend: Vite JavaScript SPA, with Phaser 4 + TypeScript for the gameplay renderer
-- AI case generation: OpenAI preview/truth approval flow, validation and publishing; optional xAI cinematic videos
+- AI case generation: the Claude bot answers every step through the bridge queue (no AI API is called by the server); preview/truth/logic/layout approval gates, validation and publishing; optional xAI cinematic videos
 
 ## Cinematic presentation
 
-Visual-novel dialogue, NPC idle, independent cutscenes, audio, recap and cooperative pings are available with legacy-case fallbacks. Optional xAI generation is off by default and requires explicit budget/pricing configuration. Paid text/image calls also require configured usage reservations. See [setup, authoring, cost accounting and verification](docs/CINEMATIC_PRESENTATION_VI.md).
+Visual-novel dialogue, NPC idle, independent cutscenes, audio, recap and cooperative pings are available with legacy-case fallbacks. Optional xAI generation is off by default and requires explicit budget/pricing configuration. See [setup, authoring and verification](docs/CINEMATIC_PRESENTATION_VI.md).
 
 ## Requirements
 
@@ -42,16 +42,14 @@ CaseCache__SlidingExpirationSeconds=60
 Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
-OpenAI__ApiKey=
-OpenAI__LogicModel=gpt-5.6-sol
-OpenAI__ImageModel=gpt-image-2
-OpenAI__CutoutImageModel=gpt-image-1.5
-OpenAI__BaseUrl=https://api.openai.com/v1
-OpenAI__TimeoutSeconds=900
+# Claude bridge key (32+ characters). Set it on the server with bash scripts/set-bridge-key.sh; never commit it.
+Bridge__Key=
+# Mock answers instead of the Claude queue (tests, local demo).
+AiGeneration__MockAiResponses=false
 ```
 
-`OpenAI__ApiKey` is required for the AI case creator. Keep real keys in local `.env` files or deployment secrets only.
-Paid case creation also requires AI quota and dated model prices. Cloudinary storage is required when generating images; JSON-only testing can leave it disabled. See [AI case setup and repair workflow](docs/AI_CASE_SETUP_VI.md) and the [5 USD JSON-only configuration example](config/ai-generation.json-only.example.json).
+The AI case creator needs `Bridge__Key`: every model-written step is queued for the Claude bot, which works through `/api/bridge/*` with that key. Keep real keys in local `.env` files or deployment secrets only.
+Cloudinary storage is required when the bot uploads case images. See [AI case setup with the Claude bridge](docs/AI_CASE_SETUP_VI.md) and the [audio, weather and voice fields](docs/case-audio-weather.md).
 Swagger is always available in `Development`; outside Development it is disabled unless `Swagger__Enabled=true` is explicitly configured.
 The case cache is process-local and intended for the current single-instance deployment. Use a distributed cache or coordinated invalidation before scaling the API to multiple instances.
 
