@@ -12,10 +12,16 @@ namespace SirLocked.Api.Services.Bridge;
 
 public sealed record BridgeImageInfo(string ContentType, string Extension, int Width, int Height, bool HasAlpha);
 
+/// <summary>One stored file of the shared studio library (not tied to a draft).</summary>
+public sealed record BridgeLibraryFile(string Key, string Role, string Url, string StorageId, string ContentType, int Width, int Height,
+    bool HasAlpha, int Bytes, string Sha256);
+
 public interface IBridgeAssetStorage
 {
     bool IsAvailable { get; }
     Task<AiBridgeAssetUpload> SaveAsync(string draftId, string slotId, byte[] bytes, CancellationToken ct);
+    /// <summary>Stores a file of the shared library under <c>library/&lt;key&gt;/&lt;role&gt;-&lt;sha12&gt;</c>.</summary>
+    Task<BridgeLibraryFile> SaveLibraryAsync(string key, string role, byte[] bytes, CancellationToken ct);
 }
 
 /// <summary>
@@ -125,6 +131,39 @@ public sealed class BridgeAssetStorage(
         upload.Url = $"/assets/ai-generated/bridge/{SafeSegment(draftId)}/{fileName}";
         upload.StorageId = $"local:{SafeSegment(draftId)}/{fileName}";
         return upload;
+    }
+
+    public async Task<BridgeLibraryFile> SaveLibraryAsync(string key, string role, byte[] bytes, CancellationToken ct)
+    {
+        var info = Inspect(bytes, Math.Max(1024, bridge.Value.MaxAssetBytes));
+        var sha = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        var safeKey = SafeSegment(key);
+        var safeRole = SafeSegment(role);
+        var fileName = $"{safeRole}-{sha[..12]}";
+        if (CloudinaryReady)
+        {
+            // The content hash is part of the id, so re-sending the same picture lands on the same public id.
+            var publicId = $"{cloudinary.Value.Folder.Trim('/')}/library/{safeKey}/{fileName}";
+            var client = httpClientFactory.CreateClient(AiCaseService.AssetHttpClientName);
+            client.Timeout = TimeSpan.FromMinutes(2);
+            var stored = await AiCaseService.UploadCloudinaryBytesAsync(
+                client, cloudinary.Value, bytes, fileName + info.Extension, info.ContentType, publicId, logger, ct);
+            return new BridgeLibraryFile(key, role, stored.SecureUrl, stored.PublicId, info.ContentType, info.Width, info.Height,
+                info.HasAlpha, bytes.Length, sha);
+        }
+        if (!LocalAllowed)
+            throw ApiException.Conflict(
+                "Cloudinary is not configured on this server, so library images cannot be uploaded yet.",
+                "ASSET_STORAGE_UNAVAILABLE",
+                "ai.assetStorage.unconfigured");
+        var publicRoot = FindPublicAssetsRoot()
+            ?? throw ApiException.Conflict("The frontend assets folder was not found for local image storage.",
+                "ASSET_STORAGE_UNAVAILABLE", "ai.assetStorage.unconfigured");
+        var folder = Path.Combine(publicRoot, "ai-generated", "bridge", "library", safeKey);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllBytesAsync(Path.Combine(folder, fileName + info.Extension), bytes, ct);
+        return new BridgeLibraryFile(key, role, $"/assets/ai-generated/bridge/library/{safeKey}/{fileName}{info.Extension}",
+            $"local:library/{safeKey}/{fileName}{info.Extension}", info.ContentType, info.Width, info.Height, info.HasAlpha, bytes.Length, sha);
     }
 
     private string? FindPublicAssetsRoot()

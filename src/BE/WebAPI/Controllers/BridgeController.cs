@@ -59,11 +59,13 @@ public sealed class BridgeKeyAttribute : Attribute, IAuthorizationFilter
 public sealed class BridgeController(
     AiBridgeService bridge,
     AssetLibraryService library,
+    IBridgeAssetStorage assetStorage,
     IOptions<BridgeSettings> settings) : BaseApiController
 {
+    /// <summary>Checks the key; also says whether pictures can be uploaded (Cloudinary, or local storage outside Production).</summary>
     [HttpGet("ping")]
     public ActionResult<ApiResponse<object>> Ping() =>
-        Ok<object>(new { ok = true, serverTime = DateTime.UtcNow }, "Bridge key accepted.");
+        Ok<object>(new { ok = true, serverTime = DateTime.UtcNow, assetStorage = assetStorage.IsAvailable }, "Bridge key accepted.");
 
     [HttpGet("requests")]
     public async Task<ActionResult<ApiResponse<List<object>>>> List(
@@ -96,6 +98,11 @@ public sealed class BridgeController(
     [HttpGet("drafts/{id}/player-view")]
     public async Task<ActionResult<ApiResponse<JsonObject>>> PlayerView(string id, CancellationToken ct) =>
         Ok(await bridge.PlayerViewAsync(id, ct));
+
+    /// <summary>The whole case JSON with the solution, for the bot's local playtest (never shown to players).</summary>
+    [HttpGet("drafts/{id}/case-json")]
+    public async Task<ActionResult<ApiResponse<object>>> CaseJson(string id, CancellationToken ct) =>
+        Ok(await bridge.CaseJsonAsync(id, ct));
 
     [HttpGet("drafts/{id}/assets-needed")]
     public async Task<ActionResult<ApiResponse<object>>> AssetsNeeded(string id, CancellationToken ct) =>
@@ -140,10 +147,40 @@ public sealed class BridgeController(
     public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> Import(string id, CancellationToken ct) =>
         Ok(await bridge.ImportAsync(id, ct), "Draft imported, not published.");
 
+    /// <summary>The studio's view of the library; retired pictures are included unless <c>includeRetired=false</c>.</summary>
     [HttpGet("library")]
     public async Task<ActionResult<ApiResponse<List<AssetLibraryEntry>>>> Library(
-        [FromQuery] string? world, [FromQuery] string? kind, CancellationToken ct) =>
-        Ok(await library.ListAsync(world, kind, ct));
+        [FromQuery] string? world, [FromQuery] string? kind, [FromQuery] bool includeRetired = true, CancellationToken ct = default) =>
+        Ok(await library.ListAsync(world, kind, includeRetired, ct));
+
+    /// <summary>
+    /// Multipart form: <c>key</c> (library key), <c>role</c> (<c>main</c>, <c>thumb</c>, <c>sprite</c>, <c>idle</c>,
+    /// <c>portrait</c>, <c>mask</c>...) and <c>file</c> (PNG or WebP). Stores the picture (Cloudinary on the server) and
+    /// returns its URL; the bot then writes the URL into the library entry with PUT library.
+    /// </summary>
+    [HttpPost("library/files")]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<BridgeLibraryFile>>> UploadLibraryFile(
+        [FromForm] string key, [FromForm] string role, IFormFile? file, CancellationToken ct)
+    {
+        var normalizedKey = (key ?? string.Empty).Trim();
+        if (normalizedKey.Length is 0 or > 120 || normalizedKey.Any(char.IsWhiteSpace))
+            throw ApiException.BadRequest("key must be a library key without spaces (at most 120 characters).",
+                new ApiErrorDetails("ASSET_LIBRARY_INVALID", "ai.library.invalid"));
+        var normalizedRole = (role ?? string.Empty).Trim().ToLowerInvariant();
+        if (!AssetLibraryService.IsSafeRole(normalizedRole))
+            throw ApiException.BadRequest("role must be 1-40 lowercase letters, digits or dashes.",
+                new ApiErrorDetails("ASSET_LIBRARY_INVALID", "ai.library.invalid"));
+        if (file is null || file.Length == 0)
+            throw ApiException.BadRequest("Attach the picture as the 'file' form field.");
+        if (file.Length > settings.Value.MaxAssetBytes)
+            throw ApiException.BadRequest($"Images may be at most {settings.Value.MaxAssetBytes / (1024 * 1024)} MB.",
+                new ApiErrorDetails("ASSET_TOO_LARGE", "ai.bridge.assetTooLarge"));
+        await using var stream = file.OpenReadStream();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, ct);
+        return Ok(await assetStorage.SaveLibraryAsync(normalizedKey, normalizedRole, buffer.ToArray(), ct), "Library image stored.");
+    }
 
     [HttpPut("library")]
     [RequestSizeLimit(4 * 1024 * 1024)]

@@ -152,6 +152,15 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(HttpStatusCode.NotFound, (await player.GetAsync($"/api/cases/{caseId}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await bot.PostAsync($"/api/bridge/drafts/{draft.DraftId}/publish", null)).StatusCode);
         Assert.Equal(AiDraftStatus.Imported, (await GetData<AiDraftResponse>(admin, $"/api/admin/ai-cases/{draft.DraftId}")).Status);
+
+        // The studio's local playtest reads the whole imported case, solution and server metadata included.
+        var caseJson = await GetData<JsonObject>(bot, $"/api/bridge/drafts/{draft.DraftId}/case-json");
+        Assert.Equal("IMPORTED", caseJson["source"]!.GetValue<string>());
+        Assert.Equal(caseId, caseJson["caseId"]!.GetValue<string>());
+        Assert.False(string.IsNullOrWhiteSpace(caseJson["caseJson"]!["finalLogic"]!["culpritId"]!.GetValue<string>()));
+        Assert.Equal(AiGenerationPresets.ShortDemo, caseJson["caseJson"]!["generationPreset"]!.GetValue<string>());
+        // The key alone opens it; a player token does not.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await player.GetAsync($"/api/bridge/drafts/{draft.DraftId}/case-json")).StatusCode);
     }
 
     [Fact]
@@ -298,6 +307,75 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         using var scope = factory.Services.CreateScope();
         Assert.Equal(4, await scope.ServiceProvider.GetRequiredService<MongoDbContext>().AssetLibrary
             .CountDocumentsAsync(FilterDefinition<AssetLibraryEntry>.Empty));
+    }
+
+    [Fact]
+    public async Task LibraryFiles_AreStoredByKeyAndRole_AndRetiredEntriesStayOffTheOrderForm()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory();
+        await SeedUsersAsync(factory);
+        using var bot = Bot(factory);
+        using var vip = User(factory, VipId, UserRole.Vip);
+
+        var ping = await GetData<JsonObject>(bot, "/api/bridge/ping");
+        Assert.True(ping["assetStorage"]!.GetValue<bool>()); // local storage outside Production
+
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+        async Task<HttpResponseMessage> Upload(string key, string role, byte[] bytes, string contentType = "image/png")
+        {
+            using var form = new MultipartFormDataContent();
+            form.Add(new StringContent(key), "key");
+            form.Add(new StringContent(role), "role");
+            var file = new ByteArrayContent(bytes);
+            file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            form.Add(file, "file", "picture.png");
+            return await bot.PostAsync("/api/bridge/library/files", form);
+        }
+        var stored = await Upload("it-npc-thu-nghiem", "portrait", png);
+        Assert.Equal(HttpStatusCode.OK, stored.StatusCode);
+        var storedFile = (await stored.Content.ReadFromJsonAsync<ApiResponse<JsonObject>>(Web))!.Data!;
+        var url = storedFile["url"]!.GetValue<string>();
+        Assert.StartsWith("/assets/ai-generated/bridge/library/it-npc-thu-nghiem/portrait-", url);
+        Assert.Equal((1, 1, true), (storedFile["width"]!.GetValue<int>(), storedFile["height"]!.GetValue<int>(), storedFile["hasAlpha"]!.GetValue<bool>()));
+        // Same bytes, same address: re-sending a picture never makes a second copy.
+        var again = (await (await Upload("it-npc-thu-nghiem", "portrait", png)).Content.ReadFromJsonAsync<ApiResponse<JsonObject>>(Web))!.Data!;
+        Assert.Equal(url, again["url"]!.GetValue<string>());
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload("it-npc-thu-nghiem", "Bad Role!", png)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload("it npc", "main", png)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload("it-npc-thu-nghiem", "main", "not a picture"u8.ToArray())).StatusCode);
+
+        var items = new
+        {
+            items = new object[]
+            {
+                new
+                {
+                    key = "it-npc-thu-nghiem", kind = "NPC", world = "HANG_DUONG_VICTORIAN", url, prompt = "Victorian sailor",
+                    files = new Dictionary<string, string> { ["portrait"] = url, ["idle"] = url }, pixelLabJobId = "job-1"
+                },
+                new { key = "all-item-trang-giay-trang", kind = "ITEM", world = "ALL", url, retired = true, nameVi = "Trang giấy trắng" }
+            }
+        };
+        Assert.Equal(HttpStatusCode.OK, (await bot.PutAsJsonAsync("/api/bridge/library", items)).StatusCode);
+        var unchanged = await GetUpsert(await bot.PutAsJsonAsync("/api/bridge/library", items));
+        Assert.Equal((2, 0, 0, 2), (unchanged.Received, unchanged.Inserted, unchanged.Updated, unchanged.Unchanged));
+
+        var studio = await GetData<List<JsonObject>>(bot, "/api/bridge/library");
+        var npc = Assert.Single(studio, item => item["key"]!.GetValue<string>() == "it-npc-thu-nghiem");
+        Assert.Equal(url, npc["files"]!["portrait"]!.GetValue<string>());
+        Assert.Equal("Victorian sailor", npc["prompt"]!.GetValue<string>());
+        Assert.True(Assert.Single(studio, item => item["key"]!.GetValue<string>() == "all-item-trang-giay-trang")["retired"]!.GetValue<bool>());
+        var form = await GetData<List<JsonObject>>(vip, "/api/admin/ai-cases/library");
+        Assert.DoesNotContain(form, item => item["key"]!.GetValue<string>() == "all-item-trang-giay-trang");
+        Assert.Contains(form, item => item["key"]!.GetValue<string>() == "it-npc-thu-nghiem");
+        Assert.Single(await GetData<List<JsonObject>>(bot, "/api/bridge/library?includeRetired=false"));
+
+        var badFile = await bot.PutAsJsonAsync("/api/bridge/library", new
+        {
+            items = new[] { new { key = "x-1", kind = "ITEM", url, files = new Dictionary<string, string> { ["main"] = "http://evil.example/x.png" } } }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, badFile.StatusCode);
     }
 
     [Fact]

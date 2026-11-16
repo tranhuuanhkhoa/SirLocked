@@ -14,11 +14,13 @@ public class AdminCasesController : BaseApiController
 {
     private readonly ICaseService _caseService;
     private readonly LegacyCaseCatalog _legacy;
+    private readonly IHostEnvironment? _environment;
 
-    public AdminCasesController(ICaseService caseService, LegacyCaseCatalog legacy)
+    public AdminCasesController(ICaseService caseService, LegacyCaseCatalog legacy, IHostEnvironment? environment = null)
     {
         _caseService = caseService;
         _legacy = legacy;
+        _environment = environment;
     }
 
     /// <summary>
@@ -40,9 +42,17 @@ public class AdminCasesController : BaseApiController
         return Ok(result, result.IsValid ? "Case is valid." : "Case validation failed.");
     }
 
+    /// <summary>
+    /// Imports a case as an unpublished draft. <c>preserveServerMetadata</c> (keep the AI preset, contract versions and
+    /// review stamps, as the bridge import does) is honoured only outside Production: the studio's local playtest
+    /// stack uses it to load an AI case exactly as the server stored it.
+    /// </summary>
     [HttpPost("import-json")]
-    public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> ImportJson([FromBody] CaseJsonRequest request) =>
-        Ok(await _caseService.ImportJsonAsync(request.CaseJson, request.Overwrite), "Case imported as draft.");
+    public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> ImportJson([FromBody] CaseJsonRequest request)
+    {
+        var preserve = request.PreserveServerMetadata && _environment is not null && !_environment.IsProduction();
+        return Ok(await _caseService.ImportJsonAsync(request.CaseJson, request.Overwrite, preserve), "Case imported as draft.");
+    }
 
     [HttpPatch("{caseId}/publish")]
     public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> Publish(string caseId) =>

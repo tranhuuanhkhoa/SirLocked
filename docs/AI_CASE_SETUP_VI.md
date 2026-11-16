@@ -51,22 +51,26 @@ Xác thực chỉ bằng header `X-Bridge-Key` (so khớp thời gian hằng, kh
 
 | API | Việc |
 | --- | --- |
-| `GET /api/bridge/ping` | Kiểm khóa |
+| `GET /api/bridge/ping` | Kiểm khóa; `assetStorage` cho biết server có nơi lưu ảnh chưa (Cloudinary, hoặc lưu local ngoài Production) |
 | `GET /api/bridge/requests?status=PENDING` | Liệt kê yêu cầu (đơn VIP chỉ hiện sau khi được duyệt) |
 | `POST /api/bridge/requests/{id}/take` | Nhận: prompt, instructions, schema, tóm tắt đơn |
 | `POST /api/bridge/requests/{id}/release` | Trả lại |
 | `POST /api/bridge/requests/{id}/submit` | Nộp JSON → kiểm schema → lưu → chạy tiếp → `{accepted, errors, next}` |
 | `GET /api/bridge/drafts/{id}` | Trạng thái, cổng đang chờ, báo cáo validator, việc cần làm tiếp |
 | `GET /api/bridge/drafts/{id}/player-view` | Những gì người chơi thấy, đã bỏ lời giải (cho thám tử mù) |
+| `GET /api/bridge/drafts/{id}/case-json` | Case JSON đầy đủ, có lời giải, cho tool chạy thử trên máy bot: sau import là vụ đã lưu (`source: IMPORTED`, giữ metadata của server), trước đó là JSON của draft (`DRAFT`) |
 | `GET /api/bridge/drafts/{id}/assets-needed` | Các ô hình (bìa, nền cảnh, sprite, chân dung, vật phẩm), mô tả mỹ thuật, kích thước, url hiện tại |
 | `POST /api/bridge/drafts/{id}/assets` | Multipart `slotId` + `file`: PNG/WebP thật, ≤ 5 MB, giữ alpha, lên Cloudinary |
 | `POST /api/bridge/drafts/{id}/assets/complete` | Báo đủ hình, pipeline đi tiếp |
 | `PUT /api/bridge/drafts/{id}/report` | Lưu `report.md` của bot; admin xem trong chi tiết draft |
 | `POST /api/bridge/drafts/{id}/approve-gate` | Chỉ đơn `reviewMode = FAST`, cổng `STORY`, `LOGIC`, `LAYOUT`. Cổng `TRUTH` luôn trả 403 |
 | `POST /api/bridge/drafts/{id}/import` | Import bản nháp để chạy thử (không publish; người chơi không thấy) |
-| `GET/PUT /api/bridge/library` | Thư viện hình dùng chung (`assetLibrary`, upsert theo `key`) |
+| `GET/PUT /api/bridge/library` | Thư viện hình dùng chung (`assetLibrary`, upsert theo `key`). Mỗi mục có thêm `prompt`, `files` (vai → URL: `sprite`, `idle` 1152×128, `portrait` 288×288, `thumb`…), `retired` (ảnh hỏng, form đặt đơn không hiện). GET của bot mặc định kèm mục retired (`includeRetired=false` để bỏ) |
+| `POST /api/bridge/library/files` | Multipart `key` + `role` + `file` (PNG/WebP thật, ≤ 5 MB): lưu ảnh thư viện lên Cloudinary ở `<folder>/library/<key>/<role>-<sha12>`, trả URL; gửi lại cùng ảnh ra cùng địa chỉ |
 
-Thư viện cho form: `GET /api/admin/ai-cases/library?world=&kind=` (ADMIN và VIP).
+Thư viện cho form: `GET /api/admin/ai-cases/library?world=&kind=` (ADMIN và VIP), không có mục `retired`.
+
+Phía bot (MCP `sirlocked-studio`, skill `/tao-vu-an`, cách cài trên máy Yen và VPS studio): xem [docs/studio-vps.md](studio-vps.md).
 
 ## Tài nguyên: chế độ "Claude tải lên"
 
@@ -79,6 +83,8 @@ Nút "Tạo bằng AI" của cutscene tạo yêu cầu bridge `ownerType = CUTSC
 ## Thử trên máy
 
 - Không cần Claude: `scripts/start-local-demo.ps1` (mock như trước).
+- Xưởng của bot trọn vòng (MCP thật, không cần Claude): `cd tools/studio-mcp && npm run e2e:local`.
+- `POST /api/admin/cases/import-json` nhận thêm `preserveServerMetadata: true` để giữ metadata AI (preset, phiên bản hợp đồng) khi import: **chỉ có tác dụng ngoài Production** (stack chạy thử của bot dùng); Production luôn bỏ qua cờ này.
 - Chạy qua bridge bằng mock: `scripts/start-local-demo.ps1 -Bridge`, rồi `node scripts/bridge-smoke.mjs` với cùng `SIRLOCKED_BRIDGE_KEY` trong biến môi trường. Script tạo đơn → nhận từng yêu cầu → nộp JSON mock (`AiCaseMockFactory`) → qua các cổng → tải hình giả → `READY_TO_PUBLISH` → import (không publish), và báo lỗi nếu có yêu cầu nào thành `STALE`.
 
 ## Khi tạo chưa được

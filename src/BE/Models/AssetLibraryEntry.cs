@@ -47,11 +47,23 @@ public class AssetLibraryEntry
     public int Height { get; set; }
     /// <summary>The picture this one was derived from, when it is a variant.</summary>
     public string ParentKey { get; set; } = string.Empty;
-    /// <summary>How the variant was made, for example <c>night</c>, <c>mirror</c> or <c>wallpaper:oxblood</c>.</summary>
+    /// <summary>
+    /// How the variant was made, for example <c>night</c>, <c>mirror</c> or a compact JSON recipe
+    /// (<c>{"type":"night","lights":[...]}</c>), at most 2,000 characters.
+    /// </summary>
     public string Variant { get; set; } = string.Empty;
     public string Source { get; set; } = AssetLibrarySources.PixelLab;
     public string PixelLabJobId { get; set; } = string.Empty;
     public string FirstUsedByCaseId { get; set; } = string.Empty;
+    /// <summary>The PixelLab prompt (or variant recipe note) the picture was made from, for the studio's inventory.</summary>
+    public string Prompt { get; set; } = string.Empty;
+    /// <summary>
+    /// Extra files of the same asset by role, for example <c>sprite</c>, <c>idle</c> (9-frame 1152x128 sheet),
+    /// <c>portrait</c> (288x288) or <c>mask</c>. Each value is an https:// or /assets/ URL.
+    /// </summary>
+    public Dictionary<string, string> Files { get; set; } = new(StringComparer.Ordinal);
+    /// <summary>A broken picture kept for the record: the studio and the order form never offer it.</summary>
+    public bool Retired { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

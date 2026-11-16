@@ -253,6 +253,31 @@ public sealed class AiBridgeService(
         return AiPlayerViewBuilder.Build(gameCase);
     }
 
+    /// <summary>
+    /// The whole case JSON, solution included, for the bot's local playtest. After the bridge import it is the stored
+    /// (imported, unpublished) case with every server-owned field; before that, the draft's generated JSON.
+    /// </summary>
+    public async Task<object> CaseJsonAsync(string draftId, CancellationToken ct)
+    {
+        var draft = await RequireDraftAsync(draftId, ct);
+        if (!string.IsNullOrWhiteSpace(draft.ImportedCaseId))
+        {
+            try
+            {
+                var imported = await caseService.GetCaseAsync(draft.ImportedCaseId);
+                return new { draftId, source = "IMPORTED", caseId = imported.CaseId, caseJson = imported };
+            }
+            catch (ApiException exception) when (exception.StatusCode == 404)
+            {
+                // The imported case was deleted by an admin; fall back to the draft below.
+            }
+        }
+        if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
+            throw ApiException.Conflict("This draft has no case JSON yet.", "BRIDGE_DRAFT_HAS_NO_CASE", "ai.bridge.noCase");
+        var gameCase = caseService.ParseCase(draft.GeneratedJson);
+        return new { draftId, source = "DRAFT", caseId = gameCase.CaseId, caseJson = gameCase };
+    }
+
     public async Task<object> AssetsNeededAsync(string draftId, CancellationToken ct)
     {
         var draft = await RequireDraftAsync(draftId, ct);

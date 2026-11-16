@@ -143,6 +143,8 @@ public class CaseJsonRequest
     public JsonElement CaseJson { get; set; }
     /// <summary>When true, import overwrites an existing case with the same caseId.</summary>
     public bool Overwrite { get; set; }
+    /// <summary>Keep server-owned AI metadata (preset, contract versions, review stamps). Ignored in Production.</summary>
+    public bool PreserveServerMetadata { get; set; }
 }
 
 public class CaseValidationResponse

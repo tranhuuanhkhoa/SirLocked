@@ -16,8 +16,13 @@ public sealed record AssetLibraryUpsertResult(int Received, int Inserted, int Up
 public sealed class AssetLibraryService(MongoDbContext db)
 {
     public const int MaxItemsPerUpsert = 500;
+    public const int MaxFilesPerItem = 20;
 
-    public async Task<List<AssetLibraryEntry>> ListAsync(string? world, string? kind, CancellationToken ct = default)
+    public async Task<List<AssetLibraryEntry>> ListAsync(string? world, string? kind, CancellationToken ct = default) =>
+        await ListAsync(world, kind, includeRetired: false, ct);
+
+    /// <summary>The bot sees retired pictures too (to keep its local index in sync); the order form never does.</summary>
+    public async Task<List<AssetLibraryEntry>> ListAsync(string? world, string? kind, bool includeRetired, CancellationToken ct = default)
     {
         var filter = Builders<AssetLibraryEntry>.Filter.Empty;
         if (!string.IsNullOrWhiteSpace(world))
@@ -37,6 +42,7 @@ public sealed class AssetLibraryService(MongoDbContext db)
                 throw ApiException.BadRequest($"kind '{kind}' is not supported.");
             filter &= Builders<AssetLibraryEntry>.Filter.Eq(item => item.Kind, normalized);
         }
+        if (!includeRetired) filter &= Builders<AssetLibraryEntry>.Filter.Ne(item => item.Retired, true);
         return await db.AssetLibrary.Find(filter)
             .SortBy(item => item.Kind).ThenBy(item => item.Key)
             .Limit(5000)
@@ -80,6 +86,9 @@ public sealed class AssetLibraryService(MongoDbContext db)
                 .Set(entry => entry.Source, item.Source)
                 .Set(entry => entry.PixelLabJobId, item.PixelLabJobId)
                 .Set(entry => entry.FirstUsedByCaseId, item.FirstUsedByCaseId)
+                .Set(entry => entry.Prompt, item.Prompt)
+                .Set(entry => entry.Files, item.Files)
+                .Set(entry => entry.Retired, item.Retired)
                 .Set(entry => entry.UpdatedAt, now)
                 .SetOnInsert(entry => entry.Key, item.Key)
                 .SetOnInsert(entry => entry.CreatedAt, now);
@@ -105,7 +114,10 @@ public sealed class AssetLibraryService(MongoDbContext db)
         && left.NameVi == right.NameVi && left.NameEn == right.NameEn && left.Url == right.Url
         && left.ThumbUrl == right.ThumbUrl && left.Width == right.Width && left.Height == right.Height
         && left.ParentKey == right.ParentKey && left.Variant == right.Variant && left.Source == right.Source
-        && left.PixelLabJobId == right.PixelLabJobId && left.FirstUsedByCaseId == right.FirstUsedByCaseId;
+        && left.PixelLabJobId == right.PixelLabJobId && left.FirstUsedByCaseId == right.FirstUsedByCaseId
+        && left.Prompt == right.Prompt && left.Retired == right.Retired
+        && (left.Files ?? new()).Count == (right.Files ?? new()).Count
+        && (left.Files ?? new()).All(pair => (right.Files ?? new()).TryGetValue(pair.Key, out var value) && value == pair.Value);
 
     private static AssetLibraryEntry Normalize(AssetLibraryEntry item)
     {
@@ -124,6 +136,16 @@ public sealed class AssetLibraryService(MongoDbContext db)
         var thumb = (item.ThumbUrl ?? string.Empty).Trim();
         if (thumb.Length > 0 && !IsSafeUrl(thumb)) throw Invalid($"Library item '{key}' has an unsafe thumbnail URL.");
         if (item.Width is < 0 or > 8192 || item.Height is < 0 or > 8192) throw Invalid($"Library item '{key}' has an invalid size.");
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (role, fileUrl) in item.Files ?? new Dictionary<string, string>())
+        {
+            var normalizedRole = (role ?? string.Empty).Trim().ToLowerInvariant();
+            if (!IsSafeRole(normalizedRole)) throw Invalid($"Library item '{key}' has an invalid file role '{role}'.");
+            var value = (fileUrl ?? string.Empty).Trim();
+            if (!IsSafeUrl(value)) throw Invalid($"Library item '{key}' file '{normalizedRole}' needs an https:// or /assets/ URL.");
+            files[normalizedRole] = value;
+        }
+        if (files.Count > MaxFilesPerItem) throw Invalid($"Library item '{key}' has more than {MaxFilesPerItem} files.");
         return new AssetLibraryEntry
         {
             Key = key,
@@ -138,10 +160,13 @@ public sealed class AssetLibraryService(MongoDbContext db)
             Width = item.Width,
             Height = item.Height,
             ParentKey = Clip(item.ParentKey, 120),
-            Variant = Clip(item.Variant, 200),
+            Variant = Clip(item.Variant, 2000),
             Source = source,
             PixelLabJobId = Clip(item.PixelLabJobId, 200),
-            FirstUsedByCaseId = Clip(item.FirstUsedByCaseId, 200)
+            FirstUsedByCaseId = Clip(item.FirstUsedByCaseId, 200),
+            Prompt = Clip(item.Prompt, 2000),
+            Files = files,
+            Retired = item.Retired
         };
     }
 
@@ -150,6 +175,10 @@ public sealed class AssetLibraryService(MongoDbContext db)
         var text = (value ?? string.Empty).Trim();
         return text.Length <= max ? text : text[..max];
     }
+
+    /// <summary>A file role or library key segment: lowercase letters, digits and dashes, 1-40 characters.</summary>
+    internal static bool IsSafeRole(string role) =>
+        role.Length is > 0 and <= 40 && role.All(ch => ch is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-');
 
     internal static bool IsSafeUrl(string url) =>
         url.StartsWith("/assets/", StringComparison.Ordinal) && !url.Contains("..", StringComparison.Ordinal)
