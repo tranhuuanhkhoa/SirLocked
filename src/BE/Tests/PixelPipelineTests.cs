@@ -307,6 +307,22 @@ public sealed class PixelPipelineTests
     }
 
     [Fact]
+    public void LayoutErrors_GoBackToTheBotOnce_AsShortLines()
+    {
+        var (_, gameCase, _) = MockPixelDraft();
+        var room = Scenes(gameCase).First(scene => scene.Runtime!.Render!.Projection == SceneRenderModes.Isometric);
+        Assert.Empty(AiCaseService.PixelLayoutErrors(gameCase, room));
+        var answer = JsonNode.Parse(AiCaseService.BuildMockPixelPlacementPlanJson(gameCase, room))!.AsObject();
+        answer["spawnPoints"]!["INVESTIGATOR"]!["y"] = 8;
+        answer.Remove("walkGrid");
+        room.PlacementPlan = AiCaseService.ParsePixelPlacementPlan(answer.ToJsonString(), gameCase, room);
+        var before = room.Runtime;
+        var errors = AiCaseService.PixelLayoutErrors(gameCase, room);
+        Assert.Contains(errors, line => line.StartsWith("MissingWalkGrid ", StringComparison.Ordinal));
+        Assert.Same(before, room.Runtime); // checking does not replace the scene's runtime
+    }
+
+    [Fact]
     public void ClassicDrafts_KeepTheOldSlots_PixelDraftsGetTheTramSizes()
     {
         var (pixelDraft, gameCase, _) = MockPixelDraft();

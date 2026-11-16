@@ -352,6 +352,12 @@ public sealed class AiBridgeService(
         };
     }
 
+    private static string Clip(string? value, int max)
+    {
+        var text = (value ?? string.Empty).Trim();
+        return text.Length <= max ? text : text[..max];
+    }
+
     /// <summary>Where the bot keeps originals, requests and receipts of a draft (outside src/FE/public).</summary>
     private static string RecordRoot(string draftId) => $"tmp/pixellab/{draftId}";
 
@@ -369,6 +375,9 @@ public sealed class AiBridgeService(
             throw ApiException.Conflict("This draft no longer accepts images.", "BRIDGE_DRAFT_CLOSED", "ai.bridge.draftClosed");
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
             throw ApiException.Conflict("This draft has no case JSON yet.", "BRIDGE_DRAFT_HAS_NO_CASE", "ai.bridge.noCase");
+        if (choices is { Count: > 500 })
+            throw ApiException.BadRequest("Declare at most 500 picture subjects.",
+                new ApiErrorDetails("AI_ASSET_PLAN_INVALID", "ai.assetPlan.invalid"));
         var gameCase = caseService.ParseCase(draft.GeneratedJson);
         var library = await db.AssetLibrary.Find(Builders<AssetLibraryEntry>.Filter.Empty).ToListAsync(ct);
         var cap = draft.Order?.PixelLabCap ?? 0;
@@ -395,7 +404,7 @@ public sealed class AiBridgeService(
             {
                 Subject = subject.Subject, Source = subject.Source, LibraryKey = subject.LibraryKey,
                 ParentKey = subject.ParentKey, Variant = subject.Variant,
-                Note = (choices ?? new()).FirstOrDefault(choice => choice.Subject == subject.Subject)?.Note ?? string.Empty
+                Note = Clip((choices ?? new()).FirstOrDefault(choice => choice.Subject == subject.Subject)?.Note, 500)
             }).ToList(),
             EstimatedGenerations = result.EstimatedGenerations,
             PixelLabCap = cap,

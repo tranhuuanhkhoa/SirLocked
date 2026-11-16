@@ -162,6 +162,17 @@ public partial class AiCaseService
                     }
                 }
                 scene.PlacementPlan = ParsePixelPlacementPlan(planJson, gameCase, scene);
+                // The bot gets its own layout errors back once (walk grid, spawn, doors, reachable boxes) before the gate.
+                var layoutErrors = PixelLayoutErrors(gameCase, scene);
+                if (layoutErrors.Count > 0)
+                {
+                    var retryPrompt = planPrompt.TrimEnd()
+                                      + "\n\nYOUR PREVIOUS LAYOUT FOR THIS SCENE BROKE THESE PIXEL RULES. Fix every one and return the whole JSON again:\n"
+                                      + string.Join("\n", layoutErrors.Select(error => $"- {error}"));
+                    planJson = await GenerateVisionJsonAsync(draft, $"PlanScenePlacement:{scene.SceneId}:RetryLayout", retryPrompt, [background], 9000,
+                        () => BuildMockPixelPlacementPlanJson(gameCase, scene), PixelRuntimeSpace);
+                    scene.PlacementPlan = ParsePixelPlacementPlan(planJson, gameCase, scene);
+                }
                 var backgroundAsset = manifest.Assets.FirstOrDefault(asset =>
                     asset.AssetType == AiAssetSlotKinds.Background && asset.TargetId == scene.SceneId);
                 if (backgroundAsset is not null) backgroundAsset.QaPassed = true;
@@ -174,6 +185,22 @@ public partial class AiCaseService
         }
         await SaveAssetCheckpointAsync(draft, gameCase, manifest, status);
         return manifest;
+    }
+
+    /// <summary>Pixel rule errors of one scene's layout, as short lines for the bot (empty when the layout is fine).</summary>
+    internal static List<string> PixelLayoutErrors(GameCase gameCase, CaseScene scene)
+    {
+        if (scene.PlacementPlan is null) return new List<string>();
+        var previous = scene.Runtime;
+        scene.Runtime = PixelCasePipeline.BuildRuntime(scene, gameCase, scene.PlacementPlan, previous);
+        var errors = PixelDraftRules.ValidateSceneLayout(gameCase, scene).Errors
+            .Where(error => error.Code is not ("BackgroundMissing" or "PixelSceneRequired"))
+            .Select(error => $"{error.Code} {error.Path}: {error.Message}")
+            .Distinct()
+            .Take(40)
+            .ToList();
+        scene.Runtime = previous;
+        return errors;
     }
 
     /// <summary>Writes the uploaded pictures into the case: backgrounds, NPC idle sheets, portraits, icons; the cover is a scene.</summary>

@@ -69,6 +69,14 @@ public static class PixelDraftRules
             result.Add(code, path, $"{slotId} is {upload.Width}x{upload.Height}; a pixel case needs {width}x{height}.", id);
     }
 
+    /// <summary>The layout rules of one scene (used to send the bot its own layout errors once before the gate).</summary>
+    public static CaseValidationResult ValidateSceneLayout(GameCase gameCase, CaseScene scene)
+    {
+        var result = new CaseValidationResult();
+        ValidateScene(gameCase, scene, result);
+        return result;
+    }
+
     private static void ValidateScene(GameCase gameCase, CaseScene scene, CaseValidationResult result)
     {
         var path = $"scene:{scene.SceneId}.runtime";
