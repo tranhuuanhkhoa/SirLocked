@@ -12,7 +12,8 @@ PORT="${PORT:-22923}"
 
 read -rsp 'Khoa bridge (khong hien khi go): ' bridge_key
 echo
-if [[ ! "$bridge_key" =~ ^[A-Za-z0-9_-]{32,256}$ ]]; then
+# Length is checked apart from the characters: Git Bash's regex engine rejects repeat counts above 255.
+if (( ${#bridge_key} < 32 || ${#bridge_key} > 256 )) || [[ ! "$bridge_key" =~ ^[A-Za-z0-9_-]+$ ]]; then
   echo "Khoa phai dai 32-256 ky tu, chi gom chu, so, '-' va '_' (vi du: openssl rand -hex 32). Chua thay doi gi tren server."
   exit 1
 fi
