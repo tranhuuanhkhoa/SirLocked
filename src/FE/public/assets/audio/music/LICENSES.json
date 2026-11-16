@@ -1,0 +1,49 @@
+{
+ "note": "Bảng kê nhạc nền của các khu. Mỗi bài: file .ogg, bản .mp3 dự phòng, nguồn, giấy phép, khu và không khí. VUAN-5 bổ sung nhạc từ thư viện miễn phí.",
+ "music": [
+  {
+   "id": "hang-duong-ben-cang-dem-mua",
+   "file": "/assets/audio/music/hang-duong/ben-cang-dem-mua.ogg",
+   "fallback": "/assets/audio/music/hang-duong/ben-cang-dem-mua.mp3",
+   "title": "Bến cảng đêm mưa",
+   "author": "Claude (bot xưởng Sir Locked)",
+   "source": "claude-8bit",
+   "license": "Sir Locked (tự sáng tác bằng code)",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "harbor",
+    "street"
+   ],
+   "moods": [
+    "bi-an",
+    "yen-tinh"
+   ],
+   "bpm": 76,
+   "durationSec": 50.526,
+   "loopStartSec": 0,
+   "loopEndSec": 50.526
+  },
+  {
+   "id": "hang-duong-tiem-dong-ho",
+   "file": "/assets/audio/music/hang-duong/tiem-dong-ho.ogg",
+   "fallback": "/assets/audio/music/hang-duong/tiem-dong-ho.mp3",
+   "title": "Tiệm đồng hồ",
+   "author": "Claude (bot xưởng Sir Locked)",
+   "source": "claude-8bit",
+   "license": "Sir Locked (tự sáng tác bằng code)",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "shop",
+    "clock_shop"
+   ],
+   "moods": [
+    "dieu-tra-yen",
+    "am-ap"
+   ],
+   "bpm": 96,
+   "durationSec": 40.0,
+   "loopStartSec": 0,
+   "loopEndSec": 40.0
+  }
+ ]
+}

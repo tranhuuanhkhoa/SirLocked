@@ -375,13 +375,13 @@
       "audio": {
        "ambienceUrl": "",
        "cues": {
-        "interact": "/assets/audio/sfx/interact.ogg",
-        "discovery": "/assets/audio/sfx/discovery.ogg",
-        "reveal": "/assets/audio/sfx/reveal.ogg",
-        "error": "/assets/audio/sfx/error.ogg",
-        "ping": "/assets/audio/sfx/ping.ogg",
-        "scene": "/assets/audio/sfx/scene.ogg",
-        "dialogue": "/assets/audio/sfx/dialogue.ogg"
+        "interact": "/assets/audio/sfx/ui/interact.ogg",
+        "discovery": "/assets/audio/sfx/ui/discovery.ogg",
+        "reveal": "/assets/audio/sfx/ui/reveal.ogg",
+        "error": "/assets/audio/sfx/ui/error.ogg",
+        "ping": "/assets/audio/sfx/ui/ping.ogg",
+        "scene": "/assets/audio/sfx/ui/scene.ogg",
+        "dialogue": "/assets/audio/sfx/ui/dialogue.ogg"
        },
        "music": {
         "url": "/assets/audio/music/hang-duong/tiem-dong-ho.ogg",
@@ -779,13 +779,13 @@
       "audio": {
        "ambienceUrl": "",
        "cues": {
-        "interact": "/assets/audio/sfx/interact.ogg",
-        "discovery": "/assets/audio/sfx/discovery.ogg",
-        "reveal": "/assets/audio/sfx/reveal.ogg",
-        "error": "/assets/audio/sfx/error.ogg",
-        "ping": "/assets/audio/sfx/ping.ogg",
-        "scene": "/assets/audio/sfx/scene.ogg",
-        "dialogue": "/assets/audio/sfx/dialogue.ogg"
+        "interact": "/assets/audio/sfx/ui/interact.ogg",
+        "discovery": "/assets/audio/sfx/ui/discovery.ogg",
+        "reveal": "/assets/audio/sfx/ui/reveal.ogg",
+        "error": "/assets/audio/sfx/ui/error.ogg",
+        "ping": "/assets/audio/sfx/ui/ping.ogg",
+        "scene": "/assets/audio/sfx/ui/scene.ogg",
+        "dialogue": "/assets/audio/sfx/ui/dialogue.ogg"
        },
        "music": {
         "url": "/assets/audio/music/hang-duong/ben-cang-dem-mua.ogg",
