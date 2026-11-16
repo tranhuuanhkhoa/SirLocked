@@ -15,6 +15,7 @@ using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
+using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Catalog;
 using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
@@ -69,7 +70,8 @@ builder.Services.AddOptions<JwtSettings>()
         settings => JwtSettings.IsSecretValid(settings.Secret),
         "Jwt__Secret must be configured and at least 32 characters long.")
     .ValidateOnStart();
-builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
+builder.Services.Configure<AiGenerationSettings>(builder.Configuration.GetSection("AiGeneration"));
+builder.Services.Configure<BridgeSettings>(builder.Configuration.GetSection("Bridge"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
 builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection("CaseCatalog"));
@@ -92,36 +94,33 @@ builder.Services.Configure<AuthSettings>(settings =>
     settings.AutoVerifyRegistrations =
         AuthSettings.ResolveAutoVerifyRegistrations(builder.Configuration, builder.Environment));
 builder.Services.Configure<AiCaseV3PresetSettings>(builder.Configuration.GetSection("AiCaseV3Preset"));
-builder.Services.PostConfigure<OpenAiSettings>(settings =>
+builder.Services.PostConfigure<AiGenerationSettings>(settings =>
 {
-    static bool EnvFlag(IConfiguration configuration, string key) =>
+    static bool Flag(IConfiguration configuration, string key) =>
         bool.TryParse(configuration[key], out var enabled) && enabled;
 
-    if (string.IsNullOrWhiteSpace(settings.ApiKey))
+    // Process-wide switches, and the pre-bridge OpenAI:* spellings so an operator's existing safety flag is never
+    // silently dropped by the move to the AiGeneration section.
+    settings.AiDryRun |= Flag(builder.Configuration, "AI_DRY_RUN") || Flag(builder.Configuration, "OpenAI:AiDryRun");
+    settings.MockAiResponses |= Flag(builder.Configuration, "MOCK_AI_RESPONSES") || Flag(builder.Configuration, "OpenAI:MockAiResponses");
+    settings.SkipAssetGeneration |= Flag(builder.Configuration, "SKIP_ASSET_GENERATION") || Flag(builder.Configuration, "OpenAI:SkipAssetGeneration");
+    settings.DisableAutoPublish |= Flag(builder.Configuration, "DISABLE_AUTO_PUBLISH") || Flag(builder.Configuration, "OpenAI:DisableAutoPublish");
+    settings.GenerateJsonOnly |= Flag(builder.Configuration, "GENERATE_JSON_ONLY") || Flag(builder.Configuration, "OpenAI:GenerateJsonOnly");
+    settings.ValidateOnly |= Flag(builder.Configuration, "VALIDATE_ONLY") || Flag(builder.Configuration, "OpenAI:ValidateOnly");
+    settings.EnableBlindSolvabilityReview |= Flag(builder.Configuration, "OpenAI:EnableBlindSolvabilityReview");
+});
+builder.Services.PostConfigure<BridgeSettings>(settings =>
+{
+    settings.Key = settings.Key?.Trim() ?? string.Empty;
+    // Mock answers and local image storage are development conveniences; Production never offers them.
+    if (builder.Environment.IsProduction())
     {
-        var fallbackKeys = new[]
-        {
-            builder.Configuration["OpenAI:ApiKey"],
-            builder.Configuration["OPENAI_API_KEY"],
-            builder.Configuration["AI:ChatGptApiKey"]
-        };
-        settings.ApiKey = fallbackKeys.FirstOrDefault(key => !string.IsNullOrWhiteSpace(key)) ?? string.Empty;
+        settings.ExposeMockResponses = false;
+        settings.AllowLocalAssetStorage = false;
     }
-
-    settings.AiDryRun |= EnvFlag(builder.Configuration, "AI_DRY_RUN");
-    settings.MockAiResponses |= EnvFlag(builder.Configuration, "MOCK_AI_RESPONSES");
-    settings.SkipAssetGeneration |= EnvFlag(builder.Configuration, "SKIP_ASSET_GENERATION");
-    settings.DisableAutoPublish |= EnvFlag(builder.Configuration, "DISABLE_AUTO_PUBLISH");
-    settings.GenerateJsonOnly |= EnvFlag(builder.Configuration, "GENERATE_JSON_ONLY");
-    settings.ValidateOnly |= EnvFlag(builder.Configuration, "VALIDATE_ONLY");
 });
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.Configure<AiQuotaSettings>(builder.Configuration.GetSection("AiQuota"));
-builder.Services.Configure<AiUsageSettings>(builder.Configuration.GetSection("AiUsage"));
-builder.Services.AddScoped<AiUsageAccounting>();
-builder.Services.AddScoped<IAiUsageAccounting>(services => services.GetRequiredService<AiUsageAccounting>());
-builder.Services.AddScoped<IAiRecordedUsageReconciler>(services => services.GetRequiredService<AiUsageAccounting>());
-builder.Services.AddHostedService<AiUsageReconciliationWorker>();
 builder.Services.Configure<PresentationVideoSettings>(builder.Configuration.GetSection("PresentationVideo"));
 builder.Services.AddSingleton<IPresentationStore, MongoPresentationStore>();
 builder.Services.AddScoped<PresentationService>();
@@ -153,7 +152,12 @@ builder.Services.AddScoped<ICaseService>(services => services.GetRequiredService
 builder.Services.AddScoped<IPixelCaseSeeder>(services => services.GetRequiredService<CaseService>());
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
-builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
+builder.Services.AddScoped<AiBridgeRequestStore>();
+builder.Services.AddScoped<IAiTextProvider, ClaudeBridgeTextProvider>();
+builder.Services.AddScoped<AiBridgeService>();
+builder.Services.AddScoped<AiCaseSettingsStore>();
+builder.Services.AddScoped<AssetLibraryService>();
+builder.Services.AddScoped<IBridgeAssetStorage, BridgeAssetStorage>();
 builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
 builder.Services.AddScoped<IAiArtifactCleanupService, AiArtifactCleanupService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
@@ -223,7 +227,7 @@ builder.Services.AddAdminChests();
 builder.Services.AddAdminCosmetics();
 builder.Services.AddAdminPlayers();
 builder.Services.AddPayments(builder.Configuration);
-builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
+builder.Services.AddHttpClient(AiCaseService.AssetHttpClientName);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -283,6 +287,20 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
+
+    // Bridge calls carry no user identity, so the window is per client address. The bot polls and uploads in
+    // bursts; the default leaves room for a whole case while stopping a runaway loop.
+    var bridgePerMinute = Math.Clamp(
+        builder.Configuration.GetSection("Bridge").GetValue<int?>("RateLimitPerMinute") ?? 240, 10, 5000);
+    options.AddPolicy("bridge", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = bridgePerMinute,
             Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0

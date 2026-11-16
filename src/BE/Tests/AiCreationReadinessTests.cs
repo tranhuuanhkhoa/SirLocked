@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
-using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
@@ -12,168 +11,79 @@ using Xunit;
 
 namespace SirLocked.Tests;
 
+/// <summary>
+/// Creation is ready when the Claude bridge has its key, or when mock/dry-run answers every step. The checks read
+/// configuration only and never echo a credential.
+/// </summary>
 public sealed class AiCreationReadinessTests
 {
+    private const string KeySentinel = "bridge-key-sentinel-0123456789abcdef0123456789";
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void MockAndDryRunRemainUsableWithoutPaidConfiguration(bool dryRun)
+    public void MockAndDryRunRemainUsableWithoutABridgeKey(bool dryRun)
     {
-        var provider = new OpenAiSettings { AiDryRun = dryRun, MockAiResponses = !dryRun };
-        Assert.Empty(AiCreationReadinessPolicy.Evaluate(provider, new(), new(), new()));
-        Assert.True(Service(provider, new(), new(), new()).GetCapabilities().CanCreateDraft);
+        var generation = new AiGenerationSettings { AiDryRun = dryRun, MockAiResponses = !dryRun };
+        Assert.Empty(AiCreationReadinessPolicy.Evaluate(generation, new BridgeSettings()));
+        Assert.True(Service(generation, new BridgeSettings()).GetCapabilities().CanCreateDraft);
     }
 
     [Fact]
-    public void AllConfigurationProblemsAreReturnedWithoutCredentialValues()
+    public void MissingBridgeKey_IsTheOnlyBlocker_InEnglishAndVietnamese_WithoutCredentialValues()
     {
-        var blockers = AiCreationReadinessPolicy.Evaluate(new(), new(), new(), new());
-        Assert.Equal(new[] { "AI_PROVIDER_UNCONFIGURED", "AI_QUOTA_UNCONFIGURED", "AI_ASSET_STORAGE_UNCONFIGURED", "AI_USAGE_PRICE_REQUIRED" },
-            blockers.Select(blocker => blocker.Code));
-        var storage = Storage();
-        storage.Enabled = false;
-        var capabilities = Service(Provider(), new(), storage, new()).GetCapabilities();
-        var json = JsonSerializer.Serialize(capabilities);
+        var blocker = Assert.Single(AiCreationReadinessPolicy.Evaluate(new AiGenerationSettings(), new BridgeSettings()));
+        Assert.Equal("BRIDGE_NOT_CONFIGURED", blocker.Code);
+        Assert.Equal("ai.bridge.notConfigured", blocker.MessageKey);
+        Assert.False(string.IsNullOrWhiteSpace(blocker.Message));
+        Assert.Contains("khóa", blocker.MessageVi);
+
+        var capabilities = Service(new AiGenerationSettings(), new BridgeSettings { Key = "short" }).GetCapabilities();
         Assert.False(capabilities.CanCreateDraft);
         Assert.False(capabilities.CanCreateV3Draft);
-        Assert.DoesNotContain("test-secret-sentinel", json);
-        Assert.DoesNotContain("test-cloud-sentinel", json);
-        Assert.All(capabilities.CreationBlockers, blocker => Assert.False(string.IsNullOrWhiteSpace(blocker.MessageKey)));
+        Assert.DoesNotContain("short", JsonSerializer.Serialize(capabilities.CreationBlockers));
     }
 
     [Fact]
-    public void FullyConfiguredGenerationIsReadyWithoutCallingProviderOrDatabase()
+    public void ConfiguredBridgeKey_IsReady_AndNeverAppearsInTheCapabilities()
     {
-        var capabilities = Service(Provider(), Quota(), Storage(), Prices()).GetCapabilities();
+        var capabilities = Service(new AiGenerationSettings(), new BridgeSettings { Key = KeySentinel }).GetCapabilities();
         Assert.True(capabilities.CanCreateDraft);
         Assert.True(capabilities.CanCreateV3Draft);
         Assert.Empty(capabilities.CreationBlockers);
-    }
-
-    [Theory]
-    [InlineData("skip")]
-    [InlineData("json")]
-    [InlineData("validate")]
-    public void DisabledAssetStepsDoNotRequireImagePricesOrStorage(string mode)
-    {
-        var provider = Provider();
-        provider.SkipAssetGeneration = mode == "skip";
-        provider.GenerateJsonOnly = mode == "json";
-        provider.ValidateOnly = mode == "validate";
-        var prices = Prices();
-        prices.Models.Remove("image");
-        prices.Models.Remove("cutout");
-        Assert.Empty(AiCreationReadinessPolicy.Evaluate(provider, Quota(), new(), prices));
-        provider.SkipAssetGeneration = provider.GenerateJsonOnly = provider.ValidateOnly = false;
-        Assert.Equal(new[] { "AI_ASSET_STORAGE_UNCONFIGURED", "AI_USAGE_PRICE_REQUIRED" },
-            AiCreationReadinessPolicy.Evaluate(provider, Quota(), new(), prices).Select(blocker => blocker.Code));
-    }
-
-    [Theory]
-    [InlineData("logic")]
-    [InlineData("review")]
-    [InlineData("image")]
-    [InlineData("cutout")]
-    public void EveryEnabledGenerationModelNeedsAPrice(string model)
-    {
-        var prices = Prices();
-        prices.Models.Remove(model);
-        Assert.Equal("AI_USAGE_PRICE_REQUIRED", Assert.Single(AiCreationReadinessPolicy.Evaluate(Provider(), Quota(), Storage(), prices)).Code);
-    }
-
-    [Theory]
-    [InlineData("reservation")]
-    [InlineData("input")]
-    [InlineData("image-output")]
-    [InlineData("negative-cache")]
-    [InlineData("version")]
-    public void IncompleteAndInvalidPriceConfigurationIsBlocked(string missing)
-    {
-        var prices = Prices();
-        if (missing == "reservation") prices.Models["logic"].ReservationUsd = 0;
-        if (missing == "input") prices.Models["logic"].InputPerMillionUsd = null;
-        if (missing == "image-output") prices.Models["image"].ImageOutputPerMillionUsd = null;
-        if (missing == "negative-cache") prices.Models["review"].CachedInputPerMillionUsd = -1;
-        if (missing == "version") prices.PriceVersion = "";
-        Assert.Equal("AI_USAGE_PRICE_REQUIRED", Assert.Single(AiCreationReadinessPolicy.Evaluate(Provider(), Quota(), Storage(), prices)).Code);
+        Assert.DoesNotContain(KeySentinel, JsonSerializer.Serialize(capabilities));
     }
 
     [Fact]
-    public void FallbackModelsUseTheSamePriceEntriesAsGeneration()
+    public void MissingCloudinary_DoesNotBlockAnOrder()
     {
-        var provider = Provider();
-        provider.SemanticReviewModel = " ";
-        provider.CutoutImageModel = " ";
-        var prices = Prices();
-        prices.Models.Remove("review");
-        prices.Models.Remove("cutout");
-        Assert.Empty(AiCreationReadinessPolicy.Evaluate(provider, Quota(), Storage(), prices));
+        // Images are uploaded at the end of the workflow; storage is reported but never blocks the order.
+        Assert.Empty(AiCreationReadinessPolicy.Evaluate(new AiGenerationSettings(), new BridgeSettings { Key = KeySentinel }));
+        Assert.False(AiCreationReadinessPolicy.AssetStorageReady(new CloudinarySettings(), allowLocalAssetStorage: false));
+        Assert.True(AiCreationReadinessPolicy.AssetStorageReady(new CloudinarySettings(), allowLocalAssetStorage: true));
+        Assert.True(AiCreationReadinessPolicy.AssetStorageReady(new CloudinarySettings
+        {
+            Enabled = true, CloudName = "cloud", ApiKey = "key", ApiSecret = "secret"
+        }, allowLocalAssetStorage: false));
     }
 
     [Fact]
-    public async Task MissingSeparateV3ReviewPriceDoesNotBlockOrdinaryCreation()
+    public async Task CreationWithoutABridgeKey_IsRejectedBeforeAnyDatabaseOrQueueWork()
     {
-        var prices = Prices();
-        prices.Models.Remove("review");
-        var service = Service(Provider(), Quota(), Storage(), prices);
-        var capabilities = service.GetCapabilities();
-        Assert.True(capabilities.CanCreateDraft);
-        Assert.Empty(capabilities.CreationBlockers);
-        Assert.False(capabilities.CanCreateV3Draft);
-        Assert.Equal("AI_USAGE_PRICE_REQUIRED", Assert.Single(capabilities.V3CreationBlockers).Code);
-        Assert.Empty(AiCreationReadinessPolicy.Evaluate(Provider(), Quota(), Storage(), prices, includeSemanticReview: false));
-
-        var error = await Assert.ThrowsAsync<ApiException>(() => service.CreatePreviewAsync(
-            new CurrentUser("user", "User", UserRole.Admin), new GenerateAiCaseRequest { IncludeCrackTheLie = true }));
-        Assert.Contains("AI_USAGE_PRICE_REQUIRED", JsonSerializer.Serialize(error.Errors));
-    }
-
-    [Theory]
-    [InlineData(false, "AI_QUOTA_UNCONFIGURED")]
-    [InlineData(true, "AI_USAGE_PRICE_REQUIRED")]
-    public async Task CreationRejectsBeforeHistoryDatabaseInsertOrProviderWork(bool configuredQuota, string expectedCode)
-    {
-        // Null database and a provider-accounting spy make any early side effect fail this test.
-        var service = Service(Provider(), configuredQuota ? Quota() : new(), Storage(), new());
+        // A null database and a null provider make any early side effect fail this test.
+        var service = Service(new AiGenerationSettings(), new BridgeSettings());
         var error = await Assert.ThrowsAsync<ApiException>(() => service.CreatePreviewAsync(
             new CurrentUser("user", "User", UserRole.Admin), new GenerateAiCaseRequest()));
         Assert.Equal(409, error.StatusCode);
-        Assert.Contains(expectedCode, JsonSerializer.Serialize(error.Errors));
+        Assert.Contains("BRIDGE_NOT_CONFIGURED", JsonSerializer.Serialize(error.Errors));
     }
 
-    private static OpenAiSettings Provider() => new()
-    {
-        ApiKey = "test-secret-sentinel", LogicModel = "logic", SemanticReviewModel = "review", ImageModel = "image", CutoutImageModel = "cutout"
-    };
-    private static AiQuotaSettings Quota() => new() { Enabled = true, EstimatedCaseCostUsd = 1, GlobalBudgetUsd = 10 };
-    private static CloudinarySettings Storage() => new()
-    {
-        Enabled = true, CloudName = "test-cloud-sentinel", ApiKey = "test-secret-sentinel", ApiSecret = "test-secret-sentinel"
-    };
-    private static AiUsageSettings Prices() => new()
-    {
-        PriceVersion = "test-only",
-        Models = new[] { "logic", "review", "image", "cutout" }.ToDictionary(model => model, _ => new AiModelPrice
-        {
-            ReservationUsd = 1, InputPerMillionUsd = 1, OutputPerMillionUsd = 1,
-            ImageInputPerMillionUsd = 1, ImageOutputPerMillionUsd = 1
-        })
-    };
-    private static AiCaseService Service(OpenAiSettings provider, AiQuotaSettings quota, CloudinarySettings storage, AiUsageSettings prices) => new(
+    private static AiCaseService Service(AiGenerationSettings generation, BridgeSettings bridge) => new(
         db: null!, workflow: null!, caseService: null!, validator: null!, truthService: null!,
         projectionPlanner: null!, projectionSchemaFactory: null!, projectionCompiler: null!, projectionGraphValidator: null!,
-        openAiClient: null!, exportService: null!, httpClientFactory: null!,
-        settings: Options.Create(provider), quota: Options.Create(quota), cloudinary: Options.Create(storage),
+        textProvider: null!, exportService: null!, httpClientFactory: null!,
+        settings: Options.Create(generation), quota: Options.Create(new AiQuotaSettings()), cloudinary: Options.Create(new CloudinarySettings()),
         v3PresetSettings: Options.Create(new AiCaseV3PresetSettings { Enabled = true }),
         gameplayV3Settings: Options.Create(new GameplayV3Settings { Enabled = true }), env: null!, logger: NullLogger<AiCaseService>.Instance,
-        usageAccounting: new NoCallsAccounting(), usageSettings: Options.Create(prices));
-
-    private sealed class NoCallsAccounting : IAiUsageAccounting
-    {
-        public Task<AiCallLease> BeforeCallAsync(string draftId, string step, string kind, string model,
-            CancellationToken cancellationToken = default, decimal? reservationUsd = null, string? priceVersion = null) =>
-            throw new InvalidOperationException("Readiness must not reserve budget or call a provider.");
-        public Task RecordAsync(AiCallLease lease, string? responseBody, int? statusCode, CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("Readiness must not record paid usage.");
-    }
+        bridgeSettings: Options.Create(bridge));
 }

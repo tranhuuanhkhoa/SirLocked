@@ -110,9 +110,16 @@ public class CaseCharacterDto
     public string Role { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    /// <summary>Optional speech blip; absent on cases that predate it.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public CharacterVoice? Voice { get; set; }
 
     public static CaseCharacterDto From(CaseCharacter c) => new()
     {
+        Voice = c.Voice?.Blip is not { } blip ? null : new CharacterVoice
+        {
+            Blip = new VoiceBlip { Pitch = blip.Pitch, Speed = blip.Speed, Wave = blip.Wave, Variance = blip.Variance }
+        },
         Presentation = c.Presentation?.SpriteSheet is not { } sheet ? null : new()
         {
             SpriteSheet = new()

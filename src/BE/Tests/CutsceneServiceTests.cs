@@ -69,19 +69,26 @@ public sealed class CutsceneServiceTests
             Case = CutsceneScriptTests.Load(file);
             if (caseId is not null) Case.CaseId = caseId;
             Case.Status = published ? CaseStatus.Published : CaseStatus.Draft;
-            var openAi = Options.Create(new OpenAiSettings { MockAiResponses = mock, ApiKey = "test-key-not-real" });
+            var generation = Options.Create(new AiGenerationSettings { MockAiResponses = mock });
             var settings = Options.Create(cutscene ?? new CutsceneSettings());
-            var generator = new CutsceneScriptGenerator(new NoClient(), null, openAi, Options.Create(new AiUsageSettings()), settings,
-                NullLogger<CutsceneScriptGenerator>.Instance);
+            // The real bridge provider; in mock mode it answers before touching the queue, so no database is needed.
+            var provider = new SirLocked.Api.Services.Bridge.ClaudeBridgeTextProvider(null!, null!, generation,
+                Options.Create(new BridgeSettings()), new TestHostEnvironment(),
+                NullLogger<SirLocked.Api.Services.Bridge.ClaudeBridgeTextProvider>.Instance);
+            var generator = new CutsceneScriptGenerator(provider, generation, settings, NullLogger<CutsceneScriptGenerator>.Instance);
             Service = new CutsceneService(Store, new StubCases(new[] { Case }.Concat(extra ?? []).ToArray()),
-                new CaseCatalogPolicy(new CaseCatalogSettings { PixelOnly = pixelOnly }), generator, settings, openAi, NullLogger<CutsceneService>.Instance);
+                new CaseCatalogPolicy(new CaseCatalogSettings { PixelOnly = pixelOnly }), generator, settings, null!, generation,
+                NullLogger<CutsceneService>.Instance);
         }
     }
 
-    private sealed class NoClient : IAiOpenAiClient
+    private sealed class TestHostEnvironment : Microsoft.Extensions.Hosting.IHostEnvironment
     {
-        public Task<AiProviderHttpResponse> PostStructuredJsonAsync(object payload, CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("No provider call is expected in these tests.");
+        public string EnvironmentName { get; set; } = "Testing";
+        public string ApplicationName { get; set; } = "SirLocked.Tests";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
+            new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 
     // ---------------------------------------------------------------- lifecycle: draft / approved / disabled

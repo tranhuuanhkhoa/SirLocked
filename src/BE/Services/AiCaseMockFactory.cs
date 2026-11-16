@@ -10,7 +10,23 @@ internal static class AiCaseMockFactory
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     internal static string MockJsonResponse(string step, string schemaVersion)
     {
-        if (step.Equals("CreateStoryPreview", StringComparison.OrdinalIgnoreCase))
+        if (step.StartsWith("CreateStoryPreview:RetryDuplicate", StringComparison.OrdinalIgnoreCase))
+        {
+            // A distinct premise, so the duplicate check accepts the retry of a second mock draft.
+            return JsonSerializer.Serialize(new AiStoryPreview
+            {
+                Title = "Mock Lighthouse Ledger",
+                Summary = "A second safe mock premise about a lighthouse keeper's vanished logbook.",
+                Setting = "A wind-battered harbor lighthouse.",
+                OpeningIncident = "The lamp goes dark for nine minutes and the keeper's logbook is gone by dawn.",
+                Tone = "Brisk, salty, and test-friendly.",
+                PlayerPromise = "Players will reconstruct the lamp's dark minutes from harbor witnesses.",
+                EstimatedScenes = 3,
+                KeyLocations = { "Lamp Room", "Keeper's Cottage", "Harbor Steps" },
+                SuspectTeasers = { "The relief keeper", "The ferryman", "The harbor clerk" }
+            }, PrettyJson);
+        }
+        if (step.StartsWith("CreateStoryPreview", StringComparison.OrdinalIgnoreCase))
         {
             return JsonSerializer.Serialize(new AiStoryPreview
             {

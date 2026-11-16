@@ -211,51 +211,77 @@ public sealed class CutsceneScriptTests
         Assert.Contains(Check(script, gameCase), issue => issue.Message.Contains("accuses"));
     }
 
-    // ---------------------------------------------------------------- generator
+    // ---------------------------------------------------------------- generator (Claude bridge)
 
-    private sealed class FakeClient(params string[] bodies) : IAiOpenAiClient
+    /// <summary>Plays the bridge: answers each request in order, or parks like the real provider when out of answers.</summary>
+    private sealed class FakeProvider(params string[] answers) : IAiTextProvider
     {
-        public List<string> Payloads { get; } = new();
-        public Task<AiProviderHttpResponse> PostStructuredJsonAsync(object payload, CancellationToken cancellationToken = default)
+        public List<AiTextRequest> Requests { get; } = new();
+        public Task<string> GenerateJsonAsync(AiTextRequest request, CancellationToken cancellationToken = default)
         {
-            Payloads.Add(JsonSerializer.Serialize(payload, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
-            var body = bodies[Math.Min(Payloads.Count - 1, bodies.Length - 1)];
-            return Task.FromResult(new AiProviderHttpResponse(200, true, body));
+            Requests.Add(request);
+            if (Requests.Count > answers.Length)
+                throw new AiAwaitingClaudeException("request-" + Requests.Count, request.OwnerType, request.OwnerId, request.Step);
+            return Task.FromResult(answers[Requests.Count - 1]);
         }
+
+        public string Sent(int index) => JsonSerializer.Serialize(new { Requests[index].Instructions, Requests[index].Prompt },
+            new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
     }
 
-    private static string Envelope(MotionComicScript script) => JsonSerializer.Serialize(new
-    {
-        id = "resp_1", status = "completed",
-        output = new[] { new { content = new[] { new { type = "output_text", text = JsonSerializer.Serialize(script, CutsceneScriptGenerator.JsonOptions) } } } },
-        usage = new { input_tokens = 100, output_tokens = 200 }
-    });
+    private static string Answer(MotionComicScript script) => JsonSerializer.Serialize(script, CutsceneScriptGenerator.JsonOptions);
 
-    private static CutsceneScriptGenerator Generator(IAiOpenAiClient client, bool mock) => new(client, null,
-        Options.Create(new OpenAiSettings { ApiKey = "test-key-not-real", MockAiResponses = mock }),
-        Options.Create(new AiUsageSettings()), Options.Create(new CutsceneSettings()), NullLogger<CutsceneScriptGenerator>.Instance);
+    private static CutsceneScriptGenerator Generator(IAiTextProvider provider, bool mock) => new(provider,
+        Options.Create(new AiGenerationSettings { MockAiResponses = mock }),
+        Options.Create(new CutsceneSettings()), NullLogger<CutsceneScriptGenerator>.Instance);
+
+    private static IAiTextProvider MockModeBridge() => new SirLocked.Api.Services.Bridge.ClaudeBridgeTextProvider(
+        null!, null!, Options.Create(new AiGenerationSettings { MockAiResponses = true }),
+        Options.Create(new BridgeSettings()), new TestHostEnvironment(), NullLogger<SirLocked.Api.Services.Bridge.ClaudeBridgeTextProvider>.Instance);
+
+    private sealed class TestHostEnvironment : Microsoft.Extensions.Hosting.IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = "Testing";
+        public string ApplicationName { get; set; } = "SirLocked.Tests";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
+            new Microsoft.Extensions.FileProviders.NullFileProvider();
+    }
 
     [Theory, MemberData(nameof(PixelCases))]
-    public async Task Generator_MockMode_NeverCallsTheProvider(string file)
+    public async Task Generator_MockMode_NeverReachesTheBridgeQueue(string file)
     {
-        var client = new FakeClient();
-        var result = await Generator(client, mock: true).GenerateAsync(Load(file));
+        // The real bridge provider with no database: mock mode must answer before touching the queue.
+        var result = await Generator(MockModeBridge(), mock: true).GenerateAsync(Load(file), "run-mock");
         Assert.True(result.Mock);
-        Assert.Empty(client.Payloads);
+        Assert.Equal("mock", result.Model);
     }
 
     [Theory, MemberData(nameof(PixelCases))]
     public async Task Generator_SendsNoHiddenCaseData(string file)
     {
         var gameCase = Load(file);
-        var client = new FakeClient(Envelope(Valid(gameCase)));
-        await Generator(client, mock: false).GenerateAsync(gameCase);
-        var sent = CutsceneScriptValidator.Normalize(Assert.Single(client.Payloads));
+        var provider = new FakeProvider(Answer(Valid(gameCase)));
+        await Generator(provider, mock: false).GenerateAsync(gameCase, "run-1");
+        var request = Assert.Single(provider.Requests);
+        Assert.Equal(AiBridgeOwnerTypes.Cutscene, request.OwnerType);
+        Assert.Equal(gameCase.CaseId, request.OwnerId);
+        Assert.Equal("run-1", request.GenerationRunId);
+        var sent = CutsceneScriptValidator.Normalize(provider.Sent(0));
         foreach (var secret in gameCase.Clues.Where(clue => clue.IsCritical).Select(clue => CutsceneScriptValidator.Normalize(clue.Content))
                      .Concat(gameCase.EvidenceChallenges.Select(challenge => CutsceneScriptValidator.Normalize(challenge.RevealTitle)))
                      .Where(text => text.Length >= 8))
             Assert.DoesNotContain(secret, sent);
-        Assert.DoesNotContain("test key not real", sent);
+    }
+
+    [Fact]
+    public async Task Generator_WithoutAnAnswer_ParksForClaude()
+    {
+        var gameCase = Load(Tram);
+        var wait = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() =>
+            Generator(new FakeProvider(), mock: false).GenerateAsync(gameCase, "run-2"));
+        Assert.Equal(AiBridgeOwnerTypes.Cutscene, wait.OwnerType);
+        Assert.Equal("CutsceneScript", wait.Step);
     }
 
     [Fact]
@@ -264,11 +290,12 @@ public sealed class CutsceneScriptTests
         var gameCase = Load(Tram);
         var bad = Valid(gameCase);
         bad.Pages[0].Panels[0].Beats[0].Text = new string('x', 120);
-        var client = new FakeClient(Envelope(bad), Envelope(Valid(gameCase)));
-        var result = await Generator(client, mock: false).GenerateAsync(gameCase);
+        var provider = new FakeProvider(Answer(bad), Answer(Valid(gameCase)));
+        var result = await Generator(provider, mock: false).GenerateAsync(gameCase, "run-3");
         Assert.True(result.Repaired);
-        Assert.Equal(2, client.Payloads.Count);
-        Assert.Contains("CÁC LỖI CẦN SỬA", client.Payloads[1]);
+        Assert.Equal(2, provider.Requests.Count);
+        Assert.Equal("CutsceneScriptRepair", provider.Requests[1].Step);
+        Assert.Contains("CÁC LỖI CẦN SỬA", provider.Sent(1));
     }
 
     [Fact]
@@ -277,17 +304,17 @@ public sealed class CutsceneScriptTests
         var gameCase = Load(Tram);
         var bad = Valid(gameCase);
         bad.Pages[0].Panels[0].Art.Id = "nope";
-        var client = new FakeClient(Envelope(bad));
-        var error = await Assert.ThrowsAsync<ApiException>(() => Generator(client, mock: false).GenerateAsync(gameCase));
+        var provider = new FakeProvider(Answer(bad), Answer(bad));
+        var error = await Assert.ThrowsAsync<ApiException>(() => Generator(provider, mock: false).GenerateAsync(gameCase, "run-4"));
         Assert.Equal(422, error.StatusCode);
-        Assert.Equal(2, client.Payloads.Count);
+        Assert.Equal(2, provider.Requests.Count);
     }
 
     [Fact]
     public async Task Generator_NotJson_IsRejected()
     {
         var gameCase = Load(Tram);
-        var body = JsonSerializer.Serialize(new { id = "r", status = "completed", output = new[] { new { content = new[] { new { type = "output_text", text = "không phải json" } } } } });
-        await Assert.ThrowsAsync<ApiException>(() => Generator(new FakeClient(body), mock: false).GenerateAsync(gameCase));
+        await Assert.ThrowsAsync<ApiException>(() =>
+            Generator(new FakeProvider("không phải json", "vẫn không phải json"), mock: false).GenerateAsync(gameCase, "run-5"));
     }
 }

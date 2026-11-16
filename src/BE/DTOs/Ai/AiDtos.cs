@@ -43,6 +43,9 @@ public class GenerateAiCaseRequest
     public string VisualStyle { get; set; } = AiVisualStyleDefaults.PixelDetectiveTheme;
 
     public AiCreativeConstraints CreativeConstraints { get; set; } = new();
+
+    /// <summary>The order for the Claude bot. Every field is optional; the server applies defaults and VIP limits.</summary>
+    public AiCaseOrder? Order { get; set; }
 }
 
 public class AiDraftResponse
@@ -113,10 +116,19 @@ public class AiDraftResponse
     public DateTime? NextAttemptAt { get; set; }
     public string LastGenerationErrorCode { get; set; } = string.Empty;
     public string? IdempotencyKey { get; set; }
-    public decimal ReservedBudgetUsd { get; set; }
     public DateTime? CancelledAt { get; set; }
     public bool CanCancel { get; set; }
-    public AiCostReport CostReport { get; set; } = new();
+    public AiCaseOrder? Order { get; set; }
+    /// <summary>AWAITING_OWNER_APPROVAL, QUEUED_FOR_CLAUDE, CLAUDE_WORKING, AWAITING_GATE, SUBMITTED, REJECTED or CANCELLED.</summary>
+    public string OrderStatus { get; set; } = string.Empty;
+    public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
+    public string OrderRejectReason { get; set; } = string.Empty;
+    /// <summary>The Claude request a parked run waits for.</summary>
+    public AiClaudeWait? ClaudeWait { get; set; }
+    public List<AiBridgeAssetUpload> BridgeAssets { get; set; } = new();
+    /// <summary>The bot's report.md for this draft (admins only).</summary>
+    public string BridgeReport { get; set; } = string.Empty;
+    public DateTime? BridgeReportUpdatedAt { get; set; }
     public string? ImportedCaseId { get; set; }
     public CaseSummaryResponse? PublishedCase { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -233,14 +245,17 @@ public class AiDraftResponse
         NextAttemptAt = d.NextAttemptAt,
         LastGenerationErrorCode = d.LastGenerationErrorCode,
         IdempotencyKey = d.IdempotencyKey,
-        ReservedBudgetUsd = d.ReservedBudgetUsd,
         CancelledAt = d.CancelledAt,
         CanCancel = d.Status is not (AiDraftStatus.Published or AiDraftStatus.Imported or AiDraftStatus.Cancelled),
-        CostReport = new AiCostReport
-        {
-            DryRun = d.PlannedCalls.Any(call => !call.WouldCallApi),
-            PlannedCalls = d.PlannedCalls
-        },
+        Order = d.Order,
+        // Drafts from before orders existed get their status derived from the workflow.
+        OrderStatus = string.IsNullOrWhiteSpace(d.OrderStatus) ? AiCaseOrderPolicy.Derive(d, false) : d.OrderStatus,
+        OrderStatusHistory = d.OrderStatusHistory,
+        OrderRejectReason = d.OrderRejectReason,
+        ClaudeWait = d.ClaudeWait,
+        BridgeAssets = d.BridgeAssets,
+        BridgeReport = includeJson ? d.BridgeReport : string.Empty,
+        BridgeReportUpdatedAt = d.BridgeReportUpdatedAt,
         ImportedCaseId = d.ImportedCaseId,
         PublishedCase = publishedCase,
         CreatedAt = d.CreatedAt
@@ -401,7 +416,7 @@ public sealed class AiCaseCapabilitiesResponse
     public List<AiCreativeOptionResponse> CreativeInvestigationMechanics { get; set; } = new();
 }
 
-public sealed record AiCreationBlockerResponse(string Code, string Message, string MessageKey);
+public sealed record AiCreationBlockerResponse(string Code, string Message, string MessageKey, string MessageVi = "");
 
 public sealed class AiCreativeOptionResponse
 {
@@ -494,12 +509,6 @@ public class ReplaceAiDraftJsonRequest
 {
     public JsonElement CaseJson { get; set; }
     public AiStoryPreview? StoryPreview { get; set; }
-}
-
-public class AiCostReport
-{
-    public bool DryRun { get; set; }
-    public List<AiPlannedCall> PlannedCalls { get; set; } = new();
 }
 
 public class AiGenerationAttemptSummary

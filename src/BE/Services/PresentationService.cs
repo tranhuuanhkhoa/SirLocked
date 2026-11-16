@@ -14,7 +14,7 @@ namespace SirLocked.Api.Services;
 public sealed class PresentationService(
     MongoDbContext db, IPresentationStore store, IPresentationMediaStorage media,
     ICaseService cases, IOptions<PresentationVideoSettings> options, IOptions<CloudinarySettings> cloudinary,
-    IOptions<AiQuotaSettings> quota, IOptions<AiUsageSettings> usage, IOptions<OpenAiSettings> openAi)
+    IOptions<AiGenerationSettings> safety)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -207,9 +207,9 @@ public sealed class PresentationService(
         return package;
     }
 
-    private string? DisabledReason() => !options.Value.Enabled ? "Video generation is disabled." : openAi.Value.BlocksAssetCalls || openAi.Value.MockAiResponses
+    private string? DisabledReason() => !options.Value.Enabled ? "Video generation is disabled." : safety.Value.BlocksAssetCalls || safety.Value.MockAiResponses
         ? "AI safety switches disable paid media generation." : !options.Value.HasPricing ? "Configure a verified video price and pricing version first."
-        : !quota.Value.Enabled || quota.Value.GlobalBudgetUsd <= 0 || usage.Value.MaxDraftUsd <= 0 ? "Enable the global and per-draft AI budgets first."
+        : options.Value.MaximumPackageUsd <= 0 ? "Configure a positive maximum budget per video package first."
         : string.IsNullOrWhiteSpace(options.Value.ApiKey) ? "Configure the xAI API key first."
         : !cloudinary.Value.Enabled || string.IsNullOrWhiteSpace(cloudinary.Value.ApiKey) || string.IsNullOrWhiteSpace(cloudinary.Value.ApiSecret) || string.IsNullOrWhiteSpace(cloudinary.Value.CloudName)
             ? "Configure protected Cloudinary media storage first." : null;

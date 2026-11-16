@@ -26,6 +26,7 @@ public class CaseValidationService : ICaseValidationService
         ValidateClues(gameCase, result, stage);
         ValidateFinalLogic(gameCase, result);
         ValidateRuleSet(gameCase, result);
+        CaseAtmosphere.Validate(gameCase, result);
         if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV2)
         {
             ValidateInvestigationV2(gameCase, result);

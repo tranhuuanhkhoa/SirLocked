@@ -224,20 +224,6 @@ public sealed class AiPromptOptimizationTests
     }
 
     [Fact]
-    public void ResponseUsageSeparatesCachedAndReasoningTokensWithoutInventingCosts()
-    {
-        var envelope = AiCaseService.ExtractOpenAiTextEnvelope("""
-            {"id":"usage-test","status":"completed","output_text":"{}",
-             "usage":{"input_tokens":100,"output_tokens":80,
-               "input_tokens_details":{"cached_tokens":60},"output_tokens_details":{"reasoning_tokens":30}}}
-            """);
-        Assert.Equal(100, envelope.InputTokens);
-        Assert.Equal(80, envelope.OutputTokens);
-        Assert.Equal(60, envelope.CachedInputTokens);
-        Assert.Equal(30, envelope.ReasoningTokens);
-    }
-
-    [Fact]
     public void OfflineCorpusPreservesCompileAndTruthCoverageAcrossTwelveProfiles()
     {
         var rows = AiPromptBenchmark.Run();

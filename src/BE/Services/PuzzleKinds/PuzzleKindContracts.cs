@@ -128,7 +128,17 @@ public static class PuzzleKindRegistry
             add($"{path}.params", "Puzzle params/solution/reveal must be JSON objects: " + exception.Message, puzzle.PuzzleId);
             return;
         }
-        kind.Validate(context, (field, message) => add($"{path}.{field}", message, puzzle.PuzzleId));
+        try
+        {
+            kind.Validate(context, (field, message) => add($"{path}.{field}", message, puzzle.PuzzleId));
+        }
+        catch (Exception exception) when (exception is ArgumentException or IndexOutOfRangeException
+            or InvalidOperationException or KeyNotFoundException or NullReferenceException or FormatException
+            or OverflowException or JsonException)
+        {
+            // A kind reports problems through add(); incomplete data must never crash validation of a whole case.
+            add($"{path}.params", $"The {puzzle.Kind} parameters are incomplete and could not be checked ({exception.GetType().Name}).", puzzle.PuzzleId);
+        }
     }
 
     /// <summary>FNV-1a over the parts; stable across processes (unlike string.GetHashCode).</summary>

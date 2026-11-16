@@ -152,7 +152,7 @@ public sealed partial class AiCaseWorkflowHostTests
     }
 
     [Fact]
-    public async Task MockHttpFlow_ReturnsAcceptedAndAdvancesBeyondPreviewWithoutLiveOpenAi()
+    public async Task MockHttpFlow_ReturnsAcceptedAndAdvancesBeyondPreviewWithoutAskingClaude()
     {
         if (!string.Equals(
                 Environment.GetEnvironmentVariable("SIRLOCKED_RUN_MONGO_IT"),
@@ -254,7 +254,10 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.True(
             publish.StatusCode == HttpStatusCode.OK,
             $"Publish returned {publish.StatusCode}: {await publish.Content.ReadAsStringAsync()}");
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        // Mock mode answers every step itself: nothing was queued for the Claude bot.
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<MongoDbContext>();
+        Assert.Equal(0, await verifyDb.AiBridgeRequests.CountDocumentsAsync(FilterDefinition<AiBridgeRequest>.Empty));
     }
 
     private static async Task<AiDraftResponse> PollAsync(
@@ -293,8 +296,15 @@ public sealed partial class AiCaseWorkflowHostTests
             Environment.GetEnvironmentVariable("SIRLOCKED_TEST_MONGO_CONNECTION_STRING")
             ?? "mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000";
         private readonly string _databaseName = $"sirlocked_it_{Guid.NewGuid():N}";
-        public FakeOpenAiClient OpenAiClient { get; } = new();
         public bool DisableBackgroundWorkers { get; init; }
+
+        /// <summary>Questions queued for the Claude bot; mock mode must never create any.</summary>
+        public long BridgeRequestCount()
+        {
+            using var scope = Services.CreateScope();
+            return scope.ServiceProvider.GetRequiredService<MongoDbContext>().AiBridgeRequests
+                .CountDocuments(FilterDefinition<AiBridgeRequest>.Empty);
+        }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -346,8 +356,6 @@ public sealed partial class AiCaseWorkflowHostTests
                         options.ClientId = "integration-test-google-client";
                         options.ClientSecret = "integration-test-google-secret";
                     });
-                services.AddSingleton(OpenAiClient);
-                services.AddScoped<IAiOpenAiClient>(provider => provider.GetRequiredService<FakeOpenAiClient>());
                 services.AddAuthentication(options =>
                     {
                         options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
@@ -377,19 +385,6 @@ public sealed partial class AiCaseWorkflowHostTests
 
         public Task SendPasswordResetEmailAsync(string toEmail, string fullName, string token) =>
             throw new InvalidOperationException("AI workflow tests must not send password reset email.");
-    }
-
-    private sealed class FakeOpenAiClient : IAiOpenAiClient
-    {
-        public int CallCount { get; private set; }
-
-        public Task<AiProviderHttpResponse> PostStructuredJsonAsync(
-            object payload,
-            CancellationToken cancellationToken = default)
-        {
-            CallCount++;
-            throw new InvalidOperationException("Live OpenAI transport must not be used by integration tests.");
-        }
     }
 
     private sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>

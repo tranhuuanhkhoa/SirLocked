@@ -10,12 +10,10 @@ public sealed class AiCaseExportService : IAiCaseExportService
 {
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private readonly IWebHostEnvironment _environment;
-    private readonly OpenAiSettings _settings;
 
-    public AiCaseExportService(IWebHostEnvironment environment, IOptions<OpenAiSettings> settings)
+    public AiCaseExportService(IWebHostEnvironment environment)
     {
         _environment = environment;
-        _settings = settings.Value;
     }
 
     public string Export(AiCaseDraft draft, GameCase gameCase, string caseJson, int errorCount)
@@ -40,8 +38,8 @@ public sealed class AiCaseExportService : IAiCaseExportService
             caseId = gameCase.CaseId,
             title = gameCase.Title,
             provider = draft.Provider,
-            logicModel = _settings.LogicModel,
-            imageModel = _settings.ImageModel,
+            logicModel = "Claude",
+            imageModel = draft.AssetManifest?.ImageModel ?? string.Empty,
             prompt = draft.Prompt,
             storyPreview = draft.StoryPreview,
             assetManifest = draft.AssetManifest,
@@ -85,7 +83,7 @@ public sealed class AiCaseExportService : IAiCaseExportService
             ["sub_style"] = gameCase.SubStyle,
             ["character_style"] = gameCase.CharacterStyle,
             ["visualStyleContract"] = AiVisualStyleDefaults.PixelArtContract,
-            ["imageModel"] = _settings.ImageModel,
+            ["imageModel"] = draft.AssetManifest?.ImageModel ?? string.Empty,
             ["assets"] = draft.AssetManifest.Assets.Select(asset => new
             {
                 asset.AssetType,

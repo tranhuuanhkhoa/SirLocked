@@ -73,7 +73,8 @@ public sealed class MusicBoxKind : IPuzzleKind
         if (melody.Any(row => row is < 1 or > Rows)) error("solution.melody", "Melody notes are rows 1 (LA) – 5 (ĐỒ).");
         var known = PuzzleJson.Ints(definition.Params, "known");
         if (known.Count != beats) error("params.known", "known needs one entry per beat (0 = smudged).");
-        else if (melody.Count == beats)
+        // With beats missing every list is empty; the beats error above already explains the problem.
+        else if (melody.Count == beats && beats > 0)
         {
             if (known.Where((row, index) => row != 0 && row != melody[index]).Any())
                 error("params.known", "The postcard shows a note that is not in the melody.");

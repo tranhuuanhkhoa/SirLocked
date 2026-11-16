@@ -128,8 +128,26 @@ public static class V3SceneProjectionPolicy
         Audio = source.Audio is not { } audio ? null : new SceneAudioConfig
         {
             AmbienceUrl = audio.AmbienceUrl,
-            Cues = new Dictionary<string, string>(audio.Cues, StringComparer.Ordinal)
+            Cues = new Dictionary<string, string>(audio.Cues, StringComparer.Ordinal),
+            Music = audio.Music is not { } music ? null : new SceneMusic
+            {
+                Url = music.Url,
+                FallbackUrl = music.FallbackUrl,
+                Title = music.Title,
+                Source = music.Source,
+                License = music.License,
+                LoopStartSec = music.LoopStartSec,
+                LoopEndSec = music.LoopEndSec,
+                Volume = music.Volume
+            }
         },
+        Weather = source.Weather is not { } weather ? null : new SceneWeather
+        {
+            Type = weather.Type,
+            Intensity = weather.Intensity
+        },
+        Indoor = source.Indoor,
+        TimeOfDay = source.TimeOfDay,
         SpawnPoints = source.SpawnPoints.ToDictionary(
             pair => pair.Key,
             pair => new SpawnPoint

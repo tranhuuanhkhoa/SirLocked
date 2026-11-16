@@ -81,6 +81,15 @@ internal static class AiDraftQuotaSlots
         throw new InvalidOperationException("The bounded quota claim ended without a result.");
     }
 
+    /// <summary>True when an insert collided on a VIP weekly order slot.</summary>
+    internal static bool IsWeeklyDuplicate(BsonDocument? details, string message)
+    {
+        if (details?.TryGetValue("keyPattern", out var value) == true)
+            return value.IsBsonDocument && value.AsBsonDocument.ElementCount == 1
+                && value.AsBsonDocument.GetElement(0).Name == "weeklyQuotaKey";
+        return message.Contains("index: ux_aiCaseDrafts_weeklyQuotaKey dup key:", StringComparison.Ordinal);
+    }
+
     internal static ApiException ActiveLimitReached() => ApiException.Conflict(
         "You have reached the active AI draft limit. Continue or cancel an existing draft before creating another.",
         "AI_ACTIVE_DRAFT_LIMIT", "ai.quota.activeDraftLimit");

@@ -96,6 +96,19 @@ public class CaseStage
 [BsonIgnoreExtraElements]
 public class CaseScene
 {
+    /// <summary>
+    /// Write-only alias used by the AI contract: the writer sends the scene atmosphere as "atmosphere" and it is
+    /// stored in <see cref="Runtime"/>, which stays server-owned. Never serialized.
+    /// </summary>
+    [JsonPropertyName("atmosphere")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnore]
+    public SirLocked.Api.Services.SceneAtmosphereContent? Atmosphere
+    {
+        get => null;
+        set => value?.ApplyTo(this);
+    }
+
     public string SceneId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string BackgroundUrl { get; set; } = string.Empty;
@@ -378,6 +391,41 @@ public class SceneRuntime
     public List<TransitionZone> Transitions { get; set; } = new();
     /// <summary>Optional pure pixel-art presentation (PixelLab scenes). Null keeps the classic side-view renderer.</summary>
     public SceneRenderSettings? Render { get; set; }
+    /// <summary>Optional weather of an outdoor scene. Indoor scenes have none (see docs/case-audio-weather.md).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public SceneWeather? Weather { get; set; }
+    /// <summary>Optional: true for a scene inside a building; weather is switched off there.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public bool? Indoor { get; set; }
+    /// <summary>Optional: DAY, DUSK or NIGHT.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? TimeOfDay { get; set; }
+}
+
+public static class SceneWeatherTypes
+{
+    public const string None = "NONE";
+    public const string Rain = "RAIN";
+    public const string Wind = "WIND";
+    public const string Snow = "SNOW";
+    public const string Storm = "STORM";
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { None, Rain, Wind, Snow, Storm };
+}
+
+public static class SceneTimesOfDay
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { "DAY", "DUSK", "NIGHT" };
+}
+
+[BsonIgnoreExtraElements]
+public class SceneWeather
+{
+    public string Type { get; set; } = SceneWeatherTypes.None;
+    /// <summary>0 to 1.</summary>
+    public double Intensity { get; set; }
 }
 
 public static class SceneRenderModes
@@ -453,6 +501,32 @@ public class SceneAudioConfig
 {
     public string AmbienceUrl { get; set; } = string.Empty;
     public Dictionary<string, string> Cues { get; set; } = new();
+    /// <summary>Optional looping music of the area (see docs/case-audio-weather.md).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public SceneMusic? Music { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class SceneMusic
+{
+    /// <summary>.ogg file: https:// or a /assets/... path.</summary>
+    public string Url { get; set; } = string.Empty;
+    /// <summary>Optional .mp3 for browsers without Ogg Vorbis.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? FallbackUrl { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string License { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public double? LoopStartSec { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public double? LoopEndSec { get; set; }
+    /// <summary>0 to 1.</summary>
+    public double Volume { get; set; } = 0.5;
 }
 
 [BsonIgnoreExtraElements]
@@ -554,12 +628,40 @@ public class TransitionZone
 public class CaseCharacter
 {
     public CharacterVisualPresentation? Presentation { get; set; }
+    /// <summary>Optional dialogue voice (see docs/case-audio-weather.md).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public CharacterVoice? Voice { get; set; }
     public string CharacterId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class CharacterVoice
+{
+    public VoiceBlip? Blip { get; set; }
+}
+
+public static class VoiceBlipWaves
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { "square", "triangle", "sine", "sawtooth" };
+}
+
+/// <summary>Per-letter speech blip: pitch in Hz, letters per second, oscillator wave and pitch variance.</summary>
+[BsonIgnoreExtraElements]
+public class VoiceBlip
+{
+    /// <summary>80 to 1200 Hz.</summary>
+    public double Pitch { get; set; }
+    /// <summary>10 to 40 letters per second.</summary>
+    public double Speed { get; set; }
+    public string Wave { get; set; } = "square";
+    /// <summary>0 to 1.</summary>
+    public double Variance { get; set; }
 }
 
 [BsonIgnoreExtraElements]

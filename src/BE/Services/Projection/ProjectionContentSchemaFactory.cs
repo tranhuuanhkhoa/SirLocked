@@ -27,20 +27,22 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
             ("scenes", SlotMap(skeleton.Stages.SelectMany(stage => stage.Scenes).Select(scene =>
             {
                 var slot = plan.Scenes[scene.SceneId];
-                return (scene.SceneId, Object(
+                return (scene.SceneId, WithOptional(Object(
                     ("sceneId", Const(scene.SceneId)),
                     ("truthLocationId", Const(slot.TruthLocationId)),
                     ("title", Text(160)),
                     ("description", Text(1000)),
-                    ("visualDescription", AsciiText(1200))));
+                    ("visualDescription", AsciiText(1200))),
+                    ("atmosphere", CaseAtmosphereSchemas.SceneAtmosphere())));
             }))),
             ("characters", SlotMap(skeleton.Characters.Select(character =>
-                (character.CharacterId, Object(
+                (character.CharacterId, WithOptional(Object(
                     ("characterId", Const(character.CharacterId)),
                     ("name", Text(120)),
                     ("role", Text(160)),
                     ("description", Text(800)),
-                    ("visualDescription", AsciiText(1000))))))),
+                    ("visualDescription", AsciiText(1000))),
+                    ("voice", CaseAtmosphereSchemas.Voice())))))),
             ("items", SlotMap(skeleton.Items.Select(item =>
                 (item.ItemId, Object(
                     ("itemId", Const(item.ItemId)),
@@ -142,6 +144,14 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
             ["required"] = required,
             ["additionalProperties"] = false
         };
+    }
+
+    /// <summary>Adds properties the writer may leave out (the voice and atmosphere of docs/case-audio-weather.md).</summary>
+    private static JsonObject WithOptional(JsonObject schema, params (string Name, JsonNode Schema)[] optional)
+    {
+        var properties = schema["properties"]!.AsObject();
+        foreach (var (name, value) in optional) properties[name] = value;
+        return schema;
     }
 
     private static JsonObject Object(params (string Name, JsonNode Schema)[] properties)

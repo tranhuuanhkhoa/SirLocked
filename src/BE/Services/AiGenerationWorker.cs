@@ -9,6 +9,8 @@ public sealed class AiGenerationWorker : BackgroundService
     private static readonly TimeSpan EmptyQueueDelay = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan FailureDelay = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan ResumeSweepInterval = TimeSpan.FromSeconds(30);
+    private DateTime _nextResumeSweep = DateTime.MinValue;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<AiGenerationWorker> _logger;
@@ -32,6 +34,13 @@ public sealed class AiGenerationWorker : BackgroundService
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
                 var workflow = scope.ServiceProvider.GetRequiredService<IAiDraftWorkflowCoordinator>();
+                var now = _timeProvider.GetUtcNow().UtcDateTime;
+                if (now >= _nextResumeSweep)
+                {
+                    // Safety net for an answer that arrived while its resume was lost (for example a restart).
+                    _nextResumeSweep = now + ResumeSweepInterval;
+                    await workflow.ResumeAnsweredAsync(stoppingToken);
+                }
                 var draft = await workflow.ClaimNextQueuedAsync(stoppingToken);
                 if (draft is null)
                 {
@@ -43,9 +52,15 @@ public sealed class AiGenerationWorker : BackgroundService
                 using var leaseCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
                 var heartbeat = MaintainLeaseAsync(workflow, draft, leaseCancellation, stoppingToken);
                 Exception? failure = null;
+                AiAwaitingClaudeException? awaitingClaude = null;
                 try
                 {
                     await executor.ExecuteAsync(draft, leaseCancellation.Token);
+                }
+                catch (AiAwaitingClaudeException wait)
+                {
+                    // Not an error and not retried: the run parks until the bot answers through the bridge.
+                    awaitingClaude = wait;
                 }
                 catch (OperationCanceledException) when (leaseCancellation.IsCancellationRequested)
                 {
@@ -61,10 +76,23 @@ public sealed class AiGenerationWorker : BackgroundService
                     await heartbeat;
                 }
 
+                if (awaitingClaude is not null)
+                {
+                    if (await workflow.ParkAwaitingClaudeAsync(draft, awaitingClaude.RequestId, awaitingClaude.Step, stoppingToken))
+                        _logger.LogInformation(
+                            "AI operation {Operation} for draft {DraftId} waits for Claude request {RequestId} ({Step}).",
+                            draft.QueuedOperation, draft.Id, awaitingClaude.RequestId, awaitingClaude.Step);
+                    else
+                        _logger.LogWarning("AI run {RunId} could not park after its lease became stale.", draft.GenerationRunId);
+                    await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
+                    continue;
+                }
+
                 if (failure is null)
                 {
                     if (!await workflow.CompleteQueuedAsync(draft, cancellationToken: stoppingToken))
                         _logger.LogWarning("AI run {RunId} completed after its lease became stale.", draft.GenerationRunId);
+                    await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
                     continue;
                 }
 
@@ -95,6 +123,7 @@ public sealed class AiGenerationWorker : BackgroundService
                         ? "AI_GENERATION_INVALID"
                         : "AI_GENERATION_FAILED";
                 await workflow.CompleteQueuedAsync(draft, errorCode, stoppingToken);
+                await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
                 _logger.LogError(failure,
                     "AI operation {Operation} for draft {DraftId} ended without retry.",
                     draft.QueuedOperation, draft.Id);

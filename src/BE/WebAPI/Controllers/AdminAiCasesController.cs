@@ -3,7 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.DTOs.Case;
+using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services;
+using SirLocked.Api.Services.Admin;
+using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.WebAPI.Controllers;
@@ -14,14 +18,72 @@ public class AdminAiCasesController : BaseApiController
 {
     private readonly IAiCaseService _aiCaseService;
     private readonly IAiArtifactCleanupService _artifactCleanupService;
+    private readonly IAdminAudit _audit;
+    private readonly AiCaseSettingsStore _settings;
+    private readonly AssetLibraryService _library;
 
     public AdminAiCasesController(
         IAiCaseService aiCaseService,
-        IAiArtifactCleanupService artifactCleanupService)
+        IAiArtifactCleanupService artifactCleanupService,
+        IAdminAudit audit,
+        AiCaseSettingsStore settings,
+        AssetLibraryService library)
     {
         _aiCaseService = aiCaseService;
         _artifactCleanupService = artifactCleanupService;
+        _audit = audit;
+        _settings = settings;
+        _library = library;
     }
+
+    /// <summary>VIP orders wait here until an admin approves them; only then does the Claude bot see them.</summary>
+    [HttpPost("{draftId}/approve-order")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> ApproveOrder(string draftId, CancellationToken ct)
+    {
+        var before = await _aiCaseService.GetDraftAsync(Caller, draftId);
+        var approved = await _aiCaseService.ApproveOrderAsync(Caller, draftId);
+        if (before.OrderStatus != approved.OrderStatus)
+            await _audit.LogAsync(Caller, "ai-order.approve", "aiCaseDrafts", draftId,
+                new { before.OrderStatus, before.CreatedByUserId }, new { approved.OrderStatus }, ct: ct);
+        return Ok(approved, "Order approved and queued for Claude.");
+    }
+
+    [HttpPost("{draftId}/reject-order")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> RejectOrder(
+        string draftId, [FromBody] AiOrderRejectRequest request, CancellationToken ct)
+    {
+        var before = await _aiCaseService.GetDraftAsync(Caller, draftId);
+        var rejected = await _aiCaseService.RejectOrderAsync(Caller, draftId, request.Reason);
+        if (before.OrderStatus != rejected.OrderStatus)
+            await _audit.LogAsync(Caller, "ai-order.reject", "aiCaseDrafts", draftId,
+                new { before.OrderStatus, before.CreatedByUserId }, new { rejected.OrderStatus }, request.Reason, ct);
+        return Ok(rejected, "Order rejected.");
+    }
+
+    [HttpGet("settings")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AiCaseSettingsDocument>>> GetSettings(CancellationToken ct) =>
+        Ok(await _settings.GetAsync(ct));
+
+    [HttpPut("settings")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AiCaseSettingsDocument>>> PutSettings(
+        [FromBody] AiCaseSettingsRequest request, CancellationToken ct)
+    {
+        var before = await _settings.GetAsync(ct);
+        var saved = await _settings.SaveAsync(request.VipWeeklyOrderLimit, Caller.Id, ct);
+        await _audit.LogAsync(Caller, "ai-settings.update", "gameSettings", AiCaseSettingsDocument.DocumentId,
+            new { before.VipWeeklyOrderLimit }, new { saved.VipWeeklyOrderLimit }, ct: ct);
+        return Ok(saved, "AI case settings saved.");
+    }
+
+    /// <summary>The shared image library for the order form (places and NPCs), filtered by world and kind.</summary>
+    [HttpGet("library")]
+    public async Task<ActionResult<ApiResponse<List<AssetLibraryEntry>>>> Library(
+        [FromQuery] string? world, [FromQuery] string? kind, CancellationToken ct) =>
+        Ok(await _library.ListAsync(world, kind, ct));
 
     [HttpGet("capabilities")]
     public ActionResult<ApiResponse<AiCaseCapabilitiesResponse>> GetCapabilities() =>
@@ -43,7 +105,9 @@ public class AdminAiCasesController : BaseApiController
             ? header.ToString()
             : null;
         var draft = await _aiCaseService.CreatePreviewAsync(Caller, request, idempotencyKey);
-        return Accepted(draft, "Story preview generation was queued.");
+        return Accepted(draft, draft.OrderStatus == AiOrderStatuses.AwaitingOwnerApproval
+            ? "Order received; it waits for an admin to approve it."
+            : "Order queued for Claude.");
     }
 
     [HttpPost("{draftId}/cancel")]
@@ -130,4 +194,14 @@ public class AdminAiCasesController : BaseApiController
     [Authorize(Roles = UserRole.Admin)]
     public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> Publish(string draftId, [FromQuery] bool overwrite = false) =>
         Ok(await _aiCaseService.ImportDraftAsync(Caller, draftId, overwrite, publish: true), "Draft imported and published.");
+}
+
+public sealed class AiOrderRejectRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class AiCaseSettingsRequest
+{
+    public int VipWeeklyOrderLimit { get; set; } = AiCaseSettingsStore.DefaultVipWeeklyOrderLimit;
 }

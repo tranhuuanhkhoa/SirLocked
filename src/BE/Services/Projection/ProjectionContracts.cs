@@ -264,6 +264,9 @@ public sealed class SceneProjectionContent
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+    /// <summary>Optional atmosphere: music, weather, indoor, time of day.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public SceneAtmosphereContent? Atmosphere { get; set; }
 }
 
 public sealed class CharacterProjectionContent
@@ -273,6 +276,9 @@ public sealed class CharacterProjectionContent
     public string Role { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+    /// <summary>Optional speech blip.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public CharacterVoice? Voice { get; set; }
 }
 
 public sealed class ItemProjectionContent

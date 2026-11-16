@@ -76,7 +76,8 @@ public static class AiV3GenerationProfile
         {
             scene.BackgroundUrl = string.Empty;
             scene.PlacementPlan = null;
-            scene.Runtime = null;
+            // Layout is regenerated; the writer's atmosphere (music, weather, indoor, time of day) is content and stays.
+            scene.Runtime = CaseAtmosphere.KeepOnlyAtmosphere(scene.Runtime);
         }
         foreach (var character in gameCase.Characters) character.ImageUrl = string.Empty;
         foreach (var item in gameCase.Items) item.ImageUrl = string.Empty;

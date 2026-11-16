@@ -47,7 +47,6 @@ public sealed class AiDraftQuotaSlotsTests
         {
             keys.Add(candidate.ActiveQuotaKey);
             ids.Add(candidate.Id);
-            Assert.Equal(2m, candidate.ReservedBudgetUsd);
             return Task.FromResult(keys.Count < 3 ? AiDraftInsertCollision.ActiveQuota : AiDraftInsertCollision.None);
         }, () => Task.FromResult<AiCaseDraft?>(null), () => { releases++; return Task.CompletedTask; });
 
@@ -128,6 +127,6 @@ public sealed class AiDraftQuotaSlotsTests
 
     private static AiCaseDraft Draft() => new()
     {
-        Id = ObjectId.GenerateNewId().ToString(), CreatedByUserId = "owner", ReservedBudgetUsd = 2m
+        Id = ObjectId.GenerateNewId().ToString(), CreatedByUserId = "owner"
     };
 }

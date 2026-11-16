@@ -39,6 +39,7 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
             scene.Title = value.Title;
             scene.Description = value.Description;
             scene.VisualDescription = value.VisualDescription;
+            value.Atmosphere?.ApplyTo(scene);
         }
         foreach (var character in gameCase.Characters)
         {
@@ -47,6 +48,7 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
             character.Role = value.Role;
             character.Description = value.Description;
             character.VisualDescription = value.VisualDescription;
+            if (value.Voice?.Blip is not null) character.Voice = value.Voice;
         }
         foreach (var item in gameCase.Items)
         {

@@ -47,8 +47,16 @@ public static class ProjectionWireContract
     private static JsonNode Project(JsonNode node, JsonObject schema)
     {
         if (node is JsonObject obj && schema["properties"] is JsonObject properties)
-            return new JsonObject(properties.Select(pair => KeyValuePair.Create(pair.Key,
-                obj[pair.Key] is { } value ? Project(value, pair.Value!.AsObject()) : null)));
+        {
+            var required = schema["required"] is JsonArray names
+                ? names.Select(name => name?.GetValue<string>() ?? string.Empty).ToHashSet(StringComparer.Ordinal)
+                : new HashSet<string>(StringComparer.Ordinal);
+            // Optional properties (voice, atmosphere) are left out when absent, so older content serializes as before.
+            return new JsonObject(properties
+                .Where(pair => required.Contains(pair.Key) || obj[pair.Key] is not null)
+                .Select(pair => KeyValuePair.Create(pair.Key,
+                    obj[pair.Key] is { } value ? Project(value, pair.Value!.AsObject()) : null)));
+        }
         return node.DeepClone();
     }
 

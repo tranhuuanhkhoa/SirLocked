@@ -18,4 +18,8 @@
     <ProjectReference Include="..\SirLocked.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\Tests\Fixtures\*.json" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

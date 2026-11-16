@@ -34,6 +34,8 @@ public class CaseCutscene
     /// <summary>AI, SEED (from a file in the repo) or MANUAL (an admin edit).</summary>
     public string Source { get; set; } = "AI";
     public string Model { get; set; } = string.Empty;
+    /// <summary>The Claude bridge run that wrote this version; empty for seed files and manual edits.</summary>
+    public string GenerationRunId { get; set; } = string.Empty;
     /// <summary>The motion-comic script as JSON text.</summary>
     public string ScriptJson { get; set; } = string.Empty;
     public double EstimatedSeconds { get; set; }

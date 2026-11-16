@@ -42,6 +42,8 @@ public class CutsceneVersionDto
 public class AdminCutsceneDto
 {
     public string CaseId { get; set; } = string.Empty;
+    /// <summary>Set while a script request waits for, or is being answered by, the Claude bot.</summary>
+    public CutsceneClaudeRequestDto? ClaudeRequest { get; set; }
     public List<CutsceneVersionDto> Versions { get; set; } = new();
     /// <summary>The newest version, whatever its status; the editor and preview work on this one.</summary>
     public CutsceneVersionDto? Latest { get; set; }
@@ -58,4 +60,12 @@ public class CutsceneGenerateRequest
 public class CutsceneScriptUpdateRequest
 {
     public MotionComicScript Script { get; set; } = new();
+}
+
+public class CutsceneClaudeRequestDto
+{
+    public string RequestId { get; set; } = string.Empty;
+    public string Step { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }

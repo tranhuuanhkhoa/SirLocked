@@ -20,7 +20,7 @@ public sealed class ProjectionPipelineTests
     [Fact]
     public void BlindSolvabilityReview_IsDisabledByDefault()
     {
-        Assert.False(new OpenAiSettings().EnableBlindSolvabilityReview);
+        Assert.False(new AiGenerationSettings().EnableBlindSolvabilityReview);
     }
 
     [Fact]

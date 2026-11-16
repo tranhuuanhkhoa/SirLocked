@@ -4,6 +4,7 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Cutscene;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.Services.Cutscene;
@@ -15,7 +16,8 @@ public sealed class CutsceneService(
     CaseCatalogPolicy catalog,
     CutsceneScriptGenerator generator,
     IOptions<CutsceneSettings> settings,
-    IOptions<OpenAiSettings> openAi,
+    AiBridgeRequestStore bridgeRequests,
+    IOptions<AiGenerationSettings> generation,
     ILogger<CutsceneService> logger)
 {
     private const string Trigger = CutsceneTriggers.Intro;
@@ -41,9 +43,17 @@ public sealed class CutsceneService(
         var gameCase = await cases.GetCaseAsync(caseId);
         var versions = await store.ListAsync(caseId, Trigger, ct);
         var latest = versions.FirstOrDefault();
+        var pending = await OpenRunAsync(caseId, versions, ct);
         return new AdminCutsceneDto
         {
             CaseId = caseId,
+            ClaudeRequest = pending is null ? null : new CutsceneClaudeRequestDto
+            {
+                RequestId = pending.Id,
+                Step = pending.Step,
+                Status = pending.Status,
+                CreatedAt = pending.CreatedAt
+            },
             Versions = versions.Select(ToVersionDto).ToList(),
             Latest = latest is null ? null : ToVersionDto(latest),
             Script = latest is null ? null : TryParse(latest.ScriptJson),
@@ -51,17 +61,54 @@ public sealed class CutsceneService(
         };
     }
 
+    /// <summary>
+    /// Queues the script for Claude (or continues the run already queued). The admin sees "waiting for Claude" until
+    /// the bot answers through the bridge; the answer then becomes a new DRAFT version.
+    /// </summary>
     public async Task<AdminCutsceneDto> GenerateAsync(string caseId, bool regenerate, string actor, CancellationToken ct = default)
+    {
+        await cases.GetCaseAsync(caseId);
+        var existing = await store.ListAsync(caseId, Trigger, ct);
+        var open = await OpenRunAsync(caseId, existing, ct);
+        if (open is null && existing.Count > 0 && !regenerate)
+            throw ApiException.Conflict("This case already has a cutscene. Asking Claude again replaces the draft; confirm to continue.",
+                "CUTSCENE_REGENERATE_CONFIRM", "cutscene.regenerate.confirm");
+        return await RunAsync(caseId, open?.GenerationRunId ?? Guid.NewGuid().ToString("N"), actor, ct);
+    }
+
+    /// <summary>Called by the bridge after the bot answered a CUTSCENE request: replays the run with its answers.</summary>
+    public async Task<AdminCutsceneDto> ContinueFromBridgeAsync(string caseId, string generationRunId, CancellationToken ct = default) =>
+        await RunAsync(caseId, generationRunId, "claude-bridge", ct);
+
+    private async Task<AdminCutsceneDto> RunAsync(string caseId, string generationRunId, string actor, CancellationToken ct)
     {
         var gameCase = await cases.GetCaseAsync(caseId);
         var existing = await store.ListAsync(caseId, Trigger, ct);
-        if (existing.Count > 0 && !regenerate)
-            throw ApiException.Conflict("This case already has a cutscene. Generating again costs AI budget; confirm to continue.",
-                "CUTSCENE_REGENERATE_CONFIRM", "cutscene.regenerate.confirm");
-        var result = await generator.GenerateAsync(gameCase, ct);
-        var saved = await InsertNextVersionAsync(caseId, existing, result.ScriptJson, result.Script, result.Mock ? "MOCK" : "AI", result.Model, actor, ct);
+        if (existing.Any(version => version.GenerationRunId == generationRunId))
+            return await GetAdminAsync(caseId, ct);
+        CutsceneGenerationResult result;
+        try
+        {
+            result = await generator.GenerateAsync(gameCase, generationRunId, ct);
+        }
+        catch (AiAwaitingClaudeException)
+        {
+            return await GetAdminAsync(caseId, ct);
+        }
+        var saved = await InsertNextVersionAsync(caseId, existing, result.ScriptJson, result.Script, result.Mock ? "MOCK" : "CLAUDE",
+            result.Model, actor, ct, generationRunId);
         if (settings.Value.AutoApprove) await ApproveAsync(caseId, saved.Id, actor, ct);
         return await GetAdminAsync(caseId, ct);
+    }
+
+    /// <summary>The newest Claude run of this case that has not produced a version yet.</summary>
+    private async Task<AiBridgeRequest?> OpenRunAsync(string caseId, List<CaseCutscene> versions, CancellationToken ct)
+    {
+        if (generation.Value.BlocksAiCalls) return null; // Mock mode answers at once and never queues a request.
+        var requests = await bridgeRequests.ListForOwnerAsync(AiBridgeOwnerTypes.Cutscene, caseId, ct);
+        var latest = requests.LastOrDefault(request => request.Status is not (AiBridgeStatuses.Stale or AiBridgeStatuses.Cancelled));
+        if (latest is null || versions.Any(version => version.GenerationRunId == latest.GenerationRunId)) return null;
+        return latest;
     }
 
     /// <summary>Saves an admin edit. Editing a draft changes it in place; editing anything else starts a new draft version.</summary>
@@ -156,13 +203,7 @@ public sealed class CutsceneService(
                     await store.ReplaceAsync(saved, ct);
                     seeded.Add(gameCase.CaseId);
                 }
-                else if (settings.Value.AutoGenerateForPixelCases && CaseCatalogRules.IsPixel(gameCase)
-                         && !openAi.Value.BlocksAiCalls && openAi.Value.HasApiKey)
-                {
-                    // Generated once as a draft; a mocked script would be junk, so mock mode never auto-writes.
-                    await GenerateAsync(gameCase.CaseId, regenerate: false, "system", ct);
-                    seeded.Add(gameCase.CaseId + " (draft)");
-                }
+                // Scripts are written by the Claude bot only when an admin asks for one: startup never queues work.
             }
             catch (ApiException error) when (error.StatusCode == 409) { /* another instance got there first */ }
             catch (Exception error) when (error is not OperationCanceledException)
@@ -176,14 +217,15 @@ public sealed class CutsceneService(
     // ---------------------------------------------------------------- helpers
 
     private async Task<CaseCutscene> InsertNextVersionAsync(string caseId, List<CaseCutscene> existing, string json, MotionComicScript script,
-        string source, string model, string actor, CancellationToken ct)
+        string source, string model, string actor, CancellationToken ct, string generationRunId = "")
     {
         var version = (existing.Count == 0 ? 0 : existing.Max(c => c.Version)) + 1;
         var cutscene = new CaseCutscene
         {
             Id = CaseCutscene.MakeId(caseId, Trigger, version), CaseId = caseId, Trigger = Trigger, Version = version,
             Status = CutsceneStatus.Draft, Source = source, Model = model, ScriptJson = json,
-            EstimatedSeconds = MotionComicRules.EstimateSeconds(script), CreatedBy = actor
+            EstimatedSeconds = MotionComicRules.EstimateSeconds(script), CreatedBy = actor,
+            GenerationRunId = generationRunId
         };
         await store.InsertAsync(cutscene, ct);
         return cutscene;

@@ -59,7 +59,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(completed.TruthRepairCandidate.TrueTimeline[0].Action, saved.CaseTruth!.TrueTimeline[0].Action);
         Assert.Empty(saved.TruthRepairCandidateHash);
         Assert.Empty(saved.TruthRepairOriginalFromArtifact);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Theory]
@@ -96,7 +96,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(AiQueueStates.None, saved.QueueState);
         Assert.Equal(draft.WorkflowVersion, saved.WorkflowVersion);
         Assert.Equal(draft.GeneratedJson, saved.GeneratedJson);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Null(saved.TruthRepairInput);
         Assert.Empty(saved.TruthRepairCandidateHash);
         Assert.Equal(draft.GeneratedJson, saved.GeneratedJson);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Fact]
@@ -147,7 +147,6 @@ public sealed partial class AiCaseWorkflowHostTests
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         await InsertActiveUserAsync(db, DefaultAdminId, UserRole.Admin);
         var draft = InvalidCandidateDraft();
-        draft.ReservedBudgetUsd = 0m;
         await db.AiCaseDrafts.InsertOneAsync(draft);
         var response = await client.PostAsJsonAsync($"/api/admin/ai-cases/{draft.Id}/repair-truth",
             new RepairCaseTruthRequest { UseRepairCandidate = true });
@@ -165,7 +164,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(AiDraftStatus.Cancelled, saved.Status);
         Assert.Equal(draft.GeneratedJson, saved.GeneratedJson);
         Assert.Equal(draft.TruthRepairCandidateJson, saved.TruthRepairCandidateJson);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     private static AiCaseDraft InvalidCandidateDraft()
@@ -217,6 +216,6 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Empty(failed.TruthRepairCandidate.RedHerringLedger);
         Assert.Equal(CaseTruthArtifacts.Statements, AiTruthRepairPlanResponse.FromCandidate(failed).RecommendedStartArtifact);
         Assert.Equal(draft.GeneratedJson, failed.GeneratedJson);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 }

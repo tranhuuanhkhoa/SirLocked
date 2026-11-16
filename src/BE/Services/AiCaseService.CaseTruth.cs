@@ -123,7 +123,6 @@ public partial class AiCaseService
 
     public async Task<AiDraftResponse> ApproveTruthAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -149,7 +148,6 @@ public partial class AiCaseService
 
     public async Task<AiDraftResponse> RepairTruthAsync(CurrentUser user, string draftId, RepairCaseTruthRequest request)
     {
-        EnsureOpenAiConfigured();
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -878,7 +876,7 @@ public partial class AiCaseService
     {
         var maxOutputTokens = TruthStageMaxOutputTokens(schemaVersion);
         async Task<string> GenerateAsync(string activeStep, string activePrompt, int activeMaxOutputTokens) =>
-            await GenerateJsonWithOpenAiAsync(
+            await GenerateJsonAsync(
                 draft.Id, activeStep, activePrompt, activeMaxOutputTokens, schemaVersion, schema,
                 await NextGenerationAttemptNumberAsync(draft.Id, schemaVersion),
                 mockResponseFactory: () => AiCaseMockFactory.BuildMockTruthStageJson(draft, schemaVersion),
@@ -1196,7 +1194,7 @@ public partial class AiCaseService
         CaseTruthPackage truth)
     {
         var canonical = _truthService.Canonicalize(truth);
-        var raw = await GenerateJsonWithOpenAiAsync(
+        var raw = await GenerateJsonAsync(
             draft.Id, "ReviewCaseTruthFeasibility", $"""
                 Independently audit this locked detective-case truth. Do not repair or embellish it.
                 Check time/travel feasibility, physical trace causality, witness observability, access/tools/knowledge,
@@ -1277,7 +1275,7 @@ public partial class AiCaseService
     {
         if (draft.CaseTruth is null) throw ApiException.Conflict("Approved truth is missing.");
         var playerKnowledge = _truthService.BuildBlindPlayerKnowledge(gameCase).ToJsonString(PrettyJson);
-        var raw = await GenerateJsonWithOpenAiAsync(
+        var raw = await GenerateJsonAsync(
             draft.Id, "ReviewBlindSolvability", $"""
                 Act as a blind detective-game solver. Use only the player-visible information below.
                 Infer culpritId, the exact motive and method strings, and a concrete crime timeline.
