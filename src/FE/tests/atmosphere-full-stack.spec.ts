@@ -77,7 +77,7 @@ test('sample case imported as a draft keeps its atmosphere; shop and harbour sou
 
   // ---- the clock shop: indoors, its own song, no weather
   await expect.poll(async () => (await state(page))?.currentSceneId, { timeout: 30_000 }).toBe(SHOP);
-  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 30_000 }).toContain('/hang-duong/tiem-dong-ho.ogg');
+  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 30_000 }).toContain('/hang-duong/tiem-hop-nhac.ogg');
   expect(await weather(page)).toMatchObject({ type: 'NONE', particles: 0, indoor: true });
   expect((await audio(page)).weather.running).toBe(false);
   const shopkeeper = await askFirst(page, 'char-dh-ong-tu');
@@ -95,7 +95,7 @@ test('sample case imported as a draft keeps its atmosphere; shop and harbour sou
   await goTo(page, SHOP);
   await expect.poll(async () => (await weather(page)).active).toBe(false);
   await expect.poll(async () => (await audio(page)).weather.running).toBe(false);
-  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 30_000 }).toContain('/hang-duong/tiem-dong-ho.ogg');
+  await expect.poll(async () => (await audio(page)).music.playing ?? '', { timeout: 30_000 }).toContain('/hang-duong/tiem-hop-nhac.ogg');
 
   const waveOf = (snapshot: Json, characterId: string) => snapshot.blips.recent.find((blip: Json) => blip.characterId === characterId)?.wave;
   expect([waveOf(shopkeeper, 'char-dh-ong-tu'), waveOf(florist, 'char-dh-co-hanh'), waveOf(sailor, 'char-dh-anh-bay')])

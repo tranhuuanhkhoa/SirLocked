@@ -655,6 +655,10 @@ body.game-page-active #toast-root > .toast.toast-show { transform: none; }
 }
 .bpa-g-tools .game-audio-controls[open] {
   --bpa-g-audio-w: 270px;
+  --bpa-g-credits-h: 0px;
+}
+.bpa-g-tools .game-audio-controls.has-credits[open] {      /* "Âm nhạc" credits under the sliders push them up */
+  --bpa-g-credits-h: 92px;
 }
 .bpa-g-tools .game-audio-controls[open] > label {
   position: absolute;
@@ -674,12 +678,36 @@ body.game-page-active #toast-root > .toast.toast-show { transform: none; }
   font-family: var(--bpa-font-body);
   font-size: 16px;
 }
-.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(1) { bottom: calc(100% + 188px); padding-top: 10px; box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .35), inset 0 2px 0 var(--bpa-brass); min-height: 50px; }
-.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(2) { bottom: calc(100% + 144px); }
-.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(3) { bottom: calc(100% + 100px); }
-.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(4) { bottom: calc(100% + 56px); }
-.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(5) { bottom: calc(100% + 12px); box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .35), 0 18px 36px rgba(0, 0, 0, .65); }
+.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(1) { bottom: calc(100% + 188px + var(--bpa-g-credits-h)); padding-top: 10px; box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .35), inset 0 2px 0 var(--bpa-brass); min-height: 50px; }
+.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(2) { bottom: calc(100% + 144px + var(--bpa-g-credits-h)); }
+.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(3) { bottom: calc(100% + 100px + var(--bpa-g-credits-h)); }
+.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(4) { bottom: calc(100% + 56px + var(--bpa-g-credits-h)); }
+.bpa-g-tools .game-audio-controls[open] > label:nth-of-type(5) { bottom: calc(100% + 12px + var(--bpa-g-credits-h)); box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .35), 0 18px 36px rgba(0, 0, 0, .65); }
 .bpa-g-tools .game-audio-controls input[type="range"] { width: 110px; accent-color: var(--bpa-gold); }
+.bpa-g-tools .game-audio-controls > .game-audio-credits { display: none; }
+.bpa-g-tools .game-audio-controls.has-credits[open] > .game-audio-credits {
+  position: absolute;
+  z-index: 8;
+  right: 0;
+  bottom: calc(100% + 12px);
+  display: block;
+  width: var(--bpa-g-audio-w);
+  height: var(--bpa-g-credits-h);
+  overflow-y: auto;
+  padding: 6px 14px 8px;
+  box-sizing: border-box;
+  background: var(--bpa-label);
+  box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .35), 0 18px 36px rgba(0, 0, 0, .65);
+  color: var(--bpa-on-dark);
+  font-family: var(--bpa-font-body);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.game-audio-credits-title { margin: 0 0 2px; color: var(--bpa-gold); font-family: var(--bpa-font-label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.game-audio-credits ul { margin: 0; padding: 0; list-style: none; }
+.game-audio-credits li { margin: 0 0 3px; overflow-wrap: anywhere; }
+.game-audio-credits cite { font-style: normal; color: var(--bpa-white); }
+.game-audio-credits a { color: var(--bpa-gold); }
 .bpa-g-tools .game-audio-controls input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--bpa-gold); }
 .bpa-g-tools .game-audio-controls output { width: 4ch; text-align: right; color: var(--bpa-gold); font-family: var(--bpa-font-label); font-size: 12px; font-variant-numeric: tabular-nums; }
 

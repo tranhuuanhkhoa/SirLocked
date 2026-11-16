@@ -1,0 +1,1774 @@
+{
+ "version": 1,
+ "description": "Thư viện nhạc nền của các khu (VUAN-5). Mỗi bài: file .ogg, bản .mp3 dự phòng, nguồn, giấy phép, thế giới, khu, không khí, điểm lặp. Sinh bằng tools/music-gen/build_library.py từ tools/music-gen/library.json; đừng sửa tay.",
+ "generatedAt": "2026-11-17",
+ "licenses": {
+  "CC0 1.0": {
+   "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "summaryVi": "Phạm vi công cộng (CC0): dùng, sửa, phát hành kèm game, kể cả thương mại, không bắt buộc ghi tên. Game vẫn ghi tên tác giả trong mục Âm nhạc."
+  },
+  "Kenney CC0": {
+   "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "summaryVi": "Gói của Kenney, CC0: như trên."
+  },
+  "Pixabay Content License": {
+   "url": "https://pixabay.com/service/license-summary/",
+   "summaryVi": "Miễn phí, không cần ghi tên, không bán lại riêng file nhạc. Có thể bị YouTube/TikTok nhận nhầm bản quyền: giữ link gốc để khiếu nại."
+  },
+  "Sir Locked (tự sáng tác)": {
+   "url": null,
+   "summaryVi": "Claude viết bằng code (tools/music-gen/songs), thuộc dự án Sir Locked, dùng tự do trong game."
+  }
+ },
+ "worlds": {
+  "HANG_DUONG_VICTORIAN": {
+   "folder": "hang-duong",
+   "nameVi": "Phố Hàng Đường (Victoria, đèn khí)",
+   "areas": {
+    "street": {
+     "vi": "phố",
+     "indoor": false,
+     "libraryKeys": [
+      "v-case-pho"
+     ],
+     "libraryTags": [
+      "pho"
+     ]
+    },
+    "harbor": {
+     "vi": "bến cảng",
+     "indoor": false,
+     "libraryKeys": [
+      "map-ben-cang",
+      "map-ben-cang-dem",
+      "map-ben-cang-hoang-hon",
+      "map-ben-cang-sau-mua",
+      "map-ben-cang-tuyet"
+     ],
+     "libraryTags": [
+      "ben-cang",
+      "kho-hang"
+     ]
+    },
+    "train_station": {
+     "vi": "ga tàu",
+     "indoor": false,
+     "libraryKeys": [
+      "v-map-ga-tau"
+     ],
+     "libraryTags": [
+      "ga-tau",
+      "quang-truong"
+     ]
+    },
+    "market": {
+     "vi": "chợ",
+     "indoor": false,
+     "libraryKeys": [
+      "v-map-cho"
+     ],
+     "libraryTags": [
+      "cho"
+     ]
+    },
+    "lake_park": {
+     "vi": "công viên bờ hồ",
+     "indoor": false,
+     "libraryKeys": [
+      "v-map-cong-vien-ho"
+     ],
+     "libraryTags": [
+      "cong-vien",
+      "ho"
+     ]
+    },
+    "villa_district": {
+     "vi": "khu biệt thự",
+     "indoor": false,
+     "libraryKeys": [
+      "v-map-biet-thu"
+     ],
+     "libraryTags": [
+      "biet-thu"
+     ]
+    },
+    "shop": {
+     "vi": "tiệm",
+     "indoor": true,
+     "libraryKeys": [
+      "room-tiem-dong-ho",
+      "room-tiem-dong-ho-lat",
+      "room-tiem-dong-ho-do-ruou",
+      "v-room-hieu-may",
+      "v-room-hieu-sach",
+      "v-room-hieu-vang",
+      "v-case-cam-do",
+      "v-case-hieu-anh",
+      "v-case-hieu-thuoc"
+     ],
+     "libraryTags": [
+      "tiem"
+     ]
+    },
+    "clock_shop": {
+     "vi": "tiệm đồng hồ",
+     "indoor": true,
+     "libraryKeys": [
+      "room-tiem-dong-ho",
+      "room-tiem-dong-ho-lat",
+      "room-tiem-dong-ho-do-ruou"
+     ],
+     "libraryTags": [
+      "dong-ho"
+     ]
+    },
+    "tavern": {
+     "vi": "quán rượu",
+     "indoor": true,
+     "libraryKeys": [
+      "v-room-quan-ruou",
+      "v-room-ham-ruou"
+     ],
+     "libraryTags": []
+    },
+    "tea_room": {
+     "vi": "phòng trà",
+     "indoor": true,
+     "libraryKeys": [
+      "v-room-phong-tra",
+      "v-room-sanh-khach-san"
+     ],
+     "libraryTags": []
+    },
+    "police_station": {
+     "vi": "sở cảnh sát",
+     "indoor": true,
+     "libraryKeys": [
+      "v-room-so-canh-sat"
+     ],
+     "libraryTags": []
+    },
+    "theater": {
+     "vi": "nhà hát",
+     "indoor": true,
+     "libraryKeys": [
+      "v-room-hau-truong"
+     ],
+     "libraryTags": []
+    },
+    "study": {
+     "vi": "thư phòng",
+     "indoor": true,
+     "libraryKeys": [
+      "v-room-thu-phong",
+      "v-room-gac-xep",
+      "v-room-toa-soan"
+     ],
+     "libraryTags": []
+    }
+   }
+  },
+  "TAISHO_JAPAN": {
+   "folder": "taisho",
+   "nameVi": "Nhật Bản Taishō",
+   "areas": {
+    "lantern_street": {
+     "vi": "phố đèn lồng",
+     "indoor": false,
+     "libraryKeys": [
+      "j-map-pho-den-long"
+     ],
+     "libraryTags": []
+    },
+    "tram_station": {
+     "vi": "ga xe điện",
+     "indoor": false,
+     "libraryKeys": [
+      "j-map-ga-xe-dien"
+     ],
+     "libraryTags": []
+    },
+    "shrine_garden": {
+     "vi": "đền và vườn",
+     "indoor": false,
+     "libraryKeys": [
+      "j-map-den-vuon"
+     ],
+     "libraryTags": []
+    },
+    "tea_house": {
+     "vi": "nhà trà",
+     "indoor": true,
+     "libraryKeys": [
+      "j-room-nha-tra"
+     ],
+     "libraryTags": []
+    },
+    "tatami_lodging": {
+     "vi": "phòng trọ tatami",
+     "indoor": true,
+     "libraryKeys": [
+      "j-room-phong-tro"
+     ],
+     "libraryTags": []
+    },
+    "kabuki_backstage": {
+     "vi": "hậu trường kabuki",
+     "indoor": true,
+     "libraryKeys": [
+      "j-room-hau-truong-kabuki"
+     ],
+     "libraryTags": []
+    }
+   }
+  },
+  "SHANGHAI_1930": {
+   "folder": "thuong-hai",
+   "nameVi": "Thượng Hải 1930",
+   "areas": {
+    "concession_street": {
+     "vi": "phố tô giới đèn neon",
+     "indoor": false,
+     "libraryKeys": [
+      "c-map-pho-to-gioi"
+     ],
+     "libraryTags": []
+    },
+    "river_bund": {
+     "vi": "bến sông",
+     "indoor": false,
+     "libraryKeys": [
+      "c-map-ben-song"
+     ],
+     "libraryTags": []
+    },
+    "shikumen_alley": {
+     "vi": "ngõ nhà cổng đá",
+     "indoor": false,
+     "libraryKeys": [
+      "c-map-ngo-thach-kho-mon"
+     ],
+     "libraryTags": []
+    },
+    "tea_house": {
+     "vi": "trà lâu",
+     "indoor": true,
+     "libraryKeys": [],
+     "libraryTags": []
+    },
+    "singing_hall": {
+     "vi": "phòng hát",
+     "indoor": true,
+     "libraryKeys": [],
+     "libraryTags": []
+    },
+    "mahjong_parlor": {
+     "vi": "sòng mạt chược",
+     "indoor": true,
+     "libraryKeys": [],
+     "libraryTags": []
+    },
+    "detective_office": {
+     "vi": "văn phòng thám tử",
+     "indoor": true,
+     "libraryKeys": [],
+     "libraryTags": []
+    }
+   }
+  },
+  "ALL": {
+   "folder": "chung",
+   "nameVi": "Dùng chung theo không khí",
+   "areas": {}
+  }
+ },
+ "moods": {
+  "dieu-tra-yen": "điều tra yên",
+  "cang-thang": "căng thẳng",
+  "bi-an": "bí ẩn",
+  "lat-mat": "lật mặt",
+  "buon": "buồn",
+  "ket-thuc": "kết thúc",
+  "am-ap": "ấm áp",
+  "yen-tinh": "yên tĩnh",
+  "nhon-nhip": "nhộn nhịp",
+  "sang-trong": "sang trọng",
+  "vui": "vui"
+ },
+ "tracks": [
+  {
+   "id": "hang-duong-pho-den-khi",
+   "file": "/assets/audio/music/hang-duong/pho-den-khi.ogg",
+   "fallback": "/assets/audio/music/hang-duong/pho-den-khi.mp3",
+   "title": "Lovely Town",
+   "labelVi": "Phố đèn khí: piano và violin, êm, dễ nghe",
+   "author": "fluffclipse",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/lovely-town",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "street",
+    "villa_district"
+   ],
+   "moods": [
+    "am-ap",
+    "yen-tinh"
+   ],
+   "bpm": 86,
+   "loopStartSec": 0,
+   "loopEndSec": 61.411746,
+   "durationSec": 61.411746,
+   "loudness": {
+    "integratedLufs": -16.2,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "e59de8dce6fce7c9dcd68c7dbd8c0845d0feda94cf23ea742281a5b166f5f60c",
+   "bytes": 604100,
+   "fallbackSha256": "5709b8a48ebd5b1ec40c610a6a778f5a0efb9e889eb7587eeb5bd882b56c1c6f",
+   "fallbackBytes": 737637,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/Lovely%20town_0.ogg",
+    "sha256": "cee1e92cf549ee3c9e3d9f5f1eaadaa61817b19ad676b2ca65ab313ce66356f9",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 59.373,
+    "sourceEndSec": 120.785,
+    "similarity": 0.896,
+    "fadeSec": 0.08,
+    "sourceLufs": -13.9,
+    "seam": {
+     "click": 0.3,
+     "gapDb": -0.7
+    }
+   }
+  },
+  {
+   "id": "hang-duong-ben-cang",
+   "file": "/assets/audio/music/hang-duong/ben-cang.ogg",
+   "fallback": "/assets/audio/music/hang-duong/ben-cang.mp3",
+   "title": "Merchants and Sea Salt",
+   "labelVi": "Bến cảng, chợ ven cảng ban ngày: nhộn nhịp, mùi muối biển",
+   "author": "NBJDLukasAbsolute",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/merchants-and-sea-salt",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "harbor",
+    "market"
+   ],
+   "moods": [
+    "nhon-nhip",
+    "vui"
+   ],
+   "bpm": 136,
+   "loopStartSec": 0,
+   "loopEndSec": 72.0,
+   "durationSec": 72.0,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "36bcfe292091530b21a92d3650e82fa2d68073cc06878be9258da1dd73db7336",
+   "bytes": 655644,
+   "fallbackSha256": "cfcb3cf1d323ff0b5768f590b41209e0d541c62c63e664d00926ba2bdbe5c945",
+   "fallbackBytes": 864906,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/merchants_and_sea_salt.wav",
+    "sha256": "71357c7a3296c942372ee21fd449212abe82e3e89022a386f6e9d442bc616ac1",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 23.568,
+    "sourceEndSec": 95.568,
+    "similarity": 0.911,
+    "fadeSec": 0.08,
+    "sourceLufs": -18.2,
+    "seam": {
+     "click": 0.03,
+     "gapDb": 4.7
+    }
+   }
+  },
+  {
+   "id": "hang-duong-ben-cang-dem-mua",
+   "file": "/assets/audio/music/hang-duong/ben-cang-dem-mua.ogg",
+   "fallback": "/assets/audio/music/hang-duong/ben-cang-dem-mua.mp3",
+   "title": "Bến cảng đêm mưa",
+   "labelVi": "Bến cảng, phố đêm mưa: 8-bit La thứ, chậm, bí ẩn (vụ mẫu)",
+   "author": "Claude (bot xưởng Sir Locked)",
+   "source": "claude-8bit",
+   "sourceUrl": "tools/music-gen/songs/ben-cang-dem-mua.json",
+   "license": "Sir Locked (tự sáng tác)",
+   "licenseUrl": null,
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "harbor",
+    "street"
+   ],
+   "moods": [
+    "bi-an",
+    "yen-tinh"
+   ],
+   "bpm": 76,
+   "loopStartSec": 0,
+   "loopEndSec": 50.526327,
+   "durationSec": 50.526327,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -5.4
+   },
+   "volume": 0.55,
+   "sha256": "3e41cd45a84d819479e4c5fd8f8a1a6ed8faa23ae407d62aa911110d2ce76e8d",
+   "bytes": 502628,
+   "fallbackSha256": "0a1006c4c964fd628d25958cca412abac0f2991ed43874d3c3efdc54028e98e2",
+   "fallbackBytes": 607234,
+   "original": {
+    "file": "songs/ben-cang-dem-mua.json"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 50.526,
+    "sourceLufs": -12.5,
+    "seam": {
+     "click": 0.01,
+     "gapDb": 20.2
+    }
+   }
+  },
+  {
+   "id": "hang-duong-ga-tau",
+   "file": "/assets/audio/music/hang-duong/ga-tau.ogg",
+   "fallback": "/assets/audio/music/hang-duong/ga-tau.mp3",
+   "title": "Passenger",
+   "labelVi": "Ga tàu: jazz nhẹ, hành khách, có chút bí ẩn",
+   "author": "Pro Sensory (Alex McCulloch)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/passenger",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "train_station"
+   ],
+   "moods": [
+    "bi-an",
+    "dieu-tra-yen"
+   ],
+   "bpm": 112,
+   "loopStartSec": 0,
+   "loopEndSec": 91.651655,
+   "durationSec": 91.651655,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -4.0
+   },
+   "volume": 0.55,
+   "sha256": "b18156d015448013b4d696750eb63a6a3c86b0408de551b62c6690c5764a09e7",
+   "bytes": 1046398,
+   "fallbackSha256": "a72edd208de8f9574350ad025db45ddb48071ecafb8352387f75819b22e9eafe",
+   "fallbackBytes": 1100635,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/Passenger_0.mp3",
+    "sha256": "51e19a2196402e709d76d5b842d2599f43628f1064e3d2794e9a9c48875065de",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 10.194,
+    "sourceEndSec": 101.845,
+    "similarity": 0.933,
+    "fadeSec": 0.25,
+    "sourceLufs": -11.6,
+    "seam": {
+     "click": 0.45,
+     "gapDb": 3.5
+    }
+   }
+  },
+  {
+   "id": "hang-duong-cong-vien-bo-ho",
+   "file": "/assets/audio/music/hang-duong/cong-vien-bo-ho.ogg",
+   "fallback": "/assets/audio/music/hang-duong/cong-vien-bo-ho.mp3",
+   "title": "Snowfall",
+   "labelVi": "Công viên bờ hồ: valse piano, nhẹ, hơi buồn",
+   "author": "Kistol",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/snowfall",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "lake_park"
+   ],
+   "moods": [
+    "yen-tinh",
+    "buon"
+   ],
+   "bpm": 161,
+   "loopStartSec": 0,
+   "loopEndSec": 49.5,
+   "durationSec": 49.5,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.6
+   },
+   "volume": 0.55,
+   "sha256": "c8b03167a338ce1bcdebcfd9f1ffb76ed35b8e75913b36c7833db826e11f9515",
+   "bytes": 472123,
+   "fallbackSha256": "fa1c3c467b3490abb89004e741957037c001cb466dd1dd5de547e0d9d1b8bfc5",
+   "fallbackBytes": 594695,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/Snowfall%20%28Looped%20ver.%29_0.ogg",
+    "sha256": "803113b1ee1c9b9ee638b1b1ffd9553fa973759595c12c452bd9090bb58e4651",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 49.5,
+    "sourceLufs": -20.2,
+    "seam": {
+     "click": 0.02,
+     "gapDb": 19.8
+    }
+   },
+   "notes": "Bản tác giả đã làm lặp liền (Looped ver.)."
+  },
+  {
+   "id": "hang-duong-khu-biet-thu",
+   "file": "/assets/audio/music/hang-duong/khu-biet-thu.ogg",
+   "fallback": "/assets/audio/music/hang-duong/khu-biet-thu.mp3",
+   "title": "Apparitions Ball",
+   "labelVi": "Khu biệt thự, nhà hát: valse đàn harpsichord, dạ hội, hơi ma mị",
+   "author": "Bobjt",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/apparitions-ball",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "villa_district",
+    "theater"
+   ],
+   "moods": [
+    "sang-trong",
+    "bi-an"
+   ],
+   "bpm": 96,
+   "loopStartSec": 0,
+   "loopEndSec": 37.894717,
+   "durationSec": 37.894717,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -4.3
+   },
+   "volume": 0.55,
+   "sha256": "5919517ffc4340c58cacd1a45183b69756f94d46ece1b5c627cd847ef4f9053b",
+   "bytes": 423079,
+   "fallbackSha256": "9c893ae58fab14bfadc2585f277172bd0b934f68b21f9d066830462bb57d3f5a",
+   "fallbackBytes": 455515,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/apparitions_ball.ogg",
+    "sha256": "4a1fe1256237bc300dc57cb0d80315cd26316a7e5c0a232cd60991931fec5965",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 37.895,
+    "sourceLufs": -11.5,
+    "seam": {
+     "click": 0.01,
+     "gapDb": 14.7
+    }
+   }
+  },
+  {
+   "id": "hang-duong-tiem-hop-nhac",
+   "file": "/assets/audio/music/hang-duong/tiem-hop-nhac.ogg",
+   "fallback": "/assets/audio/music/hang-duong/tiem-hop-nhac.mp3",
+   "title": "Music Box: Cute Tune",
+   "labelVi": "Tiệm, tiệm đồng hồ: hộp nhạc lên dây cót, ấm và tò mò",
+   "author": "Aureolus_Omicron",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/4-music-box-tracks",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "shop",
+    "clock_shop"
+   ],
+   "moods": [
+    "am-ap",
+    "dieu-tra-yen"
+   ],
+   "bpm": 112,
+   "loopStartSec": 0,
+   "loopEndSec": 68.568027,
+   "durationSec": 68.568027,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.6
+   },
+   "volume": 0.55,
+   "sha256": "c6a5ef5656ef9629e1da6e4803a672a0b1d8797b89022fe519345d823251485f",
+   "bytes": 678823,
+   "fallbackSha256": "fedcd37da3ad76703bfb17eb831599ed82e5183548da5296e5d66bc1b0142bbd",
+   "fallbackBytes": 823528,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/4_music_box_tracks_ogg.zip",
+    "archiveMember": "musicbox2_cute_tune.ogg",
+    "sha256": "93b451f01ea4d530ee41b2239ae23f9be7d5a3b55354bb9893c736a4bd193b2f",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 8.545,
+    "sourceEndSec": 77.113,
+    "similarity": 0.956,
+    "fadeSec": 0.08,
+    "sourceLufs": -15.0,
+    "seam": {
+     "click": 0.01,
+     "gapDb": 16.1
+    }
+   }
+  },
+  {
+   "id": "hang-duong-tiem-dong-ho",
+   "file": "/assets/audio/music/hang-duong/tiem-dong-ho.ogg",
+   "fallback": "/assets/audio/music/hang-duong/tiem-dong-ho.mp3",
+   "title": "Tiệm đồng hồ",
+   "labelVi": "Tiệm đồng hồ: 8-bit Rê thứ, hộp nhạc và tích tắc (dự phòng của vụ mẫu)",
+   "author": "Claude (bot xưởng Sir Locked)",
+   "source": "claude-8bit",
+   "sourceUrl": "tools/music-gen/songs/tiem-dong-ho.json",
+   "license": "Sir Locked (tự sáng tác)",
+   "licenseUrl": null,
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "shop",
+    "clock_shop"
+   ],
+   "moods": [
+    "dieu-tra-yen",
+    "am-ap"
+   ],
+   "bpm": 96,
+   "loopStartSec": 0,
+   "loopEndSec": 40.0,
+   "durationSec": 40.0,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -3.8
+   },
+   "volume": 0.55,
+   "sha256": "8d5f7183d779fb24574073b937a1304a474dcb66c990e7e2d05bc9d23ad85243",
+   "bytes": 392445,
+   "fallbackSha256": "4e93871212276398eda6beae464423b5b5e8a225ea293eef55833faf4be81168",
+   "fallbackBytes": 480906,
+   "original": {
+    "file": "songs/tiem-dong-ho.json"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 40.0,
+    "sourceLufs": -14.1,
+    "seam": {
+     "click": 0.92,
+     "gapDb": 26.3
+    }
+   }
+  },
+  {
+   "id": "hang-duong-quan-ruou",
+   "file": "/assets/audio/music/hang-duong/quan-ruou.ogg",
+   "fallback": "/assets/audio/music/hang-duong/quan-ruou.mp3",
+   "title": "Crowded Pub",
+   "labelVi": "Quán rượu bến tàu: vui, đông người",
+   "author": "Bobjt",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/crowded-pub",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "tavern"
+   ],
+   "moods": [
+    "vui",
+    "nhon-nhip"
+   ],
+   "bpm": 112,
+   "loopStartSec": 0,
+   "loopEndSec": 33.98229,
+   "durationSec": 33.98229,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.5
+   },
+   "volume": 0.55,
+   "sha256": "697178c5558ac7c139b70ab0b3101bf62f7d6dfee4f3e9a80104e58d45973ef5",
+   "bytes": 376441,
+   "fallbackSha256": "c8da20dafbe281fa069521444a9c10be88842dc791714f196f80d7d3b69332ce",
+   "fallbackBytes": 408494,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/crowded_pub_2025_1.ogg",
+    "sha256": "88274c54a2bbcba7b0baffc62cf3b89fe2bf701506e6b3831df2822f28c8cb85",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 33.982,
+    "sourceLufs": -13.4,
+    "seam": {
+     "click": 0.04,
+     "gapDb": 4.2
+    }
+   },
+   "notes": "Bản 2025, tác giả thêm đoạn B, C để lặp tốt hơn."
+  },
+  {
+   "id": "hang-duong-phong-tra",
+   "file": "/assets/audio/music/hang-duong/phong-tra.ogg",
+   "fallback": "/assets/audio/music/hang-duong/phong-tra.mp3",
+   "title": "Harpsichord Flurry",
+   "labelVi": "Phòng trà, phòng khách: harpsichord và cello gảy kiểu Baroque",
+   "author": "Spring Spring (Julie Damsgaard)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/harpsichord-flurry",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "tea_room"
+   ],
+   "moods": [
+    "sang-trong"
+   ],
+   "bpm": 117,
+   "loopStartSec": 0,
+   "loopEndSec": 49.232109,
+   "durationSec": 49.232109,
+   "loudness": {
+    "integratedLufs": -16.1,
+    "truePeakDb": -1.8
+   },
+   "volume": 0.55,
+   "sha256": "45a6c8a3ef8e28b9301b894607cfeb7c97d9edcd8b968ccdd70c1d2ec07e695a",
+   "bytes": 520041,
+   "fallbackSha256": "3c2ecf21d006407fceb61a63c22955cade37bba3abde9a459f190f30df11fa7b",
+   "fallbackBytes": 591560,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/HarpsiChordFlurry_6.ogg",
+    "sha256": "d7320a7a92a892e624034337286e6679521b8f8ee3c647e9b61eb8e0a026927b",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 60.511,
+    "sourceEndSec": 109.743,
+    "similarity": 0.949,
+    "fadeSec": 0.08,
+    "sourceLufs": -20.0,
+    "seam": {
+     "click": 0.04,
+     "gapDb": 9.2
+    }
+   }
+  },
+  {
+   "id": "hang-duong-so-canh-sat",
+   "file": "/assets/audio/music/hang-duong/so-canh-sat.ogg",
+   "fallback": "/assets/audio/music/hang-duong/so-canh-sat.mp3",
+   "title": "Investigation",
+   "labelVi": "Sở cảnh sát: bass, saxophone, blues kiểu thám tử",
+   "author": "Umplix",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/investigation-0",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "police_station"
+   ],
+   "moods": [
+    "dieu-tra-yen",
+    "bi-an"
+   ],
+   "bpm": 136,
+   "loopStartSec": 0,
+   "loopEndSec": 56.085692,
+   "durationSec": 56.085692,
+   "loudness": {
+    "integratedLufs": -16.2,
+    "truePeakDb": -2.0
+   },
+   "volume": 0.55,
+   "sha256": "2ed6f87ff821654334aa7931542bf11665680efce08ddc65a4cc60b0caf249e5",
+   "bytes": 555999,
+   "fallbackSha256": "7d84701792e23bcf29783a3251d089b884f22baa752f66380919c9633c70a414",
+   "fallbackBytes": 674003,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/_investigation.wav",
+    "sha256": "f20289168bf00a13108b1dac2e0baacb7e405c29b6d113200f3c1ec30366e110",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 56.086,
+    "sourceLufs": -19.8,
+    "seam": {
+     "click": 0.52,
+     "gapDb": 3.0
+    }
+   },
+   "notes": "Bản tác giả ghi lặp liền (Investigation, không phải bản with_trail)."
+  },
+  {
+   "id": "hang-duong-thu-phong",
+   "file": "/assets/audio/music/hang-duong/thu-phong.ogg",
+   "fallback": "/assets/audio/music/hang-duong/thu-phong.mp3",
+   "title": "Art Venue",
+   "labelVi": "Thư phòng: violin thưa, kiểu game phiêu lưu trỏ và nhấp",
+   "author": "Tsorthan Grove",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/art-venue",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "HANG_DUONG_VICTORIAN",
+   "areas": [
+    "study"
+   ],
+   "moods": [
+    "dieu-tra-yen",
+    "yen-tinh"
+   ],
+   "bpm": 129,
+   "loopStartSec": 0,
+   "loopEndSec": 63.999705,
+   "durationSec": 63.999705,
+   "loudness": {
+    "integratedLufs": -16.1,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "7a9d5c660a9f72b6d94d7eb299ec1b761a8244968d92d9e09fbd57164a98f51a",
+   "bytes": 617364,
+   "fallbackSha256": "25faf67b74c09411925d1b57c6fb43775fa586355a6c11a037b4e2f4f71b07d8",
+   "fallbackBytes": 768670,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/art_venue_loop.wav",
+    "sha256": "ac4e63aecf9e1957754fa2fa64af58cec9be2604483dfecae26444440ebd19b4",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 64.0,
+    "sourceLufs": -32.2,
+    "seam": {
+     "click": 0.29,
+     "gapDb": 4.6
+    }
+   },
+   "notes": "Bản loop của tác giả."
+  },
+  {
+   "id": "taisho-pho-den-long",
+   "file": "/assets/audio/music/taisho/pho-den-long.ogg",
+   "fallback": "/assets/audio/music/taisho/pho-den-long.mp3",
+   "title": "Hot Springs Town",
+   "labelVi": "Phố đèn lồng: đàn koto, ấm, thong thả",
+   "author": "Kistol",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/hot-springs-town",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "TAISHO_JAPAN",
+   "areas": [
+    "lantern_street"
+   ],
+   "moods": [
+    "am-ap",
+    "yen-tinh"
+   ],
+   "bpm": 60,
+   "loopStartSec": 0,
+   "loopEndSec": 64.000091,
+   "durationSec": 64.000091,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.9
+   },
+   "volume": 0.55,
+   "sha256": "4f550d181233d654ec42a3c8938237d237677728d49e03cc90da5684e08ec967",
+   "bytes": 635333,
+   "fallbackSha256": "80612ac0d7bd9bcea81fb81f5adf7c600691af49548c860f888d5efbf4cbbf1a",
+   "fallbackBytes": 768984,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/hot_spring_town_1.ogg",
+    "sha256": "2a38145b9f898aab620ff6b70e2ceb7604fe01e3eeee1a2e34f885796d654869",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 85.983,
+    "sourceEndSec": 149.984,
+    "similarity": 0.669,
+    "fadeSec": 0.25,
+    "sourceLufs": -16.2,
+    "seam": {
+     "click": 0.06,
+     "gapDb": 8.3
+    }
+   }
+  },
+  {
+   "id": "taisho-ga-xe-dien",
+   "file": "/assets/audio/music/taisho/ga-xe-dien.ogg",
+   "fallback": "/assets/audio/music/taisho/ga-xe-dien.mp3",
+   "title": "Kamogawa Nightbreak",
+   "labelVi": "Ga xe điện đêm: jazz trầm, u buồn, viết về sông Kamo ở Kyoto",
+   "author": "Ruskerdax",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/kamogawa-nightbreak",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "TAISHO_JAPAN",
+   "areas": [
+    "tram_station"
+   ],
+   "moods": [
+    "buon",
+    "bi-an"
+   ],
+   "bpm": 70,
+   "loopStartSec": 0,
+   "loopEndSec": 67.814875,
+   "durationSec": 67.814875,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "0a931509ab01e087fc7b7ea45f5cb9b93021aa6710ac04e0c1f818bd0d9d05fd",
+   "bytes": 754924,
+   "fallbackSha256": "6cdd2d8f66b82769030768cd6784e78716f11b67fc4397531d09a944fd7dd0e0",
+   "fallbackBytes": 814750,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/ruskerdax_-_kamogawa_nightbreak.mp3",
+    "sha256": "2f7695749d5283b2e5b1bfb6007a93c00b4fa86502da98907a39cd46ae6e1d1a",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 50.643,
+    "sourceEndSec": 118.458,
+    "similarity": 0.72,
+    "fadeSec": 0.25,
+    "sourceLufs": -21.7,
+    "seam": {
+     "click": 0.06,
+     "gapDb": 14.8
+    }
+   }
+  },
+  {
+   "id": "taisho-den-va-vuon",
+   "file": "/assets/audio/music/taisho/den-va-vuon.ogg",
+   "fallback": "/assets/audio/music/taisho/den-va-vuon.mp3",
+   "title": "Tyhosi Garden 3",
+   "labelVi": "Đền và vườn: koto với sáo shakuhachi, yên bình",
+   "author": "Tozan",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/tyhosi-garden-3",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "TAISHO_JAPAN",
+   "areas": [
+    "shrine_garden"
+   ],
+   "moods": [
+    "yen-tinh"
+   ],
+   "bpm": 76,
+   "loopStartSec": 0,
+   "loopEndSec": 37.331769,
+   "durationSec": 37.331769,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -3.5
+   },
+   "volume": 0.55,
+   "sha256": "0a3e8936a290ffc2b40ce20d3cbf14e783a622610acdfdc50c9ce2ff2f3dfeae",
+   "bytes": 295234,
+   "fallbackSha256": "5cfeb4fe6d7d3d64b59ddee868d94065ee26f9508e5d1090cc21791993f222e8",
+   "fallbackBytes": 448932,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/tyhosigarden3_0.ogg",
+    "sha256": "dd0df54a35ac524e3738d7b0c0da59ff0baa180207e4a8ae4ad9accdf65c2357",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 32.485,
+    "sourceEndSec": 69.816,
+    "similarity": 0.896,
+    "fadeSec": 0.08,
+    "sourceLufs": -28.2,
+    "seam": {
+     "click": 0.12,
+     "gapDb": 2.7
+    }
+   }
+  },
+  {
+   "id": "taisho-nha-tra",
+   "file": "/assets/audio/music/taisho/nha-tra.ogg",
+   "fallback": "/assets/audio/music/taisho/nha-tra.mp3",
+   "title": "Lapsy Koto",
+   "labelVi": "Nhà trà, phòng trọ tatami: koto và dây, êm",
+   "author": "Tozan",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/lapsy-koto",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "TAISHO_JAPAN",
+   "areas": [
+    "tea_house",
+    "tatami_lodging"
+   ],
+   "moods": [
+    "yen-tinh",
+    "am-ap"
+   ],
+   "bpm": 103,
+   "loopStartSec": 0,
+   "loopEndSec": 44.593288,
+   "durationSec": 44.593288,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.7
+   },
+   "volume": 0.55,
+   "sha256": "6f81f25f52679c5783acd0b4fa71ae8b083c6181a98835638b3db6e0916bf162",
+   "bytes": 334294,
+   "fallbackSha256": "603e8625d1a6bc71ffb4d401827bef15f6fed35b13a5839d08b948f48e9a0474",
+   "fallbackBytes": 536076,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/lapsykoto_0.ogg",
+    "sha256": "a662686ae4d98cabd3abd15a2026836c37ae0b316ddf4631860fe070117d4777",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 103.213,
+    "sourceEndSec": 147.806,
+    "similarity": 0.699,
+    "fadeSec": 0.3,
+    "sourceLufs": -27.1,
+    "seam": {
+     "click": 0.24,
+     "gapDb": 4.9
+    }
+   }
+  },
+  {
+   "id": "taisho-hau-truong-kabuki",
+   "file": "/assets/audio/music/taisho/hau-truong-kabuki.ogg",
+   "fallback": "/assets/audio/music/taisho/hau-truong-kabuki.mp3",
+   "title": "Oriental Somber",
+   "labelVi": "Hậu trường kabuki: koto, shamisen, shakuhachi, trầm",
+   "author": "Tozan",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/oriental-somber",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "TAISHO_JAPAN",
+   "areas": [
+    "kabuki_backstage"
+   ],
+   "moods": [
+    "buon",
+    "bi-an"
+   ],
+   "bpm": 96,
+   "loopStartSec": 0,
+   "loopEndSec": 45.709342,
+   "durationSec": 45.709342,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -3.7
+   },
+   "volume": 0.55,
+   "sha256": "e641eb014c4761e0f929237c17cd62e5b4754d3e76e1f47e38864adfe53cc3bb",
+   "bytes": 363551,
+   "fallbackSha256": "8de905c9f33d34f3530806cac0a357df2d67acb3ca0a65cea1c2efdd237bcc7e",
+   "fallbackBytes": 549242,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/orientalsomber_0.ogg",
+    "sha256": "8182a87af33d9fcbe4e966000a7884911c21af4be7525501bfc404013a27c4c8",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 173.174,
+    "sourceEndSec": 218.884,
+    "similarity": 0.773,
+    "fadeSec": 0.08,
+    "sourceLufs": -31.3,
+    "seam": {
+     "click": 0.48,
+     "gapDb": 0.9
+    }
+   }
+  },
+  {
+   "id": "thuong-hai-pho-to-gioi",
+   "file": "/assets/audio/music/thuong-hai/pho-to-gioi.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/pho-to-gioi.mp3",
+   "title": "Catchy Swing",
+   "labelVi": "Phố tô giới đèn neon: swing, saxophone, bass, trống",
+   "author": "Doge",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/catchy-swing",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "concession_street"
+   ],
+   "moods": [
+    "vui",
+    "nhon-nhip"
+   ],
+   "bpm": 117,
+   "loopStartSec": 0,
+   "loopEndSec": 60.0,
+   "durationSec": 60.0,
+   "loudness": {
+    "integratedLufs": -16.2,
+    "truePeakDb": -2.0
+   },
+   "volume": 0.55,
+   "sha256": "9ec2289aeb08067d6dc4856bb21cf47b527017d7e1f7060389c3effb1274bf3a",
+   "bytes": 624552,
+   "fallbackSha256": "9fdbeb27386a083ec78844a4c19a537cfa82fdf7863ec2f7ae9b2416cbfe804d",
+   "fallbackBytes": 720710,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/catchyswing.ogg",
+    "sha256": "ff9d565c27bf1075bd447e33c1943814b8b6d3c99166c48e851e20d3d7f83c0e",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 60.0,
+    "sourceLufs": -17.6,
+    "seam": {
+     "click": 0.12,
+     "gapDb": 19.4
+    }
+   },
+   "notes": "Tác giả ghi lặp được."
+  },
+  {
+   "id": "thuong-hai-ben-song",
+   "file": "/assets/audio/music/thuong-hai/ben-song.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/ben-song.mp3",
+   "title": "Bird in Hand Night",
+   "labelVi": "Bến sông đêm: jazz mềm, piano, clarinet, không trống",
+   "author": "Fupi (dựa trên Bird in Hand của Jason Shaw, CC0)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/bird-in-hand-night",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "river_bund"
+   ],
+   "moods": [
+    "yen-tinh",
+    "am-ap"
+   ],
+   "bpm": 89,
+   "loopStartSec": 0,
+   "loopEndSec": 76.36381,
+   "durationSec": 76.36381,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.4
+   },
+   "volume": 0.55,
+   "sha256": "5940ce331a6e7588cf20123cc92bfdc06dee0db008b9bb042a6689ceab7e3f79",
+   "bytes": 549754,
+   "fallbackSha256": "311b98d9ad1832c484e33cca81e82f12e9ed3c52bb6368471d2ed1ac56cf83b8",
+   "fallbackBytes": 917255,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/bird_in_hand_night_0.ogg",
+    "sha256": "f68ec680f599b340c27a8c96aeed40266e350d9f3150ce511c1a2104dc5b579d",
+    "downloadedAt": "2026-11-16"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 65.991,
+    "sourceEndSec": 142.355,
+    "similarity": 0.621,
+    "fadeSec": 0.3,
+    "sourceLufs": -15.2,
+    "seam": {
+     "click": 0.1,
+     "gapDb": 7.7
+    }
+   },
+   "notes": "Bản phái sinh từ bài CC0 Bird in Hand (Jason Shaw, freepd.com), cũng CC0."
+  },
+  {
+   "id": "thuong-hai-ngo-thach-kho-mon",
+   "file": "/assets/audio/music/thuong-hai/ngo-thach-kho-mon.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/ngo-thach-kho-mon.mp3",
+   "title": "China Town",
+   "labelVi": "Ngõ nhà cổng đá: điện ảnh, giai điệu phương Đông, bí ẩn",
+   "author": "Pro Sensory (Alex McCulloch)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/china-town",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "shikumen_alley"
+   ],
+   "moods": [
+    "bi-an"
+   ],
+   "bpm": 152,
+   "loopStartSec": 0,
+   "loopEndSec": 25.996916,
+   "durationSec": 25.996916,
+   "loudness": {
+    "integratedLufs": -16.2,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "0cd2555a8fb6334fac3f17a4ac1c7af61c97877ca315ca5b285889e5c2ed8a0a",
+   "bytes": 258242,
+   "fallbackSha256": "08b850532107b5615160cadf6ab9a4cdb2c24749b4c4467d0b59b77b58f3b434",
+   "fallbackBytes": 312886,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/china_town_0.mp3",
+    "sha256": "f2b2316a68a478b7bdd9fcf79ce4a2b95161eb80263b0a2e959a222483d52e3d",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 17.972,
+    "sourceEndSec": 43.969,
+    "similarity": 0.717,
+    "fadeSec": 0.25,
+    "sourceLufs": -21.8,
+    "seam": {
+     "click": 0.81,
+     "gapDb": -0.4
+    }
+   }
+  },
+  {
+   "id": "thuong-hai-tra-lau",
+   "file": "/assets/audio/music/thuong-hai/tra-lau.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/tra-lau.mp3",
+   "title": "Trà lâu",
+   "labelVi": "Trà lâu: 8-bit ngũ cung, đàn gảy kiểu cổ tranh, giai điệu kiểu nhị hồ, mõ gỗ",
+   "author": "Claude (bot xưởng Sir Locked)",
+   "source": "claude-8bit",
+   "sourceUrl": "tools/music-gen/songs/tra-lau.json",
+   "license": "Sir Locked (tự sáng tác)",
+   "licenseUrl": null,
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "tea_house"
+   ],
+   "moods": [
+    "yen-tinh",
+    "am-ap"
+   ],
+   "bpm": 84,
+   "loopStartSec": 0,
+   "loopEndSec": 45.714286,
+   "durationSec": 45.714286,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -3.2
+   },
+   "volume": 0.55,
+   "sha256": "00c3ede80cf64efbb38420b248f157d92324b32657bfbbfc4a6eef3b4086d621",
+   "bytes": 447584,
+   "fallbackSha256": "b90f4b93e4c838490f467e00b8a32019e0bbe62a3e05a2fbc539d7aaeca2ce0a",
+   "fallbackBytes": 549242,
+   "original": {
+    "file": "songs/tra-lau.json"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 45.714,
+    "sourceLufs": -14.7,
+    "seam": {
+     "click": 0.27,
+     "gapDb": 16.8
+    }
+   },
+   "notes": "Thư viện CC0 thiếu nhạc trà lâu Trung Hoa êm (các bài có sẵn là chiptune nhanh hoặc nhạc cụ Nhật), nên tự viết."
+  },
+  {
+   "id": "thuong-hai-phong-hat",
+   "file": "/assets/audio/music/thuong-hai/phong-hat.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/phong-hat.mp3",
+   "title": "Ragtime! Jazz",
+   "labelVi": "Phòng hát, vũ trường: ragtime thập niên 1930, vui",
+   "author": "Tarush Singhal",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/ragtime-jazz",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "singing_hall"
+   ],
+   "moods": [
+    "vui",
+    "nhon-nhip"
+   ],
+   "bpm": 103,
+   "loopStartSec": 0,
+   "loopEndSec": 34.924195,
+   "durationSec": 34.924195,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -1.8
+   },
+   "volume": 0.55,
+   "sha256": "39a0b90ab97f51693a5a262e7517ed93274b95ae041bdaeaaaca86c89a564a60",
+   "bytes": 447092,
+   "fallbackSha256": "5b1a484e3ce4db8a1ec515c821ec936f0a72817e5d150b3c26d5f3d14a9a1479",
+   "fallbackBytes": 419779,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/ragtime.mp3",
+    "sha256": "028570ddd49f00aaf67602afe49b7eae9650bff29f13cc8083c8e2fae87865d5",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 16.904,
+    "sourceEndSec": 51.828,
+    "similarity": 0.753,
+    "fadeSec": 0.08,
+    "sourceLufs": -18.7,
+    "seam": {
+     "click": 0.07,
+     "gapDb": 11.4
+    }
+   }
+  },
+  {
+   "id": "thuong-hai-song-mat-chuoc",
+   "file": "/assets/audio/music/thuong-hai/song-mat-chuoc.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/song-mat-chuoc.mp3",
+   "title": "Drunken Saloon",
+   "labelVi": "Sòng mạt chược: jazz blues lè nhè, khói thuốc, đêm khuya",
+   "author": "iamoneabe",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/drunken-saloon",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "mahjong_parlor"
+   ],
+   "moods": [
+    "bi-an",
+    "nhon-nhip"
+   ],
+   "bpm": 89,
+   "loopStartSec": 0,
+   "loopEndSec": 64.0,
+   "durationSec": 64.0,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "32660959818124a9a1c24a3b4971454bd0cc9703e9af78cdac93b4b1198bf715",
+   "bytes": 730769,
+   "fallbackSha256": "1a5465810030edabf4f153184bf03b43563ce30c495878cc4d6b7500b5aa7c97",
+   "fallbackBytes": 768670,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/drunken_saloon_0.mp3",
+    "sha256": "6cea4a3565c6aeed74603fed61bdbb052ae26ac547522e954673b6ac826d05ab",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 51.989,
+    "sourceEndSec": 115.989,
+    "similarity": 0.986,
+    "fadeSec": 0.08,
+    "sourceLufs": -27.2,
+    "seam": {
+     "click": 0.18,
+     "gapDb": 6.2
+    }
+   },
+   "notes": "Tác giả ghi lặp được (long loopable). Chipnese (Spring Spring) bị loại vì chỉ lặp được đoạn 8–17 giây."
+  },
+  {
+   "id": "thuong-hai-van-phong-tham-tu",
+   "file": "/assets/audio/music/thuong-hai/van-phong-tham-tu.ogg",
+   "fallback": "/assets/audio/music/thuong-hai/van-phong-tham-tu.mp3",
+   "title": "Moil",
+   "labelVi": "Văn phòng thám tử: jazz đen, Rhodes, sax baritone, contrabass, chậm",
+   "author": "Ruskerdax",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/moil",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "SHANGHAI_1930",
+   "areas": [
+    "detective_office"
+   ],
+   "moods": [
+    "bi-an",
+    "dieu-tra-yen"
+   ],
+   "bpm": 117,
+   "loopStartSec": 0,
+   "loopEndSec": 46.252245,
+   "durationSec": 46.252245,
+   "loudness": {
+    "integratedLufs": -16.1,
+    "truePeakDb": -2.1
+   },
+   "volume": 0.55,
+   "sha256": "82c1c5871c0d526df7da59b55121ec522806713aa796d9f71662d2ec36d9875d",
+   "bytes": 493992,
+   "fallbackSha256": "52f4c4800e0ba587e1512349ac050ab70d52e115d4b74aa0103a1bdf405a75a6",
+   "fallbackBytes": 555825,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/ruskerdax_-_moil.mp3",
+    "sha256": "d496edafbca02a2a84ae1150e11b2e4d46b8a15e2ee081a676d1ae3ce996dc25",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 39.59,
+    "sourceEndSec": 85.842,
+    "similarity": 0.817,
+    "fadeSec": 0.08,
+    "sourceLufs": -14.5,
+    "seam": {
+     "click": 0.02,
+     "gapDb": 17.3
+    }
+   }
+  },
+  {
+   "id": "chung-dieu-tra-yen",
+   "file": "/assets/audio/music/chung/dieu-tra-yen.ogg",
+   "fallback": "/assets/audio/music/chung/dieu-tra-yen.mp3",
+   "title": "Once In a While",
+   "labelVi": "Điều tra yên: jazz nhẹ kiểu thám tử",
+   "author": "Pro Sensory (Alex McCulloch)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/once-in-a-while",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "ALL",
+   "areas": [],
+   "moods": [
+    "dieu-tra-yen"
+   ],
+   "bpm": 96,
+   "loopStartSec": 0,
+   "loopEndSec": 52.5,
+   "durationSec": 52.5,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.9
+   },
+   "volume": 0.55,
+   "sha256": "71f9a6c17b843945da40011e79d8c3cdaba375a873a07bb053f84fc765830cc8",
+   "bytes": 543224,
+   "fallbackSha256": "267afeb87961932c2a1375b119a2aa36abd6ae15e6270a82cbf625d6d6e96976",
+   "fallbackBytes": 630744,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/Once%20In%20A%20while_4.mp3",
+    "sha256": "96bf593530c58fc4dbfa2a231f91d283a83555681c788c96c8c16942eb19d283",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 40.054,
+    "sourceEndSec": 92.554,
+    "similarity": 0.97,
+    "fadeSec": 0.08,
+    "sourceLufs": -13.0,
+    "seam": {
+     "click": 0.17,
+     "gapDb": 2.5
+    }
+   }
+  },
+  {
+   "id": "chung-cang-thang",
+   "file": "/assets/audio/music/chung/cang-thang.ogg",
+   "fallback": "/assets/audio/music/chung/cang-thang.mp3",
+   "title": "Trepidation",
+   "labelVi": "Căng thẳng: hồi hộp, bí ẩn, phòng phía trước có gì đó",
+   "author": "Tsorthan Grove",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/trepidation",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "ALL",
+   "areas": [],
+   "moods": [
+    "cang-thang",
+    "bi-an"
+   ],
+   "bpm": 99,
+   "loopStartSec": 0,
+   "loopEndSec": 76.81263,
+   "durationSec": 76.81263,
+   "loudness": {
+    "integratedLufs": -16.2,
+    "truePeakDb": -1.8
+   },
+   "volume": 0.55,
+   "sha256": "6e15561d55a447bbb4174d5192e1f86f737c1edb40a27587ba00349041669724",
+   "bytes": 929556,
+   "fallbackSha256": "da6cb93c526b00b1b8afdf24cb2424eb901187fe79356b6dfea36f67de2e3d21",
+   "fallbackBytes": 922584,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/trepidation_loop.flac",
+    "sha256": "c96877c938b4858635dbb9ccf2f90e13bbe0e33aaae60bb1d335ec89223c7c7b",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 57.609,
+    "sourceEndSec": 134.421,
+    "similarity": 0.654,
+    "fadeSec": 0.3,
+    "sourceLufs": -26.5,
+    "seam": {
+     "click": 0.05,
+     "gapDb": 15.5
+    }
+   }
+  },
+  {
+   "id": "chung-bi-an",
+   "file": "/assets/audio/music/chung/bi-an.ogg",
+   "fallback": "/assets/audio/music/chung/bi-an.mp3",
+   "title": "Mysterious Ambience (song21)",
+   "labelVi": "Bí ẩn: piano rải và nền mờ",
+   "author": "cynicmusic (The Cynic Project, pixelsphere.org)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/mysterious-ambience-song21",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "ALL",
+   "areas": [],
+   "moods": [
+    "bi-an"
+   ],
+   "bpm": 99,
+   "loopStartSec": 0,
+   "loopEndSec": 19.240544,
+   "durationSec": 19.240544,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -3.6
+   },
+   "volume": 0.55,
+   "sha256": "ab203edbb02af784bc858b47e457ba52a9545f6ed525336db415aa2bb67654b8",
+   "bytes": 174349,
+   "fallbackSha256": "39c56360815ea12735f87544179edb5c8e49451f70684c23537bc46f5b8513e1",
+   "fallbackBytes": 231697,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/song21_0.mp3",
+    "sha256": "9b83b4c7e86ade6aeeffa71e2d928c3d84be30802c239151eaae7365f12d9151",
+    "downloadedAt": "2026-11-16",
+    "licenseNote": "Trang gốc cho chọn CC-BY 3.0, CC-BY-SA 3.0, GPL 3.0 hoặc CC0; Sir Locked dùng theo CC0."
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 7.198,
+    "sourceEndSec": 26.439,
+    "similarity": 0.801,
+    "fadeSec": 0.5,
+    "sourceLufs": -13.1,
+    "seam": {
+     "click": 0.21,
+     "gapDb": 4.8
+    }
+   }
+  },
+  {
+   "id": "chung-lat-mat",
+   "file": "/assets/audio/music/chung/lat-mat.ogg",
+   "fallback": "/assets/audio/music/chung/lat-mat.mp3",
+   "title": "Suspense",
+   "labelVi": "Lật mặt, buộc tội: hồi hộp chờ phán quyết",
+   "author": "wipics",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/suspense-0",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "ALL",
+   "areas": [],
+   "moods": [
+    "lat-mat",
+    "cang-thang"
+   ],
+   "bpm": 144,
+   "loopStartSec": 0,
+   "loopEndSec": 10.13322,
+   "durationSec": 10.13322,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.7
+   },
+   "volume": 0.55,
+   "sha256": "ea2688473440b203be7a509197c1db8e45d8f929f272037ad949424c9bddbf34",
+   "bytes": 103019,
+   "fallbackSha256": "2ea07e6b0e83153abcb89d461adf8c6b06e05162dde67dc7e16da2b94e6ebb4e",
+   "fallbackBytes": 122297,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/suspense.wav",
+    "sha256": "e2928b497bf802aa0d950d1c9d50109dd4c6d4554008bc7b9eabf61f9d682a70",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 7.616,
+    "sourceEndSec": 17.749,
+    "similarity": 0.668,
+    "fadeSec": 0.15,
+    "sourceLufs": -15.7,
+    "seam": {
+     "click": 0.27,
+     "gapDb": 6.3
+    }
+   }
+  },
+  {
+   "id": "chung-buon",
+   "file": "/assets/audio/music/chung/buon.ogg",
+   "fallback": "/assets/audio/music/chung/buon.mp3",
+   "title": "Sadness",
+   "labelVi": "Buồn: piano chậm",
+   "author": "Kistol",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/sadness",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "ALL",
+   "areas": [],
+   "moods": [
+    "buon"
+   ],
+   "bpm": 117,
+   "loopStartSec": 0,
+   "loopEndSec": 25.0,
+   "durationSec": 25.0,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -2.4
+   },
+   "volume": 0.55,
+   "sha256": "5938b8d3c92e0014b52d502ebfdb45a122f08795f0749d746fb2acfa01921888",
+   "bytes": 227071,
+   "fallbackSha256": "b01f53f60ccb5ee6d404d81fc01b58f1810ca38ef3527ce712b9c4cf25840c65",
+   "fallbackBytes": 300974,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/Sadness_0.ogg",
+    "sha256": "1a981931dbb0301563fe791c2dff909ad722ce29f9537e00c04f7afa677e3f0c",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "whole",
+    "sourceStartSec": 0.0,
+    "sourceEndSec": 25.0,
+    "sourceLufs": -21.5,
+    "seam": {
+     "click": 0.09,
+     "gapDb": 25.3
+    }
+   },
+   "notes": "Tác giả làm sẵn để lặp liền."
+  },
+  {
+   "id": "chung-ket-thuc",
+   "file": "/assets/audio/music/chung/ket-thuc.ogg",
+   "fallback": "/assets/audio/music/chung/ket-thuc.mp3",
+   "title": "Letter",
+   "labelVi": "Kết thúc, khép hồ sơ: giai điệu nhẹ, trầm lắng",
+   "author": "GillesK (Gilles Kauffmann)",
+   "source": "opengameart",
+   "sourceUrl": "https://opengameart.org/content/letter",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "world": "ALL",
+   "areas": [],
+   "moods": [
+    "ket-thuc",
+    "am-ap"
+   ],
+   "bpm": 86,
+   "loopStartSec": 0,
+   "loopEndSec": 56.486485,
+   "durationSec": 56.486485,
+   "loudness": {
+    "integratedLufs": -16.0,
+    "truePeakDb": -3.1
+   },
+   "volume": 0.55,
+   "sha256": "59489fb56cff50372ff4396e785827dcd4ed6d998d59e83b1d559dfcb8e4dc8d",
+   "bytes": 642056,
+   "fallbackSha256": "13e8c363c8d292d3b9d9e48c15c746e8f7eff3570b1f0de4439daf0c91662c57",
+   "fallbackBytes": 678705,
+   "original": {
+    "file": "https://opengameart.org/sites/default/files/letter.mp3",
+    "sha256": "4bbe5696a9f8b2eed14fdf3b1d43ee6c125a2f1802b376310facfe2270447b31",
+    "downloadedAt": "2026-11-17"
+   },
+   "processing": {
+    "mode": "auto",
+    "sourceStartSec": 27.91,
+    "sourceEndSec": 84.397,
+    "similarity": 0.92,
+    "fadeSec": 0.08,
+    "sourceLufs": -17.2,
+    "seam": {
+     "click": 0.13,
+     "gapDb": 10.3
+    }
+   }
+  }
+ ]
+}

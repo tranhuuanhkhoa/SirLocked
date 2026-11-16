@@ -249,7 +249,7 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
         var harbor = gameCase.Stages.SelectMany(stage => stage.Scenes).Single(scene => scene.SceneId == "scene-dh-ben-cang");
         Assert.Equal(("RAIN", 0.7, false, "NIGHT"), (harbor.Runtime!.Weather!.Type, harbor.Runtime.Weather.Intensity, harbor.Runtime.Indoor, harbor.Runtime.TimeOfDay));
         Assert.Equal("/assets/audio/music/hang-duong/ben-cang-dem-mua.ogg", harbor.Runtime.Audio!.Music!.Url);
-        Assert.Equal(50.526, harbor.Runtime.Audio.Music.LoopEndSec);
+        Assert.Equal(50.526327, harbor.Runtime.Audio.Music.LoopEndSec);
     }
 
     [Fact]
@@ -262,7 +262,7 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
         var shop = stored.Stages.SelectMany(stage => stage.Scenes).Single(scene => scene.SceneId == "scene-dh-tiem-dong-ho");
         Assert.True(shop.Runtime!.Indoor);
         Assert.Equal("NONE", shop.Runtime.Weather!.Type);
-        Assert.Equal("Tiệm đồng hồ", shop.Runtime.Audio!.Music!.Title);
+        Assert.Equal("Music Box: Cute Tune", shop.Runtime.Audio!.Music!.Title);
         Assert.Equal(170, stored.Characters.Single(character => character.CharacterId == "char-dh-ong-tu").Voice!.Blip!.Pitch);
 
         // Case detail served to players (characters with their voice).

@@ -63,5 +63,6 @@ describe('weather_preview', () => {
     await assert.rejects(() => weatherPreview(ctx, { casePath: sample, webUrl: 'https://sirlocked.id.vn' }), /máy này/);
     await assert.rejects(() => weatherPreview(ctx, { casePath: sample, weather: 'HAIL' as any }), /weather phải là/);
     await assert.rejects(() => weatherPreview(ctx, { casePath: sample, sceneId: 'scene-none' }), /Không có cảnh/);
+    await assert.rejects(() => weatherPreview(ctx, { casePath: sample, musicId: 'khong-co-bai-nay' }), /Không có bài/);
   });
 });

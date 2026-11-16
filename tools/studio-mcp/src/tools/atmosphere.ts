@@ -2,8 +2,9 @@
  * Sound and weather tools of the studio (VUAN-4):
  *  - blip_preview: one WAV per character of a case, rendered offline with the game's own blip code
  *    (src/FE/Client/js/game/atmosphere/blipCore.js), so Claude can check that the voices differ;
- *  - weather_preview: records 5–8 s of one scene in the real game page (local Vite, API mocked) with a given
- *    weather and time of day, as WebM (MP4 when ffmpeg is available);
+ *  - weather_preview: records 5–20 s of one scene in the real game page (local Vite, API mocked) with a given
+ *    weather and time of day, as WebM (MP4 when ffmpeg is available), with the page's own sound (area music,
+ *    weather, thunder) when ffmpeg can mux it; musicId puts a song of the music library on the scene first;
  *  - sfx_search: searches the CC0 sound pack (src/FE/public/assets/audio/sfx/LICENSES.json) by cue, puzzle kind, label.
  * Nothing here talks to the real server.
  */
@@ -19,6 +20,7 @@ import { loadPlaywright } from '../playtest/browser.js';
 import { urlAnswers, waitFor } from '../playtest/http.js';
 import { fetchCaseJson } from './draft.js';
 import type { ToolContext } from './context.js';
+import { libraryMusic } from './music.js';
 
 type Json = Record<string, any>;
 export const WEATHER_TYPES = ['NONE', 'RAIN', 'WIND', 'SNOW', 'STORM'] as const;
@@ -129,7 +131,55 @@ export interface WeatherPreviewArgs {
   format?: 'webm' | 'mp4';
   /** Particle quality of the clip: 1 (full, default), .5 or .25 as a slow phone would get. */
   quality?: number;
+  /** A song of the music library (music_search id) for the scene, instead of the case's own music. */
+  musicId?: string;
+  /** Record the page's sound into the clip (default true; needs ffmpeg to mux). */
+  sound?: boolean;
 }
+
+/**
+ * Init script: every node connected to an AudioContext's speakers is also connected to a MediaStream tap, so a
+ * MediaRecorder can record what a player would hear (music, weather noise, thunder, blips) without a sound card.
+ */
+const SOUND_TAP = () => {
+  // Runs in the page: the studio tsconfig has no DOM types, so browser objects go through `g`.
+  const g = globalThis as any;
+  const taps: any[] = [];
+  const known = new WeakMap<object, any>();
+  const connect = g.AudioNode.prototype.connect as (...args: any[]) => any;
+  g.AudioNode.prototype.connect = function (this: any, destination: any, ...rest: any[]) {
+    const result = connect.call(this, destination, ...rest);
+    if (destination instanceof g.AudioDestinationNode && this.context instanceof g.AudioContext) {
+      let tap = known.get(this.context);
+      if (!tap) { tap = this.context.createMediaStreamDestination(); known.set(this.context, tap); taps.push(tap); }
+      connect.call(this, tap);
+    }
+    return result;
+  };
+  // Phaser has its own (silent here) context besides the game's audio controller: record every context, mix later.
+  g.__previewSound = {
+    start() {
+      if (!taps.length) return 0;
+      const recordings = taps.map((tap) => {
+        const chunks: any[] = [];
+        const recorder = new g.MediaRecorder(tap.stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 160_000 });
+        recorder.ondataavailable = (event: any) => { if (event.data.size) chunks.push(event.data); };
+        recorder.start(250);
+        return { recorder, chunks };
+      });
+      g.__previewSound.stop = () => Promise.all(recordings.map(({ recorder, chunks }) => new Promise<string>((resolve) => {
+        recorder.onstop = async () => {
+          const bytes = new Uint8Array(await new g.Blob(chunks, { type: 'audio/webm' }).arrayBuffer());
+          let binary = '';
+          for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+          resolve(g.btoa(binary));
+        };
+        recorder.stop();
+      })));
+      return recordings.length;
+    },
+  };
+};
 
 async function freePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -170,7 +220,12 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
   if (args.timeOfDay && !TIMES_OF_DAY.includes(args.timeOfDay)) throw new StudioError('BAD_ARGS', `timeOfDay phải là ${TIMES_OF_DAY.join(', ')}.`);
   const weather = args.weather ? { type: args.weather, intensity: Math.min(1, Math.max(0, args.intensity ?? 0.7)) } : undefined;
   const caseCopy = preview.withAtmosphere(caseJson, scene.sceneId, { weather, timeOfDay: args.timeOfDay, backgroundUrl: args.backgroundUrl });
-  const seconds = Math.min(8, Math.max(5, args.seconds ?? 6));
+  if (args.musicId) {
+    const target = preview.scenesOf(caseCopy).find((candidate: Json) => candidate.sceneId === scene.sceneId);
+    target.runtime = target.runtime ?? {};
+    target.runtime.audio = { ...(target.runtime.audio ?? {}), music: libraryMusic(ctx, args.musicId) };
+  }
+  const seconds = Math.min(20, Math.max(5, args.seconds ?? 6));
   const width = Math.min(1920, Math.max(390, args.width ?? 1280)), height = Math.min(1080, Math.max(400, args.height ?? 720));
   const outDir = outputDir(ctx, args.outDir, 'weather-preview');
   const effective = caseCopy.stages.flatMap((stage: Json) => stage.scenes).find((candidate: Json) => candidate.sceneId === scene.sceneId).runtime;
@@ -200,6 +255,8 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
   let state: Json = {};
   let audio: Json = {};
   let readyAtSec = 0;
+  let soundFiles: string[] = [];
+  const wantSound = args.sound !== false;
   const shot = path.join(outDir, `${name}.png`);
   try {
     const context = await browser.newContext({ viewport: { width, height }, recordVideo: { dir: videoDir, size: { width, height } } });
@@ -214,6 +271,7 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
       sessionStorage.setItem(`sirlocked.intro.${id}`, '1');
       (globalThis as any).__sirlockedNoSignalR = true;
     }, [preview.PREVIEW_ROOM_ID]);
+    if (wantSound) await page.addInitScript(SOUND_TAP);
     const gameState = preview.previewGameState(caseCopy, scene.sceneId);
     await page.route((url: URL) => url.pathname.startsWith('/api/'), (route: any) => route.fulfill({ json: { success: true, data: null } }));
     await page.route(`**/api/game/rooms/${preview.PREVIEW_ROOM_ID}/state`, (route: any) => route.fulfill({ json: { success: true, data: gameState } }));
@@ -229,7 +287,12 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
     // A recording browser runs slower than a player's: keep the chosen particle quality instead of lowering it.
     await page.evaluate((quality: number) => (globalThis as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').pinWeatherQuality?.(quality), args.quality ?? 1);
     await page.waitForTimeout(600);
+    if (wantSound && effective.audio?.music) {
+      // The area song is decoded lazily: start the clip once it plays, as a player entering the area hears it.
+      await waitFor(async () => Boolean((await page.evaluate(() => (globalThis as any).__sirlockedAudio?.inspect())?.music?.playing)), 15_000, 200);
+    }
     readyAtSec = (Date.now() - opened) / 1000;
+    const recording = wantSound ? await page.evaluate(() => (globalThis as any).__previewSound?.start() ?? false) : false;
     if (effective.weather?.type === 'STORM') {
       await page.waitForTimeout(1200);
       await page.evaluate(() => (globalThis as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').stormBoltSoon());
@@ -243,6 +306,14 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
     }
     state = await weatherState() ?? {};
     audio = await page.evaluate(() => (globalThis as any).__sirlockedAudio?.inspect() ?? {});
+    if (recording) {
+      const recorded: string[] = await page.evaluate(() => (globalThis as any).__previewSound.stop());
+      soundFiles = recorded.map((base64, index) => {
+        const file = path.join(videoDir, `sound-${index}.webm`);
+        writeFileSync(file, Buffer.from(base64, 'base64'));
+        return file;
+      }).filter((file) => statSync(file).size > 1000);
+    }
     await context.close();
   } finally {
     await browser.close();
@@ -254,11 +325,22 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
   const ffmpeg = findFfmpeg();
   const format = args.format === 'mp4' && ffmpeg ? 'mp4' : 'webm';
   const output = path.join(outDir, `${name}.${format}`);
+  let withSound = false;
   if (ffmpeg) {
-    // Cut the page loading off the start so the clip is the scene only.
+    // Cut the page loading off the start so the clip is the scene only; the sound recording starts at that moment.
     const codec = format === 'mp4' ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-movflags', '+faststart'] : ['-c:v', 'libvpx', '-b:v', '2M'];
-    const cut = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-ss', readyAtSec.toFixed(2), '-i', raw, '-t', String(seconds), ...codec, '-an', output],
-      { encoding: 'utf8', windowsHide: true });
+    const soundInput = soundFiles.flatMap((file) => ['-i', file]);
+    // Every context mixed as the speakers would; the clip is brought to -18 LUFS so it can be heard on a laptop
+    // (the game itself starts at 20 % music volume), the balance of music, rain and thunder stays the game's.
+    const inputs = soundFiles.map((_, index) => `[${index + 1}:a]`).join('');
+    const mixer = soundFiles.length > 1 ? `${inputs}amix=inputs=${soundFiles.length}:normalize=0,` : inputs;
+    const mix = ['-filter_complex', `${mixer}loudnorm=I=-18:TP=-1.5:LRA=11[mix]`, '-map', '0:v:0', '-map', '[mix]'];
+    const soundCodec = soundFiles.length
+      ? [...mix, ...(format === 'mp4' ? ['-c:a', 'aac', '-b:a', '160k'] : ['-c:a', 'libopus', '-b:a', '160k'])]
+      : ['-an'];
+    const cut = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-ss', readyAtSec.toFixed(2), '-i', raw, ...soundInput,
+      '-t', String(seconds), ...codec, ...soundCodec, output], { encoding: 'utf8', windowsHide: true });
+    withSound = cut.status === 0 && soundInput.length > 0;
     if (cut.status !== 0) copyFileSync(raw, path.join(outDir, `${name}.webm`));
   } else {
     copyFileSync(raw, output);
@@ -270,7 +352,7 @@ export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs)
     video: display(ctx.config, video), screenshot: display(ctx.config, shot), seconds,
     trimmed: Boolean(ffmpeg), sceneStartsAtSec: ffmpeg ? 0 : Math.round(readyAtSec * 10) / 10,
     layer: { type: state.type, particles: state.particles, quality: state.quality, flashes: state.flashes, unit: state.unit },
-    sound: { weatherRunning: audio.weather?.running ?? null, music: audio.music?.playing ?? null, thunders: audio.counters?.thunders ?? 0 },
+    sound: { weatherRunning: audio.weather?.running ?? null, music: audio.music?.playing ?? null, thunders: audio.counters?.thunders ?? 0, inVideo: withSound },
     consoleErrors: errors.slice(0, 10),
     hint: ffmpeg ? 'Mở video để xem.' : `Không có ffmpeg: video giữ đoạn tải trang, cảnh bắt đầu ở giây ${Math.round(readyAtSec * 10) / 10}.`,
   };

@@ -29,9 +29,9 @@ Bíp không phụ thuộc ngôn ngữ: vụ tiếng Anh dùng y như vụ tiến
   "fallbackUrl": "/assets/audio/music/hang-duong/ben-cang-dem-mua.mp3",
   "title": "Bến cảng đêm mưa",
   "source": "claude-8bit",
-  "license": "Sir Locked (tự sáng tác bằng code)",
+  "license": "Sir Locked (tự sáng tác)",
   "loopStartSec": 0,
-  "loopEndSec": 50.526,
+  "loopEndSec": 50.526327,
   "volume": 0.55
 }
 ```
@@ -40,11 +40,24 @@ Bíp không phụ thuộc ngôn ngữ: vụ tiếng Anh dùng y như vụ tiến
 | --- | --- | --- |
 | `url` | có | `.ogg`; `https://…` hoặc đường dẫn `/assets/…` (không có `..`) |
 | `fallbackUrl` | không | `.mp3` cho trình duyệt không phát được Ogg; cùng quy tắc URL |
-| `title`, `source`, `license` | có | Ghi nguồn và giấy phép (bảng kê nhạc) |
-| `loopStartSec`, `loopEndSec` | không | Giây; `loopEndSec` phải lớn hơn `loopStartSec` |
+| `title`, `source`, `license` | có | Ghi nguồn và giấy phép, chép từ thư viện nhạc (`music_search`) |
+| `loopStartSec`, `loopEndSec` | không | Giây; `loopEndSec` phải lớn hơn `loopStartSec`. Ghi đủ 6 chữ số thập phân như thư viện (đúng tới mẫu): Chromium giải mã Vorbis còn dư vài trăm mẫu đệm sau mẫu cuối, game lặp đúng ở `loopEndSec` |
 | `volume` | có | 0–1 |
 
 Mỗi khu một bài, lặp liền; đổi khu thì chuyển bài êm (VUAN-4 làm phần phát).
+
+### Thư viện nhạc (VUAN-5)
+
+Nhạc của các khu lấy từ thư viện của game, không trỏ ra ngoài: `src/FE/public/assets/audio/music/<thế giới>/<bài>.{ogg,mp3}` (`hang-duong`, `taisho`, `thuong-hai`, `chung` cho bài dùng chung theo không khí), chỉ mục `src/FE/public/assets/audio/music/index.json`.
+
+- **Chỉ mục**, mỗi bài: `id`, `file` (.ogg), `fallback` (.mp3), `title`, `labelVi`, `author`, `source` (`opengameart` | `kenney` | `pixabay` | `claude-8bit`), `sourceUrl` (trang gốc), `license`, `licenseUrl`, `world` (hoặc `ALL`), `areas[]`, `moods[]`, `bpm` (ước lượng), `loopStartSec`, `loopEndSec`, `durationSec`, `loudness`, `volume` gợi ý, `sha256`/`bytes` của file .ogg, `fallbackSha256`/`fallbackBytes` của file .mp3, `original` (link file gốc, sha256 file gốc, ngày tải), `processing` (đoạn cắt từ file gốc, độ giống ở mối nối, đo mối nối). Đầu file có bảng `licenses` (tóm tắt tiếng Việt), `worlds` (khu của từng thế giới, kèm key và nhãn của thư viện hình) và `moods`.
+- **Giấy phép cho phép:** OpenGameArt chỉ bài ghi CC0 (`CC0 1.0`); Kenney (`Kenney CC0`); Pixabay (`Pixabay Content License`, chỉ khi hai nguồn trên thiếu, giữ `sourceUrl` để khiếu nại khi YouTube/TikTok nhận nhầm); bài Claude tự viết (`Sir Locked (tự sáng tác)`, `sourceUrl` là file mô tả trong `tools/music-gen/songs/`).
+- **Khu:** Hàng Đường `street`, `harbor`, `train_station`, `market`, `lake_park`, `villa_district`, `shop`, `clock_shop`, `tavern`, `tea_room`, `police_station`, `theater`, `study`; Taishō `lantern_street`, `tram_station`, `shrine_garden`, `tea_house`, `tatami_lodging`, `kabuki_backstage`; Thượng Hải `concession_street`, `river_bund`, `shikumen_alley`, `tea_house`, `singing_hall`, `mahjong_parlor`, `detective_office`. **Mood dùng chung:** `dieu-tra-yen`, `cang-thang`, `bi-an`, `lat-mat`, `buon`, `ket-thuc` (thêm `am-ap`, `yen-tinh`, `nhon-nhip`, `sang-trong`, `vui`).
+- **Xử lý** (`tools/music-gen/build_library.py`, đọc `tools/music-gen/library.json`): tải file gốc vào `tmp/music-src/` và kiểm sha256; tìm đoạn lặp bằng ma trận tự tương đồng của phổ (đoạn nhạc quanh điểm cuối giống đoạn quanh điểm đầu), dời điểm đầu vào nhịp mạnh, khớp sóng ở điểm cuối, crossfade 80 ms ở mối nối; bài tác giả đã làm lặp liền thì giữ nguyên cả file; chuẩn −16 LUFS, đỉnh thật ≤ −1,5 dBTP (limiter vòng, không làm hở mối nối); xuất Vorbis q2 (~96 kbit/s) và MP3 96 kbit/s. Mỗi file ≤ 1,5 MiB, cả thư viện ≤ 40 MiB. Cần `numpy`, `scipy`, ffmpeg (`FFMPEG_PATH` nếu không có trên PATH), `curl`.
+- **Bài 8-bit tự viết:** `tools/music-gen/music_gen.py` dựng bài từ file mô tả JSON (`songs/*.json`: `bpm`, `bars`, một hợp âm mỗi ô nhịp, các bè `bass` / `arp` / `pad` / `melody` / `comp` / `hits`, dạng sóng `pulse`, `tri`, `sine`, `saw`, `pluck`, `noise`, swing, vang, lọc). Đuôi nốt, tiếng vang và bộ lọc quấn vòng nên file lặp liền. Hai bài của vụ mẫu (`ben-cang-dem-mua`, `tiem-dong-ho`) và `thuong-hai/tra-lau` làm theo cách này.
+- **Bot chọn nhạc:** tool `music_search { world, area, mood, query }` của `tools/studio-mcp` trả bài hợp nhất trước, kèm object `music` ghi thẳng vào `scenes[].atmosphere.audio.music` (skill `/tao-vu-an` bước 8).
+- **Ghi công trong game:** cuối bảng Âm thanh có mục "Âm nhạc": các bài đã nghe trong phiên, mới nhất trước, tên bài, tác giả, giấy phép, link trang gốc (lấy từ chỉ mục); bài tự viết ghi "Sir Locked tự sáng tác".
+- **Kiểm tra:** `npm run test:music` (file có đủ, sha256 khớp, giấy phép trong danh sách, khu nào cũng có bài, dung lượng, CI chạy) và `tests/music-loop.spec.ts` (trình duyệt giải mã từng bài cả .ogg lẫn .mp3, phát lặp 3 lần đúng như game, đo biên độ quanh mối nối: không tiếng tách, không khoảng lặng).
 
 ## Thời tiết, trong nhà, thời điểm
 
@@ -83,7 +96,7 @@ Trong game (VUAN-4): thời tiết chỉ có ở cảnh ngoài trời; vào nhà
 | Tiếng hiệu ứng | Gói CC0 của Kenney ở `public/assets/audio/sfx/` (`LICENSES.json`); cue cũ `/assets/audio/point-click/<cue>.wav` của vụ đã đăng tự chuyển sang gói mới, file cũ làm dự phòng; cue trỏ vào `sfx/ui/` có bộ tự tổng hợp `sfx/tu-tong-hop/` làm dự phòng; 11 bộ tiếng giải đố (10 loại tương tác + giải đố cổ điển) | `atmosphere/sfxCatalog.js`, `puzzles/host.ts`, `scripts/build-sfx-pack.mjs` |
 | Cài đặt | Thanh Nhạc, Hiệu ứng, Bíp nhân vật, nút Tắt hiệu ứng thời tiết; lưu trong `localStorage` `sirlocked.audio.v1` (thêm `blips`, `weatherEffects`) | `audioController.ts` |
 
-Công cụ của bot (`tools/studio-mcp`): `blip_preview` (WAV từng nhân vật, cùng code với game), `weather_preview` (video 5–8 giây một cảnh với thời tiết/thời điểm cho trước), `sfx_search` (tìm trong gói CC0).
+Công cụ của bot (`tools/studio-mcp`): `blip_preview` (WAV từng nhân vật, cùng code với game), `weather_preview` (video 5–8 giây một cảnh với thời tiết/thời điểm cho trước), `sfx_search` (tìm trong gói CC0), `music_search` (tìm nhạc khu trong thư viện nhạc, VUAN-5).
 
 ## Đường đi qua server
 
