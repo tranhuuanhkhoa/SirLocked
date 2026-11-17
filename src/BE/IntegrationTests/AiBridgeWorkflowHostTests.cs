@@ -96,7 +96,7 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             Prompt = "A stopped pocket watch on a rainy night.",
             GenerationPreset = AiGenerationPresets.ShortDemo,
             Language = "en",
-            Order = new AiCaseOrder { World = AiCaseWorlds.HangDuongVictorian, Weather = "RAIN", TimeOfDay = "NIGHT" }
+            Order = new AiCaseOrder { World = AiCaseWorlds.HangDuongVictorian, Weather = "RAIN", TimeOfDay = "NIGHT", PixelLabCap = 60 }
         });
         Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
         var draft = (await created.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
@@ -671,7 +671,7 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             Assert.Contains("AI_ASSET_PLAN_REQUIRED", await refused.Content.ReadAsStringAsync());
         }
 
-        // Everything new is far over the default cap of 60: refused with the number of generations it needs.
+        // Everything new is far over the order's cap of 60: refused with the number of generations it needs.
         var overCap = await bot.PutAsJsonAsync($"/api/bridge/drafts/{draftId}/asset-plan", new { choices = Array.Empty<object>() });
         var overCapBody = await overCap.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.Conflict, overCap.StatusCode);
@@ -726,7 +726,8 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         var created = await admin.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
         {
             GenerationPreset = AiGenerationPresets.ShortDemo, Language = "en",
-            Order = new AiCaseOrder { ReviewMode = reviewMode }
+            // An explicit cap of 60 (the default is unlimited) keeps the over-cap guard covered below.
+            Order = new AiCaseOrder { ReviewMode = reviewMode, PixelLabCap = 60 }
         });
         Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
         return (await created.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!.DraftId;
