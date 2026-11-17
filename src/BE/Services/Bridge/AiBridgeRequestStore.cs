@@ -142,6 +142,31 @@ public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time, I
         return released;
     }
 
+    /// <summary>TAKEN → AWAITING_DECISION (the bot asked the creator). Null when the request is not taken.</summary>
+    public async Task<AiBridgeRequest?> AwaitDecisionAsync(string id, CancellationToken ct = default) =>
+        await Collection.FindOneAndUpdateAsync(
+            item => item.Id == id && item.Status == AiBridgeStatuses.Taken,
+            Builders<AiBridgeRequest>.Update
+                .Set(item => item.Status, AiBridgeStatuses.AwaitingDecision)
+                .Set(item => item.LeaseExpiresAt, null)
+                .Set(item => item.UpdatedAt, Now),
+            new FindOneAndUpdateOptions<AiBridgeRequest> { ReturnDocument = ReturnDocument.After },
+            ct);
+
+    /// <summary>AWAITING_DECISION → PENDING once the creator answered; tells the studio machine.</summary>
+    public async Task<AiBridgeRequest?> ResumeAfterDecisionAsync(string id, CancellationToken ct = default)
+    {
+        var resumed = await Collection.FindOneAndUpdateAsync(
+            item => item.Id == id && item.Status == AiBridgeStatuses.AwaitingDecision,
+            Builders<AiBridgeRequest>.Update
+                .Set(item => item.Status, AiBridgeStatuses.Pending)
+                .Set(item => item.UpdatedAt, Now),
+            new FindOneAndUpdateOptions<AiBridgeRequest> { ReturnDocument = ReturnDocument.After },
+            ct);
+        if (resumed is not null) await NotifyAsync(ct);
+        return resumed;
+    }
+
     private Task NotifyAsync(CancellationToken ct) => notifier?.WorkAvailableAsync(ct) ?? Task.CompletedTask;
 
     /// <summary>Stores a schema-valid answer. Null when the request is no longer open.</summary>
@@ -184,7 +209,8 @@ public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time, I
                 Builders<AiBridgeRequest>.Filter.Eq(item => item.OwnerType, ownerType),
                 Builders<AiBridgeRequest>.Filter.Eq(item => item.OwnerId, ownerId),
                 Builders<AiBridgeRequest>.Filter.In(item => item.Status,
-                    [AiBridgeStatuses.Pending, AiBridgeStatuses.Taken, AiBridgeStatuses.Rejected, AiBridgeStatuses.Submitted])),
+                    [AiBridgeStatuses.Pending, AiBridgeStatuses.Taken, AiBridgeStatuses.Rejected, AiBridgeStatuses.Submitted,
+                        AiBridgeStatuses.AwaitingDecision])),
             Builders<AiBridgeRequest>.Update
                 .Set(item => item.Status, AiBridgeStatuses.Cancelled)
                 .Set(item => item.CancelledAt, Now)

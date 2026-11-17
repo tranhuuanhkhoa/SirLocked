@@ -80,6 +80,15 @@ public sealed class BridgeController(
     public async Task<ActionResult<ApiResponse<object>>> Release(string id, CancellationToken ct) =>
         Ok(await bridge.ReleaseAsync(id, ct), "Request released.");
 
+    /// <summary>draft_ask: puts a question with 2-4 options to the creator; the request waits until they answer.</summary>
+    [HttpPost("requests/{id}/ask")]
+    public async Task<ActionResult<ApiResponse<object>>> Ask(
+        string id, [FromBody] AiDecisionAskRequest body, [FromServices] AiDecisionService decisions, CancellationToken ct)
+    {
+        var decision = await decisions.AskAsync(id, body, ct);
+        return Ok<object>(new { decisionId = decision.Id, status = AiBridgeStatuses.AwaitingDecision }, "Question sent to the creator.");
+    }
+
     /// <summary>Body: the answer JSON object itself, or <c>{ "json": ... }</c>.</summary>
     [HttpPost("requests/{id}/submit")]
     public async Task<ActionResult<ApiResponse<BridgeSubmitResult>>> Submit(string id, [FromBody] JsonElement body, CancellationToken ct)

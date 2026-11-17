@@ -336,6 +336,8 @@ public class AiCaseDraft
     public AiCaseOrder? Order { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
+    /// <summary>Questions the bot asked the creator (draft_ask), open and answered.</summary>
+    public List<AiDecision> Decisions { get; set; } = new();
     public string OrderRejectReason { get; set; } = string.Empty;
     /// <summary>Set while the run is parked waiting for Claude.</summary>
     public AiClaudeWait? ClaudeWait { get; set; }

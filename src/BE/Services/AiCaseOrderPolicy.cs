@@ -134,6 +134,7 @@ public static class AiCaseOrderPolicy
         if (draft.OrderStatus is AiOrderStatuses.AwaitingOwnerApproval or AiOrderStatuses.Rejected)
             return draft.OrderStatus;
         if (draft.Status == AiDraftStatus.Cancelled) return AiOrderStatuses.Cancelled;
+        if (draft.Decisions.Any(decision => decision.Status == AiDecisionStatuses.Open)) return AiOrderStatuses.AwaitingDecision;
         if (draft.Status is AiDraftStatus.ReadyToPublish or AiDraftStatus.Imported or AiDraftStatus.Published)
             return AiOrderStatuses.Submitted;
         var queued = draft.QueueState is AiQueueStates.Pending or AiQueueStates.Running

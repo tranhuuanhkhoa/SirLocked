@@ -158,6 +158,7 @@ builder.Services.AddSingleton<IBridgeNotifier, BridgeHubNotifier>();
 builder.Services.AddScoped<AiBridgeRequestStore>();
 builder.Services.AddScoped<IAiTextProvider, ClaudeBridgeTextProvider>();
 builder.Services.AddScoped<AiBridgeService>();
+builder.Services.AddScoped<AiDecisionService>();
 builder.Services.AddScoped<AiCaseSettingsStore>();
 builder.Services.AddScoped<AssetLibraryService>();
 builder.Services.AddScoped<IBridgeAssetStorage, BridgeAssetStorage>();

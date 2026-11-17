@@ -58,6 +58,8 @@ public static class AiOrderStatuses
     public const string QueuedForClaude = "QUEUED_FOR_CLAUDE";
     public const string ClaudeWorking = "CLAUDE_WORKING";
     public const string AwaitingGate = "AWAITING_GATE";
+    /// <summary>The bot asked a question (draft_ask) that the creator answers in the browser.</summary>
+    public const string AwaitingDecision = "AWAITING_DECISION";
     public const string Submitted = "SUBMITTED";
     public const string Rejected = "REJECTED";
     public const string Cancelled = "CANCELLED";

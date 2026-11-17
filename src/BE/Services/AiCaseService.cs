@@ -2357,7 +2357,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             throw ApiException.Conflict("The draft changed before cancellation could be committed.");
         await new AiBridgeRequestStore(_db, TimeProvider.System, _bridgeNotifier)
             .CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, cancelled.Id);
-        return AiDraftResponse.From(cancelled, includeJson: false);
+        await AiDecisionService.CancelOpenAsync(_db, cancelled.Id);
+        var latest = await _db.AiCaseDrafts.Find(item => item.Id == cancelled.Id).FirstOrDefaultAsync() ?? cancelled;
+        return AiDraftResponse.From(latest, includeJson: false);
     }
 
     public async Task<CaseSummaryResponse> ImportDraftAsync(CurrentUser user, string draftId, bool overwrite, bool publish)
@@ -5368,7 +5370,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         return TimeZoneInfo.ConvertTimeFromUtc(utc, zone).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static void EnsureDraftAccess(CurrentUser user, AiCaseDraft draft)
+    internal static void EnsureDraftAccess(CurrentUser user, AiCaseDraft draft)
     {
         if (string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
         {

@@ -124,6 +124,13 @@ public class AdminAiCasesController : BaseApiController
             : "Order queued for Claude.");
     }
 
+    /// <summary>The creator (or an admin) answers a question the bot asked; the bot then continues.</summary>
+    [HttpPost("{draftId}/decisions/{decisionId}")]
+    public async Task<ActionResult<ApiResponse<AiDraftResponse>>> AnswerDecision(
+        string draftId, string decisionId, [FromBody] AiDecisionAnswerRequest request,
+        [FromServices] AiDecisionService decisions, CancellationToken ct) =>
+        Ok(await decisions.AnswerAsync(Caller, draftId, decisionId, request.OptionId, ct), "Answer saved; the bot continues.");
+
     [HttpPost("{draftId}/cancel")]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> Cancel(string draftId) =>
         Ok(await _aiCaseService.CancelDraftAsync(Caller, draftId), "AI case generation was cancelled.");
@@ -208,6 +215,11 @@ public class AdminAiCasesController : BaseApiController
     [Authorize(Roles = UserRole.Admin)]
     public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> Publish(string draftId, [FromQuery] bool overwrite = false) =>
         Ok(await _aiCaseService.ImportDraftAsync(Caller, draftId, overwrite, publish: true), "Draft imported and published.");
+}
+
+public sealed class AiDecisionAnswerRequest
+{
+    public string OptionId { get; set; } = string.Empty;
 }
 
 public sealed class AiOrderRejectRequest

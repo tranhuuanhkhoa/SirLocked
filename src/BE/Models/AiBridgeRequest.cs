@@ -24,6 +24,8 @@ public static class AiBridgeStatuses
     public const string Rejected = "REJECTED";
     public const string Stale = "STALE";
     public const string Cancelled = "CANCELLED";
+    /// <summary>The bot asked the creator a question (draft_ask); PENDING again once someone answers it.</summary>
+    public const string AwaitingDecision = "AWAITING_DECISION";
 
     /// <summary>Statuses the bot can still answer.</summary>
     public static readonly IReadOnlySet<string> Open = new HashSet<string>(StringComparer.Ordinal) { Pending, Taken, Rejected };
@@ -31,7 +33,7 @@ public static class AiBridgeStatuses
     public static readonly IReadOnlySet<string> Answered = new HashSet<string>(StringComparer.Ordinal) { Submitted, Accepted };
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
-        Pending, Taken, Submitted, Accepted, Rejected, Stale, Cancelled
+        Pending, Taken, Submitted, Accepted, Rejected, Stale, Cancelled, AwaitingDecision
     };
 }
 

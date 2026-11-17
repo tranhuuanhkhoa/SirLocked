@@ -128,6 +128,15 @@ public sealed class AiBridgeService(
             taken.LeaseExpiresAt,
             previousErrors = taken.Errors,
             order = draft is null ? null : OrderSummary(draft),
+            // What the creator chose in the browser for the bot's earlier questions (draft_ask).
+            decisions = draft?.Decisions.Where(item => item.Status == AiDecisionStatuses.Answered).Select(item => new
+            {
+                item.Key,
+                item.Question,
+                chosen = item.Options.FirstOrDefault(option => option.Id == item.ChosenOptionId)?.Label,
+                item.ChosenOptionId,
+                item.AnsweredAt
+            }).ToList(),
             // Development/Testing smoke runs only; Production never stores or returns it.
             devMockResponse = bridge.Value.ExposeMockResponses && !environment.IsProduction() ? taken.MockResponseJson : null
         };
