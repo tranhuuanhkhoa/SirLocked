@@ -21,9 +21,11 @@ const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITI
 // AWAITING_CLAUDE: the run is parked until the Claude bot answers through the bridge.
 const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED', 'AWAITING_CLAUDE']);
 const AWAITING_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL]);
-// A VIP order waiting for an admin (or rejected) cannot move by itself, so nothing polls it.
+// A legacy VIP order waiting for an admin, a rejected order, or a bot question waiting for the creator cannot move
+// by itself, so nothing polls it.
 const isTerminalDraft = (draft) => draft?.status === 'CANCELLED'
   || draft?.orderStatus === 'AWAITING_OWNER_APPROVAL' || draft?.orderStatus === 'REJECTED'
+  || draft?.orderStatus === 'AWAITING_DECISION'
   || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState));
 // A queued or running draft still carries the failurePhase/validationErrors of the attempt before
 // it, so the UI must not present them as the outcome of the run that is currently in flight.
@@ -109,8 +111,12 @@ const DIFFICULTIES = { easy: ['Easy', 'Dễ'], medium: ['Medium', 'Vừa'], hard
 const STAGE_OPTIONS = [2, 3, 4, 5, 6];
 const PLAY_MINUTES = [20, 30, 45, 60];
 const SUSPECT_OPTIONS = [3, 4, 5, 6];
-/** PixelLab generations the bot may spend on new pictures; 0 means the library only. ADMIN only. */
-const PIXELLAB_CAPS = [0, 30, 60, 100];
+/** PixelLab generations the bot may spend on new pictures; -1 means no fixed cap (the bot asks above 60), 0 the library only. */
+const PIXELLAB_CAPS = [-1, 0, 30, 60, 100];
+function pixelLabCapLabel(cap) {
+  if (cap < 0) return tr('Unlimited', 'Không giới hạn');
+  return cap === 0 ? tr('Library only', 'Chỉ thư viện') : tr(`Up to ${cap}`, `Tối đa ${cap}`);
+}
 const REVIEW_MODES = { FULL: ['Full · 4 gates', 'Đầy đủ 4 cổng'], FAST: ['Fast · 2 reviews', 'Nhanh · duyệt 2 lần'] };
 /** Chips that start a line of the idea, so a creator remembers what a good brief covers. */
 const IDEA_HINTS = {
@@ -278,7 +284,8 @@ function statusLabel(status) {
 
 /** Order states of the Claude bot workflow (docs/AI_CASE_SETUP_VI.md). */
 const ORDER_STATUS_LABELS = {
-  AWAITING_OWNER_APPROVAL: ['Waiting for admin approval', 'Chờ Yen duyệt'],
+  AWAITING_OWNER_APPROVAL: ['Waiting for admin approval', 'Chờ admin duyệt'],
+  AWAITING_DECISION: ['Waiting for your choice', 'Chờ bạn chọn'],
   QUEUED_FOR_CLAUDE: ['Waiting for Claude', 'Chờ Claude'],
   CLAUDE_WORKING: ['Claude is working', 'Claude đang làm'],
   AWAITING_GATE: ['Waiting for review', 'Chờ duyệt cổng'],
@@ -473,7 +480,7 @@ export async function renderAdminAiPage(app) {
     includeCrack: false,
     idea: '',
     mechanic: '',
-    pixelLabCap: 30,
+    pixelLabCap: -1,
     reviewMode: 'FULL',
   };
   /** Messages shown under a field: the server's refusal of the last order, or a limit the creator just ran into. */
@@ -645,7 +652,7 @@ export async function renderAdminAiPage(app) {
   /** Where the order stands with the Claude bot; VIP orders first wait for an admin. */
   function orderStatusPill(d) {
     if (!d.orderStatus) return '';
-    const tone = d.orderStatus === 'AWAITING_OWNER_APPROVAL' || d.orderStatus === 'AWAITING_GATE' ? 'gold'
+    const tone = d.orderStatus === 'AWAITING_OWNER_APPROVAL' || d.orderStatus === 'AWAITING_GATE' || d.orderStatus === 'AWAITING_DECISION' ? 'gold'
       : d.orderStatus === 'SUBMITTED' ? 'ok' : d.orderStatus === 'REJECTED' ? 'bad' : '';
     return `<span data-order-status="${escapeHtml(d.orderStatus)}">${pill(orderStatusLabel(d.orderStatus), tone, { dot: true })}</span>`;
   }
@@ -886,7 +893,7 @@ export async function renderAdminAiPage(app) {
   }
 
   function reviewStepsHtml() {
-    const steps = isAdmin && form.reviewMode === 'FAST' ? FAST_REVIEW_STEPS : REVIEW_STEPS;
+    const steps = form.reviewMode === 'FAST' ? FAST_REVIEW_STEPS : REVIEW_STEPS;
     return steps.map(([en, vi], index) => `<li data-review-step><span class="aai-flow-num${index === steps.length - 1 ? ' aai-flow-num--ok' : ''}" aria-hidden="true">${index + 1}</span>${escapeHtml(tr(en, vi))}</li>`).join('');
   }
 
@@ -1168,11 +1175,11 @@ export async function renderAdminAiPage(app) {
         <div class="aai-locks">${lockField('ai-mechanic-lock', tr('Investigation mechanic', 'Khóa cơ chế điều tra'), CREATIVE_MECHANICS, form.mechanic)}</div>
       </section>`;
 
-    const adminControls = isAdmin ? `
+    const adminControls = `
       <div class="aai-summary-controls">
         <div class="aai-summary-field" data-field="pixelLabCap">
           <label for="ai-pixellab-cap">${tr('Max PixelLab generations', 'Lượt PixelLab tối đa')}</label>
-          <select class="aai-summary-select" id="ai-pixellab-cap">${PIXELLAB_CAPS.map((cap) => `<option value="${cap}" ${form.pixelLabCap === cap ? 'selected' : ''}>${cap === 0 ? tr('Library only', 'Chỉ thư viện') : tr(`Up to ${cap}`, `Tối đa ${cap}`)}</option>`).join('')}</select>
+          <select class="aai-summary-select" id="ai-pixellab-cap">${PIXELLAB_CAPS.map((cap) => `<option value="${cap}" ${form.pixelLabCap === cap ? 'selected' : ''}>${escapeHtml(pixelLabCapLabel(cap))}</option>`).join('')}</select>
           ${fieldErrorHtml('pixelLabCap')}
         </div>
         <div class="aai-summary-field" data-field="reviewMode">
@@ -1180,11 +1187,11 @@ export async function renderAdminAiPage(app) {
           ${radioSeg('aai-review', 'aai-review-title', Object.entries(REVIEW_MODES).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.reviewMode, { navy: true })}
           ${fieldErrorHtml('reviewMode')}
         </div>
-      </div>` : '';
+      </div>`;
 
     const vipQuota = isVip ? `
       <div class="aai-summary-vip" id="ai-vip-quota">
-        <p>${icon('clock', 16)}<span>${tr('This order waits for the owner (Yen) to approve it.', 'Đơn sẽ chờ Yen duyệt.')}</span></p>
+        <p>${icon('clock', 16)}<span>${tr('Your order goes straight to Claude.', 'Đơn vào hàng chờ Claude ngay.')}</span></p>
         <p data-quota-remaining>${escapeHtml(vipQuotaText())}</p>
       </div>` : '';
 
@@ -1216,7 +1223,7 @@ export async function renderAdminAiPage(app) {
         <section class="adm-card aai-flow" aria-labelledby="aai-flow-title">
           <h2 class="aai-flow-title" id="aai-flow-title">${tr('Review steps after creation', 'Các bước duyệt sau khi tạo')}</h2>
           <ol class="aai-flow-list" id="ai-review-steps">${reviewStepsHtml()}</ol>
-          <p class="aai-help" id="ai-review-note"${isAdmin && form.reviewMode === 'FAST' ? '' : ' hidden'}>${tr('Fast mode: the bot passes the premise, logic and layout gates itself when every check passes. The case truth is always reviewed by a person.', 'Chế độ nhanh: bot tự qua cổng tiền đề, logic và bố cục khi mọi kiểm tra đều đạt. Sự thật vụ án luôn do người duyệt.')}</p>
+          <p class="aai-help" id="ai-review-note"${form.reviewMode === 'FAST' ? '' : ' hidden'}>${tr('Fast mode: the bot passes the premise, logic and layout gates itself when every check passes. The case truth is always reviewed by a person.', 'Chế độ nhanh: bot tự qua cổng tiền đề, logic và bố cục khi mọi kiểm tra đều đạt. Sự thật vụ án luôn do người duyệt.')}</p>
         </section>
         ${isAdmin ? settingsCardHtml() : ''}
       </aside>`;
@@ -1425,7 +1432,7 @@ export async function renderAdminAiPage(app) {
     const list = app.querySelector('#ai-review-steps');
     if (list) list.innerHTML = reviewStepsHtml();
     const note = app.querySelector('#ai-review-note');
-    if (note) note.hidden = !(isAdmin && form.reviewMode === 'FAST');
+    if (note) note.hidden = form.reviewMode !== 'FAST';
   }
 
   /** The order as POST /api/admin/ai-cases expects it (AiCaseOrder). A VIP never sends the PixelLab cap or review mode. */
@@ -1441,10 +1448,8 @@ export async function renderAdminAiPage(app) {
       playMinutes: form.playMinutes,
       contentLevel: form.contentLevel,
     };
-    if (isAdmin) {
-      order.pixelLabCap = form.pixelLabCap;
-      order.reviewMode = form.reviewMode;
-    }
+    order.pixelLabCap = form.pixelLabCap;
+    order.reviewMode = form.reviewMode;
     return order;
   }
 
@@ -1565,6 +1570,7 @@ export async function renderAdminAiPage(app) {
         ${statusPill(d)}
       </div>
       ${orderSummary(d)}
+      ${decisionCards(d)}
       <p class="aai-draft-meta">${tr('Preset', 'Cấu hình')}: ${escapeHtml(presetLabel(d.settings?.generationPreset))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</p>
       ${codes.length ? `<ul class="aai-codes">${codes.map((line) => `<li>${line}</li>`).join('')}</ul>` : ''}
       ${failureBlock(d, generating)}
@@ -2261,6 +2267,9 @@ export async function renderAdminAiPage(app) {
     app.querySelectorAll('[data-approve-story]').forEach((btn) =>
       btn.addEventListener('click', () => approveStory(btn.dataset.approveStory, btn)));
 
+    app.querySelectorAll('[data-decision-option]').forEach((btn) =>
+      btn.addEventListener('click', () => answerDecision(btn)));
+
     app.querySelectorAll('[data-approve-truth]').forEach((btn) =>
       btn.addEventListener('click', () => approveTruth(btn.dataset.approveTruth, btn)));
 
@@ -2354,7 +2363,7 @@ export async function renderAdminAiPage(app) {
       if (isTerminalDraft(previewDraft)) {
         stopProgressClock();
         if (previewDraft.orderStatus === 'AWAITING_OWNER_APPROVAL') {
-          toast(tr('Order sent. It waits for the owner to approve it.', 'Đã gửi đơn. Đơn đang chờ Yen duyệt.'), 'success', 7000);
+          toast(tr('Order sent. It waits for an admin to approve it.', 'Đã gửi đơn. Đơn đang chờ admin duyệt.'), 'success', 7000);
         } else if (previewDraft.status === STATUS_AWAITING_APPROVAL) {
           toast(tr('Story preview is ready for manual approval.', 'Tiền đề đã sẵn sàng để duyệt thủ công.'), 'success', 7000);
         } else if (previewDraft.status !== 'CANCELLED') {
@@ -2554,8 +2563,9 @@ export async function renderAdminAiPage(app) {
       pairLabel(TIMES_OF_DAY, order.timeOfDay, order.timeOfDay),
       tr(`${order.playMinutes} min`, `${order.playMinutes} phút`),
       pairLabel(CONTENT_LEVELS, order.contentLevel, order.contentLevel),
-      isAdmin ? (order.pixelLabCap === 0 ? tr('library pictures only', 'chỉ ảnh thư viện') : tr(`≤ ${order.pixelLabCap} PixelLab`, `≤ ${order.pixelLabCap} lượt PixelLab`)) : '',
-      isAdmin ? pairLabel(REVIEW_MODES, order.reviewMode, order.reviewMode) : '',
+      order.pixelLabCap < 0 ? tr('unlimited PixelLab', 'PixelLab không giới hạn')
+        : order.pixelLabCap === 0 ? tr('library pictures only', 'chỉ ảnh thư viện') : tr(`≤ ${order.pixelLabCap} PixelLab`, `≤ ${order.pixelLabCap} lượt PixelLab`),
+      pairLabel(REVIEW_MODES, order.reviewMode, order.reviewMode),
     ].filter(Boolean);
     return facts.map(escapeHtml).join(' · ');
   }
@@ -2570,6 +2580,56 @@ export async function renderAdminAiPage(app) {
     const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${tr('Waiting for Claude on step', 'Đang chờ Claude ở bước')} <code>${escapeHtml(d.claudeWait.step)}</code></p>` : '';
     const rejected = d.orderRejectReason ? `<p class="aai-note">${tr('Rejection reason', 'Lý do từ chối')}: ${escapeHtml(d.orderRejectReason)}</p>` : '';
     return `<div class="aai-order"><p class="aai-draft-meta">${tr('Order', 'Đơn')}: ${orderStatusPill(d)} ${orderButtons(d)}</p>${facts ? `<p class="aai-note" data-order-facts>${facts}</p>` : ''}${history ? `<p class="muted small">${history}</p>` : ''}${waiting}${rejected}</div>`;
+  }
+
+  /** Questions the bot asked with draft_ask: open ones get a button per option, answered ones show the choice. */
+  function decisionCards(d) {
+    const decisions = Array.isArray(d.decisions) ? d.decisions : [];
+    return decisions.filter((item) => item.status === 'OPEN' || item.status === 'ANSWERED').map((item) => {
+      if (item.status === 'ANSWERED') {
+        const chosen = item.options?.find((option) => option.id === item.chosenOptionId);
+        return `<div class="aai-decision aai-decision--answered" data-decision-card="${escapeHtml(item.id)}">
+          <p class="aai-decision-question">${escapeHtml(item.question)}</p>
+          <p class="aai-decision-chosen">${escapeHtml(tr(`Chosen: ${chosen?.label ?? item.chosenOptionId}`, `Đã chọn: ${chosen?.label ?? item.chosenOptionId}`))}</p>
+        </div>`;
+      }
+      const buttons = (item.options || []).map((option) => `<button class="btn btn-ghost aai-decision-option" type="button"
+          data-decision-id="${escapeHtml(item.id)}" data-decision-option="${escapeHtml(option.id)}" data-decision-draft="${escapeHtml(d.draftId)}" data-decision-label="${escapeHtml(option.label)}">
+          <strong>${escapeHtml(option.label)}</strong>
+          ${option.detail ? `<span>${escapeHtml(option.detail)}</span>` : ''}
+          ${Number.isFinite(option.generations) ? `<small>${escapeHtml(tr(`${option.generations} generations`, `${option.generations} lượt`))}</small>` : ''}
+        </button>`).join('');
+      return `<div class="aai-decision" data-decision-card="${escapeHtml(item.id)}" role="group" aria-labelledby="aai-decision-${escapeHtml(item.id)}">
+        <p class="adm-eyebrow">${tr('The bot needs your choice', 'Bot cần bạn chọn')}</p>
+        <p class="aai-decision-question" id="aai-decision-${escapeHtml(item.id)}">${escapeHtml(item.question)}</p>
+        <div class="aai-decision-options">${buttons}</div>
+        <p class="aai-field-error" data-decision-error role="alert" hidden></p>
+      </div>`;
+    }).join('');
+  }
+
+  async function answerDecision(button) {
+    const card = button.closest('[data-decision-card]');
+    const buttons = [...card.querySelectorAll('[data-decision-option]')];
+    const error = card.querySelector('[data-decision-error]');
+    buttons.forEach((item) => { item.disabled = true; });
+    error.hidden = true;
+    try {
+      await aiCaseApi.answerDecision(button.dataset.decisionDraft, button.dataset.decisionId, button.dataset.decisionOption);
+      if (disposed) return;
+      card.querySelector('.aai-decision-options').remove();
+      error.remove();
+      card.classList.add('aai-decision--answered');
+      const done = document.createElement('p');
+      done.className = 'aai-decision-chosen';
+      done.textContent = tr(`Chosen: ${button.dataset.decisionLabel} · the bot continues`, `Đã chọn: ${button.dataset.decisionLabel} · bot đang làm tiếp`);
+      card.append(done);
+    } catch (err) {
+      if (disposed) return;
+      buttons.forEach((item) => { item.disabled = false; });
+      error.textContent = aiErrorText(err);
+      error.hidden = false;
+    }
   }
 
   /** The bot's report.md (ADMIN), rendered from Markdown without ever inserting the report's own HTML. */

@@ -55,6 +55,8 @@ interface Mock {
   postHeaders: Record<string, string>[];
   approve: string[];
   reject: { id: string; body: any }[];
+  answers: { id: string; decisionId: string; body: any }[];
+  answerStatus?: number;
   settingsPuts: any[];
   quota: { unlimited: boolean; weeklyLimit: number; usedThisWeek: number; remaining: number; weekStart: string };
   createResponse?: (body: any) => { status: number; json: unknown };
@@ -64,7 +66,7 @@ interface Mock {
 
 async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overrides: Partial<Mock> = {}): Promise<Mock> {
   const mock: Mock = {
-    drafts: [], posts: [], postHeaders: [], approve: [], reject: [], settingsPuts: [],
+    drafts: [], posts: [], postHeaders: [], approve: [], reject: [], answers: [], settingsPuts: [],
     quota: { unlimited: false, weeklyLimit: 2, usedThisWeek: 0, remaining: 2, weekStart: '2026-11-16' },
     dialogs: [], errors: [],
     ...overrides,
@@ -106,7 +108,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
       const answer = mock.createResponse(body);
       return route.fulfill({ status: answer.status, json: answer.json });
     }
-    const created = draftOf(`new-${mock.posts.length}`, role, role === 'VIP' ? 'AWAITING_OWNER_APPROVAL' : 'QUEUED_FOR_CLAUDE', {
+    const created = draftOf(`new-${mock.posts.length}`, role, 'QUEUED_FOR_CLAUDE', {
       prompt: body.prompt, order: body.order, settings: { generationPreset: body.generationPreset, language: body.language, caseType: body.caseType },
     });
     mock.drafts = [created, ...mock.drafts];
@@ -136,6 +138,20 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
       : draft);
     return route.fulfill({ json: envelope(mock.drafts.find((draft) => draft.draftId === id)) });
   });
+  await page.route((url) => /\/decisions\/[^/]+$/.test(url.pathname), (route) => {
+    const parts = new URL(route.request().url()).pathname.split('/');
+    const id = parts.at(-3)!;
+    const decisionId = parts.at(-1)!;
+    const body = route.request().postDataJSON();
+    mock.answers.push({ id, decisionId, body });
+    if (mock.answerStatus && mock.answerStatus !== 200) {
+      return route.fulfill({ status: mock.answerStatus, json: { success: false, message: 'Câu hỏi này đã được trả lời rồi.', errors: { code: 'AI_DECISION_CLOSED' } } });
+    }
+    mock.drafts = mock.drafts.map((draft) => draft.draftId === id
+      ? { ...draft, orderStatus: 'QUEUED_FOR_CLAUDE', decisions: draft.decisions.map((item: Draft) => item.id === decisionId ? { ...item, status: 'ANSWERED', chosenOptionId: body.optionId } : item) }
+      : draft);
+    return route.fulfill({ json: envelope(mock.drafts.find((draft) => draft.draftId === id)) });
+  });
   return mock;
 }
 
@@ -161,7 +177,8 @@ test('an ADMIN order fills all seven cards with the keyboard and mouse, sends th
   await expect(page.locator('input[name="aai-weather"][value="AUTO"]')).toBeChecked();
   await expect(page.locator('input[name="aai-time"][value="AUTO"]')).toBeChecked();
   await expect(page.locator('input[name="aai-content"][value="LIGHT"]')).toBeChecked();
-  await expect(page.locator('#ai-pixellab-cap')).toHaveValue('30');
+  await expect(page.locator('#ai-pixellab-cap')).toHaveValue('-1');
+  await expect(page.locator('#ai-pixellab-cap option:checked')).toHaveText('Không giới hạn');
   await expect(page.locator('input[name="aai-review"][value="FULL"]')).toBeChecked();
   await expect(page.locator('#quick-create-btn')).toHaveText('Gửi đơn cho Claude');
   await expect(page.locator('#ai-setting-lock')).toHaveCount(0);
@@ -277,13 +294,14 @@ test('an ADMIN order fills all seven cards with the keyboard and mouse, sends th
   expect(mock.errors).toEqual([]);
 });
 
-test('a VIP never sees the PixelLab cap or review mode, orders wait for Yen, and the last weekly order locks the button with a reason', async ({ page }) => {
+test('a VIP chooses the PixelLab cap and review mode like an admin, the order goes straight to Claude, and the last weekly order locks the button with a reason', async ({ page }) => {
   const mock = await setUp(page, 'VIP', 'vi', { quota: { unlimited: false, weeklyLimit: 2, usedThisWeek: 1, remaining: 1, weekStart: '2026-11-16' } });
   await open(page);
-  await expect(page.locator('#ai-pixellab-cap')).toHaveCount(0);
-  await expect(page.locator('input[name="aai-review"]')).toHaveCount(0);
+  await expect(page.locator('#ai-pixellab-cap')).toHaveValue('-1');
+  await expect(page.locator('#ai-pixellab-cap option:checked')).toHaveText('Không giới hạn');
+  await expect(page.locator('input[name="aai-review"][value="FULL"]')).toBeChecked();
   await expect(page.locator('.aai-settings')).toHaveCount(0);
-  await expect(page.locator('#ai-vip-quota')).toContainText('Đơn sẽ chờ Yen duyệt');
+  await expect(page.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ Claude ngay');
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 1/2 đơn trong tuần này.');
   await expect(page.locator('#ai-review-steps li')).toHaveCount(5);
 
@@ -292,12 +310,10 @@ test('a VIP never sees the PixelLab cap or review mode, orders wait for Yen, and
   await expect.poll(() => mock.posts.length).toBe(1);
   expect(mock.posts[0].order).toEqual({
     world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], suspectCount: 4, characterNotes: '',
-    weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT',
+    weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT', pixelLabCap: -1, reviewMode: 'FULL',
   });
-  await expect(page.locator('.aai-drafts-table [data-order-status="AWAITING_OWNER_APPROVAL"]')).toHaveText('Chờ Yen duyệt');
+  await expect(page.locator('.aai-drafts-table [data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ Claude');
   await expect(page.locator('.aai-drafts-table [data-approve-order]')).toHaveCount(0);
-  // No polling for an order only an admin can move.
-  await expect(page.locator('#generation-progress')).toBeHidden();
 
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 0/2 đơn trong tuần này.');
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
@@ -313,7 +329,7 @@ test('ADMIN approves one VIP order and rejects another with a reason typed in th
   await open(page);
   const rowA = page.locator('[data-draft-row="vip-a"]');
   const rowB = page.locator('[data-draft-row="vip-b"]');
-  await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ Yen duyệt');
+  await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ admin duyệt');
 
   await rowA.getByRole('button', { name: 'Duyệt đơn' }).click();
   await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ Claude');
@@ -330,7 +346,7 @@ test('ADMIN approves one VIP order and rejects another with a reason typed in th
   // Cancelling leaves the order untouched.
   await dialog.getByRole('button', { name: 'Hủy' }).click();
   await expect(page.locator('dialog.aai-reject-dialog')).toHaveCount(0);
-  await expect(rowB.locator('[data-order-status]')).toHaveText('Chờ Yen duyệt');
+  await expect(rowB.locator('[data-order-status]')).toHaveText('Chờ admin duyệt');
 
   await rowB.getByRole('button', { name: 'Từ chối' }).click();
   await page.locator('dialog.aai-reject-dialog[open]').getByLabel('Lý do').fill('Ý tưởng trùng vụ tuần trước.');
@@ -604,3 +620,43 @@ test('a library that cannot be read leaves the order usable and offers a retry',
   expect(mock.errors.filter((line) => !/status of 503/.test(line))).toEqual([]);
 });
 
+const QUESTION = {
+  id: 'q1', key: 'asset-budget', status: 'OPEN', question: 'Màn này cần 180 lượt. Làm sao?',
+  options: [
+    { id: 'draw', label: 'Vẽ mới', detail: 'Đúng ý đơn', generations: 180 },
+    { id: 'library', label: 'Dùng thư viện', detail: 'Tiết kiệm', generations: 25 },
+  ],
+};
+
+test('a draft waiting for a choice shows the question; one click answers it and locks the buttons', async ({ page }) => {
+  const mock = await setUp(page, 'VIP');
+  mock.drafts = [draftOf('asking', 'VIP', 'AWAITING_DECISION', { decisions: [QUESTION] })];
+  await open(page);
+  await expect(page.locator('[data-draft-row="asking"] [data-order-status]')).toHaveText('Chờ bạn chọn');
+  await page.locator('[data-draft-row="asking"]').getByRole('button', { name: 'Xem' }).click();
+  const card = page.locator('[data-decision-card="q1"]');
+  await expect(card).toContainText('Bot cần bạn chọn');
+  await expect(card).toContainText('Màn này cần 180 lượt. Làm sao?');
+  await expect(card.locator('[data-decision-option="draw"]')).toContainText('180 lượt');
+  await card.locator('[data-decision-option="library"]').click();
+  await expect(card).toContainText('Đã chọn: Dùng thư viện');
+  await expect(card).toContainText('bot đang làm tiếp');
+  expect(mock.answers).toEqual([{ id: 'asking', decisionId: 'q1', body: { optionId: 'library' } }]);
+  await expect(card.locator('[data-decision-option]')).toHaveCount(0);
+  expect(mock.dialogs).toEqual([]);
+  expect(mock.errors).toEqual([]);
+});
+
+test('a refused answer keeps the buttons usable and shows the error in the card', async ({ page }) => {
+  const mock = await setUp(page, 'VIP', 'vi', { answerStatus: 409 });
+  mock.drafts = [draftOf('asking', 'VIP', 'AWAITING_DECISION', { decisions: [QUESTION] })];
+  await open(page);
+  await page.locator('[data-draft-row="asking"]').getByRole('button', { name: 'Xem' }).click();
+  const card = page.locator('[data-decision-card="q1"]');
+  await card.locator('[data-decision-option="draw"]').click();
+  await expect(card.locator('[data-decision-error]')).toHaveText('Câu hỏi này đã được trả lời rồi.');
+  await expect(card.locator('[data-decision-option="draw"]')).toBeEnabled();
+  await expect(card.locator('[data-decision-option="library"]')).toBeEnabled();
+  expect(mock.answers).toHaveLength(1);
+  expect(mock.dialogs).toEqual([]);
+});

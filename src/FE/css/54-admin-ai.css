@@ -870,3 +870,21 @@ body[data-area="admin"] #app .aai-quality p { font-size: 14px; }
   .aai-preset:has(input:checked) { outline: 3px solid Highlight; outline-offset: -3px; }
   body[data-area="admin"] #app :is(.aai-preset input[type="radio"], .aai-toggle input.aai-switch) { appearance: auto; -webkit-appearance: auto; }
 }
+
+/* Bot questions (draft_ask): a gold card with one button per option, under the order summary. */
+body[data-area="admin"] #app .aai-decision {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--adm-gold);
+  border-radius: var(--adm-r-card);
+  background: var(--adm-warn-bg);
+}
+body[data-area="admin"] #app .aai-decision--answered { border-color: var(--adm-line); background: var(--adm-card); }
+body[data-area="admin"] #app .aai-decision-question { margin: 4px 0 10px; font-weight: 600; color: var(--adm-navy); }
+body[data-area="admin"] #app .aai-decision-options { display: flex; flex-wrap: wrap; gap: 8px; }
+body[data-area="admin"] #app .aai-decision-option {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-width: 160px; max-width: 100%; padding: 10px 12px; text-align: left; white-space: normal;
+}
+body[data-area="admin"] #app .aai-decision-option small { font-family: var(--adm-mono); color: var(--adm-eyebrow); }
+body[data-area="admin"] #app .aai-decision-chosen { margin: 0; color: var(--adm-navy); }

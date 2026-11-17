@@ -17,6 +17,8 @@ export const aiCaseApi = {
     put(`/api/admin/ai-cases/${draftId}/case-json`, { caseJson, storyPreview }),
   approveDraft: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve`),
   approveTruth: (draftId) => post(`/api/admin/ai-cases/${draftId}/approve-truth`),
+  /** Answers a question the bot asked with draft_ask; the bot then continues. */
+  answerDecision: (draftId, decisionId, optionId) => post(`/api/admin/ai-cases/${draftId}/decisions/${decisionId}`, { optionId }),
   repairTruth: (draftId, repairInstructions = '', repairFromArtifact = null, useRepairCandidate = false) =>
     post(`/api/admin/ai-cases/${draftId}/repair-truth`, { repairInstructions, repairFromArtifact, ...(useRepairCandidate ? { useRepairCandidate: true } : {}) }),
   acceptTruthRepair: (draftId) => post(`/api/admin/ai-cases/${draftId}/accept-truth-repair`),

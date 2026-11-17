@@ -88,7 +88,7 @@ const rowOf = (page: Page, draftId: string) => page.locator(`[data-draft-row="${
 // Several sessions share this machine; give a busy page more than ten seconds.
 test.setTimeout(240_000);
 
-test('VUAN-3 order form: ADMIN and VIP orders, approval, rejection, weekly limit, fast mode, phone and desktop', async ({ browser }) => {
+test('VUAN-3 order form: ADMIN and VIP orders straight to Claude, weekly limit, fast mode, phone and desktop', async ({ browser }) => {
   test.skip(!enabled, 'Set SIRLOCKED_RUN_AI_ORDER_FULL_STACK=true against a local API with a bridge key and no bot.');
   const apiUrl = process.env.SIRLOCKED_TEST_API_URL!;
   const api = await request.newContext({ baseURL: apiUrl });
@@ -187,10 +187,10 @@ test('VUAN-3 order form: ADMIN and VIP orders, approval, rejection, weekly limit
   const vipDesk = await openAs(browser, vip);
   const v = vipDesk.page;
   await openForm(v);
-  await expect(v.locator('#ai-pixellab-cap')).toHaveCount(0);
-  await expect(v.locator('input[name="aai-review"]')).toHaveCount(0);
+  await expect(v.locator('#ai-pixellab-cap')).toHaveValue('-1');
+  await expect(v.locator('input[name="aai-review"][value="FULL"]')).toBeChecked();
   await expect(v.locator('.aai-settings')).toHaveCount(0);
-  await expect(v.locator('#ai-vip-quota')).toContainText('Đơn sẽ chờ Yen duyệt');
+  await expect(v.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ Claude ngay');
   await expect(v.locator('[data-quota-remaining]')).toHaveText('Còn 2/2 đơn trong tuần này.');
   await shot(v, 'vip-1440-mac-dinh');
 
@@ -201,13 +201,12 @@ test('VUAN-3 order form: ADMIN and VIP orders, approval, rejection, weekly limit
     const vipAnswered = v.waitForResponse((res) => new URL(res.url()).pathname === '/api/admin/ai-cases' && res.request().method() === 'POST');
     await v.locator('#quick-create-btn').click();
     const vipBody = (await vipSent).postDataJSON();
-    expect(vipBody.order).not.toHaveProperty('pixelLabCap');
-    expect(vipBody.order).not.toHaveProperty('reviewMode');
+    expect(vipBody.order).toMatchObject({ pixelLabCap: -1, reviewMode: 'FULL' });
     const vipDraft = (await (await vipAnswered).json()).data;
-    expect(vipDraft.orderStatus).toBe('AWAITING_OWNER_APPROVAL');
-    expect(vipDraft.order).toMatchObject({ pixelLabCap: 30, reviewMode: 'FULL' }); // forced by the server
+    expect(vipDraft.orderStatus).toBe('QUEUED_FOR_CLAUDE'); // a VIP order goes straight to Claude
+    expect(vipDraft.order).toMatchObject({ pixelLabCap: -1, reviewMode: 'FULL' });
     vipOrders.push(vipDraft.draftId);
-    await expect(rowOf(v, vipDraft.draftId).locator('[data-order-status]')).toHaveText('Chờ Yen duyệt');
+    await expect(rowOf(v, vipDraft.draftId).locator('[data-order-status]')).toHaveText('Chờ Claude');
   }
   await expect(v.locator('[data-quota-remaining]')).toHaveText('Còn 0/2 đơn trong tuần này.');
   await expect(v.locator('#quick-create-btn')).toBeDisabled();
@@ -215,31 +214,16 @@ test('VUAN-3 order form: ADMIN and VIP orders, approval, rejection, weekly limit
   await expect(v.locator('[data-approve-order]')).toHaveCount(0);
   await shot(v, 'vip-1440-het-luot-tuan');
 
-  // ---------------------------------------------------------------- ADMIN approves one VIP order and rejects the other
+  // ---------------------------------------------------------------- ADMIN sees the VIP orders queued and raises the weekly limit
   await openForm(a);
-  await expect(rowOf(a, vipOrders[0]).locator('[data-order-status]')).toHaveText('Chờ Yen duyệt');
-  await rowOf(a, vipOrders[0]).getByRole('button', { name: 'Duyệt đơn' }).click();
   await expect(rowOf(a, vipOrders[0]).locator('[data-order-status]')).toHaveText('Chờ Claude');
-  await rowOf(a, vipOrders[1]).getByRole('button', { name: 'Từ chối' }).click();
-  const dialog = a.locator('dialog.aai-reject-dialog[open]');
-  await expect(dialog).toBeVisible();
-  await shot(a, 'admin-1440-tu-choi-don-vip');
-  await dialog.getByLabel('Lý do').fill('Ý tưởng trùng một vụ đang làm.');
-  await dialog.getByRole('button', { name: 'Từ chối đơn' }).click();
-  await expect(rowOf(a, vipOrders[1]).locator('[data-order-status]')).toHaveText('Đã từ chối');
-  const rejected = await call(api, 'GET', `/api/admin/ai-cases/${vipOrders[1]}`, admin.token);
-  expect(rejected.orderRejectReason).toBe('Ý tưởng trùng một vụ đang làm.');
-
-  // The rejected order frees the VIP's slot; the admin raises the weekly limit to 3.
+  await expect(a.locator('[data-approve-order]')).toHaveCount(0);
   await a.locator('#ai-vip-weekly-limit').fill('3');
   await a.locator('#ai-save-settings').click();
   await expect(a.locator('#ai-settings-status')).toHaveText('Đã lưu: mỗi VIP được gửi 3 đơn mỗi tuần.');
   await openForm(v);
-  await expect(v.locator('[data-quota-remaining]')).toHaveText('Còn 2/3 đơn trong tuần này.');
+  await expect(v.locator('[data-quota-remaining]')).toHaveText('Còn 1/3 đơn trong tuần này.');
   await expect(v.locator('#quick-create-btn')).toBeEnabled();
-  await expect(rowOf(v, vipOrders[1]).locator('[data-order-status]')).toHaveText('Đã từ chối');
-  await rowOf(v, vipOrders[1]).getByRole('button', { name: 'Xem' }).click();
-  await expect(v.locator('#ai-output')).toContainText('Ý tưởng trùng một vụ đang làm.');
   await call(api, 'PUT', '/api/admin/ai-cases/settings', admin.token, { vipWeeklyOrderLimit: 2 });
 
   // The ADMIN test order is cancelled again, as on production ("đặt thử 1 đơn rồi hủy").
