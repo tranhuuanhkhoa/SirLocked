@@ -1,4 +1,5 @@
-import { expect, request, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, request, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Màn tân thủ against the real API and a seeded loopback MongoDB (tools/FullStackTestSeeder seeds it_newcomer,
@@ -53,12 +54,15 @@ test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone',
   await expect(page).toHaveURL(/\/game\//, { timeout: 30_000 });
   const roomId = page.url().split('/game/')[1];
   // The opening comic plays first when the cutscene is on: hold Esc to skip it, then close it.
-  if (await page.locator('.mc-root').isVisible({ timeout: 8_000 }).catch(() => false)) {
+  // isVisible() does not wait (its timeout is ignored), so on a slow machine the comic was not up yet and was never
+  // skipped; waitFor() really waits for it.
+  const shows = (locator: Locator) => locator.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true, () => false);
+  if (await shows(page.locator('.mc-root'))) {
     await page.keyboard.down('Escape');
     await page.waitForTimeout(1200);
     await page.keyboard.up('Escape');
     const finish = page.locator('[data-mc-finish]');
-    if (await finish.isVisible({ timeout: 8_000 }).catch(() => false)) await finish.click();
+    if (await shows(finish)) await finish.click();
   }
   const coach = page.locator('[data-testid="tutorial-coach"]');
   await expect(coach).toContainText('Chào thám tử mới', { timeout: 30_000 });
@@ -76,6 +80,8 @@ test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone',
   const guestbook = () => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene')
     .pagePointOfRuntime({ x: 928, y: 1250 }));
   let point = await guestbook();
+  // The real server must show Sherlock the guestbook in the tutorial, or the click falls through to the floor.
+  expect((await state()).visibleScene.hotspots.map((hotspot: any) => hotspot.hotspotId)).toContain('hotspot-tt-so-khach');
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#toast-root')).toContainText('việc của Watson', { timeout: 30_000 });
   expect((await state()).players[0].role).toBe('INTERROGATOR');
@@ -94,7 +100,7 @@ test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone',
   await call(api, 'POST', `/api/tutorial/rooms/${roomId}/role`, auth.token, { role: 'INTERROGATOR' });
   await call(api, 'POST', `/api/game/rooms/${roomId}/go-to-scene`, auth.token, { sceneId: 'scene-tt-ngo' });
   await call(api, 'POST', `/api/game/rooms/${roomId}/ask-dialogue`, auth.token, { dialogueId: 'dlg-tt-ham-chieu-nay' });
-  const attemptId = `tutorial-${Date.now()}`;
+  const attemptId = randomUUID(); // the server only accepts UUID attempt ids
   const started = await call<any>(api, 'POST', `/api/game/rooms/${roomId}/paired-confrontations`, auth.token,
     { attemptId, testimonyFragmentId: 'frag-tt-ham-chua-vao' });
   const proposed = await call<any>(api, 'PUT', `/api/game/rooms/${roomId}/paired-confrontations/${attemptId}/evidence`, auth.token,
