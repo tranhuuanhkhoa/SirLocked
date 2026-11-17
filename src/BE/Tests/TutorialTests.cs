@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.DTOs.Investigation;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
@@ -209,6 +210,44 @@ public sealed class TutorialTests
         CompletedSceneIds = { "scene-1" },
         Version = 1
     };
+
+    // ---------------------------------------------------------------- one player, both detectives
+
+    /// <summary>
+    /// The tutorial player switches between Sherlock and Watson by hand. As Sherlock they must still see the guestbook:
+    /// touching it tells them it is Watson's job (gamePage onHotspot) instead of the click falling through to the floor
+    /// ("Không có đường đi tới điểm này"). A real two-player room keeps the role-specific scene.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TutorialRoom_ShowsSherlockTheObjects_PairRoomDoesNot(bool tutorial)
+    {
+        var gameCase = LoadTutorialCase();
+        var scene = gameCase.Stages[0].Scenes.First(candidate => candidate.SceneId == "scene-tt-tra-lau");
+        var unlocked = new HashSet<string>(StringComparer.Ordinal);
+        var response = new GameStateResponse
+        {
+            IsTutorial = tutorial,
+            VisibleScene = new VisibleSceneDto
+            {
+                SceneId = scene.SceneId,
+                Runtime = scene.Runtime,
+                Hotspots = scene.Hotspots.Select(hotspot => HotspotDto.From(hotspot, unlocked)).ToList(),
+                Items = scene.ItemIds.Select(id => SceneItemDto.From(gameCase.Items.First(item => item.ItemId == id), false)).ToList()
+            }
+        };
+
+        V3SceneProjectionPolicy.Apply(response, gameCase, new RoomPlayer { UserId = "solo", Role = PlayerRole.Interrogator });
+
+        var visible = response.VisibleScene;
+        Assert.Equal(tutorial, visible.Hotspots.Any(hotspot => hotspot.HotspotId == "hotspot-tt-so-khach"));
+        Assert.Equal(tutorial, visible.Items.Any(item => item.ItemId == "item-tt-so-khach"));
+        Assert.Equal(tutorial, visible.Runtime!.ItemPlacements.Any(placement => placement.ItemId == "item-tt-so-khach"));
+        // Sherlock still gets no camera surface: photographing stays Watson's.
+        Assert.Empty(visible.Runtime.ClueZones);
+        Assert.Contains(visible.Hotspots, hotspot => hotspot.HotspotId == "hotspot-tt-ong-luu");
+    }
 
     private static GameCase ConsensusCase() => new()
     {
