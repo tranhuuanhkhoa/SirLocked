@@ -18,7 +18,7 @@
     {
      "sceneId": "scene-tt-tra-lau",
      "title": "Trà lâu Vọng Nguyệt",
-     "backgroundUrl": "/assets/pixel/tan-thu/scenes/tra-lau.png",
+     "backgroundUrl": "/assets/pixel/tan-thu/scenes/tra-lau.png?v=98c91140",
      "description": "Trà lâu nhỏ trong ngõ Thạch Khố Môn. Đèn lồng đỏ, mùi trà nhài. Chiếc ấm men lam đời Minh vừa biến mất khỏi khay trà trên quầy.",
      "itemIds": [
       "item-tt-so-khach",
