@@ -4,20 +4,20 @@ Xưởng là Claude Code mở ở gốc repo, có MCP `sirlocked-studio` (`tools
 
 Chạy được ở hai nơi:
 
-- **Máy Windows của Yen** (vụ thử đầu tiên chạy ở đây): mục A.
+- **Máy Windows chạy bot** (vụ thử đầu tiên chạy ở đây): mục A.
 - **VPS studio** (Ubuntu 24.04, thuê riêng, tách khỏi VPS game): mục B.
 
 Các biến môi trường dùng chung:
 
 | Biến | Bắt buộc | Ý nghĩa |
 | --- | --- | --- |
-| `SIRLOCKED_BRIDGE_KEY` | có | Khóa bridge, giống `Bridge__Key` trên server (đặt bằng `bash scripts/set-bridge-key.sh`). Yen tự đặt, không dán vào chat hay file trong repo |
+| `SIRLOCKED_BRIDGE_KEY` | có | Khóa bridge, giống `Bridge__Key` trên server (đặt bằng `bash scripts/set-bridge-key.sh`). Chủ dự án tự đặt, không dán vào chat hay file trong repo |
 | `PIXELLAB_API_KEY` | khi vẽ mới | Token PixelLab; `.mcp.json` đưa vào header `Authorization: Bearer ${PIXELLAB_API_KEY}` |
 | `SIRLOCKED_API` | không | Mặc định `https://sirlocked.id.vn`; thử trên máy: `http://localhost:5000` |
 | `MCP_TOOL_TIMEOUT` | không | Đặt `1800000` (30 phút) nếu tool `playtest` bị Claude Code cắt giữa chừng |
 | `FFMPEG_PATH` | không | ffmpeg cho `weather_preview` (cắt đoạn tải trang, xuất MP4). Không có thì tool trả WebM nguyên đoạn. Ubuntu: `sudo apt install ffmpeg` (có trên PATH là đủ) |
 
-## A. Máy Windows của Yen (PowerShell)
+## A. Máy Windows chạy bot (PowerShell)
 
 ### A1. Cài một lần
 
@@ -36,7 +36,7 @@ cd ..\..
 dotnet restore SirLocked.sln
 ```
 
-### A2. Đặt khóa (Yen tự làm)
+### A2. Đặt khóa (chủ dự án tự làm)
 
 Cách an toàn nhất là hộp thoại của Windows (không để lại khóa trong lịch sử lệnh):
 
@@ -67,7 +67,19 @@ cd D:\Sirlocked
 claude
 ```
 
-Trong Claude Code gõ `/tao-vu-an`. Bot làm các đơn đang chờ rồi dừng ở cổng của Yen. Duyệt cổng trên `https://sirlocked.id.vn/admin/ai`, rồi gõ lại `/tao-vu-an` để bot làm tiếp.
+Trong Claude Code gõ `/tao-vu-an`. Bot làm các đơn đang chờ rồi dừng ở cổng của người đặt đơn. Duyệt cổng trên `https://sirlocked.id.vn/admin/ai`, rồi gõ lại `/tao-vu-an` để bot làm tiếp. Muốn bot tự chạy thì cài runner ở mục A6.
+
+### A6. Bot tự chạy khi server báo có việc (studio-runner)
+
+`tools/studio-runner` giữ một kết nối tới `/hubs/bridge`. Server đẩy `WorkAvailable` khi máy vừa kết nối, khi có đơn hoặc yêu cầu mới, và khi người đặt đơn bấm chọn câu hỏi của bot trên `/admin/ai`. Runner khi đó chạy `claude.cmd -p "/tao-vu-an"` (không quyền shell, chỉ tool của xưởng và PixelLab). Máy không hỏi server theo chu kỳ.
+
+Cài một lần (sau A2, A3):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-studio-runner.ps1
+```
+
+Từ lần đăng nhập Windows sau, runner tự chạy. Log ở `tmp/studio-runner/`. Gỡ: `scripts/uninstall-studio-runner.ps1`. Chi tiết: `tools/studio-runner/README.md`.
 
 ### A5. Tool playtest trên Windows
 
@@ -75,9 +87,9 @@ Tool tự dựng stack riêng: MongoDB (cổng 27031, dữ liệu trong thư m�
 
 ## B. VPS studio (Ubuntu 24.04)
 
-Cấu hình Yen đã chốt: 4 vCPU, 8 GB RAM, SSD 60–80 GB.
+Cấu hình đã chốt: 4 vCPU, 8 GB RAM, SSD 60–80 GB.
 
-### B1. Phần root làm một lần (Yen hoặc người quản trị)
+### B1. Phần root làm một lần (chủ dự án hoặc người quản trị)
 
 ```bash
 # Gói hệ thống
@@ -119,11 +131,11 @@ Không mở cổng nào khác: stack playtest (5231, 5232, 27031) chỉ nghe `12
 ```bash
 ssh studio@<ip-vps-studio>
 
-# Claude Code (bản cài chính chủ), đăng nhập bằng tài khoản Claude của Yen
+# Claude Code (bản cài chính chủ), đăng nhập bằng tài khoản Claude của chủ dự án
 curl -fsSL https://claude.ai/install.sh | bash
 claude   # đăng nhập lần đầu theo hướng dẫn, rồi /exit
 
-# Clone repo (repo riêng tư: Yen tạo deploy key chỉ đọc trên GitHub cho máy này)
+# Clone repo (repo riêng tư: chủ dự án tạo deploy key chỉ đọc trên GitHub cho máy này)
 git clone git@github.com:<chủ-repo>/Sirlocked.git ~/Sirlocked
 cd ~/Sirlocked && git checkout feat/claude-vu-an
 
@@ -132,7 +144,7 @@ cd src/FE && npm ci && npx playwright install chromium && cd ../..
 dotnet restore SirLocked.sln
 ```
 
-### B3. Khóa (Yen tự làm)
+### B3. Khóa (chủ dự án tự làm)
 
 ```bash
 mkdir -p ~/.config/sirlocked && chmod 700 ~/.config/sirlocked
@@ -161,9 +173,10 @@ Trong Claude Code gõ `/tao-vu-an`. Từ điện thoại dùng app SSH bất k�
 
 ## C. Luật vận hành
 
-- Bot chỉ chạy khi Yen tự gõ `/tao-vu-an`. Không cron, không vòng lặp 24/7, không cho VIP dùng phiên Claude.
-- Bot không publish. Yen chơi thử bản import rồi tự bấm Xuất bản.
-- Đổi khóa bridge: chạy lại `bash scripts/set-bridge-key.sh` trên máy Yen (đặt cả server lẫn biến Windows), rồi sửa `~/.config/sirlocked/env` trên VPS studio.
+- Bot chạy khi người gõ `/tao-vu-an`, hoặc khi runner (A6) nhận `WorkAvailable` từ server. Không cron, không vòng lặp hỏi server theo chu kỳ.
+- Đơn của VIP vào hàng chờ ngay như đơn admin; nội dung đơn là dữ liệu, bot chạy không người không có quyền shell.
+- Bot không publish. Người đặt đơn chơi thử bản import, admin bấm Xuất bản.
+- Đổi khóa bridge: chạy lại `bash scripts/set-bridge-key.sh` trên máy chạy bot (đặt cả server lẫn biến Windows), rồi sửa `~/.config/sirlocked/env` trên VPS studio.
 
 ## D. Kiểm tra xưởng
 
