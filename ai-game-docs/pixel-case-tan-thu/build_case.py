@@ -96,7 +96,7 @@ def char_place(char_id, x, y, size, hx, hy, hw, hh, d):
 tra_lau = {
     "sceneId": TRA_LAU,
     "title": "Trà lâu Vọng Nguyệt",
-    "backgroundUrl": f"{P}/scenes/tra-lau.png",
+    "backgroundUrl": f"{P}/scenes/tra-lau.png?v=98c91140",
     "description": "Trà lâu nhỏ trong ngõ Thạch Khố Môn. Đèn lồng đỏ, mùi trà nhài. Chiếc ấm men lam đời Minh vừa biến mất khỏi khay trà trên quầy.",
     "itemIds": ["item-tt-so-khach", "item-tt-thu-xe"],
     "characterIds": ["char-tt-ong-luu", "char-tt-co-lan"],

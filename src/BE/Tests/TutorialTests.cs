@@ -254,13 +254,13 @@ public sealed class TutorialTests
                     if (group == "items")
                     {
                         var (scene, placement) = placements.Single(candidate => candidate.placement.ItemId == entry.Name);
-                        Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl);
+                        Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl.Split('?')[0]); // ?v= only defeats the CDN cache
                         Assert.Equal(expected, new[] { placement.Hotspot.X, placement.Hotspot.Y, placement.Hotspot.Width, placement.Hotspot.Height });
                     }
                     else
                     {
                         var (scene, zone) = zones.Single(candidate => candidate.zone.ClueId == entry.Name);
-                        Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl);
+                        Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl.Split('?')[0]); // ?v= only defeats the CDN cache
                         Assert.Equal(expected, new[] { zone.Bounds.X, zone.Bounds.Y, zone.Bounds.Width, zone.Bounds.Height });
                     }
                     int centreX = (b[0] + b[2]) / 2 - cropX, centreY = (b[1] + b[3]) / 2 - cropY;
