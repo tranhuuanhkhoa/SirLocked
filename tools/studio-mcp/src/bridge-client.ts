@@ -81,7 +81,7 @@ export class BridgeClient {
       throw new StudioError('BRIDGE_KEY_INVALID', `Server từ chối khóa bridge (401).\n${KEY_HELP}`, 401);
     }
     if (response.status === 503 && code === 'BRIDGE_NOT_CONFIGURED') {
-      throw new StudioError(code, 'Server chưa bật bridge (thiếu Bridge__Key). Yen chạy: bash scripts/set-bridge-key.sh', 503);
+      throw new StudioError(code, 'Server chưa bật bridge (thiếu Bridge__Key). chủ dự án chạy: bash scripts/set-bridge-key.sh', 503);
     }
     if (response.status === 429) {
       throw new StudioError('RATE_LIMITED', 'Gọi bridge quá nhanh (429). Đợi một phút rồi thử lại.', 429);

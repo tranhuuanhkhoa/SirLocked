@@ -4,7 +4,7 @@ import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
 import { StudioError } from '../src/bridge-client.js';
 import { normalizeApiBase } from '../src/config.js';
-import { bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from '../src/tools/bridge.js';
+import { bridgeAsk, bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from '../src/tools/bridge.js';
 import {
   assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
 } from '../src/tools/draft.js';
@@ -309,5 +309,55 @@ describe('drafts, gates, report, player view, pictures', () => {
     const file = path.join(repo.root, 'note.txt');
     writeFileSync(file, 'not a picture');
     await assert.rejects(assetUpload(ctx, { draftId: fast, slotId: 'cover', file }));
+  });
+});
+
+describe('questions to the creator (draft_ask)', () => {
+  let bridge: FakeBridge;
+  const repo = tempRepo();
+  const requestId = '6650a1b2c3d4e5f6bbbbbbbb';
+  let ctx: ReturnType<typeof testContext>;
+  before(async () => {
+    bridge = await startFakeBridge({
+      [`POST /api/bridge/requests/${requestId}/take`]: () => ({
+        body: {
+          ...takeBody(requestId),
+          decisions: [{ key: 'asset-budget', question: 'Q', chosen: 'Dùng thư viện', chosenOptionId: 'library', answeredAt: '2026-11-18T10:00:00Z' }],
+        },
+      }),
+      [`POST /api/bridge/requests/${requestId}/ask`]: () => ({ body: { decisionId: 'd-1', status: 'AWAITING_DECISION' } }),
+    });
+    ctx = testContext(repo.root, bridge.url);
+  });
+  after(async () => { await bridge.close(); repo.cleanup(); });
+
+  test('bridge_take writes decisions.json and lists the answers in instructions.md', async () => {
+    const result = await bridgeTake(ctx, { requestId });
+    const dir = path.join(repo.root, 'tmp', 'bridge', requestId);
+    const decisions = JSON.parse(readFileSync(path.join(dir, 'decisions.json'), 'utf8'));
+    assert.equal(decisions[0].chosenOptionId, 'library');
+    assert.equal(result.files.decisions, `tmp/bridge/${requestId}/decisions.json`);
+    assert.match(readFileSync(path.join(dir, 'instructions.md'), 'utf8'), /asset-budget: Dùng thư viện/);
+  });
+
+  test('draft_ask posts the question and returns the decision id', async () => {
+    const result = await bridgeAsk(ctx, {
+      requestId, key: 'asset-budget', question: 'Màn này cần 180 lượt. Làm sao?',
+      options: [{ id: 'draw', label: 'Vẽ mới', generations: 180 }, { id: 'library', label: 'Dùng thư viện', detail: 'Tiết kiệm', generations: 25 }],
+    });
+    assert.equal(result.decisionId, 'd-1');
+    assert.equal(result.status, 'AWAITING_DECISION');
+    assert.match(result.next, /Dừng lượt chạy/);
+    const sent = bridge.requests.at(-1)!;
+    assert.equal(sent.path, `/api/bridge/requests/${requestId}/ask`);
+    assert.equal(sent.headers['x-bridge-key'], KEY);
+    assert.deepEqual(Object.keys(sent.json).sort(), ['key', 'options', 'question']);
+    assert.equal(sent.json.options[1].generations, 25);
+  });
+
+  test('draft_ask refuses fewer than two options before calling the server', async () => {
+    const before = bridge.requests.length;
+    await expectStudioError(bridgeAsk(ctx, { requestId, key: 'asset-budget', question: 'Q', options: [{ id: 'only', label: 'Một' }] }), 'BAD_ARGS');
+    assert.equal(bridge.requests.length, before);
   });
 });

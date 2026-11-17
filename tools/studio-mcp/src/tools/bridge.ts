@@ -34,6 +34,9 @@ export async function bridgeTake(ctx: ToolContext, args: { requestId: string }) 
   const orderFile = path.join(dir, 'order.json');
   const instructionsFile = path.join(dir, 'instructions.md');
   const answerFile = path.join(dir, 'answer.json');
+  const decisionsFile = path.join(dir, 'decisions.json');
+  const decisions: { key: string; chosen?: string }[] = data.decisions ?? [];
+  writeJsonFile(decisionsFile, decisions);
   writeTextFile(promptFile, String(data.prompt ?? ''));
   writeJsonFile(schemaFile, data.schema ?? {});
   writeJsonFile(orderFile, {
@@ -58,10 +61,13 @@ export async function bridgeTake(ctx: ToolContext, args: { requestId: string }) 
     String(data.instructions ?? '(không có)'),
     previous.length ? '\n## Lỗi của lần nộp trước (sửa hết trước khi nộp lại)\n' : '',
     ...previous.map((line) => `- ${line}`),
+    decisions.length ? '\n## Người đặt đơn đã chọn (làm theo các lựa chọn này)\n' : '',
+    ...decisions.map((item) => `- ${item.key}: ${item.chosen ?? '?'}`),
   ].filter((line) => line !== '').join('\n'));
   const files: Record<string, string> = {
     prompt: display(ctx.config, promptFile), schema: display(ctx.config, schemaFile), order: display(ctx.config, orderFile),
     instructions: display(ctx.config, instructionsFile), answer: display(ctx.config, answerFile),
+    decisions: display(ctx.config, decisionsFile),
   };
   if (data.devMockResponse) {
     // Development/Testing servers only (never Production): the server's own mock answer, for local runs.
@@ -129,6 +135,27 @@ export async function bridgeRelease(ctx: ToolContext, args: { requestId: string 
   const requestId = safeId(args.requestId, 'requestId');
   const { data } = await ctx.client.call<any>('POST', `/api/bridge/requests/${requestId}/release`);
   return { requestId, status: data?.status, message: 'Đã trả lại yêu cầu; người khác (hoặc lần sau) nhận lại được.' };
+}
+
+export interface AskOption { id: string; label: string; detail?: string; generations?: number }
+
+/** draft_ask: puts a question with 2-4 options to the creator on /admin/ai; the request waits until they answer. */
+export async function bridgeAsk(ctx: ToolContext, args: { requestId: string; key: string; question: string; options: AskOption[] }) {
+  const requestId = safeId(args.requestId, 'requestId');
+  if (!Array.isArray(args.options) || args.options.length < 2 || args.options.length > 4) {
+    throw new StudioError('BAD_ARGS', 'draft_ask cần 2–4 lựa chọn.');
+  }
+  const { data } = await ctx.client.call<any>('POST', `/api/bridge/requests/${requestId}/ask`, {
+    json: {
+      key: args.key,
+      question: args.question,
+      options: args.options.map((option) => ({ id: option.id, label: option.label, detail: option.detail ?? '', generations: option.generations })),
+    },
+  });
+  return {
+    requestId, decisionId: String(data?.decisionId ?? ''), status: String(data?.status ?? ''),
+    next: 'Đã gửi câu hỏi lên trang /admin/ai. Dừng lượt chạy này; khi người đặt đơn chọn xong, bot được gọi lại và đọc decisions.json.',
+  };
 }
 
 export { clip };

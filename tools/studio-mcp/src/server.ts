@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { StudioError } from './bridge-client.js';
 import { assetProcess, assetVariant, PROCESS_OPS } from './tools/assets.js';
-import { bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from './tools/bridge.js';
+import { bridgeAsk, bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from './tools/bridge.js';
 import type { ToolContext } from './tools/context.js';
 import {
   assetPlan, assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
@@ -16,7 +16,7 @@ import { VARIANT_TYPES } from './image/variant.js';
 
 export const TOOL_NAMES = [
   'bridge_list', 'bridge_take', 'bridge_check', 'bridge_submit', 'bridge_release',
-  'draft_get', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
+  'draft_get', 'draft_ask', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
   'assets_needed', 'asset_plan', 'asset_upload', 'assets_complete',
   'library_search', 'library_sync', 'asset_process', 'asset_variant', 'playtest',
   'weather_preview', 'blip_preview', 'sfx_search', 'music_search',
@@ -57,7 +57,7 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     server.registerTool(name, { description, inputSchema }, wrap(handler));
 
   // ---------------------------------------------------------------- bridge
-  tool('bridge_list', 'Danh sách yêu cầu của server đang chờ Claude (mặc định PENDING). Đơn VIP chỉ hiện sau khi Yen duyệt.',
+  tool('bridge_list', 'Danh sách yêu cầu của server đang chờ Claude (mặc định PENDING), gồm cả đơn của VIP.',
     { status: z.string().optional().describe('PENDING | TAKEN | SUBMITTED | ACCEPTED | REJECTED | STALE'), draftId: id.optional(), limit: z.number().int().min(1).max(500).optional() },
     (args) => bridgeList(ctx, args));
   tool('bridge_take', 'Nhận một yêu cầu (giữ lease). Ghi prompt.md, schema.json, order.json, instructions.md vào tmp/bridge/<requestId>/ và chỉ trả đường dẫn. Câu trả lời viết vào answer.json cùng thư mục.',
@@ -71,12 +71,23 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
   // ---------------------------------------------------------------- drafts
   tool('draft_get', 'Trạng thái draft: cổng đang chờ, báo cáo validator, yêu cầu đang mở, việc tiếp theo. Bản đầy đủ ghi ở tmp/bridge/<draftId>/draft.json.',
     { draftId: id }, (args) => draftGet(ctx, args));
-  tool('draft_approve_gate', 'CHỈ dùng khi đơn ở chế độ nhanh (FAST) VÀ mọi lớp kiểm tra đều đạt: bot qua cổng STORY, LOGIC hoặc LAYOUT. Cổng TRUTH luôn do Yen duyệt. Đơn FULL: không dùng.',
+  tool('draft_ask', 'Hỏi người đặt đơn trên trang /admin/ai thay vì hỏi trong chat: 2–4 lựa chọn, mỗi lựa chọn có nhãn, mô tả và số lượt PixelLab nếu tốn. Yêu cầu phải đang được bot giữ (bridge_take). Gửi xong thì DỪNG lượt chạy; khi người đặt đơn chọn, bot được gọi lại và đọc decisions.json của yêu cầu.',
+    {
+      requestId: id,
+      key: z.string().regex(/^[a-z0-9-]{1,60}$/).describe('Tên ngắn của câu hỏi, ví dụ "asset-budget"'),
+      question: z.string().min(1).max(500),
+      options: z.array(z.object({
+        id: z.string().regex(/^[a-z0-9-]{1,40}$/), label: z.string().min(1).max(80),
+        detail: z.string().max(300).optional(), generations: z.number().int().min(0).optional(),
+      })).min(2).max(4),
+    },
+    (args) => bridgeAsk(ctx, args));
+  tool('draft_approve_gate', 'CHỈ dùng khi đơn ở chế độ nhanh (FAST) VÀ mọi lớp kiểm tra đều đạt: bot qua cổng STORY, LOGIC hoặc LAYOUT. Cổng TRUTH luôn do người đặt đơn duyệt. Đơn FULL: không dùng.',
     { draftId: id, gate: z.enum(['STORY', 'LOGIC', 'LAYOUT']), allChecksPassed: z.boolean().describe('true chỉ khi schema, validator, thám tử mù, biên tập đều đạt') },
     (args) => draftApproveGate(ctx, args));
   tool('draft_import', 'Import draft READY_TO_PUBLISH thành vụ CHƯA đăng để chạy thử; lưu case JSON đầy đủ vào tmp/bridge/<draftId>/case.json. Không có tool publish: chỉ ADMIN đăng.',
     { draftId: id }, (args) => draftImport(ctx, args));
-  tool('draft_report', 'Đẩy report.md (mặc định tmp/bridge/<draftId>/report.md) lên draft để Yen xem trên admin.',
+  tool('draft_report', 'Đẩy report.md (mặc định tmp/bridge/<draftId>/report.md) lên draft để người đặt đơn xem trên admin.',
     { draftId: id, file: z.string().optional() }, (args) => draftReport(ctx, args));
   tool('player_view', 'Ghi player-view.json (những gì người chơi thấy, đã bỏ lời giải) vào tmp/bridge/<draftId>/ cho agent tham-tu-mu.',
     { draftId: id }, (args) => playerView(ctx, args));
@@ -84,7 +95,7 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
   // ---------------------------------------------------------------- pictures of a draft
   tool('assets_needed', 'Danh sách ô hình của draft: kích thước, nền trong suốt, mô tả, ô nào đang được xin. Vụ pixel (VUAN-6B): nền 512x512, sprite thở 1152x128, chân dung 288x288, icon 64x64, không có ô bìa; kèm subjects (cảnh, NPC, icon) với gợi ý thư viện và kế hoạch request PixelLab (tmp/bridge/<draftId>/pixellab-plan.json). Bản đầy đủ ở tmp/bridge/<draftId>/assets-needed.json.',
     { draftId: id, onlyRequested: z.boolean().optional() }, (args) => assetsNeeded(ctx, args));
-  tool('asset_plan', 'Vụ pixel: khai nguồn từng hình trước khi tải lên. choices: [{ subject: "scene:<id>" | "character:<id>" | "item:<id>", source: LIBRARY | VARIANT | PIXELLAB, libraryKey, parentKey, variant, inpaintItems }]. Thư viện và biến thể 0 lượt; PIXELLAB thành request theo templates.json. Vật điều tra nằm trong ảnh cảnh, không dán: cảnh PIXELLAB ghi vật vào visualDescription; cảnh LIBRARY/VARIANT chưa có vật thì khai inpaintItems: [itemId] (một request item-inpaint cho cả cảnh, Inpaint Pro 10 lượt, mask tô rộng theo cả mặt vật nằm lên). Tổng lượt vượt pixelLabCap của đơn thì server từ chối (AI_PIXELLAB_CAP_EXCEEDED): dùng thêm thư viện hoặc hỏi Yen. Chưa có kế hoạch đạt thì server không nhận ảnh.',
+  tool('asset_plan', 'Vụ pixel: khai nguồn từng hình trước khi tải lên. choices: [{ subject: "scene:<id>" | "character:<id>" | "item:<id>", source: LIBRARY | VARIANT | PIXELLAB, libraryKey, parentKey, variant, inpaintItems }]. Thư viện và biến thể 0 lượt; PIXELLAB thành request theo templates.json. Vật điều tra nằm trong ảnh cảnh, không dán: cảnh PIXELLAB ghi vật vào visualDescription; cảnh LIBRARY/VARIANT chưa có vật thì khai inpaintItems: [itemId] (một request item-inpaint cho cả cảnh, Inpaint Pro 10 lượt, mask tô rộng theo cả mặt vật nằm lên). Tổng lượt vượt pixelLabCap của đơn thì server từ chối (AI_PIXELLAB_CAP_EXCEEDED): dùng thêm thư viện hoặc hỏi người đặt đơn bằng draft_ask. Chưa có kế hoạch đạt thì server không nhận ảnh.',
     {
       draftId: id,
       choices: z.array(z.object({
