@@ -11,7 +11,7 @@ public static class PixelAssetPlanning
 {
     public sealed record Result(JsonObject Plan, List<PixelAssetSubject> Subjects, List<string> Errors, int EstimatedGenerations, int PixelLabCap)
     {
-        public bool WithinCap => EstimatedGenerations <= PixelLabCap;
+        public bool WithinCap => AiCaseOrder.FitsCap(EstimatedGenerations, PixelLabCap);
     }
 
     /// <summary>Library kinds a subject may reuse.</summary>

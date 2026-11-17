@@ -813,7 +813,7 @@ public static class PixelLabPlanBuilder
                 "New characters: draw the straight-on south front first, then rotate (v3), then idle.",
                 "Investigation items are part of the scene art. Create them first: a new scene paints them from visualDescription. A library or variant scene that lacks them gets them with item-inpaint: a free-form mask drawn wide along the whole surface they rest on (asset_process inpaint_prep / inpaint_merge). Never paste an item picture onto a scene.",
                 "Masks and exterior crops come from the NATIVE 512 map, never an upscaled copy.",
-                "First creation runs; any reroll or re-creation asks Yen first.",
+                "First creation runs; any reroll or re-creation asks the creator with draft_ask first.",
                 "Keep the original PNGs, the requests and the receipts with job IDs outside src/FE/public."),
             ["requests"] = final,
             ["reuse"] = reuse,
@@ -825,7 +825,7 @@ public static class PixelLabPlanBuilder
                 ["estimatedGenerations"] = total,
                 ["generationsByStep"] = byStep,
                 ["pixelLabCap"] = pixelLabCap,
-                ["withinCap"] = total <= pixelLabCap,
+                ["withinCap"] = AiCaseOrder.FitsCap(total, pixelLabCap),
                 ["newSubjects"] = new JsonArray(newSubjects.Select(entry => (JsonNode)entry.Subject).ToArray()),
                 ["reusedSubjects"] = reuse.Count,
                 ["missingInputs"] = missingCount,
@@ -846,7 +846,7 @@ public static class PixelLabPlanBuilder
             .Select(node => $"{node!["id"]!.GetValue<string>()} ({node["estimatedGenerations"]!.GetValue<int>()})");
         return $"The picture plan needs {total} PixelLab generations but this order allows {cap} (pixelLabCap). "
                + $"New requests: {string.Join(", ", lines)}. Reuse library pictures or variants (0 generations) for some of them, "
-               + "or ask Yen to raise the cap. Nothing may be drawn before the plan fits.";
+               + "or ask the creator with draft_ask. Nothing may be drawn before the plan fits.";
     }
 
     private static JsonObject Output(string kind, string path) => new() { ["kind"] = kind, ["path"] = path };

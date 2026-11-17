@@ -539,7 +539,7 @@ public sealed class PixelPipelineTests
         var message = PixelLabPlanBuilder.CapMessage(blocked.Plan);
         Assert.Contains("needs 39 PixelLab generations but this order allows 30", message);
         Assert.Contains("interior.tn-hieu-anh (25)", message);
-        Assert.Contains("ask Yen", message);
+        Assert.Contains("ask the creator with draft_ask", message);
     }
 
     [Fact]

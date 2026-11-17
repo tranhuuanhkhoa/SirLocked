@@ -410,7 +410,7 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
     public void Order_DefaultsAndNormalization_AndVipLimits()
     {
         var defaults = AiCaseOrderPolicy.Normalize(null, UserRole.Admin);
-        Assert.Equal((AiCaseWorlds.HangDuongVictorian, 4, "AUTO", "AUTO", 30, "STANDARD", 60, "FULL"),
+        Assert.Equal((AiCaseWorlds.HangDuongVictorian, 4, "AUTO", "AUTO", 30, "STANDARD", -1, "FULL"),
             (defaults.World, defaults.SuspectCount, defaults.Weather, defaults.TimeOfDay, defaults.PlayMinutes,
                 defaults.ContentLevel, defaults.PixelLabCap, defaults.ReviewMode));
 
@@ -421,14 +421,17 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
         Assert.Equal((AiCaseWorlds.Shanghai1930, "FAST", 0, "STORM"), (admin.World, admin.ReviewMode, admin.PixelLabCap, admin.Weather));
         Assert.Equal(["a", "b"], admin.LocationIds);
 
+        // A VIP chooses the review mode and the PixelLab cap like an admin.
         var vip = AiCaseOrderPolicy.Normalize(new AiCaseOrder { ReviewMode = "FAST", PixelLabCap = 100 }, UserRole.Vip);
-        Assert.Equal(("FULL", 30), (vip.ReviewMode, vip.PixelLabCap));
+        Assert.Equal(("FAST", 100), (vip.ReviewMode, vip.PixelLabCap));
+        Assert.Equal(-1, AiCaseOrderPolicy.Normalize(new AiCaseOrder(), UserRole.Vip).PixelLabCap);
 
         // Every refusal names the field at fault, so the order form can show it next to that field.
         foreach (var (invalid, field) in new (AiCaseOrder, string)[]
                  {
                      (new AiCaseOrder { SuspectCount = 2 }, "order.suspectCount"), (new AiCaseOrder { SuspectCount = 7 }, "order.suspectCount"),
                      (new AiCaseOrder { PlayMinutes = 25 }, "order.playMinutes"), (new AiCaseOrder { PixelLabCap = 50 }, "order.pixelLabCap"),
+                     (new AiCaseOrder { PixelLabCap = -2 }, "order.pixelLabCap"),
                      (new AiCaseOrder { World = "MARS" }, "order.world"), (new AiCaseOrder { Weather = "FOG" }, "order.weather"),
                      (new AiCaseOrder { CharacterNotes = new string('x', 601) }, "order.characterNotes"),
                      (new AiCaseOrder { LocationIds = ["has space"] }, "order.locationIds"),
@@ -443,6 +446,23 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
         // Suspects plus three side characters is the most an order may name.
         var cast = AiCaseOrderPolicy.Normalize(new AiCaseOrder { SuspectCount = 3, NpcIds = ["n1", "n2", "n3", "n4", "n5", "n6"] }, UserRole.Admin);
         Assert.Equal(6, cast.NpcIds.Count);
+    }
+
+    [Fact]
+    public void FitsCap_Unlimited_And_Limited()
+    {
+        Assert.True(AiCaseOrder.FitsCap(500, AiCaseOrder.UnlimitedPixelLabCap));
+        Assert.True(AiCaseOrder.FitsCap(60, 60));
+        Assert.False(AiCaseOrder.FitsCap(61, 60));
+        Assert.False(AiCaseOrder.FitsCap(1, 0));
+    }
+
+    [Fact]
+    public void PromptBlock_Unlimited_TellsBotToAsk()
+    {
+        var block = AiCaseOrderPolicy.BuildPromptBlock(new AiCaseOrder { PixelLabCap = -1 });
+        foreach (var expected in new[] { "no fixed cap", "draft_ask", "60" })
+            Assert.Contains(expected, block);
     }
 
     [Fact]

@@ -56,14 +56,8 @@ public static class AiCaseOrderPolicy
         if (!AiCaseOrder.PlayMinuteOptions.Contains(order.PlayMinutes))
             throw Invalid("playMinutes must be 20, 30, 45 or 60.", "playMinutes");
         if (!AiCaseOrder.PixelLabCapOptions.Contains(order.PixelLabCap))
-            throw Invalid("pixelLabCap must be 0, 30, 60 or 100.", "pixelLabCap");
-
-        if (!string.Equals(role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
-        {
-            // VIPs never choose these: every VIP order is reviewed at all gates and capped.
-            order.ReviewMode = AiCaseReviewModes.Full;
-            order.PixelLabCap = AiCaseOrder.VipPixelLabCap;
-        }
+            throw Invalid("pixelLabCap must be -1 (unlimited), 0, 30, 60 or 100.", "pixelLabCap");
+        // A VIP chooses the review mode and the cap like an admin; the role only decides the weekly order limit.
         return order;
     }
 
@@ -120,9 +114,13 @@ public static class AiCaseOrderPolicy
         builder.AppendLine(order.ContentLevel == AiCaseContentLevels.Light
             ? "- content level: LIGHT (no blood or gore, suitable for every age)"
             : "- content level: STANDARD");
-        builder.AppendLine(order.PixelLabCap == 0
-            ? "- new PixelLab images: none, use library pictures and code-made variants only"
-            : $"- new PixelLab images: at most {order.PixelLabCap.ToString(CultureInfo.InvariantCulture)} generations");
+        builder.AppendLine(order.PixelLabCap switch
+        {
+            0 => "- new PixelLab images: none, use library pictures and code-made variants only",
+            < 0 => "- new PixelLab images: no fixed cap; plan the cheapest picture set first and ask the creator with draft_ask "
+                   + $"before spending more than {AiCaseOrder.AskAboveGenerations.ToString(CultureInfo.InvariantCulture)} generations",
+            _ => $"- new PixelLab images: at most {order.PixelLabCap.ToString(CultureInfo.InvariantCulture)} generations"
+        });
         builder.Append($"- review mode: {order.ReviewMode}");
         return builder.ToString();
     }

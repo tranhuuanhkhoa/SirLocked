@@ -73,8 +73,14 @@ public class AiCaseOrder
     /// <summary>Library NPCs an order may name beyond its suspects (witnesses, the victim, returning faces).</summary>
     public const int ExtraNpcPicks = 3;
     public static readonly IReadOnlyList<int> PlayMinuteOptions = [20, 30, 45, 60];
-    public static readonly IReadOnlyList<int> PixelLabCapOptions = [0, 30, 60, 100];
-    public const int VipPixelLabCap = 30;
+    /// <summary>No fixed cap: the bot plans the cheapest set first and asks the creator before a costly one.</summary>
+    public const int UnlimitedPixelLabCap = -1;
+    public static readonly IReadOnlyList<int> PixelLabCapOptions = [UnlimitedPixelLabCap, 0, 30, 60, 100];
+    /// <summary>With no fixed cap, a picture plan above this many generations is put to the creator first.</summary>
+    public const int AskAboveGenerations = 60;
+
+    /// <summary>True when <paramref name="generations"/> fits the order's cap (any amount fits an unlimited cap).</summary>
+    public static bool FitsCap(int generations, int cap) => cap < 0 || generations <= cap;
 
     public string World { get; set; } = AiCaseWorlds.HangDuongVictorian;
     public List<string> LocationIds { get; set; } = new();
@@ -85,8 +91,8 @@ public class AiCaseOrder
     public string TimeOfDay { get; set; } = AiCaseTimesOfDay.Auto;
     public int PlayMinutes { get; set; } = 30;
     public string ContentLevel { get; set; } = AiCaseContentLevels.Standard;
-    /// <summary>0 means library pictures only.</summary>
-    public int PixelLabCap { get; set; } = 60;
+    /// <summary>0 means library pictures only; -1 means no fixed cap.</summary>
+    public int PixelLabCap { get; set; } = UnlimitedPixelLabCap;
     public string ReviewMode { get; set; } = AiCaseReviewModes.Full;
 }
 
