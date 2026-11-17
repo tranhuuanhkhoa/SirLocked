@@ -148,7 +148,7 @@ public partial class AiCaseService
             Step = step,
             AttemptNumber = 1
         }, 0);
-        var store = new AiBridgeRequestStore(_db, TimeProvider.System);
+        var store = new AiBridgeRequestStore(_db, TimeProvider.System, _bridgeNotifier);
         var existing = await store.FindByKeyAsync(requestKey, _operationCancellationToken);
         if (existing is not null)
         {

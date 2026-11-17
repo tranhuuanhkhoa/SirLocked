@@ -94,7 +94,7 @@ public partial class AiCaseService
             new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After })
             ?? throw ApiException.Conflict("The order changed before it could be rejected.",
                 "AI_WORKFLOW_CONFLICT", "ai.workflow.conflict");
-        await new AiBridgeRequestStore(_db, TimeProvider.System).CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, rejected.Id);
+        await new AiBridgeRequestStore(_db, TimeProvider.System, _bridgeNotifier).CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, rejected.Id);
         return AiDraftResponse.From(rejected, includeJson: false);
     }
 

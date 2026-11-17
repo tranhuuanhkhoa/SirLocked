@@ -154,6 +154,7 @@ builder.Services.AddScoped<ITutorialCaseSeeder>(services => services.GetRequired
 builder.Services.AddScoped<ITutorialService, TutorialService>();
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
+builder.Services.AddSingleton<IBridgeNotifier, BridgeHubNotifier>();
 builder.Services.AddScoped<AiBridgeRequestStore>();
 builder.Services.AddScoped<IAiTextProvider, ClaudeBridgeTextProvider>();
 builder.Services.AddScoped<AiBridgeService>();
@@ -438,6 +439,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger
 }
 
 app.UseCors();
+app.UseBridgeHubKeyGate();
 app.UseAuthentication();
 // User-partitioned policies need the authenticated identity; login policies still use the IP.
 app.UseRateLimiter();
@@ -446,6 +448,7 @@ app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();
 app.MapHub<GameHub>("/hubs/game");
+app.MapHub<BridgeHub>(BridgeHub.Path);
 app.MapHealthChecks("/health");
 app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 

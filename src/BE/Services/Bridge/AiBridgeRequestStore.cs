@@ -5,8 +5,11 @@ using SirLocked.Api.Models;
 
 namespace SirLocked.Api.Services.Bridge;
 
-/// <summary>Mongo access for <c>aiBridgeRequests</c>. Every transition is a single conditional update.</summary>
-public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time)
+/// <summary>
+/// Mongo access for <c>aiBridgeRequests</c>. Every transition is a single conditional update. Every transition that
+/// makes a request PENDING tells the studio machine through <paramref name="notifier"/>.
+/// </summary>
+public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time, IBridgeNotifier? notifier = null)
 {
     public IMongoCollection<AiBridgeRequest> Collection => db.AiBridgeRequests;
 
@@ -31,6 +34,7 @@ public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time)
         try
         {
             await Collection.InsertOneAsync(request, cancellationToken: ct);
+            await NotifyAsync(ct);
             return request;
         }
         catch (MongoWriteException exception) when (exception.WriteError?.Category == ServerErrorCategory.DuplicateKey)
@@ -124,8 +128,9 @@ public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time)
             ct);
     }
 
-    public async Task<AiBridgeRequest?> ReleaseAsync(string id, CancellationToken ct = default) =>
-        await Collection.FindOneAndUpdateAsync(
+    public async Task<AiBridgeRequest?> ReleaseAsync(string id, CancellationToken ct = default)
+    {
+        var released = await Collection.FindOneAndUpdateAsync(
             item => item.Id == id && item.Status == AiBridgeStatuses.Taken,
             Builders<AiBridgeRequest>.Update
                 .Set(item => item.Status, AiBridgeStatuses.Pending)
@@ -133,6 +138,11 @@ public sealed class AiBridgeRequestStore(MongoDbContext db, TimeProvider time)
                 .Set(item => item.UpdatedAt, Now),
             new FindOneAndUpdateOptions<AiBridgeRequest> { ReturnDocument = ReturnDocument.After },
             ct);
+        if (released is not null) await NotifyAsync(ct);
+        return released;
+    }
+
+    private Task NotifyAsync(CancellationToken ct) => notifier?.WorkAvailableAsync(ct) ?? Task.CompletedTask;
 
     /// <summary>Stores a schema-valid answer. Null when the request is no longer open.</summary>
     public async Task<AiBridgeRequest?> SubmitAsync(string id, string resultJson, CancellationToken ct = default) =>

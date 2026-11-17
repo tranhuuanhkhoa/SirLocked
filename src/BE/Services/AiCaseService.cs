@@ -92,6 +92,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AiGenerationSettings _settings;
     private readonly BridgeSettings _bridgeSettings;
+    private readonly IBridgeNotifier? _bridgeNotifier;
     private readonly AiQuotaSettings _quota;
     private readonly CloudinarySettings _cloudinary;
     private readonly AiCaseV3PresetSettings _v3PresetSettings;
@@ -121,7 +122,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         IWebHostEnvironment env,
         ILogger<AiCaseService> logger,
         PresentationService? presentationService = null,
-        IOptions<BridgeSettings>? bridgeSettings = null)
+        IOptions<BridgeSettings>? bridgeSettings = null,
+        IBridgeNotifier? bridgeNotifier = null)
     {
         _db = db;
         _workflow = workflow;
@@ -139,6 +141,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         _settings = settings.Value;
         _quota = quota.Value;
         _bridgeSettings = bridgeSettings?.Value ?? new BridgeSettings();
+        _bridgeNotifier = bridgeNotifier;
         _cloudinary = cloudinary.Value;
         _v3PresetSettings = v3PresetSettings.Value;
         _gameplayV3Settings = gameplayV3Settings.Value;
@@ -2352,7 +2355,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After });
         if (cancelled is null)
             throw ApiException.Conflict("The draft changed before cancellation could be committed.");
-        await new AiBridgeRequestStore(_db, TimeProvider.System)
+        await new AiBridgeRequestStore(_db, TimeProvider.System, _bridgeNotifier)
             .CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, cancelled.Id);
         return AiDraftResponse.From(cancelled, includeJson: false);
     }

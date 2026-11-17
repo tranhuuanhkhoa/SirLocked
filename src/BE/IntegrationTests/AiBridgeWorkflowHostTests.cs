@@ -37,7 +37,7 @@ namespace SirLocked.IntegrationTests;
 /// The whole Claude bridge through the real HTTP pipeline and MongoDB: a test "bot" plays Claude with the
 /// deterministic mock answers the server exposes outside Production.
 /// </summary>
-public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
+public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
 {
     private const string AdminId = "507f1f77bcf86cd799439021";
     private const string VipId = "507f1f77bcf86cd799439022";
