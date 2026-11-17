@@ -21,12 +21,12 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
 | 5 | `object-mask` | `edit_image` (Edit Image Pro) 512×512 | Sau khi bản đồ đã chốt | 25 |
 | 6 | `local-layers` | không AI | Sửa mask, cắt vật che, `baseY`, lưới đi | 0 |
 | 7 | `interior` | `create_image_pro` 512×512 + `reference_images` | Mỗi cảnh isometric một ảnh | 25 |
-| 7 | `item-inpaint` | `inpaint_image_pro_flash` khung 128 + `context_image` | Cảnh thư viện/biến thể chưa có vật điều tra: vẽ thêm vật vào cảnh | 6 (dự phòng `inpaint_image` khung 256: 10) |
+| 7 | `item-inpaint` | `inpaint_image` (Inpaint Pro v3) khung ≤256 + `mask_image` tự do | Cảnh thư viện/biến thể chưa có vật điều tra: vẽ thêm vật vào cảnh, mask rộng theo cả mặt vật nằm lên, một lần cho cả cảnh | 10 (mặt rộng hơn 208 px: khung 512, 25) |
 | 7 | `icon-sheet` | `create_image_pro` 256×256 + `style_image_url` | Icon túi đồ, tối đa 16 vật mỗi tấm | 10 |
 | 8 | `integrate` | không AI | Ghi `runtime.render`, cửa và spawn vào case JSON | 0 |
 
 Ước tính cho một case gồm 1 bản đồ, N NPC mới, R phòng, S tấm icon, V vật vẽ thêm vào cảnh có sẵn:
-25 + 14×N + 25 + 25×R + 10×S + 6×V. Case mẫu có N = 6, R = 5, S = 1, tổng 269. Thêm Watson mới (front + rotate + đi bộ + idle 4 hướng) thì cộng 28.
+25 + 14×N + 25 + 25×R + 10×S + 10×V (V: số cảnh cần vẽ thêm vật). Case mẫu có N = 6, R = 5, S = 1, tổng 269. Thêm Watson mới (front + rotate + đi bộ + idle 4 hướng) thì cộng 28.
 
 ## Quy tắc bắt buộc
 
@@ -45,10 +45,21 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
 - **Mask và ảnh tham chiếu ngoại thất lấy từ bản đồ NATIVE 512**, không dùng bản phóng to. Ghép animation môi trường lại đúng toạ độ crop.
 - **Nội thất:** isometric 2:1, một sàn + hai tường sau, mặt trước và ngưỡng cửa để trống, không NPC. Vật phẩm điều tra của cảnh phải có trong mô tả vì pixel mode vẽ vật vào nền.
 - **Vật điều tra không bao giờ dán ảnh lên cảnh** (Yen chốt 17/11/2026). Dán icon hay ảnh vật lên bản đồ thì lệch phối cảnh và ánh sáng, nhìn rất xấu. Làm như vụ Lò thuốc thứ Năm và Trâm hồng ngọc:
-  - Cảnh vẽ mới: ghi mọi vật vào `visualDescription` của cảnh để PixelLab vẽ luôn (`outdoor-map`, `interior`).
-  - Cảnh đã vẽ xong (thư viện, biến thể, hay cần thêm vật sau): `item-inpaint`. `asset_process inpaint_prep` cắt khung 128 hoặc 256 quanh chỗ đặt vật từ cảnh NATIVE 512, làm mask và context (tối đa 3 lần khung). Gửi PixelLab. `asset_process inpaint_merge` chỉ chép vùng mask vào cảnh, pixel ngoài mask giữ nguyên từng byte.
+  - **Vật nên tạo trước.** Cảnh vẽ mới: ghi mọi vật vào `visualDescription` của cảnh để PixelLab vẽ luôn (`outdoor-map`, `interior`).
+  - Cảnh đã vẽ xong (thư viện, biến thể, hay cần thêm vật sau): `item-inpaint`, **inpaint cho chuẩn** theo tài liệu Inpaint Pro (`inpaint_image`, REST `POST /v2/inpaint-v3`; `mask_image` cùng cỡ ảnh, trắng = vẽ lại, đen = giữ, hình gì cũng được).
+    - Mask tô **rộng theo cả mặt vật nằm lên** (cả mặt quầy, mặt bàn, ghế, kệ), không ôm sát vật.
+    - `description` kể mọi vật phải có trên mặt đó, kể cả vật cũ muốn giữ, vì trong mask PixelLab vẽ lại hết.
+    - Một request cho cả cảnh. Nhiều mặt thì dùng nhiều polygon, vẫn một mask nếu lọt một khung.
+  - `asset_process inpaint_prep { scene, polygon | polygons | maskImage | rect, description }`:
+    - cắt khung 128/256 (512 khi mặt quá rộng) từ cảnh NATIVE 512, làm `mask.png` tự do và context;
+    - báo `MASK_TIGHT` khi mask nhỏ hơn 40×24.
+  - Gửi PixelLab. `asset_process inpaint_merge { plan, result, boxes }` chỉ chép pixel trong mask vào cảnh, pixel ngoài mask giữ nguyên từng byte, rồi trả ô bấm từng vật.
+  - Vật cũ trong mask có thể đổi chỗ hay mất: đo lại ô bấm và `clueZones`. Mẩu vật cũ sót ngoài mask thì xóa.
   - Trong case JSON: `itemPlacements[].asset` rỗng, ô bấm phủ đúng vật, `position` là giữa cạnh dưới ô bấm. `items[].imageUrl` chỉ là icon 64×64 cho túi đồ.
-  - Mẫu đối chứng: màn tân thủ (`ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json`). Hòm gỗ: Pro Flash khung 128 có context, 6 lượt, sạch. Sổ khách: Pro Flash ra vệt nhòe, `inpaint_image` khung 256 sạch (10 lượt). Vật nhỏ dưới khoảng 24px dễ nhòe với Pro Flash.
+  - Mẫu đối chứng: màn tân thủ (`ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json`).
+    - Lần đầu tô ô nhỏ 26×17 quanh cuốn sổ: ra cuốn sổ bé xíu, Pro Flash còn ra vệt nhòe.
+    - Làm lại bằng một mask đa giác phủ cả mặt quầy (`inpaint_image` khung 256, 10 lượt): ra đủ thư xé, sổ khách đang mở, khay trà, khớp phối cảnh.
+    - Hòm gỗ trên xe kéo: mask phủ cả mặt ghế.
 - **Lần tạo đầu theo yêu cầu thì chạy. Tạo lại hoặc reroll bằng AI phải hỏi chủ dự án trước.** Kể cả khi kết quả chưa đẹp: báo vấn đề, đề xuất sửa prompt, chờ đồng ý.
 - **Giữ mọi thứ:** PNG gốc (cả 4 ứng viên), request đã gửi, receipt có job ID, character ID, animation group, chi phí. Bản gốc để ngoài `src/FE/public`.
 

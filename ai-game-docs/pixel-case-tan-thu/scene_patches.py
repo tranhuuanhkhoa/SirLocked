@@ -1,8 +1,9 @@
-"""Vật điều tra vẽ thêm vào cảnh màn tân thủ bằng inpaint của PixelLab, và ảnh bìa.
+"""Vật điều tra vẽ vào cảnh màn tân thủ bằng inpaint của PixelLab, và ảnh bìa.
 
-Theo inpaint/recipe.json: lấy ảnh PixelLab trả về (inpaint/<output>), chỉ chép đúng vùng mask vào cảnh tại
-crop + mask. Pixel ngoài mask của cảnh giữ nguyên. Chạy lại nhiều lần vẫn ra cùng kết quả.
-build_assets.py gọi sau khi chép cảnh thư viện. Chạy riêng:
+Theo inpaint/recipe.json: lấy ảnh PixelLab trả về (inpaint/<output>), chỉ chép đúng pixel trong mask vào cảnh tại
+crop (mask tự do: maskFile trắng = vẽ lại; hoặc mask chữ nhật). Pixel ngoài mask của cảnh giữ nguyên, trừ các bước
+cleanup ghi rõ trong recipe. Chạy trên cảnh thư viện mới chép (build_assets.py), chạy lại nhiều lần vẫn ra cùng kết quả.
+Chạy riêng (cảnh trong OUT phải là bản thư viện chưa vá):
     python3 ai-game-docs/pixel-case-tan-thu/scene_patches.py src/FE/public/assets/pixel/tan-thu
 """
 import json
@@ -14,16 +15,37 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+def load_recipe():
+    return json.load(open(os.path.join(HERE, 'inpaint', 'recipe.json'), encoding='utf-8'))
+
+
 def apply_inpaint(out):
-    recipe = json.load(open(os.path.join(HERE, 'inpaint', 'recipe.json'), encoding='utf-8'))
-    for patch in recipe['patches']:
+    for patch in load_recipe()['patches']:
         scene_path = os.path.join(out, patch['scene'])
         scene = Image.open(scene_path).convert('RGBA')
         result = Image.open(os.path.join(HERE, 'inpaint', patch['output'])).convert('RGBA')
-        crop, mask = patch['crop'], patch['mask']
-        assert result.size == (crop['size'], crop['size']), f"{patch['output']}: cần {crop['size']}x{crop['size']}"
-        region = result.crop((mask['x'], mask['y'], mask['x'] + mask['width'], mask['y'] + mask['height']))
-        scene.paste(region, (crop['x'] + mask['x'], crop['y'] + mask['y']))
+        crop = patch['crop']
+        size = crop['size']
+        assert result.size == (size, size), f"{patch['output']}: cần {size}x{size}"
+        if 'maskFile' in patch:
+            mask = Image.open(os.path.join(HERE, 'inpaint', patch['maskFile'])).convert('L')
+            assert mask.size == (size, size), f"{patch['maskFile']}: cần {size}x{size}"
+            mask = mask.point(lambda value: 255 if value > 127 else 0)
+        else:
+            rect = patch['mask']
+            mask = Image.new('L', (size, size), 0)
+            ImageDraw.Draw(mask).rectangle([rect['x'], rect['y'], rect['x'] + rect['width'] - 1, rect['y'] + rect['height'] - 1], fill=255)
+        region = scene.crop((crop['x'], crop['y'], crop['x'] + size, crop['y'] + size))
+        region.paste(result, (0, 0), mask)
+        scene.paste(region, (crop['x'], crop['y']))
+        # Leftovers of old objects just outside the mask (cleanup in the recipe): copy a row of the background down,
+        # only on pixels the mask did not repaint.
+        for step in patch.get('cleanup', []):
+            x0, y0, x1, y1 = step['rect']
+            for y in range(y0, y1 + 1):
+                for x in range(x0, x1 + 1):
+                    if mask.getpixel((x - crop['x'], y - crop['y'])) == 0:
+                        scene.putpixel((x, y), scene.getpixel((x, step['copyRow'])))
         scene.save(scene_path)
 
 

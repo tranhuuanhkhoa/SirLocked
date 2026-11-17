@@ -61,15 +61,30 @@ def camera(w, h):
 
 
 def item_place(item_id, hx, hy, hw, hh):
-    """Vật vẽ sẵn trong ảnh cảnh: không có sprite (asset rỗng), ô bấm phủ đúng vật, vị trí = giữa cạnh dưới ô bấm."""
+    """Vật vẽ sẵn trong ảnh cảnh: không có sprite (asset rỗng), ô bấm phủ đúng vật, vị trí = giữa cạnh dưới ô bấm.
+    size tối đa 160x160 (luật OversizedCutout của validator, như sổ giao nhận vụ Lò thuốc); ô bấm thì to bằng vật."""
     return {"itemId": item_id, "asset": "", "position": {"x": hx + hw // 2, "y": hy + hh, "anchor": "bottom-center"},
-            "size": {"width": hw, "height": hh}, "hotspot": {"x": hx, "y": hy, "width": hw, "height": hh}, "anchor": "bottom-center", "depth": 5}
+            "size": {"width": min(hw, 160), "height": min(hh, 160)}, "hotspot": {"x": hx, "y": hy, "width": hw, "height": hh}, "anchor": "bottom-center", "depth": 5}
 
 
-# Ô bấm của vật (tọa độ runtime 2048 = native 512 x4), phủ đúng chỗ vật trong ảnh.
-SO_KHACH = (772, 1300, 92, 72)   # sổ khách bìa đỏ trên quầy, giữa cái cân và khay trà (inpaint)
-THU_XE = (452, 1248, 148, 80)    # mấy mảnh giấy trắng trên quầy, cạnh cái cân (có sẵn trong ảnh)
-HOM_GO = (1280, 828, 96, 84)     # hòm gỗ đai sắt trên ghế xe kéo (inpaint)
+# Ô bấm của vật (tọa độ runtime 2048 = native 512 x4), phủ đúng chỗ vật trong ảnh. Lấy từ inpaint/recipe.json:
+# mặt quầy trà lâu vẽ lại bằng một lần inpaint mask rộng (thư xé, sổ khách, khay trà), hòm gỗ vẽ lên ghế xe kéo.
+RECIPE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'inpaint', 'recipe.json'), encoding='utf-8'))
+
+
+def painted_box(target_id):
+    for patch in RECIPE['patches']:
+        for group in ('items', 'clueZones'):
+            if target_id in patch.get(group, {}):
+                x0, y0, x1, y1 = patch[group][target_id]
+                return (x0 * 4, y0 * 4, (x1 - x0 + 1) * 4, (y1 - y0 + 1) * 4)
+    raise KeyError(target_id)
+
+
+SO_KHACH = painted_box("item-tt-so-khach")    # sổ khách bìa đỏ đang mở giữa mặt quầy
+THU_XE = painted_box("item-tt-thu-xe")        # mấy mảnh thư xé bên trái cuốn sổ
+KHAY_TRA = painted_box("clue-tt-vong-nuoc")   # khay trà ở đầu quầy (chụp ảnh)
+HOM_GO = painted_box("item-tt-hom-go")        # hòm gỗ đai sắt trên ghế xe kéo
 
 
 def char_place(char_id, x, y, size, hx, hy, hw, hh, d):
@@ -87,8 +102,8 @@ tra_lau = {
     "characterIds": ["char-tt-ong-luu", "char-tt-co-lan"],
     "hotspots": [
         hotspot("hotspot-tt-so-khach", "ITEM", "item-tt-so-khach", *SO_KHACH, "Sổ khách trên quầy"),
-        hotspot("hotspot-tt-thu-xe", "ITEM", "item-tt-thu-xe", *THU_XE, "Mấy mảnh thư xé cạnh cái cân"),
-        hotspot("hotspot-tt-ong-luu", "CHARACTER", "char-tt-ong-luu", 748, 1372, 144, 344, "Ông Lưu", 6),
+        hotspot("hotspot-tt-thu-xe", "ITEM", "item-tt-thu-xe", *THU_XE, "Mấy mảnh thư xé trên quầy"),
+        hotspot("hotspot-tt-ong-luu", "CHARACTER", "char-tt-ong-luu", 748, 1408, 144, 308, "Ông Lưu", 6),
         hotspot("hotspot-tt-co-lan", "CHARACTER", "char-tt-co-lan", 1268, 1412, 144, 344, "Cô Tô Mỹ Lan", 6),
     ],
     "runtime": {
@@ -102,11 +117,11 @@ tra_lau = {
             item_place("item-tt-thu-xe", *THU_XE),
         ],
         "characterPlacements": [
-            char_place("char-tt-ong-luu", 820, 1712, 512, 748, 1372, 144, 344, "right"),
+            char_place("char-tt-ong-luu", 820, 1712, 512, 748, 1408, 144, 308, "right"),
             char_place("char-tt-co-lan", 1340, 1752, 512, 1268, 1412, 144, 344, "left"),
         ],
         "clueZones": [{
-            "clueId": "clue-tt-vong-nuoc", "label": "Khay trà trên quầy", "bounds": {"x": 784, "y": 1192, "width": 216, "height": 112},
+            "clueId": "clue-tt-vong-nuoc", "label": "Khay trà trên quầy", "bounds": {"x": KHAY_TRA[0], "y": KHAY_TRA[1], "width": KHAY_TRA[2], "height": KHAY_TRA[3]},
             "shape": "rect", "surface": "counter", "visibility": "clear", "detectionDifficulty": "easy", "detectionStatus": "FOUND",
             "confidence": 0.95, "source": "manual-visual-review", "isFallback": False, "requiredClueIds": [],
             "reason": "Khay trà ở đầu quầy, chỗ chiếc ấm men lam vẫn đặt."}],
@@ -185,12 +200,12 @@ characters = [
 ]
 
 items = [
-    {"itemId": "item-tt-so-khach", "name": "Sổ khách của trà lâu", "description": "Cuốn sổ bìa đỏ ông Lưu để trên quầy, cạnh khay trà, cho khách quen ký tên.",
+    {"itemId": "item-tt-so-khach", "name": "Sổ khách của trà lâu", "description": "Cuốn sổ bìa đỏ ông Lưu để mở giữa mặt quầy cho khách quen ký tên.",
      "inspectText": "Trang hôm nay có hai chữ ký. Dòng cuối: \"Hamilton — 3 giờ chiều\", nét mực còn mới.",
      "imageUrl": f"{P}/items/so-khach.png", "unlockClueIds": ["evidence-tt-so-khach"], "isCollectible": False,
      "isInteractivePuzzleObject": False, "interactionPurpose": "legacy-evidence"},
-    {"itemId": "item-tt-thu-xe", "name": "Mấy mảnh thư bị xé", "description": "Lá thư bị xé vụn, vứt trên quầy cạnh cái cân.",
-     "inspectText": "Lá thư bị xé vụn, vứt trên quầy cạnh cái cân.", "imageUrl": f"{P}/items/thu-xe.png", "unlockClueIds": [],
+    {"itemId": "item-tt-thu-xe", "name": "Mấy mảnh thư bị xé", "description": "Lá thư bị xé vụn, vứt trên quầy cạnh cuốn sổ khách.",
+     "inspectText": "Lá thư bị xé vụn, vứt trên quầy cạnh cuốn sổ khách.", "imageUrl": f"{P}/items/thu-xe.png", "unlockClueIds": [],
      "isCollectible": False, "isInteractivePuzzleObject": True, "interactionPurpose": "operate-mechanism"},
     {"itemId": "item-tt-hom-go", "name": "Ấm men lam trong hòm gỗ", "description": "Chiếc hòm gỗ nhỏ khách để trên xe kéo của A Phúc.",
      "inspectText": "Mở hòm ra: chiếc ấm men lam đời Minh bọc trong khăn tay thêu hai chữ cái lồng nhau, mép khăn còn vương lá trà nhài.",
@@ -289,7 +304,7 @@ puzzles = [{
     "successMessage": "Thư trả giá của ngài Hamilton.", "failureMessage": "Chưa khớp — thử lại.",
     "basedOnTruthIds": [], "investigationPurpose": "Ai muốn có chiếc ấm men lam", "revealsConclusionIds": [], "progressionRole": "OPTIONAL",
     "params": {
-        "find": {"tag": "VẬT CHỨNG · TRÀ LÂU", "title": "Trên quầy, cạnh cái cân", "text": "Mấy mảnh thư bị xé vụn vứt trên quầy trà lâu Vọng Nguyệt, cạnh cái cân."},
+        "find": {"tag": "VẬT CHỨNG · TRÀ LÂU", "title": "Trên quầy, cạnh sổ khách", "text": "Mấy mảnh thư bị xé vụn vứt trên quầy trà lâu Vọng Nguyệt, cạnh cuốn sổ khách."},
         "doc": {"head": "THƯ TRẢ GIÁ", "sub": "GỬI CHỦ TRÀ LÂU VỌNG NGUYỆT", "meta": "[[NGÀY]] HÔM QUA · [[NGÕ]] THẠCH KHỐ MÔN",
                 "to": "[[VIỆC:]] ẤM MEN LAM ĐỜI MINH", "lines": ["XIN MUA ẤM MEN LAM", "TRẢ 500 ĐỒNG BẠC"], "sign": "KÝ: HAMILTON",
                 "stamp": ["TÔ GIỚI", "H.", "THƯỢNG HẢI"], "circle": "500 ĐỒNG", "underline": "MUA ẤM MEN LAM"},
@@ -345,7 +360,7 @@ def hint(hid, ctx, target, order, text):
 
 hints = [
     hint("hint-tt-tra-lau-1", "SCENE", TRA_LAU, 1, "Hỏi ông Lưu chuyện gì đã xảy ra và chiều nay ai ghé trà lâu."),
-    hint("hint-tt-tra-lau-2", "SCENE", TRA_LAU, 2, "Xem sổ khách bìa đỏ trên quầy và mấy mảnh thư xé cạnh cái cân."),
+    hint("hint-tt-tra-lau-2", "SCENE", TRA_LAU, 2, "Xem cuốn sổ khách đang mở trên quầy và mấy mảnh thư xé bên cạnh."),
     hint("hint-tt-tra-lau-3", "SCENE", TRA_LAU, 3, "Sổ khách có chữ ký lúc 3 giờ chiều; ghép lá thư xé để biết ai muốn mua chiếc ấm."),
     hint("hint-tt-ngo-1", "SCENE", NGO, 1, "Người kéo xe ở đầu ngõ thấy hết khách ra vào."),
     hint("hint-tt-ngo-2", "SCENE", NGO, 2, "Hỏi A Phúc đang chờ ai, rồi xem chiếc hòm trên xe kéo."),

@@ -142,7 +142,7 @@ test('Sherlock cannot handle objects: the coach points at the switch tool and th
   await expect.poll(() => pointerOn(page, '#tutorial-role-btn'), { timeout: 10_000 }).toBe(true);
 
   // The guestbook as Sherlock: nothing is inspected, nothing switches; the game says who does it.
-  const point = await runtimePoint(page, 818, 1336);
+  const point = await runtimePoint(page, 708, 1314);
   expect(point).not.toBeNull();
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#toast-root')).toContainText('việc của Watson', { timeout: 10_000 });
@@ -166,7 +166,7 @@ test('Sherlock cannot handle objects: the coach points at the switch tool and th
   await expect(need).toHaveCount(0);
   await coach(page).getByRole('button', { name: 'Ẩn' }).click();
   // The first click walked Sherlock toward the counter and the camera may have followed: aim again.
-  const again = await runtimePoint(page, 818, 1336);
+  const again = await runtimePoint(page, 708, 1314);
   await page.mouse.click(again.x, again.y);
   await expect.poll(() => mock.inspectCalls.join(','), { timeout: 15_000 }).toBe('INVESTIGATOR:item-tt-so-khach');
   // The detective on screen is Watson now (his own sprite and name tag).
@@ -196,7 +196,7 @@ test('a normal two-player room has no switch tool and Q never switches detective
   await expect(page.locator('#tutorial-role-btn')).toHaveCount(0);
   await expect(coach(page)).toHaveCount(0);
   await page.keyboard.press('q');
-  const point = await runtimePoint(page, 818, 1336);
+  const point = await runtimePoint(page, 708, 1314);
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#toast-root')).toContainText('Chỉ Điều tra viên', { timeout: 10_000 });
   await page.waitForTimeout(600);

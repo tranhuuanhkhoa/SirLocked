@@ -191,8 +191,9 @@ public sealed class TutorialTests
     }
 
     /// <summary>
-    /// Like "Lo thuoc thu Nam" and "Tram hong ngoc": the objects are part of the scene art (PixelLab inpaint, see
-    /// ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json), never a picture pasted on top. Each box sits over its drawn object.
+    /// Like "Lo thuoc thu Nam" and "Tram hong ngoc": the objects are part of the scene art (PixelLab inpaint with a wide
+    /// free-form mask, see ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json), never a picture pasted on top. Each box sits
+    /// over its drawn object.
     /// </summary>
     [Fact]
     public void TutorialCase_PaintsItsObjectsIntoTheScenes_LikeTram()
@@ -217,26 +218,67 @@ public sealed class TutorialTests
             Assert.Equal(Math.Round(box.Y / 2048 * 100, 2), hotspot.Y, 2);
         }
 
-        var recipe = JsonDocument.Parse(File.ReadAllText(RepoFile("ai-game-docs", "pixel-case-tan-thu", "inpaint", "recipe.json"))).RootElement;
-        var patched = new List<string>();
+        // Every box comes from the recipe (native pixels x 4) and its object was drawn by that inpaint: the centre of the
+        // box lies inside the mask. The counter is one wide mask over the whole counter top (Yen 17/11/2026), not a box per object.
+        var recipe = JsonDocument.Parse(File.ReadAllText(InpaintFile("recipe.json"))).RootElement;
+        var zones = scenes.SelectMany(scene => scene.Runtime!.ClueZones.Select(zone => (scene, zone))).ToList();
+        var painted = new List<string>();
         foreach (var patch in recipe.GetProperty("patches").EnumerateArray())
         {
-            var itemId = patch.GetProperty("itemId").GetString()!;
-            var (scene, placement) = placements.Single(entry => entry.placement.ItemId == itemId);
-            Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl);
-            Assert.True(File.Exists(RepoFile("ai-game-docs", "pixel-case-tan-thu", "inpaint", patch.GetProperty("output").GetString()!)));
             var crop = patch.GetProperty("crop");
-            var mask = patch.GetProperty("mask");
-            // Centre of the painted mask, in runtime units (native 512 x 4).
-            var x = (crop.GetProperty("x").GetDouble() + mask.GetProperty("x").GetDouble() + mask.GetProperty("width").GetDouble() / 2) * 4;
-            var y = (crop.GetProperty("y").GetDouble() + mask.GetProperty("y").GetDouble() + mask.GetProperty("height").GetDouble() / 2) * 4;
-            var box = placement.Hotspot;
-            Assert.InRange(x, box.X, box.X + box.Width);
-            Assert.InRange(y, box.Y, box.Y + box.Height);
-            patched.Add(itemId);
+            int cropX = crop.GetProperty("x").GetInt32(), cropY = crop.GetProperty("y").GetInt32(), size = crop.GetProperty("size").GetInt32();
+            Assert.True(File.Exists(InpaintFile(patch.GetProperty("output").GetString()!)));
+            var masked = new bool[size, size];
+            if (patch.TryGetProperty("maskFile", out var maskFile))
+            {
+                using var mask = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InpaintFile(maskFile.GetString()!));
+                Assert.Equal(size, mask.Width);
+                Assert.Equal(size, mask.Height);
+                for (var y = 0; y < size; y++)
+                    for (var x = 0; x < size; x++) masked[x, y] = mask[x, y].R > 127;
+            }
+            else
+            {
+                var rect = patch.GetProperty("mask");
+                for (var y = rect.GetProperty("y").GetInt32(); y < rect.GetProperty("y").GetInt32() + rect.GetProperty("height").GetInt32(); y++)
+                    for (var x = rect.GetProperty("x").GetInt32(); x < rect.GetProperty("x").GetInt32() + rect.GetProperty("width").GetInt32(); x++) masked[x, y] = true;
+            }
+            var targets = 0;
+            foreach (var group in new[] { "items", "clueZones" })
+            {
+                if (!patch.TryGetProperty(group, out var boxes)) continue;
+                foreach (var entry in boxes.EnumerateObject())
+                {
+                    var b = entry.Value.EnumerateArray().Select(value => value.GetInt32()).ToArray();
+                    var expected = new[] { b[0] * 4.0, b[1] * 4.0, (b[2] - b[0] + 1) * 4.0, (b[3] - b[1] + 1) * 4.0 };
+                    if (group == "items")
+                    {
+                        var (scene, placement) = placements.Single(candidate => candidate.placement.ItemId == entry.Name);
+                        Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl);
+                        Assert.Equal(expected, new[] { placement.Hotspot.X, placement.Hotspot.Y, placement.Hotspot.Width, placement.Hotspot.Height });
+                    }
+                    else
+                    {
+                        var (scene, zone) = zones.Single(candidate => candidate.zone.ClueId == entry.Name);
+                        Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl);
+                        Assert.Equal(expected, new[] { zone.Bounds.X, zone.Bounds.Y, zone.Bounds.Width, zone.Bounds.Height });
+                    }
+                    int centreX = (b[0] + b[2]) / 2 - cropX, centreY = (b[1] + b[3]) / 2 - cropY;
+                    Assert.True(centreX >= 0 && centreY >= 0 && centreX < size && centreY < size && masked[centreX, centreY], $"{entry.Name}: not drawn by inpaint {patch.GetProperty("id").GetString()}");
+                    painted.Add(entry.Name);
+                    targets++;
+                }
+            }
+            if (patch.GetProperty("id").GetString() == "tra-lau-quay")
+            {
+                Assert.Equal(3, targets);
+                Assert.True(masked.Cast<bool>().Count(value => value) > 4000, "the counter mask covers the whole counter top");
+            }
         }
-        Assert.Equal(new[] { "item-tt-hom-go", "item-tt-so-khach" }, patched.Order().ToArray());
+        Assert.Equal(new[] { "clue-tt-vong-nuoc", "item-tt-hom-go", "item-tt-so-khach", "item-tt-thu-xe" }, painted.Order().ToArray());
     }
+
+    private static string InpaintFile(string name) => RepoFile("ai-game-docs", "pixel-case-tan-thu", "inpaint", name);
 
     private static string RepoFile(params string[] parts)
     {

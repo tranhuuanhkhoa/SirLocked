@@ -96,7 +96,8 @@ public partial class AiCaseService
         return $"{kind}: one {PixelSceneProfile.NativeSize}x{PixelSceneProfile.NativeSize} native picture, shown at x4 (2048x2048 runtime). "
                + "Library first, then a variant, PixelLab last (see the asset plan). No people, no animals, no readable text. "
                + (painted.Count == 0 ? string.Empty : $"Paint these investigation targets into the picture: {string.Join("; ", painted)}. "
-                   + "A library or variant picture that lacks one gets it painted in with PixelLab inpaint (asset_plan inpaintItems, asset_process inpaint_prep / inpaint_merge); never paste an item picture onto the scene. ")
+                   + "A library or variant picture that lacks one gets it painted in with PixelLab inpaint (asset_plan inpaintItems, asset_process inpaint_prep / inpaint_merge), "
+                   + "the free-form mask drawn wide along the whole surface it rests on; never paste an item picture onto the scene. ")
                + $"Scene: {scene.Title}. {scene.VisualDescription}".Trim();
     }
 
@@ -293,6 +294,7 @@ public partial class AiCaseService
           projection {{projection}}, nativeWidth/nativeHeight 512, pixelScale 4, cameraZoom {{profile.CameraZoom.ToString(CultureInfo.InvariantCulture)}}, actorScale {{scale}}, walkSpeed {{profile.WalkSpeed.ToString(CultureInfo.InvariantCulture)}}, interactRadius {{profile.InteractRadius.ToString(CultureInfo.InvariantCulture)}}.
         - Investigation items and camera clues are PAINTED INTO this background. Give a tight box over each where it is drawn; never ask for an overlay picture.
           An item missing from the picture is painted in with PixelLab inpaint (asset_process inpaint_prep / inpaint_merge) and the new background uploaded before this answer; never paste an item picture.
+          Inpaint properly: a free-form mask drawn wide along the whole surface the item rests on (the whole table top, seat or shelf), never a small box around it.
         - NPCs are 128x128 idle sprites drawn at actorScale {{scale}} ({{size}}x{{size}} runtime units): give their feet point on walkable floor.
         - walkGrid: build it from a walk mask (white = walkable feet position) with asset_process walkable: cellSize 16, cols 128, rows 128,
           data = 128 strings of 128 characters '0'/'1'. {{(outdoor
