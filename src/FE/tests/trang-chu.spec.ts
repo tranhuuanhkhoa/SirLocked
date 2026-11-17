@@ -36,6 +36,23 @@ test('every picture and the music of the introduction page load while the addres
   expect(await page.evaluate(() => document.documentElement.outerHTML.match(/["']assets\//g))).toBeNull();
 });
 
+test('the jump from / fetches the current homepage every time, not a copy the browser kept', async ({ page }) => {
+  // The server sends no Cache-Control: without a fresh ?v= the browser reused an old homepage even after Ctrl+F5 on /.
+  const asked: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === '/trang-chu/index.html') asked.push(url.search);
+  });
+  await openRoot(page);
+  await page.goto('/?ref=abc');
+  await expect(page.locator('#hero-title')).toBeVisible();
+  await expect.poll(() => address(page)).toBe('/?ref=abc');
+  expect(asked).toHaveLength(2);
+  expect(asked[0]).toMatch(/^\?v=[0-9a-z]+$/);
+  expect(asked[1]).toMatch(/^\?v=[0-9a-z]+&ref=abc$/);
+  expect(asked[1].split('&')[0]).not.toBe(asked[0]);
+});
+
 test('the music starts by itself, at the first touch when the browser blocks that, and stays off once turned off', async ({ page }) => {
   await page.addInitScript(() => {
     const plays: number[] = [];

@@ -10,8 +10,9 @@
 <script>
   // Đây là trang chủ ở https://sirlocked.id.vn/ : index.html của game chuyển "/" sang file này, nên địa chỉ được đưa về "/".
   // Vì thế mọi ảnh và nhạc dùng đường dẫn tuyệt đối /trang-chu/assets/..., không dùng assets/... tương đối.
+  // ?v=... chỉ để trình duyệt không lấy bản cũ đã giữ (xem index.html của game), nên bỏ đi khỏi địa chỉ.
   if (location.pathname.indexOf('/trang-chu/') === 0) {
-    try { history.replaceState(null, '', '/' + location.search + location.hash); } catch (e) {}
+    try { history.replaceState(null, '', '/' + location.search.replace(/([?&])v=[^&]*(&|$)/, '$1').replace(/[?&]$/, '') + location.hash); } catch (e) {}
   }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">

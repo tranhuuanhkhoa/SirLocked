@@ -6,8 +6,10 @@
   // https://sirlocked.id.vn/ is the introduction page, a static file at /trang-chu/index.html (src/FE/public/trang-chu).
   // nginx answers every address with this file, so the root is sent there before anything else loads; that page puts
   // "/" back in the address bar. #/... is an old in-game address, which the router still moves to its page.
+  // The server sends no Cache-Control, so browsers keep that page for a while on their own, and Ctrl+F5 on "/" only
+  // reloads this file, not the page it jumps to. A new ?v= on every visit makes the jump fetch the current page.
   if (location.pathname === '/' && location.hash.indexOf('#/') !== 0) {
-    location.replace('/trang-chu/index.html' + location.search + location.hash);
+    location.replace('/trang-chu/index.html?v=' + Date.now().toString(36) + (location.search ? '&' + location.search.slice(1) : '') + location.hash);
     document.head.appendChild(document.createElement('style')).textContent = 'html{background:#0b0806}body{display:none!important}';
   }
 </script>
