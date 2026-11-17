@@ -8,7 +8,7 @@
  *   -> player_view -> draft_import -> playtest -> draft_report; thêm library_sync lên server local.
  *
  *   cd tools/studio-mcp && npm run e2e:local            (đơn chế độ nhanh: bot qua cổng STORY/LOGIC/LAYOUT)
- *   node scripts/e2e-local.mjs --full                    (đơn đủ 4 cổng: "Yen" duyệt bằng API admin local)
+ *   node scripts/e2e-local.mjs --full                    (đơn đủ 4 cổng: người duyệt bằng API admin local)
  *   node scripts/e2e-local.mjs --keep                    (giữ stack chạy sau khi xong)
  * Cổng mặc định: API 5251, web 5252, Mongo 27051 (E2E_API_PORT, E2E_WEB_PORT, E2E_MONGO_PORT).
  * Khóa bridge của lần chạy là khóa ngẫu nhiên chỉ dùng cho stack local này, không in ra.
@@ -51,7 +51,7 @@ try {
   stack = await startStack({ repoRoot: repo, apiPort: ports.api, webPort: ports.web, mongoPort: ports.mongo, bridge: true, log: (line) => log(`  stack: ${line}`) });
   log(`Stack sẵn sàng: ${stack.apiUrl}`);
 
-  // ------------------------------------------------------------------ admin (plays Yen)
+  // ------------------------------------------------------------------ admin (plays the creator)
   const admin = async (method, route, body, extraHeaders = {}) => {
     const response = await fetch(`${stack.apiUrl}${route}`, {
       method,
@@ -94,7 +94,7 @@ try {
     return data;
   };
 
-  // ------------------------------------------------------------------ 1. order (Yen, on /admin/ai)
+  // ------------------------------------------------------------------ 1. order (the creator, on /admin/ai)
   const order = await admin('POST', '/api/admin/ai-cases', {
     prompt: 'E2E xưởng: một chiếc đồng hồ bỏ túi dừng lúc nửa đêm ở bến cảng.',
     generationPreset: 'SHORT_DEMO', language: 'vi',
@@ -216,7 +216,7 @@ try {
       if (draft.waitingGate === 'TRUTH' || full) {
         await admin('POST', `/api/admin/ai-cases/${draftId}/${adminGate[draft.waitingGate]}`);
         results.adminGates++;
-        log(`   Cổng ${draft.waitingGate}: "Yen" duyệt trên admin (API admin local).`);
+        log(`   Cổng ${draft.waitingGate}: người đặt đơn duyệt trên admin (API admin local).`);
       } else {
         if (draft.waitingGate === 'LOGIC' && !playerViewDone) {
           const view = await tool('player_view', { draftId });
@@ -233,7 +233,26 @@ try {
     }
     const pending = await tool('bridge_list', { draftId });
     for (const request of pending.requests) {
-      const taken = await tool('bridge_take', { requestId: request.requestId });
+      let taken = await tool('bridge_take', { requestId: request.requestId });
+      if (!results.decision && taken.kind === 'JSON') {
+        // draft_ask once: the request leaves the bot's list, the creator answers in the browser (admin API here),
+        // and the bot finds the choice in decisions.json when it takes the request again.
+        const asked = await tool('draft_ask', {
+          requestId: request.requestId, key: 'e2e-check', question: 'E2E: chọn một lựa chọn.',
+          options: [{ id: 'a', label: 'Lựa chọn A' }, { id: 'b', label: 'Lựa chọn B', detail: 'Thư viện', generations: 0 }],
+        });
+        if ((await tool('bridge_list', { draftId })).requests.some((row) => row.requestId === request.requestId)) {
+          throw new Error('Yêu cầu đang chờ người chọn lẽ ra phải rời danh sách PENDING.');
+        }
+        const waiting = await admin('GET', `/api/admin/ai-cases/${draftId}`);
+        if (waiting.orderStatus !== 'AWAITING_DECISION') throw new Error(`Đơn lẽ ra AWAITING_DECISION, đang là ${waiting.orderStatus}.`);
+        await admin('POST', `/api/admin/ai-cases/${draftId}/decisions/${asked.decisionId}`, { optionId: 'b' });
+        taken = await tool('bridge_take', { requestId: request.requestId });
+        const decisions = JSON.parse(readFileSync(path.join(repo, taken.files.decisions), 'utf8'));
+        if (decisions[0]?.chosenOptionId !== 'b') throw new Error(`decisions.json sai: ${JSON.stringify(decisions)}`);
+        results.decision = { decisionId: asked.decisionId, chosen: decisions[0].chosenOptionId };
+        log(`   draft_ask ${asked.decisionId}: rời hàng chờ, người đặt đơn chọn "Lựa chọn B", bot đọc lại trong decisions.json.`);
+      }
       if (taken.kind === 'ASSETS') {
         await answerImages();
         continue;
@@ -249,7 +268,7 @@ try {
     }
     await sleep(pending.count ? 200 : 700);
   }
-  log(`2-8. READY_TO_PUBLISH: ${results.jsonAnswers} JSON, ${results.imageRequests} lượt ảnh (${results.images} ảnh), bot qua ${results.botGates} cổng, "Yen" duyệt ${results.adminGates} cổng.`);
+  log(`2-8. READY_TO_PUBLISH: ${results.jsonAnswers} JSON, ${results.imageRequests} lượt ảnh (${results.images} ảnh), bot qua ${results.botGates} cổng, người duyệt ${results.adminGates} cổng.`);
   if (!playerViewDone) await tool('player_view', { draftId });
 
   const stale = await tool('bridge_list', { draftId, status: 'STALE', limit: 500 });
