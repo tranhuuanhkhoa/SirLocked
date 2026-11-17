@@ -183,6 +183,8 @@ export interface AssetChoice {
   libraryKey?: string;
   parentKey?: string;
   variant?: string;
+  /** LIBRARY/VARIANT scene: items the picture does not show yet, painted in by PixelLab inpaint (never pasted). */
+  inpaintItems?: string[];
   note?: string;
 }
 
@@ -208,7 +210,8 @@ export async function assetPlan(ctx: ToolContext, args: { draftId: string; choic
     })),
     reused: (data?.plan?.reuse ?? []).length,
     next: requests.length
-      ? 'Chạy từng request theo thứ tự (lần tạo đầu). Điền missingInputs bằng tiếng Anh, không tên người. Tạo lại/reroll phải hỏi Yen. Giữ PNG gốc, request, job ID ở tmp/pixellab/<draftId>/ (ngoài src/FE/public).'
+      ? 'Chạy từng request theo thứ tự (lần tạo đầu). Điền missingInputs bằng tiếng Anh, không tên người. Tạo lại/reroll phải hỏi Yen. Giữ PNG gốc, request, job ID ở tmp/pixellab/<draftId>/ (ngoài src/FE/public). '
+        + 'Request item-inpaint: asset_process inpaint_prep trên nền 512 của cảnh -> PixelLab -> inpaint_merge; không bao giờ dán ảnh vật lên cảnh.'
       : 'Kế hoạch 0 lượt PixelLab: lấy ảnh thư viện/biến thể rồi asset_upload từng ô.',
   };
 }

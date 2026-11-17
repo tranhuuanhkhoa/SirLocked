@@ -346,6 +346,59 @@
       }
     },
     {
+      "id": "item-inpaint",
+      "step": 7,
+      "title": "Vẽ thêm vật điều tra vào cảnh có sẵn (inpaint)",
+      "tool": "inpaint_image_pro_flash",
+      "fixedParams": {
+        "no_background": false,
+        "output_method": "Modify current layer",
+        "seed": 707
+      },
+      "inputs": {
+        "image": "{{inpaintSourceRef}}: khung 128 hoặc 256 cắt từ cảnh NATIVE 512 quanh chỗ đặt vật (asset_process inpaint_prep)",
+        "mask": "mask_x, mask_y, mask_width, mask_height: chỗ vẽ vật trong khung",
+        "context": "{{inpaintContextRef}} + bounding_box: cảnh xung quanh (tối đa 3 lần khung) để vật khớp phối cảnh và bảng màu"
+      },
+      "promptParam": "description",
+      "promptParts": [
+        "{{itemVisual}}, resting naturally where it lies in the scene.",
+        "Drawn as part of the same pixel art scene: same perspective, lighting, outline and palette as the surrounding picture, at the scale of the furniture around it.",
+        "No text, no letters."
+      ],
+      "placeholders": {
+        "itemVisual": {
+          "description": "Cụm từ tiếng Anh tả vật như nằm trong cảnh, ví dụ a small red closed ledger book lying flat on the wooden counter. Lấy từ items[].visualDescription."
+        }
+      },
+      "references": [
+        {
+          "param": "context_image",
+          "url": "{{inpaintContextRef}}",
+          "usage": "the surrounding scene: match its perspective, lighting and palette",
+          "usageSent": true
+        }
+      ],
+      "costGenerations": 6,
+      "fallback": {
+        "tool": "inpaint_image",
+        "costGenerations": 10,
+        "when": "Pro Flash ra vệt nhòe hoặc không vẽ gì (vật nhỏ dưới khoảng 24px): dùng inpaint_image trên khung 256, no_background false. Đây là lần vẽ lại: hỏi chủ dự án trước."
+      },
+      "outputs": [
+        "<sceneKey>-<itemKey>.png (ảnh PixelLab trả về, bản gốc)",
+        "/assets/pixel/<case-slug>/scenes/<sceneKey>.png (cảnh đã có vật: asset_process inpaint_merge chỉ chép vùng mask)"
+      ],
+      "notes": [
+        "Không bao giờ dán ảnh vật lên cảnh (asset_variant compose không còn add): lệch phối cảnh, ánh sáng, nhìn rất xấu.",
+        "Cảnh mới vẽ bằng PixelLab: ghi mọi vật điều tra vào visualDescription của cảnh để PixelLab vẽ luôn (template outdoor-map, interior). Chỉ cảnh lấy từ thư viện hoặc biến thể mới cần bước này.",
+        "Mỗi vật một lần gọi; nhiều vật trong một cảnh thì làm lần lượt trên ảnh đã ghép của lần trước.",
+        "Sau khi ghép: runtime.itemPlacements[] của vật để asset rỗng, ô bấm phủ đúng vật (inpaint_merge trả placement). items[].imageUrl chỉ là icon 64x64 cho túi đồ.",
+        "Đối chứng: màn tân thủ, ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json (hòm gỗ: inpaint_image_pro_flash khung 128, 6 lượt; sổ khách: inpaint_image khung 256, 10 lượt)."
+      ],
+      "record": "ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json"
+    },
+    {
       "id": "icon-sheet",
       "step": 7,
       "title": "Tấm icon túi đồ 256x256, lưới 4x4",

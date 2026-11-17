@@ -2,21 +2,22 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { StudioError } from '../bridge-client.js';
-import { display, requireFile, resolveInput, tmpDir, writeJsonFile } from '../files.js';
+import { display, readJsonFile, requireFile, resolveInput, tmpDir, writeJsonFile } from '../files.js';
 import {
   checkSize, cleanText, cover, cutBackground, fit, foregroundLayer, iconSheetCells, idleSheet, inspect, maskFromShapes, npcCheck, npcFromZip,
   portrait, walkableFromMask, walkOverlay, type NpcSources, type WalkShape,
 } from '../image/process.js';
-import { loadRgba, resizeNearest, saveRgba, sideBySide, type Rgba } from '../image/raster.js';
+import { inpaintCost, inpaintInputs, mergeInpaint, paintedPlacement, planInpaint, type InpaintPlan } from '../image/inpaint.js';
+import { crop as cropRgba, loadRgba, resizeNearest, saveRgba, sideBySide, type Rgba } from '../image/raster.js';
 import {
-  afterRain, compose, dusk, mirror, night, recolor, snow, VARIANT_TYPES, type ComposeItem, type Rect, type VariantType,
+  afterRain, compose, dusk, mirror, night, recolor, snow, VARIANT_TYPES, type Rect, type VariantType,
 } from '../image/variant.js';
 import { emptyItem, loadIndex, saveIndex, upsertItem, type LibraryItem } from '../library/index-store.js';
 import type { ToolContext } from './context.js';
 
 export const PROCESS_OPS = [
   'inspect', 'cut_background', 'to_webp', 'check_size', 'clean_text', 'cover', 'idle_breathe', 'sprite_sheet', 'portrait',
-  'npc_bundle', 'walkable', 'mask_from_shapes', 'foreground', 'icon_sheet', 'fit',
+  'npc_bundle', 'walkable', 'mask_from_shapes', 'foreground', 'icon_sheet', 'fit', 'inpaint_prep', 'inpaint_merge',
 ] as const;
 export type ProcessOp = (typeof PROCESS_OPS)[number];
 
@@ -223,6 +224,114 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
         hint: 'File JSON có walkGrid (đặt vào runtime.render.walkGrid), walkableArea và navigationObstacles (đặt vào runtime).',
       };
     }
+    case 'inpaint_prep': {
+      // Yen 17/11/2026: an item is never pasted onto a scene. A finished scene gets it painted in by PixelLab inpaint.
+      const sceneRef = p.scene ?? args.input;
+      if (!sceneRef || !p.rect) {
+        throw new StudioError('BAD_ARGS', 'inpaint_prep cần params.scene (ảnh cảnh NATIVE 512) và params.rect [x0,y0,x1,y1] (pixel native, chỗ vẽ vật, gồm cả hai đầu). Tùy chọn: description (tiếng Anh ASCII), size 128|256, id.');
+      }
+      const scene = (await loadPicture(ctx, sceneRef)).image;
+      if (scene.width !== 512 || scene.height !== 512) {
+        throw new StudioError('BAD_ARGS', `inpaint_prep làm trên cảnh NATIVE 512x512, không dùng bản phóng to (ảnh là ${scene.width}x${scene.height}).`);
+      }
+      if (p.description !== undefined && !/^[\x20-\x7E]*$/.test(String(p.description))) {
+        throw new StudioError('BAD_ARGS', 'description gửi PixelLab là tiếng Anh ASCII, không dấu, không tên nhân vật.');
+      }
+      let plan: InpaintPlan;
+      try {
+        plan = planInpaint(scene.width, scene.height, asRect(p.rect), p.size);
+      } catch (error) {
+        throw new StudioError('BAD_ARGS', (error as Error).message);
+      }
+      const id = String(p.id ?? 'vat').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+      const base = path.basename(sceneRef.split('#')[0]).replace(/\.[^.]+$/, '');
+      const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', `${base}-inpaint-${id}`);
+      const inputs = inpaintInputs(scene, plan);
+      const files = {
+        source: path.join(dir, 'source.png'), mask: path.join(dir, 'mask.png'), context: path.join(dir, 'context.png'),
+        preview: path.join(dir, 'preview.png'), plan: path.join(dir, 'plan.json'),
+      };
+      await saveRgba(inputs.source, files.source);
+      await saveRgba(inputs.mask, files.mask, { opaque: true });
+      await saveRgba(inputs.context, files.context);
+      // What Claude looks at before spending: the canvas x4 with the mask tinted red.
+      const preview = resizeNearest(inputs.source, plan.crop.width * 4, plan.crop.height * 4);
+      for (let y = plan.mask.y * 4; y < (plan.mask.y + plan.mask.height) * 4; y++) {
+        for (let x = plan.mask.x * 4; x < (plan.mask.x + plan.mask.width) * 4; x++) {
+          const i = (y * preview.width + x) * 4;
+          preview.data[i] = Math.round(preview.data[i] * 0.5 + 255 * 0.5);
+          preview.data[i + 1] = Math.round(preview.data[i + 1] * 0.5);
+          preview.data[i + 2] = Math.round(preview.data[i + 2] * 0.5);
+        }
+      }
+      await saveRgba(preview, files.preview);
+      const description = String(p.description ?? '<tiếng Anh ASCII: vật + chỗ đặt, vd. "a small red closed ledger book lying flat on the wooden counter">');
+      const mask = { mask_x: plan.mask.x, mask_y: plan.mask.y, mask_width: plan.mask.width, mask_height: plan.mask.height };
+      const calls = [
+        {
+          tool: 'inpaint_image_pro_flash', generations: inpaintCost('inpaint_image_pro_flash', plan.crop.width),
+          params: {
+            image_url: 'upload:<source.png>', ...mask, description, no_background: false, output_method: 'Modify current layer',
+            context_image: { url: 'upload:<context.png>', usage_description: 'the surrounding scene: match its perspective, lighting and palette' },
+            bounding_box: plan.boundingBox,
+          },
+        },
+        {
+          tool: 'inpaint_image', generations: inpaintCost('inpaint_image', plan.crop.width),
+          params: { image_url: 'upload:<source.png>', ...mask, description, no_background: false },
+          when: 'Pro Flash ra vệt nhòe (vật nhỏ dưới ~24px): thử cách này, khung 256 (size: 256) thường sạch hơn. Lần gọi lại phải hỏi chủ dự án trước.',
+        },
+      ];
+      writeJsonFile(files.plan, { scene: sceneRef, rect: p.rect, ...plan, description: p.description ?? null, calls });
+      return {
+        dir: display(ctx.config, dir), files: Object.fromEntries(Object.entries(files).map(([key, file]) => [key, display(ctx.config, file)])),
+        ...plan, calls, pixelLabCredits: 0,
+        next: [
+          `Mở ${display(ctx.config, files.preview)}: vùng đỏ là chỗ PixelLab vẽ vật (chỉ vùng này được thay).`,
+          'PixelLab get_upload_url, tải source.png và context.png lên (curl), thay upload:<...> trong calls[0] rồi gọi. Lần đầu theo yêu cầu thì chạy; vẽ lại phải hỏi chủ dự án.',
+          'get_image(job_id) lấy URL tải PNG, lưu file, rồi asset_process { op: "inpaint_merge", params: { plan: "' + display(ctx.config, files.plan) + '", result: <file PNG> } }.',
+        ],
+      };
+    }
+    case 'inpaint_merge': {
+      if (!p.result || (!p.plan && !(p.crop && p.mask))) {
+        throw new StudioError('BAD_ARGS', 'inpaint_merge cần params.result (PNG PixelLab trả về) và params.plan (plan.json của inpaint_prep), hoặc params.crop {x,y,width,height} + params.mask {x,y,width,height}.');
+      }
+      const plan = p.plan ? readJsonFile(requireFile(ctx.config, p.plan)) : { crop: p.crop, mask: p.mask };
+      const sceneRef = p.scene ?? args.input ?? plan.scene;
+      if (!sceneRef) throw new StudioError('BAD_ARGS', 'inpaint_merge cần params.scene (ảnh cảnh gốc).');
+      const scene = (await loadPicture(ctx, sceneRef)).image;
+      const result = (await loadPicture(ctx, p.result)).image;
+      let merged;
+      try {
+        merged = mergeInpaint(scene, result, plan);
+      } catch (error) {
+        throw new StudioError('BAD_ARGS', (error as Error).message);
+      }
+      if (!merged.drawn) {
+        throw new StudioError('INPAINT_EMPTY', 'PixelLab gần như không vẽ gì trong vùng mask. Báo chủ dự án, đề xuất sửa description hoặc khung 256 rồi chờ đồng ý trước khi gọi lại.');
+      }
+      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, sceneRef.split('#')[0], 've-vat', '.png');
+      await saveRgba(merged.image, output);
+      const compare = output.replace(/\.[^.]+$/, '-so-sanh.png');
+      const zoom = (img: Rgba) => {
+        const part = cropRgba(img, plan.crop.x, plan.crop.y, plan.crop.width, plan.crop.height);
+        return resizeNearest(part, part.width * 3, part.height * 3);
+      };
+      await saveRgba(sideBySide(zoom(scene), zoom(merged.image)), compare);
+      const pixelScale = p.pixelScale ?? 4;
+      return {
+        output: display(ctx.config, output), compare: display(ctx.config, compare),
+        changedPixels: merged.changed, ignoredOutsideMask: merged.ignoredOutside, drawn: merged.drawn,
+        placement: paintedPlacement(merged.drawn, pixelScale, p.pad ?? 2, scene.width),
+        pixelLabCredits: 0,
+        hint: [
+          `Mở ${display(ctx.config, compare)} để tự xem trước/sau. Pixel ngoài mask giữ nguyên từng byte.`,
+          'placement (đơn vị runtime = native x 4): ghi vào runtime.itemPlacements[] của vật (asset rỗng, hotspot phủ vật), hotspots[] của cảnh dùng cùng ô.',
+          'Ảnh cảnh mới thay backgroundUrl: asset_upload vào ô background:<sceneId>. Giữ source/mask/context, PNG PixelLab và job ID.',
+        ],
+      };
+    }
     default:
       throw new StudioError('BAD_ARGS', `op phải là một trong: ${PROCESS_OPS.join(', ')}`);
   }
@@ -250,9 +359,16 @@ const puddles = (value: any) => (value ?? [])
   .map((entry: any) => (Array.isArray(entry) ? { x: entry[0], y: entry[1], rx: entry[2], ry: entry[3] } : entry))
   .filter((entry: any) => [entry?.x, entry?.y, entry?.rx, entry?.ry].every((n) => Number.isFinite(n)) && entry.rx > 0 && entry.ry > 0);
 
+/** Yen 17/11/2026: pasting an item picture onto a map looks wrong. Items are painted by PixelLab instead. */
+export const ITEM_PASTE_MESSAGE = 'Không dán ảnh vật lên cảnh (lệch phối cảnh, ánh sáng, nhìn rất xấu). '
+  + 'Cảnh mới: ghi vật vào mô tả cảnh (visualDescription) để PixelLab vẽ luôn vào nền. '
+  + 'Cảnh đã có: asset_process inpaint_prep -> PixelLab inpaint_image_pro_flash (hoặc inpaint_image) -> asset_process inpaint_merge. '
+  + 'compose chỉ còn remove (xóa vật bằng nội suy).';
+
 export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
   if (!VARIANT_TYPES.includes(args.type)) throw new StudioError('BAD_ARGS', `type phải là một trong: ${VARIANT_TYPES.join(', ')}`);
   const p = args.params ?? {};
+  if (args.type === 'compose' && (p.add ?? []).length > 0) throw new StudioError('ITEM_PASTE_FORBIDDEN', ITEM_PASTE_MESSAGE);
   const { image: source, file: sourceFile } = await loadPicture(ctx, args.input);
   const index = loadIndex(ctx.config.libraryIndexPath);
   const parent = index.items.find((item) => item.key === args.input.split('#')[0]);
@@ -297,12 +413,8 @@ export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
       break;
     }
     case 'compose': {
-      const add: ComposeItem[] = [];
-      for (const entry of p.add ?? []) {
-        add.push({ image: (await loadPicture(ctx, entry.source)).image, x: entry.x, y: entry.y, scale: entry.scale, flip: entry.flip, shadow: entry.shadow });
-      }
-      image = compose(source, { add, remove: rects(p.remove) });
-      extra.added = add.length;
+      if (!(p.remove ?? []).length) throw new StudioError('BAD_ARGS', 'compose cần params.remove [[x0,y0,x1,y1], ...]. ' + ITEM_PASTE_MESSAGE);
+      image = compose(source, { remove: rects(p.remove) });
       extra.removed = (p.remove ?? []).length;
       break;
     }
@@ -340,5 +452,5 @@ export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
 }
 
 const VARIANT_NAMES_VI: Record<VariantType, string> = {
-  night: 'ban đêm', dusk: 'hoàng hôn', snow: 'tuyết', after_rain: 'sau mưa', mirror: 'lật gương', recolor: 'đổi màu', compose: 'bày lại',
+  night: 'ban đêm', dusk: 'hoàng hôn', snow: 'tuyết', after_rain: 'sau mưa', mirror: 'lật gương', recolor: 'đổi màu', compose: 'xóa bớt vật',
 };

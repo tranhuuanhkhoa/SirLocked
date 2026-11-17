@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.DTOs.Investigation;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
@@ -187,6 +188,61 @@ public sealed class TutorialTests
         Assert.Contains(gameCase.Items, item => item.IsCollectible);
         Assert.Equal(3, gameCase.FinalLogic.RequiredEvidenceLinks.Count);
         Assert.Equal("char-tt-hamilton", gameCase.FinalLogic.CulpritId);
+    }
+
+    /// <summary>
+    /// Like "Lo thuoc thu Nam" and "Tram hong ngoc": the objects are part of the scene art (PixelLab inpaint, see
+    /// ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json), never a picture pasted on top. Each box sits over its drawn object.
+    /// </summary>
+    [Fact]
+    public void TutorialCase_PaintsItsObjectsIntoTheScenes_LikeTram()
+    {
+        var gameCase = LoadTutorialCase();
+        var layout = new CaseValidationResult();
+        PixelDraftRules.ValidateLayout(gameCase, layout);
+        Assert.True(layout.IsValid, string.Join(Environment.NewLine, layout.Errors.Select(error => $"{error.Code} {error.Path}: {error.Message}")));
+
+        var scenes = gameCase.Stages.SelectMany(stage => stage.Scenes).ToList();
+        var placements = scenes.SelectMany(scene => scene.Runtime!.ItemPlacements.Select(placement => (scene, placement))).ToList();
+        Assert.Equal(3, placements.Count);
+        foreach (var (scene, placement) in placements)
+        {
+            Assert.Equal(string.Empty, placement.Asset);
+            var box = placement.Hotspot;
+            Assert.Equal(box.X + box.Width / 2, placement.Position.X, 3);
+            Assert.Equal(box.Y + box.Height, placement.Position.Y, 3);
+            // The scene hotspot (percent of the scene) is the same box.
+            var hotspot = scene.Hotspots.Single(candidate => candidate.TargetId == placement.ItemId);
+            Assert.Equal(Math.Round(box.X / 2048 * 100, 2), hotspot.X, 2);
+            Assert.Equal(Math.Round(box.Y / 2048 * 100, 2), hotspot.Y, 2);
+        }
+
+        var recipe = JsonDocument.Parse(File.ReadAllText(RepoFile("ai-game-docs", "pixel-case-tan-thu", "inpaint", "recipe.json"))).RootElement;
+        var patched = new List<string>();
+        foreach (var patch in recipe.GetProperty("patches").EnumerateArray())
+        {
+            var itemId = patch.GetProperty("itemId").GetString()!;
+            var (scene, placement) = placements.Single(entry => entry.placement.ItemId == itemId);
+            Assert.EndsWith("/" + patch.GetProperty("scene").GetString(), scene.BackgroundUrl);
+            Assert.True(File.Exists(RepoFile("ai-game-docs", "pixel-case-tan-thu", "inpaint", patch.GetProperty("output").GetString()!)));
+            var crop = patch.GetProperty("crop");
+            var mask = patch.GetProperty("mask");
+            // Centre of the painted mask, in runtime units (native 512 x 4).
+            var x = (crop.GetProperty("x").GetDouble() + mask.GetProperty("x").GetDouble() + mask.GetProperty("width").GetDouble() / 2) * 4;
+            var y = (crop.GetProperty("y").GetDouble() + mask.GetProperty("y").GetDouble() + mask.GetProperty("height").GetDouble() / 2) * 4;
+            var box = placement.Hotspot;
+            Assert.InRange(x, box.X, box.X + box.Width);
+            Assert.InRange(y, box.Y, box.Y + box.Height);
+            patched.Add(itemId);
+        }
+        Assert.Equal(new[] { "item-tt-hom-go", "item-tt-so-khach" }, patched.Order().ToArray());
+    }
+
+    private static string RepoFile(params string[] parts)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SirLocked.sln"))) directory = directory.Parent;
+        return Path.Combine(new[] { directory!.FullName }.Concat(parts).ToArray());
     }
 
     [Fact]

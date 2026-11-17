@@ -1,0 +1,38 @@
+{
+ "note": "Vật điều tra vẽ thêm vào cảnh bằng inpaint của PixelLab. Không dán ảnh vật lên cảnh. Mỗi mục: cắt vùng crop từ cảnh native 512, gửi PixelLab với mask, rồi chỉ chép lại đúng vùng mask vào cảnh (scene_patches.py).",
+ "patches": [
+  {
+   "itemId": "item-tt-so-khach",
+   "scene": "scenes/tra-lau.png",
+   "output": "tra-lau-so-khach.png",
+   "crop": {"x": 100, "y": 200, "size": 256},
+   "mask": {"x": 98, "y": 129, "width": 26, "height": 17},
+   "tool": "inpaint_image",
+   "params": {"no_background": false},
+   "jobId": "1b787dd2-7219-47fc-8835-2973f1102648",
+   "generations": 10,
+   "subject": "Sổ khách bìa đỏ gập lại, nằm trên mặt quầy giữa cái cân và khay trà",
+   "date": "2026-11-17"
+  },
+  {
+   "itemId": "item-tt-hom-go",
+   "scene": "scenes/ngo.png",
+   "output": "ngo-hom-go.png",
+   "crop": {"x": 268, "y": 154, "size": 128},
+   "mask": {"x": 54, "y": 56, "width": 20, "height": 16},
+   "tool": "inpaint_image_pro_flash",
+   "params": {"context_image": "crop 384x384 của ngo.png tại (128, 0)", "bounding_box": {"x": 140, "y": 154, "width": 128, "height": 128}},
+   "jobId": "560b88ca-fbad-4224-be29-9948e67ffde2",
+   "generations": 6,
+   "subject": "Hòm gỗ sẫm màu đai sắt đặt trên ghế xe kéo",
+   "date": "2026-11-17"
+  }
+ ],
+ "painted": [
+  {
+   "itemId": "item-tt-thu-xe",
+   "scene": "scenes/tra-lau.png",
+   "subject": "Mấy mảnh giấy trắng có sẵn trong ảnh trà lâu, trên quầy cạnh cái cân (native khoảng 116-146, 315-328). Không cần inpaint."
+  }
+ ]
+}

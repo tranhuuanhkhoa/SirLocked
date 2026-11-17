@@ -4,7 +4,7 @@
 
 `scripts/build_pixellab_requests.mjs` đọc tệp này để dựng kế hoạch request cho một case. Sửa câu chữ ở `templates.json` thì builder đổi theo.
 
-Server cũng đọc đúng tệp này (nhúng vào API lúc build, `PixelLabPlanBuilder`) để dựng kế hoạch request cho bản nháp AI pixel (VUAN-6B, `PUT /api/bridge/drafts/{id}/asset-plan`): chỉ chủ thể bot khai là mới (`PIXELLAB`) mới ra request; hình thư viện và biến thể 0 lượt. Mục `glossaries` (từ khóa tiếng Việt → bản nháp tiếng Anh) dùng chung cho cả hai. File golden `src/BE/Tests/Fixtures/pixellab-plan-dong-ho.golden.json` giữ hai builder ra cùng prompt: sửa câu chữ có chủ ý thì chạy `UPDATE_PIXELLAB_GOLDEN=1 node --test scripts/build_pixellab_requests.test.mjs` rồi chạy test C#.
+Server cũng đọc đúng tệp này (nhúng vào API lúc build, `PixelLabPlanBuilder`) để dựng kế hoạch request cho bản nháp AI pixel (VUAN-6B, `PUT /api/bridge/drafts/{id}/asset-plan`): chỉ chủ thể bot khai là mới (`PIXELLAB`) mới ra request; hình thư viện và biến thể 0 lượt. Cảnh thư viện hoặc biến thể có `inpaintItems` thì mỗi vật thành một request `item-inpaint`. Mục `glossaries` (từ khóa tiếng Việt → bản nháp tiếng Anh) dùng chung cho cả hai. File golden `src/BE/Tests/Fixtures/pixellab-plan-dong-ho.golden.json` giữ hai builder ra cùng prompt: sửa câu chữ có chủ ý thì chạy `UPDATE_PIXELLAB_GOLDEN=1 node --test scripts/build_pixellab_requests.test.mjs` rồi chạy test C#.
 
 ## Quy trình và template
 
@@ -21,11 +21,12 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
 | 5 | `object-mask` | `edit_image` (Edit Image Pro) 512×512 | Sau khi bản đồ đã chốt | 25 |
 | 6 | `local-layers` | không AI | Sửa mask, cắt vật che, `baseY`, lưới đi | 0 |
 | 7 | `interior` | `create_image_pro` 512×512 + `reference_images` | Mỗi cảnh isometric một ảnh | 25 |
+| 7 | `item-inpaint` | `inpaint_image_pro_flash` khung 128 + `context_image` | Cảnh thư viện/biến thể chưa có vật điều tra: vẽ thêm vật vào cảnh | 6 (dự phòng `inpaint_image` khung 256: 10) |
 | 7 | `icon-sheet` | `create_image_pro` 256×256 + `style_image_url` | Icon túi đồ, tối đa 16 vật mỗi tấm | 10 |
 | 8 | `integrate` | không AI | Ghi `runtime.render`, cửa và spawn vào case JSON | 0 |
 
-Ước tính cho một case gồm 1 bản đồ, N NPC mới, R phòng, S tấm icon:
-25 + 14×N + 25 + 25×R + 10×S. Case mẫu có N = 6, R = 5, S = 1, tổng 269. Thêm Watson mới (front + rotate + đi bộ + idle 4 hướng) thì cộng 28.
+Ước tính cho một case gồm 1 bản đồ, N NPC mới, R phòng, S tấm icon, V vật vẽ thêm vào cảnh có sẵn:
+25 + 14×N + 25 + 25×R + 10×S + 6×V. Case mẫu có N = 6, R = 5, S = 1, tổng 269. Thêm Watson mới (front + rotate + đi bộ + idle 4 hướng) thì cộng 28.
 
 ## Quy tắc bắt buộc
 
@@ -43,6 +44,11 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
   - Đợt 0 (16/11) làm tắt (3 lượt mỗi NPC) nên ra kiểu chibi đầu to, mắt to. 39 NPC đó đã khóa (`retired`) trong `tools/studio-mcp/library/index.json`, chờ vẽ lại.
 - **Mask và ảnh tham chiếu ngoại thất lấy từ bản đồ NATIVE 512**, không dùng bản phóng to. Ghép animation môi trường lại đúng toạ độ crop.
 - **Nội thất:** isometric 2:1, một sàn + hai tường sau, mặt trước và ngưỡng cửa để trống, không NPC. Vật phẩm điều tra của cảnh phải có trong mô tả vì pixel mode vẽ vật vào nền.
+- **Vật điều tra không bao giờ dán ảnh lên cảnh** (Yen chốt 17/11/2026). Dán icon hay ảnh vật lên bản đồ thì lệch phối cảnh và ánh sáng, nhìn rất xấu. Làm như vụ Lò thuốc thứ Năm và Trâm hồng ngọc:
+  - Cảnh vẽ mới: ghi mọi vật vào `visualDescription` của cảnh để PixelLab vẽ luôn (`outdoor-map`, `interior`).
+  - Cảnh đã vẽ xong (thư viện, biến thể, hay cần thêm vật sau): `item-inpaint`. `asset_process inpaint_prep` cắt khung 128 hoặc 256 quanh chỗ đặt vật từ cảnh NATIVE 512, làm mask và context (tối đa 3 lần khung). Gửi PixelLab. `asset_process inpaint_merge` chỉ chép vùng mask vào cảnh, pixel ngoài mask giữ nguyên từng byte.
+  - Trong case JSON: `itemPlacements[].asset` rỗng, ô bấm phủ đúng vật, `position` là giữa cạnh dưới ô bấm. `items[].imageUrl` chỉ là icon 64×64 cho túi đồ.
+  - Mẫu đối chứng: màn tân thủ (`ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json`). Hòm gỗ: Pro Flash khung 128 có context, 6 lượt, sạch. Sổ khách: Pro Flash ra vệt nhòe, `inpaint_image` khung 256 sạch (10 lượt). Vật nhỏ dưới khoảng 24px dễ nhòe với Pro Flash.
 - **Lần tạo đầu theo yêu cầu thì chạy. Tạo lại hoặc reroll bằng AI phải hỏi chủ dự án trước.** Kể cả khi kết quả chưa đẹp: báo vấn đề, đề xuất sửa prompt, chờ đồng ý.
 - **Giữ mọi thứ:** PNG gốc (cả 4 ứng viên), request đã gửi, receipt có job ID, character ID, animation group, chi phí. Bản gốc để ngoài `src/FE/public`.
 

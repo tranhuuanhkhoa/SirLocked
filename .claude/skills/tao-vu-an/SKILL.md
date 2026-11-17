@@ -28,7 +28,7 @@ Bạn là bot viết vụ án cho Sir Locked. Server giữ prompt, schema, valid
 | 3 | Bot | **Xem trước truyện**: tiêu đề, bối cảnh, vụ mở đầu, nghi phạm, không lộ hung thủ. → **Cổng 1 STORY** | `bridge_list`, `bridge_take`, `bridge_check`, `bridge_submit` |
 | 4 | Bot | **Sự thật**: hung thủ, động cơ, phương thức, dòng thời gian thật, chứng cứ, lời khai, đồ thị chứng minh. Thám tử mù thử trước khi nộp bước logic. → **Cổng 2 TRUTH (luôn Yen)** | như trên |
 | 5 | Bot | **Logic chơi**: cảnh, vật phẩm, giải đố có đủ tham số, hội thoại, đối chất, **gợi ý 3 mức cho mọi câu hỏi** (mục "Gợi ý 3 mức"), kết thúc. Bước đánh giá của server do agent `kiem-dinh` trả lời. → **Cổng 3 LOGIC** | như trên, `player_view` |
-| 6 | Bot | **Hình nền cảnh và bố cục** (vụ pixel, mục "Hình"): khai `asset_plan` (thư viện → biến thể → PixelLab trong trần), tải nền 512×512 từng cảnh, rồi trả lời bố cục mỗi cảnh: `walkGrid`, `foreground`, spawn, cửa, ô bấm trên vật đã vẽ trong nền, chân NPC. → **Cổng 4 LAYOUT** | `assets_needed`, `asset_plan`, `library_search`, `asset_variant`, `asset_process` (`walkable`, `foreground`), `asset_upload`, `assets_complete` |
+| 6 | Bot | **Hình nền cảnh và bố cục** (vụ pixel, mục "Hình"): khai `asset_plan` (thư viện → biến thể → PixelLab trong trần), tải nền 512×512 từng cảnh, rồi trả lời bố cục mỗi cảnh: `walkGrid`, `foreground`, spawn, cửa, ô bấm trên vật đã vẽ trong nền, chân NPC. → **Cổng 4 LAYOUT** | `assets_needed`, `asset_plan`, `library_search`, `asset_variant`, `asset_process` (`walkable`, `foreground`, `inpaint_prep`, `inpaint_merge`), `asset_upload`, `assets_complete` |
 | 7 | Bot | **Hình nhân vật và vật phẩm**: sprite thở 1152×128 + chân dung 288×288 mỗi NPC, icon 64×64 mỗi vật nhặt được | `asset_process` (`npc_bundle`, `icon_sheet`), `asset_upload`, `assets_complete` |
 | 8 | Bot | **Âm thanh và thời tiết**: nhạc mỗi khu chọn trong thư viện nhạc, giọng bíp từng nhân vật (nghe thử, không ai trùng giọng), thời tiết cảnh ngoài trời theo đơn (trong nhà `indoor: true`), thời điểm; quay thử cảnh ngoài trời; tiếng giao diện chọn trong gói CC0 — ghi thẳng trong JSON | `music_search`, `blip_preview`, `weather_preview`, `sfx_search` |
 | 9 | Bot → Yen | **Chạy thử**: import (không đăng), Playwright tự chơi theo lời giải, viết `report.md`. Yen chơi thử rồi tự bấm Xuất bản | `draft_import`, `playtest`, `draft_report` |
@@ -154,7 +154,7 @@ Từ VUAN-6B mọi đơn mới là **vụ pixel** (`visualPipeline: pixel-v1`): 
 | Lưới đi | mask từ `edit_image` (template `object-mask`) hoặc `asset_process mask_from_shapes` | `render.walkGrid` ô 16, 128×128 |
 | Đồ che (đèn, xe, cây) | `asset_process foreground` cắt từ bản đồ native theo mask | `render.foreground[]` `{id,url,x,y,width,height,baseY}` ×4 |
 | NPC | `character-front` 96×96 → `create_character` v3 → `animate_character` idle; tỉ lệ người thật như Sherlock, không chibi | chân dung 288×288; `presentation.spriteSheet` 1152×128, khung 128, 9 khung, 6 fps, `anchorY` đo từ chân |
-| Vật điều tra, manh mối camera | **vẽ sẵn vào nền** (ghi vào mô tả cảnh) | `itemPlacements[]` `asset` rỗng + ô bấm đúng chỗ vật |
+| Vật điều tra, manh mối camera | **vẽ sẵn vào nền**: cảnh mới ghi vật vào `visualDescription`; cảnh thư viện/biến thể chưa có vật thì PixelLab inpaint (`item-inpaint`). **Không bao giờ dán ảnh vật lên cảnh** | `itemPlacements[]` `asset` rỗng + ô bấm đúng chỗ vật |
 | Icon túi đồ | `icon-sheet` 256×256 lưới 4×4, `asset_process icon_sheet` | `items[].imageUrl` 64×64 |
 | Bìa | không vẽ riêng | server lấy ảnh một phòng có người |
 | Cutscene | không vẽ ảnh mới | `motion-comic-v1`, `art` trỏ id cảnh, nhân vật có sẵn |
@@ -176,6 +176,11 @@ Trong nhà hay ngoài trời do `atmosphere.indoor` của cảnh quyết (bướ
   - Chọn trong 4 ứng viên mặt trước: ứng viên nhìn thẳng, tỉ lệ đầu và người giống Sherlock.
   - `asset_process` (`npc_bundle`, `sprite_sheet`, `idle_breathe`, `portrait`) từ chối sprite không phải 96×96 (`NPC_FORMAT`) và zip PixelLab có prompt chibi/đầu to (`NPC_STYLE`).
   - Bị từ chối thì báo Yen: vẽ lại là reroll nên phải hỏi trước. **Không sửa hay thu nhỏ ảnh cho lọt.**
+- **Vật điều tra là một phần của ảnh cảnh, không bao giờ dán ảnh vật lên** (Yen chốt 17/11/2026, như vụ Lò thuốc thứ Năm và Trâm hồng ngọc; màn tân thủ làm mẫu ở `ai-game-docs/pixel-case-tan-thu/inpaint/`). Dán icon hay ảnh vật lên bản đồ thì lệch phối cảnh, ánh sáng, nhìn rất xấu.
+  - Cảnh **vẽ mới**: ghi mọi vật điều tra của cảnh vào `visualDescription` (tiếng Anh) để PixelLab vẽ luôn vào nền.
+  - Cảnh **thư viện hoặc biến thể** đã có vật đó trong ảnh: chỉ đặt ô bấm lên chỗ vật.
+  - Cảnh thư viện/biến thể **chưa có vật**: khai `inpaintItems` ở `asset_plan`, rồi `asset_process inpaint_prep { scene, rect, description }` → PixelLab `inpaint_image_pro_flash` (6 lượt, khung 128) → `asset_process inpaint_merge { plan, result }` (chỉ chép vùng mask; trả sẵn `placement`). Pro Flash ra vệt nhòe thì đề xuất `inpaint_image` khung 256 (10 lượt) và hỏi Yen trước (là vẽ lại).
+  - `itemPlacements[].asset` luôn rỗng; `items[].imageUrl` chỉ là icon 64×64 cho túi đồ. `asset_variant compose` không còn `add` (`ITEM_PASTE_FORBIDDEN`), chỉ còn `remove`. Validator chặn ảnh dán (`PixelItemOverlay`).
 - **Mask và ảnh tham chiếu ngoại thất lấy từ ảnh NATIVE 512**, không dùng bản phóng to.
 - **Lần tạo đầu thì chạy. Tạo lại hoặc reroll phải hỏi Yen trước**, kể cả khi kết quả chưa đẹp: báo vấn đề, đề xuất sửa prompt, chờ đồng ý.
 - **Giữ mọi thứ ngoài `src/FE/public`**: PNG gốc (cả 4 ứng viên), request đã gửi, receipt có job ID, character ID, chi phí ở `tmp/pixellab/<draftId>/`.
@@ -184,17 +189,18 @@ Trong nhà hay ngoài trời do `atmosphere.indoor` của cảnh quyết (bướ
 ### Làm hình một đơn
 
 1. `assets_needed { draftId }`: ô hình, `pixel.subjects` (mỗi cảnh, NPC, icon kèm `libraryKind` và gợi ý thư viện từ đơn), kế hoạch PixelLab hiện tại (`tmp/bridge/<draftId>/pixellab-plan.json`). Vụ pixel **không còn** ô 1600×900, 1024×1536 hay ô bìa; `asset_process fit` chỉ dành cho bản nháp cũ.
-2. Chọn nguồn từng thứ: **thư viện đúng chỗ** (`library_search … download: true`) → **biến thể** (`asset_variant`, 0 lượt: `night`, `dusk`, `snow`, `after_rain`, `mirror`, `recolor`, `compose`) → **PixelLab** cho chỗ thật sự mới (tối đa 1–2 phòng, 0–2 NPC). Một gương mặt không đóng hai vai trong một vụ.
+2. Chọn nguồn từng thứ: **thư viện đúng chỗ** (`library_search … download: true`) → **biến thể** (`asset_variant`, 0 lượt: `night`, `dusk`, `snow`, `after_rain`, `mirror`, `recolor`, `compose` chỉ để xóa vật) → **PixelLab** cho chỗ thật sự mới (tối đa 1–2 phòng, 0–2 NPC). Một gương mặt không đóng hai vai trong một vụ.
    - **NPC thư viện Đợt 0 đã khóa** (`retired`: kiểu chibi, sai cỡ). `library_search` không trả chúng; không dùng lại bằng key hay file tải sẵn.
    - NPC đúng chuẩn còn trong thư viện: 6 NPC vụ Lò thuốc (`v-case-npc-*`, thế giới Victoria).
    - Thiếu NPC cho thế giới của đơn thì được vẽ mới quá 2 NPC, miễn trong `pixelLabCap` (14 lượt mỗi NPC). Không đủ trần thì hỏi Yen.
-3. `asset_plan { draftId, choices: [{ subject, source: LIBRARY|VARIANT|PIXELLAB, libraryKey, parentKey, variant }] }`. Server dựng request theo `templates.json`: tool, kích thước, prompt điền sẵn, `dependsOn` (thứ tự), `dependsOnLibrary` (bản đồ thư viện để cắt ngoại thất), số lượt, ô đích. Vượt `pixelLabCap` thì bị chặn (`AI_PIXELLAB_CAP_EXCEEDED`): đổi bớt sang thư viện/biến thể hoặc hỏi Yen. **Chưa có kế hoạch đạt thì server không nhận ảnh.** Chủ thể bỏ trống bị tính là vẽ mới. Key thư viện phải có trên server (`library_sync { direction: "push", keys }` trước).
+3. `asset_plan { draftId, choices: [{ subject, source: LIBRARY|VARIANT|PIXELLAB, libraryKey, parentKey, variant, inpaintItems }] }`. `inpaintItems` (chỉ cho cảnh LIBRARY/VARIANT): itemId của vật ảnh cảnh chưa có, mỗi vật một request `item-inpaint` 6 lượt. Server dựng request theo `templates.json`: tool, kích thước, prompt điền sẵn, `dependsOn` (thứ tự), `dependsOnLibrary` (bản đồ thư viện để cắt ngoại thất), số lượt, ô đích. Vượt `pixelLabCap` thì bị chặn (`AI_PIXELLAB_CAP_EXCEEDED`): đổi bớt sang thư viện/biến thể hoặc hỏi Yen. **Chưa có kế hoạch đạt thì server không nhận ảnh.** Chủ thể bỏ trống bị tính là vẽ mới. Key thư viện phải có trên server (`library_sync { direction: "push", keys }` trước).
 4. Chạy request PixelLab đúng thứ tự `order` (tối đa 10 job cùng lúc), điền `missingInputs` bằng tiếng Anh. Kiểm còn trong trần trước mỗi job.
 5. Xử lý trên máy (0 lượt):
    - NPC: `asset_process npc_bundle` trên zip PixelLab (hoặc file `idle`, `portrait` của NPC thư viện) → sprite thở 1152×128, chân dung 288×288. Lỗi `NPC_FORMAT` hay `NPC_STYLE` thì dừng NPC đó, báo Yen (xem luật phong cách NPC ở trên).
    - Icon: `asset_process icon_sheet { names }` cắt tấm 256 thành ô 64×64 theo `grid` của request.
    - Lưới đi: mask PixelLab (ngưỡng 128) hoặc `mask_from_shapes` (sàn thoi trong nhà trừ khối đồ đạc) → `walkable { picture }`; mở ảnh phủ xanh/đỏ để tự kiểm.
    - Đồ che ngoài trời: `asset_process foreground { map, mask, rect, id }` → layer có `baseY` (gốc cây cao hơn đáy vết cắt thì `baseRow`); tải PNG lên thư viện (`POST /api/bridge/library/files`) lấy URL.
+   - Vật cần vẽ thêm vào cảnh (request `item-inpaint`): `asset_process inpaint_prep { scene: <nền 512>, rect: [x0,y0,x1,y1], description, id }` → mở `preview.png` (vùng đỏ là chỗ vẽ) → `get_upload_url`, tải `source.png` và `context.png` → gọi `calls[0]` → lưu PNG trả về → `asset_process inpaint_merge { plan, result }` → mở ảnh so sánh, dùng `placement` cho ô bấm. Nhiều vật một cảnh thì làm lần lượt trên ảnh đã ghép. Ảnh cảnh cuối cùng mới `asset_upload` vào `background:<sceneId>`.
 6. `asset_upload` từng ô (server kiểm đúng cỡ: nền 512×512; sprite 1152×128 có chân ở nửa dưới khung; chân dung 288×288; icon 64×64; trừ nền đều cần alpha) → `assets_complete`. Yêu cầu `ASSETS` đầu (`SCENE_LAYOUT`) chỉ xin nền cảnh; sprite, chân dung, icon tới yêu cầu `ASSETS` thứ hai (`FINAL_ASSETS`) sau cổng LAYOUT. Kế hoạch khai một lần ở yêu cầu đầu, tính cả hai đợt.
 7. **Bố cục** (yêu cầu `PlanScenePlacement:<sceneId>`): trả JSON đúng khung prompt: `walkGrid` từ bước 5, `foreground`, `spawnPoints` (`default`, `INVESTIGATOR`, `INTERROGATOR`, `from:<sceneId>` ở mỗi cửa), `placements` (vật: tâm + cỡ ô bấm trên chỗ vật đã vẽ; NPC: điểm chân), `clueZones`, `transitions` (phòng mở ra bản đồ, bản đồ mở vào mọi phòng). Tọa độ trong không gian 2048×2048 (= pixel native ×4).
 8. Validator chặn khi: cảnh không phải pixel, thiếu `walkGrid`, spawn hoặc cửa ngoài vùng đi được, ô vật/NPC không đi tới được, ô ra ngoài khung, `foreground` sai `baseY`, sprite sheet/chân dung/icon sai cỡ. Sửa đúng chỗ rồi nộp lại.
@@ -211,6 +217,7 @@ Trong nhà hay ngoài trời do `atmosphere.indoor` của cảnh quyết (bướ
 | NPC mới: xoay 8 hướng | `create_character` v3 | 2 |
 | NPC mới: thở (1 hướng) | `animate_character` v3 | 2 |
 | Tấm icon ≤ 16 vật | `create_image_pro` (`icon-sheet`) | 10 |
+| Vẽ thêm một vật vào cảnh có sẵn | `inpaint_image_pro_flash` (`item-inpaint`), khung 128 | 6 |
 
 Ví dụ: 1 phòng mới + 1 NPC mới = 25 + 10 + 2 + 2 = 39 lượt (trần 30 bị chặn, trần 60 qua). Đơn chỉ dùng thư viện = 0 lượt.
 

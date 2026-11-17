@@ -84,12 +84,13 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
   // ---------------------------------------------------------------- pictures of a draft
   tool('assets_needed', 'Danh sách ô hình của draft: kích thước, nền trong suốt, mô tả, ô nào đang được xin. Vụ pixel (VUAN-6B): nền 512x512, sprite thở 1152x128, chân dung 288x288, icon 64x64, không có ô bìa; kèm subjects (cảnh, NPC, icon) với gợi ý thư viện và kế hoạch request PixelLab (tmp/bridge/<draftId>/pixellab-plan.json). Bản đầy đủ ở tmp/bridge/<draftId>/assets-needed.json.',
     { draftId: id, onlyRequested: z.boolean().optional() }, (args) => assetsNeeded(ctx, args));
-  tool('asset_plan', 'Vụ pixel: khai nguồn từng hình trước khi tải lên. choices: [{ subject: "scene:<id>" | "character:<id>" | "item:<id>", source: LIBRARY | VARIANT | PIXELLAB, libraryKey, parentKey, variant }]. Thư viện và biến thể 0 lượt; PIXELLAB thành request theo templates.json. Tổng lượt vượt pixelLabCap của đơn thì server từ chối (AI_PIXELLAB_CAP_EXCEEDED): dùng thêm thư viện hoặc hỏi Yen. Chưa có kế hoạch đạt thì server không nhận ảnh.',
+  tool('asset_plan', 'Vụ pixel: khai nguồn từng hình trước khi tải lên. choices: [{ subject: "scene:<id>" | "character:<id>" | "item:<id>", source: LIBRARY | VARIANT | PIXELLAB, libraryKey, parentKey, variant, inpaintItems }]. Thư viện và biến thể 0 lượt; PIXELLAB thành request theo templates.json. Vật điều tra nằm trong ảnh cảnh, không dán: cảnh PIXELLAB ghi vật vào visualDescription; cảnh LIBRARY/VARIANT chưa có vật thì khai inpaintItems: [itemId] (mỗi vật một request item-inpaint, 6 lượt). Tổng lượt vượt pixelLabCap của đơn thì server từ chối (AI_PIXELLAB_CAP_EXCEEDED): dùng thêm thư viện hoặc hỏi Yen. Chưa có kế hoạch đạt thì server không nhận ảnh.',
     {
       draftId: id,
       choices: z.array(z.object({
         subject: z.string().min(1), source: z.enum(['LIBRARY', 'VARIANT', 'PIXELLAB']), libraryKey: z.string().optional(),
         parentKey: z.string().optional(), variant: z.string().optional(), note: z.string().optional(),
+        inpaintItems: z.array(z.string()).optional().describe('cảnh LIBRARY/VARIANT: itemId của vật cần PixelLab vẽ thêm vào ảnh (inpaint)'),
       })),
     }, (args) => assetPlan(ctx, args));
   tool('asset_upload', 'Tải hình (PNG/WebP, ≤ 5 MB) cho một ô của draft qua bridge (server đưa lên Cloudinary).',
@@ -118,7 +119,11 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     'mask_from_shapes {width,height,walk:[{rect}|{diamond}],block:[...]} | walkable {picture} (mask -> walkGrid 128x128 ô 16, walkableArea, navigationObstacles + ảnh phủ để tự kiểm) |',
     'foreground {map, mask, rect:[x0,y0,x1,y1], id, baseRow} (cắt đồ che từ bản đồ NATIVE 512 theo mask, trả layer x,y,width,height,baseY đơn vị runtime x4) |',
     'icon_sheet {names:[...]} (cắt tấm icon PixelLab 256x256 lưới 4x4 thành ô 64x64) |',
-    'fit {width,height,mode:"contain"|"cover",scale} (CHỈ cho vụ cũ 1600x900; vụ pixel không dùng).',
+    'fit {width,height,mode:"contain"|"cover",scale} (CHỈ cho vụ cũ 1600x900; vụ pixel không dùng) |',
+    'inpaint_prep {scene, rect:[x0,y0,x1,y1], description, size:128|256, id} (cắt khung + mask + context cảnh NATIVE 512 để PixelLab vẽ thêm một vật, trả sẵn lệnh inpaint và số lượt) |',
+    'inpaint_merge {plan, result} (chỉ chép vùng mask của ảnh PixelLab vào cảnh, trả ảnh so sánh và itemPlacement asset rỗng + hotspot phủ vật).',
+    'VẬT ĐIỀU TRA KHÔNG BAO GIỜ DÁN ẢNH LÊN CẢNH: cảnh mới thì ghi vật vào mô tả cảnh để PixelLab vẽ luôn; cảnh có sẵn thì inpaint_prep -> PixelLab inpaint -> inpaint_merge.',
+    'itemPlacements[].asset luôn rỗng, ô bấm phủ đúng vật trong ảnh; items[].imageUrl chỉ là icon 64x64 cho túi đồ.',
     'NPC CHUẨN: lấy từ quy trình PixelLab của templates.json (character-front có ảnh Sherlock làm mẫu -> create_character v3 -> idle v3),',
     'sprite south đúng 96x96 (khung trần, cùng khung với Sherlock và Watson V3 96), phong cách tỉ lệ người thật như Sherlock, Watson, NPC vụ Lò thuốc; cao thấp tùy nhân vật trong khung, không chibi.',
     'sprite_sheet, idle_breathe, portrait, npc_bundle từ chối sprite không phải 96x96 (NPC_FORMAT) và zip PixelLab có prompt chibi/đầu to (NPC_STYLE).',
@@ -129,7 +134,8 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     'Biến thể miễn phí từ ảnh/mục thư viện có sẵn (input = đường dẫn hoặc key thư viện). type:',
     'night {lights:[[x,y,r]], windows:[[x0,y0,x1,y1]]} (Claude tự nhìn ảnh để chấm đèn, cửa) | dusk | snow {amount} |',
     'after_rain {lights, puddles:[[x,y,rx,ry]]} | mirror {boxes, points, coordinateWidth, mask} | recolor {hueFrom:[min,max], hueTo, satMul, minSat, region} |',
-    'compose {add:[{source,x,y,scale,flip,shadow}], remove:[[x0,y0,x1,y1]]}. Không đổi được hình khối (thêm tầng, đổi phòng): cần PixelLab.',
+    'compose {remove:[[x0,y0,x1,y1]]} (xóa vật bằng nội suy). Không dán ảnh vật lên cảnh (ITEM_PASTE_FORBIDDEN): thêm vật bằng asset_process inpaint_prep/inpaint_merge.',
+    'Không đổi được hình khối (thêm tầng, đổi phòng): cần PixelLab.',
     'Lưu vào index thư viện (parentKey, variant, source VARIANT) và ghi ảnh so sánh trước/sau.',
   ].join(' '),
     {

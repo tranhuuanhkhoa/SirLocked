@@ -400,6 +400,69 @@ public sealed class PixelPipelineTests
         return (tram, library, choices);
     }
 
+    /// <summary>
+    /// Yen 17/11/2026: an item is never pasted onto a scene. A library scene that does not show an item yet gets it painted
+    /// in by PixelLab inpaint (template item-inpaint), one request per item, in order, against the cap.
+    /// </summary>
+    [Fact]
+    public void Plan_LibrarySceneWithInpaintItems_PaintsEachItemIntoTheScene()
+    {
+        var (tram, library, choices) = TramWithLibrary();
+        tram.Items.First(item => item.ItemId == "item-tn-so-cam-do").VisualDescription = "A thick pawnbroker ledger bound in dark green cloth.";
+        var shop = choices.First(choice => choice.Subject == "scene:scene-tn-cam-do");
+        shop.InpaintItems = ["item-tn-so-cam-do", "item-tn-giay-xe"];
+        var templates = PixelLabTemplates.Default;
+
+        var result = PixelAssetPlanning.Plan(tram, choices, library, pixelLabCap: 12);
+        Assert.Empty(result.Errors);
+        var requests = result.Plan["requests"]!.AsArray().Select(node => node!.AsObject()).ToList();
+        Assert.Equal(["inpaint.tn-cam-do.tn-so-cam-do", "inpaint.tn-cam-do.tn-giay-xe"], requests.Select(request => request["id"]!.GetValue<string>()));
+        Assert.All(requests, request =>
+        {
+            Assert.Equal("inpaint_image_pro_flash", request["tool"]!.GetValue<string>());
+            Assert.Equal("item-inpaint", request["template"]!.GetValue<string>());
+            Assert.Equal(6, request["estimatedGenerations"]!.GetValue<int>());
+            Assert.False(request["params"]!["no_background"]!.GetValue<bool>());
+            Assert.Equal(["v-case-cam-do"], request["dependsOnLibrary"]!.AsArray().Select(node => node!.GetValue<string>()));
+            Assert.Equal(["background:scene-tn-cam-do"], request["target"]!["slots"]!.AsArray().Select(node => node!.GetValue<string>()));
+            Assert.Contains("inpaint_merge", request["target"]!["process"]!.GetValue<string>());
+            Assert.Equal("inpaint_image", request["fallback"]!["tool"]!.GetValue<string>());
+            Assert.Equal(10, request["fallback"]!["costGenerations"]!.GetValue<int>());
+            Assert.Equal("context_image", request["references"]![0]!["param"]!.GetValue<string>());
+            Assert.Contains("inpaint_prep", request["references"]![0]!["prepare"]!.GetValue<string>());
+            Assert.Matches("^[\\x20-\\x7e]*$", request["prompt"]!.GetValue<string>());
+            Assert.Contains("No text, no letters.", request["prompt"]!.GetValue<string>());
+            Assert.Equal("ask-user-first", request["rerollPolicy"]!.GetValue<string>());
+        });
+        // The second item is painted on the scene the first one already changed.
+        Assert.Empty(requests[0]["dependsOn"]!.AsArray());
+        Assert.Equal(["inpaint.tn-cam-do.tn-so-cam-do"], requests[1]["dependsOn"]!.AsArray().Select(node => node!.GetValue<string>()));
+        Assert.Equal(templates.Render("item-inpaint", new Dictionary<string, object?> { ["itemVisual"] = "A thick pawnbroker ledger bound in dark green cloth" }),
+            requests[0]["prompt"]!.GetValue<string>());
+        // No English description yet: the plan asks for it instead of guessing.
+        Assert.Empty(requests[0]["missingInputs"]!.AsArray());
+        Assert.Equal("{{itemVisual}}", requests[1]["missingInputs"]![0]!["placeholder"]!.GetValue<string>());
+        Assert.Equal("items[itemId=item-tn-giay-xe].visualDescription", requests[1]["missingInputs"]![0]!["fillFrom"]!.GetValue<string>());
+        Assert.Contains(requests[1]["inputsFromDependencies"]!.AsArray(), node => node!["placeholder"]!.GetValue<string>() == "{{inpaintSourceRef}}");
+        Assert.Equal(12, result.EstimatedGenerations);
+        Assert.True(result.WithinCap);
+        Assert.Contains(result.Plan["rules"]!.AsArray(), rule => rule!.GetValue<string>().Contains("Never paste an item picture", StringComparison.Ordinal));
+        Assert.False(PixelAssetPlanning.Plan(tram, choices, library, pixelLabCap: 6).WithinCap);
+        Assert.Equal(["item-tn-so-cam-do", "item-tn-giay-xe"], result.Subjects.First(subject => subject.Subject == shop.Subject).InpaintItems!);
+
+        // Wrong uses are refused with a reason.
+        shop.InpaintItems = ["item-tn-hop-nhac"];
+        Assert.Contains(PixelAssetPlanning.Plan(tram, choices, library, 60).Errors, error => error.Contains("'item-tn-hop-nhac' is not an item of this scene", StringComparison.Ordinal));
+        shop.InpaintItems = ["item-tn-so-cam-do"];
+        shop.Source = AiAssetSources.PixelLab;
+        shop.LibraryKey = string.Empty;
+        Assert.Contains(PixelAssetPlanning.Plan(tram, choices, library, 60).Errors, error => error.Contains("paints its items from the scene's visualDescription", StringComparison.Ordinal));
+        var npc = choices.First(choice => choice.Subject.StartsWith("character:", StringComparison.Ordinal));
+        shop.InpaintItems = new();
+        npc.InpaintItems = ["item-tn-so-cam-do"];
+        Assert.Contains(PixelAssetPlanning.Plan(tram, choices, library, 60).Errors, error => error.Contains("inpaintItems is only for scene subjects", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Plan_LibraryOnlyOrder_NeedsZeroGenerations()
     {

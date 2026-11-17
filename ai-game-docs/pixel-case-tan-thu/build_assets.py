@@ -2,8 +2,10 @@
 
 Nguồn:
 - Cảnh: thư viện Đợt 0 c-map-ngo-thach-kho-mon (ngõ Thạch Khố Môn), c-room-tra-lau (trà lâu).
-- Vật: all-item-so-cai (sổ khách), all-item-phong-bi-niem (thư), all-item-hom-go (hòm gỗ); ấm men lam vẽ bằng
-  code (draw_teapot.py).
+- Vật trong cảnh: vẽ vào nền bằng inpaint của PixelLab (sổ khách, hòm gỗ; xem inpaint/recipe.json và
+  scene_patches.py). Mảnh thư xé là mấy tờ giấy có sẵn trên quầy. Không dán ảnh vật lên cảnh.
+- Icon túi đồ / thẻ vật (items[].imageUrl, không vẽ lên cảnh): all-item-so-cai (sổ khách),
+  all-item-phong-bi-niem (thư); ấm men lam vẽ bằng code (draw_teapot.py).
 - Nhân vật: 4 NPC PixelLab vẽ theo quy trình chuẩn của ai-game-docs/visual-style-templates/pixellab
   (character-front có ảnh Sherlock làm mẫu -> create_character v3 -> idle thở v3 9 khung), 56 lượt, 17/11/2026.
   NPC Đợt 0 (kiểu chibi đầu to) không dùng nữa. Zip tải ở https://api.pixellab.ai/mcp/characters/<id>/download:
@@ -15,7 +17,7 @@ Chạy: python3 build_assets.py <thư mục files thư viện Đợt 0> <thư m�
 """
 import io, json, os, sys, zipfile
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
 LIB, NPC, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 for d in ('scenes', 'characters', 'items'):
@@ -62,21 +64,17 @@ for slug in CHARS:
     south.resize((288, 288), Image.NEAREST).save(f'{OUT}/characters/{slug}-portrait.png')
     anchors[slug] = round(105 / 128, 4)
 
-for dst, src in {'items/so-khach.png': 'item/all-item-so-cai.png', 'items/thu-xe.png': 'item/all-item-phong-bi-niem.png',
-                 'items/hom-go.png': 'item/all-item-hom-go.png'}.items():
+# Icon túi đồ / thẻ vật (không vẽ lên cảnh). Hòm gỗ không cần icon: vật nhặt được là chiếc ấm (am-men-lam.png).
+for dst, src in {'items/so-khach.png': 'item/all-item-so-cai.png', 'items/thu-xe.png': 'item/all-item-phong-bi-niem.png'}.items():
     Image.open(f'{LIB}/{src}').convert('RGBA').save(f'{OUT}/{dst}')
 
 # Ấm men lam: vẽ bằng code trong draw_teapot.py (ấm trong ảnh trà lâu quá nhỏ để cắt).
 import subprocess
 subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'draw_teapot.py'), f'{OUT}/items/am-men-lam.png'], check=True)
 
-# Bìa: ngõ + dải chân dung (0 lượt).
-cover = Image.open(f'{OUT}/scenes/ngo.png').convert('RGBA')
-shade = Image.new('RGBA', cover.size, (0, 0, 0, 0))
-ImageDraw.Draw(shade).rectangle([0, 340, 512, 512], fill=(10, 12, 20, 170))
-cover.alpha_composite(shade)
-for i, slug in enumerate(['ong-luu', 'co-lan', 'a-phuc', 'hamilton']):
-    portrait = Image.open(f'{OUT}/characters/{slug}-portrait.png').resize((150, 150), Image.NEAREST)
-    cover.alpha_composite(portrait, (i * 124 + 6, 356))
-cover.convert('RGB').save(f'{OUT}/cover.png')
+# Vật điều tra vẽ vào cảnh bằng inpaint PixelLab (chỉ chép vùng mask), rồi bìa: ngõ + dải chân dung (0 lượt).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scene_patches import apply_inpaint, make_cover  # noqa: E402
+apply_inpaint(OUT)
+make_cover(OUT)
 print(json.dumps({'anchors': anchors, 'files': sorted(os.listdir(f'{OUT}/characters')) + sorted(os.listdir(f'{OUT}/items'))}))

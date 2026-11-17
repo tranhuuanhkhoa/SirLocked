@@ -4,7 +4,9 @@ Ghi ra:
 - src/BE/SeedData/V3/case-pixel-tan-thu-vi.json
 - src/BE/SeedData/Cutscenes/case-pixel-tan-thu-vi.intro.json
 Chạy từ gốc repo: python3 ai-game-docs/pixel-case-tan-thu/build_case.py
-Ảnh do build_assets.py tạo (src/FE/public/assets/pixel/tan-thu, 0 lượt PixelLab).
+Ảnh do build_assets.py tạo (src/FE/public/assets/pixel/tan-thu).
+Vật điều tra nằm sẵn trong ảnh cảnh (vẽ bằng inpaint PixelLab, xem inpaint/recipe.json): itemPlacements để asset rỗng,
+ô bấm phủ đúng chỗ vật trong ảnh. items[].imageUrl chỉ là icon cho túi đồ và thẻ vật.
 """
 import json
 import os
@@ -58,9 +60,16 @@ def camera(w, h):
     return {"captureRectWidth": w, "captureRectHeight": h, "minClueCoverage": 0.45, "nearMissCoverage": 0.22, "requireCaptureCenterInside": True}
 
 
-def item_place(item_id, asset, x, y, w, h, hx, hy, hw, hh):
-    return {"itemId": item_id, "asset": asset, "position": {"x": x, "y": y, "anchor": "bottom-center"}, "size": {"width": w, "height": h},
-            "hotspot": {"x": hx, "y": hy, "width": hw, "height": hh}, "anchor": "bottom-center", "depth": 5}
+def item_place(item_id, hx, hy, hw, hh):
+    """Vật vẽ sẵn trong ảnh cảnh: không có sprite (asset rỗng), ô bấm phủ đúng vật, vị trí = giữa cạnh dưới ô bấm."""
+    return {"itemId": item_id, "asset": "", "position": {"x": hx + hw // 2, "y": hy + hh, "anchor": "bottom-center"},
+            "size": {"width": hw, "height": hh}, "hotspot": {"x": hx, "y": hy, "width": hw, "height": hh}, "anchor": "bottom-center", "depth": 5}
+
+
+# Ô bấm của vật (tọa độ runtime 2048 = native 512 x4), phủ đúng chỗ vật trong ảnh.
+SO_KHACH = (772, 1300, 92, 72)   # sổ khách bìa đỏ trên quầy, giữa cái cân và khay trà (inpaint)
+THU_XE = (452, 1248, 148, 80)    # mấy mảnh giấy trắng trên quầy, cạnh cái cân (có sẵn trong ảnh)
+HOM_GO = (1280, 828, 96, 84)     # hòm gỗ đai sắt trên ghế xe kéo (inpaint)
 
 
 def char_place(char_id, x, y, size, hx, hy, hw, hh, d):
@@ -77,8 +86,8 @@ tra_lau = {
     "itemIds": ["item-tt-so-khach", "item-tt-thu-xe"],
     "characterIds": ["char-tt-ong-luu", "char-tt-co-lan"],
     "hotspots": [
-        hotspot("hotspot-tt-so-khach", "ITEM", "item-tt-so-khach", 880, 1216, 96, 80, "Sổ khách trên quầy"),
-        hotspot("hotspot-tt-thu-xe", "ITEM", "item-tt-thu-xe", 472, 1596, 80, 64, "Mấy mảnh thư dưới chân quầy"),
+        hotspot("hotspot-tt-so-khach", "ITEM", "item-tt-so-khach", *SO_KHACH, "Sổ khách trên quầy"),
+        hotspot("hotspot-tt-thu-xe", "ITEM", "item-tt-thu-xe", *THU_XE, "Mấy mảnh thư xé cạnh cái cân"),
         hotspot("hotspot-tt-ong-luu", "CHARACTER", "char-tt-ong-luu", 748, 1372, 144, 344, "Ông Lưu", 6),
         hotspot("hotspot-tt-co-lan", "CHARACTER", "char-tt-co-lan", 1268, 1412, 144, 344, "Cô Tô Mỹ Lan", 6),
     ],
@@ -89,8 +98,8 @@ tra_lau = {
         "spawnPoints": {"default": spawn(1040, 1800, 'left'), "INVESTIGATOR": spawn(1000, 1800, 'left'),
                         "INTERROGATOR": spawn(1080, 1800, 'left'), f"from:{NGO}": spawn(1040, 1800, 'left')},
         "itemPlacements": [
-            item_place("item-tt-so-khach", f"{P}/items/so-khach.png", 928, 1280, 64, 64, 880, 1216, 96, 80),
-            item_place("item-tt-thu-xe", f"{P}/items/thu-xe.png", 512, 1656, 56, 56, 472, 1596, 80, 64),
+            item_place("item-tt-so-khach", *SO_KHACH),
+            item_place("item-tt-thu-xe", *THU_XE),
         ],
         "characterPlacements": [
             char_place("char-tt-ong-luu", 820, 1712, 512, 748, 1372, 144, 344, "right"),
@@ -123,7 +132,7 @@ ngo = {
     "itemIds": ["item-tt-hom-go"],
     "characterIds": ["char-tt-a-phuc", "char-tt-hamilton"],
     "hotspots": [
-        hotspot("hotspot-tt-hom-go", "ITEM", "item-tt-hom-go", 1292, 828, 72, 64, "Hòm gỗ trên xe kéo"),
+        hotspot("hotspot-tt-hom-go", "ITEM", "item-tt-hom-go", *HOM_GO, "Hòm gỗ trên xe kéo"),
         hotspot("hotspot-tt-a-phuc", "CHARACTER", "char-tt-a-phuc", 1400, 864, 96, 144, "A Phúc", 6),
         hotspot("hotspot-tt-hamilton", "CHARACTER", "char-tt-hamilton", 1040, 1440, 96, 144, "Ngài Hamilton", 6),
     ],
@@ -133,7 +142,7 @@ ngo = {
         "navigationObstacles": [],
         "spawnPoints": {"default": spawn(408, 1216), "INVESTIGATOR": spawn(380, 1216), "INTERROGATOR": spawn(440, 1216),
                         f"from:{TRA_LAU}": spawn(408, 1216)},
-        "itemPlacements": [item_place("item-tt-hom-go", f"{P}/items/hom-go.png", 1328, 892, 64, 64, 1292, 828, 72, 64)],
+        "itemPlacements": [item_place("item-tt-hom-go", *HOM_GO)],
         "characterPlacements": [
             char_place("char-tt-a-phuc", 1448, 1008, 192, 1400, 864, 96, 144, "left"),
             char_place("char-tt-hamilton", 1088, 1584, 192, 1040, 1440, 96, 144, "right"),
@@ -176,12 +185,12 @@ characters = [
 ]
 
 items = [
-    {"itemId": "item-tt-so-khach", "name": "Sổ khách của trà lâu", "description": "Cuốn sổ ông Lưu để trên quầy cho khách quen ký tên.",
+    {"itemId": "item-tt-so-khach", "name": "Sổ khách của trà lâu", "description": "Cuốn sổ bìa đỏ ông Lưu để trên quầy, cạnh khay trà, cho khách quen ký tên.",
      "inspectText": "Trang hôm nay có hai chữ ký. Dòng cuối: \"Hamilton — 3 giờ chiều\", nét mực còn mới.",
      "imageUrl": f"{P}/items/so-khach.png", "unlockClueIds": ["evidence-tt-so-khach"], "isCollectible": False,
      "isInteractivePuzzleObject": False, "interactionPurpose": "legacy-evidence"},
-    {"itemId": "item-tt-thu-xe", "name": "Mấy mảnh thư bị xé", "description": "Lá thư bị xé vụn, rơi dưới chân quầy.",
-     "inspectText": "Lá thư bị xé vụn, rơi dưới chân quầy.", "imageUrl": f"{P}/items/thu-xe.png", "unlockClueIds": [],
+    {"itemId": "item-tt-thu-xe", "name": "Mấy mảnh thư bị xé", "description": "Lá thư bị xé vụn, vứt trên quầy cạnh cái cân.",
+     "inspectText": "Lá thư bị xé vụn, vứt trên quầy cạnh cái cân.", "imageUrl": f"{P}/items/thu-xe.png", "unlockClueIds": [],
      "isCollectible": False, "isInteractivePuzzleObject": True, "interactionPurpose": "operate-mechanism"},
     {"itemId": "item-tt-hom-go", "name": "Ấm men lam trong hòm gỗ", "description": "Chiếc hòm gỗ nhỏ khách để trên xe kéo của A Phúc.",
      "inspectText": "Mở hòm ra: chiếc ấm men lam đời Minh bọc trong khăn tay thêu hai chữ cái lồng nhau, mép khăn còn vương lá trà nhài.",
@@ -280,7 +289,7 @@ puzzles = [{
     "successMessage": "Thư trả giá của ngài Hamilton.", "failureMessage": "Chưa khớp — thử lại.",
     "basedOnTruthIds": [], "investigationPurpose": "Ai muốn có chiếc ấm men lam", "revealsConclusionIds": [], "progressionRole": "OPTIONAL",
     "params": {
-        "find": {"tag": "VẬT CHỨNG · TRÀ LÂU", "title": "Dưới chân quầy", "text": "Mấy mảnh thư bị xé vụn rơi dưới chân quầy trà lâu Vọng Nguyệt."},
+        "find": {"tag": "VẬT CHỨNG · TRÀ LÂU", "title": "Trên quầy, cạnh cái cân", "text": "Mấy mảnh thư bị xé vụn vứt trên quầy trà lâu Vọng Nguyệt, cạnh cái cân."},
         "doc": {"head": "THƯ TRẢ GIÁ", "sub": "GỬI CHỦ TRÀ LÂU VỌNG NGUYỆT", "meta": "[[NGÀY]] HÔM QUA · [[NGÕ]] THẠCH KHỐ MÔN",
                 "to": "[[VIỆC:]] ẤM MEN LAM ĐỜI MINH", "lines": ["XIN MUA ẤM MEN LAM", "TRẢ 500 ĐỒNG BẠC"], "sign": "KÝ: HAMILTON",
                 "stamp": ["TÔ GIỚI", "H.", "THƯỢNG HẢI"], "circle": "500 ĐỒNG", "underline": "MUA ẤM MEN LAM"},
@@ -336,7 +345,7 @@ def hint(hid, ctx, target, order, text):
 
 hints = [
     hint("hint-tt-tra-lau-1", "SCENE", TRA_LAU, 1, "Hỏi ông Lưu chuyện gì đã xảy ra và chiều nay ai ghé trà lâu."),
-    hint("hint-tt-tra-lau-2", "SCENE", TRA_LAU, 2, "Xem sổ khách trên quầy và mấy mảnh thư dưới chân quầy."),
+    hint("hint-tt-tra-lau-2", "SCENE", TRA_LAU, 2, "Xem sổ khách bìa đỏ trên quầy và mấy mảnh thư xé cạnh cái cân."),
     hint("hint-tt-tra-lau-3", "SCENE", TRA_LAU, 3, "Sổ khách có chữ ký lúc 3 giờ chiều; ghép lá thư xé để biết ai muốn mua chiếc ấm."),
     hint("hint-tt-ngo-1", "SCENE", NGO, 1, "Người kéo xe ở đầu ngõ thấy hết khách ra vào."),
     hint("hint-tt-ngo-2", "SCENE", NGO, 2, "Hỏi A Phúc đang chờ ai, rồi xem chiếc hòm trên xe kéo."),

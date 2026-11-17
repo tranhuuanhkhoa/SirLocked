@@ -129,10 +129,10 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'guestbook',
     title: 'Tìm vật chứng',
-    text: 'Khám đồ vật là việc của Watson (Điều tra viên). Bấm Đổi nhân vật (phím Q) để sang Watson, rồi bấm vào cuốn sổ khách trên quầy. Ở vụ thật, Sherlock không khám được vật: phải nhờ đồng đội Watson.',
+    text: 'Khám đồ vật là việc của Watson (Điều tra viên). Bấm Đổi nhân vật (phím Q) để sang Watson, rồi bấm vào cuốn sổ khách bìa đỏ trên quầy, cạnh khay trà. Ở vụ thật, Sherlock không khám được vật: phải nhờ đồng đội Watson.',
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'evidence-tt-so-khach'),
-    target: (s) => toScene(s, TRA_LAU, world(TRA_LAU, 928, 1250)),
+    target: (s) => toScene(s, TRA_LAU, world(TRA_LAU, 818, 1336)),
   },
   {
     id: 'camera',
@@ -147,9 +147,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'puzzle',
     title: 'Giải đố',
-    text: 'Câu đố thì vai nào giải cũng được. Bấm vào mấy mảnh thư dưới chân quầy rồi ghép lại: kéo từng mảnh vào khung, nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Bí thì bấm gợi ý ngay trong câu đố.',
+    text: 'Câu đố thì vai nào giải cũng được. Bấm vào mấy mảnh thư xé trên quầy, cạnh cái cân, rồi ghép lại: kéo từng mảnh vào khung, nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Bí thì bấm gợi ý ngay trong câu đố.',
     done: (s) => s.solvedPuzzleIds.has('puzzle-tt-thu-xe') || has(s, 'evidence-tt-thu-tra-gia'),
-    target: (s) => s.uiKind === 'PUZZLE' ? null : toScene(s, TRA_LAU, world(TRA_LAU, 512, 1630)),
+    target: (s) => s.uiKind === 'PUZZLE' ? null : toScene(s, TRA_LAU, world(TRA_LAU, 526, 1288)),
   },
   {
     id: 'case-file',
@@ -198,7 +198,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     text: 'Mở đồ là việc của Watson: đổi sang Watson (phím Q) rồi bấm vào chiếc hòm gỗ trên xe kéo.',
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'evidence-tt-am-men-lam'),
-    target: (s) => toScene(s, NGO, world(NGO, 1328, 860)),
+    target: (s) => toScene(s, NGO, world(NGO, 1328, 870)),
   },
   {
     id: 'bag',
