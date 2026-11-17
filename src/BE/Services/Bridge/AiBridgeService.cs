@@ -403,7 +403,7 @@ public sealed class AiBridgeService(
             Choices = result.Subjects.Select(subject => new AiAssetChoice
             {
                 Subject = subject.Subject, Source = subject.Source, LibraryKey = subject.LibraryKey,
-                ParentKey = subject.ParentKey, Variant = subject.Variant,
+                ParentKey = subject.ParentKey, Variant = subject.Variant, InpaintItems = (subject.InpaintItems ?? new List<string>()).ToList(),
                 Note = Clip((choices ?? new()).FirstOrDefault(choice => choice.Subject == subject.Subject)?.Note, 500)
             }).ToList(),
             EstimatedGenerations = result.EstimatedGenerations,

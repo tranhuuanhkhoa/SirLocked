@@ -33,10 +33,10 @@
        "hotspotId": "hotspot-tt-so-khach",
        "type": "ITEM",
        "targetId": "item-tt-so-khach",
-       "x": 42.97,
-       "y": 59.38,
-       "width": 4.69,
-       "height": 3.91,
+       "x": 37.7,
+       "y": 63.48,
+       "width": 4.49,
+       "height": 3.52,
        "zIndex": 5,
        "label": "Sổ khách trên quầy",
        "requiredClueIds": []
@@ -45,12 +45,12 @@
        "hotspotId": "hotspot-tt-thu-xe",
        "type": "ITEM",
        "targetId": "item-tt-thu-xe",
-       "x": 23.05,
-       "y": 77.93,
-       "width": 3.91,
-       "height": 3.12,
+       "x": 22.07,
+       "y": 60.94,
+       "width": 7.23,
+       "height": 3.91,
        "zIndex": 5,
-       "label": "Mấy mảnh thư dưới chân quầy",
+       "label": "Mấy mảnh thư xé cạnh cái cân",
        "requiredClueIds": []
       },
       {
@@ -118,42 +118,42 @@
       "itemPlacements": [
        {
         "itemId": "item-tt-so-khach",
-        "asset": "/assets/pixel/tan-thu/items/so-khach.png",
+        "asset": "",
         "position": {
-         "x": 928,
-         "y": 1280,
+         "x": 818,
+         "y": 1372,
          "anchor": "bottom-center"
         },
         "size": {
-         "width": 64,
-         "height": 64
+         "width": 92,
+         "height": 72
         },
         "hotspot": {
-         "x": 880,
-         "y": 1216,
-         "width": 96,
-         "height": 80
+         "x": 772,
+         "y": 1300,
+         "width": 92,
+         "height": 72
         },
         "anchor": "bottom-center",
         "depth": 5
        },
        {
         "itemId": "item-tt-thu-xe",
-        "asset": "/assets/pixel/tan-thu/items/thu-xe.png",
+        "asset": "",
         "position": {
-         "x": 512,
-         "y": 1656,
+         "x": 526,
+         "y": 1328,
          "anchor": "bottom-center"
         },
         "size": {
-         "width": 56,
-         "height": 56
+         "width": 148,
+         "height": 80
         },
         "hotspot": {
-         "x": 472,
-         "y": 1596,
-         "width": 80,
-         "height": 64
+         "x": 452,
+         "y": 1248,
+         "width": 148,
+         "height": 80
         },
         "anchor": "bottom-center",
         "depth": 5
@@ -446,10 +446,10 @@
        "hotspotId": "hotspot-tt-hom-go",
        "type": "ITEM",
        "targetId": "item-tt-hom-go",
-       "x": 63.09,
+       "x": 62.5,
        "y": 40.43,
-       "width": 3.52,
-       "height": 3.12,
+       "width": 4.69,
+       "height": 4.1,
        "zIndex": 5,
        "label": "Hòm gỗ trên xe kéo",
        "requiredClueIds": []
@@ -519,21 +519,21 @@
       "itemPlacements": [
        {
         "itemId": "item-tt-hom-go",
-        "asset": "/assets/pixel/tan-thu/items/hom-go.png",
+        "asset": "",
         "position": {
          "x": 1328,
-         "y": 892,
+         "y": 912,
          "anchor": "bottom-center"
         },
         "size": {
-         "width": 64,
-         "height": 64
+         "width": 96,
+         "height": 84
         },
         "hotspot": {
-         "x": 1292,
+         "x": 1280,
          "y": 828,
-         "width": 72,
-         "height": 64
+         "width": 96,
+         "height": 84
         },
         "anchor": "bottom-center",
         "depth": 5
@@ -905,7 +905,7 @@
   {
    "itemId": "item-tt-so-khach",
    "name": "Sổ khách của trà lâu",
-   "description": "Cuốn sổ ông Lưu để trên quầy cho khách quen ký tên.",
+   "description": "Cuốn sổ bìa đỏ ông Lưu để trên quầy, cạnh khay trà, cho khách quen ký tên.",
    "inspectText": "Trang hôm nay có hai chữ ký. Dòng cuối: \"Hamilton — 3 giờ chiều\", nét mực còn mới.",
    "imageUrl": "/assets/pixel/tan-thu/items/so-khach.png",
    "unlockClueIds": [
@@ -918,8 +918,8 @@
   {
    "itemId": "item-tt-thu-xe",
    "name": "Mấy mảnh thư bị xé",
-   "description": "Lá thư bị xé vụn, rơi dưới chân quầy.",
-   "inspectText": "Lá thư bị xé vụn, rơi dưới chân quầy.",
+   "description": "Lá thư bị xé vụn, vứt trên quầy cạnh cái cân.",
+   "inspectText": "Lá thư bị xé vụn, vứt trên quầy cạnh cái cân.",
    "imageUrl": "/assets/pixel/tan-thu/items/thu-xe.png",
    "unlockClueIds": [],
    "isCollectible": false,
@@ -1270,7 +1270,7 @@
    "contextType": "SCENE",
    "targetId": "scene-tt-tra-lau",
    "order": 2,
-   "text": "Xem sổ khách trên quầy và mấy mảnh thư dưới chân quầy."
+   "text": "Xem sổ khách bìa đỏ trên quầy và mấy mảnh thư xé cạnh cái cân."
   },
   {
    "hintId": "hint-tt-tra-lau-3",
@@ -1350,8 +1350,8 @@
    "params": {
     "find": {
      "tag": "VẬT CHỨNG · TRÀ LÂU",
-     "title": "Dưới chân quầy",
-     "text": "Mấy mảnh thư bị xé vụn rơi dưới chân quầy trà lâu Vọng Nguyệt."
+     "title": "Trên quầy, cạnh cái cân",
+     "text": "Mấy mảnh thư bị xé vụn vứt trên quầy trà lâu Vọng Nguyệt, cạnh cái cân."
     },
     "doc": {
      "head": "THƯ TRẢ GIÁ",

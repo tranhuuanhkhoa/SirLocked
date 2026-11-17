@@ -142,6 +142,9 @@ describe('asset_plan and the pixel part of assets_needed', () => {
     assert.equal(accepted.requests[0].size, '96x96');
     assert.deepEqual(accepted.requests[0].missingInputs, ['{{characterAppearance}}']);
     assert.deepEqual(bridge.requests.at(-1)!.json.choices[0], { subject: 'scene:scene-a', source: 'LIBRARY', libraryKey: 'v-case-pho' });
+    // A library scene that does not show an item yet: the item is painted in (inpaint), sent as declared.
+    await assetPlan(ctx, { draftId, choices: [{ subject: 'scene:scene-a', source: 'LIBRARY', libraryKey: 'v-case-pho', inpaintItems: ['item-so'] }] });
+    assert.deepEqual(bridge.requests.at(-1)!.json.choices[0].inpaintItems, ['item-so']);
     await assert.rejects(assetPlan(ctx, { draftId, choices: [] }), (error: unknown) =>
       error instanceof StudioError && error.code === 'AI_PIXELLAB_CAP_EXCEEDED' && /allows 30/.test(error.message));
   });

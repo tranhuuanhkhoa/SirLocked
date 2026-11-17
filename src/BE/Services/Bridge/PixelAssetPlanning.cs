@@ -65,8 +65,32 @@ public static class PixelAssetPlanning
                 if (source == AiAssetSources.Variant && variant.Length == 0)
                     errors.Add($"{subject.Subject}: VARIANT needs variant (night, dusk, snow, after_rain, mirror, recolor or compose).");
             }
+            var inpaint = (choice?.InpaintItems ?? new List<string>()).Select(id => (id ?? string.Empty).Trim()).Where(id => id.Length > 0)
+                .Distinct(StringComparer.Ordinal).ToList();
+            if (inpaint.Count > 0)
+            {
+                if (subject.Kind != "scene")
+                {
+                    errors.Add($"{subject.Subject}: inpaintItems is only for scene subjects.");
+                    inpaint.Clear();
+                }
+                else if (source == AiAssetSources.PixelLab)
+                {
+                    errors.Add($"{subject.Subject}: a new PixelLab scene paints its items from the scene's visualDescription; inpaintItems is for LIBRARY or VARIANT scenes.");
+                    inpaint.Clear();
+                }
+                else
+                {
+                    var scene = PixelCasePipeline.OrderedScenes(gameCase).FirstOrDefault(candidate => candidate.SceneId == subject.TargetId);
+                    foreach (var itemId in inpaint.Where(id => scene is null || !scene.ItemIds.Contains(id)).ToList())
+                    {
+                        errors.Add($"{subject.Subject}: inpaintItems '{itemId}' is not an item of this scene.");
+                        inpaint.Remove(itemId);
+                    }
+                }
+            }
             subjects.Add(new PixelAssetSubject(subject.Subject, subject.Kind, subject.TargetId, subject.Name, subject.SlotIds, subject.Projection,
-                source, libraryKey, parentKey, variant, libraryUrl));
+                source, libraryKey, parentKey, variant, libraryUrl, inpaint));
         }
         var plan = PixelLabPlanBuilder.Build(gameCase, subjects, pixelLabCap, templates, recordRoot);
         var total = plan["summary"]!["estimatedGenerations"]!.GetValue<int>();

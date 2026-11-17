@@ -166,8 +166,14 @@ public class AiAssetChoice
     public string LibraryKey { get; set; } = string.Empty;
     /// <summary>VARIANT: the library picture the variant is made from.</summary>
     public string ParentKey { get; set; } = string.Empty;
-    /// <summary>VARIANT: night, dusk, snow, after_rain, mirror, recolor or compose.</summary>
+    /// <summary>VARIANT: night, dusk, snow, after_rain, mirror, recolor or compose (compose only removes).</summary>
     public string Variant { get; set; } = string.Empty;
+    /// <summary>
+    /// LIBRARY or VARIANT scene: items of this scene that the picture does not show yet. Each is painted into the scene
+    /// with PixelLab inpaint (template item-inpaint); an item picture is never pasted onto a scene. A new PIXELLAB scene
+    /// paints its items from visualDescription instead.
+    /// </summary>
+    public List<string> InpaintItems { get; set; } = new();
     public string Note { get; set; } = string.Empty;
 }
 
