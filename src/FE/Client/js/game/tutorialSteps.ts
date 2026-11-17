@@ -129,10 +129,10 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'guestbook',
     title: 'Tìm vật chứng',
-    text: 'Khám đồ vật là việc của Watson (Điều tra viên). Bấm Đổi nhân vật (phím Q) để sang Watson, rồi bấm vào cuốn sổ khách bìa đỏ trên quầy, cạnh khay trà. Ở vụ thật, Sherlock không khám được vật: phải nhờ đồng đội Watson.',
+    text: 'Khám đồ vật là việc của Watson (Điều tra viên). Bấm Đổi nhân vật (phím Q) để sang Watson, rồi bấm vào cuốn sổ khách bìa đỏ đang mở giữa mặt quầy. Ở vụ thật, Sherlock không khám được vật: phải nhờ đồng đội Watson.',
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'evidence-tt-so-khach'),
-    target: (s) => toScene(s, TRA_LAU, world(TRA_LAU, 818, 1336)),
+    target: (s) => toScene(s, TRA_LAU, world(TRA_LAU, 708, 1314)),
   },
   {
     id: 'camera',
@@ -141,15 +141,15 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     role: 'INVESTIGATOR',
     done: (s) => has(s, 'clue-tt-vong-nuoc'),
     target: (s) => s.uiKind === 'CAMERA'
-      ? world(TRA_LAU, 892, 1248)
+      ? world(TRA_LAU, 892, 1242)
       : toScene(s, TRA_LAU, dom('#floating-camera-btn', '#mobile-camera-btn')),
   },
   {
     id: 'puzzle',
     title: 'Giải đố',
-    text: 'Câu đố thì vai nào giải cũng được. Bấm vào mấy mảnh thư xé trên quầy, cạnh cái cân, rồi ghép lại: kéo từng mảnh vào khung, nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Bí thì bấm gợi ý ngay trong câu đố.',
+    text: 'Câu đố thì vai nào giải cũng được. Bấm vào mấy mảnh thư xé trên quầy, bên trái cuốn sổ khách, rồi ghép lại: kéo từng mảnh vào khung, nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Bí thì bấm gợi ý ngay trong câu đố.',
     done: (s) => s.solvedPuzzleIds.has('puzzle-tt-thu-xe') || has(s, 'evidence-tt-thu-tra-gia'),
-    target: (s) => s.uiKind === 'PUZZLE' ? null : toScene(s, TRA_LAU, world(TRA_LAU, 526, 1288)),
+    target: (s) => s.uiKind === 'PUZZLE' ? null : toScene(s, TRA_LAU, world(TRA_LAU, 506, 1314)),
   },
   {
     id: 'case-file',

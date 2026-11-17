@@ -563,79 +563,86 @@ public static class PixelLabPlanBuilder
             }));
         }
 
-        // ---------------- step 7: items painted into a library or variant scene (never pasted)
-        var inpaintReference = T.ById["item-inpaint"]["references"]![0]!.AsObject();
+        // ---------------- step 7: items painted into a library or variant scene (never pasted). One request per scene:
+        // a free-form mask drawn wide along the whole surface the objects rest on, all of them in one description.
         foreach (var scene in scenes)
         {
             if (!bySubject.TryGetValue($"scene:{scene.SceneId}", out var sceneChoice) || sceneChoice.Source == AiAssetSources.PixelLab
                 || sceneChoice.InpaintItems is not { Count: > 0 } inpaintItems) continue;
             var key = SceneKey(scene.SceneId);
             var libraryScene = LibraryOf($"scene:{scene.SceneId}");
-            Request? previous = null;
-            foreach (var itemId in inpaintItems.Where(itemsById.ContainsKey))
+            var items = inpaintItems.Where(itemsById.ContainsKey).Select(id => itemsById[id]).ToList();
+            if (items.Count == 0) continue;
+            var hints = new Dictionary<string, JsonObject>(StringComparer.Ordinal)
             {
-                var item = itemsById[itemId];
-                var ikey = ItemKey(item.ItemId);
+                ["surface"] = new JsonObject
+                {
+                    ["fillFrom"] = $"the scene picture of {scene.SceneId}: the whole surface the mask covers",
+                    ["hint"] = "English, as drawn in the scene, e.g. \"Wooden tea house counter top\". Name the objects already on it that must stay: the mask repaints everything inside it.",
+                    ["context"] = new JsonObject { ["sceneId"] = scene.SceneId, ["sceneTitle"] = scene.Title }
+                }
+            };
+            var objects = new List<string>();
+            foreach (var item in items)
+            {
                 var visual = AsciiText(item.VisualDescription);
                 if (!string.IsNullOrWhiteSpace(item.VisualDescription) && visual is null)
                     warnings.Add($"Item {item.ItemId}: visualDescription is not ASCII English; ignored.");
-                var hints = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
-                if (visual is null)
-                    hints["itemVisual"] = new JsonObject
-                    {
-                        ["fillFrom"] = $"items[itemId={item.ItemId}].visualDescription",
-                        ["hint"] = "Short English phrase of the object as it lies in the scene, e.g. \"a small red closed ledger book\".",
-                        ["context"] = new JsonObject { ["itemId"] = item.ItemId, ["name"] = item.Name, ["sceneId"] = scene.SceneId, ["sceneTitle"] = scene.Title }
-                    };
-                var parameters = Fixed("item-inpaint");
-                parameters["image_url"] = "{{inpaintSourceRef}}";
-                parameters["mask"] = "{{inpaintMask}}";
-                parameters["bounding_box"] = "{{inpaintBoundingBox}}";
-                var request = Add(new Request
+                if (visual is not null)
                 {
-                    Id = $"inpaint.{key}.{ikey}", Step = 7, Stage = "item-inpaint", Template = "item-inpaint",
-                    Subject = new JsonObject
-                    {
-                        ["kind"] = "item", ["itemId"] = item.ItemId, ["name"] = item.Name, ["sceneId"] = scene.SceneId, ["sceneTitle"] = scene.Title
-                    },
-                    Params = parameters,
-                    Prompt = T.Render("item-inpaint", new Dictionary<string, object?> { ["itemVisual"] = visual is null ? null : StripPeriod(visual) }),
-                    References = new JsonArray(new JsonObject
-                    {
-                        ["param"] = inpaintReference["param"]!.GetValue<string>(), ["url"] = "{{inpaintContextRef}}",
-                        ["usage"] = inpaintReference["usage"]!.GetValue<string>(), ["usageSent"] = inpaintReference["usageSent"]!.GetValue<bool>(),
-                        ["prepare"] = $"asset_process inpaint_prep {{ scene: <the 512 background of {scene.SceneId}{(previous is null ? string.Empty : $" after {previous.Id}")}>, "
-                                      + "rect: [x0,y0,x1,y1] where the object goes (native pixels), description: <this prompt> } writes source.png, mask and context.png; "
-                                      + "upload source.png and context.png (get_upload_url) and send calls[0].params of its answer."
-                    }),
-                    DependsOn = previous is not null ? new() { previous.Id } : new(),
-                    DependsOnLibrary = libraryScene is not null ? new() { libraryScene } : new(),
-                    Generations = T.Cost("item-inpaint"),
-                    Extra = new JsonObject
-                    {
-                        ["fallback"] = T.ById["item-inpaint"]["fallback"]?.DeepClone(),
-                        ["placement"] = $"scenes[{scene.SceneId}].runtime.itemPlacements[{item.ItemId}]: asset \"\", hotspot over the painted object (inpaint_merge returns it)"
-                    },
-                    Hints = hints,
-                    Deps = new()
-                    {
-                        ["inpaintSourceRef"] = new JsonObject { ["from"] = "asset_process inpaint_prep", ["how"] = "upload:<id> of source.png (128 or 256 crop of the native 512 scene)." },
-                        ["inpaintMask"] = new JsonObject { ["from"] = "asset_process inpaint_prep", ["how"] = "mask_x, mask_y, mask_width, mask_height from calls[0].params." },
-                        ["inpaintBoundingBox"] = new JsonObject { ["from"] = "asset_process inpaint_prep", ["how"] = "bounding_box from calls[0].params (where the source sits in context.png)." },
-                        ["inpaintContextRef"] = new JsonObject { ["from"] = "asset_process inpaint_prep", ["how"] = "upload:<id> of context.png." }
-                    },
-                    Outputs = new JsonArray(Output("original", $"{root}/inpaint/{key}-{ikey}.png"), Output("record", $"{root}/inpaint/{key}-{ikey}.request.json"),
-                        Output("record", $"{root}/inpaint/{key}-{ikey}.receipt.json")),
-                    Target = new JsonObject
-                    {
-                        ["slots"] = new JsonArray($"background:{scene.SceneId}"),
-                        ["process"] = "asset_process inpaint_merge { plan: <plan.json of inpaint_prep>, result: <PixelLab PNG> } -> the scene with the object (only the mask copied) and its itemPlacement",
-                        ["field"] = $"scenes[{scene.SceneId}].backgroundUrl",
-                        ["size"] = "512x512"
-                    }
-                });
-                previous = request;
+                    var text = StripPeriod(visual);
+                    objects.Add(text.Length > 0 ? char.ToLowerInvariant(text[0]) + text[1..] : text);
+                    continue;
+                }
+                var token = $"itemVisual:{ItemKey(item.ItemId)}";
+                hints[token] = new JsonObject
+                {
+                    ["fillFrom"] = $"items[itemId={item.ItemId}].visualDescription",
+                    ["hint"] = "Short English phrase of the object as it lies on the surface, e.g. \"a large open guest ledger with a red cover\".",
+                    ["context"] = new JsonObject { ["itemId"] = item.ItemId, ["name"] = item.Name, ["sceneId"] = scene.SceneId }
+                };
+                objects.Add($"{{{{{token}}}}}");
             }
+            var objectList = objects.Count == 1 ? objects[0] : string.Join(", ", objects.Take(objects.Count - 1)) + " and " + objects[^1];
+            var parameters = Fixed("item-inpaint");
+            parameters["image_url"] = "{{inpaintSourceRef}}";
+            parameters["mask_image_url"] = "{{inpaintMaskRef}}";
+            Add(new Request
+            {
+                Id = $"inpaint.{key}", Step = 7, Stage = "item-inpaint", Template = "item-inpaint",
+                Subject = new JsonObject
+                {
+                    ["kind"] = "scene-items", ["sceneId"] = scene.SceneId, ["sceneTitle"] = scene.Title,
+                    ["itemIds"] = new JsonArray(items.Select(item => (JsonNode)item.ItemId).ToArray())
+                },
+                Params = parameters,
+                Prompt = T.Render("item-inpaint", new Dictionary<string, object?> { ["objectList"] = objectList }),
+                References = new JsonArray(),
+                DependsOnLibrary = libraryScene is not null ? new() { libraryScene } : new(),
+                Generations = T.Cost("item-inpaint"),
+                Extra = new JsonObject
+                {
+                    ["prepare"] = $"asset_process inpaint_prep {{ scene: <the native 512 background of {scene.SceneId}>, polygon: [[x,y],...] drawn WIDE along the whole surface the objects rest on "
+                                  + "(polygons for several surfaces), description: <this prompt> } writes source.png and mask.png; upload both (get_upload_url) and send calls[0].params of its answer.",
+                    ["fallback"] = T.ById["item-inpaint"]["fallback"]?.DeepClone(),
+                    ["placements"] = new JsonArray(items.Select(item => (JsonNode)$"scenes[{scene.SceneId}].runtime.itemPlacements[{item.ItemId}]: asset \"\", hotspot over the painted object (inpaint_merge with boxes)").ToArray())
+                },
+                Hints = hints,
+                Deps = new()
+                {
+                    ["inpaintSourceRef"] = new JsonObject { ["from"] = "asset_process inpaint_prep", ["how"] = "upload:<id> of source.png (128 or 256 crop of the native 512 scene, the whole scene when the surface is wider than 208 px)." },
+                    ["inpaintMaskRef"] = new JsonObject { ["from"] = "asset_process inpaint_prep", ["how"] = "upload:<id> of mask.png (free-form, white = repaint), drawn wide along the whole surface, never a small box around one object." }
+                },
+                Outputs = new JsonArray(Output("original", $"{root}/inpaint/{key}.png"), Output("original", $"{root}/inpaint/{key}-mask.png"),
+                    Output("record", $"{root}/inpaint/{key}.request.json"), Output("record", $"{root}/inpaint/{key}.receipt.json")),
+                Target = new JsonObject
+                {
+                    ["slots"] = new JsonArray($"background:{scene.SceneId}"),
+                    ["process"] = "asset_process inpaint_merge { plan: <plan.json of inpaint_prep>, result: <PixelLab PNG>, boxes: { itemId: [x0,y0,x1,y1] } } -> the scene with the objects (only the masked pixels copied) and their itemPlacements",
+                    ["field"] = $"scenes[{scene.SceneId}].backgroundUrl",
+                    ["size"] = "512x512"
+                }
+            });
         }
 
         var iconCells = new List<(string Icon, List<string> ItemIds, string Name, string? Visual)>();
@@ -804,7 +811,7 @@ public static class PixelLabPlanBuilder
                 "Library first: reuse or make a variant (0 generations); only really new pictures go to PixelLab.",
                 "Prompts are ASCII English without character names; maps and rooms say: No people, no animals, no readable text.",
                 "New characters: draw the straight-on south front first, then rotate (v3), then idle.",
-                "Investigation items are part of the scene art: a new scene paints them from visualDescription; a library or variant scene gets them with item-inpaint (asset_process inpaint_prep / inpaint_merge). Never paste an item picture onto a scene.",
+                "Investigation items are part of the scene art. Create them first: a new scene paints them from visualDescription. A library or variant scene that lacks them gets them with item-inpaint: a free-form mask drawn wide along the whole surface they rest on (asset_process inpaint_prep / inpaint_merge). Never paste an item picture onto a scene.",
                 "Masks and exterior crops come from the NATIVE 512 map, never an upscaled copy.",
                 "First creation runs; any reroll or re-creation asks Yen first.",
                 "Keep the original PNGs, the requests and the receipts with job IDs outside src/FE/public."),

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
-import { inpaintCost, inpaintInputs, mergeInpaint, paintedPlacement, planInpaint } from '../src/image/inpaint.js';
+import { inpaintCost, inpaintInputs, isTightMask, maskBounds, mergeInpaint, paintedPlacement, planInpaint, sceneMask } from '../src/image/inpaint.js';
 import { crop, encode, loadRgba } from '../src/image/raster.js';
 import { assetProcess, assetVariant, PROCESS_OPS } from '../src/tools/assets.js';
 import { paint, pixel, realRepoRoot, tempRepo, testContext } from './helpers.js';
@@ -22,7 +22,7 @@ describe('inpaint plan', () => {
     assert.deepEqual(plan.boundingBox, { x: 140, y: 128, width: 128, height: 128 });
   });
 
-  test('the canvas stays inside the scene near an edge, and a bigger object takes 256', () => {
+  test('the canvas stays inside the scene near an edge, a bigger surface takes 256, a very wide one the whole 512', () => {
     const corner = planInpaint(512, 512, { x0: 2, y0: 500, x1: 12, y1: 511 });
     assert.deepEqual(corner.crop, { x: 0, y: 384, width: 128, height: 128 });
     assert.deepEqual(corner.mask, { x: 2, y: 116, width: 11, height: 12 });
@@ -30,7 +30,9 @@ describe('inpaint plan', () => {
     assert.equal(big.crop.width, 256);
     // A 256 canvas: the context is the whole 512 scene (3x would be 768).
     assert.deepEqual(big.context, { x: 0, y: 0, width: 512, height: 512 });
-    assert.throws(() => planInpaint(512, 512, { x0: 0, y0: 0, x1: 300, y1: 40 }), /quá to/);
+    // Wider than 208: the whole 512 scene is the canvas (inpaint_image 25, Tier 2).
+    assert.deepEqual(planInpaint(512, 512, { x0: 0, y0: 0, x1: 300, y1: 40 }).crop, { x: 0, y: 0, width: 512, height: 512 });
+    assert.throws(() => planInpaint(1024, 1024, { x0: 0, y0: 0, x1: 700, y1: 40 }), /quá to/);
   });
 
   test('cost follows the PixelLab price notes (canvas, not mask)', () => {
@@ -38,6 +40,32 @@ describe('inpaint plan', () => {
     assert.equal(inpaintCost('inpaint_image_pro_flash', 256), 9);
     assert.equal(inpaintCost('inpaint_image', 128), 10);
     assert.equal(inpaintCost('inpaint_image', 256), 10);
+    assert.equal(inpaintCost('inpaint_image', 512), 25);
+  });
+
+  test('a free-form mask follows the surface: polygons, rectangles or a painted mask picture, pixel centres inside', () => {
+    // A slanted counter top (isometric), like the tea-house counter of the tutorial.
+    const counter: [number, number][] = [[113, 314], [157, 305], [203, 296], [243, 305], [252, 316], [250, 322], [157, 361], [114, 340]];
+    const mask = sceneMask(512, 512, { polygons: [counter] });
+    const bounds = maskBounds(mask, 512)!;
+    assert.deepEqual(bounds, { x: 113, y: 296, width: 139, height: 65 });
+    assert.equal(isTightMask(bounds), false);
+    assert.equal(mask[330 * 512 + 180], 1, 'middle of the counter top');
+    assert.equal(mask[300 * 512 + 120], 0, 'inside the box but off the slanted top');
+    const plan = planInpaint(512, 512, { x0: bounds.x, y0: bounds.y, x1: bounds.x + bounds.width - 1, y1: bounds.y + bounds.height - 1 });
+    assert.deepEqual(plan.crop, { x: 55, y: 201, width: 256, height: 256 });
+    const inputs = inpaintInputs(scene(), plan, mask);
+    let white = 0;
+    for (let i = 0; i < inputs.mask.data.length; i += 4) if (inputs.mask.data[i] === 255) white++;
+    assert.equal(white, mask.reduce((sum, value) => sum + value, 0), 'the mask picture is exactly the polygon');
+    assert.deepEqual(pixel(inputs.mask, 0, 0), [0, 0, 0, 255]);
+    // Rectangles and a painted picture (white = repaint) add up.
+    const painted = paint(512, 512, (x, y) => (x >= 10 && x < 20 && y >= 10 && y < 15 ? [255, 255, 255, 255] : [0, 0, 0, 255]));
+    const both = sceneMask(512, 512, { image: painted, rects: [{ x0: 30, y0: 30, x1: 31, y1: 31 }] });
+    assert.equal(both.reduce((sum, value) => sum + value, 0), 50 + 4);
+    assert.throws(() => sceneMask(512, 512, { image: paint(64, 64, () => [255, 255, 255, 255]) }), /đúng cỡ cảnh/);
+    assert.throws(() => sceneMask(512, 512, { polygons: [[[1, 1], [2, 2]]] }), /3 đỉnh/);
+    assert.equal(isTightMask({ x: 0, y: 0, width: 26, height: 17 }), true, 'the 26x17 box around the first guestbook was too tight');
   });
 
   test('inputs: the source is the scene crop and the mask is pure white on black', () => {
@@ -110,7 +138,7 @@ describe('asset_process inpaint_prep / inpaint_merge and compose', () => {
       const ctx = testContext(repo.root, 'https://sirlocked.id.vn');
       const picture = scene();
       writeFileSync(path.join(repo.root, 'ngo.png'), await encode(picture, 'png'));
-      await assert.rejects(assetProcess(ctx, { op: 'inpaint_prep', input: 'ngo.png' }), /rect/);
+      await assert.rejects(assetProcess(ctx, { op: 'inpaint_prep', input: 'ngo.png' }), /RỘNG theo cả mặt/);
       await assert.rejects(assetProcess(ctx, { op: 'inpaint_prep', input: 'ngo.png', params: { rect: [322, 210, 341, 225], description: 'hòm gỗ' } }), /ASCII/);
       writeFileSync(path.join(repo.root, 'big.png'), await encode(paint(1024, 1024, () => [1, 2, 3, 255]), 'png'));
       await assert.rejects(assetProcess(ctx, { op: 'inpaint_prep', input: 'big.png', params: { rect: [1, 1, 5, 5] } }), /NATIVE 512/);
@@ -119,13 +147,18 @@ describe('asset_process inpaint_prep / inpaint_merge and compose', () => {
         op: 'inpaint_prep', input: 'ngo.png', params: { rect: [322, 210, 341, 225], id: 'hom-go', description: 'a dark wooden chest with iron bands on the rickshaw seat' },
       });
       for (const file of Object.values(prep.files) as string[]) assert.ok(existsSync(path.join(repo.root, file)), file);
-      assert.equal(prep.calls[0].tool, 'inpaint_image_pro_flash');
-      assert.equal(prep.calls[0].generations, 6);
-      assert.deepEqual(prep.calls[0].params.bounding_box, { x: 140, y: 128, width: 128, height: 128 });
+      // Inpaint Pro (v3) with the mask picture first; Pro Flash (cheaper, smudges small things) only as an option.
+      assert.equal(prep.calls[0].tool, 'inpaint_image');
+      assert.equal(prep.calls[0].generations, 10);
+      assert.equal(prep.calls[0].params.mask_image_url, 'upload:<mask.png>');
       assert.equal(prep.calls[0].params.no_background, false);
-      assert.deepEqual([prep.calls[0].params.mask_x, prep.calls[0].params.mask_y, prep.calls[0].params.mask_width, prep.calls[0].params.mask_height], [54, 56, 20, 16]);
-      assert.equal(prep.calls[1].tool, 'inpaint_image');
-      assert.equal(prep.calls[1].generations, 10);
+      assert.equal(prep.calls[1].tool, 'inpaint_image_pro_flash');
+      assert.equal(prep.calls[1].generations, 6);
+      assert.deepEqual(prep.calls[1].params.bounding_box, { x: 140, y: 128, width: 128, height: 128 });
+      assert.equal(prep.calls[1].params.mask_image_url, 'upload:<mask.png>');
+      assert.deepEqual([prep.mask.x, prep.mask.y, prep.mask.width, prep.mask.height], [54, 56, 20, 16]);
+      // A 20x16 box hugs one object: warned (here it is the whole rickshaw seat, so it stays).
+      assert.ok(prep.warnings.some((warning: string) => warning.startsWith('MASK_TIGHT')));
       assert.equal(prep.pixelLabCredits, 0);
       const mask = await loadRgba(readFileSync(path.join(repo.root, prep.files.mask)));
       assert.deepEqual(pixel(mask, 54, 56), [255, 255, 255, 255]);
@@ -153,6 +186,45 @@ describe('asset_process inpaint_prep / inpaint_merge and compose', () => {
     }
   });
 
+  test('a wide polygon mask over a whole counter top: only the polygon comes back, boxes give one placement per object', async () => {
+    const repo = tempRepo();
+    try {
+      const ctx = testContext(repo.root, 'https://sirlocked.id.vn');
+      const picture = scene();
+      writeFileSync(path.join(repo.root, 'tra-lau.png'), await encode(picture, 'png'));
+      const counter = [[113, 314], [157, 305], [203, 296], [243, 305], [252, 316], [250, 322], [157, 361], [114, 340]];
+      const prep: any = await assetProcess(ctx, {
+        op: 'inpaint_prep', input: 'tra-lau.png', output: 'tmp/quay',
+        params: { polygon: counter, id: 'quay', description: 'Wooden counter top with torn letter scraps, an open guest ledger and a tea tray' },
+      });
+      assert.deepEqual(prep.crop, { x: 55, y: 201, width: 256, height: 256 });
+      assert.deepEqual(prep.warnings, []);
+      assert.equal(prep.calls[0].tool, 'inpaint_image');
+      const plan = JSON.parse(readFileSync(path.join(repo.root, prep.files.plan), 'utf8'));
+      assert.equal(plan.maskFile, 'mask.png');
+      assert.deepEqual(plan.polygons, [counter]);
+
+      // PixelLab repaints everything it was given: the merge keeps only the polygon.
+      const answer = paint(256, 256, () => [200, 30, 30, 255]);
+      writeFileSync(path.join(repo.root, 'answer.png'), await encode(answer, 'png'));
+      await assert.rejects(assetProcess(ctx, { op: 'inpaint_merge', params: { plan: prep.files.plan, result: 'tra-lau.png' } }), /không ghép được/);
+      const merged: any = await assetProcess(ctx, {
+        op: 'inpaint_merge', output: 'tmp/tra-lau-ve.png',
+        params: { plan: prep.files.plan, result: 'answer.png', boxes: { 'item-so': [141, 306, 213, 350], 'item-thu': [112, 316, 140, 340] } },
+      });
+      assert.equal(merged.changedPixels, prep.maskPixels);
+      assert.equal(merged.placement, null, 'a wide mask has no single object');
+      assert.deepEqual(merged.placements['item-so'].hotspot, { x: 556, y: 1216, width: 308, height: 196 });
+      assert.deepEqual(merged.placements['item-thu'].position, { x: 506, y: 1372, anchor: 'bottom-center' });
+      const out = await loadRgba(readFileSync(path.join(repo.root, 'tmp/tra-lau-ve.png')));
+      assert.deepEqual(pixel(out, 180, 330), [200, 30, 30, 255]);
+      assert.deepEqual(pixel(out, 120, 300), pixel(picture, 120, 300), 'inside the box, off the counter: untouched');
+      assert.deepEqual(pixel(out, 60, 210), pixel(picture, 60, 210));
+    } finally {
+      repo.cleanup();
+    }
+  });
+
   test('compose never pastes an item picture onto a scene; removing still works', async () => {
     const repo = tempRepo();
     try {
@@ -173,15 +245,33 @@ describe('asset_process inpaint_prep / inpaint_merge and compose', () => {
 
   test('the tutorial scenes carry their inpainted objects exactly as the recipe says', { skip: !existsSync(path.join(realRepoRoot(), 'ai-game-docs', 'pixel-case-tan-thu', 'inpaint', 'recipe.json')) && 'recipe missing' }, async () => {
     const root = realRepoRoot();
-    const recipe = JSON.parse(readFileSync(path.join(root, 'ai-game-docs', 'pixel-case-tan-thu', 'inpaint', 'recipe.json'), 'utf8'));
+    const dir = path.join(root, 'ai-game-docs', 'pixel-case-tan-thu', 'inpaint');
+    const recipe = JSON.parse(readFileSync(path.join(dir, 'recipe.json'), 'utf8'));
     for (const patch of recipe.patches) {
       const sceneFile = path.join(root, 'src', 'FE', 'public', 'assets', 'pixel', 'tan-thu', patch.scene);
       const picture = await loadRgba(readFileSync(sceneFile));
-      const answer = await loadRgba(readFileSync(path.join(root, 'ai-game-docs', 'pixel-case-tan-thu', 'inpaint', patch.output)));
-      const plan = { crop: { x: patch.crop.x, y: patch.crop.y, width: patch.crop.size, height: patch.crop.size }, mask: patch.mask };
-      // Merging again changes nothing: the scene already holds the mask of the PixelLab answer.
-      const merged = mergeInpaint(picture, answer, plan);
-      assert.equal(merged.changed, 0, patch.itemId);
+      const answer = await loadRgba(readFileSync(path.join(dir, patch.output)));
+      const crop = { x: patch.crop.x, y: patch.crop.y, width: patch.crop.size, height: patch.crop.size };
+      const maskPicture = patch.maskFile ? await loadRgba(readFileSync(path.join(dir, patch.maskFile))) : undefined;
+      const plan = { crop, mask: patch.mask ?? { x: 0, y: 0, width: crop.width, height: crop.height } };
+      // Merging again changes nothing: the scene already holds the masked pixels of the PixelLab answer.
+      const merged = mergeInpaint(picture, answer, plan, maskPicture);
+      assert.equal(merged.changed, 0, patch.id);
+      if (patch.maskFile) {
+        // The counter: one wide mask drawn along the whole counter top, matching its polygon.
+        const fromPolygon = sceneMask(512, 512, { polygons: [patch.polygon] });
+        let same = 0, white = 0;
+        for (let y = 0; y < crop.height; y++) {
+          for (let x = 0; x < crop.width; x++) {
+            const on = maskPicture!.data[(y * crop.width + x) * 4] > 127;
+            if (on) white++;
+            if (on === (fromPolygon[(crop.y + y) * 512 + crop.x + x] === 1)) same++;
+          }
+        }
+        assert.equal(same, crop.width * crop.height, `${patch.id}: mask.png is the recipe polygon`);
+        assert.equal(isTightMask(maskBounds(fromPolygon, 512)!), false);
+        assert.ok(white > 4000);
+      }
     }
   });
 });

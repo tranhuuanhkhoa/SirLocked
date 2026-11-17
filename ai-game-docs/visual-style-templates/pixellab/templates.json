@@ -348,53 +348,51 @@
     {
       "id": "item-inpaint",
       "step": 7,
-      "title": "Vẽ thêm vật điều tra vào cảnh có sẵn (inpaint)",
-      "tool": "inpaint_image_pro_flash",
+      "title": "Vẽ thêm vật điều tra vào cảnh có sẵn (inpaint cho chuẩn: mask rộng theo cả mặt vật nằm lên)",
+      "tool": "inpaint_image",
       "fixedParams": {
         "no_background": false,
-        "output_method": "Modify current layer",
+        "crop_to_mask": true,
         "seed": 707
       },
       "inputs": {
-        "image": "{{inpaintSourceRef}}: khung 128 hoặc 256 cắt từ cảnh NATIVE 512 quanh chỗ đặt vật (asset_process inpaint_prep)",
-        "mask": "mask_x, mask_y, mask_width, mask_height: chỗ vẽ vật trong khung",
-        "context": "{{inpaintContextRef}} + bounding_box: cảnh xung quanh (tối đa 3 lần khung) để vật khớp phối cảnh và bảng màu"
+        "image": "{{inpaintSourceRef}}: khung 128 hoặc 256 (512 khi mặt quá rộng) cắt từ cảnh NATIVE 512 (asset_process inpaint_prep)",
+        "mask_image": "{{inpaintMaskRef}}: mask tự do cùng cỡ khung, trắng = vẽ lại, đen = giữ. Tô RỘNG theo cả mặt vật nằm lên (cả mặt bàn, ghế, kệ), không ôm sát vật"
       },
       "promptParam": "description",
       "promptParts": [
-        "{{itemVisual}}, resting naturally where it lies in the scene.",
-        "Drawn as part of the same pixel art scene: same perspective, lighting, outline and palette as the surrounding picture, at the scale of the furniture around it.",
+        "{{surface}}, with {{objectList}} on it.",
+        "Same pixel art style, perspective, lighting, outlines and palette as the surrounding picture, at the scale of the furniture around it.",
         "No text, no letters."
       ],
       "placeholders": {
-        "itemVisual": {
-          "description": "Cụm từ tiếng Anh tả vật như nằm trong cảnh, ví dụ a small red closed ledger book lying flat on the wooden counter. Lấy từ items[].visualDescription."
+        "surface": {
+          "description": "Tiếng Anh: cả mặt vật nằm lên mà mask phủ, như trong ảnh cảnh, ví dụ Wooden tea house counter top. Kể luôn vật cũ trên mặt đó cần giữ."
+        },
+        "objectList": {
+          "description": "Server dựng từ items[].visualDescription của các vật cần vẽ, nối bằng dấu phẩy và \"and\"."
         }
       },
-      "references": [
-        {
-          "param": "context_image",
-          "url": "{{inpaintContextRef}}",
-          "usage": "the surrounding scene: match its perspective, lighting and palette",
-          "usageSent": true
-        }
-      ],
-      "costGenerations": 6,
+      "references": [],
+      "costGenerations": 10,
       "fallback": {
         "tool": "inpaint_image",
-        "costGenerations": 10,
-        "when": "Pro Flash ra vệt nhòe hoặc không vẽ gì (vật nhỏ dưới khoảng 24px): dùng inpaint_image trên khung 256, no_background false. Đây là lần vẽ lại: hỏi chủ dự án trước."
+        "canvas": 512,
+        "costGenerations": 25,
+        "when": "Mặt vật nằm lên rộng hơn khoảng 208 px: lấy cả cảnh 512 làm khung (PixelLab cần gói Tier 2 cho ảnh trên 256). Là lần gọi khác: hỏi chủ dự án trước."
       },
       "outputs": [
-        "<sceneKey>-<itemKey>.png (ảnh PixelLab trả về, bản gốc)",
-        "/assets/pixel/<case-slug>/scenes/<sceneKey>.png (cảnh đã có vật: asset_process inpaint_merge chỉ chép vùng mask)"
+        "<sceneKey>.png (ảnh PixelLab trả về, bản gốc) và mask.png",
+        "/assets/pixel/<case-slug>/scenes/<sceneKey>.png (cảnh đã có vật: asset_process inpaint_merge chỉ chép pixel trong mask)"
       ],
       "notes": [
+        "Vật nên tạo trước: cảnh mới vẽ bằng PixelLab thì ghi mọi vật điều tra vào visualDescription của cảnh để PixelLab vẽ luôn (template outdoor-map, interior). Chỉ cảnh lấy từ thư viện hoặc biến thể chưa có vật mới cần bước này.",
         "Không bao giờ dán ảnh vật lên cảnh (asset_variant compose không còn add): lệch phối cảnh, ánh sáng, nhìn rất xấu.",
-        "Cảnh mới vẽ bằng PixelLab: ghi mọi vật điều tra vào visualDescription của cảnh để PixelLab vẽ luôn (template outdoor-map, interior). Chỉ cảnh lấy từ thư viện hoặc biến thể mới cần bước này.",
-        "Mỗi vật một lần gọi; nhiều vật trong một cảnh thì làm lần lượt trên ảnh đã ghép của lần trước.",
-        "Sau khi ghép: runtime.itemPlacements[] của vật để asset rỗng, ô bấm phủ đúng vật (inpaint_merge trả placement). items[].imageUrl chỉ là icon 64x64 cho túi đồ.",
-        "Đối chứng: màn tân thủ, ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json (hòm gỗ: inpaint_image_pro_flash khung 128, 6 lượt; sổ khách: inpaint_image khung 256, 10 lượt)."
+        "Muốn thêm vật đè lên một vùng thì inpaint cho chuẩn: mask tự do (polygon) tô RỘNG theo cả mặt vật nằm lên, không ôm sát vật. Ô nhỏ 26x17 quanh một cuốn sổ chỉ ra cuốn sổ bé xíu (màn tân thủ, sáng 17/11); mask phủ cả mặt quầy ra mặt quầy mới đủ thư xé, sổ khách, khay trà.",
+        "Một request cho cả cảnh: mọi vật cần vẽ của cảnh đi chung một lần gọi. Vật ở nhiều mặt khác nhau thì inpaint_prep nhận nhiều polygon (vẫn một mask) nếu lọt một khung; không lọt thì gọi riêng từng mặt.",
+        "description kể mọi vật phải có trên mặt đó, kể cả vật cũ muốn giữ: trong mask PixelLab vẽ lại hết. Vật cũ trong mask có thể đổi chỗ hay mất: đo lại ô bấm và clueZones; mẩu vật cũ sót ngoài mask thì xóa (asset_variant compose remove).",
+        "Sau khi ghép: runtime.itemPlacements[] của vật để asset rỗng, ô bấm phủ đúng vật (inpaint_merge với boxes trả placements). items[].imageUrl chỉ là icon 64x64 cho túi đồ.",
+        "Đối chứng: màn tân thủ, ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json (mặt quầy trà lâu: inpaint_image khung 256, mask đa giác phủ cả mặt quầy, 10 lượt)."
       ],
       "record": "ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json"
     },

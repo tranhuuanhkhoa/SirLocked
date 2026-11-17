@@ -211,7 +211,7 @@ export async function assetPlan(ctx: ToolContext, args: { draftId: string; choic
     reused: (data?.plan?.reuse ?? []).length,
     next: requests.length
       ? 'Chạy từng request theo thứ tự (lần tạo đầu). Điền missingInputs bằng tiếng Anh, không tên người. Tạo lại/reroll phải hỏi Yen. Giữ PNG gốc, request, job ID ở tmp/pixellab/<draftId>/ (ngoài src/FE/public). '
-        + 'Request item-inpaint: asset_process inpaint_prep trên nền 512 của cảnh -> PixelLab -> inpaint_merge; không bao giờ dán ảnh vật lên cảnh.'
+        + 'Request item-inpaint: asset_process inpaint_prep trên nền 512 của cảnh, polygon tô RỘNG theo cả mặt vật nằm lên -> PixelLab inpaint_image (mask_image) -> inpaint_merge với boxes; không bao giờ dán ảnh vật lên cảnh.'
       : 'Kế hoạch 0 lượt PixelLab: lấy ảnh thư viện/biến thể rồi asset_upload từng ô.',
   };
 }

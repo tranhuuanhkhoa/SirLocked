@@ -78,7 +78,7 @@ test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone',
   // 4. The guestbook as Sherlock does nothing; the switch tool makes the player Watson, who then inspects it.
   await waitForScene(page);
   const guestbook = () => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene')
-    .pagePointOfRuntime({ x: 818, y: 1336 }));
+    .pagePointOfRuntime({ x: 708, y: 1314 }));
   let point = await guestbook();
   // The real server must show Sherlock the guestbook in the tutorial, or the click falls through to the floor.
   expect((await state()).visibleScene.hotspots.map((hotspot: any) => hotspot.hotspotId)).toContain('hotspot-tt-so-khach');

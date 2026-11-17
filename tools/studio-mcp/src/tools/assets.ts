@@ -7,7 +7,9 @@ import {
   checkSize, cleanText, cover, cutBackground, fit, foregroundLayer, iconSheetCells, idleSheet, inspect, maskFromShapes, npcCheck, npcFromZip,
   portrait, walkableFromMask, walkOverlay, type NpcSources, type WalkShape,
 } from '../image/process.js';
-import { inpaintCost, inpaintInputs, mergeInpaint, paintedPlacement, planInpaint, type InpaintPlan } from '../image/inpaint.js';
+import {
+  inpaintCost, inpaintInputs, isTightMask, maskBounds, mergeInpaint, paintedPlacement, planInpaint, sceneMask, type InpaintPlan, type Point,
+} from '../image/inpaint.js';
 import { crop as cropRgba, loadRgba, resizeNearest, saveRgba, sideBySide, type Rgba } from '../image/raster.js';
 import {
   afterRain, compose, dusk, mirror, night, recolor, snow, VARIANT_TYPES, type Rect, type VariantType,
@@ -225,10 +227,13 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       };
     }
     case 'inpaint_prep': {
-      // Yen 17/11/2026: an item is never pasted onto a scene. A finished scene gets it painted in by PixelLab inpaint.
+      // Yen 17/11/2026: create objects first (in the scene prompt). To add one over a finished scene, inpaint it properly:
+      // a free-form mask drawn WIDE along the whole surface it rests on, never a small box around the object, never a pasted picture.
       const sceneRef = p.scene ?? args.input;
-      if (!sceneRef || !p.rect) {
-        throw new StudioError('BAD_ARGS', 'inpaint_prep cần params.scene (ảnh cảnh NATIVE 512) và params.rect [x0,y0,x1,y1] (pixel native, chỗ vẽ vật, gồm cả hai đầu). Tùy chọn: description (tiếng Anh ASCII), size 128|256, id.');
+      if (!sceneRef || !(p.polygon || p.polygons || p.maskImage || p.rect || p.rects)) {
+        throw new StudioError('BAD_ARGS', 'inpaint_prep cần params.scene (ảnh cảnh NATIVE 512) và vùng mask tô RỘNG theo cả mặt vật đứng lên (mặt bàn, ghế, kệ): '
+          + 'polygon [[x,y],...] / polygons, hoặc maskImage (PNG cỡ cảnh, trắng = vẽ lại), hoặc rect/rects [x0,y0,x1,y1] (pixel native). '
+          + 'Tùy chọn: description (tiếng Anh ASCII, kể MỌI vật phải có trên mặt đó), size 128|256|512, id.');
       }
       const scene = (await loadPicture(ctx, sceneRef)).image;
       if (scene.width !== 512 || scene.height !== 512) {
@@ -237,16 +242,27 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       if (p.description !== undefined && !/^[\x20-\x7E]*$/.test(String(p.description))) {
         throw new StudioError('BAD_ARGS', 'description gửi PixelLab là tiếng Anh ASCII, không dấu, không tên nhân vật.');
       }
+      const polygons: Point[][] = [...(p.polygon ? [p.polygon] : []), ...(p.polygons ?? [])];
+      const rectList = [...(p.rect ? [p.rect] : []), ...(p.rects ?? [])].map(asRect);
+      let sceneShape: Uint8Array;
       let plan: InpaintPlan;
       try {
-        plan = planInpaint(scene.width, scene.height, asRect(p.rect), p.size);
+        const image = p.maskImage ? (await loadPicture(ctx, p.maskImage)).image : undefined;
+        sceneShape = sceneMask(scene.width, scene.height, { polygons, rects: rectList, image });
+        const bounds = maskBounds(sceneShape, scene.width);
+        if (!bounds) throw new Error('Mask rỗng: không có pixel nào được tô.');
+        plan = planInpaint(scene.width, scene.height, { x0: bounds.x, y0: bounds.y, x1: bounds.x + bounds.width - 1, y1: bounds.y + bounds.height - 1 }, p.size);
       } catch (error) {
         throw new StudioError('BAD_ARGS', (error as Error).message);
+      }
+      const warnings: string[] = [];
+      if (isTightMask(plan.mask)) {
+        warnings.push(`MASK_TIGHT: mask ${plan.mask.width}x${plan.mask.height} ôm sát một vật nên PixelLab vẽ vật nhỏ hoặc nhòe. Tô rộng theo cả mặt vật nằm lên (mặt bàn, ghế, kệ) rồi kể mọi vật trên mặt đó trong description.`);
       }
       const id = String(p.id ?? 'vat').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
       const base = path.basename(sceneRef.split('#')[0]).replace(/\.[^.]+$/, '');
       const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', `${base}-inpaint-${id}`);
-      const inputs = inpaintInputs(scene, plan);
+      const inputs = inpaintInputs(scene, plan, sceneShape);
       const files = {
         source: path.join(dir, 'source.png'), mask: path.join(dir, 'mask.png'), context: path.join(dir, 'context.png'),
         preview: path.join(dir, 'preview.png'), plan: path.join(dir, 'plan.json'),
@@ -254,80 +270,105 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       await saveRgba(inputs.source, files.source);
       await saveRgba(inputs.mask, files.mask, { opaque: true });
       await saveRgba(inputs.context, files.context);
-      // What Claude looks at before spending: the canvas x4 with the mask tinted red.
-      const preview = resizeNearest(inputs.source, plan.crop.width * 4, plan.crop.height * 4);
-      for (let y = plan.mask.y * 4; y < (plan.mask.y + plan.mask.height) * 4; y++) {
-        for (let x = plan.mask.x * 4; x < (plan.mask.x + plan.mask.width) * 4; x++) {
+      // What Claude looks at before spending: the canvas enlarged with the mask tinted red.
+      const zoom = plan.crop.width >= 512 ? 2 : 4;
+      const preview = resizeNearest(inputs.source, plan.crop.width * zoom, plan.crop.height * zoom);
+      for (let y = 0; y < preview.height; y++) {
+        for (let x = 0; x < preview.width; x++) {
+          if (inputs.mask.data[(Math.floor(y / zoom) * plan.crop.width + Math.floor(x / zoom)) * 4] !== 255) continue;
           const i = (y * preview.width + x) * 4;
           preview.data[i] = Math.round(preview.data[i] * 0.5 + 255 * 0.5);
           preview.data[i + 1] = Math.round(preview.data[i + 1] * 0.5);
           preview.data[i + 2] = Math.round(preview.data[i + 2] * 0.5);
+          preview.data[i + 3] = 255;
         }
       }
       await saveRgba(preview, files.preview);
-      const description = String(p.description ?? '<tiếng Anh ASCII: vật + chỗ đặt, vd. "a small red closed ledger book lying flat on the wooden counter">');
-      const mask = { mask_x: plan.mask.x, mask_y: plan.mask.y, mask_width: plan.mask.width, mask_height: plan.mask.height };
-      const calls = [
+      const description = String(p.description ?? '<tiếng Anh ASCII: mặt vật nằm lên và MỌI vật phải có trên đó, vd. "Wooden counter top with an open guest ledger, torn letter scraps and a tea tray with two cups">');
+      const calls: any[] = [
         {
+          tool: 'inpaint_image', name: 'Inpaint Pro (v3, REST /v2/inpaint-v3)', generations: inpaintCost('inpaint_image', plan.crop.width),
+          params: { image_url: 'upload:<source.png>', mask_image_url: 'upload:<mask.png>', description, no_background: false, crop_to_mask: true },
+        },
+      ];
+      if (plan.crop.width <= 256) {
+        calls.push({
           tool: 'inpaint_image_pro_flash', generations: inpaintCost('inpaint_image_pro_flash', plan.crop.width),
           params: {
-            image_url: 'upload:<source.png>', ...mask, description, no_background: false, output_method: 'Modify current layer',
+            image_url: 'upload:<source.png>', mask_image_url: 'upload:<mask.png>', description, no_background: false, output_method: 'Modify current layer',
             context_image: { url: 'upload:<context.png>', usage_description: 'the surrounding scene: match its perspective, lighting and palette' },
             bounding_box: plan.boundingBox,
           },
-        },
-        {
-          tool: 'inpaint_image', generations: inpaintCost('inpaint_image', plan.crop.width),
-          params: { image_url: 'upload:<source.png>', ...mask, description, no_background: false },
-          when: 'Pro Flash ra vệt nhòe (vật nhỏ dưới ~24px): thử cách này, khung 256 (size: 256) thường sạch hơn. Lần gọi lại phải hỏi chủ dự án trước.',
-        },
-      ];
-      writeJsonFile(files.plan, { scene: sceneRef, rect: p.rect, ...plan, description: p.description ?? null, calls });
+          when: 'Rẻ hơn nhưng hay ra vệt nhòe với vật nhỏ. Chỉ dùng khi chủ dự án đồng ý; lần gọi lại nào cũng phải hỏi trước.',
+        });
+      }
+      if (plan.crop.width > 256) warnings.push('Khung 512 (cả cảnh): inpaint_image 25 lượt, PixelLab cần gói Tier 2 cho ảnh trên 256.');
+      writeJsonFile(files.plan, {
+        scene: sceneRef, polygons, rects: [...(p.rect ? [p.rect] : []), ...(p.rects ?? [])], maskImage: p.maskImage ?? null, maskFile: 'mask.png',
+        ...plan, description: p.description ?? null, calls,
+      });
       return {
         dir: display(ctx.config, dir), files: Object.fromEntries(Object.entries(files).map(([key, file]) => [key, display(ctx.config, file)])),
-        ...plan, calls, pixelLabCredits: 0,
+        ...plan, maskPixels: inputs.mask.data.filter((_, i) => i % 4 === 0 && inputs.mask.data[i] === 255).length,
+        calls, warnings, pixelLabCredits: 0,
         next: [
-          `Mở ${display(ctx.config, files.preview)}: vùng đỏ là chỗ PixelLab vẽ vật (chỉ vùng này được thay).`,
-          'PixelLab get_upload_url, tải source.png và context.png lên (curl), thay upload:<...> trong calls[0] rồi gọi. Lần đầu theo yêu cầu thì chạy; vẽ lại phải hỏi chủ dự án.',
-          'get_image(job_id) lấy URL tải PNG, lưu file, rồi asset_process { op: "inpaint_merge", params: { plan: "' + display(ctx.config, files.plan) + '", result: <file PNG> } }.',
+          `Mở ${display(ctx.config, files.preview)}: vùng đỏ là chỗ PixelLab vẽ lại (chỉ vùng này được thay). Vùng đỏ phải phủ rộng cả mặt bàn/ghế/kệ, không chỉ ôm vật.`,
+          'description kể MỌI vật phải có trên mặt đó (kể cả vật cũ muốn giữ): trong mask PixelLab vẽ lại hết.',
+          'PixelLab get_upload_url, tải source.png và mask.png lên (curl), thay upload:<...> trong calls[0] rồi gọi. Lần đầu theo yêu cầu thì chạy; vẽ lại phải hỏi chủ dự án.',
+          'get_image(job_id) lấy URL tải PNG, lưu file, rồi asset_process { op: "inpaint_merge", params: { plan: "' + display(ctx.config, files.plan) + '", result: <file PNG>, boxes: { <itemId>: [x0,y0,x1,y1] } } }.',
         ],
       };
     }
     case 'inpaint_merge': {
       if (!p.result || (!p.plan && !(p.crop && p.mask))) {
-        throw new StudioError('BAD_ARGS', 'inpaint_merge cần params.result (PNG PixelLab trả về) và params.plan (plan.json của inpaint_prep), hoặc params.crop {x,y,width,height} + params.mask {x,y,width,height}.');
+        throw new StudioError('BAD_ARGS', 'inpaint_merge cần params.result (PNG PixelLab trả về) và params.plan (plan.json của inpaint_prep), hoặc params.crop {x,y,width,height} + params.mask {x,y,width,height} (+ maskFile).');
       }
-      const plan = p.plan ? readJsonFile(requireFile(ctx.config, p.plan)) : { crop: p.crop, mask: p.mask };
+      const planFile = p.plan ? requireFile(ctx.config, p.plan) : null;
+      const plan = planFile ? readJsonFile(planFile) : { crop: p.crop, mask: p.mask, maskFile: p.maskFile };
       const sceneRef = p.scene ?? args.input ?? plan.scene;
       if (!sceneRef) throw new StudioError('BAD_ARGS', 'inpaint_merge cần params.scene (ảnh cảnh gốc).');
       const scene = (await loadPicture(ctx, sceneRef)).image;
       const result = (await loadPicture(ctx, p.result)).image;
+      const maskRef = plan.maskFile ? (planFile && !path.isAbsolute(plan.maskFile) ? path.join(path.dirname(planFile), plan.maskFile) : plan.maskFile) : null;
+      const maskPicture = maskRef ? (await loadPicture(ctx, maskRef)).image : undefined;
       let merged;
       try {
-        merged = mergeInpaint(scene, result, plan);
+        merged = mergeInpaint(scene, result, plan, maskPicture);
       } catch (error) {
         throw new StudioError('BAD_ARGS', (error as Error).message);
       }
       if (!merged.drawn) {
-        throw new StudioError('INPAINT_EMPTY', 'PixelLab gần như không vẽ gì trong vùng mask. Báo chủ dự án, đề xuất sửa description hoặc khung 256 rồi chờ đồng ý trước khi gọi lại.');
+        throw new StudioError('INPAINT_EMPTY', 'PixelLab gần như không vẽ gì trong vùng mask. Báo chủ dự án, đề xuất sửa description hoặc tô mask rộng hơn rồi chờ đồng ý trước khi gọi lại.');
       }
       const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, sceneRef.split('#')[0], 've-vat', '.png');
       await saveRgba(merged.image, output);
       const compare = output.replace(/\.[^.]+$/, '-so-sanh.png');
       const zoom = (img: Rgba) => {
         const part = cropRgba(img, plan.crop.x, plan.crop.y, plan.crop.width, plan.crop.height);
-        return resizeNearest(part, part.width * 3, part.height * 3);
+        const factor = part.width >= 512 ? 2 : 3;
+        return resizeNearest(part, part.width * factor, part.height * factor);
       };
       await saveRgba(sideBySide(zoom(scene), zoom(merged.image)), compare);
       const pixelScale = p.pixelScale ?? 4;
+      const placements: Record<string, ReturnType<typeof paintedPlacement>> = {};
+      for (const [itemId, box] of Object.entries(p.boxes ?? {})) {
+        const rect = asRect(box);
+        placements[itemId] = paintedPlacement({ x: rect.x0, y: rect.y0, width: rect.x1 - rect.x0 + 1, height: rect.y1 - rect.y0 + 1 }, pixelScale, p.pad ?? 2, scene.width);
+      }
+      const wide = !isTightMask(plan.mask);
       return {
         output: display(ctx.config, output), compare: display(ctx.config, compare),
         changedPixels: merged.changed, ignoredOutsideMask: merged.ignoredOutside, drawn: merged.drawn,
-        placement: paintedPlacement(merged.drawn, pixelScale, p.pad ?? 2, scene.width),
+        // A wide mask repaints a whole surface: the box of each object comes from looking at the result (params.boxes).
+        placement: wide ? null : paintedPlacement(merged.drawn, pixelScale, p.pad ?? 2, scene.width),
+        placements,
         pixelLabCredits: 0,
         hint: [
           `Mở ${display(ctx.config, compare)} để tự xem trước/sau. Pixel ngoài mask giữ nguyên từng byte.`,
-          'placement (đơn vị runtime = native x 4): ghi vào runtime.itemPlacements[] của vật (asset rỗng, hotspot phủ vật), hotspots[] của cảnh dùng cùng ô.',
+          wide
+            ? 'Mask rộng vẽ lại cả mặt: nhìn ảnh so sánh, đo khung từng vật (pixel native) rồi gọi lại với params.boxes { itemId: [x0,y0,x1,y1] } để lấy placements.'
+            : 'placement (đơn vị runtime = native x 4): ghi vào runtime.itemPlacements[] của vật (asset rỗng, hotspot phủ vật), hotspots[] của cảnh dùng cùng ô.',
+          'Vật cũ trong mask (khay, chén...) có thể đổi chỗ: kiểm lại clueZones và ô bấm cũ trên mặt đó.',
           'Ảnh cảnh mới thay backgroundUrl: asset_upload vào ô background:<sceneId>. Giữ source/mask/context, PNG PixelLab và job ID.',
         ],
       };
@@ -362,7 +403,7 @@ const puddles = (value: any) => (value ?? [])
 /** Yen 17/11/2026: pasting an item picture onto a map looks wrong. Items are painted by PixelLab instead. */
 export const ITEM_PASTE_MESSAGE = 'Không dán ảnh vật lên cảnh (lệch phối cảnh, ánh sáng, nhìn rất xấu). '
   + 'Cảnh mới: ghi vật vào mô tả cảnh (visualDescription) để PixelLab vẽ luôn vào nền. '
-  + 'Cảnh đã có: asset_process inpaint_prep -> PixelLab inpaint_image_pro_flash (hoặc inpaint_image) -> asset_process inpaint_merge. '
+  + 'Cảnh đã có: inpaint cho chuẩn: asset_process inpaint_prep với mask tô RỘNG theo cả mặt vật nằm lên (polygon) -> PixelLab inpaint_image (Inpaint Pro, mask_image) -> asset_process inpaint_merge. '
   + 'compose chỉ còn remove (xóa vật bằng nội suy).';
 
 export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
