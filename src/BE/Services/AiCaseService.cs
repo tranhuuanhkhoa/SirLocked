@@ -278,8 +278,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
         }
 
-        // ADMIN orders go straight to Claude. A VIP order waits for an admin; no bridge request exists until then.
-        var orderStatus = isAdmin ? AiOrderStatuses.QueuedForClaude : AiOrderStatuses.AwaitingOwnerApproval;
+        // Every order (ADMIN or VIP) goes straight to Claude; the VIP weekly limit above is the only difference.
+        // AWAITING_OWNER_APPROVAL survives only on orders placed before 2026-11-18.
+        var orderStatus = AiOrderStatuses.QueuedForClaude;
         var draft = new AiCaseDraft
         {
             Id = draftId,
@@ -294,7 +295,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
             WorkflowVersion = 1,
             QueuedOperation = AiQueuedOperations.StoryPreview,
-            QueueState = isAdmin ? AiQueueStates.Pending : AiQueueStates.None,
+            QueueState = AiQueueStates.Pending,
             IdempotencyKey = string.IsNullOrWhiteSpace(normalizedIdempotencyKey) ? null : normalizedIdempotencyKey,
             QuotaDay = VietnamQuotaDay(now),
             QuotaWeek = quotaWeek,
@@ -326,7 +327,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 storyDiversity,
                 order
             }, CompactJson)),
-            NextAttemptAt = isAdmin ? now : null,
+            NextAttemptAt = now,
             CreatedAt = now,
             UpdatedAt = now
         };

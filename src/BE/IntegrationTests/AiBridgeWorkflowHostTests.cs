@@ -225,7 +225,7 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
     // ---------------------------------------------------------------- VIP orders and the audit log
 
     [Fact]
-    public async Task VipOrder_IsInvisibleToTheBotUntilApproved_AndApprovalAndRejectionAreAudited()
+    public async Task VipOrder_GoesStraightToTheBot_WithItsOwnReviewModeAndCap()
     {
         if (!Enabled) return;
         await using var factory = new BridgeFactory();
@@ -241,38 +241,19 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         });
         Assert.Equal(HttpStatusCode.Accepted, order.StatusCode);
         var draft = (await order.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
-        Assert.Equal(AiOrderStatuses.AwaitingOwnerApproval, draft.OrderStatus);
-        Assert.Equal((AiCaseReviewModes.Full, 30), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
+        Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
+        Assert.Equal((AiCaseReviewModes.Fast, 100), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
 
-        await Task.Delay(2500); // a worker cycle passes: still nothing for the bot
-        Assert.DoesNotContain(await PendingAsync(bot), item => item["draftId"]?.GetValue<string>() == draft.DraftId);
-        Assert.Equal(HttpStatusCode.Forbidden, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null)).StatusCode);
-
-        var approved = await admin.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null);
-        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (!(await PendingAsync(bot)).Any(item => item["draftId"]?.GetValue<string>() == draft.DraftId))
         {
-            Assert.True(DateTime.UtcNow < deadline, "The approved VIP order never reached the bot.");
+            Assert.True(DateTime.UtcNow < deadline, "The VIP order never reached the bot.");
             await Task.Delay(200);
         }
-
-        var second = (await (await vip.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
-        {
-            GenerationPreset = AiGenerationPresets.ShortDemo
-        })).Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
-        var rejected = await admin.PostAsJsonAsync($"/api/admin/ai-cases/{second.DraftId}/reject-order", new { reason = "Trùng ý tưởng." });
-        Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
-        var rejectedDraft = await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{second.DraftId}");
-        Assert.Equal((AiOrderStatuses.Rejected, "Trùng ý tưởng."), (rejectedDraft.OrderStatus, rejectedDraft.OrderRejectReason));
+        Assert.Equal(HttpStatusCode.OK, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
 
         using var scope = factory.Services.CreateScope();
         var audit = scope.ServiceProvider.GetRequiredService<IAdminAudit>();
-        var approveLog = Assert.Single((await audit.QueryAsync(new AdminAuditQuery(TargetId: draft.DraftId, Action: "ai-order.approve"))).Items);
-        Assert.Equal(AdminId, approveLog.AdminId);
-        var rejectLog = Assert.Single((await audit.QueryAsync(new AdminAuditQuery(TargetId: second.DraftId, Action: "ai-order.reject"))).Items);
-        Assert.Equal("Trùng ý tưởng.", rejectLog.Reason);
 
         var settings = await admin.PutAsJsonAsync("/api/admin/ai-cases/settings", new { vipWeeklyOrderLimit = 5 });
         Assert.Equal(HttpStatusCode.OK, settings.StatusCode);

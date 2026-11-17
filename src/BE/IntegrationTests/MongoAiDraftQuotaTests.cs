@@ -105,7 +105,7 @@ public sealed class MongoAiDraftQuotaTests
     }
 
     [Fact]
-    public async Task VipOrder_WaitsForApproval_ForcesFullReviewAndCap_AndCreatesNoBridgeRequest()
+    public async Task VipOrder_IsQueuedLikeAnAdminOrder_AndLegacyApprovalStillWorks()
     {
         await WithDatabase(async db =>
         {
@@ -122,19 +122,19 @@ public sealed class MongoAiDraftQuotaTests
                 }
             }, "vip-order-1");
 
-            Assert.Equal(AiOrderStatuses.AwaitingOwnerApproval, draft.OrderStatus);
-            Assert.Equal(AiQueueStates.None, draft.QueueState);
-            Assert.Equal(AiCaseReviewModes.Full, draft.Order!.ReviewMode); // VIPs never get fast review
-            Assert.Equal(AiCaseOrder.VipPixelLabCap, draft.Order.PixelLabCap); // nor more than 30 generations
+            Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
+            Assert.Equal(AiQueueStates.Pending, draft.QueueState);
+            Assert.Equal(AiCaseReviewModes.Fast, draft.Order!.ReviewMode); // a VIP chooses like an admin
+            Assert.Equal(100, draft.Order.PixelLabCap);
             Assert.Equal(AiCaseWorlds.TaishoJapan, draft.Order.World);
             Assert.Equal("RAIN", draft.Order.Weather);
             Assert.Equal("NIGHT", draft.Order.TimeOfDay);
             Assert.Equal(5, draft.Order.SuspectCount);
             Assert.Single(draft.OrderStatusHistory);
-            Assert.Equal(0, await db.AiBridgeRequests.CountDocumentsAsync(FilterDefinition<AiBridgeRequest>.Empty));
-            var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.DraftId).SingleAsync();
-            Assert.Null(stored.NextAttemptAt); // nothing the worker could claim
-            Assert.Equal(0, provider.Calls);
+            Assert.NotNull((await db.AiCaseDrafts.Find(item => item.Id == draft.DraftId).SingleAsync()).NextAttemptAt);
+
+            // Orders placed before VIPs went straight to the bot still wait for an admin.
+            await MarkLegacyAwaitingApprovalAsync(db, draft.DraftId);
 
             var forbidden = await Assert.ThrowsAsync<ApiException>(() => service.ApproveOrderAsync(vip, draft.DraftId));
             Assert.Equal(403, forbidden.StatusCode);
@@ -177,6 +177,7 @@ public sealed class MongoAiDraftQuotaTests
             // Replaying an accepted order is not a new order.
             Assert.Equal(first.DraftId, (await service.CreatePreviewAsync(vip, request, "week-1")).DraftId);
 
+            await MarkLegacyAwaitingApprovalAsync(db, first.DraftId); // only a legacy order can still be rejected
             var missingReason = await Assert.ThrowsAsync<ApiException>(() => service.RejectOrderAsync(admin, first.DraftId, "  "));
             Assert.Equal(400, missingReason.StatusCode);
             var rejected = await service.RejectOrderAsync(admin, first.DraftId, "Ý tưởng trùng vụ tuần trước.");
@@ -276,6 +277,13 @@ public sealed class MongoAiDraftQuotaTests
             await client.DropDatabaseAsync(settings.DatabaseName);
         }
     }
+
+    /// <summary>Puts a draft back in the pre-2026-11-18 state of a VIP order waiting for an admin.</summary>
+    private static Task MarkLegacyAwaitingApprovalAsync(MongoDbContext db, string draftId) =>
+        db.AiCaseDrafts.UpdateOneAsync(item => item.Id == draftId, Builders<AiCaseDraft>.Update
+            .Set(item => item.OrderStatus, AiOrderStatuses.AwaitingOwnerApproval)
+            .Set(item => item.QueueState, AiQueueStates.None)
+            .Set(item => item.NextAttemptAt, null));
 
     private sealed class RejectProviderCalls : IAiTextProvider
     {
