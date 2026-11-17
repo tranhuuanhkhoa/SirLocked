@@ -144,7 +144,8 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 request.ExpectedRevision,
                 isCorrect,
                 challenge.UnlockClueIds,
-                now);
+                now,
+                TutorialRules.RequiredConfirmations(context.Room));
         }, PairedCommandKind.Confirm, cancellationToken);
 
     public Task<PairedConfrontationCommandResponse> CancelAsync(

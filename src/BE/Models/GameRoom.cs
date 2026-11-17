@@ -26,6 +26,9 @@ public class GameRoom
     /// <summary>Set only for rooms created by matchmaking; a unique index keeps one room per match.</summary>
     [BsonIgnoreIfNull]
     public string? MatchId { get; set; }
+    /// <summary>Null for a normal two-player room; "TUTORIAL" for the solo newcomer tutorial (see TutorialRules).</summary>
+    [BsonIgnoreIfNull]
+    public string? Mode { get; set; }
     /// <summary>Optimistic-concurrency version for lobby mutations before gameplay starts.</summary>
     public long LobbyVersion { get; set; } = 1;
     /// <summary>

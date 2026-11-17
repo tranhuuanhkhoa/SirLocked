@@ -65,7 +65,8 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             PlayerSceneId(context, user.Id),
             ToContent(request),
             RoomUserIds(context.Room),
-            now), AccusationCommandKind.Propose, cancellationToken);
+            now,
+            TutorialRules.RequiredConfirmations(context.Room)), AccusationCommandKind.Propose, cancellationToken);
     }
 
     public Task<AccusationCommandResponse> AmendAsync(
@@ -82,7 +83,8 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             ToContent(request),
             request.ExpectedRevision,
             RoomUserIds(context.Room),
-            now), AccusationCommandKind.Amend, cancellationToken);
+            now,
+            TutorialRules.RequiredConfirmations(context.Room)), AccusationCommandKind.Amend, cancellationToken);
 
     public Task<AccusationCommandResponse> ConfirmAsync(
         CurrentUser user,
@@ -97,7 +99,8 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             context.Player.Role!,
             request.ExpectedRevision,
             RoomUserIds(context.Room),
-            now), AccusationCommandKind.Confirm, cancellationToken);
+            now,
+            TutorialRules.RequiredConfirmations(context.Room)), AccusationCommandKind.Confirm, cancellationToken);
 
     public Task<AccusationCommandResponse> CancelAsync(
         CurrentUser user,

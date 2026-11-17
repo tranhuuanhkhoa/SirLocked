@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import { Camera, Briefcase, X, FolderSearch, Map as MapIcon, Lightbulb, createIcons } from 'lucide';
 import { gameApi } from '../api/gameApi.js';
 import { caseApi } from '../api/caseApi.js';
+import { tutorialApi } from '../api/tutorialApi.js';
+import { createTutorialCoach, type TutorialCoach } from '../game/tutorialCoach';
+import { roleForHotspot } from '../game/tutorialSteps';
 import { session } from '../services/session.js';
 import { createRoomConnection } from '../services/signalrClient.js';
 import { createStateRefetcher } from '../services/stateRefetcher.js';
@@ -383,6 +386,8 @@ type GameState = {
   caseId?: string;
   /** A playtest room of an unpublished AI draft (VUAN-6B): its case is read through the room. */
   isPlaytest?: boolean;
+  /** Solo newcomer tutorial room (màn tân thủ): the coach shows and the player switches detective (button, key Q). */
+  isTutorial?: boolean;
   roomId: string;
   roomCode: string;
   hostUserId: string;
@@ -868,6 +873,22 @@ class SirLockedPhaserScene extends Phaser.Scene {
   }
 
   /** Screen point (canvas px) of the doorway leading to a scene, for the room transition. */
+  /** Page coordinates of a runtime point of the scene on screen (null before the scene is drawn); used by the tutorial coach. */
+  pagePointOfRuntime(point: RuntimePoint): { x: number; y: number } | null {
+    if (!this.ready || !this.state || !this.game?.canvas) return null;
+    const world = this.worldPoint(point);
+    const scroll = this.viewScroll();
+    const rect = this.game.canvas.getBoundingClientRect();
+    const ratioX = rect.width / (this.scale.width || rect.width || 1);
+    const ratioY = rect.height / (this.scale.height || rect.height || 1);
+    return { x: rect.left + (world.x - scroll.x) * ratioX, y: rect.top + (world.y - scroll.y) * ratioY };
+  }
+
+  /** The local detective's position (runtime units), for the tutorial coach's "you walked" step. */
+  localRuntimePose(): { x: number; y: number } | null {
+    return this.localPose ? { x: this.localPose.x, y: this.localPose.y } : null;
+  }
+
   transitionPoint(targetSceneId: string | null | undefined) {
     if (!this.ready || !this.state) return null;
     const transition = this.sceneRuntime()?.transitions?.find((candidate) => candidate.targetSceneId === targetSceneId);
@@ -1182,7 +1203,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
       const note = hotspot.isLocked
         ? tr('Needs another lead.', 'Cần thêm manh mối.')
         : this.localRole() !== 'INVESTIGATOR' && (isObject || type === 'ENVIRONMENT')
-          ? tr('Your Investigator partner examines objects.', 'Đồng đội Điều tra viên phụ trách khám nghiệm vật thể.')
+          ? this.state?.isTutorial
+            ? tr('Watson examines objects: Switch detective (Q).', 'Watson khám vật này: bấm Đổi nhân vật (phím Q).')
+            : tr('Your Investigator partner examines objects.', 'Đồng đội Điều tra viên phụ trách khám nghiệm vật thể.')
           : '';
       const label = this.createHoverTag(kicker, hotspot.label || this.prettyId(hotspot.targetId), note);
 
@@ -1327,7 +1350,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
       tr('Question', 'Hỏi'),
       character.role ? `${character.name} — ${character.role}` : character.name,
       this.localRole() !== 'INTERROGATOR'
-        ? tr('Your Interrogator partner questions witnesses.', 'Đồng đội Thẩm vấn viên phụ trách hỏi nhân chứng.')
+        ? this.state?.isTutorial
+          ? tr('Sherlock questions people: Switch detective (Q).', 'Sherlock hỏi chuyện: bấm Đổi nhân vật (phím Q).')
+          : tr('Your Interrogator partner questions witnesses.', 'Đồng đội Thẩm vấn viên phụ trách hỏi nhân chứng.')
         : askable ? tr(`${askable} question(s) to ask`, `${askable} câu hỏi có thể hỏi`) : '',
     );
 
@@ -1382,6 +1407,9 @@ class SirLockedPhaserScene extends Phaser.Scene {
       ? existingPose
       : this.spawnPose(localPlayerInfo, 0);
     this.localPose.sceneId = this.state.currentSceneId;
+    // The kept pose may carry an older role: in the tutorial room the player switches detective mid-scene, and the
+    // sprite (Sherlock or Watson) follows the role in the state.
+    if (localPlayerInfo?.role) this.localPose.role = localPlayerInfo.role;
     this.localPlayer = this.createPlayer(this.localPose, true);
     this.placePlayer(this.localPlayer, this.localPose);
     this.callbacks.playerPoses.set(this.localPose.userId, { ...this.localPose });
@@ -2810,6 +2838,11 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
   let uiMode: GameUiMode = { kind: 'EXPLORE' };
   let puzzleHost: PuzzleHost | null = null;
+  // Màn tân thủ: the coach card + pointer, and a role switch in flight (one at a time).
+  let tutorialCoach: TutorialCoach | null = null;
+  let tutorialRoleSwitch: Promise<boolean> | null = null;
+  /** The "Đổi nhân vật" tray tool blinks until then (performance.now()) after an action that needs the other detective. */
+  let tutorialRoleFlashUntil = 0;
   // Open co-op case wall (Sơ đồ vụ án): keeps its own drag/hold/animation state across redraws.
   // Dev builds only: lets end-to-end scripts open a scene puzzle without aiming at the canvas.
   if (import.meta.env.DEV) {
@@ -3000,13 +3033,24 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
     if (isSceneInputBlocked()) return;
 
+    // Màn tân thủ only: Q switches between Sherlock and Watson (a real two-player room never switches).
+    if (e.key.toLowerCase() === 'q' && state.isTutorial && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      void toggleTutorialRole();
+      return;
+    }
+
     if (e.key.toLowerCase() === 'b') {
       if (myRole() === 'INVESTIGATOR') {
         setUiMode(uiMode.kind === 'INVENTORY' ? { kind: 'EXPLORE' } : { kind: 'INVENTORY' }, 'floating-bag-btn');
+      } else if (state.isTutorial) {
+        tutorialNeedsRole('INVESTIGATOR');
       }
     } else if (e.key.toLowerCase() === 'z') {
       if (myRole() === 'INVESTIGATOR') {
         setUiMode(uiMode.kind === 'CAMERA' ? { kind: 'EXPLORE' } : { kind: 'CAMERA' }, 'floating-camera-btn');
+      } else if (state.isTutorial) {
+        tutorialNeedsRole('INVESTIGATOR');
       }
     }
   };
@@ -3243,6 +3287,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     }
     if (triggerId) returnFocusId = triggerId;
     uiMode = next;
+    tutorialCoach?.update(state, next.kind);
     if (next.kind === 'CASE_FILE' && next.section !== 'map') recordGuideAction('notebook');
     if (next.kind !== 'INVENTORY') {
       combineMode = false;
@@ -3382,6 +3427,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     rememberAskableDialogues(fresh);
     rememberAccusationRevision(fresh);
     state = fresh;
+    if (fresh.isTutorial) startTutorialCoach();
+    tutorialCoach?.update(fresh, uiMode.kind);
     audio.setScene(fresh.currentSceneId, fresh.visibleScene.runtime?.audio);
     musicCredits.add(fresh.visibleScene.runtime?.audio?.music);
     audio.setWeather(fresh.visibleScene.runtime?.weather, fresh.visibleScene.runtime?.indoor);
@@ -3600,6 +3647,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   try {
     state = await gameApi.state(roomId);
     if (stopped) return cleanupGamePage;
+    // Màn tân thủ: the coach (and its welcome instead of the role briefing) starts with the first state.
+    if (state?.isTutorial && state.roomStatus === 'IN_PROGRESS') startTutorialCoach();
     if (state?.roomStatus !== 'COMPLETED' && state?.roomStatus !== 'ABANDONED') {
       await loadIntroCutscene(state);
       if (stopped) return cleanupGamePage;
@@ -3616,6 +3665,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (stopped || !state) return cleanupGamePage;
     recordV3UiEvent('ReconnectRestored');
     draw();
+    tutorialCoach?.update(state, uiMode.kind);
   } catch (err: any) {
     if (stopped) return cleanupGamePage;
     if (err.message?.includes('not started')) {
@@ -3632,6 +3682,67 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function myRole() {
     return state?.players.find((p) => p.userId === me.userId)?.role ?? null;
+  }
+
+  function startTutorialCoach() {
+    if (tutorialCoach || stopped) return;
+    // The coach's welcome replaces the two-player role briefing.
+    try { sessionStorage.setItem(introKey, '1'); } catch { /* the briefing then shows once, harmless */ }
+    tutorialCoach = createTutorialCoach({
+      roomId,
+      tr,
+      escapeHtml,
+      project: (point) => phaserScene?.pagePointOfRuntime(point) ?? null,
+      pose: () => phaserScene?.localRuntimePose() ?? null,
+      onLeave: () => navigate('/menu'),
+    });
+  }
+
+  /**
+   * Màn tân thủ: switches the solo player to `role` (Sherlock questions people, Watson handles objects). Only the
+   * tutorial room can do this; the player does it with the "Đổi nhân vật" tray tool or the Q key.
+   */
+  function switchTutorialRole(role: 'INVESTIGATOR' | 'INTERROGATOR'): Promise<boolean> {
+    if (!state?.isTutorial) return Promise.resolve(false);
+    if (myRole() === role) return Promise.resolve(true);
+    if (tutorialRoleSwitch) return tutorialRoleSwitch;
+    tutorialRoleSwitch = (async () => {
+      try {
+        await tutorialApi.switchRole(roomId, role);
+        // The open tool belongs to the previous detective (Watson's camera or bag, Sherlock's conversation).
+        if (uiMode.kind === 'CAMERA' || uiMode.kind === 'INVENTORY' || uiMode.kind === 'DIALOGUE') closeUiMode();
+        applyState(await gameApi.state(roomId));
+        tutorialRoleFlashUntil = 0;
+        // The Help panel follows the detective now played.
+        roleGuide = null;
+        const guideSlot = app.querySelector<HTMLElement>('#game-role-guide-slot');
+        if (guideSlot) guideSlot.dataset.guideKey = '';
+        renderRoleGuide();
+        toast(role === 'INVESTIGATOR'
+          ? tr('Now playing Watson, the Investigator: examine objects, take photos, open the bag.', 'Giờ bạn là Watson (Điều tra viên): khám đồ vật, chụp ảnh, mở Túi đồ.')
+          : tr('Now playing Sherlock, the Interrogator: question people.', 'Giờ bạn là Sherlock (Thẩm vấn viên): hỏi chuyện nhân vật.'), 'info', 2600);
+        return myRole() === role;
+      } catch (error: any) {
+        toast(error?.message || tr('Could not switch detective.', 'Chưa đổi được vai.'), 'error');
+        return false;
+      } finally {
+        tutorialRoleSwitch = null;
+      }
+    })();
+    return tutorialRoleSwitch;
+  }
+
+  function toggleTutorialRole() {
+    return switchTutorialRole(myRole() === 'INVESTIGATOR' ? 'INTERROGATOR' : 'INVESTIGATOR');
+  }
+
+  /** Màn tân thủ: the player tried something of the other detective; say who does it and blink the switch tool. */
+  function tutorialNeedsRole(role: 'INVESTIGATOR' | 'INTERROGATOR') {
+    toast(role === 'INVESTIGATOR'
+      ? tr('Objects, photos and the bag are Watson\'s job. Press "Switch detective" (Q) to play Watson.', 'Khám đồ vật, chụp ảnh và Túi đồ là việc của Watson. Bấm Đổi nhân vật (phím Q) để sang Watson.')
+      : tr('Questioning people is Sherlock\'s job. Press "Switch detective" (Q) to play Sherlock.', 'Hỏi chuyện là việc của Sherlock. Bấm Đổi nhân vật (phím Q) để sang Sherlock.'), 'info', 4200);
+    tutorialRoleFlashUntil = performance.now() + 1900;
+    draw();
   }
 
   function isV3CaseComplete(current = state) {
@@ -3790,6 +3901,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       onHotspot,
       onCharacter: (characterId) => {
         if (isSceneInputBlocked()) return;
+        if (myRole() !== 'INTERROGATOR' && state?.isTutorial) {
+          tutorialNeedsRole('INTERROGATOR');
+          return;
+        }
         if (myRole() !== 'INTERROGATOR') {
           toast(tr('Your Interrogator partner handles witness questioning.', 'Đồng đội Thẩm vấn viên phụ trách hỏi nhân chứng.'), 'info');
           return;
@@ -4014,6 +4129,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   function bindHud() {
     app.querySelectorAll<HTMLElement>('[data-bpa-locked-tool]').forEach((button) => button.addEventListener('click', () => {
+      if (state?.isTutorial) {
+        tutorialNeedsRole('INVESTIGATOR');
+        return;
+      }
       toast(button.dataset.bpaLockedTool === 'camera'
         ? tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.')
         : tr('Only the Investigator can use inventory items.', 'Chỉ Điều tra viên có thể dùng đồ trong túi.'), 'info');
@@ -4021,6 +4140,12 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     bindCodeCells();
     if (hudKeysBound) return;
     hudKeysBound = true;
+    // Màn tân thủ: the "Đổi nhân vật" tray tool (redrawn with the tray, so the click is delegated once).
+    app.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element) || !event.target.closest('#tutorial-role-btn')) return;
+      event.preventDefault();
+      void toggleTutorialRole();
+    }, { signal });
     // Esc puts the item in hand back; outside clicks close the sound panel like the other tray menus.
     window.addEventListener('keydown', (event) => {
       if (stopped || event.key !== 'Escape' || !selectedInventoryItemId || uiMode.kind !== 'EXPLORE') return;
@@ -4359,13 +4484,26 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       ? `<button type="button" class="bpa-g-tool ${hasNew ? 'has-new' : ''} ${thud ? 'is-thud' : ''}" id="floating-bag-btn" data-bpa-tool="bag" aria-label="${hasNew ? tr('Inventory, new item', 'Túi đồ, có vật phẩm mới') : tr('Inventory', 'Túi đồ')}" aria-pressed="${model.mode.kind === 'INVENTORY'}" aria-keyshortcuts="B" style="${thud ? `--bpa-t: -${Math.round(performance.now() - bagThudAt)}ms` : ''}">${gameIcon('bag')}<span class="bpa-g-lbl">${tr('Inventory', 'Túi đồ')}</span><span class="bpa-g-key" aria-hidden="true">B</span></button>`
       : locked('bag', 'bag', tr('Inventory', 'Túi đồ'), tr('Only the Investigator can use inventory items.', 'Chỉ Điều tra viên có thể dùng đồ trong túi.'));
     const caseCount = model.role === 'INTERROGATOR' && model.newQuestionCount > 0 ? model.newQuestionCount : state!.unlockedClues.length;
+    const roleTool = state?.isTutorial && state.roomStatus === 'IN_PROGRESS' ? tutorialRoleTool() : '';
     const caseOpen = model.mode.kind === 'CASE_FILE' && model.mode.section !== 'map';
     const mapOpen = model.mode.kind === 'CASE_FILE' && model.mode.section === 'map';
-    return `${camera}${bag}
+    return `${roleTool}${camera}${bag}
       <button type="button" class="bpa-g-tool" id="case-file-btn" data-bpa-tool="case-file" aria-label="${tr('Case File', 'Hồ sơ vụ án')}" aria-pressed="${caseOpen}">${gameIcon('file')}<span class="bpa-g-lbl">${tr('Case File', 'Hồ sơ vụ án')}</span>${caseCount ? `<span class="bpa-g-count tool-badge" aria-hidden="true">${caseCount}</span>` : ''}</button>
       <button type="button" class="bpa-g-tool" id="map-btn" data-bpa-tool="map" aria-label="${tr('Locations', 'Địa điểm')}" aria-pressed="${mapOpen}">${gameIcon('map')}<span class="bpa-g-lbl">${tr('Locations', 'Địa điểm')}</span></button>
       <span class="bpa-g-sep" aria-hidden="true"></span>
       <button type="button" class="bpa-g-tool" id="hint-btn" data-bpa-tool="hint" aria-label="${tr('Hint', 'Gợi ý')}">${gameIcon('hint')}<span class="bpa-g-lbl">${tr('Hint', 'Gợi ý')}</span></button>`;
+  }
+
+  /** Màn tân thủ: the tray tool that switches detective; no other room has it. */
+  function tutorialRoleTool() {
+    const watson = myRole() === 'INVESTIGATOR';
+    const flash = performance.now() < tutorialRoleFlashUntil;
+    const label = watson ? tr('Switch to Sherlock', 'Đổi sang Sherlock') : tr('Switch to Watson', 'Đổi sang Watson');
+    const tip = tr('Only the tutorial lets you switch detective. In a real case each player keeps one role.',
+      'Chỉ màn tân thủ mới đổi được nhân vật. Vào vụ thật mỗi người giữ một vai.');
+    return `<button type="button" class="bpa-g-tool tt-role-tool${flash ? ' is-flash' : ''}" id="tutorial-role-btn" data-bpa-tool="role"
+        data-role="${watson ? 'INVESTIGATOR' : 'INTERROGATOR'}" aria-label="${escapeHtml(label)}" title="${escapeHtml(tip)}" aria-keyshortcuts="Q">${gameIcon('swap')}<span class="bpa-g-lbl">${tr('Switch detective', 'Đổi nhân vật')}</span><span class="tt-role-who" aria-hidden="true">${watson ? 'Watson → Sherlock' : 'Sherlock → Watson'}</span><span class="bpa-g-key" aria-hidden="true">Q</span></button>
+      <span class="bpa-g-sep" aria-hidden="true"></span>`;
   }
 
   function mobileMovementDock(model: ReturnType<typeof buildGameUiModel>) {
@@ -6442,6 +6580,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   }
 
   function toggleCameraMode() {
+    if (myRole() !== 'INVESTIGATOR' && state?.isTutorial) {
+      tutorialNeedsRole('INVESTIGATOR');
+      return;
+    }
     if (myRole() !== 'INVESTIGATOR') {
       toast(tr('Only the Investigator can capture scene clues.', 'Chỉ Điều tra viên có thể chụp manh mối hiện trường.'), 'info');
       return;
@@ -6488,6 +6630,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
 
   async function onHotspot({ type, target, locked, label }: HotspotClick) {
     if (isSceneInputBlocked()) return;
+
+    // Màn tân thủ: one player plays both detectives and switches by hand, so a hotspot of the other detective
+    // explains who does it and points at the switch tool instead of acting (a puzzle is open to both).
+    if (state?.isTutorial && !selectedInventoryItemId && locked !== 'true') {
+      const needed = roleForHotspot(type);
+      const puzzleTarget = state.visibleScene.puzzles?.some((candidate) => candidate.targetId === target && !candidate.isSolved && !candidate.isLocked);
+      if (needed && !puzzleTarget && myRole() !== needed) {
+        tutorialNeedsRole(needed);
+        return;
+      }
+    }
 
     if (selectedInventoryItemId) {
       await useSelectedItemOnTarget(target);
@@ -7027,6 +7180,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   function cleanupGamePage() {
     if (stopped) return;
     stopped = true;
+    tutorialCoach?.destroy();
+    tutorialCoach = null;
     clearTimeout(loadingHideTimer); clearTimeout(loadingGiveUpTimer);
     signal?.removeEventListener('abort', cleanupGamePage);
     caseWall.destroy();

@@ -530,6 +530,8 @@ public class GameStateResponse
     public string CaseId { get; set; } = string.Empty;
     public string CaseTitle { get; set; } = string.Empty;
     public string CaseSummary { get; set; } = string.Empty;
+    /// <summary>True in the solo newcomer tutorial room (màn tân thủ): the page shows the coach and the role switch.</summary>
+    public bool IsTutorial { get; set; }
     public string Language { get; set; } = CaseLanguages.English;
     public int MechanicsVersion { get; set; }
     public string RoomStatus { get; set; } = string.Empty;

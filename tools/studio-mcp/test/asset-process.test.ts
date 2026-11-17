@@ -4,13 +4,15 @@ import path from 'node:path';
 import { describe, test } from 'node:test';
 import { zipSync } from 'fflate';
 import {
-  breatheFrames, checkSize, cleanText, cover, cutBackground, fit, idleSheet, inspect, maskFromShapes, npcFromZip, portrait, walkableFromMask,
+  breatheFrames, checkSize, cleanText, cover, cutBackground, fit, idleSheet, inspect, maskFromShapes, npcCheck, npcFromZip, portrait, walkableFromMask,
 } from '../src/image/process.js';
-import { encode, loadRgba, opaqueBounds } from '../src/image/raster.js';
+import { crop, encode, loadRgba, opaqueBounds, type Rgba } from '../src/image/raster.js';
 import { assetProcess } from '../src/tools/assets.js';
 import { paint, pixel, realRepoRoot, tempRepo, testContext } from './helpers.js';
 
 /** A 96x96 chibi stand-in: transparent canvas, opaque body from y=20 to y=85. */
+const crop9 = (image: Rgba, index: number) => crop(image, index * 128, 0, 128, 128);
+
 const sprite = () => paint(96, 96, (x, y) => (x >= 30 && x < 66 && y >= 20 && y <= 85 ? [120 + (y % 7), 60, 40, 255] : [0, 0, 0, 0]));
 
 describe('asset_process building blocks', () => {
@@ -75,6 +77,29 @@ describe('asset_process building blocks', () => {
     assert.equal(sheet.source, 'pixellab-idle');
     const shades = Array.from({ length: 9 }, (_, index) => pixel(sheet.image, index * 128 + 16 + 40, 70)[0]);
     assert.deepEqual(shades, [10, 20, 30, 40, 40, 30, 20, 10, 10]);
+  });
+
+  test('a v3 idle of 9 frames on a 116 canvas plays in order with the feet at y=104, where the south sprite stands', async () => {
+    // As PixelLab returns templates.json's character-idle: the 96 character centred on 116x116 (10 px of room).
+    const frame = (shade: number) => paint(116, 116, (x, y) => (x >= 40 && x < 76 && y >= 30 && y <= 95 ? [shade, shade, shade, 255] : [0, 0, 0, 0]));
+    const zip = zipSync({
+      'Idle/rotations/south.png': new Uint8Array(await encode(sprite(), 'png')),
+      ...Object.fromEntries(await Promise.all(Array.from({ length: 9 }, async (_, index) => [
+        `Idle/animations/npc_idle_south/south/frame_00${index}.png`, new Uint8Array(await encode(frame(10 + index * 10), 'png')),
+      ]))),
+    });
+    const npc = await npcFromZip(zip);
+    assert.equal(npc.idle.length, 9);
+    const sheet = idleSheet(npc);
+    assert.equal(sheet.source, 'pixellab-idle');
+    assert.equal(sheet.image.width, 1152);
+    const shades = Array.from({ length: 9 }, (_, index) => pixel(sheet.image, index * 128 + 16 + 40, 70)[0]);
+    assert.deepEqual(shades, [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    for (let index = 0; index < 9; index++) {
+      const cell = opaqueBounds(crop9(sheet.image, index))!;
+      // Same place as the code-breathing sheet of the same sprite: x 46..81, feet on y=104.
+      assert.deepEqual([cell.x0, cell.x1, cell.y1], [46, 81, 104], `frame ${index}`);
+    }
   });
 
   test('portrait is 288x288 nearest neighbour (each sprite pixel becomes 3x3)', () => {
@@ -161,6 +186,46 @@ describe('walkable area from a mask', () => {
 });
 
 describe('asset_process tool', () => {
+  test('NPC standard: style and 96x96 format are checked, never the height; a chibi or wrong-canvas NPC writes nothing', async () => {
+    const figure = (top: number, bottom: number, size = 96) =>
+      paint(size, size, (x, y) => (x >= 30 && x < 66 && y >= top && y <= bottom ? [90, 60, 40, 255] : [0, 0, 0, 0]));
+    const zipOf = async (south: ReturnType<typeof figure>, prompt: string) => zipSync({
+      'metadata.json': new TextEncoder().encode(JSON.stringify({ states: [{ character: { prompt, size: { width: 96, height: 96 } } }] })),
+      'Idle/rotations/south.png': new Uint8Array(await encode(south, 'png')),
+    });
+    // Tall, average and short (a child) figures all pass: the height is the character's own.
+    for (const [top, bottom] of [[2, 93], [10, 87], [40, 89]]) {
+      assert.deepEqual(npcCheck({ south: figure(top, bottom), idle: [] }).problems, [], `${top}-${bottom}`);
+    }
+    // The prompt comes from the zip's metadata.json; a chibi one is refused whatever the size.
+    const standard = await npcFromZip(await zipOf(figure(10, 87), 'plump 1930s Shanghai teahouse owner, black skullcap'));
+    assert.equal(standard.prompt, 'plump 1930s Shanghai teahouse owner, black skullcap');
+    assert.deepEqual(npcCheck(standard).problems, []);
+    const chibi = await npcFromZip(await zipOf(figure(10, 87), 'Victorian police constable, chibi proportions with a slightly large head'));
+    assert.deepEqual(npcCheck(chibi).problems.map((problem) => problem.code), ['NPC_STYLE']);
+    assert.match(npcCheck(chibi).problems[0].message, /chibi.*character-front/);
+    assert.deepEqual(npcCheck({ south: figure(20, 99, 128), idle: [] }).problems.map((problem) => problem.code), ['NPC_FORMAT']);
+
+    const repo = tempRepo();
+    try {
+      const ctx = testContext(repo.root, 'https://sirlocked.id.vn');
+      writeFileSync(path.join(repo.root, 'chibi.zip'), await zipOf(figure(10, 87), 'geisha, chibi proportions'));
+      writeFileSync(path.join(repo.root, 'big.png'), await encode(figure(20, 99, 128), 'png'));
+      for (const [input, code] of [['chibi.zip', 'NPC_STYLE'], ['big.png', 'NPC_FORMAT']]) {
+        for (const op of ['npc_bundle', 'sprite_sheet', 'idle_breathe', 'portrait'] as const) {
+          await assert.rejects(assetProcess(ctx, { op, input, output: `tmp/out-${op}` }),
+            (error: any) => error.code === code && /character-front/.test(error.message), `${op} ${input}`);
+          assert.equal(existsSync(path.join(repo.root, `tmp/out-${op}`)), false, `${op} wrote nothing`);
+        }
+      }
+      writeFileSync(path.join(repo.root, 'tall.zip'), await zipOf(figure(2, 93), 'very tall thin lighthouse keeper, long grey coat'));
+      const ok: any = await assetProcess(ctx, { op: 'npc_bundle', input: 'tall.zip' });
+      assert.equal(ok.sprite, '96x96');
+    } finally {
+      repo.cleanup();
+    }
+  });
+
   test('npc_bundle writes sprite, 1152x128 idle sheet and 288x288 portrait as lossless WebP', async () => {
     const repo = tempRepo();
     try {

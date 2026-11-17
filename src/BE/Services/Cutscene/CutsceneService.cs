@@ -32,7 +32,8 @@ public sealed class CutsceneService(
     {
         if (!settings.Value.Enabled) return null;
         var gameCase = await cases.FindCaseAsync(caseId);
-        if (gameCase is null || (!playtest && !catalog.IsPlayable(gameCase))) return null;
+        // The newcomer tutorial stays a draft (never in the catalogue) but still opens with its intro.
+        if (gameCase is null || (!playtest && !catalog.IsPlayable(gameCase) && !TutorialRules.IsTutorialCase(gameCase.CaseId))) return null;
         var approved = (await store.ListAsync(caseId, Trigger, ct)).FirstOrDefault(c => c.Status == CutsceneStatus.Approved);
         var script = approved is null ? null : TryParse(approved.ScriptJson);
         if (approved is null || script is null) return null;

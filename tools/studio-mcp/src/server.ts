@@ -119,6 +119,9 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     'foreground {map, mask, rect:[x0,y0,x1,y1], id, baseRow} (cắt đồ che từ bản đồ NATIVE 512 theo mask, trả layer x,y,width,height,baseY đơn vị runtime x4) |',
     'icon_sheet {names:[...]} (cắt tấm icon PixelLab 256x256 lưới 4x4 thành ô 64x64) |',
     'fit {width,height,mode:"contain"|"cover",scale} (CHỈ cho vụ cũ 1600x900; vụ pixel không dùng).',
+    'NPC CHUẨN: lấy từ quy trình PixelLab của templates.json (character-front có ảnh Sherlock làm mẫu -> create_character v3 -> idle v3),',
+    'sprite south đúng 96x96 (khung trần, cùng khung với Sherlock và Watson V3 96), phong cách tỉ lệ người thật như Sherlock, Watson, NPC vụ Lò thuốc; cao thấp tùy nhân vật trong khung, không chibi.',
+    'sprite_sheet, idle_breathe, portrait, npc_bundle từ chối sprite không phải 96x96 (NPC_FORMAT) và zip PixelLab có prompt chibi/đầu to (NPC_STYLE).',
   ].join(' '),
     { op: z.enum(PROCESS_OPS), input: z.string().optional(), inputs: z.array(z.string()).optional(), output: z.string().optional(), params: z.record(z.string(), z.any()).optional() },
     (args) => assetProcess(ctx, args));

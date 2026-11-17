@@ -4,7 +4,7 @@ import path from 'node:path';
 import { StudioError } from '../bridge-client.js';
 import { display, requireFile, resolveInput, tmpDir, writeJsonFile } from '../files.js';
 import {
-  checkSize, cleanText, cover, cutBackground, fit, foregroundLayer, iconSheetCells, idleSheet, inspect, maskFromShapes, npcFromZip,
+  checkSize, cleanText, cover, cutBackground, fit, foregroundLayer, iconSheetCells, idleSheet, inspect, maskFromShapes, npcCheck, npcFromZip,
   portrait, walkableFromMask, walkOverlay, type NpcSources, type WalkShape,
 } from '../image/process.js';
 import { loadRgba, resizeNearest, saveRgba, sideBySide, type Rgba } from '../image/raster.js';
@@ -52,6 +52,12 @@ async function loadNpc(ctx: ToolContext, input: string): Promise<NpcSources> {
   const file = requireFile(ctx.config, input);
   if (file.toLowerCase().endsWith('.zip')) return npcFromZip(readFileSync(file));
   return { south: await loadRgba(readFileSync(file)), idle: [] };
+}
+
+/** The NPC standard (96x96 south, no chibi prompt): every NPC op refuses an NPC outside it, before writing a file. */
+function requireNpcStandard(npc: NpcSources): void {
+  const { problems } = npcCheck(npc);
+  if (problems.length) throw new StudioError(problems[0].code, problems.map((problem) => problem.message).join(' '));
 }
 
 const asRect = (value: any): Rect => {
@@ -111,6 +117,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
     case 'idle_breathe':
     case 'sprite_sheet': {
       const npc = await loadNpc(ctx, args.input ?? '');
+      requireNpcStandard(npc);
       if (args.op === 'idle_breathe') npc.idle = [];
       const sheet = idleSheet(npc);
       const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'idle', '.png');
@@ -119,12 +126,14 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
     }
     case 'portrait': {
       const npc = await loadNpc(ctx, args.input ?? '');
+      requireNpcStandard(npc);
       const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'portrait', '.png');
       await saveRgba(portrait(npc.south, p.size ?? 288), output);
       return { output: display(ctx.config, output), width: p.size ?? 288, height: p.size ?? 288, scaling: 'nearest-neighbor' };
     }
     case 'npc_bundle': {
       const npc = await loadNpc(ctx, args.input ?? '');
+      requireNpcStandard(npc);
       const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', path.basename(args.input ?? 'npc').replace(/\.[^.]+$/, ''));
       const ext = p.format === 'png' ? '.png' : '.webp';
       const sheet = idleSheet(npc);

@@ -1,0 +1,171 @@
+/* Màn tân thủ: coach card + pointer in the game, the Kỳ cựu / Nhập môn choice, the /tan-thu page. */
+
+/* ---------- coach card (game page) ---------- */
+.tt-coach {
+  position: fixed;
+  left: 16px;
+  bottom: 112px;
+  z-index: 380;
+  width: min(360px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 14px 16px 16px;
+  border-radius: 4px;
+  background: var(--bpa-paper, #fbf6ed);
+  color: var(--bpa-ink, #07111f);
+  box-shadow: 0 0 0 2px var(--bpa-brass, #c7a24b), 0 14px 34px rgba(0, 0, 0, .45);
+  font-family: var(--bpa-font-body, 'Crimson Text', Georgia, serif);
+}
+.tt-coach.is-collapsed { padding-bottom: 10px; }
+.tt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tt-kicker {
+  margin: 0;
+  color: var(--bpa-red, #9e3f2a);
+  font-family: var(--bpa-font-label, 'Source Code Pro', monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.tt-toggle {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--bpa-muted, #5b5248);
+  box-shadow: inset 0 0 0 1px rgba(91, 82, 72, .45);
+  font-family: var(--bpa-font-label, 'Source Code Pro', monospace);
+  font-size: 11px;
+  cursor: pointer;
+}
+.tt-toggle:focus-visible { outline: 2px solid var(--bpa-ink, #07111f); outline-offset: 2px; }
+.tt-progress { height: 4px; margin: 10px 0 8px; background: rgba(91, 82, 72, .2); border-radius: 2px; overflow: hidden; }
+.tt-progress span { display: block; height: 100%; background: var(--bpa-brass, #c7a24b); transition: width .3s ease; }
+.tt-coach .tt-title { color: var(--bpa-ink, #07111f); margin: 0 0 6px; font-family: var(--bpa-font-display, 'Playfair Display', Georgia, serif); font-size: 20px; line-height: 1.2; }
+.tt-coach .tt-text { margin: 0; font-size: 17px; line-height: 1.4; color: var(--bpa-ink-2, #2a2318); }
+.tt-actions { display: flex; gap: 8px; margin-top: 12px; }
+.tt-role-chip { color: var(--bpa-ink, #07111f); letter-spacing: .08em; }
+.tt-coach .tt-role-need {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--bpa-red, #9e3f2a);
+  background: rgba(158, 63, 42, .08);
+  color: var(--bpa-ink, #07111f);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* ---------- "Đổi nhân vật": the tray tool that exists only in the tutorial room ---------- */
+.bpa-g-tool.tt-role-tool { color: var(--bpa-gold, #efd486); }
+.bpa-g-tool.tt-role-tool .tt-role-who { font-size: 9px; letter-spacing: .06em; opacity: .8; font-weight: 600; }
+.bpa-g-tool.tt-role-tool.is-flash { animation: tt-role-flash .9s ease-in-out 2; }
+@keyframes tt-role-flash {
+  50% { background: var(--bpa-gold, #efd486); color: var(--bpa-ink, #07111f); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bpa-g-tool.tt-role-tool.is-flash { animation: none; background: var(--bpa-gold, #efd486); color: var(--bpa-ink, #07111f); }
+}
+
+/* ---------- pointer ---------- */
+.tt-pointer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 381;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.tt-pointer[hidden] { display: none; }
+.tt-ring {
+  position: absolute;
+  left: -32px;
+  top: -32px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #efd486, 0 0 18px 4px rgba(239, 212, 134, .55);
+  animation: tt-pulse 1.2s ease-in-out infinite;
+}
+.tt-arrow {
+  position: absolute;
+  left: -14px;
+  top: -76px;
+  width: 28px;
+  color: #efd486;
+  font-size: 30px;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 2px 0 #5e4a1c, 0 0 10px rgba(0, 0, 0, .6);
+  animation: tt-bob .9s ease-in-out infinite;
+}
+@keyframes tt-pulse { 0%, 100% { transform: scale(.85); opacity: .9; } 50% { transform: scale(1.1); opacity: .5; } }
+@keyframes tt-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .tt-ring, .tt-arrow { animation: none; }
+}
+@media (max-width: 900px) {
+  .tt-coach { top: 64px; bottom: auto; left: 50%; transform: translateX(-50%); }
+  .tt-coach .tt-text { font-size: 16px; }
+}
+
+/* ---------- Kỳ cựu / Nhập môn choice ---------- */
+.tt-choice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 420;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(11, 8, 6, .78);
+}
+.tt-choice {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: 4px;
+  background: var(--bpa-paper, #fbf6ed);
+  color: var(--bpa-ink, #07111f);
+  box-shadow: 0 0 0 2px var(--bpa-brass, #c7a24b), 0 20px 50px rgba(0, 0, 0, .5);
+}
+.tt-choice h2 { color: var(--bpa-ink, #07111f); margin: 4px 0 6px; font-family: var(--bpa-font-display, 'Playfair Display', Georgia, serif); font-size: 28px; }
+.tt-choice > p { margin: 0 0 18px; font-family: var(--bpa-font-body, 'Crimson Text', Georgia, serif); font-size: 18px; color: var(--bpa-ink-2, #2a2318); }
+.tt-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 640px) { .tt-choice-grid { grid-template-columns: 1fr; } }
+.tt-choice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 150px;
+  padding: 16px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--bpa-ledger, #f4efe3);
+  color: inherit;
+  text-align: left;
+  box-shadow: inset 0 0 0 1.5px rgba(91, 82, 72, .35);
+  cursor: pointer;
+  font-family: var(--bpa-font-body, 'Crimson Text', Georgia, serif);
+}
+.tt-choice-card:hover:not(:disabled), .tt-choice-card:focus-visible { box-shadow: inset 0 0 0 2px var(--bpa-red, #9e3f2a); outline: none; }
+.tt-choice-card:disabled { opacity: .6; cursor: progress; }
+.tt-choice-card b { font-family: var(--bpa-font-display, 'Playfair Display', Georgia, serif); font-size: 21px; }
+.tt-choice-card span { font-size: 17px; line-height: 1.35; color: var(--bpa-ink-2, #2a2318); }
+.tt-choice-card em { margin-top: auto; color: var(--bpa-red, #9e3f2a); font-family: var(--bpa-font-label, 'Source Code Pro', monospace); font-size: 11px; font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
+.tt-choice-error { margin: 12px 0 0; color: var(--bpa-red, #9e3f2a); font-size: 16px; }
+
+/* ---------- /tan-thu page ---------- */
+.tt-page { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+.tt-page-card { padding: 24px; border-radius: 4px; background: var(--bpa-paper, #fbf6ed); color: var(--bpa-ink, #07111f); box-shadow: 0 0 0 2px var(--bpa-brass, #c7a24b), 0 16px 40px rgba(0, 0, 0, .35); }
+.tt-page-card h1 { color: var(--bpa-ink, #07111f); margin: 6px 0 10px; font-family: var(--bpa-font-display, 'Playfair Display', Georgia, serif); font-size: 32px; }
+.tt-page-card p { margin: 0 0 12px; font-family: var(--bpa-font-body, 'Crimson Text', Georgia, serif); font-size: 18px; line-height: 1.45; }
+.tt-page-cover { width: 100%; aspect-ratio: 1 / 1; max-height: 320px; object-fit: cover; object-position: center 70%; border-radius: 3px; image-rendering: pixelated; margin: 8px 0 16px; }
+.tt-page-list { margin: 0 0 16px; padding-left: 20px; font-family: var(--bpa-font-body, 'Crimson Text', Georgia, serif); font-size: 17px; line-height: 1.5; }
+.tt-page-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.tt-page-note { color: var(--bpa-muted, #5b5248); font-size: 16px; }
+
+/* ---------- menu entry ---------- */
+.tt-menu-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; padding: 12px 16px; border-radius: 3px; background: rgba(239, 212, 134, .12); box-shadow: inset 0 0 0 1.5px rgba(239, 212, 134, .5); color: var(--bpa-on-dark, #eee4d2); }
+.tt-menu-banner p { margin: 0; font-size: 17px; }

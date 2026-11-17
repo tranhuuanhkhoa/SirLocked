@@ -153,7 +153,7 @@ Từ VUAN-6B mọi đơn mới là **vụ pixel** (`visualPipeline: pixel-v1`): 
 | Phòng trong nhà | 512×512, `create_image_pro` + ảnh cắt từ bản đồ NATIVE, template `interior` | như trên nhưng `isometric`, `cameraZoom` 0,5, `actorScale` 4, `walkSpeed` 520, `interactRadius` 104 |
 | Lưới đi | mask từ `edit_image` (template `object-mask`) hoặc `asset_process mask_from_shapes` | `render.walkGrid` ô 16, 128×128 |
 | Đồ che (đèn, xe, cây) | `asset_process foreground` cắt từ bản đồ native theo mask | `render.foreground[]` `{id,url,x,y,width,height,baseY}` ×4 |
-| NPC | `character-front` 96×96 → `create_character` v3 → `animate_character` idle | chân dung 288×288; `presentation.spriteSheet` 1152×128, khung 128, 9 khung, 6 fps, `anchorY` đo từ chân |
+| NPC | `character-front` 96×96 → `create_character` v3 → `animate_character` idle; tỉ lệ người thật như Sherlock, không chibi | chân dung 288×288; `presentation.spriteSheet` 1152×128, khung 128, 9 khung, 6 fps, `anchorY` đo từ chân |
 | Vật điều tra, manh mối camera | **vẽ sẵn vào nền** (ghi vào mô tả cảnh) | `itemPlacements[]` `asset` rỗng + ô bấm đúng chỗ vật |
 | Icon túi đồ | `icon-sheet` 256×256 lưới 4×4, `asset_process icon_sheet` | `items[].imageUrl` 64×64 |
 | Bìa | không vẽ riêng | server lấy ảnh một phòng có người |
@@ -166,6 +166,16 @@ Trong nhà hay ngoài trời do `atmosphere.indoor` của cảnh quyết (bướ
 
 - Prompt **tiếng Anh ASCII, không tên nhân vật**; bản đồ và phòng luôn có "No people, no animals, no readable text". Biển hiệu không chữ.
 - Nhân vật mới: **vẽ mặt trước nhìn thẳng hướng south trước** (4 ứng viên, chọn ứng viên nhìn thẳng), rồi mới xoay 8 hướng, rồi idle. Tham chiếu phong cách là sprite Sherlock V3 96 (chỉ lấy phong cách).
+- **Phong cách NPC chuẩn** (Yen chốt 17/11/2026):
+  - Mọi NPC đi đúng quy trình: `character-front` (ảnh Sherlock V3 96 làm mẫu) → `create_character` v3 → idle v3. Đi đúng thì ảnh PixelLab trả về tự đúng phong cách.
+  - **Khung 96×96 là trần**, cùng khung với Sherlock và Watson V3 96. Không tạo khung to hơn (128…) để NPC không to hơn hai nhân vật chính; cũng không tạo khung nhỏ hơn.
+  - Phong cách là tỉ lệ người thật như Sherlock, Watson và NPC vụ Lò thuốc. **Không chibi**: không đầu to, mắt to.
+  - Bộ mẫu phong cách Yen đã chốt (PixelLab, 96×96, 8 hướng): Sherlock V3 96, Watson V3 96, 6 NPC vụ Lò thuốc (Hoc Viec, Dang Buu, To Khanh, Trinh Luc, Ly Hanh, Lam The Bao), 4 NPC màn tân thủ (Tan Thu A Phuc, Tan Thu Hamilton, Tan Thu Co Lan, Tan Thu Ong Luu). NPC mới phải đứng chung hàng với bộ này mà không lệch.
+  - Chiều cao tùy nhân vật (người cao, người thấp, trẻ em), không khóa theo pixel.
+  - Không ghi "chibi", "large head" vào prompt. Không tạo NPC thẳng bằng `create_character` từ chữ.
+  - Chọn trong 4 ứng viên mặt trước: ứng viên nhìn thẳng, tỉ lệ đầu và người giống Sherlock.
+  - `asset_process` (`npc_bundle`, `sprite_sheet`, `idle_breathe`, `portrait`) từ chối sprite không phải 96×96 (`NPC_FORMAT`) và zip PixelLab có prompt chibi/đầu to (`NPC_STYLE`).
+  - Bị từ chối thì báo Yen: vẽ lại là reroll nên phải hỏi trước. **Không sửa hay thu nhỏ ảnh cho lọt.**
 - **Mask và ảnh tham chiếu ngoại thất lấy từ ảnh NATIVE 512**, không dùng bản phóng to.
 - **Lần tạo đầu thì chạy. Tạo lại hoặc reroll phải hỏi Yen trước**, kể cả khi kết quả chưa đẹp: báo vấn đề, đề xuất sửa prompt, chờ đồng ý.
 - **Giữ mọi thứ ngoài `src/FE/public`**: PNG gốc (cả 4 ứng viên), request đã gửi, receipt có job ID, character ID, chi phí ở `tmp/pixellab/<draftId>/`.
@@ -175,10 +185,13 @@ Trong nhà hay ngoài trời do `atmosphere.indoor` của cảnh quyết (bướ
 
 1. `assets_needed { draftId }`: ô hình, `pixel.subjects` (mỗi cảnh, NPC, icon kèm `libraryKind` và gợi ý thư viện từ đơn), kế hoạch PixelLab hiện tại (`tmp/bridge/<draftId>/pixellab-plan.json`). Vụ pixel **không còn** ô 1600×900, 1024×1536 hay ô bìa; `asset_process fit` chỉ dành cho bản nháp cũ.
 2. Chọn nguồn từng thứ: **thư viện đúng chỗ** (`library_search … download: true`) → **biến thể** (`asset_variant`, 0 lượt: `night`, `dusk`, `snow`, `after_rain`, `mirror`, `recolor`, `compose`) → **PixelLab** cho chỗ thật sự mới (tối đa 1–2 phòng, 0–2 NPC). Một gương mặt không đóng hai vai trong một vụ.
+   - **NPC thư viện Đợt 0 đã khóa** (`retired`: kiểu chibi, sai cỡ). `library_search` không trả chúng; không dùng lại bằng key hay file tải sẵn.
+   - NPC đúng chuẩn còn trong thư viện: 6 NPC vụ Lò thuốc (`v-case-npc-*`, thế giới Victoria).
+   - Thiếu NPC cho thế giới của đơn thì được vẽ mới quá 2 NPC, miễn trong `pixelLabCap` (14 lượt mỗi NPC). Không đủ trần thì hỏi Yen.
 3. `asset_plan { draftId, choices: [{ subject, source: LIBRARY|VARIANT|PIXELLAB, libraryKey, parentKey, variant }] }`. Server dựng request theo `templates.json`: tool, kích thước, prompt điền sẵn, `dependsOn` (thứ tự), `dependsOnLibrary` (bản đồ thư viện để cắt ngoại thất), số lượt, ô đích. Vượt `pixelLabCap` thì bị chặn (`AI_PIXELLAB_CAP_EXCEEDED`): đổi bớt sang thư viện/biến thể hoặc hỏi Yen. **Chưa có kế hoạch đạt thì server không nhận ảnh.** Chủ thể bỏ trống bị tính là vẽ mới. Key thư viện phải có trên server (`library_sync { direction: "push", keys }` trước).
 4. Chạy request PixelLab đúng thứ tự `order` (tối đa 10 job cùng lúc), điền `missingInputs` bằng tiếng Anh. Kiểm còn trong trần trước mỗi job.
 5. Xử lý trên máy (0 lượt):
-   - NPC: `asset_process npc_bundle` trên zip PixelLab (hoặc file `idle`, `portrait` của NPC thư viện) → sprite thở 1152×128, chân dung 288×288.
+   - NPC: `asset_process npc_bundle` trên zip PixelLab (hoặc file `idle`, `portrait` của NPC thư viện) → sprite thở 1152×128, chân dung 288×288. Lỗi `NPC_FORMAT` hay `NPC_STYLE` thì dừng NPC đó, báo Yen (xem luật phong cách NPC ở trên).
    - Icon: `asset_process icon_sheet { names }` cắt tấm 256 thành ô 64×64 theo `grid` của request.
    - Lưới đi: mask PixelLab (ngưỡng 128) hoặc `mask_from_shapes` (sàn thoi trong nhà trừ khối đồ đạc) → `walkable { picture }`; mở ảnh phủ xanh/đỏ để tự kiểm.
    - Đồ che ngoài trời: `asset_process foreground { map, mask, rect, id }` → layer có `baseY` (gốc cây cao hơn đáy vết cắt thì `baseRow`); tải PNG lên thư viện (`POST /api/bridge/library/files`) lấy URL.

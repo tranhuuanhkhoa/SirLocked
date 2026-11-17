@@ -15,10 +15,14 @@ public static class V3SceneProjectionPolicy
         var investigator = player.Role == PlayerRole.Investigator;
         var interrogator = player.Role == PlayerRole.Interrogator;
         var sourceRuntime = response.VisibleScene.Runtime;
+        // Màn tân thủ: one player plays both detectives and switches by hand, so each role still sees every object and
+        // person. Touching the other detective's thing explains whose job it is (gamePage onHotspot) instead of the
+        // click falling through to the floor. Acting on it stays role-checked on the server; the camera stays Watson's.
+        var tutorial = response.IsTutorial;
 
         response.VisibleScene.Runtime = sourceRuntime is null
             ? null
-            : CloneRuntime(sourceRuntime, investigator);
+            : CloneRuntime(sourceRuntime, investigator, seesObjects: investigator || tutorial);
         // Open co-op: the Investigator also sees the people (to call the partner over) and the
         // Interrogator also sees puzzle objects (both detectives solve puzzles).
         var openCoop = CaseRuleSets.IsOpenCoop(gameCase);
@@ -28,13 +32,14 @@ public static class V3SceneProjectionPolicy
         response.VisibleScene.Hotspots = response.VisibleScene.Hotspots
             .Where(hotspot =>
             {
+                if (tutorial) return true;
                 var character = hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase);
                 if (openCoop) return investigator || (interrogator && (character || puzzleTargets.Contains(hotspot.TargetId)));
                 return investigator ? !character : interrogator && character;
             })
             .Select(SanitizeHotspot)
             .ToList();
-        response.VisibleScene.Items = investigator
+        response.VisibleScene.Items = investigator || tutorial
             ? response.VisibleScene.Items
             : openCoop
                 ? response.VisibleScene.Items.Where(item => puzzleTargets.Contains(item.ItemId)).ToList()
@@ -118,7 +123,7 @@ public static class V3SceneProjectionPolicy
         EvidenceChallenges = new List<EvidenceChallengeDto>()
     };
 
-    private static SceneRuntime CloneRuntime(SceneRuntime source, bool investigator) => new()
+    private static SceneRuntime CloneRuntime(SceneRuntime source, bool investigator, bool seesObjects) => new()
     {
         Width = source.Width,
         Height = source.Height,
@@ -157,7 +162,7 @@ public static class V3SceneProjectionPolicy
                 Anchor = pair.Value.Anchor,
                 Direction = pair.Value.Direction
             }),
-        ItemPlacements = investigator ? source.ItemPlacements.Select(Clone).ToList() : new List<ItemPlacement>(),
+        ItemPlacements = seesObjects ? source.ItemPlacements.Select(Clone).ToList() : new List<ItemPlacement>(),
         CharacterPlacements = source.CharacterPlacements.Select(Clone).ToList(),
         ClueZones = investigator ? source.ClueZones.Select(Clone).ToList() : new List<ClueZone>(),
         CameraRules = investigator

@@ -241,7 +241,8 @@ public sealed class CaseHintAndEvidenceRuleTests
         PuzzleKindsFill(gameCase);
         var before = _validator.Validate(gameCase);
         Assert.DoesNotContain(before.Errors, error => CaseHintCodes.All.Contains(error.Code));
-        if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2)
+        // The newcomer tutorial ships with every hint level (it is the model case); the older seeds still lack some.
+        if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2 && !TutorialRules.IsTutorialCase(gameCase.CaseId))
             Assert.Contains(before.Warnings, warning => CaseHintCodes.All.Contains(warning.Code));
     }
 

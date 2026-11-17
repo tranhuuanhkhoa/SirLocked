@@ -60,7 +60,10 @@ public partial class AiCaseService
             slots.Add(new AiAssetSlot(spriteId, AiAssetSlotKinds.CharacterSprite, character.CharacterId, character.Name, phase,
                 $"Idle sprite sheet {PixelSceneProfile.SheetWidth}x{PixelSceneProfile.FrameSize}, transparent: {PixelSceneProfile.FrameCount} frames of "
                 + $"{PixelSceneProfile.FrameSize}x{PixelSceneProfile.FrameSize}, feet near y=104 (asset_process npc_bundle on a PixelLab character zip, "
-                + $"or the 'idle' file of a library NPC). {character.Name}, {character.Role}. {character.VisualDescription}".Trim(),
+                + "or the 'idle' file of a library NPC). NPC style: made with the templates.json PixelLab workflow (character-front with the "
+                + "Sherlock style reference), a 96x96 south sprite with natural proportions like Sherlock and Watson; height is the character's own, "
+                + "never chibi or big-headed. "
+                + $"{character.Name}, {character.Role}. {character.VisualDescription}".Trim(),
                 PixelSceneProfile.SheetWidth, PixelSceneProfile.FrameSize, true, placed.Contains(character.CharacterId),
                 Current(spriteId, character.Presentation?.SpriteSheet?.Url ?? string.Empty)));
             var portraitId = SlotId(AiAssetSlotKinds.CharacterPortrait, character.CharacterId);

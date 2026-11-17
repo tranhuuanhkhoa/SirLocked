@@ -33,6 +33,12 @@ public class User
     public string? EmailVerificationTokenHash { get; set; }
     public DateTime? EmailVerificationTokenExpiry { get; set; }
     public bool IsEmailVerified { get; set; } = false;
+    /// <summary>"VETERAN" or "BEGINNER", picked once after sign-up (null until then; see TutorialRules).</summary>
+    [BsonIgnoreIfNull]
+    public string? ExperiencePath { get; set; }
+    /// <summary>When the newcomer tutorial was finished (won or lost). Null until then.</summary>
+    [BsonIgnoreIfNull]
+    public DateTime? TutorialCompletedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

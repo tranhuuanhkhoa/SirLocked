@@ -6,7 +6,7 @@
  * Đọc manifest.jsonl + files/ của đợt 0 (mặc định "Claude outputs/thu-vien-dot0"), xử lý từng file bằng các hàm
  * của asset_process (WebP lossless, ảnh nhỏ, sprite sheet 1152x128, chân dung 288x288, xóa chữ vô nghĩa), gắn thế
  * giới theo tiền tố key, đặt tên tiếng Việt và tiếng Anh, thêm 6 bối cảnh và dàn nhân vật của 2 vụ pixel có sẵn,
- * đánh dấu 2 vật phẩm hỏng là retired, rồi ghi tools/studio-mcp/library/index.json.
+ * đánh dấu 2 vật phẩm hỏng và mọi NPC đợt 0 (vẽ kiểu chibi, lệch cỡ) là retired, rồi ghi tools/studio-mcp/library/index.json.
  * File đã xử lý nằm ở tmp/library-build/<key>/ (git bỏ qua). Đưa lên server: tool library_sync { direction: "push" }.
  */
 import { createHash } from 'node:crypto';
@@ -50,6 +50,12 @@ const RETIRED = {
   'all-item-manh-thu-xe': 'PixelLab vẽ ra chữ "K" trên mảnh thư: không dùng.',
   'all-item-trang-giay-trang': 'Gần như vô hình trên nền game: không dùng.',
 };
+/**
+ * NPC đợt 0 vẽ bằng create_character từ chữ (prompt "chibi", không có ảnh Sherlock làm mẫu): kiểu chibi đầu to, mắt to,
+ * lệch phong cách của Sherlock, Watson và NPC vụ Lò thuốc. Khóa đến khi vẽ lại theo quy trình
+ * character-front -> character-rotate -> character-idle trong ai-game-docs/visual-style-templates/pixellab.
+ */
+const RETIRED_NPC_NOTE = 'NPC đợt 0 vẽ kiểu chibi đầu to (create_character từ chữ, không ảnh Sherlock làm mẫu), lệch phong cách game: khóa đến khi vẽ lại theo templates.json.';
 /** Gibberish lettering to remove before use (rect in pixels of the 64x64 item), as in the sample case's ticket. */
 const CLEAN_TEXT = { 'item-ve-tau-rach': [[20, 16, 27, 50], [28, 34, 50, 50]] };
 
@@ -235,6 +241,9 @@ for (const row of rows) {
   if (RETIRED[row.key]) {
     item.retired = true;
     item.local.notes.push(RETIRED[row.key]);
+  } else if (kind === 'NPC') {
+    item.retired = true;
+    item.local.notes.push(RETIRED_NPC_NOTE);
   }
   try {
     if (kind === 'NPC') {
