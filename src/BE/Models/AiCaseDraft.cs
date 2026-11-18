@@ -394,14 +394,17 @@ public class AiDraftSettings
     public string CaseType { get; set; } = AiCaseTypes.Random;
     public AiCreativeConstraints CreativeConstraints { get; set; } = new();
     /// <summary>
-    /// "OPEN_COOP_1" for drafts whose size comes from <c>AiDifficultyProfiles</c>; empty for every draft created
-    /// before it, which keep the preset-and-stages pipeline they started with.
+    /// "OPEN_COOP_1" for drafts whose size comes from <c>AiDifficultyProfiles</c>; null for every draft created
+    /// before it, which keep the preset-and-stages pipeline they started with. Null is never written, so an old
+    /// draft's settings hash (and its saved projection plan) stays exactly as it was.
     /// </summary>
-    [BsonIgnoreIfDefault]
-    public string PipelineVersion { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? PipelineVersion { get; set; }
     /// <summary>BALANCED, PUZZLE or DIALOGUE (OPEN_COOP_1 drafts only): leans the level's puzzle and dialogue counts.</summary>
-    [BsonIgnoreIfDefault]
-    public string Leaning { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? Leaning { get; set; }
 }
 
 [BsonIgnoreExtraElements]
