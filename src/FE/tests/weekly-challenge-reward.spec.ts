@@ -39,14 +39,17 @@ type Server = {
   drops: unknown[];
   reward: Reward | null;
   /** One reply per claim, in order: the last one repeats. */
-  claimReplies: Array<'ok' | 'full' | 'gone'>;
+  claimReplies: Array<'ok' | 'full' | 'gone' | 'down'>;
+  /** A reply (and a delay) for one drop id, ahead of the queue above. */
+  claimById: Record<string, 'ok' | 'full' | 'gone' | 'down'>;
+  claimDelayById: Record<string, number>;
   claims: string[];
   rewardCalls: number;
   claimDelayMs: number;
 };
 
 async function prepare(page: Page, { signedIn = true, language = 'vi', server = {} as Partial<Server> } = {}) {
-  const state: Server = { drops: dropsOf, reward: null, claimReplies: ['ok'], claims: [], rewardCalls: 0, claimDelayMs: 0, ...server };
+  const state: Server = { drops: dropsOf, reward: null, claimReplies: ['ok'], claimById: {}, claimDelayById: {}, claims: [], rewardCalls: 0, claimDelayMs: 0, ...server };
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(({ signedIn, language }) => {
     // /workshop/challenge is a signed-in route, so a "guest" here is a token with no user record (session.user() is null).
@@ -73,9 +76,12 @@ async function prepare(page: Page, { signedIn = true, language = 'vi', server = 
     }
     const claim = /^\/api\/workshop\/weekly\/challenge\/reward\/([^/]+)\/claim$/.exec(path);
     if (claim && request.method() === 'POST') {
-      state.claims.push(decodeURIComponent(claim[1]));
-      if (state.claimDelayMs) await new Promise((resolve) => setTimeout(resolve, state.claimDelayMs));
-      const reply = state.claimReplies.length > 1 ? state.claimReplies.shift()! : state.claimReplies[0];
+      const id = decodeURIComponent(claim[1]);
+      state.claims.push(id);
+      const delay = state.claimDelayById[id] ?? state.claimDelayMs;
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+      const reply = state.claimById[id] ?? (state.claimReplies.length > 1 ? state.claimReplies.shift()! : state.claimReplies[0]);
+      if (reply === 'down') return route.abort('connectionrefused');
       if (reply === 'full') {
         return route.fulfill({ status: 409, json: { success: false, message: 'Túi đầy.', errors: { code: 'SLOTS_FULL' } } });
       }
@@ -195,6 +201,71 @@ test('a chest that is no longer there says so instead of failing silently', asyn
   await box(page).getByRole('button', { name: 'Nhận hòm' }).click();
   await expect(box(page).getByRole('alert')).toContainText('Không tìm thấy hòm này.');
   await expect(box(page).getByRole('button', { name: 'Nhận hòm' })).toBeEnabled();
+});
+
+test('a claim that is still on its way keeps its row when another chest is claimed meanwhile', async ({ page }) => {
+  const first = drop('drop-a', 'WAITING', { chestName: 'Hòm Sắt Mòn', chestNameEn: 'Worn Iron Chest', chestId: 'chest_sm' });
+  const second = drop('drop-b', 'WAITING', { weekKey: '2026-11-11' });
+  const server = await prepare(page, {
+    server: {
+      reward: rewardOf(first, [first, second]),
+      claimById: { 'drop-a': 'ok', 'drop-b': 'full' },
+      // A is answered first (and repaints its row) while B is still on its way.
+      claimDelayById: { 'drop-a': 400, 'drop-b': 1200 },
+    },
+  });
+  await page.goto('/workshop/challenge');
+
+  const rowA = box(page).locator('[data-weekly-drop="drop-a"]');
+  const rowB = box(page).locator('[data-weekly-drop="drop-b"]');
+  await rowA.getByRole('button', { name: 'Nhận hòm' }).click();
+  await rowB.getByRole('button', { name: 'Nhận hòm' }).click();
+  await expect(rowB.getByRole('button', { name: 'Nhận hòm' })).toBeDisabled();
+
+  await expect(rowA.getByText('Đã nhận', { exact: true })).toBeVisible();
+  // A is done and B is still waiting for its answer: B keeps its disabled button.
+  await expect(rowB.getByRole('button', { name: 'Nhận hòm' })).toBeDisabled();
+  // B's refusal reaches the live row: the message shows and the button works again.
+  await expect(rowB.getByText('Túi vẫn đầy.')).toBeVisible();
+  await expect(rowB.getByRole('button', { name: 'Nhận hòm' })).toBeEnabled();
+  // The success of A did not wipe or strand anything else.
+  await expect(rowA.getByText('Đã nhận', { exact: true })).toBeVisible();
+  expect(server.claims).toEqual(['drop-a', 'drop-b']);
+});
+
+test('an error under one chest stays when another chest is claimed afterwards', async ({ page }) => {
+  const first = drop('drop-a', 'WAITING', { chestName: 'Hòm Sắt Mòn', chestNameEn: 'Worn Iron Chest', chestId: 'chest_sm' });
+  const second = drop('drop-b', 'WAITING', { weekKey: '2026-11-11' });
+  await prepare(page, { server: { reward: rewardOf(first, [first, second]), claimById: { 'drop-a': 'ok', 'drop-b': 'full' } } });
+  await page.goto('/workshop/challenge');
+
+  const rowA = box(page).locator('[data-weekly-drop="drop-a"]');
+  const rowB = box(page).locator('[data-weekly-drop="drop-b"]');
+  await rowB.getByRole('button', { name: 'Nhận hòm' }).click();
+  await expect(rowB.getByText('Túi vẫn đầy.')).toBeVisible();
+  await rowA.getByRole('button', { name: 'Nhận hòm' }).click();
+  await expect(rowA.getByText('Đã nhận', { exact: true })).toBeVisible();
+  await expect(rowB.getByText('Túi vẫn đầy.')).toBeVisible();
+  await expect(rowB.getByRole('button', { name: 'Nhận hòm' })).toBeEnabled();
+});
+
+test('a network failure is told in Vietnamese, not in the HTTP client\'s English', async ({ page }) => {
+  const waiting = drop('drop-down', 'WAITING');
+  await prepare(page, { server: { reward: rewardOf(waiting, [waiting]), claimReplies: ['down'] } });
+  await page.goto('/workshop/challenge');
+
+  await box(page).getByRole('button', { name: 'Nhận hòm' }).click();
+  await expect(box(page).getByRole('alert')).toHaveText('Không kết nối được máy chủ, thử lại sau.');
+  await expect(box(page).getByRole('button', { name: 'Nhận hòm' })).toBeEnabled();
+});
+
+test('in English a network failure says so in English', async ({ page }) => {
+  const waiting = drop('drop-down-en', 'WAITING');
+  await prepare(page, { language: 'en', server: { reward: rewardOf(waiting, [waiting]), claimReplies: ['down'] } });
+  await page.goto('/workshop/challenge');
+
+  await box(page).getByRole('button', { name: 'Claim chest' }).click();
+  await expect(box(page).getByRole('alert')).toHaveText('Could not reach the server, please try again.');
 });
 
 test('a week with no chest in the pool says so', async ({ page }) => {
