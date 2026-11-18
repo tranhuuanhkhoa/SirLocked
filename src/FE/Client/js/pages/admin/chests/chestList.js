@@ -38,6 +38,7 @@ function cardHtml(chest) {
         <span class="ac-ev-line"><span>Giá trị kỳ vọng / chi phí</span><strong data-ac-ev>${number(chest.expectedValue)} / ${number(chest.cost)} xu · ${percent(ratio, 0)}</strong></span>
         <span class="adm-meter adm-meter--gold ac-ev-meter" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, ratio))}%"></span></span>
       </div>
+      <p class="ac-challenge" data-ac-challenge>Thử thách tuần: <strong>${chest.challengePercent > 0 ? percent(chest.challengePercent) : 'Không rớt'}</strong></p>
       <div class="ac-chest-actions">
         <a class="btn btn-primary btn-sm" href="${href}">Sửa</a>
         <button type="button" class="btn btn-ghost btn-sm ${chest.active ? 'adm-btn-danger' : 'adm-btn-ok'}" data-ac-toggle>${chest.active ? 'Tắt' : 'Bật'}</button>
