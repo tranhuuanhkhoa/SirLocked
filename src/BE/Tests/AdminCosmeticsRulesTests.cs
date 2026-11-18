@@ -214,6 +214,27 @@ public class AdminCosmeticsRulesTests
         Assert.Equal(AdminCosmeticCodes.ImageInvalid, CodeOf(Check(Title, "painted", parameters, "javascript:alert(1)")));
     }
 
+    [Fact]
+    public void APaintedTitleTakesAnyPictureTheUploadTakes()
+    {
+        // The upload accepts up to 8000 px a side; a nameplate that big must still save.
+        var check = Check(Title, "painted", """{ "size": { "w": 8000, "h": 2000 }, "textBaked": true }""", Picture);
+
+        Assert.Empty(check.Violations);
+        Assert.Equal(AdminCosmeticCodes.ParamInvalid, CodeOf(Check(Title, "painted", """{ "size": { "w": 8001, "h": 2000 }, "textBaked": true }""", Picture)));
+    }
+
+    [Theory]
+    [InlineData("https://res.cloudinary.com/demo/a.png\n")]
+    [InlineData("https://res.cloudinary.com/demo/a b.png")]
+    [InlineData("HTTPS://res.cloudinary.com/demo/a.png")]
+    public void APictureAddressThePageWouldRefuseIsRefusedHere(string url)
+    {
+        // The page draws only what its own URL_OK accepts; anything else would be stored and never shown.
+        Assert.Equal(AdminCosmeticCodes.ImageInvalid, CodeOf(Check(Title, "painted", """{ "size": { "w": 512, "h": 128 }, "textBaked": true }""", url)));
+        Assert.Equal(AdminCosmeticCodes.ImageInvalid, CodeOf(Check(Entrance, "flipbook", $$"""{ "sheetUrl": {{System.Text.Json.JsonSerializer.Serialize(url)}}, "cols": 1, "rows": 1 }""")));
+    }
+
     [Theory]
     [InlineData("""{ "size": { "w": 512, "h": 128 } }""")]
     [InlineData("""{ "box": { "x": 0.1, "y": 0.1, "w": 0.5, "h": 0.5 } }""")]

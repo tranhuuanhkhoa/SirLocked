@@ -439,6 +439,10 @@ public class AdminChestsRulesTests
     [InlineData("javascript:alert(1)")]
     [InlineData("/assets/../secret.png")]
     [InlineData("chest.png")]
+    [InlineData("HTTPS://res.cloudinary.com/demo/chest.png")]
+    [InlineData("https://res.cloudinary.com/demo/my chest.png")]
+    [InlineData("https://res.cloudinary.com/demo/chest.png\n")]
+    [InlineData("https://res.cloudinary.com/demo/chest\".png")]
     public void AChestPictureMustBeAnUploadedOrShippedPicture(string url)
     {
         var (chest, items) = Fixture();

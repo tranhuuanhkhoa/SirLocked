@@ -97,7 +97,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     timer: 0,
     tab: TABS.some((tab) => tab.id === routeParam('tab')) ? routeParam('tab') : 'thiet-lap',
     previewOpen: null,
-    uploading: '',
+    // The pictures still on their way (imageUrl, keyImageUrl): both can be uploading at once.
+    uploading: new Set(),
   };
 
   const dirty = () => JSON.stringify(state.draft) !== state.baseline;
@@ -207,7 +208,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       const row = $(`[data-ac-picture-row="${picture.field}"]`);
       if (!row) continue;
       const url = picture.field === 'imageUrl' ? chestPictureUrl(state.draft) : keyPictureUrl(state.draft);
-      const busy = state.uploading === picture.field;
+      const busy = state.uploading.has(picture.field);
       const inputId = `ac-picture-${picture.field}`;
       render(row, `
         <span class="ac-picture-thumb">${url ? `<img class="is-picture" src="${escapeHtml(url)}" alt="${escapeHtml(picture.label)} đang dùng" draggable="false">` : `<span class="muted">Mẫu</span>`}</span>
@@ -230,7 +231,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       toast('Ảnh phải từ 5 MB trở xuống.', 'error');
       return;
     }
-    state.uploading = field;
+    state.uploading.add(field);
     paintPictures();
     paintSaveBar();
     try {
@@ -241,7 +242,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     } catch (error) {
       if (!signal?.aborted) toast(errorMessages(error)[0] ?? 'Không tải được ảnh.', 'error');
     } finally {
-      state.uploading = '';
+      state.uploading.delete(field);
       if (!signal?.aborted) {
         paintLook();
         paintSaveBar();
@@ -432,7 +433,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     const messages = checkFailed ? [checkFailed] : (check?.violations ?? []).map((violation) => violation.message);
     $('[data-ac-violations]').innerHTML = errorsHtml(messages);
     // While a picture is on its way, saving would store the draft without it.
-    const blocked = !dirty() || state.pending || Boolean(state.uploading) || messages.length > 0;
+    const blocked = !dirty() || state.pending || state.uploading.size > 0 || messages.length > 0;
     $('[data-ac-save]').disabled = blocked;
     $('[data-ac-save-head]').disabled = blocked;
   }

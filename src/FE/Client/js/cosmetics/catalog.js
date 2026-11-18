@@ -127,7 +127,7 @@ export function paintedTitleOf(visual) {
   if (visual?.template !== 'painted') return null;
   const params = visual.params ?? {};
   const url = cleanUrl(visual.imageUrl);
-  const w = inRange(params.size?.w, 8, 4096), h = inRange(params.size?.h, 8, 4096);
+  const w = inRange(params.size?.w, 8, 8000), h = inRange(params.size?.h, 8, 8000);
   const baked = params.textBaked === true;
   const box = baked ? null : cleanBox(params.box);
   if (!url || w === null || h === null || (!baked && !box)) return null;

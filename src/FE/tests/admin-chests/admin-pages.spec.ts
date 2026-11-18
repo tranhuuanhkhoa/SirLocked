@@ -732,6 +732,34 @@ test.describe('/admin/chests', () => {
     await expect(overlay.locator('#qh-chestImg')).not.toHaveClass(/qh-px/);
   });
 
+  test('saving stays closed while any picture is still uploading, even when the other one has landed', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({ contentType: 'image/png', body: png }));
+    let release = () => {};
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    let calls = 0;
+    await page.route((url) => url.pathname === '/api/admin/assets', async (route) => {
+      const call = ++calls;
+      if (call === 1) await held; // The chest's picture is slow; the key's lands at once.
+      return route.fulfill({ json: { success: true, data: { url: `https://res.cloudinary.com/demo/image/upload/sirlocked/admin/p${call}.png`, width: 64, height: 64 } } });
+    });
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
+
+    await page.locator('[data-ac-picture-input="imageUrl"]').setInputFiles({ name: 'hom.png', mimeType: 'image/png', buffer: png });
+    await expect(page.locator('[data-ac-picture-row="imageUrl"]')).toContainText('Đang tải ảnh');
+    await page.locator('[data-ac-picture-input="keyImageUrl"]').setInputFiles({ name: 'chia.png', mimeType: 'image/png', buffer: png });
+    await expect(page.locator('[data-ac-picture-row="keyImageUrl"] img')).toHaveAttribute('src', /p2\.png$/);
+    await expect.poll(() => sent(s, 'POST', '/api/admin/chests/chest_np/check').length).toBeGreaterThan(0);
+    await expect(page.locator('[data-ac-save]')).toBeDisabled();
+    await expect(page.locator('[data-ac-picture-row="imageUrl"]')).toContainText('Đang tải ảnh');
+
+    release();
+    await expect(page.locator('[data-ac-picture-row="imageUrl"] img')).toHaveAttribute('src', /p1\.png$/);
+    await expect(page.locator('[data-ac-save]')).toBeEnabled();
+  });
+
   test('a check still on its way when the draft changes again cannot open saving', async ({ page }) => {
     const s = state();
     await prepare(page, s);

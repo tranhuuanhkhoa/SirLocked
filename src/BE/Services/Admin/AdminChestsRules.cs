@@ -173,14 +173,18 @@ public static class AdminChestsRules
     private static bool IsHttpsUrl(string value) =>
         Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
 
-    /// <summary>A chest or key picture: an upload (https) or one shipped with the site under /assets/.</summary>
-    private static bool IsPicture(string value) => IsHttpsUrl(value) || IsSiteAsset(value);
+    /// <summary>
+    /// A chest or key picture: an upload (https) or one shipped with the site under /assets/. Read as the page reads it
+    /// (chestSprites.js PICTURE_URL), so a picture that is saved is also one players are shown.
+    /// </summary>
+    private static bool IsPicture(string value) =>
+        AdminCosmeticRules.SafeUrl.IsMatch(value) && (value.StartsWith("https://", StringComparison.Ordinal) || IsSiteAsset(value));
 
     /// <summary>A picture shipped with the site under /assets/ (an outfit's icon), never one that climbs out of it.</summary>
     public static bool IsSiteAsset(string value) =>
         SiteAsset.IsMatch(value) && !value.Contains("..", StringComparison.Ordinal);
 
-    private static readonly Regex SiteAsset = new(@"^/assets/[A-Za-z0-9_./-]+\.(png|webp)$", RegexOptions.Compiled);
+    private static readonly Regex SiteAsset = new(@"^/assets/[A-Za-z0-9_./-]+\.(png|webp)\z", RegexOptions.Compiled);
 
     private static bool IsColour(string? value)
     {

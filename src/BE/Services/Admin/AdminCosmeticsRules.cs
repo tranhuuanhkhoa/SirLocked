@@ -64,7 +64,8 @@ public static class AdminCosmeticRules
     public static readonly IReadOnlyList<string> FlipbookBlends = new[] { "normal", "add" };
 
     public const int MaxSheetCells = 16;
-    public const int MaxPictureSide = 4096;
+    /// <summary>As large as an upload may be (AdminAssetProcessor), so any picture the page accepted can be saved.</summary>
+    public const int MaxPictureSide = AdminAssetProcessor.MaxPixelSide;
 
     public const string ModeLevel = "level";
     public const string ModeAchievement = "achievement";
@@ -109,7 +110,8 @@ public static class AdminCosmeticRules
     private const int MaxUrlLength = 1000;
 
     private static readonly Regex RgbPattern = new(@"^(\d{1,3}),(\d{1,3}),(\d{1,3})$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex SafeUrl = new(@"^(https://[^\s""'<>()\\]+|/assets/[^\s""'<>()\\]+)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    /// <summary>The page's URL_OK (cosmetics/catalog.js). \z, not $: .NET's $ also matches before a final newline.</summary>
+    public static readonly Regex SafeUrl = new(@"^(https://[^\s""'<>()\\]+|/assets/[^\s""'<>()\\]+)\z", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     // ------------------------------------------------------------------ names and small fields
 
