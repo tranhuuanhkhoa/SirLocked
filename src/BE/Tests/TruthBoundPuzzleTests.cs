@@ -31,6 +31,18 @@ public sealed class TruthBoundPuzzleTests
         Assert.Equal("char-b", TruthBoundPuzzleAnswers.PrintOwner(Truth(), "trace-by-b"));
     }
 
+    [Fact]
+    public void FingerprintCards_AreTheOwnerAndAtMostThreeOtherSuspects()
+    {
+        var truth = Truth();
+        truth.CaseSeed.SuspectIds = ["char-a", "char-b", "char-c", "char-d", "char-e"]; // a Hard case: five suspects
+        var cards = TruthBoundPuzzleAnswers.PrintCards(truth, "char-e");
+        Assert.Equal(4, cards.Count); // the fingerprint kind takes 2-4 reference cards
+        Assert.Contains("char-e", cards);
+        Assert.Equal(cards, TruthBoundPuzzleAnswers.PrintCards(truth, "char-e")); // deterministic
+        Assert.Equal(["char-a", "char-b", "char-c"], TruthBoundPuzzleAnswers.PrintCards(Truth(), "char-b"));
+    }
+
     [Theory]
     [InlineData("doc_forgery")]
     [InlineData("parallax_code")]

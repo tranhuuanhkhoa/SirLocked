@@ -946,8 +946,8 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
                     ? TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault())
                     : null,
                 PrintCardIds = PuzzleKindRegistry.IsInteractive(puzzle)
-                               && TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault()) is not null
-                    ? truth.CaseSeed.SuspectIds.ToList()
+                               && TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault()) is { } printOwner
+                    ? TruthBoundPuzzleAnswers.PrintCards(truth, printOwner)
                     : null
             };
 

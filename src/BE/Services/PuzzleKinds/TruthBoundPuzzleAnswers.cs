@@ -32,6 +32,16 @@ public static class TruthBoundPuzzleAnswers
             : null;
     }
 
+    /// <summary>
+    /// The reference cards: the print owner and up to three other suspects, in the truth's order (the fingerprint
+    /// kind takes 2-4 cards, and a Hard case has five suspects).
+    /// </summary>
+    public static List<string> PrintCards(CaseTruthPackage truth, string ownerId)
+    {
+        var others = truth.CaseSeed.SuspectIds.Where(id => id != ownerId).Take(3).ToHashSet(StringComparer.Ordinal);
+        return truth.CaseSeed.SuspectIds.Where(id => id == ownerId || others.Contains(id)).ToList();
+    }
+
     /// <summary>Sets a fingerprint puzzle's cards (the suspects, by name) and its answer before the kind fills the rest.</summary>
     public static void ApplyFingerprint(CasePuzzle puzzle, string ownerId, GameCase gameCase, IReadOnlyList<string> suspectIds)
     {
