@@ -207,7 +207,11 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             TruthSchemaVersion = truth.SchemaVersion,
             TruthHash = draft.TruthHash,
             BlindReviewStatus = CaseTruthReviewStatuses.NotRun,
-            EstimatedMinutes = truth.CaseSeed.EstimatedMinutes,
+            // An OPEN_COOP_1 draft opens every place from the start and plays for its level's time.
+            RuleSet = AiPipelineVersions.IsOpenCoop(draft.Settings) ? CaseRuleSets.OpenCoop : CaseRuleSets.Classic,
+            EstimatedMinutes = AiPipelineVersions.IsOpenCoop(draft.Settings)
+                ? AiDifficultyProfiles.For(draft.Settings.Difficulty).EstimatedMinutes
+                : truth.CaseSeed.EstimatedMinutes,
             ProjectionSchemaVersion = GameplayProjectionVersions.Plan,
             ProjectionCompilerVersion = GameplayProjectionVersions.Compiler,
             ProjectionBuildMode = ProjectionBuildModes.AiCompiled,
