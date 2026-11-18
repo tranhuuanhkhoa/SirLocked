@@ -213,12 +213,27 @@ public class WeeklyService : IWeeklyService
             throw ApiException.BadRequest("Invalid weekly feature type.");
         }
         var challenge = request.Type == WeeklyFeatureTypes.WeeklyChallenge;
+        ChallengeWeek week = default;
         if (challenge)
         {
             // The challenge always runs a whole week: weekStart only says which week, and weekEnd is not read.
             if (request.WeekStart.Year < EarliestChallengeYear)
             {
                 throw ApiException.BadRequest("weekStart is required.");
+            }
+            // Only the running week or the next one (spec 7.2): an ended week's chests are already decided, and a
+            // week further out would be chosen before anyone knows which cases are good then. A moment at or after
+            // the end of next week is refused before it becomes a week, so even the last day a DateTime holds is a 400.
+            var now = UtcNow;
+            var nextWeek = ChallengeWeek.Containing(now).Previous(-1);
+            if (request.WeekStart.ToUniversalTime() >= nextWeek.EndUtc)
+            {
+                throw ApiException.BadRequest("Chỉ chọn được tuần đang chạy hoặc tuần sau.");
+            }
+            week = ChallengeWeek.Containing(request.WeekStart);
+            if (week.EndUtc <= now)
+            {
+                throw ApiException.BadRequest("Tuần này đã kết thúc; chỉ chọn được tuần đang chạy hoặc tuần sau.");
             }
         }
         else if (request.WeekEnd <= request.WeekStart)
@@ -235,7 +250,7 @@ public class WeeklyService : IWeeklyService
 
         if (challenge)
         {
-            return await SetChallengeAsync(user, gameCase, ChallengeWeek.Containing(request.WeekStart), ct);
+            return await SetChallengeAsync(user, gameCase, week, ct);
         }
 
         // Case of the week: flip any existing active feature of the same type off, then activate the new one.

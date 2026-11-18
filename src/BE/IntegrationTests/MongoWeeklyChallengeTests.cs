@@ -294,6 +294,87 @@ public sealed class MongoWeeklyChallengeTests
         Assert.Equal(2, await env.Db.WeeklyFeatures.CountDocumentsAsync(FilterDefinition<WeeklyFeature>.Empty));
     }
 
+    [Fact]
+    public async Task Set_PastWeek_IsRefused()
+    {
+        if (!Enabled) return;
+        await using var env = await WeeklyEnv.CreateAsync();
+        await env.AddCaseAsync("case-a");
+        var service = env.Service();
+
+        // Last week (2026-11-11 to 2026-11-18 00:00 UTC) ended before now; so did the week a year ago.
+        foreach (var weekStart in new[] { new DateTime(2026, 11, 12, 0, 0, 0, DateTimeKind.Utc), ThisWeek.StartUtc.AddTicks(-1), Now.AddYears(-1) })
+        {
+            var error = await Assert.ThrowsAsync<ApiException>(() => service.SetWeeklyFeatureAsync(Admin(), new SetWeeklyFeatureRequest
+            {
+                Type = WeeklyFeatureTypes.WeeklyChallenge, CaseId = "case-a", WeekStart = weekStart, WeekEnd = weekStart.AddDays(7),
+            }));
+            Assert.Equal(400, error.StatusCode);
+            Assert.Equal("Tuần này đã kết thúc; chỉ chọn được tuần đang chạy hoặc tuần sau.", error.Message);
+        }
+
+        Assert.Equal(0, await env.Db.WeeklyFeatures.CountDocumentsAsync(FilterDefinition<WeeklyFeature>.Empty));
+    }
+
+    [Fact]
+    public async Task Set_TwoWeeksAhead_IsRefused()
+    {
+        if (!Enabled) return;
+        await using var env = await WeeklyEnv.CreateAsync();
+        await env.AddCaseAsync("case-a");
+        var service = env.Service();
+
+        // The week after next starts 2026-12-02 00:00 UTC; next week's last moment is still allowed (see Set_NextWeek_IsAccepted).
+        // The last day a DateTime can hold has no whole week after it: still a plain refusal, not a crash.
+        var lastDay = new DateTime(9999, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+        foreach (var weekStart in new[] { ThisWeek.Previous(-2).StartUtc, new DateTime(2026, 12, 5, 0, 0, 0, DateTimeKind.Utc), Now.AddYears(1), lastDay })
+        {
+            var error = await Assert.ThrowsAsync<ApiException>(() => service.SetWeeklyFeatureAsync(Admin(), new SetWeeklyFeatureRequest
+            {
+                Type = WeeklyFeatureTypes.WeeklyChallenge, CaseId = "case-a", WeekStart = weekStart, WeekEnd = weekStart,
+            }));
+            Assert.Equal(400, error.StatusCode);
+            Assert.Equal("Chỉ chọn được tuần đang chạy hoặc tuần sau.", error.Message);
+        }
+
+        Assert.Equal(0, await env.Db.WeeklyFeatures.CountDocumentsAsync(FilterDefinition<WeeklyFeature>.Empty));
+    }
+
+    [Fact]
+    public async Task Set_NextWeek_IsAccepted()
+    {
+        if (!Enabled) return;
+        await using var env = await WeeklyEnv.CreateAsync();
+        await env.AddCaseAsync("case-a");
+        await env.AddCaseAsync("case-b");
+        var admin = Admin();
+        var service = env.Service();
+        var nextWeek = ThisWeek.Previous(-1);
+
+        // Any moment of next week names it, up to its very last tick.
+        var dto = await service.SetWeeklyFeatureAsync(admin, new SetWeeklyFeatureRequest
+        {
+            Type = WeeklyFeatureTypes.WeeklyChallenge, CaseId = "case-a", WeekStart = nextWeek.EndUtc.AddTicks(-1), WeekEnd = nextWeek.EndUtc,
+        });
+
+        Assert.Equal(nextWeek.Key, dto.WeekKey);
+        Assert.Equal(nextWeek.StartUtc, dto.WeekStart);
+        Assert.Equal(nextWeek.EndUtc, dto.WeekEnd);
+        var stored = await env.Db.WeeklyFeatures.Find(w => w.WeekKey == nextWeek.Key).SingleAsync();
+        Assert.Equal("case-a", stored.CaseId);
+        Assert.Equal(WeeklyFeatureSources.Admin, stored.Source);
+        Assert.True(stored.IsActive);
+
+        // The running week is still open to the admin, down to its first moment.
+        var current = await service.SetWeeklyFeatureAsync(admin, new SetWeeklyFeatureRequest
+        {
+            Type = WeeklyFeatureTypes.WeeklyChallenge, CaseId = "case-b", WeekStart = ThisWeek.StartUtc, WeekEnd = ThisWeek.EndUtc,
+        });
+        Assert.Equal(ThisWeek.Key, current.WeekKey);
+        Assert.Equal("case-b", (await service.GetActiveChallengeAsync())!.CaseId);
+        Assert.Equal(2, await env.Db.WeeklyFeatures.CountDocumentsAsync(FilterDefinition<WeeklyFeature>.Empty));
+    }
+
     // ------------------------------------------------------------------ what players read
 
     [Fact]
