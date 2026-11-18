@@ -409,6 +409,35 @@ public sealed class MongoMarketTests
         Assert.Equal(MarketErrors.ItemNotFound, Code(await Throws(() => env.Market.EquipAsync(user.Id, crystal.ItemId))));
     }
 
+    [Fact]
+    public async Task BothOutfitsCanBeWornAtOnce_AndAnyoneCanSeeWhichOnes()
+    {
+        if (!Enabled) return;
+        await using var env = await MarketEnv.CreateAsync();
+        var user = await env.AddUserAsync("Thám tử Minh");
+        var partner = await env.AddUserAsync("Thám tử Vy");
+        await env.GrantAsync(user.Id, SkinCatalog.SherlockWhitechapel, 0);
+        await env.GrantAsync(user.Id, SkinCatalog.WatsonWhitechapel, 0);
+        var inventory = await env.Market.GetInventoryAsync(user.Id);
+        var sherlock = inventory.Items.Single(i => i.Def.Id == SkinCatalog.SherlockWhitechapel);
+        var watson = inventory.Items.Single(i => i.Def.Id == SkinCatalog.WatsonWhitechapel);
+
+        await env.Market.EquipAsync(user.Id, sherlock.ItemId);
+        var after = await env.Market.EquipAsync(user.Id, watson.ItemId);
+
+        Assert.Equal(sherlock.ItemId, after.Equipped[MarketCategories.SkinSherlock]);
+        Assert.Equal(watson.ItemId, after.Equipped[MarketCategories.SkinWatson]);
+        var shown = await env.Market.GetEquippedAsync(user.Id);
+        Assert.Equal(new[] { MarketCategories.SkinSherlock, MarketCategories.SkinWatson }, shown.Select(e => e.Category));
+        Assert.Equal(SkinCatalog.WatsonWhitechapel, shown[1].Def.Id);
+        Assert.Equal("/assets/pixel/skins/whitechapel/icon-watson.png", shown[1].Def.Visual?.ImageUrl);
+        Assert.Empty(await env.Market.GetEquippedAsync(partner.Id));
+
+        var off = await env.Market.UnequipAsync(user.Id, MarketCategories.SkinSherlock);
+        Assert.False(off.Equipped.ContainsKey(MarketCategories.SkinSherlock));
+        Assert.Equal(new[] { MarketCategories.SkinWatson }, (await env.Market.GetEquippedAsync(user.Id)).Select(e => e.Category));
+    }
+
     // ------------------------------------------------------------------ trades
 
     [Fact]

@@ -144,6 +144,34 @@ public sealed class MongoCatalogTests
     }
 
     [Fact]
+    public async Task SeedVersionTwoAddsTheOutfitsToADatabaseSeededBeforeThem_AndLeavesTheChestsAlone()
+    {
+        if (!Enabled) return;
+        await using var env = await CatalogEnv.CreateAsync();
+        await env.Seeder.SeedAsync();
+        // Production before this change: seed version 1, no outfits, and an admin's own chest prices.
+        await env.Catalog.Items.DeleteManyAsync(i => i.Category == MarketCategories.SkinSherlock || i.Category == MarketCategories.SkinWatson);
+        await env.Raw("gameSettings").UpdateOneAsync(new BsonDocument("_id", CatalogSeedState.DocumentId), new BsonDocument("$set", new BsonDocument("seedVersion", 1)));
+        await env.Catalog.Chests.UpdateOneAsync(c => c.Id == Seal, Builders<CatalogChest>.Update.Set(c => c.Prices.Key, 777L));
+
+        var report = await env.Seeder.SeedAsync();
+
+        Assert.Equal((1, 2, 2), (report.FromVersion, report.ToVersion, report.Inserted));
+        var sherlock = await env.Catalog.Items.Find(i => i.Id == SkinCatalog.SherlockWhitechapel).SingleAsync();
+        var watson = await env.Catalog.Items.Find(i => i.Id == SkinCatalog.WatsonWhitechapel).SingleAsync();
+        Assert.Equal((MarketCategories.SkinSherlock, MarketRarities.Legendary), (sherlock.Category, sherlock.Rarity));
+        Assert.Equal(MarketCategories.SkinWatson, watson.Category);
+        Assert.Equal("/assets/pixel/skins/whitechapel/icon-sherlock.png", sherlock.Visual.ImageUrl);
+        var seal = await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync();
+        Assert.Equal(777L, seal.Prices.Key);
+        Assert.DoesNotContain(SkinCatalog.SherlockWhitechapel, seal.Pool);
+        Assert.Equal(MarketCatalog.All.Count, await env.Catalog.Items.CountDocumentsAsync(FilterDefinition<CatalogItem>.Empty));
+
+        var again = await env.Seeder.SeedAsync();
+        Assert.Equal(0, again.Inserted);
+    }
+
+    [Fact]
     public async Task WhatAnAdminDeletedStaysDeletedAtTheNextStart()
     {
         if (!Enabled) return;

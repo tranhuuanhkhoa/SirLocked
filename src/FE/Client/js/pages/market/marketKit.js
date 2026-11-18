@@ -4,7 +4,7 @@ import { pixelIconUrl } from '../chest/chestSprites.js';
 
 /* Shared pieces of Chợ đồ: labels, number formatting, error texts, rarity-tinted item icons, sparklines. */
 
-export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO', 'FRAME', 'TITLE', 'ENTRANCE'];
+export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO', 'FRAME', 'TITLE', 'ENTRANCE', 'SKIN_SHERLOCK', 'SKIN_WATSON'];
 export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
 export const SLOT_CAP = 12;
 export const FEE_PERCENT = 5;
@@ -25,6 +25,8 @@ const CATEGORY_LABELS = {
   FRAME: ['Avatar frames', 'Viền avatar'],
   TITLE: ['Titles', 'Danh hiệu'],
   ENTRANCE: ['Lobby entrances', 'Hiệu ứng vào sảnh'],
+  SKIN_SHERLOCK: ['Sherlock outfits', 'Trang phục Sherlock'],
+  SKIN_WATSON: ['Watson outfits', 'Trang phục Watson'],
 };
 
 /** Same rule as the server: chests, keys and collectibles only sit in the bag. */

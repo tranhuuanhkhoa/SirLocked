@@ -15,6 +15,7 @@ export const RARITY_COLOR = { COMMON: '#4d4538', RARE: '#245a92', EPIC: '#53409a
 export const CATEGORY_TEXT = {
   MAGNIFIER: 'Kính lúp', STAMP: 'Con dấu', PINS: 'Ghim', FOLDER: 'Bìa hồ sơ', BADGE: 'Huy hiệu', BOARD: 'Bảng', WATCH: 'Đồng hồ',
   CHEST: 'Hòm', KEY: 'Chìa', CURIO: 'Sưu tầm', FRAME: 'Viền', TITLE: 'Danh hiệu', ENTRANCE: 'Hiệu ứng vào sảnh',
+  SKIN_SHERLOCK: 'Trang phục Sherlock', SKIN_WATSON: 'Trang phục Watson',
 };
 
 export const rarityBadge = (rarity) => rarityPill(rarity, RARITY_TEXT[rarity] ?? rarity);

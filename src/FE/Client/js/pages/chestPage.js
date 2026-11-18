@@ -75,6 +75,8 @@ const TYPE_LABELS = {
   FRAME: ['Avatar frame', 'Viền ảnh đại diện'],
   TITLE: ['Title', 'Danh hiệu'],
   ENTRANCE: ['Lobby entrance', 'Hiệu ứng vào sảnh'],
+  SKIN_SHERLOCK: ['Sherlock outfit', 'Trang phục Sherlock'],
+  SKIN_WATSON: ['Watson outfit', 'Trang phục Watson'],
 };
 function typeLabel(category) {
   const label = TYPE_LABELS[category];

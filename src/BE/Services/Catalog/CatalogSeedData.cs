@@ -20,7 +20,7 @@ public sealed record CatalogSeedBatch(
 /// </summary>
 public static class CatalogSeedData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     // Same colours as CHEST_LOOKS in src/FE/Client/js/pages/chest/chestSprites.js.
     private static CatalogChestLook LookOf(string iconKey) => iconKey switch
@@ -34,6 +34,7 @@ public static class CatalogSeedData
     public static CatalogSeedBatch ForVersion(int version, ChestSettings prices, DateTime now) => version switch
     {
         1 => Version1(prices, now),
+        2 => Version2(now),
         _ => throw new ArgumentOutOfRangeException(nameof(version), version, "No such catalog seed version."),
     };
 
@@ -45,7 +46,13 @@ public static class CatalogSeedData
             .Select(def => def.Id)
             .ToHashSet(StringComparer.Ordinal);
 
-        var items = MarketCatalog.All.Select((def, index) => new CatalogItem
+        // Outfits came later, in version 2; SortOrder still follows MarketCatalog.All.
+        var items = MarketCatalog.All
+            .Select((def, index) => ToItem(def, index))
+            .Where(item => !SkinCatalog.IsSkin(item.Category))
+            .ToList();
+
+        CatalogItem ToItem(MarketItemDef def, int index) => new()
         {
             Id = def.Id,
             Category = def.Category,
@@ -69,7 +76,7 @@ public static class CatalogSeedData
                 BuiltinId = CosmeticCatalog.IsCosmetic(def.Category) ? BuiltinIdOf(def.Id) : null,
                 Params = new BsonDocument(),
             },
-        }).ToList();
+        };
 
         var chests = ChestCatalog.Chests.Select((chest, index) =>
         {
@@ -115,6 +122,35 @@ public static class CatalogSeedData
 
         var progress = new ProgressSettingsDocument { RareXp = ProgressRules.RareXp, EpicXp = ProgressRules.EpicXp };
         return new CatalogSeedBatch(items, chests, levelRewards, achievements, progress);
+    }
+
+    /// <summary>
+    /// Version 2: the detectives' outfits (<see cref="SkinCatalog"/>). Items only: which chest drops them is the admin's
+    /// call on /admin/chests, because a seed never rewrites a chest that already exists.
+    /// </summary>
+    private static CatalogSeedBatch Version2(DateTime now)
+    {
+        var order = MarketCatalog.All.Select((def, index) => (def.Id, index)).ToDictionary(entry => entry.Id, entry => entry.index, StringComparer.Ordinal);
+        var items = SkinCatalog.ItemDefs.Select(def => new CatalogItem
+        {
+            Id = def.Id,
+            Category = def.Category,
+            Rarity = def.Rarity,
+            Name = def.Name,
+            NameEn = def.NameEn,
+            Description = def.Description,
+            DescriptionEn = def.DescriptionEn,
+            ReferencePrice = def.ReferencePrice,
+            Tradable = def.Tradable,
+            Retired = false,
+            SortOrder = order[def.Id],
+            CreatedAt = now,
+            UpdatedAt = now,
+            UpdatedBy = null,
+            Version = 1,
+            Visual = new CatalogVisual { ImageUrl = def.Visual?.ImageUrl, Params = new BsonDocument() },
+        }).ToList();
+        return new CatalogSeedBatch(items, Array.Empty<CatalogChest>(), Array.Empty<CatalogLevelReward>(), Array.Empty<CatalogAchievement>(), null);
     }
 
     /// <summary>"frame_kimlong" becomes "kimlong": the id of the drawing code once the category prefix is gone.</summary>
