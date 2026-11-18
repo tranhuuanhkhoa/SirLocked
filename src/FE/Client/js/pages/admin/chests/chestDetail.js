@@ -8,6 +8,7 @@ import { pixelIconUrl } from '../../chest/chestSprites.js';
 import { renderChestPage } from '../../chestPage.js';
 import { draftOf, fromHex, toHex, weightOf } from './chestDraft.js';
 import { renderChestStats } from './chestStats.js';
+import { showcaseFigure, showcaseOf, showcaseRibbon, showcaseSky } from './chestShowcase.js';
 import {
   CATEGORY_TEXT, RARITIES, RARITY_COLOR, RARITY_TEXT, acIcon, confirmDialog, dateTime, errorMessages, errorsHtml, routeParam, itemThumb, mountThumbs,
   number, openDialog, percent, rarityBadge, setRouteParam, xu,
@@ -28,8 +29,11 @@ const FIELD_TEXT = {
   'look.template': 'Kiểu hòm', 'look.light': 'Màu ánh sáng', 'look.hi': 'Màu ánh sáng phụ', 'look.core': 'Màu lõi sáng',
 };
 
-const LOOKS = [{ id: 'seal', label: 'Hòm gỗ niêm phong' }, { id: 'bank', label: 'Két sắt nhà băng' }, { id: 'lacquer', label: 'Tráp sơn mài' }];
-const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer' };
+const LOOKS = [
+  { id: 'seal', label: 'Hòm gỗ niêm phong' }, { id: 'bank', label: 'Két sắt nhà băng' }, { id: 'lacquer', label: 'Tráp sơn mài' },
+  { id: 'whitechapel', label: 'Hòm đêm Whitechapel (bộ sưu tập)' },
+];
+const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer', whitechapel: 'chest_whitechapel' };
 
 const barWidth = (value) => Math.min(100, Math.max(0, Number(value) || 0));
 
@@ -90,9 +94,11 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   render(app, `
     <div class="page ac-page ac-detail">
       ${backLink}
-      <div class="ac-detail-head">
-        <span class="ac-chest-art ac-chest-art--lg" data-ac-head-art aria-hidden="true"><img alt="" draggable="false"></span>
+      <div class="ac-detail-head" data-ac-head>
+        <span class="ac-head-sky" data-ac-head-sky></span>
+        <span class="ac-head-stage" data-ac-head-stage><span class="ac-chest-art ac-chest-art--lg" data-ac-head-art aria-hidden="true"><img alt="" draggable="false"></span></span>
         <div class="ac-detail-title">
+          <span class="ac-head-ribbon" data-ac-head-ribbon></span>
           <div class="ac-detail-name"><h1 data-ac-heading></h1><span data-ac-status></span></div>
           <p class="ac-detail-sub">
             <span class="adm-mono">${escapeHtml(chest.id)}</span> · chìa <span class="adm-mono">${escapeHtml(chest.keyDefId)}</span>
@@ -415,6 +421,23 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     const art = $('[data-ac-head-art]');
     art.querySelector('img').src = pixelIconUrl(current.iconKey);
     if (current.look?.light) art.style.setProperty('--ac-glow', `rgb(${current.look.light})`);
+    paintShowcase(current);
+  }
+
+  /** A collection's chest gets its night scene, its outfits and its ribbon in the header; the others stay plain. */
+  function paintShowcase(current) {
+    const showcase = showcaseOf(current);
+    const head = $('[data-ac-head]');
+    head.classList.toggle('ac-detail-head--showcase', Boolean(showcase));
+    $('[data-ac-head-sky]').innerHTML = showcase ? showcaseSky() : '';
+    $('[data-ac-head-ribbon]').innerHTML = showcase ? showcaseRibbon(showcase) : '';
+    const stage = $('[data-ac-head-stage]');
+    stage.querySelectorAll('.ac-show-figure').forEach((figure) => figure.remove());
+    if (showcase) {
+      const [first, ...rest] = showcase.figures;
+      stage.insertAdjacentHTML('afterbegin', showcaseFigure(first, 'l'));
+      stage.insertAdjacentHTML('beforeend', rest.map((figure) => showcaseFigure(figure, 'r')).join(''));
+    }
   }
 
   // ---------------------------------------------------------------- saving

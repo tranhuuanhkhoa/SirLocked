@@ -47,6 +47,8 @@ function state() {
   return {
     items, chest,
     nextCurioId: 'CU-0007',
+    /** More chests for the list, beside the one every test edits. */
+    otherChests: [] as Json[],
     requests: [] as { method: string; path: string; body: Json | null }[],
     stockAvailable: true,
     versions: [
@@ -138,7 +140,7 @@ async function prepare(page: Page, s: State, role = 'ADMIN') {
     }
     if (method === 'GET' && path === '/api/admin/chests') {
       const { poolIds, ...chest } = s.chest;
-      return ok(route, { chests: [{ ...chest, opensLast7Days: 12, poolCount: poolIds.length }], problems: [] });
+      return ok(route, { chests: [{ ...chest, opensLast7Days: 12, poolCount: poolIds.length }, ...s.otherChests], problems: [] });
     }
     if (path === '/api/admin/chests/openings') {
       const page_ = Number(url.searchParams.get('page') ?? 1);
@@ -197,6 +199,20 @@ async function prepare(page: Page, s: State, role = 'ADMIN') {
 }
 
 const sent = (s: State, method: string, fragment: string) => s.requests.filter((r) => r.method === method && r.path.includes(fragment));
+
+/** The chest of the Whitechapel collection as the list gives it: its own drawing, which is what makes the showcase. */
+const whitechapelChest = (extra: Json = {}): Json => ({
+  id: 'chest_wc', keyDefId: 'key_wc', name: 'Hòm Đêm Whitechapel', nameEn: 'Whitechapel Night Chest', subtitle: 'Phố Whitechapel · Nº 1888',
+  subtitleEn: 'Whitechapel · Nº 1888', keyName: 'chìa kính lúp bạc', keyNameEn: 'silver loupe key', iconKey: 'chest_whitechapel', keyIconKey: 'key_loupe',
+  look: { template: 'whitechapel', light: '190,52,58', hi: '255,150,140', core: '255,222,214' },
+  chestPrice: 180, keyPrice: 260, active: true, sortOrder: 9, version: 1, challengeWeight: 0, challengePercent: 0,
+  opensLast7Days: 0, poolCount: 17, expectedValue: 260, cost: 440, ...extra,
+});
+
+/** Makes the chest every test edits the Whitechapel one, keeping its id so the routes still answer. */
+function dressAsWhitechapel(s: State) {
+  Object.assign(s.chest, { iconKey: 'chest_whitechapel', subtitle: 'Phố Whitechapel · Nº 1888', look: { template: 'whitechapel', light: '190,52,58', hi: '255,150,140', core: '255,222,214' } });
+}
 
 async function expectNoSidewaysScroll(page: Page) {
   await page.waitForTimeout(500); // The route's lens transition overflows for a moment on every page.
@@ -659,6 +675,135 @@ test.describe('/admin/chests', () => {
     await dialog.locator('[data-ac-confirm]').click();
 
     await expect(dialog.locator('.ac-errors')).toContainText('Giá trị kỳ vọng quá cao');
+  });
+
+  test('a collection\'s chest stands out in the list with its night street, its outfits and a legend ribbon', async ({ page }) => {
+    const s = state();
+    s.otherChests.push(whitechapelChest());
+    await prepare(page, s);
+    await page.goto('/admin/chests');
+
+    const plain = page.locator('[data-chest-id="chest_np"]');
+    const card = page.locator('[data-chest-id="chest_wc"]');
+    await expect(card).toHaveClass(/ac-chest-card--showcase/);
+    await expect(plain).not.toHaveClass(/ac-chest-card--showcase/);
+    await expect(plain.locator('.ac-show-figure, .ac-show-ribbon, .ac-show-sky')).toHaveCount(0);
+
+    await expect(card.locator('.ac-show-ribbon')).toHaveText(/Bộ sưu tập Huyền thoại/);
+    await expect(card.locator('.ac-show-era')).toHaveText('Phố Whitechapel · Nº 1888');
+    await expect(card.locator('.ac-show-figure--l')).toHaveAttribute('src', '/assets/pixel/skins/whitechapel/icon-sherlock.png');
+    await expect(card.locator('.ac-show-figure--r')).toHaveAttribute('src', '/assets/pixel/skins/whitechapel/icon-watson.png');
+    await expect(card.locator('.ac-show-figure--l')).toHaveAttribute('title', 'Sherlock · Kẻ Săn Bóng Đêm');
+    for (const figure of await card.locator('.ac-show-figure').all()) {
+      await expect.poll(() => figure.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBe(192);
+    }
+    // Its own drawing, not the seal chest's.
+    const art = card.locator('.ac-chest-art img');
+    await expect(art).toHaveAttribute('src', /^data:image\/png/);
+    expect(await art.getAttribute('src')).not.toBe(await plain.locator('.ac-chest-art img').getAttribute('src'));
+
+    // The same facts and buttons as every card.
+    await expect(card.locator('h2 a[href="/admin/chests/chest_wc"]')).toHaveText('Hòm Đêm Whitechapel');
+    await expect(card.locator('[data-ac-ev]')).toContainText('260 / 440');
+    await expect(card.locator('[data-ac-challenge]')).toContainText('Không rớt');
+    await expect(card.locator('[data-ac-toggle]')).toHaveText('Tắt');
+    await expect(card.locator('[data-ac-clone]')).toBeVisible();
+
+    // A night card as wide as the list, the outfits standing either side of the chest.
+    const grid = await page.locator('.ac-chest-grid').boundingBox();
+    const box = await card.boundingBox();
+    expect(Math.abs(box!.width - grid!.width)).toBeLessThan(2);
+    const left = await card.locator('.ac-show-figure--l').boundingBox();
+    const chestBox = await card.locator('.ac-chest-art').boundingBox();
+    const right = await card.locator('.ac-show-figure--r').boundingBox();
+    expect(left!.x).toBeLessThan(chestBox!.x);
+    expect(chestBox!.x).toBeLessThan(right!.x);
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('gradient');
+    expect(await plain.evaluate((el) => getComputedStyle(el).backgroundImage)).toBe('none');
+  });
+
+  test('cloning the showcase chest asks for a name, like any chest', async ({ page }) => {
+    const s = state();
+    s.otherChests.push(whitechapelChest());
+    await prepare(page, s);
+    await page.goto('/admin/chests');
+    await page.locator('[data-chest-id="chest_wc"] [data-ac-clone]').click();
+    await expect(page.locator('dialog.ac-dialog[open]')).toBeVisible();
+  });
+
+  test('the edit page of a collection\'s chest opens on its night street, and goes plain when another drawing is saved', async ({ page }) => {
+    const s = state();
+    dressAsWhitechapel(s);
+    await prepare(page, s);
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
+
+    const head = page.locator('[data-ac-head]');
+    await expect(head).toHaveClass(/ac-detail-head--showcase/);
+    await expect(head.locator('.ac-show-ribbon')).toHaveText(/Bộ sưu tập Huyền thoại/);
+    await expect(head.locator('.ac-show-figure')).toHaveCount(2);
+    await expect(head.locator('.ac-show-sky')).toHaveCount(1);
+    const left = await head.locator('.ac-show-figure--l').boundingBox();
+    const chestBox = await head.locator('[data-ac-head-art]').boundingBox();
+    const right = await head.locator('.ac-show-figure--r').boundingBox();
+    expect(left!.x).toBeLessThan(chestBox!.x);
+    expect(chestBox!.x).toBeLessThan(right!.x);
+    await expect(page.locator('[name="template"]')).toHaveValue('whitechapel');
+    await expect(page.locator('[name="template"] option[value="whitechapel"]')).toHaveText('Hòm đêm Whitechapel (bộ sưu tập)');
+
+    // Saving the seal drawing: the head becomes the plain one, with nothing of the night left behind.
+    await page.locator('[name="template"]').selectOption('seal');
+    await page.locator('[data-ac-save]').click();
+    const dialog = page.locator('dialog.ac-dialog[open]');
+    await dialog.locator('[name="reason"]').fill('Về hình thường');
+    await dialog.locator('[data-ac-confirm]').click();
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
+    expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body!.look).toMatchObject({ template: 'seal' });
+    await expect(head).not.toHaveClass(/ac-detail-head--showcase/);
+    await expect(head.locator('.ac-show-figure, .ac-show-ribbon, .ac-show-sky')).toHaveCount(0);
+    await expect(head.locator('.ac-head-ribbon')).toBeHidden();
+  });
+
+  test('an everyday chest\'s head is laid out as before the showcase existed', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/admin/chests/chest_np');
+    const head = page.locator('[data-ac-head]');
+    await expect(head.locator('h1')).toHaveText('Hòm Niêm Phong');
+    // The empty slots of the showcase take no room: the art sits at the left edge and the title starts 18 px after it.
+    const headBox = await head.boundingBox();
+    const art = await head.locator('[data-ac-head-art]').boundingBox();
+    const title = await head.locator('.ac-detail-title').boundingBox();
+    expect(Math.abs(art!.x - headBox!.x)).toBeLessThan(1);
+    expect(Math.abs(title!.x - (art!.x + art!.width + 18))).toBeLessThan(1);
+    expect(Math.abs((await head.locator('.ac-detail-name').boundingBox())!.y - title!.y)).toBeLessThan(1);
+  });
+
+  test('the showcase fits a phone, and its lamps and glow stay still when the player asks for less motion', async ({ page }) => {
+    const s = state();
+    s.otherChests.push(whitechapelChest());
+    await page.setViewportSize({ width: 390, height: 844 });
+    await prepare(page, s);
+    await page.goto('/admin/chests');
+    const card = page.locator('[data-chest-id="chest_wc"]');
+    await expect(card.locator('.ac-show-figure')).toHaveCount(2);
+    await expectNoSidewaysScroll(page);
+    const stage = await card.locator('.ac-show-stage').boundingBox();
+    const body = await card.locator('.ac-show-body').boundingBox();
+    expect(body!.y).toBeGreaterThanOrEqual(stage!.y + stage!.height - 1);
+    for (const selector of ['.ac-show-figure--l', '.ac-chest-art', '.ac-show-figure--r']) {
+      const box = (await card.locator(selector).boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(stage!.x - 1);
+      expect(box.x + box.width).toBeLessThanOrEqual(stage!.x + stage!.width + 1);
+    }
+    const animation = () => card.locator('.ac-chest-art img').evaluate((img) => getComputedStyle(img).animationName);
+    expect(await animation()).toBe('none');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect.poll(animation).toBe('ac-show-glow');
+
+    dressAsWhitechapel(s);
+    await page.goto('/admin/chests/chest_np');
+    await expect(page.locator('[data-ac-head]')).toHaveClass(/ac-detail-head--showcase/);
+    await expectNoSidewaysScroll(page);
   });
 
   test('the look shows the real sprite and follows the choice', async ({ page }) => {

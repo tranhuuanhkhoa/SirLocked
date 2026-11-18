@@ -125,6 +125,334 @@ body[data-area="admin"] .ac-chest-name a:hover { color: var(--adm-gold-text); }
 .adm-meter.ac-ev-meter { height: 8px; background: var(--adm-seg); }
 .ac-chest-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
+/* ---------- a collection's chest: the night showcase (chestShowcase.js) ----------
+   A chest drawn for an outfit collection (look.template "whitechapel") is shown as a night street of Whitechapel, 1888:
+   a blood moon, rooftops, gas lamps and fog behind the chest, and the collection's outfits standing beside it, so it
+   stands apart from the everyday chests at a glance. The list card and the head of the chest's edit page share it.
+   Chest art is drawn on a 50 px grid and the outfits on a 96 px grid, so both are shown at whole multiples only. */
+
+/* doubled classes: the theme's .adm-card comes later and would paint the card back to paper */
+.adm-card.ac-chest-card--showcase,
+.ac-detail-head.ac-detail-head--showcase {
+  --sc-ink: #f6ecd8;
+  --sc-muted: #b9abbf;
+  --sc-gold: #e2bd66;
+  --sc-line: rgba(226, 189, 102, .3);
+  --sc-tile: rgba(255, 255, 255, .055);
+  position: relative;
+  isolation: isolate;
+  color: var(--sc-ink);
+  background:
+    radial-gradient(70% 90% at 0% 100%, rgba(179, 42, 66, .26), transparent 62%),
+    linear-gradient(150deg, #120e19 0%, #19111f 52%, #28101a 100%);
+  border: 1px solid rgba(226, 189, 102, .62);
+  box-shadow: 0 18px 44px rgba(30, 10, 18, .28);
+}
+/* the second, thinner gold line of the frame */
+.ac-chest-card--showcase::after,
+.ac-detail-head--showcase::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: 3;
+  border: 1px solid rgba(226, 189, 102, .2);
+  border-radius: 17px;
+  pointer-events: none;
+}
+
+.adm-card.ac-chest-card--showcase {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr);
+  gap: 0;
+  padding: 0;
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+/* the street: the scene behind, the outfits and the chest standing on the cobbles */
+.ac-show-stage {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 280px;
+  padding: 24px 12px 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #08070f 0%, #140e20 50%, #2c1220 100%);
+  border-right: 1px solid var(--sc-line);
+}
+.ac-show-stage > :not(.ac-show-sky) { position: relative; z-index: 1; }
+
+.ac-show-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* the glow of the city over the rooftops, so their outline reads against the sky */
+  background: radial-gradient(75% 42% at 50% 84%, rgba(196, 64, 74, .3), transparent 72%);
+}
+/* stars */
+.ac-show-sky::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 45% 0;
+  background:
+    radial-gradient(1.5px 1.5px at 8% 22%, #fff4e0, transparent),
+    radial-gradient(1px 1px at 21% 9%, #fff4e0, transparent),
+    radial-gradient(1px 1px at 33% 30%, #f3d9ff, transparent),
+    radial-gradient(1.5px 1.5px at 47% 12%, #fff4e0, transparent),
+    radial-gradient(1px 1px at 58% 34%, #fff4e0, transparent),
+    radial-gradient(1px 1px at 66% 6%, #f3d9ff, transparent),
+    radial-gradient(1.5px 1.5px at 91% 40%, #fff4e0, transparent),
+    radial-gradient(1px 1px at 96% 14%, #fff4e0, transparent);
+  opacity: .75;
+}
+/* wet cobbles catching the lamplight */
+.ac-show-sky::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 214, 160, .07) 0 11px, transparent 11px 14px),
+    linear-gradient(180deg, #22161f, #0c080d);
+  border-top: 1px solid rgba(255, 170, 90, .22);
+}
+.ac-show-moon {
+  position: absolute;
+  top: 9%;
+  right: 12%;
+  width: 62px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #fff1dc 0%, #f6b49b 36%, #c8414b 76%, #8a1d2d 100%);
+  box-shadow: 0 0 34px 8px rgba(214, 70, 80, .4), 0 0 110px 36px rgba(190, 52, 58, .18);
+}
+.ac-show-roofs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 17px;
+  height: 150px;
+  /* one stretch of rooftops with lit windows, repeated at its own proportions so a wide head never stretches it */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 80'%3E%3Cpath fill='%2307050a' d='M0 80V50h18V40h8v10h14V34l14-12 14 12v16h12V28h6v-6h6v6h10v22h16V40l18-14 18 14v10h12V30h8v-6h6v6h10v20h18V38h26v12h10V34l16-12 16 12v16h14V28h8v-6h6v6h8v22h20V40h24v10h14v30z'/%3E%3Cpath fill='%23f0b257' fill-opacity='.7' d='M52 38h4v6h-4zM88 34h4v6h-4zM174 36h4v6h-4zM218 42h4v6h-4zM298 34h4v6h-4zM30 58h4v6h-4zM64 62h4v6h-4zM128 56h4v6h-4zM196 64h4v6h-4zM256 58h4v6h-4zM320 62h4v6h-4zM348 56h4v6h-4z'/%3E%3C/svg%3E") center bottom / auto 100% repeat-x;
+}
+/* a gas lamp: the post, its cap and the flame */
+.ac-show-gas {
+  position: absolute;
+  bottom: 17px;
+  width: 4px;
+  height: 128px;
+  background: linear-gradient(90deg, #1a1419, #050407);
+}
+.ac-show-gas--l { left: 5%; }
+.ac-show-gas--r { right: 5%; height: 112px; }
+.ac-show-gas::before {
+  content: "";
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 12px;
+  height: 15px;
+  translate: -50% 0;
+  border-radius: 2px;
+  background: radial-gradient(circle at 50% 60%, #fff3c8, #ffc35e 55%, #e0862c);
+  box-shadow: 0 0 12px 5px rgba(255, 184, 92, .55), 0 0 64px 26px rgba(255, 150, 70, .16);
+  animation: ac-show-flicker 4.6s steps(1) infinite;
+}
+.ac-show-gas--r::before { animation-delay: -2.1s; }
+.ac-show-gas::after {
+  content: "";
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  width: 18px;
+  height: 6px;
+  translate: -50% 0;
+  clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+  background: #0a080c;
+}
+.ac-show-fog {
+  position: absolute;
+  left: -40%;
+  bottom: 6px;
+  width: 180%;
+  height: 46%;
+  background:
+    radial-gradient(40% 60% at 28% 72%, rgba(200, 182, 220, .2), transparent 70%),
+    radial-gradient(36% 50% at 74% 82%, rgba(200, 182, 220, .16), transparent 70%);
+  animation: ac-show-drift 24s ease-in-out infinite alternate;
+}
+.ac-show-fog--2 { bottom: -8px; height: 34%; opacity: .85; animation-duration: 33s; animation-direction: alternate-reverse; }
+
+.ac-show-figure {
+  flex: none;
+  width: 192px;
+  height: 192px;
+  margin-bottom: -6px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .6));
+  user-select: none;
+}
+/* the outfit pictures carry empty margins; they stand close to the chest */
+.ac-show-figure--l { order: -1; margin-right: -44px; }
+.ac-show-figure--r { order: 1; margin-left: -50px; }
+
+.ac-show-stage .ac-chest-art,
+.ac-detail-head--showcase .ac-chest-art {
+  flex: none;
+  width: 156px;
+  height: 156px;
+  overflow: visible;
+  border-radius: 0;
+  background: radial-gradient(closest-side at 50% 60%, color-mix(in srgb, var(--ac-glow, #be343a) 62%, transparent), transparent);
+}
+.ac-show-stage .ac-chest-art img,
+.ac-detail-head--showcase .ac-chest-art img {
+  width: 150px;
+  height: 150px;
+  animation: ac-show-glow 3.6s ease-in-out infinite;
+}
+
+/* the text side */
+.ac-show-body { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 26px 28px 24px; }
+.ac-show-ribbon {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6e0f22, #b32a42 50%, #6e0f22);
+  box-shadow: inset 0 0 0 1px rgba(226, 189, 102, .7), 0 4px 16px rgba(179, 42, 66, .35);
+  color: #ffe9c4;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ac-show-ribbon > span { color: var(--sc-gold); letter-spacing: 0; }
+body[data-area="admin"] .ac-chest-card--showcase .ac-chest-name { font-size: 30px; }
+body[data-area="admin"] .ac-chest-card--showcase .ac-chest-name a,
+body[data-area="admin"] .ac-detail-head--showcase .ac-detail-name h1 {
+  background: linear-gradient(180deg, #fff4d8 15%, #ecc979 62%, #b98a33 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+body[data-area="admin"] .ac-chest-card--showcase .ac-chest-name a:hover { color: transparent; filter: brightness(1.18); }
+.ac-show-era { font-family: var(--adm-display); font-size: 16px; font-style: italic; color: #e3a2ad; }
+.ac-chest-card--showcase .ac-chest-code,
+.ac-detail-head--showcase .ac-detail-sub { color: var(--sc-muted); }
+.ac-detail-head--showcase .ac-detail-sub strong { color: var(--sc-ink); }
+.ac-chest-card--showcase .ac-facts > div { background: var(--sc-tile); box-shadow: inset 0 0 0 1px var(--sc-line); }
+.ac-chest-card--showcase :is(.ac-facts dt, .ac-ev-line, .ac-challenge) { color: var(--sc-muted); }
+.ac-chest-card--showcase :is(.ac-facts dd, .ac-ev-line strong) { color: var(--sc-ink); }
+.ac-chest-card--showcase .ac-challenge strong { color: #f2a3ae; }
+.ac-chest-card--showcase .adm-meter.ac-ev-meter { background: rgba(255, 255, 255, .1); }
+.ac-chest-card--showcase .adm-meter.ac-ev-meter > span { background: linear-gradient(90deg, #b98a33, var(--sc-gold)); }
+.ac-chest-card--showcase.is-off .ac-show-stage { filter: saturate(.35) brightness(.85); }
+
+/* buttons on the night: ghost ones in gold line, the main one in gold */
+body[data-area="admin"] #app :is(.ac-chest-card--showcase, .ac-detail-head--showcase) .btn {
+  background: #221826;
+  border-color: rgba(226, 189, 102, .4);
+  color: var(--sc-ink);
+}
+body[data-area="admin"] #app :is(.ac-chest-card--showcase, .ac-detail-head--showcase) .btn:hover:not(:disabled) {
+  background: #2f2234;
+  color: #fff;
+}
+body[data-area="admin"] #app :is(.ac-chest-card--showcase, .ac-detail-head--showcase) .btn.btn-primary {
+  background: linear-gradient(180deg, #f2d389, #c99a3c);
+  border-color: #e9c675;
+  color: #24160a;
+}
+body[data-area="admin"] #app :is(.ac-chest-card--showcase, .ac-detail-head--showcase) .btn.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f8de9c, #d6a746);
+  color: #24160a;
+}
+body[data-area="admin"] #app .ac-chest-card--showcase .btn.adm-btn-danger { border-color: rgba(242, 110, 128, .6); color: #ff9fac; }
+body[data-area="admin"] #app .ac-chest-card--showcase .btn.adm-btn-danger:hover:not(:disabled) { background: #3a1a26; }
+body[data-area="admin"] #app .ac-chest-card--showcase .btn.adm-btn-ok { border-color: rgba(120, 214, 160, .6) !important; color: #9fe2b8 !important; }
+
+/* the head of the chest's edit page */
+.ac-head-sky { display: contents; }
+.ac-head-ribbon:empty { display: none; }
+.ac-head-stage { flex: none; display: flex; align-items: flex-end; }
+/* the street on the left over both rows; the name above, the buttons below, on the right */
+.ac-detail-head.ac-detail-head--showcase {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "stage title" "stage actions";
+  gap: 14px 28px;
+  padding: 22px 28px 0 8px;
+  border-radius: 22px;
+  overflow: hidden;
+}
+.ac-detail-head--showcase > :not(.ac-head-sky) { position: relative; z-index: 1; }
+.ac-detail-head--showcase .ac-head-stage { grid-area: stage; align-self: end; padding-bottom: 14px; }
+.ac-detail-head--showcase .ac-detail-title { grid-area: title; align-self: end; gap: 8px; }
+.ac-detail-head--showcase > .adm-actions { grid-area: actions; align-self: start; padding-bottom: 32px; }
+.ac-detail-head--showcase .ac-show-moon { right: 7%; top: 14%; }
+.ac-detail-head--showcase .ac-show-roofs { height: 84px; }
+
+@media (max-width: 1100px) {
+  .adm-card.ac-chest-card--showcase { grid-template-columns: minmax(0, 1fr); }
+  .ac-show-stage { border-right: 0; border-bottom: 1px solid var(--sc-line); }
+}
+/* below this the name would be squeezed beside the street: the street becomes a band across the top */
+@media (max-width: 1240px) {
+  .ac-detail-head.ac-detail-head--showcase {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "stage" "title" "actions";
+    gap: 16px;
+    padding: 0 28px 24px;
+  }
+  .ac-detail-head--showcase .ac-show-sky { bottom: auto; height: 240px; }
+  .ac-detail-head--showcase .ac-head-stage { justify-content: center; min-height: 240px; padding: 34px 0 14px; }
+  .ac-detail-head--showcase > .adm-actions { padding-bottom: 0; }
+  .ac-detail-head--showcase .ac-show-moon { right: 10%; top: 12%; }
+}
+@media (max-width: 600px) {
+  .ac-show-stage { min-height: 0; padding-top: 34px; }
+  .ac-show-figure { width: 96px; height: 96px; margin-bottom: -3px; }
+  .ac-show-figure--l { margin-right: -22px; }
+  .ac-show-figure--r { margin-left: -25px; }
+  .ac-show-stage .ac-chest-art,
+  .ac-detail-head--showcase .ac-chest-art { width: 104px; height: 104px; }
+  .ac-show-stage .ac-chest-art img,
+  .ac-detail-head--showcase .ac-chest-art img { width: 100px; height: 100px; }
+  .ac-show-gas { height: 84px; }
+  .ac-show-gas--r { height: 74px; }
+  .ac-show-moon { width: 44px; }
+  .ac-show-roofs { height: 66px; }
+  .ac-show-body { padding: 20px 18px 18px; }
+  body[data-area="admin"] .ac-chest-card--showcase .ac-chest-name { font-size: 26px; }
+  .ac-detail-head.ac-detail-head--showcase { padding: 0 18px 20px; }
+  .ac-detail-head--showcase .ac-show-sky { height: 156px; }
+  .ac-detail-head--showcase .ac-head-stage { min-height: 156px; }
+  .ac-detail-head--showcase .ac-show-roofs { height: 62px; }
+}
+
+@keyframes ac-show-drift { from { transform: translateX(-7%); } to { transform: translateX(7%); } }
+@keyframes ac-show-flicker { 0%, 100% { opacity: 1; } 37% { opacity: .78; } 39% { opacity: 1; } 71% { opacity: .9; } 73% { opacity: 1; } }
+@keyframes ac-show-glow {
+  0%, 100% { transform: translateY(0); filter: drop-shadow(0 0 8px rgba(255, 110, 100, .35)) drop-shadow(0 5px 3px rgba(0, 0, 0, .55)); }
+  50% { transform: translateY(-3px); filter: drop-shadow(0 0 18px rgba(255, 140, 110, .62)) drop-shadow(0 8px 4px rgba(0, 0, 0, .45)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ac-show-fog,
+  .ac-show-gas::before,
+  .ac-show-stage .ac-chest-art img,
+  .ac-detail-head--showcase .ac-chest-art img { animation: none; }
+}
+
 /* ---------- opening log ---------- */
 
 .ac-log-filters {

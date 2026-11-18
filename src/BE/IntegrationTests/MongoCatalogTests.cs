@@ -158,8 +158,9 @@ public sealed class MongoCatalogTests
 
         var report = await env.Seeder.SeedAsync();
 
-        // Two outfits (version 2), the chest and its key (version 3), and the chest itself.
-        Assert.Equal((1, 3, 5), (report.FromVersion, report.ToVersion, report.Inserted));
+        // Two outfits (version 2), the chest and its key (version 3), and the chest itself; version 4 finds nothing to move.
+        Assert.Equal((1, 4, 5, 0), (report.FromVersion, report.ToVersion, report.Inserted, report.Upgraded));
+        Assert.Equal("whitechapel", (await env.Catalog.Chests.Find(c => c.Id == SkinCatalog.WhitechapelChestId).SingleAsync()).Look.Template);
         var sherlock = await env.Catalog.Items.Find(i => i.Id == SkinCatalog.SherlockWhitechapel).SingleAsync();
         Assert.Equal((MarketCategories.SkinSherlock, MarketRarities.Legendary), (sherlock.Category, sherlock.Rarity));
         Assert.Equal("/assets/pixel/skins/whitechapel/icon-sherlock.png", sherlock.Visual.ImageUrl);
@@ -174,6 +175,38 @@ public sealed class MongoCatalogTests
 
         var again = await env.Seeder.SeedAsync();
         Assert.Equal(0, again.Inserted);
+    }
+
+    [Fact]
+    public async Task SeedVersionFourGivesTheWhitechapelChestItsOwnDrawing_UnlessAnAdminPickedAnother()
+    {
+        if (!Enabled) return;
+        await using var env = await CatalogEnv.CreateAsync();
+        await env.Seeder.SeedAsync();
+        // Production after version 3: the chest borrowed the Sealed Case's drawing; an admin has since raised its price.
+        await env.Catalog.Chests.UpdateOneAsync(c => c.Id == SkinCatalog.WhitechapelChestId,
+            Builders<CatalogChest>.Update.Set(c => c.Look.Template, "seal").Set(c => c.IconKey, "chest_seal").Set(c => c.Prices.Key, 999L).Inc(c => c.Version, 1));
+        await env.Catalog.Items.UpdateOneAsync(i => i.Id == SkinCatalog.WhitechapelChestId, Builders<CatalogItem>.Update.Set(i => i.Visual.IconKey, "chest_seal"));
+        await env.Raw("gameSettings").UpdateOneAsync(new BsonDocument("_id", CatalogSeedState.DocumentId), new BsonDocument("$set", new BsonDocument("seedVersion", 3)));
+
+        var report = await env.Seeder.SeedAsync();
+
+        Assert.Equal((3, 4, 0, 2), (report.FromVersion, report.ToVersion, report.Inserted, report.Upgraded));
+        var chest = await env.Catalog.Chests.Find(c => c.Id == SkinCatalog.WhitechapelChestId).SingleAsync();
+        Assert.Equal(("whitechapel", "chest_whitechapel", "key_loupe"), (chest.Look.Template, chest.IconKey, chest.KeyIconKey));
+        Assert.Equal(999L, chest.Prices.Key);
+        Assert.Equal("190,52,58", chest.Look.Light);
+        Assert.Equal("chest_whitechapel", (await env.Catalog.Items.Find(i => i.Id == SkinCatalog.WhitechapelChestId).SingleAsync()).Visual.IconKey);
+        Assert.Equal("chest_np", (await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync()).Id);
+        Assert.Equal("seal", (await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync()).Look.Template);
+
+        // An admin who picked another drawing for it keeps that one.
+        await env.Catalog.Chests.UpdateOneAsync(c => c.Id == SkinCatalog.WhitechapelChestId,
+            Builders<CatalogChest>.Update.Set(c => c.Look.Template, "bank").Set(c => c.IconKey, "chest_bank"));
+        await env.Raw("gameSettings").UpdateOneAsync(new BsonDocument("_id", CatalogSeedState.DocumentId), new BsonDocument("$set", new BsonDocument("seedVersion", 3)));
+        var again = await env.Seeder.SeedAsync();
+        Assert.Equal(0, again.Upgraded);
+        Assert.Equal("bank", (await env.Catalog.Chests.Find(c => c.Id == SkinCatalog.WhitechapelChestId).SingleAsync()).Look.Template);
     }
 
     [Fact]

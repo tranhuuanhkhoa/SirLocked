@@ -1,4 +1,5 @@
 using MongoDB.Bson;
+using MongoDB.Driver;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
@@ -11,7 +12,8 @@ public sealed record CatalogSeedBatch(
     IReadOnlyList<CatalogChest> Chests,
     IReadOnlyList<CatalogLevelReward> LevelRewards,
     IReadOnlyList<CatalogAchievement> Achievements,
-    ProgressSettingsDocument? Progress);
+    ProgressSettingsDocument? Progress,
+    Func<CatalogStore, CancellationToken, Task<int>>? Upgrade = null);
 
 /// <summary>
 /// Turns the static catalogs (MarketCatalog, ChestCatalog, CosmeticCatalog, AchievementRules, ProgressRules) into
@@ -20,7 +22,7 @@ public sealed record CatalogSeedBatch(
 /// </summary>
 public static class CatalogSeedData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     // Same colours as CHEST_LOOKS in src/FE/Client/js/pages/chest/chestSprites.js.
     private static CatalogChestLook LookOf(string iconKey) => iconKey switch
@@ -36,6 +38,7 @@ public static class CatalogSeedData
         1 => Version1(prices, now),
         2 => Version2(now),
         3 => Version3(now),
+        4 => Version4(),
         _ => throw new ArgumentOutOfRangeException(nameof(version), version, "No such catalog seed version."),
     };
 
@@ -200,6 +203,30 @@ public static class CatalogSeedData
             UpdatedAt = now,
         }).ToList();
         return new CatalogSeedBatch(items, chests, Array.Empty<CatalogLevelReward>(), Array.Empty<CatalogAchievement>(), null);
+    }
+
+    /// <summary>
+    /// Version 4: the Whitechapel chest gets its own drawing. Version 3 gave it the Sealed Case's; a database that still
+    /// has that one is moved to the new drawing, chest and chest item alike. An admin who picked another drawing keeps it.
+    /// </summary>
+    private static CatalogSeedBatch Version4() => new(
+        Array.Empty<CatalogItem>(), Array.Empty<CatalogChest>(), Array.Empty<CatalogLevelReward>(), Array.Empty<CatalogAchievement>(), null,
+        UpgradeWhitechapelDrawingAsync);
+
+    private static async Task<int> UpgradeWhitechapelDrawingAsync(CatalogStore store, CancellationToken ct)
+    {
+        const string oldTemplate = "seal", oldIcon = "chest_seal";
+        var chest = await store.Chests.UpdateOneAsync(
+            c => c.Id == SkinCatalog.WhitechapelChestId && c.Look.Template == oldTemplate && c.IconKey == oldIcon,
+            Builders<CatalogChest>.Update
+                .Set(c => c.Look.Template, SkinCatalog.WhitechapelTemplate)
+                .Set(c => c.IconKey, SkinCatalog.WhitechapelIcon),
+            cancellationToken: ct);
+        var item = await store.Items.UpdateOneAsync(
+            i => i.Id == SkinCatalog.WhitechapelChestId && i.Visual.IconKey == oldIcon,
+            Builders<CatalogItem>.Update.Set(i => i.Visual.IconKey, SkinCatalog.WhitechapelIcon),
+            cancellationToken: ct);
+        return (int)(chest.ModifiedCount + item.ModifiedCount);
     }
 
     /// <summary>What versions 2 and 3 add, kept out of version 1.</summary>

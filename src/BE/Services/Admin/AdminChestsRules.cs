@@ -54,6 +54,8 @@ public static class AdminChestsRules
             ["seal"] = ("chest_seal", "key_loupe"),
             ["bank"] = ("chest_bank", "key_gear"),
             ["lacquer"] = ("chest_lacquer", "key_jade"),
+            // The Whitechapel night case of the outfits: its own drawing, opened with the silver loupe key.
+            ["whitechapel"] = ("chest_whitechapel", "key_loupe"),
         };
 
     public static (string Chest, string Key) IconsOf(string template) => Drawings[template];
@@ -106,7 +108,7 @@ public static class AdminChestsRules
         Text(violations, "Phụ đề (tiếng Anh)", draft.SubtitleEn, MaxNameLength, required: false);
 
         if (!IsKnownDrawing(draft.Look.Template))
-            violations.Add(new CatalogRuleViolation(LookInvalid, $"Không có kiểu hòm \"{draft.Look.Template}\". Chọn seal, bank hoặc lacquer."));
+            violations.Add(new CatalogRuleViolation(LookInvalid, $"Không có kiểu hòm \"{draft.Look.Template}\". Chọn seal, bank, lacquer hoặc whitechapel."));
         foreach (var (label, value) in new[] { ("ánh sáng", draft.Look.Light), ("ánh sáng phụ", draft.Look.Hi), ("lõi sáng", draft.Look.Core) })
         {
             if (!IsColour(value)) violations.Add(new CatalogRuleViolation(LookInvalid, $"Màu {label} \"{value}\" không hợp lệ."));
