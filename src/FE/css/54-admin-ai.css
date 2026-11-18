@@ -888,3 +888,27 @@ body[data-area="admin"] #app .aai-decision-option {
 }
 body[data-area="admin"] #app .aai-decision-option small { font-family: var(--adm-mono); color: var(--adm-eyebrow); }
 body[data-area="admin"] #app .aai-decision-chosen { margin: 0; color: var(--adm-navy); }
+
+/* VUAN-7: the VIP order panel in the navy summary (speed, price, coins) and the ADMIN VIP settings and report. */
+.aai-vip-order { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; color: var(--adm-on-navy); }
+.aai-vip-speeds { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
+.aai-vip-speed { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--adm-r-sm);
+  border: 1px solid rgba(243, 235, 220, .25); cursor: pointer; font-size: 14px; }
+.aai-vip-speed.is-selected { border-color: var(--adm-gold, #d8b25a); background: rgba(216, 178, 90, .12); }
+.aai-vip-speed strong { white-space: nowrap; }
+.aai-vip-extra { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.aai-vip-price { display: grid; gap: 4px; margin: 0; }
+.aai-vip-price div { display: flex; justify-content: space-between; gap: 12px; }
+.aai-vip-price dt { opacity: .8; }
+.aai-vip-price dd { margin: 0; font-weight: 600; }
+.aai-vip-short { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.aai-summary-vip .aai-vip-order p { display: flex; }
+.aai-vip-line { display: flex; align-items: center; gap: 6px; }
+.aai-vip-settings-form h3, .aai-vip-report h3 { margin: 18px 0 8px; font-size: 15px; }
+.aai-vip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; }
+.aai-vip-settings .adm-table input.field-input { min-width: 80px; }
+.aai-vip-report td.is-loss { color: var(--adm-bad, #b4412f); font-weight: 600; }
+@media (max-width: 600px) {
+  .aai-vip-speed { grid-template-columns: auto 1fr; }
+  .aai-vip-speed strong { grid-column: 2; }
+}

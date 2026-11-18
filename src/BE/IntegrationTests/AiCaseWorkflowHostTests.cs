@@ -407,7 +407,9 @@ public sealed partial class AiCaseWorkflowHostTests
                 [
                     new Claim(ClaimTypes.NameIdentifier, userId),
                     new Claim(ClaimTypes.Name, "Integration Admin"),
-                    new Claim(ClaimTypes.Role, role)
+                    new Claim(ClaimTypes.Role, role),
+                    // Like a real login token: UserStatusMiddleware refuses a token without authz_ver.
+                    new Claim(SirLocked.Api.Models.User.AuthorizationVersionClaim, "0")
                 ],
                 SchemeName);
             return Task.FromResult(AuthenticateResult.Success(

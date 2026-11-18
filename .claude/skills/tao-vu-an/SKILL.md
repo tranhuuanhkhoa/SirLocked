@@ -30,7 +30,7 @@ Trong skill này, **người đặt đơn** là người tạo đơn trên `/adm
 
 | # | Ai | Việc | Tool |
 | --- | --- | --- | --- |
-| 1 | Người đặt đơn | Đặt đơn trên `/admin/ai` (admin và VIP đều vào hàng chờ ngay) | — |
+| 1 | Người đặt đơn | Đặt đơn trên `/admin/ai` (admin và VIP đều vào hàng chờ ngay; riêng đơn VIP trả xu, khi server có khóa Claude API, chờ admin duyệt rồi chạy bằng Claude API và không đến bot) | — |
 | 2 | Runner / người | Server báo có việc → runner chạy `/tao-vu-an`; hoặc người tự gõ `/tao-vu-an` | — |
 | 3 | Bot | **Xem trước truyện**: tiêu đề, bối cảnh, vụ mở đầu, nghi phạm, không lộ hung thủ. → **Cổng 1 STORY** | `bridge_list`, `bridge_take`, `bridge_check`, `bridge_submit` |
 | 4 | Bot | **Sự thật**: hung thủ, động cơ, phương thức, dòng thời gian thật, chứng cứ, lời khai, đồ thị chứng minh. Thám tử mù thử trước khi nộp bước logic. → **Cổng 2 TRUTH (luôn người đặt đơn)** | như trên |

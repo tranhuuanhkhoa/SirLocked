@@ -16,11 +16,13 @@ public class ProfileController : BaseApiController
     // The literal "me" route is matched before the {userId} parameter route by ASP.NET routing.
     [HttpGet("me")]
     [Authorize]
-    public async Task<ActionResult<ApiResponse<DetectiveProfileDto>>> GetMine(CancellationToken ct = default) =>
-        Ok(await _profiles.GetProfileAsync(CallerId, ct));
+    public async Task<ActionResult<ApiResponse<DetectiveProfileDto>>> GetMine(
+        [FromServices] SirLocked.Api.Services.Vip.AuthorBadgeReader badges, CancellationToken ct = default) =>
+        Ok(await badges.FillAsync(await _profiles.GetProfileAsync(CallerId, ct), ct));
 
     [HttpGet("{userId}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<DetectiveProfileDto>>> Get(string userId, CancellationToken ct = default) =>
-        Ok(await _profiles.GetProfileAsync(userId, ct));
+    public async Task<ActionResult<ApiResponse<DetectiveProfileDto>>> Get(
+        string userId, [FromServices] SirLocked.Api.Services.Vip.AuthorBadgeReader badges, CancellationToken ct = default) =>
+        Ok(await badges.FillAsync(await _profiles.GetProfileAsync(userId, ct), ct));
 }

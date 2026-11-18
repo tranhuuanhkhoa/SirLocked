@@ -14,6 +14,36 @@ public static class PixelAssetPlanning
         public bool WithinCap => AiCaseOrder.FitsCap(EstimatedGenerations, PixelLabCap);
     }
 
+    /// <summary>
+    /// The accepted plan stored on the draft once <paramref name="result"/> has no errors and fits the cap: the bot's
+    /// <c>PUT asset-plan</c> and the VIP lane's planning call store it the same way.
+    /// </summary>
+    public static AiAssetPlan Accept(Result result, IReadOnlyList<AiAssetChoice>? choices)
+    {
+        var planJson = result.Plan.ToJsonString();
+        return new AiAssetPlan
+        {
+            Choices = result.Subjects.Select(subject => new AiAssetChoice
+            {
+                Subject = subject.Subject, Source = subject.Source, LibraryKey = subject.LibraryKey,
+                ParentKey = subject.ParentKey, Variant = subject.Variant, InpaintItems = (subject.InpaintItems ?? new List<string>()).ToList(),
+                Note = Clip((choices ?? []).FirstOrDefault(choice => choice.Subject == subject.Subject)?.Note, 500)
+            }).ToList(),
+            EstimatedGenerations = result.EstimatedGenerations,
+            PixelLabCap = result.PixelLabCap,
+            Requests = result.Plan["summary"]!["requests"]!.GetValue<int>(),
+            PlanJson = planJson,
+            PlanSha256 = AiBridgeSchemaValidator.Sha256(planJson),
+            AcceptedAt = DateTime.UtcNow
+        };
+    }
+
+    private static string Clip(string? value, int max)
+    {
+        var text = (value ?? string.Empty).Trim();
+        return text.Length <= max ? text : text[..max];
+    }
+
     /// <summary>Library kinds a subject may reuse.</summary>
     public static string LibraryKindFor(string kind, string? projection) => kind switch
     {

@@ -40,7 +40,8 @@ public partial class AiCaseService
         int attemptNumber,
         Func<string>? mockResponseFactory = null,
         string? generationRunId = null,
-        string? instructions = null)
+        string? instructions = null,
+        IReadOnlyList<string>? imageUrls = null)
     {
         var containsSpoilers = !step.Contains("StoryPreview", StringComparison.OrdinalIgnoreCase);
         var loggedPrompt = containsSpoilers ? $"[REDACTED SPOILER PROMPT: {step}]" : prompt;
@@ -72,6 +73,7 @@ public partial class AiCaseService
             MaxOutputTokens = maxOutputTokens,
             AttemptNumber = attemptNumber,
             GenerationRunId = generationRunId ?? string.Empty,
+            ImageUrls = imageUrls ?? [],
             MockResponseFactory = mockResponseFactory
         }, _operationCancellationToken);
         if (!_settings.BlocksAiCalls) await HeartbeatGenerationAsync(draftId, generationRunId);
@@ -110,7 +112,8 @@ public partial class AiCaseService
             attemptNumber: 1,
             mockResponseFactory: mockResponseFactory,
             generationRunId: draft.GenerationRunId,
-            instructions: VisionInstructions);
+            instructions: VisionInstructions,
+            imageUrls: images.Select(image => image.Url).Where(url => !string.IsNullOrWhiteSpace(url)).ToList());
     }
 
     /// <summary>The creator's order, appended to every step's prompt in a fixed, explicit form.</summary>
@@ -118,10 +121,13 @@ public partial class AiCaseService
     {
         if (!_orderBlocks.TryGetValue(draftId, out var block))
         {
-            var order = await _db.AiCaseDrafts.Find(item => item.Id == draftId)
-                .Project(item => item.Order)
+            var stored = await _db.AiCaseDrafts.Find(item => item.Id == draftId)
+                .Project(item => new { item.Order, item.VipBrief })
                 .FirstOrDefaultAsync(_operationCancellationToken);
-            block = AiCaseOrderPolicy.BuildPromptBlock(order);
+            block = AiCaseOrderPolicy.BuildPromptBlock(stored?.Order);
+            // VUAN-7: a VIP order's brief follows its order block in every later step.
+            var brief = BuildVipBriefBlock(stored?.VipBrief);
+            if (brief.Length > 0) block = string.IsNullOrEmpty(block) ? brief : $"{block}\n\n{brief}";
             _orderBlocks[draftId] = block;
         }
         return string.IsNullOrEmpty(block) ? prompt : $"{prompt.TrimEnd()}\n\n{block}";
@@ -162,6 +168,10 @@ public partial class AiCaseService
                 ?? new Dictionary<string, AiBridgeAssetUpload>(StringComparer.Ordinal);
         }
 
+        // VUAN-7: a VIP pixel order plans its pictures through the API lane first; the images themselves are made by the
+        // non-AI runner on the studio VPS, which takes only VIP-lane image requests.
+        await EnsureVipAssetPlanAsync(draft);
+
         var regenerate = forcedSlotIds is { Count: > 0 }
             ? slots.Where(slot => forcedSlotIds.Contains(slot.SlotId)).Select(slot => slot.SlotId).ToList()
             : new List<string>();
@@ -199,7 +209,8 @@ public partial class AiCaseService
             PromptSha256 = AiBridgeSchemaValidator.PromptSha256(description),
             AssetPhase = phase,
             AssetSlotIds = required,
-            AssetRegenerateSlotIds = regenerate
+            AssetRegenerateSlotIds = regenerate,
+            Lane = draft.Lane == AiDraftLanes.VipApi ? AiBridgeLanes.VipRunner : AiBridgeLanes.Bot
         }, _operationCancellationToken);
         await LogGenerationAsync(draft.Id, ProviderName, step, "AWAITING_CLAUDE",
             string.Empty, $"Request {created.Id} waits for {required.Count} uploaded image(s).", null);

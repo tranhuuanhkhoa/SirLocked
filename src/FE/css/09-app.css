@@ -1102,3 +1102,10 @@ select.field-input { display: block; width: 100%; }
     transition: none;
   }
 }
+
+/* VUAN-7 */
+/* "Tác giả" badge on case cards, the case page and the detective profile. */
+.author-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: rgba(120, 92, 54, .14); color: inherit; }
+.author-badge[data-tier="SILVER"] { background: rgba(160, 168, 178, .3); }
+.author-badge[data-tier="GOLD"] { background: rgba(216, 178, 90, .35); }

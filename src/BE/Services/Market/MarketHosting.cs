@@ -99,6 +99,7 @@ public static class MarketServiceCollectionExtensions
     {
         services.AddScoped<MarketStore>();
         services.AddScoped<MarketService>();
+        services.AddScoped<CoinWalletService>();
         services.AddOptions();
         services.AddSingleton<IChestRandom, CryptoChestRandom>();
         services.AddScoped<ChestService>();

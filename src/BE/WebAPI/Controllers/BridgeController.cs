@@ -69,12 +69,13 @@ public sealed class BridgeController(
 
     [HttpGet("requests")]
     public async Task<ActionResult<ApiResponse<List<object>>>> List(
-        [FromQuery] string? status = "PENDING", [FromQuery] int limit = 100, CancellationToken ct = default) =>
-        Ok(await bridge.ListRequestsAsync(status, limit, ct));
+        [FromQuery] string? status = "PENDING", [FromQuery] int limit = 100, [FromQuery] string? lane = null,
+        CancellationToken ct = default) =>
+        Ok(await bridge.ListRequestsAsync(status, limit, ct, lane));
 
     [HttpPost("requests/{id}/take")]
-    public async Task<ActionResult<ApiResponse<object>>> Take(string id, CancellationToken ct) =>
-        Ok(await bridge.TakeAsync(id, ct), "Request taken.");
+    public async Task<ActionResult<ApiResponse<object>>> Take(string id, [FromQuery] string? lane, CancellationToken ct) =>
+        Ok(await bridge.TakeAsync(id, ct, lane), "Request taken.");
 
     [HttpPost("requests/{id}/release")]
     public async Task<ActionResult<ApiResponse<object>>> Release(string id, CancellationToken ct) =>

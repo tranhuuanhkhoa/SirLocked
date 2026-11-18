@@ -10,6 +10,8 @@ using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Vip;
+using SirLocked.Api.Services.Market;
 using Xunit;
 
 namespace SirLocked.IntegrationTests;
@@ -110,6 +112,8 @@ public sealed class MongoAiDraftQuotaTests
         await WithDatabase(async db =>
         {
             var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
             var provider = new RejectProviderCalls();
             var service = CreateService(db, provider, quota: false);
             var draft = await service.CreatePreviewAsync(vip, new GenerateAiCaseRequest
@@ -126,6 +130,11 @@ public sealed class MongoAiDraftQuotaTests
             Assert.Equal(AiQueueStates.Pending, draft.QueueState);
             Assert.Equal(AiCaseReviewModes.Fast, draft.Order!.ReviewMode); // a VIP chooses like an admin
             Assert.Equal(100, draft.Order.PixelLabCap);
+            // The VIP API lane is closed (no Anthropic key): the order is free and runs on the bridge bot.
+            Assert.Equal(AiDraftLanes.Bridge, draft.Lane);
+            Assert.Null(draft.VipOrder);
+            var wallet = await new MarketStore(db).Accounts.Find(account => account.Id == vip.Id).SingleAsync();
+            Assert.Equal((1_000_000L, 0L), (wallet.Balance, wallet.Held));
             Assert.Equal(AiCaseWorlds.TaishoJapan, draft.Order.World);
             Assert.Equal("RAIN", draft.Order.Weather);
             Assert.Equal("NIGHT", draft.Order.TimeOfDay);
@@ -153,11 +162,61 @@ public sealed class MongoAiDraftQuotaTests
     }
 
     [Fact]
+    public async Task PaidVipOrder_WithTheApiLaneOpen_WaitsForApproval_ForcesFullReviewAndCap_AndCreatesNoBridgeRequest()
+    {
+        await WithDatabase(async db =>
+        {
+            var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
+            var provider = new RejectProviderCalls();
+            var service = CreateService(db, provider, quota: false, vipLaneOpen: true);
+            var draft = await service.CreatePreviewAsync(vip, new GenerateAiCaseRequest
+            {
+                GenerationPreset = AiGenerationPresets.ShortDemo,
+                Order = new AiCaseOrder
+                {
+                    World = "taisho_japan", ReviewMode = AiCaseReviewModes.Fast, PixelLabCap = 100,
+                    SuspectCount = 5, Weather = "rain", TimeOfDay = "night"
+                }
+            }, "vip-order-paid");
+
+            Assert.Equal(AiOrderStatuses.AwaitingOwnerApproval, draft.OrderStatus);
+            Assert.Equal(AiQueueStates.None, draft.QueueState);
+            // VUAN-7: the order is paid in coins and written through the Claude API lane.
+            Assert.Equal(AiDraftLanes.VipApi, draft.Lane);
+            Assert.Equal(AiVipBillingStates.Held, draft.VipOrder!.State);
+            Assert.Equal(5_000, draft.VipOrder.PriceXu); // Short Demo, "Nhanh": 5.000 xu
+            Assert.Equal(AiCaseReviewModes.Full, draft.Order!.ReviewMode); // paid VIP orders never get fast review
+            Assert.Equal(AiCaseOrder.VipPixelLabCap, draft.Order.PixelLabCap); // nor more than 30 generations
+            Assert.Equal(AiCaseWorlds.TaishoJapan, draft.Order.World);
+            Assert.Single(draft.OrderStatusHistory);
+            Assert.Equal(0, await db.AiBridgeRequests.CountDocumentsAsync(FilterDefinition<AiBridgeRequest>.Empty));
+            var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.DraftId).SingleAsync();
+            Assert.Null(stored.NextAttemptAt); // nothing the worker could claim
+            Assert.Equal(0, provider.Calls);
+
+            var forbidden = await Assert.ThrowsAsync<ApiException>(() => service.ApproveOrderAsync(vip, draft.DraftId));
+            Assert.Equal(403, forbidden.StatusCode);
+            var continued = await Assert.ThrowsAsync<ApiException>(() => service.ContinueDraftAsync(vip, draft.DraftId));
+            Assert.Equal("AI_ORDER_AWAITING_APPROVAL", Assert.IsType<ApiErrorDetails>(continued.Errors).Code);
+
+            var admin = new CurrentUser(ObjectId.GenerateNewId().ToString(), "Admin", UserRole.Admin);
+            var approved = await service.ApproveOrderAsync(admin, draft.DraftId);
+            Assert.Equal(AiOrderStatuses.QueuedForClaude, approved.OrderStatus);
+            Assert.Equal(AiQueueStates.Pending, approved.QueueState);
+            Assert.Equal(AiDraftLanes.VipApi, approved.Lane);
+        });
+    }
+
+    [Fact]
     public async Task VipWeeklyLimit_DefaultsToTwo_RejectionFreesTheSlot_AndAdminCanRaiseIt()
     {
         await WithDatabase(async db =>
         {
             var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
             var admin = new CurrentUser(ObjectId.GenerateNewId().ToString(), "Admin", UserRole.Admin);
             var service = CreateService(db, new RejectProviderCalls(), quota: false);
             var request = new GenerateAiCaseRequest { GenerationPreset = AiGenerationPresets.ShortDemo };
@@ -206,6 +265,8 @@ public sealed class MongoAiDraftQuotaTests
         await WithDatabase(async db =>
         {
             var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
             var service = CreateService(db, new RejectProviderCalls(), quota: false);
             var attempts = Enumerable.Range(1, 6).Select(async index =>
             {
@@ -239,7 +300,31 @@ public sealed class MongoAiDraftQuotaTests
         };
     }
 
-    private static AiCaseService CreateService(MongoDbContext db, IAiTextProvider provider, bool quota = true) => new(
+    /// <summary>
+    /// VUAN-7 billing. With <paramref name="laneOpen"/> a fake key makes the VIP API lane count as configured (nothing
+    /// ever calls Anthropic); without it the lane is closed and VIP orders run free on the bridge.
+    /// </summary>
+    private static VipBillingService Billing(MongoDbContext db, bool laneOpen)
+    {
+        var store = new MarketStore(db);
+        var market = new MarketService(store, NullLogger<MarketService>.Instance);
+        var wallet = new CoinWalletService(store, market, NullLogger<CoinWalletService>.Instance);
+        return new VipBillingService(db, wallet, new VipSettingsStore(db),
+            Options.Create(new AnthropicSettings { ApiKey = laneOpen ? "test-key-never-sent" : string.Empty }),
+            NullLogger<VipBillingService>.Instance);
+    }
+
+    /// <summary>A VIP needs coins to order (VUAN-7).</summary>
+    private static async Task FundAsync(MongoDbContext db, string userId, long coins = 1_000_000)
+    {
+        var store = new MarketStore(db);
+        await new MarketService(store, NullLogger<MarketService>.Instance).EnsureAccountAsync(userId);
+        await store.Accounts.UpdateOneAsync(account => account.Id == userId,
+            Builders<SirLocked.Api.Models.Market.MarketAccount>.Update.Set(account => account.Balance, coins));
+    }
+
+    private static AiCaseService CreateService(MongoDbContext db, IAiTextProvider provider, bool quota = true,
+        bool vipLaneOpen = false) => new(
         db: db, workflow: null!, caseService: null!, validator: null!, truthService: null!,
         projectionPlanner: null!, projectionSchemaFactory: null!, projectionCompiler: null!, projectionGraphValidator: null!,
         textProvider: provider, exportService: null!, httpClientFactory: null!,
@@ -252,7 +337,8 @@ public sealed class MongoAiDraftQuotaTests
         v3PresetSettings: Options.Create(new AiCaseV3PresetSettings { Enabled = true }),
         gameplayV3Settings: Options.Create(new GameplayV3Settings { Enabled = true }),
         env: null!, logger: NullLogger<AiCaseService>.Instance,
-        bridgeSettings: Options.Create(new BridgeSettings { Key = "integration-bridge-key-0123456789abcdef" }));
+        bridgeSettings: Options.Create(new BridgeSettings { Key = "integration-bridge-key-0123456789abcdef" }),
+        vipBilling: Billing(db, vipLaneOpen));
 
     private static async Task WithDatabase(Func<MongoDbContext, Task> check)
     {

@@ -57,6 +57,8 @@ interface Mock {
   reject: { id: string; body: any }[];
   answers: { id: string; decisionId: string; body: any }[];
   answerStatus?: number;
+  /** VUAN-7: the server has the Claude API key, so a VIP order is paid and waits for an admin. */
+  vipLaneOpen: boolean;
   settingsPuts: any[];
   quota: { unlimited: boolean; weeklyLimit: number; usedThisWeek: number; remaining: number; weekStart: string };
   createResponse?: (body: any) => { status: number; json: unknown };
@@ -66,7 +68,7 @@ interface Mock {
 
 async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overrides: Partial<Mock> = {}): Promise<Mock> {
   const mock: Mock = {
-    drafts: [], posts: [], postHeaders: [], approve: [], reject: [], answers: [], settingsPuts: [],
+    drafts: [], posts: [], postHeaders: [], approve: [], reject: [], answers: [], settingsPuts: [], vipLaneOpen: false,
     quota: { unlimited: false, weeklyLimit: 2, usedThisWeek: 0, remaining: 2, weekStart: '2026-11-16' },
     dialogs: [], errors: [],
     ...overrides,
@@ -108,7 +110,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
       const answer = mock.createResponse(body);
       return route.fulfill({ status: answer.status, json: answer.json });
     }
-    const created = draftOf(`new-${mock.posts.length}`, role, 'QUEUED_FOR_CLAUDE', {
+    const created = draftOf(`new-${mock.posts.length}`, role, role === 'VIP' && mock.vipLaneOpen ? 'AWAITING_OWNER_APPROVAL' : 'QUEUED_FOR_CLAUDE', {
       prompt: body.prompt, order: body.order, settings: { generationPreset: body.generationPreset, language: body.language, caseType: body.caseType },
     });
     mock.drafts = [created, ...mock.drafts];
@@ -116,7 +118,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
     return route.fulfill({ status: 202, json: envelope(created) });
   });
   await page.route((url) => /^\/api\/admin\/ai-cases\/[^/]+$/.test(url.pathname)
-    && !['capabilities', 'library', 'quota', 'settings'].includes(url.pathname.split('/').pop()!), (route) => {
+    && !['capabilities', 'library', 'quota', 'settings', 'vip-quote', 'vip-report'].includes(url.pathname.split('/').pop()!), (route) => {
     const id = new URL(route.request().url()).pathname.split('/').pop();
     const draft = mock.drafts.find((item) => item.draftId === id);
     return route.fulfill(draft ? { json: envelope(draft) } : { status: 404, json: { success: false, message: 'Not found' } });
@@ -151,6 +153,17 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
       ? { ...draft, orderStatus: 'QUEUED_FOR_CLAUDE', decisions: draft.decisions.map((item: Draft) => item.id === decisionId ? { ...item, status: 'ANSWERED', chosenOptionId: body.optionId } : item) }
       : draft);
     return route.fulfill({ json: envelope(mock.drafts.find((draft) => draft.draftId === id)) });
+  });
+  // VUAN-7: what a paid VIP order costs (Normal Random: 8.000 xu "Nhanh", 4.500 xu "Tiết kiệm"); plenty of coins.
+  // laneConfigured follows mock.vipLaneOpen: closed (the default, as on production today) means VIP orders are free.
+  await page.route((url) => url.pathname === '/api/admin/ai-cases/vip-quote', (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    const speed = query.get('speed') === 'SAVER' ? 'SAVER' : 'FAST';
+    const cap = Number(query.get('pixelLabCap') || 30);
+    const base = speed === 'SAVER' ? 4500 : 8000;
+    const extra = Math.max(0, cap - 30) * 15;
+    return route.fulfill({ json: envelope({ preset: 'NORMAL_RANDOM', speed, pixelLabCap: cap, priceXu: base + extra, basePriceXu: base,
+      extraPixelLabXu: extra, balance: 50000, bonusBalance: 0, maxFromBonus: 0, canAfford: true, pixelLabEnabled: true, laneConfigured: mock.vipLaneOpen, estimatedMinutes: 90 }) });
   });
   return mock;
 }
@@ -305,9 +318,13 @@ test('a VIP chooses the PixelLab cap and review mode like an admin, the order go
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 1/2 đơn trong tuần này.');
   await expect(page.locator('#ai-review-steps li')).toHaveCount(5);
 
+  // The Claude API lane is closed: the order is free, so there is no price, speed or hold.
+  await expect(page.locator('#ai-vip-order')).toHaveCount(0);
+
   await page.locator('[data-location="h-map-ben-cang"]').click();
   await page.locator('#quick-create-btn').click();
   await expect.poll(() => mock.posts.length).toBe(1);
+  await expect(page.locator('.aai-vip-confirm')).toHaveCount(0);
   expect(mock.posts[0].order).toEqual({
     world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], suspectCount: 4, characterNotes: '',
     weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT', pixelLabCap: -1, reviewMode: 'FULL',
@@ -319,6 +336,33 @@ test('a VIP chooses the PixelLab cap and review mode like an admin, the order go
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-submit-reason')).toHaveText('Bạn đã dùng hết 2 đơn của tuần này. Tuần mới bắt đầu từ thứ Hai (giờ Việt Nam).');
   await expect(page.locator('#quick-create-btn')).toHaveAttribute('aria-describedby', 'ai-submit-reason');
+  expect(mock.dialogs).toEqual([]);
+  expect(mock.errors).toEqual([]);
+});
+
+test('with the Claude API lane open a VIP never sees the PixelLab cap or review mode, confirms the hold in the page, and the order waits for an admin', async ({ page }) => {
+  const mock = await setUp(page, 'VIP', 'vi', { vipLaneOpen: true, quota: { unlimited: false, weeklyLimit: 2, usedThisWeek: 1, remaining: 1, weekStart: '2026-11-16' } });
+  await open(page);
+  await expect(page.locator('#ai-pixellab-cap')).toHaveCount(0);
+  await expect(page.locator('input[name="aai-review"]')).toHaveCount(0);
+  await expect(page.locator('#ai-vip-quota')).toContainText('Đơn sẽ chờ admin duyệt');
+  await expect(page.locator('#ai-vip-order [data-vip-price]')).toHaveText('8.000 xu');
+  await expect(page.locator('#ai-review-steps li')).toHaveCount(5);
+
+  await page.locator('[data-location="h-map-ben-cang"]').click();
+  await page.locator('#quick-create-btn').click();
+  // VUAN-7: the price is held when the order is sent; the page asks first (never a browser dialog).
+  await expect(page.locator('.aai-vip-confirm')).toContainText('Giữ 8.000 xu. Trả lại toàn bộ nếu đơn bị từ chối hoặc lỗi.');
+  await page.locator('.aai-vip-confirm [data-vip-confirm]').click();
+  await expect.poll(() => mock.posts.length).toBe(1);
+  expect(mock.posts[0].order).toEqual({
+    world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], suspectCount: 4, characterNotes: '',
+    weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT', speed: 'FAST', vipExtraPixelLab: 0,
+  });
+  await expect(page.locator('.aai-drafts-table [data-order-status="AWAITING_OWNER_APPROVAL"]')).toHaveText('Chờ admin duyệt');
+  await expect(page.locator('.aai-drafts-table [data-approve-order]')).toHaveCount(0);
+  // No polling for an order only an admin can move.
+  await expect(page.locator('#generation-progress')).toBeHidden();
   expect(mock.dialogs).toEqual([]);
   expect(mock.errors).toEqual([]);
 });

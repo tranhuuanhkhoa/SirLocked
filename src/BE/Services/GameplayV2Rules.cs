@@ -213,11 +213,16 @@ public static class GameplayV2Rules
         var hintPenalty = openCoop ? Math.Min(state.LeadHintCount * 2, 10) : 0;
         var puzzlePenalty = openCoop ? Math.Min(state.WrongPuzzleCount, 10) : 0;
 
-        var total = Math.Clamp(
+        var beforeHints = Math.Clamp(
             evidenceCoverage + contradictionCoverage + deductionCoverage + teamworkScore
                 - wrongEvidencePenalty - wrongDeductionPenalty - cameraMissPenalty
                 - wrongAccusationPenalty - timelinePenalty - hintPenalty - puzzlePenalty,
             0, 100);
+        // VUAN-7: each paid hint level takes its share of the case score (5% for level 2, 15% for level 3 by default),
+        // fixed when it was opened; together at most 60%.
+        var paidHintPercent = Math.Min(60, state.HintUsages.Sum(usage => Math.Max(0, usage.PenaltyPercent)));
+        var paidHintPenalty = (int)Math.Round(beforeHints * paidHintPercent / 100.0, MidpointRounding.AwayFromZero);
+        var total = Math.Clamp(beforeHints - paidHintPenalty, 0, 100);
 
         var rank = !accusationSucceeded
             ? "D"
@@ -239,6 +244,7 @@ public static class GameplayV2Rules
             TimelinePenalty = timelinePenalty,
             HintPenalty = hintPenalty,
             PuzzlePenalty = puzzlePenalty,
+            PaidHintPenalty = paidHintPenalty,
             TotalScore = total,
             Rank = rank
         };

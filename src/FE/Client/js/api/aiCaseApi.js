@@ -41,6 +41,17 @@ export const aiCaseApi = {
   rejectOrder: (draftId, reason) => post(`/api/admin/ai-cases/${draftId}/reject-order`, { reason }),
   settings: () => get('/api/admin/ai-cases/settings'),
   saveSettings: (vipWeeklyOrderLimit) => put('/api/admin/ai-cases/settings', { vipWeeklyOrderLimit }),
+  /** VUAN-7: any of vipPricing, vipModels, hintPricing, authorRewards (each section is saved and logged on its own). */
+  saveVipSettings: (sections) => put('/api/admin/ai-cases/settings', sections),
+  /** VUAN-7: price of a VIP order, the caller's coins and whether the Claude API lane is open. Nothing is held. */
+  vipQuote: (preset, speed, pixelLabCap) =>
+    get(`/api/admin/ai-cases/vip-quote?preset=${encodeURIComponent(preset)}&speed=${encodeURIComponent(speed)}&pixelLabCap=${encodeURIComponent(pixelLabCap)}`),
+  vipReport: (days = 30) => get(`/api/admin/ai-cases/vip-report?days=${encodeURIComponent(days)}`),
+  authors: () => get('/api/admin/authors'),
+  authorPayouts: (state = '') => get(`/api/admin/authors/payouts?state=${encodeURIComponent(state)}&limit=100`),
+  holdPayout: (id, reason) => post(`/api/admin/authors/payouts/${encodeURIComponent(id)}/hold`, { reason }),
+  releasePayout: (id) => post(`/api/admin/authors/payouts/${encodeURIComponent(id)}/release`),
+  revokePayout: (id, reason) => post(`/api/admin/authors/payouts/${encodeURIComponent(id)}/revoke`, { reason }),
   library: (world = '', kind = '') => get(`/api/admin/ai-cases/library?world=${encodeURIComponent(world)}&kind=${encodeURIComponent(kind)}`),
   importDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/import?overwrite=${overwrite}`),
   publishDraft: (draftId, overwrite = true) => post(`/api/admin/ai-cases/${draftId}/publish?overwrite=${overwrite}`),

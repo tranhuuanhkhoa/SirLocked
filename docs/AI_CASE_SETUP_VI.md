@@ -12,7 +12,7 @@ Bài này là hướng dẫn trọn vẹn cách tạo vụ bằng bot Claude: ph
 | --- | --- | --- | --- |
 | 0 | Yen, một lần | Đặt khóa `SIRLOCKED_BRIDGE_KEY`, `PIXELLAB_API_KEY` vào biến môi trường của máy chạy bot; `cd tools/studio-mcp && npm ci`; `claude mcp list` thấy `sirlocked-studio` và `pixellab` là Connected | [studio-vps.md](studio-vps.md) mục A hoặc B |
 | 1 | Yen (ADMIN) hoặc VIP | Đặt đơn: thế giới, địa điểm, nghi phạm, thời tiết, thời điểm, preset, mức nội dung, trần PixelLab, chế độ duyệt, ý tưởng. Bấm "Gửi đơn cho Claude" | `/admin/ai` |
-| 2 | Yen | Đơn VIP: bấm **Duyệt đơn** (hoặc Từ chối). Đơn ADMIN vào hàng chờ ngay | bảng "Bản nháp AI gần đây" ở `/admin/ai` |
+| 2 | Yen | Đơn VIP trả xu (server có khóa Claude API): bấm **Duyệt đơn** (hoặc Từ chối). Đơn ADMIN và đơn VIP miễn phí (server chưa có khóa) vào hàng chờ ngay | bảng "Bản nháp AI gần đây" ở `/admin/ai` |
 | 3 | Yen | Mở Claude Code ở gốc repo (`claude`), gõ `/tao-vu-an` | máy Yen hoặc VPS studio trong `tmux` |
 | 4 | Bot | Viết xem trước truyện → dừng ở **cổng 1 STORY** | — |
 | 5 | Yen | Đọc truyện, duyệt; gõ lại `/tao-vu-an` | `/admin/ai` → chi tiết draft |
@@ -126,7 +126,7 @@ Thư viện cho form: `GET /api/admin/ai-cases/library?world=&kind=` (ADMIN và 
 
 Bảy thẻ theo thứ tự: **Thế giới và địa điểm** (4 thẻ thế giới có ảnh nhỏ lấy từ bản đồ ngoài trời đầu tiên của thế giới; chọn nhiều địa điểm từ thư viện, lọc Tất cả / Ngoài trời / Trong nhà; thay ô Khóa bối cảnh cũ), **Cấu hình tạo** (5 preset, số chặng, độ khó, thời lượng 20/30/45/60 phút; preset nào cố định chặng và độ khó thì form chỉ cho chọn đúng giá trị server chấp nhận), **Ngôn ngữ và loại vụ án** (thêm mức nội dung Nhẹ/Thường), **Nhân vật** (3–6 nghi phạm, chân dung NPC của thế giới, mô tả ≤ 600 ký tự), **Không khí** (thời tiết, thời điểm, khóa sắc thái), **Mở rộng gameplay** (Phá Vỡ Lời Dối), **Ý tưởng** (2.000 ký tự, bộ đếm, chip chèn Nạn nhân / Hung khí / Bí mật / Bầu không khí, khóa cơ chế điều tra).
 
-Khung "Bản nháp sẽ tạo" tóm tắt đơn; chỉ ADMIN thấy **Lượt PixelLab tối đa** và **Chế độ duyệt** (chế độ nhanh rút "Các bước duyệt" còn 2) cùng ô giới hạn đơn VIP mỗi tuần. VIP thấy "Đơn sẽ chờ Yen duyệt" và số đơn còn lại. Mặc định khi mở: Phố Hàng Đường, bot chọn thời tiết và thời điểm, Nhẹ, 30 lượt, đầy đủ 4 cổng. Bảng "Bản nháp AI gần đây" có cột Người đặt và Trạng thái đơn (kèm giờ); ADMIN duyệt hoặc từ chối đơn VIP ngay trong bảng, lý do từ chối nhập trong hộp của trang. Chi tiết draft hiện `report.md` của bot dạng Markdown đã lọc (không chèn HTML thô).
+Khung "Bản nháp sẽ tạo" tóm tắt đơn, có **Lượt PixelLab tối đa** (mặc định Không giới hạn: bot hỏi người đặt bằng `draft_ask` trước khi tiêu quá 60 lượt) và **Chế độ duyệt** (chế độ nhanh rút "Các bước duyệt" còn 2). ADMIN thấy thêm ô giới hạn đơn VIP mỗi tuần. VIP thấy "Đơn vào hàng chờ Claude ngay" và số đơn còn lại. Khi server có khóa Claude API, đơn VIP là đơn trả xu: VIP không thấy hai ô trên mà thấy tốc độ, giá xu và "Đơn sẽ chờ admin duyệt" (mục "Đơn VIP trả xu" bên dưới). Mặc định khi mở: Phố Hàng Đường, bot chọn thời tiết và thời điểm, Nhẹ, không giới hạn lượt, đầy đủ 4 cổng. Bảng "Bản nháp AI gần đây" có cột Người đặt và Trạng thái đơn (kèm giờ); ADMIN duyệt hoặc từ chối đơn VIP ngay trong bảng, lý do từ chối nhập trong hộp của trang. Chi tiết draft hiện `report.md` của bot dạng Markdown đã lọc (không chèn HTML thô).
 
 Phía bot (MCP `sirlocked-studio`, skill `/tao-vu-an`, cách cài trên máy Yen và VPS studio): xem [docs/studio-vps.md](studio-vps.md).
 
@@ -164,6 +164,42 @@ Bản nháp bot đã import có trạng thái **"Đã import, chưa đăng"**. V
 ## Cutscene
 
 Nút "Tạo bằng AI" của cutscene tạo yêu cầu bridge `ownerType = CUTSCENE`; trang cutscene hiện "đang chờ Claude" tới khi bot nộp. Bấm lại thì tiếp tục đúng lượt đang chờ, không tạo yêu cầu thứ hai. Khởi động server không còn tự xếp cutscene cho bot.
+
+## Đơn VIP trả xu (VUAN-7)
+
+Làn này chỉ mở khi server có `Anthropic__ApiKey`:
+
+- **Làn mở:** đơn của **VIP** là đơn trả xu, không đi bot Claude Code. Đơn được viết bằng **Claude API** (khóa riêng, tính
+  tiền theo token, đúng Commercial Terms) và chờ admin duyệt trước khi chạy.
+- **Làn đóng (chưa có khóa, như production hiện nay):** đơn VIP miễn phí và vào thẳng hàng chờ bot qua bridge như đơn
+  ADMIN. VIP tự chọn trần PixelLab và chế độ duyệt. Không giữ xu, không gọi Anthropic. Đây là luồng "bot tự chạy" ngày
+  18/11 (`docs/superpowers/specs/2026-11-18-bot-tu-chay-design.md`).
+
+Đơn **ADMIN** luôn đi bot qua bridge như trên. Chi tiết ví xu, gợi ý có phí, quảng cáo và thưởng tác giả:
+[docs/VIP_ECONOMY_VI.md](VIP_ECONOMY_VI.md).
+
+| Khóa | Ý nghĩa |
+| --- | --- |
+| `Anthropic__ApiKey` | Khóa Claude API cho làn VIP. Thiếu thì làn đóng: đơn VIP miễn phí, đi bot qua bridge, không giữ xu. Chỉ đặt trong file env của API trên server; không log, không trả qua API. |
+| `Anthropic__BatchPollSeconds` | Nhịp worker đọc kết quả Message Batches (mặc định 60 giây). |
+| `Ads__Enabled`, `Ads__PublisherId`, `Ads__TestMode` | Quảng cáo thưởng Google H5 Games Ads cho gợi ý mức 2. Tắt thì mức 2 chỉ trả bằng xu. |
+
+- **Đặt đơn:** VIP chọn Nhanh (Messages API, khoảng 1–2 giờ) hoặc Tiết kiệm (Message Batches, rẻ khoảng một nửa, trong 24
+  giờ); form hiện giá xu, số dư, nút Nạp xu. Gửi đơn thì giữ giá (hộp xác nhận trong trang). Yen duyệt đơn; tác giả tự
+  duyệt 4 cổng của vụ mình; import và publish vẫn chỉ ADMIN.
+- **Model** (`aiVipModels`, sửa ở thẻ Cài đặt của `/admin/ai`): Haiku 5.5 cho bước `VipBrief` (lập brief, kiểm luật nội
+  dung) và sửa định dạng JSON; Sonnet 5.5 cho mọi bước còn lại, kể cả cutscene và lập kế hoạch hình; Opus 5.5 chỉ ở lần
+  thử thứ 3 của một bước. Đổi model từng bước bằng `stepOverrides` (tiền tố tên bước → model).
+- **Gọi API:** prompt chung (instructions + JSON Schema của bước) đặt ở system có `cache_control`; câu trả lời được kiểm
+  đúng schema như khi bot nộp, sai thì Haiku sửa định dạng một lần. Sonnet và Opus bật `fallbacks: "default"` (từ chối phía
+  server). Mỗi câu hỏi lưu trong `aiVipCalls` theo `requestKey` của bridge, nên chạy lại không trả tiền hai lần; mỗi lời
+  gọi ghi `aiVipUsage` (token vào/ra/đọc cache/ghi cache, batch, USD, VND).
+- **Trần chi phí:** mặc định 2 lần vốn ước tính của preset; chạm trần thì dừng (`VIP_COST_CAP_REACHED`) và hoàn xu.
+- **Hình:** một lời gọi `VipAssetPlan` chọn thư viện, biến thể (và PixelLab khi `pixelLabEnabled` bật) qua đúng
+  `PixelAssetPlanning.Plan`, kiểm trần bằng `estimatedGenerations`. Yêu cầu ảnh của đơn VIP có `lane = VIP_RUNNER`: bot không
+  thấy; trình chạy không AI trên VPS studio làm (xem [studio-vps.md](studio-vps.md) mục B5).
+- **Bridge:** `GET /api/bridge/requests` và `POST …/take` nhận `lane` (mặc định làn của bot; `lane=VIP_RUNNER` cho trình
+  chạy hình VIP). Lấy nhầm làn: `409 BRIDGE_WRONG_LANE`.
 
 ## Thử trên máy
 

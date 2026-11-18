@@ -78,6 +78,8 @@ public class AiCaseOrder
     /// <summary>No fixed cap: the bot plans the cheapest set first and asks the creator before a costly one.</summary>
     public const int UnlimitedPixelLabCap = -1;
     public static readonly IReadOnlyList<int> PixelLabCapOptions = [UnlimitedPixelLabCap, 0, 30, 60, 100];
+    /// <summary>PixelLab generations included in a paid VIP order (VUAN-7); more are bought in packs of 30.</summary>
+    public const int VipPixelLabCap = 30;
     /// <summary>With no fixed cap, a picture plan above this many generations is put to the creator first.</summary>
     public const int AskAboveGenerations = 60;
 
@@ -96,6 +98,14 @@ public class AiCaseOrder
     /// <summary>0 means library pictures only; -1 means no fixed cap.</summary>
     public int PixelLabCap { get; set; } = UnlimitedPixelLabCap;
     public string ReviewMode { get; set; } = AiCaseReviewModes.Full;
+    /// <summary>VIP orders (VUAN-7): "FAST" (Claude Messages API) or "SAVER" (Message Batches, about half the price).</summary>
+    public string Speed { get; set; } = "FAST";
+    /// <summary>
+    /// Paid VIP orders (VUAN-7): PixelLab generations bought on top of the included 30 (0 or 30, paid per generation).
+    /// The paid VIP's cap is 30 + this; <see cref="PixelLabCap"/> sent by a paid VIP is ignored, so leaving it out never
+    /// costs extra. Free orders on the bridge lane ignore this field.
+    /// </summary>
+    public int VipExtraPixelLab { get; set; }
 }
 
 [BsonIgnoreExtraElements]

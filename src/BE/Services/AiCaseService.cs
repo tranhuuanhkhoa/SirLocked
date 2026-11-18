@@ -123,8 +123,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         ILogger<AiCaseService> logger,
         PresentationService? presentationService = null,
         IOptions<BridgeSettings>? bridgeSettings = null,
-        IBridgeNotifier? bridgeNotifier = null)
+        IBridgeNotifier? bridgeNotifier = null,
+        SirLocked.Api.Services.Vip.VipBillingService? vipBilling = null)
     {
+        _vipBilling = vipBilling;
         _db = db;
         _workflow = workflow;
         _caseService = caseService;
@@ -148,6 +150,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         _env = env;
         _logger = logger;
     }
+
+    /// <summary>Coins of paid VIP orders (VUAN-7). Null only where the service is built by hand without DI.</summary>
+    private readonly SirLocked.Api.Services.Vip.VipBillingService? _vipBilling;
 
     public AiCaseCapabilitiesResponse GetCapabilities() => new()
     {
@@ -223,7 +228,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         if (existingByKey is not null) return AiDraftResponse.From(existingByKey, includeJson: false);
 
         EnsureCreationReady(request.IncludeCrackTheLie);
-        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role);
+        var isVipOrder = !string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase);
+        // VUAN-7: with the VIP API lane open (Anthropic__ApiKey set) a VIP order is paid in coins and written through the
+        // Claude API. With the lane closed a VIP order runs free on the bridge bot, like an ADMIN order.
+        var paidVipOrder = isVipOrder && _vipBilling is { LaneConfigured: true };
+        var vipPricing = paidVipOrder ? await new SirLocked.Api.Services.Vip.VipSettingsStore(_db).GetPricingAsync() : null;
+        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role, vipPricing?.VipMaxPixelLabCap);
         if (!string.IsNullOrWhiteSpace(request.CreativeConstraints.SettingId)
             && order.World != AiCaseWorlds.HangDuongVictorian)
             throw ApiException.BadRequest(
@@ -281,9 +291,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
         }
 
-        // Every order (ADMIN or VIP) goes straight to Claude; the VIP weekly limit above is the only difference.
-        // AWAITING_OWNER_APPROVAL survives only on orders placed before 2026-11-18.
-        var orderStatus = AiOrderStatuses.QueuedForClaude;
+        // VUAN-7: a paid VIP order is refused here, before anything is held, when the VIP cannot pay.
+        AiVipBilling? vipBilling = null;
+        if (paidVipOrder)
+            vipBilling = await _vipBilling!.PrepareAsync(user.Id, request.GenerationPreset, order);
+
+        // ADMIN and free VIP orders go straight to Claude on the bridge; the VIP weekly limit above is the only
+        // difference. A paid VIP order waits for an admin first; no API call or bridge request exists until then.
+        var orderStatus = paidVipOrder ? AiOrderStatuses.AwaitingOwnerApproval : AiOrderStatuses.QueuedForClaude;
         var draft = new AiCaseDraft
         {
             Id = draftId,
@@ -298,7 +313,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
             WorkflowVersion = 1,
             QueuedOperation = AiQueuedOperations.StoryPreview,
-            QueueState = AiQueueStates.Pending,
+            QueueState = paidVipOrder ? AiQueueStates.None : AiQueueStates.Pending,
             IdempotencyKey = string.IsNullOrWhiteSpace(normalizedIdempotencyKey) ? null : normalizedIdempotencyKey,
             QuotaDay = VietnamQuotaDay(now),
             QuotaWeek = quotaWeek,
@@ -310,6 +325,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             VisualPipeline = AiVisualPipelines.PixelV1,
             OrderStatus = orderStatus,
             OrderStatusHistory = [new AiOrderStatusChange { Status = orderStatus, At = now, ByUserId = user.Id }],
+            Lane = paidVipOrder ? AiDraftLanes.VipApi : AiDraftLanes.Bridge,
+            VipBilling = vipBilling,
             StoryHistorySnapshot = recentHistory.Select(item => new AiStoryHistorySnapshotEntry
             {
                 Preview = item.Preview,
@@ -330,7 +347,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 storyDiversity,
                 order
             }, CompactJson)),
-            NextAttemptAt = now,
+            NextAttemptAt = paidVipOrder ? null : now,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -364,6 +381,15 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             },
             () => FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints),
             () => Task.CompletedTask);
+        if (savedDraft.VipBilling is { State: AiVipBillingStates.Holding } && _vipBilling is not null)
+        {
+            // Hold the price now that the order exists. Lost to a concurrent spend: the order is closed, nothing held.
+            if (!await _vipBilling.HoldAsync(savedDraft))
+                throw SirLocked.Api.Services.Vip.VipBillingService.Insufficient(savedDraft.VipBilling.PriceXu,
+                    (await _vipBilling.QuoteAsync(user.Id, savedDraft.VipBilling.Preset, savedDraft.VipBilling.Speed,
+                        savedDraft.VipBilling.PixelLabCap)).Balance);
+            savedDraft = await _db.AiCaseDrafts.Find(item => item.Id == savedDraft.Id).FirstOrDefaultAsync() ?? savedDraft;
+        }
         return AiDraftResponse.From(savedDraft, includeJson: false);
     }
 
@@ -399,6 +425,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         AiCaseDraft draft,
         CancellationToken cancellationToken)
     {
+        // VUAN-7: a paid VIP order starts with its brief and content check (light model).
+        await EnsureVipBriefAsync(draft);
         var request = new GenerateAiCaseRequest
         {
             Prompt = draft.Prompt,
@@ -2358,6 +2386,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         await new AiBridgeRequestStore(_db, TimeProvider.System, _bridgeNotifier)
             .CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, cancelled.Id);
         await AiDecisionService.CancelOpenAsync(_db, cancelled.Id);
+        if (cancelled.VipBilling is not null && _vipBilling is not null)
+            await _vipBilling.SettleAsync(cancelled.Id);
         var latest = await _db.AiCaseDrafts.Find(item => item.Id == cancelled.Id).FirstOrDefaultAsync() ?? cancelled;
         return AiDraftResponse.From(latest, includeJson: false);
     }

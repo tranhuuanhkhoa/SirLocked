@@ -214,6 +214,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
         {
             gameCase.GenerationPreset = string.Empty;
             gameCase.SourceAiDraftId = string.Empty;
+            gameCase.AuthorUserId = string.Empty;
             gameCase.AiSemanticReviewStatus = string.Empty;
             gameCase.LogicContractVersion = CaseLogicContractVersions.LegacyThreeClaim;
             gameCase.LogicVerificationStatus = CaseLogicVerificationStatuses.LegacyUnverified;

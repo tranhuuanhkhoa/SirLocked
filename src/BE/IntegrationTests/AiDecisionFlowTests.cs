@@ -13,6 +13,7 @@ namespace SirLocked.IntegrationTests;
 /// <summary>
 /// draft_ask: the bot asks the creator a question with options, the request leaves the bot's list until someone with
 /// access to the draft answers in the browser, then it is PENDING again and the bot reads the answer when it takes it.
+/// The VIP API lane is closed here (no Anthropic key), so a VIP order is free and goes to the bot like an ADMIN order.
 /// </summary>
 public sealed partial class AiBridgeWorkflowHostTests
 {
@@ -22,7 +23,7 @@ public sealed partial class AiBridgeWorkflowHostTests
     public async Task Decision_Ask_Answer_Resume()
     {
         if (!Enabled) return;
-        await using var factory = new BridgeFactory();
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var bot = Bot(factory);
@@ -48,7 +49,7 @@ public sealed partial class AiBridgeWorkflowHostTests
     public async Task Decision_Ask_WithoutTake_Is409()
     {
         if (!Enabled) return;
-        await using var factory = new BridgeFactory();
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
         await SeedUsersAsync(factory);
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
@@ -64,7 +65,7 @@ public sealed partial class AiBridgeWorkflowHostTests
     public async Task Decision_SecondAnswer_Is409_AndResumesOnce()
     {
         if (!Enabled) return;
-        await using var factory = new BridgeFactory();
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var admin = User(factory, AdminId, UserRole.Admin);
@@ -85,7 +86,7 @@ public sealed partial class AiBridgeWorkflowHostTests
     public async Task Decision_OtherVip_Is403_AdminCanAnswer()
     {
         if (!Enabled) return;
-        await using var factory = new BridgeFactory();
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
         await SeedUsersAsync(factory);
         await SeedUserAsync(factory, OtherVipId, UserRole.Vip);
         using var vip = User(factory, VipId, UserRole.Vip);
@@ -102,7 +103,7 @@ public sealed partial class AiBridgeWorkflowHostTests
     public async Task Decision_UnknownOption_Is400()
     {
         if (!Enabled) return;
-        await using var factory = new BridgeFactory();
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var bot = Bot(factory);
@@ -114,7 +115,7 @@ public sealed partial class AiBridgeWorkflowHostTests
     public async Task Decision_CancelWhileWaiting_ClosesEverything()
     {
         if (!Enabled) return;
-        await using var factory = new BridgeFactory();
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var bot = Bot(factory);

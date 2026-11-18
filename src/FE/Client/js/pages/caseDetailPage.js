@@ -5,6 +5,7 @@ import { escapeHtml, render, placeholderStyle, initials } from '../utils/dom.js'
 import { toast } from '../utils/toast.js';
 import { plural, tr } from '../services/i18n.js';
 import { navigate } from '../services/navigation.js';
+import { authorBadge } from '../components/authorBadge.js';
 
 /* ---------------------------------------------------------------------------
    The case dossier ("bìa chi tiết"). Shared by the /cases/<id> page and the
@@ -147,6 +148,7 @@ export function caseDossierMarkup(c, opts) {
         </div>
         <p class="bpa-kicker bpa-cases-kick">${tr('Co-op case · 2 detectives', 'Vụ án hợp tác · 2 thám tử')}</p>
         <${h} id="${opts.titleId}" class="bpa-cases-dtitle" tabindex="-1">${escapeHtml(c.title)}</${h}>
+        ${authorBadge(c.authorTier, c.authorName)}
         ${mech ? `<div class="bpa-cases-dmeta"><span class="bpa-chip bpa-chip--dark">${mech}</span></div>` : ''}
         ${c.summary ? `<p class="bpa-cases-dsum">${escapeHtml(c.summary)}</p>` : ''}
         ${statsMarkup(c)}

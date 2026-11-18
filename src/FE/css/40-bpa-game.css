@@ -2408,3 +2408,11 @@ body.game-page-active #toast-root > .toast.toast-show { transform: none; }
   .game-loading-spinner { animation: none; border-top-color: rgba(228, 219, 198, .22); border-right-color: #f0a43a; }
   .game-loading-bar i { transition: none; }
 }
+
+/* VUAN-7: choosing how to pay for a hint level (rewarded ad or coins). No motion: the dialog just appears. */
+.hint-pay-dialog { max-width: min(420px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--bpa-line, #c9b48a); border-radius: 12px;
+  background: var(--bpa-paper, #f6efe1); color: var(--bpa-ink, #2b2116); }
+.hint-pay-dialog::backdrop { background: rgba(10, 8, 6, .55); }
+.hint-pay-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+.hint-pay-dialog p { margin: 0 0 16px; }
+.hint-pay-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }

@@ -30,6 +30,11 @@ public class CaseSummaryResponse
     /// <summary>False when the case is hidden from players (a draft, or not a pixel case while the catalogue is pixel-only). Set on the admin list.</summary>
     public bool PlayerVisible { get; set; } = true;
     public DateTime UpdatedAt { get; set; }
+    /// <summary>VUAN-7: the VIP author of the case (empty for ADMIN and hand-written cases).</summary>
+    public string AuthorUserId { get; set; } = string.Empty;
+    public string AuthorName { get; set; } = string.Empty;
+    /// <summary>"Tác giả" badge: AUTHOR, SILVER (được yêu thích) or GOLD (vàng); empty without an author.</summary>
+    public string AuthorTier { get; set; } = string.Empty;
     /// <summary>Non-blocking validation findings of an import or publish (for example missing hint levels on an existing case). Absent elsewhere.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public List<CaseValidationError>? ValidationWarnings { get; set; }
@@ -64,7 +69,8 @@ public class CaseSummaryResponse
         ClueCount = c.Clues.Count,
         DialogueCount = c.Dialogues.Count,
         IsPixel = SirLocked.Api.Services.CaseCatalogRules.IsPixel(c),
-        UpdatedAt = c.UpdatedAt
+        UpdatedAt = c.UpdatedAt,
+        AuthorUserId = c.AuthorUserId ?? string.Empty
     };
 }
 
@@ -100,6 +106,7 @@ public class CasePublicDetailResponse : CaseSummaryResponse
             DialogueCount = summary.DialogueCount,
             IsPixel = summary.IsPixel,
             UpdatedAt = summary.UpdatedAt,
+            AuthorUserId = summary.AuthorUserId,
             Characters = c.Characters.Select(CaseCharacterDto.From).ToList()
         };
     }

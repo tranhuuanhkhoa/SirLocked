@@ -1799,6 +1799,41 @@ async function canvasHasNonBlankPixels(canvas: Locator) {
   });
 }
 
+test('a paid hint level asks in the page, pays coins on request, and tells the score share (VUAN-7)', async ({ page }) => {
+  const bodies: any[] = [];
+  const dialogs: string[] = [];
+  page.on('dialog', (dialog) => { dialogs.push(dialog.type()); void dialog.dismiss(); });
+  await page.route(`**/api/game/rooms/${roomId}/hint`, (route) => {
+    const body = route.request().postDataJSON();
+    bodies.push(body);
+    if (!body.payWith) {
+      return route.fulfill({ status: 402, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Hint level 2 is paid.',
+        errors: { code: 'HINT_PAYMENT_REQUIRED', tier: 2, priceXu: 20, adAvailable: false, penaltyPercent: 5 } }) });
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {
+      state: smokeState, hintId: 'h2', contextType: 'SCENE', targetId: body.targetId, message: 'Nhìn xuống sàn quanh bàn thợ.',
+      isNew: true, tier: 2, paidWith: 'XU', priceXu: 20, penaltyPercent: 5 } }) });
+  });
+  await page.addInitScript(() => window.localStorage.setItem('sirlocked.uiLanguage', 'vi'));
+  await page.goto(`/game/${roomId}`);
+  await expect(page.locator('#hint-btn')).toBeVisible();
+
+  await page.locator('#hint-btn').click();
+  const dialog = page.locator('.hint-pay-dialog');
+  await expect(dialog).toContainText('Gợi ý mức 2');
+  await expect(dialog).toContainText('Mức này trừ 5% điểm vụ.');
+  await expect(dialog.locator('[data-pay="AD"]')).toHaveCount(0); // ads off: coins only
+  await dialog.locator('[data-pay=""]').click();
+  await expect(dialog).toHaveCount(0);
+  expect(bodies.map((body) => body.payWith ?? null)).toEqual([null]);
+
+  await page.locator('#hint-btn').click();
+  await page.locator('.hint-pay-dialog [data-pay="XU"]').click();
+  await expect(page.locator('#toast-root')).toContainText('Nhìn xuống sàn quanh bàn thợ. (−5% điểm vụ)');
+  expect(bodies.map((body) => body.payWith ?? null)).toEqual([null, null, 'XU']);
+  expect(dialogs).toEqual([]);
+});
+
 test('Vietnamese camera misses keep the zone label of the server hint', async ({ page }) => {
   // Authored zone labels can hold Vietnamese text and double quotes; the hint must keep them verbatim.
   const label = 'Ngăn kéo "bí mật" của bà Hằng';

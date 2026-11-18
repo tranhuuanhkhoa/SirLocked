@@ -28,6 +28,10 @@ using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Vip;
+using SirLocked.Api.Services.Market;
+using SirLocked.Api.Models.Market;
+using SirLocked.IntegrationTests.Vip;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -224,8 +228,45 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
 
     // ---------------------------------------------------------------- VIP orders and the audit log
 
+    /// <summary>
+    /// The VIP API lane is closed (no Anthropic key, as on production today): a VIP order is free and goes straight to
+    /// the bridge bot with the review mode and the cap the VIP chose.
+    /// </summary>
     [Fact]
-    public async Task VipOrder_GoesStraightToTheBot_WithItsOwnReviewModeAndCap()
+    public async Task VipOrder_GoesStraightToTheBot_WithItsOwnReviewModeAndCap_WhileTheApiLaneIsClosed()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
+        await SeedUsersAsync(factory);
+        using var vip = User(factory, VipId, UserRole.Vip);
+        using var bot = Bot(factory);
+
+        var order = await vip.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
+        {
+            GenerationPreset = AiGenerationPresets.ShortDemo, Language = "vi",
+            Order = new AiCaseOrder { ReviewMode = "FAST", PixelLabCap = 100 }
+        });
+        Assert.Equal(HttpStatusCode.Accepted, order.StatusCode);
+        var draft = (await order.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
+        Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
+        Assert.Equal((AiCaseReviewModes.Fast, 100), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
+        Assert.Equal(AiDraftLanes.Bridge, draft.Lane);
+        Assert.Null(draft.VipOrder);
+        Assert.Equal(VipCoins, await BalanceAsync(factory, VipId)); // nothing held
+
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (!(await PendingAsync(bot)).Any(item => item["draftId"]?.GetValue<string>() == draft.DraftId))
+        {
+            Assert.True(DateTime.UtcNow < deadline, "The VIP order never reached the bot.");
+            await Task.Delay(200);
+        }
+        Assert.Equal(HttpStatusCode.OK, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
+        Assert.Empty(factory.Claude.Calls); // never the Claude API
+    }
+
+    /// <summary>VUAN-7: with the VIP API lane open (Anthropic key set) a VIP order is paid and waits for an admin.</summary>
+    [Fact]
+    public async Task VipOrder_IsInvisibleToTheBotUntilApproved_AndApprovalAndRejectionAreAudited()
     {
         if (!Enabled) return;
         await using var factory = new BridgeFactory();
@@ -241,25 +282,110 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         });
         Assert.Equal(HttpStatusCode.Accepted, order.StatusCode);
         var draft = (await order.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
-        Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
-        Assert.Equal((AiCaseReviewModes.Fast, 100), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
+        Assert.Equal(AiOrderStatuses.AwaitingOwnerApproval, draft.OrderStatus);
+        Assert.Equal((AiCaseReviewModes.Full, 30), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
 
+        await Task.Delay(2500); // a worker cycle passes: still nothing for the bot
+        Assert.DoesNotContain(await PendingAsync(bot), item => item["draftId"]?.GetValue<string>() == draft.DraftId);
+        Assert.Equal(HttpStatusCode.Forbidden, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null)).StatusCode);
+
+        // VUAN-7: the price is held when the order is placed (Short Demo, "Nhanh": 5.000 xu).
+        Assert.Equal(AiDraftLanes.VipApi, draft.Lane);
+        Assert.Equal((AiVipBillingStates.Held, 5_000L), (draft.VipOrder!.State, draft.VipOrder.PriceXu));
+        Assert.Equal(VipCoins - 5_000, await BalanceAsync(factory, VipId));
+
+        var approved = await admin.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null);
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+        // The approved order is written through the Claude API lane: the brief by Haiku, the story by Sonnet.
         var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (!(await PendingAsync(bot)).Any(item => item["draftId"]?.GetValue<string>() == draft.DraftId))
+        while (!factory.Claude.Calls.Any(call => call.Step.Contains("StoryPreview", StringComparison.Ordinal)))
         {
-            Assert.True(DateTime.UtcNow < deadline, "The VIP order never reached the bot.");
+            Assert.True(DateTime.UtcNow < deadline, "The approved VIP order never reached the Claude API lane.");
             await Task.Delay(200);
         }
-        Assert.Equal(HttpStatusCode.OK, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
+        Assert.Equal(VipModelIds.Haiku, factory.Claude.Calls.First(call => call.Step == VipModelRouter.BriefStep).Model);
+        Assert.Equal(VipModelIds.Sonnet, factory.Claude.Calls.First(call => call.Step.Contains("StoryPreview", StringComparison.Ordinal)).Model);
+        Assert.DoesNotContain(await PendingAsync(bot), item => item["draftId"]?.GetValue<string>() == draft.DraftId);
+        using (var usageScope = factory.Services.CreateScope())
+        {
+            var lane = usageScope.ServiceProvider.GetRequiredService<VipLaneStore>();
+            var usage = await lane.Usage.Find(item => item.DraftId == draft.DraftId).ToListAsync();
+            Assert.Contains(usage, item => item.Step == VipModelRouter.BriefStep && item.Model == VipModelIds.Haiku && item.CostUsd > 0);
+            var billed = await usageScope.ServiceProvider.GetRequiredService<MongoDbContext>().AiCaseDrafts
+                .Find(item => item.Id == draft.DraftId).SingleAsync();
+            Assert.True(billed.VipBilling!.SpentUsd > 0);
+            Assert.True(billed.VipBilling.WorkStarted);
+        }
+
+        var second = (await (await vip.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
+        {
+            GenerationPreset = AiGenerationPresets.ShortDemo
+        })).Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
+        Assert.Equal(VipCoins - 10_000, await BalanceAsync(factory, VipId));
+        var rejected = await admin.PostAsJsonAsync($"/api/admin/ai-cases/{second.DraftId}/reject-order", new { reason = "Trùng ý tưởng." });
+        Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
+        var rejectedDraft = await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{second.DraftId}");
+        Assert.Equal((AiOrderStatuses.Rejected, "Trùng ý tưởng."), (rejectedDraft.OrderStatus, rejectedDraft.OrderRejectReason));
+        // Rejected by Yen: every held coin goes back at once.
+        Assert.Equal((AiVipBillingStates.Refunded, 5_000L), (rejectedDraft.VipOrder!.State, rejectedDraft.VipOrder.RefundedXu));
+        Assert.Equal(VipCoins - 5_000, await BalanceAsync(factory, VipId));
 
         using var scope = factory.Services.CreateScope();
         var audit = scope.ServiceProvider.GetRequiredService<IAdminAudit>();
+        var approveLog = Assert.Single((await audit.QueryAsync(new AdminAuditQuery(TargetId: draft.DraftId, Action: "ai-order.approve"))).Items);
+        Assert.Equal(AdminId, approveLog.AdminId);
+        var rejectLog = Assert.Single((await audit.QueryAsync(new AdminAuditQuery(TargetId: second.DraftId, Action: "ai-order.reject"))).Items);
+        Assert.Equal("Trùng ý tưởng.", rejectLog.Reason);
 
         var settings = await admin.PutAsJsonAsync("/api/admin/ai-cases/settings", new { vipWeeklyOrderLimit = 5 });
         Assert.Equal(HttpStatusCode.OK, settings.StatusCode);
         Assert.Equal(5, (await GetData<JsonObject>(admin, "/api/admin/ai-cases/settings"))["vipWeeklyOrderLimit"]!.GetValue<int>());
         Assert.Equal(HttpStatusCode.Forbidden, (await vip.GetAsync("/api/admin/ai-cases/settings")).StatusCode);
         Assert.Single((await audit.QueryAsync(new AdminAuditQuery(Action: "ai-settings.update"))).Items);
+    }
+
+    /// <summary>
+    /// VUAN-7 part B: the VIP author approves the gates of their own order (Yen approved the order itself); another VIP
+    /// cannot, and import or publish stays with ADMIN.
+    /// </summary>
+    [Fact]
+    public async Task VipAuthor_ApprovesTheGatesOfTheirOwnOrder_OthersCannot_AndOnlyAdminPublishes()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory();
+        await SeedUsersAsync(factory);
+        const string OtherVipId = "507f1f77bcf86cd799439099";
+        using (var seed = factory.Services.CreateScope())
+            await seed.ServiceProvider.GetRequiredService<MongoDbContext>().Users.InsertOneAsync(new User
+            {
+                Id = OtherVipId, FullName = "VIP khác", Email = "other-vip@bridge.test", Role = UserRole.Vip,
+                Status = UserStatus.Active, IsEmailVerified = true
+            });
+        using var admin = User(factory, AdminId, UserRole.Admin);
+        using var vip = User(factory, VipId, UserRole.Vip);
+        using var otherVip = User(factory, OtherVipId, UserRole.Vip);
+
+        var draft = (await (await vip.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
+        {
+            GenerationPreset = AiGenerationPresets.ShortDemo, Language = "vi"
+        })).Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
+        // Before Yen approves the order, the author cannot push it on.
+        Assert.NotEqual(HttpStatusCode.Accepted, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null)).StatusCode);
+
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while ((await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{draft.DraftId}")).Status != AiDraftStatus.StoryAwaitingApproval)
+        {
+            Assert.True(DateTime.UtcNow < deadline, "The VIP order never reached its story gate.");
+            await Task.Delay(200);
+        }
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherVip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/import", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/publish", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherVip.GetAsync($"/api/admin/ai-cases/{draft.DraftId}")).StatusCode);
     }
 
     // ---------------------------------------------------------------- schema check, library, cutscene
@@ -817,6 +943,15 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         return client;
     }
 
+    private const long VipCoins = 50_000;
+
+    private static async Task<long> BalanceAsync(BridgeFactory factory, string userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var account = await scope.ServiceProvider.GetRequiredService<MarketStore>().FindAccountAsync(userId);
+        return account?.Balance ?? 0;
+    }
+
     private static async Task SeedUsersAsync(BridgeFactory factory)
     {
         using var _ = factory.CreateClient();
@@ -827,14 +962,21 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             {
                 Id = id, FullName = role, Email = $"{id}@bridge.test", Role = role, Status = UserStatus.Active, IsEmailVerified = true
             });
+        // VUAN-7: a VIP pays orders in coins.
+        var market = scope.ServiceProvider.GetRequiredService<MarketService>();
+        await market.EnsureAccountAsync(VipId);
+        await scope.ServiceProvider.GetRequiredService<MarketStore>().Accounts.UpdateOneAsync(account => account.Id == VipId,
+            Builders<MarketAccount>.Update.Set(account => account.Balance, VipCoins));
     }
 
-    private sealed class BridgeFactory(string key = BridgeKey) : WebApplicationFactory<Program>
+    private sealed class BridgeFactory(string key = BridgeKey, bool vipLaneOpen = true) : WebApplicationFactory<Program>
     {
         private readonly string _connectionString =
             Environment.GetEnvironmentVariable("SIRLOCKED_TEST_MONGO_CONNECTION_STRING")
             ?? "mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000";
         private readonly string _databaseName = $"sirlocked_it_{Guid.NewGuid():N}";
+
+        public FakeClaudeApiClient Claude { get; } = new();
 
         public IMongoDatabase RawDatabase()
         {
@@ -855,6 +997,10 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
                     ["MongoDb:DatabaseName"] = _databaseName,
                     ["AiGeneration:MockAiResponses"] = "false",
                     ["Bridge:Key"] = key,
+                    // VUAN-7: the VIP lane counts as configured unless a test closes it; the Claude client is a fake that
+                    // never calls Anthropic.
+                    ["Anthropic:ApiKey"] = vipLaneOpen ? "test-key-never-sent" : string.Empty,
+                    ["Anthropic:BatchPollSeconds"] = "15",
                     ["Bridge:ExposeMockResponses"] = "true",
                     ["Bridge:AllowLocalAssetStorage"] = "true",
                     ["Bridge:RateLimitPerMinute"] = "5000",
@@ -875,6 +1021,8 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             builder.ConfigureTestServices(services =>
             {
                 services.AddDataProtection().UseEphemeralDataProtectionProvider();
+                services.RemoveAll<IClaudeApiClient>();
+                services.AddSingleton<IClaudeApiClient>(Claude);
                 services.RemoveAll<IEmailService>();
                 services.AddSingleton<IEmailService, NoEmail>();
                 services.PostConfigure<GoogleOptions>(GoogleDefaults.AuthenticationScheme, options =>
@@ -939,7 +1087,9 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             if (string.IsNullOrWhiteSpace(userId)) return Task.FromResult(AuthenticateResult.NoResult());
             var role = Request.Headers["X-Test-Role"].FirstOrDefault() ?? UserRole.Player;
             var identity = new ClaimsIdentity(
-                [new Claim(ClaimTypes.NameIdentifier, userId), new Claim(ClaimTypes.Name, role), new Claim(ClaimTypes.Role, role)],
+                [new Claim(ClaimTypes.NameIdentifier, userId), new Claim(ClaimTypes.Name, role), new Claim(ClaimTypes.Role, role),
+                    // Like a real login token: UserStatusMiddleware refuses a token without authz_ver.
+                    new Claim(SirLocked.Api.Models.User.AuthorizationVersionClaim, "0")],
                 SchemeName);
             return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
         }

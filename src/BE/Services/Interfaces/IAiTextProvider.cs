@@ -20,6 +20,11 @@ public sealed record AiTextRequest
     public int AttemptNumber { get; init; } = 1;
     /// <summary>Stays the same while a parked operation waits for Claude and resumes.</summary>
     public string GenerationRunId { get; init; } = string.Empty;
+    /// <summary>
+    /// Images the step inspects (scene layout and verification). The bridge bot opens the URLs listed in the prompt;
+    /// the Claude API lane sends them as image blocks.
+    /// </summary>
+    public IReadOnlyList<string> ImageUrls { get; init; } = [];
     /// <summary>Deterministic answer for mock/dry-run mode and the local smoke test.</summary>
     public Func<string>? MockResponseFactory { get; init; }
 }

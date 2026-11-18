@@ -144,7 +144,7 @@ public sealed partial class MarketService
                      || o.Status == MarketOrderStatus.Opening || o.Status == MarketOrderStatus.Cancelled),
             cancellationToken: ct);
         return new WalletDto(account.Balance, account.Held, account.Slots, MarketRules.InventorySlots,
-            itemCount, reserved, MarketRules.FeePercent);
+            itemCount, reserved, MarketRules.FeePercent, account.BonusBalance, account.BonusHeld);
     }
 
     // ------------------------------------------------------------------ catalog & browse

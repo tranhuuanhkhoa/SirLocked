@@ -7,6 +7,7 @@ import { plural, tr } from '../services/i18n.js';
 import { activeRoomDestination, inviteDestination, normalizeRoomCode } from '../services/roomInvites.js';
 import { session } from '../services/session.js';
 import { createRoomErrorText } from './roomCreateCard.js';
+import { authorBadge } from '../components/authorBadge.js';
 import {
   caseDossierMarkup, coverArt, countOf, fileNumber, icons, peopleMarkup, sealedPeopleMarkup,
 } from './caseDetailPage.js';
@@ -89,6 +90,7 @@ function fileMarkup(c, index) {
         <span class="bpa-cases-thumb" aria-hidden="true">${coverArt(c, 'bpa-cases-thumb-img')}${PAPERCLIP}</span>
         <div class="bpa-cases-fmain">
           <h4 id="bpa-cases-t${index}" class="bpa-cases-ftitle">${title}</h4>
+          ${authorBadge(c.authorTier, c.authorName)}
           ${c.summary ? `<p class="bpa-cases-fsum">${escapeHtml(c.summary)}</p>` : ''}
           ${facts.length ? `<p class="bpa-cases-fstats">${facts.join(' · ')}</p>` : ''}
         </div>

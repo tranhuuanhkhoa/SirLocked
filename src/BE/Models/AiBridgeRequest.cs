@@ -9,6 +9,14 @@ public static class AiBridgeOwnerTypes
     public const string Cutscene = "CUTSCENE";
 }
 
+public static class AiBridgeLanes
+{
+    /// <summary>The ADMIN bot (Claude Code). Stored as an empty string.</summary>
+    public const string Bot = "";
+    /// <summary>Image requests of paid VIP orders: the studio VPS runner (no AI) makes them from the server's plan.</summary>
+    public const string VipRunner = "VIP_RUNNER";
+}
+
 public static class AiBridgeKinds
 {
     public const string Json = "JSON";
@@ -68,6 +76,11 @@ public class AiBridgeRequest
     public int MaxOutputTokens { get; set; }
     /// <summary>For ASSETS requests: the asset phase (SCENE_LAYOUT or FINAL_ASSETS) and the slot ids the bot must fill.</summary>
     public string AssetPhase { get; set; } = string.Empty;
+    /// <summary>
+    /// <see cref="AiBridgeLanes"/>: who answers. Empty for the ADMIN bot (every request before VUAN-7);
+    /// <c>VIP_RUNNER</c> for the image requests of a paid VIP order, made by the non-AI runner on the studio VPS.
+    /// </summary>
+    public string Lane { get; set; } = string.Empty;
     public List<string> AssetSlotIds { get; set; } = new();
     /// <summary>Slots that need a new picture uploaded after this request was created.</summary>
     public List<string> AssetRegenerateSlotIds { get; set; } = new();
