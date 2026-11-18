@@ -510,6 +510,8 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
                     "case.immutableForLegacyResult");
             }
 
+            // Case Studio edits are kept as a saved copy before the import replaces them.
+            await CaseEditor.CaseEditorImportGuard.KeepEditedCopyAsync(_db, existing);
             gameCase.Id = existing.Id;
             gameCase.CreatedAt = existing.CreatedAt;
             gameCase.UpdatedAt = DateTime.UtcNow;

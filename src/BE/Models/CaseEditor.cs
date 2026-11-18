@@ -14,6 +14,8 @@ public static class CaseEditorRevisionKinds
     public const string BeforeRestore = "BEFORE_RESTORE";
     /// <summary>The exact case that was published from the editor.</summary>
     public const string Publish = "PUBLISH";
+    /// <summary>The edited case, kept when an import (the bot or /admin/import) overwrote it.</summary>
+    public const string BeforeImport = "BEFORE_IMPORT";
 }
 
 /// <summary>

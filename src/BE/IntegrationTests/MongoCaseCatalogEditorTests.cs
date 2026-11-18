@@ -152,6 +152,33 @@ public sealed partial class MongoCaseCatalogTests
         Assert.Equal(CaseEditorService.ReadOnlyCode, Assert.IsType<ApiErrorDetails>(readOnly.Errors).Code);
     });
 
+    [Fact]
+    public Task Editor_AnImportOverTheEditedCaseKeepsTheEditsAsACopy() => WithCatalog(async c =>
+    {
+        var (editor, _) = Editor(c);
+        var vip = await VipAsync(c, "VIP tác giả");
+        await ImportedEditorDraftAsync(c, vip, carryDraftId: true);
+        var admin = new CurrentUser(NewId(), "Yen", UserRole.Admin);
+        var opened = await editor.OpenAsync(admin, EditorCase);
+        await editor.SaveAsync(admin, EditorCase, new CaseEditorSaveRequest
+        {
+            BaseVersion = 1, CaseJson = CaseJson(opened.Case, json => json["title"] = "Yen đã sửa")
+        });
+
+        // The bot imports its draft again over the edited case.
+        var bot = CaseJson(opened.Case, json => json["title"] = "Bản bot nhập lại");
+        await c.Open.Cases.ImportJsonAsync(bot, overwrite: true, preserveServerMetadata: true);
+
+        var after = await editor.OpenAsync(admin, EditorCase);
+        Assert.Equal("Bản bot nhập lại", after.Case.Title);
+        var kept = after.Revisions.First(revision => revision.Kind == CaseEditorRevisionKinds.BeforeImport);
+        Assert.Equal("Yen đã sửa", (await editor.GetRevisionAsync(EditorCase, kept.Number)).Case.Title);
+        // An editor still holding version 2 is told to reload instead of saving over the import.
+        Assert.Equal(3, after.Version);
+        Assert.Equal(409, (await Assert.ThrowsAsync<ApiException>(() => editor.SaveAsync(admin, EditorCase,
+            new CaseEditorSaveRequest { BaseVersion = 2, CaseJson = CaseJson(opened.Case, _ => { }) }))).StatusCode);
+    });
+
     private sealed class AuditLog : IAdminAudit
     {
         public List<string> Actions { get; } = new();
