@@ -68,6 +68,8 @@ function setState(el, html, { text = false } = {}) {
 
 /** Why a claim failed, in words. A bag that is still full is the one the player can fix. */
 function claimError(error) {
+  // http.js reports a request that never got an answer as status 0 with an English message.
+  if (error?.status === 0) return tr('Could not reach the server, please try again.', 'Không kết nối được máy chủ, thử lại sau.');
   const code = error?.errors?.code ?? error?.code;
   if (code === 'SLOTS_FULL') return tr('Your bag is still full.', 'Túi vẫn đầy.');
   if (code === 'WEEKLY_DROP_NOT_FOUND') return tr('This chest was not found.', 'Không tìm thấy hòm này.');
@@ -101,7 +103,9 @@ export async function mountWeeklyRewardBox(container, { signal } = {}) {
 
   const thisWeek = reward?.thisWeek ?? null;
   const claimed = new Set();
+  // Per-drop UI state. Rows are painted from it, so a row that is repainted for one drop never loses another's.
   const inFlight = new Set();
+  const errors = new Map();
   // This week's waiting chest is in `waiting` too: one entry, one button, per drop id.
   const waiting = [];
   for (const drop of [thisWeek, ...(Array.isArray(reward?.waiting) ? reward.waiting : [])]) {
@@ -120,14 +124,13 @@ export async function mountWeeklyRewardBox(container, { signal } = {}) {
   function waitingRowHtml(drop) {
     const name = chestName(drop.chestName, drop.chestNameEn);
     const older = drop.weekKey && drop.weekKey !== reward?.weekKey;
-    return `
-      <li class="bpa-ch-rw-wait" data-weekly-drop="${escapeHtml(drop.id)}">
+    return `<li class="bpa-ch-rw-wait" data-weekly-drop="${escapeHtml(drop.id)}">
         ${iconHtml(drop.iconKey)}
         <span class="bpa-ch-rw-name">${escapeHtml(name)}${older ? ` <small>${escapeHtml(tr(`week of ${drop.weekKey}`, `tuần ${drop.weekKey}`))}</small>` : ''}</span>
         ${claimed.has(drop.id)
           ? `<span class="bpa-ch-rw-done">${tr('Claimed', 'Đã nhận')}</span>`
           : `<button type="button" class="bpa-btn bpa-btn--red bpa-btn--sm bpa-ch-rw-claim" data-weekly-claim${inFlight.has(drop.id) ? ' disabled aria-busy="true"' : ''}>${tr('Claim chest', 'Nhận hòm')}</button>`}
-        <p class="bpa-ch-rw-msg" data-weekly-msg role="alert" hidden></p>
+        <p class="bpa-ch-rw-msg" data-weekly-msg role="alert"${errors.has(drop.id) ? '' : ' hidden'}>${escapeHtml(errors.get(drop.id) ?? '')}</p>
       </li>`;
   }
 
@@ -137,32 +140,41 @@ export async function mountWeeklyRewardBox(container, { signal } = {}) {
     waitingEl.hidden = waiting.length === 0;
   }
 
+  const rowOf = (id) => [...waitingEl.children].find((row) => row.dataset.weeklyDrop === id) ?? null;
+
+  /** Repaints one drop's row from the state and returns the live row. Other rows are left as they are. */
+  function paintRow(id) {
+    const drop = waiting.find((entry) => entry.id === id);
+    const old = rowOf(id);
+    if (!drop || !old) return null;
+    old.outerHTML = waitingRowHtml(drop);
+    return rowOf(id);
+  }
+
   waitingEl.addEventListener('click', async (event) => {
     const button = event.target.closest?.('[data-weekly-claim]');
-    const row = button?.closest('[data-weekly-drop]');
-    if (!button || !row || button.disabled) return;
-    const id = row.dataset.weeklyDrop;
-    if (inFlight.has(id)) return;
+    const id = button?.closest('[data-weekly-drop]')?.dataset.weeklyDrop;
+    if (!id || button.disabled || inFlight.has(id)) return;
+    const hadFocus = document.activeElement === button;
     inFlight.add(id);
-    const message = row.querySelector('[data-weekly-msg]');
-    message.hidden = true;
-    message.textContent = '';
-    button.disabled = true;
-    button.setAttribute('aria-busy', 'true');
+    errors.delete(id);
+    paintRow(id);
+
+    let failure = null;
     try {
       await weeklyApi.claim(id);
-      if (signal?.aborted) return;
       claimed.add(id);
-      paint();
     } catch (error) {
-      if (signal?.aborted) return;
-      button.disabled = false;
-      button.removeAttribute('aria-busy');
-      message.textContent = claimError(error);
-      message.hidden = false;
-    } finally {
-      inFlight.delete(id);
+      failure = error;
     }
+    inFlight.delete(id);
+    if (signal?.aborted) return;
+    if (failure) errors.set(id, claimError(failure));
+    // The row is looked up again: other claims may have repainted the list while this one was on its way.
+    const row = paintRow(id);
+    setState(stateEl, stateText(), { text: true });
+    // Back to a working button: keep the keyboard where it was unless the player moved on meanwhile.
+    if (failure && hadFocus && document.activeElement === document.body) row?.querySelector('[data-weekly-claim]')?.focus();
   });
 
   paint();
