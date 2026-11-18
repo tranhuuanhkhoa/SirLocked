@@ -22,8 +22,13 @@ namespace SirLocked.Api.Services.Market;
 /// </summary>
 public sealed class WeeklyDropService
 {
-    /// <summary>How far back the recovery sweep looks for finished games whose drop was never evaluated.</summary>
-    public static readonly TimeSpan RecoveryWindow = TimeSpan.FromHours(48);
+    /// <summary>
+    /// How far back the recovery sweep looks for finished games whose drop was never evaluated. The sweep only exists for
+    /// games whose hook never ran because the process died, and those are found within a sweep or two of the restart.
+    /// Keeping the window short also keeps the verification edge short (spec 7.3): an account that verifies its e-mail
+    /// later does not get the chest of an older game through the sweep; it plays a good game again.
+    /// </summary>
+    public static readonly TimeSpan RecoveryWindow = TimeSpan.FromHours(2);
     private const int PendingBatch = 200;
     private const int ResultBatch = 500;
     /// <summary>Lost insert races before giving up; one is normal (the winner's drop is then read back), more means the drop keeps vanishing.</summary>
@@ -85,30 +90,28 @@ public sealed class WeeklyDropService
 
     /// <summary>
     /// Whether this game drops this player's chest of the week, dropping it when it does. Safe to repeat and to run at the
-    /// same time as any other evaluation: the answer for a game that already dropped the chest is the drop's state.
+    /// same time as any other evaluation: the answer for a game that already dropped the chest is the drop's state, and
+    /// once the player has the week's chest any other game of that week is ALREADY_THIS_WEEK (checked before the case).
     /// Returns one of <see cref="WeeklyDropStatuses"/>.
     /// </summary>
     public async Task<string> EvaluatePlayerAsync(GameResult result, string userId, CancellationToken ct = default)
     {
-        // 1. The challenge of the week the game was played in, not of the week it is now.
+        // The week the game was played in, not the week it is now.
         var week = ChallengeWeek.Containing(result.CreatedAt);
+        var dropId = WeeklyDrop.IdOf(week.Key, userId);
+
+        // 1. One drop per account per week, read first: this game's own drop is finished again and stays its answer even
+        //    if an admin changed the week's case since; another game's drop means this one is too late.
+        var existing = await FindDropAsync(dropId, ct);
+        if (existing is not null) return await AnswerForAsync(existing, result, ct);
+
+        // 2. The challenge of that week.
         var challenge = await ChallengeOfAsync(week, ct);
         if (challenge is null || string.IsNullOrEmpty(result.CaseId) || challenge.CaseId != result.CaseId)
             return WeeklyDropStatuses.NotChallenge;
 
-        var dropId = WeeklyDrop.IdOf(week.Key, userId);
         for (var attempt = 1; ; attempt++)
         {
-            // 2. One drop per account per week. This game's own drop is finished again; another game's means this one is too late.
-            var existing = await _store.WeeklyDrops.Find(d => d.Id == dropId).FirstOrDefaultAsync(ct);
-            if (existing is not null)
-            {
-                if (existing.RoomId != result.RoomId) return WeeklyDropStatuses.AlreadyThisWeek;
-                return StatusOf(await AdvanceAsync(existing, ct));
-            }
-            if (attempt > InsertAttempts)
-                throw new InvalidOperationException($"Weekly drop {dropId} lost {InsertAttempts} insert races and cannot be read back.");
-
             // 3. Who may have one. Nothing is written for a player who may not, so a later good game of the week still counts.
             var author = await AuthorOfAsync(result.CaseId, ct);
             var verifiedActive = await IsVerifiedActiveAsync(userId, ct);
@@ -125,7 +128,7 @@ public sealed class WeeklyDropService
                 return WeeklyDropStatuses.NoChest;
             }
 
-            // 5. Record the roll before anything is given. A lost race reads the winner's drop instead.
+            // 5. Record the roll before anything is given. A lost race answers with the winner's drop instead.
             var now = Now;
             var drop = new WeeklyDrop
             {
@@ -140,19 +143,31 @@ public sealed class WeeklyDropService
                 CreatedAt = now,
                 UpdatedAt = now,
             };
+            var inserted = false;
             try
             {
                 await _store.WeeklyDrops.InsertOneAsync(drop, cancellationToken: ct);
+                inserted = true;
             }
             catch (MongoWriteException exception) when (exception.WriteError?.Category == ServerErrorCategory.DuplicateKey)
             {
-                continue;
+                var winner = await FindDropAsync(dropId, ct);
+                if (winner is not null) return await AnswerForAsync(winner, result, ct);
+                if (attempt >= InsertAttempts)
+                    throw new InvalidOperationException($"Weekly drop {dropId} lost {InsertAttempts} insert races and cannot be read back.");
             }
 
             // 6. Give it.
-            return StatusOf(await AdvanceAsync(drop, ct));
+            if (inserted) return StatusOf(await AdvanceAsync(drop, ct));
         }
     }
+
+    /// <summary>The answer for a game when its player already has the week's drop: finished again if it is this game's, else too late.</summary>
+    private async Task<string> AnswerForAsync(WeeklyDrop drop, GameResult result, CancellationToken ct) =>
+        drop.RoomId == result.RoomId ? StatusOf(await AdvanceAsync(drop, ct)) : WeeklyDropStatuses.AlreadyThisWeek;
+
+    private async Task<WeeklyDrop?> FindDropAsync(string dropId, CancellationToken ct) =>
+        await _store.WeeklyDrops.Find(d => d.Id == dropId).FirstOrDefaultAsync(ct);
 
     /// <summary>
     /// Puts the drop's chest in the bag, or marks it waiting when the bag is full. Safe to repeat and to run at the same
@@ -234,11 +249,18 @@ public sealed class WeeklyDropService
     /// <summary>
     /// Qualifying games of [<paramref name="from"/>, <paramref name="cutoff"/>) whose players have no drop of the game's
     /// week, newest first. Only games of each week's own challenge case are read: any other game would be NOT_CHALLENGE
-    /// anyway, and leaving them out keeps the batch limit for the games that matter.
+    /// anyway, and leaving them out keeps the batch limit for the games that matter. When no chest can drop at all, no game
+    /// is evaluated (the hook already warned about each one), so the sweep neither repeats that warning every 30 seconds
+    /// nor drops old games once weights come back.
     /// </summary>
     private async Task<int> EvaluateMissedAsync(DateTime from, DateTime cutoff, CancellationToken ct)
     {
         if (cutoff <= from) return 0;
+        if (WeeklyDropRules.Odds(_catalog.Current.Chests).Count == 0)
+        {
+            _logger.LogDebug("Weekly drop recovery: no chest can drop (every chest is switched off or weighted 0), so no game is evaluated.");
+            return 0;
+        }
         var filter = Builders<GameResult>.Filter;
         var windows = new List<FilterDefinition<GameResult>>();
         for (var week = ChallengeWeek.Containing(from); week.StartUtc < cutoff; week = week.Previous(-1))
@@ -251,9 +273,13 @@ public sealed class WeeklyDropService
         }
         if (windows.Count == 0) return 0;
 
+        // Only what an evaluation reads: never the case snapshot or the accusation, every 30 seconds.
+        var fields = Builders<GameResult>.Projection
+            .Include(r => r.RoomId).Include(r => r.CaseId).Include(r => r.Players)
+            .Include(r => r.CreatedAt).Include(r => r.Success).Include(r => r.ScoreSummary);
         var results = await _store.Context.GameResults
             .Find(filter.Or(windows) & filter.Eq(r => r.Success, true) & filter.Gte(r => r.ScoreSummary!.TotalScore, _settings.MinScore))
-            .SortByDescending(r => r.CreatedAt).Limit(ResultBatch).ToListAsync(ct);
+            .SortByDescending(r => r.CreatedAt).Limit(ResultBatch).Project<GameResult>(fields).ToListAsync(ct);
         // A guest id is never an account, so it can never earn a drop: not worth evaluating on every sweep.
         var candidates = results
             .SelectMany(result => result.Players

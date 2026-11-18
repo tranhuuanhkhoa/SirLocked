@@ -173,6 +173,32 @@ public sealed class MongoWeeklyDropTests
         await env.AssertSlotsMatchItemsAsync();
     }
 
+    [Fact]
+    public async Task Evaluate_AfterAdminSwapsTheCase_TheDroppedRoomStillReportsGranted()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        var result = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-10), score: 90, success: true, user);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Granted, await drops.EvaluatePlayerAsync(result, user, CancellationToken.None));
+
+        // Mid-week an admin puts another case on the challenge.
+        await env.Db.WeeklyFeatures.UpdateOneAsync(w => w.WeekKey == ThisWeek.Key,
+            Builders<WeeklyFeature>.Update.Set(w => w.CaseId, "case-swapped"));
+
+        // The game that dropped the chest still says so; any other game of the week is too late, whatever its case.
+        Assert.Equal(WeeklyDropStatuses.Granted, await drops.EvaluatePlayerAsync(result, user, CancellationToken.None));
+        var swapped = await env.AddResultAsync("room-2", "case-swapped", Now.AddMinutes(-5), score: 95, success: true, user);
+        Assert.Equal(WeeklyDropStatuses.AlreadyThisWeek, await drops.EvaluatePlayerAsync(swapped, user, CancellationToken.None));
+
+        var drop = await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync();
+        Assert.Equal("room-1", drop.RoomId);
+        Assert.Equal(1, await env.Store.Items.CountDocumentsAsync(i => i.Source == MarketItemSources.Weekly));
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
     // ------------------------------------------------------------------ no chest
 
     [Fact]
@@ -310,6 +336,45 @@ public sealed class MongoWeeklyDropTests
         // The next sweep has nothing left to do.
         Assert.Equal(0, await drops.RecoverAsync(TimeSpan.Zero, CancellationToken.None));
         await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task Recover_NothingToDrop_DoesNothing()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-5), score: 90, success: true, user);
+        var logger = new ListLogger<WeeklyDropService>();
+        var drops = env.Drops(new CryptoChestRandom(), new NothingDropsCatalog(), logger);
+
+        Assert.Equal(0, await drops.RecoverAsync(TimeSpan.Zero, CancellationToken.None));
+        Assert.Equal(0, await drops.RecoverAsync(TimeSpan.Zero, CancellationToken.None));
+
+        Assert.Equal(0, await env.Store.WeeklyDrops.CountDocumentsAsync(FilterDefinition<WeeklyDrop>.Empty));
+        // No warning per game on every sweep: at most one quiet line per sweep.
+        Assert.DoesNotContain(logger.Levels, level => level >= LogLevel.Warning);
+        Assert.True(logger.Levels.Count <= 2, $"{logger.Levels.Count} log lines for two sweeps");
+    }
+
+    [Fact]
+    public async Task Recover_IgnoresResultsOlderThanTheWindow()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var old = await env.AddUserAsync();
+        var recent = await env.AddUserAsync();
+        // Both games qualify and neither was evaluated; only the one inside the window is the sweep's business.
+        await env.AddResultAsync("room-old", Challenge, Now.AddHours(-3), score: 90, success: true, old);
+        await env.AddResultAsync("room-recent", Challenge, Now.AddHours(-1), score: 90, success: true, recent);
+
+        Assert.Equal(1, await env.Drops(new CryptoChestRandom()).RecoverAsync(TimeSpan.Zero, CancellationToken.None));
+
+        var drop = await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync();
+        Assert.Equal(recent, drop.UserId);
+        Assert.False(await env.Store.WeeklyDrops.Find(d => d.UserId == old).AnyAsync());
     }
 
     [Fact]
@@ -503,7 +568,8 @@ public sealed class MongoWeeklyDropTests
             Assert.Equal(items.Count, items.Select(i => i.Id).Distinct().Count());
             foreach (var account in await Store.Accounts.Find(FilterDefinition<MarketAccount>.Empty).ToListAsync())
             {
-                Assert.Equal(items.Count(i => i.OwnerId == account.Id), account.Slots);
+                // Level and achievement items take no slot.
+                Assert.Equal(items.Count(i => i.OwnerId == account.Id && !MarketItemSources.IsEarned(i.Source)), account.Slots);
                 Assert.True(account.Slots <= MarketRules.InventorySlots, $"slot cap exceeded for {account.Id}");
                 Assert.True(account.Balance >= 0, $"negative balance for {account.Id}");
             }
