@@ -76,7 +76,50 @@ test('GRANTED: the chest is named and a button leads to the Kho Rương', async 
   await expect(notice(page)).toContainText('Thử thách tuần: bạn nhận được Két Nhà Băng!');
   const open = notice(page).getByRole('link', { name: 'Mở ở Kho Rương' });
   await expect(open).toHaveAttribute('href', '/kho-ruong');
+  // One button only: the key shop and the held chests are both on /kho-ruong.
+  await expect(notice(page).locator('a')).toHaveCount(1);
   expect(seen.weeklyUrls).toEqual([WEEKLY_PATH]);
+});
+
+/** The chest's picture in the notice: the shared pixel sprite (a data URL), named by the chest. */
+async function expectChestPicture(page: Page, alt: string) {
+  const picture = notice(page).locator('img');
+  await expect(picture).toHaveCount(1);
+  await expect(picture).toHaveAttribute('alt', alt);
+  await expect(picture).toHaveAttribute('src', /^data:image\/png/);
+  await expect.poll(() => picture.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0);
+  const box = await picture.boundingBox();
+  expect(box!.width).toBeLessThanOrEqual(48);
+  expect(box!.height).toBeLessThanOrEqual(48);
+}
+
+test('GRANTED: the notice shows the chest picture, named by the chest', async ({ page }) => {
+  await prepare(page, { server: { weekly: { status: 'GRANTED', drop: dropOf('DONE'), minScore: 80 } } });
+  await openResult(page);
+
+  await expect(notice(page)).toBeVisible();
+  await expectChestPicture(page, 'Két Nhà Băng');
+});
+
+test('GRANTED with no drop says "a chest" and shows no picture', async ({ page }) => {
+  await prepare(page, { server: { weekly: { status: 'GRANTED', drop: null, minScore: 80 } } });
+  await openResult(page);
+
+  await expect(notice(page)).toContainText('Thử thách tuần: bạn nhận được một hòm!');
+  await expect(notice(page).locator('img')).toHaveCount(0);
+  await expect(notice(page).getByRole('link', { name: 'Mở ở Kho Rương' })).toBeVisible();
+});
+
+test('a chest whose icon cannot be drawn keeps the line and shows no picture', async ({ page }) => {
+  await prepare(page, { server: { weekly: { status: 'GRANTED', drop: dropOf('DONE', { iconKey: '' }), minScore: 80 } } });
+  await page.addInitScript(() => {
+    // No canvas: every sprite comes back empty, as on a browser that blocks canvas reads.
+    HTMLCanvasElement.prototype.toDataURL = () => { throw new Error('blocked'); };
+  });
+  await openResult(page);
+
+  await expect(notice(page)).toContainText('Thử thách tuần: bạn nhận được Két Nhà Băng!');
+  await expect(notice(page).locator('img')).toHaveCount(0);
 });
 
 test('WAITING: a full bag says the chest waits on the Thử thách tuần page and links there', async ({ page }) => {
@@ -86,7 +129,16 @@ test('WAITING: a full bag says the chest waits on the Thử thách tuần page a
   await expect(notice(page)).toContainText('Thử thách tuần: túi đầy, Két Nhà Băng đang chờ ở trang Thử thách tuần.');
   await expect(notice(page).getByRole('link', { name: 'trang Thử thách tuần' })).toHaveAttribute('href', '/workshop/challenge');
   await expect(notice(page).getByRole('link', { name: 'Mở ở Kho Rương' })).toHaveCount(0);
+  await expectChestPicture(page, 'Két Nhà Băng');
   expect(seen.weeklyUrls).toEqual([WEEKLY_PATH]);
+});
+
+test('WAITING with no drop shows no picture', async ({ page }) => {
+  await prepare(page, { server: { weekly: { status: 'WAITING', drop: null, minScore: 80 } } });
+  await openResult(page);
+
+  await expect(notice(page)).toContainText('Thử thách tuần: túi đầy, một hòm đang chờ ở trang Thử thách tuần.');
+  await expect(notice(page).locator('img')).toHaveCount(0);
 });
 
 const plainCases: Array<{ status: string; minScore?: number; text: string }> = [
@@ -137,6 +189,9 @@ for (const { status, drop, text, link } of englishCases) {
     await expect(notice(page)).toContainText(text);
     if (link) await expect(notice(page).getByRole('link', { name: link[0] })).toHaveAttribute('href', link[1]);
     else await expect(notice(page).locator('a')).toHaveCount(0);
+    // The picture is named in the viewer's language.
+    if (drop) await expect(notice(page).locator('img')).toHaveAttribute('alt', 'Bank Safe');
+    else await expect(notice(page).locator('img')).toHaveCount(0);
   });
 }
 
@@ -176,7 +231,10 @@ test('a chest name from the server is shown as text, not as markup', async ({ pa
   await openResult(page);
 
   await expect(notice(page)).toContainText('<img src=x onerror="window.__xss=1">Hòm');
-  await expect(notice(page).locator('img')).toHaveCount(0);
+  // The only picture is the chest's own, and the name sits in its alt as plain text.
+  await expect(notice(page).locator('img')).toHaveCount(1);
+  await expect(notice(page).locator('img[src="x"]')).toHaveCount(0);
+  await expect(notice(page).locator('img')).toHaveAttribute('alt', '<img src=x onerror="window.__xss=1">Hòm');
   expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
 });
 

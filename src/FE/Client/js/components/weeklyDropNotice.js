@@ -1,4 +1,5 @@
 import { weeklyApi } from '../api/weeklyApi.js';
+import { pixelIconUrl } from '../pages/chest/chestSprites.js';
 import { tr } from '../services/i18n.js';
 import { escapeHtml } from '../utils/dom.js';
 
@@ -20,22 +21,35 @@ function chestNameHtml(drop) {
   return escapeHtml(name || tr('a chest', 'một hòm'));
 }
 
+/** The chest's picture (the shared pixel sprite, as the challenge page draws it), or '' with no drop or no picture. */
+function chestPictureHtml(drop) {
+  if (!drop) return '';
+  const src = pixelIconUrl(drop.iconKey);
+  return src
+    ? `<img class="bpa-weekly-drop-icon" src="${src}" width="40" height="40" alt="${chestNameHtml(drop)}" draggable="false">`
+    : '';
+}
+
+/** The chest line with its picture in front of it. */
+const chestLineHtml = (drop, text) =>
+  `<span class="bpa-weekly-drop-chest">${chestPictureHtml(drop)}<span class="bpa-weekly-drop-text">${text}</span></span>`;
+
 /** The markup of the notice for one status, or '' when there is nothing to say. */
 function noticeHtml(reward) {
   const drop = reward.drop ?? null;
   switch (reward.status) {
     case 'GRANTED': {
       const name = chestNameHtml(drop);
-      return `<span class="bpa-weekly-drop-text">${tr(`Weekly Challenge: you got ${name}!`, `Thử thách tuần: bạn nhận được ${name}!`)}</span>
+      return `${chestLineHtml(drop, tr(`Weekly Challenge: you got ${name}!`, `Thử thách tuần: bạn nhận được ${name}!`))}
         <a class="bpa-btn bpa-btn--gold bpa-btn--sm bpa-weekly-drop-btn" href="${CHEST_LINK}">${tr('Open in the Chest Vault', 'Mở ở Kho Rương')}</a>`;
     }
     case 'WAITING': {
       const name = chestNameHtml(drop);
       const link = (text) => `<a class="bpa-weekly-drop-link" href="${CHALLENGE_LINK}">${text}</a>`;
-      return `<span class="bpa-weekly-drop-text">${tr(
+      return chestLineHtml(drop, tr(
         `Weekly Challenge: your bag is full, ${name} is waiting on ${link('the Weekly Challenge page')}.`,
         `Thử thách tuần: túi đầy, ${name} đang chờ ở ${link('trang Thử thách tuần')}.`,
-      )}</span>`;
+      ));
     }
     case 'LOW_SCORE': {
       const min = Number(reward.minScore);
