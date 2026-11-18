@@ -239,6 +239,45 @@ public class AdminChestsRulesTests
     }
 
     [Fact]
+    public void Diff_ReportsChallengeWeight()
+    {
+        var (before, _) = Fixture();
+        before.Id = "chest_np";
+        before.ChallengeWeight = null; // the default for chest_np, 60
+        var after = Copy(before);
+        after.ChallengeWeight = 25;
+
+        var diff = AdminChestsRules.Diff(before, after);
+
+        Assert.Equal(new AdminChestFieldChange("challengeWeight", "60", "25"), Assert.Single(diff.Fields));
+        Assert.False(diff.IsEmpty);
+    }
+
+    [Fact]
+    public void Diff_TreatsNoWeightAndTheSpelledOutDefaultAsTheSame()
+    {
+        var (before, _) = Fixture();
+        before.Id = "chest_np";
+        before.ChallengeWeight = null;
+        var after = Copy(before);
+        after.ChallengeWeight = 60;
+
+        Assert.True(AdminChestsRules.Diff(before, after).IsEmpty);
+    }
+
+    [Theory]
+    [InlineData(25)]
+    [InlineData(0)]
+    [InlineData(null)]
+    public void Clone_CopiesChallengeWeight(int? weight)
+    {
+        var (chest, _) = Fixture();
+        chest.ChallengeWeight = weight;
+
+        Assert.Equal(weight, AdminChestsRules.Clone(chest).ChallengeWeight);
+    }
+
+    [Fact]
     public void ReorderingAPoolIsAChangeEvenWithNothingAddedOrRemoved()
     {
         var (before, _) = Fixture();

@@ -38,9 +38,26 @@ public static class WeeklyDropRules
             .ToList();
         var total = droppable.Sum(chest => (long)chest.ChallengeWeight);
         return droppable
-            .Select(chest => new WeeklyChestOdds(chest, Math.Round(chest.ChallengeWeight * 100m / total, 2)))
+            .Select(chest => new WeeklyChestOdds(chest, Share(chest.ChallengeWeight, total)))
             .ToList();
     }
+
+    /// <summary>
+    /// The share of the weekly drops of every stored chest, by id, in percent rounded to two places. Same reading as
+    /// <see cref="Odds"/>: only an active chest with an effective weight above zero counts, and every other chest shows 0.
+    /// </summary>
+    public static IReadOnlyDictionary<string, decimal> Percents(IEnumerable<CatalogChest> chests)
+    {
+        var all = chests.ToList();
+        bool Drops(CatalogChest chest) => chest.Active && EffectiveWeight(chest) > 0;
+        var total = all.Where(Drops).Sum(chest => (long)EffectiveWeight(chest));
+        return all.ToDictionary(
+            chest => chest.Id,
+            chest => Drops(chest) ? Share(EffectiveWeight(chest), total) : 0m,
+            StringComparer.Ordinal);
+    }
+
+    private static decimal Share(int weight, long total) => Math.Round(weight * 100m / total, 2);
 
     /// <summary>Draws one chest by weight, walking the list in the order <see cref="Odds"/> gave. Null when nothing can drop.</summary>
     public static ChestDef? RollChest(IReadOnlyList<WeeklyChestOdds> odds, IChestRandom random)
