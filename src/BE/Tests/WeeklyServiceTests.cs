@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.RateLimiting;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Leaderboard;
 using SirLocked.Api.Models;
@@ -122,6 +123,17 @@ public class WeeklyServiceTests
             // Any signed-in player, no role.
             Assert.Null(action.GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>().Single().Roles);
             Assert.Empty(action.GetCustomAttributes(typeof(AllowAnonymousAttribute), false));
+        }
+    }
+
+    [Fact]
+    public void ChallengeReward_ClaimAndRoomRead_UseThePerUserChestRateLimit()
+    {
+        foreach (var name in new[] { nameof(WeeklyController.ChallengeRewardForRoom), nameof(WeeklyController.ClaimChallengeReward) })
+        {
+            var action = typeof(WeeklyController).GetMethod(name)!;
+            var limit = action.GetCustomAttributes(typeof(EnableRateLimitingAttribute), false).Cast<EnableRateLimitingAttribute>().Single();
+            Assert.Equal("chests", limit.PolicyName);
         }
     }
 
