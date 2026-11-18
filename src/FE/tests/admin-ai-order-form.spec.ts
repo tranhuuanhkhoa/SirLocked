@@ -114,7 +114,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
     return route.fulfill({ status: 202, json: envelope(created) });
   });
   await page.route((url) => /^\/api\/admin\/ai-cases\/[^/]+$/.test(url.pathname)
-    && !['capabilities', 'library', 'quota', 'settings'].includes(url.pathname.split('/').pop()!), (route) => {
+    && !['capabilities', 'library', 'quota', 'settings', 'vip-quote', 'vip-report'].includes(url.pathname.split('/').pop()!), (route) => {
     const id = new URL(route.request().url()).pathname.split('/').pop();
     const draft = mock.drafts.find((item) => item.draftId === id);
     return route.fulfill(draft ? { json: envelope(draft) } : { status: 404, json: { success: false, message: 'Not found' } });
@@ -135,6 +135,16 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
       ? { ...draft, status: 'CANCELLED', queueState: 'CANCELLED', canCancel: false, orderStatus: 'REJECTED', orderRejectReason: body.reason, orderStatusHistory: [...draft.orderStatusHistory, { status: 'REJECTED', at: '2026-11-16T08:05:00Z', reason: body.reason }] }
       : draft);
     return route.fulfill({ json: envelope(mock.drafts.find((draft) => draft.draftId === id)) });
+  });
+  // VUAN-7: what a VIP order costs (Normal Random: 8.000 xu "Nhanh", 4.500 xu "Tiết kiệm"); plenty of coins.
+  await page.route((url) => url.pathname === '/api/admin/ai-cases/vip-quote', (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    const speed = query.get('speed') === 'SAVER' ? 'SAVER' : 'FAST';
+    const cap = Number(query.get('pixelLabCap') || 30);
+    const base = speed === 'SAVER' ? 4500 : 8000;
+    const extra = Math.max(0, cap - 30) * 15;
+    return route.fulfill({ json: envelope({ preset: 'NORMAL_RANDOM', speed, pixelLabCap: cap, priceXu: base + extra, basePriceXu: base,
+      extraPixelLabXu: extra, balance: 50000, bonusBalance: 0, maxFromBonus: 0, canAfford: true, laneConfigured: true, estimatedMinutes: 90 }) });
   });
   return mock;
 }
@@ -289,10 +299,13 @@ test('a VIP never sees the PixelLab cap or review mode, orders wait for Yen, and
 
   await page.locator('[data-location="h-map-ben-cang"]').click();
   await page.locator('#quick-create-btn').click();
+  // VUAN-7: the price is held when the order is sent; the page asks first (never a browser dialog).
+  await expect(page.locator('.aai-vip-confirm')).toContainText('Giữ 8.000 xu. Trả lại toàn bộ nếu đơn bị từ chối hoặc lỗi.');
+  await page.locator('.aai-vip-confirm [data-vip-confirm]').click();
   await expect.poll(() => mock.posts.length).toBe(1);
   expect(mock.posts[0].order).toEqual({
     world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], suspectCount: 4, characterNotes: '',
-    weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT',
+    weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT', speed: 'FAST', vipExtraPixelLab: 0,
   });
   await expect(page.locator('.aai-drafts-table [data-order-status="AWAITING_OWNER_APPROVAL"]')).toHaveText('Chờ Yen duyệt');
   await expect(page.locator('.aai-drafts-table [data-approve-order]')).toHaveCount(0);

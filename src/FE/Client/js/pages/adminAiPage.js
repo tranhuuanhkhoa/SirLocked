@@ -8,6 +8,10 @@ import { renderSafeMarkdown } from '../utils/safeMarkdown.js';
 import { icon, pageHead, pill, stateBox, tile } from '../components/admin/ui.js';
 import { gateCheckText, isV3, v3PublishGate } from './adminV3Gates.js';
 import { mountPresentationEditor, presentationPlaceholder } from './adminPresentation.js';
+import {
+  askReason, confirmVipHold, loadVipQuotes, loadVipReport, readVipSettings, vipBlockReason, vipDraftLine,
+  vipOrderPanelHtml, vipReportCardHtml, vipSettingsCardHtml,
+} from './adminAiVip.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_TRUTH_AWAITING_APPROVAL = 'CASE_TRUTH_AWAITING_APPROVAL';
@@ -475,6 +479,9 @@ export async function renderAdminAiPage(app) {
     mechanic: '',
     pixelLabCap: 30,
     reviewMode: 'FULL',
+    // VUAN-7, VIP orders: "Nhanh" (Claude API) or "Tiết kiệm" (Batch), and 0 or 30 extra PixelLab pictures.
+    speed: 'FAST',
+    vipExtraPixelLab: 0,
   };
   /** Messages shown under a field: the server's refusal of the last order, or a limit the creator just ran into. */
   let fieldErrors = {};
@@ -486,6 +493,11 @@ export async function renderAdminAiPage(app) {
   let settingsError = null;
   let settingsNotice = '';
   let savingSettings = false;
+  let vipQuotes = null;
+  let vipQuoteError = null;
+  let vipSettingsStatus = '';
+  let vipReport = null;
+  let vipReportError = null;
   const pageAbort = new AbortController();
 
   async function loadCapabilities() {
@@ -542,7 +554,29 @@ export async function renderAdminAiPage(app) {
     }
   }
 
-  await Promise.all([loadCapabilities(), loadDraftList(), loadLibrary(), loadQuota(), loadSettings()]);
+  /** VUAN-7: what the VIP's order costs at both speeds, and their coins. */
+  async function loadQuotes() {
+    if (!isVip) return;
+    try {
+      vipQuotes = await loadVipQuotes(form);
+      vipQuoteError = null;
+    } catch (error) {
+      vipQuoteError = error;
+    }
+  }
+
+  /** VUAN-7, ADMIN: VIP cost and revenue, authors and payouts. */
+  async function loadReport() {
+    if (!isAdmin) return;
+    try {
+      vipReport = await loadVipReport();
+      vipReportError = null;
+    } catch (error) {
+      vipReportError = error;
+    }
+  }
+
+  await Promise.all([loadCapabilities(), loadDraftList(), loadLibrary(), loadQuota(), loadSettings(), loadQuotes(), loadReport()]);
   draw();
 
   function creationBlocked() {
@@ -556,6 +590,10 @@ export async function renderAdminAiPage(app) {
       return tr(
         `You have used all ${quota.weeklyLimit} orders of this week. A new week starts on Monday (Vietnam time).`,
         `Bạn đã dùng hết ${quota.weeklyLimit} đơn của tuần này. Tuần mới bắt đầu từ thứ Hai (giờ Việt Nam).`);
+    }
+    if (isVip) {
+      const vipReason = vipBlockReason(vipQuotes, form);
+      if (vipReason) return vipReason;
     }
     const npcLimit = form.suspectCount + EXTRA_NPCS;
     if (form.npcIds.length > npcLimit) {
@@ -661,7 +699,7 @@ export async function renderAdminAiPage(app) {
   function orderStatusCell(d) {
     if (!d.orderStatus) return `<span class="aai-cell"><small>${tr('No order (older draft)', 'Không có đơn (bản nháp cũ)')}</small></span>`;
     const time = orderStatusTime(d);
-    return `<span class="aai-cell aai-order-cell">${orderStatusPill(d)}${time ? `<small data-order-time>${escapeHtml(time)}</small>` : ''}</span>`;
+    return `<span class="aai-cell aai-order-cell">${orderStatusPill(d)}${time ? `<small data-order-time>${escapeHtml(time)}</small>` : ''}${vipDraftLine(d)}</span>`;
   }
 
   function orderButtons(d) {
@@ -1186,6 +1224,7 @@ export async function renderAdminAiPage(app) {
       <div class="aai-summary-vip" id="ai-vip-quota">
         <p>${icon('clock', 16)}<span>${tr('This order waits for the owner (Yen) to approve it.', 'Đơn sẽ chờ Yen duyệt.')}</span></p>
         <p data-quota-remaining>${escapeHtml(vipQuotaText())}</p>
+        ${vipOrderPanelHtml(vipQuotes, form, vipQuoteError)}
       </div>` : '';
 
     const aside = `
@@ -1219,6 +1258,8 @@ export async function renderAdminAiPage(app) {
           <p class="aai-help" id="ai-review-note"${isAdmin && form.reviewMode === 'FAST' ? '' : ' hidden'}>${tr('Fast mode: the bot passes the premise, logic and layout gates itself when every check passes. The case truth is always reviewed by a person.', 'Chế độ nhanh: bot tự qua cổng tiền đề, logic và bố cục khi mọi kiểm tra đều đạt. Sự thật vụ án luôn do người duyệt.')}</p>
         </section>
         ${isAdmin ? settingsCardHtml() : ''}
+        ${isAdmin ? vipSettingsCardHtml(settings, vipSettingsStatus) : ''}
+        ${isAdmin ? vipReportCardHtml(vipReport, vipReportError) : ''}
       </aside>`;
 
     return `
@@ -1402,7 +1443,9 @@ export async function renderAdminAiPage(app) {
   /** The preset fixes stages and difficulty on the server: the form follows it so it never promises otherwise. */
   function applyPreset(presetKey) {
     const key = PRESETS[presetKey] ? presetKey : 'NORMAL_RANDOM';
+    const changed = form.preset !== key;
     form.preset = key;
+    if (changed && isVip) void loadQuotes().then(() => { if (!disposed) { captureCreationForm(); draw(visibleDraft); } });
     form.stageCount = PRESETS[key].stageCount;
     form.difficulty = PRESETS[key].difficulty;
     const limits = PRESET_LIMITS[key];
@@ -1444,6 +1487,9 @@ export async function renderAdminAiPage(app) {
     if (isAdmin) {
       order.pixelLabCap = form.pixelLabCap;
       order.reviewMode = form.reviewMode;
+    } else {
+      order.speed = form.speed;
+      order.vipExtraPixelLab = form.vipExtraPixelLab;
     }
     return order;
   }
@@ -2212,6 +2258,7 @@ export async function renderAdminAiPage(app) {
       event.preventDefault();
       void saveSettings();
     });
+    bindVip();
 
     qs('#quick-create-btn', app).addEventListener('click', () => void submitOrder());
 
@@ -2312,6 +2359,12 @@ export async function renderAdminAiPage(app) {
   async function submitOrder() {
     captureCreationForm();
     if (submitDisabled()) return;
+    if (isVip) {
+      // VUAN-7: the price is held when the order is sent; confirm it in the page first.
+      const quote = vipQuotes?.[form.speed];
+      if (!quote || !(await confirmVipHold(quote, pageAbort.signal))) return;
+      if (disposed) return;
+    }
     creating = true;
     pollingError = null;
     stopPolling();
@@ -2349,7 +2402,7 @@ export async function renderAdminAiPage(app) {
       creating = false;
       creationError = null;
       updateProgress(previewDraft.status);
-      await Promise.all([loadDraftList(), loadQuota()]);
+      await Promise.all([loadDraftList(), loadQuota(), loadQuotes()]);
       if (disposed || version !== runVersion) return;
       if (isTerminalDraft(previewDraft)) {
         stopProgressClock();
@@ -2386,6 +2439,59 @@ export async function renderAdminAiPage(app) {
       const fields = showServerFieldErrors(err);
       if (fields.length) focusField(fields[0]);
     }
+  }
+
+  /** VUAN-7 controls: the VIP's speed and extra PixelLab pictures; ADMIN settings and payout actions. */
+  function bindVip() {
+    app.querySelectorAll('input[name="vipSpeed"]').forEach((radio) => radio.addEventListener('change', () => {
+      form.speed = radio.value === 'SAVER' ? 'SAVER' : 'FAST';
+      captureCreationForm();
+      draw(visibleDraft);
+    }));
+    qs('#ai-vip-extra', app)?.addEventListener('change', async (event) => {
+      form.vipExtraPixelLab = event.target.checked ? 30 : 0;
+      captureCreationForm();
+      await loadQuotes();
+      if (!disposed) draw(visibleDraft);
+    });
+    qs('#ai-vip-settings-form', app)?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = qs('#ai-save-vip-settings', app);
+      if (!settings || button?.disabled) return;
+      button.disabled = true;
+      try {
+        settings = await aiCaseApi.saveVipSettings(readVipSettings(event.target, settings));
+        vipSettingsStatus = tr('Saved.', 'Đã lưu.');
+      } catch (error) {
+        vipSettingsStatus = aiErrorText(error);
+      }
+      if (disposed) return;
+      captureCreationForm();
+      draw(visibleDraft);
+    });
+    qs('#ai-author-payouts', app)?.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-payout-action]');
+      if (!button) return;
+      const id = button.closest('[data-payout]')?.dataset.payout;
+      const action = button.dataset.payoutAction;
+      let reason = '';
+      if (action !== 'release') {
+        reason = await askReason(action === 'revoke' ? tr('Revoke this payout', 'Thu hồi khoản thưởng') : tr('Hold this payout', 'Tạm giữ khoản thưởng'),
+          action === 'revoke', pageAbort.signal);
+        if (reason === null) return;
+      }
+      button.disabled = true;
+      try {
+        if (action === 'hold') await aiCaseApi.holdPayout(id, reason);
+        else if (action === 'release') await aiCaseApi.releasePayout(id);
+        else await aiCaseApi.revokePayout(id, reason);
+        toast(tr('Saved.', 'Đã lưu.'), 'success');
+      } catch (error) {
+        toast(aiErrorText(error), 'error');
+      }
+      await loadReport();
+      if (!disposed) { captureCreationForm(); draw(visibleDraft); }
+    });
   }
 
   /** ADMIN: the VIP weekly limit. Only the settings card is redrawn, so the order being written stays as it is. */
@@ -2569,7 +2675,7 @@ export async function renderAdminAiPage(app) {
     const facts = orderFacts(d.order);
     const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${tr('Waiting for Claude on step', 'Đang chờ Claude ở bước')} <code>${escapeHtml(d.claudeWait.step)}</code></p>` : '';
     const rejected = d.orderRejectReason ? `<p class="aai-note">${tr('Rejection reason', 'Lý do từ chối')}: ${escapeHtml(d.orderRejectReason)}</p>` : '';
-    return `<div class="aai-order"><p class="aai-draft-meta">${tr('Order', 'Đơn')}: ${orderStatusPill(d)} ${orderButtons(d)}</p>${facts ? `<p class="aai-note" data-order-facts>${facts}</p>` : ''}${history ? `<p class="muted small">${history}</p>` : ''}${waiting}${rejected}</div>`;
+    return `<div class="aai-order"><p class="aai-draft-meta">${tr('Order', 'Đơn')}: ${orderStatusPill(d)} ${orderButtons(d)}</p>${vipDraftLine(d)}${facts ? `<p class="aai-note" data-order-facts>${facts}</p>` : ''}${history ? `<p class="muted small">${history}</p>` : ''}${waiting}${rejected}</div>`;
   }
 
   /** The bot's report.md (ADMIN), rendered from Markdown without ever inserting the report's own HTML. */
