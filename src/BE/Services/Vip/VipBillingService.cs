@@ -24,7 +24,9 @@ public sealed record VipQuote(
     long MaxFromBonus,
     bool CanAfford,
     bool LaneConfigured,
-    int EstimatedMinutes);
+    int EstimatedMinutes,
+    /// <summary>False while VIP orders use library pictures and variants only (no extra PixelLab pictures for sale).</summary>
+    bool PixelLabEnabled = false);
 
 /// <summary>
 /// Coins of VIP orders (VUAN-7 part C): the price is held when the order is placed and settled exactly once from the
@@ -62,8 +64,11 @@ public sealed class VipBillingService(
     {
         var pricing = await settings.GetPricingAsync(ct);
         var normalizedSpeed = VipSpeeds.Normalize(speed);
-        var cap = Math.Clamp(pixelLabCap <= 0 ? AiCaseOrder.VipPixelLabCap : pixelLabCap, AiCaseOrder.VipPixelLabCap,
-            Math.Max(pricing.VipMaxPixelLabCap, AiCaseOrder.VipPixelLabCap));
+        // Without PixelLab for VIP orders there is nothing extra to buy: the cap stays at the included 30.
+        var cap = pricing.PixelLabEnabled
+            ? Math.Clamp(pixelLabCap <= 0 ? AiCaseOrder.VipPixelLabCap : pixelLabCap, AiCaseOrder.VipPixelLabCap,
+                Math.Max(pricing.VipMaxPixelLabCap, AiCaseOrder.VipPixelLabCap))
+            : AiCaseOrder.VipPixelLabCap;
         var price = Price(pricing, preset, normalizedSpeed, cap);
         var account = await db.Database.GetCollection<MarketAccount>("marketAccounts")
             .Find(item => item.Id == userId).FirstOrDefaultAsync(ct);
@@ -75,7 +80,8 @@ public sealed class VipBillingService(
             balance, bonus, maxFromBonus,
             CanAfford: balance + maxFromBonus >= price.Total,
             LaneConfigured: LaneConfigured,
-            EstimatedMinutes: normalizedSpeed == VipSpeeds.Saver ? 24 * 60 : 90);
+            EstimatedMinutes: normalizedSpeed == VipSpeeds.Saver ? 24 * 60 : 90,
+            PixelLabEnabled: pricing.PixelLabEnabled);
     }
 
     /// <summary>

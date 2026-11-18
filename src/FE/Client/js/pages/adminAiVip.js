@@ -67,10 +67,10 @@ export function vipOrderPanelHtml(quotes, form, error) {
         <legend class="aai-summary-label">${tr('Speed', 'Tốc độ')}</legend>
         ${speeds}
       </fieldset>
-      <label class="aai-vip-extra">
+      ${quote.pixelLabEnabled ? `<label class="aai-vip-extra">
         <input type="checkbox" id="ai-vip-extra" ${Number(form.vipExtraPixelLab) > 0 ? 'checked' : ''}>
-        <span>${tr('30 more PixelLab pictures', 'Thêm 30 lượt PixelLab')} (+${formatXu(quote.extraPixelLabXu || 0) === '0' ? formatXu(450) : formatXu(quote.extraPixelLabXu)} xu)</span>
-      </label>
+        <span>${tr('30 more PixelLab pictures', 'Thêm 30 lượt PixelLab')} (+${formatXu(Number(quote.extraPixelLabXu) > 0 ? quote.extraPixelLabXu : 450)} xu)</span>
+      </label>` : `<p class="aai-help">${tr('Pictures come from the shared library and its variants.', 'Hình lấy từ thư viện chung và biến thể của nó.')}</p>`}
       <dl class="aai-vip-price">
         <div><dt>${tr('Price', 'Giá')}</dt><dd data-vip-price>${formatXu(quote.priceXu)} xu</dd></div>
         <div><dt>${tr('Your coins', 'Số dư xu nạp')}</dt><dd data-vip-balance>${formatXu(quote.balance)} xu</dd></div>
@@ -184,6 +184,7 @@ export function vipSettingsCardHtml(settings, status = '') {
           ${field(tr('VND per coin', 'VND mỗi xu'), num('vndPerXu', pricing.vndPerXu, 'min="1"'))}
           ${field(tr('Cost cap (× estimated cost)', 'Trần chi phí (× vốn ước tính)'), num('costCapMultiplier', pricing.costCapMultiplier, 'min="1" max="10" step="0.5"'))}
           ${field(tr('Share bonus coins may pay (0–0.3)', 'Tỷ lệ xu thưởng được trả (0–0,3)'), num('maxBonusShare', pricing.maxBonusShare, 'min="0" max="0.3" step="0.05"'))}
+          <label class="ac-field ac-check"><input type="checkbox" name="pixelLabEnabled" ${pricing.pixelLabEnabled ? 'checked' : ''}><span>${tr('New PixelLab pictures for VIP orders (needs the PixelLab runner)', 'PixelLab cho đơn VIP (cần trình chạy PixelLab)')}</span></label>
         </div>
         <h3>${tr('Models', 'Model')}</h3>
         <div class="aai-vip-grid">
@@ -244,6 +245,7 @@ export function readVipSettings(formNode, settings) {
   }));
   for (const key of ['extraPixelLabGenerationXu', 'vipMaxPixelLabCap', 'usdToVnd', 'vndPerXu', 'costCapMultiplier', 'maxBonusShare'])
     pricing[key] = number(key, pricing[key]);
+  pricing.pixelLabEnabled = Boolean(formNode.elements.pixelLabEnabled?.checked);
   const stepOverrides = {};
   for (const line of String(value('stepOverrides') || '').split('\n')) {
     const [step, model] = line.split('=').map((part) => part?.trim());

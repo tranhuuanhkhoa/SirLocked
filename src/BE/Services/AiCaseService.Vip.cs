@@ -171,7 +171,9 @@ public partial class AiCaseService
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson)) return;
         var gameCase = _caseService.ParseCase(draft.GeneratedJson);
         var library = await _db.AssetLibrary.Find(Builders<AssetLibraryEntry>.Filter.Empty).ToListAsync(_operationCancellationToken);
-        var cap = draft.Order?.PixelLabCap ?? AiCaseOrder.VipPixelLabCap;
+        // PixelLab for VIP orders is off until a no-AI PixelLab runner is proven: library and variants only.
+        var pixelLabEnabled = (await new VipSettingsStore(_db).GetPricingAsync(_operationCancellationToken)).PixelLabEnabled;
+        var cap = pixelLabEnabled ? draft.Order?.PixelLabCap ?? AiCaseOrder.VipPixelLabCap : 0;
         var recordRoot = $"tmp/pixellab/{draft.Id}";
         var preview = PixelAssetPlanning.Plan(gameCase, [], library, cap, recordRoot);
         var world = draft.Order?.World ?? AiCaseWorlds.HangDuongVictorian;
@@ -215,6 +217,9 @@ public partial class AiCaseService
     {
         var builder = new StringBuilder()
             .AppendLine("Plan the pictures of this pixel detective case. For every subject choose its source:")
+            .AppendLine(cap == 0
+                ? "PixelLab is NOT available for this order: use LIBRARY or VARIANT for every subject (a library picture may serve several subjects) and leave inpaintItems empty."
+                : string.Empty)
             .AppendLine("- LIBRARY: reuse a library picture as it is (libraryKey). Costs 0 PixelLab generations.")
             .AppendLine("- VARIANT: a code-made variant of a library picture (parentKey + variant: night, dusk, snow, after_rain, mirror, recolor). Costs 0.")
             .AppendLine("- PIXELLAB: a new picture. A new NPC costs 14 generations (front, rotate, idle; 96x96 frames, life-like proportions, never chibi);")

@@ -78,7 +78,7 @@ async function setUp(page: Page, role: 'ADMIN' | 'VIP', overrides: Partial<Mock>
     const price = (speed === 'SAVER' ? 4500 : 8000) + Math.max(0, cap - 30) * 15;
     return route.fulfill({ json: envelope({ preset: 'NORMAL_RANDOM', speed, pixelLabCap: cap, priceXu: price, basePriceXu: price - Math.max(0, cap - 30) * 15,
       extraPixelLabXu: Math.max(0, cap - 30) * 15, balance: mock.balance, bonusBalance: 0, maxFromBonus: 0, canAfford: mock.balance >= price,
-      laneConfigured: mock.laneConfigured, estimatedMinutes: speed === 'SAVER' ? 1440 : 90 }) });
+      pixelLabEnabled: true, laneConfigured: mock.laneConfigured, estimatedMinutes: speed === 'SAVER' ? 1440 : 90 }) });
   });
   await page.route((url) => url.pathname === '/api/admin/ai-cases/settings', (route) => {
     if (route.request().method() === 'PUT') {

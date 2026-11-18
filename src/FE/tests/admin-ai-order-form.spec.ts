@@ -144,7 +144,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
     const base = speed === 'SAVER' ? 4500 : 8000;
     const extra = Math.max(0, cap - 30) * 15;
     return route.fulfill({ json: envelope({ preset: 'NORMAL_RANDOM', speed, pixelLabCap: cap, priceXu: base + extra, basePriceXu: base,
-      extraPixelLabXu: extra, balance: 50000, bonusBalance: 0, maxFromBonus: 0, canAfford: true, laneConfigured: true, estimatedMinutes: 90 }) });
+      extraPixelLabXu: extra, balance: 50000, bonusBalance: 0, maxFromBonus: 0, canAfford: true, pixelLabEnabled: true, laneConfigured: true, estimatedMinutes: 90 }) });
   });
   return mock;
 }

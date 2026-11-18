@@ -61,6 +61,11 @@ public class VipPricingSettings
     public decimal CostCapMultiplier { get; set; } = 2m;
     /// <summary>Largest share of an order's price bonus coins may pay (0 = ordinary coins only; at most 0.3).</summary>
     public decimal MaxBonusShare { get; set; }
+    /// <summary>
+    /// Whether VIP orders may use new PixelLab pictures. Off until a no-AI PixelLab runner is proven on the studio VPS:
+    /// VIP pictures then come from the library and variants only (the plan's cap is 0, no extra pictures are sold).
+    /// </summary>
+    public bool PixelLabEnabled { get; set; }
     /// <summary>PixelLab Tier 2: about 24 USD for 5.000 generations.</summary>
     public long PixelLabVndPerGeneration { get; set; } = 130;
     public DateTime? UpdatedAt { get; set; }

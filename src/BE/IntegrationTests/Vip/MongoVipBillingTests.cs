@@ -34,6 +34,13 @@ public sealed class MongoVipBillingTests
     {
         if (!Enabled) return;
         await using var env = await MongoVipLaneTests.VipEnv.CreateAsync();
+        if (extra > 0)
+        {
+            // Extra PixelLab pictures are only sold once PixelLab is on for VIP orders.
+            var pricing = await env.Settings.GetPricingAsync();
+            pricing.PixelLabEnabled = true;
+            await env.Settings.SavePricingAsync(pricing, "admin");
+        }
         var vip = await env.VipAsync(50_000);
 
         var quote = await env.Billing.QuoteAsync(vip, preset, speed, 30 + extra);
@@ -45,6 +52,21 @@ public sealed class MongoVipBillingTests
         Assert.Equal(50_000 - price, (await env.AccountAsync(vip)).Balance);
         Assert.Equal(price, (await env.AccountAsync(vip)).Held);
         Assert.Equal(2 * draft.VipBilling.EstimatedCostVnd, draft.VipBilling.CostCapVnd);
+    }
+
+    [Fact]
+    public async Task WhilePixelLabIsOffForVipOrders_NoExtraPicturesAreSold()
+    {
+        if (!Enabled) return;
+        await using var env = await MongoVipLaneTests.VipEnv.CreateAsync();
+        var vip = await env.VipAsync(50_000);
+
+        var quote = await env.Billing.QuoteAsync(vip, AiGenerationPresets.FullFeature, VipSpeeds.Saver, 60);
+        var draft = await env.HeldDraftAsync(VipSpeeds.Saver, vip, AiGenerationPresets.FullFeature, 30);
+
+        Assert.False(quote.PixelLabEnabled);
+        Assert.Equal((30, 7_500L, 0L), (quote.PixelLabCap, quote.PriceXu, quote.ExtraPixelLabXu));
+        Assert.Equal(7_500, draft.VipBilling!.PriceXu);
     }
 
     [Fact]
