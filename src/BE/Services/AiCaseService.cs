@@ -2607,6 +2607,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
               - For each puzzle pick a kind from its slot's offeredKinds that fits the story and the place. Never use the same kind twice in this case.
               - Write only the player's words for it: prompt (what the detectives see and try), investigationPurpose, successMessage, failureMessage, and the kind's text fields in "authored" (see the schema description; use {} when the kind takes none).
               - Never write a puzzle's answer, code, solution, sequence or mechanics: the server generates them.
+              - board is the case wall: centerKicker (short caps line such as the victim or the missing object), centerTitle, centerSubtitle, summary (what the team knows at the start), and at most 3 links between pinned evidence clues or testimony fragments. Never link a statement to the evidence that breaks it.
+              - timeline (when present): a title, a one-line prompt, and for each event a short label, a detail, a dayLabel and a timeLabel drawn from the truth's time of that event. Never reveal hidden causes in a label.
               """
             : string.Empty;
 

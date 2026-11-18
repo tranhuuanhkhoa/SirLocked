@@ -15,6 +15,39 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
     public JsonObject Build(GameplayProjectionPlan plan)
     {
         var skeleton = plan.Skeleton;
+        var schema = BuildSlots(plan);
+        if (!CaseRuleSets.IsOpenCoop(skeleton)) return schema;
+        // OPEN_COOP_1: the case wall, and the timeline words when the plan has a timeline.
+        var pinnable = skeleton.Clues.Where(clue => clue.IsEvidence).Select(clue => clue.ClueId)
+            .Concat(skeleton.TestimonyFragments.Select(fragment => fragment.Id)).ToList();
+        var link = Object(("fromId", Enum(pinnable)), ("toId", Enum(pinnable)), ("label", Text(40)));
+        AddRequired(schema, "board", Object(
+            ("centerKicker", Text(40)),
+            ("centerTitle", Text(80)),
+            ("centerSubtitle", Text(160)),
+            ("summary", Text(600)),
+            ("links", new JsonObject { ["type"] = "array", ["minItems"] = 0, ["maxItems"] = 3, ["items"] = link })));
+        if (skeleton.Timeline is { } timeline)
+            AddRequired(schema, "timeline", Object(
+                ("title", Text(80)),
+                ("prompt", Text(300)),
+                ("events", SlotMap(timeline.Events.Select(item => (item.EventId, Object(
+                    ("label", Text(80)),
+                    ("detail", Text(240)),
+                    ("dayLabel", Text(40)),
+                    ("timeLabel", Text(20)))))))));
+        return schema;
+    }
+
+    private static void AddRequired(JsonObject schema, string name, JsonObject value)
+    {
+        schema["properties"]!.AsObject()[name] = value;
+        schema["required"]!.AsArray().Add(name);
+    }
+
+    private JsonObject BuildSlots(GameplayProjectionPlan plan)
+    {
+        var skeleton = plan.Skeleton;
         return Object(
             ("schemaVersion", Const(GameplayProjectionVersions.Content)),
             ("planHash", Const(plan.PlanHash)),

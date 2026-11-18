@@ -226,6 +226,14 @@ public sealed class FinalEvidenceProjectionSlot
 
 public sealed class GameplayProjectionContent
 {
+    /// <summary>OPEN_COOP_1: the case wall the AI writes (absent for older drafts).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public CaseBoard? Board { get; set; }
+    /// <summary>OPEN_COOP_1, Medium and Hard: the words of the reconstruction timeline (absent otherwise).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public TimelineProjectionContent? Timeline { get; set; }
     public string SchemaVersion { get; set; } = GameplayProjectionVersions.Content;
     public string PlanHash { get; set; } = string.Empty;
     public CaseProjectionContent Case { get; set; } = new();
@@ -346,6 +354,21 @@ public sealed class ConversationProjectionContent
     public string NodeId { get; set; } = string.Empty;
     public List<string> Lines { get; set; } = new();
     public Dictionary<string, string> ChoiceLabels { get; set; } = new(StringComparer.Ordinal);
+}
+
+public sealed class TimelineProjectionContent
+{
+    public string Title { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public Dictionary<string, TimelineEventProjectionContent> Events { get; set; } = new(StringComparer.Ordinal);
+}
+
+public sealed class TimelineEventProjectionContent
+{
+    public string Label { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public string DayLabel { get; set; } = string.Empty;
+    public string TimeLabel { get; set; } = string.Empty;
 }
 
 public sealed class PuzzleProjectionContent

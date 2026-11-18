@@ -34,6 +34,20 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
 
         foreach (var stage in gameCase.Stages)
             stage.Title = content.Stages[stage.StageId].Title;
+        if (CaseRuleSets.IsOpenCoop(gameCase)) gameCase.Board = content.Board;
+        if (gameCase.Timeline is { } timeline && content.Timeline is { } words)
+        {
+            timeline.Title = words.Title;
+            timeline.Prompt = words.Prompt;
+            foreach (var item in timeline.Events)
+            {
+                var text = words.Events[item.EventId];
+                item.Label = text.Label;
+                item.Detail = text.Detail;
+                item.DayLabel = text.DayLabel;
+                item.TimeLabel = text.TimeLabel;
+            }
+        }
         foreach (var scene in gameCase.Stages.SelectMany(stage => stage.Scenes))
         {
             var value = content.Scenes[scene.SceneId];
@@ -265,6 +279,13 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
                 || !Same(value.CorrectSequence, puzzle.CorrectSequence))
                 errors.Add($"PROJECTION_LOCKED_FIELD puzzles.{id} changed truth basis.");
         }
+        if (CaseRuleSets.IsOpenCoop(plan.Skeleton) && content.Board is null)
+            errors.Add("PROJECTION_BOARD board: an OPEN_COOP case needs its case wall (board).");
+        if (plan.Skeleton.Timeline is { } plannedTimeline)
+        {
+            if (content.Timeline is null) errors.Add("PROJECTION_TIMELINE timeline: this case needs the timeline words.");
+            else Exact(errors, "timeline.events", plannedTimeline.Events.Select(item => item.EventId), content.Timeline.Events.Keys);
+        }
         var pickedKinds = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (id, value) in content.Puzzles)
         {
@@ -495,6 +516,27 @@ public static class ProjectionContentMockFactory
                     choice => choice.ChoiceId,
                     _ => T("Continue questioning", "Tiếp tục thẩm vấn"),
                     StringComparer.Ordinal)
+            };
+        if (CaseRuleSets.IsOpenCoop(plan.Skeleton))
+            content.Board = new CaseBoard
+            {
+                CenterKicker = T("CASE", "VỤ VIỆC"),
+                CenterTitle = T("The missing ledger", "Cuốn sổ bị mất"),
+                CenterSubtitle = T("taken during the stopped-clock window", "bị lấy trong lúc đồng hồ ngừng chạy"),
+                Summary = T("Who took the ledger while the clock stood still?", "Ai đã lấy cuốn sổ khi đồng hồ đứng yên?")
+            };
+        if (plan.Skeleton.Timeline is { } mockTimeline)
+            content.Timeline = new TimelineProjectionContent
+            {
+                Title = T("That night", "Đêm hôm ấy"),
+                Prompt = T("Put the events in their true order.", "Xếp các sự việc theo đúng thứ tự."),
+                Events = mockTimeline.Events.ToDictionary(item => item.EventId, item => new TimelineEventProjectionContent
+                {
+                    Label = T($"Event {item.SortKey / 10}", $"Sự việc {item.SortKey / 10}"),
+                    Detail = T("Something happened here.", "Có chuyện xảy ra ở đây."),
+                    DayLabel = T("Night", "Đêm"),
+                    TimeLabel = $"{20 + item.SortKey / 10}:00"
+                }, StringComparer.Ordinal)
             };
         var mockKinds = new Queue<string>(PuzzleKindAuthoring.FreeKinds);
         foreach (var (id, slot) in plan.Puzzles)

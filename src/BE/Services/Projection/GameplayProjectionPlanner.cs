@@ -291,6 +291,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         CreateHints(skeleton);
         CreateFinalLogic(skeleton, truth);
         ApplyRedHerrings(skeleton, truth, clueByTrace);
+        if (openCoop) CreateTimeline(skeleton, truth, AiDifficultyProfiles.For(draft.Settings.Difficulty));
         AddSceneCompletionRequirements(skeleton);
         return skeleton;
     }
@@ -731,6 +732,42 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             Add(HintContextTypes.Confrontation, challenge.ChallengeId, $"hint-{challenge.ChallengeId}");
         foreach (var deduction in skeleton.Deductions)
             Add(HintContextTypes.Deduction, deduction.DeductionId, $"hint-{deduction.DeductionId}");
+    }
+
+    /// <summary>
+    /// OPEN_COOP_1, Medium and Hard: up to the level's most timeline events, taken in true order from the truth.
+    /// About half are fixed (always the first and the last); the team places the others. A fixed event needs the
+    /// clues of its own traces, never a clue only an optional puzzle gives. The AI writes the words.
+    /// </summary>
+    private static void CreateTimeline(GameCase skeleton, CaseTruthPackage truth, AiDifficultyProfile profile)
+    {
+        if (profile.TimelineEvents.Max == 0) return;
+        var ordered = truth.TrueTimeline.OrderBy(item => item.StartMinute).ThenBy(item => item.EndMinute)
+            .ThenBy(item => item.EventId, StringComparer.Ordinal).ToList();
+        if (ordered.Count == 0) return;
+        var take = Math.Min(profile.TimelineEvents.Max, ordered.Count);
+        // Spread the picks over the whole night rather than the first few minutes.
+        var picked = Enumerable.Range(0, take)
+            .Select(index => ordered[take == 1 ? 0 : (int)Math.Round(index * (ordered.Count - 1) / (double)(take - 1))])
+            .Distinct().ToList();
+        var clueIds = skeleton.Clues.Where(clue => clue.SourceType != "puzzle")
+            .Select(clue => clue.ClueId).ToHashSet(StringComparer.Ordinal);
+        var timeline = new CaseTimeline();
+        for (var index = 0; index < picked.Count; index++)
+        {
+            var source = picked[index];
+            var isFixed = index == 0 || index == picked.Count - 1 || index % 2 == 0;
+            timeline.Events.Add(new CaseTimelineEvent
+            {
+                EventId = $"timeline-{source.EventId}",
+                SortKey = (index + 1) * 10,
+                IsFixed = isFixed,
+                RequiredClueIds = isFixed
+                    ? source.TraceIds.Select(traceId => $"clue-{traceId}").Where(clueIds.Contains).ToList()
+                    : []
+            });
+        }
+        skeleton.Timeline = timeline;
     }
 
     private static void CreateFinalLogic(GameCase skeleton, CaseTruthPackage truth)
