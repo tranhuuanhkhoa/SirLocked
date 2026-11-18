@@ -155,6 +155,7 @@ builder.Services.AddScoped<ICaseService>(services => services.GetRequiredService
 builder.Services.AddScoped<IPixelCaseSeeder>(services => services.GetRequiredService<CaseService>());
 builder.Services.AddScoped<ITutorialCaseSeeder>(services => services.GetRequiredService<CaseService>());
 builder.Services.AddScoped<ITutorialService, TutorialService>();
+builder.Services.AddScoped<SirLocked.Api.Services.CaseEditor.CaseEditorService>();
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
 builder.Services.AddSingleton<IBridgeNotifier, BridgeHubNotifier>();

@@ -13,7 +13,7 @@ import { icon } from './icons.js';
  */
 export const ADMIN_TABS = [
   { href: '/admin', label: 'Tổng quan', icon: 'grid' },
-  { href: '/admin/cases', label: 'Vụ án', icon: 'folder', also: ['/admin/import'], count: 'cases' },
+  { href: '/admin/cases', label: 'Vụ án', icon: 'folder', also: ['/admin/import', '/admin/editor'], count: 'cases' },
   { href: '/admin/ai', label: 'Tạo vụ án AI', icon: 'sparkle' },
   { href: '/admin/weekly', label: 'Hàng tuần', icon: 'calendar' },
   { href: '/admin/chests', label: 'Hòm & vật phẩm', icon: 'chest', also: ['/admin/items'] },

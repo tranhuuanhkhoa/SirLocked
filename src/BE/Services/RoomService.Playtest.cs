@@ -15,7 +15,15 @@ public partial class RoomService
     /// Opens (or reopens) the caller's playtest room of a draft. Only an admin or the draft's author may; the case must be
     /// imported. The room is PRIVATE and carries a single-use invite secret for the second seat.
     /// </summary>
-    public async Task<RoomResponse> CreatePlaytestAsync(CurrentUser user, string draftId)
+    public async Task<RoomResponse> CreatePlaytestAsync(CurrentUser user, string draftId) =>
+        await CreatePlaytestAsync(user, draftId, startSceneId: null);
+
+    /// <summary>
+    /// <see cref="CreatePlaytestAsync(CurrentUser, string)"/> that starts both detectives in <paramref name="startSceneId"/>
+    /// (Case Studio "Chơi thử cảnh này"). A room the caller already has open and that has not started yet takes the new
+    /// start scene; a started one is returned unchanged.
+    /// </summary>
+    public async Task<RoomResponse> CreatePlaytestAsync(CurrentUser user, string draftId, string? startSceneId)
     {
         if (!MongoDB.Bson.ObjectId.TryParse(draftId, out _)) throw ApiException.NotFound(PlaytestNotFoundMessage);
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
@@ -34,6 +42,9 @@ public partial class RoomService
         if (!gameCase.Stages.Any(stage => stage.Scenes.Count > 0))
             throw ApiException.Conflict("The imported case has no scene to play.",
                 PlaytestRoomRules.NotImportedCode, PlaytestRoomRules.NotImportedMessageKey);
+        startSceneId = string.IsNullOrWhiteSpace(startSceneId) ? null : startSceneId.Trim();
+        if (startSceneId is not null && !gameCase.Stages.SelectMany(stage => stage.Scenes).Any(scene => scene.SceneId == startSceneId))
+            throw ApiException.BadRequest($"Scene '{startSceneId}' is not in this case.");
 
         // Pressing "Chơi thử" again returns the room the caller already has open for this draft.
         var rooms = Builders<GameRoom>.Filter;
@@ -43,7 +54,17 @@ public partial class RoomService
                 & rooms.In(room => room.Status, [RoomStatus.Waiting, RoomStatus.Ready, RoomStatus.InProgress]))
             .SortByDescending(room => room.CreatedAt)
             .FirstOrDefaultAsync();
-        if (open is not null) return await ToLobbyResponseAsync(open, gameCase.Title);
+        if (open is not null)
+        {
+            if (open.Status != RoomStatus.InProgress && open.Playtest!.StartSceneId != startSceneId)
+            {
+                await _db.Rooms.UpdateOneAsync(
+                    room => room.Id == open.Id && room.Status != RoomStatus.InProgress,
+                    Builders<GameRoom>.Update.Set(room => room.Playtest!.StartSceneId, startSceneId));
+                open.Playtest.StartSceneId = startSceneId;
+            }
+            return await ToLobbyResponseAsync(open, gameCase.Title);
+        }
 
         var created = new GameRoom
         {
@@ -57,7 +78,8 @@ public partial class RoomService
                 DraftId = draft.Id,
                 AuthorUserId = draft.CreatedByUserId,
                 CreatedByUserId = user.Id,
-                InviteToken = PlaytestRoomRules.NewInviteToken()
+                InviteToken = PlaytestRoomRules.NewInviteToken(),
+                StartSceneId = startSceneId
             }
         };
         await InsertWithRoomCodeAsync(created);

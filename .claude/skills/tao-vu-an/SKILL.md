@@ -38,7 +38,7 @@ Trong skill này, **người đặt đơn** là người tạo đơn trên `/adm
 | 6 | Bot | **Hình nền cảnh và bố cục** (vụ pixel, mục "Hình"): khai `asset_plan` (thư viện → biến thể → PixelLab theo luật 7), tải nền 512×512 từng cảnh, rồi trả lời bố cục mỗi cảnh: `walkGrid`, `foreground`, spawn, cửa, ô bấm trên vật đã vẽ trong nền, chân NPC. → **Cổng 4 LAYOUT** | `assets_needed`, `asset_plan`, `library_search`, `asset_variant`, `asset_process` (`walkable`, `foreground`, `inpaint_prep`, `inpaint_merge`), `asset_upload`, `assets_complete`, `draft_ask` |
 | 7 | Bot | **Hình nhân vật và vật phẩm**: sprite thở 1152×128 + chân dung 288×288 mỗi NPC, icon 64×64 mỗi vật nhặt được | `asset_process` (`npc_bundle`, `icon_sheet`), `asset_upload`, `assets_complete` |
 | 8 | Bot | **Âm thanh và thời tiết**: nhạc mỗi khu chọn trong thư viện nhạc, giọng bíp từng nhân vật (nghe thử, không ai trùng giọng), thời tiết cảnh ngoài trời theo đơn (trong nhà `indoor: true`), thời điểm; quay thử cảnh ngoài trời; tiếng giao diện chọn trong gói CC0 — ghi thẳng trong JSON | `music_search`, `blip_preview`, `weather_preview`, `sfx_search` |
-| 9 | Bot → người đặt đơn | **Chạy thử**: import (không đăng), Playwright tự chơi theo lời giải, viết `report.md`. Người đặt đơn chơi thử, admin bấm Xuất bản | `draft_import`, `playtest`, `draft_report` |
+| 9 | Bot → người đặt đơn | **Chạy thử**: import (không đăng), Playwright tự chơi theo lời giải, viết `report.md`. Người đặt đơn chơi thử; admin mở vụ trong **Case Studio** (`/admin/editor/<caseId>`), sửa, chơi thử từng cảnh rồi tự bấm "Duyệt & xuất bản" | `draft_import`, `playtest`, `draft_report` |
 
 Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại (yêu cầu vẫn mở); không làm lại từ đầu. Draft dừng ở `CASE_TRUTH_INVALID` / `GENERATED_INVALID` thì ghi vào report để người duyệt dùng "sửa theo phạm vi" trên admin.
 
@@ -262,7 +262,8 @@ Theo `docs/case-audio-weather.md`. Không dùng PixelLab cho âm thanh.
 1. `draft_import { draftId }` (vụ chưa đăng; case JSON lưu ở `tmp/bridge/<draftId>/case.json`).
 2. `playtest { draftId }`: tự dựng Mongo + API + web trên máy (lần đầu build vài phút), hai thám tử chơi theo lời giải. Lỗi thì đọc `report.json` của lần chạy, sửa bằng sửa theo phạm vi, chạy lại.
 3. Cập nhật `report.md` (lớp 5, ảnh đã xem, ước tính phút) → `draft_report`.
-4. Báo người đặt đơn (chat nếu có người, luôn ghi report): tên vụ, draft, 5 lớp, số lượt PixelLab đã dùng, việc người đặt đơn cần làm (chơi thử bản import, bấm Xuất bản nếu ưng). Không publish.
+4. Báo người đặt đơn (chat nếu có người, luôn ghi report): tên vụ, draft, 5 lớp, số lượt PixelLab đã dùng, link Case Studio `/admin/editor/<caseId>` và việc cần làm (người đặt đơn chơi thử bản import; admin sửa trong editor nếu cần, chơi thử cảnh, bấm "Duyệt & xuất bản" nếu ưng). Không publish, không gọi API editor.
+5. Đừng `draft_import` lại một vụ admin đã mở trong Case Studio trừ khi admin bảo (trong chat, hoặc chọn qua `draft_ask`): lần nhập lại thay bản admin đang sửa (server giữ bản sửa thành một bản "Bản sửa trước khi nhập lại" trong Lịch sử, nhưng admin phải tự khôi phục).
 
 ## Khi có sự cố
 

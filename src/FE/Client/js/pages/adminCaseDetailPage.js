@@ -88,6 +88,7 @@ export async function renderAdminCaseDetailPage(app, caseId) {
         ${gameCase.summary ? `<p class="acs-hero-summary">${escapeHtml(gameCase.summary)}</p>` : ''}
         <div class="acs-hero-actions">
           <button type="button" class="btn" id="validate-btn">${icon('check', 18)}${tr('Validate', 'Kiểm tra')}</button>
+          ${gameCase.status !== 'PUBLISHED' ? `<a class="btn" id="editor-link" href="/admin/editor/${encodeURIComponent(gameCase.caseId)}">${tr('Open in Case Studio', 'Mở Case Studio')}</a>` : ''}
           ${publishControl}
         </div>
       </div>

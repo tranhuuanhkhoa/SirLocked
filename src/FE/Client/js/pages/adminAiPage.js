@@ -675,6 +675,14 @@ export async function renderAdminAiPage(app) {
       : '';
   }
 
+  /** Case Studio: an admin opens the imported, unpublished case to fix it and publish it after looking at it. */
+  function editorButton(draft, style = 'btn-ghost') {
+    return session.isAdmin() && canPlaytest(draft)
+      ? `<a class="btn ${style} btn-sm" href="/admin/editor/${encodeURIComponent(draft.importedCaseId)}" data-editor-link
+          title="${escapeHtml(tr('Fix the imported case in Case Studio, then approve and publish it', 'Sửa vụ đã import trong Case Studio, xem xong mới duyệt và xuất bản'))}">${tr('Edit in Case Studio', 'Sửa trong editor')}</a>`
+      : '';
+  }
+
   function cancelButton(draft) {
     return draft.canCancel === true && !['PUBLISHED', 'IMPORTED', 'CANCELLED'].includes(draft.status)
       ? `<button class="btn btn-ghost btn-sm adm-btn-danger" type="button" data-cancel-draft="${escapeHtml(draft.draftId)}">${tr('Cancel draft', 'Hủy bản nháp')}</button>` : '';
@@ -832,6 +840,7 @@ export async function renderAdminAiPage(app) {
           ${orderButtons(d)}
           ${continueButton(d, 'btn-ghost')}
           ${cancelButton(d)}
+          ${editorButton(d)}
           ${playtestButton(d)}
           ${d.status === STATUS_PUBLISHED || (d.importedCaseId && !canPlaytest(d))
             ? `<a class="btn btn-ghost btn-sm" href="/cases/${encodeURIComponent(d.importedCaseId ?? d.caseId)}">${tr('Open case', 'Mở vụ án')}</a>`
@@ -1609,7 +1618,8 @@ export async function renderAdminAiPage(app) {
     const adminReview = session.isAdmin() && caseId
       ? `<a class="btn btn-ghost btn-sm" href="/admin/cases/${encodeURIComponent(caseId)}">${tr('Admin review', 'Xem trong quản trị vụ án')}</a>` : '';
     const actions = canPlaytest(d)
-      ? `${playtestButton(d, 'btn-primary')}
+      ? `${editorButton(d, 'btn-primary')}
+          ${playtestButton(d, session.isAdmin() ? 'btn-ghost' : 'btn-primary')}
           ${adminReview}`
       : published && caseId
         ? `<a class="btn btn-primary btn-sm" href="/cases/${encodeURIComponent(caseId)}">${tr('Open published case', 'Mở vụ án đã xuất bản')}</a>

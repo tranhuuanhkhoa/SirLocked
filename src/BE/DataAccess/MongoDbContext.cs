@@ -181,6 +181,7 @@ public partial class MongoDbContext
 
         // The retired USD ledger (aiUsageEvents, aiBudgetLedger) keeps its data but is no longer read or written.
         await EnsureBridgeIndexesAsync(ct);
+        await EnsureCaseEditorIndexesAsync(ct);
 
         await EvidencePhotos.Indexes.CreateOneAsync(
             new CreateIndexModel<EvidencePhoto>(

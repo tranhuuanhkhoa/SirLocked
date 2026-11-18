@@ -486,7 +486,7 @@ public partial class RoomService : IRoomService
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
 
             room.Status = RoomStatus.InProgress;
-            room.GameplayState = CreateInitialGameplayState(gameCase, room.Players.Select(p => p.UserId));
+            room.GameplayState = CreateInitialGameplayState(gameCase, room.Players.Select(p => p.UserId), room.Playtest?.StartSceneId);
             // READY is the only startable stored status, so two concurrent starts cannot both commit.
             if (!await TrySaveLobbyAsync(room, RoomLifecycle.StartableStatuses))
             {
@@ -501,22 +501,39 @@ public partial class RoomService : IRoomService
     }
 
     /// <summary>The gameplay state a room starts with (also used by the solo tutorial room).</summary>
-    internal static GameplayState CreateInitialGameplayState(GameCase gameCase, IEnumerable<string> userIds)
+    /// <param name="startSceneId">
+    /// Playtest only (Case Studio "Chơi thử cảnh này"): both detectives start in this scene. An unknown id falls back to
+    /// the first scene. In a classic case the first scene stays unlocked too, so the way back still exists.
+    /// </param>
+    internal static GameplayState CreateInitialGameplayState(GameCase gameCase, IEnumerable<string> userIds, string? startSceneId = null)
     {
         var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
         var firstScene = firstStage.Scenes.First();
+        var startStage = firstStage;
+        var startScene = firstScene;
+        if (!string.IsNullOrWhiteSpace(startSceneId))
+        {
+            foreach (var stage in gameCase.Stages.OrderBy(s => s.Order))
+            {
+                var match = stage.Scenes.FirstOrDefault(scene => scene.SceneId == startSceneId);
+                if (match is null) continue;
+                startStage = stage;
+                startScene = match;
+                break;
+            }
+        }
         var now = DateTime.UtcNow;
         return new GameplayState
         {
-            CurrentStageId = firstStage.StageId,
-            CurrentSceneId = firstScene.SceneId,
-            PlayerSceneIds = userIds.Distinct().ToDictionary(userId => userId, _ => firstScene.SceneId),
+            CurrentStageId = startStage.StageId,
+            CurrentSceneId = startScene.SceneId,
+            PlayerSceneIds = userIds.Distinct().ToDictionary(userId => userId, _ => startScene.SceneId),
             Version = 1,
-            VisitedSceneIds = new List<string> { firstScene.SceneId },
+            VisitedSceneIds = new List<string> { startScene.SceneId },
             // Open-coop cases let both detectives roam every place from the first second.
             UnlockedSceneIds = CaseRuleSets.IsOpenCoop(gameCase)
                 ? gameCase.Stages.OrderBy(s => s.Order).SelectMany(s => s.Scenes).Select(s => s.SceneId).ToList()
-                : new List<string> { firstScene.SceneId },
+                : new[] { firstScene.SceneId, startScene.SceneId }.Distinct().ToList(),
             GameStatus = GameStatus.InProgress,
             StartedAt = now,
             UpdatedAt = now
