@@ -39,6 +39,7 @@ function state() {
     keyName: 'chìa kính lúp', keyNameEn: 'loupe key', iconKey: 'chest_seal', keyIconKey: 'key_loupe',
     look: { template: 'seal', light: '240,164,58', hi: '255,222,150', core: '255,236,190' },
     chestPrice: 120, keyPrice: 180, active: true, sortOrder: 0, version: 2,
+    challengeWeight: 60, challengePercent: 60,
     dropWeights: { COMMON: 8000, RARE: 1500, EPIC: 0, LEGENDARY: 0, MYSTERY: 500 },
     poolIds: ['VC-0388', 'VC-0402', 'VC-0391', 'frame_dong', 'VC-0217'],
     expectedValue: 100, cost: 300, problems: [],
@@ -49,8 +50,8 @@ function state() {
     requests: [] as { method: string; path: string; body: Json | null }[],
     stockAvailable: true,
     versions: [
-      { version: 2, action: 'update', at: '2026-11-04T08:00:00Z', adminName: 'Yến', reason: 'Tăng giá', current: true, chestPrice: 120, keyPrice: 180, dropWeights: chest.dropWeights, poolCount: 5, diff: { added: [], removed: [], weights: [], fields: [{ field: 'prices.chest', before: '100', after: '120' }], reordered: false, isEmpty: false } },
-      { version: 1, action: 'base', at: '2026-11-01T08:00:00Z', adminName: null, reason: null, current: false, chestPrice: 100, keyPrice: 180, dropWeights: chest.dropWeights, poolCount: 5, diff: { added: [], removed: [], weights: [], fields: [], reordered: false, isEmpty: true } },
+      { version: 2, action: 'update', at: '2026-11-04T08:00:00Z', adminName: 'Yến', reason: 'Tăng giá', current: true, chestPrice: 120, keyPrice: 180, challengeWeight: 60, dropWeights: chest.dropWeights, poolCount: 5, diff: { added: [], removed: [], weights: [], fields: [{ field: 'prices.chest', before: '100', after: '120' }, { field: 'challengeWeight', before: '30', after: '60' }], reordered: false, isEmpty: false } },
+      { version: 1, action: 'base', at: '2026-11-01T08:00:00Z', adminName: null, reason: null, current: false, chestPrice: 100, keyPrice: 180, challengeWeight: 30, dropWeights: chest.dropWeights, poolCount: 5, diff: { added: [], removed: [], weights: [], fields: [], reordered: false, isEmpty: true } },
     ],
     openings: Array.from({ length: 3 }, (_, index) => ({
       id: `u:${index}`, at: `2026-11-0${index + 1}T08:00:00Z`, playerId: 'u1', playerName: index === 2 ? 'Thám tử Bình' : 'Thám tử An',
@@ -81,7 +82,10 @@ function checkOf(s: State, draft: Json) {
   const weights = Object.keys(draft.dropWeights)
     .filter((rarity) => draft.dropWeights[rarity] !== s.chest.dropWeights[rarity])
     .map((rarity) => ({ rarity, before: s.chest.dropWeights[rarity] / 100, after: draft.dropWeights[rarity] / 100 }));
-  const fields = draft.chestPrice !== s.chest.chestPrice ? [{ field: 'prices.chest', before: String(s.chest.chestPrice), after: String(draft.chestPrice) }] : [];
+  const fields = [
+    ...(draft.chestPrice !== s.chest.chestPrice ? [{ field: 'prices.chest', before: String(s.chest.chestPrice), after: String(draft.chestPrice) }] : []),
+    ...(draft.challengeWeight !== s.chest.challengeWeight ? [{ field: 'challengeWeight', before: String(s.chest.challengeWeight), after: String(draft.challengeWeight) }] : []),
+  ];
   return {
     violations, expectedValue: 111, cost: draft.chestPrice + draft.keyPrice, totalWeight: total,
     rates: Object.fromEntries(draft.pool.map((id: string) => {
@@ -149,6 +153,11 @@ async function prepare(page: Page, s: State, role = 'ADMIN') {
       Object.assign(s.chest, {
         name: body.name, chestPrice: body.chestPrice, keyPrice: body.keyPrice, active: body.active, look: body.look,
         dropWeights: body.dropWeights, poolIds: body.pool, version: s.chest.version + 1,
+        // Omitting the field keeps the old value, like the server. The other chests weigh 40 together, so the share is weight / (weight + 40).
+        ...(body.challengeWeight === undefined ? {} : {
+          challengeWeight: body.challengeWeight,
+          challengePercent: body.challengeWeight > 0 ? Math.round((body.challengeWeight / (body.challengeWeight + 40)) * 10000) / 100 : 0,
+        }),
       });
       return ok(route, detail(s));
     }
@@ -451,6 +460,24 @@ test.describe('/admin/chests', () => {
     await expect(row.locator('h2 a[href="/admin/chests/chest_np"]')).toBeVisible();
   });
 
+  test('the list shows the chest\'s share of the weekly challenge drops', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/admin/chests');
+    await expect(page.locator('[data-chest-id="chest_np"] [data-ac-challenge]')).toHaveText('Thử thách tuần: 60%');
+  });
+
+  test('a chest with weight 0 in the weekly challenge is listed as not dropping', async ({ page }) => {
+    const s = state();
+    s.chest.challengeWeight = 0;
+    s.chest.challengePercent = 0;
+    await prepare(page, s);
+    await page.goto('/admin/chests');
+    const label = page.locator('[data-chest-id="chest_np"] [data-ac-challenge]');
+    await expect(label).toContainText('Không rớt');
+    await expect(label).not.toContainText('%');
+  });
+
   test('switching a chest off asks for a reason and sends the whole chest', async ({ page }) => {
     const s = state();
     await prepare(page, s);
@@ -463,7 +490,7 @@ test.describe('/admin/chests', () => {
     await dialog.locator('[data-ac-confirm]').click();
 
     await expect(page.locator('[data-chest-id="chest_np"]')).toContainText('Đang tắt');
-    expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body).toMatchObject({ active: false, reason: 'Tạm ngừng', expectedVersion: 2, chestPrice: 120 });
+    expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body).toMatchObject({ active: false, reason: 'Tạm ngừng', expectedVersion: 2, chestPrice: 120, challengeWeight: 60 });
   });
 
   test('a new chest is cloned from an existing one and opens switched off', async ({ page }) => {
@@ -572,6 +599,50 @@ test.describe('/admin/chests', () => {
     await expect(page.locator('[data-ac-save]')).toBeDisabled();
   });
 
+  test('the weekly challenge weight sits beside the order, shows the saved share, and is saved with the chest', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
+
+    const weight = page.locator('input[name="challengeWeight"]');
+    await expect(page.getByText('Trọng số rớt ở Thử thách tuần')).toBeVisible();
+    await expect(weight).toHaveValue('60');
+    await expect(weight).toHaveAttribute('type', 'number');
+    await expect(weight).toHaveAttribute('min', '0');
+    await expect(weight).toHaveAttribute('max', '10000');
+    await expect(weight).toHaveAttribute('step', '1');
+    await expect(page.locator('[data-ac-challenge-hint]')).toHaveText('Hiện chiếm 60% số hòm rớt ở Thử thách tuần. 0 = không rớt.');
+    await expect(page.locator('[data-ac-save]')).toBeDisabled(); // Showing the weight is not a change.
+
+    await weight.fill('25');
+    await expect(page.locator('[data-ac-save]')).toBeEnabled();
+    expect(sent(s, 'POST', '/check').at(-1)!.body!.challengeWeight).toBe(25);
+    await page.locator('[data-ac-save]').click();
+
+    const dialog = page.locator('dialog.ac-dialog[open]');
+    await expect(dialog).toContainText('Trọng số Thử thách tuần'); // Named in the "what changes" list.
+    await expect(dialog).toContainText('60 → 25');
+    await dialog.locator('[name="reason"]').fill('Giảm hòm thường');
+    await dialog.locator('[data-ac-confirm]').click();
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
+
+    expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body).toMatchObject({ challengeWeight: 25, reason: 'Giảm hòm thường', expectedVersion: 2 });
+    // The share under the box is the server's, for what was saved.
+    await expect(weight).toHaveValue('25');
+    await expect(page.locator('[data-ac-challenge-hint]')).toContainText('38,46%');
+  });
+
+  test('a chest that never drops in the weekly challenge says so under the weight box', async ({ page }) => {
+    const s = state();
+    s.chest.challengeWeight = 0;
+    s.chest.challengePercent = 0;
+    await prepare(page, s);
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
+
+    await expect(page.locator('input[name="challengeWeight"]')).toHaveValue('0');
+    await expect(page.locator('[data-ac-challenge-hint]')).toHaveText('Hiện chiếm 0% số hòm rớt ở Thử thách tuần. 0 = không rớt.');
+  });
+
   test('a save refused by the server stays open with its reasons', async ({ page }) => {
     const s = state();
     await prepare(page, s);
@@ -648,6 +719,9 @@ test.describe('/admin/chests', () => {
     await expect(page.locator('[data-version="2"]')).toContainText('Tăng giá');
     await expect(page.locator('[data-version="2"]')).toContainText('Yến');
     await expect(page.locator('[data-version="2"] [data-ac-restore]')).toHaveCount(0); // It is the current one.
+    await expect(page.locator('[data-version="2"] .ac-version-sum')).toContainText('thử thách 60');
+    await expect(page.locator('[data-version="1"] .ac-version-sum')).toContainText('thử thách 30');
+    await expect(page.locator('[data-version="2"] .ac-diff')).toContainText('Trọng số Thử thách tuần'); // Not the raw field name.
 
     await page.locator('[data-version="1"] [data-ac-restore]').click();
     const dialog = page.locator('dialog.ac-dialog[open]');

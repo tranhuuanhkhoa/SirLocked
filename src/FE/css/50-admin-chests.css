@@ -52,6 +52,7 @@ body[data-area="admin"] .ac-area-title h1 {
 .ac-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
 .ac-field > span:first-child { color: var(--adm-text-2); }
 .ac-field .field-input { width: 100%; box-sizing: border-box; }
+.ac-field-hint { font-weight: 400; line-height: 1.5; color: var(--adm-muted); }
 .ac-optional { font-weight: 400; font-size: 13px; color: var(--adm-muted); }
 .ac-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; }
 .ac-check { display: flex; align-items: center; gap: 10px; grid-column: 1 / -1; min-height: 44px; width: fit-content; font-size: 14px; color: var(--adm-ink); cursor: pointer; }
@@ -119,6 +120,8 @@ body[data-area="admin"] .ac-chest-name a:hover { color: var(--adm-gold-text); }
 .ac-ev { display: flex; flex-direction: column; gap: 6px; }
 .ac-ev-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; font-size: 13px; color: var(--adm-muted); }
 .ac-ev-line strong { color: var(--adm-navy); }
+.ac-challenge { margin: 0; font-size: 13px; color: var(--adm-muted); }
+.ac-challenge strong { color: var(--adm-navy); }
 .adm-meter.ac-ev-meter { height: 8px; background: var(--adm-seg); }
 .ac-chest-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
