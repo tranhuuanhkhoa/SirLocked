@@ -15,9 +15,6 @@ public sealed partial class GameplayProjectionPlanner
     private static void CreateOptionalPuzzles(GameCase skeleton, CaseTruthPackage truth, AiDifficultyProfile profile, string? leaning)
     {
         var count = AiDifficultyProfiles.PuzzleCount(profile, leaning);
-        var vietnamese = skeleton.Language == CaseLanguages.Vietnamese;
-        string T(string english, string translated) => vietnamese ? translated : english;
-
         var protectedTraces = truth.StatementLedger.SelectMany(statement => statement.ContradictedByTraceIds)
             .Concat(truth.RedHerringLedger.SelectMany(redHerring => redHerring.ClearingTraceIds))
             .Select(traceId => $"clue-{traceId}");
@@ -63,9 +60,9 @@ public sealed partial class GameplayProjectionPlanner
             perScene[reward.SceneId]++;
             RemovePreviousCarrier(skeleton, reward);
             var puzzleId = $"puzzle-{index + 1:00}";
+            // Name, description and inspect text stay empty so the content step writes them for the story.
             var target = AddDossierItem(skeleton, $"item-puzzle-{index + 1:00}", reward.SceneId, false,
-                T($"Something to examine {index + 1}", $"Vật cần xem xét {index + 1}"),
-                T("Something here can be worked out by hand.", "Có thứ ở đây cần tự tay giải."), []);
+                string.Empty, string.Empty, []);
             var truthId = reward.ClueId.StartsWith("clue-", StringComparison.Ordinal) ? reward.ClueId["clue-".Length..] : reward.ClueId;
             skeleton.Puzzles.Add(new CasePuzzle
             {

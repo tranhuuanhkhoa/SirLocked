@@ -49,6 +49,18 @@ public sealed class PuzzleKindAuthoringTests
     }
 
     [Fact]
+    public void PuzzleItems_TakeTheirNamesFromTheContent()
+    {
+        var (plan, draft) = MediumWithThreePuzzles();
+        var content = ProjectionContentMockFactory.Build(plan);
+        foreach (var puzzle in plan.Skeleton.Puzzles)
+            content.Items[puzzle.TargetId].Name = $"Tủ thuốc {puzzle.PuzzleId}";
+        var gameCase = new GameCaseProjectionCompiler().Compile(plan, content, draft.Settings);
+        foreach (var puzzle in gameCase.Puzzles)
+            Assert.Equal($"Tủ thuốc {puzzle.PuzzleId}", gameCase.Items.Single(item => item.ItemId == puzzle.TargetId).Name);
+    }
+
+    [Fact]
     public void AuthoredText_IsKeptAndTheRestIsGenerated()
     {
         var (plan, draft) = MediumWithThreePuzzles();
