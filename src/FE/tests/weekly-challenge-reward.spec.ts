@@ -36,6 +36,8 @@ const rewardOf = (thisWeek: Reward['thisWeek'], waiting: Reward['waiting'] = [])
   ({ weekKey: '2026-11-18', minScore: 80, thisWeek, waiting });
 
 type Server = {
+  /** false: the week has no challenge (the server answers null). */
+  hasChallenge: boolean;
   drops: unknown[];
   reward: Reward | null;
   /** One reply per claim, in order: the last one repeats. */
@@ -49,7 +51,7 @@ type Server = {
 };
 
 async function prepare(page: Page, { signedIn = true, language = 'vi', server = {} as Partial<Server> } = {}) {
-  const state: Server = { drops: dropsOf, reward: null, claimReplies: ['ok'], claimById: {}, claimDelayById: {}, claims: [], rewardCalls: 0, claimDelayMs: 0, ...server };
+  const state: Server = { hasChallenge: true, drops: dropsOf, reward: null, claimReplies: ['ok'], claimById: {}, claimDelayById: {}, claims: [], rewardCalls: 0, claimDelayMs: 0, ...server };
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(({ signedIn, language }) => {
     // /workshop/challenge is a signed-in route, so a "guest" here is a token with no user record (session.user() is null).
@@ -68,7 +70,7 @@ async function prepare(page: Page, { signedIn = true, language = 'vi', server = 
   await page.route((url) => url.pathname.startsWith('/api/'), async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    if (path === '/api/workshop/weekly/challenge') return ok(route, challengeBody(state.drops));
+    if (path === '/api/workshop/weekly/challenge') return ok(route, state.hasChallenge ? challengeBody(state.drops) : null);
     if (path === '/api/workshop/weekly/challenge/leaderboard') return ok(route, { metric: 'fastest', entries: [], totalRanked: 0 });
     if (path === '/api/workshop/weekly/challenge/reward') {
       state.rewardCalls++;
@@ -268,6 +270,30 @@ test('in English a network failure says so in English', async ({ page }) => {
   await expect(box(page).getByRole('alert')).toHaveText('Could not reach the server, please try again.');
 });
 
+test.describe('percent format follows the UI language', () => {
+  const thirds = [
+    { ...dropsOf[0], percent: 33.34 },
+    { ...dropsOf[1], percent: 33.33 },
+    { ...dropsOf[2], percent: 33.33 },
+  ];
+
+  test('Vietnamese: a comma before the decimals, whole numbers unchanged', async ({ page }) => {
+    await prepare(page, { signedIn: false, server: { drops: [...thirds, { ...dropsOf[0], chestId: 'chest_whole', percent: 60 }] } });
+    await page.goto('/workshop/challenge');
+
+    const pct = box(page).locator('.bpa-ch-rw-pct');
+    await expect(pct).toHaveText(['33,34%', '33,33%', '33,33%', '60%']);
+  });
+
+  test('English: a point before the decimals', async ({ page }) => {
+    await prepare(page, { signedIn: false, language: 'en', server: { drops: [...thirds, { ...dropsOf[0], chestId: 'chest_whole', percent: 60 }] } });
+    await page.goto('/workshop/challenge');
+
+    const pct = box(page).locator('.bpa-ch-rw-pct');
+    await expect(pct).toHaveText(['33.34%', '33.33%', '33.33%', '60%']);
+  });
+});
+
 test('a week with no chest in the pool says so', async ({ page }) => {
   await prepare(page, { signedIn: false, server: { drops: [] } });
   await page.goto('/workshop/challenge');
@@ -301,6 +327,93 @@ test('in English the box uses the English chest names and texts', async ({ page 
   await expect(box(page).getByRole('link', { name: 'See what is inside the chests in the Chest Vault' })).toHaveAttribute('href', '/kho-ruong');
   await box(page).getByRole('button', { name: 'Claim chest' }).click();
   await expect(box(page).getByText('Your bag is still full.')).toBeVisible();
+});
+
+test.describe('a week with no challenge', () => {
+  const blankMessage = (page: Page) => page.getByRole('heading', { name: /Hiện chưa có thử thách tuần nào/ });
+
+  test('a chest still waiting can be claimed from the blank page, with no odds shown', async ({ page }) => {
+    const older = drop('drop-old', 'WAITING', { weekKey: '2026-11-11', chestName: 'Hòm Sắt Mòn', chestNameEn: 'Worn Iron Chest', chestId: 'chest_sm' });
+    const server = await prepare(page, { server: { hasChallenge: false, reward: rewardOf(null, [older]) } });
+    await page.goto('/workshop/challenge');
+
+    await expect(blankMessage(page)).toBeVisible();
+    const row = box(page).locator('[data-weekly-drop="drop-old"]');
+    await expect(row).toContainText('Hòm Sắt Mòn');
+    await expect(row).toContainText('2026-11-11');
+    const claim = row.getByRole('button', { name: 'Nhận hòm' });
+    await expect(claim).toBeVisible();
+    // No challenge, so no drop table and no odds.
+    await expect(box(page).locator('[data-weekly-chest]')).toHaveCount(0);
+    await expect(box(page)).not.toContainText('%');
+    await expect(box(page)).not.toContainText('Tuần này chưa có hòm nào rớt.');
+
+    await claim.click();
+    await expect(row.getByText('Đã nhận', { exact: true })).toBeVisible();
+    expect(server.claims).toEqual(['drop-old']);
+  });
+
+  test('a bag that is still full says so under the chest', async ({ page }) => {
+    const older = drop('drop-old-full', 'WAITING', { weekKey: '2026-11-11' });
+    const server = await prepare(page, { server: { hasChallenge: false, reward: rewardOf(null, [older]), claimReplies: ['full'] } });
+    await page.goto('/workshop/challenge');
+
+    await box(page).getByRole('button', { name: 'Nhận hòm' }).click();
+    await expect(box(page).getByRole('alert')).toHaveText('Túi vẫn đầy.');
+    await expect(box(page).getByRole('button', { name: 'Nhận hòm' })).toBeEnabled();
+    expect(server.claims).toEqual(['drop-old-full']);
+  });
+
+  test('nothing waiting: only the blank page', async ({ page }) => {
+    const server = await prepare(page, { server: { hasChallenge: false, reward: rewardOf(null, []) } });
+    await page.goto('/workshop/challenge');
+
+    await expect(blankMessage(page)).toBeVisible();
+    await expect.poll(() => server.rewardCalls).toBe(1);
+    await expect(box(page)).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Nhận hòm' })).toHaveCount(0);
+  });
+
+  test('a guest gets the blank page and no reward call', async ({ page }) => {
+    const server = await prepare(page, { signedIn: false, server: { hasChallenge: false } });
+    await page.goto('/workshop/challenge');
+
+    await expect(blankMessage(page)).toBeVisible();
+    await expect(box(page)).toBeHidden();
+    await expect(page.getByText('Đăng nhập để nhận hòm')).toHaveCount(0);
+    expect(server.rewardCalls).toBe(0);
+  });
+
+  test('in English the waiting chest reads in English', async ({ page }) => {
+    const older = drop('drop-old-en', 'WAITING', { weekKey: '2026-11-11' });
+    await prepare(page, { language: 'en', server: { hasChallenge: false, reward: rewardOf(null, [older]) } });
+    await page.goto('/workshop/challenge');
+
+    await expect(box(page).locator('[data-weekly-drop="drop-old-en"]')).toContainText('Bank Safe');
+    await expect(box(page).getByRole('button', { name: 'Claim chest' })).toBeVisible();
+  });
+
+  test('no sideways scroll at 390 px with a long chest name', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const longName = 'Hòm Siêu Dài Của Tuần Lễ Đặc Biệt Nhất Từ Trước Đến Nay Không Hề Ngắn';
+    const waiting = [drop('drop-w-1', 'WAITING', { weekKey: '2026-11-11', chestName: longName }), drop('drop-w-2', 'WAITING', { weekKey: '2026-11-04' })];
+    await prepare(page, { server: { hasChallenge: false, reward: rewardOf(null, waiting) } });
+    await page.goto('/workshop/challenge');
+
+    await expect(box(page).getByRole('button', { name: 'Nhận hòm' })).toHaveCount(2);
+    const overflow = await page.evaluate(() => {
+      const el = document.querySelector('[data-weekly-reward]') as HTMLElement;
+      return {
+        doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        box: el.scrollWidth - el.clientWidth,
+        right: Math.round(el.getBoundingClientRect().right),
+        width: window.innerWidth,
+      };
+    });
+    expect(overflow.doc).toBeLessThanOrEqual(0);
+    expect(overflow.box).toBeLessThanOrEqual(0);
+    expect(overflow.right).toBeLessThanOrEqual(overflow.width);
+  });
 });
 
 test('the page still shows the case and the closing time (07:00 Vietnam time) next to the box', async ({ page }) => {

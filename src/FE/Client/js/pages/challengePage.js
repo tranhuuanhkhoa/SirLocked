@@ -5,7 +5,7 @@ import { toast } from '../utils/toast.js';
 import { tr, plural } from '../services/i18n.js';
 import { leaderboardTableHtml, sealSvg, teamNames, teamMonogram, formatTime } from './workshop/leaderboardTable.js';
 import { coverArtHtml, isoWeek, fmtDate, fmtInt, minutesLabel } from './workshop/caseOfWeekBanner.js';
-import { weeklyRewardBoxHtml, mountWeeklyRewardBox } from './workshop/weeklyRewardBox.js';
+import { weeklyRewardBoxHtml, weeklyWaitingBoxHtml, mountWeeklyRewardBox } from './workshop/weeklyRewardBox.js';
 
 /**
  * Weekly Challenge page (/workshop/challenge): the active challenge case, a flip-clock countdown
@@ -55,12 +55,16 @@ function titleRowHtml(week) {
     </div>`;
 }
 
-/** Almost blank front page: no challenge this week, or the challenge could not be loaded. */
-function blankPageHtml(title, sub) {
+/**
+ * Almost blank front page: no challenge this week, or the challenge could not be loaded. `aboveHtml` goes between the
+ * title and the paper (the chests still waiting from earlier weeks, when there is no challenge).
+ */
+function blankPageHtml(title, sub, aboveHtml = '') {
   const week = isoWeek(new Date());
   return `
   <div class="bpa-container bpa-ch-page">
     ${titleRowHtml('')}
+    ${aboveHtml}
     <section class="bpa-ch-news bpa-ch-blank" aria-labelledby="ch-empty-h">
       <span class="bpa-pin bpa-pin--red" aria-hidden="true"></span>
       <div class="bpa-ch-mastrow bpa-ch-mastrow--solo"><p class="bpa-ch-mast">${tr('221B GAZETTE', 'BÁO 221B')}</p></div>
@@ -289,8 +293,16 @@ export async function renderChallengePage(app) {
   }
 
   if (!challenge) {
-    render(app, blankPageHtml(tr('There is no weekly challenge right now.', 'Hiện chưa có thử thách tuần nào.'), tr('Check back later!', 'Hãy quay lại sau!')));
-    return;
+    // No challenge means nothing drops, but chests from earlier weeks may still wait for room (the result page's
+    // WAITING line links here): the waiting list and its claim buttons still come up for a signed-in player.
+    const waitingLife = new AbortController();
+    render(app, blankPageHtml(
+      tr('There is no weekly challenge right now.', 'Hiện chưa có thử thách tuần nào.'),
+      tr('Check back later!', 'Hãy quay lại sau!'),
+      weeklyWaitingBoxHtml(),
+    ));
+    void mountWeeklyRewardBox(app, { signal: waitingLife.signal, waitingOnly: true });
+    return () => waitingLife.abort();
   }
 
   const deadline = new Date(challenge.weekEnd).getTime();
