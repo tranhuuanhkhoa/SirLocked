@@ -116,6 +116,7 @@ const ERRORS = {
   MARKET_TRADE_EMPTY: ['Add at least one item or some coins.', 'Hãy thêm ít nhất một vật phẩm hoặc một ít xu.'],
   MARKET_TRADE_TOO_MANY_ITEMS: ['At most 6 items per side.', 'Mỗi bên tối đa 6 vật phẩm.'],
   MARKET_TRADE_INVALID_COINS: ['Coins must be between 0 and 1,000,000.', 'Số xu phải từ 0 đến 1.000.000.'],
+  MARKET_TRADE_COINS_NOT_ALLOWED: ['Trades are items only: coins cannot be traded.', 'Trao đổi chỉ gồm vật phẩm, không kèm xu.'],
   MARKET_TRADE_DUPLICATE_ITEM: ['An item is listed twice.', 'Có vật phẩm bị chọn hai lần.'],
   MARKET_TRADE_MESSAGE_TOO_LONG: ['The message is too long (200 characters).', 'Lời nhắn quá dài (tối đa 200 ký tự).'],
   MARKET_TRADE_ITEM_UNAVAILABLE: ['An item in this offer is no longer available.', 'Một vật phẩm trong đề nghị không còn sẵn sàng.'],

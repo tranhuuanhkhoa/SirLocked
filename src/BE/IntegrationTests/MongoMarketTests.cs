@@ -459,6 +459,49 @@ public sealed class MongoMarketTests
     }
 
     [Fact]
+    public async Task WithTradeCoinsOff_OffersCarryItemsOnly_AndAnOldCoinOfferCanOnlyBeDeclined()
+    {
+        if (!Enabled) return;
+        await using var env = await MarketEnv.CreateAsync();
+        var alice = await env.AddUserAsync("Alice");
+        var bob = await env.AddUserAsync("Bob");
+        var mag = await env.FirstItemAsync(alice.Id);
+        var bobItem = await env.FirstItemAsync(bob.Id);
+        // Made while coins could still be traded.
+        var old = await env.Market.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id, OfferItemIds = new() { mag.ItemId }, RequestCoins = 100 });
+        var itemsOnly = env.ItemsOnly();
+
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() =>
+            itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id, OfferCoins = 10 }))));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() =>
+            itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id, OfferItemIds = new() { mag.ItemId }, RequestCoins = 1 }))));
+        Assert.Equal(MarketErrors.TradeEmpty, Code(await Throws(() =>
+            itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id }))));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() =>
+            itemsOnly.CounterTradeAsync(bob, old.OfferId, new TradeTermsRequest { RequestItemIds = new() { mag.ItemId }, OfferCoins = 5 }))));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() => itemsOnly.AcceptTradeAsync(bob, old.OfferId))));
+        Assert.Equal(TradeOfferStatus.Pending, (await env.Store.Trades.Find(t => t.Id == old.OfferId).FirstAsync()).Status);
+        Assert.False((await itemsOnly.GetTradesAsync(bob.Id)).CoinsAllowed);
+        Assert.True((await env.Market.GetTradesAsync(bob.Id)).CoinsAllowed);
+
+        // Items for items still goes through, and no coin moves.
+        var swap = await itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest
+        {
+            ToUserId = bob.Id, OfferItemIds = new() { mag.ItemId }, RequestItemIds = new() { bobItem.ItemId },
+        });
+        await itemsOnly.AcceptTradeAsync(bob, swap.OfferId);
+        Assert.Equal(bob.Id, (await env.Store.Items.Find(i => i.Id == mag.ItemId).FirstAsync()).OwnerId);
+        Assert.Equal(alice.Id, (await env.Store.Items.Find(i => i.Id == bobItem.ItemId).FirstAsync()).OwnerId);
+        Assert.Equal(500L, (await env.Market.GetWalletAsync(alice.Id)).Balance);
+        Assert.Equal(500L, (await env.Market.GetWalletAsync(bob.Id)).Balance);
+
+        // The old coin offer can still be closed.
+        await itemsOnly.DeclineTradeAsync(bob.Id, old.OfferId);
+        Assert.Equal(TradeOfferStatus.Declined, (await env.Store.Trades.Find(t => t.Id == old.OfferId).FirstAsync()).Status);
+        await env.AssertCoinsConservedAsync(expectedFees: 0);
+    }
+
+    [Fact]
     public async Task TradeIsRevalidatedAtAccept_ListedItemMakesItFail_WithoutMovingAnything()
     {
         if (!Enabled) return;
@@ -801,6 +844,10 @@ public sealed class MongoMarketTests
         public MongoDbContext Db { get; }
         public MarketStore Store { get; }
         public MarketService Market { get; }
+
+        /// <summary>The same store with Market:TradeCoins off.</summary>
+        public MarketService ItemsOnly() => new(Store, NullLogger<MarketService>.Instance, null,
+            Options.Create(new MarketSettings { TradeCoins = false }));
 
         public static async Task<MarketEnv> CreateAsync()
         {

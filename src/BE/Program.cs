@@ -84,6 +84,7 @@ builder.Services.AddHostedService<CutsceneSeedWorker>();
 builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
 builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
+builder.Services.Configure<MarketSettings>(builder.Configuration.GetSection("Market"));
 builder.Services.AddOptions<ChestSettings>()
     .Bind(builder.Configuration.GetSection("Chests"))
     .Validate(ChestSettings.IsValid, "Chests:Prices must price every chest and keep its expected value below the cost of opening.")

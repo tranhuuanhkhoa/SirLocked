@@ -12,11 +12,16 @@ function emptyDraft() {
   return { partner: null, partnerItems: null, give: [], get: [], giveCoins: '', getCoins: '', message: '', counterOf: null, picker: null };
 }
 
-/** TRAO ĐỔI: build an offer (items + coins each side, message) and answer incoming offers. */
+/**
+ * TRAO ĐỔI: build an offer (items each side, plus coins only when the server allows them, message) and answer
+ * incoming offers. With Market:TradeCoins off the server answers coinsAllowed=false: the coin fields stay hidden.
+ */
 export function mountTradeTab(ctx) {
   const { panel, state } = ctx;
   if (!state.trade) state.trade = emptyDraft();
   const draft = state.trade;
+  // Hidden until the server says coins may be traded.
+  const coinsAllowed = () => state.trades?.coinsAllowed === true;
   let searchTimer = 0;
   let searchSeq = 0;
   let pollTimer = 0;
@@ -28,6 +33,7 @@ export function mountTradeTab(ctx) {
         <div>
           <h2 class="bpa-mk-h2" id="mk-trade-h" tabindex="-1">${tr('New trade offer', 'Đề nghị trao đổi mới')}</h2>
           <p class="bpa-mk-sub">${tr('Pick your items and the ones you want. The trade completes when the other detective accepts.', 'Chọn đồ của bạn và đồ bạn muốn nhận. Đối phương xác nhận thì giao dịch hoàn tất.')}</p>
+          <p class="bpa-mk-sub" id="mk-items-only" hidden>${tr('Trades are items for items: coins cannot be traded.', 'Chỉ trao đổi vật phẩm với nhau, không kèm xu.')}</p>
         </div>
         <div id="mk-counterbanner"></div>
         <div class="bpa-mk-to">
@@ -43,13 +49,13 @@ export function mountTradeTab(ctx) {
           <div class="bpa-mk-swapside is-give">
             <p class="bpa-mk-label is-teal" id="mk-give-h">${tr('YOU GIVE', 'BẠN ĐƯA')}</p>
             <div class="bpa-mk-slots" id="mk-give" role="group" aria-labelledby="mk-give-h"></div>
-            <label class="bpa-mk-coinin"><span>${tr('+ coins', '+ xu')}</span><input id="mk-give-coins" class="bpa-mk-field is-sm" type="number" inputmode="numeric" min="0" max="${MAX_COINS}" step="1" placeholder="0" value="${escapeHtml(draft.giveCoins)}"></label>
+            <label class="bpa-mk-coinin" data-mk-coins hidden><span>${tr('+ coins', '+ xu')}</span><input id="mk-give-coins" class="bpa-mk-field is-sm" type="number" inputmode="numeric" min="0" max="${MAX_COINS}" step="1" placeholder="0" value="${escapeHtml(draft.giveCoins)}"></label>
           </div>
           <span class="bpa-mk-swaparrow">${ARROW_SWAP(44)}</span>
           <div class="bpa-mk-swapside is-get">
             <p class="bpa-mk-label is-rust" id="mk-get-h">${tr('YOU GET', 'BẠN NHẬN')}</p>
             <div class="bpa-mk-slots" id="mk-get" role="group" aria-labelledby="mk-get-h"></div>
-            <label class="bpa-mk-coinin"><span>${tr('+ coins', '+ xu')}</span><input id="mk-get-coins" class="bpa-mk-field is-sm" type="number" inputmode="numeric" min="0" max="${MAX_COINS}" step="1" placeholder="0" value="${escapeHtml(draft.getCoins)}"></label>
+            <label class="bpa-mk-coinin" data-mk-coins hidden><span>${tr('+ coins', '+ xu')}</span><input id="mk-get-coins" class="bpa-mk-field is-sm" type="number" inputmode="numeric" min="0" max="${MAX_COINS}" step="1" placeholder="0" value="${escapeHtml(draft.getCoins)}"></label>
           </div>
         </div>
         <div class="bpa-mk-picker" id="mk-picker" hidden></div>
@@ -233,6 +239,8 @@ export function mountTradeTab(ctx) {
         : tr(`<strong>${escapeHtml(other)}</strong> wants to trade with you`, `<strong>${escapeHtml(other)}</strong> muốn đổi với bạn`))
       : tr(`Waiting for <strong>${escapeHtml(other)}</strong>`, `Đang chờ <strong>${escapeHtml(other)}</strong>`);
     const busy = offer.status === 'ACCEPTING';
+    // An offer made with coins before they were switched off can only be declined or countered.
+    const coinBlocked = incoming && state.trades?.coinsAllowed === false && (offer.fromCoins > 0 || offer.toCoins > 0);
     return `
       <article class="bpa-mk-offer" data-offer="${escapeHtml(offer.offerId)}">
         <p class="bpa-mk-offertitle"><span>${title}</span><span class="bpa-mk-mini">${escapeHtml(shortDate(offer.createdAt))}</span></p>
@@ -242,10 +250,11 @@ export function mountTradeTab(ctx) {
           <div class="bpa-mk-offerside"><span class="bpa-mk-mini is-rust">${tr('YOU GIVE', 'BẠN ĐƯA')}</span><div>${give}</div></div>
         </div>
         ${offer.message ? `<p class="bpa-mk-msg">“${escapeHtml(offer.message)}”</p>` : ''}
+        ${coinBlocked ? `<p class="bpa-mk-warn">${tr('This offer includes coins, which can no longer be traded: decline it or send a counter-offer with items only.', 'Đề nghị này có xu, mà xu không còn được trao đổi: hãy từ chối hoặc phản đề nghị chỉ bằng vật phẩm.')}</p>` : ''}
         ${anyGone ? `<p class="bpa-mk-warn">${tr('Some items are no longer available; accepting will fail.', 'Có vật phẩm không còn sẵn sàng; chấp nhận sẽ không thành công.')}</p>` : ''}
         <div class="bpa-mk-offeracts">
           ${busy ? `<span class="bpa-mk-mini">${tr('Completing…', 'Đang hoàn tất…')}</span>` : incoming ? `
-            <button type="button" class="bpa-btn bpa-btn--red bpa-btn--sm" data-act="accept" data-id="${escapeHtml(offer.offerId)}">${tr('ACCEPT', 'CHẤP NHẬN')}</button>
+            ${coinBlocked ? '' : `<button type="button" class="bpa-btn bpa-btn--red bpa-btn--sm" data-act="accept" data-id="${escapeHtml(offer.offerId)}">${tr('ACCEPT', 'CHẤP NHẬN')}</button>`}
             <button type="button" class="bpa-btn bpa-btn--ink bpa-btn--sm" data-act="decline" data-id="${escapeHtml(offer.offerId)}">${tr('DECLINE', 'TỪ CHỐI')}</button>
             <button type="button" class="bpa-btn bpa-btn--ink bpa-btn--sm" data-act="counter" data-id="${escapeHtml(offer.offerId)}">${tr('COUNTER', 'PHẢN ĐỀ NGHỊ')}</button>` : `
             <button type="button" class="bpa-btn bpa-btn--ink bpa-btn--sm" data-act="cancel-offer" data-id="${escapeHtml(offer.offerId)}">${tr('CANCEL OFFER', 'HỦY ĐỀ NGHỊ')}</button>`}
@@ -287,6 +296,7 @@ export function mountTradeTab(ctx) {
       const trades = await marketApi.trades();
       if (!ctx.isActive()) return;
       state.trades = trades;
+      syncCoins();
       renderOffers();
     } catch (error) {
       if (ctx.isActive() && !state.trades) $('#mk-offers').innerHTML = `<p class="bpa-mk-empty" role="alert">${escapeHtml(errorText(error))}</p>`;
@@ -309,6 +319,19 @@ export function mountTradeTab(ctx) {
     }
   }
 
+  /** Shows the coin fields only when the server allows coins; otherwise they are emptied and say why. */
+  function syncCoins() {
+    const allowed = coinsAllowed();
+    panel.querySelectorAll('[data-mk-coins]').forEach((el) => { el.hidden = !allowed; });
+    $('#mk-items-only').hidden = allowed || !state.trades;
+    if (!allowed) {
+      draft.giveCoins = '';
+      draft.getCoins = '';
+      $('#mk-give-coins').value = '';
+      $('#mk-get-coins').value = '';
+    }
+  }
+
   function resetDraft() {
     Object.assign(draft, emptyDraft());
     $('#mk-give-coins').value = '';
@@ -323,8 +346,8 @@ export function mountTradeTab(ctx) {
       counterOf: offer,
       give: offer.toItems.filter((item) => item.available).map((item) => item.itemId),
       get: offer.fromItems.filter((item) => item.available).map((item) => item.itemId),
-      giveCoins: offer.toCoins ? String(offer.toCoins) : '',
-      getCoins: offer.fromCoins ? String(offer.fromCoins) : '',
+      giveCoins: offer.toCoins && coinsAllowed() ? String(offer.toCoins) : '',
+      getCoins: offer.fromCoins && coinsAllowed() ? String(offer.fromCoins) : '',
     });
     $('#mk-give-coins').value = draft.giveCoins;
     $('#mk-get-coins').value = draft.getCoins;
@@ -396,8 +419,8 @@ export function mountTradeTab(ctx) {
     if (event.target.id !== 'mk-tradeform') return;
     event.preventDefault();
     errorEl.textContent = '';
-    const giveCoins = coinsValue('#mk-give-coins');
-    const getCoins = coinsValue('#mk-get-coins');
+    const giveCoins = coinsAllowed() ? coinsValue('#mk-give-coins') : 0;
+    const getCoins = coinsAllowed() ? coinsValue('#mk-get-coins') : 0;
     if (!draft.partner) {
       errorEl.textContent = tr('Choose who receives the offer.', 'Hãy chọn người nhận đề nghị.');
       $('#mk-to').focus();
@@ -408,7 +431,9 @@ export function mountTradeTab(ctx) {
       return;
     }
     if (!draft.give.length && !draft.get.length && !giveCoins && !getCoins) {
-      errorEl.textContent = tr('Add at least one item or some coins.', 'Hãy thêm ít nhất một vật phẩm hoặc một ít xu.');
+      errorEl.textContent = coinsAllowed()
+        ? tr('Add at least one item or some coins.', 'Hãy thêm ít nhất một vật phẩm hoặc một ít xu.')
+        : tr('Add at least one item.', 'Hãy thêm ít nhất một vật phẩm.');
       return;
     }
     if (state.wallet && giveCoins > state.wallet.balance) {
@@ -501,7 +526,9 @@ export function mountTradeTab(ctx) {
       case 'accept':
         ctx.run(action, async () => {
           await marketApi.acceptTrade(action.dataset.id);
-          toast(tr('Trade complete — items and coins have changed hands.', 'Giao dịch hoàn tất — vật phẩm và xu đã được trao đổi.'), 'success');
+          toast(coinsAllowed()
+            ? tr('Trade complete — items and coins have changed hands.', 'Giao dịch hoàn tất — vật phẩm và xu đã được trao đổi.')
+            : tr('Trade complete — the items have changed hands.', 'Giao dịch hoàn tất — vật phẩm đã được trao đổi.'), 'success');
           await Promise.all([loadTrades(), loadInventory(), ctx.refreshWallet()]);
         }, null, () => loadTrades());
         break;
@@ -525,6 +552,7 @@ export function mountTradeTab(ctx) {
   });
 
   renderForm();
+  syncCoins();
   if (state.trades) renderOffers();
   loadTrades();
   loadInventory();

@@ -137,6 +137,17 @@ public class MarketRulesTests
     }
 
     [Fact]
+    public void TradeDraft_WithCoinsOff_RefusesAnyCoins_AndNeedsAnItem()
+    {
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, MarketRules.ValidateTradeDraft(Draft(requestCoins: 100), allowCoins: false));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed,
+            MarketRules.ValidateTradeDraft(Draft(offer: new[] { "a1" }, offerCoins: 1), allowCoins: false));
+        Assert.Equal(MarketErrors.TradeEmpty, MarketRules.ValidateTradeDraft(Draft(), allowCoins: false));
+        Assert.Null(MarketRules.ValidateTradeDraft(Draft(offer: new[] { "a1" }, request: new[] { "b1" }), allowCoins: false));
+        Assert.Null(MarketRules.ValidateTradeDraft(Draft(offer: new[] { "a1" }), allowCoins: false));
+    }
+
+    [Fact]
     public void TradeDraft_AcceptsGiftsRequestsAndSwaps()
     {
         Assert.Null(MarketRules.ValidateTradeDraft(Draft(offer: new[] { "a1" })));

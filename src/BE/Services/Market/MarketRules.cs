@@ -27,6 +27,7 @@ public static class MarketErrors
     public const string TradeEmpty = "MARKET_TRADE_EMPTY";
     public const string TradeTooManyItems = "MARKET_TRADE_TOO_MANY_ITEMS";
     public const string TradeInvalidCoins = "MARKET_TRADE_INVALID_COINS";
+    public const string TradeCoinsNotAllowed = "MARKET_TRADE_COINS_NOT_ALLOWED";
     public const string TradeDuplicateItem = "MARKET_TRADE_DUPLICATE_ITEM";
     public const string TradeMessageTooLong = "MARKET_TRADE_MESSAGE_TOO_LONG";
     public const string TradeItemUnavailable = "MARKET_TRADE_ITEM_UNAVAILABLE";
@@ -140,8 +141,11 @@ public static class MarketRules
     public static bool HasRoom(int slotsUsed, int incoming, int cap = InventorySlots) =>
         incoming <= 0 || slotsUsed + incoming <= cap;
 
-    /// <summary>Shape checks for a new trade offer (ownership is checked against the database afterwards).</summary>
-    public static string? ValidateTradeDraft(TradeDraft draft)
+    /// <summary>
+    /// Shape checks for a new trade offer (ownership is checked against the database afterwards).
+    /// <paramref name="allowCoins"/> false: any coins on either side are refused, so an offer needs at least one item.
+    /// </summary>
+    public static string? ValidateTradeDraft(TradeDraft draft, bool allowCoins = true)
     {
         if (string.IsNullOrWhiteSpace(draft.ToUserId) || draft.ToUserId == draft.FromUserId)
             return MarketErrors.TradeSelf;
@@ -150,6 +154,8 @@ public static class MarketRules
         if (draft.OfferCoins < 0 || draft.OfferCoins > MaxTradeCoins
             || draft.RequestCoins < 0 || draft.RequestCoins > MaxTradeCoins)
             return MarketErrors.TradeInvalidCoins;
+        if (!allowCoins && (draft.OfferCoins != 0 || draft.RequestCoins != 0))
+            return MarketErrors.TradeCoinsNotAllowed;
         var all = draft.OfferItemIds.Concat(draft.RequestItemIds).ToList();
         if (all.Any(string.IsNullOrWhiteSpace) || all.Distinct(StringComparer.Ordinal).Count() != all.Count)
             return MarketErrors.TradeDuplicateItem;
