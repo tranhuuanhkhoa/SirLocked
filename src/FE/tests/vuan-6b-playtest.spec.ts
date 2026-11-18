@@ -113,7 +113,7 @@ test('ADMIN: only an imported, unpublished draft offers "Chơi thử", which ope
   await page.screenshot({ path: testInfo.outputPath('playtest-lobby-390.png') });
 });
 
-test('ADMIN: the draft card offers "Chơi thử" first and explains it; a refusal is shown in Vietnamese and keeps the page', async ({ page }) => {
+test('ADMIN: the draft card leads to Case Studio, offers "Chơi thử" and explains it; a refusal is shown in Vietnamese and keeps the page', async ({ page }) => {
   await signIn(page, ADMIN);
   await mockAdminAi(page, ADMIN, [imported]);
   await page.route((url) => url.pathname === `/api/admin/ai-cases/${imported.draftId}`, (route) => ok(route, imported));
@@ -125,7 +125,9 @@ test('ADMIN: the draft card offers "Chơi thử" first and explains it; a refusa
   await page.goto('/admin/ai');
   await page.locator(`[data-draft-row="${imported.draftId}"]`).getByRole('button', { name: 'Xem' }).click();
   const card = page.locator('#ai-output');
-  await expect(card.locator('[data-playtest-draft].btn-primary')).toBeVisible();
+  // Case Studio comes first for the owner: fix the imported case, playtest it, then publish from the editor.
+  await expect(card.locator('[data-editor-link].btn-primary')).toHaveAttribute('href', `/admin/editor/${CASE_ID}`);
+  await expect(card.locator('[data-playtest-draft]')).toBeVisible();
   await expect(card.locator('[data-playtest-help]')).toContainText('một người được mời bằng liên kết');
   await expect(card).not.toContainText('Mở vụ án đã xuất bản');
   await expect(card.getByRole('link', { name: 'Xem trong quản trị vụ án' })).toHaveAttribute('href', `/admin/cases/${CASE_ID}`);
@@ -144,6 +146,8 @@ test('VIP: the author playtests their own imported draft from /admin/ai', async 
   await mockLobby(page, lobbyRoom(VIP));
 
   await page.goto('/admin/ai');
+  // A VIP author has no Case Studio: publishing stays the owner's decision.
+  await expect(page.locator('[data-editor-link]')).toHaveCount(0);
   await page.locator(`[data-draft-row="${imported.draftId}"]`).getByRole('button', { name: 'Chơi thử' }).click();
   await expect(page).toHaveURL(new RegExp(`/lobby/${ROOM_ID}$`));
   expect(posts).toBe(1);
