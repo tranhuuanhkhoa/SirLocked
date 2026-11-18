@@ -6,9 +6,10 @@ import { assetProcess, assetVariant, PROCESS_OPS } from './tools/assets.js';
 import { bridgeAsk, bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from './tools/bridge.js';
 import type { ToolContext } from './tools/context.js';
 import {
-  assetPlan, assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
+  assetDownload, assetPlan, assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
 } from './tools/draft.js';
 import { librarySearch, librarySync } from './tools/library.js';
+import { pixellabCharacterZip } from './tools/pixellab.js';
 import { playtest } from './tools/playtest.js';
 import { blipPreview, sfxSearch, TIMES_OF_DAY, weatherPreview, WEATHER_TYPES } from './tools/atmosphere.js';
 import { musicSearch } from './tools/music.js';
@@ -17,7 +18,7 @@ import { VARIANT_TYPES } from './image/variant.js';
 export const TOOL_NAMES = [
   'bridge_list', 'bridge_take', 'bridge_check', 'bridge_submit', 'bridge_release',
   'draft_get', 'draft_ask', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
-  'assets_needed', 'asset_plan', 'asset_upload', 'assets_complete',
+  'assets_needed', 'asset_plan', 'asset_upload', 'asset_download', 'pixellab_character_zip', 'assets_complete',
   'library_search', 'library_sync', 'asset_process', 'asset_variant', 'playtest',
   'weather_preview', 'blip_preview', 'sfx_search', 'music_search',
 ] as const;
@@ -107,6 +108,10 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
   tool('asset_upload', 'Tải hình (PNG/WebP, ≤ 5 MB) cho một ô của draft qua bridge (server đưa lên Cloudinary).',
     { draftId: id, slotId: z.string().min(1), file: z.string().min(1), width: z.number().int().optional(), height: z.number().int().optional(), transparent: z.boolean().optional() },
     (args) => assetUpload(ctx, args));
+  tool('asset_download', 'Tải về máy hình mà một ô của draft ĐÃ có trên server (currentUrl trong assets_needed), lưu ở tmp/bridge/<draftId>/assets/<slotId>.png. Dùng khi bước bố cục cần ảnh nền cảnh để đo và dựng walkGrid mà máy không còn bản gốc. Chỉ tải hình của chính draft, 0 lượt PixelLab.',
+    { draftId: id, slotId: z.string().min(1) }, (args) => assetDownload(ctx, args));
+  tool('pixellab_character_zip', 'Tải file zip của một nhân vật PixelLab (create_character + animate_character) về tmp/pixellab/<draftId>/chars/<npcId>/character.zip để asset_process npc_bundle cắt sprite thở và chân dung. Chỉ tải từ api.pixellab.ai theo characterId, 0 lượt PixelLab.',
+    { draftId: id, npcId: id, characterId: z.string().min(1) }, (args) => pixellabCharacterZip(ctx, args));
   tool('assets_complete', 'Báo server đã đủ hình cho yêu cầu ASSETS đang mở; pipeline đi tiếp.', { draftId: id }, (args) => assetsComplete(ctx, args));
 
   // ---------------------------------------------------------------- library
