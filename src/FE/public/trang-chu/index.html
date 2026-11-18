@@ -198,7 +198,7 @@ html.calm .music-btn[aria-pressed="true"] .eq i { height: 10px; }
 .cast { position: absolute; inset: 0; pointer-events: none; }
 .fig { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 .fig img { display: block; width: 100%; height: 100%; max-width: none; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 24px 30px rgba(0, 0, 0, .6)); -webkit-mask-image: linear-gradient(0deg, transparent 0%, #000 10%); mask-image: linear-gradient(0deg, transparent 0%, #000 10%); }
-.smoke { position: absolute; left: 76.4%; top: 16.2%; width: 14%; height: 0; transform: translateX(-50%); pointer-events: none; }
+.smoke { position: absolute; left: 78.9%; top: 17.5%; width: 18%; height: 0; transform: translateX(-50%); pointer-events: none; }
 .smoke .ember { position: absolute; left: 50%; top: 0; width: 22%; aspect-ratio: 1; transform: translate(-50%, -40%); border-radius: 50%; background: radial-gradient(circle, rgba(255, 196, 120, .95) 0%, rgba(255, 110, 40, .65) 35%, rgba(255, 90, 30, 0) 72%); mix-blend-mode: screen; animation: ember 2.4s ease-in-out infinite; }
 .smoke i { position: absolute; left: 36%; top: -14%; width: 28%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(226, 222, 214, .42) 0%, rgba(226, 222, 214, .16) 45%, rgba(226, 222, 214, 0) 70%); filter: blur(3px); opacity: 0; animation: puff 5.25s cubic-bezier(.3, .55, .45, 1) var(--d, 0s) infinite; }
 .smoke .curl { position: absolute; left: 20%; bottom: 0; width: 60%; height: auto; aspect-ratio: 1 / 3; overflow: visible; opacity: .85; }
@@ -559,7 +559,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
       <svg class="deduce" id="deduce" aria-hidden="true"></svg>
       <div class="cast">
         <div class="fig fig-sherlock" id="fig-sherlock">
-          <img src="/trang-chu/assets/sherlock.webp" alt="Sherlock cầm tẩu, đang suy luận" width="809" height="1083" draggable="false">
+          <img src="/trang-chu/assets/sherlock-pixel.webp" alt="Sherlock đội mũ thợ săn, khoác áo choàng nâu, cầm tẩu suy luận" width="669" height="996" draggable="false">
           <div class="smoke" aria-hidden="true">
             <span class="ember"></span>
             <i style="--dx:-30%;--d:0s"></i><i style="--dx:40%;--d:-.58s"></i><i style="--dx:-60%;--d:-1.17s"></i><i style="--dx:20%;--d:-1.75s"></i><i style="--dx:-15%;--d:-2.33s"></i><i style="--dx:55%;--d:-2.92s"></i><i style="--dx:-45%;--d:-3.5s"></i><i style="--dx:10%;--d:-4.08s"></i><i style="--dx:-70%;--d:-4.67s"></i>
@@ -567,7 +567,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
           </div>
         </div>
         <div class="fig fig-watson" id="fig-watson">
-          <img src="/trang-chu/assets/watson.webp" alt="Watson đứng quan sát hiện trường" width="472" height="985" draggable="false">
+          <img src="/trang-chu/assets/watson-pixel.webp" alt="Watson đội mũ quả dưa, mặc áo khoác xanh rêu, đứng quan sát hiện trường" width="489" height="909" draggable="false">
         </div>
       </div>
       <div class="tapes" aria-hidden="true">
@@ -619,7 +619,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
 
       <div class="lie" id="lie">
         <div class="lie-col lie-ev">
-          <h3 class="role"><span class="avatar" aria-hidden="true"><img src="/trang-chu/assets/avatar-watson.webp" alt="" width="180" height="180" loading="lazy"></span><span class="role-txt"><span class="role-tag teal">Watson · Điều tra viên</span>Vật chứng vừa tìm được</span></h3>
+          <h3 class="role"><span class="avatar" aria-hidden="true"><img src="/trang-chu/assets/avatar-watson-pixel.webp" alt="" width="180" height="180" loading="lazy"></span><span class="role-txt"><span class="role-tag teal">Watson · Điều tra viên</span>Vật chứng vừa tìm được</span></h3>
           <ul class="ev-list">
             <li><button class="ev" type="button" data-ok="0"><span class="ev-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5h18v2.6a1.9 1.9 0 0 0 0 3.8v2.6H3v-2.6a1.9 1.9 0 0 0 0-3.8z"/><path d="M9 8.5v9" stroke-dasharray="1.6 1.8"/></svg></span><span class="ev-t">Cuống vé 20:42</span><span class="ev-d">Một cuống vé đặt một hành khách chưa rõ danh tính trên tuyến tàu buổi tối.</span><span class="ev-flag" aria-hidden="true">Không khớp</span></button></li>
             <li><button class="ev" type="button" data-ok="1"><span class="ev-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8c1.6 1 2.9.3 4 1.6s.6 2.8 1.7 4.2.1 2.9-.4 4.4-1.9 2.1-3.1 3-2.3 2.2-4.2 2.2-2.9-1.3-4.2-2.2-2.6-1.5-3.1-3 .6-3-.4-4.4.6-2.9 1.7-4.2 2.4-.6 4-1.6 2.4-.9 4 0z"/><circle cx="12" cy="10.2" r="3.8"/><path d="M9.5 19.5l-1 2.5M14.5 19.5l1 2.5"/></svg></span><span class="ev-t">Hai lớp sáp xanh</span><span class="ev-d">Con dấu gốc của gói tài liệu đã bị phá rồi được phủ bằng một lớp sáp xanh thứ hai.</span><span class="ev-flag" aria-hidden="true">Không khớp</span></button></li>
@@ -628,7 +628,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
         </div>
 
         <div class="lie-col lie-st">
-          <h3 class="role"><span class="avatar" aria-hidden="true"><img src="/trang-chu/assets/avatar-sherlock.webp" alt="" width="180" height="180" loading="lazy"></span><span class="role-txt"><span class="role-tag rust">Sherlock · Thẩm vấn viên</span>Lời khai của nhân chứng</span></h3>
+          <h3 class="role"><span class="avatar" aria-hidden="true"><img src="/trang-chu/assets/avatar-sherlock-pixel.webp" alt="" width="180" height="180" loading="lazy"></span><span class="role-txt"><span class="role-tag rust">Sherlock · Thẩm vấn viên</span>Lời khai của nhân chứng</span></h3>
           <article class="statement" id="statement" aria-label="Lời khai của Mara Vale">
             <p class="st-who">Mara Vale · thủ kho lưu trữ</p>
             <p class="st-q">Hãy kể lại lúc cô đóng kho lưu trữ.</p>
@@ -904,8 +904,8 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
     'HIỆN TRƯỜNG VỤ ÁN · KHÔNG PHẬN SỰ MIỄN VÀO ·': 'CRIME SCENE · DO NOT CROSS ·',
     'SIR LOCKED · HỒ SƠ ĐANG ĐIỀU TRA ·': 'SIR LOCKED · CASE UNDER INVESTIGATION ·',
     'Phố đêm ướt mưa với cổng sắt, đèn đường và tháp đồng hồ phía xa': 'A rain-soaked night street with an iron gate, street lamps and a distant clock tower',
-    'Sherlock cầm tẩu, đang suy luận': 'Sherlock holding his pipe, deep in thought',
-    'Watson đứng quan sát hiện trường': 'Watson standing, observing the scene',
+    'Sherlock đội mũ thợ săn, khoác áo choàng nâu, cầm tẩu suy luận': 'Sherlock in his deerstalker and brown cape, pipe in hand, deep in thought',
+    'Watson đội mũ quả dưa, mặc áo khoác xanh rêu, đứng quan sát hiện trường': 'Watson in his bowler hat and moss-green coat, observing the scene',
     'Hai thám tử. Một vụ án bí ẩn.': 'Two detectives. One mystery.',
     'Game phá án co-op cho hai người, chơi ngay trên trình duyệt. Watson lục hiện trường tìm chứng cứ, Sherlock hỏi nhân chứng và suy luận, cả hai cùng gọi tên hung thủ.': 'A co-op detective game for two, played right in your browser. Watson searches the scene for evidence, Sherlock questions witnesses and reasons it out, and together they name the culprit.',
     'Bắt đầu phá án': 'Start investigating',
@@ -1754,7 +1754,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
 
   /* ---- Hero flashlight + clue hunt ---- */
   var hero = $('#top'), stage = $('#stage'), clues = $$('.clue'), huntCount = $('#hunt-count');
-  var shFig = $('#fig-sherlock'), waFig = $('#fig-watson'), textEl = $('.hero-text'), deduce = $('#deduce'), SH_R = 809 / 1083, WA_R = 472 / 985;
+  var shFig = $('#fig-sherlock'), waFig = $('#fig-watson'), textEl = $('.hero-text'), deduce = $('#deduce'), SH_W = 669, SH_H = 996, WA_W = 489, WA_H = 909;
   function box(el, x, y, w, h) { el.style.width = w.toFixed(1) + 'px'; el.style.height = h.toFixed(1) + 'px'; el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'; return { x: x, y: y, w: w, h: h }; }
   var quote = $('#quote');
   function drawDeduce() {
@@ -1782,10 +1782,10 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
     var ix = (S.w - dw) * POS_X, iy = (S.h - dh) * POS_Y;
     var stacked = window.innerWidth < 1200, sh, wa, zL, zR, slots;
     if (!stacked) {
-      var sW = Math.min(S.h * .86 * SH_R, S.w * .33), sH = sW / SH_R;
-      sh = box(shFig, -sW * .28, S.h - sH + 10, sW, sH);
-      var wH = Math.min(S.h * .84, S.w * .25 / WA_R), wW = wH * WA_R;
-      wa = box(waFig, S.w - wW * .94, S.h - wH + 10, wW, wH);
+      // One scale for both detectives, cut from the same painting: Sherlock stays a head taller than Watson.
+      var k = Math.min(S.h * .86 / SH_H, S.w * .3 / SH_W, S.w * .25 / WA_W);
+      sh = box(shFig, -SH_W * k * .08, S.h - SH_H * k + 10, SH_W * k, SH_H * k);
+      wa = box(waFig, S.w - WA_W * k * .94, S.h - WA_H * k + 10, WA_W * k, WA_H * k);
       textEl.style.marginLeft = '0px'; textEl.style.maxWidth = '';
       var wrapLeft = textEl.getBoundingClientRect().left - sr.left;
       var textLeft = Math.max(wrapLeft, sh.x + sh.w * .95 + 20);
@@ -1798,10 +1798,9 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
       else slots = [[tr.left - sr.left + tr.width * .82, tr.top - sr.top - 18], [zL + zw * .5, S.h * .42], [zL + zw * .5, S.h * .7]];
     } else {
       textEl.style.marginLeft = ''; textEl.style.maxWidth = '';
-      var sW2 = Math.min(S.h * .8 * SH_R, S.w * .5), sH2 = sW2 / SH_R;
-      sh = box(shFig, -sW2 * .28, S.h - sH2 + 8, sW2, sH2);
-      var wH2 = Math.min(S.h * .76, S.w * .32 / WA_R), wW2 = wH2 * WA_R;
-      wa = box(waFig, S.w - wW2 * .94, S.h - wH2 + 8, wW2, wH2);
+      var k2 = Math.min(S.h * .8 / SH_H, S.w * .42 / SH_W, S.w * .34 / WA_W);
+      sh = box(shFig, -SH_W * k2 * .1, S.h - SH_H * k2 + 8, SH_W * k2, SH_H * k2);
+      wa = box(waFig, S.w - WA_W * k2 * .94, S.h - WA_H * k2 + 8, WA_W * k2, WA_H * k2);
       zL = sh.x + sh.w * .95 + 8; zR = wa.x - 8;
       var zw2 = zR - zL;
       slots = [[zL + zw2 * .3, S.h * .42], [zL + zw2 * .78, S.h * .6], [zL + zw2 * .42, S.h * .8]];
