@@ -45,6 +45,19 @@ public sealed class CoinWalletService(MarketStore store, MarketService market, I
         if (known is { } done) return done;
         await market.EnsureAccountAsync(userId, ct);
         var spend = await store.SpendPreferBonusAsync(userId, opKey, amount, ct: ct);
+        if (spend.Write == WalletWrite.AlreadyApplied)
+        {
+            // Another call with the same key applied it and is about to record its split: wait for that record
+            // instead of guessing. Only a call that died in between leaves the entry PENDING for good.
+            for (var wait = 0; wait < 40; wait++)
+            {
+                var entry = await FindEntryAsync(opKey, ct);
+                if (entry?.State == WalletLedgerStates.Applied)
+                    return new CoinWalletResult(WalletWrite.AlreadyApplied,
+                        entry.BalanceDelta, entry.BonusDelta, entry.HeldDelta, entry.BonusHeldDelta);
+                await Task.Delay(25, ct);
+            }
+        }
         var deltas = spend.Write == WalletWrite.Applied
             ? new Deltas(-spend.FromBalance, -spend.FromBonus, 0, 0)
             // A replay after a crash: the split was decided by the lost call. Record the total against the balance.
