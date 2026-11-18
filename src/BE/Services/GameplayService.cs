@@ -37,8 +37,10 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         IGameResultStore gameResults,
         IPlaytestEventSink playtestEvents,
         IOptions<AccusationSettings> accusationSettings,
-        ILogger<GameplayService> logger)
+        ILogger<GameplayService> logger,
+        SirLocked.Api.Services.Vip.HintPaymentService? hintPayments = null)
     {
+        _hintPayments = hintPayments;
         _db = db;
         _contextLoader = contextLoader;
         _statePersistence = statePersistence;
@@ -49,6 +51,18 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         _playtestEvents = playtestEvents;
         _accusationSettings = accusationSettings.Value;
         _logger = logger;
+    }
+
+    /// <summary>VUAN-7 paid hints. Null where the service is built by hand: every hint is then free, as before.</summary>
+    private readonly SirLocked.Api.Services.Vip.HintPaymentService? _hintPayments;
+
+    private async Task<HintUsageRecord> AuthorizeHintAsync(
+        CurrentUser user, GameRoom room, string hintKey, int tier, string? payWith, string? adTicketId)
+    {
+        if (_hintPayments is null)
+            return new HintUsageRecord { HintKey = hintKey, Tier = tier, PaidWith = HintPaidWith.Free, UserId = user.Id, At = DateTime.UtcNow };
+        return await _hintPayments.AuthorizeAsync(user, room, hintKey, tier,
+            new SirLocked.Api.Services.Vip.HintPayment(payWith, adTicketId));
     }
 
     // ----- Read -----
@@ -770,6 +784,27 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
     /// Mid-puzzle server query for interactive puzzles (a weighing, a binding-pin check, or the next
     /// hint). Updates the shared run so both detectives see the same tokens and hints.
     /// </summary>
+    /// <summary>A probe asking for the next puzzle hint (<c>$hint: true</c>), with its payment choice (<c>$pay</c>, <c>$adTicket</c>).</summary>
+    private static (string? PayWith, string? AdTicketId)? PuzzleHintRequest(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload)) return null;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (root.ValueKind != System.Text.Json.JsonValueKind.Object
+                || !root.TryGetProperty("$hint", out var flag) || flag.ValueKind != System.Text.Json.JsonValueKind.True)
+                return null;
+            string? Read(string name) => root.TryGetProperty(name, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? value.GetString() : null;
+            return (Read("$pay"), Read("$adTicket"));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
     public async Task<GameActionResponse> ProbePuzzleAsync(CurrentUser user, string roomId, ProbePuzzleRequest request)
     {
         var puzzleId = request.PuzzleId.Trim();
@@ -794,6 +829,21 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             if (state.SolvedPuzzleIds.Contains(puzzle.PuzzleId))
                 throw ApiException.Conflict("This puzzle has already been solved.");
 
+            // VUAN-7: a puzzle hint is a hint too: level 2 and 3 are paid and take a share of the score.
+            var puzzleHint = PuzzleHintRequest(request.Payload);
+            if (puzzleHint is not null)
+            {
+                var run = InteractivePuzzles.RunFor(state, puzzle.PuzzleId);
+                var available = InteractivePuzzles.Hints(PuzzleKindRegistry.Context(puzzle)).Count;
+                var used = InteractivePuzzles.HintsUsed(run);
+                if (used < available)
+                {
+                    var usage = await AuthorizeHintAsync(user, room, $"puzzle:{puzzle.PuzzleId}:{used + 1}", used + 1,
+                        puzzleHint.Value.PayWith, puzzleHint.Value.AdTicketId);
+                    state.HintUsages.RemoveAll(item => item.HintKey == usage.HintKey);
+                    state.HintUsages.Add(usage);
+                }
+            }
             var verdict = InteractivePuzzles.Probe(puzzle, request.Payload ?? "{}", state);
             if (!await TrySaveStateAsync(room, gameCase))
             {
@@ -1321,6 +1371,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
 
     public async Task<HintResponse> RequestHintAsync(CurrentUser user, string roomId, HintRequest request)
     {
+        HintUsageRecord? lastUsage = null;
         for (var attempt = 0; ; attempt++)
         {
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
@@ -1394,12 +1445,17 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 };
             }
 
+            // VUAN-7: level 2 and 3 are paid (ad or coins) and take a share of the score. Replays never pay twice.
+            var usage = await AuthorizeHintAsync(user, room, selected.HintId, hintTier, request.PayWith, request.AdTicketId);
             state.UsedHintIds.Add(selected.HintId);
+            state.HintUsages.RemoveAll(item => item.HintKey == usage.HintKey);
+            state.HintUsages.Add(usage);
             if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
             }
+            lastUsage = usage;
 
             await LogAsync(gameCase, roomId, user.Id, "HINT_USED", $"{user.FullName} requested an investigation hint.",
                 new { selected.HintId, context, request.TargetId });
@@ -1432,7 +1488,11 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 ContextType = context,
                 TargetId = request.TargetId,
                 Message = selected.Text,
-                IsNew = true
+                IsNew = true,
+                Tier = hintTier,
+                PaidWith = lastUsage?.PaidWith ?? HintPaidWith.Free,
+                PriceXu = lastUsage?.PriceXu ?? 0,
+                PenaltyPercent = lastUsage?.PenaltyPercent ?? 0
             };
         }
     }

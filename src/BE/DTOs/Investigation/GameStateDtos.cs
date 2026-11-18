@@ -94,10 +94,22 @@ public class HintRequest
 
     [Required]
     public string TargetId { get; set; } = string.Empty;
+
+    /// <summary>VUAN-7, levels 2 and 3: "XU" (coins) or "AD" (a watched rewarded ad, level 2 only).</summary>
+    public string? PayWith { get; set; }
+    /// <summary>With PayWith = AD: the ticket the ad confirmed.</summary>
+    public string? AdTicketId { get; set; }
 }
 
 public class HintResponse
 {
+    /// <summary>The level just opened (1, 2 or 3).</summary>
+    public int Tier { get; set; }
+    /// <summary>FREE, XU, AD or VIP_FREE.</summary>
+    public string PaidWith { get; set; } = "FREE";
+    public long PriceXu { get; set; }
+    /// <summary>Share of the case score this hint takes.</summary>
+    public int PenaltyPercent { get; set; }
     public GameStateResponse State { get; set; } = new();
     public string HintId { get; set; } = string.Empty;
     public string ContextType { get; set; } = string.Empty;

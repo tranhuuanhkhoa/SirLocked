@@ -31,6 +31,7 @@ public sealed class VipLaneWorker(
         {
             using var scope = scopes.CreateScope();
             await scope.ServiceProvider.GetRequiredService<VipLaneStore>().EnsureIndexesAsync(stoppingToken);
+            await scope.ServiceProvider.GetRequiredService<HintPaymentService>().EnsureIndexesAsync(stoppingToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

@@ -166,6 +166,7 @@ builder.Services.AddSingleton<SirLocked.Api.Services.Vip.IClaudeApiClient, SirLo
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipLaneStore>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipAnswerProcessor>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipBillingService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.HintPaymentService>();
 builder.Services.AddHostedService<SirLocked.Api.Services.Vip.VipLaneWorker>();
 builder.Services.AddScoped<AiBridgeService>();
 builder.Services.AddScoped<AiCaseSettingsStore>();

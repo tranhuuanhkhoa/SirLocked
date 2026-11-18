@@ -101,6 +101,8 @@ public class GameplayState
     public int CameraMissCount { get; set; }
     public int WrongPuzzleCount { get; set; }
     public List<string> UsedHintIds { get; set; } = new();
+    /// <summary>VUAN-7: every hint level opened in this game, how it was paid and the score share it takes.</summary>
+    public List<HintUsageRecord> HintUsages { get; set; } = new();
     public List<SolvedDeductionRecord> SolvedDeductionRecords { get; set; } = new();
     public List<string> DeductionAttemptKeys { get; set; } = new();
     public int WrongDeductionCount { get; set; }
