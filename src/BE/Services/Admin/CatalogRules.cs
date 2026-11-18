@@ -1,5 +1,6 @@
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Weekly;
 
 namespace SirLocked.Api.Services.Admin;
 
@@ -87,6 +88,11 @@ public static class CatalogRules
             else if (weight < 0)
                 violations.Add(new CatalogRuleViolation(CatalogRuleCodes.WeightInvalid, $"Trọng số của {rarity} không được âm."));
         }
+
+        var challengeWeight = WeeklyDropRules.EffectiveWeight(chest);
+        if (challengeWeight < 0 || challengeWeight > WeeklyDropRules.MaxWeight)
+            violations.Add(new CatalogRuleViolation(CatalogRuleCodes.WeightInvalid,
+                "Trọng số rớt ở Thử thách tuần phải từ 0 đến 10.000."));
 
         var total = chest.DropWeights.Values.Sum(weight => (long)weight);
         if (total != WeightDenominator)
