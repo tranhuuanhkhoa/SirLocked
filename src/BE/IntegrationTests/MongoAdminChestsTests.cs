@@ -416,8 +416,9 @@ public sealed class MongoAdminChestsTests
         if (!Enabled) return;
         await using var env = await AdminEnv.CreateAsync();
         var before = await env.Admin.ListAsync();
-        // Seeded chests carry no weight of their own: the defaults 60 / 30 / 10 apply.
-        Assert.Equal(new[] { ("chest_np", 60, 60m), ("chest_sm", 30, 30m), ("chest_nb", 10, 10m) },
+        // Seeded chests carry no weight of their own: the defaults 60 / 30 / 10 apply. The Whitechapel outfit chest
+        // (seed version 3) defaults to 0, so it never drops until an admin gives it a weight.
+        Assert.Equal(new[] { ("chest_np", 60, 60m), ("chest_sm", 30, 30m), ("chest_nb", 10, 10m), ("chest_wc", 0, 0m) },
             before.Chests.OrderByDescending(c => c.ChallengeWeight).Select(c => (c.Id, c.ChallengeWeight, c.ChallengePercent)));
 
         var draft = await env.DraftOfAsync(Seal);
