@@ -115,10 +115,12 @@ public sealed class MongoAiDraftQuotaTests
             var draft = await service.CreatePreviewAsync(vip, new GenerateAiCaseRequest
             {
                 GenerationPreset = AiGenerationPresets.ShortDemo,
+                // New orders take their suspects from the level (hard = 5), whatever suspectCount the client sends.
+                Difficulty = "hard",
                 Order = new AiCaseOrder
                 {
                     World = "taisho_japan", ReviewMode = AiCaseReviewModes.Fast, PixelLabCap = 100,
-                    SuspectCount = 5, Weather = "rain", TimeOfDay = "night"
+                    SuspectCount = 3, Weather = "rain", TimeOfDay = "night"
                 }
             }, "vip-order-1");
 

@@ -87,6 +87,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private readonly IGameCaseProjectionCompiler _projectionCompiler;
     private readonly IProjectionGraphValidator _projectionGraphValidator;
     private readonly IAiTextProvider _textProvider;
+    private readonly Services.Cutscene.IAiIntroCutsceneStarter? _introCutsceneStarter;
     private readonly PresentationService? _presentationService;
     private readonly IAiCaseExportService _exportService;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -123,8 +124,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         ILogger<AiCaseService> logger,
         PresentationService? presentationService = null,
         IOptions<BridgeSettings>? bridgeSettings = null,
-        IBridgeNotifier? bridgeNotifier = null)
+        IBridgeNotifier? bridgeNotifier = null,
+        Services.Cutscene.IAiIntroCutsceneStarter? introCutsceneStarter = null)
     {
+        _introCutsceneStarter = introCutsceneStarter;
         _db = db;
         _workflow = workflow;
         _caseService = caseService;
@@ -2525,6 +2528,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
             if (completed.MatchedCount == 0)
                 throw ApiException.Conflict("The draft changed before import completion could be committed.");
+            await QueueIntroCutsceneAsync(draft, summary.CaseId);
             return summary;
         }
         catch
@@ -2543,6 +2547,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Inc(d => d.WorkflowVersion, 1)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
             throw;
+        }
+    }
+
+    /// <summary>
+    /// OPEN_COOP_1: queue the imported case's intro cutscene and record the outcome on the draft. Never fails the
+    /// import: a failure is recorded and the admin can still generate the cutscene by hand.
+    /// </summary>
+    private async Task QueueIntroCutsceneAsync(AiCaseDraft draft, string caseId)
+    {
+        if (_introCutsceneStarter is null || !AiPipelineVersions.IsOpenCoop(draft.Settings)) return;
+        var status = await _introCutsceneStarter.StartAsync(draft.Settings, caseId, _operationCancellationToken);
+        try
+        {
+            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id,
+                Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status), cancellationToken: _operationCancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(exception, "Could not record the intro cutscene status of draft {DraftId}.", draft.Id);
         }
     }
 

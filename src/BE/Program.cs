@@ -80,6 +80,8 @@ builder.Services.Configure<CutsceneSettings>(builder.Configuration.GetSection("C
 builder.Services.AddScoped<ICutsceneStore, MongoCutsceneStore>();
 builder.Services.AddScoped<CutsceneScriptGenerator>();
 builder.Services.AddScoped<CutsceneService>();
+builder.Services.AddScoped<IAiIntroCutsceneStarter>(services => new AiIntroCutsceneStarter((caseId, ct) =>
+    services.GetRequiredService<CutsceneService>().GenerateAsync(caseId, regenerate: false, actor: "ai-pipeline", ct)));
 builder.Services.AddHostedService<CutsceneSeedWorker>();
 builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
