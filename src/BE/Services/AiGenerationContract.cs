@@ -55,6 +55,34 @@ public static class CrackGenerationBudgets
     public static CrackGenerationBudget For(string? preset) =>
         Values[AiGenerationPresets.Normalize(preset)];
 
+    /// <summary>An OPEN_COOP_1 draft has exactly its level's cracks; older drafts use their preset.</summary>
+    public static CrackGenerationBudget For(AiDraftSettings settings)
+    {
+        if (!AiPipelineVersions.IsOpenCoop(settings)) return For(settings.GenerationPreset);
+        var cracks = AiDifficultyProfiles.For(settings.Difficulty).Cracks;
+        return Level(cracks, cracks);
+    }
+
+    /// <summary>
+    /// A built case: an OPEN_COOP case does not record its level, so it may have 1-3 cracks here (its exact level is
+    /// checked against the draft by <c>AiDifficultyConformance</c>); other cases use their preset.
+    /// </summary>
+    public static CrackGenerationBudget For(GameCase gameCase) =>
+        CaseRuleSets.IsOpenCoop(gameCase)
+            ? Level(AiDifficultyProfiles.All.Min(profile => profile.Cracks), AiDifficultyProfiles.All.Max(profile => profile.Cracks))
+            : For(gameCase.GenerationPreset);
+
+    private static CrackGenerationBudget Level(int minimum, int maximum)
+    {
+        var balanced = For(AiGenerationPresets.NormalRandom);
+        return balanced with
+        {
+            MinCracks = minimum,
+            MaxCracks = maximum,
+            MaxPairsPerCase = Math.Max(balanced.MaxPairsPerCase, maximum * balanced.MaxPairsPerCrack)
+        };
+    }
+
     public static IReadOnlyDictionary<string, CrackGenerationBudget> All => Values;
 }
 
@@ -199,6 +227,9 @@ public sealed record AiGenerationContract(
         if (CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese)
             ValidateVietnamese(gameCase, result);
         result.Errors.AddRange(AiV3GenerationProfile.Validate(gameCase).Errors);
+        // OPEN_COOP_1: the level check (suspects are checked where the truth is at hand).
+        foreach (var finding in AiDifficultyConformance.Check(gameCase, settings, truth: null))
+            result.Add(finding[..finding.IndexOf(':')], "level", finding);
 
         return result;
     }

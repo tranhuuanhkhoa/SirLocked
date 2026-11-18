@@ -1593,7 +1593,7 @@ public class CaseValidationService : ICaseValidationService
         var deductionIds = c.Deductions.Select(deduction => deduction.DeductionId).ToHashSet();
 
         var minimumChallenges = c.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
-            ? CrackGenerationBudgets.For(c.GenerationPreset).MinCracks
+            ? CrackGenerationBudgets.For(c).MinCracks
             : AiGenerationPresets.Normalize(c.GenerationPreset) == AiGenerationPresets.ShortDemo
               && c.ShortDemoProfileVersion >= AiGenerationContract.CurrentShortDemoProfileVersion
                 ? 1 : 2;

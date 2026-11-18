@@ -46,7 +46,8 @@ public sealed class OptionalPuzzleProjectionTests
             Assert.Contains(scenes, scene => scene.ItemIds.Contains(puzzle.TargetId));
             Assert.Single(puzzle.UnlockClueIds);
         });
-        Assert.Empty(skeleton.Interactions); // no dossier combine/use exercises in an OPEN_COOP case
+        // No dossier combine/use exercises in an OPEN_COOP case (the V3 evidence-source interaction may remain).
+        Assert.DoesNotContain(skeleton.Interactions, interaction => interaction.InteractionId.StartsWith("interaction-projection-"));
     }
 
     // A puzzle reward may be offered as a distractor in a confrontation, never as what wins it.

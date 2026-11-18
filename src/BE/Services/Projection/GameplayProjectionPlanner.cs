@@ -420,7 +420,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         {
             var desiredItemCount = Math.Max(
                 1,
-                CrackGenerationBudgets.For(skeleton.GenerationPreset).TargetEvidence - 1);
+                CrackGenerationBudgets.For(skeleton).TargetEvidence - 1);
             foreach (var traceId in clueByTrace.Keys.Where(traceId =>
                          !itemTraceIds.Contains(traceId) && !allContradictionTraceIds.Contains(traceId)))
             {
@@ -553,7 +553,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
                 item => item.Key,
                 StringComparer.Ordinal);
             var targetEvidenceCount = skeleton.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                ? CrackGenerationBudgets.For(skeleton.GenerationPreset).TargetEvidence
+                ? CrackGenerationBudgets.For(skeleton).TargetEvidence
                 : 3;
             var requiresCamera = skeleton.MechanicsVersion < CaseMechanicsVersions.InvestigationV3PairedConfrontation
                                  || index < maximumCameraChallenges;
@@ -605,7 +605,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             var challengeId = $"challenge-{index + 1:00}";
             challengeStatementIds[challengeId] = pair.Statement.StatementId;
             var targetTestimonyCount = skeleton.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                ? CrackGenerationBudgets.For(skeleton.GenerationPreset).TargetTestimonies
+                ? CrackGenerationBudgets.For(skeleton).TargetTestimonies
                 : 3;
             var fragmentIds = Enumerable.Range(1, targetTestimonyCount)
                 .Select(number => $"fragment-{challengeId}-{number:00}")

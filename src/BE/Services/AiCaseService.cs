@@ -3689,7 +3689,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     private static string BuildAdditiveCrackRequirements(AiCaseDraft draft)
     {
-        var budget = CrackGenerationBudgets.For(draft.Settings.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(draft.Settings);
         var (minimumCracks, maximumCracks) = (budget.MinCracks, budget.MaxCracks);
         var minimumCameraCracks = maximumCracks >= 4 ? 2 : 1;
         return $"""

@@ -125,7 +125,7 @@ public static class AiV3GenerationProfile
         var result = new CaseValidationResult();
         if (!IsV3(gameCase)) return result;
 
-        var budget = CrackGenerationBudgets.For(gameCase.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(gameCase);
         var (minimumCracks, maximumCracks) = (budget.MinCracks, budget.MaxCracks);
         if (gameCase.EvidenceChallenges.Count < minimumCracks || gameCase.EvidenceChallenges.Count > maximumCracks)
             result.Add("PresetContract", "evidenceChallenges",
