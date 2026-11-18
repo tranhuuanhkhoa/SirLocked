@@ -135,6 +135,10 @@ public sealed class AdminChestLookRequest
     public string? Light { get; set; }
     public string? Hi { get; set; }
     public string? Core { get; set; }
+    /// <summary>The chest's own picture. Empty or null: the template's drawing.</summary>
+    public string? ImageUrl { get; set; }
+    /// <summary>The key's own picture. Empty or null: the template's key.</summary>
+    public string? KeyImageUrl { get; set; }
 }
 
 /// <summary>Everything a save replaces. Nothing is applied partly: the whole draft passes the rules or nothing changes.</summary>

@@ -453,7 +453,7 @@ public sealed class WeeklyDropService
             chest?.Name ?? drop.ChestDefId,
             chest?.NameEn ?? drop.ChestDefId,
             chest?.IconKey ?? string.Empty,
-            chest?.Look is { } look ? new ChestLookDto(look.Template, look.Light, look.Hi, look.Core) : null,
+            chest?.Look is { } look ? ChestLookDto.Of(look) : null,
             drop.State,
             drop.CreatedAt);
     }

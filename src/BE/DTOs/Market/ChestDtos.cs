@@ -4,8 +4,17 @@ namespace SirLocked.Api.DTOs.Market;
 
 public sealed record ChestOddsDto(string Rarity, decimal Percent);
 
-/// <summary>Which chest drawing to use and the three colours of its light, as "r,g,b".</summary>
-public sealed record ChestLookDto(string Template, string Light, string Hi, string Core);
+/// <summary>
+/// Which chest drawing to use and the three colours of its light, as "r,g,b". ImageUrl and KeyImageUrl are the chest's
+/// and its key's own pictures when an admin gave them some; without one, the template's drawing is used.
+/// </summary>
+public sealed record ChestLookDto(string Template, string Light, string Hi, string Core, string? ImageUrl = null, string? KeyImageUrl = null)
+{
+    public static ChestLookDto Of(SirLocked.Api.Models.Catalog.CatalogChestLook look) =>
+        new(look.Template, look.Light, look.Hi, look.Core, NullIfEmpty(look.ImageUrl), NullIfEmpty(look.KeyImageUrl));
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
+}
 
 public sealed record ChestDto(
     string Id,

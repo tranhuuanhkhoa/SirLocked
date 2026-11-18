@@ -421,4 +421,52 @@ public class AdminChestsRulesTests
     {
         Assert.Equal(editable, AdminChestsRules.IsEditableHere(category));
     }
+    // ------------------------------------------------------------------ the chest's own picture
+
+    [Fact]
+    public void AnUploadedChestAndKeyPicturePass()
+    {
+        var (chest, items) = Fixture();
+        var draft = Copy(chest);
+        draft.Look.ImageUrl = "https://res.cloudinary.com/demo/image/upload/v1/sirlocked/chest.png";
+        draft.Look.KeyImageUrl = "/assets/chests/key-whitechapel.webp";
+
+        Assert.Empty(AdminChestsRules.Validate(chest, draft, items));
+    }
+
+    [Theory]
+    [InlineData("http://example.com/chest.png")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("/assets/../secret.png")]
+    [InlineData("chest.png")]
+    public void AChestPictureMustBeAnUploadedOrShippedPicture(string url)
+    {
+        var (chest, items) = Fixture();
+        var draft = Copy(chest);
+        draft.Look.ImageUrl = url;
+        var keyDraft = Copy(chest);
+        keyDraft.Look.KeyImageUrl = url;
+
+        Assert.Contains(AdminChestsRules.ChestImageInvalid, CodesOf(AdminChestsRules.Validate(chest, draft, items)));
+        Assert.Contains(AdminChestsRules.ChestImageInvalid, CodesOf(AdminChestsRules.Validate(chest, keyDraft, items)));
+    }
+
+    [Fact]
+    public void ACloneKeepsThePicturesAndADiffNamesThem()
+    {
+        var (before, _) = Fixture();
+        before.Look.ImageUrl = "https://cdn.example/a.png";
+        var after = Copy(before);
+
+        Assert.Equal("https://cdn.example/a.png", after.Look.ImageUrl);
+        Assert.Null(after.Look.KeyImageUrl);
+
+        after.Look.ImageUrl = null;
+        after.Look.KeyImageUrl = "https://cdn.example/k.png";
+        var fields = AdminChestsRules.Diff(before, after).Fields;
+
+        Assert.Contains(new AdminChestFieldChange("look.imageUrl", "https://cdn.example/a.png", ""), fields);
+        Assert.Contains(new AdminChestFieldChange("look.keyImageUrl", "", "https://cdn.example/k.png"), fields);
+        Assert.Equal(2, fields.Count);
+    }
 }

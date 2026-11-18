@@ -1,5 +1,5 @@
 import { weeklyApi } from '../api/weeklyApi.js';
-import { pixelIconUrl } from '../pages/chest/chestSprites.js';
+import { chestIconUrl, chestPictureUrl } from '../pages/chest/chestSprites.js';
 import { tr } from '../services/i18n.js';
 import { escapeHtml } from '../utils/dom.js';
 
@@ -24,9 +24,10 @@ function chestNameHtml(drop) {
 /** The chest's picture (the shared pixel sprite, as the challenge page draws it), or '' with no drop or no picture. */
 function chestPictureHtml(drop) {
   if (!drop) return '';
-  const src = pixelIconUrl(drop.iconKey);
+  const src = chestIconUrl(drop);
+  const picture = chestPictureUrl(drop) ? ' is-picture' : '';
   return src
-    ? `<img class="bpa-weekly-drop-icon" src="${src}" width="40" height="40" alt="${chestNameHtml(drop)}" draggable="false">`
+    ? `<img class="bpa-weekly-drop-icon${picture}" src="${escapeHtml(src)}" width="40" height="40" alt="${chestNameHtml(drop)}" draggable="false">`
     : '';
 }
 
