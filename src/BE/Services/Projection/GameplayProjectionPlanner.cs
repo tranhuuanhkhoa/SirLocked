@@ -68,6 +68,16 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
                 result.Add("TruthLocationCountForLevel", "caseSeed.locationIds",
                     $"{AiDifficultyProfiles.For(draft.Settings.Difficulty).Difficulty} needs {contract.MinScenes}-{contract.MaxScenes} locations; truth uses {locations.Count}.");
+            // The level's red herrings and timeline come from the truth: refuse a thin truth here, not after LOGIC.
+            var profile = AiDifficultyProfiles.For(draft.Settings.Difficulty);
+            var traceIds = truth.TraceLedger.Select(trace => trace.TraceId).ToHashSet(StringComparer.Ordinal);
+            var clearedRedHerrings = truth.RedHerringLedger.Count(item => item.ClearingTraceIds.Any(traceIds.Contains));
+            if (clearedRedHerrings < profile.RedHerrings.Min)
+                result.Add("TruthRedHerringCountForLevel", "redHerringLedger",
+                    $"{profile.Difficulty} needs at least {profile.RedHerrings.Min} red herrings, each cleared by a trace; truth has {clearedRedHerrings}.");
+            if (truth.TrueTimeline.Count < profile.TimelineEvents.Min)
+                result.Add("TruthTimelineForLevel", "trueTimeline",
+                    $"{profile.Difficulty} needs at least {profile.TimelineEvents.Min} true timeline events; truth has {truth.TrueTimeline.Count}.");
         }
         else if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
             result.Add("ProjectionLocationCount", "caseSeed.locationIds",

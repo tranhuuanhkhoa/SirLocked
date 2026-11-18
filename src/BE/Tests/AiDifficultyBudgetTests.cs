@@ -54,6 +54,42 @@ public sealed class AiDifficultyBudgetTests
             CaseTargetAllocationPolicy.RequiredSuspects(legacy, contract, CaseTargetKinds.Asset));
     }
 
+    private static (AiCaseDraft Draft, CaseTruthPackage Truth) HardTruth()
+    {
+        var draft = new AiCaseDraft
+        {
+            Id = "64b64c0f0f0f0f0f0f0f0f22", LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            PlannedTargetKind = CaseTargetKinds.Asset, Settings = S("hard")
+        };
+        return (draft, JsonSerializer.Deserialize<CaseTruthPackage>(AiCaseMockFactory.BuildMockTruthPackageJson(draft), JsonOptions)!);
+    }
+
+    [Fact]
+    public void HardTruthWithTooFewRedHerrings_IsRefusedAtTheTruthStep()
+    {
+        var (draft, truth) = HardTruth();
+        truth.RedHerringLedger.RemoveRange(1, truth.RedHerringLedger.Count - 1);
+        var result = new GameplayProjectionPlanner(new CaseTruthService()).ValidateProjectability(draft, truth);
+        Assert.Contains(result.Errors, error => error.Code == "TruthRedHerringCountForLevel" && error.Message.Contains("at least 2"));
+    }
+
+    [Fact]
+    public void HardTruthWithTooFewTimelineEvents_IsRefusedAtTheTruthStep()
+    {
+        var (draft, truth) = HardTruth();
+        truth.TrueTimeline.RemoveRange(3, truth.TrueTimeline.Count - 3);
+        var result = new GameplayProjectionPlanner(new CaseTruthService()).ValidateProjectability(draft, truth);
+        Assert.Contains(result.Errors, error => error.Code == "TruthTimelineForLevel" && error.Message.Contains("at least 7"));
+    }
+
+    [Fact]
+    public void HardMockTruth_MeetsTheLevelsMinimums()
+    {
+        var (draft, truth) = HardTruth();
+        var result = new GameplayProjectionPlanner(new CaseTruthService()).ValidateProjectability(draft, truth);
+        Assert.DoesNotContain(result.Errors, error => error.Code is "TruthRedHerringCountForLevel" or "TruthTimelineForLevel");
+    }
+
     [Fact]
     public void HardTruthWithTooFewLocations_IsRefusedWithTheLevelsRange()
     {
