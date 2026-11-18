@@ -11,7 +11,7 @@ import {
 } from './shared.js';
 
 const SOURCES = {
-  STARTER: 'Quà khởi đầu', MARKET: 'Mua ở chợ', TRADE: 'Trao đổi', GRANT: 'Admin cấp', SHOP: 'Cửa hàng', CHEST: 'Mở hòm', LEVEL: 'Thưởng theo cấp', ACHIEVEMENT: 'Thành tích',
+  STARTER: 'Quà khởi đầu', MARKET: 'Mua ở chợ', TRADE: 'Trao đổi', GRANT: 'Admin cấp', SHOP: 'Cửa hàng', CHEST: 'Mở hòm', LEVEL: 'Thưởng theo cấp', ACHIEVEMENT: 'Thành tích', WEEKLY: 'Thử thách tuần',
 };
 const EARNED = new Set(['LEVEL', 'ACHIEVEMENT']);
 const LOCKS = { TRADE: 'Trong giao dịch', OPENING: 'Đang mở hòm', EXCHANGING: 'Đang đổi KN' };
