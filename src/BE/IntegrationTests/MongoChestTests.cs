@@ -358,6 +358,25 @@ public sealed class MongoChestTests
     }
 
     [Fact]
+    public async Task BuyKey_SpendsBonusCoinsFirst_ThenOrdinaryCoins()
+    {
+        if (!Enabled) return;
+        await using var env = await ChestEnv.CreateAsync();
+        var user = await env.AddUserAsync("Thám tử");
+        var price = new ChestSettings().PriceOf(Seal);
+        var bonus = Math.Max(1, price.Key / 3);
+        await env.Store.Accounts.UpdateOneAsync(a => a.Id == user.Id,
+            Builders<MarketAccount>.Update.Set(a => a.BonusBalance, bonus));
+
+        var result = await env.Chests.BuyKeyAsync(user, Seal, NewKey());
+
+        // VUAN-7: a chest key is a system sink, so the bonus coins ("xu thưởng") go first.
+        Assert.Equal(0, result.Wallet.BonusBalance);
+        Assert.Equal(MarketRules.StarterCoins - (price.Key - bonus), result.Wallet.Balance);
+        Assert.Equal(1, result.KeyCount);
+    }
+
+    [Fact]
     public async Task BuyChest_ChargesTheConfiguredPrice_AndGivesOneChest()
     {
         if (!Enabled) return;

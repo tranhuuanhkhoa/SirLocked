@@ -14,6 +14,9 @@ public enum WalletWrite
     Rejected
 }
 
+/// <summary>A system-sink spend: how much came from the ordinary balance and how much from bonus coins.</summary>
+public readonly record struct WalletSpend(WalletWrite Write, long FromBalance, long FromBonus);
+
 /// <summary>
 /// Market collections plus the guarded single-document writes every market operation is built from.
 /// Collections live next to the existing ones through <see cref="MongoDbContext.Database"/>, so the
@@ -44,6 +47,7 @@ public sealed class MarketStore
     public IMongoCollection<ChestPurchase> ChestPurchases => _db.Database.GetCollection<ChestPurchase>("chestPurchases");
     public IMongoCollection<PlayerProgress> PlayerProgress => _db.Database.GetCollection<PlayerProgress>("playerProgress");
     public IMongoCollection<XpExchange> XpExchanges => _db.Database.GetCollection<XpExchange>("xpExchanges");
+    public IMongoCollection<WalletLedgerEntry> WalletLedger => _db.Database.GetCollection<WalletLedgerEntry>("walletLedger");
 
     public DateTime Now => _time.GetUtcNow().UtcDateTime;
 
@@ -129,6 +133,15 @@ public sealed class MarketStore
         await ChestPurchases.Indexes.CreateOneAsync(new CreateIndexModel<ChestPurchase>(
             Builders<ChestPurchase>.IndexKeys.Ascending(p => p.State).Ascending(p => p.UpdatedAt),
             new CreateIndexOptions { Name = "ix_chestPurchases_state_updatedAt" }), cancellationToken: ct);
+        await WalletLedger.Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<WalletLedgerEntry>(Builders<WalletLedgerEntry>.IndexKeys
+                    .Ascending(e => e.UserId).Descending(e => e.CreatedAt),
+                new CreateIndexOptions { Name = "ix_walletLedger_user_createdAt" }),
+            new CreateIndexModel<WalletLedgerEntry>(Builders<WalletLedgerEntry>.IndexKeys
+                    .Ascending(e => e.State).Ascending(e => e.UpdatedAt),
+                new CreateIndexOptions { Name = "ix_walletLedger_state_updatedAt" })
+        }, ct);
         await XpExchanges.Indexes.CreateOneAsync(new CreateIndexModel<XpExchange>(
             Builders<XpExchange>.IndexKeys.Ascending(e => e.State).Ascending(e => e.UpdatedAt),
             new CreateIndexOptions { Name = "ix_xpExchanges_state_updatedAt" }), cancellationToken: ct);
@@ -146,7 +159,9 @@ public sealed class MarketStore
         long heldDelta = 0,
         int slotDelta = 0,
         int slotCap = MarketRules.InventorySlots,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        long bonusDelta = 0,
+        long bonusHeldDelta = 0)
     {
         var filter = Builders<MarketAccount>.Filter;
         var conditions = new List<FilterDefinition<MarketAccount>>
@@ -156,6 +171,8 @@ public sealed class MarketStore
         };
         if (balanceDelta < 0) conditions.Add(filter.Gte(a => a.Balance, -balanceDelta));
         if (heldDelta < 0) conditions.Add(filter.Gte(a => a.Held, -heldDelta));
+        if (bonusDelta < 0) conditions.Add(filter.Gte(a => a.BonusBalance, -bonusDelta));
+        if (bonusHeldDelta < 0) conditions.Add(filter.Gte(a => a.BonusHeld, -bonusHeldDelta));
         if (slotDelta > 0) conditions.Add(filter.Lte(a => a.Slots, slotCap - slotDelta));
 
         var update = Builders<MarketAccount>.Update
@@ -164,12 +181,72 @@ public sealed class MarketStore
             .Inc(a => a.Slots, slotDelta)
             .PushEach(a => a.Ops, new[] { opKey }, slice: -MarketRules.OpsWindow)
             .Set(a => a.UpdatedAt, Now);
+        if (bonusDelta != 0) update = update.Inc(a => a.BonusBalance, bonusDelta);
+        if (bonusHeldDelta != 0) update = update.Inc(a => a.BonusHeld, bonusHeldDelta);
         var result = await Accounts.UpdateOneAsync(filter.And(conditions), update, cancellationToken: ct);
         if (result.ModifiedCount == 1) return WalletWrite.Applied;
 
         var replayed = await Accounts.CountDocumentsAsync(
             filter.Eq(a => a.Id, userId) & filter.AnyEq(a => a.Ops, opKey), cancellationToken: ct);
         return replayed > 0 ? WalletWrite.AlreadyApplied : WalletWrite.Rejected;
+    }
+
+    /// <summary>
+    /// Spends <paramref name="amount"/> coins at a system sink (chest, shop cosmetic, hint): bonus coins first, the rest
+    /// from the ordinary balance. One atomic pipeline update decides the split from the document itself, so two
+    /// concurrent spends can never both use the same bonus coins and neither part goes negative. The split is only known
+    /// to the call that applied it; a replay reports <see cref="WalletWrite.AlreadyApplied"/> without it.
+    /// </summary>
+    public async Task<WalletSpend> SpendPreferBonusAsync(
+        string userId,
+        string opKey,
+        long amount,
+        int slotDelta = 0,
+        int slotCap = MarketRules.InventorySlots,
+        CancellationToken ct = default)
+    {
+        if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "A spend cannot be negative.");
+        var bonus = new BsonDocument("$ifNull", new BsonArray { "$bonusBalance", 0L });
+        var fromBonus = new BsonDocument("$min", new BsonArray { bonus, amount });
+        var filter = new BsonDocument
+        {
+            { "_id", userId },
+            { "ops", new BsonDocument("$ne", opKey) },
+            { "$expr", new BsonDocument("$gte", new BsonArray { new BsonDocument("$add", new BsonArray { "$balance", bonus }), amount }) }
+        };
+        if (slotDelta > 0) filter.Add("slots", new BsonDocument("$lte", slotCap - slotDelta));
+        var set = new BsonDocument
+        {
+            { "bonusBalance", new BsonDocument("$subtract", new BsonArray { bonus, fromBonus }) },
+            { "balance", new BsonDocument("$subtract", new BsonArray
+                { "$balance", new BsonDocument("$subtract", new BsonArray { amount, fromBonus }) }) },
+            { "slots", new BsonDocument("$add", new BsonArray { "$slots", slotDelta }) },
+            { "ops", new BsonDocument("$slice", new BsonArray
+                {
+                    new BsonDocument("$concatArrays", new BsonArray
+                    {
+                        new BsonDocument("$ifNull", new BsonArray { "$ops", new BsonArray() }),
+                        new BsonArray { opKey }
+                    }),
+                    -MarketRules.OpsWindow
+                }) },
+            { "updatedAt", Now }
+        };
+        var pipeline = PipelineDefinition<MarketAccount, MarketAccount>.Create(new[] { new BsonDocument("$set", set) });
+        var before = await Accounts.FindOneAndUpdateAsync(
+            new BsonDocumentFilterDefinition<MarketAccount>(filter),
+            Builders<MarketAccount>.Update.Pipeline(pipeline),
+            new FindOneAndUpdateOptions<MarketAccount> { ReturnDocument = ReturnDocument.Before },
+            ct);
+        if (before is not null)
+        {
+            var bonusPart = Math.Min(Math.Max(before.BonusBalance, 0), amount);
+            return new WalletSpend(WalletWrite.Applied, amount - bonusPart, bonusPart);
+        }
+        var replayed = await Accounts.CountDocumentsAsync(
+            Builders<MarketAccount>.Filter.Eq(a => a.Id, userId) & Builders<MarketAccount>.Filter.AnyEq(a => a.Ops, opKey),
+            cancellationToken: ct);
+        return new WalletSpend(replayed > 0 ? WalletWrite.AlreadyApplied : WalletWrite.Rejected, 0, 0);
     }
 
     public Task<MarketAccount?> FindAccountAsync(string userId, CancellationToken ct = default) =>
