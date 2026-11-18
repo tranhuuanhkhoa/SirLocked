@@ -88,6 +88,13 @@ public class AiCaseOrder
     /// <summary>0 means library pictures only.</summary>
     public int PixelLabCap { get; set; } = 60;
     public string ReviewMode { get; set; } = AiCaseReviewModes.Full;
+    /// <summary>VIP orders (VUAN-7): "FAST" (Claude Messages API) or "SAVER" (Message Batches, about half the price).</summary>
+    public string Speed { get; set; } = "FAST";
+    /// <summary>
+    /// VIP orders (VUAN-7): PixelLab generations bought on top of the included 30 (0 or 30, paid per generation). The
+    /// VIP's cap is 30 + this; <see cref="PixelLabCap"/> sent by a VIP is ignored, so leaving it out never costs extra.
+    /// </summary>
+    public int VipExtraPixelLab { get; set; }
 }
 
 [BsonIgnoreExtraElements]

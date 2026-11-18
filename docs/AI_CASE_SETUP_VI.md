@@ -165,6 +165,35 @@ Bản nháp bot đã import có trạng thái **"Đã import, chưa đăng"**. V
 
 Nút "Tạo bằng AI" của cutscene tạo yêu cầu bridge `ownerType = CUTSCENE`; trang cutscene hiện "đang chờ Claude" tới khi bot nộp. Bấm lại thì tiếp tục đúng lượt đang chờ, không tạo yêu cầu thứ hai. Khởi động server không còn tự xếp cutscene cho bot.
 
+## Đơn VIP trả xu (VUAN-7)
+
+Đơn của **VIP** không còn đi bot Claude Code: được viết bằng **Claude API** (khóa riêng, tính tiền theo token, đúng
+Commercial Terms). Đơn **ADMIN** vẫn đi bot qua bridge như trên. Chi tiết ví xu, gợi ý có phí, quảng cáo và thưởng tác
+giả: [docs/VIP_ECONOMY_VI.md](VIP_ECONOMY_VI.md).
+
+| Khóa | Ý nghĩa |
+| --- | --- |
+| `Anthropic__ApiKey` | Khóa Claude API cho làn VIP. Thiếu thì đơn VIP báo `VIP_LANE_NOT_CONFIGURED` và không giữ xu. Chỉ đặt trong file env của API trên server; không log, không trả qua API. |
+| `Anthropic__BatchPollSeconds` | Nhịp worker đọc kết quả Message Batches (mặc định 60 giây). |
+| `Ads__Enabled`, `Ads__PublisherId`, `Ads__TestMode` | Quảng cáo thưởng Google H5 Games Ads cho gợi ý mức 2. Tắt thì mức 2 chỉ trả bằng xu. |
+
+- **Đặt đơn:** VIP chọn Nhanh (Messages API, khoảng 1–2 giờ) hoặc Tiết kiệm (Message Batches, rẻ khoảng một nửa, trong 24
+  giờ); form hiện giá xu, số dư, nút Nạp xu. Gửi đơn thì giữ giá (hộp xác nhận trong trang). Yen duyệt đơn; tác giả tự
+  duyệt 4 cổng của vụ mình; import và publish vẫn chỉ ADMIN.
+- **Model** (`aiVipModels`, sửa ở thẻ Cài đặt của `/admin/ai`): Haiku 5.5 cho bước `VipBrief` (lập brief, kiểm luật nội
+  dung) và sửa định dạng JSON; Sonnet 5.5 cho mọi bước còn lại, kể cả cutscene và lập kế hoạch hình; Opus 5.5 chỉ ở lần
+  thử thứ 3 của một bước. Đổi model từng bước bằng `stepOverrides` (tiền tố tên bước → model).
+- **Gọi API:** prompt chung (instructions + JSON Schema của bước) đặt ở system có `cache_control`; câu trả lời được kiểm
+  đúng schema như khi bot nộp, sai thì Haiku sửa định dạng một lần. Sonnet và Opus bật `fallbacks: "default"` (từ chối phía
+  server). Mỗi câu hỏi lưu trong `aiVipCalls` theo `requestKey` của bridge, nên chạy lại không trả tiền hai lần; mỗi lời
+  gọi ghi `aiVipUsage` (token vào/ra/đọc cache/ghi cache, batch, USD, VND).
+- **Trần chi phí:** mặc định 2 lần vốn ước tính của preset; chạm trần thì dừng (`VIP_COST_CAP_REACHED`) và hoàn xu.
+- **Hình:** một lời gọi `VipAssetPlan` chọn thư viện, biến thể (và PixelLab khi `pixelLabEnabled` bật) qua đúng
+  `PixelAssetPlanning.Plan`, kiểm trần bằng `estimatedGenerations`. Yêu cầu ảnh của đơn VIP có `lane = VIP_RUNNER`: bot không
+  thấy; trình chạy không AI trên VPS studio làm (xem [studio-vps.md](studio-vps.md) mục B5).
+- **Bridge:** `GET /api/bridge/requests` và `POST …/take` nhận `lane` (mặc định làn của bot; `lane=VIP_RUNNER` cho trình
+  chạy hình VIP). Lấy nhầm làn: `409 BRIDGE_WRONG_LANE`.
+
 ## Thử trên máy
 
 - Không cần Claude: `scripts/start-local-demo.ps1` (mock như trước).

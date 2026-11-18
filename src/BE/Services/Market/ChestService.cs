@@ -336,7 +336,7 @@ public sealed class ChestService
             if (expectedPrice is not null && expectedPrice != price) throw ErrorFor(ChestErrors.PriceChanged);
             // A price lost to a bad edit must not become a free chest.
             if (MarketRules.ValidatePrice(price) is not null) throw ErrorFor(null);
-            if (account.Balance < price) throw ErrorFor(ChestErrors.Funds);
+            if (account.Balance + account.BonusBalance < price) throw ErrorFor(ChestErrors.Funds);
             if (!MarketRules.HasRoom(account.Slots, 1)) throw ErrorFor(ChestErrors.SlotsFull);
 
             var now = Now;
@@ -381,7 +381,8 @@ public sealed class ChestService
     {
         if (purchase.State != ChestOpeningStates.Pending) return purchase;
 
-        var debit = await _store.ApplyWalletAsync(purchase.UserId, PurchaseOpKey(purchase.Id), -purchase.Price, slotDelta: 1, ct: ct);
+        // A system sink (VUAN-7): bonus coins ("xu thưởng") are spent first, then ordinary coins.
+        var debit = (await _store.SpendPreferBonusAsync(purchase.UserId, PurchaseOpKey(purchase.Id), purchase.Price, slotDelta: 1, ct: ct)).Write;
         if (debit == WalletWrite.Rejected)
         {
             var reason = await DebitFailureAsync(purchase.UserId, purchase.Price, ct);
@@ -427,7 +428,7 @@ public sealed class ChestService
     private async Task<string> DebitFailureAsync(string userId, long amount, CancellationToken ct)
     {
         var account = await _store.FindAccountAsync(userId, ct);
-        if (account is null || account.Balance < amount) return ChestErrors.Funds;
+        if (account is null || account.Balance + account.BonusBalance < amount) return ChestErrors.Funds;
         if (!MarketRules.HasRoom(account.Slots, 1)) return ChestErrors.SlotsFull;
         return MarketErrors.Busy;
     }

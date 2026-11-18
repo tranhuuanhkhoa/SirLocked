@@ -2,6 +2,23 @@ import { session } from '../services/session.js';
 import { authSnapshot, canRetryForAccount, expireSessionIfCurrent, isPublicAuthRequest, refreshAfterUnauthorized } from '../services/authRefresh.js';
 
 /**
+ * VUAN-7: a random id of this browser, so accounts sharing one device count once toward an author's rewards. The
+ * server only stores a hash of it with the connection; it identifies nothing outside Sir Locked.
+ */
+function deviceId() {
+  try {
+    let id = localStorage.getItem('sirlocked.deviceId');
+    if (!id) {
+      id = typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID() : `d-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem('sirlocked.deviceId', id);
+    }
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
@@ -10,6 +27,8 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
   const requestSession = authSnapshot();
   const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;
+  const device = token ? deviceId() : '';
+  if (device) headers['X-Device-Id'] = device;
 
   let response;
   try {

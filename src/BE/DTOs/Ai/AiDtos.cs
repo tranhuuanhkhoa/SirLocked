@@ -123,6 +123,10 @@ public class AiDraftResponse
     public string OrderStatus { get; set; } = string.Empty;
     public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
     public string OrderRejectReason { get; set; } = string.Empty;
+    /// <summary>"" (ADMIN bot through the bridge) or "VIP_API" (paid VIP order through the Claude API).</summary>
+    public string Lane { get; set; } = string.Empty;
+    /// <summary>A paid VIP order: price, coins held and what happened to them (no cost figures).</summary>
+    public AiVipOrderView? VipOrder { get; set; }
     /// <summary>The Claude request a parked run waits for.</summary>
     public AiClaudeWait? ClaudeWait { get; set; }
     public List<AiBridgeAssetUpload> BridgeAssets { get; set; } = new();
@@ -252,6 +256,8 @@ public class AiDraftResponse
         OrderStatus = string.IsNullOrWhiteSpace(d.OrderStatus) ? AiCaseOrderPolicy.Derive(d, false) : d.OrderStatus,
         OrderStatusHistory = d.OrderStatusHistory,
         OrderRejectReason = d.OrderRejectReason,
+        Lane = d.Lane,
+        VipOrder = AiVipOrderView.From(d.VipBilling),
         ClaudeWait = d.ClaudeWait,
         BridgeAssets = d.BridgeAssets,
         BridgeReport = includeJson ? d.BridgeReport : string.Empty,
@@ -556,5 +562,38 @@ public class AiGenerationAttemptSummary
         ReasoningTokens = attempt.ReasoningTokens,
         ValidationErrors = attempt.ValidationErrors,
         CreatedAt = attempt.CreatedAt
+    };
+}
+
+/// <summary>What a VIP sees of the coins of their order.</summary>
+public sealed class AiVipOrderView
+{
+    public string Speed { get; set; } = string.Empty;
+    public int PixelLabCap { get; set; }
+    public long PriceXu { get; set; }
+    public long HeldFromBalance { get; set; }
+    public long HeldFromBonus { get; set; }
+    public string State { get; set; } = string.Empty;
+    public long RefundedXu { get; set; }
+    public long ChargedXu { get; set; }
+    public string SettleReason { get; set; } = string.Empty;
+    public DateTime HeldAt { get; set; }
+    public DateTime? SettledAt { get; set; }
+    public DateTime? EstimatedReadyAt { get; set; }
+
+    public static AiVipOrderView? From(AiVipBilling? billing) => billing is null ? null : new AiVipOrderView
+    {
+        Speed = billing.Speed,
+        PixelLabCap = billing.PixelLabCap,
+        PriceXu = billing.PriceXu,
+        HeldFromBalance = billing.HeldFromBalance,
+        HeldFromBonus = billing.HeldFromBonus,
+        State = billing.State,
+        RefundedXu = billing.RefundedXu,
+        ChargedXu = billing.ChargedXu,
+        SettleReason = billing.SettleReason,
+        HeldAt = billing.HeldAt,
+        SettledAt = billing.SettledAt,
+        EstimatedReadyAt = billing.EstimatedReadyAt
     };
 }

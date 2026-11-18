@@ -23,7 +23,9 @@ public sealed record WalletDto(
     int SlotCap,
     int ItemCount,
     int ReservedSlots,
-    int FeePercent);
+    int FeePercent,
+    long BonusBalance = 0,
+    long BonusHeld = 0);
 
 public sealed record MarketRowDto(
     ItemDefDto Def,

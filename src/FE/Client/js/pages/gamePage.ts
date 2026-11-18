@@ -30,6 +30,7 @@ import { timeOfDayTint } from '../game/atmosphere/weatherCore.js';
 import { blipDuration, type CharacterVoice } from '../game/atmosphere/blipCore.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
+import { withHintPayment, type HintPaymentChoice } from '../game/hintPayment';
 import { renderOpenCoopTimeline, renderOpenCoopCrack, type OpenCoopContext, type OpenCoopEvidence, type OpenCoopTestimony, type TimelineView } from '../game/openCoopCaseFile';
 import { createCaseWall, renderOpenCoopShell, type BoardView, type ShellTab, type WallStatus } from '../game/openCoopWall';
 import {
@@ -5553,7 +5554,14 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
           return { solved, feedback: res.puzzleFeedback ?? null, message: res.message ?? '' };
         },
         probe: async (puzzleId, payload) => {
-          const res = await gameApi.probePuzzle(roomId, puzzleId, JSON.stringify(payload));
+          // VUAN-7: a puzzle hint of level 2 or 3 is paid (ad or coins); the player chooses in the page.
+          const send = (payment?: HintPaymentChoice) => gameApi.probePuzzle(roomId, puzzleId, JSON.stringify(payment
+            ? { ...payload, $pay: payment.payWith, ...(payment.adTicketId ? { $adTicket: payment.adTicketId } : {}) }
+            : payload));
+          const res = payload.$hint === true
+            ? await withHintPayment(roomId, send, (message, tone) => toast(message, tone, 6500))
+            : await send();
+          if (!res) return { feedback: null, message: '' };
           applyState(res.state);
           return { feedback: res.puzzleFeedback ?? null, message: res.message ?? '' };
         },
@@ -7006,8 +7014,15 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   async function requestHint(contextType: 'SCENE' | 'CONFRONTATION' | 'DEDUCTION', targetId: string) {
     if (!targetId) return;
     try {
-      const res = await gameApi.hint(roomId, contextType, targetId);
-      toast(res.message, 'info', 6500);
+      // VUAN-7: level 2 and 3 are paid (a rewarded ad or coins) and take a share of the score.
+      const res = await withHintPayment(roomId,
+        (payment?: HintPaymentChoice) => gameApi.hint(roomId, contextType, targetId, payment?.payWith, payment?.adTicketId),
+        (message, tone) => toast(message, tone, 6500));
+      if (!res) return;
+      const cost = res.penaltyPercent > 0
+        ? tr(` (−${res.penaltyPercent}% case score)`, ` (−${res.penaltyPercent}% điểm vụ)`)
+        : '';
+      toast(`${res.message}${cost}`, 'info', 6500);
       if (res.state) applyState(res.state);
     } catch (err: any) {
       toast(err.message, 'error');

@@ -28,15 +28,21 @@ public class CasesController : BaseApiController
         !string.IsNullOrWhiteSpace(roomId) && await _rooms.IsPlaytestMemberAsync(CallerId, roomId, caseId);
 
     [HttpGet("published")]
-    public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> GetPublished() =>
-        Ok(await _caseService.GetPublishedAsync());
+    public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> GetPublished(
+        [FromServices] SirLocked.Api.Services.Vip.AuthorBadgeReader badges) =>
+        Ok(await badges.FillAsync(await _caseService.GetPublishedAsync()));
 
     /// <summary><paramref name="roomId"/>: a playtest room the caller sits in, for a case that is not published.</summary>
     [HttpGet("{caseId}")]
-    public async Task<ActionResult<ApiResponse<CasePublicDetailResponse>>> GetDetail(string caseId, [FromQuery] string? roomId = null) =>
-        Ok(await PlaytestAsync(caseId, roomId)
+    public async Task<ActionResult<ApiResponse<CasePublicDetailResponse>>> GetDetail(
+        string caseId, [FromServices] SirLocked.Api.Services.Vip.AuthorBadgeReader badges, [FromQuery] string? roomId = null)
+    {
+        var detail = await PlaytestAsync(caseId, roomId)
             ? CasePublicDetailResponse.FromCase(await _caseService.GetCaseAsync(caseId))
-            : await _caseService.GetPublicDetailAsync(caseId));
+            : await _caseService.GetPublicDetailAsync(caseId);
+        await badges.FillAsync([detail]);
+        return Ok(detail);
+    }
 
     /// <summary>
     /// The approved intro cutscene of a case a player can open. <c>data</c> is null when there is none (also for hidden

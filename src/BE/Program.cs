@@ -72,6 +72,9 @@ builder.Services.AddOptions<JwtSettings>()
     .ValidateOnStart();
 builder.Services.Configure<AiGenerationSettings>(builder.Configuration.GetSection("AiGeneration"));
 builder.Services.Configure<BridgeSettings>(builder.Configuration.GetSection("Bridge"));
+builder.Services.Configure<AnthropicSettings>(builder.Configuration.GetSection("Anthropic"));
+builder.Services.PostConfigure<AnthropicSettings>(settings => settings.ApiKey = settings.ApiKey?.Trim() ?? string.Empty);
+builder.Services.Configure<AdsSettings>(builder.Configuration.GetSection("Ads"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
 builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection("CaseCatalog"));
@@ -155,9 +158,23 @@ builder.Services.AddScoped<ITutorialService, TutorialService>();
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
 builder.Services.AddScoped<AiBridgeRequestStore>();
-builder.Services.AddScoped<IAiTextProvider, ClaudeBridgeTextProvider>();
+// VUAN-7: paid VIP orders are written through the Claude API, everything else by the ADMIN bot through the bridge.
+builder.Services.AddScoped<ClaudeBridgeTextProvider>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.ClaudeApiTextProvider>();
+builder.Services.AddScoped<IAiTextProvider, SirLocked.Api.Services.Vip.AiTextProviderRouter>();
+builder.Services.AddSingleton<SirLocked.Api.Services.Vip.IClaudeApiClient, SirLocked.Api.Services.Vip.AnthropicSdkClient>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipLaneStore>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipAnswerProcessor>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipBillingService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.HintPaymentService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorRewardService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorBadgeReader>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipReportService>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Vip.AuthorRewardWorker>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Vip.VipLaneWorker>();
 builder.Services.AddScoped<AiBridgeService>();
 builder.Services.AddScoped<AiCaseSettingsStore>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipSettingsStore>();
 builder.Services.AddScoped<AssetLibraryService>();
 builder.Services.AddScoped<IBridgeAssetStorage, BridgeAssetStorage>();
 builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
@@ -442,6 +459,8 @@ app.UseAuthentication();
 // User-partitioned policies need the authenticated identity; login policies still use the IP.
 app.UseRateLimiter();
 app.UseAuthorization();
+// VUAN-7: hashed network fingerprints of signed-in players, for the author-reward anti-fraud rules.
+app.UseMiddleware<SirLocked.Api.Services.Vip.NetworkKeyMiddleware>();
 app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();

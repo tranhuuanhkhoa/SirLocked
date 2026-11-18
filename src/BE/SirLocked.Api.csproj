@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Anthropic" Version="13.10.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="JsonSchema.Net" Version="7.3.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.6" />

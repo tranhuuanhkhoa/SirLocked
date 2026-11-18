@@ -14,8 +14,16 @@ public class MarketAccount
     [BsonId] public string Id { get; set; } = string.Empty;
     /// <summary>Spendable coins ("xu"). Never negative: every debit is guarded by Balance &gt;= amount.</summary>
     public long Balance { get; set; }
-    /// <summary>Coins escrowed by open buy orders.</summary>
+    /// <summary>Coins escrowed by open buy orders and by VIP case orders (the part paid from <see cref="Balance"/>).</summary>
     public long Held { get; set; }
+    /// <summary>
+    /// "Xu thưởng": coins given by the game (author revenue share, author tier bonuses), kept apart from
+    /// <see cref="Balance"/>. Spent first on chests, shop cosmetics and hints; never on player trades (that would turn
+    /// them into ordinary coins) and on a VIP case order only up to the share the settings allow. Never negative.
+    /// </summary>
+    public long BonusBalance { get; set; }
+    /// <summary>Bonus coins escrowed by a VIP case order (the part the settings let bonus coins pay).</summary>
+    public long BonusHeld { get; set; }
     /// <summary>Inventory slots in use: owned items plus one reserved slot per open buy order.</summary>
     public int Slots { get; set; }
     /// <summary>Category → item instance id ("ĐANG DÙNG").</summary>

@@ -27,9 +27,10 @@ public static class AiCaseOrderPolicy
         WorldDescriptions.TryGetValue(world ?? string.Empty, out var description) ? description : string.Empty;
 
     /// <summary>
-    /// Server-normalized order. VIP orders always get the FULL review mode and a 30-generation PixelLab cap.
+    /// Server-normalized order. VIP orders always get the FULL review mode and a PixelLab cap of 30 generations, or more
+    /// (paid per extra generation, VUAN-7) up to <paramref name="vipMaxPixelLabCap"/>.
     /// </summary>
-    public static AiCaseOrder Normalize(AiCaseOrder? requested, string role)
+    public static AiCaseOrder Normalize(AiCaseOrder? requested, string role, int vipMaxPixelLabCap = AiCaseOrder.VipPixelLabCap)
     {
         requested ??= new AiCaseOrder();
         var order = new AiCaseOrder
@@ -44,7 +45,8 @@ public static class AiCaseOrderPolicy
             PlayMinutes = requested.PlayMinutes is 0 ? 30 : requested.PlayMinutes,
             ContentLevel = Pick(requested.ContentLevel, AiCaseContentLevels.All, AiCaseContentLevels.Standard, "contentLevel"),
             PixelLabCap = requested.PixelLabCap,
-            ReviewMode = Pick(requested.ReviewMode, AiCaseReviewModes.All, AiCaseReviewModes.Full, "reviewMode")
+            ReviewMode = Pick(requested.ReviewMode, AiCaseReviewModes.All, AiCaseReviewModes.Full, "reviewMode"),
+            Speed = SirLocked.Api.Services.Vip.VipSpeeds.Normalize(requested.Speed)
         };
         if (order.SuspectCount is < AiCaseOrder.MinSuspects or > AiCaseOrder.MaxSuspects)
             throw Invalid("suspectCount must be between 3 and 6.", "suspectCount");
@@ -62,7 +64,16 @@ public static class AiCaseOrderPolicy
         {
             // VIPs never choose these: every VIP order is reviewed at all gates and capped.
             order.ReviewMode = AiCaseReviewModes.Full;
-            order.PixelLabCap = AiCaseOrder.VipPixelLabCap;
+            // 30 generations are included; more only when the VIP explicitly buys them (VUAN-7), up to the setting.
+            var extra = Math.Clamp(requested.VipExtraPixelLab, 0, Math.Max(0, vipMaxPixelLabCap - AiCaseOrder.VipPixelLabCap));
+            extra -= extra % AiCaseOrder.VipPixelLabCap; // whole packs of 30, so the cap stays one of 30/60/100
+            order.VipExtraPixelLab = extra;
+            order.PixelLabCap = AiCaseOrder.VipPixelLabCap + extra;
+        }
+        else
+        {
+            // ADMIN orders run on the bridge; the speed only means something for paid VIP orders.
+            order.Speed = SirLocked.Api.Services.Vip.VipSpeeds.Fast;
         }
         return order;
     }
