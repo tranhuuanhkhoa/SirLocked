@@ -2,6 +2,9 @@ using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using SirLocked.Api.Configurations;
+using SirLocked.Api.DTOs;
+using SirLocked.Api.DTOs.Market;
+using SirLocked.Api.DTOs.Weekly;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Models.Market;
@@ -11,6 +14,12 @@ using SirLocked.Api.Services.Weekly;
 
 namespace SirLocked.Api.Services.Market;
 
+/// <summary>Stable error codes of the weekly chest; the frontend maps each one to a Vietnamese/English message.</summary>
+public static class WeeklyDropErrors
+{
+    public const string NotFound = "WEEKLY_DROP_NOT_FOUND";
+}
+
 /// <summary>
 /// The weekly challenge chest. A game of the week's challenge case with enough points and the right culprit drops one
 /// chest for each verified player who did not write the case, at most one per account per week.
@@ -19,6 +28,7 @@ namespace SirLocked.Api.Services.Market;
 /// rolled and stored before the item is made, and the item is put in the bag under an operation key
 /// (<see cref="MarketService.GrantItemAsync"/>). A full bag leaves the chest waiting for the player to claim it.
 /// Runs from the game result hook, and from the recovery sweep for drops left half-way and games the hook missed.
+/// The reward API (WeeklyController) reads a player's drops and claims the waiting ones.
 /// </summary>
 public sealed class WeeklyDropService
 {
@@ -26,13 +36,21 @@ public sealed class WeeklyDropService
     /// How far back the recovery sweep looks for finished games whose drop was never evaluated. The sweep only exists for
     /// games whose hook never ran because the process died, and those are found within a sweep or two of the restart.
     /// Keeping the window short also keeps the verification edge short (spec 7.3): an account that verifies its e-mail
-    /// later does not get the chest of an older game through the sweep; it plays a good game again.
+    /// later does not get the chest of an older game through the sweep; it plays a good game again. The result page
+    /// (<see cref="GetForRoomAsync"/>) rolls only within the same window.
     /// </summary>
     public static readonly TimeSpan RecoveryWindow = TimeSpan.FromHours(2);
     private const int PendingBatch = 200;
     private const int ResultBatch = 500;
     /// <summary>Lost insert races before giving up; one is normal (the winner's drop is then read back), more means the drop keeps vanishing.</summary>
     private const int InsertAttempts = 3;
+    /// <summary>Waiting chests listed at most. One per week, so this is years of unclaimed chests.</summary>
+    private const int WaitingListLimit = 100;
+
+    /// <summary>Only what an evaluation reads from a game: never the case snapshot or the accusation (the sweep reads every 30 seconds).</summary>
+    private static readonly ProjectionDefinition<GameResult> EvaluationFields = Builders<GameResult>.Projection
+        .Include(r => r.RoomId).Include(r => r.CaseId).Include(r => r.Players)
+        .Include(r => r.CreatedAt).Include(r => r.Success).Include(r => r.ScoreSummary);
 
     private readonly MarketStore _store;
     private readonly MarketService _market;
@@ -95,7 +113,14 @@ public sealed class WeeklyDropService
     /// week is ALREADY_THIS_WEEK while a game of another case stays NOT_CHALLENGE.
     /// Returns one of <see cref="WeeklyDropStatuses"/>.
     /// </summary>
-    public async Task<string> EvaluatePlayerAsync(GameResult result, string userId, CancellationToken ct = default)
+    public Task<string> EvaluatePlayerAsync(GameResult result, string userId, CancellationToken ct = default) =>
+        EvaluatePlayerAsync(result, userId, mayRoll: true, ct);
+
+    /// <param name="mayRoll">
+    /// False: everything is answered as usual and a drop this game already has is still finished, but no new chest is
+    /// rolled; a game that would roll one answers NO_CHEST instead.
+    /// </param>
+    private async Task<string> EvaluatePlayerAsync(GameResult result, string userId, bool mayRoll, CancellationToken ct)
     {
         // The week the game was played in, not the week it is now.
         var week = ChallengeWeek.Containing(result.CreatedAt);
@@ -120,6 +145,7 @@ public sealed class WeeklyDropService
             var verifiedActive = await IsVerifiedActiveAsync(userId, ct);
             var reason = WeeklyDropRules.Ineligibility(result, userId, author, verifiedActive, _settings.MinScore);
             if (reason is not null) return reason;
+            if (!mayRoll) return WeeklyDropStatuses.NoChest;
 
             // 4. Roll the chest with the odds in force now.
             var chest = WeeklyDropRules.RollChest(WeeklyDropRules.Odds(_catalog.Current.Chests), _random);
@@ -175,12 +201,45 @@ public sealed class WeeklyDropService
     /// <summary>
     /// Puts the drop's chest in the bag, or marks it waiting when the bag is full. Safe to repeat and to run at the same
     /// time as itself: the slot is taken once under <see cref="OpKey"/>, the item id was chosen at the roll, and a done
-    /// drop never goes back. Returns the drop as stored afterwards.
+    /// drop never goes back. A waiting drop is tried again only from pending (<see cref="ReopenAsync"/>).
+    /// Returns the drop as stored afterwards.
     /// </summary>
     internal async Task<WeeklyDrop> AdvanceAsync(WeeklyDrop drop, CancellationToken ct)
     {
         if (drop.State == WeeklyDropStates.Done) return drop;
+        if (drop.State != WeeklyDropStates.Waiting) return await DeliverAsync(drop, retry: false, ct);
 
+        var reopened = await ReopenAsync(drop.Id, userId: null, ct);
+        if (reopened is not null) return await DeliverAsync(reopened, retry: true, ct);
+        // Moved by someone else meanwhile: delivered, waiting again, or being tried again from pending (safe to join).
+        var current = await FindDropAsync(drop.Id, ct) ?? drop;
+        return current.State == WeeklyDropStates.Pending ? await DeliverAsync(current, retry: true, ct) : current;
+    }
+
+    /// <summary>
+    /// Moves a waiting drop back to pending before its slot is taken again. The sweep leaves a waiting drop alone and it may
+    /// wait for weeks, longer than the wallet remembers an operation key: if the process stopped between taking the slot
+    /// and making the chest, a retry that late would take a second slot. A pending drop is finished by the sweep within
+    /// minutes, while its key is still remembered. Null when no such waiting drop exists (of <paramref name="userId"/>, if given).
+    /// </summary>
+    private async Task<WeeklyDrop?> ReopenAsync(string dropId, string? userId, CancellationToken ct)
+    {
+        var filter = Builders<WeeklyDrop>.Filter;
+        var match = filter.Eq(d => d.Id, dropId) & filter.Eq(d => d.State, WeeklyDropStates.Waiting);
+        if (userId is not null) match &= filter.Eq(d => d.UserId, userId);
+        return await _store.WeeklyDrops.FindOneAndUpdateAsync(
+            match,
+            Builders<WeeklyDrop>.Update.Set(d => d.State, WeeklyDropStates.Pending).Set(d => d.UpdatedAt, Now),
+            new FindOneAndUpdateOptions<WeeklyDrop> { ReturnDocument = ReturnDocument.After },
+            ct);
+    }
+
+    /// <summary>
+    /// Takes the slot under the drop's operation key and makes the chest, or marks the drop waiting when the bag is full.
+    /// <paramref name="retry"/>: a waiting chest tried again, whose full bag was already logged.
+    /// </summary>
+    private async Task<WeeklyDrop> DeliverAsync(WeeklyDrop drop, bool retry, CancellationToken ct)
+    {
         // A detective who never opened the market has no account yet; the slot write needs one.
         await _market.EnsureAccountAsync(drop.UserId, ct);
         var granted = await _market.GrantItemAsync(drop.UserId, drop.ChestDefId, drop.ItemId, MarketItemSources.Weekly, OpKey(drop.Id), ct);
@@ -199,7 +258,7 @@ public sealed class WeeklyDropService
             // Another call delivered it first.
             return await _store.WeeklyDrops.Find(d => d.Id == drop.Id).FirstOrDefaultAsync(ct) ?? drop;
         }
-        if (!granted && drop.State != WeeklyDropStates.Waiting)
+        if (!granted && !retry)
         {
             _logger.LogInformation("Weekly drop {DropId}: the bag is full, so the chest {ChestId} waits to be claimed.", drop.Id, drop.ChestDefId);
         }
@@ -276,13 +335,9 @@ public sealed class WeeklyDropService
         }
         if (windows.Count == 0) return 0;
 
-        // Only what an evaluation reads: never the case snapshot or the accusation, every 30 seconds.
-        var fields = Builders<GameResult>.Projection
-            .Include(r => r.RoomId).Include(r => r.CaseId).Include(r => r.Players)
-            .Include(r => r.CreatedAt).Include(r => r.Success).Include(r => r.ScoreSummary);
         var results = await _store.Context.GameResults
             .Find(filter.Or(windows) & filter.Eq(r => r.Success, true) & filter.Gte(r => r.ScoreSummary!.TotalScore, _settings.MinScore))
-            .SortByDescending(r => r.CreatedAt).Limit(ResultBatch).Project<GameResult>(fields).ToListAsync(ct);
+            .SortByDescending(r => r.CreatedAt).Limit(ResultBatch).Project<GameResult>(EvaluationFields).ToListAsync(ct);
         // A guest id is never an account, so it can never earn a drop: not worth evaluating on every sweep.
         var candidates = results
             .SelectMany(result => result.Players
@@ -316,6 +371,91 @@ public sealed class WeeklyDropService
             }
         }
         return found;
+    }
+
+    // ------------------------------------------------------------------ the reward API
+
+    /// <summary>
+    /// What the game in <paramref name="roomId"/> did for this player's weekly chest, for the result page. The game is
+    /// evaluated (safe to repeat), so the page has its answer even when the hook failed and the sweep has not run yet.
+    /// Like the sweep, only a game of the last <see cref="RecoveryWindow"/> can still roll its chest here: eligibility is
+    /// decided when the game ends (spec 7.3), so verifying an e-mail later does not drop the chests of older games when
+    /// their pages are opened again. An older game that never dropped one answers NO_CHEST.
+    /// A game that does not exist, or that the player was not in, is NOT_CHALLENGE.
+    /// </summary>
+    public async Task<WeeklyDropStatusDto> GetForRoomAsync(string userId, string roomId, CancellationToken ct = default)
+    {
+        var result = string.IsNullOrWhiteSpace(roomId)
+            ? null
+            : await _store.Context.GameResults.Find(r => r.RoomId == roomId).Project<GameResult>(EvaluationFields).FirstOrDefaultAsync(ct);
+        if (result?.Players is null || string.IsNullOrWhiteSpace(userId) || !result.Players.Contains(userId))
+            return new WeeklyDropStatusDto(WeeklyDropStatuses.NotChallenge, null, _settings.MinScore);
+
+        var status = await EvaluatePlayerAsync(result, userId, mayRoll: result.CreatedAt >= Now - RecoveryWindow, ct);
+        // The week's chest: the one this game dropped, or the one the week already gave.
+        var drop = status is WeeklyDropStatuses.Granted or WeeklyDropStatuses.Waiting or WeeklyDropStatuses.AlreadyThisWeek
+            ? await FindDropAsync(WeeklyDrop.IdOf(ChallengeWeek.Containing(result.CreatedAt).Key, userId), ct)
+            : null;
+        return new WeeklyDropStatusDto(status, drop is null ? null : ToDto(drop), _settings.MinScore);
+    }
+
+    /// <summary>
+    /// The player's weekly reward for the challenge page: this week's chest if the week gave one, and every chest still
+    /// waiting for room (this week's included), newest week first. Only reads; claiming is <see cref="ClaimAsync"/>.
+    /// </summary>
+    public async Task<WeeklyRewardDto> GetMineAsync(string userId, CancellationToken ct = default)
+    {
+        var week = ChallengeWeek.Containing(Now);
+        var thisWeek = await FindDropAsync(WeeklyDrop.IdOf(week.Key, userId), ct);
+        var waiting = await _store.WeeklyDrops
+            .Find(d => d.UserId == userId && d.State == WeeklyDropStates.Waiting)
+            .SortByDescending(d => d.WeekKey).Limit(WaitingListLimit).ToListAsync(ct);
+        return new WeeklyRewardDto(week.Key, _settings.MinScore, thisWeek is null ? null : ToDto(thisWeek), waiting.Select(ToDto).ToList());
+    }
+
+    /// <summary>
+    /// Puts one of the player's waiting chests in the bag once they made room: the chest and item id rolled when the game
+    /// ended, never a new roll. The drop goes back to pending before its slot is taken (<see cref="ReopenAsync"/>), so a
+    /// claim cut short is the recovery sweep's to finish. A chest already in the bag is answered again and a pending one is
+    /// finished. Someone else's drop, or none, is 404 WEEKLY_DROP_NOT_FOUND; a bag still full is 409 SLOTS_FULL.
+    /// </summary>
+    public async Task<WeeklyDropDto> ClaimAsync(CurrentUser user, string dropId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(dropId) || string.IsNullOrWhiteSpace(user.Id)) throw DropNotFound();
+
+        var reopened = await ReopenAsync(dropId, user.Id, ct);
+        WeeklyDrop stored;
+        if (reopened is not null)
+        {
+            stored = await DeliverAsync(reopened, retry: true, ct);
+        }
+        else
+        {
+            var drop = await _store.WeeklyDrops.Find(d => d.Id == dropId && d.UserId == user.Id).FirstOrDefaultAsync(ct)
+                ?? throw DropNotFound();
+            stored = await AdvanceAsync(drop, ct);
+        }
+        if (stored.State != WeeklyDropStates.Done) throw MarketService.Error(409, ChestErrors.SlotsFull, "Your inventory is full.");
+        return ToDto(stored);
+    }
+
+    private static ApiException DropNotFound() =>
+        MarketService.Error(404, WeeklyDropErrors.NotFound, "This weekly challenge chest was not found.");
+
+    /// <summary>The drop as the player sees it. A chest kind that has left the catalog shows its id as its name, never an error.</summary>
+    private WeeklyDropDto ToDto(WeeklyDrop drop)
+    {
+        var chest = _catalog.Current.FindChest(drop.ChestDefId);
+        return new WeeklyDropDto(
+            drop.Id,
+            drop.WeekKey,
+            drop.ChestDefId,
+            chest?.Name ?? drop.ChestDefId,
+            chest?.NameEn ?? drop.ChestDefId,
+            chest?.IconKey ?? string.Empty,
+            chest?.Look is { } look ? new ChestLookDto(look.Template, look.Light, look.Hi, look.Core) : null,
+            drop.State,
+            drop.CreatedAt);
     }
 
     // ------------------------------------------------------------------ reads
