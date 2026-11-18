@@ -387,6 +387,35 @@ test('with chest sales off the shop sells keys only and says chests come from th
   expect(errors).toEqual([]);
 });
 
+test('case-file gear from the market has no pixel icon: it is drawn as in the market, not as a magnifier', async ({ page }) => {
+  const counts = { chests: 1, keys: 1, balance: 500 };
+  await prepare(page, counts);
+  const errors = collectPageErrors(page);
+  // Market gear (as in Hòm Đêm Whitechapel) comes without an iconKey.
+  const gear = (id: string, name: string, category: string) => ({ ...def(id, name, 'COMMON', '', category), iconKey: null });
+  const STAMP = gear('stamp_violet', 'Con dấu mực tím', 'STAMP');
+  const PINS = gear('pins_iron', 'Ghim sắt văn phòng', 'PINS');
+  const body = listBody(counts);
+  (body.chests[0] as any).contents = [STAMP, PINS, ...CONTENTS];
+  await page.route('**/api/chests', (route) => ok(route, body));
+  await page.route('**/api/chests/chest_np/open', (route) => ok(route, openResult({ ...counts, chests: 0, keys: 0 }, STAMP as any)));
+  await page.goto('/kho-ruong');
+
+  const tile = (name: string) => page.locator('#qh-contents .qh-it', { hasText: name });
+  await expect(tile('Con dấu mực tím').locator('svg')).toHaveCount(1);
+  await expect(tile('Con dấu mực tím').locator('canvas')).toHaveCount(0);
+  // Each type keeps its own drawing.
+  expect(await tile('Con dấu mực tím').locator('svg').innerHTML()).not.toBe(await tile('Ghim sắt văn phòng').locator('svg').innerHTML());
+  // A collectible with a pixel icon keeps it.
+  await expect(tile('Sổ tay da bò').locator('canvas')).toHaveCount(1);
+
+  await page.locator('#qh-openBtn').click();
+  await expect(appMode(page)).toHaveAttribute('data-mode', 'reveal', { timeout: 15_000 });
+  await expect(page.locator('#qh-gotName')).toHaveText('Con dấu mực tím');
+  await expect(page.locator('#qh-gotVis svg')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
 test('the preview of the opening effect spends nothing and says it is a preview', async ({ page }) => {
   const counts = { chests: 0, keys: 0, balance: 500 };
   await prepare(page, counts);
