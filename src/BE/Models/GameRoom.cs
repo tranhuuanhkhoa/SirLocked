@@ -57,6 +57,12 @@ public class RoomPlaytest
     /// <summary>Null until the invite link is used; after that the link lets no one else in.</summary>
     [BsonIgnoreIfNull]
     public string? InvitedUserId { get; set; }
+    /// <summary>
+    /// Case Studio "Chơi thử cảnh này": the scene both detectives start in instead of the first one. Null starts at the
+    /// first scene. Ignored when the scene no longer exists in the case.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    public string? StartSceneId { get; set; }
 }
 
 [BsonIgnoreExtraElements]

@@ -283,6 +283,48 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
         return published;
     }
 
+    /// <summary>The case as camelCase JSON, the shape every import and the admin JSON view use.</summary>
+    public static string SerializeCase(GameCase gameCase) => JsonSerializer.Serialize(gameCase, JsonOptions);
+
+    /// <summary>
+    /// Case Studio save: replaces an unpublished case in place, whatever its validation says (a draft may be half done;
+    /// publishing is what is gated). A published case is never replaced here. Only playtest rooms may be open on it:
+    /// another active room would see its definition change under the players, as <see cref="ImportJsonAsync"/> refuses.
+    /// </summary>
+    public async Task<GameCase> ReplaceDraftAsync(GameCase gameCase)
+    {
+        var existing = await FindCaseAsync(gameCase.CaseId) ?? throw ApiException.NotFound("Case not found.");
+        if (!string.Equals(existing.Status, CaseStatus.Draft, StringComparison.OrdinalIgnoreCase))
+            throw ApiException.Conflict("Vụ đã xuất bản: gỡ xuất bản trước khi sửa.", "CASE_EDITOR_PUBLISHED", "caseEditor.published");
+        var activeRoom = await _db.Rooms.Find(ReferencingActiveCase(gameCase.CaseId))
+            .ToListAsync();
+        if (activeRoom.FirstOrDefault(room => room.Playtest is null) is { } room)
+            throw ApiException.Conflict(
+                $"Case '{gameCase.CaseId}' is played in room '{room.RoomCode}'. Wait for that room to finish before editing it.",
+                "CASE_IMMUTABLE_WHILE_ACTIVE",
+                "case.immutableWhileActive");
+        // Same rule as the import: results recorded without a copy of the case would change meaning.
+        var legacyRoom = await _db.Rooms.Find(ReferencingLegacyCompletedCase(gameCase.CaseId)).Limit(1).FirstOrDefaultAsync();
+        var legacyResult = await _db.GameResults.Find(ReferencingLegacyResult(gameCase.CaseId)).Limit(1).FirstOrDefaultAsync();
+        if (legacyRoom is not null || legacyResult is not null)
+            throw ApiException.Conflict(
+                $"Case '{gameCase.CaseId}' has historical results without an original definition snapshot. Import the revised case under a new caseId to preserve those results.",
+                "CASE_IMMUTABLE_FOR_LEGACY_RESULT",
+                "case.immutableForLegacyResult");
+
+        gameCase.Id = existing.Id;
+        gameCase.Status = CaseStatus.Draft;
+        gameCase.CreatedAt = existing.CreatedAt;
+        gameCase.UpdatedAt = DateTime.UtcNow;
+        var replaced = await _db.Cases.ReplaceOneAsync(
+            c => c.Id == existing.Id && c.Status == CaseStatus.Draft,
+            gameCase);
+        _cache.Invalidate(gameCase.CaseId);
+        if (replaced.MatchedCount == 0)
+            throw ApiException.Conflict("Vụ đã xuất bản: gỡ xuất bản trước khi sửa.", "CASE_EDITOR_PUBLISHED", "caseEditor.published");
+        return gameCase;
+    }
+
     public async Task<CaseSummaryResponse> UnpublishAsync(string caseId)
     {
         var gameCase = await GetCaseAsync(caseId);

@@ -18,5 +18,8 @@ public interface IRoomService
     Task<RoomResponse> AbandonAsync(CurrentUser user, string roomId);
     /// <summary>"Chơi thử": the caller's private playtest room of an imported, unpublished AI draft.</summary>
     Task<RoomResponse> CreatePlaytestAsync(CurrentUser user, string draftId);
+    /// <summary>Case Studio "Chơi thử cảnh này": the same room, starting both detectives in <paramref name="startSceneId"/>.</summary>
+    Task<RoomResponse> CreatePlaytestAsync(CurrentUser user, string draftId, string? startSceneId) =>
+        CreatePlaytestAsync(user, draftId);
     Task<bool> IsPlaytestMemberAsync(string userId, string roomId, string caseId);
 }
