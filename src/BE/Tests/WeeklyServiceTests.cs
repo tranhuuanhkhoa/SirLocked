@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Routing;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Leaderboard;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
+using SirLocked.Api.WebAPI.Controllers;
 using Xunit;
 
 namespace SirLocked.Tests;
@@ -94,6 +97,32 @@ public class WeeklyServiceTests
         Assert.Equal(1, board.TotalRanked);
         Assert.Single(board.Entries);
         Assert.Equal(120, board.Entries[0].SolveTimeSeconds);
+    }
+
+    // --- challenge reward routes ---
+
+    [Fact]
+    public void ChallengeReward_NeedsASignedInPlayer_WhileTheChallengeStaysPublic()
+    {
+        Assert.Empty(typeof(WeeklyController).GetCustomAttributes(typeof(AuthorizeAttribute), true));
+        var challenge = typeof(WeeklyController).GetMethod(nameof(WeeklyController.GetChallenge))!;
+        Assert.Single(challenge.GetCustomAttributes(typeof(AllowAnonymousAttribute), false));
+
+        foreach (var (name, verb, template) in new[]
+        {
+            (nameof(WeeklyController.ChallengeReward), "GET", "challenge/reward"),
+            (nameof(WeeklyController.ChallengeRewardForRoom), "GET", "challenge/reward/{roomId}"),
+            (nameof(WeeklyController.ClaimChallengeReward), "POST", "challenge/reward/{dropId}/claim"),
+        })
+        {
+            var action = typeof(WeeklyController).GetMethod(name)!;
+            var route = action.GetCustomAttributes(typeof(HttpMethodAttribute), false).Cast<HttpMethodAttribute>().Single();
+            Assert.Equal(template, route.Template);
+            Assert.Equal(verb, route.HttpMethods.Single());
+            // Any signed-in player, no role.
+            Assert.Null(action.GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>().Single().Roles);
+            Assert.Empty(action.GetCustomAttributes(typeof(AllowAnonymousAttribute), false));
+        }
     }
 
     /* --------------------------------- builders -------------------------------- */

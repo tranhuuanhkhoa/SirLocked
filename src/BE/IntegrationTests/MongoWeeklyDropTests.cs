@@ -6,6 +6,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
+using SirLocked.Api.DTOs;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Models.Market;
@@ -427,7 +428,346 @@ public sealed class MongoWeeklyDropTests
         await env.AssertSlotsMatchItemsAsync();
     }
 
+    // ------------------------------------------------------------------ the reward API: claiming
+
+    [Fact]
+    public async Task Claim_AfterMakingRoom_GivesTheSameChest()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        await env.FillBagAsync(user);
+        var result = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-5), score: 90, success: true, user);
+        // Ticket 95 of 100: Két Nhà Băng.
+        var drops = env.Drops(new ScriptedRandom(95));
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(result, user, CancellationToken.None));
+        var waiting = await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync();
+
+        await env.FreeOneSlotAsync(user);
+        var claimed = await drops.ClaimAsync(Caller(user), waiting.Id, CancellationToken.None);
+
+        Assert.Equal(waiting.Id, claimed.Id);
+        Assert.Equal(ThisWeek.Key, claimed.WeekKey);
+        Assert.Equal("chest_nb", claimed.ChestId);
+        Assert.Equal("Két Nhà Băng", claimed.ChestName);
+        Assert.Equal("Bank Safe", claimed.ChestNameEn);
+        Assert.Equal("chest_bank", claimed.IconKey);
+        Assert.Equal(WeeklyDropStates.Done, claimed.State);
+        Assert.Equal(waiting.CreatedAt, claimed.CreatedAt);
+        // The chest rolled when the game ended, under the item id chosen then.
+        var item = await env.Store.Items.Find(i => i.Source == MarketItemSources.Weekly).SingleAsync();
+        Assert.Equal(waiting.ItemId, item.Id);
+        Assert.Equal("chest_nb", item.DefId);
+        Assert.Equal(user, item.OwnerId);
+
+        // Claiming again answers the same chest and gives nothing more.
+        var again = await drops.ClaimAsync(Caller(user), waiting.Id, CancellationToken.None);
+        Assert.Equal(WeeklyDropStates.Done, again.State);
+        Assert.Equal(waiting.Id, again.Id);
+        Assert.Equal(1, await env.Store.Items.CountDocumentsAsync(i => i.Source == MarketItemSources.Weekly));
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task Claim_StillFull_Returns409SlotsFull()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        await env.FillBagAsync(user);
+        var result = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-5), score: 90, success: true, user);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(result, user, CancellationToken.None));
+        var waiting = await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync();
+
+        var error = await Assert.ThrowsAsync<ApiException>(() => drops.ClaimAsync(Caller(user), waiting.Id, CancellationToken.None));
+
+        Assert.Equal(409, error.StatusCode);
+        Assert.Equal("SLOTS_FULL", ((ApiErrorDetails)error.Errors!).Code);
+        var stored = await env.Store.WeeklyDrops.Find(d => d.Id == waiting.Id).SingleAsync();
+        Assert.Equal(WeeklyDropStates.Waiting, stored.State);
+        Assert.Null(stored.DeliveredAt);
+        Assert.False(await env.Store.Items.Find(i => i.Id == waiting.ItemId).AnyAsync());
+        Assert.Equal(MarketRules.InventorySlots, (await env.Store.FindAccountAsync(user))!.Slots);
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task Claim_SomeoneElsesDrop_Returns404()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var owner = await env.AddUserAsync();
+        var other = await env.AddUserAsync();
+        await env.FillBagAsync(owner);
+        var result = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-5), score: 90, success: true, owner);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(result, owner, CancellationToken.None));
+        var waiting = await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync();
+        // The owner made room: a claim of theirs would deliver it, so only the ownership check stands in the way.
+        await env.FreeOneSlotAsync(owner);
+        var othersSlots = (await env.Store.FindAccountAsync(other))!.Slots;
+
+        var stolen = await Assert.ThrowsAsync<ApiException>(() => drops.ClaimAsync(Caller(other), waiting.Id, CancellationToken.None));
+        var missing = await Assert.ThrowsAsync<ApiException>(() =>
+            drops.ClaimAsync(Caller(owner), WeeklyDrop.IdOf(ThisWeek.Key, other), CancellationToken.None));
+
+        foreach (var error in new[] { stolen, missing })
+        {
+            Assert.Equal(404, error.StatusCode);
+            Assert.Equal("WEEKLY_DROP_NOT_FOUND", ((ApiErrorDetails)error.Errors!).Code);
+        }
+        var stored = await env.Store.WeeklyDrops.Find(d => d.Id == waiting.Id).SingleAsync();
+        Assert.Equal(WeeklyDropStates.Waiting, stored.State);
+        Assert.Equal(waiting.UpdatedAt, stored.UpdatedAt);
+        Assert.False(await env.Store.Items.Find(i => i.Source == MarketItemSources.Weekly).AnyAsync());
+        Assert.Equal(othersSlots, (await env.Store.FindAccountAsync(other))!.Slots);
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task Claim_LeavesNoDropPending_AfterTheConflictOrTheChest()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        await env.FillBagAsync(user);
+        var result = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-5), score: 90, success: true, user);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(result, user, CancellationToken.None));
+        var dropId = WeeklyDrop.IdOf(ThisWeek.Key, user);
+
+        // A claim goes through pending (so a crash mid-claim is the sweep's to finish), but never stays there.
+        await Assert.ThrowsAsync<ApiException>(() => drops.ClaimAsync(Caller(user), dropId, CancellationToken.None));
+        Assert.Equal(0, await env.Store.WeeklyDrops.CountDocumentsAsync(d => d.State == WeeklyDropStates.Pending));
+        Assert.Equal(WeeklyDropStates.Waiting, (await env.Store.WeeklyDrops.Find(d => d.Id == dropId).SingleAsync()).State);
+        // The result page asks about the game again: still waiting, still not pending.
+        Assert.Equal(WeeklyDropStatuses.Waiting, (await drops.GetForRoomAsync(user, "room-1", CancellationToken.None)).Status);
+        Assert.Equal(0, await env.Store.WeeklyDrops.CountDocumentsAsync(d => d.State == WeeklyDropStates.Pending));
+
+        await env.FreeOneSlotAsync(user);
+        Assert.Equal(WeeklyDropStates.Done, (await drops.ClaimAsync(Caller(user), dropId, CancellationToken.None)).State);
+        Assert.Equal(0, await env.Store.WeeklyDrops.CountDocumentsAsync(d => d.State == WeeklyDropStates.Pending));
+        Assert.Equal(WeeklyDropStates.Done, (await env.Store.WeeklyDrops.Find(d => d.Id == dropId).SingleAsync()).State);
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Theory]
+    [InlineData("claim")]
+    [InlineData("result page")]
+    public async Task RetryOfAWaitingChest_CutShortAfterTakingTheSlot_IsLeftPendingForTheSweep(string retriedBy)
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        await env.FillBagAsync(user);
+        var result = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-5), score: 90, success: true, user);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(result, user, CancellationToken.None));
+        var dropId = WeeklyDrop.IdOf(ThisWeek.Key, user);
+        await env.FreeOneSlotAsync(user);
+
+        // The chest cannot be made, so the retry stops after taking the slot, as if the server stopped right there.
+        // The result page retries too: asking about the game evaluates it, and a waiting chest of that game is tried again.
+        await env.RefuseWeeklyItemsAsync(true);
+        await Assert.ThrowsAnyAsync<MongoException>(() => retriedBy == "claim"
+            ? (Task)drops.ClaimAsync(Caller(user), dropId, CancellationToken.None)
+            : drops.GetForRoomAsync(user, "room-1", CancellationToken.None));
+
+        // Pending, not waiting: the sweep finishes it soon, while the wallet still knows that slot was taken.
+        var stopped = await env.Store.WeeklyDrops.Find(d => d.Id == dropId).SingleAsync();
+        Assert.Equal(WeeklyDropStates.Pending, stopped.State);
+        Assert.False(await env.Store.Items.Find(i => i.Id == stopped.ItemId).AnyAsync());
+        await env.RefuseWeeklyItemsAsync(false);
+        Assert.Equal(1, await drops.RecoverAsync(TimeSpan.Zero, CancellationToken.None));
+
+        Assert.Equal(WeeklyDropStates.Done, (await env.Store.WeeklyDrops.Find(d => d.Id == dropId).SingleAsync()).State);
+        Assert.True(await env.Store.Items.Find(i => i.Id == stopped.ItemId && i.OwnerId == user).AnyAsync());
+        Assert.Equal(MarketRules.InventorySlots, (await env.Store.FindAccountAsync(user))!.Slots);
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task Claim_PendingDrop_IsFinishedWithoutASecondSlot()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        var at = env.Clock.GetUtcNow().UtcDateTime;
+        // A claim cut short: back to pending, the slot taken under the drop's operation key, the chest not made yet.
+        var pending = new WeeklyDrop
+        {
+            Id = WeeklyDrop.IdOf(ThisWeek.Key, user), UserId = user, WeekKey = ThisWeek.Key, CaseId = Challenge, RoomId = "room-1",
+            ChestDefId = "chest_sm", ItemId = MarketStore.NewId(), State = WeeklyDropStates.Pending, CreatedAt = at.AddHours(-1), UpdatedAt = at,
+        };
+        await env.Store.WeeklyDrops.InsertOneAsync(pending);
+        var slotsBefore = (await env.Store.FindAccountAsync(user))!.Slots;
+        Assert.Equal(WalletWrite.Applied, await env.Store.ApplyWalletAsync(user, $"weekly:{pending.Id}", 0, slotDelta: 1));
+
+        var claimed = await env.Drops(new CryptoChestRandom()).ClaimAsync(Caller(user), pending.Id, CancellationToken.None);
+
+        Assert.Equal(WeeklyDropStates.Done, claimed.State);
+        Assert.Equal("chest_sm", (await env.Store.Items.Find(i => i.Id == pending.ItemId).SingleAsync()).DefId);
+        Assert.Equal(slotsBefore + 1, (await env.Store.FindAccountAsync(user))!.Slots);
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    // ------------------------------------------------------------------ the reward API: reading
+
+    [Fact]
+    public async Task GetForRoom_ReportsEachStatus()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        var stranger = await env.AddUserAsync();
+        await env.AddResultAsync("room-low", Challenge, Now.AddMinutes(-20), score: 79, success: true, user);
+        await env.AddResultAsync("room-unsolved", Challenge, Now.AddMinutes(-15), score: 95, success: false, user);
+        await env.AddResultAsync("room-won", Challenge, Now.AddMinutes(-10), score: 90, success: true, user);
+        await env.AddResultAsync("room-late", Challenge, Now.AddMinutes(-5), score: 100, success: true, user);
+        // Ticket 95 of 100: Két Nhà Băng.
+        var drops = env.Drops(new ScriptedRandom(95));
+
+        var low = await drops.GetForRoomAsync(user, "room-low", CancellationToken.None);
+        Assert.Equal(WeeklyDropStatuses.LowScore, low.Status);
+        Assert.Null(low.Drop);
+        Assert.Equal(80, low.MinScore);
+        var unsolved = await drops.GetForRoomAsync(user, "room-unsolved", CancellationToken.None);
+        Assert.Equal(WeeklyDropStatuses.NotSolved, unsolved.Status);
+        Assert.Null(unsolved.Drop);
+
+        // The page can ask before the hook ran: the game is evaluated then, once.
+        var granted = await drops.GetForRoomAsync(user, "room-won", CancellationToken.None);
+        Assert.Equal(WeeklyDropStatuses.Granted, granted.Status);
+        Assert.NotNull(granted.Drop);
+        Assert.Equal(WeeklyDrop.IdOf(ThisWeek.Key, user), granted.Drop!.Id);
+        Assert.Equal("chest_nb", granted.Drop.ChestId);
+        Assert.Equal("Két Nhà Băng", granted.Drop.ChestName);
+        Assert.Equal(WeeklyDropStates.Done, granted.Drop.State);
+        Assert.Equal(80, granted.MinScore);
+        Assert.Equal(WeeklyDropStatuses.Granted, (await drops.GetForRoomAsync(user, "room-won", CancellationToken.None)).Status);
+
+        // A later good game of the week is too late, and points at the chest the week already gave.
+        var late = await drops.GetForRoomAsync(user, "room-late", CancellationToken.None);
+        Assert.Equal(WeeklyDropStatuses.AlreadyThisWeek, late.Status);
+        Assert.Equal(granted.Drop.Id, late.Drop?.Id);
+
+        // A game the player was not in, or no game at all, is not their challenge.
+        var notTheirs = await drops.GetForRoomAsync(stranger, "room-won", CancellationToken.None);
+        Assert.Equal(WeeklyDropStatuses.NotChallenge, notTheirs.Status);
+        Assert.Null(notTheirs.Drop);
+        Assert.Equal(WeeklyDropStatuses.NotChallenge, (await drops.GetForRoomAsync(user, "room-missing", CancellationToken.None)).Status);
+
+        var drop = await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync();
+        Assert.Equal(user, drop.UserId);
+        Assert.Equal("room-won", drop.RoomId);
+        Assert.Equal(1, await env.Store.Items.CountDocumentsAsync(i => i.Source == MarketItemSources.Weekly));
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task GetForRoom_OlderThanTheRecoveryWindow_NeverRollsAChest()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        var lastWeek = ThisWeek.Previous();
+        await env.AddWeekAsync(lastWeek, "case-p");
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync(verified: false);
+        // Two good games played before the e-mail was verified: one last week, one three hours ago.
+        await env.AddResultAsync("room-p", "case-p", lastWeek.StartUtc.AddDays(2), score: 95, success: true, user);
+        await env.AddResultAsync("room-q", Challenge, Now.AddHours(-3), score: 95, success: true, user);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Unverified, (await drops.GetForRoomAsync(user, "room-q", CancellationToken.None)).Status);
+
+        // Verifying later does not drop the chests of those games when their result pages are opened again (spec 7.3):
+        // only a new good game of the week does.
+        await env.Db.Users.UpdateOneAsync(u => u.Id == user, Builders<User>.Update.Set(u => u.IsEmailVerified, true));
+        foreach (var room in new[] { "room-p", "room-q" })
+        {
+            var status = await drops.GetForRoomAsync(user, room, CancellationToken.None);
+            Assert.Equal(WeeklyDropStatuses.NoChest, status.Status);
+            Assert.Null(status.Drop);
+        }
+        Assert.Equal(0, await env.Store.WeeklyDrops.CountDocumentsAsync(FilterDefinition<WeeklyDrop>.Empty));
+
+        await env.AddResultAsync("room-r", Challenge, Now.AddMinutes(-5), score: 81, success: true, user);
+        Assert.Equal(WeeklyDropStatuses.Granted, (await drops.GetForRoomAsync(user, "room-r", CancellationToken.None)).Status);
+        // The older game of the same week is now simply too late.
+        Assert.Equal(WeeklyDropStatuses.AlreadyThisWeek, (await drops.GetForRoomAsync(user, "room-q", CancellationToken.None)).Status);
+        Assert.Equal(1, await env.Store.Items.CountDocumentsAsync(i => i.Source == MarketItemSources.Weekly));
+    }
+
+    [Fact]
+    public async Task GetMine_ListsWaitingFromLastWeek()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        var lastWeek = ThisWeek.Previous();
+        var twoWeeksAgo = ThisWeek.Previous(2);
+        await env.AddWeekAsync(lastWeek, "case-p");
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        await env.FillBagAsync(user);
+        var drops = env.Drops(new CryptoChestRandom());
+        var old = await env.AddResultAsync("room-p", "case-p", lastWeek.StartUtc.AddDays(3), score: 85, success: true, user);
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(old, user, CancellationToken.None));
+        var lastWeeksDrop = WeeklyDrop.IdOf(lastWeek.Key, user);
+
+        var mine = await drops.GetMineAsync(user, CancellationToken.None);
+
+        Assert.Equal(ThisWeek.Key, mine.WeekKey);
+        Assert.Equal(80, mine.MinScore);
+        Assert.Null(mine.ThisWeek);
+        var listed = Assert.Single(mine.Waiting);
+        Assert.Equal(lastWeeksDrop, listed.Id);
+        Assert.Equal(lastWeek.Key, listed.WeekKey);
+        Assert.Equal(WeeklyDropStates.Waiting, listed.State);
+
+        // This week's game waits too (the bag is still full): it is this week's chest and the newest waiting one.
+        var fresh = await env.AddResultAsync("room-q", Challenge, Now.AddMinutes(-5), score: 90, success: true, user);
+        Assert.Equal(WeeklyDropStatuses.Waiting, await drops.EvaluatePlayerAsync(fresh, user, CancellationToken.None));
+        // A chest of two weeks ago whose kind has left the catalog since is still listed, under its id.
+        var gone = new WeeklyDrop
+        {
+            Id = WeeklyDrop.IdOf(twoWeeksAgo.Key, user), UserId = user, WeekKey = twoWeeksAgo.Key, CaseId = "case-o", RoomId = "room-o",
+            ChestDefId = "chest_gone", ItemId = MarketStore.NewId(), State = WeeklyDropStates.Waiting,
+            CreatedAt = twoWeeksAgo.StartUtc.AddDays(1), UpdatedAt = twoWeeksAgo.StartUtc.AddDays(1),
+        };
+        await env.Store.WeeklyDrops.InsertOneAsync(gone);
+        var thisWeeksDrop = WeeklyDrop.IdOf(ThisWeek.Key, user);
+
+        mine = await drops.GetMineAsync(user, CancellationToken.None);
+
+        Assert.Equal(thisWeeksDrop, mine.ThisWeek?.Id);
+        Assert.Equal(WeeklyDropStates.Waiting, mine.ThisWeek!.State);
+        Assert.Equal(new[] { thisWeeksDrop, lastWeeksDrop, gone.Id }, mine.Waiting.Select(d => d.Id));
+        var unknown = mine.Waiting[2];
+        Assert.Equal("chest_gone", unknown.ChestId);
+        Assert.Equal("chest_gone", unknown.ChestName);
+        Assert.Equal("chest_gone", unknown.ChestNameEn);
+        Assert.Null(unknown.Look);
+
+        // Last week's chest, claimed once there is room, leaves the list; another player sees none of it.
+        await env.FreeOneSlotAsync(user);
+        Assert.Equal(WeeklyDropStates.Done, (await drops.ClaimAsync(Caller(user), lastWeeksDrop, CancellationToken.None)).State);
+        mine = await drops.GetMineAsync(user, CancellationToken.None);
+        Assert.Equal(new[] { thisWeeksDrop, gone.Id }, mine.Waiting.Select(d => d.Id));
+        var someoneElse = await drops.GetMineAsync(await env.AddUserAsync(), CancellationToken.None);
+        Assert.Null(someoneElse.ThisWeek);
+        Assert.Empty(someoneElse.Waiting);
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    private static CurrentUser Caller(string userId) => new(userId, "Thám tử", UserRole.Player);
 
     /// <summary>Hands out the scripted values in order (then 0).</summary>
     private sealed class ScriptedRandom(params int[] values) : IChestRandom
@@ -583,6 +923,15 @@ public sealed class MongoWeeklyDropTests
             await Store.Items.DeleteOneAsync(i => i.Id == item.Id);
             await Store.ApplyWalletAsync(userId, $"test-free:{item.Id}", 0, slotDelta: -1);
         }
+
+        /// <summary>While on, the items collection refuses any new weekly chest (a server-side validator), so a grant stops after taking its slot.</summary>
+        public Task RefuseWeeklyItemsAsync(bool refuse) =>
+            Db.Database.RunCommandAsync<BsonDocument>(new BsonDocument
+            {
+                { "collMod", Store.Items.CollectionNamespace.CollectionName },
+                { "validator", refuse ? new BsonDocument("source", new BsonDocument("$ne", MarketItemSources.Weekly)) : new BsonDocument() },
+                { "validationAction", "error" },
+            });
 
         public async Task AssertSlotsMatchItemsAsync()
         {
