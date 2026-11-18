@@ -278,7 +278,11 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
 
         CreateV3EvidenceSources(skeleton, truth, clueByTrace, contract);
         CreateDialogues(skeleton, dialogueAllocation);
-        CreateInvestigativeMechanics(skeleton, truth, contract, clueByTrace);
+        var openCoop = AiPipelineVersions.IsOpenCoop(draft.Settings);
+        // OPEN_COOP_1: optional interactive puzzles instead of the dossier exercises. They come before the
+        // confrontations so a puzzle-acquired clue can serve as a distractor (never as the correct evidence).
+        if (openCoop) CreateOptionalPuzzles(skeleton, truth, AiDifficultyProfiles.For(draft.Settings.Difficulty), draft.Settings.Leaning);
+        else CreateInvestigativeMechanics(skeleton, truth, contract, clueByTrace);
         CreateChallenges(skeleton, truth, clueByTrace, contract, challengeStatementIds);
         CreateConversationTrees(skeleton, truth, contract);
         FillClueBudget(skeleton, truth, contract.MinClues);
@@ -661,8 +665,12 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         for (var index = 0; index < contract.Deductions; index++)
         {
             var conclusion = conclusions[index % conclusions.Count];
-            var clue = skeleton.Clues.First(item =>
-                item.SupportsConclusionIds.Contains(conclusion.ConclusionId, StringComparer.Ordinal));
+            var supporting = skeleton.Clues.Where(item =>
+                item.SupportsConclusionIds.Contains(conclusion.ConclusionId, StringComparer.Ordinal)).ToList();
+            // An OPEN_COOP deduction never rests on a clue only an optional puzzle gives.
+            var clue = CaseRuleSets.IsOpenCoop(skeleton)
+                ? supporting.FirstOrDefault(item => item.SourceType != "puzzle") ?? supporting.First()
+                : supporting.First();
             var deduction = new DeductionChallenge
             {
                 DeductionId = $"deduction-{conclusion.ConclusionId}",

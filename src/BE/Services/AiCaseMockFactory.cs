@@ -119,6 +119,10 @@ internal static class AiCaseMockFactory
         var mock = MockCaseFactory.Create("A safe mock AI case for dry-run validation", 4, "medium");
         ConvertMockCaseToCameraEmbedded(mock);
         var traceCount = Math.Min(budget.MaxTraces, mock.Clues.Count);
+        // An OPEN_COOP_1 case gives each optional puzzle a corroborating trace of its own.
+        if (AiPipelineVersions.IsOpenCoop(settings))
+            traceCount = Math.Min(budget.MaxTraces,
+                mock.Clues.Count + AiDifficultyProfiles.PuzzleCount(AiDifficultyProfiles.For(settings.Difficulty), settings.Leaning));
         var culpritId = mock.FinalLogic.CulpritId;
         var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(settings, contract, targetKind);
         var suspects = mock.Characters

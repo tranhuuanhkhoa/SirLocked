@@ -26,7 +26,8 @@ public sealed record AiTruthGenerationBudget(
 
     /// <summary>
     /// An OPEN_COOP_1 draft: exactly the level's suspects, up to its most scenes as locations, its red herrings; the
-    /// trace, statement and timeline room of a balanced case of that many scenes.
+    /// statement and timeline room of a balanced case of that many scenes, and its trace room plus one trace per
+    /// optional puzzle.
     /// </summary>
     public static AiTruthGenerationBudget ForLevel(AiDifficultyProfile profile)
     {
@@ -40,6 +41,8 @@ public sealed record AiTruthGenerationBudget(
         });
         return room with
         {
+            // Room for one corroborating trace per optional puzzle on top of the proofs and confrontations.
+            MaxTraces = room.MaxTraces + profile.Puzzles.Max,
             MaxSuspects = profile.Suspects,
             MaxLocations = scenes,
             MaxRedHerrings = profile.RedHerrings.Max,
