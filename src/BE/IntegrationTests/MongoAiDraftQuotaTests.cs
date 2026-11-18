@@ -10,6 +10,8 @@ using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Vip;
+using SirLocked.Api.Services.Market;
 using Xunit;
 
 namespace SirLocked.IntegrationTests;
@@ -110,6 +112,8 @@ public sealed class MongoAiDraftQuotaTests
         await WithDatabase(async db =>
         {
             var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
             var provider = new RejectProviderCalls();
             var service = CreateService(db, provider, quota: false);
             var draft = await service.CreatePreviewAsync(vip, new GenerateAiCaseRequest
@@ -124,6 +128,10 @@ public sealed class MongoAiDraftQuotaTests
 
             Assert.Equal(AiOrderStatuses.AwaitingOwnerApproval, draft.OrderStatus);
             Assert.Equal(AiQueueStates.None, draft.QueueState);
+            // VUAN-7: the order is paid in coins and written through the Claude API lane.
+            Assert.Equal(AiDraftLanes.VipApi, draft.Lane);
+            Assert.Equal(AiVipBillingStates.Held, draft.VipOrder!.State);
+            Assert.Equal(5_000, draft.VipOrder.PriceXu); // Short Demo, "Nhanh": 5.000 xu
             Assert.Equal(AiCaseReviewModes.Full, draft.Order!.ReviewMode); // VIPs never get fast review
             Assert.Equal(AiCaseOrder.VipPixelLabCap, draft.Order.PixelLabCap); // nor more than 30 generations
             Assert.Equal(AiCaseWorlds.TaishoJapan, draft.Order.World);
@@ -158,6 +166,8 @@ public sealed class MongoAiDraftQuotaTests
         await WithDatabase(async db =>
         {
             var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
             var admin = new CurrentUser(ObjectId.GenerateNewId().ToString(), "Admin", UserRole.Admin);
             var service = CreateService(db, new RejectProviderCalls(), quota: false);
             var request = new GenerateAiCaseRequest { GenerationPreset = AiGenerationPresets.ShortDemo };
@@ -205,6 +215,8 @@ public sealed class MongoAiDraftQuotaTests
         await WithDatabase(async db =>
         {
             var vip = new CurrentUser(ObjectId.GenerateNewId().ToString(), "VIP", UserRole.Vip);
+
+            await FundAsync(db, vip.Id);
             var service = CreateService(db, new RejectProviderCalls(), quota: false);
             var attempts = Enumerable.Range(1, 6).Select(async index =>
             {
@@ -238,6 +250,25 @@ public sealed class MongoAiDraftQuotaTests
         };
     }
 
+    /// <summary>VUAN-7 billing with a fake key: the lane counts as configured, nothing ever calls Anthropic.</summary>
+    private static VipBillingService Billing(MongoDbContext db)
+    {
+        var store = new MarketStore(db);
+        var market = new MarketService(store, NullLogger<MarketService>.Instance);
+        var wallet = new CoinWalletService(store, market, NullLogger<CoinWalletService>.Instance);
+        return new VipBillingService(db, wallet, new VipSettingsStore(db),
+            Options.Create(new AnthropicSettings { ApiKey = "test-key-never-sent" }), NullLogger<VipBillingService>.Instance);
+    }
+
+    /// <summary>A VIP needs coins to order (VUAN-7).</summary>
+    private static async Task FundAsync(MongoDbContext db, string userId, long coins = 1_000_000)
+    {
+        var store = new MarketStore(db);
+        await new MarketService(store, NullLogger<MarketService>.Instance).EnsureAccountAsync(userId);
+        await store.Accounts.UpdateOneAsync(account => account.Id == userId,
+            Builders<SirLocked.Api.Models.Market.MarketAccount>.Update.Set(account => account.Balance, coins));
+    }
+
     private static AiCaseService CreateService(MongoDbContext db, IAiTextProvider provider, bool quota = true) => new(
         db: db, workflow: null!, caseService: null!, validator: null!, truthService: null!,
         projectionPlanner: null!, projectionSchemaFactory: null!, projectionCompiler: null!, projectionGraphValidator: null!,
@@ -251,7 +282,8 @@ public sealed class MongoAiDraftQuotaTests
         v3PresetSettings: Options.Create(new AiCaseV3PresetSettings { Enabled = true }),
         gameplayV3Settings: Options.Create(new GameplayV3Settings { Enabled = true }),
         env: null!, logger: NullLogger<AiCaseService>.Instance,
-        bridgeSettings: Options.Create(new BridgeSettings { Key = "integration-bridge-key-0123456789abcdef" }));
+        bridgeSettings: Options.Create(new BridgeSettings { Key = "integration-bridge-key-0123456789abcdef" }),
+        vipBilling: Billing(db));
 
     private static async Task WithDatabase(Func<MongoDbContext, Task> check)
     {

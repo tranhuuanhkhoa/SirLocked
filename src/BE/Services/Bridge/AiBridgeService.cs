@@ -42,9 +42,13 @@ public sealed class AiBridgeService(
 
     // ---------------------------------------------------------------- requests
 
-    public async Task<List<object>> ListRequestsAsync(string? status, int limit, CancellationToken ct)
+    public async Task<List<object>> ListRequestsAsync(string? status, int limit, CancellationToken ct, string? lane = null)
     {
-        var requests = await store.ListAsync(string.IsNullOrWhiteSpace(status) ? AiBridgeStatuses.Pending : status, limit, ct);
+        // VUAN-7: the ADMIN bot sees its own lane only; the VIP image runner asks for lane=VIP_RUNNER.
+        var wantedLane = NormalizeLane(lane);
+        var requests = (await store.ListAsync(string.IsNullOrWhiteSpace(status) ? AiBridgeStatuses.Pending : status, limit, ct))
+            .Where(item => string.Equals(item.Lane ?? string.Empty, wantedLane, StringComparison.Ordinal))
+            .ToList();
         var draftIds = requests.Where(item => item.OwnerType == AiBridgeOwnerTypes.CaseDraft).Select(item => item.OwnerId).Distinct().ToList();
         var drafts = draftIds.Count == 0
             ? new Dictionary<string, AiCaseDraft>()
@@ -87,9 +91,18 @@ public sealed class AiBridgeService(
         return result;
     }
 
-    public async Task<object> TakeAsync(string requestId, CancellationToken ct)
+    public static string NormalizeLane(string? lane) =>
+        string.Equals(lane?.Trim(), AiBridgeLanes.VipRunner, StringComparison.OrdinalIgnoreCase) ? AiBridgeLanes.VipRunner : AiBridgeLanes.Bot;
+
+    public async Task<object> TakeAsync(string requestId, CancellationToken ct, string? lane = null)
     {
         var current = await store.GetAsync(requestId, ct) ?? throw ApiException.NotFound("Bridge request not found.");
+        if (!string.Equals(current.Lane ?? string.Empty, NormalizeLane(lane), StringComparison.Ordinal))
+            throw ApiException.Conflict(
+                current.Lane == AiBridgeLanes.VipRunner
+                    ? "This image request belongs to a paid VIP order: the VIP runner makes it (lane=VIP_RUNNER), not the bot."
+                    : "This request belongs to the ADMIN bot's lane.",
+                "BRIDGE_WRONG_LANE", "ai.bridge.wrongLane");
         var draft = await RequireApprovedOwnerAsync(current, ct);
         var taken = await store.TakeAsync(requestId, bridge.Value.LeaseHours, ct);
         if (taken is null)
@@ -397,22 +410,7 @@ public sealed class AiBridgeService(
                     id = node!["id"]!.GetValue<string>(), estimatedGenerations = node["estimatedGenerations"]!.GetValue<int>()
                 }).ToList()
             });
-        var planJson = result.Plan.ToJsonString();
-        var accepted = new AiAssetPlan
-        {
-            Choices = result.Subjects.Select(subject => new AiAssetChoice
-            {
-                Subject = subject.Subject, Source = subject.Source, LibraryKey = subject.LibraryKey,
-                ParentKey = subject.ParentKey, Variant = subject.Variant, InpaintItems = (subject.InpaintItems ?? new List<string>()).ToList(),
-                Note = Clip((choices ?? new()).FirstOrDefault(choice => choice.Subject == subject.Subject)?.Note, 500)
-            }).ToList(),
-            EstimatedGenerations = result.EstimatedGenerations,
-            PixelLabCap = cap,
-            Requests = result.Plan["summary"]!["requests"]!.GetValue<int>(),
-            PlanJson = planJson,
-            PlanSha256 = AiBridgeSchemaValidator.Sha256(planJson),
-            AcceptedAt = DateTime.UtcNow
-        };
+        var accepted = PixelAssetPlanning.Accept(result, choices);
         await db.AiCaseDrafts.UpdateOneAsync(item => item.Id == draftId,
             Builders<AiCaseDraft>.Update.Set(item => item.AssetPlan, accepted).Set(item => item.UpdatedAt, DateTime.UtcNow),
             cancellationToken: ct);

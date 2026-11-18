@@ -10,6 +10,9 @@ using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Vip;
+using SirLocked.Api.Configurations;
+using Microsoft.Extensions.Options;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
@@ -73,20 +76,94 @@ public class AdminAiCasesController : BaseApiController
 
     [HttpGet("settings")]
     [Authorize(Roles = UserRole.Admin)]
-    public async Task<ActionResult<ApiResponse<AiCaseSettingsDocument>>> GetSettings(CancellationToken ct) =>
-        Ok(await _settings.GetAsync(ct));
+    public async Task<ActionResult<ApiResponse<AiSettingsResponse>>> GetSettings(
+        [FromServices] VipSettingsStore vip,
+        [FromServices] IOptions<AnthropicSettings> anthropic,
+        [FromServices] IOptions<AdsSettings> ads,
+        CancellationToken ct) =>
+        Ok(await SettingsResponseAsync(vip, anthropic.Value, ads.Value, ct));
 
+    /// <summary>
+    /// Saves the sections the request carries (each one optional): the VIP weekly limit, <c>vipPricing</c>,
+    /// <c>vipModels</c>, <c>hintPricing</c>, <c>authorRewards</c>. Every changed section is one admin log entry.
+    /// </summary>
     [HttpPut("settings")]
     [Authorize(Roles = UserRole.Admin)]
-    public async Task<ActionResult<ApiResponse<AiCaseSettingsDocument>>> PutSettings(
-        [FromBody] AiCaseSettingsRequest request, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<AiSettingsResponse>>> PutSettings(
+        [FromBody] AiCaseSettingsRequest request,
+        [FromServices] VipSettingsStore vip,
+        [FromServices] IOptions<AnthropicSettings> anthropic,
+        [FromServices] IOptions<AdsSettings> ads,
+        CancellationToken ct)
     {
-        var before = await _settings.GetAsync(ct);
-        var saved = await _settings.SaveAsync(request.VipWeeklyOrderLimit, Caller.Id, ct);
-        await _audit.LogAsync(Caller, "ai-settings.update", "gameSettings", AiCaseSettingsDocument.DocumentId,
-            new { before.VipWeeklyOrderLimit }, new { saved.VipWeeklyOrderLimit }, ct: ct);
-        return Ok(saved, "AI case settings saved.");
+        // Validate every section first, so a bad value in one does not leave the others half saved.
+        if (request.VipPricing is not null) VipSettingsStore.ValidatePricing(request.VipPricing);
+        if (request.VipModels is not null) VipSettingsStore.ValidateModels(request.VipModels);
+        if (request.HintPricing is not null) VipSettingsStore.ValidateHints(request.HintPricing);
+        if (request.AuthorRewards is not null) VipSettingsStore.ValidateAuthors(request.AuthorRewards);
+
+        if (request.VipWeeklyOrderLimit.HasValue)
+        {
+            var before = await _settings.GetAsync(ct);
+            var saved = await _settings.SaveAsync(request.VipWeeklyOrderLimit.Value, Caller.Id, ct);
+            await _audit.LogAsync(Caller, "ai-settings.update", "gameSettings", AiCaseSettingsDocument.DocumentId,
+                new { before.VipWeeklyOrderLimit }, new { saved.VipWeeklyOrderLimit }, ct: ct);
+        }
+        if (request.VipPricing is not null)
+        {
+            var before = await vip.GetPricingAsync(ct);
+            var saved = await vip.SavePricingAsync(request.VipPricing, Caller.Id, ct);
+            await _audit.LogAsync(Caller, "ai-vip-pricing.update", "gameSettings", VipPricingSettings.DocumentId, before, saved, ct: ct);
+        }
+        if (request.VipModels is not null)
+        {
+            var before = await vip.GetModelsAsync(ct);
+            var saved = await vip.SaveModelsAsync(request.VipModels, Caller.Id, ct);
+            await _audit.LogAsync(Caller, "ai-vip-models.update", "gameSettings", VipModelSettings.DocumentId, before, saved, ct: ct);
+        }
+        if (request.HintPricing is not null)
+        {
+            var before = await vip.GetHintsAsync(ct);
+            var saved = await vip.SaveHintsAsync(request.HintPricing, Caller.Id, ct);
+            await _audit.LogAsync(Caller, "hint-pricing.update", "gameSettings", HintPricingSettings.DocumentId, before, saved, ct: ct);
+        }
+        if (request.AuthorRewards is not null)
+        {
+            var before = await vip.GetAuthorsAsync(ct);
+            var saved = await vip.SaveAuthorsAsync(request.AuthorRewards, Caller.Id, ct);
+            await _audit.LogAsync(Caller, "author-rewards.update", "gameSettings", AuthorRewardSettings.DocumentId, before, saved, ct: ct);
+        }
+        return Ok(await SettingsResponseAsync(vip, anthropic.Value, ads.Value, ct), "AI case settings saved.");
     }
+
+    private async Task<AiSettingsResponse> SettingsResponseAsync(
+        VipSettingsStore vip, AnthropicSettings anthropic, AdsSettings ads, CancellationToken ct)
+    {
+        var general = await _settings.GetAsync(ct);
+        return new AiSettingsResponse
+        {
+            VipWeeklyOrderLimit = general.VipWeeklyOrderLimit,
+            UpdatedAt = general.UpdatedAt,
+            UpdatedByUserId = general.UpdatedByUserId,
+            VipPricing = await vip.GetPricingAsync(ct),
+            VipModels = await vip.GetModelsAsync(ct),
+            HintPricing = await vip.GetHintsAsync(ct),
+            AuthorRewards = await vip.GetAuthorsAsync(ct),
+            // Whether a key is set, never the key itself.
+            VipLaneConfigured = anthropic.IsConfigured,
+            AdsEnabled = ads.IsActive
+        };
+    }
+
+    /// <summary>
+    /// VUAN-7: what a VIP order with this preset, speed and PixelLab cap costs, the caller's coins and whether the VIP lane
+    /// is open (an API key is set). Nothing is held; the price is held when the order is placed.
+    /// </summary>
+    [HttpGet("vip-quote")]
+    public async Task<ActionResult<ApiResponse<VipQuote>>> VipQuote(
+        [FromQuery] string? preset, [FromQuery] string? speed, [FromQuery] int pixelLabCap,
+        [FromServices] VipBillingService billing, CancellationToken ct) =>
+        Ok(await billing.QuoteAsync(Caller.Id, preset, speed, pixelLabCap, ct));
 
     /// <summary>How many orders the caller has left this week (VIP); ADMIN orders are unlimited.</summary>
     [HttpGet("quota")]
@@ -217,5 +294,24 @@ public sealed class AiOrderRejectRequest
 
 public sealed class AiCaseSettingsRequest
 {
-    public int VipWeeklyOrderLimit { get; set; } = AiCaseSettingsStore.DefaultVipWeeklyOrderLimit;
+    public int? VipWeeklyOrderLimit { get; set; }
+    public VipPricingSettings? VipPricing { get; set; }
+    public VipModelSettings? VipModels { get; set; }
+    public HintPricingSettings? HintPricing { get; set; }
+    public AuthorRewardSettings? AuthorRewards { get; set; }
+}
+
+/// <summary>Everything the "Cài đặt" card of /admin/ai edits.</summary>
+public sealed class AiSettingsResponse
+{
+    public int VipWeeklyOrderLimit { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string UpdatedByUserId { get; set; } = string.Empty;
+    public VipPricingSettings VipPricing { get; set; } = new();
+    public VipModelSettings VipModels { get; set; } = new();
+    public HintPricingSettings HintPricing { get; set; } = new();
+    public AuthorRewardSettings AuthorRewards { get; set; } = new();
+    /// <summary>True when <c>Anthropic__ApiKey</c> is set on the server, so VIP orders can be taken.</summary>
+    public bool VipLaneConfigured { get; set; }
+    public bool AdsEnabled { get; set; }
 }

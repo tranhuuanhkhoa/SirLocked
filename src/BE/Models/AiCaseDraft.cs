@@ -350,6 +350,17 @@ public class AiCaseDraft
     /// <summary>Pixel drafts: the picture plan the bot declared (library, variant, PixelLab) once it fits pixelLabCap.</summary>
     [BsonIgnoreIfNull]
     public AiAssetPlan? AssetPlan { get; set; }
+    /// <summary>
+    /// <see cref="AiDraftLanes"/>: who writes the case. Empty (the ADMIN bot through the bridge) for every draft made
+    /// before VUAN-7 and for ADMIN orders; <c>VIP_API</c> for paid VIP orders written through the Claude API.
+    /// </summary>
+    public string Lane { get; set; } = string.Empty;
+    /// <summary>VIP orders: the coins held for the order and what happened to them.</summary>
+    [BsonIgnoreIfNull]
+    public AiVipBilling? VipBilling { get; set; }
+    /// <summary>VIP orders: the structured brief and content check written by the light model before the story.</summary>
+    [BsonIgnoreIfNull]
+    public AiVipBrief? VipBrief { get; set; }
     /// <summary>The bot's report.md (results of its five checks), shown to admins.</summary>
     public string BridgeReport { get; set; } = string.Empty;
     public DateTime? BridgeReportUpdatedAt { get; set; }

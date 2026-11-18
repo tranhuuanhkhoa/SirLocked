@@ -28,6 +28,10 @@ using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Vip;
+using SirLocked.Api.Services.Market;
+using SirLocked.Api.Models.Market;
+using SirLocked.IntegrationTests.Vip;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -249,23 +253,46 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(HttpStatusCode.Forbidden, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null)).StatusCode);
 
+        // VUAN-7: the price is held when the order is placed (Short Demo, "Nhanh": 5.000 xu).
+        Assert.Equal(AiDraftLanes.VipApi, draft.Lane);
+        Assert.Equal((AiVipBillingStates.Held, 5_000L), (draft.VipOrder!.State, draft.VipOrder.PriceXu));
+        Assert.Equal(VipCoins - 5_000, await BalanceAsync(factory, VipId));
+
         var approved = await admin.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null);
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+        // The approved order is written through the Claude API lane: the brief by Haiku, the story by Sonnet.
         var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (!(await PendingAsync(bot)).Any(item => item["draftId"]?.GetValue<string>() == draft.DraftId))
+        while (!factory.Claude.Calls.Any(call => call.Step.Contains("StoryPreview", StringComparison.Ordinal)))
         {
-            Assert.True(DateTime.UtcNow < deadline, "The approved VIP order never reached the bot.");
+            Assert.True(DateTime.UtcNow < deadline, "The approved VIP order never reached the Claude API lane.");
             await Task.Delay(200);
+        }
+        Assert.Equal(VipModelIds.Haiku, factory.Claude.Calls.First(call => call.Step == VipModelRouter.BriefStep).Model);
+        Assert.Equal(VipModelIds.Sonnet, factory.Claude.Calls.First(call => call.Step.Contains("StoryPreview", StringComparison.Ordinal)).Model);
+        Assert.DoesNotContain(await PendingAsync(bot), item => item["draftId"]?.GetValue<string>() == draft.DraftId);
+        using (var usageScope = factory.Services.CreateScope())
+        {
+            var lane = usageScope.ServiceProvider.GetRequiredService<VipLaneStore>();
+            var usage = await lane.Usage.Find(item => item.DraftId == draft.DraftId).ToListAsync();
+            Assert.Contains(usage, item => item.Step == VipModelRouter.BriefStep && item.Model == VipModelIds.Haiku && item.CostUsd > 0);
+            var billed = await usageScope.ServiceProvider.GetRequiredService<MongoDbContext>().AiCaseDrafts
+                .Find(item => item.Id == draft.DraftId).SingleAsync();
+            Assert.True(billed.VipBilling!.SpentUsd > 0);
+            Assert.True(billed.VipBilling.WorkStarted);
         }
 
         var second = (await (await vip.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
         {
             GenerationPreset = AiGenerationPresets.ShortDemo
         })).Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
+        Assert.Equal(VipCoins - 10_000, await BalanceAsync(factory, VipId));
         var rejected = await admin.PostAsJsonAsync($"/api/admin/ai-cases/{second.DraftId}/reject-order", new { reason = "Trùng ý tưởng." });
         Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
         var rejectedDraft = await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{second.DraftId}");
         Assert.Equal((AiOrderStatuses.Rejected, "Trùng ý tưởng."), (rejectedDraft.OrderStatus, rejectedDraft.OrderRejectReason));
+        // Rejected by Yen: every held coin goes back at once.
+        Assert.Equal((AiVipBillingStates.Refunded, 5_000L), (rejectedDraft.VipOrder!.State, rejectedDraft.VipOrder.RefundedXu));
+        Assert.Equal(VipCoins - 5_000, await BalanceAsync(factory, VipId));
 
         using var scope = factory.Services.CreateScope();
         var audit = scope.ServiceProvider.GetRequiredService<IAdminAudit>();
@@ -835,6 +862,15 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         return client;
     }
 
+    private const long VipCoins = 50_000;
+
+    private static async Task<long> BalanceAsync(BridgeFactory factory, string userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var account = await scope.ServiceProvider.GetRequiredService<MarketStore>().FindAccountAsync(userId);
+        return account?.Balance ?? 0;
+    }
+
     private static async Task SeedUsersAsync(BridgeFactory factory)
     {
         using var _ = factory.CreateClient();
@@ -845,6 +881,11 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             {
                 Id = id, FullName = role, Email = $"{id}@bridge.test", Role = role, Status = UserStatus.Active, IsEmailVerified = true
             });
+        // VUAN-7: a VIP pays orders in coins.
+        var market = scope.ServiceProvider.GetRequiredService<MarketService>();
+        await market.EnsureAccountAsync(VipId);
+        await scope.ServiceProvider.GetRequiredService<MarketStore>().Accounts.UpdateOneAsync(account => account.Id == VipId,
+            Builders<MarketAccount>.Update.Set(account => account.Balance, VipCoins));
     }
 
     private sealed class BridgeFactory(string key = BridgeKey) : WebApplicationFactory<Program>
@@ -853,6 +894,8 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             Environment.GetEnvironmentVariable("SIRLOCKED_TEST_MONGO_CONNECTION_STRING")
             ?? "mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000";
         private readonly string _databaseName = $"sirlocked_it_{Guid.NewGuid():N}";
+
+        public FakeClaudeApiClient Claude { get; } = new();
 
         public IMongoDatabase RawDatabase()
         {
@@ -873,6 +916,9 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
                     ["MongoDb:DatabaseName"] = _databaseName,
                     ["AiGeneration:MockAiResponses"] = "false",
                     ["Bridge:Key"] = key,
+                    // VUAN-7: the VIP lane counts as configured; the Claude client is a fake that never calls Anthropic.
+                    ["Anthropic:ApiKey"] = "test-key-never-sent",
+                    ["Anthropic:BatchPollSeconds"] = "15",
                     ["Bridge:ExposeMockResponses"] = "true",
                     ["Bridge:AllowLocalAssetStorage"] = "true",
                     ["Bridge:RateLimitPerMinute"] = "5000",
@@ -893,6 +939,8 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             builder.ConfigureTestServices(services =>
             {
                 services.AddDataProtection().UseEphemeralDataProtectionProvider();
+                services.RemoveAll<IClaudeApiClient>();
+                services.AddSingleton<IClaudeApiClient>(Claude);
                 services.RemoveAll<IEmailService>();
                 services.AddSingleton<IEmailService, NoEmail>();
                 services.PostConfigure<GoogleOptions>(GoogleDefaults.AuthenticationScheme, options =>

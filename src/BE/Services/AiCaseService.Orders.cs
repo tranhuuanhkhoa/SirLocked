@@ -95,6 +95,12 @@ public partial class AiCaseService
             ?? throw ApiException.Conflict("The order changed before it could be rejected.",
                 "AI_WORKFLOW_CONFLICT", "ai.workflow.conflict");
         await new AiBridgeRequestStore(_db, TimeProvider.System).CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, rejected.Id);
+        if (rejected.VipBilling is not null && _vipBilling is not null)
+        {
+            // VUAN-7: a rejected VIP order gets every held coin back at once.
+            await _vipBilling.SettleAsync(rejected.Id);
+            rejected = await _db.AiCaseDrafts.Find(item => item.Id == rejected.Id).FirstOrDefaultAsync() ?? rejected;
+        }
         return AiDraftResponse.From(rejected, includeJson: false);
     }
 
