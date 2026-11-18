@@ -1,3 +1,4 @@
+using SirLocked.Api.Models;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
 
@@ -5,6 +6,29 @@ namespace SirLocked.Api.Services.Weekly;
 
 /// <summary>One chest that the weekly challenge can drop, with its share of the drops as a percentage rounded to two places.</summary>
 public sealed record WeeklyChestOdds(ChestDef Chest, decimal Percent);
+
+/// <summary>What evaluating one player's game for the weekly chest came to.</summary>
+public static class WeeklyDropStatuses
+{
+    /// <summary>The chest of this week is in the bag (now or earlier, from this game).</summary>
+    public const string Granted = "GRANTED";
+    /// <summary>This game dropped the week's chest, but the bag is full: it waits for the player to claim it.</summary>
+    public const string Waiting = "WAITING";
+    /// <summary>The game was not the case of the challenge in the week it was played.</summary>
+    public const string NotChallenge = "NOT_CHALLENGE";
+    /// <summary>Below the score the challenge needs, or no score at all.</summary>
+    public const string LowScore = "LOW_SCORE";
+    /// <summary>The wrong culprit was accused.</summary>
+    public const string NotSolved = "NOT_SOLVED";
+    /// <summary>The player wrote the case.</summary>
+    public const string Author = "AUTHOR";
+    /// <summary>A guest, or an account without a verified e-mail or not active.</summary>
+    public const string Unverified = "UNVERIFIED";
+    /// <summary>The account already has this week's chest, from another game.</summary>
+    public const string AlreadyThisWeek = "ALREADY_THIS_WEEK";
+    /// <summary>No chest can drop (all switched off or weighted 0), so nothing was rolled.</summary>
+    public const string NoChest = "NO_CHEST";
+}
 
 /// <summary>
 /// Which chest a player gets for finishing the weekly challenge. A chest drops when it is active and its challenge
@@ -58,6 +82,21 @@ public static class WeeklyDropRules
     }
 
     private static decimal Share(int weight, long total) => Math.Round(weight * 100m / total, 2);
+
+    /// <summary>
+    /// Why this player's game earns no weekly chest, as one of <see cref="WeeklyDropStatuses"/>, or null when it does.
+    /// Checked in this order: the score (missing or below <paramref name="minScore"/>), the culprit, the author of the
+    /// case, then the account (<paramref name="verifiedActive"/>: a verified e-mail and an active account, never a guest).
+    /// </summary>
+    public static string? Ineligibility(GameResult result, string userId, string? authorUserId, bool verifiedActive, int minScore)
+    {
+        if (result.ScoreSummary is null || result.ScoreSummary.TotalScore < minScore) return WeeklyDropStatuses.LowScore;
+        if (!result.Success) return WeeklyDropStatuses.NotSolved;
+        if (!string.IsNullOrEmpty(authorUserId) && string.Equals(authorUserId, userId, StringComparison.Ordinal))
+            return WeeklyDropStatuses.Author;
+        if (!verifiedActive) return WeeklyDropStatuses.Unverified;
+        return null;
+    }
 
     /// <summary>Draws one chest by weight, walking the list in the order <see cref="Odds"/> gave. Null when nothing can drop.</summary>
     public static ChestDef? RollChest(IReadOnlyList<WeeklyChestOdds> odds, IChestRandom random)

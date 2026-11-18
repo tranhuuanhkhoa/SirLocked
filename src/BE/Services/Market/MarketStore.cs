@@ -48,6 +48,7 @@ public sealed class MarketStore
     public IMongoCollection<PlayerProgress> PlayerProgress => _db.Database.GetCollection<PlayerProgress>("playerProgress");
     public IMongoCollection<XpExchange> XpExchanges => _db.Database.GetCollection<XpExchange>("xpExchanges");
     public IMongoCollection<WalletLedgerEntry> WalletLedger => _db.Database.GetCollection<WalletLedgerEntry>("walletLedger");
+    public IMongoCollection<WeeklyDrop> WeeklyDrops => _db.Database.GetCollection<WeeklyDrop>("weeklyDrops");
 
     public DateTime Now => _time.GetUtcNow().UtcDateTime;
 
@@ -145,6 +146,13 @@ public sealed class MarketStore
         await XpExchanges.Indexes.CreateOneAsync(new CreateIndexModel<XpExchange>(
             Builders<XpExchange>.IndexKeys.Ascending(e => e.State).Ascending(e => e.UpdatedAt),
             new CreateIndexOptions { Name = "ix_xpExchanges_state_updatedAt" }), cancellationToken: ct);
+        await WeeklyDrops.Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<WeeklyDrop>(Builders<WeeklyDrop>.IndexKeys.Ascending(d => d.UserId).Ascending(d => d.State),
+                new CreateIndexOptions { Name = "ix_weeklyDrops_user_state" }),
+            new CreateIndexModel<WeeklyDrop>(Builders<WeeklyDrop>.IndexKeys.Ascending(d => d.State).Ascending(d => d.UpdatedAt),
+                new CreateIndexOptions { Name = "ix_weeklyDrops_state_updatedAt" })
+        }, ct);
     }
 
     /// <summary>

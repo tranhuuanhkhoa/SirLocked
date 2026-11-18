@@ -1,4 +1,5 @@
 using SirLocked.Api.Configurations;
+using SirLocked.Api.Models;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Catalog;
@@ -140,6 +141,55 @@ public sealed class WeeklyDropRulesTests
 
         Assert.Empty(CatalogRules.ValidateChest(chest, batch.Items.ToDictionary(item => item.Id)));
     }
+
+    // ------------------------------------------------------------------ who gets a chest
+
+    private const string Player = "6720a1b2c3d4e5f6a7b8c9d0";
+
+    private static GameResult Result(int? score, bool success) => new()
+    {
+        RoomId = "room-1",
+        CaseId = "case-1",
+        Players = [Player],
+        ScoreSummary = score is null ? null : new ScoreSummary { TotalScore = score.Value },
+        Success = success,
+    };
+
+    [Fact]
+    public void Ineligibility_79Points_IsLowScore() =>
+        Assert.Equal(WeeklyDropStatuses.LowScore, WeeklyDropRules.Ineligibility(Result(79, true), Player, null, true, 80));
+
+    [Fact]
+    public void Ineligibility_80PointsButWrongCulprit_IsNotSolved() =>
+        Assert.Equal(WeeklyDropStatuses.NotSolved, WeeklyDropRules.Ineligibility(Result(80, false), Player, null, true, 80));
+
+    [Fact]
+    public void Ineligibility_TheAuthorOfTheCase_IsAuthor() =>
+        Assert.Equal(WeeklyDropStatuses.Author, WeeklyDropRules.Ineligibility(Result(85, true), Player, Player, true, 80));
+
+    [Fact]
+    public void Ineligibility_UnverifiedAccount_IsUnverified() =>
+        Assert.Equal(WeeklyDropStatuses.Unverified, WeeklyDropRules.Ineligibility(Result(85, true), Player, null, false, 80));
+
+    [Fact]
+    public void Ineligibility_80PointsSolvedVerifiedNotAuthor_IsEligible() =>
+        Assert.Null(WeeklyDropRules.Ineligibility(Result(80, true), Player, "someone-else", true, 80));
+
+    [Fact]
+    public void Ineligibility_NoScoreSummary_IsLowScore() =>
+        Assert.Equal(WeeklyDropStatuses.LowScore, WeeklyDropRules.Ineligibility(Result(null, true), Player, null, true, 80));
+
+    [Theory]
+    [InlineData(10, false, true, false, WeeklyDropStatuses.LowScore)]   // everything wrong: the score is said first
+    [InlineData(90, false, true, false, WeeklyDropStatuses.NotSolved)]  // then the culprit
+    [InlineData(90, true, true, false, WeeklyDropStatuses.Author)]      // then the author
+    [InlineData(90, true, false, false, WeeklyDropStatuses.Unverified)]
+    public void Ineligibility_SaysTheFirstReasonInOrder(int score, bool success, bool author, bool verified, string expected) =>
+        Assert.Equal(expected, WeeklyDropRules.Ineligibility(Result(score, success), Player, author ? Player : null, verified, 80));
+
+    [Fact]
+    public void Ineligibility_ACaseWithoutAuthor_NeverMatchesABlankPlayer() =>
+        Assert.Null(WeeklyDropRules.Ineligibility(Result(90, true), string.Empty, string.Empty, true, 80));
 
     [Fact]
     public void ChestDef_CarriesTheEffectiveWeight()

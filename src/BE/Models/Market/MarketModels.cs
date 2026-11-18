@@ -59,6 +59,8 @@ public static class MarketItemSources
     public const string Grant = "GRANT";
     public const string Shop = "SHOP";
     public const string Chest = "CHEST";
+    /// <summary>The weekly challenge chest. An ordinary item: it takes a slot and can be sold or traded.</summary>
+    public const string Weekly = "WEEKLY";
     /// <summary>Granted on reaching a level. Takes no bag slot and cannot leave the account.</summary>
     public const string Level = "LEVEL";
     /// <summary>Granted for an achievement. Takes no bag slot and cannot leave the account.</summary>
