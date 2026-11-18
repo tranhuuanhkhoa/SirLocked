@@ -45,7 +45,7 @@ public sealed class MongoCatalogTests
         Assert.Equal(0, report.FromVersion);
         Assert.Equal(CatalogSeedData.CurrentVersion, report.ToVersion);
         Assert.Equal(MarketCatalog.All.Count, await env.Catalog.Items.CountDocumentsAsync(FilterDefinition<CatalogItem>.Empty));
-        Assert.Equal(3, await env.Catalog.Chests.CountDocumentsAsync(FilterDefinition<CatalogChest>.Empty));
+        Assert.Equal(ChestCatalog.Chests.Count + SkinCatalog.Chests.Count, await env.Catalog.Chests.CountDocumentsAsync(FilterDefinition<CatalogChest>.Empty));
         Assert.Equal(CosmeticCatalog.LevelRewards.Count, await env.Catalog.LevelRewards.CountDocumentsAsync(FilterDefinition<CatalogLevelReward>.Empty));
         Assert.Equal(AchievementRules.Catalog.Count, await env.Catalog.Achievements.CountDocumentsAsync(FilterDefinition<CatalogAchievement>.Empty));
 
@@ -144,24 +144,29 @@ public sealed class MongoCatalogTests
     }
 
     [Fact]
-    public async Task SeedVersionTwoAddsTheOutfitsToADatabaseSeededBeforeThem_AndLeavesTheChestsAlone()
+    public async Task SeedVersionsTwoAndThreeAddTheOutfitsAndTheirChest_AndLeaveTheOtherChestsAlone()
     {
         if (!Enabled) return;
         await using var env = await CatalogEnv.CreateAsync();
         await env.Seeder.SeedAsync();
-        // Production before this change: seed version 1, no outfits, and an admin's own chest prices.
-        await env.Catalog.Items.DeleteManyAsync(i => i.Category == MarketCategories.SkinSherlock || i.Category == MarketCategories.SkinWatson);
+        // Production before this change: seed version 1, no outfits, no Whitechapel chest, and an admin's own prices.
+        var later = SkinCatalog.ItemDefs.Select(def => def.Id).ToList();
+        await env.Catalog.Items.DeleteManyAsync(i => later.Contains(i.Id));
+        await env.Catalog.Chests.DeleteManyAsync(c => c.Id == SkinCatalog.WhitechapelChestId);
         await env.Raw("gameSettings").UpdateOneAsync(new BsonDocument("_id", CatalogSeedState.DocumentId), new BsonDocument("$set", new BsonDocument("seedVersion", 1)));
         await env.Catalog.Chests.UpdateOneAsync(c => c.Id == Seal, Builders<CatalogChest>.Update.Set(c => c.Prices.Key, 777L));
 
         var report = await env.Seeder.SeedAsync();
 
-        Assert.Equal((1, 2, 2), (report.FromVersion, report.ToVersion, report.Inserted));
+        // Two outfits (version 2), the chest and its key (version 3), and the chest itself.
+        Assert.Equal((1, 3, 5), (report.FromVersion, report.ToVersion, report.Inserted));
         var sherlock = await env.Catalog.Items.Find(i => i.Id == SkinCatalog.SherlockWhitechapel).SingleAsync();
-        var watson = await env.Catalog.Items.Find(i => i.Id == SkinCatalog.WatsonWhitechapel).SingleAsync();
         Assert.Equal((MarketCategories.SkinSherlock, MarketRarities.Legendary), (sherlock.Category, sherlock.Rarity));
-        Assert.Equal(MarketCategories.SkinWatson, watson.Category);
         Assert.Equal("/assets/pixel/skins/whitechapel/icon-sherlock.png", sherlock.Visual.ImageUrl);
+        Assert.Equal(MarketCategories.Key, (await env.Catalog.Items.Find(i => i.Id == SkinCatalog.WhitechapelKeyId).SingleAsync()).Category);
+        var whitechapel = await env.Catalog.Chests.Find(c => c.Id == SkinCatalog.WhitechapelChestId).SingleAsync();
+        Assert.True(whitechapel.Active);
+        Assert.Contains(SkinCatalog.WatsonWhitechapel, whitechapel.Pool);
         var seal = await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync();
         Assert.Equal(777L, seal.Prices.Key);
         Assert.DoesNotContain(SkinCatalog.SherlockWhitechapel, seal.Pool);
@@ -197,7 +202,7 @@ public sealed class MongoCatalogTests
 
         await env.Seeder.SeedAsync();
 
-        Assert.Equal(3, await env.Catalog.Chests.CountDocumentsAsync(FilterDefinition<CatalogChest>.Empty));
+        Assert.Equal(ChestCatalog.Chests.Count + SkinCatalog.Chests.Count, await env.Catalog.Chests.CountDocumentsAsync(FilterDefinition<CatalogChest>.Empty));
         Assert.Equal(AchievementRules.Catalog.Count, await env.Catalog.Achievements.CountDocumentsAsync(FilterDefinition<CatalogAchievement>.Empty));
     }
 
@@ -210,7 +215,7 @@ public sealed class MongoCatalogTests
         await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => env.NewSeeder().SeedAsync()));
 
         Assert.Equal(MarketCatalog.All.Count, await env.Catalog.Items.CountDocumentsAsync(FilterDefinition<CatalogItem>.Empty));
-        Assert.Equal(3, await env.Catalog.Chests.CountDocumentsAsync(FilterDefinition<CatalogChest>.Empty));
+        Assert.Equal(ChestCatalog.Chests.Count + SkinCatalog.Chests.Count, await env.Catalog.Chests.CountDocumentsAsync(FilterDefinition<CatalogChest>.Empty));
     }
 
     [Fact]

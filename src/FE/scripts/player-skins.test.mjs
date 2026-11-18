@@ -31,17 +31,18 @@ function pngSize(file) {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
-test('the lantern is out only in night scenes', () => {
+test('the lantern is lit at dusk and at night', () => {
   assert.equal(skinVariant('NIGHT'), 'night');
   assert.equal(skinVariant('night'), 'night');
+  assert.equal(skinVariant('DUSK'), 'night');
+  assert.equal(skinVariant('dusk'), 'night');
   assert.equal(skinVariant('DAY'), 'day');
-  assert.equal(skinVariant('DUSK'), 'day');
   assert.equal(skinVariant(undefined), 'day');
   assert.equal(skinVariant(null), 'day');
   assert.equal(skinVariant(''), 'day');
 });
 
-test('Sherlock wears the night look with the lantern at night and the day look otherwise', () => {
+test('Sherlock carries the lantern at dusk and at night, and puts it away by day', () => {
   const night = resolvePlayerSheet('INTERROGATOR', [SHERLOCK], 'NIGHT', all);
   const day = resolvePlayerSheet('INTERROGATOR', [SHERLOCK], 'DAY', all);
   const dusk = resolvePlayerSheet('INTERROGATOR', [SHERLOCK], 'DUSK', all);
@@ -50,8 +51,8 @@ test('Sherlock wears the night look with the lantern at night and the day look o
   assert.ok(night.lantern, 'the night look carries a lantern light');
   assert.equal(day, PLAYER_SKINS[SHERLOCK].sheets.day);
   assert.equal(day.lantern, undefined, 'no lantern by day');
-  assert.equal(dusk, day);
-  assert.equal(older, day);
+  assert.equal(dusk, night, 'dusk lights the lantern');
+  assert.equal(older, day, 'a scene without a time of day is daytime');
 });
 
 test('Watson has one look for every time of day', () => {

@@ -24,8 +24,9 @@ public class CatalogSeedDataTests
     [Fact]
     public void EveryChestKeepsItsTextPoolAndOdds()
     {
-        Assert.Equal(ChestCatalog.Chests.Select(chest => chest.Id), Seeded.Chests.Select(chest => chest.Id));
-        foreach (var expected in ChestCatalog.Chests)
+        var chests = ChestCatalog.Chests.Concat(SkinCatalog.Chests).ToList();
+        Assert.Equal(chests.Select(chest => chest.Id), Seeded.Chests.Select(chest => chest.Id));
+        foreach (var expected in chests)
         {
             var actual = Seeded.FindChest(expected.Id)!;
             Assert.Equal(expected.KeyDefId, actual.KeyDefId);
@@ -38,7 +39,7 @@ public class CatalogSeedDataTests
             Assert.Equal(expected.IconKey, actual.IconKey);
             Assert.Equal(expected.KeyIconKey, actual.KeyIconKey);
             Assert.Equal(expected.Items.Select(def => def.Id), actual.Items.Select(def => def.Id));
-            Assert.Equal(ChestCatalog.DropRates, actual.DropRates);
+            Assert.Equal(expected.DropRates, actual.DropRates);
             Assert.True(actual.Active);
             Assert.Equal(expected.ExpectedValue(), actual.ExpectedValue());
         }

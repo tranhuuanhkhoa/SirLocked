@@ -80,9 +80,10 @@ export const PLAYER_SKINS: Record<string, PlayerSkin> = {
   },
 };
 
-/** NIGHT shows the lantern; DAY, DUSK and a scene without a time of day do not. */
+/** Dusk and night light the lantern; day and a scene without a time of day do not. */
 export function skinVariant(timeOfDay: unknown): SkinVariant {
-  return String(timeOfDay ?? '').toUpperCase() === 'NIGHT' ? 'night' : 'day';
+  const time = String(timeOfDay ?? '').toUpperCase();
+  return time === 'NIGHT' || time === 'DUSK' ? 'night' : 'day';
 }
 
 /** The skin a player wears for the role they play in this room, if the game knows it. */

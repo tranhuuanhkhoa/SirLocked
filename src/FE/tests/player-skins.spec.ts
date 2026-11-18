@@ -14,6 +14,7 @@ type Json = Record<string, any>;
 const weatherCase = JSON.parse(readFileSync(path.resolve('tests/fixtures/case-pixel-thoi-tiet-thu-vi.json'), 'utf8')) as Json;
 const NIGHT_STREET = 'scene-px-pho';
 const DAY_GARAGE = 'scene-px-nha-xe';
+const DUSK_HOUSE = 'scene-px-nha-so-7';
 const SHOTS = process.env.SKIN_SHOTS_DIR;
 
 function caseWithDayGarage(): Json {
@@ -21,6 +22,7 @@ function caseWithDayGarage(): Json {
   for (const stage of copy.stages ?? []) {
     for (const scene of stage.scenes ?? []) {
       if (scene.sceneId === DAY_GARAGE) scene.runtime = { ...scene.runtime, timeOfDay: 'DAY', weather: { type: 'NONE', intensity: 0 } };
+      if (scene.sceneId === DUSK_HOUSE) scene.runtime = { ...scene.runtime, timeOfDay: 'DUSK' };
     }
   }
   return copy;
@@ -106,13 +108,17 @@ test('at night the Whitechapel Sherlock carries his lantern, and its light', asy
   expect(errors).toEqual([]);
 });
 
-test('in a day scene the lantern is put away, and it comes back at night', async ({ page }) => {
+test('in a day scene the lantern is put away; it is lit again at dusk and at night', async ({ page }) => {
   const errors: string[] = [];
   await openGame(page, errors, { firstScene: DAY_GARAGE, equipped: () => [SHERLOCK_OUTFIT] });
 
   await expect.poll(() => lookOf(page, 'player-1'), { timeout: 15_000 }).toBe('skin-whitechapel-sherlock-day');
   await shot(page, '2-sherlock-ngay');
 
+  await enterScene(page, DUSK_HOUSE);
+  await expect.poll(() => lookOf(page, 'player-1'), { timeout: 15_000 }).toBe('skin-whitechapel-sherlock-night+lantern');
+  await enterScene(page, DAY_GARAGE);
+  await expect.poll(() => lookOf(page, 'player-1'), { timeout: 15_000 }).toBe('skin-whitechapel-sherlock-day');
   await enterScene(page, NIGHT_STREET);
   await expect.poll(() => lookOf(page, 'player-1'), { timeout: 15_000 }).toBe('skin-whitechapel-sherlock-night+lantern');
   expect(errors).toEqual([]);

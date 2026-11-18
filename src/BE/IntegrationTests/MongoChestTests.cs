@@ -667,7 +667,7 @@ public sealed class MongoChestTests
 
         var list = await env.Chests.ListAsync(user.Id);
 
-        Assert.Equal(3, list.Chests.Count);
+        Assert.Equal(ChestCatalog.Chests.Count + SkinCatalog.Chests.Count, list.Chests.Count);
         var seal = list.Chests.Single(c => c.Id == Seal);
         Assert.Equal("Hòm Niêm Phong", seal.Name);
         Assert.Equal(new ChestSettings().PriceOf(Seal).Key, seal.KeyPrice);

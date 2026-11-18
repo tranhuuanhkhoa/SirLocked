@@ -13,12 +13,13 @@ public class SkinCatalogTests
     [Fact]
     public void TheWhitechapelSetIsOneLegendaryOutfitPerDetective()
     {
-        var sherlock = Assert.Single(SkinCatalog.ItemDefs, def => def.Category == MarketCategories.SkinSherlock);
-        var watson = Assert.Single(SkinCatalog.ItemDefs, def => def.Category == MarketCategories.SkinWatson);
+        var sherlock = Assert.Single(SkinCatalog.Outfits, def => def.Category == MarketCategories.SkinSherlock);
+        var watson = Assert.Single(SkinCatalog.Outfits, def => def.Category == MarketCategories.SkinWatson);
 
         Assert.Equal(SkinCatalog.SherlockWhitechapel, sherlock.Id);
         Assert.Equal(SkinCatalog.WatsonWhitechapel, watson.Id);
-        Assert.All(SkinCatalog.ItemDefs, def =>
+        Assert.Equal(2, SkinCatalog.Outfits.Count);
+        Assert.All(SkinCatalog.Outfits, def =>
         {
             Assert.Equal(MarketRarities.Legendary, def.Rarity);
             Assert.True(def.Tradable);
@@ -47,9 +48,10 @@ public class SkinCatalogTests
         var one = CatalogSeedData.ForVersion(1, new ChestSettings(), now);
         var two = CatalogSeedData.ForVersion(2, new ChestSettings(), now);
 
-        Assert.Equal(2, CatalogSeedData.CurrentVersion);
-        Assert.DoesNotContain(one.Items, item => SkinCatalog.IsSkin(item.Category));
-        Assert.Equal(SkinCatalog.ItemDefs.Select(def => def.Id), two.Items.Select(item => item.Id));
+        Assert.Equal(3, CatalogSeedData.CurrentVersion);
+        Assert.DoesNotContain(one.Items, item => SkinCatalog.ItemDefs.Any(def => def.Id == item.Id));
+        Assert.DoesNotContain(one.Chests, chest => chest.Id == SkinCatalog.WhitechapelChestId);
+        Assert.Equal(SkinCatalog.Outfits.Select(def => def.Id), two.Items.Select(item => item.Id));
         Assert.Empty(two.Chests);
         Assert.Empty(two.LevelRewards);
         Assert.Empty(two.Achievements);
@@ -62,6 +64,65 @@ public class SkinCatalogTests
             Assert.NotEmpty(item.Description);
             Assert.Equal(MarketCatalog.All.Select(def => def.Id).ToList().IndexOf(item.Id), item.SortOrder);
         });
+    }
+
+    [Fact]
+    public void SeedVersionThreeAddsTheWhitechapelChestAndItsKey()
+    {
+        var three = CatalogSeedData.ForVersion(3, new ChestSettings(), DateTime.UtcNow);
+
+        Assert.Equal(new[] { SkinCatalog.WhitechapelChestId, SkinCatalog.WhitechapelKeyId }, three.Items.Select(item => item.Id));
+        Assert.Equal((MarketCategories.Chest, "chest_seal"), (three.Items[0].Category, three.Items[0].Visual.IconKey));
+        Assert.Equal((MarketCategories.Key, "key_loupe"), (three.Items[1].Category, three.Items[1].Visual.IconKey));
+        Assert.All(three.Items, item => Assert.False(item.Retired));
+        var chest = Assert.Single(three.Chests);
+        Assert.Equal("Hòm Đêm Whitechapel", chest.Name);
+        Assert.Equal(SkinCatalog.WhitechapelKeyId, chest.KeyDefId);
+        Assert.True(chest.Active);
+        Assert.Equal(3, chest.SortOrder);
+        Assert.Equal("seal", chest.Look.Template);
+        Assert.Equal("190,52,58", chest.Look.Light);
+        Assert.Equal((180L, 260L), (chest.Prices.Chest, chest.Prices.Key));
+        Assert.Contains(SkinCatalog.SherlockWhitechapel, chest.Pool);
+        Assert.Contains(SkinCatalog.WatsonWhitechapel, chest.Pool);
+        Assert.Empty(three.LevelRewards);
+        Assert.Null(three.Progress);
+    }
+
+    [Fact]
+    public void TheWhitechapelChestIsTheOnlyChestWithTheOutfitsAndPassesTheAdminRules()
+    {
+        var snapshot = CatalogSeedData.ToSnapshot(new ChestSettings());
+        var items = CatalogSeedData.ForVersion(1, new ChestSettings(), DateTime.UtcNow).Items
+            .Concat(CatalogSeedData.ForVersion(2, new ChestSettings(), DateTime.UtcNow).Items)
+            .Concat(CatalogSeedData.ForVersion(3, new ChestSettings(), DateTime.UtcNow).Items)
+            .ToDictionary(item => item.Id, StringComparer.Ordinal);
+        var chest = Assert.Single(CatalogSeedData.ForVersion(3, new ChestSettings(), DateTime.UtcNow).Chests);
+
+        // Saved as is by an admin, it would pass every rule: weights add up, every weighted rarity has items, value < price.
+        Assert.Empty(CatalogRules.ValidateChest(chest, items));
+        Assert.Empty(AdminChestsRules.Validate(chest, chest, items));
+        Assert.True(CatalogRules.ExpectedValue(chest, items) < chest.Prices.Chest + chest.Prices.Key);
+        Assert.Equal(10_000, chest.DropWeights.Values.Sum());
+        Assert.Equal(100, chest.DropWeights[MarketRarities.Legendary]);
+
+        // The outfits are its legendaries, and no other chest pays them out.
+        var whitechapel = snapshot.FindChest(SkinCatalog.WhitechapelChestId)!;
+        Assert.Equal(new[] { SkinCatalog.SherlockWhitechapel, SkinCatalog.WatsonWhitechapel },
+            whitechapel.Pools[MarketRarities.Legendary].Select(def => def.Id));
+        Assert.All(snapshot.Chests.Where(other => other.Id != SkinCatalog.WhitechapelChestId),
+            other => Assert.DoesNotContain(other.Items, def => SkinCatalog.IsSkin(def.Category)));
+        Assert.Equal(4, snapshot.ActiveChests.Count);
+    }
+
+    [Fact]
+    public void AMysteryFromEveryChestIsStillFromEveryChestWithTheFourth()
+    {
+        var mysteries = SkinCatalog.MysteriesFromEveryChest();
+        Assert.Contains("title_long-phung", mysteries);
+        var snapshot = CatalogSeedData.ToSnapshot(new ChestSettings());
+        Assert.Equal("Danh hiệu. Bí ẩn, ra từ mọi hòm.", snapshot.Find("title_long-phung")!.Description);
+        Assert.All(mysteries, id => Assert.Contains(id, SkinCatalog.WhitechapelPool()));
     }
 
     [Fact]

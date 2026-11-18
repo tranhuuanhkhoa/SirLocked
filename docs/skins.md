@@ -18,15 +18,34 @@ Một người có thể mặc cả hai cùng lúc. Vào phòng chơi vai nào t
 | `skin_sherlock_whitechapel` | Sherlock · Kẻ Săn Bóng Đêm | Đứng yên 10 giây thì giơ kính lúp soi; 6 dấu chân phát sáng hiện ra rồi mờ dần. |
 | `skin_watson_whitechapel` | Watson · Bác Sĩ Mỏ Quạ | Đứng yên 10 giây thì lắc lọ thuốc; khói thảo dược xanh tỏa ra từ mỏ. |
 
-**Cây đèn của Sherlock:** chỉ có ở cảnh `timeOfDay = NIGHT`, kèm quầng sáng ấm. Cảnh `DAY`, `DUSK` và cảnh chưa đặt giờ dùng bản không đèn. Đổi cảnh thì đổi bản ngay.
+**Cây đèn của Sherlock:** có ở cảnh `timeOfDay = DUSK` (chạng vạng) và `NIGHT`, kèm quầng sáng ấm. Cảnh `DAY` và cảnh chưa đặt giờ dùng bản không đèn. Đổi cảnh thì đổi bản ngay.
+
+**Hòm riêng của bộ:** `chest_wc` "Hòm Đêm Whitechapel" (phụ đề "Phố Whitechapel · Nº 1888"), mở bằng `key_wc` "chìa kính lúp bạc".
+
+- Hai bộ trang phục **chỉ** rơi từ hòm này. Các hòm cũ không đổi.
+- Vẽ như Hòm Niêm Phong (`seal`), ánh sáng đỏ thẫm `190,52,58`.
+- Giá: hòm 180 xu, chìa 260 xu.
+- Tỉ lệ rơi trên 10.000:
+
+  | Độ hiếm | Trọng số | Gồm |
+  |---|---|---|
+  | Thường | 7.874 | đồ hồ sơ thường |
+  | Hiếm | 1.600 | đồ hồ sơ hiếm |
+  | Quý | 400 | đồ hồ sơ quý |
+  | Huyền thoại | 100 | 2 bộ trang phục (mỗi bộ 0,5%) |
+  | Bí ẩn | 26 | món "ra từ mọi hòm" của các hòm cũ |
+
+  Giá trị kỳ vọng khoảng 260 xu, nhỏ hơn giá hòm cộng chìa (440 xu). Đạt luật kinh tế của admin.
+- Admin sửa được mọi thứ ở `/admin/chests/chest_wc` như hòm khác.
 
 ## Code nằm đâu
 
 - **Backend**
   - `src/BE/Services/Market/SkinCatalog.cs`: hai vật phẩm, icon ở `/assets/pixel/skins/whitechapel/`.
-  - `CatalogSeedData` phiên bản 2: thêm hai vật phẩm vào database đang ở phiên bản 1.
-    - Seed **không** thêm skin vào hòm nào.
-    - Admin tự chọn hòm ở `/admin/chests/<id>` → "Nội dung hòm".
+  - `CatalogSeedData`:
+    - phiên bản 2 thêm hai bộ trang phục;
+    - phiên bản 3 thêm Hòm Đêm Whitechapel và chìa của nó.
+    - Seed chỉ thêm cái chưa có, không sửa hòm cũ và không đè chỗ admin đã sửa.
   - `AdminChestsRules.ValidateItem`: riêng skin được phép trỏ ảnh tới `/assets/...`; các vật phẩm khác vẫn phải dùng ảnh https đã tải lên.
 - **Frontend**
   - `src/FE/Client/js/game/playerSkins.ts`:
@@ -60,7 +79,7 @@ Những trường hợp sau đều giữ dáng thường, không bao giờ làm 
 3. **Ghép sheet** theo bố cục trên, mỗi khung đặt giữa ô 128. Pivot là chân: Sherlock (64,109), Watson (64,104).
 4. **Thêm vào code:**
    - `PLAYER_SKINS` trong `playerSkins.ts`;
-   - `SkinCatalog.ItemDefs`;
+   - `SkinCatalog.Outfits` (và hòm riêng nếu có);
    - một phiên bản seed mới trong `CatalogSeedData`.
 5. **Chạy test:**
    - `npm run test:skins`;

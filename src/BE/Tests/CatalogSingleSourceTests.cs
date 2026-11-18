@@ -28,6 +28,7 @@ public class CatalogSingleSourceTests
         "Services/Market/ChestCatalog.cs",
         "Services/Market/CosmeticCatalog.cs",
         "Services/Market/ProgressRules.cs",
+        "Services/Market/SkinCatalog.cs",
         "Services/Catalog/CatalogSeedData.cs",
         "Services/Catalog/CatalogSnapshot.cs",
         "Configurations/ChestSettings.cs",
