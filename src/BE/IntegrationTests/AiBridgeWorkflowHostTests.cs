@@ -308,6 +308,49 @@ public sealed class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Single((await audit.QueryAsync(new AdminAuditQuery(Action: "ai-settings.update"))).Items);
     }
 
+    /// <summary>
+    /// VUAN-7 part B: the VIP author approves the gates of their own order (Yen approved the order itself); another VIP
+    /// cannot, and import or publish stays with ADMIN.
+    /// </summary>
+    [Fact]
+    public async Task VipAuthor_ApprovesTheGatesOfTheirOwnOrder_OthersCannot_AndOnlyAdminPublishes()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory();
+        await SeedUsersAsync(factory);
+        const string OtherVipId = "507f1f77bcf86cd799439099";
+        using (var seed = factory.Services.CreateScope())
+            await seed.ServiceProvider.GetRequiredService<MongoDbContext>().Users.InsertOneAsync(new User
+            {
+                Id = OtherVipId, FullName = "VIP khác", Email = "other-vip@bridge.test", Role = UserRole.Vip,
+                Status = UserStatus.Active, IsEmailVerified = true
+            });
+        using var admin = User(factory, AdminId, UserRole.Admin);
+        using var vip = User(factory, VipId, UserRole.Vip);
+        using var otherVip = User(factory, OtherVipId, UserRole.Vip);
+
+        var draft = (await (await vip.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
+        {
+            GenerationPreset = AiGenerationPresets.ShortDemo, Language = "vi"
+        })).Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
+        // Before Yen approves the order, the author cannot push it on.
+        Assert.NotEqual(HttpStatusCode.Accepted, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null)).StatusCode);
+
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while ((await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{draft.DraftId}")).Status != AiDraftStatus.StoryAwaitingApproval)
+        {
+            Assert.True(DateTime.UtcNow < deadline, "The VIP order never reached its story gate.");
+            await Task.Delay(200);
+        }
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherVip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/import", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/publish", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await otherVip.GetAsync($"/api/admin/ai-cases/{draft.DraftId}")).StatusCode);
+    }
+
     // ---------------------------------------------------------------- schema check, library, cutscene
 
     [Fact]
