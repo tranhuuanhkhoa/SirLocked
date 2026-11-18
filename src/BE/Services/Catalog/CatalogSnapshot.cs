@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Weekly;
 
 namespace SirLocked.Api.Services.Catalog;
 
@@ -160,7 +161,8 @@ public sealed class CatalogSnapshot
         return new ChestDef(
             chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn,
             chest.KeyName, chest.KeyNameEn, chest.IconKey, chest.KeyIconKey, pool,
-            rates, new ChestShopPrice(chest.Prices.Chest, chest.Prices.Key), chest.Active, chest.Look);
+            rates, new ChestShopPrice(chest.Prices.Chest, chest.Prices.Key), chest.Active, chest.Look,
+            WeeklyDropRules.EffectiveWeight(chest));
     }
 
     private static IReadOnlyDictionary<string, object?> ToDictionary(BsonDocument? document) =>
