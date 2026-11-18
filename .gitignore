@@ -59,3 +59,5 @@ src/FE/playwright-report/
 *.docx
 SirLocked-NewPixelArt/
 Claude outputs/
+
+.superpowers/

@@ -390,6 +390,15 @@ public class AiDraftSettings
     /// <summary>Requested crime archetype. RANDOM lets the server select a concrete type per draft.</summary>
     public string CaseType { get; set; } = AiCaseTypes.Random;
     public AiCreativeConstraints CreativeConstraints { get; set; } = new();
+    /// <summary>
+    /// "OPEN_COOP_1" for drafts whose size comes from <c>AiDifficultyProfiles</c>; empty for every draft created
+    /// before it, which keep the preset-and-stages pipeline they started with.
+    /// </summary>
+    [BsonIgnoreIfDefault]
+    public string PipelineVersion { get; set; } = string.Empty;
+    /// <summary>BALANCED, PUZZLE or DIALOGUE (OPEN_COOP_1 drafts only): leans the level's puzzle and dialogue counts.</summary>
+    [BsonIgnoreIfDefault]
+    public string Leaning { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
