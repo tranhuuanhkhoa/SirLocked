@@ -79,6 +79,7 @@ builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
 builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection("CaseCatalog"));
 builder.Services.AddSingleton<CaseCatalogPolicy>();
+builder.Services.Configure<WeeklyChallengeSettings>(builder.Configuration.GetSection("WeeklyChallenge"));
 builder.Services.Configure<CutsceneSettings>(builder.Configuration.GetSection("Cutscene"));
 builder.Services.AddScoped<ICutsceneStore, MongoCutsceneStore>();
 builder.Services.AddScoped<CutsceneScriptGenerator>();
