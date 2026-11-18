@@ -37,6 +37,11 @@ public class GameCase
     public int ShortDemoProfileVersion { get; set; }
     /// <summary>Server-owned provenance for AI-generated cases.</summary>
     public string SourceAiDraftId { get; set; } = string.Empty;
+    /// <summary>
+    /// VUAN-7: the VIP who ordered this case (empty for ADMIN and hand-written cases). Server-owned: set from the draft on
+    /// import, never taken from imported JSON. Shown as the "Tác giả" badge once the case is published.
+    /// </summary>
+    public string AuthorUserId { get; set; } = string.Empty;
     /// <summary>1 keeps legacy three-claim accusation; 2 requires the causal five-claim contract.</summary>
     public int LogicContractVersion { get; set; } = CaseLogicContractVersions.LegacyThreeClaim;
     public string LogicVerificationStatus { get; set; } = CaseLogicVerificationStatuses.LegacyUnverified;

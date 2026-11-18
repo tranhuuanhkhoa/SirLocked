@@ -66,6 +66,9 @@ public static class AiV3GenerationProfile
         gameCase.ShortDemoProfileVersion = gameCase.GenerationPreset == AiGenerationPresets.ShortDemo
             ? draft.Settings.ShortDemoProfileVersion : 0;
         gameCase.SourceAiDraftId = draft.Id;
+        // VUAN-7: a case a VIP paid for is theirs ("Tác giả"); ADMIN orders have no author.
+        gameCase.AuthorUserId = string.Equals(draft.CreatedByRole, SirLocked.Api.Models.Enums.UserRole.Vip, StringComparison.OrdinalIgnoreCase)
+            ? draft.CreatedByUserId : string.Empty;
         gameCase.AiSemanticReviewStatus = includeReviewStatus && isV3
             ? draft.V3SemanticReview.Status
             : string.Empty;

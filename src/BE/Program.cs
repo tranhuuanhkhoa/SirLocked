@@ -167,6 +167,9 @@ builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipLaneStore>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipAnswerProcessor>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipBillingService>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.HintPaymentService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorRewardService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorBadgeReader>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Vip.AuthorRewardWorker>();
 builder.Services.AddHostedService<SirLocked.Api.Services.Vip.VipLaneWorker>();
 builder.Services.AddScoped<AiBridgeService>();
 builder.Services.AddScoped<AiCaseSettingsStore>();
@@ -455,6 +458,8 @@ app.UseAuthentication();
 // User-partitioned policies need the authenticated identity; login policies still use the IP.
 app.UseRateLimiter();
 app.UseAuthorization();
+// VUAN-7: hashed network fingerprints of signed-in players, for the author-reward anti-fraud rules.
+app.UseMiddleware<SirLocked.Api.Services.Vip.NetworkKeyMiddleware>();
 app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();

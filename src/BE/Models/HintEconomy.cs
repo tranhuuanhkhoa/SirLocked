@@ -107,4 +107,8 @@ public class CaseRevenueEvent
     public DateTime At { get; set; }
     /// <summary>Set once the author share worker has counted this event (eligible or not).</summary>
     public string? ShareBatchId { get; set; }
+    /// <summary>Whether the event counted toward the author's share (anti-fraud rules), once decided.</summary>
+    public bool? ShareEligible { get; set; }
+    public string ShareReason { get; set; } = string.Empty;
+    public string? PayoutId { get; set; }
 }
