@@ -151,6 +151,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public AiCaseCapabilitiesResponse GetCapabilities() => new()
     {
+        DifficultyProfiles = AiDifficultyProfiles.All.Select(AiDifficultyProfileResponse.From).ToList(),
         CreationBlockers = GetCreationBlockers(),
         V3CreationBlockers = GetCreationBlockers(includeSemanticReview: true),
         AiCaseV3PresetEnabled = _v3PresetSettings.Enabled,
@@ -200,7 +201,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request, string? idempotencyKey = null)
     {
         var draftSettings = CreateNewDraftSettings(request);
-        if (request.IncludeCrackTheLie)
+        if (draftSettings.IncludeCrackTheLie)
         {
             if (!_v3PresetSettings.Enabled)
                 throw ApiException.Conflict(
@@ -222,8 +223,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var existingByKey = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
         if (existingByKey is not null) return AiDraftResponse.From(existingByKey, includeJson: false);
 
-        EnsureCreationReady(request.IncludeCrackTheLie);
-        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role);
+        EnsureCreationReady(draftSettings.IncludeCrackTheLie);
+        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role, AiDifficultyProfiles.For(draftSettings.Difficulty));
         if (!string.IsNullOrWhiteSpace(request.CreativeConstraints.SettingId)
             && order.World != AiCaseWorlds.HangDuongVictorian)
             throw ApiException.BadRequest(
@@ -320,10 +321,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             GenerationInputHash = Sha256(JsonSerializer.Serialize(new
             {
                 creatorPrompt,
-                request.StageCount,
-                request.Difficulty,
-                request.GenerationPreset,
-                draftSettings.ShortDemoProfileVersion,
+                draftSettings.PipelineVersion,
+                draftSettings.Difficulty,
+                draftSettings.Leaning,
                 request.Language,
                 request.CaseType,
                 request.CreativeConstraints,
@@ -571,60 +571,35 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
     }
 
+    /// <summary>
+    /// Every new order is an OPEN_COOP_1 draft whose size comes from its difficulty level. The old client fields
+    /// (stage count, preset, Crack toggle) are ignored, so no field can change another.
+    /// </summary>
     internal static AiDraftSettings CreateNewDraftSettings(GenerateAiCaseRequest request)
     {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
-        if (AiV3GenerationProfile.IsV3Preset(request.GenerationPreset))
-        {
-            // Retired client requests become new sampler drafts. Existing
-            // persisted drafts never enter this creation-only path.
-            request.GenerationPreset = AiGenerationPresets.ShortDemo;
-            request.IncludeCrackTheLie = true;
-        }
-        ApplyPresetDefaults(request);
-        return new AiDraftSettings
-        {
-            StageCount = request.StageCount,
-            Difficulty = request.Difficulty,
-            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
-            GenerationMode = CaseGenerationModes.CameraEmbedded,
-            GenerationPreset = request.GenerationPreset,
-            ShortDemoProfileVersion = request.GenerationPreset == AiGenerationPresets.ShortDemo
-                ? AiGenerationContract.CurrentShortDemoProfileVersion : 0,
-            Language = request.Language,
-            MechanicsVersion = request.IncludeCrackTheLie
-                ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                : CaseMechanicsVersions.InvestigationV2,
-            IncludeCrackTheLie = request.IncludeCrackTheLie,
-            CaseType = request.CaseType,
-            CreativeConstraints = request.CreativeConstraints
-        };
-    }
-
-    private static void ApplyPresetDefaults(GenerateAiCaseRequest request)
-    {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
+        var profile = AiDifficultyProfiles.For(request.Difficulty);
+        var leaning = AiCaseLeanings.Normalize(request.Leaning);
+        request.Difficulty = profile.Difficulty;
+        request.Leaning = leaning;
         request.Language = CaseLanguages.Normalize(request.Language);
         request.CaseType = AiCaseTypes.Normalize(request.CaseType);
-        request.Difficulty = string.IsNullOrWhiteSpace(request.Difficulty) ? "medium" : request.Difficulty.Trim().ToLowerInvariant();
-
-        request.StageCount = request.GenerationPreset switch
+        request.StageCount = 1;
+        request.GenerationPreset = AiGenerationPresets.NormalRandom;
+        request.IncludeCrackTheLie = true;
+        return new AiDraftSettings
         {
-            AiGenerationPresets.FullFeature => 6,
-            AiGenerationPresets.ShortDemo => 2,
-            AiGenerationPresets.PuzzleHeavy => Math.Max(request.StageCount, 5),
-            AiGenerationPresets.DialogueHeavy => Math.Max(request.StageCount, 5),
-            _ => Math.Clamp(request.StageCount, 2, 6)
-        };
-
-        request.Difficulty = request.GenerationPreset switch
-        {
-            AiGenerationPresets.CrackTheLieV3 => "medium",
-            AiGenerationPresets.FullFeature => "hard",
-            AiGenerationPresets.ShortDemo => "easy",
-            AiGenerationPresets.PuzzleHeavy => "hard",
-            AiGenerationPresets.DialogueHeavy when request.Difficulty == "easy" => "medium",
-            _ => request.Difficulty
+            PipelineVersion = AiPipelineVersions.OpenCoop1,
+            Difficulty = profile.Difficulty,
+            Leaning = leaning,
+            StageCount = 1,
+            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            GenerationPreset = AiGenerationPresets.NormalRandom,
+            Language = request.Language,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            IncludeCrackTheLie = true,
+            CaseType = request.CaseType,
+            CreativeConstraints = request.CreativeConstraints
         };
     }
 

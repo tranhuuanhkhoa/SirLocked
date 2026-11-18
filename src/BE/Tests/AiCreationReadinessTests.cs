@@ -55,6 +55,18 @@ public sealed class AiCreationReadinessTests
     }
 
     [Fact]
+    public void Capabilities_ListTheThreeDifficultyLevels()
+    {
+        var levels = Service(new AiGenerationSettings(), new BridgeSettings { Key = KeySentinel }).GetCapabilities().DifficultyProfiles;
+        Assert.Equal(new[] { "easy", "medium", "hard" }, levels.Select(level => level.Difficulty));
+        Assert.Equal(5, levels[2].Suspects);
+        Assert.Equal(40, levels[2].PlayMinutes.Min);
+        Assert.Equal(300, levels[2].PixelLab.NewWorld.Min);
+        Assert.Equal(150, levels[2].PixelLab.LibraryWorld.Max);
+        Assert.Equal(2, levels[0].Puzzles.Max);
+    }
+
+    [Fact]
     public void MissingCloudinary_DoesNotBlockAnOrder()
     {
         // Images are uploaded at the end of the workflow; storage is reported but never blocks the order.

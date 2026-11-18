@@ -118,10 +118,11 @@ public partial class AiCaseService
     {
         if (!_orderBlocks.TryGetValue(draftId, out var block))
         {
-            var order = await _db.AiCaseDrafts.Find(item => item.Id == draftId)
-                .Project(item => item.Order)
+            var stored = await _db.AiCaseDrafts.Find(item => item.Id == draftId)
+                .Project(item => new { item.Order, item.Settings })
                 .FirstOrDefaultAsync(_operationCancellationToken);
-            block = AiCaseOrderPolicy.BuildPromptBlock(order);
+            block = AiCaseOrderPolicy.BuildPromptBlock(stored?.Order,
+                AiPipelineVersions.IsOpenCoop(stored?.Settings) ? AiDifficultyProfiles.For(stored!.Settings.Difficulty) : null);
             _orderBlocks[draftId] = block;
         }
         return string.IsNullOrEmpty(block) ? prompt : $"{prompt.TrimEnd()}\n\n{block}";

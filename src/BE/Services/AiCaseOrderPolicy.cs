@@ -29,6 +29,25 @@ public static class AiCaseOrderPolicy
     /// <summary>
     /// Server-normalized order. VIP orders always get the FULL review mode and a 30-generation PixelLab cap.
     /// </summary>
+    /// <summary>
+    /// A new (OPEN_COOP_1) order: suspects and play time come from the difficulty level, whatever the client sent;
+    /// the NPC limit follows the level's suspects.
+    /// </summary>
+    public static AiCaseOrder Normalize(AiCaseOrder? requested, string role, AiDifficultyProfile profile)
+    {
+        requested ??= new AiCaseOrder();
+        var levelled = new AiCaseOrder
+        {
+            World = requested.World, LocationIds = requested.LocationIds, NpcIds = requested.NpcIds,
+            SuspectCount = profile.Suspects, CharacterNotes = requested.CharacterNotes, Weather = requested.Weather,
+            TimeOfDay = requested.TimeOfDay, PlayMinutes = 30, ContentLevel = requested.ContentLevel,
+            PixelLabCap = requested.PixelLabCap, ReviewMode = requested.ReviewMode
+        };
+        var order = Normalize(levelled, role);
+        order.PlayMinutes = profile.EstimatedMinutes;
+        return order;
+    }
+
     public static AiCaseOrder Normalize(AiCaseOrder? requested, string role)
     {
         requested ??= new AiCaseOrder();
@@ -89,7 +108,10 @@ public static class AiCaseOrderPolicy
     /// The order as an explicit block appended to every step's prompt. Drafts created before orders existed have no
     /// order and keep their original prompts.
     /// </summary>
-    public static string BuildPromptBlock(AiCaseOrder? order)
+    public static string BuildPromptBlock(AiCaseOrder? order) => BuildPromptBlock(order, null);
+
+    /// <summary>With a difficulty profile (OPEN_COOP_1 drafts) the play time line states the level's range.</summary>
+    public static string BuildPromptBlock(AiCaseOrder? order, AiDifficultyProfile? profile)
     {
         if (order is null) return string.Empty;
         var builder = new StringBuilder();
@@ -110,7 +132,10 @@ public static class AiCaseOrderPolicy
         builder.AppendLine(order.TimeOfDay == AiCaseTimesOfDay.Auto
             ? "- time of day: AUTO (choose one that fits)"
             : $"- time of day: {order.TimeOfDay}");
-        builder.AppendLine($"- target play time: about {order.PlayMinutes.ToString(CultureInfo.InvariantCulture)} minutes");
+        builder.AppendLine(profile is null
+            ? $"- target play time: about {order.PlayMinutes.ToString(CultureInfo.InvariantCulture)} minutes"
+            : $"- target play time: about {profile.PlayMinutes.Min.ToString(CultureInfo.InvariantCulture)}-"
+              + $"{profile.PlayMinutes.Max.ToString(CultureInfo.InvariantCulture)} minutes ({profile.Difficulty})");
         builder.AppendLine(order.ContentLevel == AiCaseContentLevels.Light
             ? "- content level: LIGHT (no blood or gore, suitable for every age)"
             : "- content level: STANDARD");
