@@ -36,9 +36,12 @@ public static class PuzzleKindAuthoring
     public static IReadOnlyList<string> AllowedAuthoredKeys(string? kind) =>
         kind is not null && AuthoredKeys.TryGetValue(kind, out var keys) ? keys : [];
 
-    /// <summary>The kinds the AI may pick for a puzzle of this truth: every free kind, plus the truth-bound ones the truth supports.</summary>
-    public static IReadOnlyList<string> OfferedKinds(CaseTruthPackage truth) =>
-        FreeKinds.Concat(TruthBoundKinds.Where(kind => TruthBoundPuzzleAnswers.CanOffer(kind, truth))).ToList();
+    /// <summary>
+    /// The kinds the AI may pick for a puzzle whose reward is <paramref name="rewardTraceId"/>: every free kind, plus
+    /// the truth-bound ones the truth can answer for that trace.
+    /// </summary>
+    public static IReadOnlyList<string> OfferedKinds(CaseTruthPackage truth, string? rewardTraceId) =>
+        FreeKinds.Concat(TruthBoundKinds.Where(kind => TruthBoundPuzzleAnswers.CanOffer(kind, truth, rewardTraceId))).ToList();
 
     /// <summary>
     /// Checks the kind and the authored words of every interactive puzzle in the content. Errors name their path,

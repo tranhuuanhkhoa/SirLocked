@@ -134,6 +134,10 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         }
         if (gameCase.Puzzles.Any(PuzzleKindRegistry.IsInteractive))
         {
+            // Truth-bound answers first (the suspects and the truth's print owner), then the kind fills the rest.
+            foreach (var puzzle in gameCase.Puzzles.Where(item => item.Kind == TruthBoundPuzzleAnswers.Fingerprint))
+                if (plan.Puzzles.TryGetValue(puzzle.PuzzleId, out var slot) && slot is { PrintOwnerId: { } owner, PrintCardIds: { } cards })
+                    TruthBoundPuzzleAnswers.ApplyFingerprint(puzzle, owner, gameCase, cards);
             // The kind generates everything the AI did not write (geometry, the answer, the reveal), then checks it.
             PuzzleKindRegistry.FillMissing(gameCase);
             var puzzleErrors = new List<string>();

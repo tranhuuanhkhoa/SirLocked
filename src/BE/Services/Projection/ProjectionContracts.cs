@@ -123,6 +123,14 @@ public sealed class PuzzleProjectionSlot
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [BsonIgnoreIfNull]
     public List<string>? OfferedKinds { get; set; }
+    /// <summary>OPEN_COOP_1 fingerprint answers: the innocent suspect who left the reward trace (from the truth).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? PrintOwnerId { get; set; }
+    /// <summary>OPEN_COOP_1 fingerprint cards: the truth's suspects, in order.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<string>? PrintCardIds { get; set; }
 }
 
 [BsonIgnoreExtraElements]

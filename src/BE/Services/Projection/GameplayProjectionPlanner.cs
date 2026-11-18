@@ -903,7 +903,14 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
                 BasedOnTruthIds = puzzle.BasedOnTruthIds.ToList(),
                 RevealsConclusionIds = puzzle.RevealsConclusionIds.ToList(),
                 OfferedKinds = PuzzleKindRegistry.IsInteractive(puzzle)
-                    ? PuzzleKindAuthoring.OfferedKinds(truth).ToList()
+                    ? PuzzleKindAuthoring.OfferedKinds(truth, puzzle.BasedOnTruthIds.FirstOrDefault()).ToList()
+                    : null,
+                PrintOwnerId = PuzzleKindRegistry.IsInteractive(puzzle)
+                    ? TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault())
+                    : null,
+                PrintCardIds = PuzzleKindRegistry.IsInteractive(puzzle)
+                               && TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault()) is not null
+                    ? truth.CaseSeed.SuspectIds.ToList()
                     : null
             };
 
