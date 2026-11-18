@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Leaderboard;
 using SirLocked.Api.DTOs.Weekly;
@@ -49,12 +50,14 @@ public class WeeklyController : BaseApiController
     /// <summary>What the caller's game in this room did for their weekly chest (the result page).</summary>
     [HttpGet("challenge/reward/{roomId}")]
     [Authorize]
+    [EnableRateLimiting("chests")]
     public async Task<ActionResult<ApiResponse<WeeklyDropStatusDto>>> ChallengeRewardForRoom(string roomId, CancellationToken ct) =>
         Ok(await _drops.GetForRoomAsync(CallerId, roomId, ct));
 
     /// <summary>Puts a waiting chest in the caller's bag. 404 WEEKLY_DROP_NOT_FOUND if not theirs, 409 SLOTS_FULL if the bag is still full.</summary>
     [HttpPost("challenge/reward/{dropId}/claim")]
     [Authorize]
+    [EnableRateLimiting("chests")]
     public async Task<ActionResult<ApiResponse<WeeklyDropDto>>> ClaimChallengeReward(string dropId, CancellationToken ct) =>
         Ok(await _drops.ClaimAsync(Caller, dropId, ct));
 }
