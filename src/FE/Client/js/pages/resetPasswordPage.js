@@ -2,6 +2,7 @@ import { authApi } from '../api/authApi.js';
 import { render, qs } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
 import { toast } from '../utils/toast.js';
+import { clearAuthFieldError, showAuthError, validateAuthForm } from '../services/authFormErrors.js';
 import { ICON_ARROW, authBoardMarkup, authHead, passwordField, setBoardState, wireRevealButtons } from './loginPage.js';
 import { navigate } from '../services/navigation.js';
 
@@ -198,6 +199,11 @@ export async function renderResetPasswordPage(app) {
   wireRevealButtons(app);
 
   const form = qs('#form-reset', app);
+  form.noValidate = true;
+  form.addEventListener('input', (event) => {
+    if (event.target instanceof HTMLInputElement) clearAuthFieldError(event.target);
+    form.querySelectorAll('[data-auth-form-error]').forEach((node) => node.remove());
+  });
   const newInput = qs('#reset-new', app);
   const confirmInput = qs('#reset-confirm', app);
   const setRule = (name, state) => {
@@ -221,13 +227,14 @@ export async function renderResetPasswordPage(app) {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateAuthForm(form)) return;
     const data = new FormData(e.target);
     const newPassword = data.get('newPassword');
     const confirmPassword = data.get('confirmPassword');
 
     if (newPassword !== confirmPassword) {
       setRule('match', 'bad');
-      toast(tr('The confirmation password does not match.', 'Mật khẩu xác nhận không khớp.'), 'error');
+      showAuthError(form, { errors: { confirmPassword: [tr('The confirmation password does not match.', 'Mật khẩu xác nhận không khớp.')] } });
       return;
     }
 
@@ -240,7 +247,7 @@ export async function renderResetPasswordPage(app) {
       toast(tr('Password reset! Please log in again.', 'Đặt lại mật khẩu thành công! Hãy đăng nhập lại.'), 'success');
       navigate('/login');
     } catch (err) {
-      toast(err.message, 'error');
+      showAuthError(form, err);
     } finally {
       btn.disabled = false;
       setBoardState(app, '');
