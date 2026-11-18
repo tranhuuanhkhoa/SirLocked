@@ -240,6 +240,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Weekly.WeeklyChallengeWorker>(); // tự bốc vụ Thử thách tuần mỗi 5 phút
 builder.Services.AddCatalog(); // Danh mục vật phẩm, hòm, phần thưởng trong MongoDB (ICatalogProvider)
 builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
 builder.Services.AddAdminFoundation(); // Nhật ký admin, tải ảnh admin
