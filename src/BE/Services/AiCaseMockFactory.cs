@@ -120,7 +120,7 @@ internal static class AiCaseMockFactory
         ConvertMockCaseToCameraEmbedded(mock);
         var traceCount = Math.Min(budget.MaxTraces, mock.Clues.Count);
         var culpritId = mock.FinalLogic.CulpritId;
-        var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(contract, targetKind);
+        var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(settings, contract, targetKind);
         var suspects = mock.Characters
             .Select(item => item.CharacterId)
             .OrderBy(id => id == culpritId ? 0 : 1)

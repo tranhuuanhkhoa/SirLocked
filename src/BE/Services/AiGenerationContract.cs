@@ -116,6 +116,8 @@ public sealed record AiGenerationContract(
 
     public static AiGenerationContract For(AiDraftSettings settings)
     {
+        if (AiPipelineVersions.IsOpenCoop(settings))
+            return AiDifficultyProfiles.Contract(AiDifficultyProfiles.For(settings.Difficulty), settings.Leaning);
         // Persisted drafts are validated against the profile they were created
         // with. Never infer a new profile from their preset or repair date.
         var contract = AiGenerationPresets.Normalize(settings.GenerationPreset) == AiGenerationPresets.ShortDemo

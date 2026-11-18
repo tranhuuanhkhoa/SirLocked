@@ -62,10 +62,16 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         var result = new CaseValidationResult();
         var capacity = _readinessAnalyzer.AnalyzeCapacity(draft.Settings);
         var locations = OrderedLocations(truth);
-        if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
+        if (AiPipelineVersions.IsOpenCoop(draft.Settings))
+        {
+            if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
+                result.Add("TruthLocationCountForLevel", "caseSeed.locationIds",
+                    $"{AiDifficultyProfiles.For(draft.Settings.Difficulty).Difficulty} needs {contract.MinScenes}-{contract.MaxScenes} locations; truth uses {locations.Count}.");
+        }
+        else if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
             result.Add("ProjectionLocationCount", "caseSeed.locationIds",
                 $"Gameplay preset requires {contract.MinScenes}-{contract.MaxScenes} used truth locations; truth provides {locations.Count}.");
-        if (locations.Count < draft.Settings.StageCount)
+        if (!AiPipelineVersions.IsOpenCoop(draft.Settings) && locations.Count < draft.Settings.StageCount)
             result.Add("ProjectionStageCoverage", "caseSeed.locationIds",
                 $"{draft.Settings.StageCount} stages cannot be populated by {locations.Count} used truth locations.");
 
