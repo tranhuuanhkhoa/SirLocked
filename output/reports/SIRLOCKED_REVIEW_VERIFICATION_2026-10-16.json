@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-16",
+  "commit": "5f8feebcf40e6c3e5e19294bffc56b1d0786327a",
+  "branch": "ui/bang-pha-an",
+  "backend": {
+    "exit_code": 0,
+    "unit_pass": 936,
+    "integration_reported_pass": 109,
+    "mongo_it_enabled": false,
+    "paid_openai_probe_enabled": false,
+    "log": "tmp/senior-review/backend-test.log"
+  },
+  "frontend": {
+    "typecheck": "pass",
+    "test_assets": 4,
+    "test_realtime": 11,
+    "test_guide": 3,
+    "test_navigation": 6,
+    "build": "pass",
+    "vite": "6.4.3",
+    "gameplay_js_kb": 1927.91,
+    "gameplay_js_gzip_kb": 458.25
+  },
+  "historical_ci": {
+    "repo": "duongtuankiet-se/SirLocked",
+    "commit": "d905bf2c318ae7696a54617f432e83eeb63ba229",
+    "run_id": 38880366747,
+    "browser_pass": 130,
+    "browser_fail": 3,
+    "secret_scan_run_id": 38880366801,
+    "secret_scan": "success"
+  },
+  "limitations": [
+    "No new full Playwright run",
+    "No live provider calls",
+    "No load test",
+    "No production penetration test",
+    "Many Mongo integration cases return early when disabled"
+  ]
+}

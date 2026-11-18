@@ -1,0 +1,149 @@
+{
+  "head": "5f8feebcf40e6c3e5e19294bffc56b1d0786327a",
+  "tracked_files": 910,
+  "extensions": {
+    ".json": 72,
+    ".yml": 2,
+    "": 34,
+    ".md": 92,
+    ".sln": 1,
+    ".example": 1,
+    ".py": 13,
+    ".trx": 1,
+    ".png": 131,
+    ".ps1": 10,
+    ".css": 30,
+    ".html": 52,
+    ".woff2": 33,
+    ".jpg": 4,
+    ".drawio": 2,
+    ".csv": 1,
+    ".mjs": 12,
+    ".cs": 301,
+    ".csproj": 8,
+    ".js": 57,
+    ".ts": 35,
+    ".txt": 1,
+    ".wav": 10,
+    ".svg": 7
+  },
+  "source_lines": 107200,
+  "test_lines": 26982,
+  "largest_source_files": [
+    {
+      "file": "src/BE/Services/AiCaseService.cs",
+      "lines": 6559,
+      "bytes": 361689,
+      "test": false
+    },
+    {
+      "file": "src/FE/Client/js/pages/gamePage.ts",
+      "lines": 6043,
+      "bytes": 308512,
+      "test": false
+    },
+    {
+      "file": "src/FE/css/10-game.css",
+      "lines": 2908,
+      "bytes": 91175,
+      "test": false
+    },
+    {
+      "file": "src/FE/css/40-bpa-game.css",
+      "lines": 2356,
+      "bytes": 96023,
+      "test": false
+    },
+    {
+      "file": "src/BE/Services/GameplayService.cs",
+      "lines": 1939,
+      "bytes": 99210,
+      "test": false
+    },
+    {
+      "file": "src/BE/Services/CaseValidationService.cs",
+      "lines": 1932,
+      "bytes": 118632,
+      "test": false
+    },
+    {
+      "file": "src/FE/css/34-bpa-workshop.css",
+      "lines": 1906,
+      "bytes": 75352,
+      "test": false
+    },
+    {
+      "file": "src/FE/tests/game-ui-smoke.spec.ts",
+      "lines": 1804,
+      "bytes": 96123,
+      "test": true
+    },
+    {
+      "file": "src/BE/Services/AiCaseService.CaseTruth.cs",
+      "lines": 1802,
+      "bytes": 113195,
+      "test": false
+    },
+    {
+      "file": "src/FE/Client/js/pages/adminAiPage.js",
+      "lines": 1762,
+      "bytes": 115590,
+      "test": false
+    },
+    {
+      "file": "src/BE/Tests/CaseTruthServiceTests.cs",
+      "lines": 1613,
+      "bytes": 76213,
+      "test": true
+    },
+    {
+      "file": "src/FE/css/41-bpa-casefile.css",
+      "lines": 1569,
+      "bytes": 134977,
+      "test": false
+    },
+    {
+      "file": "src/BE/Services/CaseTruthService.cs",
+      "lines": 1253,
+      "bytes": 80468,
+      "test": false
+    },
+    {
+      "file": "src/BE/Tests/CaseValidationServiceTests.cs",
+      "lines": 1239,
+      "bytes": 50025,
+      "test": true
+    },
+    {
+      "file": "src/BE/Tests/AiRequestValidationTests.cs",
+      "lines": 1224,
+      "bytes": 60697,
+      "test": true
+    },
+    {
+      "file": "src/BE/Tests/ProjectionPipelineTests.cs",
+      "lines": 1179,
+      "bytes": 58340,
+      "test": true
+    },
+    {
+      "file": "src/FE/css/09-app.css",
+      "lines": 1104,
+      "bytes": 50580,
+      "test": false
+    },
+    {
+      "file": "src/BE/Services/AiCaseMockFactory.cs",
+      "lines": 1065,
+      "bytes": 63412,
+      "test": false
+    }
+  ],
+  "be_controller_files": 20,
+  "be_service_files": 133,
+  "unit_cs_files": 58,
+  "integration_cs_files": 18,
+  "browser_specs": 17,
+  "http_action_attributes": 116,
+  "tracked_bytes": 201417212
+}
