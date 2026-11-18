@@ -49,7 +49,7 @@ public sealed class ChestDef
         Active = active;
         Look = look;
         ChallengeWeight = challengeWeight;
-        Pools =MarketRarities.All.ToDictionary(
+        Pools = MarketRarities.All.ToDictionary(
             rarity => rarity,
             rarity => (IReadOnlyList<MarketItemDef>)items.Where(item => item.Rarity == rarity).ToList());
     }

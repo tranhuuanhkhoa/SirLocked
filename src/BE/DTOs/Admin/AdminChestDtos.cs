@@ -94,7 +94,11 @@ public sealed record AdminChestRowDto(
     long OpensLast7Days,
     decimal ExpectedValue,
     long Cost,
-    int PoolCount);
+    int PoolCount,
+    // Weekly challenge: the weight in force (an unset one reads as its default) and the share of the drops in percent.
+    // The share counts only active chests with a weight, so an off chest or a zero weight shows 0.
+    int ChallengeWeight,
+    decimal ChallengePercent);
 
 public sealed record AdminChestListDto(IReadOnlyList<AdminChestRowDto> Chests, IReadOnlyList<string> Problems);
 
@@ -121,7 +125,9 @@ public sealed record AdminChestDetailDto(
     IReadOnlyList<AdminPoolItemDto> Pool,
     decimal ExpectedValue,
     long Cost,
-    IReadOnlyList<string> Problems);
+    IReadOnlyList<string> Problems,
+    int ChallengeWeight,
+    decimal ChallengePercent);
 
 public sealed class AdminChestLookRequest
 {
@@ -147,6 +153,8 @@ public sealed class AdminChestDraftRequest
     public AdminChestLookRequest? Look { get; set; }
     public Dictionary<string, int>? DropWeights { get; set; }
     public List<string>? Pool { get; set; }
+    /// <summary>Weekly challenge weight, 0 to 10,000. Null keeps the stored value, so a client that does not know the field changes nothing.</summary>
+    public int? ChallengeWeight { get; set; }
     public int ExpectedVersion { get; set; }
 
     [StringLength(500)]
@@ -189,6 +197,8 @@ public sealed record AdminChestVersionDto(
     long KeyPrice,
     IReadOnlyDictionary<string, int> DropWeights,
     int PoolCount,
+    // The weekly challenge weight this version had (an unset one reads as its default).
+    int ChallengeWeight,
     // Compared with the version before it. Empty on the oldest one.
     AdminChestDiff Diff);
 

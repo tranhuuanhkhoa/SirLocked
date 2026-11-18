@@ -83,6 +83,37 @@ public sealed class WeeklyDropRulesTests
         Assert.Equal(25, WeeklyDropRules.EffectiveWeight(new CatalogChest { Id = "chest_new", ChallengeWeight = 25 }));
     }
 
+    [Fact]
+    public void Percents_ShareTheActiveChestsWithAWeight_AndShowZeroForTheRest()
+    {
+        var chests = new List<CatalogChest>
+        {
+            new() { Id = "chest_np", Active = true, ChallengeWeight = 30 },
+            new() { Id = "chest_sm", Active = true, ChallengeWeight = null }, // default 30
+            new() { Id = "chest_nb", Active = true, ChallengeWeight = null }, // default 10
+            new() { Id = "chest_off", Active = false, ChallengeWeight = 500 },
+            new() { Id = "chest_zero", Active = true, ChallengeWeight = 0 },
+            new() { Id = "chest_new", Active = true, ChallengeWeight = null }, // default 0
+        };
+
+        var percents = WeeklyDropRules.Percents(chests);
+
+        Assert.Equal(42.86m, percents["chest_np"]);
+        Assert.Equal(42.86m, percents["chest_sm"]);
+        Assert.Equal(14.29m, percents["chest_nb"]);
+        Assert.Equal(0m, percents["chest_off"]);
+        Assert.Equal(0m, percents["chest_zero"]);
+        Assert.Equal(0m, percents["chest_new"]);
+    }
+
+    [Fact]
+    public void Percents_AreAllZeroWhenNothingCanDrop()
+    {
+        var percents = WeeklyDropRules.Percents(new[] { new CatalogChest { Id = "chest_np", Active = false } });
+
+        Assert.Equal(0m, percents["chest_np"]);
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(10_001)]

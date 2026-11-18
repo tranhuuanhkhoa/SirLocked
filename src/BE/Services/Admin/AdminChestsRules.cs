@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Weekly;
 
 namespace SirLocked.Api.Services.Admin;
 
@@ -80,6 +81,8 @@ public static class AdminChestsRules
         Prices = new CatalogChestPrices { Chest = chest.Prices.Chest, Key = chest.Prices.Key },
         DropWeights = new Dictionary<string, int>(chest.DropWeights, StringComparer.Ordinal),
         Pool = new List<string>(chest.Pool),
+        // Copied as stored: null (the default for its id) stays null, an explicit 0 stays 0.
+        ChallengeWeight = chest.ChallengeWeight,
         Active = chest.Active,
         SortOrder = chest.SortOrder,
         Version = chest.Version,
@@ -228,6 +231,8 @@ public static class AdminChestsRules
         Compare("keyNameEn", before.KeyNameEn, after.KeyNameEn);
         Compare("prices.chest", Number(before.Prices.Chest), Number(after.Prices.Chest));
         Compare("prices.key", Number(before.Prices.Key), Number(after.Prices.Key));
+        // The weight in force, so "none stored" and the spelled-out default are the same thing.
+        Compare("challengeWeight", Number(WeeklyDropRules.EffectiveWeight(before)), Number(WeeklyDropRules.EffectiveWeight(after)));
         Compare("active", Flag(before.Active), Flag(after.Active));
         Compare("sortOrder", Number(before.SortOrder), Number(after.SortOrder));
         Compare("look.template", before.Look.Template, after.Look.Template);
