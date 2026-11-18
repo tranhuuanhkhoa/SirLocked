@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.PuzzleKinds;
 
 namespace SirLocked.Api.Services.Projection;
 
@@ -91,7 +92,17 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
                     ("lines", FixedStringArray(node.Lines.Count, 600)),
                     ("choiceLabels", ExactStringMap(node.Choices.Select(choice => choice.ChoiceId), 300))))))),
             ("puzzles", SlotMap(skeleton.Puzzles.Select(puzzle =>
-                (puzzle.PuzzleId, Object(
+                (puzzle.PuzzleId, plan.Puzzles.TryGetValue(puzzle.PuzzleId, out var puzzleSlot) && puzzleSlot.OfferedKinds is { } offered
+                ? Object(
+                    ("puzzleId", Const(puzzle.PuzzleId)),
+                    ("kind", Enum(offered)),
+                    ("authored", AuthoredWords(offered)),
+                    ("prompt", Text(600)),
+                    ("correctCode", Const(puzzle.CorrectCode)),
+                    ("investigationPurpose", Text(500)),
+                    ("successMessage", Text(140)),
+                    ("failureMessage", Text(140)))
+                : Object(
                     ("puzzleId", Const(puzzle.PuzzleId)),
                     ("prompt", Text(600)),
                     ("correctCode", Const(puzzle.CorrectCode)),
@@ -190,6 +201,21 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
         schema["pattern"] = "^[ -~]+$";
         return schema;
     }
+
+    private static JsonObject Enum(IEnumerable<string> values) => new()
+    {
+        ["type"] = "string",
+        ["enum"] = new JsonArray(values.Select(value => (JsonNode)JsonValue.Create(value)!).ToArray())
+    };
+
+    /// <summary>The words of an interactive puzzle: an object whose keys depend on the chosen kind.</summary>
+    private static JsonObject AuthoredWords(IEnumerable<string> offered) => new()
+    {
+        ["type"] = "object",
+        ["description"] = "Text params the player reads, by kind: " + string.Join("; ", offered.Select(kind =>
+            $"{kind}: {(PuzzleKindAuthoring.AllowedAuthoredKeys(kind) is { Count: > 0 } keys ? string.Join(", ", keys) : "none, use {}")}"))
+            + ". Never write the answer or the puzzle's mechanics."
+    };
 
     private static JsonObject Const(string value) => new()
     {

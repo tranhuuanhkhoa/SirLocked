@@ -1,4 +1,5 @@
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.PuzzleKinds;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Services.Interfaces;
@@ -900,7 +901,10 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             {
                 PuzzleId = puzzle.PuzzleId,
                 BasedOnTruthIds = puzzle.BasedOnTruthIds.ToList(),
-                RevealsConclusionIds = puzzle.RevealsConclusionIds.ToList()
+                RevealsConclusionIds = puzzle.RevealsConclusionIds.ToList(),
+                OfferedKinds = PuzzleKindRegistry.IsInteractive(puzzle)
+                    ? PuzzleKindAuthoring.OfferedKinds(truth).ToList()
+                    : null
             };
 
         foreach (var deduction in plan.Skeleton.Deductions)

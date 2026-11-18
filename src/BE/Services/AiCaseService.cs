@@ -2598,6 +2598,18 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion, draft.CaseTruth)
             : AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion);
 
+    /// <summary>OPEN_COOP_1 drafts: how to fill the optional interactive puzzle slots.</summary>
+    internal static string OpenCoopProjectionRequirements(AiDraftSettings settings) =>
+        AiPipelineVersions.IsOpenCoop(settings)
+            ? """
+              OPEN_COOP case (every place is open from the start; both detectives share one notebook):
+              - Every puzzle slot is an OPTIONAL interactive puzzle: solving it gives one corroborating clue; the case can be solved without it.
+              - For each puzzle pick a kind from its slot's offeredKinds that fits the story and the place. Never use the same kind twice in this case.
+              - Write only the player's words for it: prompt (what the detectives see and try), investigationPurpose, successMessage, failureMessage, and the kind's text fields in "authored" (see the schema description; use {} when the kind takes none).
+              - Never write a puzzle's answer, code, solution, sequence or mechanics: the server generates them.
+              """
+            : string.Empty;
+
     internal static string BuildFullLogicRequestPrompt(
         AiCaseDraft draft,
         string? correction = null,
@@ -2625,6 +2637,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
             .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
             .AppendLine(ShortDemoSamplerRequirements(draft.Settings))
+            .AppendLine(OpenCoopProjectionRequirements(draft.Settings))
             .AppendLine("Narrative facts and slots:")
             .AppendLine(ProjectionPromptContext.Build(draft, repairScope));
         if (repairScope is not null)

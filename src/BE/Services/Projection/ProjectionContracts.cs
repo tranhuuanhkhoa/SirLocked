@@ -119,6 +119,10 @@ public sealed class PuzzleProjectionSlot
     public string PuzzleId { get; set; } = string.Empty;
     public List<string> BasedOnTruthIds { get; set; } = new();
     public List<string> RevealsConclusionIds { get; set; } = new();
+    /// <summary>OPEN_COOP_1 interactive puzzles only: the kinds the AI may pick. Absent on older plans (same hash).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<string>? OfferedKinds { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -339,6 +343,11 @@ public sealed class ConversationProjectionContent
 public sealed class PuzzleProjectionContent
 {
     public string PuzzleId { get; set; } = string.Empty;
+    /// <summary>OPEN_COOP_1 interactive puzzles: the kind the AI picked (one of the slot's offered kinds).</summary>
+    public string Kind { get; set; } = string.Empty;
+    /// <summary>OPEN_COOP_1 interactive puzzles: the text params the AI wrote, as a JSON object.</summary>
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string Authored { get; set; } = string.Empty;
     public List<string> BasedOnTruthIds { get; set; } = new();
     public List<string> RevealsConclusionIds { get; set; } = new();
     public string Prompt { get; set; } = string.Empty;

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.PuzzleKinds;
 
 namespace SirLocked.Api.Services.Projection;
 
@@ -121,10 +122,25 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         foreach (var puzzle in gameCase.Puzzles)
         {
             var value = content.Puzzles[puzzle.PuzzleId];
+            if (PuzzleKindRegistry.IsInteractive(puzzle))
+            {
+                puzzle.Kind = value.Kind;
+                puzzle.ParamsJson = PuzzleKindAuthoring.Parse(value.Authored).ToJsonString();
+            }
             if (string.IsNullOrWhiteSpace(puzzle.Prompt)) puzzle.Prompt = value.Prompt;
             if (string.IsNullOrWhiteSpace(puzzle.InvestigationPurpose)) puzzle.InvestigationPurpose = value.InvestigationPurpose;
             if (string.IsNullOrWhiteSpace(puzzle.SuccessMessage)) puzzle.SuccessMessage = value.SuccessMessage;
             if (string.IsNullOrWhiteSpace(puzzle.FailureMessage)) puzzle.FailureMessage = value.FailureMessage;
+        }
+        if (gameCase.Puzzles.Any(PuzzleKindRegistry.IsInteractive))
+        {
+            // The kind generates everything the AI did not write (geometry, the answer, the reveal), then checks it.
+            PuzzleKindRegistry.FillMissing(gameCase);
+            var puzzleErrors = new List<string>();
+            foreach (var puzzle in gameCase.Puzzles.Where(PuzzleKindRegistry.IsInteractive))
+                PuzzleKindRegistry.Validate(puzzle, $"puzzles.{puzzle.PuzzleId}",
+                    (field, message, _) => puzzleErrors.Add($"PROJECTION_PUZZLE {field}: {message}"));
+            if (puzzleErrors.Count > 0) throw new ProjectionCompilationException(puzzleErrors);
         }
         foreach (var interaction in gameCase.Interactions)
         {
@@ -244,6 +260,16 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
                 || value.CorrectCode != puzzle.CorrectCode
                 || !Same(value.CorrectSequence, puzzle.CorrectSequence))
                 errors.Add($"PROJECTION_LOCKED_FIELD puzzles.{id} changed truth basis.");
+        }
+        var pickedKinds = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (id, value) in content.Puzzles)
+        {
+            if (!plan.Puzzles.TryGetValue(id, out var slot) || slot.OfferedKinds is not { } offered) continue;
+            PuzzleKindAuthoring.Check(id, value.Kind, value.Authored, offered, errors);
+            if (string.IsNullOrWhiteSpace(value.Kind)) continue;
+            if (pickedKinds.TryGetValue(value.Kind, out var first))
+                errors.Add($"PuzzleKindRepeated puzzles.{id}.kind: {value.Kind} is already used by {first}; pick a different kind.");
+            else pickedKinds[value.Kind] = id;
         }
         foreach (var (id, value) in content.Interactions)
             if (value.InteractionId != id)
@@ -466,12 +492,15 @@ public static class ProjectionContentMockFactory
                     _ => T("Continue questioning", "Tiếp tục thẩm vấn"),
                     StringComparer.Ordinal)
             };
+        var mockKinds = new Queue<string>(PuzzleKindAuthoring.FreeKinds);
         foreach (var (id, slot) in plan.Puzzles)
         {
             var puzzle = plan.Skeleton.Puzzles.First(item => item.PuzzleId == id);
             content.Puzzles[id] = new PuzzleProjectionContent
             {
                 PuzzleId = id,
+                Kind = slot.OfferedKinds is null ? string.Empty : mockKinds.Dequeue(),
+                Authored = slot.OfferedKinds is null ? string.Empty : "{}",
                 BasedOnTruthIds = slot.BasedOnTruthIds.ToList(),
                 RevealsConclusionIds = slot.RevealsConclusionIds.ToList(),
                 Prompt = T("Resolve the bounded mechanism using the established pattern.", "Giải cơ chế hữu hạn bằng mẫu quy luật đã được xác lập."),
