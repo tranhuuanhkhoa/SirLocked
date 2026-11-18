@@ -146,11 +146,17 @@ function drawEntrance(c, id, t, G) {
   }
 }
 
-/* an entrance described by data: one of the stages, with its own words, colour and pictures. { n, r, src, d, tpl, tint, imageUrl, swordUrl, duration } */
+/* "flipbook": an entrance an artist drew as a sprite sheet (frames left to right, top to bottom), played by stage.js */
+const FLIPBOOK = { d: 'Ảnh động do họa sĩ vẽ', ic: 'M4 4h16v16H4zM4 12h16M12 4v16', seconds: 6 };
+
+/* an entrance described by data: one of the stages, with its own words, colour and pictures. { n, r, src, d, tpl, tint, imageUrl, swordUrl, duration, flip }
+   flip (tpl "flipbook"): { sheetUrl, cols, rows, frames, fps, loop, place, size, blend } */
 function defineEntrance(id, o, { listed = true } = {}) {
-  const tpl = EN[o.tpl] && !EN[o.tpl].made ? o.tpl : 'lang-le', base = EN[tpl], e = EN[id] || { id };
-  Object.assign(e, { n: o.n, r: o.r, src: o.src, d: o.d || base.d, ic: base.ic, made: true, tpl, tint: o.tint || null, duration: o.duration || null, creature: o.imageUrl ? uploadedPic(o.imageUrl) : null, sword: o.swordUrl ? uploadedPic(o.swordUrl) : null });
-  FXD[id] = FXD[tpl];
+  const flip = o.tpl === 'flipbook' && o.flip?.sheetUrl ? o.flip : null;
+  const tpl = flip ? 'flipbook' : EN[o.tpl] && !EN[o.tpl].made ? o.tpl : 'lang-le', base = flip ? FLIPBOOK : EN[tpl], e = EN[id] || { id };
+  Object.assign(e, { n: o.n, r: o.r, src: o.src, d: o.d || base.d, ic: base.ic, made: true, tpl, tint: o.tint || null, duration: o.duration || null, creature: o.imageUrl ? uploadedPic(o.imageUrl) : null, sword: o.swordUrl ? uploadedPic(o.swordUrl) : null,
+    flip: flip ? { ...flip, sheet: uploadedPic(flip.sheetUrl) } : null });
+  FXD[id] = flip ? FLIPBOOK.seconds : FXD[tpl];
   if (!EN[id]) { EN[id] = e; if (listed) ENTRANCES.push(e); }
 }
 

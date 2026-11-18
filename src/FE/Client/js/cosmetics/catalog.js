@@ -115,21 +115,63 @@ function applyFrame(entry, rar) {
   madeFrames.set(key, entry.level ? 0 : GROUP_OF_RARITY[rar]);
 }
 
+/** A box inside a picture, in fractions of it, or null. */
+function cleanBox(box) {
+  if (!box || typeof box !== 'object') return null;
+  const x = inRange(box.x, 0, 1), y = inRange(box.y, 0, 1), w = inRange(box.w, 0.02, 1), h = inRange(box.h, 0.02, 1);
+  return x !== null && y !== null && w !== null && h !== null && x + w <= 1.0001 && y + h <= 1.0001 ? { x, y, w, h } : null;
+}
+
+/** A nameplate painted from an uploaded picture (template "painted"), or null when it cannot be drawn. */
+export function paintedTitleOf(visual) {
+  if (visual?.template !== 'painted') return null;
+  const params = visual.params ?? {};
+  const url = cleanUrl(visual.imageUrl);
+  const w = inRange(params.size?.w, 8, 4096), h = inRange(params.size?.h, 8, 4096);
+  const baked = params.textBaked === true;
+  const box = baked ? null : cleanBox(params.box);
+  if (!url || w === null || h === null || (!baked && !box)) return null;
+  return { url, w, h, box, baked, color: cleanRgb(params.color), scale: inRange(params.scale, 0.5, 2) ?? 1 };
+}
+
 function applyTitle(entry, rar) {
   const key = bareId(entry.id, TITLE_PREFIX);
   if (!key) return;
   const params = entry.visual?.params ?? {};
   const shipped = T[key] && !T[key].made;
-  const made = entry.visual?.template === 'style';
+  const styled = entry.visual?.template === 'style';
+  const pic = shipped ? null : paintedTitleOf(entry.visual);
+  const own = styled || Boolean(pic);
   defineTitle(key, {
     n: entry.name,
     r: rar,
     src: howText(entry, T[key]?.src, 'Đạt cấp'),
     made: !shipped,
-    sty: made ? params.style : T[key]?.sty,
-    glow: made ? cleanRgb(params.glow) : null,
-    parts: made ? cleanParts(params.parts) : null,
+    sty: styled ? params.style : T[key]?.sty,
+    glow: own ? cleanRgb(params.glow) : null,
+    parts: own ? cleanParts(params.parts) : null,
+    pic,
   });
+}
+
+const FLIPBOOK_PLACES = ['hero', 'screen', 'across', 'drop'];
+
+/** A flipbook entrance's sheet and how it plays, or null when the sheet cannot be used. */
+function flipbookOf(params) {
+  const sheetUrl = cleanUrl(params?.sheetUrl);
+  if (!sheetUrl) return null;
+  const cols = inRange(params.cols, 1, 16) ?? 1, rows = inRange(params.rows, 1, 16) ?? 1;
+  return {
+    sheetUrl,
+    cols,
+    rows,
+    frames: inRange(params.frames, 1, cols * rows) ?? cols * rows,
+    fps: inRange(params.fps, 1, 60) ?? 12,
+    loop: params.loop !== false,
+    place: FLIPBOOK_PLACES.includes(params.place) ? params.place : 'hero',
+    size: inRange(params.size, 0.3, 3) ?? 1,
+    blend: params.blend === 'add' ? 'add' : 'normal',
+  };
 }
 
 function applyEntrance(entry, rar) {
@@ -152,6 +194,7 @@ function applyEntrance(entry, rar) {
     imageUrl: cleanUrl(params.imageUrl),
     swordUrl: cleanUrl(params.swordUrl),
     duration: inRange(params.duration, 4, 12),
+    flip: entry.visual?.template === 'flipbook' ? flipbookOf(params) : null,
   });
 }
 

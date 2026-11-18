@@ -1,7 +1,7 @@
 import { RARITY_OF_SERVER, T, prepareCosmetics, setPlaqueMotion, titleHTML, whenTitleFontReady } from '../../../cosmetics/index.js';
 import { STYLE_KEYS, titleFrom } from '../../../cosmetics/titles.js';
 import { escapeHtml } from '../../../utils/dom.js';
-import { basicFieldsHtml, blockHtml, mountSections, saveBarHtml, saveCosmetic } from './editorCommon.js';
+import { basicFieldsHtml, blockHtml, mountSections, saveBarHtml, saveCosmetic, uploadHtml, wirePictureInput } from './editorCommon.js';
 import { hexOf, keyOf, rgbOf } from './shared.js';
 
 const STYLE_LABELS = {
@@ -11,6 +11,18 @@ const STYLE_LABELS = {
 const PARTICLES = [['tw', 'Lấp lánh'], ['rise', 'Bụi sáng bay lên'], ['leaf', 'Lá trúc'], ['snow', 'Tuyết'], ['petal', 'Cánh hoa'], ['smoke', 'Khói'], ['ember', 'Tàn lửa'], ['feather', 'Lông đen'], ['wfeather', 'Lông trắng']];
 const MAX_PARTICLE_ROWS = 4;
 const NAME_DEBOUNCE_MS = 150;
+/* Where the name sits on a new picture until the admin draws the box: the middle, as on most nameplates. */
+const DEFAULT_BOX = { x: 0.15, y: 0.28, w: 0.7, h: 0.44 };
+const MIN_BOX = 0.02;
+const round4 = (value) => Math.round(value * 10000) / 10000;
+const clamp01 = (value) => Math.min(1, Math.max(0, value));
+
+/** A box kept inside the picture, at least 2 % wide and tall, in fractions rounded as the server stores them. */
+function boxWithin({ x, y, w, h }) {
+  const width = Math.min(1, Math.max(MIN_BOX, w));
+  const height = Math.min(1, Math.max(MIN_BOX, h));
+  return { x: round4(Math.min(clamp01(x), 1 - width)), y: round4(Math.min(clamp01(y), 1 - height)), w: round4(width), h: round4(height) };
+}
 
 export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
   prepareCosmetics();
@@ -22,6 +34,17 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
     glow: params.glow ?? '255,200,90',
     partsOn: Array.isArray(params.parts),
     parts: Array.isArray(params.parts) ? params.parts.map((row) => [row[0], Number(row[1]), row[2]]) : [['rise', 6, '255,214,120'], ['tw', 3, '255,248,220']],
+    // "style": one of the 18 plates drawn in code. "painted": a picture an artist drew, with the name written in its box.
+    kind: item?.visual?.template === 'painted' ? 'painted' : 'style',
+    pic: {
+      url: item?.visual?.template === 'painted' ? item.visual.imageUrl ?? null : null,
+      w: Number(params.size?.w) || 0,
+      h: Number(params.size?.h) || 0,
+      box: params.box ? boxWithin(params.box) : { ...DEFAULT_BOX },
+      baked: params.textBaked === true,
+      color: params.color ?? '255,240,200',
+      scale: Number(params.scale) || 1,
+    },
   };
   let timer = 0;
   let disposed = false;
@@ -29,8 +52,11 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
   const nameOf = () => host.querySelector('[data-field="name"]')?.value.trim() || 'Danh hiệu mới';
   const rarOf = () => RARITY_OF_SERVER[host.querySelector('[data-field="rarity"]')?.value] ?? 'rare';
 
+  const painted = () => !shipped && state.kind === 'painted' && Boolean(state.pic.url && state.pic.w && state.pic.h);
+  const picOf = () => ({ ...state.pic, box: state.pic.baked ? null : state.pic.box });
+
   /** The plaque as the current fields would draw it. A shipped title keeps its style. */
-  const plaque = (style = state.style) => titleFrom({
+  const plaque = (style = state.style, { asStyle = false } = {}) => titleFrom({
     n: nameOf(),
     r: rarOf(),
     src: '',
@@ -38,6 +64,7 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
     sty: shipped ? T[keyOf(item)]?.sty : style,
     glow: !shipped && state.glowOn ? state.glow : null,
     parts: !shipped && state.partsOn ? state.parts : null,
+    pic: !asStyle && painted() ? picOf() : null,
   });
 
   // Only plaques on screen move: all eighteen at once is too much for a phone, off screen they show as nothing.
@@ -71,7 +98,7 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
     const cell = Math.max(200, (grid.clientWidth || 600) / columns - 24);
     grid.innerHTML = STYLE_KEYS.map((key) => `
       <button class="acf-style${state.style === key ? ' is-on' : ''}" type="button" role="radio" aria-checked="${state.style === key}" data-style="${key}">
-        ${titleHTML(plaque(key), { maxW: cell })}
+        ${titleHTML(plaque(key, { asStyle: true }), { maxW: cell })}
         <small>${escapeHtml(STYLE_LABELS[key] ?? key)}</small>
       </button>`).join('');
     grid.querySelectorAll('[data-style]').forEach((button) => {
@@ -119,16 +146,127 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
   };
 
   const visualBody = () => {
-    const body = { style: state.style };
-    if (state.glowOn) body.glow = state.glow;
-    if (state.partsOn) body.parts = state.parts;
-    return { template: 'style', imageUrl: null, params: body };
+    const effects = {};
+    if (state.glowOn) effects.glow = state.glow;
+    if (state.partsOn) effects.parts = state.parts;
+    if (state.kind === 'painted') {
+      const { pic } = state;
+      const body = { size: { w: pic.w, h: pic.h }, color: pic.color, scale: pic.scale, ...effects };
+      if (pic.baked) body.textBaked = true;
+      else body.box = pic.box;
+      return { template: 'painted', imageUrl: pic.url, params: body };
+    }
+    return { template: 'style', imageUrl: null, params: { style: state.style, ...effects } };
+  };
+
+  // ---------------------------------------------------------------- a nameplate painted by an artist
+
+  const kindBlock = blockHtml({
+    id: 'acf-kind-title',
+    title: 'Loại bảng tên',
+    sub: 'Kiểu vẽ sẵn của game, hoặc ảnh bảng tên do họa sĩ vẽ rồi tải lên.',
+    body: `
+      <div class="acf-modes" role="radiogroup" aria-labelledby="acf-kind-title">
+        <label class="acf-choice"><input type="radio" name="acf-title-kind" value="style"${state.kind === 'style' ? ' checked' : ''}> Kiểu vẽ sẵn (18 kiểu)</label>
+        <label class="acf-choice"><input type="radio" name="acf-title-kind" value="painted"${state.kind === 'painted' ? ' checked' : ''}> Ảnh riêng</label>
+      </div>`,
+  });
+  const percentField = (part, label) => `
+    <div class="acf-field"><label for="acf-tbox-${part}">${label} (%)</label>
+      <input class="field-input" id="acf-tbox-${part}" type="number" min="0" max="100" step="0.5" inputmode="decimal" data-tbox="${part}"></div>`;
+  const paintedBlock = blockHtml({
+    id: 'acf-paint-title',
+    title: 'Ảnh bảng tên',
+    sub: 'PNG hoặc WebP nền trong suốt, nên rộng gấp 3 đến 5 lần chiều cao (ví dụ 900×220). Tên tiếng Việt hoặc tiếng Anh được viết vào khung chữ, nên đổi tên không cần vẽ lại.',
+    attrs: ' data-painted-block',
+    body: `
+      ${uploadHtml({ label: 'Tải ảnh bảng tên', attr: 'data-title-input', statusAttr: 'data-title-status', statusText: state.pic.url ? 'Đang dùng ảnh đã tải.' : '' })}
+      <div class="acf-align-wrap" data-tbox-wrap></div>
+      <label class="acf-check"><input type="checkbox" data-title-baked${state.pic.baked ? ' checked' : ''}> Ảnh đã có chữ sẵn (không viết tên lên ảnh)</label>
+      <div class="acf-grid2" data-tbox-fields>
+        ${percentField('x', 'Khung chữ: trái')}
+        ${percentField('y', 'Khung chữ: trên')}
+        ${percentField('w', 'Khung chữ: rộng')}
+        ${percentField('h', 'Khung chữ: cao')}
+      </div>
+      <div class="acf-grid2">
+        <div class="acf-field" data-title-color-field><label for="acf-title-color">Màu chữ</label><input id="acf-title-color" type="color" value="${hexOf(state.pic.color)}" data-title-color></div>
+        <div class="acf-field"><label for="acf-title-scale">Cỡ bảng tên: <output data-title-scale-out>${state.pic.scale.toFixed(2)}</output></label>
+          <input id="acf-title-scale" type="range" min="0.5" max="2" step="0.05" value="${state.pic.scale}" data-title-scale></div>
+      </div>`,
+  });
+
+  /** The picture with the text box over it. Dragging on the picture draws a new box; the fields under it fine-tune it. */
+  const drawAlign = () => {
+    const wrap = host.querySelector('[data-tbox-wrap]');
+    if (!wrap) return;
+    const { pic } = state;
+    if (!pic.url || !pic.w || !pic.h) {
+      wrap.innerHTML = '<p class="acf-align-empty">Chưa có ảnh. Sau khi tải ảnh, kéo trên ảnh để vẽ khung chữ.</p>';
+    } else {
+      wrap.innerHTML = `
+        <div class="acf-align acf-tbox-area" data-tbox-area style="aspect-ratio:${pic.w}/${pic.h}">
+          <img class="acf-align-art" src="${escapeHtml(pic.url)}" alt="Ảnh bảng tên" draggable="false">
+          <div class="acf-tbox" data-tbox-mark aria-hidden="true"${pic.baked ? ' hidden' : ''}></div>
+        </div>
+        <p class="acf-hint">${pic.baked ? 'Ảnh đã có chữ: không có khung chữ.' : 'Kéo trên ảnh để vẽ khung chữ, hoặc nhập số bên dưới.'}</p>`;
+      wireBoxDrag(wrap.querySelector('[data-tbox-area]'));
+    }
+    paintBox();
+  };
+
+  const paintBox = () => {
+    const { box, baked } = state.pic;
+    const mark = host.querySelector('[data-tbox-mark]');
+    if (mark) Object.assign(mark.style, { left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.w * 100}%`, height: `${box.h * 100}%` });
+    host.querySelectorAll('[data-tbox]').forEach((input) => {
+      input.disabled = baked;
+      if (document.activeElement !== input) input.value = String(Math.round(box[input.dataset.tbox] * 1000) / 10);
+    });
+    const colorField = host.querySelector('[data-title-color-field]');
+    if (colorField) colorField.hidden = baked;
+  };
+
+  const wireBoxDrag = (area) => {
+    let start = null;
+    const at = (event) => {
+      const rect = area.getBoundingClientRect();
+      return { x: clamp01((event.clientX - rect.left) / rect.width), y: clamp01((event.clientY - rect.top) / rect.height) };
+    };
+    area.addEventListener('pointerdown', (event) => {
+      if (state.pic.baked) return;
+      start = at(event);
+      area.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+    area.addEventListener('pointermove', (event) => {
+      if (!start) return;
+      const here = at(event);
+      state.pic.box = boxWithin({ x: Math.min(start.x, here.x), y: Math.min(start.y, here.y), w: Math.abs(here.x - start.x), h: Math.abs(here.y - start.y) });
+      paintBox();
+    });
+    const end = () => {
+      if (!start) return;
+      start = null;
+      drawPreviews();
+    };
+    area.addEventListener('pointerup', end);
+    area.addEventListener('pointercancel', end);
+  };
+
+  const showKind = () => {
+    const isPainted = state.kind === 'painted';
+    const styles = host.querySelector('[data-styles-block]');
+    const paintedSection = host.querySelector('[data-painted-block]');
+    if (styles) styles.hidden = isPainted;
+    if (paintedSection) paintedSection.hidden = !isPainted;
   };
 
   const styles = blockHtml({
     id: 'acf-styles-title',
     title: 'Kiểu bảng tên',
     sub: 'Mỗi ô vẽ đúng tên đang gõ, như người chơi sẽ thấy.',
+    attrs: ' data-styles-block',
     body: '<div class="acf-styles hs-root" data-styles role="radiogroup" aria-labelledby="acf-styles-title"></div>',
   });
   const overrides = blockHtml({
@@ -153,7 +291,7 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
       <div class="acf-editor-main">
         <div class="acf-form">
           ${blockHtml({ id: 'acf-info-title', title: 'Thông tin', sub: 'Chữ trên bảng tên chính là tên tiếng Việt.', body: basicFieldsHtml(item) })}
-          ${shipped ? '<p class="acf-shipped">Danh hiệu có sẵn của game giữ nguyên kiểu.</p>' : styles + overrides}
+          ${shipped ? '<p class="acf-shipped">Danh hiệu có sẵn của game giữ nguyên kiểu.</p>' : kindBlock + styles + paintedBlock + overrides}
           ${saveBarHtml(item, 'TITLE')}
         </div>
         ${item ? '<div class="acf-sections" data-sections></div>' : ''}
@@ -189,6 +327,43 @@ export function mountTitleEditor(host, { item, page, onSaved, onChanged }) {
       drawPreviews();
     });
     wireParticles();
+
+    host.querySelectorAll('[name="acf-title-kind"]').forEach((radio) => radio.addEventListener('change', () => {
+      state.kind = radio.value;
+      showKind();
+      drawAll();
+    }));
+    wirePictureInput(host.querySelector('[data-title-input]'), {
+      needsAlpha: true,
+      status: host.querySelector('[data-title-status]'),
+      onPicture: (stored) => {
+        state.pic.url = stored.url;
+        state.pic.w = Number(stored.width) || 0;
+        state.pic.h = Number(stored.height) || 0;
+        drawAlign();
+        drawPreviews();
+      },
+    });
+    host.querySelector('[data-title-baked]').addEventListener('change', (event) => {
+      state.pic.baked = event.target.checked;
+      drawAlign();
+      drawPreviews();
+    });
+    host.querySelectorAll('[data-tbox]').forEach((input) => input.addEventListener('input', () => {
+      const value = Number(input.value);
+      if (!Number.isFinite(value)) return;
+      state.pic.box = boxWithin({ ...state.pic.box, [input.dataset.tbox]: value / 100 });
+      paintBox();
+      drawPreviews();
+    }));
+    host.querySelector('[data-title-color]').addEventListener('input', (event) => { state.pic.color = rgbOf(event.target.value); drawPreviews(); });
+    host.querySelector('[data-title-scale]').addEventListener('input', (event) => {
+      state.pic.scale = Number(event.target.value) || 1;
+      host.querySelector('[data-title-scale-out]').textContent = state.pic.scale.toFixed(2);
+      drawPreviews();
+    });
+    showKind();
+    drawAlign();
   }
   drawAll();
   whenTitleFontReady().then(() => { if (!disposed) drawAll(); });
