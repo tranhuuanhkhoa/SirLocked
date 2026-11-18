@@ -10,7 +10,8 @@ import { AU } from './chest/chestAudio.js';
 import { defSprite, itemSprite, paintSprite } from './chest/chestSprites.js';
 import { createVaultParticles } from './chest/vaultParticles.js';
 import { createVaultStage } from './chest/vaultStage.js';
-import { categoryLabel, errorText, fmt, rarityLabel } from './market/marketKit.js';
+import { isCosmeticDef } from '../cosmetics/icons.js';
+import { categoryLabel, errorText, fmt, itemIcon, rarityLabel } from './market/marketKit.js';
 
 const FONTS_ID = 'qh-fonts';
 // index.html already loads these families; the design also needs the heavier and italic cuts.
@@ -276,9 +277,12 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
 
   function itemFor(def) {
     const rarity = RARITY_LOOK[def.rarity] ? def.rarity : 'COMMON';
+    // Case-file gear of the market (Hòm Đêm Whitechapel) has no pixel icon or picture: it keeps the drawing of its type
+    // that the market and the admin show, instead of the magnifier every unknown icon falls back to.
+    const gear = def.category !== 'TITLE' && !def.iconKey && !def.visual?.imageUrl && !isCosmeticDef(def);
     return {
-      id: def.id, name: tr(def.nameEn || def.name, def.name), rarity, r: RARITY_LOOK[rarity].r,
-      category: def.category, type: typeLabel(def.category), sp: def.category === 'TITLE' ? null : defSprite(def), def,
+      id: def.id, name: tr(def.nameEn || def.name, def.name), rarity, r: RARITY_LOOK[rarity].r, gear,
+      category: def.category, type: typeLabel(def.category), sp: def.category === 'TITLE' || gear ? null : defSprite(def), def,
     };
   }
 
@@ -294,6 +298,13 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
 
   /** The picture of an item: a nameplate for a title, else its sprite on a canvas sized for where it goes. */
   function visualOf(item, place) {
+    if (item.gear) {
+      const holder = document.createElement('template');
+      holder.innerHTML = itemIcon(item.def, { tile: 52, card: 72, big: 150 }[place]);
+      const svg = holder.content.firstElementChild;
+      svg.classList.add('qh-svg');
+      return svg;
+    }
     if (item.category === 'TITLE' || !item.sp) {
       const plate = document.createElement('span');
       plate.className = 'qh-plate';
