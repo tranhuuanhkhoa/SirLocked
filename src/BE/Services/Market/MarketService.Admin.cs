@@ -16,14 +16,22 @@ public sealed partial class MarketService
     /// <see cref="AdminGrantAsync"/> for one item whose id the caller chose, so a journal can replay it: the slot is taken
     /// under an operation key and a second insert is a duplicate key. False when the bag is full.
     /// </summary>
-    internal async Task<bool> AdminGrantItemAsync(string userId, string defId, string itemId, CancellationToken ct)
+    internal Task<bool> AdminGrantItemAsync(string userId, string defId, string itemId, CancellationToken ct) =>
+        GrantItemAsync(userId, defId, itemId, MarketItemSources.Grant, AdminGrantOpKey(itemId), ct);
+
+    /// <summary>
+    /// Puts one item whose id the caller chose into an existing account's bag, so a journal can replay it: the slot is
+    /// taken under <paramref name="opKey"/> (a replay finds it applied and takes no second slot) and a second insert is a
+    /// duplicate key. False when the bag is full; then nothing changed.
+    /// </summary>
+    internal async Task<bool> GrantItemAsync(string userId, string defId, string itemId, string source, string opKey, CancellationToken ct)
     {
-        if (await _store.ApplyWalletAsync(userId, AdminGrantOpKey(itemId), 0, slotDelta: 1, ct: ct) == WalletWrite.Rejected) return false;
+        if (await _store.ApplyWalletAsync(userId, opKey, 0, slotDelta: 1, ct: ct) == WalletWrite.Rejected) return false;
         try
         {
             await _store.Items.InsertOneAsync(new MarketItem
             {
-                Id = itemId, OwnerId = userId, DefId = defId, Source = MarketItemSources.Grant, AcquiredAt = Now
+                Id = itemId, OwnerId = userId, DefId = defId, Source = source, AcquiredAt = Now
             }, cancellationToken: ct);
         }
         catch (MongoWriteException exception) when (exception.WriteError?.Category == ServerErrorCategory.DuplicateKey)

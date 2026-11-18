@@ -713,6 +713,8 @@ public sealed class MongoMarketTests
         services.AddSingleton(env.Db);
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IGameResultStore, MongoGameResultStore>();   // as in Program.cs
+        services.AddScoped<ILeaderboardService, LeaderboardService>();  // the weekly chest reads the week's challenge
+        services.AddScoped<IWeeklyService, WeeklyService>();
         services.AddMarket();
         await using var provider = services.BuildServiceProvider();
 
