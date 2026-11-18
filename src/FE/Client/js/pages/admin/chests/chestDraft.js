@@ -13,6 +13,7 @@ export function draftOf(chest) {
     keyPrice: chest.keyPrice,
     active: chest.active,
     sortOrder: chest.sortOrder,
+    challengeWeight: chest.challengeWeight ?? 0,
     look: { ...chest.look },
     dropWeights: Object.fromEntries(RARITIES.map((rarity) => [rarity, chest.dropWeights?.[rarity] ?? 0])),
     pool: (chest.pool ?? []).map((entry) => entry.def.id),

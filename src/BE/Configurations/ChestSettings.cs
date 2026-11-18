@@ -21,6 +21,12 @@ public sealed class ChestSettings
         ["chest_sm"] = new ChestPrice { Chest = 140, Key = 210 },
     };
 
+    /// <summary>
+    /// False: the shop sells keys only and refuses to sell chests, which players get from rewards such as the weekly
+    /// challenge instead. Chests already held, bought or traded still open. Override with Chests__SellChests.
+    /// </summary>
+    public bool SellChests { get; set; } = true;
+
     public ChestPrice PriceOf(string chestId) => Prices[chestId];
 
     /// <summary>Every chest needs valid prices, and opening one must cost more than it pays out on average.</summary>

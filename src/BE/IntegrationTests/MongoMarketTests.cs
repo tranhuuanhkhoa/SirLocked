@@ -409,6 +409,35 @@ public sealed class MongoMarketTests
         Assert.Equal(MarketErrors.ItemNotFound, Code(await Throws(() => env.Market.EquipAsync(user.Id, crystal.ItemId))));
     }
 
+    [Fact]
+    public async Task BothOutfitsCanBeWornAtOnce_AndAnyoneCanSeeWhichOnes()
+    {
+        if (!Enabled) return;
+        await using var env = await MarketEnv.CreateAsync();
+        var user = await env.AddUserAsync("Thám tử Minh");
+        var partner = await env.AddUserAsync("Thám tử Vy");
+        await env.GrantAsync(user.Id, SkinCatalog.SherlockWhitechapel, 0);
+        await env.GrantAsync(user.Id, SkinCatalog.WatsonWhitechapel, 0);
+        var inventory = await env.Market.GetInventoryAsync(user.Id);
+        var sherlock = inventory.Items.Single(i => i.Def.Id == SkinCatalog.SherlockWhitechapel);
+        var watson = inventory.Items.Single(i => i.Def.Id == SkinCatalog.WatsonWhitechapel);
+
+        await env.Market.EquipAsync(user.Id, sherlock.ItemId);
+        var after = await env.Market.EquipAsync(user.Id, watson.ItemId);
+
+        Assert.Equal(sherlock.ItemId, after.Equipped[MarketCategories.SkinSherlock]);
+        Assert.Equal(watson.ItemId, after.Equipped[MarketCategories.SkinWatson]);
+        var shown = await env.Market.GetEquippedAsync(user.Id);
+        Assert.Equal(new[] { MarketCategories.SkinSherlock, MarketCategories.SkinWatson }, shown.Select(e => e.Category));
+        Assert.Equal(SkinCatalog.WatsonWhitechapel, shown[1].Def.Id);
+        Assert.Equal("/assets/pixel/skins/whitechapel/icon-watson.png", shown[1].Def.Visual?.ImageUrl);
+        Assert.Empty(await env.Market.GetEquippedAsync(partner.Id));
+
+        var off = await env.Market.UnequipAsync(user.Id, MarketCategories.SkinSherlock);
+        Assert.False(off.Equipped.ContainsKey(MarketCategories.SkinSherlock));
+        Assert.Equal(new[] { MarketCategories.SkinWatson }, (await env.Market.GetEquippedAsync(user.Id)).Select(e => e.Category));
+    }
+
     // ------------------------------------------------------------------ trades
 
     [Fact]
@@ -455,6 +484,49 @@ public sealed class MongoMarketTests
         Assert.Equal(bobWallet.SlotsUsed, bobWallet.ItemCount);
         Assert.Equal(MarketErrors.TradeClosed, Code(await Throws(() => env.Market.AcceptTradeAsync(bob, offer.OfferId))));
         Assert.Equal(0, (int)await env.Store.Items.CountDocumentsAsync(i => i.LockedBy != null));
+        await env.AssertCoinsConservedAsync(expectedFees: 0);
+    }
+
+    [Fact]
+    public async Task WithTradeCoinsOff_OffersCarryItemsOnly_AndAnOldCoinOfferCanOnlyBeDeclined()
+    {
+        if (!Enabled) return;
+        await using var env = await MarketEnv.CreateAsync();
+        var alice = await env.AddUserAsync("Alice");
+        var bob = await env.AddUserAsync("Bob");
+        var mag = await env.FirstItemAsync(alice.Id);
+        var bobItem = await env.FirstItemAsync(bob.Id);
+        // Made while coins could still be traded.
+        var old = await env.Market.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id, OfferItemIds = new() { mag.ItemId }, RequestCoins = 100 });
+        var itemsOnly = env.ItemsOnly();
+
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() =>
+            itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id, OfferCoins = 10 }))));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() =>
+            itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id, OfferItemIds = new() { mag.ItemId }, RequestCoins = 1 }))));
+        Assert.Equal(MarketErrors.TradeEmpty, Code(await Throws(() =>
+            itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest { ToUserId = bob.Id }))));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() =>
+            itemsOnly.CounterTradeAsync(bob, old.OfferId, new TradeTermsRequest { RequestItemIds = new() { mag.ItemId }, OfferCoins = 5 }))));
+        Assert.Equal(MarketErrors.TradeCoinsNotAllowed, Code(await Throws(() => itemsOnly.AcceptTradeAsync(bob, old.OfferId))));
+        Assert.Equal(TradeOfferStatus.Pending, (await env.Store.Trades.Find(t => t.Id == old.OfferId).FirstAsync()).Status);
+        Assert.False((await itemsOnly.GetTradesAsync(bob.Id)).CoinsAllowed);
+        Assert.True((await env.Market.GetTradesAsync(bob.Id)).CoinsAllowed);
+
+        // Items for items still goes through, and no coin moves.
+        var swap = await itemsOnly.CreateTradeAsync(alice, new CreateTradeRequest
+        {
+            ToUserId = bob.Id, OfferItemIds = new() { mag.ItemId }, RequestItemIds = new() { bobItem.ItemId },
+        });
+        await itemsOnly.AcceptTradeAsync(bob, swap.OfferId);
+        Assert.Equal(bob.Id, (await env.Store.Items.Find(i => i.Id == mag.ItemId).FirstAsync()).OwnerId);
+        Assert.Equal(alice.Id, (await env.Store.Items.Find(i => i.Id == bobItem.ItemId).FirstAsync()).OwnerId);
+        Assert.Equal(500L, (await env.Market.GetWalletAsync(alice.Id)).Balance);
+        Assert.Equal(500L, (await env.Market.GetWalletAsync(bob.Id)).Balance);
+
+        // The old coin offer can still be closed.
+        await itemsOnly.DeclineTradeAsync(bob.Id, old.OfferId);
+        Assert.Equal(TradeOfferStatus.Declined, (await env.Store.Trades.Find(t => t.Id == old.OfferId).FirstAsync()).Status);
         await env.AssertCoinsConservedAsync(expectedFees: 0);
     }
 
@@ -641,6 +713,8 @@ public sealed class MongoMarketTests
         services.AddSingleton(env.Db);
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IGameResultStore, MongoGameResultStore>();   // as in Program.cs
+        services.AddScoped<ILeaderboardService, LeaderboardService>();  // the weekly chest reads the week's challenge
+        services.AddScoped<IWeeklyService, WeeklyService>();
         services.AddMarket();
         await using var provider = services.BuildServiceProvider();
 
@@ -801,6 +875,10 @@ public sealed class MongoMarketTests
         public MongoDbContext Db { get; }
         public MarketStore Store { get; }
         public MarketService Market { get; }
+
+        /// <summary>The same store with Market:TradeCoins off.</summary>
+        public MarketService ItemsOnly() => new(Store, NullLogger<MarketService>.Instance, null,
+            Options.Create(new MarketSettings { TradeCoins = false }));
 
         public static async Task<MarketEnv> CreateAsync()
         {

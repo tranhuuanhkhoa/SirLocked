@@ -77,7 +77,9 @@ test('two detectives: list → buy with the 5% fee, then an accepted trade offer
   await expect(seller.locator('[data-mk-balance]')).toHaveText(fmt(500 + price - fee(price)));
   await shot(seller, testInfo, '03-seller-history');
 
-  // ---- 2. Minh offers "Ghim sắt văn phòng" + 20 xu for Vy's "Bìa hồ sơ giấy kraft".
+  // ---- 2. Minh offers "Ghim sắt văn phòng" (+ 20 xu only while Market:TradeCoins is on) for Vy's "Bìa hồ sơ giấy kraft".
+  const tradeCoins = (await call<{ coinsAllowed?: boolean }>(api, 'GET', '/api/market/trades', minh.token)).coinsAllowed === false ? 0 : 20;
+  const note = tradeCoins ? 'Đổi bộ ghim + 20 xu lấy bìa hồ sơ của bạn nhé?' : 'Đổi bộ ghim lấy bìa hồ sơ của bạn nhé?';
   await seller.locator('#mk-tab-trade').click();
   await seller.locator('#mk-to').fill(`Vy ${run}`);
   await seller.locator('#mk-to-results').getByRole('button', { name: new RegExp(`Thám tử Vy ${run}`) }).click();
@@ -88,8 +90,9 @@ test('two detectives: list → buy with the 5% fee, then an accepted trade offer
   await seller.getByRole('button', { name: 'Thêm vật phẩm muốn nhận' }).click();
   await seller.locator('#mk-picker').getByRole('button', { name: /Bìa hồ sơ giấy kraft/ }).click();
   await seller.locator('#mk-picker').getByRole('button', { name: 'Xong' }).click();
-  await seller.locator('#mk-give-coins').fill('20');
-  await seller.locator('#mk-note').fill('Đổi bộ ghim + 20 xu lấy bìa hồ sơ của bạn nhé?');
+  if (tradeCoins) await seller.locator('#mk-give-coins').fill(String(tradeCoins));
+  else await expect(seller.locator('#mk-give-coins')).toBeHidden();
+  await seller.locator('#mk-note').fill(note);
   await shot(seller, testInfo, '04-offer-draft');
   await seller.getByRole('button', { name: 'GỬI ĐỀ NGHỊ' }).click();
   await expect(seller.locator('#toast-root')).toContainText(`Đã gửi đề nghị cho Thám tử Vy ${run}.`);
@@ -99,20 +102,20 @@ test('two detectives: list → buy with the 5% fee, then an accepted trade offer
   await buyer.locator('#mk-tab-trade').click();
   const card = buyer.locator('.bpa-mk-offer').filter({ hasText: `Thám tử Minh ${run}` });
   await expect(card).toContainText('muốn đổi với bạn');
-  await expect(card).toContainText('+ 20 xu');
-  await expect(card).toContainText('Đổi bộ ghim + 20 xu lấy bìa hồ sơ của bạn nhé?');
+  if (tradeCoins) await expect(card).toContainText('+ 20 xu');
+  await expect(card).toContainText(note);
   await shot(buyer, testInfo, '05-buyer-inbox');
   await card.getByRole('button', { name: 'CHẤP NHẬN' }).click();
   await expect(buyer.locator('#toast-root')).toContainText('Giao dịch hoàn tất');
   await expect(buyer.locator('#mk-offers')).toContainText('Đã chấp nhận');
-  await expect(buyer.locator('[data-mk-balance]')).toHaveText(fmt(500 - price + 20));
+  await expect(buyer.locator('[data-mk-balance]')).toHaveText(fmt(500 - price + tradeCoins));
 
   const minhItems = (await call<{ items: InventoryItem[] }>(api, 'GET', '/api/market/inventory', minh.token)).items.map((item) => item.def.id).sort();
   const vyItems = (await call<{ items: InventoryItem[] }>(api, 'GET', '/api/market/inventory', vy.token)).items.map((item) => item.def.id).sort();
   expect(minhItems).toEqual(['folder_kraft', 'folder_kraft']);
   expect(vyItems).toEqual(['mag_brass', 'mag_brass', 'pins_iron', 'pins_iron']);
-  expect((await call<Wallet>(api, 'GET', '/api/market/me', minh.token)).balance).toBe(500 + price - fee(price) - 20);
-  expect((await call<Wallet>(api, 'GET', '/api/market/me', vy.token)).balance).toBe(500 - price + 20);
+  expect((await call<Wallet>(api, 'GET', '/api/market/me', minh.token)).balance).toBe(500 + price - fee(price) - tradeCoins);
+  expect((await call<Wallet>(api, 'GET', '/api/market/me', vy.token)).balance).toBe(500 - price + tradeCoins);
 
   await seller.reload();
   await expect(seller.locator('#mk-offers')).toContainText('Đã chấp nhận');

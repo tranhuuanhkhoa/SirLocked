@@ -393,6 +393,32 @@ public sealed class MongoChestTests
     }
 
     [Fact]
+    public async Task WithChestSalesOff_TheShopSellsKeysOnly_AndChestsFromElsewhereStillOpen()
+    {
+        if (!Enabled) return;
+        await using var env = await ChestEnv.CreateAsync(chestSettings: new ChestSettings { SellChests = false });
+        var user = await env.AddUserAsync("Thám tử");
+        var price = new ChestSettings().PriceOf(Seal);
+
+        Assert.Equal(ChestErrors.NotForSale, Code(await Throws(() => env.Chests.BuyChestAsync(user, Seal, NewKey()))));
+        var list = await env.Chests.ListAsync(user.Id);
+        Assert.False(list.ChestsForSale);
+        Assert.Equal(0, list.Chests.Single(c => c.Id == Seal).ChestCount);
+        Assert.Equal(MarketRules.StarterCoins, list.Wallet.Balance);
+
+        var key = await env.Chests.BuyKeyAsync(user, Seal, NewKey());
+        Assert.Equal(MarketRules.StarterCoins - price.Key, key.Wallet.Balance);
+        Assert.Equal(1, key.KeyCount);
+
+        // A chest granted as a reward (the weekly challenge) opens with the bought key.
+        await env.GrantAsync(user.Id, Seal, 1, 0);
+        var opened = await env.Chests.OpenAsync(user, Seal, NewKey());
+        Assert.Equal(0, opened.ChestCount);
+        Assert.Equal(0, opened.KeyCount);
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
     public async Task BuyKey_WithoutEnoughCoins_FailsWithFunds_AndChangesNothing()
     {
         if (!Enabled) return;
@@ -660,7 +686,7 @@ public sealed class MongoChestTests
 
         var list = await env.Chests.ListAsync(user.Id);
 
-        Assert.Equal(3, list.Chests.Count);
+        Assert.Equal(ChestCatalog.Chests.Count + SkinCatalog.Chests.Count, list.Chests.Count);
         var seal = list.Chests.Single(c => c.Id == Seal);
         Assert.Equal("Hòm Niêm Phong", seal.Name);
         Assert.Equal(new ChestSettings().PriceOf(Seal).Key, seal.KeyPrice);
@@ -724,14 +750,14 @@ public sealed class MongoChestTests
         private readonly MongoClient _client;
         private readonly string _database;
 
-        private ChestEnv(MongoDbSettings settings, IChestRandom random)
+        private ChestEnv(MongoDbSettings settings, IChestRandom random, ChestSettings chestSettings)
         {
             _database = settings.DatabaseName;
             _client = new MongoClient(settings.ConnectionString);
             Db = new MongoDbContext(Options.Create(settings));
             Store = new MarketStore(Db);
             Market = new MarketService(Store, NullLogger<MarketService>.Instance);
-            Chests = new ChestService(Store, Market, random, Options.Create(new ChestSettings()), NullLogger<ChestService>.Instance);
+            Chests = new ChestService(Store, Market, random, Options.Create(chestSettings), NullLogger<ChestService>.Instance);
         }
 
         public MongoDbContext Db { get; }
@@ -739,7 +765,7 @@ public sealed class MongoChestTests
         public MarketService Market { get; }
         public ChestService Chests { get; }
 
-        public static async Task<ChestEnv> CreateAsync(IChestRandom? random = null)
+        public static async Task<ChestEnv> CreateAsync(IChestRandom? random = null, ChestSettings? chestSettings = null)
         {
             var settings = new MongoDbSettings
             {
@@ -750,7 +776,7 @@ public sealed class MongoChestTests
                 || !new MongoUrl(settings.ConnectionString).Servers.All(server =>
                     server.Host is "127.0.0.1" or "localhost" or "::1" or "[::1]"))
                 throw new InvalidOperationException("Chest integration tests need a loopback MongoDB and a temporary database.");
-            var env = new ChestEnv(settings, random ?? new ScriptedRandom());
+            var env = new ChestEnv(settings, random ?? new ScriptedRandom(), chestSettings ?? new ChestSettings());
             await env.Db.PingAsync();
             await env.Store.EnsureIndexesAsync();
             return env;

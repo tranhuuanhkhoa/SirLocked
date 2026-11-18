@@ -79,6 +79,7 @@ builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
 builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection("CaseCatalog"));
 builder.Services.AddSingleton<CaseCatalogPolicy>();
+builder.Services.Configure<WeeklyChallengeSettings>(builder.Configuration.GetSection("WeeklyChallenge"));
 builder.Services.Configure<CutsceneSettings>(builder.Configuration.GetSection("Cutscene"));
 builder.Services.AddScoped<ICutsceneStore, MongoCutsceneStore>();
 builder.Services.AddScoped<CutsceneScriptGenerator>();
@@ -87,6 +88,7 @@ builder.Services.AddHostedService<CutsceneSeedWorker>();
 builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
 builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
+builder.Services.Configure<MarketSettings>(builder.Configuration.GetSection("Market"));
 builder.Services.AddOptions<ChestSettings>()
     .Bind(builder.Configuration.GetSection("Chests"))
     .Validate(ChestSettings.IsValid, "Chests:Prices must price every chest and keep its expected value below the cost of opening.")
@@ -242,6 +244,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Weekly.WeeklyChallengeWorker>(); // tự bốc vụ Thử thách tuần mỗi 5 phút
 builder.Services.AddCatalog(); // Danh mục vật phẩm, hòm, phần thưởng trong MongoDB (ICatalogProvider)
 builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
 builder.Services.AddAdminFoundation(); // Nhật ký admin, tải ảnh admin

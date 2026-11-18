@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Weekly;
 
 namespace SirLocked.Api.Services.Admin;
 
@@ -80,6 +81,8 @@ public static class AdminChestsRules
         Prices = new CatalogChestPrices { Chest = chest.Prices.Chest, Key = chest.Prices.Key },
         DropWeights = new Dictionary<string, int>(chest.DropWeights, StringComparer.Ordinal),
         Pool = new List<string>(chest.Pool),
+        // Copied as stored: null (the default for its id) stays null, an explicit 0 stays 0.
+        ChallengeWeight = chest.ChallengeWeight,
         Active = chest.Active,
         SortOrder = chest.SortOrder,
         Version = chest.Version,
@@ -140,7 +143,8 @@ public static class AdminChestsRules
         var imageUrl = item.Visual.ImageUrl;
         if (!string.IsNullOrEmpty(iconKey) && !IconKey.IsMatch(iconKey))
             violations.Add(new CatalogRuleViolation(ItemIconInvalid, $"Tên sprite \"{iconKey}\" không hợp lệ."));
-        if (!string.IsNullOrEmpty(imageUrl) && !IsHttpsUrl(imageUrl))
+        // An outfit's icon ships with the game (its sprite sheets do too), so it may point under /assets/.
+        if (!string.IsNullOrEmpty(imageUrl) && !IsHttpsUrl(imageUrl) && !(SkinCatalog.IsSkin(item.Category) && IsSiteAsset(imageUrl)))
             violations.Add(new CatalogRuleViolation(ItemImageInvalid, "Ảnh phải là địa chỉ https do trang tải ảnh trả về."));
         // Old gear is drawn by its category; a curio has no such drawing.
         if (item.Category == MarketCategories.Curio && string.IsNullOrEmpty(iconKey) && string.IsNullOrEmpty(imageUrl))
@@ -158,6 +162,12 @@ public static class AdminChestsRules
 
     private static bool IsHttpsUrl(string value) =>
         Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
+
+    /// <summary>A picture shipped with the site under /assets/ (an outfit's icon), never one that climbs out of it.</summary>
+    public static bool IsSiteAsset(string value) =>
+        SiteAsset.IsMatch(value) && !value.Contains("..", StringComparison.Ordinal);
+
+    private static readonly Regex SiteAsset = new(@"^/assets/[A-Za-z0-9_./-]+\.(png|webp)$", RegexOptions.Compiled);
 
     private static bool IsColour(string? value)
     {
@@ -221,6 +231,8 @@ public static class AdminChestsRules
         Compare("keyNameEn", before.KeyNameEn, after.KeyNameEn);
         Compare("prices.chest", Number(before.Prices.Chest), Number(after.Prices.Chest));
         Compare("prices.key", Number(before.Prices.Key), Number(after.Prices.Key));
+        // The weight in force, so "none stored" and the spelled-out default are the same thing.
+        Compare("challengeWeight", Number(WeeklyDropRules.EffectiveWeight(before)), Number(WeeklyDropRules.EffectiveWeight(after)));
         Compare("active", Flag(before.Active), Flag(after.Active));
         Compare("sortOrder", Number(before.SortOrder), Number(after.SortOrder));
         Compare("look.template", before.Look.Template, after.Look.Template);

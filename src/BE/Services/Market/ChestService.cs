@@ -39,6 +39,7 @@ public sealed class ChestService
     private readonly IChestRandom _random;
     private readonly ICatalogProvider _catalog;
     private readonly ILogger<ChestService> _logger;
+    private readonly bool _sellChests;
 
     public ChestService(
         MarketStore store, MarketService market, IChestRandom random, IOptions<ChestSettings> settings, ILogger<ChestService> logger,
@@ -50,6 +51,7 @@ public sealed class ChestService
         // Prices come from the catalog; the settings only price the seed.
         _catalog = catalog ?? new FixedCatalogProvider(settings.Value);
         _logger = logger;
+        _sellChests = settings.Value.SellChests;
     }
 
     private DateTime Now => _store.Now;
@@ -96,7 +98,7 @@ public sealed class ChestService
             .Select(Dto).ToList();
         var odds = (catalog.ActiveChests.FirstOrDefault()?.DropRates ?? Array.Empty<ChestDropRate>())
             .Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList();
-        return new ChestListDto(catalog.ActiveChests.Select(Dto).ToList(), odds, offSale, await _market.GetWalletAsync(userId, ct));
+        return new ChestListDto(catalog.ActiveChests.Select(Dto).ToList(), odds, offSale, await _market.GetWalletAsync(userId, ct), _sellChests);
     }
 
     /// <summary>A chest as players see it, with whatever counts the caller says they hold.</summary>
@@ -311,18 +313,19 @@ public sealed class ChestService
         CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default, long? expectedPrice = null)
     {
         var chest = RequireChest(chestId);
-        return BuyAsync(user, chest, chest.KeyDefId, chest.Prices.Key, expectedPrice, idempotencyKey, ct);
+        return BuyAsync(user, chest, chest.KeyDefId, chest.Prices.Key, expectedPrice, idempotencyKey, forSale: chest.Active, ct);
     }
 
+    /// <summary>Refused for a new purchase while <see cref="ChestSettings.SellChests"/> is off: chests then come from rewards.</summary>
     public Task<ChestPurchaseResultDto> BuyChestAsync(
         CurrentUser user, string chestId, string? idempotencyKey, CancellationToken ct = default, long? expectedPrice = null)
     {
         var chest = RequireChest(chestId);
-        return BuyAsync(user, chest, chest.Id, chest.Prices.Chest, expectedPrice, idempotencyKey, ct);
+        return BuyAsync(user, chest, chest.Id, chest.Prices.Chest, expectedPrice, idempotencyKey, forSale: chest.Active && _sellChests, ct);
     }
 
     private async Task<ChestPurchaseResultDto> BuyAsync(
-        CurrentUser user, ChestDef chest, string defId, long price, long? expectedPrice, string? idempotencyKey, CancellationToken ct)
+        CurrentUser user, ChestDef chest, string defId, long price, long? expectedPrice, string? idempotencyKey, bool forSale, CancellationToken ct)
     {
         var id = OperationId(user.Id, idempotencyKey);
         await _market.RequireVerifiedAsync(user.Id, ct);
@@ -332,7 +335,7 @@ public sealed class ChestService
         if (purchase is null)
         {
             // Only a new purchase: retrying one that already went through still answers with its result.
-            if (!chest.Active) throw ErrorFor(ChestErrors.NotForSale);
+            if (!forSale) throw ErrorFor(ChestErrors.NotForSale);
             if (expectedPrice is not null && expectedPrice != price) throw ErrorFor(ChestErrors.PriceChanged);
             // A price lost to a bad edit must not become a free chest.
             if (MarketRules.ValidatePrice(price) is not null) throw ErrorFor(null);

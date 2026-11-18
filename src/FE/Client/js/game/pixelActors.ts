@@ -11,10 +11,18 @@ export type PixelActorSheet = {
   cell: number;
   pivot: { x: number; y: number };
   standing: Record<Facing, { texture: string; frame: number }>;
-  clips: Partial<Record<'idle' | 'walking' | 'draw-pipe' | 'smoking', Partial<Record<Cardinal, PixelClip>>>>;
-  /** Idle time before the optional draw-pipe -> smoking routine starts (Sherlock only). */
+  clips: Partial<Record<PixelAction, Partial<Record<Cardinal, PixelClip>>>>;
+  /** Idle time before the optional draw-pipe -> smoking routine (normal Sherlock) or the signature move (a skin) starts. */
   idleDelayMs?: number;
+  /** Drawn by the game while the signature move plays (skins only, see playerSkins.ts). */
+  signatureEffect?: 'footprints' | 'herbal-smoke';
+  /** Where the signature effect starts, in native pixels from the feet. */
+  effectAnchors?: Partial<Record<Cardinal, { x: number; y: number }>>;
+  /** A lit lantern: the game adds its warm light at this point, in native pixels from the feet. */
+  lantern?: Partial<Record<Cardinal, { x: number; y: number }>>;
 };
+
+export type PixelAction = 'idle' | 'walking' | 'draw-pipe' | 'smoking' | 'signature';
 
 export const FACINGS: Facing[] = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'];
 
@@ -75,20 +83,35 @@ export function isFacing(value: unknown): value is Facing {
   return typeof value === 'string' && (FACINGS as string[]).includes(value);
 }
 
-export type PixelMotionState = { action: 'idle' | 'walking' | 'draw-pipe' | 'smoking'; facing: Facing; since: number; idleMs: number };
+export type PixelMotionState = { action: PixelAction; facing: Facing; since: number; idleMs: number };
 
-/** Sherlock's routine (idle 15 s -> draw pipe -> smoke) from the SceneTest prototype, frame-rate independent. */
+const clipDuration = (clip: PixelClip) => clip.frames.length * 1000 / clip.fps;
+
+/**
+ * Sherlock's routine (idle 15 s -> draw pipe -> smoke) from the SceneTest prototype, frame-rate independent.
+ * A skin plays its signature move instead, once per idle wait, and goes back to idle after it.
+ */
 export function advanceMotion(state: PixelMotionState, sheet: PixelActorSheet, now: number, deltaMs: number, moving: boolean, facing: Facing): PixelMotionState {
   if (moving) return state.action === 'walking' && state.facing === facing ? state : { action: 'walking', facing, since: now, idleMs: 0 };
-  if (state.action === 'walking' || state.facing !== facing) return { action: 'idle', facing, since: now, idleMs: 0 };
+  // Turning, stopping, or a sheet that cannot play this action (the look changed with the time of day): start idling.
+  if (state.action === 'walking' || state.facing !== facing || (state.action !== 'idle' && !sheet.clips[state.action])) {
+    return { action: 'idle', facing, since: now, idleMs: 0 };
+  }
   if (state.action === 'idle') {
     const idleMs = state.idleMs + Math.max(0, deltaMs);
-    if (sheet.idleDelayMs && sheet.clips['draw-pipe'] && idleMs >= sheet.idleDelayMs) return { action: 'draw-pipe', facing, since: now, idleMs };
+    if (sheet.idleDelayMs && idleMs >= sheet.idleDelayMs) {
+      if (sheet.clips.signature) return { action: 'signature', facing, since: now, idleMs };
+      if (sheet.clips['draw-pipe']) return { action: 'draw-pipe', facing, since: now, idleMs };
+    }
     return { ...state, idleMs };
+  }
+  if (state.action === 'signature') {
+    const clip = sheet.clips.signature?.[clipDirection(facing)];
+    if (!clip || now - state.since >= clipDuration(clip)) return { action: 'idle', facing, since: now, idleMs: 0 };
   }
   if (state.action === 'draw-pipe') {
     const clip = sheet.clips['draw-pipe']?.[clipDirection(facing)];
-    if (clip && now - state.since >= clip.frames.length * 1000 / clip.fps) return { action: 'smoking', facing, since: now, idleMs: state.idleMs };
+    if (clip && now - state.since >= clipDuration(clip)) return { action: 'smoking', facing, since: now, idleMs: state.idleMs };
   }
   return state;
 }

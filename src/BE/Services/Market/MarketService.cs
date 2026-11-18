@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models;
@@ -26,12 +28,15 @@ public sealed partial class MarketService
     private readonly MarketStore _store;
     private readonly ILogger<MarketService> _logger;
     private readonly ICatalogProvider _catalog;
+    /// <summary>False: trades carry items only (<see cref="MarketSettings.TradeCoins"/>).</summary>
+    private readonly bool _tradeCoins;
 
-    public MarketService(MarketStore store, ILogger<MarketService> logger, ICatalogProvider? catalog = null)
+    public MarketService(MarketStore store, ILogger<MarketService> logger, ICatalogProvider? catalog = null, IOptions<MarketSettings>? settings = null)
     {
         _store = store;
         _logger = logger;
         _catalog = catalog ?? FixedCatalogProvider.Default;
+        _tradeCoins = settings?.Value.TradeCoins ?? true;
     }
 
     private DateTime Now => _store.Now;
@@ -48,6 +53,7 @@ public sealed partial class MarketService
         MarketErrors.ListingUnavailable => Error(409, code, "This listing is no longer available."),
         MarketErrors.OrderUnavailable => Error(409, code, "This buy order is no longer open."),
         MarketErrors.TradeClosed => Error(409, code, "This trade offer is no longer open."),
+        MarketErrors.TradeCoinsNotAllowed => Error(409, code, "Trades carry items only; coins cannot be traded."),
         MarketErrors.TradeItemUnavailable => Error(409, code, "An item in this offer is no longer available."),
         MarketErrors.TradeSenderFunds => Error(409, code, "The sender no longer has the offered coins."),
         MarketErrors.TradeSenderInventory => Error(409, code, "The sender's inventory is full."),

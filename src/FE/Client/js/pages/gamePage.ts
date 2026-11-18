@@ -27,6 +27,9 @@ import { createAudioController, renderAudioControls, bindAudioControls, type Sce
 import { createMusicCredits } from '../game/musicCredits.js';
 import { WeatherLayer } from '../game/weatherLayer.js';
 import { timeOfDayTint } from '../game/atmosphere/weatherCore.js';
+import { loadWornSkins, resolvePlayerSheet, skinFor, skinTextures } from '../game/playerSkins.js';
+import { lanternLight, placeLanternLight, spawnFootprints, spawnHerbalSmoke } from '../game/skinEffects.js';
+import { marketApi } from '../api/marketApi.js';
 import { blipDuration, type CharacterVoice } from '../game/atmosphere/blipCore.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
@@ -564,6 +567,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private previousSceneId: string | null = null;
   private cameraNeedsSnap = true;
   private pixelMotion = new Map<string, PixelMotionState>();
+  /** Outfit def ids each player wears (GET /api/market/equipped), filled in after the game starts. */
+  private wornSkins = new Map<string, string[]>();
   private nearestTransition: RuntimeTransition | null = null;
   private approachCache = new Map<string, NavigationPoint | null>();
   /** Screen position of the pixel-scene "continue" shortcut (null when hidden); read by end-to-end tests. */
@@ -579,6 +584,53 @@ class SirLockedPhaserScene extends Phaser.Scene {
       reducedMotion: () => this.reducedMotion.matches,
       onBolt: (delay) => callbacks.onLightning?.(delay),
     });
+  }
+
+  /** The outfits the players wear: their sheets load in the background and replace the normal look once ready. */
+  setWornSkins(worn: ReadonlyMap<string, readonly string[]>) {
+    for (const [userId, defIds] of worn) this.wornSkins.set(userId, [...defIds]);
+    if (!this.ready) return;
+    for (const [userId, defIds] of this.wornSkins) {
+      const role = this.roleOfPlayer(userId);
+      const skin = skinFor(role, defIds);
+      if (skin) for (const texture of skinTextures(skin)) this.queueTexture(texture.key, texture.url);
+    }
+    this.flushTextures();
+  }
+
+  /** The look a player has right now: their outfit for this scene's time of day once loaded, else the normal one. */
+  private pixelSheetFor(userId: string, role: string | null | undefined) {
+    return resolvePlayerSheet(role, this.wornSkins.get(userId), this.sceneRuntime()?.timeOfDay, (key) => this.textures.exists(key));
+  }
+
+  private roleOfPlayer(userId: string) {
+    return this.state?.players.find((player) => player.userId === userId)?.role ?? null;
+  }
+
+  /** Which look each pixel player is drawn with right now, for tests and QA tools. */
+  playerLooks() {
+    return [this.localPlayer, ...this.remotePlayers.values()]
+      .filter((container): container is Phaser.GameObjects.Container => Boolean(container))
+      .map((container) => {
+        const userId = container.getData('userId') as string;
+        const body = container.getData('body') as Phaser.GameObjects.Image | undefined;
+        const sheet = container.getData('pixelSheet') as typeof PIXEL_PLAYER_SHEETS[string] | undefined;
+        const light = container.getData('lanternLight') as Phaser.GameObjects.Image | null | undefined;
+        return {
+          userId,
+          role: container.getData('role') as string | null,
+          texture: body?.texture?.key ?? null,
+          lantern: Boolean(light?.active),
+          action: this.pixelMotion.get(userId)?.action ?? null,
+          signatureEffect: sheet?.signatureEffect ?? null,
+        };
+      });
+  }
+  /** Test hook: every idle player starts their signature move (or Sherlock's pipe) on the next frame. */
+  idleLongerSoon() {
+    for (const [userId, motion] of this.pixelMotion) {
+      if (motion.action === 'idle') this.pixelMotion.set(userId, { ...motion, idleMs: 60_000 });
+    }
   }
 
   /** Weather layer state (type, particles, quality, flashes) for tests and QA tools. */
@@ -612,6 +664,8 @@ class SirLockedPhaserScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.definePlayerFrames();
+    // Outfits the page learned about before the scene was up.
+    if (this.wornSkins.size > 0) this.setWornSkins(new Map());
     this.debugLayout = window.location.href.includes('debugLayout=1');
     this.keys = (this.input.keyboard?.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,E,F2') ?? {}) as Record<string, Phaser.Input.Keyboard.Key>;
     // Not captured: Space and Shift keep working on focused buttons; the camera only reads them.
@@ -1436,7 +1490,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
   // pose.x/pose.y is the character's feet position in scene runtime coordinates.
   private createPlayer(pose: PlayerPose, isLocal: boolean) {
     const pixel = this.pixelRender();
-    const pixelSheet = pixel && pose.role ? PIXEL_PLAYER_SHEETS[pose.role] : undefined;
+    const pixelSheet = pixel && pose.role ? this.pixelSheetFor(pose.userId, pose.role) : undefined;
     if (pixel && pixelSheet && pixelSheet.textures.every((texture) => this.textures.exists(texture.key))) {
       return this.createPixelPlayer(pose, isLocal, pixel, pixelSheet);
     }
@@ -2701,6 +2755,7 @@ class SirLockedPhaserScene extends Phaser.Scene {
     container.add([shadow, body, name]);
     container.setData('body', body);
     container.setData('pixelSheet', sheet);
+    container.setData('role', pose.role ?? null);
     container.setData('userId', pose.userId);
     container.setData('facing', pose.facing ?? 'south');
     container.setData('moving', pose.moving);
@@ -2710,16 +2765,24 @@ class SirLockedPhaserScene extends Phaser.Scene {
   private animatePixelPlayers(time: number) {
     const apply = (container: Phaser.GameObjects.Container | null) => {
       if (!container) return;
-      const sheet = container.getData('pixelSheet') as typeof PIXEL_PLAYER_SHEETS[string] | undefined;
+      let sheet = container.getData('pixelSheet') as typeof PIXEL_PLAYER_SHEETS[string] | undefined;
       const body = container.getData('body');
       if (!sheet || !(body instanceof Phaser.GameObjects.Image)) return;
       const userId = container.getData('userId') as string;
+      // An outfit finished loading, or the scene's time of day swapped the lantern in or out.
+      const wanted = this.pixelSheetFor(userId, container.getData('role') as string | null);
+      if (wanted && wanted !== sheet) {
+        sheet = wanted;
+        container.setData('pixelSheet', sheet);
+        body.setOrigin(sheet.pivot.x / sheet.cell, sheet.pivot.y / sheet.cell);
+      }
       const facing = (container.getData('facing') as Facing) ?? 'south';
       const previous = this.pixelMotion.get(userId) ?? { action: 'idle', facing, since: time, idleMs: 0 } as PixelMotionState;
       const lastTick = (container.getData('lastTick') as number | undefined) ?? time;
       container.setData('lastTick', time);
       const motion = advanceMotion(previous, sheet, time, time - lastTick, Boolean(container.getData('moving')), facing);
       this.pixelMotion.set(userId, motion);
+      this.drawSkinExtras(container, body, sheet, previous, motion, time);
       const { texture, frame } = motionFrame(sheet, motion, time, this.reducedMotion.matches);
       const columns = sheet.textures.find((candidate) => candidate.key === texture)?.columns;
       if (!columns || !this.textures.exists(texture)) return;
@@ -2729,6 +2792,28 @@ class SirLockedPhaserScene extends Phaser.Scene {
     };
     apply(this.localPlayer);
     for (const remote of this.remotePlayers.values()) apply(remote);
+  }
+
+  /** The lantern light of a night outfit, and the effect of a signature move as it starts. */
+  private drawSkinExtras(container: Phaser.GameObjects.Container, body: Phaser.GameObjects.Image,
+    sheet: typeof PIXEL_PLAYER_SHEETS[string], previous: PixelMotionState, motion: PixelMotionState, time: number) {
+    const scale = Math.abs(body.scaleX);
+    let light = container.getData('lanternLight') as Phaser.GameObjects.Image | null | undefined;
+    if (sheet.lantern) {
+      if (!light || !light.active) {
+        light = lanternLight(this, scale);
+        container.addAt(light, container.getIndex(body) + 1);
+        container.setData('lanternLight', light);
+      }
+      placeLanternLight(light, sheet.lantern, motion.facing, scale, time, this.reducedMotion.matches);
+    } else if (light) {
+      light.destroy();
+      container.setData('lanternLight', null);
+    }
+    if (motion.action !== 'signature' || previous.action === 'signature' || this.reducedMotion.matches) return;
+    const feet = { x: container.x, y: container.y };
+    if (sheet.signatureEffect === 'footprints') spawnFootprints(this, feet, scale, motion.facing, container.depth - 1);
+    else if (sheet.signatureEffect === 'herbal-smoke') spawnHerbalSmoke(this, feet, scale, motion.facing, sheet.effectAnchors, container.depth + 1);
   }
 
   private queueTexture(key: string, url: string) {
@@ -2884,6 +2969,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
   let stopped = false;
   let phaserGame: Phaser.Game | null = null;
   let phaserScene: SirLockedPhaserScene | null = null;
+  const wornSkins = new Map<string, string[]>();
+  const skinsAskedFor = new Set<string>();
   let sceneInputBlockedUntil = 0;
   const playerPoses = new Map<string, PlayerPose>();
   let poseErrorShown = false;
@@ -3865,6 +3952,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       appliedStateVersion = state.version;
       appliedSceneId = state.currentSceneId;
       appliedInventoryItemId = selectedInventoryItemId;
+      refreshWornSkins();
     }
     syncPhaserInputState();
     bind();
@@ -3887,6 +3975,17 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     caseWall.afterRender(app.querySelector<HTMLElement>('.ocw-wall'));
     // The item card takes focus on its Use button; closing it returns focus to the item's slot.
     if (focusAfterDraw) app.querySelector<HTMLElement>(focusAfterDraw)?.focus({ preventScroll: true });
+  }
+
+  /** Asks once per player what outfit they wear; a player who joins later is asked when they appear. */
+  function refreshWornSkins() {
+    const missing = (state?.players ?? []).map((player) => player.userId).filter((userId) => userId && !skinsAskedFor.has(userId));
+    if (missing.length === 0) return;
+    for (const userId of missing) skinsAskedFor.add(userId);
+    void loadWornSkins(missing, (userId) => marketApi.equipped(userId)).then((worn) => {
+      for (const [userId, defIds] of worn) wornSkins.set(userId, defIds);
+      phaserScene?.setWornSkins(wornSkins);
+    });
   }
 
   function mountPhaser() {
@@ -3981,6 +4080,8 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     appliedStateVersion = state.version;
     appliedSceneId = state.currentSceneId;
     appliedInventoryItemId = selectedInventoryItemId;
+    phaserScene.setWornSkins(wornSkins);
+    refreshWornSkins();
     syncPhaserInputState();
     // Debug handle for QA tooling (canvas snapshots, state inspection).
     (window as unknown as Record<string, unknown>).__sirlockedGame = phaserGame;

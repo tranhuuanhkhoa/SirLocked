@@ -24,7 +24,7 @@ const TABS = [
 
 const FIELD_TEXT = {
   name: 'Tên', nameEn: 'Tên (Anh)', subtitle: 'Phụ đề', subtitleEn: 'Phụ đề (Anh)', keyName: 'Tên chìa', keyNameEn: 'Tên chìa (Anh)',
-  'prices.chest': 'Giá hòm', 'prices.key': 'Giá chìa', active: 'Đang bán', sortOrder: 'Thứ tự',
+  'prices.chest': 'Giá hòm', 'prices.key': 'Giá chìa', active: 'Đang bán', sortOrder: 'Thứ tự', challengeWeight: 'Trọng số Thử thách tuần',
   'look.template': 'Kiểu hòm', 'look.light': 'Màu ánh sáng', 'look.hi': 'Màu ánh sáng phụ', 'look.core': 'Màu lõi sáng',
 };
 
@@ -140,6 +140,11 @@ export async function renderChestDetail(app, id, { signal } = {}) {
             ${text('chestPrice', 'Giá hòm (xu)', draft.chestPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
             ${text('keyPrice', 'Giá chìa (xu)', draft.keyPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
             ${text('sortOrder', 'Thứ tự hiển thị', draft.sortOrder, 'type="number" min="0" step="1" inputmode="numeric"')}
+            <div class="ac-field">
+              <label for="ac-challenge-weight">Trọng số rớt ở Thử thách tuần</label>
+              <input class="field-input" id="ac-challenge-weight" name="challengeWeight" value="${escapeHtml(draft.challengeWeight)}" type="number" min="0" max="10000" step="1" inputmode="numeric" aria-describedby="ac-challenge-hint">
+              <span class="ac-field-hint" id="ac-challenge-hint" data-ac-challenge-hint>Hiện chiếm ${percent(state.chest.challengePercent)} số hòm rớt ở Thử thách tuần. 0 = không rớt.</span>
+            </div>
           </div>
           <label class="ac-switch-row">
             <span class="ac-switch-text"><strong>Đang bán</strong><span>Tắt thì ẩn khỏi Kho Rương, hòm và chìa đã có vẫn mở được.</span></span>
@@ -455,7 +460,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
                 ${version.current ? '' : '<button type="button" class="btn btn-ghost btn-sm" data-ac-restore>Khôi phục phiên bản này</button>'}
               </header>
               ${version.reason ? `<p class="ac-version-reason">${escapeHtml(version.reason)}</p>` : ''}
-              <p class="ac-version-sum">Hòm ${xu(version.chestPrice)} · chìa ${xu(version.keyPrice)} · ${number(version.poolCount)} món · ${RARITIES.map((rarity) => `${RARITY_TEXT[rarity]} ${percent((version.dropWeights?.[rarity] ?? 0) / 100)}`).join(' · ')}</p>
+              <p class="ac-version-sum">Hòm ${xu(version.chestPrice)} · chìa ${xu(version.keyPrice)} · ${number(version.poolCount)} món · ${RARITIES.map((rarity) => `${RARITY_TEXT[rarity]} ${percent((version.dropWeights?.[rarity] ?? 0) / 100)}`).join(' · ')} · thử thách ${version.challengeWeight}</p>
               ${version.diff?.isEmpty ? '' : diffHtml(version.diff ?? {}, nameOf)}
             </article>`).join('')}
         </div>
@@ -552,7 +557,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
       paintLook();
     } else if (name === 'active') {
       state.draft.active = input.checked;
-    } else if (name === 'chestPrice' || name === 'keyPrice' || name === 'sortOrder') {
+    } else if (name === 'chestPrice' || name === 'keyPrice' || name === 'sortOrder' || name === 'challengeWeight') {
       state.draft[name] = Number(input.value || 0);
     } else {
       state.draft[name] = input.value;

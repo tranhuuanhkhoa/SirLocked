@@ -48,7 +48,7 @@ const ok = (route: Route, data: unknown) => route.fulfill({ json: { success: tru
 const fail = (route: Route, status: number, code: string) =>
   route.fulfill({ status, json: { success: false, message: code, errors: { code, messageKey: `market.${code}` } } });
 
-async function prepare(page: Page, counts: Counts, odds = ODDS) {
+async function prepare(page: Page, counts: Counts, odds = ODDS, extra: Record<string, unknown> = {}) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => {
     localStorage.setItem('sirlocked.token', 'chest-test-token');
@@ -62,7 +62,7 @@ async function prepare(page: Page, counts: Counts, odds = ODDS) {
   // Only the API: a glob like **/api/** would also swallow the Vite modules under Client/js/api/.
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => ok(route, null));
   await page.route('**/api/market/me', (route) => ok(route, wallet(counts)));
-  await page.route('**/api/chests', (route) => { lists.count++; return ok(route, listBody(counts, odds)); });
+  await page.route('**/api/chests', (route) => { lists.count++; return ok(route, { ...listBody(counts, odds), ...extra }); });
   return lists;
 }
 
@@ -90,13 +90,13 @@ test('the nav link sits next to Chợ đồ and the page shows what the API send
   await expect(page.locator('#nav-root a[href="/kho-ruong"]')).toHaveAttribute('aria-current', 'page');
 
   await expect(page.locator('#qh-caseName')).toHaveText('Hòm Niêm Phong');
-  await expect(page.locator('#qh-nChest')).toHaveText('×5');
+  await expect(page.locator('#qh-nChest')).toHaveText('5');
   await expect(page.locator('#qh-nKey')).toHaveText('3');
   await expect(page.locator('#qh-nCoin')).toHaveText('900');
   await expect(page.locator('#qh-contents .qh-it')).toHaveCount(CONTENTS.length);
   await expect(page.locator('#qh-contents .qh-it').first()).toContainText('Đồng hồ 2:17');
 
-  await page.locator('#qh-oddsBtn').click();
+  // The design keeps the drop rates on the storage slip, always in view.
   await expect(page.locator('#qh-odds')).toContainText('50,50%');
   await expect(page.locator('#qh-odds')).toContainText('49,50%');
   await expect(page.locator('#qh-odds')).not.toContainText('79,92%');
@@ -121,7 +121,7 @@ test('one click opens one chest: the reel keeps spinning until the server answer
     await ok(route, openResult({ ...counts, chests: 1, keys: 1 }));
   });
   await page.goto('/kho-ruong');
-  await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
+  await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
 
   await page.locator('#qh-openBtn').dblclick();
   await expect(appMode(page)).toHaveAttribute('data-mode', 'spin');
@@ -129,7 +129,7 @@ test('one click opens one chest: the reel keeps spinning until the server answer
   await page.waitForTimeout(2500);
   await expect(appMode(page)).toHaveAttribute('data-mode', 'spin');
   await page.locator('#qh-skipBtn').click();
-  await page.locator('.qh-stage').click({ force: true });
+  await page.locator('#qh-reel').click({ force: true });
   await page.waitForTimeout(300);
   await expect(appMode(page)).toHaveAttribute('data-mode', 'spin');
   expect(bodies).toHaveLength(1);
@@ -141,10 +141,10 @@ test('one click opens one chest: the reel keeps spinning until the server answer
   await expect(page.locator('#qh-gotRar')).toHaveText('Bí ẩn');
   expect(bodies).toHaveLength(1);
 
-  await page.locator('#qh-keepBtn').click();
+  await page.locator('#qh-closeBtn').click();
   await expect(appMode(page)).toHaveAttribute('data-mode', 'idle');
   // The numbers come from the server's answer, nothing was counted locally.
-  await expect(page.locator('#qh-nChest')).toHaveText('×1');
+  await expect(page.locator('#qh-nChest')).toHaveText('1');
   await expect(page.locator('#qh-nKey')).toHaveText('1');
   expect(errors).toEqual([]);
 });
@@ -186,7 +186,7 @@ for (const [code, message] of [
       await fail(route, 409, code);
     });
     await page.goto('/kho-ruong');
-    await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
+    await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
     const before = lists.count;
 
     await page.locator('#qh-openBtn').click();
@@ -194,7 +194,7 @@ for (const [code, message] of [
     await expect(page.locator('#toast-root')).toContainText(message);
     await expect(appMode(page)).toHaveAttribute('data-mode', 'idle');
     await expect.poll(() => lists.count).toBeGreaterThan(before);
-    await expect(page.locator(code === 'KEY_NONE' ? '#qh-nKey' : '#qh-nChest')).toHaveText(code === 'KEY_NONE' ? '0' : '×0');
+    await expect(page.locator(code === 'KEY_NONE' ? '#qh-nKey' : '#qh-nChest')).toHaveText('0');
     expect(calls).toBe(1);
     expect(errors).toEqual([]);
   });
@@ -237,16 +237,16 @@ test('buying a key and a chest calls the API with a fresh key each time and show
 
   await expect(page.locator('#qh-openLbl')).toContainText('Mua hòm');
   await page.locator('#qh-openBtn').click();
-  await expect(page.locator('#qh-nChest')).toHaveText('×1');
+  await expect(page.locator('#qh-nChest')).toHaveText('1');
   await expect(page.locator('#qh-openLbl')).toContainText('Mua chìa');
   await page.waitForTimeout(450);
   await page.locator('#qh-openBtn').click();
   await expect(page.locator('#qh-nKey')).toHaveText('1');
-  await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
+  await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
   await page.locator('[data-qh-buy="key"]').click();
   await expect(page.locator('#qh-nKey')).toHaveText('2');
   await page.locator('[data-qh-buy="chest"]').click();
-  await expect(page.locator('#qh-nChest')).toHaveText('×2');
+  await expect(page.locator('#qh-nChest')).toHaveText('2');
   await expect(page.locator('#qh-nCoin')).toHaveText('400');
 
   expect(seen.map((entry) => entry.url)).toEqual(['buy', 'keys', 'keys', 'buy']);
@@ -289,9 +289,9 @@ test('swiping across the chest changes the chest type and never opens one', asyn
   let opens = 0;
   await page.route('**/api/chests/chest_np/open', async (route) => { opens++; await ok(route, openResult(counts)); });
   await page.goto('/kho-ruong');
-  await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
+  await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
 
-  const box = (await page.locator('.qh-spot').boundingBox())!;
+  const box = (await page.locator('#qh-podium').boundingBox())!;
   const y = box.y + box.height / 2;
   await page.mouse.move(box.x + box.width * 0.7, y);
   await page.mouse.down();
@@ -310,10 +310,11 @@ test('leaving the page stops the loop, the sound, the timers and the key handler
     const w = window as any;
     w.__draws = 0;
     w.__closedAudio = 0;
-    const fillRect = CanvasRenderingContext2D.prototype.fillRect;
-    CanvasRenderingContext2D.prototype.fillRect = function (...args: [number, number, number, number]) {
+    // The reel moves frame by frame: count the frames asked for.
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback: FrameRequestCallback) => {
       w.__draws++;
-      return fillRect.apply(this, args);
+      return raf(callback);
     };
     const close = AudioContext.prototype.close;
     AudioContext.prototype.close = function () {
@@ -353,6 +354,73 @@ test('leaving the page stops the loop, the sound, the timers and the key handler
   await page.keyboard.press('ArrowLeft');
   await expect(page).toHaveURL(/\/market$/);
   expect(errors).toEqual([]);
+});
+
+test('with chest sales off the shop sells keys only and says chests come from the weekly challenge', async ({ page }) => {
+  const counts = { chests: 0, keys: 0, balance: 5000 };
+  await prepare(page, counts, ODDS, { chestsForSale: false });
+  const errors = collectPageErrors(page);
+  const bought: string[] = [];
+  await page.route('**/api/chests/chest_np/buy', (route) => { bought.push('chest'); return fail(route, 409, 'CHEST_NOT_FOR_SALE'); });
+  await page.route('**/api/chests/chest_np/keys', async (route) => {
+    bought.push('key');
+    counts.keys++;
+    counts.balance -= 180;
+    await ok(route, { chestId: 'chest_np', itemId: 'k1', item: NOTEBOOK, chestCount: counts.chests, keyCount: counts.keys, wallet: wallet(counts) });
+  });
+  await page.goto('/kho-ruong');
+
+  await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
+  await expect(page.locator('#qh-openBtn')).toBeDisabled();
+  await expect(page.locator('#qh-meta')).toContainText('Thử thách tuần');
+  await expect(page.locator('[data-qh-buy="chest"]')).toBeHidden();
+  await expect(page.locator('.qh-slip')).toContainText('Thử thách tuần');
+  await expect(page.locator('.qh-slip')).not.toContainText('Giá hòm');
+  await expect(page.locator('.qh-dot').first()).toContainText('Chìa 180 xu');
+
+  await page.locator('#qh-chest').click();
+  await expect(page.locator('#toast-root')).toContainText('Hòm rơi từ Thử thách tuần');
+
+  await page.locator('[data-qh-buy="key"]').click();
+  await expect(page.locator('#qh-nKey')).toHaveText('1');
+  expect(bought).toEqual(['key']);
+  expect(errors).toEqual([]);
+});
+
+test('the preview of the opening effect spends nothing and says it is a preview', async ({ page }) => {
+  const counts = { chests: 0, keys: 0, balance: 500 };
+  await prepare(page, counts);
+  let opens = 0;
+  await page.route('**/api/chests/*/open', (route) => { opens++; return ok(route, openResult(counts)); });
+  await page.goto('/kho-ruong');
+
+  await page.locator('#qh-demoBtn').click();
+  await expect(appMode(page)).toHaveAttribute('data-revealed', '', { timeout: 15_000 });
+  await expect(page.locator('#qh-gotType')).toContainText('bản xem thử');
+  await expect(page.locator('#qh-invBtn')).toBeHidden();
+  await expect(page.locator('#qh-againBtn')).toHaveText('Xem thử lần nữa');
+  await page.keyboard.press('Escape');
+  await expect(appMode(page)).toHaveAttribute('data-mode', 'idle');
+  await expect(page.locator('#qh-nChest')).toHaveText('0');
+  expect(opens).toBe(0);
+});
+
+test('a wide screen shows the slip, the podium and the list side by side, as in the design', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepare(page, { chests: 1, keys: 1, balance: 500 });
+  await page.goto('/kho-ruong');
+  await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
+
+  const slip = (await page.locator('.qh-slip').boundingBox())!;
+  const podium = (await page.locator('#qh-podium').boundingBox())!;
+  const loot = (await page.locator('.qh-loot').boundingBox())!;
+  expect(slip.x + slip.width).toBeLessThan(podium.x);
+  expect(podium.x + podium.width).toBeLessThan(loot.x);
+  await expect(page.locator('#qh-chestImg')).toHaveJSProperty('complete', true);
+  expect(await page.locator('#qh-chestImg').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('#qh-contents .qh-tier')).toHaveCount(5);
+  await expect(page.locator('.qh-dot')).toHaveCount(3);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test('the market lists the new categories, the Mystery rarity and the pixel icons', async ({ page }) => {
@@ -411,7 +479,7 @@ test.describe('on a phone', () => {
     await prepare(page, counts);
     await page.route('**/api/chests/chest_np/open', (route) => ok(route, openResult({ ...counts, chests: 1, keys: 1 })));
     await page.goto('/kho-ruong');
-    await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
+    await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
 
     await expect(page.locator('#nav-root a[href="/kho-ruong"]')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -420,7 +488,7 @@ test.describe('on a phone', () => {
 
     await page.locator('#qh-openBtn').click();
     await expect(appMode(page)).toHaveAttribute('data-revealed', '', { timeout: 15_000 });
-    await expect(page.locator('#qh-keepBtn')).toBeInViewport({ ratio: 1 });
+    await expect(page.locator('#qh-closeBtn')).toBeInViewport({ ratio: 1 });
     await expect(page.locator('#qh-againBtn')).toBeInViewport({ ratio: 1 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });

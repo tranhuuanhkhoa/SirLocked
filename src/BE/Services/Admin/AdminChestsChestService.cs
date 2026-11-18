@@ -7,6 +7,7 @@ using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Models.Market;
 using SirLocked.Api.Services.Catalog;
 using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Weekly;
 
 namespace SirLocked.Api.Services.Admin;
 
@@ -51,19 +52,21 @@ public sealed class AdminChestsChestService
             .ToListAsync(ct);
         var opensById = opens.ToDictionary(open => open.ChestId, open => (long)open.Count, StringComparer.Ordinal);
 
+        var percents = WeeklyDropRules.Percents(chests);
         var rows = chests
             .OrderBy(chest => chest.SortOrder).ThenBy(chest => chest.Id, StringComparer.Ordinal)
             .Select(chest => new AdminChestRowDto(
                 chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.KeyName, chest.IconKey, chest.KeyIconKey,
                 LookOf(chest), chest.Prices.Chest, chest.Prices.Key, chest.Active, chest.SortOrder, chest.Version,
                 opensById.GetValueOrDefault(chest.Id), CatalogRules.ExpectedValue(chest, items),
-                chest.Prices.Chest + chest.Prices.Key, chest.Pool.Count))
+                chest.Prices.Chest + chest.Prices.Key, chest.Pool.Count,
+                WeeklyDropRules.EffectiveWeight(chest), percents[chest.Id]))
             .ToList();
         return new AdminChestListDto(rows, _provider.Current.Problems);
     }
 
     public async Task<AdminChestDetailDto> GetAsync(string id, CancellationToken ct = default) =>
-        ToDetail(await RequireAsync(id, ct), await ItemsAsync(ct));
+        await DetailAsync(await RequireAsync(id, ct), ct);
 
     public async Task<AdminChestCheckDto> CheckAsync(string id, AdminChestDraftRequest draft, CancellationToken ct = default)
     {
@@ -92,7 +95,7 @@ public sealed class AdminChestsChestService
             return new AdminChestVersionDto(
                 version.Version, version.Action, version.At, version.AdminName, version.Reason, version.Version == current.Version,
                 version.Snapshot.Prices.Chest, version.Snapshot.Prices.Key, version.Snapshot.DropWeights, version.Snapshot.Pool.Count,
-                AdminChestsRules.Diff(previous, version.Snapshot));
+                WeeklyDropRules.EffectiveWeight(version.Snapshot), AdminChestsRules.Diff(previous, version.Snapshot));
         }).ToList();
     }
 
@@ -112,7 +115,7 @@ public sealed class AdminChestsChestService
 
         await SaveAsync(admin, before, after, draft.ExpectedVersion, "update", draft.Reason, items, ct);
         await _audit.LogAsync(admin, "chest.update", "chest", id, before, after, draft.Reason, CancellationToken.None);
-        return ToDetail(after, await ItemsAsync(ct));
+        return await DetailAsync(after, ct);
     }
 
     public async Task<AdminChestDetailDto> RestoreAsync(CurrentUser admin, string id, int version, AdminChestRestoreRequest request, CancellationToken ct = default)
@@ -136,7 +139,7 @@ public sealed class AdminChestsChestService
 
         await SaveAsync(admin, before, after, request.ExpectedVersion, "restore", request.Reason, items, ct);
         await _audit.LogAsync(admin, "chest.restore", "chest", id, before, after, request.Reason, CancellationToken.None);
-        return ToDetail(after, await ItemsAsync(ct));
+        return await DetailAsync(after, ct);
     }
 
     public async Task<AdminChestDetailDto> CloneAsync(CurrentUser admin, string sourceId, AdminChestCloneRequest request, CancellationToken ct = default)
@@ -150,6 +153,8 @@ public sealed class AdminChestsChestService
         chest.Name = string.IsNullOrWhiteSpace(request.Name) ? $"{source.Name} (bản sao)" : request.Name.Trim();
         chest.NameEn = string.IsNullOrWhiteSpace(request.NameEn) ? $"{source.NameEn} (copy)" : request.NameEn.Trim();
         chest.Active = false;
+        // A copy never joins the weekly drop by itself: an admin gives it a weight when it is ready.
+        chest.ChallengeWeight = 0;
         chest.SortOrder = chests.Max(other => other.SortOrder) + 1;
         chest.Version = 1;
         chest.UpdatedBy = admin.Id;
@@ -193,7 +198,7 @@ public sealed class AdminChestsChestService
         _provider.Invalidate();
         await _store.Versions.InsertOneAsync(VersionOf(chest, "clone", admin, request.Reason), cancellationToken: CancellationToken.None);
         await _audit.LogAsync(admin, "chest.clone", "chest", chest.Id, new { sourceId }, new { chest, chestDef, keyDef }, request.Reason, CancellationToken.None);
-        return ToDetail(chest, await ItemsAsync(ct));
+        return await DetailAsync(chest, ct);
     }
 
     private static bool IsDuplicate(Exception exception) => exception switch
@@ -389,6 +394,8 @@ public sealed class AdminChestsChestService
         after.SortOrder = draft.SortOrder;
         after.DropWeights = new Dictionary<string, int>(draft.DropWeights ?? new Dictionary<string, int>(), StringComparer.Ordinal);
         after.Pool = new List<string>(draft.Pool ?? new List<string>());
+        // A client that does not send the weight keeps what is stored.
+        after.ChallengeWeight = draft.ChallengeWeight ?? before.ChallengeWeight;
         if (draft.Look is { } look)
         {
             after.Look = new CatalogChestLook
@@ -408,7 +415,15 @@ public sealed class AdminChestsChestService
     private static ChestLookDto LookOf(CatalogChest chest) =>
         new(chest.Look.Template, chest.Look.Light, chest.Look.Hi, chest.Look.Core);
 
-    private AdminChestDetailDto ToDetail(CatalogChest chest, IReadOnlyDictionary<string, CatalogItem> items)
+    /// <summary>The detail of a chest that is already stored. Its share of the weekly drops is read against every chest as stored.</summary>
+    private async Task<AdminChestDetailDto> DetailAsync(CatalogChest chest, CancellationToken ct)
+    {
+        var items = await ItemsAsync(ct);
+        var chests = (await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct)).Where(other => other.Id != chest.Id).Append(chest);
+        return ToDetail(chest, items, WeeklyDropRules.Percents(chests)[chest.Id]);
+    }
+
+    private AdminChestDetailDto ToDetail(CatalogChest chest, IReadOnlyDictionary<string, CatalogItem> items, decimal challengePercent)
     {
         var snapshot = _provider.Current;
         var rates = AdminChestsRules.ItemRates(chest, items);
@@ -421,6 +436,7 @@ public sealed class AdminChestsChestService
         return new AdminChestDetailDto(
             chest.Id, chest.KeyDefId, chest.Name, chest.NameEn, chest.Subtitle, chest.SubtitleEn, chest.KeyName, chest.KeyNameEn,
             chest.IconKey, chest.KeyIconKey, LookOf(chest), chest.Prices.Chest, chest.Prices.Key, chest.Active, chest.SortOrder, chest.Version,
-            chest.DropWeights, pool, CatalogRules.ExpectedValue(chest, items), chest.Prices.Chest + chest.Prices.Key, problems);
+            chest.DropWeights, pool, CatalogRules.ExpectedValue(chest, items), chest.Prices.Chest + chest.Prices.Key, problems,
+            WeeklyDropRules.EffectiveWeight(chest), challengePercent);
     }
 }

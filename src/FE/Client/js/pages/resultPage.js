@@ -5,6 +5,7 @@ import { plural, tr, uiLanguage } from '../services/i18n.js';
 import { session } from '../services/session.js';
 import { CutsceneController } from '../game/cutsceneController.js';
 import { hydrateRewardChip } from '../components/walletChip.js';
+import { hydrateWeeklyDrop } from '../components/weeklyDropNotice.js';
 import { forgetTutorialStatus } from '../services/tutorial.js';
 import { TUTORIAL_CASE_ID } from '../game/tutorialSteps.ts';
 
@@ -437,7 +438,8 @@ export async function renderResultPage(app, roomId) {
     : tr('Open the file again and follow the threads you missed.', 'Mở lại hồ sơ và lần theo những sợi dây đã bỏ lỡ.')}</span>
         ${playtest
     ? `<span class="bpa-result-playtest" data-playtest-note>${tr('Playtest of an unpublished draft: not ranked, no rewards.', 'Ván chơi thử bản nháp chưa đăng: không tính xếp hạng, không nhận thưởng.')}</span>`
-    : '<span class="bpa-mk-reward" data-market-reward hidden></span>'}</p>
+    : '<span class="bpa-mk-reward" data-market-reward hidden></span>'}
+        <span class="bpa-weekly-drop" data-weekly-drop hidden></span></p>
       <div class="bpa-result-actions">
         ${backToCases}
         ${replay}
@@ -449,6 +451,8 @@ export async function renderResultPage(app, roomId) {
 
   const page = app.querySelector('.bpa-result-page');
   if (!playtest) hydrateRewardChip(app.querySelector('[data-market-reward]'), roomId); // Chợ đồ: "+120 xu phần thưởng"
+  // Thử thách tuần: which chest this game earned, or why none. Not for the tutorial room or a playtest, which are never ranked.
+  if (!playtest && !tutorial) hydrateWeeklyDrop(app.querySelector('[data-weekly-drop]'), roomId);
   const cinematicHost = document.createElement('div');
   app.append(cinematicHost);
 

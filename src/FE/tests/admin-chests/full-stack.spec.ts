@@ -244,7 +244,6 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await admin.locator('[data-ac-preview]').click();
   const overlay = admin.locator('.ac-preview');
   await expect(overlay.locator('#qh-caseName')).toHaveText(newChestName);
-  await overlay.locator('#qh-oddsBtn').click();
   await expect(overlay.locator('#qh-odds')).toContainText('79,92%');
   await shot(admin, 'xem-thu-truoc-khi-mo');
   const itemsBefore = await call<{ items: unknown[] }>(api, 'GET', '/api/market/inventory', adminAuth.token);
@@ -263,18 +262,27 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await expect(detective.locator('.qh-dot')).toHaveCount(restored.chests.length + 1);
   await detective.locator('.qh-dot').last().click();
   await expect(detective.locator('#qh-caseName')).toHaveText(newChestName);
-  await expect.poll(() => detective.locator('.qh-app').evaluate((el) => (el as HTMLElement).style.getPropertyValue('--glow'))).toBe('rgb(51,102,204)');
+  await expect.poll(() => detective.locator('.qh-app').evaluate((el) => (el as HTMLElement).style.getPropertyValue('--accent'))).toBe('rgb(51,102,204)');
   await detective.locator('[data-qh-buy="key"]').click();
   await expect(detective.locator('#qh-nKey')).toHaveText('1');
-  await detective.locator('[data-qh-buy="chest"]').click();
-  await expect(detective.locator('#qh-nChest')).toHaveText('×1');
+  const shop = await call<{ chestsForSale?: boolean }>(api, 'GET', '/api/chests', player.token);
+  if (shop.chestsForSale === false) {
+    // Chests are not sold (Chests:SellChests off): they come from rewards, here an admin grant.
+    await expect(detective.locator('[data-qh-buy="chest"]')).toBeHidden();
+    await call(api, 'POST', '/api/chests/admin/grant', adminAuth.token, { userId: player.user.userId, chestId: newChestId, chests: 1, keys: 0 });
+    await detective.reload();
+    await detective.locator('.qh-dot').last().click();
+  } else {
+    await detective.locator('[data-qh-buy="chest"]').click();
+  }
+  await expect(detective.locator('#qh-nChest')).toHaveText('1');
   await shot(detective, 'nguoi-choi-hom-moi');
   const answer = detective.waitForResponse((response) => response.url().endsWith(`/api/chests/${newChestId}/open`));
   await detective.locator('#qh-openBtn').click();
   const openBody = (await (await answer).json()).data;
   await expect(detective.locator('#qh-gotName')).toHaveText(openBody.item.name, { timeout: 30_000 });
   await shot(detective, 'nguoi-choi-mo-hom-moi');
-  await detective.locator('#qh-keepBtn').click();
+  await detective.locator('#qh-closeBtn').click();
 
   // ---- Grant through the page. Then switch off: gone for others, still there for the holder, and not for sale.
   await admin.goto('/admin/chests?tab=cap');
@@ -299,7 +307,7 @@ test('an admin manages items and chests, and players see the result', async ({ b
   await detective.locator('.qh-dot').last().click();
   await expect(detective.locator('#qh-caseName')).toHaveText(newChestName);
   await expect(detective.locator('#qh-buy')).toBeHidden();
-  await expect(detective.locator('#qh-openLbl')).toHaveText('Mở');
+  await expect(detective.locator('#qh-openLbl')).toHaveText('Mở hòm');
   await shot(detective, 'nguoi-choi-hom-da-tat-van-mo-duoc');
   await detective.locator('#qh-openBtn').click();
   await expect(detective.locator('#qh-gotName')).not.toHaveText('—', { timeout: 30_000 });

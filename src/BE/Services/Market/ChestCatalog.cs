@@ -30,7 +30,8 @@ public sealed class ChestDef
     public ChestDef(
         string id, string keyDefId, string name, string nameEn, string subtitle, string subtitleEn,
         string keyName, string keyNameEn, string iconKey, string keyIconKey, IReadOnlyList<MarketItemDef> items,
-        IReadOnlyList<ChestDropRate>? dropRates = null, ChestShopPrice? prices = null, bool active = true, CatalogChestLook? look = null)
+        IReadOnlyList<ChestDropRate>? dropRates = null, ChestShopPrice? prices = null, bool active = true, CatalogChestLook? look = null,
+        int challengeWeight = 0)
     {
         Id = id;
         KeyDefId = keyDefId;
@@ -47,6 +48,7 @@ public sealed class ChestDef
         Prices = prices ?? new ChestShopPrice(0, 0);
         Active = active;
         Look = look;
+        ChallengeWeight = challengeWeight;
         Pools = MarketRarities.All.ToDictionary(
             rarity => rarity,
             rarity => (IReadOnlyList<MarketItemDef>)items.Where(item => item.Rarity == rarity).ToList());
@@ -70,6 +72,8 @@ public sealed class ChestDef
     public bool Active { get; }
     /// <summary>The drawing and light colours. Null on the seed classes.</summary>
     public CatalogChestLook? Look { get; }
+    /// <summary>The effective weight in the weekly challenge drop. 0 means this chest never drops from it.</summary>
+    public int ChallengeWeight { get; }
 
     /// <summary>Picks a rarity by <see cref="DropRates"/>, then one item of that rarity uniformly.</summary>
     public MarketItemDef Roll(IChestRandom random)

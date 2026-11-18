@@ -164,7 +164,9 @@ public sealed record TradeOfferDto(
 public sealed record TradesDto(
     IReadOnlyList<TradeOfferDto> Incoming,
     IReadOnlyList<TradeOfferDto> Outgoing,
-    IReadOnlyList<TradeOfferDto> History);
+    IReadOnlyList<TradeOfferDto> History,
+    // False: trades carry items only (Market:TradeCoins); the page hides the coin fields.
+    bool CoinsAllowed = true);
 
 public sealed record RewardDto(string RoomId, long Amount, bool Won, bool Applied);
 

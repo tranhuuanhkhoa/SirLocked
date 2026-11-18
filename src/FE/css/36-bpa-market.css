@@ -552,6 +552,7 @@
 .bpa-mk-slothint { grid-column: 1 / -1; margin: 0; text-transform: none; letter-spacing: .04em; font-size: 12px; }
 .bpa-mk-swaparrow { display: grid; place-items: center; }
 .bpa-mk-coinin { display: flex; align-items: center; gap: 8px; font-family: var(--bpa-font-label); font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--bpa-muted); }
+.bpa-mk-coinin[hidden] { display: none; }
 .bpa-mk-coinin input { max-width: 140px; }
 .bpa-mk-picker { padding: 12px; background: rgba(255, 255, 255, .6); box-shadow: inset 0 0 0 1px rgba(91, 82, 72, .35); animation: bpaRise .25s var(--bpa-ease-out) both; }
 .bpa-mk-pickerhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }

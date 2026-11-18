@@ -357,6 +357,32 @@
 .bpa-result-footnote .bpa-kicker { color: var(--bpa-gold); }
 /* Playtest of an unpublished AI draft (VUAN-6B): said once, plainly, where the coin reward would be. */
 .bpa-result-playtest { font-size: 15px; font-style: italic; color: var(--bpa-gold); }
+/* Thử thách tuần: what chest this game earned, or why none (a span inside the footnote's <p>, so it stays phrasing content). */
+.bpa-weekly-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 12px;
+  background: rgba(239, 212, 134, .12);
+  box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .55);
+  color: var(--bpa-gold);
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  animation: bpaRise .5s var(--bpa-ease-out) both;
+}
+.bpa-weekly-drop[hidden] { display: none; }
+.bpa-weekly-drop-chest { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
+.bpa-weekly-drop-chest .bpa-weekly-drop-text { min-width: 0; }
+.bpa-weekly-drop-icon { flex: none; width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+.bpa-weekly-drop-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(239, 212, 134, .5); text-underline-offset: 3px; }
+.bpa-weekly-drop-link:hover { color: var(--bpa-white); text-decoration-color: var(--bpa-white); }
+.bpa-weekly-drop-link:focus-visible { outline: 2px solid var(--bpa-gold); outline-offset: 2px; }
+.bpa-weekly-drop-btn { min-height: 44px; max-width: 100%; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .bpa-weekly-drop { animation: none; } }
 .bpa-result-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 12px; margin-left: auto; }
 .bpa-result-page .bpa-result-fbtn { padding: 0 16px; font-size: 12px; letter-spacing: .11em; }
 .bpa-result-fbtn svg { flex: none; }

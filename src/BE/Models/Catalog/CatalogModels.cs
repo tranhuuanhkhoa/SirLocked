@@ -81,6 +81,11 @@ public class CatalogChest
     public Dictionary<string, int> DropWeights { get; set; } = new(StringComparer.Ordinal);
     /// <summary>The defIds this chest can pay out, in display order.</summary>
     public List<string> Pool { get; set; } = new();
+    /// <summary>
+    /// Weight of this chest in the weekly challenge drop (0 to 10,000; it only matters against the other chests).
+    /// Null means the default for this chest id (see WeeklyDropRules.DefaultWeight), so existing documents need no migration.
+    /// </summary>
+    public int? ChallengeWeight { get; set; }
     public bool Active { get; set; } = true;
     public int SortOrder { get; set; }
     public int Version { get; set; } = 1;

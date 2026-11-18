@@ -408,6 +408,164 @@ public sealed class MongoAdminChestsTests
         Assert.Equal(AdminChestsErrors.NoChange, Code(await Throws(() => env.Admin.UpdateAsync(Yen, Seal, draft))));
     }
 
+    // ------------------------------------------------------------------ weekly challenge weight
+
+    [Fact]
+    public async Task Save_ChallengeWeight_IsStoredAndShownAsPercent()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var before = await env.Admin.ListAsync();
+        // Seeded chests carry no weight of their own: the defaults 60 / 30 / 10 apply. The Whitechapel outfit chest
+        // (seed version 3) defaults to 0, so it never drops until an admin gives it a weight.
+        Assert.Equal(new[] { ("chest_np", 60, 60m), ("chest_sm", 30, 30m), ("chest_nb", 10, 10m), ("chest_wc", 0, 0m) },
+            before.Chests.OrderByDescending(c => c.ChallengeWeight).Select(c => (c.Id, c.ChallengeWeight, c.ChallengePercent)));
+
+        var draft = await env.DraftOfAsync(Seal);
+        draft.ChallengeWeight = 30;
+        draft.Reason = "Hòm thường rơi ít hơn";
+        var saved = await env.Admin.UpdateAsync(Yen, Seal, draft);
+
+        Assert.Equal(30, saved.ChallengeWeight);
+        Assert.Equal(42.86m, saved.ChallengePercent);
+        Assert.Equal(30, (await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync()).ChallengeWeight);
+        var list = await env.Admin.ListAsync();
+        Assert.Equal(30, list.Chests.Single(c => c.Id == Seal).ChallengeWeight);
+        Assert.Equal(42.86m, list.Chests.Single(c => c.Id == Seal).ChallengePercent);
+        Assert.Equal(30, list.Chests.Single(c => c.Id == "chest_sm").ChallengeWeight);
+        Assert.Equal(42.86m, list.Chests.Single(c => c.Id == "chest_sm").ChallengePercent);
+        Assert.Equal(10, list.Chests.Single(c => c.Id == Bank).ChallengeWeight);
+        Assert.Equal(14.29m, list.Chests.Single(c => c.Id == Bank).ChallengePercent);
+        Assert.Equal(42.86m, (await env.Admin.GetAsync("chest_sm")).ChallengePercent);
+
+        // The history shows the weight of each version and what changed.
+        var versions = await env.Admin.VersionsAsync(Seal);
+        Assert.Equal(30, versions.Single(v => v.Version == 2).ChallengeWeight);
+        Assert.Equal(60, versions.Single(v => v.Version == 1).ChallengeWeight);
+        Assert.Contains(new AdminChestFieldChange("challengeWeight", "60", "30"), versions.Single(v => v.Version == 2).Diff.Fields);
+    }
+
+    [Fact]
+    public async Task Save_ChallengeWeight_CountsOnlyActiveChestsWithAWeight()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+
+        var off = await env.DraftOfAsync(Bank);
+        off.Active = false;
+        off.Reason = "Tạm tắt";
+        await env.Admin.UpdateAsync(Yen, Bank, off);
+
+        var zero = await env.DraftOfAsync("chest_sm");
+        zero.ChallengeWeight = 0;
+        zero.Reason = "Không rơi";
+        var saved = await env.Admin.UpdateAsync(Yen, "chest_sm", zero);
+
+        Assert.Equal(0, saved.ChallengeWeight); // an explicit 0 stays 0 and does not fall back to the default 30
+        Assert.Equal(0m, saved.ChallengePercent);
+        var list = await env.Admin.ListAsync();
+        Assert.Equal(100m, list.Chests.Single(c => c.Id == Seal).ChallengePercent);
+        Assert.Equal(0m, list.Chests.Single(c => c.Id == "chest_sm").ChallengePercent);
+        Assert.Equal(0m, list.Chests.Single(c => c.Id == Bank).ChallengePercent);
+        Assert.Equal(10, list.Chests.Single(c => c.Id == Bank).ChallengeWeight); // off, but the weight is kept
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(10_001)]
+    public async Task Save_ChallengeWeightOutOfRange_IsRefusedAndNothingChanges(int weight)
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var draft = await env.DraftOfAsync(Seal);
+        draft.ChallengeWeight = weight;
+        draft.Reason = "Thử";
+
+        var exception = await Throws(() => env.Admin.UpdateAsync(Yen, Seal, draft));
+
+        Assert.Equal(400, exception.StatusCode);
+        Assert.Contains(CatalogRuleCodes.WeightInvalid, ViolationCodes(exception));
+        Assert.Equal(1, (await env.Admin.GetAsync(Seal)).Version);
+    }
+
+    [Fact]
+    public async Task Save_WithoutChallengeWeight_KeepsIt()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var first = await env.DraftOfAsync(Seal);
+        first.ChallengeWeight = 30;
+        first.Reason = "Đặt trọng số";
+        await env.Admin.UpdateAsync(Yen, Seal, first);
+
+        // An older client does not send the field at all.
+        var second = await env.DraftOfAsync(Seal);
+        Assert.Null(second.ChallengeWeight);
+        second.ChestPrice += 10;
+        second.Reason = "Tăng giá";
+        var saved = await env.Admin.UpdateAsync(Yen, Seal, second);
+
+        Assert.Equal(30, saved.ChallengeWeight);
+        Assert.Equal(30, (await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync()).ChallengeWeight);
+    }
+
+    [Fact]
+    public async Task Save_OnlyTheChallengeWeight_IsAChange()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var draft = await env.DraftOfAsync(Seal);
+        draft.ChallengeWeight = 5;
+
+        var check = await env.Admin.CheckAsync(Seal, draft);
+
+        Assert.Empty(check.Violations);
+        Assert.Equal(new AdminChestFieldChange("challengeWeight", "60", "5"), Assert.Single(check.Diff.Fields));
+        Assert.False(check.Diff.IsEmpty);
+    }
+
+    [Fact]
+    public async Task Restore_BringsBackTheChallengeWeightOfThatVersion()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var low = await env.DraftOfAsync(Seal);
+        low.ChallengeWeight = 20;
+        low.Reason = "Giảm";
+        await env.Admin.UpdateAsync(Yen, Seal, low);
+        var high = await env.DraftOfAsync(Seal);
+        high.ChallengeWeight = 50;
+        high.Reason = "Tăng";
+        await env.Admin.UpdateAsync(Yen, Seal, high);
+
+        var restored = await env.Admin.RestoreAsync(Yen, Seal, 2, new AdminChestRestoreRequest { ExpectedVersion = 3, Reason = "Lấy lại" });
+
+        Assert.Equal(20, restored.ChallengeWeight);
+        Assert.Equal(20, (await env.Catalog.Chests.Find(c => c.Id == Seal).SingleAsync()).ChallengeWeight);
+    }
+
+    [Fact]
+    public async Task NewChest_StartsAtZero()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var draft = await env.DraftOfAsync(Seal);
+        draft.ChallengeWeight = 30;
+        draft.Reason = "Đặt trọng số";
+        await env.Admin.UpdateAsync(Yen, Seal, draft);
+
+        // Cloned from a chest that drops: the copy must not inherit the weight.
+        var clone = await env.Admin.CloneAsync(Yen, Seal, new AdminChestCloneRequest { Name = "Hòm Mới", NameEn = "New Chest", Reason = "Sự kiện" });
+
+        Assert.Equal(0, clone.ChallengeWeight);
+        Assert.Equal(0m, clone.ChallengePercent);
+        Assert.Equal(0, (await env.Catalog.Chests.Find(c => c.Id == clone.Id).SingleAsync()).ChallengeWeight); // stored, not null
+        var list = await env.Admin.ListAsync();
+        Assert.Equal(0, list.Chests.Single(c => c.Id == clone.Id).ChallengeWeight);
+        Assert.Equal(0m, list.Chests.Single(c => c.Id == clone.Id).ChallengePercent);
+        Assert.Equal(42.86m, list.Chests.Single(c => c.Id == Seal).ChallengePercent);
+    }
+
     [Fact]
     public async Task EachChestPublishesItsOwnOdds()
     {

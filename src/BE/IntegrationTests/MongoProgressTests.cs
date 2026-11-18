@@ -782,7 +782,9 @@ public sealed class MongoProgressTests
         var user = await env.AddUserAsync();
         for (var i = 0; i < 9; i++) await env.AddResultAsync(user.Id, success: false);
         var last = await env.AddResultAsync(user.Id, success: true, at: new DateTime(2026, 11, 3, 5, 0, 0, DateTimeKind.Utc));
-        var hook = new MarketGameRewardHook(env.Market, env.Progress, NullLogger<MarketGameRewardHook>.Instance);
+        var drops = new WeeklyDropService(env.Store, env.Market, new WeeklyService(env.Db, new LeaderboardService(env.Db)),
+            new CryptoChestRandom(), Options.Create(new WeeklyChallengeSettings()), NullLogger<WeeklyDropService>.Instance);
+        var hook = new MarketGameRewardHook(env.Market, env.Progress, drops, NullLogger<MarketGameRewardHook>.Instance);
 
         await hook.OnGameResultPersistedAsync(last);
         await hook.OnGameResultPersistedAsync(last);

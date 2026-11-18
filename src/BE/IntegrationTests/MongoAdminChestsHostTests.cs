@@ -130,6 +130,46 @@ public sealed class MongoAdminChestsHostTests
     }
 
     [Fact]
+    public async Task TheChallengeWeightTravelsAsJson_OnListDetailVersionsAndSave()
+    {
+        if (!Enabled) return;
+        await using var factory = new HostFactory();
+        using var client = factory.CreateClient();
+        await AddUsersAsync(factory);
+
+        using var list = JsonDocument.Parse(await client.GetStringAsync("/api/admin/chests"));
+        var row = list.RootElement.GetProperty("data").GetProperty("chests").EnumerateArray().Single(c => c.GetProperty("id").GetString() == "chest_np");
+        Assert.Equal(60, row.GetProperty("challengeWeight").GetInt32());
+        Assert.Equal(60m, row.GetProperty("challengePercent").GetDecimal());
+
+        using var detail = JsonDocument.Parse(await client.GetStringAsync("/api/admin/chests/chest_np"));
+        var data = detail.RootElement.GetProperty("data");
+        var response = await client.PutAsJsonAsync("/api/admin/chests/chest_np", new
+        {
+            name = data.GetProperty("name").GetString(), nameEn = data.GetProperty("nameEn").GetString(),
+            subtitle = data.GetProperty("subtitle").GetString(), subtitleEn = data.GetProperty("subtitleEn").GetString(),
+            keyName = data.GetProperty("keyName").GetString(), keyNameEn = data.GetProperty("keyNameEn").GetString(),
+            chestPrice = data.GetProperty("chestPrice").GetInt64(), keyPrice = data.GetProperty("keyPrice").GetInt64(),
+            active = true, sortOrder = data.GetProperty("sortOrder").GetInt32(),
+            look = JsonSerializer.Deserialize<JsonElement>(data.GetProperty("look").GetRawText()),
+            dropWeights = JsonSerializer.Deserialize<JsonElement>(data.GetProperty("dropWeights").GetRawText()),
+            pool = data.GetProperty("pool").EnumerateArray().Select(item => item.GetProperty("def").GetProperty("id").GetString()).ToArray(),
+            challengeWeight = 30,
+            expectedVersion = data.GetProperty("version").GetInt32(),
+            reason = "Giảm tỷ lệ rơi",
+        });
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        using var saved = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(30, saved.RootElement.GetProperty("data").GetProperty("challengeWeight").GetInt32());
+        Assert.Equal(42.86m, saved.RootElement.GetProperty("data").GetProperty("challengePercent").GetDecimal());
+
+        using var versions = JsonDocument.Parse(await client.GetStringAsync("/api/admin/chests/chest_np/versions"));
+        var newest = versions.RootElement.GetProperty("data").EnumerateArray().First();
+        Assert.Equal(30, newest.GetProperty("challengeWeight").GetInt32());
+        Assert.Contains(newest.GetProperty("diff").GetProperty("fields").EnumerateArray(), field => field.GetProperty("field").GetString() == "challengeWeight");
+    }
+
+    [Fact]
     public async Task AMissingChestAndAMissingItemAre404()
     {
         if (!Enabled) return;

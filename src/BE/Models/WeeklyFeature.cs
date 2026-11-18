@@ -4,8 +4,9 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace SirLocked.Api.Models;
 
 /// <summary>
-/// Admin-curated weekly highlight: the "Case of the Week" banner or the "Weekly Challenge".
-/// At most one row per type is active at a time (older ones are flipped isActive=false).
+/// A weekly highlight: the "Case of the Week" banner (admin-curated, at most one active at a time) or the
+/// "Weekly Challenge". A challenge has one document per challenge week, keyed by <see cref="WeekKey"/>
+/// (unique with <see cref="Type"/>); challenge documents from before weeks had keys have no key.
 /// </summary>
 [BsonIgnoreExtraElements]
 public class WeeklyFeature
@@ -16,6 +17,17 @@ public class WeeklyFeature
 
     /// <summary>One of <see cref="WeeklyFeatureTypes"/>.</summary>
     public string Type { get; set; } = WeeklyFeatureTypes.CaseOfWeek;
+
+    /// <summary>
+    /// The challenge week this document speaks for, as yyyy-MM-dd of its Wednesday (see ChallengeWeek).
+    /// Null for the case of the week and for challenge documents written before weeks had keys.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    public string? WeekKey { get; set; }
+
+    /// <summary>Who chose the case: one of <see cref="WeeklyFeatureSources"/>. Documents without one were all set by an admin.</summary>
+    public string Source { get; set; } = WeeklyFeatureSources.Admin;
+
     public string CaseId { get; set; } = string.Empty;
     public DateTime WeekStart { get; set; }
     public DateTime WeekEnd { get; set; }
@@ -30,4 +42,13 @@ public static class WeeklyFeatureTypes
     public const string WeeklyChallenge = "WEEKLY_CHALLENGE";
 
     public static bool IsValid(string? type) => type is CaseOfWeek or WeeklyChallenge;
+}
+
+public static class WeeklyFeatureSources
+{
+    /// <summary>Picked by the server on its own among the good cases.</summary>
+    public const string Auto = "AUTO";
+
+    /// <summary>Chosen (or stopped) by an admin.</summary>
+    public const string Admin = "ADMIN";
 }

@@ -36,7 +36,9 @@ public sealed record ChestListDto(
     IReadOnlyList<ChestOddsDto> Odds,
     // Chests switched off that this detective still holds a chest or key of, so they can still be opened.
     IReadOnlyList<ChestDto> OffSale,
-    WalletDto Wallet);
+    WalletDto Wallet,
+    // False: the shop sells keys only (Chests:SellChests); chests come from rewards such as the weekly challenge.
+    bool ChestsForSale = true);
 
 public sealed record ChestOpenResultDto(
     string ChestId,

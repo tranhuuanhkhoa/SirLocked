@@ -33,7 +33,8 @@ public sealed partial class MarketService
         return new TradesDto(
             incoming.Select(t => ToTradeDto(t, userId, items)).ToList(),
             outgoing.Select(t => ToTradeDto(t, userId, items)).ToList(),
-            history.Select(t => ToTradeDto(t, userId, null)).ToList());
+            history.Select(t => ToTradeDto(t, userId, null)).ToList(),
+            _tradeCoins);
     }
 
     private TradeOfferDto ToTradeDto(TradeOffer offer, string viewerId, IReadOnlyDictionary<string, MarketItem>? items)
@@ -74,7 +75,7 @@ public sealed partial class MarketService
         var offerIds = (terms.OfferItemIds ?? new List<string>()).Select(id => (id ?? string.Empty).Trim()).ToList();
         var requestIds = (terms.RequestItemIds ?? new List<string>()).Select(id => (id ?? string.Empty).Trim()).ToList();
         var draft = new TradeDraft(user.Id, (toUserId ?? string.Empty).Trim(), offerIds, terms.OfferCoins, requestIds, terms.RequestCoins, terms.Message);
-        if (MarketRules.ValidateTradeDraft(draft) is { } shapeError)
+        if (MarketRules.ValidateTradeDraft(draft, _tradeCoins) is { } shapeError)
             throw Error(400, shapeError, "This trade offer is not valid.");
 
         await RequireVerifiedAsync(user.Id, ct);
@@ -186,6 +187,8 @@ public sealed partial class MarketService
         var offer = await RequireOfferAsync(offerId, user.Id, ct);
         if (offer.ToUserId != user.Id) throw Error(403, MarketErrors.TradeNotFound, "Only the recipient can accept this offer.");
         if (offer.Status != TradeOfferStatus.Pending) throw ErrorFor(MarketErrors.TradeClosed);
+        // An offer made with coins before they were switched off stays open, but only to be declined, cancelled or countered.
+        if (!_tradeCoins && (offer.FromCoins > 0 || offer.ToCoins > 0)) throw ErrorFor(MarketErrors.TradeCoinsNotAllowed);
         await RequireVerifiedAsync(user.Id, ct);
         await EnsureAccountAsync(offer.FromUserId, ct);
         await EnsureAccountAsync(offer.ToUserId, ct);
