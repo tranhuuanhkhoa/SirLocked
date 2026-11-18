@@ -28,9 +28,16 @@ const LIBRARY = [
   { key: 'h-map-hong', kind: 'OUTDOOR_MAP', world: 'HANG_DUONG_VICTORIAN', nameVi: 'Ảnh hỏng', nameEn: 'Broken', thumbUrl: pic('broken'), url: pic('broken'), retired: true },
 ];
 
+/** The three levels exactly as the server's AiDifficultyProfiles sends them in the capabilities. */
+const LEVELS = [
+  { difficulty: 'easy', playMinutes: { min: 10, max: 15 }, estimatedMinutes: 12, scenes: { min: 2, max: 3 }, suspects: 3, cracks: 1, puzzles: { min: 1, max: 2 }, redHerrings: { min: 0, max: 1 }, requiredEvidence: 2, pixelLab: { newWorld: { min: 60, max: 120 }, libraryWorld: { min: 10, max: 40 } } },
+  { difficulty: 'medium', playMinutes: { min: 20, max: 30 }, estimatedMinutes: 25, scenes: { min: 4, max: 5 }, suspects: 4, cracks: 2, puzzles: { min: 2, max: 3 }, redHerrings: { min: 1, max: 2 }, requiredEvidence: 3, pixelLab: { newWorld: { min: 150, max: 220 }, libraryWorld: { min: 30, max: 80 } } },
+  { difficulty: 'hard', playMinutes: { min: 40, max: 60 }, estimatedMinutes: 50, scenes: { min: 6, max: 8 }, suspects: 5, cracks: 3, puzzles: { min: 4, max: 6 }, redHerrings: { min: 2, max: 3 }, requiredEvidence: 4, pixelLab: { newWorld: { min: 300, max: 450 }, libraryWorld: { min: 60, max: 150 } } },
+];
+
 const capabilities = {
   aiCaseV3PresetEnabled: true, gameplayV3Enabled: true, canCreateDraft: true, canCreateV3Draft: true,
-  creationBlockers: [], v3CreationBlockers: [],
+  creationBlockers: [], v3CreationBlockers: [], difficultyProfiles: LEVELS,
 };
 
 type Role = 'ADMIN' | 'VIP';
@@ -60,6 +67,7 @@ interface Mock {
   settingsPuts: any[];
   quota: { unlimited: boolean; weeklyLimit: number; usedThisWeek: number; remaining: number; weekStart: string };
   createResponse?: (body: any) => { status: number; json: unknown };
+  capabilities?: Record<string, unknown>;
   dialogs: string[];
   errors: string[];
 }
@@ -84,7 +92,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
   await page.route('https://library.sirlocked.test/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
   // Anything not answered below gets an empty success, never a real server.
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => route.fulfill({ json: envelope(null) }));
-  await page.route((url) => url.pathname === '/api/admin/ai-cases/capabilities', (route) => route.fulfill({ json: envelope(capabilities) }));
+  await page.route((url) => url.pathname === '/api/admin/ai-cases/capabilities', (route) => route.fulfill({ json: envelope(mock.capabilities ?? capabilities) }));
   await page.route((url) => url.pathname === '/api/admin/ai-cases/library', (route) => route.fulfill({ json: envelope(LIBRARY) }));
   await page.route((url) => url.pathname === '/api/admin/ai-cases/quota', (route) => route.fulfill(role === 'ADMIN'
     ? { json: envelope({ role, unlimited: true, weeklyLimit: 0, usedThisWeek: 0, remaining: 0, weekStart: '2026-11-16' }) }
@@ -109,7 +117,7 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
       return route.fulfill({ status: answer.status, json: answer.json });
     }
     const created = draftOf(`new-${mock.posts.length}`, role, 'QUEUED_FOR_CLAUDE', {
-      prompt: body.prompt, order: body.order, settings: { generationPreset: body.generationPreset, language: body.language, caseType: body.caseType },
+      prompt: body.prompt, order: body.order, settings: { pipelineVersion: 'OPEN_COOP_1', difficulty: body.difficulty, language: body.language, caseType: body.caseType },
     });
     mock.drafts = [created, ...mock.drafts];
     if (role === 'VIP') mock.quota = { ...mock.quota, usedThisWeek: mock.quota.usedThisWeek + 1, remaining: Math.max(0, mock.quota.remaining - 1) };
@@ -155,127 +163,96 @@ async function setUp(page: Page, role: Role, language: 'vi' | 'en' = 'vi', overr
   return mock;
 }
 
-/** Waits for the form and its library pictures. */
+/** Waits for the form and the world pictures (the library pickers sit folded under "Tùy chọn thêm"). */
 async function open(page: Page) {
   await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeVisible();
-  await expect(page.locator('[data-location="h-map-ben-cang"] img')).toHaveJSProperty('complete', true);
+  await expect(page.locator('[data-world="HANG_DUONG_VICTORIAN"] img')).toHaveJSProperty('complete', true);
+}
+
+/** Opens "Tùy chọn thêm" (library places and NPCs, notes, language, content, PixelLab, review). */
+async function openMore(page: Page) {
+  const more = page.locator('#ai-more');
+  if (!(await more.evaluate((node) => (node as HTMLDetailsElement).open))) await more.locator('summary').click();
+  await expect(page.locator('#ai-location-grid')).toBeVisible();
 }
 
 const pressed = (page: Page, selector: string) => page.locator(selector);
+const bar = (page: Page) => page.locator('.aai-order-bar');
 
-test('an ADMIN order fills all seven cards with the keyboard and mouse, sends the exact order body and shows "Chờ Claude"', async ({ page }) => {
+test('an ADMIN order picks a level and a setting with the keyboard and mouse, sends only the new order shape and shows "Chờ Claude"', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
   await open(page);
 
-  // Card order of plan section 6, and the defaults Yen settled on.
-  await expect(page.locator('.aai-form .adm-card-title')).toHaveText([
-    'Thế giới và địa điểm', 'Cấu hình tạo', 'Ngôn ngữ và loại vụ án', 'Nhân vật', 'Không khí', 'Mở rộng gameplay', 'Ý tưởng',
-  ]);
-  await expect(page.locator('.aai-form .aai-step-num')).toHaveText(['01', '02', '03', '04', '05', '06', '07']);
+  // Defaults: Medium, the first world, the bot picks weather and time, balanced, every gate, no fixed PixelLab cap.
+  await expect(page.locator('.aai-order-title')).toHaveText('Đặt vụ án mới');
+  await expect(page.getByRole('radio', { name: /Trung bình/ })).toBeChecked();
   await expect(pressed(page, '[data-world="HANG_DUONG_VICTORIAN"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('input[name="aai-weather"][value="AUTO"]')).toBeChecked();
   await expect(page.locator('input[name="aai-time"][value="AUTO"]')).toBeChecked();
-  await expect(page.locator('input[name="aai-content"][value="LIGHT"]')).toBeChecked();
-  await expect(page.locator('#ai-pixellab-cap')).toHaveValue('-1');
-  await expect(page.locator('#ai-pixellab-cap option:checked')).toHaveText('Không giới hạn');
-  await expect(page.locator('input[name="aai-review"][value="FULL"]')).toBeChecked();
-  await expect(page.locator('#quick-create-btn')).toHaveText('Gửi đơn cho Claude');
-  await expect(page.locator('#ai-setting-lock')).toHaveCount(0);
-  await expect(page.locator('[data-location="h-map-hong"]')).toHaveCount(0); // retired pictures never show
+  await expect(page.locator('input[name="aai-leaning"][value="BALANCED"]')).toBeChecked();
+  await expect(page.locator('#quick-create-btn')).toHaveText('Tạo vụ án');
+  await expect(page.locator('#ai-more')).not.toHaveAttribute('open', '');
   await expect(page.locator('[data-world="HANG_DUONG_VICTORIAN"] img')).toHaveAttribute('src', pic('h-map-ben-cang'));
 
-  // 01 World and places, by keyboard: Tab moves between the world cards, Enter and Space pick.
+  // Level and world by keyboard: Tab moves between the world cards, Enter picks.
+  await page.locator('[data-level="hard"]').click();
   await page.mouse.move(0, 0);
   await page.locator('[data-world="HANG_DUONG_VICTORIAN"]').focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('[data-world="TAISHO_JAPAN"]')).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-world="TAISHO_JAPAN"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-world="HANG_DUONG_VICTORIAN"]')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('[data-world="TAISHO_JAPAN"]')).toHaveAttribute('aria-label', /Nhật Bản Taishō/);
+
+  // The rows: case type, atmosphere, what it leans towards, the idea with a hint chip.
+  await page.locator('label.aai-chip', { hasText: 'Án mạng' }).click();
+  await page.locator('[data-field="weather"] label', { hasText: 'Mưa' }).click();
+  await page.locator('[data-field="timeOfDay"] label', { hasText: 'Đêm' }).click();
+  await page.locator('label.aai-chip', { hasText: 'Giải đố nhiều hơn' }).click();
+  await page.locator('#ai-creator-direction').fill('Một geisha mất tích đêm lễ hội.');
+  await page.locator('[data-idea-hint="victim"]').click();
+  await page.keyboard.type('cô Hana');
+  await expect(page.locator('#ai-creator-direction')).toHaveValue('Một geisha mất tích đêm lễ hội.\nNạn nhân: cô Hana');
+
+  // "Tùy chọn thêm": places and NPCs of this world, notes, language, content, PixelLab cap, review.
+  await openMore(page);
   await page.locator('[data-location="j-map-pho-den-long"]').focus();
   await page.keyboard.press('Space');
   await expect(page.locator('[data-location="j-map-pho-den-long"]')).toHaveAttribute('aria-pressed', 'true');
-  await page.keyboard.press('Tab');
-  await expect(page.locator('[data-location="j-map-ga-tau-dien"]')).toBeFocused();
-  await page.keyboard.press('Enter');
   await page.locator('[data-location-kind="INTERIOR"]').click();
   await expect(page.locator('#ai-location-grid [data-location]')).toHaveCount(1);
   await page.locator('[data-location="j-room-nha-tra"]').click();
   await page.locator('[data-location-kind=""]').click();
-  await expect(page.locator('#ai-location-count')).toHaveText('đã chọn 3');
-
-  // 02 Preset with stages, difficulty and play time.
-  await page.locator('label.aai-preset', { hasText: 'Nặng câu đố' }).click();
-  await expect(page.locator('input[name="aai-stages"][value="5"]')).toBeChecked();
-  await expect(page.locator('input[name="aai-stages"][value="4"]')).toBeDisabled();
-  await expect(page.locator('input[name="aai-difficulty"][value="easy"]')).toBeDisabled();
-  await page.locator('label.aai-preset', { hasText: 'Ngẫu nhiên cân bằng' }).click();
-  await expect(page.locator('input[name="aai-stages"][value="4"]')).toBeEnabled();
-  await page.locator('[data-field="stageCount"] label', { hasText: '5' }).click();
-  await page.locator('[data-field="difficulty"] label', { hasText: 'Khó' }).click();
-  await page.locator('[data-field="playMinutes"] label', { hasText: '45 phút' }).click();
-
-  // 03 Language, case type, content level.
-  await page.locator('#ai-language-select').selectOption('vi');
-  await page.locator('label.aai-chip', { hasText: 'Án mạng' }).click();
-  await page.locator('[data-field="contentLevel"] label', { hasText: 'Thường' }).click();
-  await expect(page.locator('#ai-content-help')).toContainText('Trinh thám cổ điển');
-
-  // 04 Characters: suspects, NPC portraits of this world, notes.
-  await page.locator('[data-field="suspectCount"] label', { hasText: '5' }).click();
+  await expect(page.locator('#ai-location-count')).toHaveText('đã chọn 2');
   await expect(page.locator('#ai-npc-grid [data-npc]')).toHaveCount(8);
   await page.locator('[data-npc="j-npc-01"]').click();
   await page.locator('[data-npc="j-npc-02"]').click();
   await expect(page.locator('#ai-npc-count')).toHaveText('2 / 8');
   await page.locator('#ai-character-notes').fill('Một ông chủ nhà trà biết mọi chuyện.');
-
-  // 05 Atmosphere.
-  await page.locator('[data-field="weather"] label', { hasText: 'Mưa' }).click();
-  await page.locator('[data-field="timeOfDay"] label', { hasText: 'Đêm' }).click();
-  await page.locator('#ai-tone-lock').selectOption('tense');
-
-  // 06 Crack the Lie, 07 idea with a hint chip, and the mechanic lock.
-  await page.locator('#ai-include-crack').check();
-  await page.locator('#ai-creator-direction').fill('Một geisha mất tích đêm lễ hội.');
-  await page.locator('[data-idea-hint="victim"]').click();
-  await page.keyboard.type('cô Hana');
-  await expect(page.locator('#ai-creator-direction')).toHaveValue('Một geisha mất tích đêm lễ hội.\nNạn nhân: cô Hana');
-  await page.locator('#ai-mechanic-lock').selectOption('timeline');
-
-  // ADMIN-only summary controls.
+  await page.locator('[data-field="contentLevel"] label', { hasText: 'Thường' }).click();
+  await expect(page.locator('#ai-content-help')).toContainText('Trinh thám cổ điển');
+  await page.locator('label', { hasText: 'Tiếng Việt' }).click();
   await page.locator('#ai-pixellab-cap').selectOption('60');
-  await page.locator('[data-field="reviewMode"] label', { hasText: 'Nhanh' }).click();
+  await page.locator('[data-field="reviewMode"] label', { hasText: 'Duyệt nhanh' }).click();
 
-  const summary = page.locator('.aai-summary-list');
-  await expect(summary.locator('[data-aai-sum="world"]')).toHaveText('Nhật Bản Taishō');
-  await expect(summary.locator('[data-aai-sum="locations"]')).toHaveText('Phố đèn lồng, Ga tàu điện, Nhà trà');
-  await expect(summary.locator('[data-aai-sum="characters"]')).toHaveText('5 nghi phạm · Người Taishō 1, Người Taishō 2');
-  await expect(summary.locator('[data-aai-sum="weather"]')).toHaveText('Mưa');
-  await expect(summary.locator('[data-aai-sum="timeOfDay"]')).toHaveText('Đêm');
-  await expect(summary.locator('[data-aai-sum="scope"]')).toHaveText('5 chặng · Khó · 45 phút');
+  await expect(bar(page).locator('[data-aai-sum="headline"]')).toHaveText('Khó · Nhật Bản Taishō · Án mạng');
+  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~40–60 phút chơi · tối đa 60 lượt PixelLab · duyệt nhanh');
 
   await page.locator('#quick-create-btn').click();
   await expect.poll(() => mock.posts.length).toBe(1);
   expect(mock.posts[0]).toEqual({
     prompt: 'Một geisha mất tích đêm lễ hội.\nNạn nhân: cô Hana',
-    stageCount: 5,
     difficulty: 'hard',
-    generationPreset: 'NORMAL_RANDOM',
+    leaning: 'PUZZLE',
     language: 'vi',
-    includeCrackTheLie: true,
     caseType: 'MURDER',
-    creativeConstraints: { settingId: '', toneId: 'tense', investigationMechanicId: 'timeline' },
     order: {
       world: 'TAISHO_JAPAN',
-      locationIds: ['j-map-pho-den-long', 'j-map-ga-tau-dien', 'j-room-nha-tra'],
+      locationIds: ['j-map-pho-den-long', 'j-room-nha-tra'],
       npcIds: ['j-npc-01', 'j-npc-02'],
-      suspectCount: 5,
       characterNotes: 'Một ông chủ nhà trà biết mọi chuyện.',
       weather: 'RAIN',
       timeOfDay: 'NIGHT',
-      playMinutes: 45,
       contentLevel: 'STANDARD',
       pixelLabCap: 60,
       reviewMode: 'FAST',
@@ -287,30 +264,78 @@ test('an ADMIN order fills all seven cards with the keyboard and mouse, sends th
   await expect(row.locator('[data-order-time]')).not.toBeEmpty();
   await expect(page.locator('.aai-drafts-table thead')).toContainText('Người đặt');
   await expect(page.locator('.aai-drafts-table thead')).toContainText('Trạng thái đơn');
-  await expect(page.locator('.aai-drafts-table thead')).not.toContainText('Nhà cung cấp');
   // The choices survive the redraw after sending.
   await expect(page.locator('[data-world="TAISHO_JAPAN"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: /Khó/ })).toBeChecked();
   expect(mock.dialogs).toEqual([]);
+  expect(mock.errors).toEqual([]);
+});
+
+test('three level cards show the server numbers and drive the bar under the form', async ({ page }) => {
+  const mock = await setUp(page, 'ADMIN', 'vi', {
+    // The server is the source: a changed number on the server shows on the card, not a number built into the page.
+    capabilities: { ...capabilities, difficultyProfiles: LEVELS.map((level) => level.difficulty === 'hard' ? { ...level, playMinutes: { min: 45, max: 70 } } : level) },
+  });
+  await open(page);
+  await expect(page.locator('[data-level="easy"]')).toContainText('10–15 phút');
+  await expect(page.locator('[data-level="easy"]')).toContainText('2–3 cảnh · 3 nghi phạm · 1 đối chất · 1–2 câu đố');
+  await expect(page.locator('[data-level="hard"]')).toContainText('45–70 phút');
+  await expect(page.locator('[data-level="hard"]')).toContainText('6–8 cảnh · 5 nghi phạm · 3 đối chất · 4–6 câu đố');
+  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~20–30 phút chơi · ước 30–80 lượt PixelLab · duyệt từng cổng');
+
+  await page.locator('[data-level="hard"]').click();
+  await page.locator('[data-world="NEW_WORLD"]').click();
+  await expect(bar(page).locator('[data-aai-sum="headline"]')).toHaveText('Khó · Thế giới mới · Ngẫu nhiên');
+  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~45–70 phút chơi · ước 300–450 lượt PixelLab · duyệt từng cổng');
+  expect(mock.errors).toEqual([]);
+});
+
+test('changing the level changes no other choice', async ({ page }) => {
+  const mock = await setUp(page, 'ADMIN');
+  await open(page);
+  await page.locator('label.aai-chip', { hasText: 'Bắt cóc' }).click();
+  await page.locator('label.aai-chip', { hasText: 'Giải đố nhiều hơn' }).click();
+  await page.locator('[data-field="weather"] label', { hasText: 'Tuyết' }).click();
+  for (const level of ['easy', 'hard', 'medium']) {
+    await page.locator(`[data-level="${level}"]`).click();
+    await expect(page.locator('input[name="aai-case-type"][value="KIDNAPPING"]')).toBeChecked();
+    await expect(page.locator('input[name="aai-leaning"][value="PUZZLE"]')).toBeChecked();
+    await expect(page.locator('input[name="aai-weather"][value="SNOW"]')).toBeChecked();
+  }
+  expect(mock.errors).toEqual([]);
+});
+
+test('the old controls are gone: no V3 switch, presets, stages, suspects or play time', async ({ page }) => {
+  const mock = await setUp(page, 'ADMIN');
+  await open(page);
+  await openMore(page);
+  await expect(page.getByText(/V3 · Crack|Phá Vỡ Lời Dối|Số chặng|Số nghi phạm|Thời lượng chơi|Cấu hình tạo|Mở rộng gameplay/)).toHaveCount(0);
+  await expect(page.locator('#ai-include-crack, #ai-preset-select, input[name="aai-stages"], input[name="aai-suspects"], input[name="aai-minutes"]')).toHaveCount(0);
+  await expect(page.locator('.aai-order .adm-card')).toHaveCount(0); // no card inside the form card
   expect(mock.errors).toEqual([]);
 });
 
 test('a VIP chooses the PixelLab cap and review mode like an admin, the order goes straight to Claude, and the last weekly order locks the button with a reason', async ({ page }) => {
   const mock = await setUp(page, 'VIP', 'vi', { quota: { unlimited: false, weeklyLimit: 2, usedThisWeek: 1, remaining: 1, weekStart: '2026-11-16' } });
   await open(page);
+  await openMore(page);
   await expect(page.locator('#ai-pixellab-cap')).toHaveValue('-1');
   await expect(page.locator('#ai-pixellab-cap option:checked')).toHaveText('Không giới hạn');
   await expect(page.locator('input[name="aai-review"][value="FULL"]')).toBeChecked();
+  await expect(page.locator('input[name="aai-review"][value="FAST"]')).toHaveCount(1);
   await expect(page.locator('.aai-settings')).toHaveCount(0);
   await expect(page.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ Claude ngay');
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 1/2 đơn trong tuần này.');
-  await expect(page.locator('#ai-review-steps li')).toHaveCount(5);
 
   await page.locator('[data-location="h-map-ben-cang"]').click();
   await page.locator('#quick-create-btn').click();
   await expect.poll(() => mock.posts.length).toBe(1);
-  expect(mock.posts[0].order).toEqual({
-    world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], suspectCount: 4, characterNotes: '',
-    weather: 'AUTO', timeOfDay: 'AUTO', playMinutes: 30, contentLevel: 'LIGHT', pixelLabCap: -1, reviewMode: 'FULL',
+  expect(mock.posts[0]).toEqual({
+    prompt: '', difficulty: 'medium', leaning: 'BALANCED', language: 'en', caseType: 'RANDOM',
+    order: {
+      world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], characterNotes: '',
+      weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', pixelLabCap: -1, reviewMode: 'FULL',
+    },
   });
   await expect(page.locator('.aai-drafts-table [data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ Claude');
   await expect(page.locator('.aai-drafts-table [data-approve-order]')).toHaveCount(0);
@@ -323,68 +348,44 @@ test('a VIP chooses the PixelLab cap and review mode like an admin, the order go
   expect(mock.errors).toEqual([]);
 });
 
-test('ADMIN approves one VIP order and rejects another with a reason typed in the page, never a browser dialog', async ({ page }) => {
-  const mock = await setUp(page, 'ADMIN');
-  mock.drafts = [draftOf('vip-a', 'VIP', 'AWAITING_OWNER_APPROVAL'), draftOf('vip-b', 'VIP', 'AWAITING_OWNER_APPROVAL', { prompt: 'Vụ thứ hai' })];
+test('works at 375 px with the keyboard only', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  const mock = await setUp(page, 'VIP');
   await open(page);
-  const rowA = page.locator('[data-draft-row="vip-a"]');
-  const rowB = page.locator('[data-draft-row="vip-b"]');
-  await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ admin duyệt');
-
-  await rowA.getByRole('button', { name: 'Duyệt đơn' }).click();
-  await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ Claude');
-  expect(mock.approve).toEqual(['vip-a']);
-
-  await rowB.getByRole('button', { name: 'Từ chối' }).click();
-  const dialog = page.locator('dialog.aai-reject-dialog[open]');
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('heading', { name: 'Từ chối đơn VIP' })).toBeVisible();
-  await expect(dialog.getByLabel('Lý do')).toBeFocused();
-  await dialog.getByRole('button', { name: 'Từ chối đơn' }).click();
-  await expect(dialog.locator('#aai-reject-error')).toHaveText('Hãy ghi lý do cho VIP.');
-  expect(mock.reject).toEqual([]);
-  // Cancelling leaves the order untouched.
-  await dialog.getByRole('button', { name: 'Hủy' }).click();
-  await expect(page.locator('dialog.aai-reject-dialog')).toHaveCount(0);
-  await expect(rowB.locator('[data-order-status]')).toHaveText('Chờ admin duyệt');
-
-  await rowB.getByRole('button', { name: 'Từ chối' }).click();
-  await page.locator('dialog.aai-reject-dialog[open]').getByLabel('Lý do').fill('Ý tưởng trùng vụ tuần trước.');
-  await page.locator('dialog.aai-reject-dialog[open]').getByRole('button', { name: 'Từ chối đơn' }).click();
-  await expect(page.locator('dialog.aai-reject-dialog')).toHaveCount(0);
-  await expect(rowB.locator('[data-order-status]')).toHaveText('Đã từ chối');
-  expect(mock.reject).toEqual([{ id: 'vip-b', body: { reason: 'Ý tưởng trùng vụ tuần trước.' } }]);
-  expect(mock.dialogs).toEqual([]);
-  expect(mock.errors).toEqual([]);
-});
-
-test('fast review mode shortens the review steps to two, full mode brings back five', async ({ page }) => {
-  const mock = await setUp(page, 'ADMIN');
-  await open(page);
-  const steps = page.locator('#ai-review-steps li');
-  await expect(steps).toHaveCount(5);
-  await expect(page.locator('#ai-review-note')).toBeHidden();
-  await page.locator('[data-field="reviewMode"] label', { hasText: 'Nhanh' }).click();
-  await expect(steps).toHaveText(['1Duyệt sự thật vụ án', '2Chơi thử bản cuối rồi xuất bản']);
-  await expect(page.locator('#ai-review-note')).toBeVisible();
-  await page.locator('[data-field="reviewMode"] label', { hasText: 'Đầy đủ 4 cổng' }).click();
-  await expect(steps).toHaveCount(5);
+  await expect(page.locator('.bpa-rim')).toHaveCount(0, { timeout: 15_000 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await page.getByRole('radio', { name: /Dễ/ }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('radio', { name: /Trung bình/ })).toBeChecked();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('radio', { name: /Khó/ })).toBeChecked();
+  await page.locator('#ai-more > summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#ai-pixellab-cap')).toBeVisible();
+  // The three level cards stack, and the bar stays inside the screen.
+  const boxes = await page.locator('.aai-level').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+  for (let index = 1; index < boxes.length; index += 1) expect(boxes[index].y).toBeGreaterThanOrEqual(boxes[index - 1].bottom - 1);
+  const barBox = (await bar(page).boundingBox())!;
+  expect(barBox.x + barBox.width).toBeLessThanOrEqual(375);
+  await page.locator('#quick-create-btn').focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => mock.posts.length).toBe(1);
+  expect(mock.posts[0].difficulty).toBe('hard');
   expect(mock.errors).toEqual([]);
 });
 
 test('changing the world swaps the places and NPCs and drops the picks of the old world', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
   await open(page);
+  await openMore(page);
   await expect(page.locator('#ai-location-grid [data-location]')).toHaveCount(3);
   await page.locator('[data-location="h-map-ben-cang"]').click();
   await page.locator('[data-npc="h-npc-01-tho-dong-ho"]').click();
-  await expect(page.locator('[data-aai-sum="locations"]')).toHaveText('Bến cảng');
 
   await page.locator('[data-world="TAISHO_JAPAN"]').click();
   await expect(page.locator('#ai-location-grid [data-location]')).toHaveText(['Phố đèn lồng', 'Ga tàu điện', 'Nhà trà']);
   await expect(page.locator('#ai-npc-grid [data-npc]')).toHaveCount(8);
   await expect(page.locator('[data-location="h-map-ben-cang"]')).toHaveCount(0);
-  await expect(page.locator('[data-aai-sum="locations"]')).toHaveText('Để bot chọn trong thư viện');
   await expect(page.locator('#ai-location-count')).toHaveText('đã chọn 0');
   await expect(page.locator('#ai-npc-count')).toHaveText('0 / 7');
 
@@ -422,6 +423,7 @@ test('the idea stops at 2,000 characters with a counter, and character notes at 
   await expect(page.locator('#ai-idea-count')).toHaveClass(/is-near/);
   await expect(page.locator('[data-field-error="prompt"]')).toBeHidden();
 
+  await openMore(page);
   const notes = page.locator('#ai-character-notes');
   await notes.fill('c'.repeat(650));
   await expect(notes).toHaveValue('c'.repeat(600));
@@ -433,24 +435,25 @@ test('the idea stops at 2,000 characters with a counter, and character notes at 
   expect(mock.errors).toEqual([]);
 });
 
-test('NPC picks stop at suspects + 3, and fewer suspects than picks locks the order with a reason', async ({ page }) => {
+test('NPC picks stop at the level\'s suspects + 3, and a smaller level than the picks locks the order with a reason', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
   await open(page);
   await page.locator('[data-world="TAISHO_JAPAN"]').click();
-  await page.locator('[data-field="suspectCount"] label', { hasText: '3' }).click();
+  await page.locator('[data-level="easy"]').click();
+  await openMore(page);
   for (let index = 1; index <= 6; index += 1) await page.locator(`[data-npc="j-npc-0${index}"]`).click();
   await expect(page.locator('#ai-npc-count')).toHaveText('6 / 6');
   await page.locator('[data-npc="j-npc-07"]').click();
   await expect(page.locator('[data-npc="j-npc-07"]')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('[data-field-error="npcIds"]')).toHaveText('3 nghi phạm chỉ chọn được tối đa 6 NPC. Bỏ bớt một NPC hoặc tăng số nghi phạm.');
+  await expect(page.locator('[data-field-error="npcIds"]')).toHaveText('Mức Dễ chỉ chọn được tối đa 6 NPC. Bỏ bớt một NPC hoặc chọn mức lớn hơn.');
 
-  await page.locator('[data-field="suspectCount"] label', { hasText: '4' }).click();
+  await page.locator('[data-level="medium"]').click();
   await expect(page.locator('[data-field-error="npcIds"]')).toBeHidden();
   await page.locator('[data-npc="j-npc-07"]').click();
   await expect(page.locator('#ai-npc-count')).toHaveText('7 / 7');
   await expect(page.locator('#quick-create-btn')).toBeEnabled();
 
-  await page.locator('[data-field="suspectCount"] label', { hasText: '3' }).click();
+  await page.locator('[data-level="easy"]').click();
   await expect(page.locator('#ai-npc-count')).toHaveText('7 / 6');
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-submit-reason')).toContainText('Đang chọn 7 NPC');
@@ -471,10 +474,11 @@ test('a refusal of the server shows next to the field it names and keeps every c
   });
   // A second, unrelated console error (the 400 of the browser) is expected here.
   await open(page);
+  await openMore(page);
   await page.locator('[data-npc="h-npc-01-tho-dong-ho"]').click();
   await page.locator('[data-field="weather"] label', { hasText: 'Tuyết' }).click();
   await page.locator('#quick-create-btn').click();
-  await expect(page.locator('[data-field-error="npcIds"]')).toContainText('Quá nhiều NPC so với số nghi phạm');
+  await expect(page.locator('[data-field-error="npcIds"]')).toContainText('Quá nhiều NPC so với mức độ này');
   await expect(page.locator('[data-field-error="npcIds"]')).toContainText('npcIds accepts at most 7 entries');
   await expect(page.locator('[data-field="npcIds"]')).toHaveClass(/has-error/);
   await expect(page.locator('#ai-request-error')).toContainText('AI_ORDER_INVALID');
@@ -490,48 +494,42 @@ test('a refusal of the server shows next to the field it names and keeps every c
 test('the language switch translates every new label, and English orders read the same', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN', 'en');
   await open(page);
-  await expect(page.locator('.aai-form .adm-card-title')).toHaveText([
-    'World and locations', 'Generation preset', 'Language and case type', 'Characters', 'Atmosphere', 'Gameplay extension', 'Idea',
-  ]);
-  await expect(page.locator('#quick-create-btn')).toHaveText('Send order to Claude');
-  await expect(page.locator('.aai-summary')).toContainText('Max PixelLab generations');
-  await expect(page.locator('.aai-summary')).toContainText('Review mode');
+  await expect(page.locator('.aai-order-title')).toHaveText('Order a new case');
+  await expect(page.locator('[data-level="hard"]')).toContainText('40–60 min');
+  await expect(page.locator('#quick-create-btn')).toHaveText('Create case');
+  await expect(page.locator('#ai-more summary')).toContainText('More options');
   await expect(page.locator('[data-field="weather"]')).toContainText('Let the bot choose');
   await expect(page.locator('#ai-idea-count')).toHaveText('0 / 2,000 characters');
   await expect(page.locator('.aai-settings')).toContainText('Orders per VIP each week');
+  await openMore(page);
   await expect(page.locator('[data-location="h-map-ben-cang"]')).toHaveAttribute('aria-label', 'Harbour (Outdoor)');
 
   await page.locator('[data-ui-language="vi"]').click();
-  await expect(page.locator('.aai-form .adm-card-title').first()).toHaveText('Thế giới và địa điểm');
-  await expect(page.locator('#quick-create-btn')).toHaveText('Gửi đơn cho Claude');
-  await expect(page.locator('.aai-summary')).toContainText('Lượt PixelLab tối đa');
-  await expect(page.locator('.aai-summary')).toContainText('Chế độ duyệt');
+  await expect(page.locator('.aai-order-title')).toHaveText('Đặt vụ án mới');
+  await expect(page.locator('#quick-create-btn')).toHaveText('Tạo vụ án');
+  await expect(page.locator('#ai-more summary')).toContainText('Tùy chọn thêm');
   await expect(page.locator('[data-field="weather"]')).toContainText('Để bot chọn');
   await expect(page.locator('[data-location="h-map-ben-cang"]')).toHaveAttribute('aria-label', 'Bến cảng (Ngoài trời)');
   await page.locator('[data-ui-language="en"]').click();
-  await expect(page.locator('#quick-create-btn')).toHaveText('Send order to Claude');
+  await expect(page.locator('#quick-create-btn')).toHaveText('Create case');
   expect(mock.errors).toEqual([]);
 });
 
 for (const [width, height] of [[1440, 900], [390, 844]] as const) {
   for (const role of ['ADMIN', 'VIP'] as const) {
-    test(`${role} form fits ${width} px: cards stack, the summary sits ${width < 900 ? 'below' : 'beside'} them, nothing scrolls sideways`, async ({ page }) => {
+    test(`${role} form fits ${width} px: the level cards ${width < 640 ? 'stack' : 'sit in a row'}, nothing scrolls sideways`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       const mock = await setUp(page, role);
       await open(page);
-      const form = await page.locator('.aai-form').boundingBox();
-      const aside = await page.locator('.aai-aside').boundingBox();
-      if (width < 900) expect(aside!.y).toBeGreaterThanOrEqual(form!.y + form!.height - 1);
-      else expect(aside!.x).toBeGreaterThan(form!.x + form!.width - 1);
       // The lens transition of the router overflows for a moment on every page: measure after it is gone.
       await expect(page.locator('.bpa-rim')).toHaveCount(0, { timeout: 15_000 });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow).toBeLessThanOrEqual(0);
-      const cards = page.locator('.aai-form > .adm-card');
-      const boxes = await cards.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect()).map((box) => ({ x: box.x, y: box.y, w: box.width, b: box.bottom })));
-      for (let index = 1; index < boxes.length; index += 1) expect(boxes[index].y).toBeGreaterThanOrEqual(boxes[index - 1].b - 1);
-      for (const box of boxes) expect(box.x + box.w).toBeLessThanOrEqual(width);
-      // Touch targets: world and place cards are at least 44 px tall.
+      const boxes = await page.locator('.aai-level').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+      if (width < 640) for (let index = 1; index < boxes.length; index += 1) expect(boxes[index].y).toBeGreaterThanOrEqual(boxes[index - 1].bottom - 1);
+      else for (let index = 1; index < boxes.length; index += 1) expect(boxes[index].x).toBeGreaterThanOrEqual(boxes[index - 1].right - 1);
+      for (const box of boxes) expect(box.x + box.width).toBeLessThanOrEqual(width);
+      // Touch targets: world cards are at least 44 px tall.
       const worldHeight = (await page.locator('[data-world]').first().boundingBox())!.height;
       expect(worldHeight).toBeGreaterThanOrEqual(44);
       expect(mock.errors).toEqual([]);
@@ -612,6 +610,7 @@ test('a library that cannot be read leaves the order usable and offers a retry',
     ? route.fulfill({ status: 503, json: { success: false, message: 'Library down.' } })
     : route.fulfill({ json: envelope(LIBRARY) })));
   await page.goto('/admin/ai');
+  await page.locator('#ai-more > summary').click();
   await expect(page.locator('#ai-location-grid')).toContainText('Không tải được thư viện hình');
   await expect(page.locator('#quick-create-btn')).toBeEnabled();
   await page.locator('#ai-location-grid [data-reload-library]').click();

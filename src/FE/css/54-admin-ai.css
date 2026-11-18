@@ -863,6 +863,123 @@ body[data-area="admin"] #app .aai-quality p { font-size: 14px; }
   body[data-area="admin"] #app .aai-output .aai-crack { padding: 12px; }
 }
 
+/* ---------- form đặt vụ một trang (bố cục A, 19/11/2026) ---------- */
+
+.aai-order {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 30px 32px 28px;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r-card);
+  background: var(--adm-card);
+  box-shadow: var(--adm-shadow);
+}
+.aai-order-head { display: flex; flex-direction: column; gap: 4px; }
+body[data-area="admin"] #app .aai-order-title { margin: 0; font-family: var(--adm-display); font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--adm-navy); }
+.aai-order-lead { margin: 0; color: var(--adm-muted); font-size: 15px; }
+.aai-order-block { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.aai-kicker { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--adm-eyebrow); }
+
+.aai-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.aai-level {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1.5px solid var(--adm-line);
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-paper-2);
+  cursor: pointer;
+  transition: border-color var(--m-fast, .15s) ease, box-shadow var(--m-fast, .15s) ease;
+}
+.aai-level:hover { border-color: #b9a27a; }
+.aai-level:has(input:checked) { border-color: var(--adm-navy); background: var(--adm-card); box-shadow: 0 0 0 3px rgba(16, 32, 58, .08); }
+.aai-level:has(input:focus-visible) { outline: 2px solid var(--adm-gold); outline-offset: 2px; }
+.aai-level-name { font-family: var(--adm-display); font-size: 19px; font-weight: 700; color: var(--adm-navy); }
+.aai-level-time { font-size: 13px; font-weight: 600; color: var(--adm-gold-text); }
+.aai-level-facts { margin-top: 6px; font-size: 13px; line-height: 1.45; color: var(--adm-muted); }
+
+.aai-rows { display: flex; flex-direction: column; }
+.aai-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--adm-line-soft);
+}
+.aai-row:last-child { border-bottom: 1px solid var(--adm-line-soft); }
+.aai-row--top { align-items: start; }
+.aai-row > .aai-field-error { grid-column: 2; }
+.aai-row-label { font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.aai-row--top .aai-row-label { padding-top: 10px; }
+.aai-row-pair { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.aai-row-pair > div { display: contents; }
+.aai-row-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.aai-row-body .aai-inserts { align-items: center; }
+.aai-row-body .aai-counter { margin-left: auto; }
+
+.aai-more { border-radius: var(--adm-r-tile); background: var(--adm-paper-2); }
+.aai-more > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 14px 18px;
+  cursor: pointer;
+  list-style: none;
+}
+.aai-more > summary::-webkit-details-marker { display: none; }
+.aai-more > summary::before { content: '▸'; color: var(--adm-gold-text); transition: transform var(--m-fast, .15s) ease; }
+.aai-more[open] > summary::before { transform: rotate(90deg); }
+.aai-more > summary:focus-visible { outline: 2px solid var(--adm-gold); outline-offset: 2px; border-radius: var(--adm-r-tile); }
+.aai-more-title { font-weight: 600; color: var(--adm-navy); }
+.aai-more-sub { font-size: 13px; color: var(--adm-muted); }
+.aai-more-body { display: flex; flex-direction: column; gap: 22px; padding: 4px 18px 20px; }
+.aai-more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+
+.aai-order-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-navy);
+  color: var(--adm-on-navy);
+  box-shadow: 0 10px 28px rgba(16, 32, 58, .18);
+}
+.aai-order-bar-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.aai-order-bar-text strong { font-size: 15px; color: var(--adm-on-navy); overflow-wrap: anywhere; }
+.aai-order-bar-text > span { font-size: 13px; color: var(--adm-on-navy-2); }
+.aai-order-quota { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 0; font-size: 13px; color: var(--adm-on-navy-2); }
+.aai-order-quota svg { color: var(--adm-gold-bright); }
+.aai-order-quota [data-quota-remaining] { color: var(--adm-gold-bright); }
+.aai-order-quota [data-quota-remaining]:empty { display: none; }
+body[data-area="admin"] #app .aai-order-bar .btn.aai-create { flex: none; width: auto; }
+.aai-order > .aai-summary-block { margin-top: -14px; background: var(--adm-bad-bg); color: var(--adm-bad); }
+
+@media (max-width: 640px) {
+  .aai-order { padding: 22px 16px 18px; gap: 22px; }
+  body[data-area="admin"] #app .aai-order-title { font-size: 24px; }
+  .aai-levels { grid-template-columns: 1fr; }
+  .aai-order .aai-worlds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aai-row { grid-template-columns: 1fr; padding: 12px 0; }
+  .aai-row > .aai-field-error { grid-column: 1; }
+  .aai-row--top .aai-row-label { padding-top: 0; }
+  .aai-more > summary { padding: 14px; }
+  .aai-more-body { padding: 4px 14px 18px; }
+  .aai-more-grid { grid-template-columns: 1fr; }
+  .aai-order-bar { flex-direction: column; align-items: stretch; bottom: 8px; padding: 14px 16px; }
+  body[data-area="admin"] #app .aai-order-bar .btn.aai-create { width: 100%; }
+}
+
 /* màu hệ thống (Windows High Contrast): nền bị thay, nên trạng thái đã chọn cần viền */
 @media (forced-colors: active) {
   .aai-seg > label:has(input:checked),

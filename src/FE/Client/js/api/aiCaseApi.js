@@ -6,9 +6,12 @@ const newIdempotencyKey = () => typeof globalThis.crypto?.randomUUID === 'functi
 
 export const aiCaseApi = {
   capabilities: () => get('/api/admin/ai-cases/capabilities'),
-  /** `order` is the AiCaseOrder of the Claude bot (world, places, cast, weather...); left out when null. */
-  generate: (prompt, stageCount, difficulty, generationPreset = 'NORMAL_RANDOM', language = 'en', includeCrackTheLie = false, caseType = 'RANDOM', idempotencyKey = newIdempotencyKey(), creativeConstraints = null, order = null) =>
-    post('/api/admin/ai-cases', { prompt, stageCount, difficulty, generationPreset, language, includeCrackTheLie, caseType, creativeConstraints, ...(order ? { order } : {}) }, {
+  /**
+   * A new order: the level decides the size of the case on the server. Sends only
+   * { prompt, difficulty, leaning, language, caseType, order }: no stage count, preset or Crack toggle.
+   */
+  createOrder: ({ prompt = '', difficulty = 'medium', leaning = 'BALANCED', language = 'en', caseType = 'RANDOM', order }, idempotencyKey = newIdempotencyKey()) =>
+    post('/api/admin/ai-cases', { prompt, difficulty, leaning, language, caseType, order }, {
       headers: { 'Idempotency-Key': idempotencyKey },
     }),
   /** The caller's orders left this week (VIP); ADMIN answers { unlimited: true }. */

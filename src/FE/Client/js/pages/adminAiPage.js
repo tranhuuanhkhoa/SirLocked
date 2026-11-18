@@ -107,17 +107,23 @@ const CONTENT_LEVEL_HELP = {
   LIGHT: ['No blood or gore; fine for every age.', 'Không máu me; hợp mọi lứa tuổi.'],
   STANDARD: ['Classic detective fiction; violence is described, never dwelt on.', 'Trinh thám cổ điển; có nhắc tới bạo lực nhưng không tả kỹ.'],
 };
-const DIFFICULTIES = { easy: ['Easy', 'Dễ'], medium: ['Medium', 'Vừa'], hard: ['Hard', 'Khó'] };
-const STAGE_OPTIONS = [2, 3, 4, 5, 6];
-const PLAY_MINUTES = [20, 30, 45, 60];
-const SUSPECT_OPTIONS = [3, 4, 5, 6];
+/** Difficulty levels of a new order (the numbers come from the server: capabilities.difficultyProfiles). */
+const LEVEL_NAMES = { easy: ['Easy', 'Dễ'], medium: ['Medium', 'Trung bình'], hard: ['Hard', 'Khó'] };
+/** The same numbers as AiDifficultyProfiles on the server, used only when capabilities could not be read. */
+const DEFAULT_LEVELS = [
+  { difficulty: 'easy', playMinutes: { min: 10, max: 15 }, estimatedMinutes: 12, scenes: { min: 2, max: 3 }, suspects: 3, cracks: 1, puzzles: { min: 1, max: 2 }, redHerrings: { min: 0, max: 1 }, requiredEvidence: 2, pixelLab: { newWorld: { min: 60, max: 120 }, libraryWorld: { min: 10, max: 40 } } },
+  { difficulty: 'medium', playMinutes: { min: 20, max: 30 }, estimatedMinutes: 25, scenes: { min: 4, max: 5 }, suspects: 4, cracks: 2, puzzles: { min: 2, max: 3 }, redHerrings: { min: 1, max: 2 }, requiredEvidence: 3, pixelLab: { newWorld: { min: 150, max: 220 }, libraryWorld: { min: 30, max: 80 } } },
+  { difficulty: 'hard', playMinutes: { min: 40, max: 60 }, estimatedMinutes: 50, scenes: { min: 6, max: 8 }, suspects: 5, cracks: 3, puzzles: { min: 4, max: 6 }, redHerrings: { min: 2, max: 3 }, requiredEvidence: 4, pixelLab: { newWorld: { min: 300, max: 450 }, libraryWorld: { min: 60, max: 150 } } },
+];
+/** "Thiên về": leans the level's puzzle and dialogue counts, never past its range. */
+const LEANINGS = { BALANCED: ['Balanced', 'Cân bằng'], PUZZLE: ['More puzzles', 'Giải đố nhiều hơn'], DIALOGUE: ['More dialogue', 'Hội thoại nhiều hơn'] };
 /** PixelLab generations the bot may spend on new pictures; -1 means no fixed cap (the bot asks above 60), 0 the library only. */
 const PIXELLAB_CAPS = [-1, 0, 30, 60, 100];
 function pixelLabCapLabel(cap) {
   if (cap < 0) return tr('Unlimited', 'Không giới hạn');
   return cap === 0 ? tr('Library only', 'Chỉ thư viện') : tr(`Up to ${cap}`, `Tối đa ${cap}`);
 }
-const REVIEW_MODES = { FULL: ['Full · 4 gates', 'Đầy đủ 4 cổng'], FAST: ['Fast · 2 reviews', 'Nhanh · duyệt 2 lần'] };
+const REVIEW_MODES = { FULL: ['Every gate', 'Duyệt từng cổng'], FAST: ['Fast review', 'Duyệt nhanh'] };
 /** Chips that start a line of the idea, so a creator remembers what a good brief covers. */
 const IDEA_HINTS = {
   victim: ['Victim', 'Nạn nhân'],
@@ -130,52 +136,28 @@ const MAX_CHARACTER_NOTES = 600;
 /** The server takes at most 12 library keys per list, and suspects + 3 NPCs. */
 const MAX_LOCATIONS = 12;
 const EXTRA_NPCS = 3;
-/** What the server forces per preset (AiCaseService.ApplyPresetDefaults): the form only offers these. */
-const PRESET_LIMITS = {
-  NORMAL_RANDOM: { stages: [2, 6], difficulties: ['easy', 'medium', 'hard'] },
-  FULL_FEATURE: { stages: [6, 6], difficulties: ['hard'] },
-  SHORT_DEMO: { stages: [2, 2], difficulties: ['easy'] },
-  PUZZLE_HEAVY: { stages: [5, 6], difficulties: ['hard'] },
-  DIALOGUE_HEAVY: { stages: [5, 6], difficulties: ['medium', 'hard'] },
-};
 /** Order fields the server can name in an error (errors.field = "order.<name>"), mapped to the form field that shows it. */
 const ORDER_ERROR_FIELDS = {
-  world: 'world', locationids: 'locationIds', npcids: 'npcIds', suspectcount: 'suspectCount', characternotes: 'characterNotes',
-  weather: 'weather', timeofday: 'timeOfDay', playminutes: 'playMinutes', contentlevel: 'contentLevel',
-  pixellabcap: 'pixelLabCap', reviewmode: 'reviewMode', prompt: 'prompt', stagecount: 'stageCount', difficulty: 'difficulty',
+  world: 'world', locationids: 'locationIds', npcids: 'npcIds', characternotes: 'characterNotes',
+  weather: 'weather', timeofday: 'timeOfDay', contentlevel: 'contentLevel',
+  pixellabcap: 'pixelLabCap', reviewmode: 'reviewMode', prompt: 'prompt', difficulty: 'difficulty', leaning: 'leaning',
 };
 /** What a creator reads under a refused field; the server's own words follow it. */
 const FIELD_ERROR_LABELS = {
   world: ['Pick one of the four worlds.', 'Hãy chọn một trong bốn thế giới.'],
   locationIds: ['Pick at most 12 places from the library.', 'Chỉ chọn tối đa 12 địa điểm trong thư viện.'],
-  npcIds: ['Too many NPCs for the number of suspects (suspects + 3 at most).', 'Quá nhiều NPC so với số nghi phạm (tối đa số nghi phạm + 3).'],
-  suspectCount: ['Suspects must be 3 to 6.', 'Số nghi phạm phải từ 3 đến 6.'],
+  npcIds: ['Too many NPCs for this level (its suspects + 3 at most).', 'Quá nhiều NPC so với mức độ này (tối đa số nghi phạm của mức + 3).'],
   characterNotes: ['Character notes are limited to 600 characters.', 'Mô tả nhân vật tối đa 600 ký tự.'],
   weather: ['Pick a weather from the list.', 'Hãy chọn thời tiết trong danh sách.'],
   timeOfDay: ['Pick a time of day from the list.', 'Hãy chọn thời điểm trong danh sách.'],
-  playMinutes: ['Play time must be 20, 30, 45 or 60 minutes.', 'Thời lượng chơi phải là 20, 30, 45 hoặc 60 phút.'],
+  difficulty: ['Pick Easy, Medium or Hard.', 'Hãy chọn Dễ, Trung bình hoặc Khó.'],
+  leaning: ['Pick Balanced, More puzzles or More dialogue.', 'Hãy chọn Cân bằng, Giải đố nhiều hơn hoặc Hội thoại nhiều hơn.'],
   contentLevel: ['Pick Light or Standard.', 'Hãy chọn Nhẹ hoặc Thường.'],
   pixelLabCap: ['Pick library only, 30, 60 or 100 generations.', 'Hãy chọn chỉ thư viện, 30, 60 hoặc 100 lượt.'],
   reviewMode: ['Pick full or fast review.', 'Hãy chọn duyệt đầy đủ hoặc nhanh.'],
   prompt: ['The idea is limited to 2,000 characters.', 'Ý tưởng tối đa 2.000 ký tự.'],
-  stageCount: ['Pick a number of stages this preset allows.', 'Hãy chọn số chặng mà cấu hình này cho phép.'],
-  difficulty: ['Pick a difficulty this preset allows.', 'Hãy chọn độ khó mà cấu hình này cho phép.'],
 };
 
-const CREATIVE_TONES = {
-  classic_mystery: ['Classic mystery', 'Bí ẩn cổ điển'],
-  tense: ['Tense', 'Căng thẳng'],
-  melancholic: ['Melancholic', 'U buồn'],
-  light_humor: ['Light humor', 'Hài nhẹ'],
-};
-const CREATIVE_MECHANICS = {
-  timeline: ['Timeline reconstruction', 'Đối chiếu dòng thời gian'],
-  physical_trace: ['Physical trace', 'Dấu vết vật lý'],
-  object_switch: ['Object switch', 'Hoán đổi vật thể'],
-  access_opportunity: ['Access and opportunity', 'Quyền tiếp cận và cơ hội'],
-  observability: ['Sight and sound observability', 'Khả năng quan sát'],
-  custody: ['Document custody', 'Chuỗi bàn giao tài liệu'],
-};
 
 function caseTypeLabel(caseType) {
   const labels = CASE_TYPES[caseType];
@@ -190,56 +172,8 @@ function caseTypeShortLabel(caseType) {
   return labels ? tr(labels[0], labels[1]) : caseTypeLabel(caseType);
 }
 
-/** The first sentence of a preset description: the preset cards show it, the summary card shows all of it. */
-function firstSentence(text) {
-  return String(text).match(/^.*?\.(?=\s|$)/)?.[0] ?? text;
-}
-
-/** The manual gates every AI draft passes after creation, in order (the "review steps" card). */
-const REVIEW_STEPS = [
-  ['Approve the premise', 'Duyệt tiền đề'],
-  ['Approve the case truth', 'Duyệt sự thật vụ án'],
-  ['Approve the full logic', 'Duyệt logic đầy đủ'],
-  ['Approve the layout', 'Duyệt bố cục'],
-  ['Publish', 'Xuất bản'],
-];
-/** Fast mode (ADMIN only): the bot passes the premise, logic and layout gates itself; a person still checks two things. */
-const FAST_REVIEW_STEPS = [
-  ['Approve the case truth', 'Duyệt sự thật vụ án'],
-  ['Play the test run, then publish', 'Chơi thử bản cuối rồi xuất bản'],
-];
-
 const GATE_PASS_ICON = icon('check', 16);
 const GATE_FAIL_ICON = icon('x', 16);
-
-function legacyCrackBudget(presetKey) {
-  switch (presetKey) {
-    case 'SHORT_DEMO':
-      return '1 Crack · 1 camera-containing Crack';
-    case 'FULL_FEATURE':
-      return '5–6 Cracks · camera quota: 2 when using 5, 2–3 when using 6';
-    default:
-      return '3–4 Cracks · camera quota: 1 when using 3, 2 when using 4';
-  }
-}
-const DEFAULT_CRACK_BUDGETS = {
-  SHORT_DEMO: { minCracks: 1, maxCracks: 1, minTestimonies: 2, maxTestimonies: 4, minEvidence: 3, maxEvidence: 6, targetTestimonies: 2, targetEvidence: 3, maxPairsPerCrack: 12, maxPairsPerCase: 12 },
-  NORMAL_RANDOM: { minCracks: 1, maxCracks: 2, minTestimonies: 2, maxTestimonies: 4, minEvidence: 3, maxEvidence: 6, targetTestimonies: 3, targetEvidence: 3, maxPairsPerCrack: 18, maxPairsPerCase: 30 },
-  PUZZLE_HEAVY: { minCracks: 1, maxCracks: 2, minTestimonies: 2, maxTestimonies: 4, minEvidence: 3, maxEvidence: 6, targetTestimonies: 2, targetEvidence: 4, maxPairsPerCrack: 18, maxPairsPerCase: 30 },
-  DIALOGUE_HEAVY: { minCracks: 1, maxCracks: 2, minTestimonies: 2, maxTestimonies: 4, minEvidence: 3, maxEvidence: 6, targetTestimonies: 4, targetEvidence: 3, maxPairsPerCrack: 18, maxPairsPerCase: 30 },
-  FULL_FEATURE: { minCracks: 2, maxCracks: 3, minTestimonies: 2, maxTestimonies: 4, minEvidence: 3, maxEvidence: 6, targetTestimonies: 3, targetEvidence: 5, maxPairsPerCrack: 24, maxPairsPerCase: 60 },
-};
-
-function crackBudget(presetKey, budgets = {}) {
-  const budget = budgets?.[presetKey] || DEFAULT_CRACK_BUDGETS[presetKey];
-  if (!budget) return tr('Crack budget is unavailable for this preset.', 'Không có ngân sách Crack cho cấu hình này.');
-  const crackCount = budget.minCracks === budget.maxCracks
-    ? `${budget.minCracks} Crack`
-    : `${budget.minCracks}–${budget.maxCracks} Cracks`;
-  return `${crackCount} · ${tr('target', 'mục tiêu')} ${budget.targetTestimonies}T × ${budget.targetEvidence}E · ` +
-    `${budget.minTestimonies}–${budget.maxTestimonies}T / ${budget.minEvidence}–${budget.maxEvidence}E · ` +
-    `${tr('max', 'tối đa')} ${budget.maxPairsPerCrack} ${tr('pairs/Crack', 'cặp/Crack')}, ${budget.maxPairsPerCase}/${tr('case', 'vụ')}`;
-}
 
 const REASON_LABELS = {
   DIRECT_NEGATION: ['Direct negation', 'Phủ định trực tiếp'],
@@ -458,31 +392,27 @@ export async function renderAdminAiPage(app) {
   const isVip = !isAdmin && session.isVip();
   const readStored = (key) => { try { return window.localStorage.getItem(key); } catch { return null; } };
   const storedCaseType = readStored('sirlocked.aiCaseType');
-  // The order being written. Defaults are what Yen settled on: Hang Duong, the bot picks weather and time, light
-  // content, 30 PixelLab generations, all four review gates. Only the case language and type are remembered.
+  // The order being written: Medium, Hang Duong, the bot picks weather and time, light content, no fixed PixelLab cap,
+  // every review gate. Only the case language and type are remembered.
   const form = {
-    preset: 'NORMAL_RANDOM',
-    stageCount: PRESETS.NORMAL_RANDOM.stageCount,
-    difficulty: PRESETS.NORMAL_RANDOM.difficulty,
-    playMinutes: 30,
+    difficulty: 'medium',
+    leaning: 'BALANCED',
     language: readStored('sirlocked.aiCaseLanguage') === 'vi' ? 'vi' : 'en',
     caseType: CASE_TYPES[storedCaseType] ? storedCaseType : 'RANDOM',
     contentLevel: 'LIGHT',
     world: WORLDS[0].id,
     locationIds: [],
     locationKind: '',
-    suspectCount: 4,
     npcIds: [],
     characterNotes: '',
     weather: 'AUTO',
     timeOfDay: 'AUTO',
-    tone: '',
-    includeCrack: false,
     idea: '',
-    mechanic: '',
     pixelLabCap: -1,
     reviewMode: 'FULL',
   };
+  // "Tùy chọn thêm" stays open or closed for the rest of the visit.
+  let moreOpen = (() => { try { return window.sessionStorage.getItem('sirlocked.aiOrderMore') === '1'; } catch { return false; } })();
   /** Messages shown under a field: the server's refusal of the last order, or a limit the creator just ran into. */
   let fieldErrors = {};
   let library = [];
@@ -553,8 +483,9 @@ export async function renderAdminAiPage(app) {
   draw();
 
   function creationBlocked() {
-    return Boolean(capabilitiesError) || capabilities.canCreateDraft === false
-      || (form.includeCrack && Array.isArray(capabilities.v3CreationBlockers) && capabilities.canCreateV3Draft === false);
+    // Every new order has Crack the Lie, so the V3 blockers apply to every order.
+    return Boolean(capabilities.canCreateDraft === false) || Boolean(capabilitiesError)
+      || (Array.isArray(capabilities.v3CreationBlockers) && capabilities.canCreateV3Draft === false);
   }
 
   /** Why the order cannot be sent yet, beyond server readiness (shown in the summary next to the button). */
@@ -564,11 +495,11 @@ export async function renderAdminAiPage(app) {
         `You have used all ${quota.weeklyLimit} orders of this week. A new week starts on Monday (Vietnam time).`,
         `Bạn đã dùng hết ${quota.weeklyLimit} đơn của tuần này. Tuần mới bắt đầu từ thứ Hai (giờ Việt Nam).`);
     }
-    const npcLimit = form.suspectCount + EXTRA_NPCS;
+    const npcLimit = level().suspects + EXTRA_NPCS;
     if (form.npcIds.length > npcLimit) {
       return tr(
-        `${form.npcIds.length} NPCs are picked but ${form.suspectCount} suspects allow at most ${npcLimit}. Remove some or add suspects.`,
-        `Đang chọn ${form.npcIds.length} NPC, nhưng ${form.suspectCount} nghi phạm chỉ cho tối đa ${npcLimit}. Bỏ bớt NPC hoặc tăng số nghi phạm.`);
+        `${form.npcIds.length} NPCs are picked but ${levelName()} allows at most ${npcLimit}. Remove some or pick a larger level.`,
+        `Đang chọn ${form.npcIds.length} NPC, nhưng mức ${levelName()} chỉ cho tối đa ${npcLimit}. Bỏ bớt NPC hoặc chọn mức lớn hơn.`);
     }
     return '';
   }
@@ -588,7 +519,7 @@ export async function renderAdminAiPage(app) {
   function renderCreationStatus() {
     const slot = app.querySelector('#ai-creation-status');
     if (!slot) return;
-    const blockers = form.includeCrack && Array.isArray(capabilities.v3CreationBlockers)
+    const blockers = Array.isArray(capabilities.v3CreationBlockers) && capabilities.v3CreationBlockers.length
       ? capabilities.v3CreationBlockers : capabilities.creationBlockers || [];
     const errorMarkup = (error) => `<p>${escapeHtml(aiErrorText(error))}</p>${error?.code || error?.errors?.code ? `<small>${tr('Code', 'Mã lỗi')}: <code>${escapeHtml(error.code || error.errors.code)}</code></small>` : ''}`;
     // Built as a list so an empty slot stays truly empty (and takes no room in the page).
@@ -770,7 +701,7 @@ export async function renderAdminAiPage(app) {
   function draftRow(d) {
     const title = d.caseTitle || d.storyPreview?.title || '(preview)';
     const prompt = d.prompt || 'AI-generated original mystery';
-    const preset = presetLabel(d.settings?.generationPreset);
+    const preset = draftScopeLabel(d);
     const language = d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English';
     const effectiveCaseType = d.storyDiversity?.caseType || d.settings?.caseType;
     const presetMeta = [d.order?.world ? worldLabel(d.order.world) : '', effectiveCaseType ? caseTypeLabel(effectiveCaseType) : '', language].filter(Boolean).join(' · ');
@@ -879,22 +810,40 @@ export async function renderAdminAiPage(app) {
     }).join(', ');
   }
 
-  function presetLimitText(presetKey) {
-    if (presetKey === 'NORMAL_RANDOM') return tr('Choose 2–6 stages and any difficulty.', 'Tự chọn 2–6 chặng và độ khó.');
-    const limits = PRESET_LIMITS[presetKey] || PRESET_LIMITS.NORMAL_RANDOM;
-    const stages = limits.stages[0] === limits.stages[1] ? `${limits.stages[0]}` : `${limits.stages[0]}–${limits.stages[1]}`;
-    const difficulties = limits.difficulties.map((value) => pairLabel(DIFFICULTIES, value)).join(tr(' or ', ' hoặc '));
-    return tr(`This preset needs ${stages} stages and ${difficulties} difficulty.`, `Cấu hình này cần ${stages} chặng, độ khó ${difficulties}.`);
+  /** The three levels: the server's numbers (capabilities), or the same numbers built in. */
+  function levels() {
+    const fromServer = capabilities.difficultyProfiles;
+    return Array.isArray(fromServer) && fromServer.length === 3 ? fromServer : DEFAULT_LEVELS;
   }
 
-  function charactersSummary() {
-    const suspects = tr(`${form.suspectCount} suspects`, `${form.suspectCount} nghi phạm`);
-    return form.npcIds.length ? `${suspects} · ${namesOf(form.npcIds)}` : `${suspects} · ${tr('bot casts NPCs', 'bot chọn NPC')}`;
+  function level(key = form.difficulty) {
+    return levels().find((item) => item.difficulty === key) || levels()[1];
   }
 
-  function reviewStepsHtml() {
-    const steps = form.reviewMode === 'FAST' ? FAST_REVIEW_STEPS : REVIEW_STEPS;
-    return steps.map(([en, vi], index) => `<li data-review-step><span class="aai-flow-num${index === steps.length - 1 ? ' aai-flow-num--ok' : ''}" aria-hidden="true">${index + 1}</span>${escapeHtml(tr(en, vi))}</li>`).join('');
+  function levelName(key = form.difficulty) {
+    return pairLabel(LEVEL_NAMES, key, key);
+  }
+
+  /** "2–3", or "3" when both ends match. A declaration (not a const) because the first draw runs above this line. */
+  function span(range) {
+    return range.min === range.max ? `${range.min}` : `${range.min}–${range.max}`;
+  }
+
+  function levelFacts(item) {
+    return tr(
+      `${span(item.scenes)} scenes · ${item.suspects} suspects · ${item.cracks} ${plural(item.cracks, 'confrontation', 'confrontations')} · ${span(item.puzzles)} puzzles`,
+      `${span(item.scenes)} cảnh · ${item.suspects} nghi phạm · ${item.cracks} đối chất · ${span(item.puzzles)} câu đố`);
+  }
+
+  /** PixelLab generations a case of this level and world usually needs (a new world draws everything). */
+  function pixelLabEstimate() {
+    const item = level();
+    return form.world === NEW_WORLD ? item.pixelLab.newWorld : item.pixelLab.libraryWorld;
+  }
+
+  /** "Medium" for a new draft, the old preset name for a draft created before levels existed. */
+  function draftScopeLabel(d) {
+    return d?.settings?.pipelineVersion ? levelName(d.settings.difficulty) : presetLabel(d?.settings?.generationPreset);
   }
 
   function vipQuotaText() {
@@ -986,253 +935,153 @@ export async function renderAdminAiPage(app) {
    * The order form: numbered cards on the left (world first, as in plan section 6), the navy summary with
    * "Send order to Claude" and the review steps on the right; below 900 px the summary drops under the cards.
    */
+  /**
+   * The order form, one page (layout A of the 2026-11-19 design): the level decides the size of the case, then the
+   * world, the case type, the atmosphere, what it leans towards and the idea. Rarely used options fold away under
+   * "More options"; the navy bar at the bottom says what will be ordered and sends it.
+   */
   function creationLayout() {
-    const presetKey = PRESETS[form.preset] ? form.preset : 'NORMAL_RANDOM';
-    const limits = PRESET_LIMITS[presetKey];
-    const v3Enabled = Boolean(capabilities.aiCaseV3PresetEnabled);
-    let stepNumber = 0;
-    const stepHead = (id, title) => `
-      <div class="aai-step-head">
-        <span class="aai-step-num" aria-hidden="true">${String(++stepNumber).padStart(2, '0')}</span>
-        <h2 class="adm-card-title" id="${id}">${escapeHtml(title)}</h2>
-      </div>`;
-    // The <select>s of preset, language and case type stay the source of truth (tests and the redraw read them); the
-    // cards, segments and pills are the visible radio controls kept in sync with them.
-    const hiddenSelect = (id, options) => `<select id="${id}" class="aai-sr" tabindex="-1" aria-hidden="true">${options}</select>`;
-    const radioSeg = (name, labelledBy, options, current, { compact = false, disabled = () => false, describedBy = '', navy = false } = {}) => `
-      <div class="aai-seg${compact ? ' aai-seg--compact' : ''}${navy ? ' aai-seg--navy' : ''}" role="radiogroup" aria-labelledby="${labelledBy}"${describedBy ? ` aria-describedby="${describedBy}"` : ''}>
-        ${options.map(([value, label]) => `<label><input type="radio" class="aai-sr" name="${name}" value="${escapeHtml(value)}" ${String(current) === String(value) ? 'checked' : ''} ${disabled(value) ? 'disabled' : ''}><span>${escapeHtml(label)}</span></label>`).join('')}
-      </div>`;
-    const radioChips = (name, labelledBy, table, current, describedBy = '') => `
-      <div class="aai-chips" role="radiogroup" aria-labelledby="${labelledBy}"${describedBy ? ` aria-describedby="${describedBy}"` : ''}>
+    const radioChips = (name, labelledBy, table, current) => `
+      <div class="aai-chips" role="radiogroup" aria-labelledby="${labelledBy}">
         ${Object.entries(table).map(([value, labels]) => `<label class="aai-chip"><input type="radio" class="aai-sr" name="${name}" value="${value}" ${current === value ? 'checked' : ''}><span>${escapeHtml(tr(labels[0], labels[1]))}</span></label>`).join('')}
       </div>`;
-    const lockField = (id, label, table, current) => `
-      <div class="aai-field">
-        <label class="aai-label" for="${id}">${label}</label>
-        <select class="field-input" id="${id}"><option value="">${tr('Automatic', 'Tự động')}</option>${Object.entries(table).map(([value, labels]) => `<option value="${value}" ${current === value ? 'selected' : ''}>${escapeHtml(tr(labels[0], labels[1]))}</option>`).join('')}</select>
+    const radioSeg = (name, labelledBy, options, current, describedBy = '') => `
+      <div class="aai-seg" role="radiogroup" aria-labelledby="${labelledBy}"${describedBy ? ` aria-describedby="${describedBy}"` : ''}>
+        ${options.map(([value, label]) => `<label><input type="radio" class="aai-sr" name="${name}" value="${escapeHtml(value)}" ${String(current) === String(value) ? 'checked' : ''}><span>${escapeHtml(label)}</span></label>`).join('')}
       </div>`;
-    const summaryRow = (key, label) => `<dt>${label}</dt><dd data-aai-sum="${key}"></dd>`;
+    const caseTypeChips = { ...CASE_TYPES, RANDOM: CASE_TYPE_SHORT.RANDOM };
 
-    const worldCard = `
-      <section class="adm-card aai-step" aria-labelledby="aai-world-title">
-        ${stepHead('aai-world-title', tr('World and locations', 'Thế giới và địa điểm'))}
-        <div class="aai-field" data-field="world">
-          <div class="aai-worlds" role="group" aria-label="${tr('World', 'Thế giới')}">
-            ${WORLDS.map(worldButton).join('')}
-          </div>
-          ${fieldErrorHtml('world')}
-          <p class="aai-hint" id="ai-new-world-note"${form.world === NEW_WORLD ? '' : ' hidden'}>${icon('compass', 16)}<span>${tr('A new world has no pictures yet: the bot reports how many PixelLab generations it needs before it starts drawing.', 'Thế giới mới chưa có ảnh: bot sẽ báo số lượt cần vẽ trước khi làm.')}</span></p>
-        </div>
-        <div class="aai-field" data-field="locationIds">
-          <div class="aai-field-row">
-            <h3 class="aai-field-title" id="aai-locations-title">${tr('Locations', 'Địa điểm')} <span class="aai-count" id="ai-location-count"></span></h3>
-            <div class="aai-filter" role="group" aria-label="${tr('Show locations', 'Hiện địa điểm')}">
-              ${[['', tr('All', 'Tất cả')], ...Object.entries(LOCATION_KINDS).map(([value, labels]) => [value, tr(labels[0], labels[1])])]
-                .map(([value, label]) => `<button type="button" class="aai-filter-btn" data-location-kind="${value}" aria-pressed="${form.locationKind === value}">${escapeHtml(label)}</button>`).join('')}
-            </div>
-          </div>
-          <div class="aai-pick-grid" id="ai-location-grid" role="group" aria-labelledby="aai-locations-title" aria-describedby="ai-location-help">${locationGridHtml()}</div>
-          <p class="aai-help" id="ai-location-help">${tr(`Pick several places (up to ${MAX_LOCATIONS}). Leave it empty and the bot picks from this world's library. Replaces the old setting lock.`, `Chọn nhiều nơi (tối đa ${MAX_LOCATIONS}). Để trống thì bot tự chọn trong thư viện của thế giới này. Thay cho ô Khóa bối cảnh cũ.`)}</p>
-          ${fieldErrorHtml('locationIds')}
-        </div>
-      </section>`;
-
-    const presetCard = `
-      <section class="adm-card aai-step" aria-labelledby="aai-preset-title">
-        ${stepHead('aai-preset-title', tr('Generation preset', 'Cấu hình tạo'))}
-        ${hiddenSelect('ai-preset-select', Object.keys(PRESETS).map((value) => `<option value="${value}" ${presetKey === value ? 'selected' : ''}>${escapeHtml(presetLabel(value))}</option>`).join(''))}
-        <div class="aai-presets" role="radiogroup" aria-labelledby="aai-preset-title">
-          ${Object.keys(PRESETS).map((value) => `
-            <label class="aai-preset">
-              <span class="aai-preset-top">
-                <strong id="aai-preset-${value}">${escapeHtml(presetLabel(value))}</strong>
-                <input type="radio" name="aai-preset" value="${value}" ${presetKey === value ? 'checked' : ''} aria-labelledby="aai-preset-${value}" aria-describedby="aai-preset-${value}-desc">
-              </span>
-              <span class="aai-preset-desc" id="aai-preset-${value}-desc">${escapeHtml(firstSentence(presetDescription(value)))}</span>
-            </label>`).join('')}
-        </div>
-        <div class="aai-config-grid">
-          <div class="aai-field" data-field="stageCount">
-            <h3 class="aai-field-title" id="aai-stages-title">${tr('Stages', 'Số chặng')}</h3>
-            ${radioSeg('aai-stages', 'aai-stages-title', STAGE_OPTIONS.map((count) => [count, String(count)]), form.stageCount, {
-    compact: true, describedBy: 'ai-preset-limits', disabled: (count) => count < limits.stages[0] || count > limits.stages[1],
-  })}
-            ${fieldErrorHtml('stageCount')}
-          </div>
-          <div class="aai-field" data-field="difficulty">
-            <h3 class="aai-field-title" id="aai-difficulty-title">${tr('Difficulty', 'Độ khó')}</h3>
-            ${radioSeg('aai-difficulty', 'aai-difficulty-title', Object.entries(DIFFICULTIES).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.difficulty, {
-    compact: true, describedBy: 'ai-preset-limits', disabled: (value) => !limits.difficulties.includes(value),
-  })}
-            ${fieldErrorHtml('difficulty')}
-          </div>
-          <div class="aai-field" data-field="playMinutes">
-            <h3 class="aai-field-title" id="aai-minutes-title">${tr('Play time', 'Thời lượng chơi')}</h3>
-            ${radioSeg('aai-minutes', 'aai-minutes-title', PLAY_MINUTES.map((minutes) => [minutes, tr(`${minutes} min`, `${minutes} phút`)]), form.playMinutes, { compact: true })}
-            ${fieldErrorHtml('playMinutes')}
-          </div>
-        </div>
-        <p class="aai-help" id="ai-preset-limits">${escapeHtml(presetLimitText(presetKey))}</p>
-      </section>`;
-
-    const languageCard = `
-      <section class="adm-card aai-step aai-step--language" aria-labelledby="aai-language-title">
-        ${stepHead('aai-language-title', tr('Language and case type', 'Ngôn ngữ và loại vụ án'))}
-        <div class="aai-field">
-          <h3 class="aai-field-title" id="aai-language-field-title">${tr('Case language', 'Ngôn ngữ nội dung vụ án')}</h3>
-          ${hiddenSelect('ai-language-select', `<option value="en" ${form.language === 'en' ? 'selected' : ''}>English</option><option value="vi" ${form.language === 'vi' ? 'selected' : ''}>Tiếng Việt</option>`)}
-          <div class="aai-seg" role="radiogroup" aria-labelledby="aai-language-field-title" aria-describedby="aai-language-help">
-            ${[['en', 'English'], ['vi', 'Tiếng Việt']].map(([value, label]) => `<label><input type="radio" class="aai-sr" name="aai-language" value="${value}" ${form.language === value ? 'checked' : ''}><span>${label}</span></label>`).join('')}
-          </div>
-          <p class="aai-help" id="aai-language-help">${tr('Applies to the title, story, clues, dialogue, and ending.', 'Áp dụng cho tiêu đề, cốt truyện, manh mối, hội thoại và kết thúc.')}</p>
-        </div>
-        <div class="aai-field">
-          <h3 class="aai-field-title" id="aai-case-type-title">${tr('Case type', 'Loại vụ án')}</h3>
-          ${hiddenSelect('ai-case-type-select', Object.keys(CASE_TYPES).map((value) => `<option value="${value}" ${form.caseType === value ? 'selected' : ''}>${escapeHtml(caseTypeLabel(value))}</option>`).join(''))}
-          <div class="aai-chips" role="radiogroup" aria-labelledby="aai-case-type-title" aria-describedby="aai-case-type-help">
-            ${Object.keys(CASE_TYPES).map((value) => `<label class="aai-chip"><input type="radio" class="aai-sr" name="aai-case-type" value="${value}" ${form.caseType === value ? 'checked' : ''}><span>${escapeHtml(caseTypeShortLabel(value))}</span></label>`).join('')}
-          </div>
-          <p class="aai-help" id="aai-case-type-help">${tr('Separate from gameplay preset. Random receives a new server diversity seed for every draft.', 'Tách biệt với cấu hình gameplay. Chế độ ngẫu nhiên nhận seed đa dạng mới từ máy chủ cho mỗi bản nháp.')}</p>
-        </div>
-        <div class="aai-field" data-field="contentLevel">
-          <h3 class="aai-field-title" id="aai-content-title">${tr('Content level', 'Mức nội dung')}</h3>
-          ${radioSeg('aai-content', 'aai-content-title', Object.entries(CONTENT_LEVELS).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.contentLevel, { describedBy: 'ai-content-help' })}
-          <p class="aai-help" id="ai-content-help">${escapeHtml(pairLabel(CONTENT_LEVEL_HELP, form.contentLevel))}</p>
-          ${fieldErrorHtml('contentLevel')}
-        </div>
-      </section>`;
-
-    const charactersCard = `
-      <section class="adm-card aai-step" aria-labelledby="aai-characters-title">
-        ${stepHead('aai-characters-title', tr('Characters', 'Nhân vật'))}
-        <div class="aai-field" data-field="suspectCount">
-          <h3 class="aai-field-title" id="aai-suspects-title">${tr('Suspects', 'Số nghi phạm')}</h3>
-          ${radioSeg('aai-suspects', 'aai-suspects-title', SUSPECT_OPTIONS.map((count) => [count, String(count)]), form.suspectCount, { compact: true })}
-          ${fieldErrorHtml('suspectCount')}
-        </div>
-        <div class="aai-field" data-field="npcIds">
-          <div class="aai-field-row">
-            <h3 class="aai-field-title" id="aai-npcs-title">${tr('NPCs from the library', 'NPC từ thư viện')} <span class="aai-count" id="ai-npc-count"></span></h3>
-          </div>
-          <div class="aai-pick-grid aai-pick-grid--npc" id="ai-npc-grid" role="group" aria-labelledby="aai-npcs-title" aria-describedby="ai-npc-help">${npcGridHtml()}</div>
-          <p class="aai-help" id="ai-npc-help"></p>
-          ${fieldErrorHtml('npcIds')}
-        </div>
-        <div class="aai-field" data-field="characterNotes">
-          <label class="aai-label" for="ai-character-notes">${tr('Characters you would like', 'Mô tả nhân vật muốn có')} <span>${tr('(optional)', '(không bắt buộc)')}</span></label>
-          <textarea class="field-input aai-textarea" id="ai-character-notes" rows="3" maxlength="${MAX_CHARACTER_NOTES}" aria-describedby="ai-character-notes-count" placeholder="${escapeHtml(tr('For example: an old watchmaker who knows everyone; a returning detective from an earlier case.', 'Ví dụ: một ông thợ đồng hồ quen cả phố; thám tử của vụ trước quay lại.'))}">${escapeHtml(form.characterNotes)}</textarea>
-          <p class="aai-counter" id="ai-character-notes-count"></p>
-          ${fieldErrorHtml('characterNotes')}
-        </div>
-      </section>`;
-
-    const atmosphereCard = `
-      <section class="adm-card aai-step" aria-labelledby="aai-atmosphere-title">
-        ${stepHead('aai-atmosphere-title', tr('Atmosphere', 'Không khí'))}
-        <div class="aai-field" data-field="weather">
-          <h3 class="aai-field-title" id="aai-weather-title">${tr('Weather', 'Thời tiết')}</h3>
-          ${radioChips('aai-weather', 'aai-weather-title', WEATHERS, form.weather, 'ai-weather-help')}
-          <p class="aai-help" id="ai-weather-help">${tr('Outdoor scenes only: indoors there is never weather.', 'Chỉ áp cho cảnh ngoài trời; trong nhà không có thời tiết.')}</p>
-          ${fieldErrorHtml('weather')}
-        </div>
-        <div class="aai-field" data-field="timeOfDay">
-          <h3 class="aai-field-title" id="aai-time-title">${tr('Time of day', 'Thời điểm')}</h3>
-          ${radioChips('aai-time', 'aai-time-title', TIMES_OF_DAY, form.timeOfDay)}
-          ${fieldErrorHtml('timeOfDay')}
-        </div>
-        <div class="aai-locks">${lockField('ai-tone-lock', tr('Tone lock', 'Khóa sắc thái'), CREATIVE_TONES, form.tone)}</div>
-      </section>`;
-
-    const crackCard = v3Enabled ? `
-      <section class="adm-card aai-step" aria-labelledby="aai-extension-title">
-        ${stepHead('aai-extension-title', tr('Gameplay extension', 'Mở rộng gameplay'))}
-        <label class="aai-toggle" for="ai-include-crack">
-          <span class="aai-toggle-text">
-            <span class="aai-toggle-name"><strong id="aai-crack-title">${tr('Include Crack the Lie', 'Thêm Phá Vỡ Lời Dối')}</strong><span id="ai-crack-badge" class="adm-pill aai-v3-pill">V3 · Crack</span></span>
-            <span class="aai-toggle-desc" id="aai-crack-desc">${tr('Keeps the selected V2 preset and adds private evidence, testimony and Joint Review loops.', 'Giữ preset V2 đã chọn và thêm chứng cứ riêng, lời khai riêng cùng vòng Cùng xem xét.')}</span>
-            <span class="aai-mono" id="ai-crack-budget">${crackBudget(presetKey, capabilities.crackBudgets)}</span>
-          </span>
-          <input id="ai-include-crack" class="aai-switch" type="checkbox" role="switch" ${form.includeCrack ? 'checked' : ''} aria-labelledby="aai-crack-title" aria-describedby="aai-crack-desc ai-crack-budget">
-        </label>
-        ${!capabilities.gameplayV3Enabled
-          ? `<div class="notice notice-bad"><strong>${tr('V3 gameplay is disabled.', 'Gameplay V3 đang tắt.')}</strong> ${tr('V3 drafts can be generated and reviewed, but cannot be published.', 'Có thể tạo và kiểm tra bản nháp V3 nhưng chưa thể xuất bản.')}</div>`
-          : ''}
-      </section>` : '';
-
-    const ideaCard = `
-      <section class="adm-card aai-step" aria-labelledby="aai-idea-title">
-        ${stepHead('aai-idea-title', tr('Idea', 'Ý tưởng'))}
-        <div class="aai-field" data-field="prompt">
-          <label class="aai-label" for="ai-creator-direction">${tr('Your idea for the case', 'Ý tưởng cho vụ án')} <span>${tr('(optional)', '(không bắt buộc)')}</span></label>
-          <div class="aai-inserts" role="group" aria-label="${tr('Add a prompt line to the idea', 'Chèn gợi ý vào ý tưởng')}">
-            ${Object.entries(IDEA_HINTS).map(([key, labels]) => `<button type="button" class="aai-insert" data-idea-hint="${key}">${icon('plus', 14)}<span>${escapeHtml(tr(labels[0], labels[1]))}</span></button>`).join('')}
-          </div>
-          <textarea class="field-input aai-textarea" id="ai-creator-direction" rows="5" maxlength="${MAX_IDEA}" aria-describedby="ai-idea-count" placeholder="${escapeHtml(tr('A geisha goes missing on the night of the lantern festival… Do not include the Crack answer.', 'Một geisha mất tích đêm lễ hội đèn lồng… Không tiết lộ đáp án Crack.'))}">${escapeHtml(form.idea)}</textarea>
-          <p class="aai-counter" id="ai-idea-count"></p>
-          ${fieldErrorHtml('prompt')}
-        </div>
-        <div class="aai-locks">${lockField('ai-mechanic-lock', tr('Investigation mechanic', 'Khóa cơ chế điều tra'), CREATIVE_MECHANICS, form.mechanic)}</div>
-      </section>`;
-
-    const adminControls = `
-      <div class="aai-summary-controls">
-        <div class="aai-summary-field" data-field="pixelLabCap">
-          <label for="ai-pixellab-cap">${tr('Max PixelLab generations', 'Lượt PixelLab tối đa')}</label>
-          <select class="aai-summary-select" id="ai-pixellab-cap">${PIXELLAB_CAPS.map((cap) => `<option value="${cap}" ${form.pixelLabCap === cap ? 'selected' : ''}>${escapeHtml(pixelLabCapLabel(cap))}</option>`).join('')}</select>
-          ${fieldErrorHtml('pixelLabCap')}
-        </div>
-        <div class="aai-summary-field" data-field="reviewMode">
-          <span class="aai-summary-label" id="aai-review-title">${tr('Review mode', 'Chế độ duyệt')}</span>
-          ${radioSeg('aai-review', 'aai-review-title', Object.entries(REVIEW_MODES).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.reviewMode, { navy: true })}
-          ${fieldErrorHtml('reviewMode')}
-        </div>
-      </div>`;
+    const levelCards = levels().map((item) => `
+      <label class="aai-level${item.difficulty === form.difficulty ? ' is-picked' : ''}" data-level="${escapeHtml(item.difficulty)}">
+        <input type="radio" class="aai-sr" name="aai-level" value="${escapeHtml(item.difficulty)}" ${item.difficulty === form.difficulty ? 'checked' : ''}>
+        <span class="aai-level-name">${escapeHtml(levelName(item.difficulty))}</span>
+        <span class="aai-level-time">${escapeHtml(tr(`${span(item.playMinutes)} min`, `${span(item.playMinutes)} phút`))}</span>
+        <span class="aai-level-facts">${escapeHtml(levelFacts(item))}</span>
+      </label>`).join('');
 
     const vipQuota = isVip ? `
-      <div class="aai-summary-vip" id="ai-vip-quota">
-        <p>${icon('clock', 16)}<span>${tr('Your order goes straight to Claude.', 'Đơn vào hàng chờ Claude ngay.')}</span></p>
-        <p data-quota-remaining>${escapeHtml(vipQuotaText())}</p>
-      </div>` : '';
-
-    const aside = `
-      <aside class="aai-aside" aria-labelledby="aai-summary-title">
-        <section class="aai-summary">
-          <h2 id="aai-summary-title">${tr('Draft to create', 'Bản nháp sẽ tạo')}</h2>
-          <dl class="aai-summary-list">
-            ${summaryRow('world', tr('World', 'Thế giới'))}
-            ${summaryRow('locations', tr('Locations', 'Địa điểm'))}
-            ${summaryRow('preset', tr('Preset', 'Cấu hình'))}
-            ${summaryRow('scope', tr('Scope', 'Quy mô'))}
-            ${summaryRow('language', tr('Language', 'Ngôn ngữ'))}
-            ${summaryRow('caseType', tr('Case type', 'Loại vụ án'))}
-            ${summaryRow('content', tr('Content', 'Nội dung'))}
-            ${summaryRow('characters', tr('Characters', 'Nhân vật'))}
-            ${summaryRow('weather', tr('Weather', 'Thời tiết'))}
-            ${summaryRow('timeOfDay', tr('Time of day', 'Thời điểm'))}
-            ${summaryRow('tone', tr('Tone', 'Sắc thái'))}
-            ${v3Enabled ? summaryRow('crack', tr('Crack the Lie', 'Phá Vỡ Lời Dối')) : ''}
-            ${summaryRow('mechanic', tr('Mechanic', 'Cơ chế'))}
-          </dl>
-          ${adminControls}
-          ${vipQuota}
-          <p class="aai-summary-note" id="ai-preset-help">${escapeHtml(presetDescription(presetKey))}</p>
-          <p class="aai-summary-block" id="ai-submit-reason" hidden></p>
-          <button class="btn aai-create" type="button" id="quick-create-btn" ${submitDisabled() ? 'disabled' : ''}>${icon('sparkle', 18)}<span data-create-label>${creating ? tr('Sending order…', 'Đang gửi đơn…') : tr('Send order to Claude', 'Gửi đơn cho Claude')}</span></button>
-        </section>
-        <section class="adm-card aai-flow" aria-labelledby="aai-flow-title">
-          <h2 class="aai-flow-title" id="aai-flow-title">${tr('Review steps after creation', 'Các bước duyệt sau khi tạo')}</h2>
-          <ol class="aai-flow-list" id="ai-review-steps">${reviewStepsHtml()}</ol>
-          <p class="aai-help" id="ai-review-note"${form.reviewMode === 'FAST' ? '' : ' hidden'}>${tr('Fast mode: the bot passes the premise, logic and layout gates itself when every check passes. The case truth is always reviewed by a person.', 'Chế độ nhanh: bot tự qua cổng tiền đề, logic và bố cục khi mọi kiểm tra đều đạt. Sự thật vụ án luôn do người duyệt.')}</p>
-        </section>
-        ${isAdmin ? settingsCardHtml() : ''}
-      </aside>`;
+      <p class="aai-order-quota" id="ai-vip-quota">${icon('clock', 16)}<span>${tr('Your order goes straight to Claude.', 'Đơn vào hàng chờ Claude ngay.')}</span> <strong data-quota-remaining>${escapeHtml(vipQuotaText())}</strong></p>` : '';
 
     return `
-      <div class="aai-layout">
-        <div class="aai-form">${worldCard}${presetCard}${languageCard}${charactersCard}${atmosphereCard}${crackCard}${ideaCard}</div>
-        ${aside}
-      </div>`;
+      <section class="aai-order" aria-labelledby="aai-order-title">
+        <header class="aai-order-head">
+          <h2 class="aai-order-title" id="aai-order-title">${tr('Order a new case', 'Đặt vụ án mới')}</h2>
+          <p class="aai-order-lead">${tr('Pick a level and a setting; the bot does the rest.', 'Chọn mức độ và bối cảnh, bot lo phần còn lại.')}</p>
+        </header>
+
+        <div class="aai-order-block" data-field="difficulty">
+          <p class="aai-kicker" id="aai-level-title">${tr('Level', 'Mức độ')}</p>
+          <div class="aai-levels" role="radiogroup" aria-labelledby="aai-level-title">${levelCards}</div>
+          ${fieldErrorHtml('difficulty')}
+        </div>
+
+        <div class="aai-order-block" data-field="world">
+          <p class="aai-kicker" id="aai-world-title">${tr('World', 'Thế giới')}</p>
+          <div class="aai-worlds" role="group" aria-labelledby="aai-world-title">${WORLDS.map(worldButton).join('')}</div>
+          <p class="aai-hint" id="ai-new-world-note"${form.world === NEW_WORLD ? '' : ' hidden'}>${icon('compass', 16)}<span>${tr('A new world has no pictures yet: the bot reports how many PixelLab generations it needs before it starts drawing.', 'Thế giới mới chưa có ảnh: bot sẽ báo số lượt cần vẽ trước khi làm.')}</span></p>
+          ${fieldErrorHtml('world')}
+        </div>
+
+        <div class="aai-rows">
+          <div class="aai-row" data-field="caseType">
+            <span class="aai-row-label" id="aai-case-type-title">${tr('Case type', 'Loại vụ')}</span>
+            ${radioChips('aai-case-type', 'aai-case-type-title', caseTypeChips, form.caseType)}
+          </div>
+          <div class="aai-row" data-field="weather">
+            <span class="aai-row-label" id="aai-weather-title">${tr('Atmosphere', 'Không khí')}</span>
+            <div class="aai-row-pair">
+              ${radioChips('aai-weather', 'aai-weather-title', WEATHERS, form.weather)}
+              <div data-field="timeOfDay">
+                <span class="aai-sr" id="aai-time-title">${tr('Time of day', 'Thời điểm')}</span>
+                ${radioChips('aai-time', 'aai-time-title', TIMES_OF_DAY, form.timeOfDay)}
+              </div>
+            </div>
+            ${fieldErrorHtml('weather')}${fieldErrorHtml('timeOfDay')}
+          </div>
+          <div class="aai-row" data-field="leaning">
+            <span class="aai-row-label" id="aai-leaning-title">${tr('Leans towards', 'Thiên về')}</span>
+            ${radioChips('aai-leaning', 'aai-leaning-title', LEANINGS, form.leaning)}
+            ${fieldErrorHtml('leaning')}
+          </div>
+          <div class="aai-row aai-row--top" data-field="prompt">
+            <label class="aai-row-label" for="ai-creator-direction">${tr('Idea', 'Ý tưởng')}</label>
+            <div class="aai-row-body">
+              <textarea class="field-input aai-textarea" id="ai-creator-direction" rows="3" maxlength="${MAX_IDEA}" aria-describedby="ai-idea-count" placeholder="${escapeHtml(tr('A night cable car arrives empty at the lower station…', 'Một chuyến cáp treo đêm tuyết, toa đến ga dưới thì trống…'))}">${escapeHtml(form.idea)}</textarea>
+              <div class="aai-inserts" role="group" aria-label="${tr('Add a prompt line to the idea', 'Chèn gợi ý vào ý tưởng')}">
+                ${Object.entries(IDEA_HINTS).map(([key, labels]) => `<button type="button" class="aai-insert" data-idea-hint="${key}">${icon('plus', 14)}<span>${escapeHtml(tr(labels[0], labels[1]))}</span></button>`).join('')}
+                <span class="aai-counter" id="ai-idea-count"></span>
+              </div>
+              ${fieldErrorHtml('prompt')}
+            </div>
+          </div>
+        </div>
+
+        <details class="aai-more" id="ai-more"${moreOpen ? ' open' : ''}>
+          <summary><span class="aai-more-title">${tr('More options', 'Tùy chọn thêm')}</span><span class="aai-more-sub">${tr('library places and NPCs, character notes, language, content, PixelLab, review', 'địa điểm và NPC có sẵn, ghi chú nhân vật, ngôn ngữ, mức nội dung, lượt PixelLab, cách duyệt')}</span></summary>
+          <div class="aai-more-body">
+            <div class="aai-field" data-field="locationIds">
+              <div class="aai-field-row">
+                <h3 class="aai-field-title" id="aai-locations-title">${tr('Places from the library', 'Địa điểm có sẵn')} <span class="aai-count" id="ai-location-count"></span></h3>
+                <div class="aai-filter" role="group" aria-label="${tr('Show locations', 'Hiện địa điểm')}">
+                  ${[['', tr('All', 'Tất cả')], ...Object.entries(LOCATION_KINDS).map(([value, labels]) => [value, tr(labels[0], labels[1])])]
+    .map(([value, label]) => `<button type="button" class="aai-filter-btn" data-location-kind="${value}" aria-pressed="${form.locationKind === value}">${escapeHtml(label)}</button>`).join('')}
+                </div>
+              </div>
+              <div class="aai-pick-grid" id="ai-location-grid" role="group" aria-labelledby="aai-locations-title" aria-describedby="ai-location-help">${locationGridHtml()}</div>
+              <p class="aai-help" id="ai-location-help">${tr(`Up to ${MAX_LOCATIONS} places. Leave it empty and the bot picks from this world's library.`, `Tối đa ${MAX_LOCATIONS} địa điểm. Để trống thì bot tự chọn trong thư viện của thế giới này.`)}</p>
+              ${fieldErrorHtml('locationIds')}
+            </div>
+            <div class="aai-field" data-field="npcIds">
+              <div class="aai-field-row">
+                <h3 class="aai-field-title" id="aai-npcs-title">${tr('NPCs from the library', 'NPC có sẵn')} <span class="aai-count" id="ai-npc-count"></span></h3>
+              </div>
+              <div class="aai-pick-grid aai-pick-grid--npc" id="ai-npc-grid" role="group" aria-labelledby="aai-npcs-title" aria-describedby="ai-npc-help">${npcGridHtml()}</div>
+              <p class="aai-help" id="ai-npc-help"></p>
+              ${fieldErrorHtml('npcIds')}
+            </div>
+            <div class="aai-field" data-field="characterNotes">
+              <label class="aai-label" for="ai-character-notes">${tr('Characters you would like', 'Ghi chú nhân vật')} <span>${tr('(optional)', '(không bắt buộc)')}</span></label>
+              <textarea class="field-input aai-textarea" id="ai-character-notes" rows="2" maxlength="${MAX_CHARACTER_NOTES}" aria-describedby="ai-character-notes-count" placeholder="${escapeHtml(tr('For example: an old watchmaker who knows everyone.', 'Ví dụ: một ông thợ đồng hồ già biết mọi chuyện.'))}">${escapeHtml(form.characterNotes)}</textarea>
+              <p class="aai-counter" id="ai-character-notes-count"></p>
+              ${fieldErrorHtml('characterNotes')}
+            </div>
+            <div class="aai-more-grid">
+              <div class="aai-field">
+                <span class="aai-label" id="aai-language-title">${tr('Case language', 'Ngôn ngữ vụ án')}</span>
+                ${radioSeg('aai-language', 'aai-language-title', [['en', 'English'], ['vi', 'Tiếng Việt']], form.language)}
+              </div>
+              <div class="aai-field" data-field="contentLevel">
+                <span class="aai-label" id="aai-content-title">${tr('Content', 'Mức nội dung')}</span>
+                ${radioSeg('aai-content', 'aai-content-title', Object.entries(CONTENT_LEVELS).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.contentLevel, 'ai-content-help')}
+                <p class="aai-help" id="ai-content-help">${escapeHtml(pairLabel(CONTENT_LEVEL_HELP, form.contentLevel))}</p>
+                ${fieldErrorHtml('contentLevel')}
+              </div>
+              <div class="aai-field" data-field="pixelLabCap">
+                <label class="aai-label" for="ai-pixellab-cap">${tr('PixelLab generations', 'Lượt PixelLab')}</label>
+                <select class="field-input" id="ai-pixellab-cap">${PIXELLAB_CAPS.map((cap) => `<option value="${cap}" ${form.pixelLabCap === cap ? 'selected' : ''}>${escapeHtml(pixelLabCapLabel(cap))}</option>`).join('')}</select>
+                ${fieldErrorHtml('pixelLabCap')}
+              </div>
+              <div class="aai-field" data-field="reviewMode">
+                <span class="aai-label" id="aai-review-title">${tr('Review', 'Cách duyệt')}</span>
+                ${radioSeg('aai-review', 'aai-review-title', Object.entries(REVIEW_MODES).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.reviewMode, 'ai-review-note')}
+                <p class="aai-help" id="ai-review-note">${tr('Fast: the bot passes the premise, logic and layout gates itself when every check passes. The truth is always reviewed by a person.', 'Nhanh: bot tự qua cổng tiền đề, logic và bố cục khi mọi kiểm tra đều đạt. Sự thật luôn do người duyệt.')}</p>
+                ${fieldErrorHtml('reviewMode')}
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="aai-order-bar">
+          <div class="aai-order-bar-text">
+            <strong data-aai-sum="headline"></strong>
+            <span data-aai-sum="facts"></span>
+            ${vipQuota}
+          </div>
+          <button class="btn aai-create" type="button" id="quick-create-btn" ${submitDisabled() ? 'disabled' : ''}>${icon('sparkle', 18)}<span data-create-label>${creating ? tr('Sending order…', 'Đang gửi đơn…') : tr('Create case', 'Tạo vụ án')}</span></button>
+        </div>
+        <p class="aai-summary-block" id="ai-submit-reason" hidden></p>
+      </section>
+      ${isAdmin ? settingsCardHtml() : ''}`;
   }
 
   // ---------------------------------------------------------------- keeping the form, summary and limits in step
@@ -1252,24 +1101,24 @@ export async function renderAdminAiPage(app) {
     if (fieldErrors[field]) setFieldError(field, '');
   }
 
+  /** The navy bar under the form: what will be ordered, how long it plays, what it usually costs. */
   function syncSummary() {
     const set = (key, text) => {
       const cell = app.querySelector(`[data-aai-sum="${key}"]`);
       if (cell) cell.textContent = text;
     };
-    set('world', worldLabel(form.world));
-    set('locations', form.locationIds.length ? namesOf(form.locationIds) : tr('Bot picks from the library', 'Để bot chọn trong thư viện'));
-    set('preset', presetLabel(form.preset));
-    set('scope', `${form.stageCount} ${tr(plural(form.stageCount, 'stage', 'stages'), 'chặng')} · ${pairLabel(DIFFICULTIES, form.difficulty)} · ${tr(`${form.playMinutes} min`, `${form.playMinutes} phút`)}`);
-    set('language', form.language === 'vi' ? 'Tiếng Việt' : 'English');
-    set('caseType', caseTypeShortLabel(form.caseType));
-    set('content', pairLabel(CONTENT_LEVELS, form.contentLevel));
-    set('characters', charactersSummary());
-    set('weather', pairLabel(WEATHERS, form.weather));
-    set('timeOfDay', pairLabel(TIMES_OF_DAY, form.timeOfDay));
-    set('tone', pairLabel(CREATIVE_TONES, form.tone, tr('Automatic', 'Tự động')));
-    set('crack', form.includeCrack ? tr('On', 'Bật') : tr('Off', 'Tắt'));
-    set('mechanic', pairLabel(CREATIVE_MECHANICS, form.mechanic, tr('Automatic', 'Tự động')));
+    const item = level();
+    set('headline', [levelName(), worldLabel(form.world), caseTypeShortLabel(form.caseType)].join(' · '));
+    const pictures = form.pixelLabCap === 0
+      ? tr('library pictures only', 'chỉ dùng hình thư viện')
+      : form.pixelLabCap > 0
+        ? tr(`up to ${form.pixelLabCap} PixelLab generations`, `tối đa ${form.pixelLabCap} lượt PixelLab`)
+        : tr(`about ${span(pixelLabEstimate())} PixelLab generations`, `ước ${span(pixelLabEstimate())} lượt PixelLab`);
+    set('facts', [
+      tr(`~${span(item.playMinutes)} min of play`, `~${span(item.playMinutes)} phút chơi`),
+      pictures,
+      pairLabel(REVIEW_MODES, form.reviewMode).toLowerCase(),
+    ].join(' · '));
   }
 
   function syncCounters() {
@@ -1286,7 +1135,7 @@ export async function renderAdminAiPage(app) {
 
   /** Counts beside the pickers, the NPC limit and its message, and whether the order can go. */
   function syncLimits() {
-    const npcLimit = form.suspectCount + EXTRA_NPCS;
+    const npcLimit = level().suspects + EXTRA_NPCS;
     const locationCount = app.querySelector('#ai-location-count');
     if (locationCount) locationCount.textContent = tr(`${form.locationIds.length} picked`, `đã chọn ${form.locationIds.length}`);
     const npcCount = app.querySelector('#ai-npc-count');
@@ -1294,14 +1143,14 @@ export async function renderAdminAiPage(app) {
     const npcHelp = app.querySelector('#ai-npc-help');
     if (npcHelp) {
       npcHelp.textContent = tr(
-        `Portraits of this world. Pick up to ${npcLimit} (suspects + ${EXTRA_NPCS}); leave it empty and the bot casts them.`,
-        `Chân dung của thế giới này. Chọn tối đa ${npcLimit} (số nghi phạm + ${EXTRA_NPCS}); để trống thì bot tự chọn.`);
+        `Portraits of this world. Pick up to ${npcLimit} (the level's ${level().suspects} suspects + ${EXTRA_NPCS}); leave it empty and the bot casts them.`,
+        `Chân dung của thế giới này. Chọn tối đa ${npcLimit} (${level().suspects} nghi phạm của mức + ${EXTRA_NPCS}); để trống thì bot tự chọn.`);
     }
     if (form.npcIds.length > npcLimit) {
       setFieldError('npcIds', tr(
-        `${form.npcIds.length} NPCs are picked but ${form.suspectCount} suspects allow ${npcLimit}. Remove some, or add suspects.`,
-        `Đang chọn ${form.npcIds.length} NPC, nhưng ${form.suspectCount} nghi phạm chỉ cho tối đa ${npcLimit}. Bỏ bớt NPC hoặc tăng số nghi phạm.`));
-    }
+        `${form.npcIds.length} NPCs are picked but ${levelName()} allows ${npcLimit}. Remove some, or pick a larger level.`,
+        `Đang chọn ${form.npcIds.length} NPC, nhưng mức ${levelName()} chỉ cho tối đa ${npcLimit}. Bỏ bớt NPC hoặc chọn mức lớn hơn.`));
+    } else clearFieldError('npcIds');
   }
 
   function syncSubmit() {
@@ -1366,11 +1215,11 @@ export async function renderAdminAiPage(app) {
   function toggleNpc(button) {
     const key = button.dataset.npc;
     const picked = form.npcIds.includes(key);
-    const limit = form.suspectCount + EXTRA_NPCS;
+    const limit = level().suspects + EXTRA_NPCS;
     if (!picked && form.npcIds.length >= limit) {
       setFieldError('npcIds', tr(
-        `${form.suspectCount} suspects allow at most ${limit} NPCs. Remove one, or add a suspect.`,
-        `${form.suspectCount} nghi phạm chỉ chọn được tối đa ${limit} NPC. Bỏ bớt một NPC hoặc tăng số nghi phạm.`));
+        `${levelName()} allows at most ${limit} NPCs. Remove one, or pick a larger level.`,
+        `Mức ${levelName()} chỉ chọn được tối đa ${limit} NPC. Bỏ bớt một NPC hoặc chọn mức lớn hơn.`));
       return;
     }
     form.npcIds = picked ? form.npcIds.filter((item) => item !== key) : [...form.npcIds, key];
@@ -1406,46 +1255,15 @@ export async function renderAdminAiPage(app) {
     syncCounters();
   }
 
-  /** The preset fixes stages and difficulty on the server: the form follows it so it never promises otherwise. */
-  function applyPreset(presetKey) {
-    const key = PRESETS[presetKey] ? presetKey : 'NORMAL_RANDOM';
-    form.preset = key;
-    form.stageCount = PRESETS[key].stageCount;
-    form.difficulty = PRESETS[key].difficulty;
-    const limits = PRESET_LIMITS[key];
-    app.querySelectorAll('input[name="aai-stages"]').forEach((radio) => {
-      const count = Number(radio.value);
-      radio.disabled = count < limits.stages[0] || count > limits.stages[1];
-      radio.checked = count === form.stageCount;
-    });
-    app.querySelectorAll('input[name="aai-difficulty"]').forEach((radio) => {
-      radio.disabled = !limits.difficulties.includes(radio.value);
-      radio.checked = radio.value === form.difficulty;
-    });
-    const help = app.querySelector('#ai-preset-limits');
-    if (help) help.textContent = presetLimitText(key);
-    clearFieldError('stageCount');
-    clearFieldError('difficulty');
-  }
-
-  function renderReviewSteps() {
-    const list = app.querySelector('#ai-review-steps');
-    if (list) list.innerHTML = reviewStepsHtml();
-    const note = app.querySelector('#ai-review-note');
-    if (note) note.hidden = form.reviewMode !== 'FAST';
-  }
-
-  /** The order as POST /api/admin/ai-cases expects it (AiCaseOrder). A VIP never sends the PixelLab cap or review mode. */
+  /** The order as POST /api/admin/ai-cases expects it (AiCaseOrder). Suspects and play time come from the level on the server. */
   function buildOrder() {
     const order = {
       world: form.world,
       locationIds: [...form.locationIds],
       npcIds: [...form.npcIds],
-      suspectCount: form.suspectCount,
       characterNotes: form.characterNotes.trim(),
       weather: form.weather,
       timeOfDay: form.timeOfDay,
-      playMinutes: form.playMinutes,
       contentLevel: form.contentLevel,
     };
     order.pixelLabCap = form.pixelLabCap;
@@ -1454,7 +1272,7 @@ export async function renderAdminAiPage(app) {
   }
 
   /**
-   * Puts the server's refusal next to the field it is about: `errors.field` ("order.suspectCount") for order errors,
+   * Puts the server's refusal next to the field it is about: `errors.field` ("order.world") for order errors,
    * or the keys of a model validation error ({ "Prompt": [...] }). Returns the fields it marked.
    */
   function showServerFieldErrors(error) {
@@ -1571,7 +1389,7 @@ export async function renderAdminAiPage(app) {
       </div>
       ${orderSummary(d)}
       ${decisionCards(d)}
-      <p class="aai-draft-meta">${tr('Preset', 'Cấu hình')}: ${escapeHtml(presetLabel(d.settings?.generationPreset))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</p>
+      <p class="aai-draft-meta">${d.settings?.pipelineVersion ? tr('Level', 'Mức độ') : tr('Preset', 'Cấu hình')}: ${escapeHtml(draftScopeLabel(d))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</p>
       ${codes.length ? `<ul class="aai-codes">${codes.map((line) => `<li>${line}</li>`).join('')}</ul>` : ''}
       ${failureBlock(d, generating)}
       ${cannotResume
@@ -2081,69 +1899,20 @@ export async function renderAdminAiPage(app) {
       const host = app.querySelector('[data-presentation-host]');
       if (host) disposePresentation = mountPresentationEditor(host, host.dataset.presentationHost);
     });
-    const presetSelect = qs('#ai-preset-select', app);
-    const languageSelect = qs('#ai-language-select', app);
-    const caseTypeSelect = qs('#ai-case-type-select', app);
-    const crackToggle = qs('#ai-include-crack', app);
-    const crackBudgetText = qs('#ai-crack-budget', app);
-    const presetHelp = qs('#ai-preset-help', app);
-    const layout = qs('.aai-layout', app);
-    const syncCrackProfile = () => {
-      const presetKey = PRESETS[form.preset] ? form.preset : 'NORMAL_RANDOM';
-      const confrontationHelp = presetKey === 'SHORT_DEMO'
-        ? form.includeCrack
-          ? tr('The one confrontation uses paired testimony and evidence through Crack the Lie; every other demo mechanic stays required.', 'Đối chất duy nhất dùng cặp lời khai và chứng cứ qua Phá Vỡ Lời Dối; các cơ chế thử còn lại vẫn bắt buộc.')
-          : tr('The one confrontation uses the standard flow. Crack the Lie remains optional.', 'Đối chất duy nhất dùng luồng thông thường. Phá Vỡ Lời Dối vẫn là lựa chọn tùy chọn.')
-        : form.includeCrack
-          ? tr('Crack the Lie will be added on top of this preset.', 'Crack the Lie sẽ được thêm trên cấu hình này.')
-          : '';
-      presetHelp.textContent = `${presetDescription(presetKey)}${confrontationHelp ? ` ${confrontationHelp}` : ''}`;
-      if (crackBudgetText) crackBudgetText.textContent = crackBudget(presetKey, capabilities.crackBudgets);
-      // The "V3 · Crack" pill names the feature and stays visible (as in the design); the switch shows the state.
-    };
-    syncCrackProfile();
-    presetSelect?.addEventListener('change', () => {
-      applyPreset(presetSelect.value);
-      syncCrackProfile();
+    const layout = qs('.aai-order', app);
+    const more = qs('#ai-more', app);
+    more?.addEventListener('toggle', () => {
+      moreOpen = more.open;
+      try { window.sessionStorage.setItem('sirlocked.aiOrderMore', moreOpen ? '1' : '0'); } catch { /* remembering is optional */ }
     });
-    crackToggle?.addEventListener('change', () => {
-      form.includeCrack = crackToggle.checked;
-      syncCrackProfile();
-      syncForm();
-      renderCreationStatus();
-    });
-    languageSelect?.addEventListener('change', () => {
-      form.language = languageSelect.value === 'vi' ? 'vi' : 'en';
-      try { window.localStorage.setItem('sirlocked.aiCaseLanguage', form.language); } catch { /* remembering is optional */ }
-    });
-    caseTypeSelect?.addEventListener('change', () => {
-      form.caseType = CASE_TYPES[caseTypeSelect.value] ? caseTypeSelect.value : 'RANDOM';
-      try { window.localStorage.setItem('sirlocked.aiCaseType', form.caseType); } catch { /* remembering is optional */ }
-    });
-
-    // The preset cards, language segment and case-type pills are radios mirroring the hidden <select>s:
-    // a radio sets its select and fires its "change" (so the handlers above run); a select change moves the radio.
-    for (const [select, name] of [[presetSelect, 'aai-preset'], [languageSelect, 'aai-language'], [caseTypeSelect, 'aai-case-type']]) {
-      if (!select) continue;
-      const radios = [...app.querySelectorAll(`input[type="radio"][name="${name}"]`)];
-      radios.forEach((radio) => radio.addEventListener('change', () => {
-        if (!radio.checked || select.value === radio.value) return;
-        select.value = radio.value;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      }));
-      select.addEventListener('change', () => {
-        radios.forEach((radio) => { radio.checked = radio.value === select.value; });
-        syncForm();
-      });
-    }
 
     // Every other control writes straight into `form`; one listener per event type covers the cards and the summary.
     const radioFields = {
-      'aai-stages': ['stageCount', Number],
-      'aai-difficulty': ['difficulty', String],
-      'aai-minutes': ['playMinutes', Number],
+      'aai-level': ['difficulty', String],
+      'aai-leaning': ['leaning', String],
+      'aai-language': ['language', String],
+      'aai-case-type': ['caseType', String],
       'aai-content': ['contentLevel', String],
-      'aai-suspects': ['suspectCount', Number],
       'aai-weather': ['weather', String],
       'aai-time': ['timeOfDay', String],
       'aai-review': ['reviewMode', String],
@@ -2155,18 +1924,23 @@ export async function renderAdminAiPage(app) {
         const [key, cast] = radioFields[control.name];
         form[key] = cast(control.value);
         clearFieldError(key);
-        if (key === 'suspectCount' && form.npcIds.length <= form.suspectCount + EXTRA_NPCS) clearFieldError('npcIds');
+        if (key === 'language' || key === 'caseType') {
+          const storeKey = key === 'language' ? 'sirlocked.aiCaseLanguage' : 'sirlocked.aiCaseType';
+          try { window.localStorage.setItem(storeKey, form[key]); } catch { /* remembering is optional */ }
+        }
+        if (key === 'difficulty') {
+          app.querySelectorAll('[data-level]').forEach((card) => card.classList.toggle('is-picked', card.dataset.level === form.difficulty));
+          const help = app.querySelector('#ai-npc-help');
+          if (help) syncLimits();
+        }
         if (key === 'contentLevel') {
           const help = app.querySelector('#ai-content-help');
           if (help) help.textContent = pairLabel(CONTENT_LEVEL_HELP, form.contentLevel);
         }
-        if (key === 'reviewMode') renderReviewSteps();
         syncForm();
         return;
       }
-      if (control.id === 'ai-tone-lock') form.tone = control.value;
-      else if (control.id === 'ai-mechanic-lock') form.mechanic = control.value;
-      else if (control.id === 'ai-pixellab-cap') {
+      if (control.id === 'ai-pixellab-cap') {
         form.pixelLabCap = Number(control.value);
         clearFieldError('pixelLabCap');
       } else return;
@@ -2312,11 +2086,6 @@ export async function renderAdminAiPage(app) {
     return tr(preset.label, preset.labelVi);
   }
 
-  function presetDescription(value) {
-    const preset = PRESETS[value] ?? PRESETS.NORMAL_RANDOM;
-    return tr(preset.description, preset.descriptionVi);
-  }
-
   /** "Send order to Claude": the order goes into the queue (ADMIN) or waits for an admin (VIP). */
   async function submitOrder() {
     captureCreationForm();
@@ -2341,18 +2110,14 @@ export async function renderAdminAiPage(app) {
     startProgressClock();
 
     try {
-      const previewDraft = await aiCaseApi.generate(
-        form.idea.trim(),
-        form.stageCount,
-        form.difficulty,
-        form.preset,
-        form.language,
-        form.includeCrack,
-        form.caseType,
-        idempotencyKey,
-        // The setting lock is gone: places come from the world's library (order.locationIds).
-        { settingId: '', toneId: form.tone, investigationMechanicId: form.mechanic },
-        buildOrder());
+      const previewDraft = await aiCaseApi.createOrder({
+        prompt: form.idea.trim(),
+        difficulty: form.difficulty,
+        leaning: form.leaning,
+        language: form.language,
+        caseType: form.caseType,
+        order: buildOrder(),
+      }, idempotencyKey);
       activeDraftId = previewDraft.draftId;
       if (disposed || version !== runVersion) return;
       creating = false;
