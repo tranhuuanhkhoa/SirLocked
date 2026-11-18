@@ -202,6 +202,28 @@ public sealed class MongoWeeklyDropTests
     // ------------------------------------------------------------------ no chest
 
     [Fact]
+    public async Task Evaluate_OtherCaseAfterADrop_IsNotChallenge()
+    {
+        if (!Enabled) return;
+        await using var env = await DropEnv.CreateAsync();
+        await env.AddWeekAsync(ThisWeek, Challenge);
+        var user = await env.AddUserAsync();
+        var won = await env.AddResultAsync("room-1", Challenge, Now.AddMinutes(-10), score: 90, success: true, user);
+        var drops = env.Drops(new CryptoChestRandom());
+        Assert.Equal(WeeklyDropStatuses.Granted, await drops.EvaluatePlayerAsync(won, user, CancellationToken.None));
+
+        // An unrelated case later that week is not the challenge, not "already got this week's chest".
+        var other = await env.AddResultAsync("room-2", "case-other", Now.AddMinutes(-5), score: 100, success: true, user);
+        Assert.Equal(WeeklyDropStatuses.NotChallenge, await drops.EvaluatePlayerAsync(other, user, CancellationToken.None));
+        // Another challenge game is the one that is too late.
+        var again = await env.AddResultAsync("room-3", Challenge, Now.AddMinutes(-4), score: 100, success: true, user);
+        Assert.Equal(WeeklyDropStatuses.AlreadyThisWeek, await drops.EvaluatePlayerAsync(again, user, CancellationToken.None));
+
+        Assert.Equal("room-1", (await env.Store.WeeklyDrops.Find(FilterDefinition<WeeklyDrop>.Empty).SingleAsync()).RoomId);
+        Assert.Equal(1, await env.Store.Items.CountDocumentsAsync(i => i.Source == MarketItemSources.Weekly));
+    }
+
+    [Fact]
     public async Task Evaluate_OtherCase_IsNotChallenge()
     {
         if (!Enabled) return;

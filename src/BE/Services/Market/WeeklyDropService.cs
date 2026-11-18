@@ -90,8 +90,9 @@ public sealed class WeeklyDropService
 
     /// <summary>
     /// Whether this game drops this player's chest of the week, dropping it when it does. Safe to repeat and to run at the
-    /// same time as any other evaluation: the answer for a game that already dropped the chest is the drop's state, and
-    /// once the player has the week's chest any other game of that week is ALREADY_THIS_WEEK (checked before the case).
+    /// same time as any other evaluation: the answer for a game that already dropped the chest is the drop's state (even
+    /// after an admin changed the week's case), and once the player has the week's chest any other challenge game of that
+    /// week is ALREADY_THIS_WEEK while a game of another case stays NOT_CHALLENGE.
     /// Returns one of <see cref="WeeklyDropStatuses"/>.
     /// </summary>
     public async Task<string> EvaluatePlayerAsync(GameResult result, string userId, CancellationToken ct = default)
@@ -101,14 +102,16 @@ public sealed class WeeklyDropService
         var dropId = WeeklyDrop.IdOf(week.Key, userId);
 
         // 1. One drop per account per week, read first: this game's own drop is finished again and stays its answer even
-        //    if an admin changed the week's case since; another game's drop means this one is too late.
+        //    if an admin changed the week's case since.
         var existing = await FindDropAsync(dropId, ct);
-        if (existing is not null) return await AnswerForAsync(existing, result, ct);
+        if (existing is not null && existing.RoomId == result.RoomId) return StatusOf(await AdvanceAsync(existing, ct));
 
-        // 2. The challenge of that week.
+        // 2. The challenge of that week. A game of any other case is not the challenge, drop or no drop.
         var challenge = await ChallengeOfAsync(week, ct);
         if (challenge is null || string.IsNullOrEmpty(result.CaseId) || challenge.CaseId != result.CaseId)
             return WeeklyDropStatuses.NotChallenge;
+        // A challenge game after another game already dropped the week's chest is too late.
+        if (existing is not null) return WeeklyDropStatuses.AlreadyThisWeek;
 
         for (var attempt = 1; ; attempt++)
         {
@@ -162,7 +165,7 @@ public sealed class WeeklyDropService
         }
     }
 
-    /// <summary>The answer for a game when its player already has the week's drop: finished again if it is this game's, else too late.</summary>
+    /// <summary>The answer for a challenge game whose insert lost the race: finished again if the drop is this game's, else too late.</summary>
     private async Task<string> AnswerForAsync(WeeklyDrop drop, GameResult result, CancellationToken ct) =>
         drop.RoomId == result.RoomId ? StatusOf(await AdvanceAsync(drop, ct)) : WeeklyDropStatuses.AlreadyThisWeek;
 
