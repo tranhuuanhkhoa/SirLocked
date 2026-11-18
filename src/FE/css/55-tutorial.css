@@ -58,6 +58,9 @@
 /* ---------- "Đổi nhân vật": the tray tool that exists only in the tutorial room ---------- */
 .bpa-g-tool.tt-role-tool { color: var(--bpa-gold, #efd486); }
 .bpa-g-tool.tt-role-tool .tt-role-who { font-size: 9px; letter-spacing: .06em; opacity: .8; font-weight: 600; }
+/* Phones show the tray as icons only (.bpa-g-lbl is hidden there): the "Watson → Sherlock" line would stretch the tray
+   under the movement dock. The button keeps its name ("Đổi sang Sherlock") for screen readers. */
+@media (max-width: 900px) { .bpa-g-tool.tt-role-tool .tt-role-who { display: none; } }
 .bpa-g-tool.tt-role-tool.is-flash { animation: tt-role-flash .9s ease-in-out 2; }
 @keyframes tt-role-flash {
   50% { background: var(--bpa-gold, #efd486); color: var(--bpa-ink, #07111f); }

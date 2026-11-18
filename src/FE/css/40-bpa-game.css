@@ -2132,6 +2132,8 @@ body.game-page-active #toast-root > .toast.toast-show { transform: none; }
   .bpa-g-tools .game-coop-tools summary { flex: 1 1 0; min-width: 44px; padding: 8px 2px 6px; }
   .bpa-g-tools .game-coop-tools details,
   .bpa-g-tools .game-coop-tools > #game-role-guide-slot { flex: 1 1 0; min-width: 44px; }
+  /* One row: the co-op group shrinks with the other tools instead of wrapping (game-recovery.css wraps it). */
+  .point-game-phaser .bpa-g-tools .game-coop-tools { flex-wrap: nowrap; }
   .bpa-g-lbl { display: none; }
   .bpa-g-tools .game-audio-controls > summary { font-size: 0; gap: 0; }
   .bpa-g-sep { margin: 8px 0; }
@@ -2416,3 +2418,19 @@ body.game-page-active #toast-root > .toast.toast-show { transform: none; }
 .hint-pay-dialog h2 { margin: 0 0 8px; font-size: 18px; }
 .hint-pay-dialog p { margin: 0 0 16px; }
 .hint-pay-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+/* "Thoát": the tray's way out of a case, and its in-page confirmation (same paper card as the hint dialog). */
+.bpa-g-tool.bpa-g-leave:hover { background: rgba(158, 63, 42, .28); color: #f3c4b0; }
+.game-leave-dialog { box-sizing: border-box; width: min(440px, calc(100vw - 32px)); margin: auto; padding: 22px;
+  border: 1px solid var(--bpa-line, #c9b48a); border-radius: 12px; background: var(--bpa-paper, #f6efe1); color: var(--bpa-ink, #2b2116); }
+.game-leave-dialog::backdrop { background: rgba(10, 8, 6, .6); }
+.game-leave-dialog h2 { margin: 0 0 8px; color: inherit; font-family: var(--bpa-font-display); font-size: 21px; }
+.game-leave-dialog p { margin: 0 0 18px; line-height: 1.5; }
+.game-leave-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+/* Narrow phones: the tutorial tray holds eight tools with "Thoát"; 40px each keeps them on one row at 360px. */
+@media (max-width: 380px) {
+  .bpa-g-tool,
+  .bpa-g-tools .game-coop-tools summary,
+  .bpa-g-tools .game-coop-tools details,
+  .bpa-g-tools .game-coop-tools > #game-role-guide-slot { min-width: 40px; }
+}

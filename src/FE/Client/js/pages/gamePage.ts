@@ -34,6 +34,7 @@ import { blipDuration, type CharacterVoice } from '../game/atmosphere/blipCore.j
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
 import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
 import { withHintPayment, type HintPaymentChoice } from '../game/hintPayment';
+import { confirmLeaveGame } from '../game/leaveGame';
 import { renderOpenCoopTimeline, renderOpenCoopCrack, type OpenCoopContext, type OpenCoopEvidence, type OpenCoopTestimony, type TimelineView } from '../game/openCoopCaseFile';
 import { createCaseWall, renderOpenCoopShell, type BoardView, type ShellTab, type WallStatus } from '../game/openCoopWall';
 import {
@@ -4135,12 +4136,31 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       coop.classList.add('bpa-g-coop');
       tray.querySelector('.bpa-g-tools')?.append(coop);
     }
+    // "Thoát": the way out of a case, last in the tray on every screen size (the top strip is hidden on phones).
+    tray.querySelector('.bpa-g-tools')?.insertAdjacentHTML('beforeend', `<span class="bpa-g-sep" aria-hidden="true"></span>
+      <button type="button" class="bpa-g-tool bpa-g-leave" id="game-leave-btn" aria-label="${tr('Leave the case', 'Thoát khỏi vụ án')}">${gameIcon('door')}<span class="bpa-g-lbl">${tr('Leave', 'Thoát')}</span></button>`);
+    tray.querySelector('#game-leave-btn')?.addEventListener('click', () => void leaveGame());
     const status = document.createElement('p');
     status.id = 'bpa-g-sr';
     status.className = 'bpa-sr';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     root.append(status);
+  }
+
+  // Leaving only disconnects: the room stays open on the server and the menu offers to resume it.
+  let leaveAsked = false;
+  async function leaveGame() {
+    if (stopped || leaveAsked) return;
+    leaveAsked = true;
+    const withPartner = (state?.players ?? []).some((player) => player.userId !== me.userId);
+    const leave = await confirmLeaveGame({ withPartner, signal }).finally(() => { leaveAsked = false; });
+    if (stopped) return;
+    if (!leave) {
+      app.querySelector<HTMLElement>('#game-leave-btn')?.focus();
+      return;
+    }
+    navigate(session.isAdmin() ? '/admin' : '/menu');
   }
 
   function renderTray(model: ReturnType<typeof buildGameUiModel>) {

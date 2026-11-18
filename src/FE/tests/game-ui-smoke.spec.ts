@@ -1009,6 +1009,55 @@ test('Investigator shell keeps the scene primary and reports discoveries without
   await expect(page.locator('#case-file-btn')).toBeFocused();
 });
 
+test('the Leave tool asks first: Stay or Escape keeps the case, Leave goes to the home page', async ({ page }) => {
+  await page.goto(`/game/${roomId}`);
+  const leave = page.locator('#game-leave-btn');
+  await expect(leave).toBeVisible();
+  await expect(leave).toHaveAccessibleName('Leave the case');
+
+  await leave.click();
+  const dialog = page.getByRole('dialog', { name: 'Leave the case?' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('5 minutes');
+  await expect(dialog).toContainText('partner');
+  await expect(dialog.getByRole('button', { name: 'Stay' })).toBeFocused();
+
+  // Keys typed in the dialog stay there: B would otherwise open the bag behind it.
+  await page.keyboard.press('b');
+  await expect(page.locator('.inventory-drawer')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/game/${roomId}$`));
+  await expect(leave).toBeFocused();
+
+  await leave.click();
+  await dialog.getByRole('button', { name: 'Stay' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/game/${roomId}$`));
+  // Back in the game, the same key opens the bag.
+  await page.keyboard.press('b');
+  await expect(page.locator('.inventory-drawer')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.inventory-drawer')).toHaveCount(0);
+
+  await leave.click();
+  await dialog.getByRole('button', { name: 'Leave', exact: true }).click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('the Leave tool fits the phone tray', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 760 });
+  await page.goto(`/game/${roomId}`);
+  const leave = page.locator('#game-leave-btn');
+  await expect(leave).toBeVisible();
+  const box = await leave.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+  expect(box!.width).toBeGreaterThanOrEqual(40);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
 test('Interrogator receives a large witness portrait and bottom speech panel', async ({ page }) => {
   await page.unroute(`**/api/game/rooms/${roomId}/state`);
   await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
