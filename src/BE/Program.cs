@@ -169,6 +169,7 @@ builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipBillingService>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.HintPaymentService>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorRewardService>();
 builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorBadgeReader>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipReportService>();
 builder.Services.AddHostedService<SirLocked.Api.Services.Vip.AuthorRewardWorker>();
 builder.Services.AddHostedService<SirLocked.Api.Services.Vip.VipLaneWorker>();
 builder.Services.AddScoped<AiBridgeService>();

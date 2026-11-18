@@ -321,6 +321,30 @@ public sealed class MongoVipLaneTests
         Assert.Empty(env.Claude.BatchCalls);
     }
 
+    [Fact]
+    public async Task TheAdminReport_ShowsRealCostByModel_PriceTaken_AndProfit()
+    {
+        if (!Enabled) return;
+        await using var env = await VipEnv.CreateAsync();
+        env.Claude.Answer = Valid;
+        var draft = await env.HeldDraftAsync();
+        await env.Provider().GenerateJsonAsync(Request(draft.Id, "VipBrief"));
+        await env.Provider().GenerateJsonAsync(Request(draft.Id, "GenerateCaseTruth"));
+        await env.Db.AiCaseDrafts.UpdateOneAsync(item => item.Id == draft.Id, Builders<AiCaseDraft>.Update
+            .Set(item => item.Status, AiDraftStatus.ReadyToPublish).Set(item => item.OrderStatus, AiOrderStatuses.Submitted));
+        await env.Billing.SettleAsync(draft.Id);
+
+        var report = await new VipReportService(env.Db, env.Settings).BuildAsync(30);
+
+        var order = Assert.Single(report.Orders);
+        Assert.Equal((AiVipBillingStates.Charged, 8_000L, 80_000L), (order.BillingState, order.ChargedXu, order.EarnedVnd));
+        Assert.Equal(new[] { VipModelIds.Sonnet, VipModelIds.Haiku }, order.Models.Select(item => item.Model));
+        Assert.Equal(order.EarnedVnd - order.SpentVnd - order.PixelLabVnd, order.ProfitVnd);
+        Assert.True(order.SpentVnd > 0);
+        var average = Assert.Single(report.Averages);
+        Assert.Equal((AiGenerationPresets.NormalRandom, VipSpeeds.Fast, 1), (average.Preset, average.Speed, average.Orders));
+    }
+
     // ------------------------------------------------------------------ environment
 
     internal sealed class VipEnv : IAsyncDisposable

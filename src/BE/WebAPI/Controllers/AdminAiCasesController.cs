@@ -165,6 +165,16 @@ public class AdminAiCasesController : BaseApiController
         [FromServices] VipBillingService billing, CancellationToken ct) =>
         Ok(await billing.QuoteAsync(Caller.Id, preset, speed, pixelLabCap, ct));
 
+    /// <summary>
+    /// VUAN-7 part F: real cost of every VIP order (tokens, USD, VND by model), the price taken, profit or loss; averages
+    /// by preset and speed; what cases earned from hints and ads; coins shared with authors.
+    /// </summary>
+    [HttpGet("vip-report")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<VipReportService.Report>>> VipReport(
+        [FromServices] VipReportService report, [FromQuery] int days = 30, CancellationToken ct = default) =>
+        Ok(await report.BuildAsync(days, ct));
+
     /// <summary>How many orders the caller has left this week (VIP); ADMIN orders are unlimited.</summary>
     [HttpGet("quota")]
     public async Task<ActionResult<ApiResponse<AiOrderQuotaResponse>>> GetQuota() =>
