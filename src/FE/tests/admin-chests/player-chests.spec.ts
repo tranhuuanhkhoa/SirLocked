@@ -50,7 +50,6 @@ test('each chest shows its own odds, and a rarity with no chance is left out', a
   });
   await page.goto('/kho-ruong');
 
-  await page.locator('#qh-oddsBtn').click();
   await expect(page.locator('#qh-odds')).toContainText('80,00%');
   await expect(page.locator('#qh-odds li')).toHaveCount(2);
   await page.locator('#qh-nextBtn').click();
@@ -63,7 +62,6 @@ test('a list without per-chest odds still shows the shared table', async ({ page
   await prepare(page, { chests: [old], odds: [{ rarity: 'COMMON', percent: 99 }, { rarity: 'RARE', percent: 1 }], wallet });
   await page.goto('/kho-ruong');
 
-  await page.locator('#qh-oddsBtn').click();
   await expect(page.locator('#qh-odds')).toContainText('99,00%');
 });
 
@@ -84,7 +82,7 @@ test('any number of chests works, with the look the admin chose', async ({ page 
   await expect(page.locator('.qh-dot')).toHaveCount(4);
   await page.locator('.qh-dot').nth(3).click();
   await expect(page.locator('#qh-caseName')).toHaveText('Két Mùa Đông');
-  await expect.poll(() => page.locator('.qh-app').evaluate((el) => (el as HTMLElement).style.getPropertyValue('--glow'))).toBe('rgb(1,2,3)');
+  await expect.poll(() => page.locator('.qh-app').evaluate((el) => (el as HTMLElement).style.getPropertyValue('--accent'))).toBe('rgb(1,2,3)');
 });
 
 test('with nothing on sale the page says so instead of breaking', async ({ page }) => {
@@ -115,11 +113,11 @@ test('a chest switched off that the player holds appears, can be opened and offe
   await page.locator('#qh-nextBtn').click();
   await expect(page.locator('#qh-caseName')).toHaveText('Hòm Cũ');
   await expect(page.locator('[data-qh-buy]').first()).toBeHidden();
-  await expect(page.locator('#qh-openLbl')).toHaveText('Mở');
+  await expect(page.locator('#qh-openLbl')).toHaveText('Mở hòm');
   await page.locator('#qh-openBtn').click();
   await expect(page.locator('#qh-gotName')).toHaveText('Sổ tay da bò', { timeout: 20_000 });
   expect(opened).toBe(1);
-  await page.locator('#qh-keepBtn').click();
+  await page.locator('#qh-closeBtn').click();
 
   // Nothing left of it, and it cannot be bought back.
   await expect(page.locator('#qh-openBtn')).toBeDisabled();

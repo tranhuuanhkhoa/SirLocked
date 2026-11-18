@@ -678,10 +678,9 @@ test.describe('/admin/chests', () => {
     const overlay = page.locator('.ac-preview');
     await expect(overlay.locator('#qh-caseName')).toHaveText('Hòm Niêm Phong');
     await expect(overlay.locator('#qh-contents .qh-it')).toHaveCount(5);
-    await overlay.locator('#qh-oddsBtn').click();
     await expect(overlay.locator('#qh-odds')).toContainText('15,00%');
     await expect(overlay.locator('#qh-buy')).toBeHidden();
-    await expect(overlay.locator('#qh-openLbl')).toHaveText('Mở');
+    await expect(overlay.locator('#qh-openLbl')).toHaveText('Mở hòm');
 
     await overlay.locator('#qh-openBtn').click();
     await expect(overlay.locator('#qh-gotName')).toHaveText('Đồng hồ 2:17', { timeout: 20_000 });

@@ -348,7 +348,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     await pageA.reload();
     await pageA.locator('.qh-dot').last().click();
     await expect(pageA.locator('#qh-caseName')).toHaveText(chestName);
-    await expect(pageA.locator('#qh-nChest')).toHaveText('×1');
+    await expect(pageA.locator('#qh-nChest')).toHaveText('1');
     await expect(pageA.locator('#qh-nKey')).toHaveText('1');
     await shot(pageA, 'A-truoc-khi-mo-hom', false);
     const opened = pageA.waitForResponse((response) => response.url().endsWith(`/api/chests/${chestId}/open`));
@@ -357,7 +357,7 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     expect(body.item.id).toBe(titleId);
     await expect(pageA.locator('#qh-gotName')).toHaveText(titleName, { timeout: 45_000 });
     await shot(pageA, 'A-mo-hom-ra-danh-hieu-moi', false);
-    await pageA.locator('#qh-keepBtn').click();
+    await pageA.locator('#qh-closeBtn').click();
   });
 
   await test.step('7. A: đổi KN lên cấp 5, nhận viền, trang bị viền, danh hiệu, hiệu ứng', async () => {

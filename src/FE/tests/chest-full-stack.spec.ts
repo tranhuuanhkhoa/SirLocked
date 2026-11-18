@@ -20,7 +20,7 @@ type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; u
 type Def = { id: string; name: string; rarity: string; category: string; iconKey: string };
 type InventoryItem = { itemId: string; locked: boolean; lockReason: string | null; source: string; def: Def };
 type Chest = { id: string; name: string; chestCount: number; keyCount: number; keyPrice: number; chestPrice: number; contents: Def[] };
-type ChestList = { chests: Chest[]; odds: Array<{ rarity: string; percent: number }>; wallet: { balance: number; slotsUsed: number; itemCount: number } };
+type ChestList = { chests: Chest[]; odds: Array<{ rarity: string; percent: number }>; wallet: { balance: number; slotsUsed: number; itemCount: number }; chestsForSale?: boolean };
 
 const enabled = process.env.SIRLOCKED_RUN_CHEST_FULL_STACK === 'true';
 const evidenceDir = process.env.SIRLOCKED_CHEST_EVIDENCE_DIR;
@@ -66,12 +66,10 @@ test('an admin grant, a bought key, all three chest types opened, and the reward
   await page.locator('#qh-openBtn').click();
   await expect(page.locator('#qh-nKey')).toHaveText('1');
   await expect(page.locator('#qh-nCoin')).toHaveText(fmt(before.wallet.balance - keyPrice));
-  await page.locator('#qh-oddsBtn').click();
   await expect(page.locator('#qh-odds')).toContainText('79,92%');
   await expect(page.locator('#qh-odds')).toContainText('0,26%');
   await page.waitForTimeout(500);
   await shot(page, '02-may-tinh-ti-le-roi-tu-api');
-  await page.locator('#qh-oddsBtn').click();
   await page.waitForTimeout(500);
 
   // ---- Open all three types; what the reveal names is what the server stored.
@@ -102,9 +100,11 @@ test('an admin grant, a bought key, all three chest types opened, and the reward
     expect(chest.contents.map((def) => def.id)).toContain(body.item.id);
     received.push(body.itemId);
 
-    await page.locator('#qh-keepBtn').click();
+    await page.locator('#qh-closeBtn').click();
     await expect(page.locator('.qh-app')).toHaveAttribute('data-mode', 'idle');
-    await expect(page.locator('#qh-openLbl')).toContainText('Mua hòm');
+    // With Chests:SellChests off (the default) chests come from the weekly challenge, not from the shop.
+    if (before.chestsForSale === false) await expect(page.locator('#qh-meta')).toContainText('Thử thách tuần');
+    else await expect(page.locator('#qh-openLbl')).toContainText('Mua hòm');
     await page.locator('#qh-nextBtn').click();
   }
 
@@ -150,7 +150,7 @@ test('an admin grant, a bought key, all three chest types opened, and the reward
   const phone = await openAs(browser, player, { width: 390, height: 844 }, failures, true);
   await phone.locator('#qh-nextBtn').click();
   await expect(phone.locator('#qh-caseName')).toHaveText('Két Nhà Băng');
-  await expect(phone.locator('#qh-openLbl')).toHaveText('Mở');
+  await expect(phone.locator('#qh-openLbl')).toHaveText('Mở hòm');
   await phone.waitForTimeout(600);
   await shot(phone, '16-dien-thoai-ket-nha-bang');
   expect(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -161,7 +161,7 @@ test('an admin grant, a bought key, all three chest types opened, and the reward
   await expect(phone.locator('.qh-app')).toHaveAttribute('data-revealed', '', { timeout: 20_000 });
   await phone.waitForTimeout(1200);
   await shot(phone, '18-dien-thoai-trung-thuong');
-  await expect(phone.locator('#qh-keepBtn')).toBeInViewport({ ratio: 1 });
+  await expect(phone.locator('#qh-closeBtn')).toBeInViewport({ ratio: 1 });
 
   expect(failures).toEqual([]);
   await api.dispose();

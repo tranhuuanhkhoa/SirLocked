@@ -500,6 +500,9 @@ body[data-area="admin"] #app .ac-savebar .btn:disabled { opacity: .5; }
 
 .ac-preview { position: fixed; inset: 0; z-index: var(--z-overlay); display: flex; flex-direction: column; background: #090b10; }
 .ac-preview-bar {
+  /* Above the chest page's reel and item card, which cover the screen: the way out stays in reach. */
+  position: relative;
+  z-index: calc(var(--z-overlay) + 2);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -527,7 +530,7 @@ body[data-area="admin"] #app .ac-savebar .btn:disabled { opacity: .5; }
 .ac-preview-close:hover { background: #ecca7d; }
 .ac-preview-close:focus-visible { outline: 2px solid #f6eedf; outline-offset: 2px; }
 .ac-preview-stage { flex: 1; min-height: 0; overflow-y: auto; }
-.ac-preview-stage .qh-app { height: 100%; }
+.ac-preview-stage .qh-app { min-height: 100%; }
 .qh-app[data-preview] .qh-wallet { display: none; }
 
 /* ==========================================================================
