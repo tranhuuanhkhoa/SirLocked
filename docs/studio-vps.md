@@ -159,6 +159,23 @@ Trong Claude Code gõ `/tao-vu-an`. Từ điện thoại dùng app SSH bất k�
 
 Ảnh gốc của thư viện không có trên VPS (nằm trên Cloudinary). `library_search { download: true }` tải về `tmp/library-cache/`.
 
+### B5. Trình chạy hình của đơn VIP (VUAN-7, không dùng AI)
+
+Đơn VIP trả xu được viết bằng Claude API trên server, không qua bot. Phần hình của nó chạy ở VPS studio bằng một
+trình chạy **không AI**: server đã chọn hình (thư viện, biến thể) bằng một lời gọi Claude API; trình chạy chép ảnh thư
+viện vào đúng ô, làm biến thể bằng code của studio, tải lên rồi báo xong. Nó chỉ nhận yêu cầu ảnh của làn VIP
+(`lane=VIP_RUNNER`); bot `/tao-vu-an` không thấy các yêu cầu này. Máy này cần đúng `SIRLOCKED_BRIDGE_KEY` và
+`SIRLOCKED_API` như bot (không cần khóa Claude API, không gọi PixelLab).
+
+```bash
+tmux new -A -s vip-runner
+cd ~/Sirlocked && git pull && cd tools/studio-mcp && npm run build
+node scripts/vip-asset-runner.mjs --interval 60     # một lượt mỗi phút; --once để chạy một lượt rồi thoát
+```
+
+Khi `aiVipPricing.pixelLabEnabled` tắt (mặc định), đơn VIP chỉ dùng thư viện và biến thể. Một yêu cầu cần PixelLab
+(chỉ có khi đã bật) được trình chạy trả lại kèm lý do trong log; trình chạy PixelLab không AI chưa có.
+
 ## C. Luật vận hành
 
 - Bot chỉ chạy khi Yen tự gõ `/tao-vu-an`. Không cron, không vòng lặp 24/7, không cho VIP dùng phiên Claude.
