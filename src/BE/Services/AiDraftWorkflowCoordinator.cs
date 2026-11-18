@@ -268,6 +268,7 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         if (string.IsNullOrWhiteSpace(effectiveErrorCode)
             && current.Status is AiDraftStatus.GeneratedInvalid or AiDraftStatus.CaseTruthInvalid)
             effectiveErrorCode = current.LastGenerationErrorCode;
+        var finalStatus = current.Status;
         var completion = Builders<AiCaseDraft>.Update
             .Set(item => item.QueueState, AiQueueStates.None)
             .Set(item => item.QueuedOperation, AiQueuedOperations.None)
@@ -300,8 +301,23 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
                 var failureStatus = draft.Status == AiDraftStatus.GeneratingCaseTruth
                     ? AiDraftStatus.CaseTruthInvalid : AiDraftStatus.GeneratedInvalid;
                 completion = completion.Set(item => item.Status, failureStatus);
+                finalStatus = failureStatus;
             }
         }
+        // The order status moves in this same write, so no reader sees a finished run with a stale order status.
+        var settled = new AiCaseDraft
+        {
+            Status = finalStatus,
+            QueueState = AiQueueStates.None,
+            OrderStatus = current.OrderStatus,
+            Decisions = current.Decisions
+        };
+        var nextOrderStatus = AiCaseOrderPolicy.Derive(
+            settled, await ClaudeHasRequestInHandAsync(current.Id, now, cancellationToken));
+        if (!string.Equals(nextOrderStatus, current.OrderStatus, StringComparison.Ordinal))
+            completion = completion
+                .Set(item => item.OrderStatus, nextOrderStatus)
+                .Push(item => item.OrderStatusHistory, new AiOrderStatusChange { Status = nextOrderStatus, At = now });
         var result = await _db.AiCaseDrafts.UpdateOneAsync(
             activeFilter,
             completion,
@@ -417,12 +433,7 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync(cancellationToken);
         if (draft is null) return;
         var now = _timeProvider.GetUtcNow().UtcDateTime;
-        var inHand = await _db.AiBridgeRequests.Find(item =>
-                item.OwnerType == AiBridgeOwnerTypes.CaseDraft
-                && item.OwnerId == draftId
-                && (item.Status == AiBridgeStatuses.Submitted
-                    || (item.Status == AiBridgeStatuses.Taken && item.LeaseExpiresAt > now)))
-            .AnyAsync(cancellationToken);
+        var inHand = await ClaudeHasRequestInHandAsync(draftId, now, cancellationToken);
         var next = AiCaseOrderPolicy.Derive(draft, inHand);
         if (string.Equals(next, draft.OrderStatus, StringComparison.Ordinal)) return;
         await _db.AiCaseDrafts.UpdateOneAsync(
@@ -432,6 +443,14 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
                 .Push(item => item.OrderStatusHistory, new AiOrderStatusChange { Status = next, At = now }),
             cancellationToken: cancellationToken);
     }
+
+    private Task<bool> ClaudeHasRequestInHandAsync(string draftId, DateTime now, CancellationToken cancellationToken) =>
+        _db.AiBridgeRequests.Find(item =>
+                item.OwnerType == AiBridgeOwnerTypes.CaseDraft
+                && item.OwnerId == draftId
+                && (item.Status == AiBridgeStatuses.Submitted
+                    || (item.Status == AiBridgeStatuses.Taken && item.LeaseExpiresAt > now)))
+            .AnyAsync(cancellationToken);
 
     private static string ComputeGenerationInputHash(AiCaseDraft draft, string phase)
     {
