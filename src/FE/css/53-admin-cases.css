@@ -402,6 +402,20 @@ body[data-area="admin"] #app .ws-weekly-form :is(.ws-weekly-select, .ws-weekly-i
 body[data-area="admin"] #app .ws-weekly-form .ws-weekly-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
 body[data-area="admin"] #app .ws-weekly-form .ws-weekly-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 body[data-area="admin"] #app .ws-weekly-save { padding: 0 22px; }
+/* Thử thách tuần: one day names the week; the rule, the week the server stored, or why it refused. */
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-hint { margin: -8px 0 0; font-size: 13px; line-height: 1.45; color: var(--adm-muted); }
+body[data-area="admin"] #app .ws-weekly-form :is(.ws-weekly-saved, .ws-weekly-error) {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-saved { background: var(--adm-ok-bg); color: var(--adm-ok); }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-error { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.ws-weekly-error[hidden] { display: none; }
 @media (max-width: 600px) {
   body[data-area="admin"] #app .adm-card.ws-weekly-form { padding: 18px 16px; }
 }
