@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   accusationMissing, accusationRequest, checkAudio, choiceTarget, conditionSatisfied, emptyProgress, estimatePlayTime,
   orderedScenes, planScene, progressFromState, solvePuzzle, type PlannedAction, type Progress,
+  canEnterScene, isOpenCoop,
 } from '../src/playtest/solver.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
@@ -225,3 +226,22 @@ for (const file of ['case-pixel-lo-thuoc-thu-nam-vi.json', 'case-pixel-tram-hong
     assert.ok(actions.filter((action) => action.kind === 'puzzle').length >= 1, `${file}: no puzzle`);
   });
 }
+
+test('an OPEN_COOP one-stage case opens every scene from the start; a classic case does not', () => {
+  const scenes = [{ sceneId: 'loc-a' }, { sceneId: 'loc-b' }, { sceneId: 'loc-c' }];
+  const openCoop = { ruleSet: 'OPEN_COOP', stages: [{ stageId: 'stage-01', order: 1, scenes }] };
+  const classic = { ruleSet: '', stages: [{ stageId: 'stage-01', order: 1, scenes }] };
+  const progress = emptyProgress();
+  assert.equal(isOpenCoop(openCoop), true);
+  for (const scene of scenes) assert.equal(canEnterScene(openCoop, progress, scene.sceneId), true);
+  assert.equal(canEnterScene(classic, progress, 'loc-c'), false);
+});
+
+test('an optional interactive puzzle of an AI case is answered from its stored solution like any other', () => {
+  const solved = solvePuzzle({
+    puzzleId: 'puzzle-01', type: 'INTERACTIVE_PUZZLE', kind: 'fingerprint', progressionRole: 'OPTIONAL',
+    paramsJson: JSON.stringify({ cards: [{ id: 'char-a' }, { id: 'char-b' }] }), solutionJson: JSON.stringify({ card: 'char-b' }),
+  });
+  assert.ok(solved);
+  assert.deepEqual(JSON.parse(solved.request.answer), { card: 'char-b' });
+});

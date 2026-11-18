@@ -58,6 +58,30 @@ Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại
 3. Sau mỗi lần nộp: `draft_get { draftId }` xem `nextAction`, `waitingGate`. Cổng của người đặt đơn (FULL, hoặc TRUTH): ghi một dòng (draft, cổng, link `/admin/ai`) vào report (và chat nếu có người) rồi chuyển sang đơn khác hoặc dừng.
 4. `READY_TO_PUBLISH`: bước 9.
 
+## Mức độ (đơn mới, `pipelineVersion: OPEN_COOP_1`)
+
+Đơn mới không còn số chặng, số nghi phạm, thời lượng hay kiểu đơn: **mức độ quyết định cỡ vụ**, server giữ bảng này (`AiDifficultyProfiles`) và kiểm từng bước. Vụ dựng theo luật `OPEN_COOP`: một chặng, mọi cảnh mở ngay từ đầu, hai thám tử dùng chung sổ.
+
+| | Dễ | Trung bình | Khó |
+| --- | --- | --- | --- |
+| Thời gian chơi | 10–15 phút | 20–30 phút | 40–60 phút |
+| Cảnh | 2–3 | 4–5 | 6–8 |
+| Nghi phạm (đúng bằng) | 3 | 4 | 5 |
+| Đối chất V3 | 1 | 2 | 3 |
+| Câu đố phụ (Cân bằng / Giải đố / Hội thoại) | 1 / 2 / 1 | 2 / 3 / 2 | 5 / 6 / 4 |
+| Chứng cứ gây nhiễu | 0–1 | 1–2 | 2–3 |
+| Suy luận bắt buộc | 0 | 1 | 2 |
+| Mốc dòng thời gian | không có | 5–6 | 7–9 |
+| Lượt PixelLab ước tính (thế giới mới / có thư viện) | 60–120 / 10–40 | 150–220 / 30–80 | 300–450 / 60–150 |
+
+- **Sự thật:** đúng số nghi phạm của mức; số địa điểm trong khoảng số cảnh; thêm **một dấu vết củng cố cho mỗi câu đố phụ** (không mâu thuẫn lời khai nào, không là chứng cứ duy nhất của kết luận nào, không gỡ mồi nhử nào).
+- **Logic chơi:** mỗi slot câu đố là câu đố tương tác **phụ** (không giải vẫn phá được án). Chọn `kind` trong `offeredKinds` của slot, hợp truyện, **không lặp loại** trong vụ. Chỉ viết chữ: `prompt`, `investigationPurpose`, `successMessage`, `failureMessage` và các trường chữ trong `authored` (mô tả trong schema; loại không có trường chữ thì `{}`). **Không bao giờ viết đáp án hay cơ chế**: server tự sinh. `fingerprint` chỉ có khi sự thật cho đáp án (người để lại dấu vết thưởng, không phải hung thủ).
+- **Bảng Hồ sơ vụ án (`board`):** dòng nhỏ, tiêu đề, phụ đề, tóm tắt những gì đội biết lúc đầu, tối đa 3 sợi dây nối chứng cứ hoặc lời khai. Không nối lời khai với chứng cứ phá nó.
+- **Dòng thời gian (`timeline`, mức Trung bình và Khó):** tiêu đề, một câu dẫn, mỗi mốc có nhãn ngắn, chi tiết, `dayLabel`, `timeLabel` theo giờ trong sự thật; không lộ nguyên nhân ẩn.
+- **Gợi ý:** vẫn đủ 3 mức cho mỗi cảnh, đối chất, suy luận ở cả ba mức (luật gợi ý chung). Câu đố tương tác tự có gợi ý.
+- **Cảnh mở đầu:** nhập vụ xong, server tự xếp yêu cầu `CUTSCENE`; làm như mọi yêu cầu bridge.
+- Bản nháp cũ (không có `pipelineVersion`) đi đường cũ như trước.
+
 ## Chế độ duyệt
 
 - **FULL (mặc định)**: người đặt đơn duyệt cả 4 cổng. Bot nộp, chạy kiểm tra, ghi kết quả vào `report.md` để người duyệt đọc.
@@ -110,6 +134,8 @@ Mỗi mục `finalLogic.requiredEvidenceLinks` có thể có `acceptedEvidenceId
 - Bước projection (mọi đơn mới): **server tự điền** (VUAN-6B phần B). Khi lập ô buộc tội, mỗi ô nhận thêm các chứng cứ `isEvidence` cùng chứng minh `conclusionId` của ô (không phải chứng cứ chính của ô nào, không phải manh mối gây nhiễu, tìm được trước lúc buộc tội). Bot đọc lại trong `case.json` sau `draft_import`; chứng cứ nào thám tử mù gắn hợp lý mà server chưa thêm thì ghi vào mục "Cần người duyệt xem" của `report.md` (ô nào, chứng cứ nào, vì sao). Admin sửa được case JSON trên trang duyệt; bot không tự sửa JSON của vụ đã import.
 
 ### Tham số giải đố
+
+Đơn mới (`OPEN_COOP_1`): chỉ viết chữ theo mục "Mức độ" ở trên, server sinh tham số và lời giải. Đơn cũ:
 
 Điền **đủ** tham số của từng loại theo bảng ở `docs/case-style-guide.md` (ví dụ vân tay: `cards[]` có `pattern`, `scar`, `print`, và `threshold`). Không trông vào bước tự điền khi import: giá trị tự điền là chung chung ("Người A") và làm hỏng fair play.
 
@@ -262,8 +288,9 @@ Theo `docs/case-audio-weather.md`. Không dùng PixelLab cho âm thanh.
 
 1. `draft_import { draftId }` (vụ chưa đăng; case JSON lưu ở `tmp/bridge/<draftId>/case.json`).
 2. `playtest { draftId }`: tự dựng Mongo + API + web trên máy (lần đầu build vài phút), hai thám tử chơi theo lời giải. Lỗi thì đọc `report.json` của lần chạy, sửa bằng sửa theo phạm vi, chạy lại.
-3. Cập nhật `report.md` (lớp 5, ảnh đã xem, ước tính phút) → `draft_report`.
-4. Báo người đặt đơn (chat nếu có người, luôn ghi report): tên vụ, draft, 5 lớp, số lượt PixelLab đã dùng, việc người đặt đơn cần làm (chơi thử bản import, bấm Xuất bản nếu ưng). Không publish.
+3. Câu đố phụ được chạy thử giải luôn (lời giải có sẵn), nhưng vụ phải phá được mà không cần chúng.
+4. Cập nhật `report.md` (lớp 5, ảnh đã xem, ước tính phút) → `draft_report`.
+5. Báo người đặt đơn (chat nếu có người, luôn ghi report): tên vụ, draft, 5 lớp, số lượt PixelLab đã dùng, việc người đặt đơn cần làm (chơi thử bản import, bấm Xuất bản nếu ưng). Không publish.
 
 ## Khi có sự cố
 
