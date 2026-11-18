@@ -3,6 +3,7 @@ import { session } from '../../services/session.js';
 import { tr } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
 import { pixelIconUrl } from '../chest/chestSprites.js';
+import { fmt } from '../market/marketKit.js';
 
 /**
  * "Phần thưởng tuần này" on the weekly challenge page: which chests the challenge can drop and how likely each is,
@@ -15,10 +16,10 @@ import { pixelIconUrl } from '../chest/chestSprites.js';
 
 const chestName = (name, nameEn) => tr(nameEn || name || '', name || nameEn || '');
 
-/** "60%", "33.33%"; '' for a value that is not a number. */
+/** "60%"; "33,33%" in Vietnamese and "33.33%" in English (the market's number format); '' for a value that is not a number. */
 function percentText(value) {
   const n = Number(value);
-  return Number.isFinite(n) ? `${n}%` : '';
+  return Number.isFinite(n) ? `${fmt(n)}%` : '';
 }
 
 function iconHtml(iconKey) {
@@ -60,7 +61,22 @@ export function weeklyRewardBoxHtml(challenge) {
     </section>`;
 }
 
+/**
+ * The waiting chests alone, for a week with no challenge: no odds (nothing drops), no state of this week, only the
+ * chests from earlier weeks still waiting for room. Hidden until mountWeeklyRewardBox(container, { waitingOnly: true })
+ * finds at least one, so a guest or a player with nothing waiting sees just the blank page.
+ */
+export function weeklyWaitingBoxHtml() {
+  return `
+    <section class="bpa-ch-reward bpa-ch-reward--waiting" aria-labelledby="ch-waiting-h" data-weekly-reward hidden>
+      <h2 id="ch-waiting-h" class="bpa-ch-rw-h">${tr('Chests waiting for you', 'Hòm đang chờ nhận')}</h2>
+      <p class="bpa-ch-rw-rule">${tr('Clear some room in your bag, then press Claim chest.', 'Dọn túi rồi bấm Nhận hòm.')}</p>
+      <ul class="bpa-ch-rw-waiting" data-weekly-waiting hidden></ul>
+    </section>`;
+}
+
 function setState(el, html, { text = false } = {}) {
+  if (!el) return; // the waiting-only box has no state line
   if (text) el.textContent = html;
   else el.innerHTML = html;
   el.hidden = !html;
@@ -79,11 +95,14 @@ function claimError(error) {
 /**
  * Fills the viewer's part of the box. A guest keeps the static box plus a sign-in line; a signed-in player gets
  * this week's state and the claim buttons. Safe to call again after the page was drawn again.
+ *
+ * `waitingOnly` is for the box of weeklyWaitingBoxHtml(): it stays hidden for a guest, on a failed load and when
+ * nothing is waiting, and shows only the waiting chests with their claim buttons.
  */
-export async function mountWeeklyRewardBox(container, { signal } = {}) {
+export async function mountWeeklyRewardBox(container, { signal, waitingOnly = false } = {}) {
   const root = container?.querySelector('[data-weekly-reward]');
   if (!root) return;
-  const stateEl = root.querySelector('[data-weekly-state]');
+  const stateEl = waitingOnly ? null : root.querySelector('[data-weekly-state]');
   const waitingEl = root.querySelector('[data-weekly-waiting]');
 
   if (!session.user()) {
@@ -138,6 +157,7 @@ export async function mountWeeklyRewardBox(container, { signal } = {}) {
     setState(stateEl, stateText(), { text: true });
     waitingEl.innerHTML = waiting.map(waitingRowHtml).join('');
     waitingEl.hidden = waiting.length === 0;
+    if (waitingOnly) root.hidden = waiting.length === 0;
   }
 
   const rowOf = (id) => [...waitingEl.children].find((row) => row.dataset.weeklyDrop === id) ?? null;

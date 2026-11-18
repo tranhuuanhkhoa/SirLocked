@@ -1691,6 +1691,8 @@
 .bpa-ch-rw-done { font-family: var(--bpa-font-label); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--bpa-gold); }
 .bpa-ch-rw-msg { grid-column: 2 / -1; margin: 0 !important; font-size: 16px; line-height: 1.3; color: #f0b3a3; }
 .bpa-ch-rw-link { margin-top: 10px; }
+/* a week with no challenge: only the chests still waiting, above the blank front page and as wide as it */
+.bpa-ch-reward--waiting { width: 100%; max-width: 900px; margin: 0 auto; }
 
 /* leaderboard ledger */
 .bpa-ch-ledger {
