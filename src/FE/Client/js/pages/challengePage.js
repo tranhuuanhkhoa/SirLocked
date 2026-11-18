@@ -5,6 +5,7 @@ import { toast } from '../utils/toast.js';
 import { tr, plural } from '../services/i18n.js';
 import { leaderboardTableHtml, sealSvg, teamNames, teamMonogram, formatTime } from './workshop/leaderboardTable.js';
 import { coverArtHtml, isoWeek, fmtDate, fmtInt, minutesLabel } from './workshop/caseOfWeekBanner.js';
+import { weeklyRewardBoxHtml, mountWeeklyRewardBox } from './workshop/weeklyRewardBox.js';
 
 /**
  * Weekly Challenge page (/workshop/challenge): the active challenge case, a flip-clock countdown
@@ -231,6 +232,7 @@ function pageHtml(challenge, board, { ended, left, hasDeadline }, metric) {
           </div>
         </section>
         ${desk}
+        ${weeklyRewardBoxHtml(challenge)}
       </div>
 
       <section class="bpa-ch-ledger" aria-labelledby="ch-lb-h">
@@ -297,6 +299,8 @@ export async function renderChallengePage(app) {
   let metric = 'fastest';
   let wipe = 0;
   let timer = null;
+  // Stops the reward box's requests and claim handlers when the player leaves the page.
+  const rewardLife = new AbortController();
   let shown = secondsLeft();
   const flips = { d: 0, h: 0, m: 0, s: 0 };
 
@@ -305,6 +309,7 @@ export async function renderChallengePage(app) {
     shown = secondsLeft();
     render(app, pageHtml(challenge, board, { ended, left: shown, hasDeadline }, metric));
     wireBoard();
+    void mountWeeklyRewardBox(app, { signal: rewardLife.signal });
     clearInterval(timer);
     timer = null;
     if (!ended && hasDeadline) timer = setInterval(tick, 1000);
@@ -359,5 +364,8 @@ export async function renderChallengePage(app) {
   }
 
   draw();
-  return () => clearInterval(timer);
+  return () => {
+    clearInterval(timer);
+    rewardLife.abort();
+  };
 }
