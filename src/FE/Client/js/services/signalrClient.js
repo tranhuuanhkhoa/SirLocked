@@ -16,7 +16,11 @@ export function createRoomConnection(roomId, handlers = {}, { onReconnected, onC
     return {
       connection: {
         state: 'Connected',
-        invoke: async () => {},
+        // Tests read what the page asked of the hub, and may answer it (window.__sirlockedSignalRInvoke).
+        invoke: async (method, ...args) => {
+          (window.__sirlockedSignalRInvocations ??= []).push({ method, args });
+          return typeof window.__sirlockedSignalRInvoke === 'function' ? window.__sirlockedSignalRInvoke(method, args) : undefined;
+        },
         on: (event, handler) => { localHandlers[event] = handler; },
         onclose: () => {},
         onreconnected: () => {},

@@ -86,6 +86,7 @@ builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
 builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
 builder.Services.Configure<MarketSettings>(builder.Configuration.GetSection("Market"));
+builder.Services.Configure<SirLocked.Api.Services.TeamComms.VoiceSettings>(builder.Configuration.GetSection("Voice"));
 builder.Services.AddOptions<ChestSettings>()
     .Bind(builder.Configuration.GetSection("Chests"))
     .Validate(ChestSettings.IsValid, "Chests:Prices must price every chest and keep its expected value below the cost of opening.")
@@ -218,6 +219,10 @@ builder.Services.AddScoped<IAiAssetPipeline>(services => services.GetRequiredSer
 builder.Services.AddHostedService<AiGenerationWorker>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
+// Chat and voice between the two detectives of a match.
+builder.Services.AddSingleton<SirLocked.Api.Services.TeamComms.TeamChatLimiter>();
+builder.Services.AddScoped<SirLocked.Api.Services.TeamComms.TeamChatService>();
+builder.Services.AddHttpClient<SirLocked.Api.Services.TeamComms.IceServerProvider>(client => client.Timeout = TimeSpan.FromSeconds(4));
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
 builder.Services.AddScoped<IGameResultStore, MongoGameResultStore>();
 builder.Services.AddScoped<IWorkshopService, WorkshopService>();
