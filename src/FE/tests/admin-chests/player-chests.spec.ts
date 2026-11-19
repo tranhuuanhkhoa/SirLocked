@@ -190,3 +190,48 @@ test('an uploaded picture is what "You may get" and the reel draw', async ({ pag
   await page.locator('#qh-openBtn').click();
   await expect(page.locator('#qh-gotName')).toHaveText('Bức ảnh', { timeout: 20_000 });
 });
+
+test('the Whitechapel chest has its own picture and night: the moon, its stamp, and the two outfits beside the buttons', async ({ page }) => {
+  const whitechapel = chest('chest_wc', 'Hòm Đêm Whitechapel', {
+    iconKey: 'chest_whitechapel', look: { template: 'whitechapel', light: '190,52,58', hi: '255,150,140', core: '255,222,214' }, chestCount: 1, keyCount: 1,
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepare(page, { chests: [chest('chest_a', 'Hòm A'), whitechapel], odds: [], offSale: [], wallet });
+  await page.goto('/kho-ruong');
+
+  const app = page.locator('.qh-app');
+  const figures = page.locator('.qh-wc-figure');
+  await expect(app).toHaveAttribute('data-chest', 'niem-phong');
+  await expect(figures.first()).toHaveCSS('opacity', '0');
+
+  await page.locator('.qh-dot').nth(1).click();
+  await expect(page.locator('#qh-caseName')).toHaveText('Hòm Đêm Whitechapel');
+  await expect(app).toHaveAttribute('data-chest', 'whitechapel');
+  await expect(page.locator('#qh-chestImg')).toHaveAttribute('src', '/assets/chests/hom-dem-whitechapel.png');
+  await expect.poll(() => page.locator('#qh-chestImg').evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBe(336);
+  await expect(page.locator('#qh-stamp')).toHaveText('WHITECHAPEL 1888');
+  await expect(page.locator('.qh-theme-wc')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.qh-wc-moon')).toBeVisible();
+
+  // Sherlock on the left of the buttons and Watson on the right, standing on the row of buy links, clear of the buttons.
+  await expect(figures.first()).toHaveCSS('opacity', '1');
+  const sherlock = (await figures.nth(0).boundingBox())!;
+  const watson = (await figures.nth(1).boundingBox())!;
+  const links = (await page.locator('#qh-buy').boundingBox())!;
+  expect(sherlock.x + 156).toBeLessThanOrEqual(links.x);
+  expect(watson.x + 56).toBeGreaterThanOrEqual(links.x + links.width);
+  expect(Math.abs(sherlock.y + sherlock.height - (links.y + links.height))).toBeLessThan(12);
+  // The pictures never take a click meant for the buttons.
+  await expect(figures.first()).toHaveCSS('pointer-events', 'none');
+
+  // Two columns still leave room beside the buttons; one column (buttons the whole width) and a phone do not.
+  await page.setViewportSize({ width: 1150, height: 900 });
+  await expect(figures.first()).toBeVisible();
+  const narrowLinks = (await page.locator('#qh-buy').boundingBox())!;
+  expect((await figures.nth(0).boundingBox())!.x + 156).toBeLessThanOrEqual(narrowLinks.x);
+  for (const width of [800, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(figures.first()).toBeHidden();
+    await expect(figures.nth(1)).toBeHidden();
+  }
+});

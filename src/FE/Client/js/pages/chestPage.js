@@ -46,8 +46,13 @@ const THEMES = {
     id: 'son-mai', particles: 'petals', image: '/assets/chests/trap-son-mai.png', size: [322, 301],
     stamp: ['LACQUER', 'SƠN MÀI'], stampColor: '#8a2a1f', c: '#e0574a', rgb: '224, 87, 74', light: '70,200,150',
   },
+  // The outfits' own case: a night street in Whitechapel, a blood moon, gaslight and drifting embers.
+  whitechapel: {
+    id: 'whitechapel', particles: 'embers', image: '/assets/chests/hom-dem-whitechapel.png', size: [336, 301],
+    stamp: ['WHITECHAPEL 1888', 'WHITECHAPEL 1888'], stampColor: '#9e1f33', c: '#d4566a', rgb: '212, 86, 106', light: '190,52,58',
+  },
 };
-const ICON_TEMPLATE = { chest_seal: 'seal', chest_bank: 'bank', chest_lacquer: 'lacquer' };
+const ICON_TEMPLATE = { chest_seal: 'seal', chest_bank: 'bank', chest_lacquer: 'lacquer', chest_whitechapel: 'whitechapel' };
 const RGB_TEXT = /^\d{1,3},\d{1,3},\d{1,3}$/;
 
 function themeOf(chest) {
@@ -133,6 +138,12 @@ const BACKDROP = `
     <div class="qh-theme qh-theme-fog"><div class="qh-lamp"></div><div class="qh-fog qh-f1"></div><div class="qh-fog qh-f2"></div><div class="qh-fog qh-f3"></div></div>
     <div class="qh-theme qh-theme-ring"><div class="qh-ring"><svg viewBox="0 0 200 200" fill="none" stroke="rgba(111,194,176,.22)"><circle cx="100" cy="100" r="96" stroke-width="1.2"/><circle cx="100" cy="100" r="84" stroke-width="5" stroke="rgba(233,200,115,.10)"/><circle cx="100" cy="100" r="70" stroke-width="1"/><circle cx="100" cy="100" r="40" stroke-width="1" stroke-dasharray="2 4"/><g stroke-width="1.4"><path d="M100 30V60M100 140v30M30 100h30M140 100h30M50.5 50.5l21 21M128.5 128.5l21 21M149.5 50.5l-21 21M71.5 128.5l-21 21"/></g><g fill="rgba(233,200,115,.16)" stroke="none"><circle cx="100" cy="10" r="3"/><circle cx="100" cy="190" r="3"/><circle cx="10" cy="100" r="3"/><circle cx="190" cy="100" r="3"/><circle cx="36.4" cy="36.4" r="3"/><circle cx="163.6" cy="163.6" r="3"/><circle cx="163.6" cy="36.4" r="3"/><circle cx="36.4" cy="163.6" r="3"/></g></svg></div></div>
     <div class="qh-theme qh-theme-sun"><div class="qh-sun"><svg viewBox="0 0 200 200" fill="none" stroke="rgba(239,212,134,.5)" stroke-width="1"><path d="M30 120c10-12 26-12 34 0 6-10 22-10 28 0M110 70c10-12 26-12 34 0 6-10 22-10 28 0M40 60c8-10 20-10 26 0 5-8 16-8 21 0M120 140c8-10 20-10 26 0 5-8 16-8 21 0"/></svg></div><span class="qh-lantern" style="left:12%;animation-delay:-2s"></span><span class="qh-lantern" style="left:24%;animation-delay:-9s;scale:.7"></span><span class="qh-lantern" style="left:78%;animation-delay:-5s"></span><span class="qh-lantern" style="left:88%;animation-delay:-13s;scale:.8"></span><span class="qh-lantern" style="left:66%;animation-delay:-16s;scale:.6"></span></div>
+    <div class="qh-theme qh-theme-wc">
+      <div class="qh-wc-moon"></div>
+      <svg class="qh-wc-roofs" viewBox="0 0 1200 220" preserveAspectRatio="none"><path d="M0 220V138h46v-26h18v26h40V96l34-30 34 30v42h28v-58h14V62h12v18h22v58h36V108l44-36 44 36v30h30V82h16V64h14v18h20v56h40v-28h56v28h24V92l40-32 40 32v46h26v-52h12V70h14v16h26v52h44v-36h70v36h22V100l36-30 36 30v38h34V86h16V66h12v20h18v52h46v-30h60v30h34v82z"/></svg>
+      <div class="qh-wc-gas qh-wc-gas--l"></div><div class="qh-wc-gas qh-wc-gas--r"></div>
+      <div class="qh-fog qh-f1"></div><div class="qh-fog qh-f2"></div>
+    </div>
     <div class="qh-shaft"></div>
     <canvas class="qh-particles" id="qh-particles"></canvas>
   </div>`;
@@ -182,6 +193,8 @@ function markup(preview) {
             <button class="qh-nav qh-next" type="button" id="qh-nextBtn" aria-label="${tr('Next chest', 'Hòm sau')}">${ICON.next}</button>
           </div>
           <div class="qh-cta">
+            <img class="qh-wc-figure qh-wc-figure--l qh-px" src="/assets/pixel/skins/whitechapel/icon-sherlock.png" alt="" aria-hidden="true" draggable="false">
+            <img class="qh-wc-figure qh-wc-figure--r qh-px" src="/assets/pixel/skins/whitechapel/icon-watson.png" alt="" aria-hidden="true" draggable="false">
             <button class="qh-btn qh-btn-main" type="button" id="qh-openBtn"><canvas class="qh-px" id="qh-btnKey" width="42" height="20" aria-hidden="true"></canvas><span id="qh-openLbl"></span></button>
             <p class="qh-meta" id="qh-meta" aria-live="polite"></p>
             <div class="qh-links" id="qh-buy">
