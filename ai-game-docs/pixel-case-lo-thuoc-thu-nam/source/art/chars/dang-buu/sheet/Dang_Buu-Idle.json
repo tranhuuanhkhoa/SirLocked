@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "e18fac38-bc69-465c-ac58-d189de0f94ea",
+    "name": "Idle",
+    "prompt": "stout bald Victorian pawnbroker, round glasses, grey mustache, burgundy waistcoat with gold watch chain, white shirt, dark trousers",
+    "size": {
+      "width": 96,
+      "height": 96
+    },
+    "directions": 8,
+    "view": "low top-down"
+  },
+  "spritesheet": {
+    "path": "Dang_Buu-Idle.png",
+    "cell_size": {
+      "width": 104,
+      "height": 104
+    },
+    "sheet_size": {
+      "width": 936,
+      "height": 208
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "npc_idle_south",
+        "animation_group_id": "805090f1-8550-4bc2-9382-c3e62662b61e",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-25T04:54:51.140423+00:00"
+}

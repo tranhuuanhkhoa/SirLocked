@@ -1,0 +1,14 @@
+{
+ "tool": "create_image_pro",
+ "width": 512,
+ "height": 512,
+ "no_background": false,
+ "seed": 707,
+ "description": "Interior of a Victorian apothecary shop. A long wooden counter with a brass weighing scale, an open ledger book and a small wooden tray holding a row of seven little medicine vials. Tall wall shelves full of small glass bottles, jars and drawers with brass handles. A back workbench with a mortar and pestle, flasks and a small burner. Dark green painted wood panelling, a hanging lamp and a window on the back wall. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+ "reference_images": [
+  {
+   "url": "upload:4470f586-9a1e-414c-a22f-5992d9ce090e",
+   "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera"
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+{
+ "tool": "create_image_pro",
+ "width": 256, "height": 256, "no_background": true, "seed": 707,
+ "style_image_url": "https://api.pixellab.ai/mcp/images/39282314-ff6f-40fd-86a0-4e2734f19952/download?index=0",
+ "style_note": "style from interior nha-so-7 (job 39282314) so icons share palette/outline/shading with the rooms",
+ "description": "Inventory icon sheet for a Victorian detective game: sixteen separate small objects arranged in a neat 4 by 4 grid, each object centred in its own 64 by 64 cell with empty space around it, all drawn at the same scale, front three-quarter view, dark outline, warm muted Victorian palette. Row 1: brass magnifying glass with dark wooden handle; tiny glass medicine vial with cork and a torn paper seal strip over the cork; small paper receipt slip with a scribbled signature; small brown leather coachman logbook. Row 2: thick pawnbroker ledger bound in dark green cloth; pawn ticket card tied with red string; folded blank white letter; brown glass chemical bottle with dropper cap. Row 3: folded letter covered in faint brown handwriting scribbles; small round glue pot with a brush; open small wooden jewelry box with red velvet lining, empty; small black leather notebook with a ribbon bookmark. Row 4: gold ring with a green jade stone; folded legal document with a red wax seal; small wooden tray holding seven tiny medicine vials in a row; old brass key. No text, no letters, no numbers, no grid lines, no background."
+}

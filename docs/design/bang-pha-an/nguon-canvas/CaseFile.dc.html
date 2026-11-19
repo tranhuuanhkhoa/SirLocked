@@ -1,0 +1,1622 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Hồ sơ vụ án</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0b0806}
+[hidden]{display:none !important}
+sc-if{display:contents}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-paper .s-btn:focus-visible{outline-color:#07111f}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-red:disabled{cursor:not-allowed;background:#5a4a3e;color:#c9bfae;box-shadow:0 3px 0 #3a3029}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover:not(:disabled){background:#07111f;color:#fbf6ed}
+.s-btn-ink:disabled{cursor:not-allowed;color:#6b6257;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.35)}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover:not(:disabled){background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-sm{min-height:36px;padding:0 14px;font-size:11px}
+.s-pin{position:absolute;z-index:3;width:18px;height:18px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.s-pin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.s-pin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.s-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:2px;background:rgba(251,246,237,.7);box-shadow:inset 0 0 0 1px rgba(79,69,54,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3328;white-space:nowrap}
+.s-chip.dark{background:#0d1014;color:#efd486;box-shadow:none}
+.s-stamp{display:inline-block;padding:6px 12px;border:4px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;transform:rotate(-8deg);mix-blend-mode:multiply}
+/* ---- in-game frame (g-) ---- */
+.g-stage{position:absolute;left:50%;top:50%;width:max(100vw,177.78vh);height:max(100vh,56.25vw);transform:translate(-50%,-50%)}
+.g-stage img{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.g-glass{background:rgba(10,12,15,.9);box-shadow:inset 0 0 0 1px rgba(239,212,134,.22),0 14px 30px rgba(0,0,0,.55)}
+.g-kick{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.2em;color:#efd486}
+.g-mute{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.16em;color:#b3a794}
+.g-mono{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:999px;background:#1a2c42;box-shadow:inset 0 0 0 1px #c7a24b;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:700}
+.g-mono.rust{background:#3a1d12;box-shadow:inset 0 0 0 1px #c98a63;color:#f2c9a9}
+.g-dot{width:8px;height:8px;border-radius:999px;background:#5fb3a8;box-shadow:0 0 0 2px rgba(95,179,168,.25)}
+.g-tool{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:70px;min-height:64px;padding:8px 12px 6px;white-space:nowrap;box-sizing:border-box;border:0;border-radius:2px;background:transparent;color:#e9dfcc;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.08em;line-height:1.15;text-align:center;cursor:pointer;transition:background-color .15s,color .15s}
+.g-tool svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.g-tool:hover:not(:disabled){background:rgba(239,212,134,.1);color:#efd486}
+.g-tool[aria-pressed="true"]{background:#efd486 !important;color:#07111f !important}
+.g-tool:disabled{cursor:not-allowed;color:#6f665a}
+.g-tool:focus-visible{outline:2px solid #efd486;outline-offset:-2px}
+.g-key{position:absolute;top:5px;right:7px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:2px;box-shadow:inset 0 0 0 1px currentColor;font-size:9px;line-height:15px;opacity:.75}
+.g-sep{width:1px;align-self:stretch;margin:8px 4px;background:rgba(239,212,134,.22)}
+.g-spot{position:absolute;z-index:2;display:grid;place-items:center;width:44px;height:44px;margin:-22px 0 0 -22px;padding:0;border:0;border-radius:999px;background:transparent;cursor:pointer}
+.g-spot::before{content:"";position:absolute;inset:8px;border-radius:999px;box-shadow:0 0 0 2px #efd486,0 0 12px rgba(239,212,134,.7),inset 0 0 8px rgba(239,212,134,.45)}
+.g-spot::after{content:"";position:absolute;inset:8px;border-radius:999px;box-shadow:0 0 0 2px rgba(239,212,134,.8);animation:gPing 2.2s ease-out infinite}
+.g-spot:focus-visible{outline:2px solid #fbf6ed;outline-offset:2px}
+.g-tag{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);padding:5px 9px;white-space:nowrap;background:#0d1014;box-shadow:inset 0 0 0 1px rgba(239,212,134,.4);color:#fbf6ed;font-family:'Crimson Text',Georgia,serif;font-size:15px;line-height:1.1;pointer-events:none;opacity:0;transition:opacity .15s}
+.g-tag b{display:block;font-family:'Source Code Pro',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.18em;color:#efd486}
+.g-spot:hover .g-tag,.g-spot:focus-visible .g-tag,.g-spot.is-hot .g-tag{opacity:1}
+.g-wit{position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;gap:9px;transform:translate(-50%,-100%)}
+.g-bub{position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 2px #c7a24b,0 8px 14px rgba(0,0,0,.55);color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:15px;font-weight:700}
+.g-bub::after{content:"";position:absolute;left:50%;bottom:-5px;width:10px;height:10px;margin-left:-5px;box-sizing:border-box;background:#1a2c42;border-right:2px solid #c7a24b;border-bottom:2px solid #c7a24b;transform:rotate(45deg)}
+.g-name{padding:3px 8px;background:#0d1014;box-shadow:inset 0 0 0 1px rgba(239,212,134,.4);color:#fbf6ed;font-family:'Crimson Text',Georgia,serif;font-size:15px;line-height:1.1;white-space:nowrap}
+@keyframes gPing{0%{transform:scale(1);opacity:.9}80%,100%{transform:scale(1.9);opacity:0}}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:20;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+
+@media (max-width:900px){
+  .g-obj{max-width:none !important}
+  .g-team,.g-timer{display:none !important}
+  .g-tools{left:8px !important;right:8px;transform:none !important;justify-content:space-between}
+  .g-tool{flex:1 1 0;min-width:0;padding:8px 2px 6px}
+  .g-tool .g-lbl{display:none}
+  .g-sep{margin:8px 0}
+  .g-hintbar{display:none !important}
+}
+/* ---- Hồ sơ vụ án overlay (cf-) ---- */
+.cf-veil{position:absolute;inset:0;z-index:8;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:32px;box-sizing:border-box;background:rgba(8,6,4,.74);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:cfFade .3s .75s ease-out both}
+.cf-sheet{position:relative;width:100%;min-width:0;max-width:1240px;height:calc(100vh - 64px);min-height:556px;box-sizing:border-box;border-radius:3px;background:linear-gradient(180deg,#dcc8a0 0%,#d9c49a 26%,#d2bb8f 100%);color:#07111f;box-shadow:inset 0 0 0 1px rgba(94,74,28,.5),inset 0 2px 0 rgba(255,246,220,.4),0 2px 0 rgba(0,0,0,.3),0 34px 70px rgba(0,0,0,.7);animation:cfOpen .55s .85s cubic-bezier(.4,0,.2,1) backwards}
+.cf-ftab{position:absolute;left:34px;top:-26px;display:flex;align-items:center;gap:12px;height:30px;padding:0 18px 4px 16px;box-sizing:border-box;border-radius:8px 8px 0 0;background:#dcc8a0;box-shadow:inset 0 1px 0 rgba(255,246,220,.55),inset 1px 0 0 rgba(94,74,28,.4),inset -1px 0 0 rgba(94,74,28,.4),0 -6px 12px -4px rgba(0,0,0,.3)}
+.cf-ftname{font-family:'Playfair Display',Georgia,serif;font-size:17px;font-style:italic;line-height:1;color:#07111f}
+.cf-ftcode{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#8c3624}
+.cf-scroll{display:flex;flex-direction:column;height:100%;min-height:0}
+/* header */
+.cf-head{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;padding:20px 22px 16px 30px;border-bottom:1px solid rgba(94,74,28,.3);box-shadow:0 1px 0 rgba(255,246,220,.35)}
+.cf-head .s-btn:focus-visible{outline-color:#07111f}
+.cf-label{position:relative;flex:none;padding:10px 24px 12px 26px;background:#0d1014;box-shadow:0 12px 24px rgba(0,0,0,.4);transform:rotate(-1deg)}
+.cf-labkick{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.24em;color:#efd486}
+.cf-h1{margin:3px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;line-height:1.08;color:#fbf6ed}
+.cf-prog{flex:1 1 300px;min-width:0}
+.cf-mini{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#4f4536;text-transform:uppercase}
+.cf-progline{margin:2px 0 0;font-size:19px;line-height:1.25;color:#07111f}
+.cf-progline b{font-weight:600;color:#8c3624}
+.cf-path{display:flex;max-width:460px;margin:9px 0 0;padding:0;list-style:none}
+.cf-path li{position:relative;flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;color:#4f4536;text-transform:uppercase;white-space:nowrap}
+.cf-path li:last-child{flex:none}
+.cf-path li::after{content:"";position:absolute;left:18px;right:6px;top:6px;border-top:2px dashed rgba(122,63,39,.45)}
+.cf-path li.is-done::after{border-top:2px solid #bf3b2c;filter:drop-shadow(1px 2px 0 rgba(0,0,0,.2))}
+.cf-path li:last-child::after{display:none}
+.cf-path li.is-now{color:#8c3624}
+.cf-node{position:relative;z-index:1;width:14px;height:14px;box-sizing:border-box;border-radius:50%}
+.is-done .cf-node{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.is-now .cf-node{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%);box-shadow:0 2px 3px rgba(0,0,0,.4);animation:cfPulse 1.8s ease-in-out infinite}
+.is-lock .cf-node{border:1.5px dashed rgba(79,69,54,.75);background:rgba(251,246,237,.35)}
+.cf-acc{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:7px;max-width:290px}
+.cf-accbtn{flex:none;min-height:44px;padding:0 18px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.cf-accbtn svg,.cf-finbtn svg{width:17px;height:17px;flex:none}
+.s-btn-red.cf-accbtn[aria-disabled="true"],.s-btn-red.cf-accbtn[aria-disabled="true"]:hover{cursor:not-allowed;background:#5a4a3e;color:#ddd3c2;box-shadow:0 3px 0 #3a3029}
+.s-btn.cf-accbtn[aria-disabled="true"]:active{transform:none}
+.cf-accwhy{display:flex;align-items:center;gap:6px;margin:0;font-size:15px;font-style:italic;line-height:1.25;color:#4a3826;text-align:right}
+.cf-accwhy svg{flex:none;width:14px;height:14px;color:#6b4a2c}
+.cf-close{flex:none;align-self:flex-start;padding:7px;background:#0d1014;box-shadow:0 10px 20px rgba(0,0,0,.35);transform:rotate(.8deg)}
+.cf-close .s-btn:focus-visible{outline-color:#efd486}
+.cf-closebtn{gap:10px;text-transform:uppercase}
+.cf-esc{display:inline-grid;place-items:center;min-width:30px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:3px;box-shadow:inset 0 0 0 1px currentColor,inset 0 -2px 0 rgba(239,212,134,.3);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:none}
+/* gold banner (final ready) */
+.cf-finwrap{position:relative;flex:1 1 520px;min-width:0;margin:0 18px}
+.cf-tail{position:absolute;top:12px;bottom:-12px;width:36px;background:linear-gradient(180deg,#c9a24a 0%,#9c7a30 100%)}
+.cf-tail.l{left:-24px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,34% 50%)}
+.cf-tail.r{right:-24px;clip-path:polygon(0 0,100% 0,66% 50%,100% 100%,0 100%)}
+.cf-finface{position:relative;display:flex;align-items:center;gap:16px;min-height:72px;padding:10px 12px 10px 16px;box-sizing:border-box;overflow:hidden;background:linear-gradient(180deg,#f8e8b3 0%,#ebcd78 48%,#cfa851 100%);box-shadow:inset 0 1px 0 rgba(255,251,230,.9),inset 0 0 0 1px #8a6420,inset 0 -3px 0 rgba(94,74,28,.22),0 0 0 3px rgba(239,212,134,.3),0 14px 28px rgba(60,40,10,.4);color:#2a1f0b}
+.cf-shine{position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(255,255,255,0) 35%,rgba(255,255,255,.6) 50%,rgba(255,255,255,0) 65%);transform:translateX(-110%);animation:cfShine 1.3s .3s cubic-bezier(.4,0,.2,1) both}
+.cf-medal{position:relative;display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c9 0%,#d9b85d 45%,#7a5d22 100%);box-shadow:inset 0 0 0 2px #5e4a1c,0 3px 6px rgba(60,40,10,.45);color:#3b2a0c}
+.cf-medal svg{width:24px;height:24px}
+.cf-fintext{position:relative;flex:1;min-width:0}
+.cf-finkick{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.2em;color:#5e4a1c}
+.cf-fintitle{margin:1px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:700;line-height:1.1;color:#2a1f0b}
+.cf-finsub{margin:2px 0 0;font-size:15px;font-style:italic;line-height:1.25;color:#3d2e10}
+.cf-finbtn{position:relative;flex:none;min-height:48px;padding:0 20px;text-transform:uppercase}
+.cf-f0{animation:cfFinIn .55s 1.3s cubic-bezier(.2,.8,.2,1) backwards}
+.cf-f0 .cf-shine{animation-delay:1.7s}
+.cf-f1{animation:cfFinIn .5s cubic-bezier(.2,.8,.2,1) backwards}
+/* body: index tabs + page */
+.cf-body{position:relative;display:flex;flex:1;min-height:0;padding:14px 22px 22px 16px}
+.cf-side{display:flex;flex-direction:column;flex:none;width:232px;margin-right:-16px;padding-top:14px}
+.cf-tabs{display:flex;flex-direction:column;gap:5px}
+.cf-tab{position:relative;z-index:1;display:grid;grid-template-columns:22px minmax(0,1fr) 16px;align-items:center;column-gap:8px;min-height:58px;margin:0 10px 0 12px;padding:7px 12px;box-sizing:border-box;border:0;border-radius:9px 0 0 9px;background:#e9dcc0;color:#2a2318;font-family:'Crimson Text',Georgia,serif;text-align:left;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,250,235,.6),0 2px 0 rgba(94,74,28,.22),0 6px 12px rgba(60,40,10,.16);transition:margin .2s cubic-bezier(.4,0,.2,1),background-color .15s}
+.cf-tab:hover{margin-left:6px;background:#efe4cb}
+.cf-tab[aria-selected="true"]{z-index:3;margin:0 -6px 0 0;background:#fbf6ed;cursor:default;box-shadow:inset 0 1px 0 #fff,-4px 6px 14px rgba(60,40,10,.2)}
+.cf-tab:focus-visible{outline:2px solid #9e3f2a;outline-offset:-5px}
+.cf-tabno{align-self:start;margin-top:4px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.04em;color:#8c3624}
+.cf-tabtxt{min-width:0}
+.cf-tabname{display:block;font-size:17px;font-weight:600;line-height:1.15;color:#07111f;white-space:nowrap}
+.cf-tabsub{display:block;margin-top:3px;overflow:hidden;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.1em;line-height:1.2;color:#4f4536;text-overflow:ellipsis;white-space:nowrap}
+.cf-tabst{display:grid;place-items:center;width:16px;height:16px;color:#4f4536}
+.cf-tabst svg{width:15px;height:15px}
+.cf-tabst .cf-tabok{color:#2f6363}
+.cf-dot{display:block;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%);animation:cfPulse 1.8s ease-in-out infinite}
+.cf-team{margin:auto 14px 0 12px;padding:12px 12px 12px;background:rgba(251,246,237,.4);box-shadow:inset 0 0 0 1px rgba(94,74,28,.3)}
+.cf-member{display:flex;align-items:center;gap:10px;margin-top:9px}
+.cf-mtxt{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.cf-mtxt b{font-size:16px;font-weight:600;color:#07111f}
+.cf-mtxt span{font-size:15px;font-style:italic;color:#3b3328}
+.cf-sw{align-self:stretch;width:4px;margin-left:auto;border-radius:2px}
+.cf-sw.teal{background:#2f6363}
+.cf-sw.rust{background:#7a3f27}
+.cf-legend{display:flex;flex-direction:column;gap:7px;margin:12px 0 0;padding-top:10px;border-top:1px dashed rgba(79,69,54,.45)}
+.cf-lrow{display:flex;align-items:center;gap:8px;font-size:15px;line-height:1.2;color:#2a2318}
+.cf-pagewrap{position:relative;z-index:2;display:flex;flex:1;min-width:0}
+.cf-pagewrap::before,.cf-pagewrap::after{content:"";position:absolute;inset:0;z-index:-1;box-shadow:0 1px 0 rgba(0,0,0,.18),0 10px 20px rgba(0,0,0,.2)}
+.cf-pagewrap::before{background:#e6dac0;transform:translate(10px,9px) rotate(.8deg)}
+.cf-pagewrap::after{background:#f1e8d6;transform:translate(5px,5px) rotate(.35deg)}
+.cf-clip{position:absolute;z-index:4;top:-20px;right:64px;width:20px;height:58px;overflow:visible;transform:rotate(9deg);filter:drop-shadow(1px 3px 2px rgba(0,0,0,.35));pointer-events:none}
+.cf-page{position:relative;flex:1;min-width:0;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;padding:20px 30px 32px 56px;background:linear-gradient(90deg,transparent 30px,rgba(182,64,48,.5) 30px,rgba(182,64,48,.5) 31.5px,transparent 31.5px),#fbf6ed;box-shadow:-3px 0 8px rgba(60,40,10,.26),0 1px 0 rgba(0,0,0,.2),0 16px 32px rgba(0,0,0,.3);scrollbar-width:thin;scrollbar-color:rgba(91,82,72,.45) transparent}
+.cf-page:focus-visible{outline:2px solid #9e3f2a;outline-offset:-4px}
+.cf-inner{min-width:0}
+/* page heading (per tab) */
+.cf-ph{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;margin:0 0 16px;padding-bottom:10px;border-bottom:1.5px solid rgba(182,64,48,.55)}
+.cf-kick{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.2em;color:#5b5248}
+.cf-h2{margin:3px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;line-height:1.08;color:#07111f}
+.cf-h3{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:21px;font-weight:700;line-height:1.15;color:#07111f}
+.cf-phnote{display:flex;align-items:center;gap:7px;margin:0;font-size:16px;font-style:italic;line-height:1.3;color:#3b3328}
+.cf-phnote svg{flex:none;width:16px;height:16px;color:#5b5248}
+.cf-phstate{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+/* chips / tags */
+.cf-tag,.cf-mark{display:inline-flex;align-items:center;gap:5px;min-height:22px;padding:0 7px;box-sizing:border-box;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.08em;line-height:1;white-space:nowrap}
+.cf-tag svg,.cf-mark svg{flex:none;width:12px;height:12px}
+.cf-tag.mine{color:#2f6363;box-shadow:inset 0 0 0 1px rgba(47,99,99,.7)}
+.cf-tag.mine.shared{background:#2f6363;color:#fbf6ed;box-shadow:none}
+.cf-tag.partner{color:#7a3f27;box-shadow:inset 0 0 0 1px rgba(122,63,39,.7)}
+.cf-tag.partner.shared{background:#7a3f27;color:#fbf6ed;box-shadow:none}
+.cf-mark.key{background:#9e3f2a;color:#fbf6ed}
+.cf-mark.photo{background:#0d1014;color:#efd486}
+.cf-go{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;color:#8c3624;text-decoration:none;text-transform:uppercase}
+.cf-go:hover{color:#07111f}
+.cf-go svg{flex:none;width:15px;height:15px;transition:transform .15s}
+.cf-go:hover svg{transform:translateX(3px)}
+.cf-go:focus-visible{outline:2px solid #07111f;outline-offset:2px}
+.cf-up{text-transform:uppercase}
+.cf-live{margin:0;font-size:15px;line-height:1.3}
+.cf-live.is-ok{color:#1f4545}
+.cf-live.is-err{color:#8c3624}
+/* tab 1 · evidence */
+.cf-evgrid{display:grid;grid-template-columns:minmax(0,.74fr) minmax(0,1fr);gap:26px;align-items:start}
+.cf-evlist{margin:0;padding:0;list-style:none;border-top:1px solid rgba(79,154,154,.4)}
+.cf-ev{display:grid;grid-template-columns:46px minmax(0,1fr) 16px;align-items:center;gap:12px;width:100%;min-height:58px;padding:6px 6px 6px 6px;box-sizing:border-box;border:0;border-bottom:1px solid rgba(79,154,154,.4);background:transparent;color:#2a2318;font-family:'Crimson Text',Georgia,serif;text-align:left;cursor:pointer;transition:background-color .15s}
+.cf-ev:hover{background:rgba(239,212,134,.26)}
+.cf-ev[aria-pressed="true"]{background:rgba(239,212,134,.42);box-shadow:inset 3px 0 0 #9e3f2a}
+.cf-ev:focus-visible{outline:2px solid #9e3f2a;outline-offset:-2px}
+.cf-evtile{position:relative;display:grid;place-items:center;flex:none;width:46px;height:46px;background:radial-gradient(ellipse at 50% 40%,#2e231c 0%,#15110e 75%);box-shadow:inset 0 0 0 1px rgba(239,212,134,.2)}
+.cf-evtile svg{width:38px;height:38px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.cf-evtile.is-key{box-shadow:inset 0 0 0 1.5px #c7a24b}
+.cf-evtile.is-key::after{content:"";position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%);box-shadow:0 2px 3px rgba(0,0,0,.45)}
+.cf-evtile.sm{width:34px;height:34px}
+.cf-evtile.sm svg{width:28px;height:28px}
+.cf-evtxt{min-width:0}
+.cf-evname{display:block;font-size:17px;font-weight:600;line-height:1.2;color:#07111f}
+.cf-evtags{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+.cf-evgo{width:16px;height:16px;color:#9e3f2a;opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s}
+.cf-ev:hover .cf-evgo,.cf-ev[aria-pressed="true"] .cf-evgo{opacity:1;transform:none}
+.cf-seen{display:flex;gap:11px;align-items:flex-start;margin:14px 0 0;padding:10px 13px;background:rgba(79,154,154,.12);box-shadow:inset 3px 0 0 #2f6363;font-size:15px;line-height:1.35;color:#1f3a3a}
+.cf-seen svg{flex:none;width:20px;height:20px;margin-top:1px;color:#2f6363}
+.cf-seen strong{display:block;margin-bottom:1px;font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:700;color:#173535}
+.cf-seen q{font-style:italic}
+.cf-detwrap{position:relative;min-width:0;scroll-margin-top:84px}
+.cf-det{position:relative;padding:16px 18px 18px;background:#e9dcc0;color:#07111f;box-shadow:0 1px 0 rgba(0,0,0,.2),0 16px 32px rgba(60,40,10,.3);transform:rotate(.5deg)}
+.cf-plate{position:relative;display:grid;place-items:center;height:172px;margin-bottom:14px;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#3b2c23 0%,#1a1412 72%);box-shadow:inset 0 0 0 1px rgba(239,212,134,.25),inset 0 0 30px rgba(0,0,0,.5)}
+.cf-plno{position:absolute;top:9px;left:9px;z-index:3;padding:3px 7px;background:rgba(13,16,20,.85);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#efd486}
+.cf-bag{position:relative;width:226px;height:144px;border-radius:5px;transform:rotate(-3deg);background:linear-gradient(155deg,rgba(236,244,247,.34) 0%,rgba(205,222,230,.16) 42%,rgba(236,244,247,.3) 100%);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.42),inset 0 0 22px rgba(255,255,255,.12),0 12px 20px rgba(0,0,0,.5)}
+.cf-bag::before{content:"";position:absolute;left:6px;right:6px;top:31px;height:3px;border-radius:2px;background:rgba(255,255,255,.5);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.cf-bag::after{content:"";position:absolute;inset:0;border-radius:5px;background:linear-gradient(115deg,rgba(255,255,255,0) 50%,rgba(255,255,255,.2) 58%,rgba(255,255,255,0) 68%);pointer-events:none}
+.cf-bagtop{position:absolute;left:8px;right:8px;top:6px;display:flex;align-items:center;justify-content:space-between;height:20px;padding:0 7px;background:rgba(251,246,237,.94);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;color:#9e3f2a}
+.cf-bagobj{position:absolute;left:50%;top:33px;width:110px;height:110px;margin-left:-55px;filter:drop-shadow(0 4px 4px rgba(0,0,0,.45))}
+.cf-polar{position:relative;width:214px;margin:0;padding:8px 8px 0;box-sizing:border-box;background:#fbf6ed;box-shadow:0 1px 0 rgba(0,0,0,.25),0 14px 24px rgba(0,0,0,.55);transform:rotate(-2.5deg)}
+.cf-crop{position:relative;height:114px;overflow:hidden;background:#1a1d22}
+.cf-crop img{position:absolute;left:50%;top:50%;width:800%;max-width:none;height:auto;transform:translate(-27.9%,-41.3%);image-rendering:pixelated}
+.cf-ring{position:absolute;left:50%;top:50%;width:64px;height:92px;margin:-46px 0 0 -32px;overflow:visible}
+.cf-polar figcaption{padding:6px 2px 8px;font-size:15px;font-style:italic;line-height:1.2;color:#2a2318;text-align:center}
+.cf-tape{position:absolute;z-index:2;width:58px;height:18px;background:rgba(233,220,192,.78);box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.cf-tape.a{top:-7px;left:-18px;transform:rotate(-30deg)}
+.cf-tape.b{top:-7px;right:-18px;transform:rotate(28deg)}
+.cf-keystamp{position:absolute;right:12px;bottom:14px;z-index:3;padding:4px 9px;border:3px double #e0735e;background:rgba(158,63,42,.16);color:#f0a08e;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;white-space:nowrap;transform:rotate(var(--sr,-9deg))}
+.cf-postmark{position:absolute;left:14px;bottom:12px;z-index:3;display:grid;place-items:center;width:66px;height:66px;box-sizing:border-box;border:2px solid #8fd0cf;border-radius:50%;box-shadow:inset 0 0 0 3px rgba(13,16,20,.4),inset 0 0 0 4px #8fd0cf;color:#8fd0cf;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;line-height:1.25;text-align:center;transform:rotate(var(--sr,-12deg))}
+.cf-dettitle{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;line-height:1.12;color:#07111f}
+.cf-det .cf-evtags{margin-top:8px}
+.cf-detdesc{margin:9px 0 0;font-size:17px;line-height:1.4;color:#2a2318}
+.cf-meta{display:flex;flex-wrap:wrap;gap:4px 18px;margin:10px 0 0;padding-top:8px;border-top:1px dashed rgba(79,69,54,.45)}
+.cf-meta div{display:flex;align-items:center;gap:6px;min-width:0}
+.cf-meta dt{display:flex;color:#4f4536}
+.cf-meta dt svg{width:16px;height:16px}
+.cf-meta dd{margin:0;font-size:16px;color:#2a2318}
+.cf-meta dd.num{font-family:'Source Code Pro',ui-monospace,monospace;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.cf-insp{margin:10px 0 0;padding:8px 12px 9px;background:rgba(251,246,237,.62);box-shadow:inset 3px 0 0 #2f6363;font-size:16px;font-style:italic;line-height:1.35;color:#2a2318}
+.cf-insp b{display:block;margin-bottom:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-style:normal;font-weight:700;letter-spacing:.14em;color:#2f6363}
+.cf-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.cf-acts .s-btn{flex:1 1 auto;gap:8px;min-height:44px;padding:0 12px;font-size:11px;letter-spacing:.1em}
+.cf-acts .s-btn svg{flex:none;width:16px;height:16px}
+.cf-sharedline{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:16px;line-height:1.3;color:#1f4545;outline:none}
+.cf-sharedline svg{flex:none;width:18px;height:18px}
+.cf-confirm{margin-top:10px;padding:11px 12px;background:#fbf6ed;box-shadow:inset 0 0 0 1.5px rgba(47,99,99,.55);animation:cfDrop .3s cubic-bezier(.2,.8,.2,1) both}
+.cf-confirm p{margin:0;font-size:16px;line-height:1.35;color:#2a2318}
+.cf-confbtns{display:flex;gap:8px;margin-top:9px}
+.cf-back{display:none}
+/* tab 2 · testimony */
+.cf-wgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 30px;align-items:start}
+.cf-wcol{display:flex;flex-direction:column;gap:26px;min-width:0}
+.cf-wit{display:flex;flex-direction:column;gap:12px;min-width:0}
+.cf-who{display:flex;align-items:center;gap:13px}
+.cf-mono{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 1.5px #c7a24b,0 0 0 3px #fbf6ed,0 0 0 4px rgba(26,44,66,.4),0 6px 10px rgba(7,17,31,.2);color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700}
+.cf-whoname{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:21px;font-weight:700;line-height:1.1;color:#07111f}
+.cf-whorole{margin:3px 0 0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248}
+.cf-whonote{margin:0;font-size:15px;font-style:italic;line-height:1.35;color:#3b3328}
+.cf-slip{position:relative;margin:0;padding:13px 16px 11px 20px;background:#fffaf0;box-shadow:inset 3px 0 0 #7a3f27,0 1px 0 rgba(0,0,0,.12),0 8px 18px rgba(60,40,10,.13);transform:rotate(-.35deg)}
+.cf-slip.tilt{transform:rotate(.35deg)}
+.cf-quote{position:relative;margin:0;padding-left:18px;font-size:19px;font-style:italic;line-height:1.35;color:#1d1a14}
+.cf-quote::before{content:"“";position:absolute;left:-2px;top:-7px;font-family:'Playfair Display',Georgia,serif;font-size:38px;font-style:normal;line-height:1;color:rgba(122,63,39,.55)}
+.cf-slip.is-broken .cf-qt{text-decoration:line-through;text-decoration-color:rgba(158,63,42,.9);text-decoration-thickness:2px}
+.cf-slipmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:9px}
+.cf-sliptime{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.06em;color:#5b5248}
+.cf-slipstamp{position:absolute;right:-8px;top:-15px;z-index:2;padding:3px 9px;border:3px double #9e3f2a;background:rgba(251,246,237,.35);color:#9e3f2a;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;white-space:nowrap;transform:rotate(var(--sr,-7deg));mix-blend-mode:multiply}
+.cf-refute{display:flex;align-items:center;gap:6px;margin:7px 0 0;font-size:15px;line-height:1.3;color:#6b2a1c}
+.cf-refute svg{flex:none;width:15px;height:15px}
+.cf-empty{margin:0;padding:12px 14px;border-radius:2px;background:repeating-linear-gradient(135deg,rgba(91,82,72,.06) 0 6px,rgba(91,82,72,0) 6px 12px);box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.3);font-size:16px;font-style:italic;color:#5b5248}
+.cf-pnote{display:flex;gap:12px;align-items:flex-start;margin:26px 0 0;padding:12px 14px;background:rgba(182,107,77,.12);box-shadow:inset 3px 0 0 #7a3f27;font-size:16px;line-height:1.35;color:#3b2418}
+.cf-pnote svg{flex:none;width:20px;height:20px;margin-top:1px;color:#7a3f27}
+.cf-pnote strong{display:block;margin-bottom:2px;font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700;color:#5c2c18}
+/* cork inset boards */
+.cf-cork{position:relative;isolation:isolate;overflow:hidden;border-radius:2px;box-shadow:0 1px 0 rgba(255,255,255,.6),0 6px 14px rgba(60,40,10,.2)}
+.cf-cork::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;box-shadow:inset 0 0 0 3px #4a3020,inset 0 0 0 4px #20150d,inset 0 8px 22px rgba(0,0,0,.55)}
+.cf-corkbg{position:absolute;inset:0;z-index:-1;display:block;width:100%;height:100%}
+.cf-bpin{position:absolute;z-index:4;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.cf-bpin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.cf-bpin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.cf-bpin.dull{background:radial-gradient(circle at 35% 30%,#d9d2c6 0%,#8a8277 45%,#3b3631 100%)}
+/* tab 3 · contradictions */
+.cf-board{padding:34px 26px 26px}
+.cf-rstr{position:absolute;left:0;top:0;z-index:3;width:100%;height:70px;pointer-events:none;overflow:visible}
+.cf-rounds{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px;align-items:start}
+.cf-round{position:relative;padding:22px 18px 16px 36px;background:#fbf6ed;color:#07111f;box-shadow:0 1px 0 rgba(0,0,0,.2),0 18px 34px rgba(0,0,0,.55);transform:rotate(var(--r,0deg))}
+.cf-round::before{content:"";position:absolute;top:0;bottom:0;left:22px;width:1.5px;background:rgba(182,64,48,.5)}
+.cf-cpin{display:none}
+.cf-rhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cf-rno{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.22em;color:#5b5248}
+.cf-rstamp{display:inline-block;padding:3px 10px;border:3px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.18em;white-space:nowrap;transform:rotate(var(--sr,-7deg));mix-blend-mode:multiply}
+.cf-rstamp.ok{color:#2f6363}
+.cf-rstamp.ready{color:#8a6420}
+.cf-rq{margin:9px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;line-height:1.25;color:#07111f}
+.cf-pair{display:grid;grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);align-items:stretch;margin-top:12px}
+.cf-slot{min-width:0;padding:8px 10px 9px;background:rgba(255,255,255,.66);box-shadow:inset 0 0 0 1px rgba(91,82,72,.28)}
+.cf-slot.t{box-shadow:inset 3px 0 0 #7a3f27,inset 0 0 0 1px rgba(91,82,72,.28)}
+.cf-slot.e{box-shadow:inset 3px 0 0 #2f6363,inset 0 0 0 1px rgba(91,82,72,.28)}
+.cf-slot.wait{background:transparent;box-shadow:none;outline:1.5px dashed rgba(91,82,72,.5);outline-offset:-1.5px}
+.cf-slotk{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#5b5248}
+.cf-slot.t .cf-slotk{color:#7a3f27}
+.cf-slot.e .cf-slotk{color:#2f6363}
+.cf-slotq{margin:4px 0 0;font-size:16px;font-style:italic;line-height:1.3;color:#1d1a14}
+.cf-slote{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:16px;font-weight:600;line-height:1.2;color:#07111f}
+.cf-slotw{display:flex;align-items:center;gap:7px;margin:6px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#5b5248}
+.cf-break{position:relative;display:grid;place-items:center;min-height:40px}
+.cf-break.q b{position:absolute;left:50%;top:50%;display:grid;place-items:center;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#fbf6ed;box-shadow:inset 0 0 0 1.6px #8a6420;color:#8a6420;font-family:'Playfair Display',Georgia,serif;font-size:12px;font-weight:700;line-height:1}
+.cf-break svg{width:26px;height:40px;overflow:visible}
+.cf-reveal{display:inline-block;margin:13px 0 0;padding:6px 12px;background:#0d1014;color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;transform:rotate(-1deg);box-shadow:0 6px 12px rgba(0,0,0,.25)}
+.cf-result{display:flex;align-items:flex-start;gap:8px;margin:10px 0 0;font-size:16px;line-height:1.3;color:#2a2318}
+.cf-result svg{flex:none;width:16px;height:16px;margin-top:2px;color:#2f6363}
+.cf-result b{font-weight:600;color:#1f4545}
+.cf-sign{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(91,82,72,.45)}
+.cf-signer{display:inline-flex;align-items:center;gap:7px;font-size:15px;color:#2a2318}
+.cf-okc{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#2f6363;color:#fbf6ed}
+.cf-okc svg{width:12px;height:12px}
+.cf-signtime{margin-left:auto;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.06em;color:#5b5248}
+.cf-mm{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 1px #c7a24b;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:11px;font-weight:700}
+.cf-mm.rust{background:#3a1d12;box-shadow:inset 0 0 0 1px #c98a63;color:#f2c9a9}
+.cf-mm+.cf-mm{margin-left:-9px}
+.cf-hidden{margin:10px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#5b5248}
+.cf-rbtn{width:100%;margin-top:12px;text-transform:uppercase}
+.cf-rbtn svg{flex:none;width:17px;height:17px}
+.cf-facts{position:relative;margin-top:22px;padding:14px 18px 6px 46px;background:#f4efe3;box-shadow:inset 0 0 0 1px rgba(91,82,72,.22)}
+.cf-facts::before{content:"";position:absolute;top:0;bottom:0;left:26px;width:1.5px;background:rgba(182,64,48,.5);box-shadow:4px 0 0 rgba(182,64,48,.5)}
+.cf-factlist{margin:8px 0 0;padding:0;list-style:none}
+.cf-fact{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:11px 0;border-top:1px solid rgba(79,154,154,.4)}
+.cf-factseal{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#2f6363;color:#fbf6ed}
+.cf-factseal svg{width:15px;height:15px}
+.cf-factname{margin:0;font-size:18px;font-weight:600;line-height:1.2;color:#07111f}
+.cf-factdesc{margin:3px 0 0;font-size:16px;line-height:1.35;color:#3b3328}
+.cf-facttag{padding-top:3px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;color:#5b5248;white-space:nowrap}
+.cf-cont{display:flex;align-items:center;gap:10px;margin:16px 0 0;font-size:16px;font-style:italic;line-height:1.35;color:#3b3328}
+.cf-cont svg{flex:none;width:18px;height:18px;color:#8c3624}
+/* tab 4 · deduction */
+.cf-pstamp{display:inline-block;padding:4px 11px;border:3px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.18em;white-space:nowrap;transform:rotate(var(--sr,-6deg));mix-blend-mode:multiply}
+.cf-pstamp.lock{color:#5f574b}
+.cf-pstamp.ok{color:#2f6363}
+.cf-q{margin:0;max-width:780px;font-family:'Playfair Display',Georgia,serif;font-size:22px;font-style:italic;font-weight:400;line-height:1.3;color:#07111f}
+.cf-tl{margin-top:16px;padding:0 10px 18px}
+.cf-tlstr{position:absolute;left:0;top:0;z-index:1;width:100%;height:60px;pointer-events:none;overflow:visible}
+.cf-tlitems{position:relative;z-index:2;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0;padding:0;list-style:none}
+.cf-tli{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;padding-top:24px}
+.cf-tlpin{position:relative;z-index:2;flex:none;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%);box-shadow:0 3px 4px rgba(0,0,0,.55)}
+.cf-twine{flex:none;display:block;width:2px;height:20px;margin:-2px 0 -6px;background:#cdb98d;box-shadow:1px 1px 0 rgba(0,0,0,.35)}
+.cf-tltag{position:relative;display:flex;flex-direction:column;align-items:center;width:calc(100% - 14px);max-width:132px;padding:18px 9px 10px;box-sizing:border-box;text-align:center;background:linear-gradient(135deg,transparent 9px,#e9dcc0 9.5px) left top/51% 100% no-repeat,linear-gradient(225deg,transparent 9px,#e9dcc0 9.5px) right top/51% 100% no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25)) drop-shadow(0 8px 8px rgba(0,0,0,.45));transform:rotate(var(--r,0deg));transform-origin:50% 0}
+.cf-tlhole{position:absolute;top:6px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#1d1510;box-shadow:0 0 0 2px #c7a24b}
+.cf-tltime{display:block;font-family:'Source Code Pro',ui-monospace,monospace;font-size:17px;font-weight:700;line-height:1.1;color:#07111f;font-variant-numeric:tabular-nums}
+.cf-tlsrc{display:inline-block;margin-top:4px;padding:2px 5px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;line-height:1.1}
+.cf-tlsrc.t{color:#7a3f27;box-shadow:inset 0 0 0 1px rgba(122,63,39,.6)}
+.cf-tlsrc.e{color:#2f6363;box-shadow:inset 0 0 0 1px rgba(47,99,99,.6)}
+.cf-tlcap{display:block;margin-top:6px;font-size:15px;line-height:1.2;color:#2a2318}
+.cf-optblock{margin-top:18px}
+.cf-opts{display:flex;flex-direction:column;gap:8px;margin:8px 0 0;padding:0;list-style:none}
+.cf-opt{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr) 22px;align-items:center;gap:12px;min-height:54px;padding:8px 14px 8px 12px;box-sizing:border-box;border-radius:2px;font-size:17px;line-height:1.3}
+.cf-opt.is-locked{background:repeating-linear-gradient(135deg,rgba(91,82,72,.06) 0 6px,rgba(91,82,72,0) 6px 12px),rgba(244,239,227,.75);box-shadow:inset 0 0 0 1px rgba(91,82,72,.3);color:#4f4536}
+.cf-opt.is-picked{background:rgba(79,154,154,.14);box-shadow:inset 0 0 0 2px #2f6363;color:#07111f}
+.cf-opt.is-out{background:rgba(244,239,227,.5);box-shadow:inset 0 0 0 1px rgba(91,82,72,.22);color:#5b5248}
+.cf-optltr{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1.5px currentColor;font-family:'Playfair Display',Georgia,serif;font-size:15px;font-weight:700}
+.cf-opt.is-picked .cf-optltr{background:#2f6363;color:#fbf6ed;box-shadow:none}
+.cf-optic{width:18px;height:18px}
+.cf-optic.ok{display:none;color:#2f6363}
+.cf-opt.is-picked .cf-optic.ok{display:block}
+.cf-opt.is-picked .cf-optic.lk,.cf-opt.is-out .cf-optic{display:none}
+.cf-lockline{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#4f4536}
+.cf-lockline svg{flex:none;width:16px;height:16px}
+.cf-hint{display:flex;gap:12px;align-items:flex-start;margin-top:18px;padding:12px 14px;background:rgba(239,212,134,.32);box-shadow:inset 3px 0 0 #8a6420}
+.cf-hint svg{flex:none;width:22px;height:22px;color:#6b4e16}
+.cf-hint .cf-mini{color:#5e4a1c}
+.cf-hint p.t{margin:3px 0 0;font-size:16px;line-height:1.35;color:#2a2318}
+/* tab 5 · map */
+.cf-mapboard{padding:18px 18px 16px}
+.cf-mapin{position:relative;aspect-ratio:1000/610}
+.cf-mapstr{position:absolute;inset:0;z-index:2;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cf-place{position:absolute;z-index:1;margin:0}
+.cf-place.p1{left:2%;top:7%;width:37%}
+.cf-place.p2{left:41%;top:28%;width:36%}
+.cf-place.p3{left:79.5%;top:9%;width:19%}
+.cf-photo{position:relative;padding:7px;background:#fbf6ed;box-shadow:0 1px 0 rgba(0,0,0,.25),0 16px 28px rgba(0,0,0,.6)}
+.cf-photo img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;image-rendering:pixelated}
+.p1 .cf-photo{transform:rotate(-2.2deg)}
+.p2 .cf-photo{transform:rotate(1.6deg)}
+.p3 .cf-photo{transform:rotate(2.4deg)}
+.cf-unknown{display:grid;place-items:center;aspect-ratio:4/3;box-sizing:border-box;border:2px dashed rgba(91,82,72,.55);background:repeating-linear-gradient(135deg,rgba(91,82,72,.07) 0 7px,rgba(91,82,72,0) 7px 14px),#efe7d6;color:#5b5248}
+.cf-unknown span{font-family:'Playfair Display',Georgia,serif;font-size:48px;font-weight:700;line-height:1}
+.cf-plabel{position:relative;margin:10px 8px 0;padding:9px 11px 10px;background:#e9dcc0;box-shadow:0 1px 0 rgba(0,0,0,.2),0 8px 14px rgba(0,0,0,.45)}
+.p1 .cf-plabel{transform:rotate(.8deg)}
+.p2 .cf-plabel{transform:rotate(-.6deg)}
+.p3 .cf-plabel{transform:rotate(-1deg)}
+.cf-plname{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;line-height:1.15;color:#07111f}
+.cf-plact{margin:3px 0 0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;line-height:1.3;color:#4f4536}
+.cf-plrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:7px}
+.cf-pst{display:inline-flex;align-items:center;min-height:22px;padding:0 7px;box-sizing:border-box;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;white-space:nowrap}
+.cf-pst.done{background:#2f6363;color:#fbf6ed}
+.cf-pst.now{background:#9e3f2a;color:#fbf6ed}
+.cf-pst.open{color:#2f6363;box-shadow:inset 0 0 0 1px rgba(47,99,99,.7)}
+.cf-pst.lock{color:#4f4536;box-shadow:inset 0 0 0 1px rgba(79,69,54,.6)}
+.cf-plline{margin:6px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#2a2318}
+.cf-plwho{display:inline-flex;align-items:center;gap:7px;font-size:15px;color:#2a2318}
+.cf-exit{position:absolute;z-index:3;display:flex;flex-direction:column;align-items:flex-start;padding:4px 9px 5px;background:#0d1014;box-shadow:0 6px 12px rgba(0,0,0,.45);white-space:nowrap;transform:translate(-50%,-50%) rotate(-4deg)}
+.cf-exit b{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#efd486}
+.cf-exit span{font-size:15px;font-style:italic;line-height:1.15;color:#fbf6ed}
+.cf-mapkey{position:absolute;left:2%;bottom:2.5%;z-index:3;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:36%;margin:0;padding:7px 8px;box-sizing:border-box;list-style:none;background:rgba(13,16,20,.86);box-shadow:inset 0 0 0 1px rgba(239,212,134,.2),0 8px 16px rgba(0,0,0,.4)}
+.cf-mapkeyk{margin-right:4px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#efd486}
+.cf-mapkey .cf-pst.open{color:#8fd0cf;box-shadow:inset 0 0 0 1px rgba(143,208,207,.7)}
+.cf-mapkey .cf-pst.lock{color:#cfc4b1;box-shadow:inset 0 0 0 1px rgba(207,196,177,.6)}
+/* tab 6 · coordination log */
+.cf-loggrid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:28px;align-items:start}
+.cf-logwrap{position:relative;min-width:0}
+.cf-logline{position:absolute;left:82px;top:28px;bottom:16px;width:2px;background:#bf3b2c;box-shadow:2px 4px 0 rgba(0,0,0,.12);transform-origin:50% 0;animation:cfGrow .9s .15s cubic-bezier(.5,0,.3,1) both}
+.cf-log{position:relative;margin:0;padding:0;list-style:none}
+.cf-logsep{margin:16px 0 2px;padding:0 0 4px 108px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#8c3624}
+.cf-logsep.first{margin-top:0}
+.cf-logrow{display:grid;grid-template-columns:66px 32px 54px minmax(0,1fr);align-items:center;min-height:46px;padding:3px 0;border-bottom:1px solid rgba(79,154,154,.32)}
+.cf-logrow.is-new{background:linear-gradient(90deg,rgba(239,212,134,0),rgba(239,212,134,.34) 30%,rgba(239,212,134,.34))}
+.cf-logt{padding-right:4px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:#07111f;text-align:right}
+.cf-logpin{justify-self:center;position:relative;z-index:1;width:12px;height:12px;border-radius:50%;box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.cf-logpin.me{background:radial-gradient(circle at 35% 30%,#bfe6e2 0%,#2f6363 50%,#173535 100%)}
+.cf-logpin.tv{background:radial-gradient(circle at 35% 30%,#f1c3a6 0%,#7a3f27 50%,#3d1d10 100%)}
+.cf-logpin.team{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.cf-logwho{display:flex;align-items:center}
+.cf-logtxt{display:flex;align-items:flex-start;gap:8px;min-width:0;font-size:16px;line-height:1.3;color:#2a2318}
+.cf-logtxt svg{flex:none;width:16px;height:16px;margin-top:2px;color:#5b5248}
+.cf-logtxt b{font-weight:600;color:#07111f}
+.cf-logrow.is-key .cf-logtxt{color:#07111f}
+.cf-logrow.is-key .cf-logtxt svg{color:#8c3624}
+.cf-logstats{position:relative;padding:18px 16px 14px;background:#0d1014;color:#eee4d2;box-shadow:inset 0 0 0 1px rgba(239,212,134,.18),0 14px 28px rgba(0,0,0,.35);transform:rotate(.6deg)}
+.cf-logstats .cf-mini{color:#efd486}
+.cf-stats{margin:8px 0 0}
+.cf-stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(239,212,134,.16)}
+.cf-stat dt{font-size:16px;color:#cfc4b1}
+.cf-stat dd{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:22px;font-weight:700;color:#efd486;font-variant-numeric:tabular-nums}
+.cf-whokey{display:flex;flex-direction:column;gap:9px;margin:14px 0 0;padding:0;list-style:none}
+.cf-whokey li{display:flex;align-items:center;gap:9px;font-size:15px;line-height:1.2;color:#cfc4b1}
+.cf-whokey .cf-logpin{flex:none}
+/* tab 7 · private notebook */
+.cf-nbgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;align-items:start}
+.cf-nb{position:relative;padding:16px 18px 14px 0;background:#fffaf0;box-shadow:0 1px 0 rgba(0,0,0,.18),0 14px 28px rgba(60,40,10,.22);transform:rotate(-.4deg)}
+.cf-nb::before{content:"";position:absolute;top:0;bottom:0;left:46px;z-index:1;width:1.5px;background:rgba(182,64,48,.55);pointer-events:none}
+.cf-nb:focus-within{box-shadow:0 0 0 2px #07111f,0 14px 28px rgba(60,40,10,.22)}
+.cf-nbhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:0 0 10px 62px;border-bottom:1.5px solid rgba(182,64,48,.5)}
+.cf-nbkick{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.18em;color:#8c3624}
+.cf-nbarea{display:block;width:100%;min-height:302px;box-sizing:border-box;margin:0;padding:4px 14px 0 62px;border:0;border-radius:0;resize:vertical;background-color:transparent;background-image:repeating-linear-gradient(180deg,rgba(79,154,154,0) 0,rgba(79,154,154,0) 29px,rgba(79,154,154,.42) 29px,rgba(79,154,154,.42) 30px);background-attachment:local;background-position:0 -4px;font-family:'Crimson Text',Georgia,serif;font-size:19px;font-style:italic;line-height:30px;color:#1d2a3a;outline:none}
+.cf-nbarea:focus{background-color:rgba(239,212,134,.14)}
+.cf-nbfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px;padding:12px 0 0 62px;border-top:1px solid rgba(79,154,154,.42)}
+.cf-nbfoot .s-btn{gap:8px;min-height:44px;padding:0 14px;font-size:11px;letter-spacing:.1em}
+.cf-nbfoot .s-btn svg{flex:none;width:17px;height:17px}
+.s-btn-red[aria-disabled="true"],.s-btn-red[aria-disabled="true"]:hover{cursor:default;background:#2f6363;color:#fbf6ed;box-shadow:0 3px 0 #173535}
+.cf-nb .cf-live{padding:8px 0 0 62px}
+.cf-nbstamp{position:absolute;right:30px;bottom:118px;z-index:2;padding:4px 11px;border:3px double #2f6363;color:#2f6363;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.18em;white-space:nowrap;transform:rotate(var(--sr,-10deg));mix-blend-mode:multiply;pointer-events:none}
+.cf-nbside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.cf-priv{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:rgba(79,154,154,.12);box-shadow:inset 3px 0 0 #2f6363;font-size:16px;line-height:1.35;color:#1f3a3a}
+.cf-priv svg{flex:none;width:18px;height:18px;margin-top:2px;color:#2f6363}
+.cf-priv strong{display:block;margin-bottom:1px;font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700;color:#173535}
+.cf-role{padding:11px 14px 12px;background:#f4efe3;box-shadow:inset 0 0 0 1px rgba(91,82,72,.25)}
+.cf-role.me{box-shadow:inset 3px 0 0 #2f6363,inset 0 0 0 1px rgba(91,82,72,.25)}
+.cf-role.tv{box-shadow:inset 3px 0 0 #7a3f27,inset 0 0 0 1px rgba(91,82,72,.25)}
+.cf-rolename{margin:2px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;line-height:1.15;color:#07111f}
+.cf-roledesc{margin:3px 0 0;font-size:16px;line-height:1.35;color:#3b3328}
+.cf-tip{padding:2px 0 0;font-size:16px;line-height:1.35;color:#3b3328}
+.cf-tip .cf-mini{color:#5b5248}
+.cf-tip p.t{margin:4px 0 0}
+/* motion */
+@keyframes cfFade{from{opacity:0}to{opacity:1}}
+@keyframes cfOpen{from{clip-path:circle(0% at 50% 100%)}to{clip-path:circle(150% at 50% 100%)}}
+@keyframes cfWipeA{from{clip-path:circle(0% at -60px var(--oy,40px))}to{clip-path:circle(150% at -60px var(--oy,40px))}}
+@keyframes cfWipeB{from{clip-path:circle(0% at -60px var(--oy,40px))}to{clip-path:circle(150% at -60px var(--oy,40px))}}
+@keyframes cfWipeMA{from{clip-path:circle(0% at 50% -40px)}to{clip-path:circle(150% at 50% -40px)}}
+@keyframes cfWipeMB{from{clip-path:circle(0% at 50% -40px)}to{clip-path:circle(150% at 50% -40px)}}
+@keyframes cfPopA{from{clip-path:circle(0% at 50% 20%);transform:translateY(8px)}to{clip-path:circle(150% at 50% 20%);transform:none}}
+@keyframes cfPopB{from{clip-path:circle(0% at 50% 20%);transform:translateY(8px)}to{clip-path:circle(150% at 50% 20%);transform:none}}
+@keyframes cfSlam{0%{opacity:0;transform:rotate(var(--sr,-8deg)) scale(2.2)}60%{opacity:1;transform:rotate(var(--sr,-8deg)) scale(.94)}100%{opacity:1;transform:rotate(var(--sr,-8deg)) scale(1)}}
+@keyframes cfDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes cfGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes cfPulse{0%,100%{box-shadow:0 0 0 2px rgba(192,57,43,.28)}50%{box-shadow:0 0 0 6px rgba(192,57,43,0)}}
+@keyframes cfShine{from{transform:translateX(-110%)}to{transform:translateX(110%)}}
+@keyframes cfFinIn{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes cfDrop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.cf-wa{animation:cfWipeA .55s cubic-bezier(.4,0,.2,1) backwards}
+.cf-wb{animation:cfWipeB .55s cubic-bezier(.4,0,.2,1) backwards}
+.cf-pa{animation:cfPopA .5s cubic-bezier(.4,0,.2,1) backwards}
+.cf-pb{animation:cfPopB .5s cubic-bezier(.4,0,.2,1) backwards}
+.cf-slam{animation:cfSlam .45s .2s cubic-bezier(.2,.8,.2,1) both}
+.cf-draw{stroke-dasharray:1;stroke-dashoffset:0;animation:cfDraw .9s .15s cubic-bezier(.5,0,.3,1) both}
+.cf-first .cf-slam{animation-delay:1.6s}
+.cf-first .cf-draw{animation-delay:1.45s}
+.cf-first .cf-logline{animation-delay:1.45s}
+@media (max-width:1279px),(max-height:879px){
+  .cf-legend{display:none}
+}
+@media (max-height:760px){
+  .cf-team{display:none}
+}
+@media (max-width:1180px){
+  .cf-head{gap:12px 22px}
+  .cf-tabsub{letter-spacing:.05em}
+  .cf-side{width:218px}
+  .cf-tabname{font-size:16px}
+  .cf-page{padding-right:24px}
+  .cf-evgrid{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px}
+  .cf-loggrid{grid-template-columns:minmax(0,1fr) 222px;gap:22px}
+  .cf-nbgrid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:22px}
+  .cf-board{padding:34px 18px 22px}
+  .cf-rounds{gap:26px}
+  .cf-round{padding:22px 14px 14px 32px}
+  .cf-round::before{left:19px}
+}
+@media (max-width:1100px) and (min-width:761px){
+  .cf-head{padding-right:150px}
+  .cf-close{position:absolute;top:18px;right:20px}
+  .cf-acc{flex:1 1 100%;flex-direction:row;align-items:center;gap:14px;max-width:none}
+  .cf-accwhy{text-align:left}
+  .cf-team{display:none}
+}
+@media (max-width:960px){
+  .cf-evgrid,.cf-wgrid,.cf-loggrid,.cf-nbgrid{grid-template-columns:minmax(0,1fr)}
+  .cf-rounds{grid-template-columns:minmax(0,1fr);gap:30px}
+  .cf-rstr,.cf-bpin.rs{display:none}
+  .cf-cpin{display:block;top:-8px;left:50%;margin:0 0 0 -9px}
+  .cf-tlstr{display:none}
+  .cf-tl{padding:20px 14px 18px}
+  .cf-tlitems{display:flex;flex-direction:column;gap:12px}
+  .cf-tlitems::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:2px;background:#bf3b2c;box-shadow:2px 4px 0 rgba(0,0,0,.35)}
+  .cf-tli{flex-direction:row;align-items:center;padding-top:0}
+  .cf-twine{width:16px;height:2px;margin:0}
+  .cf-tltag{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:4px 10px;flex:1;width:auto;max-width:none;padding:9px 12px 9px 24px;text-align:left;background:#e9dcc0;transform:none}
+  .cf-tlhole{top:50%;left:9px;margin:-4px 0 0}
+  .cf-tlsrc,.cf-tlcap{margin-top:0}
+  .cf-mapin{display:flex;flex-direction:column;gap:22px;aspect-ratio:auto}
+  .cf-place{position:relative;left:auto !important;top:auto !important;width:auto !important}
+  .cf-place.p3 .cf-unknown{aspect-ratio:16/7}
+  .cf-mapstr,.cf-mpin,.cf-exit{display:none}
+  .cf-mapkey{position:relative;left:auto;bottom:auto;align-self:flex-start;max-width:none}
+  .cf-logstats{transform:none}
+}
+@media (max-width:760px){
+  .cf-veil{padding:34px 8px 8px}
+  .cf-sheet{height:calc(100vh - 42px);min-height:0}
+  .cf-ftab{left:16px}
+  .cf-scroll{display:block;height:100%;overflow-y:auto;overscroll-behavior:contain}
+  .cf-head{padding:16px 14px 14px;gap:12px}
+  .cf-label{padding:8px 16px 9px 18px}
+  .cf-h1{font-size:25px}
+  .cf-labkick{font-size:10px}
+  .cf-close{position:absolute;top:14px;right:12px}
+  .cf-prog{flex:1 1 100%}
+  .cf-path{max-width:none}
+  .cf-acc{flex:1 1 100%;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;max-width:none}
+  .cf-accwhy{text-align:left}
+  .cf-finwrap{flex:1 1 100%;margin:4px 12px 6px}
+  .cf-finface{flex-wrap:wrap;gap:10px 12px}
+  .cf-fintitle{font-size:20px}
+  .cf-finbtn{width:100%}
+  .cf-body{display:block;padding:0 0 16px}
+  .cf-side{position:sticky;top:0;z-index:6;width:auto;margin:0;padding:8px 0 0;background:#d9c49a;box-shadow:0 8px 10px -8px rgba(60,40,10,.45)}
+  .cf-tabs{flex-direction:row;align-items:flex-end;gap:4px;overflow-x:auto;padding:0 10px;scroll-snap-type:x proximity;scrollbar-width:none}
+  .cf-tabs::-webkit-scrollbar{display:none}
+  .cf-tab{flex:none;grid-template-columns:auto auto auto;min-height:46px;margin:6px 0 0;padding:6px 12px;border-radius:8px 8px 0 0;scroll-snap-align:start;box-shadow:inset 0 1px 0 rgba(255,250,235,.6),inset 0 -6px 8px -6px rgba(60,40,10,.3)}
+  .cf-tab:hover{margin-left:0}
+  .cf-tab[aria-selected="true"]{margin:0;min-height:52px;box-shadow:inset 0 1px 0 #fff,0 -3px 8px rgba(60,40,10,.14)}
+  .cf-tabno{align-self:center;margin-top:0}
+  .cf-tabsub{display:none}
+  .cf-team{display:none}
+  .cf-pagewrap{display:block;margin:0 8px}
+  .cf-pagewrap::before,.cf-pagewrap::after,.cf-clip{display:none}
+  .cf-page{overflow:visible;padding:18px 14px 22px 34px;background:linear-gradient(90deg,transparent 19px,rgba(182,64,48,.5) 19px,rgba(182,64,48,.5) 20.5px,transparent 20.5px),#fbf6ed}
+  .cf-wa{animation-name:cfWipeMA}
+  .cf-wb{animation-name:cfWipeMB}
+  .cf-h2{font-size:25px}
+  .cf-det{transform:none}
+  .cf-back{display:inline-flex}
+  .cf-board{padding:24px 12px 18px}
+  .cf-round{padding:20px 12px 14px 28px}
+  .cf-round::before{left:17px}
+  .cf-pair{grid-template-columns:minmax(0,1fr)}
+  .cf-break{min-height:28px}
+  .cf-break svg{transform:rotate(90deg)}
+  .cf-slipstamp{right:8px;top:-19px}
+  .cf-mapboard{padding:16px 12px 14px}
+  .cf-logline{left:62px}
+  .cf-logsep{padding-left:88px}
+  .cf-logrow{grid-template-columns:50px 26px 54px minmax(0,1fr)}
+  .cf-logt{font-size:13px}
+  .cf-nbarea{padding-left:52px}
+  .cf-nb::before{left:38px}
+  .cf-nbhead,.cf-nbfoot,.cf-nb .cf-live{padding-left:52px}
+  .cf-facts{padding:12px 12px 6px 40px}
+  .cf-facts::before{left:20px}
+  .cf-fact{grid-template-columns:28px minmax(0,1fr)}
+  .cf-facttag{grid-column:2}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.g-spot::after,.cf-veil,.cf-sheet,.cf-f0,.cf-f1,.cf-shine,.cf-wa,.cf-wb,.cf-pa,.cf-pb,.cf-slam,.cf-draw,.cf-logline,.cf-dot,.cf-node,.cf-confirm{animation:none !important}
+  .cf-tab,.cf-ev,.cf-evgo,.cf-go svg{transition:none !important}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; height: 100vh; min-height: 620px; overflow: hidden; background: #0b0806; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+    <defs>
+      <filter id="cf-k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="cf-k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="cf-k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="cf-k-lamp" cx=".5" cy=".3" r=".8"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .14"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <!-- line icons (24×24, currentColor) -->
+      <symbol id="cf-i-lock" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><rect x="5" y="10.5" width="14" height="10" rx="1.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></g></symbol>
+      <symbol id="cf-i-share" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><circle cx="8.5" cy="8" r="3"></circle><path d="M3 19.5a5.5 5.5 0 0 1 11 0"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M15.6 14.1A4.5 4.5 0 0 1 21 18.5"></path></g></symbol>
+      <symbol id="cf-i-cam" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"></path><circle cx="12" cy="13" r="3.6"></circle></g></symbol>
+      <symbol id="cf-i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9z" style="fill: currentColor"></path></symbol>
+      <symbol id="cf-i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" style="fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round"></path></symbol>
+      <symbol id="cf-i-clock" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2"></path><path d="M10 2.5h4"></path></g></symbol>
+      <symbol id="cf-i-place" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"></path><circle cx="12" cy="10.5" r="2.2"></circle></g></symbol>
+      <symbol id="cf-i-mag" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></g></symbol>
+      <symbol id="cf-i-key" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><circle cx="8" cy="12" r="4"></circle><path d="M12 12h9M18 12v3M21 12v2.5"></path></g></symbol>
+      <symbol id="cf-i-flag" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M5 21V4"></path><path d="M5 4h12l-2.5 4L17 12H5"></path></g></symbol>
+      <symbol id="cf-i-call" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M4 5h16v11H9l-5 4z"></path><path d="M12 8v3.5"></path><path d="M12 13.6v.1"></path></g></symbol>
+      <symbol id="cf-i-map" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></g></symbol>
+      <symbol id="cf-i-crack" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M4 5h16v11H9l-5 4z"></path><path d="M12.5 5l-2 3.6 3 2.2-1.6 5.2"></path></g></symbol>
+      <symbol id="cf-i-link" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"></path><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"></path></g></symbol>
+      <symbol id="cf-i-pair" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round"><rect x="3" y="7" width="10" height="13" rx="1"></rect><rect x="11" y="4" width="10" height="13" rx="1"></rect></g></symbol>
+      <symbol id="cf-i-bulb" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round"><path d="M9 17h6"></path><path d="M10 20h4"></path><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></g></symbol>
+      <symbol id="cf-i-arrow" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></g></symbol>
+      <symbol id="cf-i-chev" viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round"></path></symbol>
+      <symbol id="cf-i-eye" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></g></symbol>
+      <symbol id="cf-i-scales" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round"><path d="M12 4v16M8 20h8M5 7.5h14"></path><path d="M5 7.5L2.5 13a2.5 2.5 0 0 0 5 0z"></path><path d="M19 7.5L16.5 13a2.5 2.5 0 0 0 5 0z"></path><circle cx="12" cy="4" r="1.2" style="fill: currentColor"></circle></g></symbol>
+      <symbol id="cf-i-stamp" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round"><circle cx="12" cy="5" r="2.5"></circle><path d="M10.3 7.5h3.4l1 5H9.3z"></path><rect x="5" y="12.5" width="14" height="4" rx="1"></rect><path d="M4 20.5h16"></path></g></symbol>
+      <symbol id="cf-i-note" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round"><path d="M5 3.5h11l3 3v14H5z"></path><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4.5"></path></g></symbol>
+      <!-- evidence objects (64×64) -->
+      <symbol id="ev-r21" viewBox="0 0 64 64">
+        <path d="M12 9H43L40 13L43 17L40 21L43 25L40 29L43 33L40 37L43 41L40 45L43 49L40 53L43 57H12Z" style="fill: #f1e8d3; stroke: #8a7a5c; stroke-width: 1.2; stroke-linejoin: round"></path>
+        <path d="M16 15H34M16 19.5H30" style="stroke: #b3a794; stroke-width: 1.6"></path>
+        <text x="15.5" y="38" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 15px; font-weight: 700; fill: #1d2a3a">21</text>
+        <path d="M17 47H33M29 43.5L33 47L29 50.5" style="fill: none; stroke: #9e3f2a; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round"></path>
+      </symbol>
+      <symbol id="ev-r42" viewBox="0 0 64 64">
+        <path d="M52 9H21L24 13L21 17L24 21L21 25L24 29L21 33L24 37L21 41L24 45L21 49L24 53L21 57H52Z" style="fill: #f1e8d3; stroke: #8a7a5c; stroke-width: 1.2; stroke-linejoin: round"></path>
+        <path d="M30 15H48M34 19.5H48" style="stroke: #b3a794; stroke-width: 1.6"></path>
+        <text x="30" y="38" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 15px; font-weight: 700; fill: #1d2a3a">42</text>
+        <path d="M30 47H47M30 51.5H42" style="stroke: #b3a794; stroke-width: 1.6"></path>
+      </symbol>
+      <symbol id="ev-code" viewBox="0 0 64 64">
+        <rect x="7" y="14" width="50" height="38" rx="3" style="fill: #6a4630; stroke: #2a1b10; stroke-width: 1.5"></rect>
+        <rect x="7" y="14" width="50" height="9" rx="3" style="fill: #7d5537"></rect>
+        <path d="M7.8 23H56.2" style="stroke: #2a1b10; stroke-width: 1.2"></path>
+        <rect x="12" y="29" width="40" height="17" rx="2" style="fill: #15110e; stroke: #c7a24b; stroke-width: 1.6"></rect>
+        <rect x="15" y="31.5" width="7.5" height="12" rx="1" style="fill: #efe3c4"></rect>
+        <rect x="24.5" y="31.5" width="7.5" height="12" rx="1" style="fill: #efe3c4"></rect>
+        <rect x="34" y="31.5" width="7.5" height="12" rx="1" style="fill: #efe3c4"></rect>
+        <rect x="43.5" y="31.5" width="7.5" height="12" rx="1" style="fill: #efe3c4"></rect>
+        <g style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 9px; font-weight: 700; fill: #1d2a3a; text-anchor: middle"><text x="18.75" y="40.6">2</text><text x="28.25" y="40.6">1</text><text x="37.75" y="40.6">4</text><text x="47.25" y="40.6">2</text></g>
+        <circle cx="32" cy="18.5" r="2.2" style="fill: #c7a24b"></circle>
+      </symbol>
+      <symbol id="ev-seal" viewBox="0 0 64 64">
+        <rect x="5" y="14" width="54" height="36" rx="2" style="fill: #efe3c8; stroke: #8a7a5c; stroke-width: 1.2"></rect>
+        <path d="M5.6 14.6L32 33.5L58.4 14.6" style="fill: none; stroke: #a8987a; stroke-width: 1.4"></path>
+        <circle cx="28.5" cy="35" r="10" style="fill: #7d2219"></circle>
+        <path d="M19.5 31.5l4 2.4-1.6 3.1 4.4 1.4" style="fill: none; stroke: #2a0805; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round"></path>
+        <circle cx="34.5" cy="32" r="8.6" style="fill: #c0392b"></circle>
+        <circle cx="34.5" cy="32" r="5" style="fill: none; stroke: #8f2318; stroke-width: 1.4"></circle>
+        <path d="M31 28.4a4.6 4.6 0 0 1 3.4-1.4" style="fill: none; stroke: rgba(255,214,204,.75); stroke-width: 1.3; stroke-linecap: round"></path>
+      </symbol>
+      <symbol id="ev-photo" viewBox="0 0 64 64">
+        <g transform="rotate(-7 32 32)">
+          <rect x="13" y="8" width="38" height="48" style="fill: #fbf6ed; stroke: #8a7a5c; stroke-width: 1"></rect>
+          <rect x="17" y="12" width="30" height="31" style="fill: #22302c"></rect>
+          <path d="M20 17h3m4 0h3m4 0h3m4 0h3M20 25h3m4 0h3m4 0h3m4 0h3M20 33h3m4 0h3m4 0h3m4 0h3" style="stroke: #2f4440; stroke-width: 1.2"></path>
+          <rect x="30" y="15" width="5" height="4" rx="1" style="fill: #c7a24b"></rect>
+          <path d="M32.5 19V30a4.5 4.5 0 0 1-9 0v-2" style="fill: none; stroke: #d9b45a; stroke-width: 2.6; stroke-linecap: round"></path>
+          <path d="M20 49h24" style="stroke: #b3a794; stroke-width: 1.4"></path>
+        </g>
+      </symbol>
+      <symbol id="ev-order" viewBox="0 0 64 64">
+        <path d="M14 6H41L50 15V58H14Z" style="fill: #f4efe3; stroke: #8a7a5c; stroke-width: 1.2; stroke-linejoin: round"></path>
+        <path d="M41 6V15H50" style="fill: #e3dbc9; stroke: #8a7a5c; stroke-width: 1.2; stroke-linejoin: round"></path>
+        <path d="M19 13H35" style="stroke: #1d2a3a; stroke-width: 2"></path>
+        <path d="M19 21H45M19 26H41M19 31H45M19 36H37" style="stroke: #b3a794; stroke-width: 1.5"></path>
+        <path d="M19 48c2.5-5 4.5 2.5 7-1.5s3.5 2 6-1.5" style="fill: none; stroke: #1d2a3a; stroke-width: 1.5; stroke-linecap: round"></path>
+        <g transform="rotate(-14 41 47)"><rect x="32" y="42" width="18" height="10" rx="1" style="fill: none; stroke: #b05a3c; stroke-width: 1.6"></rect><path d="M35 47h12" style="stroke: #b05a3c; stroke-width: 1.6"></path></g>
+      </symbol>
+      <symbol id="ev-stub" viewBox="0 0 64 64">
+        <path d="M8 17H56V47H8Z" style="fill: #e9dcc0; stroke: #8a7a5c; stroke-width: 1.2"></path>
+        <path d="M21 17V47" style="stroke: #8a7a5c; stroke-width: 1.2; stroke-dasharray: 2 2.2"></path>
+        <circle cx="14.5" cy="32" r="3" style="fill: #fbf6ed; stroke: #8a7a5c; stroke-width: 1"></circle>
+        <text x="25" y="30" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; fill: #1d2a3a">21:18</text>
+        <path d="M25 37c2-3 3.5 1.5 5.5-1s3 1.5 5-1" style="fill: none; stroke: #1d2a3a; stroke-width: 1.3; stroke-linecap: round"></path>
+        <path d="M25 42.5c2-2.5 3.5 1 5.5-1s3 1 5-1" style="fill: none; stroke: #2f6363; stroke-width: 1.3; stroke-linecap: round"></path>
+        <path d="M42 37H52M42 42.5H50" style="stroke: #b3a794; stroke-width: 1.4"></path>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="s-enter" style="position: absolute; inset: 0">
+    <div class="s-enter-zoom" style="position: absolute; inset: 0">
+
+      <!-- Game layer (scene + HUD) stays underneath, hidden from assistive tech while the case file is open -->
+      <div aria-hidden="true" style="position: absolute; inset: 0">
+        <div class="g-stage">
+          <img src="/_blob/3b834eb4587233e5db0579e72e49e276" alt="Hành lang kiểm sổ: tủ ngăn thư dịch vụ bên trái, cửa gỗ ở giữa, giá treo áo, hai khung tranh trống và kệ sách cạnh cửa sổ">
+          <button type="button" class="g-spot" tabindex="-1" style="left: 25.6%; top: 41%" aria-label="Khám nghiệm: Ngăn thư dịch vụ"><span class="g-tag"><b>KHÁM NGHIỆM</b>Ngăn thư dịch vụ</span></button>
+          <button type="button" class="g-spot" tabindex="-1" style="left: 20.5%; top: 52.5%" aria-label="Khám nghiệm: Hộp đối soát khóa số"><span class="g-tag"><b>KHÁM NGHIỆM</b>Hộp đối soát khóa số</span></button>
+          <span class="g-wit" style="left: 37.5%; top: 64%"><span class="g-bub">MV</span><span class="g-name">Mai Vân</span></span>
+          <span class="g-wit" style="left: 57%; top: 64%"><span class="g-bub">SL</span><span class="g-name">Sơn Lâm</span></span>
+        </div>
+        <div style="position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 55% at 52% 48%, rgba(255,196,120,.07), rgba(255,196,120,0) 70%), radial-gradient(ellipse 85% 80% at 50% 48%, rgba(5,4,3,0) 55%, rgba(5,4,3,.78) 100%)"></div>
+
+        <div style="position: absolute; z-index: 4; top: 16px; left: 20px; right: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; pointer-events: none">
+          <section class="g-obj g-glass" style="position: relative; max-width: 430px; padding: 12px 18px 13px 22px; pointer-events: auto">
+            <span class="s-pin gold" style="top: -7px; left: 14px; width: 14px; height: 14px"></span>
+            <div class="g-kick">ĐÊM KHÓA SỔ · HỒI II — HỒ SƠ TRƯỚC GIỜ GIẢI NGÂN</div>
+            <p style="margin: 3px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.15; color: #fbf6ed">Hành lang kiểm sổ</p>
+            <div class="g-mute" style="margin-top: 8px">MỤC TIÊU ĐIỀU TRA HIỆN TẠI</div>
+            <p style="margin: 2px 0 0; font-size: 16px; line-height: 1.35; color: #e2d8c6">{{ objText }}</p>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px">
+              <span style="position: relative; flex: 1; height: 10px">
+                <span style="position: absolute; left: 0; right: 0; top: 4px; border-top: 1px dashed rgba(239,212,134,.35)"></span>
+                <span style="position: absolute; left: 0; top: 4px; width: {{ objPct }}%; height: 2px; background: #bf3b2c"></span>
+                <span style="position: absolute; left: {{ objPct }}%; top: 0; width: 10px; height: 10px; margin-left: -5px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 45%, #6e1a12 100%)"></span>
+              </span>
+              <span class="g-mute" style="color: #cfc4b1">{{ objProg }}</span>
+            </div>
+          </section>
+
+          <div class="g-timer g-glass" role="timer" aria-label="{{ tLabel }}" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; pointer-events: auto">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#efd486" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2"></path><path d="M10 2.5h4"></path></svg>
+            <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 20px; font-weight: 700; color: #fbf6ed; font-variant-numeric: tabular-nums">{{ tText }}</span>
+          </div>
+
+          <section class="g-team g-glass" style="display: flex; flex-direction: column; gap: 8px; min-width: 250px; padding: 10px 14px 12px; pointer-events: auto">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px"><span class="g-kick">ĐỘI ĐIỀU TRA</span><span class="g-mute">PHÒNG K7Q2LM</span></div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span class="g-mono">TM</span>
+              <span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.15"><span style="font-size: 16px; font-weight: 600; color: #fbf6ed">Bạn · Điều tra viên</span><span style="font-size: 14px; font-style: italic; color: #b3a794">Hành lang kiểm sổ</span></span>
+              <span class="g-dot" style="margin-left: auto"></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span class="g-mono rust">TV</span>
+              <span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.15"><span style="font-size: 16px; font-weight: 600; color: #fbf6ed">Thám tử Vy · Thẩm vấn viên</span><span style="font-size: 14px; font-style: italic; color: #b3a794">Đang hỏi Sơn Lâm</span></span>
+              <span class="g-dot" style="margin-left: auto"></span>
+            </div>
+          </section>
+        </div>
+
+        <p class="g-hintbar" style="position: absolute; z-index: 4; left: 50%; bottom: 92px; margin: 0; padding: 5px 10px; transform: translateX(-50%); white-space: nowrap; background: rgba(10,12,15,.72); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #cfc4b1">Bấm để đi / tương tác · WASD / mũi tên · E tương tác · Esc hủy</p>
+        <nav class="g-tools g-glass" style="position: absolute; z-index: 5; left: 50%; bottom: 16px; display: flex; align-items: stretch; padding: 4px; transform: translateX(-50%); box-shadow: inset 0 1px 0 rgba(239,212,134,.35), inset 0 0 0 1px rgba(239,212,134,.22), 0 14px 30px rgba(0,0,0,.55)">
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"></path><circle cx="12" cy="13" r="3.6"></circle></svg><span class="g-lbl">Máy ảnh</span><span class="g-key">Z</span></button>
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 9h14l-1 11H6z"></path><path d="M9 9V7a3 3 0 0 1 6 0v2"></path><path d="M5 13h14"></path></svg><span class="g-lbl">Túi đồ</span><span class="g-key">B</span></button>
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"></path><path d="M3 11h18"></path></svg><span class="g-lbl">Hồ sơ vụ án</span></button>
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg><span class="g-lbl">Địa điểm</span></button>
+          <span class="g-sep"></span>
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M9 17h6"></path><path d="M10 20h4"></path><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></svg><span class="g-lbl">Gợi ý</span></button>
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.6"></path><path d="M12 17.2v.1"></path></svg><span class="g-lbl">Hướng dẫn</span></button>
+          <button type="button" class="g-tool" tabindex="-1" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"></path><path d="M12 8v3.5"></path><path d="M12 13.6v.1"></path></svg><span class="g-lbl">Gọi đồng đội</span></button>
+        </nav>
+      </div>
+
+      <!-- Overlay: Hồ sơ vụ án -->
+      <div class="cf-veil" role="dialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="{{ descId }}">
+        <section class="cf-sheet">
+          <div class="cf-ftab" aria-hidden="true"><span class="cf-ftname">Đêm khóa sổ</span><span class="cf-ftcode">V3 · CRACK</span></div>
+          <div id="cf-scroll" class="cf-scroll">
+
+            <header class="cf-head">
+              <div class="cf-label">
+                <span class="s-pin gold" aria-hidden="true" style="top: -7px; left: 12px; width: 14px; height: 14px"></span>
+                <p class="cf-labkick">ĐÊM KHÓA SỔ · HỒI II</p>
+                <h1 id="cf-title" class="cf-h1">Hồ sơ vụ án</h1>
+              </div>
+
+              <sc-if value="{{ notFinal }}" hint-placeholder-val="{{ true }}">
+                <div class="cf-prog">
+                  <p class="cf-mini">Tiến độ hồ sơ</p>
+                  <p id="cf-progline" class="cf-progline">Còn thiếu <b>1 manh mối</b> và <b>1 mâu thuẫn</b>.</p>
+                  <ol class="cf-path" aria-label="Các bước tới cáo buộc cuối cùng">
+                    <li class="is-done"><span class="cf-node" aria-hidden="true"></span>Chứng cứ<span class="s-sr">: đã thu thập</span></li>
+                    <li class="is-now"><span class="cf-node" aria-hidden="true"></span>Phá vỡ 1/2<span class="s-sr">: còn vòng 2</span></li>
+                    <li class="is-lock"><span class="cf-node" aria-hidden="true"></span>Suy luận<span class="s-sr">: đang khóa</span></li>
+                    <li class="is-lock"><span class="cf-node" aria-hidden="true"></span>Cáo buộc<span class="s-sr">: đang khóa</span></li>
+                  </ol>
+                </div>
+                <div class="cf-acc">
+                  <button type="button" class="s-btn s-btn-red cf-accbtn" aria-disabled="true" aria-describedby="cf-accwhy"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-lock"></use></svg>Lập cáo buộc</button>
+                  <p id="cf-accwhy" class="cf-accwhy">Cần phá vòng 2 và chốt suy luận.</p>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}">
+                <div class="{{ finCls }}">
+                  <span class="cf-tail l" aria-hidden="true"></span><span class="cf-tail r" aria-hidden="true"></span>
+                  <div class="cf-finface" role="status">
+                    <span class="cf-shine" aria-hidden="true"></span>
+                    <span class="cf-medal" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#cf-i-scales"></use></svg></span>
+                    <div class="cf-fintext">
+                      <p class="cf-finkick">CÁO BUỘC CUỐI CÙNG</p>
+                      <p id="cf-fintitle" class="cf-fintitle">Đối chất cuối cùng đã sẵn sàng</p>
+                      <p class="cf-finsub">Cả hai thám tử phải xác nhận cùng một phiên bản.</p>
+                    </div>
+                    <a class="s-btn s-btn-red cf-finbtn" href="Accuse.dc.html">Lập cáo buộc<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-arrow"></use></svg></a>
+                  </div>
+                </div>
+              </sc-if>
+
+              <div class="cf-close">
+                <a class="s-btn s-btn-gold s-btn-sm cf-closebtn" href="Game.dc.html" aria-keyshortcuts="Escape">Đóng<span class="cf-esc" aria-hidden="true">Esc</span></a>
+              </div>
+            </header>
+
+            <div class="cf-body">
+              <div id="cf-side" class="cf-side">
+                <div class="cf-tabs" role="tablist" aria-label="Các mục trong hồ sơ" aria-orientation="vertical">
+                  <button type="button" role="tab" id="cf-tab-chung-cu" class="cf-tab" aria-selected="{{ selEv }}" aria-controls="cf-panel" tabindex="{{ tiEv }}" onClick="{{ goEv }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">01</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Chứng cứ vật lý</span><span class="cf-tabsub">{{ subEv }}</span></span>
+                    <span class="cf-tabst" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" role="tab" id="cf-tab-loi-khai" class="cf-tab" aria-selected="{{ selLk }}" aria-controls="cf-panel" tabindex="{{ tiLk }}" onClick="{{ goLk }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">02</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Lời khai</span><span class="cf-tabsub">3 ĐOẠN ĐÃ CHIA SẺ</span></span>
+                    <span class="cf-tabst" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" role="tab" id="cf-tab-pha-vo" class="cf-tab" aria-selected="{{ selPv }}" aria-controls="cf-panel" tabindex="{{ tiPv }}" onClick="{{ goPv }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">03</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Phá Vỡ Lời Dối</span><span class="cf-tabsub">{{ subPv }}</span><span class="s-sr">{{ pvSr }}</span></span>
+                    <span class="cf-tabst" aria-hidden="true">
+                      <sc-if value="{{ notFinal }}" hint-placeholder-val="{{ true }}"><span class="cf-dot"></span></sc-if>
+                      <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}"><svg class="cf-tabok" viewBox="0 0 24 24"><use href="#cf-i-check"></use></svg></sc-if>
+                    </span>
+                  </button>
+                  <button type="button" role="tab" id="cf-tab-suy-luan" class="cf-tab" aria-selected="{{ selSl }}" aria-controls="cf-panel" tabindex="{{ tiSl }}" onClick="{{ goSl }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">04</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Suy luận</span><span class="cf-tabsub">{{ subSl }}</span></span>
+                    <span class="cf-tabst" aria-hidden="true">
+                      <sc-if value="{{ notFinal }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24"><use href="#cf-i-lock"></use></svg></sc-if>
+                      <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}"><svg class="cf-tabok" viewBox="0 0 24 24"><use href="#cf-i-check"></use></svg></sc-if>
+                    </span>
+                  </button>
+                  <button type="button" role="tab" id="cf-tab-ban-do" class="cf-tab" aria-selected="{{ selBd }}" aria-controls="cf-panel" tabindex="{{ tiBd }}" onClick="{{ goBd }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">05</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Bản đồ điều tra</span><span class="cf-tabsub">2/3 ĐỊA ĐIỂM</span></span>
+                    <span class="cf-tabst" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" role="tab" id="cf-tab-nhat-ky" class="cf-tab" aria-selected="{{ selNk }}" aria-controls="cf-panel" tabindex="{{ tiNk }}" onClick="{{ goNk }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">06</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Nhật ký phối hợp</span><span class="cf-tabsub">{{ subNk }}</span></span>
+                    <span class="cf-tabst" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" role="tab" id="cf-tab-so-tay" class="cf-tab" aria-selected="{{ selSt }}" aria-controls="cf-panel" tabindex="{{ tiSt }}" onClick="{{ goSt }}" onKeyDown="{{ tabKey }}">
+                    <span class="cf-tabno" aria-hidden="true">07</span>
+                    <span class="cf-tabtxt"><span class="cf-tabname">Sổ tay riêng</span><span class="cf-tabsub">CHỈ BẠN THẤY</span></span>
+                    <span class="cf-tabst" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#cf-i-lock"></use></svg></span>
+                  </button>
+                </div>
+
+                <div class="cf-team">
+                  <p class="cf-mini">Đội điều tra · K7Q2LM</p>
+                  <div class="cf-member"><span class="g-mono" aria-hidden="true">TM</span><span class="cf-mtxt"><b>Bạn</b><span>Điều tra viên</span></span><span class="cf-sw teal" aria-hidden="true"></span></div>
+                  <div class="cf-member"><span class="g-mono rust" aria-hidden="true">TV</span><span class="cf-mtxt"><b>Thám tử Vy</b><span>Thẩm vấn viên</span></span><span class="cf-sw rust" aria-hidden="true"></span></div>
+                  <div class="cf-legend">
+                    <span class="cf-lrow"><span class="cf-tag mine"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-lock"></use></svg>RIÊNG</span>chỉ người tìm thấy</span>
+                    <span class="cf-lrow"><span class="cf-tag mine shared"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg>ĐÃ CHIA SẺ</span>cả đội thấy</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cf-pagewrap">
+                <svg class="cf-clip" viewBox="0 0 20 58" aria-hidden="true"><path d="M6 50V11a5 5 0 0 1 10 0v37a7 7 0 0 1-14 0V17" style="fill: none; stroke: #c9cfd2; stroke-width: 2.2; stroke-linecap: round"></path><path d="M6 50V11a5 5 0 0 1 10 0" style="fill: none; stroke: rgba(255,255,255,.7); stroke-width: .8; stroke-linecap: round"></path></svg>
+                <div id="cf-panel" class="cf-page s-paper" role="tabpanel" aria-labelledby="{{ tabRef }}" tabindex="0">
+                  <div class="{{ innerCls }}" style="--oy: {{ oy }}">
+
+                    <!-- 01 · Chứng cứ vật lý -->
+                    <sc-if value="{{ isEv }}" hint-placeholder-val="{{ true }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 01 · VẬT CHỨNG CỦA BẠN</p>
+                          <h2 class="cf-h2">Chứng cứ vật lý</h2>
+                        </div>
+                        <p class="cf-phnote">{{ evCountLine }}</p>
+                      </div>
+                      <div class="cf-evgrid">
+                        <div style="min-width: 0">
+                          <ul id="cf-evlist" class="cf-evlist" aria-label="Chứng cứ bạn đã thu thập">
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_r21 }}" onClick="{{ pick_r21 }}">
+                              <span class="cf-evtile"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-r21"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Biên nhận — nửa 21</span><span class="cf-evtags"><span class="{{ tagCls_r21 }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_r21 }}"></use></svg>{{ tagTxt_r21 }}</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_r42 }}" onClick="{{ pick_r42 }}">
+                              <span class="cf-evtile"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-r42"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Biên nhận — nửa 42</span><span class="cf-evtags"><span class="{{ tagCls_r42 }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_r42 }}"></use></svg>{{ tagTxt_r42 }}</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_code }}" onClick="{{ pick_code }}">
+                              <span class="cf-evtile"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-code"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Mã hộp đối soát: 2142</span><span class="cf-evtags"><span class="{{ tagCls_code }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_code }}"></use></svg>{{ tagTxt_code }}</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_seal }}" onClick="{{ pick_seal }}">
+                              <span class="cf-evtile is-key"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-seal"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Niêm phong đỏ bị chồng lớp</span><span class="cf-evtags"><span class="{{ tagCls_seal }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_seal }}"></use></svg>{{ tagTxt_seal }}</span><span class="cf-mark key"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-star"></use></svg>THEN CHỐT</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_photo }}" onClick="{{ pick_photo }}">
+                              <span class="cf-evtile"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-photo"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Ảnh móc chìa nguyên vẹn</span><span class="cf-evtags"><span class="{{ tagCls_photo }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_photo }}"></use></svg>{{ tagTxt_photo }}</span><span class="cf-mark photo"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-cam"></use></svg>CHỨNG CỨ ẢNH</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_order }}" onClick="{{ pick_order }}">
+                              <span class="cf-evtile"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-order"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Bản sao lệnh chi trả nợ</span><span class="cf-evtags"><span class="{{ tagCls_order }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_order }}"></use></svg>{{ tagTxt_order }}</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                            <li><button type="button" class="cf-ev" aria-pressed="{{ evSel_stub }}" onClick="{{ pick_stub }}">
+                              <span class="cf-evtile"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-stub"></use></svg></span>
+                              <span class="cf-evtxt"><span class="cf-evname">Cuống giao nhận lúc 21:18</span><span class="cf-evtags"><span class="{{ tagCls_stub }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ tagIc_stub }}"></use></svg>{{ tagTxt_stub }}</span></span></span>
+                              <svg class="cf-evgo" viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-chev"></use></svg>
+                            </button></li>
+                          </ul>
+                          <div class="cf-seen">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-eye"></use></svg>
+                            <div><strong>Đồng đội thấy gì?</strong>Thám tử Vy chỉ thấy {{ seenN }} chứng cứ bạn đã chia sẻ. Phần còn lại, hồ sơ của họ chỉ ghi: <q>Hãy hỏi Điều tra viên về dấu vết vật lý.</q></div>
+                          </div>
+                        </div>
+
+                        <aside id="cf-detail" class="cf-detwrap" aria-label="Chi tiết chứng cứ đang mở">
+                          <div class="{{ popCls }}">
+                            <article class="cf-det" aria-labelledby="cf-det-h">
+                              <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+                              <div class="cf-plate">
+                                <span class="cf-plno">VẬT CHỨNG Nº {{ dNo }}</span>
+                                <sc-if value="{{ dIsBag }}" hint-placeholder-val="{{ false }}">
+                                  <div class="cf-bag" aria-hidden="true">
+                                    <span class="cf-bagtop"><span>ĐÊM KHÓA SỔ</span><span>K7Q2LM</span></span>
+                                    <svg class="cf-bagobj" viewBox="0 0 64 64"><use href="#{{ dIcon }}"></use></svg>
+                                  </div>
+                                </sc-if>
+                                <sc-if value="{{ dIsPhoto }}" hint-placeholder-val="{{ true }}">
+                                  <figure class="cf-polar">
+                                    <span class="cf-tape a" aria-hidden="true"></span><span class="cf-tape b" aria-hidden="true"></span>
+                                    <div class="cf-crop">
+                                      <img src="/_blob/0c2343546616163ced455490488d6d69" alt="Ảnh chụp cận móc đồng cạnh cửa phòng vé: móc còn nguyên đường cong và đế bắt vít">
+                                      <svg class="cf-ring" viewBox="0 0 64 92" aria-hidden="true"><ellipse cx="32" cy="46" rx="27" ry="41" transform="rotate(-8 32 46)" style="fill: none; stroke: #e04a36; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 190 16"></ellipse></svg>
+                                    </div>
+                                    <figcaption>Móc đồng cạnh cửa · 11:41</figcaption>
+                                  </figure>
+                                </sc-if>
+                                <sc-if value="{{ dIsKey }}" hint-placeholder-val="{{ false }}">
+                                  <span class="cf-keystamp cf-slam" aria-hidden="true" style="--sr: -9deg">CHỨNG CỨ THEN CHỐT</span>
+                                </sc-if>
+                                <sc-if value="{{ dShared }}" hint-placeholder-val="{{ false }}">
+                                  <span class="cf-postmark cf-slam" aria-hidden="true" style="--sr: -12deg">ĐÃ<br>CHIA SẺ</span>
+                                </sc-if>
+                              </div>
+                              <h3 id="cf-det-h" class="cf-dettitle">{{ dTitle }}</h3>
+                              <div class="cf-evtags">
+                                <span class="{{ dTagCls }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ dTagIc }}"></use></svg>{{ dTagTxt }}</span>
+                                <sc-if value="{{ dIsKey }}" hint-placeholder-val="{{ false }}"><span class="cf-mark key"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-star"></use></svg>CHỨNG CỨ THEN CHỐT</span></sc-if>
+                                <sc-if value="{{ dIsPhoto }}" hint-placeholder-val="{{ true }}"><span class="cf-mark photo"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-cam"></use></svg>CHỨNG CỨ ẢNH</span></sc-if>
+                              </div>
+                              <p class="cf-detdesc">{{ dDesc }}</p>
+                              <dl class="cf-meta">
+                                <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-place"></use></svg><span class="s-sr">Nơi tìm thấy</span></dt><dd>{{ dWhere }}</dd></div>
+                                <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-clock"></use></svg><span class="s-sr">Thời điểm</span></dt><dd class="num">{{ dWhen }}</dd></div>
+                              </dl>
+                              <sc-if value="{{ dHasNote }}" hint-placeholder-val="{{ true }}">
+                                <p class="cf-insp"><b>{{ dNoteLbl }}</b>{{ dNote }}</p>
+                              </sc-if>
+                              <div class="cf-acts">
+                                <a class="s-btn s-btn-red cf-up" href="Confront.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-pair"></use></svg>Đề xuất để cùng xem xét</a>
+                                <sc-if value="{{ dCanShare }}" hint-placeholder-val="{{ true }}">
+                                  <button type="button" id="cf-askshare" class="s-btn s-btn-ink cf-up" aria-expanded="{{ confirmOpen }}" onClick="{{ askShare }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg>Chia sẻ có chủ đích</button>
+                                </sc-if>
+                              </div>
+                              <sc-if value="{{ showConfirm }}" hint-placeholder-val="{{ false }}">
+                                <div class="cf-confirm" role="group" aria-label="Xác nhận chia sẻ">
+                                  <p>Chia sẻ <b>{{ dTitle }}</b> với Thám tử Vy? Đồng đội sẽ thấy toàn bộ mô tả của chứng cứ này trong hồ sơ của họ.</p>
+                                  <div class="cf-confbtns">
+                                    <button type="button" id="cf-doshare" class="s-btn s-btn-red s-btn-sm cf-up" onClick="{{ doShare }}">Chia sẻ</button>
+                                    <button type="button" class="s-btn s-btn-ink s-btn-sm cf-up" onClick="{{ cancelShare }}">Hủy</button>
+                                  </div>
+                                </div>
+                              </sc-if>
+                              <div role="status">
+                                <sc-if value="{{ dShared }}" hint-placeholder-val="{{ false }}">
+                                  <p id="cf-sharedline" class="cf-sharedline" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg>{{ dSharedLine }}</p>
+                                </sc-if>
+                              </div>
+                              <a class="cf-go cf-back" href="#cf-evlist">Trở lại danh sách chứng cứ</a>
+                            </article>
+                          </div>
+                        </aside>
+                      </div>
+                    </sc-if>
+
+                    <!-- 02 · Lời khai -->
+                    <sc-if value="{{ isLk }}" hint-placeholder-val="{{ false }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 02 · TỪ THẨM VẤN VIÊN</p>
+                          <h2 class="cf-h2">Lời khai</h2>
+                        </div>
+                        <p class="cf-phnote">3 đoạn lời khai Thám tử Vy đã chia sẻ với bạn</p>
+                      </div>
+                      <div class="cf-wgrid">
+                        <section class="cf-wit" aria-labelledby="cf-w-mv">
+                          <div class="cf-who">
+                            <span class="cf-mono" aria-hidden="true">MV</span>
+                            <div><h3 id="cf-w-mv" class="cf-whoname">Mai Vân</h3><p class="cf-whorole">NHÂN VIÊN PHÒNG VÉ</p></div>
+                          </div>
+                          <p class="cf-whonote">Mai tiếp nhận phong bì lệnh chi quỹ lúc 20:50. Cô nói mình rời nhà hát lúc 21:00.</p>
+                          <figure class="cf-slip">
+                            <blockquote class="cf-quote"><span class="cf-qt">Tôi nhận phong bì lúc 20:50.</span></blockquote>
+                            <figcaption class="cf-slipmeta"><span class="cf-tag partner shared"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg>ĐÃ CHIA SẺ · THẨM VẤN VIÊN</span><span class="cf-sliptime">05:40 · Thám tử Vy</span></figcaption>
+                          </figure>
+                          <figure class="cf-slip is-broken tilt">
+                            <span class="cf-slipstamp cf-slam" aria-hidden="true" style="--sr: -7deg">ĐÃ BỊ PHÁ</span>
+                            <blockquote class="cf-quote"><span class="cf-qt">Phong bì quỹ được niêm phong nguyên vẹn cả tối.</span><span class="s-sr"> (lời khai đã bị phá)</span></blockquote>
+                            <figcaption>
+                              <p class="cf-refute"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-crack"></use></svg>Vòng 1 · bị bác bỏ bởi Niêm phong đỏ bị chồng lớp</p>
+                              <span class="cf-slipmeta"><span class="cf-tag partner shared"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg>ĐÃ CHIA SẺ · THẨM VẤN VIÊN</span><span class="cf-sliptime">05:40 · Thám tử Vy</span></span>
+                            </figcaption>
+                          </figure>
+                        </section>
+                        <div class="cf-wcol">
+                          <section class="cf-wit" aria-labelledby="cf-w-sl">
+                            <div class="cf-who">
+                              <span class="cf-mono" aria-hidden="true">SL</span>
+                              <div><h3 id="cf-w-sl" class="cf-whoname">Sơn Lâm</h3><p class="cf-whorole">BẢO VỆ ĐÊM</p></div>
+                            </div>
+                            <p class="cf-whonote">Lâm bắt đầu ca lúc 21:45. Ông nghi có người lạ giật chìa; cần tách điều ông thấy khỏi điều ông suy đoán.</p>
+                            <figure class="{{ slipSl }}">
+                              <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}"><span class="cf-slipstamp cf-slam" aria-hidden="true" style="--sr: -6deg">ĐÃ SỬA LẠI</span></sc-if>
+                              <blockquote class="cf-quote"><span class="cf-qt">Móc chìa đã bị bẻ gãy.</span><span class="s-sr">{{ slSr }}</span></blockquote>
+                              <figcaption>
+                                <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}"><p class="cf-refute"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-crack"></use></svg>Vòng 2 · Ảnh móc chìa nguyên vẹn sửa lại lời khai này</p></sc-if>
+                                <span class="cf-slipmeta"><span class="cf-tag partner shared"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg>ĐÃ CHIA SẺ · THẨM VẤN VIÊN</span><span class="cf-sliptime">14:20 · Thám tử Vy</span></span>
+                              </figcaption>
+                            </figure>
+                          </section>
+                          <section class="cf-wit" aria-labelledby="cf-w-vk">
+                            <div class="cf-who">
+                              <span class="cf-mono" aria-hidden="true">VK</span>
+                              <div><h3 id="cf-w-vk" class="cf-whoname">Vũ Khang</h3><p class="cf-whorole">THỦ QUỸ</p></div>
+                            </div>
+                            <p class="cf-empty">Chưa ghi nhận lời khai nào.</p>
+                          </section>
+                        </div>
+                      </div>
+                      <div class="cf-pnote">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-call"></use></svg>
+                        <div><strong>Lời khai của đồng đội</strong>Hãy hỏi Thẩm vấn viên nhân chứng đã nói gì. Các đoạn lời khai riêng không xuất hiện ở màn hình này.</div>
+                      </div>
+                    </sc-if>
+
+                    <!-- 03 · Phá Vỡ Lời Dối -->
+                    <sc-if value="{{ isPv }}" hint-placeholder-val="{{ false }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 03 · CÙNG XEM XÉT</p>
+                          <h2 class="cf-h2">Phá Vỡ Lời Dối</h2>
+                        </div>
+                        <p class="cf-phnote">{{ pvLine }}</p>
+                      </div>
+                      <div class="cf-cork cf-board">
+                        <svg class="cf-corkbg" aria-hidden="true"><rect width="100%" height="100%" style="fill: #2a1f17"></rect><rect width="100%" height="100%" filter="url(#cf-k-blotch)" style="opacity: .5"></rect><rect width="100%" height="100%" filter="url(#cf-k-light)"></rect><rect width="100%" height="100%" filter="url(#cf-k-dark)"></rect><rect width="100%" height="100%" fill="url(#cf-k-lamp)"></rect></svg>
+                        <svg class="cf-rstr" viewBox="0 0 1000 70" preserveAspectRatio="none" aria-hidden="true">
+                          <path class="cf-draw" pathLength="1" d="M0 14Q130 33 255 34Q500 64 745 34Q870 33 1000 14" transform="translate(2 5)" style="fill: none; stroke: rgba(0,0,0,.45); stroke-width: 2.8; stroke-linecap: round"></path>
+                          <path class="cf-draw" pathLength="1" d="M0 14Q130 33 255 34Q500 64 745 34Q870 33 1000 14" style="fill: none; stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path>
+                        </svg>
+                        <span class="cf-bpin gold rs" aria-hidden="true" style="left: 25.5%; top: 34px"></span>
+                        <span class="{{ r2PinCls }}" aria-hidden="true" style="left: 74.5%; top: 34px"></span>
+                        <div class="cf-rounds">
+                          <article class="cf-round" style="--r: -1deg" aria-labelledby="cf-r1">
+                            <span class="cf-bpin gold cf-cpin" aria-hidden="true"></span>
+                            <div class="cf-rhead"><p id="cf-r1" class="cf-rno">VÒNG 1</p><span class="cf-rstamp ok cf-slam" style="--sr: -7deg">ĐÃ GIẢI</span></div>
+                            <p class="cf-rq">Bằng chứng nào trực tiếp bác bỏ câu niêm phong nguyên vẹn?</p>
+                            <div class="cf-pair">
+                              <div class="cf-slot t"><p class="cf-slotk">LỜI KHAI · MAI VÂN</p><p class="cf-slotq">“Phong bì quỹ được niêm phong nguyên vẹn cả tối.”</p></div>
+                              <span class="cf-break" aria-hidden="true"><svg viewBox="0 0 26 40"><path d="M0 20H8M18 20H26" style="stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path><path d="M9.5 15.5l7 9M16.5 15.5l-7 9" style="stroke: #9e3f2a; stroke-width: 2.4; stroke-linecap: round"></path></svg></span>
+                              <div class="cf-slot e"><p class="cf-slotk">CHỨNG CỨ</p><p class="cf-slote"><span class="cf-evtile sm is-key"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-seal"></use></svg></span>Niêm phong đỏ bị chồng lớp</p></div>
+                            </div>
+                            <p class="cf-reveal">VẾT SÁP KHÔNG KHỚP LỜI KHAI</p>
+                            <p class="cf-result"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-arrow"></use></svg><span>Sự thật đã xác lập: <b>Mai khai sai về niêm phong</b></span></p>
+                            <div class="cf-sign">
+                              <span class="cf-signer"><span class="cf-mm" aria-hidden="true">TM</span>Bạn<span class="cf-okc"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span class="s-sr">đã xác nhận</span></span></span>
+                              <span class="cf-signer"><span class="cf-mm rust" aria-hidden="true">TV</span>Đồng đội<span class="cf-okc"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span class="s-sr">đã xác nhận</span></span></span>
+                              <span class="cf-signtime">21:12</span>
+                            </div>
+                          </article>
+
+                          <sc-if value="{{ notFinal }}" hint-placeholder-val="{{ true }}">
+                            <article class="cf-round" style="--r: .8deg" aria-labelledby="cf-r2">
+                              <span class="cf-bpin red cf-cpin" aria-hidden="true"></span>
+                              <div class="cf-rhead"><p id="cf-r2" class="cf-rno">VÒNG 2</p><span class="cf-rstamp ready cf-slam" style="--sr: -5deg">SẴN SÀNG</span></div>
+                              <p class="cf-rq">Tách điều bảo vệ nhìn thấy khỏi điều ông đã suy ra.</p>
+                              <div class="cf-pair">
+                                <div class="cf-slot wait"><p class="cf-slotk">LỜI KHAI · ĐỒNG ĐỘI</p><p class="cf-slotw"><span class="cf-mm rust" aria-hidden="true">TV</span>Đang chờ đề xuất lời khai</p></div>
+                                <span class="cf-break q" aria-hidden="true"><svg viewBox="0 0 26 40"><path d="M0 20H26" style="stroke: rgba(122,63,39,.55); stroke-width: 2; stroke-dasharray: 3 3"></path></svg><b>?</b></span>
+                                <div class="cf-slot wait"><p class="cf-slotk">CHỨNG CỨ · BẠN</p><p class="cf-slotw"><span class="cf-mm" aria-hidden="true">TM</span>Chưa đề xuất</p></div>
+                              </div>
+                              <p class="cf-hidden">Cặp dữ liệu vẫn được giấu cho đến khi cả hai bên đã đề xuất.</p>
+                              <a class="s-btn s-btn-red cf-rbtn" href="Confront.dc.html">Bắt đầu đối chất<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-arrow"></use></svg></a>
+                            </article>
+                          </sc-if>
+                          <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}">
+                            <article class="cf-round" style="--r: .8deg" aria-labelledby="cf-r2f">
+                              <span class="cf-bpin gold cf-cpin" aria-hidden="true"></span>
+                              <div class="cf-rhead"><p id="cf-r2f" class="cf-rno">VÒNG 2</p><span class="cf-rstamp ok cf-slam" style="--sr: -5deg">ĐÃ GIẢI</span></div>
+                              <p class="cf-rq">Tách điều bảo vệ nhìn thấy khỏi điều ông đã suy ra.</p>
+                              <div class="cf-pair">
+                                <div class="cf-slot t"><p class="cf-slotk">LỜI KHAI · SƠN LÂM</p><p class="cf-slotq">“Móc chìa đã bị bẻ gãy.”</p></div>
+                                <span class="cf-break" aria-hidden="true"><svg viewBox="0 0 26 40"><path d="M0 20H8M18 20H26" style="stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path><path d="M9.5 15.5l7 9M16.5 15.5l-7 9" style="stroke: #9e3f2a; stroke-width: 2.4; stroke-linecap: round"></path></svg></span>
+                                <div class="cf-slot e"><p class="cf-slotk">CHỨNG CỨ</p><p class="cf-slote"><span class="cf-evtile sm"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ev-photo"></use></svg></span>Ảnh móc chìa nguyên vẹn</p></div>
+                              </div>
+                              <p class="cf-reveal">ẢNH CHỤP SỬA LẠI MỘT LỜI KHAI</p>
+                              <p class="cf-result"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-arrow"></use></svg><span>Sự thật đã xác lập: <b>Một suy đoán đã thành lời khai</b></span></p>
+                              <div class="cf-sign">
+                                <span class="cf-signer"><span class="cf-mm" aria-hidden="true">TM</span>Bạn<span class="cf-okc"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span class="s-sr">đã xác nhận</span></span></span>
+                                <span class="cf-signer"><span class="cf-mm rust" aria-hidden="true">TV</span>Đồng đội<span class="cf-okc"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span class="s-sr">đã xác nhận</span></span></span>
+                                <span class="cf-signtime">24:31</span>
+                              </div>
+                            </article>
+                          </sc-if>
+                        </div>
+                      </div>
+
+                      <section class="cf-facts" aria-labelledby="cf-facts-h">
+                        <h3 id="cf-facts-h" class="cf-h3">Sự thật đã xác lập</h3>
+                        <ul class="cf-factlist">
+                          <li class="cf-fact">
+                            <span class="cf-factseal" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#cf-i-check"></use></svg></span>
+                            <div><p class="cf-factname">Mai khai sai về niêm phong</p><p class="cf-factdesc">Hai người cùng xác nhận: viền sáp cũ đã gãy bác bỏ câu phong bì nguyên vẹn. Mai thừa nhận từng mở nó nhưng nói chỉ kiểm giấy.</p></div>
+                            <span class="cf-facttag">VÒNG 1 · 21:12</span>
+                          </li>
+                          <li class="cf-fact" hidden="{{ notFinal }}">
+                            <span class="cf-factseal" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#cf-i-check"></use></svg></span>
+                            <div><p class="cf-factname">Một suy đoán đã thành lời khai</p><p class="cf-factdesc">Đối diện ảnh chụp, Lâm thừa nhận chỉ thấy chìa đung đưa khi đi qua cửa; ông đã tự suy ra móc gãy. Chưa có vật chứng chứng minh một vụ giật chìa từ bên ngoài.</p></div>
+                            <span class="cf-facttag">VÒNG 2 · 24:31</span>
+                          </li>
+                        </ul>
+                      </section>
+                      <sc-if value="{{ notFinal }}" hint-placeholder-val="{{ true }}">
+                        <p class="cf-cont"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-mag"></use></svg>Tiếp tục điều tra và giải quyết các vòng Phá Vỡ Lời Dối cần thiết.</p>
+                      </sc-if>
+                    </sc-if>
+
+                    <!-- 04 · Suy luận -->
+                    <sc-if value="{{ isSl }}" hint-placeholder-val="{{ false }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 04 · DÒNG THỜI GIAN</p>
+                          <h2 class="cf-h2">Suy luận</h2>
+                        </div>
+                        <div class="cf-phstate">
+                          <span class="{{ slStampCls }}" style="--sr: -6deg">{{ slStampTxt }}</span>
+                          <p class="cf-phnote">{{ slReason }}</p>
+                        </div>
+                      </div>
+                      <p class="cf-q">Sau khi sửa cả hai lời khai, dòng thời gian nào giải thích việc đổi người thụ hưởng?</p>
+                      <div class="cf-cork cf-tl">
+                        <svg class="cf-corkbg" aria-hidden="true"><rect width="100%" height="100%" style="fill: #2a1f17"></rect><rect width="100%" height="100%" filter="url(#cf-k-blotch)" style="opacity: .5"></rect><rect width="100%" height="100%" filter="url(#cf-k-light)"></rect><rect width="100%" height="100%" filter="url(#cf-k-dark)"></rect><rect width="100%" height="100%" fill="url(#cf-k-lamp)"></rect></svg>
+                        <svg class="cf-tlstr" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+                          <path class="cf-draw" pathLength="1" d="M0 20Q55 30 100 32Q200 44 300 32Q400 44 500 32Q600 44 700 32Q800 44 900 32Q1000 44 1100 32Q1150 30 1200 20" transform="translate(2 5)" style="fill: none; stroke: rgba(0,0,0,.45); stroke-width: 2.8; stroke-linecap: round"></path>
+                          <path class="cf-draw" pathLength="1" d="M0 20Q55 30 100 32Q200 44 300 32Q400 44 500 32Q600 44 700 32Q800 44 900 32Q1000 44 1100 32Q1150 30 1200 20" style="fill: none; stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path>
+                        </svg>
+                        <ol class="cf-tlitems" aria-label="Dòng thời gian tối 20:50 – 21:45">
+                          <li class="cf-tli"><span class="cf-tlpin" aria-hidden="true"></span><span class="cf-twine" aria-hidden="true"></span><span class="cf-tltag" style="--r: -2deg"><span class="cf-tlhole" aria-hidden="true"></span><span class="cf-tltime">20:50</span><span class="cf-tlsrc t">LỜI KHAI</span><span class="cf-tlcap">Mai nhận phong bì</span></span></li>
+                          <li class="cf-tli"><span class="cf-tlpin" aria-hidden="true"></span><span class="cf-twine" aria-hidden="true"></span><span class="cf-tltag" style="--r: 1.5deg"><span class="cf-tlhole" aria-hidden="true"></span><span class="cf-tltime">21:00</span><span class="cf-tlsrc t">LỜI KHAI</span><span class="cf-tlcap">Mai nói đã rời nhà hát</span></span></li>
+                          <li class="cf-tli"><span class="cf-tlpin" aria-hidden="true"></span><span class="cf-twine" aria-hidden="true"></span><span class="cf-tltag" style="--r: -1deg"><span class="cf-tlhole" aria-hidden="true"></span><span class="cf-tltime">21:10</span><span class="cf-tlsrc t">LỜI KHAI</span><span class="cf-tlcap">Khang giao giấy ở ngân hàng</span></span></li>
+                          <li class="cf-tli"><span class="cf-tlpin" aria-hidden="true"></span><span class="cf-twine" aria-hidden="true"></span><span class="cf-tltag" style="--r: 2deg"><span class="cf-tlhole" aria-hidden="true"></span><span class="cf-tltime">21:18</span><span class="cf-tlsrc e">CHỨNG CỨ</span><span class="cf-tlcap">Cuống giao nhận (Mai tự nộp)</span></span></li>
+                          <li class="cf-tli"><span class="cf-tlpin" aria-hidden="true"></span><span class="cf-twine" aria-hidden="true"></span><span class="cf-tltag" style="--r: -1.5deg"><span class="cf-tlhole" aria-hidden="true"></span><span class="cf-tltime">21:30</span><span class="cf-tlsrc e">CHỨNG CỨ</span><span class="cf-tlcap">Bản lưu lệnh chi trả nợ</span></span></li>
+                          <li class="cf-tli"><span class="cf-tlpin" aria-hidden="true"></span><span class="cf-twine" aria-hidden="true"></span><span class="cf-tltag" style="--r: 1deg"><span class="cf-tlhole" aria-hidden="true"></span><span class="cf-tltime">21:45</span><span class="cf-tlsrc t">LỜI KHAI</span><span class="cf-tlcap">Lâm bắt đầu ca</span></span></li>
+                        </ol>
+                      </div>
+                      <div class="cf-optblock">
+                        <p class="cf-mini" style="color: #5b5248">Ba cách giải thích</p>
+                        <ol class="cf-opts">
+                          <li class="{{ optA }}"><span class="cf-optltr" aria-hidden="true">A</span><span>Mai còn ở nhà hát lúc 21:18, sửa lệnh chi trả nợ lúc 21:30 rồi niêm phong lại. Chuyện giật chìa là suy đoán.<span class="s-sr">{{ optASr }}</span></span><span aria-hidden="true"><svg class="cf-optic lk" viewBox="0 0 24 24"><use href="#cf-i-lock"></use></svg><svg class="cf-optic ok" viewBox="0 0 24 24"><use href="#cf-i-check"></use></svg></span></li>
+                          <li class="{{ optB }}"><span class="cf-optltr" aria-hidden="true">B</span><span>Mọi việc do người lạ giật chìa, vì bảo vệ nghĩ móc đã gãy.</span><span aria-hidden="true"><svg class="cf-optic lk" viewBox="0 0 24 24"><use href="#cf-i-lock"></use></svg></span></li>
+                          <li class="{{ optC }}"><span class="cf-optltr" aria-hidden="true">C</span><span>Khang từng cầm đồng hồ nên chắc chắn ông đổi lệnh chi tối nay.</span><span aria-hidden="true"><svg class="cf-optic lk" viewBox="0 0 24 24"><use href="#cf-i-lock"></use></svg></span></li>
+                        </ol>
+                        <sc-if value="{{ notFinal }}" hint-placeholder-val="{{ true }}">
+                          <p class="cf-lockline"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-lock"></use></svg>Các phương án sẽ mở khi cả đội giải xong vòng 2 của Phá Vỡ Lời Dối.</p>
+                        </sc-if>
+                        <sc-if value="{{ isFinal }}" hint-placeholder-val="{{ false }}">
+                          <div class="cf-sign">
+                            <span class="cf-signer"><span class="cf-mm" aria-hidden="true">TM</span>Bạn<span class="cf-okc"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span class="s-sr">đã xác nhận</span></span></span>
+                            <span class="cf-signer"><span class="cf-mm rust" aria-hidden="true">TV</span>Đồng đội<span class="cf-okc"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span class="s-sr">đã xác nhận</span></span></span>
+                            <span class="cf-signtime">26:12</span>
+                          </div>
+                        </sc-if>
+                      </div>
+                      <div class="cf-hint">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-bulb"></use></svg>
+                        <div><p class="cf-mini">Manh mối hỗ trợ</p><p class="t">Xếp 21:18, 21:30, 21:45. Giải thích nào khớp hồ sơ và vết sáp mà không dựa vào lời suy đoán đã bị bác?</p></div>
+                      </div>
+                    </sc-if>
+
+                    <!-- 05 · Bản đồ điều tra -->
+                    <sc-if value="{{ isBd }}" hint-placeholder-val="{{ false }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 05 · NHÀ HÁT VỌNG ÂM</p>
+                          <h2 class="cf-h2">Bản đồ điều tra</h2>
+                        </div>
+                        <p class="cf-phnote">Di chuyển giữa các địa điểm đã được mở trong quá trình điều tra.</p>
+                      </div>
+                      <div class="cf-cork cf-mapboard">
+                        <svg class="cf-corkbg" aria-hidden="true"><rect width="100%" height="100%" style="fill: #2a1f17"></rect><rect width="100%" height="100%" filter="url(#cf-k-blotch)" style="opacity: .5"></rect><rect width="100%" height="100%" filter="url(#cf-k-light)"></rect><rect width="100%" height="100%" filter="url(#cf-k-dark)"></rect><rect width="100%" height="100%" fill="url(#cf-k-lamp)"></rect></svg>
+                        <div class="cf-mapin">
+                          <article class="cf-place p1" aria-labelledby="cf-pl1">
+                            <div class="cf-photo"><span class="cf-tape a" aria-hidden="true"></span><span class="cf-tape b" aria-hidden="true"></span><img src="/_blob/0c2343546616163ced455490488d6d69" alt="Ảnh hiện trường Phòng vé Vọng Âm: quầy vé gỗ dưới rèm đỏ, đèn bàn đồng, móc chìa cạnh cửa"></div>
+                            <div class="cf-plabel">
+                              <h3 id="cf-pl1" class="cf-plname">Phòng vé Vọng Âm</h3>
+                              <p class="cf-plact">HỒI I · QUẦY VÉ SAU MÀN HẠ</p>
+                              <div class="cf-plrow"><span class="cf-pst done">HOÀN TẤT</span><span class="cf-plwho" style="font-style: italic">Đã điều tra xong địa điểm</span></div>
+                              <a class="cf-go" href="Game.dc.html">Trở lại phòng vé<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-arrow"></use></svg></a>
+                            </div>
+                          </article>
+                          <article class="cf-place p2" aria-labelledby="cf-pl2">
+                            <div class="cf-photo"><span class="cf-tape a" aria-hidden="true"></span><span class="cf-tape b" aria-hidden="true"></span><img src="/_blob/3b834eb4587233e5db0579e72e49e276" alt="Ảnh hiện trường Hành lang kiểm sổ: tủ ngăn thư, cửa gỗ, giá treo áo và kệ sách"></div>
+                            <div class="cf-plabel">
+                              <h3 id="cf-pl2" class="cf-plname">Hành lang kiểm sổ</h3>
+                              <p class="cf-plact">HỒI II · HỒ SƠ TRƯỚC GIỜ GIẢI NGÂN</p>
+                              <div class="cf-plrow"><span class="cf-pst now">HIỆN TẠI</span><span class="cf-plwho"><span style="display: inline-flex"><span class="cf-mm" aria-hidden="true">TM</span><span class="cf-mm rust" aria-hidden="true">TV</span></span>Cả đội đang ở đây</span></div>
+                              <p class="cf-plline">{{ place2Line }}</p>
+                            </div>
+                          </article>
+                          <article class="cf-place p3" aria-labelledby="cf-pl3">
+                            <div class="cf-photo"><div class="cf-unknown" aria-hidden="true"><span>?</span></div></div>
+                            <div class="cf-plabel">
+                              <h3 id="cf-pl3" class="cf-plname">Địa điểm chưa biết</h3>
+                              <div class="cf-plrow"><span class="cf-pst lock">ĐANG KHÓA</span></div>
+                              <p class="cf-plline">Mở khi đội tìm ra lối điều tra tiếp theo.</p>
+                            </div>
+                          </article>
+                          <svg class="cf-mapstr" viewBox="0 0 1000 610" preserveAspectRatio="none" aria-hidden="true">
+                            <path class="cf-draw" pathLength="1" d="M205 43Q390 160 590 171" transform="translate(2 5)" style="fill: none; stroke: rgba(0,0,0,.45); stroke-width: 3.2; stroke-linecap: round"></path>
+                            <path class="cf-draw" pathLength="1" d="M205 43Q390 160 590 171" style="fill: none; stroke: #bf3b2c; stroke-width: 2.4; stroke-linecap: round"></path>
+                            <path d="M590 171Q760 158 890 55" style="fill: none; stroke: rgba(191,59,44,.6); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 7 7"></path>
+                          </svg>
+                          <span class="cf-bpin gold cf-mpin" aria-hidden="true" style="left: 20.5%; top: 7%; margin: -9px 0 0 -9px"></span>
+                          <span class="cf-bpin red cf-mpin" aria-hidden="true" style="left: 59%; top: 28%; margin: -9px 0 0 -9px"></span>
+                          <span class="cf-bpin dull cf-mpin" aria-hidden="true" style="left: 89%; top: 9%; margin: -9px 0 0 -9px"></span>
+                          <span class="cf-exit" style="left: 50.5%; top: 21.5%"><b>LỐI RA</b><span>Hành lang hậu trường</span></span>
+                          <ul class="cf-mapkey" aria-label="Trạng thái địa điểm"><li class="cf-mapkeyk" aria-hidden="true">TRẠNG THÁI</li><li class="cf-pst done">HOÀN TẤT</li><li class="cf-pst now">HIỆN TẠI</li><li class="cf-pst open">ĐÃ MỞ</li><li class="cf-pst lock">ĐANG KHÓA</li></ul>
+                        </div>
+                      </div>
+                    </sc-if>
+
+                    <!-- 06 · Nhật ký phối hợp -->
+                    <sc-if value="{{ isNk }}" hint-placeholder-val="{{ false }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 06 · HOẠT ĐỘNG CỦA ĐỘI</p>
+                          <h2 class="cf-h2">Nhật ký phối hợp</h2>
+                        </div>
+                        <p class="cf-phnote"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-clock"></use></svg>Giờ theo đồng hồ ván chơi · mới nhất ở trên</p>
+                      </div>
+                      <div class="cf-loggrid">
+                        <div class="cf-logwrap">
+                          <span class="cf-logline" aria-hidden="true"></span>
+                          <ol class="cf-log" aria-label="Hoạt động, mới nhất trước">
+                            <li class="cf-logsep first">HỒI II — HỒ SƠ TRƯỚC GIỜ GIẢI NGÂN</li>
+                            <li class="cf-logrow is-key" hidden="{{ notFinal }}"><span class="cf-logt">26:40</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-scales"></use></svg><span>Đối chất cuối cùng đã sẵn sàng.</span></span></li>
+                            <li class="cf-logrow" hidden="{{ notFinal }}"><span class="cf-logt">26:12</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-check"></use></svg><span>Cả đội chốt suy luận dòng thời gian.</span></span></li>
+                            <li class="cf-logrow is-key" hidden="{{ notFinal }}"><span class="cf-logt">24:31</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-stamp"></use></svg><span>Cả đội phá vỡ lời dối: <b>ẢNH CHỤP SỬA LẠI MỘT LỜI KHAI</b></span></span></li>
+                            <li class="cf-logrow" hidden="{{ hideF_photo }}"><span class="cf-logt">24:18</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Ảnh móc chìa nguyên vẹn</b>.</span></span></li>
+                            <li class="cf-logrow is-new" hidden="{{ hideU_note }}"><span class="cf-logt">24:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-note"></use></svg><span>Bạn chia sẻ một ghi chú từ sổ tay riêng.</span></span></li>
+                            <li class="cf-logrow is-new" hidden="{{ hideU_stub }}"><span class="cf-logt">24:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Cuống giao nhận lúc 21:18</b>.</span></span></li>
+                            <li class="cf-logrow is-new" hidden="{{ hideU_order }}"><span class="cf-logt">24:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Bản sao lệnh chi trả nợ</b>.</span></span></li>
+                            <li class="cf-logrow is-new" hidden="{{ hideU_photo }}"><span class="cf-logt">24:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Ảnh móc chìa nguyên vẹn</b>.</span></span></li>
+                            <li class="cf-logrow is-new" hidden="{{ hideU_r42 }}"><span class="cf-logt">24:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Biên nhận — nửa 42</b>.</span></span></li>
+                            <li class="cf-logrow is-new" hidden="{{ hideU_r21 }}"><span class="cf-logt">24:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Biên nhận — nửa 21</b>.</span></span></li>
+                            <li class="cf-logrow is-key"><span class="cf-logt">22:47</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-flag"></use></svg><span>Vòng Phá Vỡ Lời Dối 2 đã sẵn sàng.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">21:36</span><span class="cf-logpin tv" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-call"></use></svg><span>Thám tử Vy gọi đồng đội: “Cần đối chiếu”.</span></span></li>
+                            <li class="cf-logrow is-key"><span class="cf-logt">21:12</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-stamp"></use></svg><span>Cả đội phá vỡ lời dối: <b>VẾT SÁP KHÔNG KHỚP LỜI KHAI</b></span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">21:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Niêm phong đỏ bị chồng lớp</b>.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">20:31</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn đề xuất <b>Bản sao lệnh chi trả nợ</b> để cùng xem xét — cặp chưa đúng.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">19:58</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-mag"></use></svg><span>Bạn tìm thấy <b>Cuống giao nhận lúc 21:18</b>.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">18:40</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-mag"></use></svg><span>Bạn tìm thấy <b>Bản sao lệnh chi trả nợ</b>.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">17:55</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-key"></use></svg><span>Bạn mở hộp đối soát bằng mã 2142.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">14:20</span><span class="cf-logpin tv" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Thám tử Vy chia sẻ lời khai của Sơn Lâm.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">12:06</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-map"></use></svg><span>Đã mở lối điều tra tiếp theo: Hành lang kiểm sổ.</span></span></li>
+                            <li class="cf-logsep">HỒI I — QUẦY VÉ SAU MÀN HẠ</li>
+                            <li class="cf-logrow"><span class="cf-logt">11:41</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-cam"></use></svg><span>Bạn chụp ảnh móc chìa.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">11:02</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Bạn chia sẻ <b>Mã hộp đối soát: 2142</b>.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">10:44</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-link"></use></svg><span>Bạn ghép hai nửa biên nhận.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">05:40</span><span class="cf-logpin tv" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-share"></use></svg><span>Thám tử Vy chia sẻ lời khai của Mai Vân.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">04:26</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-mag"></use></svg><span>Bạn khám nghiệm Phong bì lệnh chi.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">02:05</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-mag"></use></svg><span>Bạn tìm thấy <b>Biên nhận — nửa 42</b>.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">01:26</span><span class="cf-logpin me" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-mag"></use></svg><span>Bạn tìm thấy <b>Biên nhận — nửa 21</b>.</span></span></li>
+                            <li class="cf-logrow"><span class="cf-logt">00:00</span><span class="cf-logpin team" aria-hidden="true"></span><span class="cf-logwho" aria-hidden="true"><span class="cf-mm">TM</span><span class="cf-mm rust">TV</span></span><span class="cf-logtxt"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-flag"></use></svg><span>Bắt đầu điều tra: Hồi I — Quầy vé sau màn hạ.</span></span></li>
+                          </ol>
+                        </div>
+                        <aside class="cf-logstats" aria-labelledby="cf-stats-h">
+                          <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+                          <p id="cf-stats-h" class="cf-mini">Tóm tắt phối hợp</p>
+                          <dl class="cf-stats">
+                            <div class="cf-stat"><dt>Hoạt động đã ghi</dt><dd>{{ nLog }}</dd></div>
+                            <div class="cf-stat"><dt>Lần chia sẻ</dt><dd>{{ nShares }}</dd></div>
+                            <div class="cf-stat"><dt>Lời dối đã phá</dt><dd>{{ nBroken }}</dd></div>
+                            <div class="cf-stat"><dt>Gọi đồng đội</dt><dd>1</dd></div>
+                          </dl>
+                          <ul class="cf-whokey" aria-label="Chú thích">
+                            <li><span class="cf-logpin me" aria-hidden="true"></span>Bạn · Điều tra viên</li>
+                            <li><span class="cf-logpin tv" aria-hidden="true"></span>Thám tử Vy · Thẩm vấn viên</li>
+                            <li><span class="cf-logpin team" aria-hidden="true"></span>Cả đội</li>
+                          </ul>
+                        </aside>
+                      </div>
+                    </sc-if>
+
+                    <!-- 07 · Sổ tay riêng -->
+                    <sc-if value="{{ isSt }}" hint-placeholder-val="{{ false }}">
+                      <div class="cf-ph">
+                        <div>
+                          <p class="cf-kick">MỤC 07 · HỒ SƠ RIÊNG</p>
+                          <h2 class="cf-h2">Sổ tay riêng</h2>
+                        </div>
+                        <p class="cf-phnote"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-lock"></use></svg>Chỉ bạn thấy cho tới khi chia sẻ</p>
+                      </div>
+                      <div class="cf-nbgrid">
+                        <div class="cf-nb">
+                          <div class="cf-nbhead">
+                            <label for="cf-note" class="cf-nbkick">SỔ TAY RIÊNG THEO VAI</label>
+                            <span class="cf-tag mine"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-lock"></use></svg>RIÊNG · ĐIỀU TRA VIÊN</span>
+                          </div>
+                          <textarea id="cf-note" class="cf-nbarea" rows="10" maxlength="600" spellcheck="false" value="{{ note }}" onChange="{{ setNote }}" aria-describedby="cf-note-help">11:41 — móc đồng còn đủ đường cong, đế vít chắc. Không gãy.
+→ Mang ảnh này ra đối chất ở vòng 2.
+Cuống 21:18 có chữ ký đối chứng. Ai còn ở nhà hát sau 21:00?
+Hỏi Vy: Lâm tận mắt thấy gì, hay chỉ đoán?</textarea>
+                          <div class="cf-nbfoot">
+                            <span id="cf-note-help" class="cf-mini">{{ noteLen }}/600 ký tự · tự lưu 24:05</span>
+                            <button type="button" class="s-btn s-btn-red cf-up" aria-disabled="{{ noteBtnDis }}" onClick="{{ shareNote }}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#{{ noteBtnIc }}"></use></svg>{{ noteBtnTxt }}</button>
+                          </div>
+                          <p class="{{ noteMsgCls }}" role="status">{{ noteMsg }}</p>
+                          <sc-if value="{{ noteSharedNow }}" hint-placeholder-val="{{ false }}">
+                            <span class="cf-nbstamp cf-slam" aria-hidden="true" style="--sr: -10deg">ĐÃ CHIA SẺ</span>
+                          </sc-if>
+                        </div>
+                        <aside class="cf-nbside" aria-label="Quy tắc hồ sơ riêng">
+                          <div class="cf-priv">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cf-i-lock"></use></svg>
+                            <div><strong>Hồ sơ riêng</strong>Trong vụ án Crack, ghi chú của bạn là riêng tư cho đến khi được công bố trong đối chất chung.</div>
+                          </div>
+                          <div class="cf-role me">
+                            <p class="cf-mini" style="color: #2f6363">Vai của bạn</p>
+                            <p class="cf-rolename">Điều tra viên</p>
+                            <p class="cf-roledesc">Khám nghiệm hiện trường: kiểm tra vật phẩm và thu thập chứng cứ vật lý.</p>
+                          </div>
+                          <div class="cf-role tv">
+                            <p class="cf-mini" style="color: #7a3f27">Đồng đội · Thám tử Vy</p>
+                            <p class="cf-rolename">Thẩm vấn viên</p>
+                            <p class="cf-roledesc">Thẩm vấn nghi phạm: đặt câu hỏi và vạch ra mâu thuẫn.</p>
+                          </div>
+                          <div class="cf-tip">
+                            <p class="cf-mini">Cùng đồng đội đối chiếu</p>
+                            <p class="t">Chọn Gọi đồng đội → Cần đối chiếu, hoặc đưa chứng cứ hay lời khai vào đối chất chung. Hãy mô tả chi tiết cho đồng đội.</p>
+                          </div>
+                        </aside>
+                      </div>
+                    </sc-if>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </div>
+  <div class="s-rim" aria-hidden="true"></div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["chung-cu","loi-khai","pha-vo","suy-luan","ban-do","nhat-ky","so-tay"],"default":"chung-cu","section":"Trạng thái"},"final":{"editor":"enum","options":["chua","san-sang"],"default":"chua","section":"Trạng thái"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.note0 = '11:41 — móc đồng còn đủ đường cong, đế vít chắc. Không gãy.\n→ Mang ảnh này ra đối chất ở vòng 2.\nCuống 21:18 có chữ ký đối chứng. Ai còn ở nhà hát sau 21:00?\nHỏi Vy: Lâm tận mắt thấy gì, hay chỉ đoán?';
+    this.tabIds = ['chung-cu', 'loi-khai', 'pha-vo', 'suy-luan', 'ban-do', 'nhat-ky', 'so-tay'];
+    this.tabKeys = ['Ev', 'Lk', 'Pv', 'Sl', 'Bd', 'Nk', 'St'];
+    this.evIds = ['r21', 'r42', 'code', 'seal', 'photo', 'order', 'stub'];
+    this.ev = {
+      r21: { no: '01', name: 'Biên nhận — nửa 21', icon: 'ev-r21', desc: 'Nửa trái có số 21, mũi tên sang phải và mép xé răng cưa.', where: 'Phòng vé Vọng Âm · Nửa trái biên nhận', when: '01:26', noteLbl: 'TRONG TÚI ĐỒ', note: 'Mảnh trái của phiếu hướng dẫn mở hộp đối soát.' },
+      r42: { no: '02', name: 'Biên nhận — nửa 42', icon: 'ev-r42', desc: 'Nửa phải có số 42; đường xé khớp nửa 21.', where: 'Phòng vé Vọng Âm · Nửa phải biên nhận', when: '02:05', noteLbl: 'TRONG TÚI ĐỒ', note: 'Mảnh phải bị mắc ở mép quầy.' },
+      code: { no: '03', name: 'Mã hộp đối soát: 2142', icon: 'ev-code', base: true, at: '11:02', desc: 'Hai mảnh ghép thành chỉ dẫn 21 → 42. Nhập 2142 vào hộp đối soát ở hành lang.', where: 'Túi đồ · Biên nhận đã ghép', when: '10:44', noteLbl: 'CÂU ĐỐ', note: 'Ghép hai nửa biên nhận, đọc từ trái sang phải rồi nhập bốn số vào hộp đối soát.' },
+      seal: { no: '04', name: 'Niêm phong đỏ bị chồng lớp', icon: 'ev-seal', key: true, base: true, at: '21:05', desc: 'Lớp sáp đỏ mới phủ lên viền sáp cũ đã gãy. Phong bì lệnh chi không nguyên vẹn suốt tối.', where: 'Phòng vé Vọng Âm · Phong bì lệnh chi', when: '04:26', noteLbl: 'GHI CHÚ KHÁM NGHIỆM', note: 'Dưới dấu sáp mới là mép niêm phong cũ đã nứt. Phong bì từng bị mở rồi đóng lại. Vết này chứng minh can thiệp vào hồ sơ, chưa chứng minh ai làm.' },
+      photo: { no: '05', name: 'Ảnh móc chìa nguyên vẹn', icon: 'ev-photo', photo: true, desc: 'Ảnh cận cho thấy móc đồng còn đủ đường cong và đế bắt vít, không hề gãy rời. Nó bác bỏ lời mô tả móc bị bẻ gãy; không chứng minh căn phòng chưa từng có người lạ.', where: 'Phòng vé Vọng Âm · Móc đồng cạnh cửa', when: '11:41', noteLbl: 'GHI CHÚ KHÁM NGHIỆM', note: 'Thẻ khóa mang biểu tượng ngăn thư. Móc treo còn đó; sau khi lấy chìa, dùng máy ảnh ghi lại tình trạng thật của móc để kiểm chứng lời bảo vệ.' },
+      order: { no: '06', name: 'Bản sao lệnh chi trả nợ', icon: 'ev-order', base: true, at: '20:31', desc: 'Bản lưu 21:30 mang chữ ký Mai Vân và số khế ước nợ riêng của cô, thay tên đơn vị cứu trợ bằng chủ nợ. Ngân hàng sẽ giải ngân sáng mai; chưa có tiền nào được chuyển.', where: 'Hành lang kiểm sổ · Hộp đối soát khóa số', when: '18:40', noteLbl: '', note: '' },
+      stub: { no: '07', name: 'Cuống giao nhận lúc 21:18', icon: 'ev-stub', desc: 'Cuống nộp hồ sơ ghi 21:18, chữ ký Mai Vân khớp sổ trực. Ngay dưới có chữ ký đối chứng của nhân viên nhận thư, ghi rõ Mai tự nộp. Lâm chỉ bắt đầu ca lúc 21:45. Chìa dùng chung không tự chứng minh ai vào.', where: 'Hành lang kiểm sổ · Ngăn thư dịch vụ', when: '19:58', noteLbl: '', note: '' }
+    };
+    this.state = { tab: null, wipe: null, sel: 'photo', pop: null, shared: {}, confirm: '', note: this.note0, noteShared: false, noteOnce: false, noteMsg: '', noteErr: false, finFlip: null };
+    this.seenTab = (props || {}).tab;
+    this.seenFinal = (props || {}).final;
+    this.lastTab = this.tabIds.indexOf(this.seenTab) >= 0 ? this.seenTab : 'chung-cu';
+  }
+
+  componentDidMount() {
+    this.lastTab = this.curTab();
+    this.later(() => this.revealTab(this.lastTab));
+  }
+
+  componentDidUpdate() {
+    const p = this.props || {};
+    const s = this.state || {};
+    if (p.tab !== this.seenTab) {
+      this.seenTab = p.tab;
+      if (this.tabIds.indexOf(p.tab) >= 0 && p.tab !== this.lastTab) this.setState({ tab: p.tab, wipe: !s.wipe, confirm: '' });
+    }
+    if (p.final !== this.seenFinal) {
+      this.seenFinal = p.final;
+      this.setState({ finFlip: !s.finFlip });
+    }
+    const cur = this.curTab();
+    if (cur !== this.lastTab) {
+      this.lastTab = cur;
+      this.later(() => this.revealTab(cur));
+    }
+  }
+
+  revealTab(id) {
+    const el = document.getElementById('cf-tab-' + id);
+    const list = el && el.parentElement;
+    if (!list || list.scrollWidth <= list.clientWidth + 1) return;
+    const a = el.getBoundingClientRect();
+    const b = list.getBoundingClientRect();
+    if (a.left < b.left + 10) list.scrollLeft -= b.left + 10 - a.left;
+    else if (a.right > b.right - 10) list.scrollLeft += a.right - b.right + 10;
+  }
+
+  curTab() {
+    const s = this.state || {};
+    const p = this.props || {};
+    if (this.tabIds.indexOf(s.tab) >= 0) return s.tab;
+    if (this.tabIds.indexOf(p.tab) >= 0) return p.tab;
+    return 'chung-cu';
+  }
+
+  later(fn) {
+    setTimeout(() => { try { fn(); } catch (err) { /* ignore */ } }, 30);
+  }
+
+  goTab(id, focus) {
+    const s = this.state || {};
+    if (this.curTab() !== id) this.setState({ tab: id, wipe: !s.wipe, confirm: '' });
+    this.later(() => {
+      const panel = document.getElementById('cf-panel');
+      if (panel) panel.scrollTop = 0;
+      const sc = document.getElementById('cf-scroll');
+      const head = document.querySelector('.cf-head');
+      if (sc && head && window.matchMedia && window.matchMedia('(max-width: 760px)').matches && sc.scrollTop > head.offsetHeight) sc.scrollTop = head.offsetHeight;
+      if (focus) { const el = document.getElementById('cf-tab-' + id); if (el) el.focus(); }
+    });
+  }
+
+  pick(id) {
+    const s = this.state || {};
+    if (s.sel === id) return;
+    this.setState({ sel: id, pop: !s.pop, confirm: '' });
+    this.later(() => {
+      if (!window.matchMedia || !window.matchMedia('(max-width: 960px)').matches) return;
+      const d = document.getElementById('cf-detail');
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (d && d.scrollIntoView) d.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' });
+    });
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const p = this.props || {};
+    const tab = this.curTab();
+    const ti = this.tabIds.indexOf(tab);
+    const fin = p.final === 'san-sang';
+    const shared = s.shared || {};
+    const userShared = this.evIds.filter((id) => !this.ev[id].base && shared[id]);
+    const isShared = (id) => !!(this.ev[id].base || shared[id] || (fin && id === 'photo'));
+    const sharedAt = (id) => (this.ev[id].base ? this.ev[id].at : (shared[id] ? '24:05' : (fin && id === 'photo' ? '24:18' : '')));
+    const sel = this.evIds.indexOf(s.sel) >= 0 ? s.sel : 'photo';
+    const d = this.ev[sel];
+    const dSh = isShared(sel);
+    const nShared = this.evIds.filter(isShared).length;
+    const note = s.note == null ? this.note0 : String(s.note);
+    const finPhotoRow = fin && !shared.photo;
+    const nLog = 18 + (fin ? 3 : 0) + (finPhotoRow ? 1 : 0) + userShared.length + (s.noteOnce ? 1 : 0);
+    const nShares = 5 + userShared.length + (s.noteOnce ? 1 : 0) + (finPhotoRow ? 1 : 0);
+    const v = {
+      isFinal: fin,
+      notFinal: !fin,
+      descId: fin ? 'cf-fintitle' : 'cf-progline',
+      finCls: 'cf-finwrap ' + (s.finFlip == null ? 'cf-f0' : 'cf-f1'),
+      tabRef: 'cf-tab-' + tab,
+      innerCls: 'cf-inner' + (s.wipe == null ? ' cf-first' : (s.wipe ? ' cf-wb' : ' cf-wa')),
+      oy: (22 + 63 * Math.max(0, ti)) + 'px',
+      tabKey: (e) => {
+        const k = e && e.key;
+        const n = this.tabIds.length;
+        let next = -1;
+        if (k === 'ArrowDown' || k === 'ArrowRight') next = (ti + 1) % n;
+        else if (k === 'ArrowUp' || k === 'ArrowLeft') next = (ti - 1 + n) % n;
+        else if (k === 'Home') next = 0;
+        else if (k === 'End') next = n - 1;
+        if (next < 0) return;
+        if (e.preventDefault) e.preventDefault();
+        this.goTab(this.tabIds[next], true);
+      },
+      objText: fin ? 'Cùng đồng đội lập cáo buộc cuối cùng.' : 'Đối chất vòng 2 cùng đồng đội, rồi khôi phục dòng thời gian.',
+      objProg: fin ? '2/2 MÂU THUẪN' : '1/2 MÂU THUẪN',
+      objPct: fin ? '100' : '50',
+      tText: fin ? '26:52' : '24:05',
+      tLabel: fin ? 'Thời gian điều tra 26 phút 52 giây' : 'Thời gian điều tra 24 phút 5 giây',
+      subEv: '7 MỤC · ' + nShared + ' CHIA SẺ',
+      subPv: fin ? '2/2 ĐÃ GIẢI' : '1/2 ĐÃ GIẢI',
+      pvSr: fin ? ', đã giải cả hai vòng' : ', vòng 2 sẵn sàng',
+      subSl: fin ? 'ĐÃ GIẢI' : 'ĐANG KHÓA',
+      subNk: nLog + ' HOẠT ĐỘNG',
+      evCountLine: '7 chứng cứ · ' + nShared + ' đã chia sẻ với Thám tử Vy',
+      seenN: String(nShared),
+      dNo: d.no,
+      dTitle: d.name,
+      dIcon: d.icon,
+      dDesc: d.desc,
+      dWhere: d.where,
+      dWhen: d.when,
+      dIsPhoto: !!d.photo,
+      dIsBag: !d.photo,
+      dIsKey: !!d.key,
+      dTagCls: dSh ? 'cf-tag mine shared' : 'cf-tag mine',
+      dTagTxt: dSh ? 'ĐÃ CHIA SẺ · ĐIỀU TRA VIÊN' : 'RIÊNG · ĐIỀU TRA VIÊN',
+      dTagIc: dSh ? 'cf-i-share' : 'cf-i-lock',
+      dHasNote: !!d.note,
+      dNote: d.note || '',
+      dNoteLbl: d.noteLbl || '',
+      dShared: dSh,
+      dCanShare: !dSh,
+      dSharedLine: dSh ? 'Đã chia sẻ với Thám tử Vy lúc ' + sharedAt(sel) + '.' : '',
+      showConfirm: !dSh && s.confirm === sel,
+      confirmOpen: String(!dSh && s.confirm === sel),
+      askShare: () => {
+        const st = this.state || {};
+        const open = st.confirm === sel;
+        this.setState({ confirm: open ? '' : sel });
+        if (!open) this.later(() => { const b = document.getElementById('cf-doshare'); if (b) b.focus(); });
+      },
+      cancelShare: () => {
+        this.setState({ confirm: '' });
+        this.later(() => { const b = document.getElementById('cf-askshare'); if (b) b.focus(); });
+      },
+      doShare: () => {
+        const st = this.state || {};
+        const next = Object.assign({}, st.shared || {});
+        next[sel] = true;
+        this.setState({ shared: next, confirm: '' });
+        this.later(() => { const l = document.getElementById('cf-sharedline'); if (l) l.focus(); });
+      },
+      popCls: s.pop == null ? 'cf-pop' : (s.pop ? 'cf-pop cf-pb' : 'cf-pop cf-pa'),
+      hideF_photo: !finPhotoRow,
+      hideU_note: !s.noteOnce,
+      nLog: String(nLog),
+      nShares: String(nShares),
+      nBroken: fin ? '2' : '1',
+      pvLine: fin ? '2 / 2 vòng đã giải' : '1 / 2 vòng đã giải · vòng 2 sẵn sàng',
+      r2PinCls: 'cf-bpin rs ' + (fin ? 'gold' : 'red'),
+      slipSl: fin ? 'cf-slip is-broken' : 'cf-slip',
+      slSr: fin ? ' (lời khai đã được sửa lại)' : '',
+      slStampCls: fin ? 'cf-pstamp ok cf-slam' : 'cf-pstamp lock cf-slam',
+      slStampTxt: fin ? 'ĐÃ GIẢI' : 'ĐANG KHÓA',
+      slReason: fin ? 'Cả hai thám tử đã chốt dòng thời gian.' : 'Mở sau khi giải vòng 2 của Phá Vỡ Lời Dối.',
+      optA: fin ? 'cf-opt is-picked' : 'cf-opt is-locked',
+      optB: fin ? 'cf-opt is-out' : 'cf-opt is-locked',
+      optC: fin ? 'cf-opt is-out' : 'cf-opt is-locked',
+      optASr: fin ? ' (cả đội đã chọn)' : '',
+      place2Line: fin ? 'Đã điều tra xong địa điểm' : '1 manh mối còn bỏ ngỏ',
+      note: note,
+      noteLen: String(note.length),
+      setNote: (e) => this.setState({ note: e && e.target ? e.target.value : '', noteShared: false, noteMsg: '', noteErr: false }),
+      shareNote: () => {
+        const st = this.state || {};
+        if (st.noteShared) return;
+        const txt = st.note == null ? this.note0 : String(st.note);
+        if (!txt.trim()) { this.setState({ noteMsg: 'Sổ tay đang trống — hãy ghi điều bạn muốn chia sẻ.', noteErr: true }); return; }
+        this.setState({ noteShared: true, noteOnce: true, noteErr: false, noteMsg: 'Đã chia sẻ ghi chú với Thám tử Vy. Bản chia sẻ được ghi vào Nhật ký phối hợp.' });
+      },
+      noteBtnTxt: s.noteShared ? 'Đã chia sẻ' : 'Chia sẻ có chủ đích',
+      noteBtnIc: s.noteShared ? 'cf-i-check' : 'cf-i-share',
+      noteBtnDis: String(!!s.noteShared),
+      noteSharedNow: !!s.noteShared,
+      noteMsg: s.noteMsg || '',
+      noteMsgCls: s.noteErr ? 'cf-live is-err' : 'cf-live is-ok'
+    };
+    this.tabIds.forEach((id, i) => {
+      const k = this.tabKeys[i];
+      v['sel' + k] = String(tab === id);
+      v['ti' + k] = tab === id ? '0' : '-1';
+      v['is' + k] = tab === id;
+      v['go' + k] = () => this.goTab(id, false);
+    });
+    this.evIds.forEach((id) => {
+      const sh = isShared(id);
+      v['evSel_' + id] = String(sel === id);
+      v['pick_' + id] = () => this.pick(id);
+      v['tagCls_' + id] = sh ? 'cf-tag mine shared' : 'cf-tag mine';
+      v['tagTxt_' + id] = sh ? 'ĐÃ CHIA SẺ · ĐIỀU TRA VIÊN' : 'RIÊNG · ĐIỀU TRA VIÊN';
+      v['tagIc_' + id] = sh ? 'cf-i-share' : 'cf-i-lock';
+      v['hideU_' + id] = !(!this.ev[id].base && shared[id]);
+    });
+    return v;
+  }
+}
+</script>
+</body>
+</html>

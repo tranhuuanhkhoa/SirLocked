@@ -1,0 +1,109 @@
+{
+  "character": {
+    "id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+    "name": "Idle",
+    "prompt": "Dr. John Watson, a Victorian doctor with a sturdy medium build, dark bowler hat, short brown hair, neat moustache, dark green tweed three-piece suit with buttoned waistcoat, white shirt, dark necktie, brown leather shoes, carrying a small black leather doctor's bag in his right hand",
+    "size": {
+      "width": 96,
+      "height": 96
+    },
+    "directions": 8,
+    "view": "low top-down"
+  },
+  "spritesheet": {
+    "path": "Watson_V3_96_-_case_Lo_t-Idle.png",
+    "cell_size": {
+      "width": 116,
+      "height": 116
+    },
+    "sheet_size": {
+      "width": 1044,
+      "height": 1044
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 8,
+        "animation": "watson_walking",
+        "animation_group_id": "27924b56-976f-4081-bd5e-4194a6efe104",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 8,
+        "animation": "watson_walking",
+        "animation_group_id": "27924b56-976f-4081-bd5e-4194a6efe104",
+        "direction": "east"
+      },
+      {
+        "row": 3,
+        "type": "animation",
+        "frame_count": 8,
+        "animation": "watson_walking",
+        "animation_group_id": "27924b56-976f-4081-bd5e-4194a6efe104",
+        "direction": "north"
+      },
+      {
+        "row": 4,
+        "type": "animation",
+        "frame_count": 8,
+        "animation": "watson_walking",
+        "animation_group_id": "27924b56-976f-4081-bd5e-4194a6efe104",
+        "direction": "west"
+      },
+      {
+        "row": 5,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "watson_idle",
+        "animation_group_id": "f3a67e38-2979-4f2d-b981-676c12fa79b7",
+        "direction": "south"
+      },
+      {
+        "row": 6,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "watson_idle",
+        "animation_group_id": "f3a67e38-2979-4f2d-b981-676c12fa79b7",
+        "direction": "east"
+      },
+      {
+        "row": 7,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "watson_idle",
+        "animation_group_id": "f3a67e38-2979-4f2d-b981-676c12fa79b7",
+        "direction": "north"
+      },
+      {
+        "row": 8,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "watson_idle",
+        "animation_group_id": "f3a67e38-2979-4f2d-b981-676c12fa79b7",
+        "direction": "west"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-25T04:54:43.091720+00:00"
+}

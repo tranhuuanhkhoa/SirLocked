@@ -52,7 +52,7 @@ dotnet run --project tools/ValidateCase -- ai-game-docs/full-case-chuyen-tau-so-
 node src/FE/scripts/build-cases.mjs --case ai-game-docs/full-case-chuyen-tau-so-7/case.json --report-only
 ```
 
-Mở Admin → **Nhập JSON** (`/#/admin/import`), dán `case.json`, Validate rồi Import. ID mới là `case-full-chuyen-tau-so-7-vi`, trạng thái DRAFT. Sau khi xem lại, Publish để đưa vào danh sách chơi. Hai tài khoản vào cùng phòng và chọn hai vai trò khác nhau. Gói này chưa được import/publish vào database chính.
+Mở Admin → **Nhập JSON** (`/admin/import`), dán `case.json`, Validate rồi Import. ID mới là `case-full-chuyen-tau-so-7-vi`, trạng thái DRAFT. Sau khi xem lại, Publish để đưa vào danh sách chơi. Hai tài khoản vào cùng phòng và chọn hai vai trò khác nhau. Gói này chưa được import/publish vào database chính.
 
 Chạy backend từ mã nguồn hiện tại: validator đã bổ sung nguồn manh mối `deduction` để kiểm tra đúng các chốt mở hồi từ suy luận. Nếu backend đang chạy bản cũ, khởi động lại sau khi build trước khi import.
 

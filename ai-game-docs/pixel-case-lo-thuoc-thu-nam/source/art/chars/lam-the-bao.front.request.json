@@ -1,0 +1,14 @@
+{
+ "tool": "create_image_pro",
+ "width": 96,
+ "height": 96,
+ "no_background": true,
+ "seed": 707,
+ "description": "Lâm Thế Bảo, a Vietnamese gentleman in his early thirties with a slim build, untidy black hair, a clean-shaven slightly gaunt face and tired eyes. He wears a worn mustard-brown waistcoat over a white shirt with rolled sleeves, a loosened dark cravat, dark trousers and scuffed boots, holding a small pocket notebook in his left hand. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+ "reference_images": [
+  {
+   "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+   "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+  }
+ ]
+}

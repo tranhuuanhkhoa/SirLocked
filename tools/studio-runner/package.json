@@ -1,0 +1,17 @@
+{
+  "name": "sirlocked-studio-runner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Giữ kết nối tới /hubs/bridge và chạy claude -p \"/tao-vu-an\" khi server báo có việc. Không hỏi server theo chu kỳ.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@microsoft/signalr": "9.0.19"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "status": "FAILED",
+  "schemaVersion": "case-truth-feasibility-review-v2",
+  "confidence": 0.98,
+  "timelineFeasible": true,
+  "physicalCausalityFeasible": false,
+  "uniqueSolution": true,
+  "issues": [],
+  "findings": [
+    {
+      "findingId": "finding-missing-collapse-event-antecedent",
+      "code": "MISSING_CAUSAL_ANTECEDENT",
+      "relatedIds": [
+        "event_edwin_loosens_scenery_support_rope",
+        "trace_fresh_frays_prove_rope_was_deliberately_loosened",
+        "event_edwin_unlocks_display_case_with_backstage_key",
+        "conclusion-opportunity",
+        "conclusion-timeline"
+      ],
+      "message": "The truth asserts that a prepared scenery collapse created the minute-12 interruption, but the timeline contains no collapse, triggering load, or other event connecting the loosened rope at minute 6 to an interruption at minute 12."
+    },
+    {
+      "findingId": "finding-missing-soft-lock-wax-antecedent",
+      "code": "MISSING_CAUSAL_ANTECEDENT",
+      "relatedIds": [
+        "event_edwin_unlocks_display_case_with_backstage_key",
+        "trace_edwin_right_thumbprint_in_display_lock_wax",
+        "tool_backstage_display_key"
+      ],
+      "message": "The fingerprint trace requires Edwin to press his thumb into softened lock wax, but no prior or concurrent action applies, heats, or otherwise softens wax on the display lock. Turning the listed key does not supply the stated physical mechanism."
+    },
+    {
+      "findingId": "finding-clara-opportunity-alibi-conflict",
+      "code": "OPPORTUNITY_CONSISTENCY",
+      "relatedIds": [
+        "suspect_clara_wren",
+        "event_clara_waits_at_guest_entrance",
+        "statement_mabel_confirms_clara_at_entrance"
+      ],
+      "message": "Clara is assigned an available complete-chain interval of minutes 12–20 while the locked timeline and testimony place her continuously at the guest entrance from minutes 12–21. These claims cannot both describe her ability to execute the complete backstage chain."
+    },
+    {
+      "findingId": "finding-hector-opportunity-alibi-conflict",
+      "code": "OPPORTUNITY_CONSISTENCY",
+      "relatedIds": [
+        "suspect_hector_pike",
+        "event_hector_reviews_ticket_stubs_at_entrance",
+        "statement_mabel_confirms_hector_counting_stubs"
+      ],
+      "message": "Hector is assigned an available complete-chain interval of minutes 12–20 while the locked timeline and testimony place him continuously at the guest entrance from minutes 12–21. These claims cannot both describe his ability to execute the complete backstage chain."
+    },
+    {
+      "findingId": "finding-mabel-opportunity-alibi-conflict",
+      "code": "OPPORTUNITY_CONSISTENCY",
+      "relatedIds": [
+        "suspect_mabel_finch",
+        "event_mabel_checks_tickets_during_interruption",
+        "statement_clara_confirms_mabel_at_booth",
+        "statement_hector_confirms_mabel_remained_at_booth"
+      ],
+      "message": "Mabel is assigned an available complete-chain interval of minutes 12–20 while the locked timeline and testimony place her continuously at the ticket booth from minutes 12–21. These claims cannot both describe her ability to execute the complete backstage chain."
+    },
+    {
+      "findingId": "finding-alibis-lack-objective-corroboration",
+      "code": "ALIBI_SUPPORT",
+      "relatedIds": [
+        "event_clara_waits_at_guest_entrance",
+        "event_hector_reviews_ticket_stubs_at_entrance",
+        "event_mabel_checks_tickets_during_interruption",
+        "statement_mabel_confirms_clara_at_entrance",
+        "statement_mabel_confirms_hector_counting_stubs",
+        "statement_clara_confirms_mabel_at_booth",
+        "statement_hector_confirms_mabel_remained_at_booth"
+      ],
+      "message": "The three verified alibis rely exclusively on mutually supporting suspect testimony. No time-marked physical trace, independent nonsuspect witness, or contemporaneous record objectively corroborates continuous presence throughout the complete crime window."
+    },
+    {
+      "findingId": "finding-motive-exceeds-evidence",
+      "code": "PROOF_SCOPE",
+      "relatedIds": [
+        "conclusion-motive",
+        "statement_edwin_minimizes_blank_packet",
+        "statement_edwin_claims_only_relic_was_taken",
+        "trace_blank_packet_fold_from_edwin_desk_stock",
+        "trace_original_deed_red_wax_flake_in_plinth"
+      ],
+      "message": "The cited evidence supports deliberate substitution and removal of the deed, but it does not establish Edwin's expected inheritance, the deed's effect on that inheritance, or his intent to protect it. The stated motive therefore exceeds its support."
+    },
+    {
+      "findingId": "finding-timeline-minute-precision-unsupported",
+      "code": "PROOF_SCOPE",
+      "relatedIds": [
+        "conclusion-timeline",
+        "statement_hector_dates_original_ledger_entry",
+        "trace_original_deed_red_wax_flake_in_plinth",
+        "trace_fresh_wax_smear_dates_inspection_ledger_tampering"
+      ],
+      "message": "The cited evidence can establish ordering and a broad interruption window, but it does not independently date the substitution to minutes 13–15, concealment to minutes 17–19, or ledger alteration specifically to minute 20. Trace creation timestamps are truth metadata rather than demonstrated observations."
+    }
+  ],
+  "reviewedAt": "2026-09-28T14:36:49.298Z"
+}

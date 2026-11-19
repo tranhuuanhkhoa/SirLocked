@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Đêm khóa sổ · Workshop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-paper .s-btn:focus-visible{outline-color:#07111f}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-red:disabled{cursor:not-allowed;background:#5a4a3e;color:#c9bfae;box-shadow:0 3px 0 #3a3029}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover:not(:disabled){background:#07111f;color:#fbf6ed}
+.s-btn-ink:disabled{cursor:not-allowed;color:#6b6257;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.35)}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover:not(:disabled){background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-sm{min-height:36px;padding:0 14px;font-size:11px}
+.s-link{display:inline-flex;align-items:center;min-height:44px;color:#5b5248;font-size:16px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px}
+.s-link:hover{color:#9e3f2a}
+.s-link-gold{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:#efd486;font-family:'Crimson Text',Georgia,serif;font-size:17px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(239,212,134,.4);text-underline-offset:4px}
+.s-link-gold:hover{color:#fbf6ed;text-decoration-color:#fbf6ed}
+.s-link:focus-visible,.s-link-gold:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.s-pin{position:absolute;z-index:3;width:18px;height:18px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.s-pin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.s-pin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.s-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:2px;background:rgba(251,246,237,.7);box-shadow:inset 0 0 0 1px rgba(79,69,54,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3328;white-space:nowrap}
+.s-chip.dark{background:#0d1014;color:#efd486;box-shadow:none}
+.s-stamp{display:inline-block;padding:6px 12px;border:4px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;transform:rotate(-8deg);mix-blend-mode:multiply}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+/* ---- Workshop · trang vụ án (wc-) ---- */
+[hidden]{display:none !important}
+.wc-up{text-transform:uppercase}
+.wc-num{font-family:'Playfair Display',Georgia,serif;font-weight:700;line-height:1;font-variant-numeric:lining-nums proportional-nums}
+.wc-kick{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.2em;color:#5b5248;text-transform:uppercase}
+.wc-kick.gold{color:#efd486}
+.wc-kick.kraft{color:#4f4536}
+.wc-h3{margin:2px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;line-height:1.12;color:#07111f}
+.wc-h3.light{color:#fbf6ed}
+.wc-mini{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#5b5248;text-transform:uppercase;white-space:nowrap}
+.wc-mini.kraft{color:#4f4536}
+.wc-card{position:relative;box-sizing:border-box;color:#07111f;box-shadow:0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55)}
+.wc-margin{position:absolute;top:0;bottom:0;left:24px;width:1.5px;background:rgba(182,64,48,.5)}
+.wc-tape{position:absolute;z-index:3;width:86px;height:24px;background:rgba(233,220,192,.72);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.wc-back svg{flex:none;transition:transform .15s}
+.wc-back:hover svg{transform:translateX(-3px)}
+/* stars */
+.wc-stars{display:inline-flex;align-items:center;gap:2px}
+.wc-stars svg{display:block;width:16px;height:16px}
+.wc-stars .f{fill:#b5841f;stroke:#6b4c12;stroke-width:1.1;stroke-linejoin:round}
+.wc-stars .e{fill:none;stroke:#8f8676;stroke-width:1.5;stroke-linejoin:round}
+.wc-stars.sm svg{width:14px;height:14px}
+.wc-stars.gold svg{width:18px;height:18px}
+.wc-stars.gold .f{fill:#efd486;stroke:#c7a24b}
+.wc-stars.gold .e{stroke:rgba(239,212,134,.5)}
+.wc-pstar{position:relative;display:block}
+.wc-pfill{position:absolute;top:0;left:0;bottom:0;overflow:hidden}
+/* case header */
+.wc-head{display:grid;grid-template-columns:minmax(0,1fr) 452px;gap:20px 40px;align-items:center;padding:0 32px 28px 30px;background:#e3dbc9;color:#15120e;transform:rotate(-.3deg)}
+.wc-headmain{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.wc-title{position:relative;margin:-24px 0 0 -16px;padding:12px 30px 15px 26px;background:#0d1014;box-shadow:0 14px 30px rgba(0,0,0,.55);transform:rotate(-1.3deg)}
+.wc-title h1{margin:3px 0 0 10px;font-family:'Playfair Display',Georgia,serif;font-size:46px;font-weight:700;line-height:1.04;color:#fbf6ed}
+.wc-tdot{position:absolute;top:9px;left:11px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.wc-byline{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 20px;align-self:stretch;margin-top:16px;padding-bottom:6px;border-bottom:3px double rgba(58,52,43,.6)}
+.wc-rating{display:inline-flex;align-items:center;gap:10px}
+.wc-ratenum{font-family:'Source Code Pro',ui-monospace,monospace;font-size:16px;font-weight:700;color:#07111f}
+.wc-ratelink{display:inline-flex;align-items:center;min-height:44px;padding:0 2px;border:0;background:transparent;color:#5b5248;font-family:'Crimson Text',Georgia,serif;font-size:17px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px;cursor:pointer}
+.wc-ratelink:hover{color:#9e3f2a}
+.wc-ratelink:focus-visible{outline:2px solid #07111f;outline-offset:2px}
+.wc-lede{margin:14px 0 0;font-size:19px;line-height:1.45;color:#2a2318}
+.wc-chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.wc-chips .s-chip{min-height:28px;padding:0 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.wc-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.wc-actions .s-btn{padding:0 22px}
+.wc-photo{position:relative;margin:26px 0 0;padding:8px 8px 10px;background:#f1ece0;box-shadow:0 2px 0 rgba(0,0,0,.12),0 16px 28px rgba(0,0,0,.42);transform:rotate(1.4deg)}
+.wc-photo svg{display:block;width:100%;height:auto}
+/* folder + tabs */
+.wc-file{position:relative}
+.wc-tabs{position:relative;z-index:2;display:flex;align-items:flex-end;gap:4px;padding:0 0 0 22px}
+.wc-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:8px 22px 6px;box-sizing:border-box;border:0;background:#b9a072;color:#3b3226;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 100%,0 100%);box-shadow:inset 0 -9px 10px -8px rgba(0,0,0,.42);transition:background-color .15s,min-height .2s}
+.wc-tab:hover{background:#c8b083;color:#07111f}
+.wc-tab[aria-selected="true"]{min-height:58px;background:#d9c49a;color:#07111f;box-shadow:none;cursor:default}
+.wc-tab:focus-visible{outline:none}
+.wc-tab:focus-visible .wc-tabl{outline:2px solid #07111f;outline-offset:3px}
+.wc-tabl{display:inline-flex;align-items:center;gap:9px;padding:6px 12px;background:#e7dcc3;box-shadow:inset 0 0 0 1px rgba(79,69,54,.28)}
+.wc-tab[aria-selected="true"] .wc-tabl{background:#fbf6ed;box-shadow:inset 0 0 0 1px rgba(79,69,54,.35),0 1px 2px rgba(0,0,0,.18)}
+.wc-tabl svg{flex:none;color:#5b5248}
+.wc-tab[aria-selected="true"] .wc-tabl svg{color:#9e3f2a}
+.wc-count{display:inline-grid;place-items:center;min-width:24px;height:20px;padding:0 5px;box-sizing:border-box;background:#0d1014;color:#efd486;font-size:10px;letter-spacing:.06em}
+.wc-folder{position:relative;background:#d9c49a;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 1px 0 rgba(0,0,0,.2),0 26px 50px rgba(0,0,0,.55)}
+.wc-folder::before{content:"";position:absolute;z-index:-1;left:12px;right:-9px;top:12px;bottom:-11px;background:#ad9465;transform:rotate(.45deg);box-shadow:0 20px 34px rgba(0,0,0,.45)}
+.wc-pane{--d0:.3s;position:relative;padding:26px 28px 34px}
+.wc-pane.wc-first{--d0:1.2s}
+.wc-panel:focus-visible{outline:2px solid #07111f;outline-offset:8px}
+.wc-lensbox{position:absolute;inset:0;z-index:6;overflow:hidden;pointer-events:none}
+.wc-lens{position:absolute;left:var(--wx);top:0;width:0;height:0;box-sizing:border-box;border-radius:50%;border:7px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.16),rgba(255,255,255,0) 40%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 10px 26px rgba(0,0,0,.4);transform:translate(-50%,-50%);opacity:0}
+.wc-o1{--wx:106px}.wc-o2{--wx:294px}.wc-o3{--wx:506px}
+.wc-lede,.wc-rvtext,.wc-ann,.wc-gapnote,.wc-hint,.wc-tagsub,.wc-vcap,.wc-vnote{text-wrap:pretty}
+/* stats */
+.wc-panhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;margin:0 0 24px}
+.wc-safe{display:inline-flex;align-items:center;gap:9px;min-height:30px;padding:0 12px;background:#0d1014;color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;box-shadow:0 8px 16px rgba(0,0,0,.3);transform:rotate(.7deg)}
+.wc-row1{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:30px;align-items:stretch}
+.wc-verdict{display:flex;flex-direction:column;padding:20px 26px 22px 48px;background:#fbf6ed;transform:rotate(-.6deg)}
+.wc-vgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto auto;gap:0 24px;margin:20px 0 0}
+.wc-vgrid > div{display:grid;grid-row:span 3;grid-template-rows:subgrid;min-width:0}
+.wc-vgrid dt{align-self:end}
+.wc-vgrid dd{margin:0}
+.wc-stampl{display:inline-flex;align-items:center;gap:6px;padding:4px 9px 4px 7px;border:3px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;line-height:1.3;text-transform:uppercase;transform:rotate(-2deg);mix-blend-mode:multiply}
+.wc-stampl{text-wrap:balance}
+.wc-stampl svg{flex:none}
+.wc-stampl.ok{color:#2f6363}
+.wc-stampl.bad{color:#9e3f2a;transform:rotate(1.5deg)}
+.wc-vbig{margin:14px 0 0 !important;font-size:66px}
+.wc-vbig.ok{color:#2f6363}
+.wc-vbig.bad{color:#9e3f2a}
+.wc-vcap{margin:6px 0 0 !important;font-size:16px;font-style:italic;line-height:1.3;color:#3b3328}
+.wc-splitbox{padding-top:26px}
+.wc-vfoot{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:auto;padding-top:16px}
+.wc-vnote{margin:0 0 6px;font-size:16px;font-style:italic;line-height:1.3;color:#3b3328}
+.wc-rstamp{flex:none;width:86px;height:86px;margin:-8px -8px -10px 0;color:#9e3f2a;opacity:.82;transform:rotate(-14deg);mix-blend-mode:multiply}
+.wc-split{position:relative;display:flex;gap:2px;height:14px}
+.wc-sseg{display:block;height:100%}
+.wc-sseg.ok{width:calc(59% - 1px);background:#20706b;border-radius:3px 0 0 3px;transform-origin:0 50%}
+.wc-sseg.bad{width:calc(41% - 1px);background:#9e3f2a;border-radius:0 3px 3px 0;transform-origin:100% 50%}
+.wc-splitpin{position:absolute;z-index:2;top:-5px;left:59%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%);box-shadow:0 3px 4px rgba(0,0,0,.45)}
+.wc-scale{position:relative;height:14px;margin-top:7px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.08em;color:#5b5248;font-variant-numeric:tabular-nums}
+.wc-scale span{position:absolute;top:0}
+.wc-timecard{display:flex;flex-direction:column;padding:22px 24px 20px;background:#f4efe3;transform:rotate(.35deg)}
+.wc-chead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px}
+.wc-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:0;list-style:none}
+.wc-legend li{display:inline-flex;align-items:center;gap:7px;font-size:15px;color:#2a2318}
+.wc-legend i{display:inline-block;flex:none;width:10px;height:13px}
+.wc-legend i.ok{background:#20706b;border-radius:3px 3px 0 0}
+.wc-legend i.bad{background:#9e3f2a;border-radius:0 0 3px 3px}
+.wc-legend i.mean{width:2px;height:16px;background:#bf3b2c}
+.wc-plot{position:relative;margin-top:30px}
+.wc-vlines span{position:absolute;top:0;bottom:0;width:1px;background:rgba(91,82,72,.13)}
+.wc-hist{position:relative;z-index:1;display:grid;grid-template-columns:repeat(11,minmax(0,1fr));margin:0;padding:0;list-style:none}
+.wc-col{position:relative;display:grid;grid-template-rows:130px 26px 82px;outline:none;transition:background-color .12s}
+.wc-col:hover,.wc-col:focus-visible{background:rgba(239,212,134,.42)}
+.wc-col:focus-visible{box-shadow:inset 0 0 0 2px #07111f}
+.wc-cup{grid-row:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.wc-cdn{grid-row:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.wc-bar{display:block;flex:none;width:min(24px,calc(100% - 6px))}
+.wc-bar.ok{background:#20706b;border-radius:4px 4px 0 0;transform-origin:50% 100%}
+.wc-bar.bad{background:#9e3f2a;border-radius:0 0 4px 4px;transform-origin:50% 0}
+.wc-peak{padding:2px 0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;color:#2a2318;font-variant-numeric:tabular-nums}
+.wc-axis{position:absolute;z-index:1;left:0;right:0;top:130px;height:26px;box-sizing:border-box;border-top:1px solid rgba(58,52,43,.55);border-bottom:1px solid rgba(58,52,43,.55);pointer-events:none}
+.wc-axis span{position:absolute;top:0;bottom:0;display:flex;align-items:center;transform:translateX(-50%);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;color:#5b5248;font-variant-numeric:tabular-nums}
+.wc-meanline{position:absolute;z-index:2;left:48.03%;width:2px;margin-left:-1px;background:#bf3b2c;box-shadow:2px 3px 0 rgba(0,0,0,.16);pointer-events:none}
+.wc-meanline.up{top:0;height:130px}
+.wc-meanline.dn{top:156px;bottom:0}
+.wc-meanpin{position:absolute;z-index:4;top:-9px;left:48.03%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%);box-shadow:0 3px 4px rgba(0,0,0,.4);pointer-events:none}
+.wc-meanlbl{position:absolute;z-index:3;top:-11px;right:51.97%;margin-right:14px;padding:3px 8px;background:#0d1014;color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap;pointer-events:none}
+.wc-ann{position:absolute;z-index:2;left:0;bottom:calc(100% - 94px);width:min(42%,300px);margin:0;font-size:15px;font-style:italic;line-height:1.3;color:#3b3328;pointer-events:none}
+.wc-ann strong{font-style:normal;font-weight:600;color:#07111f}
+.wc-brk{position:absolute;z-index:2;left:2px;top:100px;width:calc(27.273% - 4px);height:7px;box-sizing:border-box;border:1.5px solid #3b3328;border-bottom:0;pointer-events:none}
+.wc-tip{position:absolute;z-index:8;left:50%;top:-10px;display:flex;flex-direction:column;gap:3px;padding:8px 11px 9px;background:#0d1014;color:#cfc4b1;font-size:15px;line-height:1.25;white-space:nowrap;box-shadow:0 10px 22px rgba(0,0,0,.35);transform:translate(-50%,-100%);opacity:0;visibility:hidden;transition:opacity .12s,visibility .12s;pointer-events:none}
+.wc-col:hover .wc-tip,.wc-col:focus-visible .wc-tip{opacity:1;visibility:visible}
+.wc-col:nth-child(-n+2) .wc-tip{left:0;transform:translate(0,-100%)}
+.wc-col:nth-last-child(-n+2) .wc-tip{left:auto;right:0;transform:translate(0,-100%)}
+.wc-tip b{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#b3a794;text-transform:uppercase}
+.wc-tip span{display:flex;align-items:center;gap:8px}
+.wc-tip strong{min-width:20px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:14px;font-weight:700;color:#fbf6ed;text-align:right;font-variant-numeric:tabular-nums}
+.wc-tip i{display:inline-block;width:12px;height:2px}
+.wc-tip i.ok{background:#4f9a9a}
+.wc-tip i.bad{background:#d0533e}
+/* evidence tags */
+.wc-tags{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;margin:34px 0 0;padding:26px 0 0}
+.wc-tag{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;padding:34px 14px 18px;box-sizing:border-box;text-align:center;background:linear-gradient(135deg,transparent 13px,#efe6d1 13.5px) left top/51% 100% no-repeat,linear-gradient(225deg,transparent 13px,#efe6d1 13.5px) right top/51% 100% no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.22)) drop-shadow(0 12px 12px rgba(0,0,0,.36));color:#07111f}
+.wc-tag:nth-child(even){background:linear-gradient(135deg,transparent 13px,#e6d7b6 13.5px) left top/51% 100% no-repeat,linear-gradient(225deg,transparent 13px,#e6d7b6 13.5px) right top/51% 100% no-repeat}
+.wc-tag dd{margin:0}
+.wc-hole{position:absolute;top:10px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#b39c6c;box-shadow:0 0 0 3px #c7a24b,0 0 0 4px #5e4a1c,inset 0 2px 3px rgba(0,0,0,.5)}
+.wc-twine{position:absolute;z-index:2;top:-26px;left:50%;width:30px;height:44px;margin-left:-15px;overflow:visible}
+.wc-tag dt{display:flex;align-items:center;justify-content:center;gap:7px;min-height:30px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.13em;line-height:1.3;color:#4f4536;text-transform:uppercase}
+.wc-tag dt{text-wrap:balance}
+.wc-tag dt svg{flex:none;color:#9e3f2a}
+.wc-gauge{position:relative;width:100%;max-width:176px;margin-top:10px !important}
+.wc-gauge svg{display:block;width:100%;height:auto;overflow:visible}
+.wc-gnum{position:absolute;left:0;right:0;bottom:12%;font-size:38px;color:#07111f;text-align:center}
+.wc-gnum.w{bottom:auto;top:58%;font-size:26px;transform:translateY(-46%)}
+.wc-tagsub{margin-top:10px !important;font-size:15px;font-style:italic;line-height:1.25;color:#3b3328}
+.wc-track{fill:none;stroke:rgba(26,44,66,.13);stroke-width:10}
+.wc-arc{fill:none;stroke:#1a2c42;stroke-width:10}
+.wc-band{fill:none;stroke-width:10}
+.wc-ticks{fill:none;stroke:rgba(58,52,43,.5);stroke-width:1.3;stroke-linecap:round}
+.wc-glbl{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;fill:#5b5248;text-anchor:middle;dominant-baseline:central}
+.wc-glbl.on{fill:#07111f}
+.wc-pinm{transform-box:view-box;transform-origin:88px 88px}
+.wc-pinm.w{transform-origin:88px 58px}
+/* reviews */
+.wc-rev{display:grid;grid-template-columns:392px minmax(0,1fr);gap:32px;align-items:start}
+.wc-revside{display:flex;flex-direction:column;gap:30px;min-width:0}
+.wc-sum{padding:20px 24px 22px;background:#0d1014;color:#eee4d2;box-shadow:inset 0 0 0 1px rgba(239,212,134,.16),0 22px 44px rgba(0,0,0,.5);transform:rotate(-.5deg)}
+.wc-sumtop{display:flex;align-items:center;gap:18px;margin-top:10px}
+.wc-sumbig{margin:0;font-size:72px;color:#efd486}
+.wc-sumsub{margin:6px 0 0;font-size:16px;font-style:italic;color:#cfc4b1}
+.wc-dist{display:flex;flex-direction:column;gap:5px;margin:16px 0 0;padding:0;list-style:none}
+.wc-dist li{display:grid;grid-template-columns:30px minmax(0,1fr) 24px;align-items:center;gap:10px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;color:#b3a794;font-variant-numeric:tabular-nums}
+.wc-dist li > span:first-child{display:inline-flex;align-items:center;gap:4px}
+.wc-dist li > span:last-child{text-align:right}
+.wc-dbar{display:block;height:8px;background:rgba(239,212,134,.13)}
+.wc-dbar span{display:block;height:100%;min-width:2px;background:#c7a24b;border-radius:0 3px 3px 0;transform-origin:0 50%}
+.wc-crit{display:flex;flex-direction:column;gap:9px;margin:16px 0 0;padding:14px 0 0;border-top:1px dashed rgba(179,167,148,.45)}
+.wc-crit div{display:grid;grid-template-columns:104px minmax(0,1fr) 34px;align-items:center;gap:12px}
+.wc-crit dt{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#b3a794;text-transform:uppercase}
+.wc-crit dd{margin:0}
+.wc-cm{display:block;height:6px;background:rgba(239,212,134,.15)}
+.wc-cm span{display:block;height:100%;background:#efd486;border-radius:0 3px 3px 0;transform-origin:0 50%}
+.wc-cv{font-size:21px;color:#fbf6ed;text-align:right}
+.wc-form{padding:20px 22px 24px 44px;background:#fbf6ed;transform:rotate(.4deg)}
+.wc-fstamp{position:absolute;z-index:4;top:22px;right:20px;display:inline-block;padding:5px 10px;border:4px double #2f6363;color:#2f6363;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;white-space:nowrap;transform:rotate(-8deg);mix-blend-mode:multiply;pointer-events:none}
+.wc-frow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 10px}
+.wc-ovrow{display:block;margin-top:16px;padding:10px 10px 4px 12px;background:rgba(239,212,134,.22);box-shadow:inset 0 0 0 1px rgba(91,82,72,.22);transition:background-color .2s,box-shadow .2s}
+.wc-ovrow.is-err{background:rgba(158,63,42,.08);box-shadow:inset 0 0 0 1.5px #9e3f2a}
+.wc-ovtop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:4px}
+.wc-ovrow .wc-rate{margin-left:-6px}
+.wc-flabel{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#3b3328;text-transform:uppercase}
+.wc-ovrow.is-err .wc-flabel{color:#9e3f2a}
+.wc-req{color:#9e3f2a}
+.wc-rval{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;color:#5b5248;text-transform:uppercase}
+.wc-crits{display:flex;flex-direction:column;margin-top:8px}
+.wc-crits .wc-frow{border-bottom:1px solid rgba(79,154,154,.35)}
+.wc-rate{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end}
+.wc-rate input{position:absolute;width:1px;height:1px;margin:0;opacity:0;pointer-events:none}
+.wc-rate label{display:grid;place-items:center;width:44px;height:44px;cursor:pointer}
+.wc-rate label svg{display:block;width:24px;height:24px;fill:transparent;stroke:#8f8676;stroke-width:1.6;stroke-linejoin:round;transition:transform .12s,fill .12s,stroke .12s}
+.wc-rate.big label svg{width:31px;height:31px}
+.wc-rate input:focus-visible + label{outline:2px solid #07111f;outline-offset:-4px}
+.wc-v1 label:nth-of-type(n+5) svg,.wc-v2 label:nth-of-type(n+4) svg,.wc-v3 label:nth-of-type(n+3) svg,.wc-v4 label:nth-of-type(n+2) svg,.wc-v5 label svg{fill:#c99a2e;stroke:#6b4c12}
+.wc-rate:hover label svg{fill:transparent;stroke:#8f8676}
+.wc-rate label:hover svg,.wc-rate label:hover ~ label svg{fill:#e2b84f;stroke:#6b4c12}
+.wc-rate label:hover svg{transform:scale(1.14)}
+.wc-field{margin-top:14px}
+.wc-note{display:block;width:100%;box-sizing:border-box;min-height:88px;margin-top:4px;padding:2px 4px;border:0;border-bottom:1.5px solid rgba(47,99,99,.55);border-radius:0;background-color:transparent;background-image:linear-gradient(transparent 27px,rgba(79,154,154,.35) 27px);background-size:100% 28px;color:#07111f;font-family:'Crimson Text',Georgia,serif;font-size:17px;line-height:28px;resize:vertical;outline:none;transition:background-color .15s}
+.wc-note::placeholder{color:#6b6257;opacity:1;font-style:italic}
+.wc-note:focus{border-bottom-color:#07111f;background-color:rgba(239,212,134,.25)}
+.wc-check{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:6px;font-size:16px;color:#2a2318;cursor:pointer}
+.wc-check input{flex:none;width:18px;height:18px;margin:0;accent-color:#07111f}
+.wc-hint{display:flex;gap:8px;margin:0;padding:8px 10px;background:rgba(122,63,39,.1);box-shadow:inset 3px 0 0 #7a3f27;font-size:15px;line-height:1.3;color:#3b2418}
+.wc-hint svg{flex:none;margin-top:2px}
+.wc-submit{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin-top:16px}
+.wc-toastbox{min-width:0}
+.wc-toast{display:inline-flex;align-items:center;gap:10px;margin:0;padding:9px 14px 9px 12px;background:#0d1014;color:#fbf6ed;font-size:16px;line-height:1.25;box-shadow:inset 3px 0 0 #d0533e,0 10px 20px rgba(0,0,0,.3);transform:rotate(-.8deg)}
+.wc-toast svg{flex:none}
+.wc-toast.ok{box-shadow:inset 3px 0 0 #4f9a9a,0 10px 20px rgba(0,0,0,.3)}
+.wc-revlist{min-width:0}
+.wc-listhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.wc-list{display:flex;flex-direction:column;gap:16px;margin:14px 0 0;padding:0;list-style:none}
+.wc-rv{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;padding:16px 22px 16px 42px;background:#fbf6ed;box-shadow:0 1px 0 rgba(0,0,0,.18),0 12px 24px rgba(40,26,10,.32)}
+.wc-ava{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 1.5px #c7a24b;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:700;letter-spacing:.02em}
+.wc-ava.anon{background:#e9dcc0;box-shadow:inset 0 0 0 1.5px #8f8676;color:#5b5248;font-size:20px}
+.wc-rvhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px}
+.wc-rvwho{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-width:0}
+.wc-rvname{margin:0;font-family:'Crimson Text',Georgia,serif;font-size:18px;font-weight:600;line-height:1.2;color:#07111f}
+.wc-rvname.anon{font-style:italic;font-weight:400;color:#3b3328}
+.wc-rvmeta{display:flex;align-items:center;gap:12px}
+.wc-res{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 6px;border:1.5px solid currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;line-height:1.5;text-transform:uppercase;white-space:nowrap}
+.wc-res.ok{color:#2f6363;background:rgba(79,154,154,.12)}
+.wc-res.bad{color:#9e3f2a;background:rgba(158,63,42,.07)}
+.wc-res.warn{color:#7a3f27;border-style:dashed;background:transparent}
+.wc-rvtext{margin:8px 0 0;font-size:17px;line-height:1.42;color:#2a2318}
+.wc-rvcrit{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.12em;color:#5b5248;text-transform:uppercase}
+.wc-rvcrit b{color:#07111f;font-weight:700}
+.wc-spoil{position:relative;margin-top:8px}
+.wc-spoil .wc-rvtext{margin:0;transition:filter .35s ease}
+.wc-spoil.is-hidden .wc-rvtext{filter:blur(6px);user-select:none}
+.wc-spcover{position:absolute;inset:-4px -6px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 14px;background:rgba(251,246,237,.35)}
+.wc-spcover .s-btn{background:#fbf6ed}
+.wc-spcover .s-btn:hover{background:#07111f}
+.wc-hidebtn{display:inline-flex;align-items:center;gap:7px;min-height:36px;margin-top:4px;padding:0 4px;border:0;background:transparent;color:#5b5248;font-family:'Crimson Text',Georgia,serif;font-size:15px;font-style:italic;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.wc-hidebtn:hover{color:#9e3f2a}
+.wc-hidebtn:focus-visible{outline:2px solid #07111f;outline-offset:2px}
+.wc-morebar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:20px}
+.wc-morebar .s-btn{background:#fbf6ed}
+.wc-morebar .s-btn:hover:not(:disabled){background:#07111f}
+/* leaderboard */
+.wc-lb{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:32px;align-items:start}
+.wc-ledger{padding:20px 26px 14px 54px;background:#f4efe3;transform:rotate(.25deg)}
+.wc-dmargin{position:absolute;top:0;bottom:0;width:1.5px;background:rgba(182,64,48,.5)}
+.wc-lbhead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 16px}
+.wc-segs{display:inline-flex;flex-wrap:wrap;gap:4px}
+.wc-seg{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 14px;box-sizing:border-box;border:0;border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px rgba(91,82,72,.35);color:#3b3328;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background-color .12s,color .12s}
+.wc-seg:hover{box-shadow:inset 0 0 0 1.5px #07111f;color:#07111f}
+.wc-seg[aria-pressed="true"]{background:#07111f;color:#fbf6ed;box-shadow:inset 0 0 0 1px #07111f}
+.wc-seg:focus-visible{outline:2px solid #9e3f2a;outline-offset:2px}
+.wc-table{width:100%;margin-top:10px;border-collapse:collapse}
+.wc-table th{padding:10px 12px;border-bottom:1.5px solid rgba(182,64,48,.6);text-align:left;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248;text-transform:uppercase;white-space:nowrap}
+.wc-table td{height:48px;padding:3px 12px;border-bottom:1px solid rgba(79,154,154,.4);vertical-align:middle;font-size:17px;color:#2a2318}
+.wc-table tbody tr{transition:background-color .15s}
+.wc-table tbody tr:not(.wc-gap):hover{background:rgba(239,212,134,.3)}
+.wc-table th.wc-rk,.wc-table td.wc-rk{width:44px;text-align:center}
+.wc-rknum{font-family:'Source Code Pro',ui-monospace,monospace;font-size:14px;font-weight:700;color:#3b3328;font-variant-numeric:tabular-nums}
+.wc-medal{display:block;width:38px;height:42px;margin:0 auto;overflow:visible;filter:drop-shadow(0 3px 2px rgba(0,0,0,.28))}
+.wc-medal.gold{color:#d9b45a;--md:#5e4a1c}
+.wc-medal.silver{color:#c9ced1;--md:#4a5155}
+.wc-medal.bronze{color:#c98d57;--md:#5a3416}
+.wc-medal text{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:700;text-anchor:middle;fill:var(--md);font-variant-numeric:lining-nums}
+.wc-team{display:flex;align-items:center;gap:12px;min-width:0}
+.wc-pair{display:inline-flex;flex:none}
+.wc-mono{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 1.5px #c7a24b,0 0 0 2px #f4efe3;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:11px;font-weight:700;font-style:normal;letter-spacing:0}
+.wc-mono + .wc-mono{margin-left:-3px}
+.wc-tname{min-width:0;overflow-wrap:break-word}
+.wc-table th.wc-val,.wc-table td.wc-val{text-align:right;white-space:nowrap}
+.wc-time,.wc-pts{font-family:'Source Code Pro',ui-monospace,monospace;font-size:16px;font-weight:700;color:#07111f;font-variant-numeric:tabular-nums}
+.wc-grade{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:8px;border-radius:50%;font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:700;box-shadow:inset 0 0 0 1.5px currentColor;vertical-align:middle}
+.g-s{color:#8a6420}.g-a{color:#2f6363}
+.wc-rec{display:inline-block;margin-right:8px;padding:2px 5px;background:#0d1014;color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;vertical-align:2px}
+.wc-gap td{height:auto;padding:7px 12px;border-bottom:1px dashed rgba(79,154,154,.6);text-align:center;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.24em;color:#5b5248;text-transform:uppercase}
+.wc-you td{background:rgba(239,212,134,.48)}
+.wc-you td:first-child{box-shadow:inset 4px 0 0 #9e3f2a}
+.wc-you .wc-tname{font-weight:600;color:#07111f}
+.wc-youtag{flex:none;padding:2px 6px;background:#9e3f2a;color:#fbf6ed;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.wc-lbfoot{display:flex;justify-content:space-between;gap:12px;margin:12px 0 0}
+.wc-mine{padding:22px 24px 24px;background:linear-gradient(180deg,#17120e,#0d1014);color:#eee4d2;box-shadow:inset 0 0 0 1px rgba(239,212,134,.18),0 24px 48px rgba(0,0,0,.55);transform:rotate(-.6deg)}
+.wc-duo{display:flex;align-items:center;margin-top:16px}
+.wc-duo svg{flex:1;height:30px;margin:0 -2px}
+.wc-bmono{position:relative;z-index:1;display:grid;place-items:center;flex:none;width:54px;height:54px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 2px #c7a24b,0 0 0 3px #0d1014,0 6px 12px rgba(0,0,0,.5);color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700}
+.wc-duoname{margin:10px 0 0;font-size:18px;font-weight:600;color:#fbf6ed}
+.wc-rankrow{display:flex;align-items:center;gap:14px;margin-top:12px}
+.wc-rankbig{margin:0;font-size:68px;color:#efd486}
+.wc-rankof{margin:0 0 6px;font-size:16px;font-style:italic;color:#cfc4b1}
+.wc-mtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0 0}
+.wc-mtiles div{padding:10px 12px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(239,212,134,.2);transition:box-shadow .2s,background-color .2s}
+.wc-mtiles div.is-on{background:rgba(239,212,134,.09);box-shadow:inset 0 0 0 1.5px #efd486}
+.wc-mtiles dt{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#b3a794;text-transform:uppercase}
+.wc-mtiles dd{display:flex;align-items:center;margin:4px 0 0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:24px;font-weight:700;color:#fbf6ed;font-variant-numeric:tabular-nums}
+.wc-mine .wc-grade{width:24px;height:24px;color:#8fd0cf}
+.wc-gapnote{margin:14px 0 2px;font-size:16px;font-style:italic;line-height:1.35;color:#cfc4b1}
+.wc-lbside{display:flex;flex-direction:column;gap:30px;min-width:0}
+.wc-scard{padding:20px 22px 18px 44px;background:#fbf6ed;transform:rotate(.5deg)}
+.wc-scrole{margin:4px 0 0;font-size:16px;font-style:italic;line-height:1.3;color:#3b3328}
+.wc-sclist{display:flex;flex-direction:column;gap:9px;margin:14px 0 0}
+.wc-sclist div{display:grid;grid-template-columns:88px minmax(0,1fr) 44px;align-items:center;gap:10px}
+.wc-sclist dt{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.13em;color:#3b3328;text-transform:uppercase}
+.wc-sclist dd{margin:0}
+.wc-scm{display:block;height:8px;background:rgba(26,44,66,.13)}
+.wc-scm span{display:block;height:100%;background:#1a2c42;border-radius:0 3px 3px 0;transform-origin:0 50%}
+.wc-scv{font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;color:#07111f;text-align:right;font-variant-numeric:tabular-nums}
+.wc-sctotal{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 0;padding-top:10px;border-top:1px dashed rgba(91,82,72,.45)}
+.wc-sctotal > span:last-child{display:inline-flex;align-items:center;font-family:'Source Code Pro',ui-monospace,monospace;font-size:16px;font-weight:700;color:#07111f}
+/* motion */
+@keyframes wcWipeA{from{clip-path:circle(0px at var(--wx) 0px)}to{clip-path:circle(2400px at var(--wx) 0px)}}
+@keyframes wcWipeB{from{clip-path:circle(0px at var(--wx) 0px)}to{clip-path:circle(2400px at var(--wx) 0px)}}
+@keyframes wcLensA{0%{width:0;height:0;opacity:1}72%{opacity:.85}100%{width:4800px;height:4800px;opacity:0}}
+@keyframes wcLensB{0%{width:0;height:0;opacity:1}72%{opacity:.85}100%{width:4800px;height:4800px;opacity:0}}
+@keyframes wcGrowY{from{transform:scaleY(0)}}
+@keyframes wcGrowX{from{transform:scaleX(0)}}
+@keyframes wcArc{from{stroke-dasharray:0 100}}
+@keyframes wcArcW{from{stroke-dasharray:0 60}}
+@keyframes wcSweep{from{transform:rotate(0deg)}}
+@keyframes wcSlam{0%{opacity:0;transform:rotate(-14deg) scale(2.1)}60%{opacity:1;transform:rotate(-1deg) scale(.95)}}
+@keyframes wcStampA{0%{opacity:0;transform:rotate(-16deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes wcStampB{0%{opacity:0;transform:rotate(-16deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes wcToastA{0%{opacity:0;transform:translateY(10px) rotate(-3deg)}100%{opacity:1;transform:rotate(-.8deg)}}
+@keyframes wcToastB{0%{opacity:0;transform:translateY(10px) rotate(-3deg)}100%{opacity:1;transform:rotate(-.8deg)}}
+@keyframes wcShakeA{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes wcShakeB{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes wcRowA{from{clip-path:circle(0% at 0% 0%)}to{clip-path:circle(150% at 0% 0%)}}
+@keyframes wcRowB{from{clip-path:circle(0% at 0% 0%)}to{clip-path:circle(150% at 0% 0%)}}
+@keyframes wcRise{from{opacity:0;transform:translateY(14px)}}
+@keyframes wcSpin{to{transform:rotate(360deg)}}
+@keyframes wcFade{from{opacity:0}}
+.wc-peak{animation:wcFade .3s calc(var(--d0) + var(--i,0) * 45ms + .55s) ease-out both}
+.wc-pane.wc-wa{animation:wcWipeA .75s cubic-bezier(.45,0,.2,1) both}
+.wc-pane.wc-wb{animation:wcWipeB .75s cubic-bezier(.45,0,.2,1) both}
+.wc-lensbox.wc-wa .wc-lens{animation:wcLensA .75s cubic-bezier(.45,0,.2,1) both}
+.wc-lensbox.wc-wb .wc-lens{animation:wcLensB .75s cubic-bezier(.45,0,.2,1) both}
+.wc-bar{animation:wcGrowY .6s calc(var(--d0) + var(--i,0) * 45ms) cubic-bezier(.2,.8,.2,1) both}
+.wc-col:nth-child(2){--i:1}.wc-col:nth-child(3){--i:2}.wc-col:nth-child(4){--i:3}.wc-col:nth-child(5){--i:4}.wc-col:nth-child(6){--i:5}.wc-col:nth-child(7){--i:6}.wc-col:nth-child(8){--i:7}.wc-col:nth-child(9){--i:8}.wc-col:nth-child(10){--i:9}.wc-col:nth-child(11){--i:10}
+.wc-sseg{animation:wcGrowX .7s calc(var(--d0) + .15s) cubic-bezier(.2,.8,.2,1) both}
+.wc-stampl{animation:wcSlam .45s var(--d0) cubic-bezier(.2,.8,.2,1) both}
+.wc-arc{animation:wcArc 1s calc(var(--d0) + .1s) cubic-bezier(.3,.7,.2,1) both}
+.wc-arc.w{animation-name:wcArcW}
+.wc-pinm{animation:wcSweep 1s calc(var(--d0) + .1s) cubic-bezier(.3,.7,.2,1) both}
+.wc-dbar span,.wc-cm span,.wc-scm span{animation:wcGrowX .7s var(--d0) cubic-bezier(.2,.8,.2,1) both}
+.wc-fa .wc-toast{animation:wcToastA .4s cubic-bezier(.2,.8,.2,1) both}
+.wc-fb .wc-toast{animation:wcToastB .4s cubic-bezier(.2,.8,.2,1) both}
+.wc-fa .wc-ovrow.is-err .wc-rate{animation:wcShakeA .4s ease-out both}
+.wc-fb .wc-ovrow.is-err .wc-rate{animation:wcShakeB .4s ease-out both}
+.wc-fa .wc-fstamp{animation:wcStampA .45s .05s cubic-bezier(.2,.8,.2,1) both}
+.wc-fb .wc-fstamp{animation:wcStampB .45s .05s cubic-bezier(.2,.8,.2,1) both}
+.wc-lbwrap.wc-ra{animation:wcRowA .55s cubic-bezier(.4,0,.2,1) both}
+.wc-lbwrap.wc-rb{animation:wcRowB .55s cubic-bezier(.4,0,.2,1) both}
+.wc-newrv{animation:wcRise .45s cubic-bezier(.2,.8,.2,1) both}
+.wc-newrv + .wc-newrv{animation-delay:.08s}
+.wc-spin{animation:wcSpin 1.2s linear infinite}
+@media (max-width:1180px){
+  .wc-head{grid-template-columns:minmax(0,1fr) 372px;gap:20px 30px}
+  .wc-tags{gap:16px}
+  .wc-tag{padding-left:10px;padding-right:10px}
+  .wc-rev{grid-template-columns:352px minmax(0,1fr);gap:26px}
+  .wc-lb{grid-template-columns:minmax(0,1fr) 320px;gap:26px}
+  .wc-rankbig{font-size:58px}
+}
+@media (max-width:960px){
+  .wc-row1{grid-template-columns:minmax(0,1fr)}
+  .wc-tags{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:44px}
+  .wc-rev{grid-template-columns:minmax(0,1fr)}
+  .wc-revside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .wc-lb{grid-template-columns:minmax(0,1fr)}
+  .wc-lbside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+}
+@media (max-width:760px){
+  .s-nav{order:3;width:100%}
+  .wc-head{grid-template-columns:minmax(0,1fr);padding:0 18px 22px}
+  .wc-title{margin:-20px 0 0 -8px;padding:10px 20px 12px 18px}
+  .wc-title h1{font-size:36px}
+  .wc-lede{font-size:18px}
+  .wc-actions .s-btn{flex:1 1 auto}
+  .wc-photo{margin-top:6px}
+  .wc-tabs{padding:0;gap:3px}
+  .wc-tab{flex:1 1 0;min-width:0;min-height:56px;padding:6px 8px 4px;font-size:10px;letter-spacing:.08em;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 100%,0 100%)}
+  .wc-tab[aria-selected="true"]{min-height:64px}
+  .wc-tab{align-items:stretch}
+  .wc-tabl{flex:1 1 auto;flex-direction:column;justify-content:center;gap:4px;padding:6px 4px;text-align:center}
+  .wc-tabl svg{width:16px;height:16px}
+  .wc-count{display:none}
+  .wc-headpin{display:none}
+  .wc-o1{--wx:16.6%}.wc-o2{--wx:50%}.wc-o3{--wx:83.4%}
+  .wc-pane{padding:20px 14px 28px}
+  .wc-verdict{padding:18px 18px 20px 38px}
+  .wc-vgrid{grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:18px}
+  .wc-vgrid > div{grid-row:auto;grid-template-rows:none;grid-template-columns:auto minmax(0,1fr);align-items:end;column-gap:14px}
+  .wc-vgrid dt{grid-column:1 / -1}
+  .wc-vbig{font-size:52px}
+  .wc-vcap{margin:0 0 6px !important}
+  .wc-timecard{padding:20px 14px 18px}
+  .wc-tags{grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 14px}
+  .wc-tag:last-child{grid-column:1 / -1;justify-self:center;width:calc(50% - 7px)}
+  .wc-gnum{font-size:32px}
+  .wc-revside{display:flex;align-items:stretch}
+  .wc-sum{padding:18px 18px 20px}
+  .wc-form{padding:18px 16px 22px 38px}
+  .wc-rv{grid-template-columns:36px minmax(0,1fr);gap:0 12px;padding:14px 16px 14px 38px}
+  .wc-rv > div{display:contents}
+  .wc-rvhead{grid-column:2;align-self:center}
+  .wc-rv .wc-rvtext,.wc-rv .wc-spoil,.wc-rv .wc-hidebtn,.wc-rv .wc-rvcrit{grid-column:1 / -1}
+  .wc-spoil .wc-rvtext{margin:0}
+  .wc-ava{width:36px;height:36px;font-size:14px;align-self:start}
+  .wc-ledger{padding:18px 12px 12px 40px}
+  .wc-table th,.wc-table td{padding-left:6px;padding-right:6px}
+  .wc-table td{font-size:16px}
+  .wc-pair{display:none}
+  .wc-gap td{letter-spacing:.12em;white-space:nowrap}
+  .wc-team{flex-wrap:wrap;gap:3px 8px}
+  .wc-segs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .wc-seg{padding:0 6px;letter-spacing:.08em}
+  .wc-seg svg{display:none}
+  .wc-lbside{display:flex;align-items:stretch}
+  .wc-scard{padding:18px 16px 16px 38px}
+  .wc-rec{display:none}
+  .wc-mine{padding:20px 18px 22px}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp,.wc-pane,.wc-lens,.wc-bar,.wc-sseg,.wc-stampl,.wc-arc,.wc-pinm,.wc-dbar span,.wc-cm span,.wc-scm span,.wc-toast,.wc-rate,.wc-fstamp,.wc-lbwrap,.wc-newrv,.wc-spin,.wc-peak{animation:none !important}
+  .wc-back svg,.wc-rate label svg,.wc-spoil .wc-rvtext,.wc-col,.wc-tip,.wc-tab,.wc-ovrow,.wc-mtiles div,.wc-table tbody tr{transition:none}
+  .wc-rate label:hover svg{transform:none}
+}
+.wc-scpen dt{color:#7a3f27}
+.wc-scpen .wc-scnote{margin:0;font-size:14px;font-style:italic;color:#5b5248}
+.wc-scpen .wc-scv{color:#9e3f2a}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".3" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+    <defs>
+      <radialGradient id="wc-brass" cx=".36" cy=".3" r=".75"><stop offset="0" style="stop-color: #fff1c2"></stop><stop offset=".45" style="stop-color: #c7a24b"></stop><stop offset="1" style="stop-color: #5e4a1c"></stop></radialGradient>
+      <radialGradient id="wc-redpin" cx=".35" cy=".3" r=".75"><stop offset="0" style="stop-color: #f3a291"></stop><stop offset=".45" style="stop-color: #c0392b"></stop><stop offset="1" style="stop-color: #6e1a12"></stop></radialGradient>
+      <symbol id="wc-star" viewBox="0 0 24 24"><path d="M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96z"></path></symbol>
+      <symbol id="wc-medal" viewBox="0 0 40 44">
+        <path d="M13 25L8 41.5l5.6-2.6 3.6 4.6 3.4-13.5z" style="fill: #9e3f2a"></path>
+        <path d="M27 25l5 16.5-5.6-2.6-3.6 4.6-3.4-13.5z" style="fill: #1a2c42"></path>
+        <circle cx="20" cy="17" r="15.5" style="fill: currentColor; stroke: var(--md); stroke-width: 1.6"></circle>
+        <circle cx="20" cy="17" r="11.5" style="fill: none; stroke: var(--md); stroke-width: 1; stroke-dasharray: 1.4 2; opacity: .7"></circle>
+        <path d="M9.5 11.5a12 12 0 0 1 8.5-6.6" style="fill: none; stroke: rgba(255,255,255,.6); stroke-width: 2; stroke-linecap: round"></path>
+      </symbol>
+      <symbol id="wc-twine" viewBox="0 0 30 44">
+        <path d="M15 6C9 16 10 30 13 41M15 6C21 16 20 30 17 41" style="fill: none; stroke: #7d6845; stroke-width: 1.6; stroke-linecap: round"></path>
+        <circle cx="16.2" cy="8" r="6" style="fill: rgba(0,0,0,.4)"></circle>
+        <circle cx="15" cy="6" r="6" fill="url(#wc-brass)"></circle>
+      </symbol>
+    </defs>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html">TRANG CHỦ</a>
+      <a href="FindGame.dc.html">TÌM TRẬN</a>
+      <a href="Rooms.dc.html">PHÒNG</a>
+      <a href="Cases.dc.html">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html" aria-current="page">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span aria-hidden="true" style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 14px 16px 48px">
+
+        <div>
+          <a class="s-link-gold wc-back" href="Workshop.dc.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="M11 6l-6 6 6 6"></path></svg>
+            Về Workshop
+          </a>
+        </div>
+
+        <section class="wc-card wc-head s-paper" aria-labelledby="wc-h1">
+          <span class="s-pin red wc-headpin" aria-hidden="true" style="top: -9px; left: 58%; margin-left: -9px"></span>
+          <div class="wc-headmain">
+            <div class="wc-title">
+              <span class="wc-tdot" aria-hidden="true"></span>
+              <p class="wc-kick gold" style="margin-left: 10px; letter-spacing: .26em">Workshop · Vụ án của tuần 42</p>
+              <h1 id="wc-h1">Đêm khóa sổ</h1>
+            </div>
+            <div class="wc-byline">
+              <p class="wc-kick" style="letter-spacing: .16em">Tác giả: THANH_TRA_LÊ</p>
+              <div class="wc-rating">
+                <span class="wc-stars" role="img" aria-label="Điểm đánh giá trung bình 4,6 trên 5 sao">
+                  <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                  <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                  <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                  <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                  <span class="wc-pstar" aria-hidden="true"><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><span class="wc-pfill" style="width: 60%"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span></span>
+                </span>
+                <span class="wc-ratenum" aria-hidden="true">4,6</span>
+                <span aria-hidden="true" style="color: #5b5248">·</span>
+                <button type="button" class="wc-ratelink" onClick="{{ goReviews }}">86 đánh giá</button>
+              </div>
+            </div>
+            <p class="wc-lede">22:00, nhà hát Vọng Âm đóng cửa sau đêm diễn cứu trợ. Trong phong bì quỹ, tờ lệnh chi đã bị thay. Sáng mai ngân hàng sẽ trả tiền cho người ghi trên lệnh — hãy tìm ra ai đã đổi hồ sơ trước khi quỹ bị rút.</p>
+            <ul class="wc-chips" aria-label="Thông tin vụ án">
+              <li class="s-chip">1.204 lượt chơi</li>
+              <li class="s-chip">3 nghi phạm</li>
+              <li class="s-chip">35 phút</li>
+              <li class="s-chip dark">V3 · CRACK</li>
+            </ul>
+            <div class="wc-actions">
+              <a class="s-btn s-btn-red wc-up" href="Lobby.dc.html">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" style="fill: currentColor"></path></svg>
+                Chơi vụ án này
+              </a>
+              <a class="s-btn s-btn-ink wc-up" href="Cases.dc.html">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h6.2l2 2.3h8.8v11.2h-17z"></path><path d="M3.5 11h17"></path></svg>
+                Xem chi tiết case
+              </a>
+            </div>
+          </div>
+          <figure class="wc-photo" style="margin-bottom: 0">
+            <span class="wc-tape" aria-hidden="true" style="top: -11px; left: -18px; transform: rotate(-28deg)"></span>
+            <span class="wc-tape" aria-hidden="true" style="top: -11px; right: -18px; transform: rotate(31deg)"></span>
+            <svg viewBox="0 0 440 230" role="img" aria-label="Minh họa: sân khấu nhà hát và phong bì quỹ có dấu niêm phong" style="background: #15110e">
+              <path d="M0 0H440V18H0Z" style="fill: #3a1410"></path>
+              <path d="M0 18C30 60 20 160 50 230H0Z" style="fill: #7d2219"></path>
+              <path d="M0 18C22 70 8 150 28 230" style="fill: none; stroke: #5a1812; stroke-width: 3"></path>
+              <path d="M440 18C410 60 420 160 390 230H440Z" style="fill: #7d2219"></path>
+              <path d="M440 18C418 70 432 150 412 230" style="fill: none; stroke: #5a1812; stroke-width: 3"></path>
+              <path d="M40 18Q220 64 400 18" style="fill: #5a1812"></path>
+              <ellipse cx="220" cy="214" rx="150" ry="10" style="fill: rgba(239,212,134,.12)"></ellipse>
+              <g transform="translate(140 92) rotate(-6)">
+                <rect width="160" height="100" style="fill: #e9dcc0"></rect>
+                <path d="M0 0L80 54L160 0" style="fill: none; stroke: #b9a77f; stroke-width: 2"></path>
+                <circle cx="80" cy="54" r="15" style="fill: #b8382b"></circle>
+                <text x="80" y="59" style="font-family: 'Playfair Display', Georgia, serif; font-size: 12px; font-weight: 700; fill: #f3c7b8; text-anchor: middle">Q</text>
+                <text x="12" y="90" style="font-family: 'Source Code Pro', monospace; font-size: 9px; letter-spacing: 1.5px; fill: #5b5248">QUỸ CỨU TRỢ</text>
+              </g>
+              <g transform="translate(250 70) rotate(9)">
+                <rect width="120" height="64" style="fill: #fbf6ed"></rect>
+                <text x="10" y="20" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; fill: #15120e">LỆNH CHI</text>
+                <path d="M10 32H108M10 42H90M10 52H70" style="stroke: #8f8676; stroke-width: 2"></path>
+                <path d="M70 46C80 36 92 58 108 44" style="fill: none; stroke: #b8382b; stroke-width: 1.6"></path>
+              </g>
+              <text x="220" y="48" style="font-family: 'Source Code Pro', monospace; font-size: 11px; letter-spacing: 4px; fill: #efd486; text-anchor: middle">NHÀ HÁT VỌNG ÂM · 22:00</text>
+            </svg>
+          </figure>
+        </section>
+
+        <div class="wc-file" id="wc-tabs">
+          <div class="wc-tabs" role="tablist" aria-label="Hồ sơ cộng đồng của vụ án">
+            <button type="button" role="tab" id="wc-tab-thong-ke" class="wc-tab" aria-selected="{{ selTk }}" aria-controls="wc-p-thong-ke" onClick="{{ showTk }}" onKeyDown="{{ tabKey }}">
+              <span class="wc-tabl">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16"></path><path d="M7.5 16.5v-5M12 16.5V6.5M16.5 16.5v-8"></path></svg>
+                Thống kê
+              </span>
+            </button>
+            <button type="button" role="tab" id="wc-tab-danh-gia" class="wc-tab" aria-selected="{{ selDg }}" aria-controls="wc-p-danh-gia" onClick="{{ showDg }}" onKeyDown="{{ tabKey }}">
+              <span class="wc-tabl">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round"><use href="#wc-star"></use></svg>
+                Đánh giá
+                <span class="wc-count">86</span>
+              </span>
+            </button>
+            <button type="button" role="tab" id="wc-tab-bang-xep-hang" class="wc-tab" aria-selected="{{ selBx }}" aria-controls="wc-p-bang-xep-hang" onClick="{{ showBx }}" onKeyDown="{{ tabKey }}">
+              <span class="wc-tabl">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"></path><path d="M7.5 6H5a2.5 2.5 0 0 0 2.9 3.9"></path><path d="M16.5 6H19a2.5 2.5 0 0 1-2.9 3.9"></path><path d="M12 13.5v3"></path><path d="M8.5 20h7l-1-3.5h-5z"></path></svg>
+                Bảng xếp hạng
+              </span>
+            </button>
+          </div>
+
+          <div class="wc-folder s-paper">
+            <div class="{{ lensCls }}" aria-hidden="true"><span class="wc-lens"></span></div>
+            <div class="{{ paneCls }}">
+
+              <!-- ============ THỐNG KÊ ============ -->
+              <div id="wc-p-thong-ke" class="wc-panel" role="tabpanel" aria-labelledby="wc-tab-thong-ke" tabindex="0" hidden="{{ hideTk }}">
+                <h2 class="s-sr">Thống kê vụ án</h2>
+                <div class="wc-panhead">
+                  <p class="wc-kick kraft">Số liệu từ 1.204 lượt chơi · cập nhật 15.10.2026</p>
+                  <span class="wc-safe">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.2A9.6 9.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4"></path><path d="M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.8 0 3.3-.5 4.6-1.2"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>
+                    Không tiết lộ thủ phạm hay đáp án
+                  </span>
+                </div>
+
+                <div class="wc-row1">
+                  <section class="wc-card wc-verdict" aria-labelledby="wc-v-h">
+                    <span class="wc-margin" aria-hidden="true"></span>
+                    <span class="s-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                    <p class="wc-kick">Biên bản kết luận</p>
+                    <h3 id="wc-v-h" class="wc-h3">Kết quả cáo buộc</h3>
+                    <dl class="wc-vgrid">
+                      <div>
+                        <dt><span class="wc-stampl ok"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>Phá án thành công</span></dt>
+                        <dd class="wc-vbig ok wc-num">59%</dd>
+                        <dd class="wc-vcap">Tỉ lệ thắng</dd>
+                      </div>
+                      <div>
+                        <dt><span class="wc-stampl bad"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>Buộc tội nhầm hung thủ</span></dt>
+                        <dd class="wc-vbig bad wc-num">41%</dd>
+                        <dd class="wc-vcap">Tỉ lệ đội chọn sai thủ phạm</dd>
+                      </div>
+                    </dl>
+                    <div class="wc-splitbox" aria-hidden="true">
+                      <div class="wc-split"><span class="wc-sseg ok"></span><span class="wc-sseg bad"></span><span class="wc-splitpin"></span></div>
+                      <div class="wc-scale"><span style="left: 0">0</span><span style="left: 50%; transform: translateX(-50%)">50%</span><span style="right: 0">100%</span></div>
+                    </div>
+                    <div class="wc-vfoot">
+                      <p class="wc-vnote">Cáo buộc sai sẽ kết thúc vụ án — mỗi đội chỉ có một lần buộc tội.</p>
+                      <svg class="wc-rstamp" viewBox="0 0 96 96" aria-hidden="true">
+                        <defs><path id="wc-ring" d="M48 48m-35 0a35 35 0 1 1 70 0a35 35 0 1 1-70 0"></path></defs>
+                        <circle cx="48" cy="48" r="45" style="fill: none; stroke: currentColor; stroke-width: 2.6"></circle>
+                        <circle cx="48" cy="48" r="41.5" style="fill: none; stroke: currentColor; stroke-width: 1"></circle>
+                        <circle cx="48" cy="48" r="26" style="fill: none; stroke: currentColor; stroke-width: 1.2"></circle>
+                        <text style="font-family: 'Source Code Pro', monospace; font-size: 9px; font-weight: 700; fill: currentColor"><textPath href="#wc-ring" textLength="214" lengthAdjust="spacing">SỞ ĐIỀU TRA · SIR LOCKED · HỒ SƠ 06 ·</textPath></text>
+                        <text x="48" y="45" style="font-family: 'Source Code Pro', monospace; font-size: 9px; font-weight: 700; fill: currentColor; text-anchor: middle">ĐÃ</text>
+                        <text x="48" y="57" style="font-family: 'Source Code Pro', monospace; font-size: 9px; font-weight: 700; fill: currentColor; text-anchor: middle">ĐỐI CHIẾU</text>
+                      </svg>
+                    </div>
+                  </section>
+
+                  <section class="wc-card wc-timecard" aria-labelledby="wc-t-h">
+                    <span class="wc-tape" aria-hidden="true" style="top: -12px; left: 34px; transform: rotate(-5deg)"></span>
+                    <span class="wc-tape" aria-hidden="true" style="top: -12px; right: 34px; transform: rotate(4deg)"></span>
+                    <div class="wc-chead">
+                      <div>
+                        <p class="wc-kick">Nhật ký thời gian · 486 ván</p>
+                        <h3 id="wc-t-h" class="wc-h3">Phân bố thời gian phá án</h3>
+                      </div>
+                      <ul class="wc-legend" aria-label="Chú giải">
+                        <li><i class="ok" aria-hidden="true"></i>Phá án thành công</li>
+                        <li><i class="bad" aria-hidden="true"></i>Buộc tội nhầm</li>
+                        <li><i class="mean" aria-hidden="true"></i>Trung bình 31′</li>
+                      </ul>
+                    </div>
+                    <div class="wc-plot">
+                      <div class="wc-vlines" aria-hidden="true"><span style="left: 9.091%"></span><span style="left: 27.273%"></span><span style="left: 45.455%"></span><span style="left: 63.636%"></span><span style="left: 81.818%"></span></div>
+                      <ul class="wc-hist" aria-label="Số ván theo thời gian kết thúc, chia theo kết quả">
+                        <li class="wc-col" tabindex="0"><span class="s-sr">5 đến 10 phút: 0 đội phá án thành công, 14 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 17.5px"></span></span><span class="wc-tip" aria-hidden="true"><b>5–10 phút</b><span><i class="ok"></i><strong>0</strong>phá án thành công</span><span><i class="bad"></i><strong>14</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">10 đến 15 phút: 3 đội phá án thành công, 38 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 3.75px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 47.5px"></span></span><span class="wc-tip" aria-hidden="true"><b>10–15 phút</b><span><i class="ok"></i><strong>3</strong>phá án thành công</span><span><i class="bad"></i><strong>38</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">15 đến 20 phút: 7 đội phá án thành công, 47 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 8.75px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 58.75px"></span><span class="wc-peak">47</span></span><span class="wc-tip" aria-hidden="true"><b>15–20 phút</b><span><i class="ok"></i><strong>7</strong>phá án thành công</span><span><i class="bad"></i><strong>47</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">20 đến 25 phút: 9 đội phá án thành công, 39 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 11.25px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 48.75px"></span></span><span class="wc-tip" aria-hidden="true"><b>20–25 phút</b><span><i class="ok"></i><strong>9</strong>phá án thành công</span><span><i class="bad"></i><strong>39</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">25 đến 30 phút: 14 đội phá án thành công, 25 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 17.5px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 31.25px"></span></span><span class="wc-tip" aria-hidden="true"><b>25–30 phút</b><span><i class="ok"></i><strong>14</strong>phá án thành công</span><span><i class="bad"></i><strong>25</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">30 đến 35 phút: 52 đội phá án thành công, 16 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 65px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 20px"></span></span><span class="wc-tip" aria-hidden="true"><b>30–35 phút</b><span><i class="ok"></i><strong>52</strong>phá án thành công</span><span><i class="bad"></i><strong>16</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">35 đến 40 phút: 88 đội phá án thành công, 10 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-peak">88</span><span class="wc-bar ok" style="height: 110px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 12.5px"></span></span><span class="wc-tip" aria-hidden="true"><b>35–40 phút</b><span><i class="ok"></i><strong>88</strong>phá án thành công</span><span><i class="bad"></i><strong>10</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">40 đến 45 phút: 64 đội phá án thành công, 6 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 80px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 7.5px"></span></span><span class="wc-tip" aria-hidden="true"><b>40–45 phút</b><span><i class="ok"></i><strong>64</strong>phá án thành công</span><span><i class="bad"></i><strong>6</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">45 đến 50 phút: 32 đội phá án thành công, 3 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 40px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 3.75px"></span></span><span class="wc-tip" aria-hidden="true"><b>45–50 phút</b><span><i class="ok"></i><strong>32</strong>phá án thành công</span><span><i class="bad"></i><strong>3</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">50 đến 55 phút: 12 đội phá án thành công, 1 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 15px"></span></span><span class="wc-cdn" aria-hidden="true"><span class="wc-bar bad" style="height: 1.5px"></span></span><span class="wc-tip" aria-hidden="true"><b>50–55 phút</b><span><i class="ok"></i><strong>12</strong>phá án thành công</span><span><i class="bad"></i><strong>1</strong>buộc tội nhầm</span></span></li>
+                        <li class="wc-col" tabindex="0"><span class="s-sr">Từ 55 phút trở lên: 6 đội phá án thành công, 0 đội buộc tội nhầm.</span><span class="wc-cup" aria-hidden="true"><span class="wc-bar ok" style="height: 7.5px"></span></span><span class="wc-cdn" aria-hidden="true"></span><span class="wc-tip" aria-hidden="true"><b>Từ 55 phút</b><span><i class="ok"></i><strong>6</strong>phá án thành công</span><span><i class="bad"></i><strong>0</strong>buộc tội nhầm</span></span></li>
+                      </ul>
+                      <div class="wc-axis" aria-hidden="true"><span style="left: 9.091%">10′</span><span style="left: 27.273%">20′</span><span style="left: 45.455%">30′</span><span style="left: 63.636%">40′</span><span style="left: 81.818%">50′</span></div>
+                      <span class="wc-meanline up" aria-hidden="true"></span>
+                      <span class="wc-meanline dn" aria-hidden="true"></span>
+                      <span class="wc-meanpin" aria-hidden="true"></span>
+                      <span class="wc-meanlbl" aria-hidden="true">TB 31′</span>
+                      <p class="wc-ann"><strong>9/10</strong> đội buộc tội trước phút 20 đã chọn sai thủ phạm.</p>
+                      <span class="wc-brk" aria-hidden="true"></span>
+                    </div>
+                  </section>
+                </div>
+
+                <dl class="wc-tags">
+                  <div class="wc-tag" style="transform: rotate(-1.2deg)">
+                    <dt><svg class="wc-twine" aria-hidden="true"><use href="#wc-twine"></use></svg><span class="wc-hole" aria-hidden="true"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 5.6A8 8 0 0 1 19.6 10"></path><path d="M4.6 9.6A8 8 0 0 0 4.2 14"></path><path d="M8 20c-1.2-1.8-1.9-4-1.9-6.5a5.9 5.9 0 0 1 11.6-1.5"></path><path d="M11.7 21c-1-2.2-1.6-4.6-1.6-7.3a1.9 1.9 0 0 1 3.8 0c0 2.6.6 4.6 1.6 6.3"></path><path d="M17.9 17.6c.2-1.1.3-2.3.2-3.6"></path></svg>Tìm đúng bằng chứng</dt>
+                    <dd class="wc-gauge">
+                      <svg viewBox="0 0 176 100" aria-hidden="true">
+                        <path class="wc-ticks" d="M16.0 88.0L9.0 88.0M19.5 65.8L15.7 64.5M29.8 45.7L26.5 43.3M45.7 29.8L43.3 26.5M65.8 19.5L64.5 15.7M88.0 16.0L88.0 9.0M110.2 19.5L111.5 15.7M130.3 29.8L132.7 26.5M146.2 45.7L149.5 43.3M156.5 65.8L160.3 64.5M160.0 88.0L167.0 88.0"></path>
+                        <path class="wc-track" d="M24 88A64 64 0 0 1 152 88"></path>
+                        <path class="wc-arc" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke-dasharray: 64 100"></path>
+                        <g class="wc-pinm" style="transform: rotate(115.2deg)"><circle cx="24" cy="88" r="7.5" fill="url(#wc-brass)" style="stroke: #5e4a1c; stroke-width: 1"></circle></g>
+                      </svg>
+                      <span class="wc-gnum wc-num">64%</span>
+                    </dd>
+                    <dd class="wc-tagsub">Chọn đủ bằng chứng bắt buộc</dd>
+                  </div>
+                  <div class="wc-tag" style="transform: rotate(.9deg)">
+                    <dt><svg class="wc-twine" aria-hidden="true"><use href="#wc-twine"></use></svg><span class="wc-hole" aria-hidden="true"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="6.6"></circle><path d="M12 2.6v2.8M12 18.6v2.8M2.6 12h2.8M18.6 12h2.8M5.4 5.4l2 2M16.6 16.6l2 2M5.4 18.6l2-2M16.6 7.4l2-2"></path></svg>Đúng hung khí</dt>
+                    <dd class="wc-gauge">
+                      <svg viewBox="0 0 176 100" aria-hidden="true">
+                        <path class="wc-ticks" d="M16.0 88.0L9.0 88.0M19.5 65.8L15.7 64.5M29.8 45.7L26.5 43.3M45.7 29.8L43.3 26.5M65.8 19.5L64.5 15.7M88.0 16.0L88.0 9.0M110.2 19.5L111.5 15.7M130.3 29.8L132.7 26.5M146.2 45.7L149.5 43.3M156.5 65.8L160.3 64.5M160.0 88.0L167.0 88.0"></path>
+                        <path class="wc-track" d="M24 88A64 64 0 0 1 152 88"></path>
+                        <path class="wc-arc" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke-dasharray: 71 100"></path>
+                        <g class="wc-pinm" style="transform: rotate(127.8deg)"><circle cx="24" cy="88" r="7.5" fill="url(#wc-brass)" style="stroke: #5e4a1c; stroke-width: 1"></circle></g>
+                      </svg>
+                      <span class="wc-gnum wc-num">71%</span>
+                    </dd>
+                    <dd class="wc-tagsub">Chọn đúng phương thức gây án</dd>
+                  </div>
+                  <div class="wc-tag" style="transform: rotate(-.5deg)">
+                    <dt><svg class="wc-twine" aria-hidden="true"><use href="#wc-twine"></use></svg><span class="wc-hole" aria-hidden="true"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.9"></path><path d="M12 17.3v.01"></path></svg>Đúng động cơ</dt>
+                    <dd class="wc-gauge">
+                      <svg viewBox="0 0 176 100" aria-hidden="true">
+                        <path class="wc-ticks" d="M16.0 88.0L9.0 88.0M19.5 65.8L15.7 64.5M29.8 45.7L26.5 43.3M45.7 29.8L43.3 26.5M65.8 19.5L64.5 15.7M88.0 16.0L88.0 9.0M110.2 19.5L111.5 15.7M130.3 29.8L132.7 26.5M146.2 45.7L149.5 43.3M156.5 65.8L160.3 64.5M160.0 88.0L167.0 88.0"></path>
+                        <path class="wc-track" d="M24 88A64 64 0 0 1 152 88"></path>
+                        <path class="wc-arc" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke-dasharray: 68 100"></path>
+                        <g class="wc-pinm" style="transform: rotate(122.4deg)"><circle cx="24" cy="88" r="7.5" fill="url(#wc-brass)" style="stroke: #5e4a1c; stroke-width: 1"></circle></g>
+                      </svg>
+                      <span class="wc-gnum wc-num">68%</span>
+                    </dd>
+                    <dd class="wc-tagsub">Chọn đúng động cơ gây án</dd>
+                  </div>
+                  <div class="wc-tag" style="transform: rotate(1.1deg)">
+                    <dt><svg class="wc-twine" aria-hidden="true"><use href="#wc-twine"></use></svg><span class="wc-hole" aria-hidden="true"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"></circle><path d="M12 13.5V10M9.5 3h5M12 3v3M18.3 6.7l1.4-1.4"></path></svg>Thời gian phá án TB</dt>
+                    <dd class="wc-gauge">
+                      <svg viewBox="0 0 176 100" aria-hidden="true">
+                        <circle cx="88" cy="6" r="3.6" style="fill: none; stroke: #8a6e2e; stroke-width: 2"></circle>
+                        <rect x="84.5" y="9.5" width="7" height="8" rx="1.2" style="fill: #8a6e2e"></rect>
+                        <circle class="wc-track" cx="88" cy="58" r="36"></circle>
+                        <path class="wc-arc w" pathLength="60" d="M88 22A36 36 0 1 1 88 94A36 36 0 1 1 88 22" style="stroke-dasharray: 31 60"></path>
+                        <path class="wc-ticks" d="M88.0 37.0L88.0 30.0M100.0 37.2L102.0 33.8M108.8 46.0L112.2 44.0M109.0 58.0L116.0 58.0M108.8 70.0L112.2 72.0M100.0 78.8L102.0 82.2M88.0 79.0L88.0 86.0M76.0 78.8L74.0 82.2M67.2 70.0L63.8 72.0M67.0 58.0L60.0 58.0M67.2 46.0L63.8 44.0M76.0 37.2L74.0 33.8"></path>
+                        <g class="wc-pinm w" style="transform: rotate(186deg)"><circle cx="88" cy="22" r="7.5" fill="url(#wc-brass)" style="stroke: #5e4a1c; stroke-width: 1"></circle></g>
+                      </svg>
+                      <span class="wc-gnum w wc-num">31′</span>
+                    </dd>
+                    <dd class="wc-tagsub">Trên 486 ván có dữ liệu</dd>
+                  </div>
+                  <div class="wc-tag" style="transform: rotate(-.8deg)">
+                    <dt><svg class="wc-twine" aria-hidden="true"><use href="#wc-twine"></use></svg><span class="wc-hole" aria-hidden="true"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"></path><path d="M12 17l4.2-5.2"></path><circle cx="12" cy="17" r="1.3"></circle></svg>Điểm trung bình</dt>
+                    <dd class="wc-gauge">
+                      <svg viewBox="0 0 176 100" aria-hidden="true">
+                        <path class="wc-band" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke: rgba(122,63,39,.26); stroke-dasharray: 59 100"></path>
+                        <path class="wc-band" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke: #1a2c42; stroke-dasharray: 14 100; stroke-dashoffset: -60"></path>
+                        <path class="wc-band" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke: rgba(47,99,99,.3); stroke-dasharray: 14 100; stroke-dashoffset: -75"></path>
+                        <path class="wc-band" pathLength="100" d="M24 88A64 64 0 0 1 152 88" style="stroke: rgba(138,100,32,.36); stroke-dasharray: 10 100; stroke-dashoffset: -90"></path>
+                        <text class="wc-glbl" x="40.4" y="22.5">C</text>
+                        <text class="wc-glbl on" x="130.3" y="18.9">B</text>
+                        <text class="wc-glbl" x="157.1" y="45.7">A</text>
+                        <text class="wc-glbl" x="168" y="75.3">S</text>
+                        <g class="wc-pinm" style="transform: rotate(129.6deg)"><circle cx="24" cy="88" r="7.5" fill="url(#wc-brass)" style="stroke: #5e4a1c; stroke-width: 1"></circle></g>
+                      </svg>
+                      <span class="wc-gnum wc-num">72</span>
+                    </dd>
+                    <dd class="wc-tagsub">Thang điểm 0–100</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- ============ ĐÁNH GIÁ ============ -->
+              <div id="wc-p-danh-gia" class="wc-panel" role="tabpanel" aria-labelledby="wc-tab-danh-gia" tabindex="0" hidden="{{ hideDg }}">
+                <h2 class="s-sr">Đánh giá của cộng đồng</h2>
+                <div class="wc-rev">
+                  <div class="wc-revside">
+                    <section class="wc-card wc-sum" aria-labelledby="wc-sum-h">
+                      <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+                      <p class="wc-kick gold">Điểm cộng đồng</p>
+                      <h3 id="wc-sum-h" class="wc-h3 light">Tổng quan</h3>
+                      <div class="wc-sumtop">
+                        <p class="wc-sumbig wc-num"><span class="s-sr">Điểm tổng quan </span>4,6</p>
+                        <div>
+                          <span class="wc-stars gold" role="img" aria-label="4,6 trên 5 sao">
+                            <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                            <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                            <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                            <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg>
+                            <span class="wc-pstar" aria-hidden="true"><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><span class="wc-pfill" style="width: 60%"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span></span>
+                          </span>
+                          <p class="wc-sumsub">trên 5 · 86 đánh giá</p>
+                        </div>
+                      </div>
+                      <ul class="wc-dist" aria-label="Phân bố số sao">
+                        <li><span aria-hidden="true">5<svg width="11" height="11" viewBox="0 0 24 24" style="fill: #c7a24b"><use href="#wc-star"></use></svg></span><span class="wc-dbar" aria-hidden="true"><span style="width: 72.1%"></span></span><span aria-hidden="true">62</span><span class="s-sr">5 sao: 62 đánh giá</span></li>
+                        <li><span aria-hidden="true">4<svg width="11" height="11" viewBox="0 0 24 24" style="fill: #c7a24b"><use href="#wc-star"></use></svg></span><span class="wc-dbar" aria-hidden="true"><span style="width: 17.4%"></span></span><span aria-hidden="true">15</span><span class="s-sr">4 sao: 15 đánh giá</span></li>
+                        <li><span aria-hidden="true">3<svg width="11" height="11" viewBox="0 0 24 24" style="fill: #c7a24b"><use href="#wc-star"></use></svg></span><span class="wc-dbar" aria-hidden="true"><span style="width: 7%"></span></span><span aria-hidden="true">6</span><span class="s-sr">3 sao: 6 đánh giá</span></li>
+                        <li><span aria-hidden="true">2<svg width="11" height="11" viewBox="0 0 24 24" style="fill: #c7a24b"><use href="#wc-star"></use></svg></span><span class="wc-dbar" aria-hidden="true"><span style="width: 2.3%"></span></span><span aria-hidden="true">2</span><span class="s-sr">2 sao: 2 đánh giá</span></li>
+                        <li><span aria-hidden="true">1<svg width="11" height="11" viewBox="0 0 24 24" style="fill: #c7a24b"><use href="#wc-star"></use></svg></span><span class="wc-dbar" aria-hidden="true"><span style="width: 1.2%"></span></span><span aria-hidden="true">1</span><span class="s-sr">1 sao: 1 đánh giá</span></li>
+                      </ul>
+                      <dl class="wc-crit">
+                        <div><dt>Độ khó</dt><dd class="wc-cm" aria-hidden="true"><span style="width: 76%"></span></dd><dd class="wc-cv wc-num">3,8</dd></div>
+                        <div><dt>Công bằng</dt><dd class="wc-cm" aria-hidden="true"><span style="width: 94%"></span></dd><dd class="wc-cv wc-num">4,7</dd></div>
+                        <div><dt>Cốt truyện</dt><dd class="wc-cm" aria-hidden="true"><span style="width: 90%"></span></dd><dd class="wc-cv wc-num">4,5</dd></div>
+                      </dl>
+                    </section>
+
+                    <section class="{{ formCls }}" aria-labelledby="wc-form-h">
+                      <span class="wc-margin" aria-hidden="true"></span>
+                      <span class="s-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                      <sc-if value="{{ isOk }}" hint-placeholder-val="{{ false }}">
+                        <span class="wc-fstamp" aria-hidden="true">ĐÃ LƯU</span>
+                      </sc-if>
+                      <p class="wc-kick">Phiếu nhận xét</p>
+                      <h3 id="wc-form-h" class="wc-h3">Viết đánh giá</h3>
+                      <div class="{{ ovRowCls }}">
+                        <div class="wc-ovtop">
+                          <span id="wc-ov-l" class="wc-flabel">Tổng quan <span class="wc-req" aria-hidden="true">*</span></span>
+                          <span class="wc-rval" aria-hidden="true">{{ ovText }}</span>
+                        </div>
+                          <div class="{{ ovCls }}" role="radiogroup" aria-labelledby="wc-ov-l" aria-required="true" aria-invalid="{{ ovInvalid }}" aria-describedby="wc-toast">
+                            <input type="radio" id="wc-ov-5" name="wc-ov" value="5" onChange="{{ setOv5 }}"><label for="wc-ov-5"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">5 sao</span></label>
+                            <input type="radio" id="wc-ov-4" name="wc-ov" value="4" onChange="{{ setOv4 }}"><label for="wc-ov-4"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">4 sao</span></label>
+                            <input type="radio" id="wc-ov-3" name="wc-ov" value="3" onChange="{{ setOv3 }}"><label for="wc-ov-3"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">3 sao</span></label>
+                            <input type="radio" id="wc-ov-2" name="wc-ov" value="2" onChange="{{ setOv2 }}"><label for="wc-ov-2"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">2 sao</span></label>
+                            <input type="radio" id="wc-ov-1" name="wc-ov" value="1" onChange="{{ setOv1 }}"><label for="wc-ov-1"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">1 sao</span></label>
+                          </div>
+                      </div>
+                      <div class="wc-crits">
+                        <div class="wc-frow">
+                          <span id="wc-dk-l" class="wc-flabel">Độ khó</span>
+                          <div class="{{ dkCls }}" role="radiogroup" aria-labelledby="wc-dk-l">
+                            <input type="radio" id="wc-dk-5" name="wc-dk" value="5" onChange="{{ setDk5 }}"><label for="wc-dk-5"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">5 sao</span></label>
+                            <input type="radio" id="wc-dk-4" name="wc-dk" value="4" onChange="{{ setDk4 }}"><label for="wc-dk-4"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">4 sao</span></label>
+                            <input type="radio" id="wc-dk-3" name="wc-dk" value="3" onChange="{{ setDk3 }}"><label for="wc-dk-3"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">3 sao</span></label>
+                            <input type="radio" id="wc-dk-2" name="wc-dk" value="2" onChange="{{ setDk2 }}"><label for="wc-dk-2"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">2 sao</span></label>
+                            <input type="radio" id="wc-dk-1" name="wc-dk" value="1" onChange="{{ setDk1 }}"><label for="wc-dk-1"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">1 sao</span></label>
+                          </div>
+                        </div>
+                        <div class="wc-frow">
+                          <span id="wc-cb-l" class="wc-flabel">Công bằng</span>
+                          <div class="{{ cbCls }}" role="radiogroup" aria-labelledby="wc-cb-l">
+                            <input type="radio" id="wc-cb-5" name="wc-cb" value="5" onChange="{{ setCb5 }}"><label for="wc-cb-5"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">5 sao</span></label>
+                            <input type="radio" id="wc-cb-4" name="wc-cb" value="4" onChange="{{ setCb4 }}"><label for="wc-cb-4"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">4 sao</span></label>
+                            <input type="radio" id="wc-cb-3" name="wc-cb" value="3" onChange="{{ setCb3 }}"><label for="wc-cb-3"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">3 sao</span></label>
+                            <input type="radio" id="wc-cb-2" name="wc-cb" value="2" onChange="{{ setCb2 }}"><label for="wc-cb-2"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">2 sao</span></label>
+                            <input type="radio" id="wc-cb-1" name="wc-cb" value="1" onChange="{{ setCb1 }}"><label for="wc-cb-1"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">1 sao</span></label>
+                          </div>
+                        </div>
+                        <div class="wc-frow">
+                          <span id="wc-ct-l" class="wc-flabel">Cốt truyện</span>
+                          <div class="{{ ctCls }}" role="radiogroup" aria-labelledby="wc-ct-l">
+                            <input type="radio" id="wc-ct-5" name="wc-ct" value="5" onChange="{{ setCt5 }}"><label for="wc-ct-5"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">5 sao</span></label>
+                            <input type="radio" id="wc-ct-4" name="wc-ct" value="4" onChange="{{ setCt4 }}"><label for="wc-ct-4"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">4 sao</span></label>
+                            <input type="radio" id="wc-ct-3" name="wc-ct" value="3" onChange="{{ setCt3 }}"><label for="wc-ct-3"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">3 sao</span></label>
+                            <input type="radio" id="wc-ct-2" name="wc-ct" value="2" onChange="{{ setCt2 }}"><label for="wc-ct-2"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">2 sao</span></label>
+                            <input type="radio" id="wc-ct-1" name="wc-ct" value="1" onChange="{{ setCt1 }}"><label for="wc-ct-1"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#wc-star"></use></svg><span class="s-sr">1 sao</span></label>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="wc-field">
+                        <div class="wc-frow">
+                          <label for="wc-note" class="wc-flabel">Nhận xét</label>
+                          <span class="wc-mini" aria-hidden="true">{{ noteCount }}/600</span>
+                        </div>
+                        <textarea id="wc-note" class="wc-note" rows="3" maxlength="600" placeholder="Điều gì khiến vụ án đáng nhớ? Đừng nêu tên thủ phạm." value="{{ note }}" onChange="{{ setNote }}"></textarea>
+                      </div>
+                      <label class="wc-check"><input type="checkbox" onChange="{{ toggleSpoil }}"><span>Đánh giá này có tiết lộ tình tiết</span></label>
+                      <sc-if value="{{ spoilFlag }}" hint-placeholder-val="{{ false }}">
+                        <p class="wc-hint">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.2A9.6 9.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4"></path><path d="M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.8 0 3.3-.5 4.6-1.2"></path></svg>
+                          <span>Nhận xét sẽ được làm mờ cho tới khi người đọc chọn “Hiện tình tiết”.</span>
+                        </p>
+                      </sc-if>
+                      <div class="wc-submit">
+                        <button type="button" class="s-btn s-btn-red wc-up" onClick="{{ submit }}">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"></path><path d="M13 7l4 4"></path></svg>
+                          Gửi đánh giá
+                        </button>
+                        <div id="wc-toast" class="wc-toastbox" role="status" aria-live="polite">
+                          <sc-if value="{{ isErr }}" hint-placeholder-val="{{ false }}">
+                            <p class="wc-toast">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8a58c" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>
+                              Hãy chọn số sao tổng quan.
+                            </p>
+                          </sc-if>
+                          <sc-if value="{{ isOk }}" hint-placeholder-val="{{ false }}">
+                            <p class="wc-toast ok">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8fd0cf" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.8 2.8L16.5 9.5"></path></svg>
+                              Đã lưu đánh giá của bạn.
+                            </p>
+                          </sc-if>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
+                  <section class="wc-revlist" aria-labelledby="wc-all-h">
+                    <div class="wc-listhead">
+                      <h3 id="wc-all-h" class="wc-h3">Tất cả đánh giá (86)</h3>
+                      <span class="wc-mini kraft">Mới nhất trước</span>
+                    </div>
+                    <ul class="wc-list">
+                      <li>
+                        <article class="wc-rv" style="transform: rotate(-.3deg)" aria-labelledby="wc-rv1">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava" aria-hidden="true">HF</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv1" class="wc-rvname">holmes_fan</h4><span class="wc-res ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>Đã phá án</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="5 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-14">14.10.2026</time>
+                              </div>
+                            </div>
+                            <p class="wc-rvtext">Vụ án chặt chẽ nhất mình từng chơi trong Workshop. Manh mối nào cũng có lý do để xuất hiện, và chỉ khi hai vai ghép ghi chú lại với nhau thì bức tranh mới rõ dần.</p>
+                            <p class="wc-rvcrit"><span>Độ khó <b>4</b></span><span>Công bằng <b>5</b></span><span>Cốt truyện <b>5</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                      <li>
+                        <article class="wc-rv" style="transform: rotate(.25deg)" aria-labelledby="wc-rv2">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava anon" aria-hidden="true">?</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv2" class="wc-rvname anon">Thám tử ẩn danh</h4><span class="wc-res bad"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>Buộc tội sai</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="4 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-13">13.10.2026</time>
+                              </div>
+                            </div>
+                            <p class="wc-rvtext">Bọn mình buộc tội quá vội ở phút 18 và trả giá. Không phải lỗi của vụ án — mọi thứ đều nằm trong hồ sơ, chỉ là đọc chưa kỹ. Sẽ chơi lại với đồng đội cũ.</p>
+                            <p class="wc-rvcrit"><span>Độ khó <b>4</b></span><span>Công bằng <b>5</b></span><span>Cốt truyện <b>4</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                      <li>
+                        <article class="wc-rv" style="transform: rotate(-.2deg)" aria-labelledby="wc-rv3">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava" aria-hidden="true">BK</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv3" class="wc-rvname">baker221</h4><span class="wc-res ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>Đã phá án</span><span class="wc-res warn">Có tiết lộ tình tiết</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="5 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-12">12.10.2026</time>
+                              </div>
+                            </div>
+                            <div class="{{ spCls }}">
+                              <p id="wc-sp-text" class="wc-rvtext" aria-hidden="{{ spAria }}">Hồi II chuyển sang hành lang kiểm sổ, có cả một hộp hồ sơ khóa số chờ sẵn — cả đội phải dựng lại dòng thời gian của buổi tối rồi mới được lập cáo buộc. Pha đối chất cuối rất đã.</p>
+                              <sc-if value="{{ spHidden }}" hint-placeholder-val="{{ true }}">
+                                <div class="wc-spcover">
+                                  <button type="button" id="wc-sp-show" class="s-btn s-btn-ink s-btn-sm wc-up" aria-controls="wc-sp-text" aria-expanded="false" onClick="{{ toggleSp }}">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    Hiện tình tiết
+                                  </button>
+                                </div>
+                              </sc-if>
+                            </div>
+                            <sc-if value="{{ spShown }}" hint-placeholder-val="{{ false }}">
+                              <button type="button" id="wc-sp-hide" class="wc-hidebtn" aria-controls="wc-sp-text" aria-expanded="true" onClick="{{ toggleSp }}">Ẩn tình tiết</button>
+                            </sc-if>
+                            <p class="wc-rvcrit"><span>Độ khó <b>4</b></span><span>Công bằng <b>5</b></span><span>Cốt truyện <b>5</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                      <li>
+                        <article class="wc-rv" style="transform: rotate(.3deg)" aria-labelledby="wc-rv4">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava" aria-hidden="true">SM</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv4" class="wc-rvname">suong_mu</h4><span class="wc-res ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>Đã phá án</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="4 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-11">11.10.2026</time>
+                              </div>
+                            </div>
+                            <p class="wc-rvtext">Không khí nhà hát sau màn hạ rất có hồn. Độ khó vừa phải với đội đã quen chế độ Crack; người mới nên dành trọn 35 phút và đừng ngại dùng gợi ý.</p>
+                            <p class="wc-rvcrit"><span>Độ khó <b>3</b></span><span>Công bằng <b>5</b></span><span>Cốt truyện <b>4</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                      <li>
+                        <article class="wc-rv" style="transform: rotate(-.25deg)" aria-labelledby="wc-rv5">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava" aria-hidden="true">MT</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv5" class="wc-rvname">minh.tran</h4><span class="wc-res bad"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>Buộc tội sai</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="3 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-09">09.10.2026</time>
+                              </div>
+                            </div>
+                            <p class="wc-rvtext">Cốt truyện hay nhưng Hồi I hơi chậm, bọn mình loay hoay ở quầy vé khá lâu. Phần thẩm vấn nên có thêm gợi ý cho người chơi mới.</p>
+                            <p class="wc-rvcrit"><span>Độ khó <b>5</b></span><span>Công bằng <b>3</b></span><span>Cốt truyện <b>4</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                      <li class="wc-newrv" hidden="{{ hideMore }}">
+                        <article class="wc-rv" style="transform: rotate(.2deg)" aria-labelledby="wc-rv6">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava" aria-hidden="true">GL</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv6" class="wc-rvname">ga_lac_hai</h4><span class="wc-res ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>Đã phá án</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="5 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-06">06.10.2026</time>
+                              </div>
+                            </div>
+                            <p class="wc-rvtext">Thiết kế hai vai rất khéo: không ai tự phá được một mình. Mong THANH_TRA_LÊ viết thêm vụ ở nhà hát Vọng Âm.</p>
+                            <p class="wc-rvcrit"><span>Độ khó <b>4</b></span><span>Công bằng <b>5</b></span><span>Cốt truyện <b>5</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                      <li class="wc-newrv" hidden="{{ hideMore }}">
+                        <article class="wc-rv" style="transform: rotate(-.3deg)" aria-labelledby="wc-rv7">
+                          <span class="wc-margin" aria-hidden="true"></span>
+                          <span class="wc-ava anon" aria-hidden="true">?</span>
+                          <div>
+                            <div class="wc-rvhead">
+                              <div class="wc-rvwho"><h4 id="wc-rv7" class="wc-rvname anon">Thám tử ẩn danh</h4><span class="wc-res bad"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>Buộc tội sai</span></div>
+                              <div class="wc-rvmeta">
+                                <span class="wc-stars sm" role="img" aria-label="4 trên 5 sao"><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="f" viewBox="0 0 24 24"><use href="#wc-star"></use></svg><svg class="e" viewBox="0 0 24 24"><use href="#wc-star"></use></svg></span>
+                                <time class="wc-mini" datetime="2026-10-04">04.10.2026</time>
+                              </div>
+                            </div>
+                            <p class="wc-rvtext">Thua nhưng vui. Lần sau sẽ đọc kỹ từng lời khai trước khi đối chất.</p>
+                            <p class="wc-rvcrit"><span>Độ khó <b>4</b></span><span>Công bằng <b>4</b></span><span>Cốt truyện <b>4</b></span></p>
+                          </div>
+                        </article>
+                      </li>
+                    </ul>
+                    <div class="wc-morebar">
+                      <button type="button" class="s-btn s-btn-ink wc-up" aria-busy="{{ moreBusy }}" onClick="{{ loadMore }}">
+                        <sc-if value="{{ notLoading }}" hint-placeholder-val="{{ true }}">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+                          Tải thêm
+                        </sc-if>
+                        <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+                          <svg class="wc-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+                          Đang tải…
+                        </sc-if>
+                      </button>
+                      <span class="wc-mini kraft" aria-live="polite">{{ shownText }}</span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              <!-- ============ BẢNG XẾP HẠNG ============ -->
+              <div id="wc-p-bang-xep-hang" class="wc-panel" role="tabpanel" aria-labelledby="wc-tab-bang-xep-hang" tabindex="0" hidden="{{ hideBx }}">
+                <h2 class="s-sr">Bảng xếp hạng các đội</h2>
+                <div class="wc-lb">
+                  <section class="wc-card wc-ledger" aria-labelledby="wc-lb-h">
+                    <span class="wc-dmargin" aria-hidden="true" style="left: 26px"></span>
+                    <span class="wc-dmargin" aria-hidden="true" style="left: 30px"></span>
+                    <span class="s-pin gold" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+                    <div class="wc-lbhead">
+                      <div>
+                        <p class="wc-kick">Sổ vàng · {{ lbKick }}</p>
+                        <h3 id="wc-lb-h" class="wc-h3">Top 10 đội</h3>
+                      </div>
+                      <div class="wc-segs" role="group" aria-label="Xếp hạng theo">
+                        <button type="button" class="wc-seg" aria-pressed="{{ lbFast }}" onClick="{{ setFast }}">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"></circle><path d="M12 13.5V10M9.5 3h5M12 3v3"></path></svg>
+                          Phá nhanh nhất
+                        </button>
+                        <button type="button" class="wc-seg" aria-pressed="{{ lbScore }}" onClick="{{ setScore }}">
+                          <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round"><use href="#wc-star"></use></svg>
+                          Top điểm
+                        </button>
+                      </div>
+                    </div>
+                    <div class="{{ lbAnim }}">
+                      <table class="wc-table">
+                        <caption class="s-sr">{{ lbCaption }}</caption>
+                        <thead>
+                          <tr><th scope="col" class="wc-rk"><span aria-hidden="true">#</span><span class="s-sr">Hạng</span></th><th scope="col">Đội</th><th scope="col" class="wc-val">{{ lbCol }}</th></tr>
+                        </thead>
+                        <tbody hidden="{{ hideFast }}">
+                          <tr><td class="wc-rk"><svg class="wc-medal gold" viewBox="0 0 40 44" aria-hidden="true"><use href="#wc-medal"></use><text x="20" y="22.5">1</text></svg><span class="s-sr">1</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">BK</span><span class="wc-mono">HF</span></span><span class="wc-tname">baker221 &amp; holmes_fan</span></span></td><td class="wc-val"><span class="wc-rec">KỶ LỤC</span><span class="wc-time">12:48</span></td></tr>
+                          <tr><td class="wc-rk"><svg class="wc-medal silver" viewBox="0 0 40 44" aria-hidden="true"><use href="#wc-medal"></use><text x="20" y="22.5">2</text></svg><span class="s-sr">2</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">SM</span><span class="wc-mono">CD</span></span><span class="wc-tname">suong_mu &amp; cu_dem</span></span></td><td class="wc-val"><span class="wc-time">13:57</span></td></tr>
+                          <tr><td class="wc-rk"><svg class="wc-medal bronze" viewBox="0 0 40 44" aria-hidden="true"><use href="#wc-medal"></use><text x="20" y="22.5">3</text></svg><span class="s-sr">3</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">NR</span><span class="wc-mono">LP</span></span><span class="wc-tname">nightrail &amp; lamplight</span></span></td><td class="wc-val"><span class="wc-time">14:36</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">4</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TK</span><span class="wc-mono">GL</span></span><span class="wc-tname">thu_kho &amp; ga_lac_hai</span></span></td><td class="wc-val"><span class="wc-time">15:20</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">5</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">PL</span><span class="wc-mono">DH</span></span><span class="wc-tname">phuong.le &amp; duc.hoang</span></span></td><td class="wc-val"><span class="wc-time">16:42</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">6</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">HA</span><span class="wc-mono">BN</span></span><span class="wc-tname">hai_au &amp; bao_ngoc</span></span></td><td class="wc-val"><span class="wc-time">17:05</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">7</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">MT</span><span class="wc-mono">AN</span></span><span class="wc-tname">minh.tran &amp; an.nguyen</span></span></td><td class="wc-val"><span class="wc-time">17:58</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">8</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TA</span><span class="wc-mono">KV</span></span><span class="wc-tname">tram_anh &amp; khoa.vu</span></span></td><td class="wc-val"><span class="wc-time">18:44</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">9</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">QH</span><span class="wc-mono">LC</span></span><span class="wc-tname">quang.huy &amp; lan.chi</span></span></td><td class="wc-val"><span class="wc-time">19:16</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">10</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">KN</span><span class="wc-mono">DA</span></span><span class="wc-tname">kim.ngan &amp; duy.anh</span></span></td><td class="wc-val"><span class="wc-time">19:52</span></td></tr>
+                          <tr class="wc-gap" aria-hidden="true"><td colspan="3">· · ·  26 đội khác  · · ·</td></tr>
+                          <tr class="wc-you"><td class="wc-rk"><span class="wc-rknum">37</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TM</span><span class="wc-mono">TV</span></span><span class="wc-tname">Thám tử Minh &amp; Thám tử Vy</span><span class="wc-youtag">Đội bạn</span></span></td><td class="wc-val"><span class="wc-time">31:20</span></td></tr>
+                        </tbody>
+                        <tbody hidden="{{ hideScore }}">
+                          <tr><td class="wc-rk"><svg class="wc-medal gold" viewBox="0 0 40 44" aria-hidden="true"><use href="#wc-medal"></use><text x="20" y="22.5">1</text></svg><span class="s-sr">1</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">SM</span><span class="wc-mono">CD</span></span><span class="wc-tname">suong_mu &amp; cu_dem</span></span></td><td class="wc-val"><span class="wc-rec">KỶ LỤC</span><span class="wc-pts">99</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><svg class="wc-medal silver" viewBox="0 0 40 44" aria-hidden="true"><use href="#wc-medal"></use><text x="20" y="22.5">2</text></svg><span class="s-sr">2</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">BK</span><span class="wc-mono">HF</span></span><span class="wc-tname">baker221 &amp; holmes_fan</span></span></td><td class="wc-val"><span class="wc-pts">97</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><svg class="wc-medal bronze" viewBox="0 0 40 44" aria-hidden="true"><use href="#wc-medal"></use><text x="20" y="22.5">3</text></svg><span class="s-sr">3</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TK</span><span class="wc-mono">GL</span></span><span class="wc-tname">thu_kho &amp; ga_lac_hai</span></span></td><td class="wc-val"><span class="wc-pts">96</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">4</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">NR</span><span class="wc-mono">LP</span></span><span class="wc-tname">nightrail &amp; lamplight</span></span></td><td class="wc-val"><span class="wc-pts">95</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">5</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TA</span><span class="wc-mono">KV</span></span><span class="wc-tname">tram_anh &amp; khoa.vu</span></span></td><td class="wc-val"><span class="wc-pts">94</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">6</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">PL</span><span class="wc-mono">DH</span></span><span class="wc-tname">phuong.le &amp; duc.hoang</span></span></td><td class="wc-val"><span class="wc-pts">93</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">7</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">HA</span><span class="wc-mono">BN</span></span><span class="wc-tname">hai_au &amp; bao_ngoc</span></span></td><td class="wc-val"><span class="wc-pts">92</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">8</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TT</span><span class="wc-mono">GB</span></span><span class="wc-tname">thanh.truc &amp; gia.bao</span></span></td><td class="wc-val"><span class="wc-pts">91</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">9</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">MT</span><span class="wc-mono">AN</span></span><span class="wc-tname">minh.tran &amp; an.nguyen</span></span></td><td class="wc-val"><span class="wc-pts">90</span><span class="wc-grade g-s"><span class="s-sr">hạng </span>S</span></td></tr>
+                          <tr><td class="wc-rk"><span class="wc-rknum">10</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">QH</span><span class="wc-mono">LC</span></span><span class="wc-tname">quang.huy &amp; lan.chi</span></span></td><td class="wc-val"><span class="wc-pts">89</span><span class="wc-grade g-a"><span class="s-sr">hạng </span>A</span></td></tr>
+                          <tr class="wc-gap" aria-hidden="true"><td colspan="3">· · ·  26 đội khác  · · ·</td></tr>
+                          <tr class="wc-you"><td class="wc-rk"><span class="wc-rknum">37</span></td><td><span class="wc-team"><span class="wc-pair" aria-hidden="true"><span class="wc-mono">TM</span><span class="wc-mono">TV</span></span><span class="wc-tname">Thám tử Minh &amp; Thám tử Vy</span><span class="wc-youtag">Đội bạn</span></span></td><td class="wc-val"><span class="wc-pts">84</span><span class="wc-grade g-a"><span class="s-sr">hạng </span>A</span></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p class="wc-lbfoot"><span class="wc-mini">Hiển thị 10 / 486 đội</span></p>
+                  </section>
+
+                  <div class="wc-lbside">
+                  <section class="wc-card wc-mine" aria-labelledby="wc-mine-h">
+                    <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+                    <p class="wc-kick gold">Hồ sơ đội · vụ này</p>
+                    <h3 id="wc-mine-h" class="wc-h3 light">Đội của bạn</h3>
+                    <div class="wc-duo" aria-hidden="true">
+                      <span class="wc-bmono">TM</span>
+                      <svg viewBox="0 0 120 30" preserveAspectRatio="none"><path d="M0 13Q60 31 120 13" transform="translate(1.5 4)" style="fill: none; stroke: rgba(0,0,0,.45); stroke-width: 2.8; vector-effect: non-scaling-stroke"></path><path d="M0 13Q60 31 120 13" style="fill: none; stroke: #bf3b2c; stroke-width: 2.1; vector-effect: non-scaling-stroke"></path></svg>
+                      <span class="wc-bmono">TV</span>
+                    </div>
+                    <p class="wc-duoname">Thám tử Minh &amp; Thám tử Vy</p>
+                    <div class="wc-rankrow">
+                      <p class="wc-rankbig wc-num"><span class="s-sr">Hạng </span>#37</p>
+                      <div>
+                        <p class="wc-rankof">trên 486 đội</p>
+                        <span class="s-chip dark">TOP 8%</span>
+                      </div>
+                    </div>
+                    <dl class="wc-mtiles">
+                      <div class="{{ tileTimeCls }}"><dt>Thời gian</dt><dd>31:20</dd></div>
+                      <div class="{{ tileScoreCls }}"><dt>Điểm</dt><dd>84<span class="wc-grade"><span class="s-sr">hạng </span>A</span></dd></div>
+                    </dl>
+                    <p class="wc-gapnote" aria-live="polite">{{ gapText }}</p>
+                    <a class="s-link-gold" href="Lobby.dc.html">
+                      Chơi lại để leo hạng
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+                    </a>
+                  </section>
+
+                  <section class="wc-card wc-scard s-paper" aria-labelledby="wc-sc-h">
+                    <span class="wc-margin" aria-hidden="true"></span>
+                    <span class="s-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                    <p class="wc-kick">Lần phá án · 14.10.2026</p>
+                    <h3 id="wc-sc-h" class="wc-h3">Bảng điểm của đội</h3>
+                    <p class="wc-scrole">Bạn là Điều tra viên, Thám tử Vy là Thẩm vấn viên.</p>
+                    <dl class="wc-sclist">
+                      <div><dt>Chứng cứ</dt><dd class="wc-scm" aria-hidden="true"><span style="width: 90%"></span></dd><dd class="wc-scv">36/40</dd></div>
+                      <div><dt>Mâu thuẫn</dt><dd class="wc-scm" aria-hidden="true"><span style="width: 100%"></span></dd><dd class="wc-scv">25/25</dd></div>
+                      <div><dt>Suy luận</dt><dd class="wc-scm" aria-hidden="true"><span style="width: 75%"></span></dd><dd class="wc-scv">15/20</dd></div>
+                      <div><dt>Phối hợp</dt><dd class="wc-scm" aria-hidden="true"><span style="width: 80%"></span></dd><dd class="wc-scv">12/15</dd></div>
+                      <div class="wc-scpen"><dt>Điểm trừ</dt><dd class="wc-scnote">−2 chứng cứ sai · −2 lần chụp trượt</dd><dd class="wc-scv">−4</dd></div>
+                    </dl>
+                    <p class="wc-sctotal"><span class="wc-flabel">Điểm điều tra</span><span>84 / 100<span class="wc-grade g-a"><span class="s-sr">hạng </span>A</span></span></p>
+                  </section>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["thong-ke","danh-gia","bang-xep-hang"],"default":"thong-ke","section":"Trạng thái"},"$preview":{"width":1440,"height":1424}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tab: null, flip: null,
+      ov: 0, dk: 0, cb: 0, ct: 0, note: '', spoil: false, msg: '', fFlip: null,
+      showSp: false, more: false, loading: false,
+      lb: 'fast', lbFlip: null
+    };
+    this._t = null;
+    this._f = null;
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.tab !== this.props.tab) {
+      const s = this.state || {};
+      this.setState({ tab: this.props.tab || 'thong-ke', flip: !s.flip });
+    }
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._t);
+    clearTimeout(this._f);
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const TABS = ['thong-ke', 'danh-gia', 'bang-xep-hang'];
+    const pick = (st) => (TABS.indexOf(st.tab) >= 0 ? st.tab : (TABS.indexOf(this.props.tab) >= 0 ? this.props.tab : 'thong-ke'));
+    const tab = pick(s);
+    const org = ' wc-o' + (TABS.indexOf(tab) + 1);
+    const wipe = s.flip == null ? '' : (s.flip ? ' wc-wb' : ' wc-wa');
+    const go = (t) => {
+      const st = this.state || {};
+      if (pick(st) === t) return;
+      this.setState({ tab: t, flip: !st.flip });
+    };
+    const focusLater = (id) => {
+      clearTimeout(this._f);
+      this._f = setTimeout(() => {
+        try { const el = document.getElementById(id); if (el) el.focus(); } catch (e) { /* no DOM */ }
+      }, 30);
+    };
+    const err = s.msg === 'err';
+    const ok = s.msg === 'ok';
+    const lb = s.lb === 'score' ? 'score' : 'fast';
+    const v = {
+      selTk: String(tab === 'thong-ke'),
+      selDg: String(tab === 'danh-gia'),
+      selBx: String(tab === 'bang-xep-hang'),
+      hideTk: tab !== 'thong-ke',
+      hideDg: tab !== 'danh-gia',
+      hideBx: tab !== 'bang-xep-hang',
+      showTk: () => go('thong-ke'),
+      showDg: () => go('danh-gia'),
+      showBx: () => go('bang-xep-hang'),
+      tabKey: (e) => {
+        const k = e && e.key;
+        let i = TABS.indexOf(pick(this.state || {}));
+        if (k === 'ArrowRight') i = (i + 1) % 3;
+        else if (k === 'ArrowLeft') i = (i + 2) % 3;
+        else if (k === 'Home') i = 0;
+        else if (k === 'End') i = 2;
+        else return;
+        if (e.preventDefault) e.preventDefault();
+        go(TABS[i]);
+        focusLater('wc-tab-' + TABS[i]);
+      },
+      goReviews: () => {
+        go('danh-gia');
+        try {
+          const el = document.getElementById('wc-tabs');
+          const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (el && el.scrollIntoView) el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+        } catch (e) { /* no DOM */ }
+      },
+      paneCls: 'wc-pane' + org + (s.flip == null ? ' wc-first' : wipe),
+      lensCls: 'wc-lensbox' + org + wipe,
+
+      ovCls: 'wc-rate big wc-v' + (s.ov || 0),
+      ovRowCls: 'wc-frow wc-ovrow' + (err ? ' is-err' : ''),
+      ovInvalid: String(err),
+      ovText: s.ov ? s.ov + ' / 5' : 'Chưa chọn',
+      dkCls: 'wc-rate wc-v' + (s.dk || 0),
+      cbCls: 'wc-rate wc-v' + (s.cb || 0),
+      ctCls: 'wc-rate wc-v' + (s.ct || 0),
+      note: s.note || '',
+      noteCount: String((s.note || '').length),
+      setNote: (e) => {
+        const st = this.state || {};
+        const val = e && e.target ? String(e.target.value || '').slice(0, 600) : '';
+        this.setState({ note: val, msg: st.msg === 'ok' ? '' : st.msg });
+      },
+      spoilFlag: !!s.spoil,
+      toggleSpoil: (e) => {
+        const st = this.state || {};
+        this.setState({ spoil: e && e.target ? !!e.target.checked : !st.spoil, msg: st.msg === 'ok' ? '' : st.msg });
+      },
+      submit: () => {
+        const st = this.state || {};
+        if (!st.ov) {
+          this.setState({ msg: 'err', fFlip: !st.fFlip });
+          focusLater('wc-ov-1');
+        } else {
+          this.setState({ msg: 'ok', fFlip: !st.fFlip });
+        }
+      },
+      isErr: err,
+      isOk: ok,
+      formCls: 'wc-card wc-form s-paper' + (s.fFlip == null ? '' : (s.fFlip ? ' wc-fb' : ' wc-fa')),
+
+      spHidden: !s.showSp,
+      spShown: !!s.showSp,
+      spCls: 'wc-spoil' + (s.showSp ? ' is-open' : ' is-hidden'),
+      spAria: String(!s.showSp),
+      toggleSp: () => {
+        const open = !(this.state && this.state.showSp);
+        this.setState({ showSp: open });
+        focusLater(open ? 'wc-sp-hide' : 'wc-sp-show');
+      },
+
+      hideMore: !s.more,
+      isLoading: !!s.loading,
+      notLoading: !s.loading,
+      moreBusy: String(!!s.loading),
+      shownText: 'Đang hiển thị ' + (s.more ? 7 : 5) + ' / 86',
+      loadMore: () => {
+        const st = this.state || {};
+        if (st.more || st.loading) return;
+        this.setState({ loading: true });
+        clearTimeout(this._t);
+        this._t = setTimeout(() => this.setState({ loading: false, more: true }), 700);
+      },
+
+      lbFast: String(lb === 'fast'),
+      lbScore: String(lb === 'score'),
+      hideFast: lb !== 'fast',
+      hideScore: lb !== 'score',
+      lbKick: lb === 'fast' ? 'Phá nhanh nhất' : 'Top điểm',
+      lbCol: lb === 'fast' ? 'Thời gian' : 'Điểm',
+      lbCaption: (lb === 'fast' ? 'Các đội phá án nhanh nhất' : 'Các đội đạt điểm cao nhất') + ' trong vụ Đêm khóa sổ',
+      lbAnim: 'wc-lbwrap' + (s.lbFlip == null ? '' : (s.lbFlip ? ' wc-rb' : ' wc-ra')),
+      tileTimeCls: lb === 'fast' ? 'is-on' : '',
+      tileScoreCls: lb === 'score' ? 'is-on' : '',
+      gapText: lb === 'fast' ? 'Nhanh hơn 11:28 nữa là đội bạn lọt vào top 10.' : 'Thêm 6 điểm nữa là đội bạn lọt vào top 10.'
+    };
+    const rate = (field, n) => () => {
+      const st = this.state || {};
+      const patch = { [field]: n };
+      if (field === 'ov') patch.msg = '';
+      else if (st.msg === 'ok') patch.msg = '';
+      this.setState(patch);
+    };
+    [['Ov', 'ov'], ['Dk', 'dk'], ['Cb', 'cb'], ['Ct', 'ct']].forEach((pair) => {
+      for (let n = 1; n <= 5; n += 1) v['set' + pair[0] + n] = rate(pair[1], n);
+    });
+    const setLb = (m) => () => {
+      const st = this.state || {};
+      if ((st.lb === 'score' ? 'score' : 'fast') === m) return;
+      this.setState({ lb: m, lbFlip: !st.lbFlip });
+    };
+    v.setFast = setLb('fast');
+    v.setScore = setLb('score');
+    return v;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-30",
+  "draftId": "6aba793fa941714af5247263",
+  "title": "Hạ Màn Tại Kho Hải Âu",
+  "status": "FULL_LOGIC_AWAITING_APPROVAL",
+  "queueState": "NONE",
+  "candidateStatus": "CANDIDATE_INVALID",
+  "candidateValidationErrors": [
+    "ProofLinkMismatch proofGraph.conclusions[2].supportingTraceIds [ref: trace_mabel_clock_punched_ticket_roll_proves_continuous_booth_presence]: Proof conclusion lists a trace that does not claim support for this conclusion."
+  ],
+  "candidateReviewStatus": "NOT_RUN",
+  "candidateAccepted": false,
+  "originalJsonUnchanged": true,
+  "originalTruthUnchanged": true,
+  "trialBudgetUsd": 5,
+  "previousSpentUsd": 1.039414,
+  "thisRunCostUsd": 0.617225,
+  "totalKnownCostUsd": 1.656639,
+  "remainingBudgetUsd": 3.343361,
+  "reservedUsd": 0,
+  "unknownCalls": 0,
+  "totalCalls": 17,
+  "thisRunTextCalls": 5,
+  "nonTextCalls": 0,
+  "model": "gpt-5.6-sol",
+  "costBasis": "Application usage accounting, not a provider invoice",
+  "originalDatabaseHealth": "Healthy",
+  "paidWorkStopped": true
+}

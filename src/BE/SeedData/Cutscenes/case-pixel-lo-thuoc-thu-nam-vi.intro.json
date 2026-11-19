@@ -1,0 +1,258 @@
+{
+  "format": "motion-comic-v1",
+  "caseId": "case-pixel-lo-thuoc-thu-nam-vi",
+  "language": "vi",
+  "title": {
+    "eyebrow": "Hồ sơ 02",
+    "title": "Lọ thuốc thứ Năm",
+    "subtitle": "Một buổi sáng để lần theo hộp thuốc qua năm căn nhà."
+  },
+  "mood": "rain-night",
+  "pages": [
+    {
+      "layout": "wide-top-two-bottom",
+      "panels": [
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-px-pho",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "fog",
+          "enter": "top",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Phố Hàng Đường. 06 giờ 40 phút sáng thứ Sáu.",
+              "style": ""
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Quảng trường đồng hồ ngái ngủ, mặt kính còn đọng sương.",
+              "style": ""
+            }
+          ],
+          "audio": [
+            "ticking"
+          ]
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-px-nha-so-7",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "streetlight",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "speech",
+              "speakerId": "char-px-ly-hanh",
+              "text": "Ông Vinh ngồi yên trên ghế bành. Tôi gọi mãi mà ông không thưa.",
+              "style": ""
+            },
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "CẠCH.",
+              "style": "soft"
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "item",
+            "id": "item-px-lo-thu-nam",
+            "focus": [
+              0.1,
+              0.1,
+              0.8,
+              0.8
+            ]
+          },
+          "weather": "none",
+          "enter": "right",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Một lọ thuốc nhỏ nằm cạnh ghế bành.",
+              "style": ""
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Nhãn dán chỉ ghi hai chữ: Thứ Năm.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        }
+      ]
+    },
+    {
+      "layout": "tall-left-two-right",
+      "panels": [
+        {
+          "art": {
+            "kind": "item",
+            "id": "item-px-hop-nu-trang",
+            "focus": [
+              0.1,
+              0.1,
+              0.8,
+              0.8
+            ]
+          },
+          "weather": "night",
+          "enter": "bottom",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Hộp nữ trang mở toang, nắp để hở.",
+              "style": ""
+            },
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "CẠCH.",
+              "style": "soft"
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "item",
+            "id": "item-px-kinh-lup",
+            "focus": [
+              0.1,
+              0.1,
+              0.8,
+              0.8
+            ]
+          },
+          "weather": "none",
+          "enter": "right",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Chiếc kính lúp nằm giữa xấp giấy.",
+              "style": ""
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Tờ di chúc có dấu bị sửa.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "character",
+            "id": "char-px-lam-the-bao",
+            "focus": [
+              0.1,
+              0.05,
+              0.8,
+              0.85
+            ]
+          },
+          "weather": "rain",
+          "enter": "bottom",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Sáu gương mặt quanh quảng trường, và không ai chịu nói hết.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        }
+      ]
+    },
+    {
+      "layout": "splash-inset",
+      "panels": [
+        {
+          "art": {
+            "kind": "cover",
+            "id": "cover",
+            "focus": [
+              0,
+              0,
+              1,
+              1
+            ]
+          },
+          "weather": "sunrise",
+          "enter": "none",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Hai thám tử có một buổi sáng.",
+              "style": ""
+            },
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "ẦM!!",
+              "style": "thunder"
+            }
+          ],
+          "audio": [
+            "thunder"
+          ]
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "scene-px-hieu-anh",
+            "focus": [
+              0.05,
+              0.08,
+              0.9,
+              0.84
+            ]
+          },
+          "weather": "fog",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Hộp thuốc tuần lần lượt đi qua năm căn nhà.",
+              "style": ""
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Bắt đầu thôi.",
+              "style": ""
+            }
+          ],
+          "audio": []
+        }
+      ]
+    }
+  ]
+}

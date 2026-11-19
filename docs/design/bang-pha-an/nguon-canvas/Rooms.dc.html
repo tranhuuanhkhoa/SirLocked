@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Phòng điều tra</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #07111f;outline-offset:3px}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover:not(:disabled){background:#07111f;color:#fbf6ed}
+.s-btn-ink:disabled{cursor:not-allowed;color:#6b6257;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.35)}
+.s-btn-sm{min-height:36px;padding:0 14px;font-size:11px}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+.rm-cols{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.rm-seg{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 14px;box-sizing:border-box;border:0;border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px rgba(91,82,72,.35);color:#3b3328;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;cursor:pointer;transition:background-color .12s,color .12s}
+.rm-seg:hover{box-shadow:inset 0 0 0 1.5px #07111f;color:#07111f}
+.rm-seg[aria-pressed="true"]{background:#07111f;color:#fbf6ed;box-shadow:inset 0 0 0 1px #07111f}
+.rm-seg:focus-visible{outline:2px solid #9e3f2a;outline-offset:2px}
+.rm-mode{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:92px;padding:14px;box-sizing:border-box;border:0;border-radius:2px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(91,82,72,.35);color:#3b3328;text-align:left;font-family:'Crimson Text',Georgia,serif;font-size:15px;line-height:1.25;cursor:pointer;transition:background-color .15s,box-shadow .15s,color .15s}
+.rm-mode:hover{box-shadow:inset 0 0 0 1.5px #07111f}
+.rm-mode[aria-pressed="true"]{background:#07111f;color:#e9dfcc;box-shadow:inset 0 0 0 1px #07111f}
+.rm-mode[aria-pressed="true"] strong{color:#efd486 !important}
+.rm-mode[aria-pressed="true"] svg{stroke:#efd486}
+.rm-mode:focus-visible{outline:2px solid #9e3f2a;outline-offset:2px}
+.rm-input{width:100%;box-sizing:border-box;min-height:46px;padding:8px 36px 8px 4px;border:0;border-bottom:1.5px solid rgba(47,99,99,.55);border-radius:0;background:transparent;color:#07111f;font-family:'Crimson Text',Georgia,serif;font-size:17px;outline:none;-webkit-appearance:none;appearance:none}
+.rm-input:focus{border-bottom-color:#07111f;background-color:rgba(239,212,134,.3)}
+.rm-code{width:100%;box-sizing:border-box;min-height:56px;padding:8px 12px;border:0;border-radius:2px;background:#fbf6ed;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.5);color:#07111f;font-family:'Source Code Pro',ui-monospace,monospace;font-size:26px;font-weight:700;letter-spacing:.42em;text-transform:uppercase;text-align:center;outline:none}
+.rm-code::placeholder{color:#a0968a;opacity:1}
+.rm-code:focus{box-shadow:inset 0 0 0 2px #07111f;background-color:#fff9e8}
+.rm-search{width:100%;box-sizing:border-box;min-height:42px;padding:8px 12px 8px 38px;border:0;border-radius:2px;background:rgba(255,255,255,.6);box-shadow:inset 0 0 0 1px rgba(91,82,72,.35);color:#07111f;font-family:'Crimson Text',Georgia,serif;font-size:16px;outline:none}
+.rm-search::placeholder{color:#6b6257;opacity:1}
+.rm-search:focus{box-shadow:inset 0 0 0 1.5px #07111f}
+.rm-table{width:100%;border-collapse:collapse}
+.rm-table th{padding:10px 10px;border-bottom:1.5px solid rgba(182,64,48,.6);text-align:left;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248;white-space:nowrap}
+.rm-table td{padding:9px 10px;border-bottom:1px solid rgba(79,154,154,.4);vertical-align:middle;font-size:16px;color:#2a2318}
+.rm-table tbody tr{transition:background-color .15s}
+.rm-table tbody tr:hover{background:rgba(239,212,134,.28)}
+.rm-codecell{font-family:'Source Code Pro',ui-monospace,monospace;font-size:14px;font-weight:700;letter-spacing:.12em}
+.rm-tag{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;white-space:nowrap}
+.rm-wait{background:rgba(79,154,154,.16);color:#2f6363;box-shadow:inset 0 0 0 1px rgba(47,99,99,.4)}
+.rm-play{background:rgba(182,107,77,.14);color:#7a3f27;box-shadow:inset 0 0 0 1px rgba(122,63,39,.4)}
+@keyframes rmStampA{0%{opacity:0;transform:rotate(-16deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes rmStampB{0%{opacity:0;transform:rotate(-16deg) scale(2.2)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes rmWipeA{from{clip-path:circle(0% at 0% 0%)}to{clip-path:circle(150% at 0% 0%)}}
+@keyframes rmWipeB{from{clip-path:circle(0% at 0% 0%)}to{clip-path:circle(150% at 0% 0%)}}
+@keyframes rmSpin{to{transform:rotate(360deg)}}
+.anim-a .rm-stamp{animation:rmStampA .45s cubic-bezier(.2,.8,.2,1) both}
+.anim-b .rm-stamp{animation:rmStampB .45s cubic-bezier(.2,.8,.2,1) both}
+.anim-a .rm-swap{animation:rmWipeA .5s cubic-bezier(.4,0,.2,1) both}
+.anim-b .rm-swap{animation:rmWipeB .5s cubic-bezier(.4,0,.2,1) both}
+.rm-spin{animation:rmSpin 1.4s linear infinite}
+@media (max-width:760px){
+  .s-nav{order:3;width:100%}
+  .rm-hide-sm{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp,.rm-stamp,.rm-swap,.rm-spin{animation:none !important}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".42" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html">TRANG CHỦ</a>
+      <a href="FindGame.dc.html">TÌM TRẬN</a>
+      <a href="Rooms.dc.html" aria-current="page">PHÒNG</a>
+      <a href="Cases.dc.html">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 26px 16px 36px">
+
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+          <div style="position: relative; padding: 12px 26px 12px; background: #0d1014; box-shadow: 0 14px 30px rgba(0,0,0,.55); transform: rotate(-1deg)">
+            <span aria-hidden="true" style="position: absolute; top: 8px; left: 10px; width: 12px; height: 12px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%)"></span>
+            <p style="margin: 0 0 0 10px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .26em; color: #efd486">HỒ SƠ 04 · PHÒNG</p>
+            <h1 style="margin: 2px 0 0 10px; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.1; color: #fbf6ed">Phòng điều tra</h1>
+          </div>
+          <p style="margin: 0; max-width: 560px; font-size: 18px; font-style: italic; line-height: 1.4; color: #d9cfbd">Vào một phòng công khai đang chờ người, hoặc tự mở phòng — công khai cho mọi người, hay riêng tư chỉ dành cho bạn bè có mã mời.</p>
+        </div>
+
+        <sc-if value="{{ isJoining }}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: #0d1014; box-shadow: inset 0 0 0 1px rgba(239,212,134,.35), 0 12px 26px rgba(0,0,0,.5); color: #efd486; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: .18em">
+            <svg class="rm-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#efd486" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+            <span>{{ joinText }}</span>
+            <a class="s-btn s-btn-sm s-btn-red" href="Lobby.dc.html" style="margin-left: auto">MỞ PHÒNG CHỜ</a>
+            <button type="button" class="s-btn s-btn-sm" onClick="{{ stopJoin }}" style="background: transparent; color: #efd486; box-shadow: inset 0 0 0 1px rgba(239,212,134,.5)">HỦY</button>
+          </div>
+        </sc-if>
+
+        <div class="rm-cols">
+          <section aria-labelledby="rm-public" style="position: relative; flex: 1 1 620px; min-width: 0; box-sizing: border-box; padding: 22px 24px 18px 46px; background: #f4efe3; color: #07111f; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 22px 44px rgba(0,0,0,.55)">
+            <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 26px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+            <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 30px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+            <span aria-hidden="true" style="position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%); box-shadow: 0 4px 5px rgba(0,0,0,.55)"></span>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+              <div>
+                <h2 id="rm-public" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 700; line-height: 1.1">Phòng công khai</h2>
+                <p style="margin: 2px 0 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">{{ countText }}</p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+                <div style="display: inline-flex; gap: 4px">
+                  <button type="button" class="rm-seg" aria-pressed="{{ langAll }}" onClick="{{ setAll }}">TẤT CẢ</button>
+                  <button type="button" class="rm-seg" aria-pressed="{{ langVi }}" onClick="{{ setVi }}">VI</button>
+                  <button type="button" class="rm-seg" aria-pressed="{{ langEn }}" onClick="{{ setEn }}">EN</button>
+                </div>
+                <button type="button" class="rm-seg" aria-pressed="{{ openOnly }}" onClick="{{ toggleOpen }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>
+                  CÒN CHỖ
+                </button>
+              </div>
+            </div>
+            <div style="position: relative; margin-top: 14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5248" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position: absolute; left: 12px; top: 12px"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+              <label for="rm-find" class="s-sr">Tìm phòng</label>
+              <input id="rm-find" class="rm-search" type="search" placeholder="Tìm theo mã phòng hoặc tên vụ án…" autocomplete="off">
+            </div>
+            <div style="margin-top: 10px; overflow-x: auto">
+              <table class="rm-table">
+                <thead>
+                  <tr><th scope="col">MÃ PHÒNG</th><th scope="col">VỤ ÁN</th><th scope="col" class="rm-hide-sm">CHỦ PHÒNG</th><th scope="col">NGƯỜI</th><th scope="col" class="rm-hide-sm">NGÔN NGỮ</th><th scope="col">TRẠNG THÁI</th><th scope="col"><span class="s-sr">Hành động</span></th></tr>
+                </thead>
+                <tbody>
+                  <tr hidden="{{ hide1 }}"><td class="rm-codecell">M3T7QZ</td><td><strong style="font-weight: 600">Đêm khóa sổ</strong><span style="display: block; font-size: 14px; color: #5b5248">35 phút</span></td><td class="rm-hide-sm">Thanh_Tra_Lê</td><td>1/2</td><td class="rm-hide-sm">VI</td><td><span class="rm-tag rm-wait">ĐANG CHỜ</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" onClick="{{ join1 }}">VÀO</button></td></tr>
+                  <tr hidden="{{ hide2 }}"><td class="rm-codecell">8FJ3XA</td><td><strong style="font-weight: 600">Hồ sơ chuyến tàu số 7</strong><span style="display: block; font-size: 14px; color: #5b5248">80 phút</span></td><td class="rm-hide-sm">minh.tran</td><td>1/2</td><td class="rm-hide-sm">VI</td><td><span class="rm-tag rm-wait">ĐANG CHỜ</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" onClick="{{ join2 }}">VÀO</button></td></tr>
+                  <tr hidden="{{ hide3 }}"><td class="rm-codecell">P0W9ZT</td><td><strong style="font-weight: 600">The Gaslight Curtain Call</strong><span style="display: block; font-size: 14px; color: #5b5248">35 min</span></td><td class="rm-hide-sm">holmes_fan</td><td>1/2</td><td class="rm-hide-sm">EN</td><td><span class="rm-tag rm-wait">ĐANG CHỜ</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" onClick="{{ join3 }}">VÀO</button></td></tr>
+                  <tr hidden="{{ hide4 }}"><td class="rm-codecell">QX4R1D</td><td><strong style="font-weight: 600">Cuốn sổ trong đêm</strong><span style="display: block; font-size: 14px; color: #5b5248">20 phút</span></td><td class="rm-hide-sm">cu_dem</td><td>1/2</td><td class="rm-hide-sm">VI</td><td><span class="rm-tag rm-wait">ĐANG CHỜ</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" onClick="{{ join4 }}">VÀO</button></td></tr>
+                  <tr hidden="{{ hide5 }}"><td class="rm-codecell">3MNB5C</td><td><strong style="font-weight: 600">Con Dấu Bị Phá</strong><span style="display: block; font-size: 14px; color: #5b5248">10 phút</span></td><td class="rm-hide-sm">baker221</td><td>2/2</td><td class="rm-hide-sm">VI</td><td><span class="rm-tag rm-play">ĐANG CHƠI</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" disabled>ĐẦY</button></td></tr>
+                  <tr hidden="{{ hide6 }}"><td class="rm-codecell">T2S8VE</td><td><strong style="font-weight: 600">The Clockwork Conservatory</strong><span style="display: block; font-size: 14px; color: #5b5248">15 min</span></td><td class="rm-hide-sm">lamplight</td><td>1/2</td><td class="rm-hide-sm">EN</td><td><span class="rm-tag rm-wait">ĐANG CHỜ</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" onClick="{{ join6 }}">VÀO</button></td></tr>
+                  <tr hidden="{{ hide7 }}"><td class="rm-codecell">H8KA6N</td><td><strong style="font-weight: 600">Hạ Màn Tại Kho Hải Âu</strong><span style="display: block; font-size: 14px; color: #5b5248">35 phút</span></td><td class="rm-hide-sm">suong_mu</td><td>2/2</td><td class="rm-hide-sm">VI</td><td><span class="rm-tag rm-play">ĐANG CHƠI</span></td><td style="text-align: right"><button type="button" class="s-btn s-btn-ink s-btn-sm" disabled>ĐẦY</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 15px; font-style: italic; color: #5b5248">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>
+              Phòng riêng tư không hiện trong danh sách — chỉ vào được bằng mã mời.
+            </p>
+          </section>
+
+          <div style="flex: 0 1 400px; display: flex; flex-direction: column; gap: 24px; min-width: 0">
+            <section aria-labelledby="rm-create" class="{{ animClass }}" style="position: relative; box-sizing: border-box; padding: 22px 24px 24px; background: #e9dcc0; color: #07111f; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 22px 44px rgba(0,0,0,.55); transform: rotate(.6deg)">
+              <span aria-hidden="true" style="position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 45%, #6e1a12 100%); box-shadow: 0 4px 5px rgba(0,0,0,.55)"></span>
+              <div class="rm-stamp" aria-hidden="true" style="position: absolute; top: 18px; right: 18px; padding: 5px 10px; border: 4px double {{ stampColor }}; color: {{ stampColor }}; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: .2em; transform: rotate(-8deg); mix-blend-mode: multiply">{{ stampText }}</div>
+              <p style="margin: 0; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .2em; color: #5b5248">MỞ HỒ SƠ MỚI</p>
+              <h2 id="rm-create" style="margin: 4px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 700; line-height: 1.1">Tạo phòng</h2>
+
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px">
+                <button type="button" class="rm-mode" aria-pressed="{{ isPublic }}" onClick="{{ setPublic }}">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <strong style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; letter-spacing: .16em; color: #2f6363">CÔNG KHAI</strong>
+                  Hiện trong danh sách, ai cũng vào được
+                </button>
+                <button type="button" class="rm-mode" aria-pressed="{{ isPrivate }}" onClick="{{ setPrivate }}">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path><path d="M12 14.5v2.5"></path></svg>
+                  <strong style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; letter-spacing: .16em; color: #7a3f27">RIÊNG TƯ</strong>
+                  Ẩn khỏi danh sách, chỉ vào bằng mã mời
+                </button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 16px">
+                <label for="rm-case" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">VỤ ÁN</label>
+                <div style="position: relative">
+                  <select id="rm-case" class="rm-input">
+                    <option>Đêm khóa sổ · 35 phút</option>
+                    <option>Hồ sơ chuyến tàu số 7 · 80 phút</option>
+                    <option>Cuốn sổ trong đêm · 20 phút</option>
+                    <option>Con Dấu Bị Phá · 10 phút</option>
+                    <option>Hạ Màn Tại Kho Hải Âu · 35 phút</option>
+                  </select>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#07111f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: 8px; top: 15px; pointer-events: none"><path d="M6 9l6 6 6-6"></path></svg>
+                </div>
+              </div>
+
+              <div class="rm-swap" style="margin-top: 16px">
+                <sc-if value="{{ isPrivateMode }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: #0d1014; color: #efd486">
+                    <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #b3a794">MÃ MỜI — GỬI CHO ĐỒNG ĐỘI</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                      <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 28px; font-weight: 700; letter-spacing: .32em; color: #fbf6ed">K7Q2LM</span>
+                      <button type="button" class="s-btn s-btn-sm" onClick="{{ copy }}" style="background: transparent; color: #efd486; box-shadow: inset 0 0 0 1px rgba(239,212,134,.55)">{{ copyText }}</button>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ isPublicMode }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; gap: 12px; min-height: 78px; box-sizing: border-box; padding: 12px 14px; background: rgba(79,154,154,.16); box-shadow: inset 0 0 0 1px rgba(47,99,99,.45); color: #1f4545; font-size: 16px; line-height: 1.35">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M3 12h4l3 7 4-14 3 7h4"></path></svg>
+                    Phòng sẽ xuất hiện ngay trong danh sách công khai bên trái.
+                  </div>
+                </sc-if>
+              </div>
+
+              <a class="s-btn s-btn-red" href="Lobby.dc.html" style="width: 100%; min-height: 52px; margin-top: 18px">TẠO PHÒNG</a>
+            </section>
+
+            <section aria-labelledby="rm-join" style="position: relative; box-sizing: border-box; padding: 20px 24px 22px; background: #f4efe3; color: #07111f; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 22px 44px rgba(0,0,0,.55); transform: rotate(-.8deg)">
+              <span aria-hidden="true" style="position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%); box-shadow: 0 4px 5px rgba(0,0,0,.55)"></span>
+              <h2 id="rm-join" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; line-height: 1.1">Vào bằng mã</h2>
+              <p style="margin: 4px 0 0; font-size: 16px; color: #3b3328">Nhập mã 6 ký tự đồng đội gửi cho bạn.</p>
+              <div style="display: flex; gap: 10px; margin-top: 12px">
+                <label for="rm-code" class="s-sr">Mã phòng</label>
+                <input id="rm-code" class="rm-code" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" spellcheck="false">
+                <button type="button" class="s-btn s-btn-red" onClick="{{ joinCode }}" style="flex: none; min-height: 56px">VÀO</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["private","public"],"default":"private","section":"Trạng thái"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: null, lang: 'all', openOnly: false, joining: null, copied: false, flip: false };
+    this._t = null;
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.mode !== this.props.mode) this.setState({ mode: this.props.mode, flip: !(this.state && this.state.flip) });
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._t);
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const mode = s.mode || this.props.mode || 'private';
+    const rows = [
+      { lang: 'vi', open: true }, { lang: 'vi', open: true }, { lang: 'en', open: true },
+      { lang: 'vi', open: true }, { lang: 'vi', open: false }, { lang: 'en', open: true },
+      { lang: 'vi', open: false }
+    ];
+    const visible = rows.map((r) => (s.lang === 'all' || !s.lang || r.lang === s.lang) && (!s.openOnly || r.open));
+    const count = visible.filter(Boolean).length;
+    const join = (code) => () => this.setState({ joining: code });
+    const setMode = (m) => () => this.setState({ mode: m, flip: !s.flip });
+    return {
+      hide1: !visible[0], hide2: !visible[1], hide3: !visible[2], hide4: !visible[3],
+      hide5: !visible[4], hide6: !visible[5], hide7: !visible[6],
+      countText: count + ' PHÒNG ĐANG MỞ',
+      langAll: String(!s.lang || s.lang === 'all'),
+      langVi: String(s.lang === 'vi'),
+      langEn: String(s.lang === 'en'),
+      openOnly: String(!!s.openOnly),
+      setAll: () => this.setState({ lang: 'all' }),
+      setVi: () => this.setState({ lang: 'vi' }),
+      setEn: () => this.setState({ lang: 'en' }),
+      toggleOpen: () => this.setState({ openOnly: !s.openOnly }),
+      isPublic: String(mode === 'public'),
+      isPrivate: String(mode === 'private'),
+      isPublicMode: mode === 'public',
+      isPrivateMode: mode === 'private',
+      setPublic: setMode('public'),
+      setPrivate: setMode('private'),
+      animClass: s.flip ? 'anim-b' : 'anim-a',
+      stampText: mode === 'private' ? 'RIÊNG TƯ' : 'CÔNG KHAI',
+      stampColor: mode === 'private' ? '#b05a3c' : '#2f6363',
+      copyText: s.copied ? 'ĐÃ CHÉP' : 'SAO CHÉP',
+      copy: () => {
+        clearTimeout(this._t);
+        this.setState({ copied: true });
+        this._t = setTimeout(() => this.setState({ copied: false }), 1600);
+      },
+      isJoining: !!s.joining,
+      joinText: 'ĐANG VÀO PHÒNG ' + (s.joining || '') + '…',
+      stopJoin: () => this.setState({ joining: null }),
+      join1: join('M3T7QZ'), join2: join('8FJ3XA'), join3: join('P0W9ZT'),
+      join4: join('QX4R1D'), join6: join('T2S8VE'),
+      joinCode: join('MÃ ĐÃ NHẬP')
+    };
+  }
+}
+</script>
+</body>
+</html>
