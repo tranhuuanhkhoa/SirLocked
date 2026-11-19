@@ -1,6 +1,6 @@
 /*
  * The drifting particles behind the chest in Mở hòm, from the approved design kho-ruong-sirlocked.html:
- * dust for the sealed case, glints for the bank safe, petals for the lacquer box.
+ * dust for the sealed case, glints for the bank safe, petals for the lacquer box, embers for the Whitechapel case.
  * Runs only while the canvas is on screen and the tab is visible; dispose() ends everything it started.
  */
 export function createVaultParticles(canvas, { reduce }) {
@@ -14,10 +14,11 @@ export function createVaultParticles(canvas, { reduce }) {
     };
     if (mode === 'petals') { p.s = 5 + Math.random() * 6; p.v = 0.5 + Math.random() * 0.8; p.r = Math.random() * 6; }
     if (mode === 'coins') { p.v = 0; p.life = 2 + Math.random() * 3; p.t = Math.random() * p.life; }
+    if (mode === 'embers') { p.v = 0.6 + Math.random() * 0.9; p.s = 0.8 + Math.random() * 1.6; p.hot = Math.random() < 0.35; }
     return p;
   }
   function seed() {
-    const n = mode === 'petals' ? 26 : mode === 'coins' ? 40 : 60;
+    const n = mode === 'petals' ? 26 : mode === 'coins' ? 40 : mode === 'embers' ? 46 : 60;
     ps = [];
     for (let i = 0; i < n; i++) ps.push(make(true));
   }
@@ -40,6 +41,13 @@ export function createVaultParticles(canvas, { reduce }) {
         if (p.y < -10) ps[i] = make(false);
         ctx.fillStyle = `rgba(255, 214, 150,${(0.18 + 0.25 * Math.abs(Math.sin(p.t + p.a))).toFixed(2)})`;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.s * 0.7, 0, 6.283); ctx.fill();
+      } else if (mode === 'embers') {
+        // Sparks from the gaslight: they rise, sway and fade, crimson with a few amber ones.
+        p.y -= p.v * 22 * dt; p.x += Math.sin(p.t * 1.6 + p.a) * 0.45;
+        if (p.y < -10) ps[i] = make(false);
+        const glow = 0.25 + 0.55 * Math.abs(Math.sin(p.t * 2.2 + p.a));
+        ctx.fillStyle = p.hot ? `rgba(255, 196, 110,${glow.toFixed(2)})` : `rgba(226, 70, 88,${(glow * 0.85).toFixed(2)})`;
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), Math.max(1, Math.round(p.s * 1.4)), Math.max(1, Math.round(p.s * 1.4)));
       } else if (mode === 'coins') {
         if (p.t > p.life) { ps[i] = make(true); continue; }
         const k = Math.sin(Math.PI * p.t / p.life), sz = p.s * 3 * k;

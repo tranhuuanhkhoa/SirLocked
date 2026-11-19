@@ -32,6 +32,7 @@ import { lanternLight, placeLanternLight, spawnFootprints, spawnHerbalSmoke } fr
 import { marketApi } from '../api/marketApi.js';
 import { blipDuration, type CharacterVoice } from '../game/atmosphere/blipCore.js';
 import { renderPingControls, bindPingControls, renderPartnerPing, type TeamPing } from '../game/cooperativePing.js';
+import { createTeamComms } from '../game/teamComms.js';
 import { createPuzzleHost, type PuzzleHost, type PuzzleHostModel } from '../game/puzzles/host';
 import { withHintPayment, type HintPaymentChoice } from '../game/hintPayment';
 import { confirmLeaveGame } from '../game/leaveGame';
@@ -3433,6 +3434,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
         <div id="game-cutscene-slot"></div>
         <div id="game-coop-tools" class="game-coop-tools">${renderPingControls(tr)}${renderAudioControls(audio.getSettings(), tr)}${introCutscene ? `<button type="button" class="bpa-btn bpa-btn--ghost" id="game-replay-intro">${tr('Watch the opening again', 'Xem lại mở đầu')}</button>` : ''}<div id="game-role-guide-slot"></div></div>
         <div id="partner-ping-slot"></div>
+        <div id="game-comms-slot"></div>
         <div id="oc-feed-slot"></div>
         <div id="oc-hint-slot"></div>
         <div id="game-recovery-slot"></div>
@@ -3446,6 +3448,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       const host = app.querySelector<HTMLElement>('#game-cutscene-slot');
       if (host && introCutscene && !cutscenes.active) { audio.unlock(); cutscenes.replay(host, introCutscene); }
     });
+    comms.mount(app.querySelector<HTMLElement>('#game-comms-slot'));
     disposePingControls = bindPingControls(app, async (kind) => {
       await hub.sendPing(kind);
       if (kind === 'COMPARE') recordGuideAction('compare');
@@ -3616,7 +3619,19 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     draw();
   }
 
+  // Voice and telegrams between the two detectives (game/teamComms.ts); `hub` is read only once the page is running.
+  const comms = createTeamComms({
+    roomId,
+    me,
+    tr,
+    invoke: (method, ...args) => hub.connection.invoke(method, ...args),
+    onCue: () => audio.play('ping'),
+  });
+
   const hub = createRoomConnection(roomId, {
+    TeamChatMessage: (line) => comms.onChatMessage(line),
+    VoiceState: (payload) => comms.onVoiceState(payload),
+    VoiceSignal: (payload) => comms.onVoiceSignal(payload),
     TeamPing: (payload: TeamPing) => {
       if (payload.senderUserId === me.userId) return;
       const slot = app.querySelector<HTMLElement>('#partner-ping-slot');
@@ -3723,8 +3738,10 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       poseErrorShown = false;
       toast(tr('Reconnected. Syncing the room...', 'Đã kết nối lại. Đang đồng bộ phòng...'), 'info');
       stateRefetcher.retry();
+      comms.onReconnected();
     },
     onStatusChange: (status: string) => {
+      comms.setConnected(status === 'connected');
       if (status !== 'connected') phaserScene?.cancelNavigation();
       connectionStatus = status;
       renderRecoveryStatus();
@@ -3890,6 +3907,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     if (hud) {
       hud.innerHTML = renderGameHud(model, state.caseTitle, me.userId, tr, hudExtras());
     }
+    comms.setPlayers(state.players, { isTutorial: Boolean(state.isTutorial), inProgress: state.roomStatus === 'IN_PROGRESS' });
     startClock();
     renderReconnectWaitStatus();
     renderRecoveryStatus();
@@ -7327,6 +7345,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
     modalFocus.dispose();
     disposeAudioControls?.();
     disposePingControls?.();
+    comms.dispose();
     if (partnerPingTimer) clearTimeout(partnerPingTimer);
     window.removeEventListener('pointerdown', unlockAudio);
     window.removeEventListener('keydown', unlockAudio);

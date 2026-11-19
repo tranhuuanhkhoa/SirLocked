@@ -224,6 +224,7 @@ public partial class MongoDbContext
 
         await EnsureLobbyIndexesAsync(ct);
         await EnsurePlaytestEventIndexesAsync(ct);
+        await EnsureTeamChatIndexesAsync(ct);
     }
 
     /// <summary>

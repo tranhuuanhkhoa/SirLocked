@@ -4,6 +4,7 @@ import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { chestIconUrl, chestPictureUrl } from '../../chest/chestSprites.js';
 import { draftOf } from './chestDraft.js';
+import { showcaseFigures, showcaseOf, showcaseRibbon, showcaseSky } from './chestShowcase.js';
 import { confirmDialog, errorMessages, number, percent, xu } from './shared.js';
 import { navigate } from '../../../services/navigation.js';
 
@@ -17,9 +18,58 @@ export const chestArt = (chest, href = '') => {
     : `<span class="ac-chest-art"${glow} aria-hidden="true">${img}</span>`;
 };
 
+/** The numbers every card shows, the same markup in the plain card and the showcase. */
+function factsHtml(chest, ratio) {
+  return `
+      <dl class="ac-facts">
+        <div><dt>Giá hòm</dt><dd>${xu(chest.chestPrice)}</dd></div>
+        <div><dt>Giá chìa</dt><dd>${xu(chest.keyPrice)}</dd></div>
+        <div><dt>Mở 7 ngày</dt><dd data-ac-opens>${number(chest.opensLast7Days)}</dd></div>
+      </dl>
+      <div class="ac-ev">
+        <span class="ac-ev-line"><span>Giá trị kỳ vọng / chi phí</span><strong data-ac-ev>${number(chest.expectedValue)} / ${number(chest.cost)} xu · ${percent(ratio, 0)}</strong></span>
+        <span class="adm-meter adm-meter--gold ac-ev-meter" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, ratio))}%"></span></span>
+      </div>
+      <p class="ac-challenge" data-ac-challenge>Thử thách tuần: <strong>${chest.challengePercent > 0 ? percent(chest.challengePercent) : 'Không rớt'}</strong></p>`;
+}
+
+function actionsHtml(chest, href) {
+  return `
+      <div class="ac-chest-actions">
+        <a class="btn btn-primary btn-sm" href="${href}">Sửa</a>
+        <button type="button" class="btn btn-ghost btn-sm ${chest.active ? 'adm-btn-danger' : 'adm-btn-ok'}" data-ac-toggle>${chest.active ? 'Tắt' : 'Bật'}</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-ac-clone>Nhân bản</button>
+      </div>`;
+}
+
+/** A collection's chest: a wide card with its night scene, the outfits beside the chest and a legend ribbon. */
+function showcaseCardHtml(chest, showcase, ratio, href) {
+  return `
+    <article class="adm-card ac-chest-card ac-chest-card--showcase${chest.active ? '' : ' is-off'}" data-chest-id="${escapeHtml(chest.id)}" data-showcase="${escapeHtml(chest.look.template)}">
+      <div class="ac-show-stage">
+        ${showcaseSky()}
+        ${showcaseFigures(showcase)}
+        ${chestArt(chest, href)}
+      </div>
+      <div class="ac-show-body">
+        ${showcaseRibbon(showcase)}
+        <div class="ac-chest-main">
+          <h2 class="ac-chest-name"><a href="${href}">${escapeHtml(chest.name)}</a></h2>
+          <span class="ac-show-era">${escapeHtml(chest.subtitle || showcase.era)}</span>
+          <span class="ac-chest-code"><span class="adm-mono">${escapeHtml(chest.id)}</span> · ${escapeHtml(chest.keyName)}</span>
+          <span>${chest.active ? pill('Đang bán', 'ok', { dot: true, small: true }) : pill('Đang tắt', '', { dot: true, small: true })}</span>
+        </div>
+        ${factsHtml(chest, ratio)}
+        ${actionsHtml(chest, href)}
+      </div>
+    </article>`;
+}
+
 function cardHtml(chest) {
   const ratio = chest.cost > 0 ? (chest.expectedValue * 100) / chest.cost : 0;
   const href = `/admin/chests/${encodeURIComponent(chest.id)}`;
+  const showcase = showcaseOf(chest);
+  if (showcase) return showcaseCardHtml(chest, showcase, ratio, href);
   return `
     <article class="adm-card ac-chest-card${chest.active ? '' : ' is-off'}" data-chest-id="${escapeHtml(chest.id)}">
       <div class="ac-chest-top">
@@ -30,21 +80,8 @@ function cardHtml(chest) {
           <span>${chest.active ? pill('Đang bán', 'ok', { dot: true, small: true }) : pill('Đang tắt', '', { dot: true, small: true })}</span>
         </div>
       </div>
-      <dl class="ac-facts">
-        <div><dt>Giá hòm</dt><dd>${xu(chest.chestPrice)}</dd></div>
-        <div><dt>Giá chìa</dt><dd>${xu(chest.keyPrice)}</dd></div>
-        <div><dt>Mở 7 ngày</dt><dd data-ac-opens>${number(chest.opensLast7Days)}</dd></div>
-      </dl>
-      <div class="ac-ev">
-        <span class="ac-ev-line"><span>Giá trị kỳ vọng / chi phí</span><strong data-ac-ev>${number(chest.expectedValue)} / ${number(chest.cost)} xu · ${percent(ratio, 0)}</strong></span>
-        <span class="adm-meter adm-meter--gold ac-ev-meter" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, ratio))}%"></span></span>
-      </div>
-      <p class="ac-challenge" data-ac-challenge>Thử thách tuần: <strong>${chest.challengePercent > 0 ? percent(chest.challengePercent) : 'Không rớt'}</strong></p>
-      <div class="ac-chest-actions">
-        <a class="btn btn-primary btn-sm" href="${href}">Sửa</a>
-        <button type="button" class="btn btn-ghost btn-sm ${chest.active ? 'adm-btn-danger' : 'adm-btn-ok'}" data-ac-toggle>${chest.active ? 'Tắt' : 'Bật'}</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-ac-clone>Nhân bản</button>
-      </div>
+      ${factsHtml(chest, ratio)}
+      ${actionsHtml(chest, href)}
     </article>`;
 }
 

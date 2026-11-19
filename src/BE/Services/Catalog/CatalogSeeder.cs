@@ -6,7 +6,7 @@ using SirLocked.Api.Models.Catalog;
 
 namespace SirLocked.Api.Services.Catalog;
 
-public sealed record CatalogSeedReport(int FromVersion, int ToVersion, int Inserted);
+public sealed record CatalogSeedReport(int FromVersion, int ToVersion, int Inserted, int Upgraded = 0);
 
 /// <summary>
 /// Copies the seed into MongoDB when the code holds a newer seed version than the database. An entry is only ever
@@ -37,6 +37,7 @@ public sealed class CatalogSeeder
             .FirstOrDefaultAsync(ct);
         var from = state?.SeedVersion ?? 0;
         var inserted = 0;
+        var upgraded = 0;
         for (var version = from + 1; version <= CatalogSeedData.CurrentVersion; version++)
         {
             var now = _time.GetUtcNow().UtcDateTime;
@@ -47,6 +48,8 @@ public sealed class CatalogSeeder
             inserted += await InsertMissingAsync(_store.LevelRewards, batch.LevelRewards, ct);
             inserted += await InsertMissingAsync(_store.Achievements, batch.Achievements, ct);
             if (batch.Progress is not null) inserted += await InsertMissingAsync(_store.ProgressSettings, new[] { batch.Progress }, ct);
+            // A batch may also move what an older batch wrote, but only where nobody has changed it since.
+            if (batch.Upgrade is not null) upgraded += await batch.Upgrade(_store, ct);
 
             // Written last, so a crash just repeats a batch and finds its entries already there.
             await _store.SeedState.UpdateOneAsync(
@@ -56,9 +59,9 @@ public sealed class CatalogSeeder
                 ct);
         }
 
-        var report = new CatalogSeedReport(from, Math.Max(from, CatalogSeedData.CurrentVersion), inserted);
+        var report = new CatalogSeedReport(from, Math.Max(from, CatalogSeedData.CurrentVersion), inserted, upgraded);
         if (from < CatalogSeedData.CurrentVersion)
-            _logger.LogInformation("Catalog seed: version {From} to {To}, {Inserted} documents added.", report.FromVersion, report.ToVersion, inserted);
+            _logger.LogInformation("Catalog seed: version {From} to {To}, {Inserted} documents added, {Upgraded} updated.", report.FromVersion, report.ToVersion, inserted, upgraded);
         return report;
     }
 

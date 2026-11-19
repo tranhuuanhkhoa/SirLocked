@@ -39,13 +39,13 @@ public static class SkinCatalog
             5200, Visual: Picture("icon-watson.png")),
     };
 
-    /// <summary>The Whitechapel chest and its key (seed version 3). Drawn like the Sealed Case, lit crimson.</summary>
+    /// <summary>The Whitechapel chest and its key (seed version 3). Its own drawing (onyx, silver, a storm-lantern lock), lit crimson.</summary>
     public static readonly IReadOnlyList<MarketItemDef> ChestAndKey = new MarketItemDef[]
     {
         new(WhitechapelChestId, MarketCategories.Chest, MarketRarities.Common, "Hòm Đêm Whitechapel", "Whitechapel Night Case",
             "Hòm vật chứng vớt lên từ sương mù phố Whitechapel năm 1888. Bộ trang phục Đêm Whitechapel chỉ có trong hòm này. Cần chìa kính lúp bạc để mở.",
             "An evidence case pulled from the Whitechapel fog of 1888. The Whitechapel Night outfits come only from this case. Opens with a silver loupe key.",
-            180, "chest_seal"),
+            180, "chest_whitechapel"),
         new(WhitechapelKeyId, MarketCategories.Key, MarketRarities.Common, "Chìa kính lúp bạc", "Silver loupe key",
             "Chìa bạc có tay cầm kính lúp, chỉ mở được Hòm Đêm Whitechapel.",
             "A silver key with a loupe for a bow. Opens only the Whitechapel Night Case.", 260, "key_loupe"),
@@ -91,12 +91,15 @@ public static class SkinCatalog
 
     public static readonly ChestShopPrice WhitechapelPrices = new(Chest: 180, Key: 260);
 
-    public static CatalogChestLook WhitechapelLook() => new() { Template = "seal", Light = "190,52,58", Hi = "255,150,140", Core = "255,222,214" };
+    public const string WhitechapelTemplate = "whitechapel";
+    public const string WhitechapelIcon = "chest_whitechapel";
+
+    public static CatalogChestLook WhitechapelLook() => new() { Template = WhitechapelTemplate, Light = "190,52,58", Hi = "255,150,140", Core = "255,222,214" };
 
     private static readonly Lazy<ChestDef> Chest = new(() => new ChestDef(
         WhitechapelChestId, WhitechapelKeyId, "Hòm Đêm Whitechapel", "Whitechapel Night Case",
         "Phố Whitechapel · Nº 1888", "Whitechapel Road · Nº 1888", "chìa kính lúp bạc", "silver loupe key",
-        "chest_seal", "key_loupe",
+        WhitechapelIcon, "key_loupe",
         WhitechapelPool().Select(id => MarketCatalog.Find(id) ?? throw new InvalidOperationException($"Unknown item {id}.")).ToList(),
         WhitechapelRates(), WhitechapelPrices, active: true, look: WhitechapelLook()));
 

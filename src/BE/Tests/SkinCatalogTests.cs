@@ -48,7 +48,7 @@ public class SkinCatalogTests
         var one = CatalogSeedData.ForVersion(1, new ChestSettings(), now);
         var two = CatalogSeedData.ForVersion(2, new ChestSettings(), now);
 
-        Assert.Equal(3, CatalogSeedData.CurrentVersion);
+        Assert.Equal(4, CatalogSeedData.CurrentVersion);
         Assert.DoesNotContain(one.Items, item => SkinCatalog.ItemDefs.Any(def => def.Id == item.Id));
         Assert.DoesNotContain(one.Chests, chest => chest.Id == SkinCatalog.WhitechapelChestId);
         Assert.Equal(SkinCatalog.Outfits.Select(def => def.Id), two.Items.Select(item => item.Id));
@@ -72,7 +72,7 @@ public class SkinCatalogTests
         var three = CatalogSeedData.ForVersion(3, new ChestSettings(), DateTime.UtcNow);
 
         Assert.Equal(new[] { SkinCatalog.WhitechapelChestId, SkinCatalog.WhitechapelKeyId }, three.Items.Select(item => item.Id));
-        Assert.Equal((MarketCategories.Chest, "chest_seal"), (three.Items[0].Category, three.Items[0].Visual.IconKey));
+        Assert.Equal((MarketCategories.Chest, "chest_whitechapel"), (three.Items[0].Category, three.Items[0].Visual.IconKey));
         Assert.Equal((MarketCategories.Key, "key_loupe"), (three.Items[1].Category, three.Items[1].Visual.IconKey));
         Assert.All(three.Items, item => Assert.False(item.Retired));
         var chest = Assert.Single(three.Chests);
@@ -80,7 +80,8 @@ public class SkinCatalogTests
         Assert.Equal(SkinCatalog.WhitechapelKeyId, chest.KeyDefId);
         Assert.True(chest.Active);
         Assert.Equal(3, chest.SortOrder);
-        Assert.Equal("seal", chest.Look.Template);
+        Assert.Equal("whitechapel", chest.Look.Template);
+        Assert.Equal(("chest_whitechapel", "key_loupe"), (chest.IconKey, chest.KeyIconKey));
         Assert.Equal("190,52,58", chest.Look.Light);
         Assert.Equal((180L, 260L), (chest.Prices.Chest, chest.Prices.Key));
         Assert.Contains(SkinCatalog.SherlockWhitechapel, chest.Pool);
@@ -113,6 +114,38 @@ public class SkinCatalogTests
         Assert.All(snapshot.Chests.Where(other => other.Id != SkinCatalog.WhitechapelChestId),
             other => Assert.DoesNotContain(other.Items, def => SkinCatalog.IsSkin(def.Category)));
         Assert.Equal(4, snapshot.ActiveChests.Count);
+    }
+
+    [Fact]
+    public void TheWhitechapelChestHasItsOwnDrawingThatAnAdminCanPick()
+    {
+        Assert.True(AdminChestsRules.IsKnownDrawing("whitechapel"));
+        Assert.Equal(("chest_whitechapel", "key_loupe"), AdminChestsRules.IconsOf("whitechapel"));
+        Assert.Equal(("chest_seal", "key_loupe"), AdminChestsRules.IconsOf("seal"));
+        Assert.False(AdminChestsRules.IsKnownDrawing("Whitechapel"));
+
+        var chest = Assert.Single(CatalogSeedData.ForVersion(3, new ChestSettings(), DateTime.UtcNow).Chests);
+        var draft = AdminChestsRules.Clone(chest);
+        draft.Look.Template = "nope";
+        var items = CatalogSeedData.ForVersion(1, new ChestSettings(), DateTime.UtcNow).Items
+            .Concat(CatalogSeedData.ForVersion(2, new ChestSettings(), DateTime.UtcNow).Items)
+            .Concat(CatalogSeedData.ForVersion(3, new ChestSettings(), DateTime.UtcNow).Items)
+            .ToDictionary(item => item.Id, StringComparer.Ordinal);
+        Assert.Contains(AdminChestsRules.Validate(chest, draft, items), violation => violation.Message.Contains("whitechapel", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SeedVersionFourOnlyMovesTheWhitechapelChestToItsOwnDrawing()
+    {
+        var four = CatalogSeedData.ForVersion(4, new ChestSettings(), DateTime.UtcNow);
+
+        Assert.Empty(four.Items);
+        Assert.Empty(four.Chests);
+        Assert.Empty(four.LevelRewards);
+        Assert.Empty(four.Achievements);
+        Assert.Null(four.Progress);
+        Assert.NotNull(four.Upgrade);
+        Assert.Equal("chest_whitechapel", CatalogSeedData.ToSnapshot(new ChestSettings()).FindChest(SkinCatalog.WhitechapelChestId)!.IconKey);
     }
 
     [Fact]
