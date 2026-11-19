@@ -81,7 +81,8 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         CancellationToken cancellationToken = default)
     {
         if (observedDraft.QueuedOperation == operation
-            && observedDraft.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled)
+            && observedDraft.QueueState is AiQueueStates.Pending or AiQueueStates.Running
+                or AiQueueStates.RetryScheduled or AiQueueStates.AwaitingClaude)
             return new AiGenerationClaim(observedDraft, false);
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
@@ -92,12 +93,14 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             Builders<AiCaseDraft>.Filter.In(item => item.Status, expectedStatuses),
             Builders<AiCaseDraft>.Filter.Not(
                 Builders<AiCaseDraft>.Filter.In(item => item.QueueState,
-                    [AiQueueStates.Pending, AiQueueStates.Running, AiQueueStates.RetryScheduled])));
+                    [AiQueueStates.Pending, AiQueueStates.Running, AiQueueStates.RetryScheduled, AiQueueStates.AwaitingClaude])));
         var update = Builders<AiCaseDraft>.Update
             .Set(item => item.Status, generatingStatus)
             .Set(item => item.QueuedOperation, operation)
             .Set(item => item.QueueState, AiQueueStates.Pending)
             .Set(item => item.GenerationRunId, string.Empty)
+            .Set(item => item.OperationRunId, Guid.NewGuid().ToString("N"))
+            .Set(item => item.ClaudeWait, null)
             .Set(item => item.GenerationInputHash, inputHash)
             .Set(item => item.GenerationPhase, phase)
             .Set(item => item.GenerationProgress, 0)
@@ -118,7 +121,8 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw ApiException.NotFound("AI draft not found.");
         if (current.QueuedOperation == operation
-            && current.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled)
+            && current.QueueState is AiQueueStates.Pending or AiQueueStates.Running
+                or AiQueueStates.RetryScheduled or AiQueueStates.AwaitingClaude)
             return new AiGenerationClaim(current, false);
 
         // A worker completion or harmless metadata update can advance the version
@@ -135,7 +139,7 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
                 Builders<AiCaseDraft>.Filter.In(item => item.Status, expectedStatuses),
                 Builders<AiCaseDraft>.Filter.Not(
                     Builders<AiCaseDraft>.Filter.In(item => item.QueueState,
-                        [AiQueueStates.Pending, AiQueueStates.Running, AiQueueStates.RetryScheduled])));
+                        [AiQueueStates.Pending, AiQueueStates.Running, AiQueueStates.RetryScheduled, AiQueueStates.AwaitingClaude])));
             var refreshed = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
                 refreshedFilter,
                 update,
@@ -180,16 +184,26 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
                     .Ascending(item => item.CreatedAt)
             },
             cancellationToken);
-        if (claimed is null || !string.IsNullOrWhiteSpace(claimed.GenerationInputHash)) return claimed;
+        if (claimed is null) return null;
 
-        var inputHash = ComputeGenerationInputHash(claimed, claimed.GenerationPhase);
-        var hashSaved = await _db.AiCaseDrafts.UpdateOneAsync(
+        // The run id of a queued operation never changes while it parks for Claude, retries or is reclaimed after a
+        // restart: bridge request keys are built from it, so a replay finds the answers Claude already gave.
+        var runId = string.IsNullOrWhiteSpace(claimed.OperationRunId) ? claimed.GenerationRunId : claimed.OperationRunId;
+        var inputHash = string.IsNullOrWhiteSpace(claimed.GenerationInputHash)
+            ? ComputeGenerationInputHash(claimed, claimed.GenerationPhase)
+            : claimed.GenerationInputHash;
+        var stabilized = await _db.AiCaseDrafts.UpdateOneAsync(
             item => item.Id == claimed.Id
                 && item.WorkflowVersion == claimed.WorkflowVersion
                 && item.GenerationRunId == claimed.GenerationRunId,
-            Builders<AiCaseDraft>.Update.Set(item => item.GenerationInputHash, inputHash),
+            Builders<AiCaseDraft>.Update
+                .Set(item => item.GenerationRunId, runId)
+                .Set(item => item.OperationRunId, runId)
+                .Set(item => item.GenerationInputHash, inputHash),
             cancellationToken: cancellationToken);
-        if (hashSaved.ModifiedCount == 0) return null;
+        if (stabilized.MatchedCount == 0) return null;
+        claimed.GenerationRunId = runId;
+        claimed.OperationRunId = runId;
         claimed.GenerationInputHash = inputHash;
         return claimed;
     }
@@ -254,10 +268,13 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         if (string.IsNullOrWhiteSpace(effectiveErrorCode)
             && current.Status is AiDraftStatus.GeneratedInvalid or AiDraftStatus.CaseTruthInvalid)
             effectiveErrorCode = current.LastGenerationErrorCode;
+        var finalStatus = current.Status;
         var completion = Builders<AiCaseDraft>.Update
             .Set(item => item.QueueState, AiQueueStates.None)
             .Set(item => item.QueuedOperation, AiQueuedOperations.None)
             .Set(item => item.GenerationRunId, string.Empty)
+            .Set(item => item.OperationRunId, string.Empty)
+            .Set(item => item.ClaudeWait, null)
             .Set(item => item.GenerationInputHash, string.Empty)
             .Set(item => item.GenerationClaimedAt, null)
             .Set(item => item.NextAttemptAt, null)
@@ -284,8 +301,23 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
                 var failureStatus = draft.Status == AiDraftStatus.GeneratingCaseTruth
                     ? AiDraftStatus.CaseTruthInvalid : AiDraftStatus.GeneratedInvalid;
                 completion = completion.Set(item => item.Status, failureStatus);
+                finalStatus = failureStatus;
             }
         }
+        // The order status moves in this same write, so no reader sees a finished run with a stale order status.
+        var settled = new AiCaseDraft
+        {
+            Status = finalStatus,
+            QueueState = AiQueueStates.None,
+            OrderStatus = current.OrderStatus,
+            Decisions = current.Decisions
+        };
+        var nextOrderStatus = AiCaseOrderPolicy.Derive(
+            settled, await ClaudeHasRequestInHandAsync(current.Id, now, cancellationToken));
+        if (!string.Equals(nextOrderStatus, current.OrderStatus, StringComparison.Ordinal))
+            completion = completion
+                .Set(item => item.OrderStatus, nextOrderStatus)
+                .Push(item => item.OrderStatusHistory, new AiOrderStatusChange { Status = nextOrderStatus, At = now });
         var result = await _db.AiCaseDrafts.UpdateOneAsync(
             activeFilter,
             completion,
@@ -326,6 +358,99 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         if (result.MatchedCount > 0) draft.GenerationClaimedAt = now;
         return result.MatchedCount > 0;
     }
+
+    public async Task<bool> ParkAwaitingClaudeAsync(
+        AiCaseDraft draft,
+        string requestId,
+        string step,
+        CancellationToken cancellationToken = default)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var parked = await _db.AiCaseDrafts.UpdateOneAsync(
+            ActiveQueueFilter(draft),
+            Builders<AiCaseDraft>.Update
+                .Set(item => item.QueueState, AiQueueStates.AwaitingClaude)
+                .Set(item => item.ClaudeWait, new AiClaudeWait { RequestId = requestId, Step = step, Since = now })
+                .Set(item => item.GenerationClaimedAt, null)
+                .Set(item => item.NextAttemptAt, null)
+                .Set(item => item.LastGenerationErrorCode, string.Empty)
+                .Inc(item => item.WorkflowVersion, 1)
+                .Set(item => item.UpdatedAt, now),
+            cancellationToken: cancellationToken);
+        if (parked.ModifiedCount == 0) return false;
+
+        // The bot may have answered between the question being stored and this park: resume at once.
+        var request = await _db.AiBridgeRequests.Find(item => item.Id == requestId).FirstOrDefaultAsync(cancellationToken);
+        if (request is not null && AiBridgeStatuses.Answered.Contains(request.Status))
+            await ResumeAfterClaudeAsync(draft.Id, requestId, cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> ResumeAfterClaudeAsync(
+        string draftId,
+        string? requestId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var filter = Builders<AiCaseDraft>.Filter.And(
+            Builders<AiCaseDraft>.Filter.Eq(item => item.Id, draftId),
+            Builders<AiCaseDraft>.Filter.Eq(item => item.QueueState, AiQueueStates.AwaitingClaude));
+        if (!string.IsNullOrWhiteSpace(requestId))
+            filter &= Builders<AiCaseDraft>.Filter.Eq(item => item.ClaudeWait!.RequestId, requestId);
+        // The same queued operation goes back to the queue with its run id, so the replay reuses every answer.
+        var resumed = await _db.AiCaseDrafts.UpdateOneAsync(
+            filter,
+            Builders<AiCaseDraft>.Update
+                .Set(item => item.QueueState, AiQueueStates.Pending)
+                .Set(item => item.NextAttemptAt, now)
+                .Set(item => item.ClaudeWait, null)
+                .Inc(item => item.WorkflowVersion, 1)
+                .Set(item => item.UpdatedAt, now),
+            cancellationToken: cancellationToken);
+        return resumed.ModifiedCount > 0;
+    }
+
+    public async Task<int> ResumeAnsweredAsync(CancellationToken cancellationToken = default)
+    {
+        var parked = await _db.AiCaseDrafts
+            .Find(item => item.QueueState == AiQueueStates.AwaitingClaude)
+            .Limit(200)
+            .ToListAsync(cancellationToken);
+        var resumed = 0;
+        foreach (var draft in parked)
+        {
+            var requestId = draft.ClaudeWait?.RequestId;
+            if (string.IsNullOrWhiteSpace(requestId)) continue;
+            var request = await _db.AiBridgeRequests.Find(item => item.Id == requestId).FirstOrDefaultAsync(cancellationToken);
+            if (request is null || !AiBridgeStatuses.Answered.Contains(request.Status)) continue;
+            if (await ResumeAfterClaudeAsync(draft.Id, requestId, cancellationToken)) resumed++;
+        }
+        return resumed;
+    }
+
+    public async Task SyncOrderStatusAsync(string draftId, CancellationToken cancellationToken = default)
+    {
+        var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync(cancellationToken);
+        if (draft is null) return;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var inHand = await ClaudeHasRequestInHandAsync(draftId, now, cancellationToken);
+        var next = AiCaseOrderPolicy.Derive(draft, inHand);
+        if (string.Equals(next, draft.OrderStatus, StringComparison.Ordinal)) return;
+        await _db.AiCaseDrafts.UpdateOneAsync(
+            item => item.Id == draftId && item.OrderStatus == draft.OrderStatus,
+            Builders<AiCaseDraft>.Update
+                .Set(item => item.OrderStatus, next)
+                .Push(item => item.OrderStatusHistory, new AiOrderStatusChange { Status = next, At = now }),
+            cancellationToken: cancellationToken);
+    }
+
+    private Task<bool> ClaudeHasRequestInHandAsync(string draftId, DateTime now, CancellationToken cancellationToken) =>
+        _db.AiBridgeRequests.Find(item =>
+                item.OwnerType == AiBridgeOwnerTypes.CaseDraft
+                && item.OwnerId == draftId
+                && (item.Status == AiBridgeStatuses.Submitted
+                    || (item.Status == AiBridgeStatuses.Taken && item.LeaseExpiresAt > now)))
+            .AnyAsync(cancellationToken);
 
     private static string ComputeGenerationInputHash(AiCaseDraft draft, string phase)
     {

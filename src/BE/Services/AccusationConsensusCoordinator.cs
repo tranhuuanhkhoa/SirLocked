@@ -65,7 +65,8 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             PlayerSceneId(context, user.Id),
             ToContent(request),
             RoomUserIds(context.Room),
-            now), AccusationCommandKind.Propose, cancellationToken);
+            now,
+            TutorialRules.RequiredConfirmations(context.Room)), AccusationCommandKind.Propose, cancellationToken);
     }
 
     public Task<AccusationCommandResponse> AmendAsync(
@@ -82,7 +83,8 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             ToContent(request),
             request.ExpectedRevision,
             RoomUserIds(context.Room),
-            now), AccusationCommandKind.Amend, cancellationToken);
+            now,
+            TutorialRules.RequiredConfirmations(context.Room)), AccusationCommandKind.Amend, cancellationToken);
 
     public Task<AccusationCommandResponse> ConfirmAsync(
         CurrentUser user,
@@ -97,7 +99,8 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             context.Player.Role!,
             request.ExpectedRevision,
             RoomUserIds(context.Room),
-            now), AccusationCommandKind.Confirm, cancellationToken);
+            now,
+            TutorialRules.RequiredConfirmations(context.Room)), AccusationCommandKind.Confirm, cancellationToken);
 
     public Task<AccusationCommandResponse> CancelAsync(
         CurrentUser user,
@@ -138,6 +141,7 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
             }
 
             GameResultResponse? result = null;
+            var rejected = false;
             if (transition.ShouldResolve)
             {
                 // The resolver owns the single optimistic write that carries both the final
@@ -147,6 +151,7 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
                     context.Case,
                     user,
                     ToRequest(transition.Terminal!));
+                rejected = result is null;
             }
             else if (transition.Changed
                 && !await _persistence.TrySaveAsync(context.Room, context.Case, cancellationToken))
@@ -178,7 +183,13 @@ public sealed class AccusationConsensusCoordinator : IAccusationConsensusCoordin
                     transition,
                     cancellationToken);
             }
-            return BuildResponse(state, transition, result);
+            var response = BuildResponse(state, transition, result);
+            if (rejected)
+            {
+                response.Rejected = true;
+                response.Message = GameplayService.NotConvincingMessage;
+            }
+            return response;
         }
 
         throw ApiException.Conflict(

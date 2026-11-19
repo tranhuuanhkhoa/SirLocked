@@ -28,6 +28,10 @@ public class GenerateAiCaseRequest
     /// <summary>Adds the paired Crack-the-Lie loop on top of the selected V2 preset.</summary>
     public bool IncludeCrackTheLie { get; set; }
 
+    /// <summary>BALANCED, PUZZLE or DIALOGUE: leans the level's puzzle and dialogue counts (new orders).</summary>
+    [MaxLength(20)]
+    public string? Leaning { get; set; }
+
     [MaxLength(5)]
     [RegularExpression("^(?i:en|vi)$", ErrorMessage = "language must be 'en' or 'vi'.")]
     public string Language { get; set; } = CaseLanguages.English;
@@ -43,6 +47,9 @@ public class GenerateAiCaseRequest
     public string VisualStyle { get; set; } = AiVisualStyleDefaults.PixelDetectiveTheme;
 
     public AiCreativeConstraints CreativeConstraints { get; set; } = new();
+
+    /// <summary>The order for the Claude bot. Every field is optional; the server applies defaults and VIP limits.</summary>
+    public AiCaseOrder? Order { get; set; }
 }
 
 public class AiDraftResponse
@@ -113,10 +120,25 @@ public class AiDraftResponse
     public DateTime? NextAttemptAt { get; set; }
     public string LastGenerationErrorCode { get; set; } = string.Empty;
     public string? IdempotencyKey { get; set; }
-    public decimal ReservedBudgetUsd { get; set; }
     public DateTime? CancelledAt { get; set; }
     public bool CanCancel { get; set; }
-    public AiCostReport CostReport { get; set; } = new();
+    public AiCaseOrder? Order { get; set; }
+    /// <summary>AWAITING_OWNER_APPROVAL, QUEUED_FOR_CLAUDE, CLAUDE_WORKING, AWAITING_GATE, SUBMITTED, REJECTED or CANCELLED.</summary>
+    public string OrderStatus { get; set; } = string.Empty;
+    public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
+    /// <summary>Questions the bot asked the creator (draft_ask); the page shows the open ones with a button per option.</summary>
+    public List<AiDecision> Decisions { get; set; } = new();
+    public string OrderRejectReason { get; set; } = string.Empty;
+    /// <summary>"" (ADMIN bot through the bridge) or "VIP_API" (paid VIP order through the Claude API).</summary>
+    public string Lane { get; set; } = string.Empty;
+    /// <summary>A paid VIP order: price, coins held and what happened to them (no cost figures).</summary>
+    public AiVipOrderView? VipOrder { get; set; }
+    /// <summary>The Claude request a parked run waits for.</summary>
+    public AiClaudeWait? ClaudeWait { get; set; }
+    public List<AiBridgeAssetUpload> BridgeAssets { get; set; } = new();
+    /// <summary>The bot's report.md for this draft (admins only).</summary>
+    public string BridgeReport { get; set; } = string.Empty;
+    public DateTime? BridgeReportUpdatedAt { get; set; }
     public string? ImportedCaseId { get; set; }
     public CaseSummaryResponse? PublishedCase { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -233,14 +255,20 @@ public class AiDraftResponse
         NextAttemptAt = d.NextAttemptAt,
         LastGenerationErrorCode = d.LastGenerationErrorCode,
         IdempotencyKey = d.IdempotencyKey,
-        ReservedBudgetUsd = d.ReservedBudgetUsd,
         CancelledAt = d.CancelledAt,
         CanCancel = d.Status is not (AiDraftStatus.Published or AiDraftStatus.Imported or AiDraftStatus.Cancelled),
-        CostReport = new AiCostReport
-        {
-            DryRun = d.PlannedCalls.Any(call => !call.WouldCallApi),
-            PlannedCalls = d.PlannedCalls
-        },
+        Order = d.Order,
+        // Drafts from before orders existed get their status derived from the workflow.
+        OrderStatus = string.IsNullOrWhiteSpace(d.OrderStatus) ? AiCaseOrderPolicy.Derive(d, false) : d.OrderStatus,
+        OrderStatusHistory = d.OrderStatusHistory,
+        Decisions = d.Decisions,
+        OrderRejectReason = d.OrderRejectReason,
+        Lane = d.Lane,
+        VipOrder = AiVipOrderView.From(d.VipBilling),
+        ClaudeWait = d.ClaudeWait,
+        BridgeAssets = d.BridgeAssets,
+        BridgeReport = includeJson ? d.BridgeReport : string.Empty,
+        BridgeReportUpdatedAt = d.BridgeReportUpdatedAt,
         ImportedCaseId = d.ImportedCaseId,
         PublishedCase = publishedCase,
         CreatedAt = d.CreatedAt
@@ -386,8 +414,57 @@ public sealed class AiBlueprintSummaryResponse
     public List<string> ValidationErrors { get; set; } = new();
 }
 
+public sealed class AiRangeResponse
+{
+    public int Min { get; set; }
+    public int Max { get; set; }
+
+    public static AiRangeResponse From(IntRange range) => new() { Min = range.Min, Max = range.Max };
+}
+
+public sealed class AiPixelLabEstimateResponse
+{
+    public AiRangeResponse NewWorld { get; set; } = new();
+    public AiRangeResponse LibraryWorld { get; set; } = new();
+}
+
+/// <summary>One difficulty level as the order form shows it (numbers from <c>AiDifficultyProfiles</c>).</summary>
+public sealed class AiDifficultyProfileResponse
+{
+    public string Difficulty { get; set; } = string.Empty;
+    public AiRangeResponse PlayMinutes { get; set; } = new();
+    public int EstimatedMinutes { get; set; }
+    public AiRangeResponse Scenes { get; set; } = new();
+    public int Suspects { get; set; }
+    public int Cracks { get; set; }
+    public AiRangeResponse Puzzles { get; set; } = new();
+    public AiRangeResponse RedHerrings { get; set; } = new();
+    public int RequiredEvidence { get; set; }
+    public AiPixelLabEstimateResponse PixelLab { get; set; } = new();
+
+    public static AiDifficultyProfileResponse From(AiDifficultyProfile profile) => new()
+    {
+        Difficulty = profile.Difficulty,
+        PlayMinutes = AiRangeResponse.From(profile.PlayMinutes),
+        EstimatedMinutes = profile.EstimatedMinutes,
+        Scenes = AiRangeResponse.From(profile.Scenes),
+        Suspects = profile.Suspects,
+        Cracks = profile.Cracks,
+        Puzzles = AiRangeResponse.From(profile.Puzzles),
+        RedHerrings = AiRangeResponse.From(profile.RedHerrings),
+        RequiredEvidence = profile.RequiredEvidence,
+        PixelLab = new AiPixelLabEstimateResponse
+        {
+            NewWorld = AiRangeResponse.From(profile.PixelLabNewWorld),
+            LibraryWorld = AiRangeResponse.From(profile.PixelLabLibraryWorld)
+        }
+    };
+}
+
 public sealed class AiCaseCapabilitiesResponse
 {
+    /// <summary>The three difficulty levels of a new order, in form order (easy, medium, hard).</summary>
+    public List<AiDifficultyProfileResponse> DifficultyProfiles { get; set; } = new();
     public List<AiCreationBlockerResponse> CreationBlockers { get; set; } = new();
     public List<AiCreationBlockerResponse> V3CreationBlockers { get; set; } = new();
     public bool CanCreateDraft => CreationBlockers.Count == 0;
@@ -401,7 +478,21 @@ public sealed class AiCaseCapabilitiesResponse
     public List<AiCreativeOptionResponse> CreativeInvestigationMechanics { get; set; } = new();
 }
 
-public sealed record AiCreationBlockerResponse(string Code, string Message, string MessageKey);
+/// <summary>The caller's weekly AI order allowance (GET /api/admin/ai-cases/quota).</summary>
+public sealed class AiOrderQuotaResponse
+{
+    public string Role { get; set; } = string.Empty;
+    /// <summary>ADMIN orders have no weekly limit; the counts below are then zero.</summary>
+    public bool Unlimited { get; set; }
+    public int WeeklyLimit { get; set; }
+    /// <summary>Orders of this quota week that count against the limit (rejected orders do not).</summary>
+    public int UsedThisWeek { get; set; }
+    public int Remaining { get; set; }
+    /// <summary>The Monday (Vietnam time) the quota week started, yyyy-MM-dd.</summary>
+    public string WeekStart { get; set; } = string.Empty;
+}
+
+public sealed record AiCreationBlockerResponse(string Code, string Message, string MessageKey, string MessageVi = "");
 
 public sealed class AiCreativeOptionResponse
 {
@@ -496,12 +587,6 @@ public class ReplaceAiDraftJsonRequest
     public AiStoryPreview? StoryPreview { get; set; }
 }
 
-public class AiCostReport
-{
-    public bool DryRun { get; set; }
-    public List<AiPlannedCall> PlannedCalls { get; set; } = new();
-}
-
 public class AiGenerationAttemptSummary
 {
     public string Step { get; set; } = string.Empty;
@@ -533,5 +618,38 @@ public class AiGenerationAttemptSummary
         ReasoningTokens = attempt.ReasoningTokens,
         ValidationErrors = attempt.ValidationErrors,
         CreatedAt = attempt.CreatedAt
+    };
+}
+
+/// <summary>What a VIP sees of the coins of their order.</summary>
+public sealed class AiVipOrderView
+{
+    public string Speed { get; set; } = string.Empty;
+    public int PixelLabCap { get; set; }
+    public long PriceXu { get; set; }
+    public long HeldFromBalance { get; set; }
+    public long HeldFromBonus { get; set; }
+    public string State { get; set; } = string.Empty;
+    public long RefundedXu { get; set; }
+    public long ChargedXu { get; set; }
+    public string SettleReason { get; set; } = string.Empty;
+    public DateTime HeldAt { get; set; }
+    public DateTime? SettledAt { get; set; }
+    public DateTime? EstimatedReadyAt { get; set; }
+
+    public static AiVipOrderView? From(AiVipBilling? billing) => billing is null ? null : new AiVipOrderView
+    {
+        Speed = billing.Speed,
+        PixelLabCap = billing.PixelLabCap,
+        PriceXu = billing.PriceXu,
+        HeldFromBalance = billing.HeldFromBalance,
+        HeldFromBonus = billing.HeldFromBonus,
+        State = billing.State,
+        RefundedXu = billing.RefundedXu,
+        ChargedXu = billing.ChargedXu,
+        SettleReason = billing.SettleReason,
+        HeldAt = billing.HeldAt,
+        SettledAt = billing.SettledAt,
+        EstimatedReadyAt = billing.EstimatedReadyAt
     };
 }

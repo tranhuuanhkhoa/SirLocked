@@ -6,10 +6,11 @@ using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.Services;
 
-public class RoomService : IRoomService
+public partial class RoomService : IRoomService
 {
     public const int MaxPlayers = 2;
     public const int MyRoomsLimit = 20;
@@ -24,13 +25,56 @@ public class RoomService : IRoomService
     private readonly MongoDbContext _db;
     private readonly ICaseService _caseService;
     private readonly IGameNotifier _notifier;
+    private readonly CaseCatalogPolicy _catalog;
 
-    public RoomService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier)
+    public const string CaseNotPlayableCode = "CASE_NOT_PLAYABLE";
+
+    private readonly LegacyCaseCatalog? _legacy;
+    private readonly IPlayerCosmeticsReader? _cosmetics;
+    private readonly ILogger<RoomService>? _logger;
+
+    public RoomService(MongoDbContext db, ICaseService caseService, IGameNotifier notifier, CaseCatalogPolicy? catalog = null,
+        LegacyCaseCatalog? legacy = null, IPlayerCosmeticsReader? cosmetics = null, ILogger<RoomService>? logger = null)
     {
         _db = db;
         _caseService = caseService;
         _notifier = notifier;
+        _catalog = catalog ?? CaseCatalogPolicy.Open;
+        _legacy = legacy;
+        _cosmetics = cosmetics;
+        _logger = logger;
     }
+
+    /// <summary>The lobby's view of a room. Looks come from the server only; failing to load them must not close a lobby.</summary>
+    private async Task<RoomResponse> ToLobbyResponseAsync(GameRoom room, string caseTitle)
+    {
+        var response = RoomResponse.From(room, caseTitle);
+        if (_cosmetics is null) return response;
+        try
+        {
+            var looks = await _cosmetics.GetCosmeticsAsync(response.Players.Select(player => player.UserId).ToList());
+            foreach (var player in response.Players)
+            {
+                if (!looks.TryGetValue(player.UserId, out var look)) continue;
+                player.Level = look.Level;
+                player.Avatar = look.Avatar;
+                player.AvatarUrl = look.AvatarUrl;
+                player.FrameDefId = look.FrameDefId;
+                player.TitleDefId = look.TitleDefId;
+                player.EntranceDefId = look.EntranceDefId;
+                player.SkinDefIds = look.SkinDefIds?.ToList() ?? new List<string>();
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger?.LogWarning(exception, "Lobby cosmetics could not be loaded for room {RoomId}.", room.Id);
+        }
+        return response;
+    }
+
+    /// <summary>Rooms of hidden (legacy) cases stay out of every room list; the rooms themselves are untouched.</summary>
+    private async Task<FilterDefinition<GameRoom>> WithoutLegacyAsync(FilterDefinition<GameRoom> filter) =>
+        _legacy is null ? filter : await _legacy.ExcludeAsync(filter, room => room.CaseId);
 
     // Người chơi phải xác minh email trước khi tạo/vào phòng. Admin được miễn.
     private async Task EnsureEmailVerifiedAsync(CurrentUser user)
@@ -42,10 +86,18 @@ public class RoomService : IRoomService
         {
             throw ApiException.Forbidden("Vui lòng xác minh email trước khi vào game.");
         }
+        // Người mới chọn "Nhập môn" phải chơi xong màn tân thủ trước.
+        TutorialRules.EnsureNotRequired(account);
     }
 
-    public async Task<RoomResponse> CreateAsync(CurrentUser user, string caseId)
+    public async Task<RoomResponse> CreateAsync(CurrentUser user, string caseId, string? visibility = null)
     {
+        if (!RoomVisibility.TryNormalize(visibility, out var normalizedVisibility))
+        {
+            throw ApiException.BadRequest(
+                $"Visibility must be {RoomVisibility.Public} or {RoomVisibility.Private}.",
+                new Dictionary<string, string[]> { ["visibility"] = [$"Use {RoomVisibility.Public} or {RoomVisibility.Private}."] });
+        }
         await EnsureEmailVerifiedAsync(user);
 
         var gameCase = await _caseService.GetCaseAsync(caseId);
@@ -53,36 +105,46 @@ public class RoomService : IRoomService
         {
             throw ApiException.BadRequest("Rooms can only be created from published cases.");
         }
+        if (!_catalog.IsPlayable(gameCase))
+        {
+            throw ApiException.Unprocessable("This case is not available to play. Pick one of the pixel cases.",
+                new ApiErrorDetails(CaseNotPlayableCode, "case.notPlayable"));
+        }
 
         var room = new GameRoom
         {
             CaseId = gameCase.CaseId,
             HostUserId = user.Id,
             Status = RoomStatus.Waiting,
+            Visibility = normalizedVisibility,
             Players = new List<RoomPlayer>
             {
                 new() { UserId = user.Id, Username = user.FullName }
             }
         };
 
-        // Room codes are random; retry on the rare unique-index collision.
+        await InsertWithRoomCodeAsync(room);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
+    }
+
+    /// <summary>Room codes are random; retry on the rare unique-index collision.</summary>
+    private async Task InsertWithRoomCodeAsync(GameRoom room)
+    {
         for (var attempt = 0; ; attempt++)
         {
             room.RoomCode = GenerateRoomCode();
             try
             {
                 await _db.Rooms.InsertOneAsync(room);
-                break;
+                return;
             }
             catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey && attempt < 5)
             {
             }
         }
-
-        return RoomResponse.From(room, gameCase.Title);
     }
 
-    public async Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode)
+    public async Task<RoomResponse> JoinAsync(CurrentUser user, string roomCode, string? inviteToken = null)
     {
         await EnsureEmailVerifiedAsync(user);
 
@@ -95,8 +157,13 @@ public class RoomService : IRoomService
         if (room.Players.Any(p => p.UserId == user.Id))
         {
             // Re-joining your own room (e.g. page refresh) is idempotent.
-            return RoomResponse.From(room, gameCase.Title);
+            return await ToLobbyResponseAsync(room, gameCase.Title);
         }
+
+        // A playtest of an unpublished draft: the room code alone lets nobody in (checked before "full" or "started",
+        // so a stranger learns nothing about the room).
+        var entry = room.Playtest is null ? PlaytestEntry.Allowed : PlaytestRoomRules.Evaluate(room.Playtest, user, inviteToken);
+        if (entry == PlaytestEntry.Forbidden) throw PlaytestRoomRules.Forbidden();
 
         if (room.Status is RoomStatus.InProgress or RoomStatus.Completed)
         {
@@ -118,14 +185,26 @@ public class RoomService : IRoomService
             Builders<GameRoom>.Filter.Eq(r => r.Id, room.Id),
             Builders<GameRoom>.Filter.Eq(r => r.Status, RoomStatus.Waiting),
             Builders<GameRoom>.Filter.SizeLt(r => r.Players, MaxPlayers));
+        if (entry == PlaytestEntry.ClaimsInvite)
+        {
+            // The invite is single use: whoever claims it first is the only one it ever lets in.
+            joinFilter &= Builders<GameRoom>.Filter.Eq(r => r.Playtest!.InvitedUserId, null);
+            update = update.Set(r => r.Playtest!.InvitedUserId, user.Id);
+        }
         var result = await _db.Rooms.UpdateOneAsync(joinFilter, update);
         if (result.ModifiedCount == 0)
         {
+            if (entry == PlaytestEntry.ClaimsInvite)
+            {
+                var latest = await RequireRoomAsync(room.Id);
+                if (latest.Playtest is { } claimed && PlaytestRoomRules.Evaluate(claimed, user, inviteToken) == PlaytestEntry.Forbidden)
+                    throw PlaytestRoomRules.Forbidden();
+            }
             throw ApiException.Conflict("This room is already full or has started.");
         }
 
         var updated = await RequireRoomAsync(room.Id);
-        var response = RoomResponse.From(updated, gameCase.Title);
+        var response = await ToLobbyResponseAsync(updated, gameCase.Title);
         await _notifier.PlayerJoined(room.Id, user.Id, response);
         return response;
     }
@@ -135,13 +214,14 @@ public class RoomService : IRoomService
         var room = await RequireRoomAsync(roomId);
         RequireMember(room, userId);
         var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        return RoomResponse.From(room, gameCase.Title);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
     }
 
     public async Task<List<RoomResponse>> GetMineAsync(string userId, CancellationToken cancellationToken = default)
     {
         var filter = Builders<GameRoom>.Filter.ElemMatch(room => room.Players, player => player.UserId == userId)
             & Builders<GameRoom>.Filter.In(room => room.Status, [RoomStatus.Waiting, RoomStatus.Ready, RoomStatus.InProgress]);
+        filter = await WithoutLegacyAsync(filter);
         var rooms = await _db.Rooms.Find(filter)
             .SortByDescending(room => room.UpdatedAt)
             .ThenByDescending(room => room.CreatedAt)
@@ -152,7 +232,7 @@ public class RoomService : IRoomService
             {
                 Id = room.Id, RoomCode = room.RoomCode, CaseId = room.CaseId,
                 HostUserId = room.HostUserId, Status = room.Status, Players = room.Players,
-                CreatedAt = room.CreatedAt
+                Visibility = room.Visibility, CreatedAt = room.CreatedAt, Playtest = room.Playtest
             })
             .ToListAsync(cancellationToken);
         if (rooms.Count == 0) return [];
@@ -164,6 +244,70 @@ public class RoomService : IRoomService
         var titlesByCase = titles.ToDictionary(gameCase => gameCase.CaseId, gameCase => gameCase.Title);
         return rooms.Select(room => RoomResponse.From(room,
             titlesByCase.GetValueOrDefault(room.CaseId, room.CaseId))).ToList();
+    }
+
+    public async Task<List<PublicRoomResponse>> ListPublicAsync(string userId, PublicRoomQuery query, CancellationToken cancellationToken = default)
+    {
+        if (!PublicRoomRules.TryParseLanguage(query.Language, out var language))
+        {
+            throw ApiException.BadRequest("Language must be vi, en or ALL.",
+                new Dictionary<string, string[]> { ["language"] = ["Use vi, en or ALL."] });
+        }
+        var search = query.Q?.Trim();
+        if (search is { Length: > PublicRoomRules.MaxQueryLength })
+        {
+            throw ApiException.BadRequest("The search text is too long.",
+                new Dictionary<string, string[]> { ["q"] = [$"At most {PublicRoomRules.MaxQueryLength} characters."] });
+        }
+
+        var rooms = await _db.Rooms.Find(await WithoutLegacyAsync(PublicRoomRules.ListingFilter(DateTime.UtcNow)))
+            .SortByDescending(room => room.UpdatedAt)
+            .Limit(PublicRoomRules.ScanLimit)
+            // Listing metadata only: never the embedded gameplay state.
+            .Project(room => new GameRoom
+            {
+                Id = room.Id, RoomCode = room.RoomCode, CaseId = room.CaseId, HostUserId = room.HostUserId,
+                Status = room.Status, Visibility = room.Visibility, Players = room.Players, CreatedAt = room.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+        if (rooms.Count == 0) return [];
+
+        // Case title, length and language come from the cached published catalogue; a room whose case
+        // was unpublished afterwards falls back to the per-case cache, and is dropped if the case is gone.
+        var published = (await _caseService.GetPublishedAsync()).ToDictionary(c => c.CaseId, StringComparer.Ordinal);
+        var rows = new List<PublicRoomResponse>(rooms.Count);
+        foreach (var room in rooms)
+        {
+            string title; int minutes; string caseLanguage;
+            if (published.TryGetValue(room.CaseId, out var summary))
+            {
+                (title, minutes, caseLanguage) = (summary.Title, summary.EstimatedMinutes, summary.Language);
+            }
+            else
+            {
+                GameCase gameCase;
+                try { gameCase = await _caseService.GetCaseAsync(room.CaseId); }
+                catch (ApiException missing) when (missing.StatusCode == 404) { continue; }
+                (title, minutes, caseLanguage) = (gameCase.Title, gameCase.EstimatedMinutes, CaseLanguages.Normalize(gameCase.Language));
+            }
+            var host = room.Players.FirstOrDefault(p => p.UserId == room.HostUserId) ?? room.Players.FirstOrDefault();
+            rows.Add(new PublicRoomResponse
+            {
+                RoomId = room.Id,
+                RoomCode = room.RoomCode,
+                CaseId = room.CaseId,
+                CaseTitle = title,
+                EstimatedMinutes = minutes,
+                Language = caseLanguage,
+                HostUsername = host?.Username ?? string.Empty,
+                PlayerCount = room.Players.Count,
+                Status = room.Status,
+                IsJoinable = PublicRoomRules.IsJoinable(room),
+                IsMember = room.Players.Any(p => p.UserId == userId),
+                CreatedAt = room.CreatedAt
+            });
+        }
+        return PublicRoomRules.Apply(rows, language, query.OpenOnly, search, query.Limit).ToList();
     }
 
     public async Task<RoomResponse?> LeaveAsync(CurrentUser user, string roomId)
@@ -216,7 +360,7 @@ public class RoomService : IRoomService
             room.PendingRemovedPlayerId = null;
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.PlayerLeft(roomId, user.Id, response);
             return response;
         }
@@ -251,7 +395,7 @@ public class RoomService : IRoomService
             }
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.RolesUpdated(roomId, user.Id, response);
             return response;
         }
@@ -275,7 +419,7 @@ public class RoomService : IRoomService
             throw ApiException.Conflict("The room changed; refresh before abandoning.");
 
         var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        return RoomResponse.From(room, gameCase.Title);
+        return await ToLobbyResponseAsync(room, gameCase.Title);
     }
 
     public async Task<RoomResponse> SetReadyAsync(CurrentUser user, string roomId, bool isReady)
@@ -300,7 +444,7 @@ public class RoomService : IRoomService
             }
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.ReadyUpdated(roomId, user.Id, response);
             return response;
         }
@@ -341,22 +485,9 @@ public class RoomService : IRoomService
             }
 
             var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-            var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
-            var firstScene = firstStage.Scenes.First();
 
             room.Status = RoomStatus.InProgress;
-            room.GameplayState = new GameplayState
-            {
-                CurrentStageId = firstStage.StageId,
-                CurrentSceneId = firstScene.SceneId,
-                PlayerSceneIds = room.Players.ToDictionary(p => p.UserId, _ => firstScene.SceneId),
-                Version = 1,
-                VisitedSceneIds = new List<string> { firstScene.SceneId },
-                UnlockedSceneIds = new List<string> { firstScene.SceneId },
-                GameStatus = GameStatus.InProgress,
-                StartedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            room.GameplayState = CreateInitialGameplayState(gameCase, room.Players.Select(p => p.UserId), room.Playtest?.StartSceneId);
             // READY is the only startable stored status, so two concurrent starts cannot both commit.
             if (!await TrySaveLobbyAsync(room, RoomLifecycle.StartableStatuses))
             {
@@ -364,10 +495,50 @@ public class RoomService : IRoomService
                 continue;
             }
 
-            var response = RoomResponse.From(room, gameCase.Title);
+            var response = await ToLobbyResponseAsync(room, gameCase.Title);
             await _notifier.GameStarted(roomId, response);
             return response;
         }
+    }
+
+    /// <summary>The gameplay state a room starts with (also used by the solo tutorial room).</summary>
+    /// <param name="startSceneId">
+    /// Playtest only (Case Studio "Chơi thử cảnh này"): both detectives start in this scene. An unknown id falls back to
+    /// the first scene. In a classic case the first scene stays unlocked too, so the way back still exists.
+    /// </param>
+    internal static GameplayState CreateInitialGameplayState(GameCase gameCase, IEnumerable<string> userIds, string? startSceneId = null)
+    {
+        var firstStage = gameCase.Stages.OrderBy(s => s.Order).First();
+        var firstScene = firstStage.Scenes.First();
+        var startStage = firstStage;
+        var startScene = firstScene;
+        if (!string.IsNullOrWhiteSpace(startSceneId))
+        {
+            foreach (var stage in gameCase.Stages.OrderBy(s => s.Order))
+            {
+                var match = stage.Scenes.FirstOrDefault(scene => scene.SceneId == startSceneId);
+                if (match is null) continue;
+                startStage = stage;
+                startScene = match;
+                break;
+            }
+        }
+        var now = DateTime.UtcNow;
+        return new GameplayState
+        {
+            CurrentStageId = startStage.StageId,
+            CurrentSceneId = startScene.SceneId,
+            PlayerSceneIds = userIds.Distinct().ToDictionary(userId => userId, _ => startScene.SceneId),
+            Version = 1,
+            VisitedSceneIds = new List<string> { startScene.SceneId },
+            // Open-coop cases let both detectives roam every place from the first second.
+            UnlockedSceneIds = CaseRuleSets.IsOpenCoop(gameCase)
+                ? gameCase.Stages.OrderBy(s => s.Order).SelectMany(s => s.Scenes).Select(s => s.SceneId).ToList()
+                : new[] { firstScene.SceneId, startScene.SceneId }.Distinct().ToList(),
+            GameStatus = GameStatus.InProgress,
+            StartedAt = now,
+            UpdatedAt = now
+        };
     }
 
     /// <summary>Virtual so lifecycle guards can be exercised against an in-memory room without MongoDB.</summary>
@@ -389,7 +560,8 @@ public class RoomService : IRoomService
         }
     }
 
-    private static ApiException NotLobbyConflict(string status) =>
+    /// <summary>The refusal of a lobby action on a room past its lobby: ROOM_ENDED once it has ended, so the lobby shows its closed page.</summary>
+    internal static ApiException NotLobbyConflict(string status) =>
         RoomLifecycle.IsTerminal(status)
             ? ApiException.Conflict(RoomEndedMessage, RoomEndedCode, RoomEndedMessageKey)
             : ApiException.Conflict(GameAlreadyStartedMessage);
@@ -457,7 +629,7 @@ public class RoomService : IRoomService
         return true;
     }
 
-    private static string GenerateRoomCode()
+    internal static string GenerateRoomCode()
     {
         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // avoids 0/O and 1/I
         Span<char> code = stackalloc char[6];

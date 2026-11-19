@@ -119,6 +119,18 @@ public sealed class PuzzleProjectionSlot
     public string PuzzleId { get; set; } = string.Empty;
     public List<string> BasedOnTruthIds { get; set; } = new();
     public List<string> RevealsConclusionIds { get; set; } = new();
+    /// <summary>OPEN_COOP_1 interactive puzzles only: the kinds the AI may pick. Absent on older plans (same hash).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<string>? OfferedKinds { get; set; }
+    /// <summary>OPEN_COOP_1 fingerprint answers: the innocent suspect who left the reward trace (from the truth).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? PrintOwnerId { get; set; }
+    /// <summary>OPEN_COOP_1 fingerprint cards: the truth's suspects, in order.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<string>? PrintCardIds { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -214,6 +226,14 @@ public sealed class FinalEvidenceProjectionSlot
 
 public sealed class GameplayProjectionContent
 {
+    /// <summary>OPEN_COOP_1: the case wall the AI writes (absent for older drafts).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public CaseBoard? Board { get; set; }
+    /// <summary>OPEN_COOP_1, Medium and Hard: the words of the reconstruction timeline (absent otherwise).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public TimelineProjectionContent? Timeline { get; set; }
     public string SchemaVersion { get; set; } = GameplayProjectionVersions.Content;
     public string PlanHash { get; set; } = string.Empty;
     public CaseProjectionContent Case { get; set; } = new();
@@ -264,6 +284,9 @@ public sealed class SceneProjectionContent
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+    /// <summary>Optional atmosphere: music, weather, indoor, time of day.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public SceneAtmosphereContent? Atmosphere { get; set; }
 }
 
 public sealed class CharacterProjectionContent
@@ -273,6 +296,9 @@ public sealed class CharacterProjectionContent
     public string Role { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+    /// <summary>Optional speech blip.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public CharacterVoice? Voice { get; set; }
 }
 
 public sealed class ItemProjectionContent
@@ -330,9 +356,29 @@ public sealed class ConversationProjectionContent
     public Dictionary<string, string> ChoiceLabels { get; set; } = new(StringComparer.Ordinal);
 }
 
+public sealed class TimelineProjectionContent
+{
+    public string Title { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public Dictionary<string, TimelineEventProjectionContent> Events { get; set; } = new(StringComparer.Ordinal);
+}
+
+public sealed class TimelineEventProjectionContent
+{
+    public string Label { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public string DayLabel { get; set; } = string.Empty;
+    public string TimeLabel { get; set; } = string.Empty;
+}
+
 public sealed class PuzzleProjectionContent
 {
     public string PuzzleId { get; set; } = string.Empty;
+    /// <summary>OPEN_COOP_1 interactive puzzles: the kind the AI picked (one of the slot's offered kinds).</summary>
+    public string Kind { get; set; } = string.Empty;
+    /// <summary>OPEN_COOP_1 interactive puzzles: the text params the AI wrote, as a JSON object.</summary>
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string Authored { get; set; } = string.Empty;
     public List<string> BasedOnTruthIds { get; set; } = new();
     public List<string> RevealsConclusionIds { get; set; } = new();
     public string Prompt { get; set; } = string.Empty;

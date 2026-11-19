@@ -117,6 +117,10 @@ public sealed class GeneratedProofArtifact
 /// </summary>
 public static class AiStrictSchemaLinter
 {
+    private static bool AllowsNull(JsonNode? schema) =>
+        schema is JsonObject obj && obj["type"] is JsonArray types
+        && types.Any(type => type is JsonValue value && value.TryGetValue<string>(out var name) && name == "null");
+
     public static IReadOnlyList<string> Validate(JsonNode? schema)
     {
         var violations = new List<string>();
@@ -162,7 +166,11 @@ public static class AiStrictSchemaLinter
             ? requiredNames.Select(item => item?.GetValue<string>() ?? string.Empty)
                 .ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
-        foreach (var missing in properties.Select(pair => pair.Key).Where(key => !required.Contains(key)))
+        // The bridge validates answers with full JSON Schema, so a property may be optional; it must then also
+        // accept null, which keeps the writer's two ways of saying "absent" equivalent.
+        foreach (var missing in properties
+                     .Where(pair => !required.Contains(pair.Key) && !AllowsNull(pair.Value))
+                     .Select(pair => pair.Key))
             violations.Add($"{path}: property '{missing}' must be listed in required.");
     }
 }
@@ -546,6 +554,30 @@ public static class AiStrictSchemaProvider
 
         foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
+            // Optional writer-owned voice and atmosphere (docs/case-audio-weather.md): present in the contract,
+            // never required, so a case without them stays valid.
+            if (type == typeof(CaseCharacter) && property.Name == nameof(CaseCharacter.Voice))
+            {
+                properties["voice"] = CaseAtmosphereSchemas.Voice();
+                continue;
+            }
+            // The runtime stays server-owned; the writer sends the atmosphere, which the server stores in it.
+            if (type == typeof(CaseScene) && property.Name == nameof(CaseScene.Atmosphere))
+            {
+                properties["atmosphere"] = CaseAtmosphereSchemas.SceneAtmosphere();
+                continue;
+            }
+            // Optional other evidence that proves the same claim (VUAN-6): an array or null, never required.
+            if (type == typeof(RequiredEvidenceLink) && property.Name == nameof(RequiredEvidenceLink.AcceptedEvidenceIds))
+            {
+                properties["acceptedEvidenceIds"] = new JsonObject
+                {
+                    ["type"] = new JsonArray("array", "null"),
+                    ["items"] = new JsonObject { ["type"] = "string" },
+                    ["maxItems"] = 8
+                };
+                continue;
+            }
             if (!property.CanRead || IsExcluded(type, property.Name)
                 || (!includeV3Fields && type == typeof(GeneratedCaseLogic) && property.Name == nameof(GeneratedCaseLogic.TestimonyFragments)))
                 continue;

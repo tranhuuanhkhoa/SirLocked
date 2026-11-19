@@ -1,0 +1,1226 @@
+/* ==========================================================================
+   60-admin-theme — giao diện "Hồ sơ giấy" cho mọi trang /admin.
+   Thiết kế gốc: bộ HTML sirlocked-admin-html (tone B). Xem docs/admin-redesign.md.
+
+   Phạm vi: chỉ khi router đặt body[data-area="admin"] (route admin hoặc /admin/ai).
+   Trang người chơi không bao giờ có thuộc tính này, nên không đổi gì ở đó.
+
+   Các file 49/50/51/52 vẫn viết bằng token cũ (--gold-light, --panel, --line...).
+   Ở đây token cũ được gán lại sang màu giấy, nên chúng tự đổi theo.
+   ========================================================================== */
+
+/* ---------- 1. Token ---------- */
+
+body[data-area="admin"] > #app,
+body[data-area="admin"] > #admin-nav-root,
+body[data-area="admin"] > #nav-root.adm-topbar,
+body[data-area="admin"] > #toast-root,
+body[data-area="admin"] > dialog,
+body[data-area="admin"] > .acf-modal,
+body[data-area="admin"] > .adm-layer,
+#app > .adm-login {
+  /* màu của thiết kế */
+  --adm-paper: #f4efe6;
+  --adm-paper-2: #f8f4ec;
+  --adm-card: #fffdf9;
+  --adm-tile: #f6f1e8;
+  --adm-tile-2: #efe9df;
+  --adm-seg: #ebe3d5;
+  --adm-line: #e6dccb;
+  --adm-line-soft: #f0e8db;
+  --adm-line-mid: #ece3d4;
+  --adm-input-line: #ded2be;
+  --adm-btn-line: #d6c8af;
+  --adm-ink: #1d2738;
+  --adm-navy: #10203a;
+  --adm-navy-2: #172b4a;
+  --adm-text-2: #4d4538;
+  --adm-muted: #6a6153;
+  --adm-muted-2: #8a8172;
+  --adm-gold: #b78a2c;
+  --adm-gold-bright: #e2bd66;
+  --adm-gold-text: #8a6516;
+  --adm-eyebrow: #85621a;
+  --adm-on-navy: #f6eedf;
+  --adm-on-navy-2: #d9cfbc;
+  --adm-on-navy-3: #bfb39d;
+  --adm-ok: #23685f;
+  --adm-ok-bg: #def0ec;
+  --adm-ok-line: #a9d3cb;
+  --adm-bad: #9a4426;
+  --adm-bad-bg: #f9e4dc;
+  --adm-bad-line: #e8bfae;
+  --adm-warn: #7a5a12;
+  --adm-warn-bg: #f5e9c8;
+  --adm-violet: #4f3c8c;
+  --adm-violet-bg: #ebe4fa;
+  --adm-teal-bar: #2f8a7d;
+  --adm-r-card: 18px;
+  --adm-r-tile: 14px;
+  --adm-r-ctl: 12px;
+  --adm-r-sm: 10px;
+  --adm-shadow: 0 1px 2px rgba(29, 39, 56, .05), 0 8px 24px rgba(29, 39, 56, .04);
+  --adm-shadow-hover: 0 2px 4px rgba(29, 39, 56, .06), 0 14px 32px rgba(29, 39, 56, .08);
+  --adm-font: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --adm-display: 'Playfair Display', Georgia, serif;
+  --adm-mono: 'Source Code Pro', ui-monospace, monospace;
+  --adm-gutter: 40px;
+
+  /* độ hiếm (bảng màu của thiết kế sửa hòm) */
+  --adm-r-common-bg: #efe9df; --adm-r-common: #4d4538;
+  --adm-r-rare-bg: #e0ebf8;   --adm-r-rare: #245a92;
+  --adm-r-epic-bg: #ece5fa;   --adm-r-epic: #53409a;
+  --adm-r-legend-bg: #f8ead0; --adm-r-legend: #8a5a0c;
+  --adm-r-mystery-bg: #f8e1e1; --adm-r-mystery: #9b2f3a;
+
+  /* token cũ, gán lại sang giấy để file 49-52 tự đổi màu */
+  --gold: #b78a2c;
+  --gold-light: #8a6516;
+  --gold-dim: #85621a;
+  --copper: #9a4426;
+  --teal: #23685f;
+  --beige: #1d2738;
+  --beige-muted: #6a6153;
+  --white: #10203a;
+  --fog: rgba(16, 32, 58, .45);
+  --panel: #fffdf9;
+  --panel-strong: #fffdf9;
+  --well: #f6f1e8;
+  --line: #e6dccb;
+  --line-strong: #d6c8af;
+  --gold-wash: #f5e9c8;
+  --gold-wash-strong: #f0deb0;
+  --ok: #23685f;
+  --ok-line: #a9d3cb;
+  --ok-wash: #def0ec;
+  --bad: #9a4426;
+  --bad-line: #e8bfae;
+  --bad-wash: #f9e4dc;
+  --btn-fill: #10203a;
+  --btn-fill-hover: #1b3156;
+  --e-glow: 0 0 0 3px rgba(183, 138, 44, .25);
+  --shadow-lg: 0 24px 64px rgba(16, 32, 58, .18);
+  --r-md: 12px;
+  --font-body: var(--adm-font);
+  --font-display: var(--adm-display);
+
+  color: var(--adm-ink);
+  font-family: var(--adm-font);
+}
+
+/* ---------- 2. Nền và khung trang ---------- */
+
+/* .adm-card, .adm-pill, .chip... đặt display nên đè thuộc tính hidden; trong vùng admin hidden luôn ẩn */
+body[data-area="admin"] [hidden] { display: none !important; }
+
+body[data-area="admin"] {
+  background: #f4efe6;
+  color: #1d2738;
+}
+/* cột sidebar luôn xanh tới cuối trang, kể cả khi trang dài hơn màn hình */
+body[data-area="admin"].adm-has-side { background: linear-gradient(90deg, #10203a 248px, #f4efe6 248px); }
+body[data-area="admin"]::before,
+body[data-area="admin"].bpa-board::before { display: none; }
+
+body[data-area="admin"].adm-has-side {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body[data-area="admin"].adm-has-side > #admin-nav-root {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: var(--z-sticky);
+}
+body[data-area="admin"].adm-has-side > #nav-root { grid-column: 2; grid-row: 1; }
+body[data-area="admin"].adm-has-side > #app { grid-column: 2; grid-row: 2; min-width: 0; }
+
+body[data-area="admin"] > #app { background: transparent; }
+/* Nội dung giãn hết bề ngang còn lại cạnh sidebar. Chỉ trên màn rất rộng mới dừng ở 1800 px và nằm giữa,
+   để dòng chữ và bảng không kéo dài quá mức. */
+body[data-area="admin"] > #app > .page,
+body[data-area="admin"] > #app > div > .page {
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 32px var(--adm-gutter) 56px;
+  box-sizing: border-box;
+}
+@media (min-width: 1600px) {
+  body[data-area="admin"] > #app,
+  body[data-area="admin"] > #nav-root.adm-topbar { --adm-gutter: 48px; }
+}
+
+/* sidebar */
+#admin-nav-root .adm-side {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 16px;
+  background: var(--adm-navy);
+  color: var(--adm-on-navy-2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+#admin-nav-root .adm-side-head { display: flex; align-items: center; gap: 12px; }
+#admin-nav-root .adm-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px;
+  color: var(--adm-on-navy);
+  text-decoration: none;
+  min-width: 0;
+}
+#admin-nav-root .adm-brand svg { flex: none; color: var(--adm-gold-bright); stroke-width: 1.4; }
+#admin-nav-root .adm-brand-text { display: flex; flex-direction: column; gap: 2px; }
+#admin-nav-root .adm-brand-name {
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: .08em;
+  color: var(--adm-on-navy);
+  line-height: 1.2;
+}
+#admin-nav-root .adm-brand-sub {
+  font-family: var(--adm-mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: var(--adm-on-navy-3);
+}
+#admin-nav-root .adm-menu-toggle { display: none; }
+#admin-nav-root .adm-side-body { display: flex; flex-direction: column; gap: 24px; flex: 1; min-height: 0; }
+
+#admin-nav-root .adm-nav { display: flex; flex-direction: column; gap: 4px; }
+#admin-nav-root .admin-nav-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: var(--adm-on-navy-2);
+  font-family: var(--adm-font);
+  font-size: 15px;
+  letter-spacing: 0;
+  text-decoration: none;
+  white-space: normal;
+  line-height: 1.25;
+}
+#admin-nav-root .admin-nav-tab svg { flex: none; }
+#admin-nav-root .admin-nav-tab::after { content: none; }
+#admin-nav-root .admin-nav-tab[data-count]::after {
+  content: attr(data-count);
+  position: static;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--adm-on-navy-3);
+  background: none;
+  height: auto;
+}
+#admin-nav-root .admin-nav-tab:hover { background: rgba(243, 235, 220, .08); color: var(--adm-on-navy); }
+#admin-nav-root .admin-nav-tab.is-active {
+  background: var(--adm-paper);
+  color: var(--adm-navy);
+  font-weight: 600;
+}
+#admin-nav-root .admin-nav-tab.is-active[data-count]::after { color: var(--adm-muted); }
+#admin-nav-root .admin-nav-tab:focus-visible,
+#admin-nav-root .adm-side a:focus-visible,
+#admin-nav-root .adm-side button:focus-visible { outline: 2px solid var(--adm-gold-bright); outline-offset: 2px; }
+
+#admin-nav-root .adm-side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+#admin-nav-root .adm-back {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: var(--adm-on-navy-2);
+  text-decoration: none;
+  font-size: 15px;
+}
+#admin-nav-root .adm-back:hover { background: rgba(243, 235, 220, .08); color: var(--adm-on-navy); }
+#admin-nav-root .adm-me {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--adm-navy-2);
+}
+#admin-nav-root .adm-me-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--adm-gold-bright);
+  color: #1b1405;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+#admin-nav-root .adm-me-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#admin-nav-root .adm-me-name { font-weight: 600; font-size: 14px; color: var(--adm-on-navy); overflow-wrap: anywhere; }
+#admin-nav-root .adm-me-role { font-size: 12px; color: var(--adm-on-navy-3); }
+#admin-nav-root .adm-icon-btn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--adm-on-navy-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#admin-nav-root .adm-icon-btn:hover { background: rgba(243, 235, 220, .08); color: var(--adm-on-navy); }
+
+/* thanh trên */
+#nav-root.adm-topbar { position: sticky; top: 0; z-index: var(--z-sticky); }
+.adm-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 16px var(--adm-gutter);
+  border-bottom: 1px solid #e4d9c6;
+  background: var(--adm-paper-2);
+}
+.adm-search { position: relative; flex: 1 1 320px; max-width: 520px; }
+.adm-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-input-line);
+  color: var(--adm-muted);
+  box-sizing: border-box;
+}
+.adm-search-box:focus-within { border-color: var(--adm-gold); box-shadow: 0 0 0 3px rgba(183, 138, 44, .18); }
+.adm-search-box input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--adm-ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.adm-search-box input::placeholder { color: var(--adm-muted-2); }
+.adm-search-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  box-shadow: var(--adm-shadow-hover);
+}
+.adm-search-menu[hidden] { display: none; }
+.adm-search-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--adm-ink);
+  text-decoration: none;
+  font-size: 14px;
+}
+.adm-search-menu a small { margin-left: auto; color: var(--adm-muted); font-size: 12px; }
+.adm-search-menu a:hover,
+.adm-search-menu a:focus-visible,
+.adm-search-menu a.is-current { background: var(--adm-tile); outline: none; }
+.adm-top-tools { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.adm-top .ui-language-switch {
+  display: flex;
+  gap: 0;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-input-line);
+  box-shadow: none;
+}
+.adm-top .ui-language-option {
+  min-width: 44px;
+  height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--adm-muted);
+  font-family: var(--adm-font);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.adm-top .ui-language-option.is-active { background: var(--adm-navy); color: var(--adm-on-navy); font-weight: 700; }
+
+/* màn hình hẹp: sidebar thu thành thanh có nút Menu */
+@media (max-width: 900px) {
+  body[data-area="admin"] > #app,
+  body[data-area="admin"] > #admin-nav-root,
+  body[data-area="admin"] > #nav-root.adm-topbar { --adm-gutter: 16px; }
+  body[data-area="admin"].adm-has-side { display: flex; flex-direction: column; background: #f4efe6; }
+  body[data-area="admin"].adm-has-side > #admin-nav-root { order: -1; position: sticky; top: 0; height: auto; }
+  #admin-nav-root .adm-side { padding: 10px 16px; gap: 12px; overflow: visible; }
+  #admin-nav-root .adm-side-head { justify-content: space-between; }
+  #admin-nav-root .adm-brand-name { font-size: 17px; }
+  #admin-nav-root .adm-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(243, 235, 220, .22);
+    background: transparent;
+    color: var(--adm-on-navy);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #admin-nav-root .adm-menu-current { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #admin-nav-root .adm-side:not(.is-open) .adm-side-body { display: none; }
+  #admin-nav-root .adm-side.is-open .adm-side-body { max-height: calc(100vh - 72px); overflow-y: auto; padding-bottom: 8px; }
+  #admin-nav-root .adm-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  #nav-root.adm-topbar { position: static; }
+  .adm-top { padding: 12px var(--adm-gutter); gap: 12px; }
+  .adm-top { flex-wrap: nowrap; }
+  .adm-search { flex: 1 1 auto; min-width: 0; max-width: none; }
+  .adm-top-tools { flex: none; }
+  body[data-area="admin"] > #app > .page,
+  body[data-area="admin"] > #app > div > .page { padding: 24px var(--adm-gutter) 48px; }
+}
+
+/* ---------- 3. Chữ và đầu trang ---------- */
+
+/* Quy tắc chung để trong :where() nên không tính độ ưu tiên: CSS của từng khu và lớp .adm-* luôn thắng. */
+:where(body[data-area="admin"] > #app) :where(h1, h2, h3, h4) {
+  font-family: var(--adm-display);
+  color: var(--adm-navy);
+  letter-spacing: 0;
+  text-transform: none;
+}
+body[data-area="admin"] > #app { font-family: var(--adm-font); }
+:where(body[data-area="admin"] > #app) :where(p, li, td, th, label, span, small, button, input, select, textarea, summary, dt, dd) {
+  font-family: var(--adm-font);
+}
+:where(body[data-area="admin"] > :is(#app, dialog, .acf-modal, .adm-layer)) :where(code, pre, kbd, .adm-mono) { font-family: var(--adm-mono); }
+:where(body[data-area="admin"] > #app) :where(a) { color: var(--adm-gold-text); }
+:where(body[data-area="admin"] > #app) :where(a:hover) { color: #5f450b; }
+body[data-area="admin"] > #app .muted,
+body[data-area="admin"] > dialog .muted { color: var(--adm-muted); }
+body[data-area="admin"] :is(input, select, textarea, button, a, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--adm-gold);
+  outline-offset: 2px;
+}
+
+body[data-area="admin"] .page-head,
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+body[data-area="admin"] .page-head h2,
+body[data-area="admin"] .adm-head h1 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 1.15;
+  color: var(--adm-navy);
+}
+.adm-head-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.adm-eyebrow {
+  font-family: var(--adm-mono);
+  font-size: 12px;
+  letter-spacing: .14em;
+  color: var(--adm-eyebrow);
+  text-transform: uppercase;
+}
+.adm-sub { margin: 0; color: var(--adm-muted); font-size: 15px; max-width: 760px; }
+.adm-actions,
+body[data-area="admin"] .page-head .case-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.adm-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.adm-section-label {
+  margin: 0;
+  font-family: var(--adm-font);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--adm-eyebrow);
+  text-transform: uppercase;
+}
+body[data-area="admin"] .section-title,
+body[data-area="admin"] .page .section-title {
+  margin: 32px 0 14px;
+  font-family: var(--adm-display);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--adm-navy);
+  letter-spacing: 0;
+  text-transform: none;
+}
+@media (max-width: 600px) {
+  body[data-area="admin"] .page-head h2,
+  body[data-area="admin"] .adm-head h1 { font-size: 30px; }
+}
+
+/* ---------- 4. Nút ---------- */
+
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--adm-r-ctl);
+  border: 1px solid var(--adm-btn-line);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  font-family: var(--adm-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.2;
+  box-shadow: none;
+  text-decoration: none;
+  cursor: pointer;
+  transform: none;
+  transition: background-color var(--m-fast) var(--ease-out), border-color var(--m-fast) var(--ease-out), filter var(--m-fast) var(--ease-out);
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn::before,
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn::after { content: none; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn:hover:not(:disabled) { background: #f3ece0; color: var(--adm-ink); transform: none; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.btn-primary, .btn-gold) {
+  background: var(--adm-navy);
+  border-color: var(--adm-navy);
+  color: var(--adm-on-navy);
+  font-weight: 700;
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.btn-primary, .btn-gold):hover:not(:disabled) {
+  background: #1b3156;
+  border-color: #1b3156;
+  color: var(--adm-on-navy);
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn-sm { min-height: 38px; padding: 0 14px; border-radius: var(--adm-r-sm); font-size: 13px; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn:disabled { opacity: .55; cursor: not-allowed; }
+/* nút nguy hiểm: viền đỏ đất, nền giấy (như "Khóa", "Gỡ xuất bản") */
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger) {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-bad-line);
+  color: var(--adm-bad);
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger):hover:not(:disabled) {
+  background: var(--adm-bad-bg);
+  color: var(--adm-bad);
+}
+/* nút xác nhận nguy hiểm trong hộp thoại: nền đỏ đất đặc.
+   #adm-weight không tồn tại; nó chỉ cho :is() độ ưu tiên của một id để thắng quy tắc viền ở trên (cũng có #app). */
+body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer, #adm-weight) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger) {
+  background: var(--adm-bad);
+  border-color: var(--adm-bad);
+  color: #fffdf9;
+}
+body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer, #adm-weight) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger):hover:not(:disabled) {
+  background: #7f3820;
+  color: #fffdf9;
+}
+.adm-btn-ok { border-color: var(--adm-ok-line) !important; color: var(--adm-ok) !important; }
+.adm-btn-accent {
+  background: var(--adm-gold-bright) !important;
+  border-color: var(--adm-gold-bright) !important;
+  color: #1b1405 !important;
+  font-weight: 700 !important;
+}
+
+/* ---------- 5. Ô nhập ---------- */
+
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea,
+  .field-input,
+  .json-input
+) {
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border-radius: var(--adm-r-ctl);
+  border: 1px solid var(--adm-input-line);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  font-family: var(--adm-font);
+  font-size: 15px;
+  box-shadow: none;
+}
+/* #adm-weight không tồn tại; nó cho :is() độ ưu tiên của một id để thắng quy tắc ô nhập chung ở trên */
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(textarea, textarea.field-input, .json-input, #adm-weight) {
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+/* ô JSON chữ đều: cùng độ ưu tiên với quy tắc ô nhập chung ở trên và đứng sau nó */
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.json-input, textarea.json-input, .json-editor textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
+  font-family: var(--adm-mono);
+  font-size: 13px;
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input, select, textarea, .field-input):hover { border-color: var(--adm-btn-line); }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input, select, textarea, .field-input):focus {
+  border-color: var(--adm-gold);
+  box-shadow: 0 0 0 3px rgba(183, 138, 44, .18);
+  outline: none;
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input, textarea)::placeholder { color: var(--adm-muted-2); }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input[type="checkbox"], input[type="radio"]) {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--adm-navy);
+}
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.field-label, label > span:first-child) { color: var(--adm-text-2); }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .field-label { font-size: 13px; font-weight: 600; }
+body[data-area="admin"] :is(#app, dialog) .field-hint { color: var(--adm-muted); font-size: 13px; }
+body[data-area="admin"] :is(#app, dialog) .field-error { color: var(--adm-bad); font-size: 13px; }
+
+/* ---------- 6. Thẻ, khối, số liệu ---------- */
+
+.adm-card,
+body[data-area="admin"] #app .panel,
+body[data-area="admin"] #app .panel--dossier {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r-card);
+  box-shadow: var(--adm-shadow);
+  color: var(--adm-ink);
+}
+body[data-area="admin"] #app .panel--dossier::before { content: none; }
+body[data-area="admin"] #app :is(.panel, .panel--dossier) { clip-path: none; }
+.adm-card { padding: 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.adm-card--flush { padding: 0; gap: 0; overflow: hidden; }
+.adm-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
+.adm-card--flush > .adm-card-head { padding: 20px 22px; }
+.adm-card-title {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--adm-navy);
+  line-height: 1.25;
+}
+.adm-card-sub { margin: 2px 0 0; font-size: 13px; color: var(--adm-muted); }
+a.adm-card { text-decoration: none; color: var(--adm-ink); transition: border-color var(--m-fast), box-shadow var(--m-fast); }
+a.adm-card:hover { border-color: #cdb27a; box-shadow: var(--adm-shadow-hover); color: var(--adm-ink); }
+
+.adm-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+.adm-grid--tiles { gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+.adm-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.adm-stack { display: flex; flex-direction: column; gap: 32px; }
+.adm-stack--tight { gap: 16px; }
+
+/* thẻ số lớn có icon (Hôm nay) */
+.adm-kpi { padding: 20px 22px; gap: 14px; }
+.adm-kpi-top { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--adm-text-2); }
+.adm-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background: var(--adm-warn-bg);
+  color: var(--adm-warn);
+}
+.adm-kpi-icon--ok { background: var(--adm-ok-bg); color: var(--adm-ok); }
+.adm-kpi-icon--violet { background: var(--adm-violet-bg); color: var(--adm-violet); }
+.adm-kpi-icon--bad { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.adm-kpi-value {
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--adm-navy);
+}
+.adm-kpi-link { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--adm-gold-text); }
+.adm-kpi--dark { background: var(--adm-navy); border-color: var(--adm-navy); color: var(--adm-on-navy-2); }
+.adm-kpi--dark .adm-kpi-value { color: var(--adm-gold-bright); }
+.adm-kpi--dark .adm-kpi-top,
+.adm-kpi--dark .adm-tile-note { color: var(--adm-on-navy-2); }
+
+/* ô số nhỏ trong thẻ (Toàn hệ thống) */
+.adm-tile,
+body[data-area="admin"] #app .stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  border: 0;
+  box-shadow: none;
+  color: var(--adm-ink);
+  min-width: 0;
+}
+.adm-tile-label,
+body[data-area="admin"] #app .stat-card > span { font-size: 13px; color: var(--adm-muted); }
+.adm-tile-value,
+body[data-area="admin"] #app .stat-card strong { font-family: var(--adm-font); font-size: 26px; font-weight: 700; color: var(--adm-navy); line-height: 1.2; }
+.adm-tile-value small { font-size: 16px; font-weight: 500; color: var(--adm-muted); }
+.adm-tile-value--gold { color: var(--adm-warn) !important; }
+.adm-tile-note { font-size: 12px; color: var(--adm-muted); }
+body[data-area="admin"] #app .stat-grid { gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); margin-bottom: 16px; }
+.adm-meter { display: block; height: 6px; border-radius: 999px; background: #e7dfd0; overflow: hidden; }
+.adm-meter > span { display: block; height: 100%; border-radius: 999px; background: var(--adm-teal-bar); }
+.adm-meter--gold > span { background: var(--adm-gold); }
+.adm-meter--navy > span { background: var(--adm-navy); }
+
+/* dòng việc cần xử lý */
+.adm-todo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--adm-tile);
+  color: var(--adm-ink);
+  text-decoration: none;
+}
+.adm-todo:hover { background: #efe7d9; color: var(--adm-ink); }
+.adm-todo-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.adm-todo-text strong { font-size: 14px; font-weight: 600; }
+.adm-todo-text small { font-size: 12px; color: var(--adm-muted); }
+.adm-count {
+  min-width: 32px;
+  height: 28px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #e9e1d2;
+  color: var(--adm-text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.adm-count--alert { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.adm-ok-line { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--adm-ok); }
+
+/* ---------- 7. Nhãn, huy hiệu ---------- */
+
+.adm-pill,
+body[data-area="admin"] :is(#app, dialog) .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--adm-tile-2);
+  color: var(--adm-text-2);
+  font-family: var(--adm-font);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.adm-pill--sm { min-height: 24px; padding: 0 10px; font-size: 12px; }
+.adm-pill--ok, body[data-area="admin"] :is(#app, dialog) :is(.chip-ok, .chip-role) { background: var(--adm-ok-bg); color: var(--adm-ok); }
+.adm-pill--bad, body[data-area="admin"] :is(#app, dialog) .chip-bad { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.adm-pill--gold, body[data-area="admin"] :is(#app, dialog) .chip-gold { background: var(--adm-warn-bg); color: var(--adm-warn); }
+.adm-pill--violet { background: var(--adm-violet-bg); color: var(--adm-violet); }
+.adm-pill--navy { background: var(--adm-navy); color: var(--adm-on-navy); }
+.adm-pill--line { background: var(--adm-card); border: 1px solid var(--adm-btn-line); color: var(--adm-ink); }
+.adm-dot::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: currentColor; flex: none; }
+.adm-rarity { min-height: 24px; padding: 0 10px; font-size: 12px; }
+.adm-rarity--COMMON { background: var(--adm-r-common-bg); color: var(--adm-r-common); }
+.adm-rarity--RARE { background: var(--adm-r-rare-bg); color: var(--adm-r-rare); }
+.adm-rarity--EPIC { background: var(--adm-r-epic-bg); color: var(--adm-r-epic); }
+.adm-rarity--LEGENDARY { background: var(--adm-r-legend-bg); color: var(--adm-r-legend); }
+.adm-rarity--MYSTERY { background: var(--adm-r-mystery-bg); color: var(--adm-r-mystery); }
+
+/* nút lọc tròn (Tất cả 7 · Admin 2 ...) */
+.adm-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.adm-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--adm-input-line);
+  background: var(--adm-card);
+  color: var(--adm-text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adm-filter small { font-size: 12px; font-weight: 500; opacity: .8; }
+.adm-filter[aria-pressed="true"],
+.adm-filter.is-active { background: var(--adm-navy); border-color: var(--adm-navy); color: var(--adm-on-navy); }
+
+/* ---------- 8. Tab ---------- */
+
+/* tab dạng khay (Hòm · Vật phẩm · ...) */
+.adm-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--adm-seg);
+  box-sizing: border-box;
+}
+.adm-seg-tab,
+.adm-seg > a,
+.adm-seg > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #5a5245 !important;
+  font-family: var(--adm-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.adm-seg > :is(a, button):hover { color: var(--adm-navy) !important; background: rgba(255, 253, 249, .55); }
+.adm-seg > :is(a, button):is(.is-active, [aria-current="page"], [aria-selected="true"], [aria-pressed="true"]) {
+  background: var(--adm-card);
+  color: var(--adm-navy) !important;
+  box-shadow: 0 1px 2px rgba(29, 39, 56, .08);
+}
+.adm-seg small, .adm-seg .adm-count { font-size: 12px; }
+/* trên điện thoại khay xuống dòng như thiết kế, không cuộn ngang (cuộn ngang giấu mất tab cuối) */
+
+/* tab gạch chân (Cutscene · Cấu trúc · JSON, Kho đồ · Lịch sử trận ...) */
+.adm-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 12px 0;
+  border-bottom: 1px solid var(--adm-line-mid);
+}
+.adm-tabs > :is(a, button) {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--adm-muted) !important;
+  font-family: var(--adm-font);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.adm-tabs > :is(a, button):hover { color: var(--adm-navy) !important; }
+.adm-tabs > :is(a, button):is(.is-active, [aria-current="page"], [aria-selected="true"]) {
+  color: var(--adm-navy) !important;
+  border-bottom-color: var(--adm-gold);
+}
+/* trên điện thoại tab gạch chân xuống dòng như thiết kế */
+
+/* ---------- 9. Bảng ---------- */
+
+.adm-table-wrap,
+body[data-area="admin"] #app :is(.admin-table-scroll, .table-scroll) {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.adm-table,
+body[data-area="admin"] :is(#app, dialog) .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: var(--adm-card);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 14px;
+  color: var(--adm-ink);
+}
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) :is(th, td) {
+  overflow-wrap: break-word;
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: middle;
+  border: 0;
+  border-top: 1px solid var(--adm-line-soft);
+  background: transparent;
+  color: inherit;
+}
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) thead th {
+  background: var(--adm-tile);
+  border-top: 0;
+  font-family: var(--adm-font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+  white-space: nowrap;
+}
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) tbody tr:hover > td { background: #faf6ee; }
+/* tiêu đề hàng trong thân bảng không viết hoa như tiêu đề cột (10-game.css vẽ mọi th như đầu bảng) */
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) tbody th {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--adm-ink);
+}
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) :is(th, td):first-child { padding-left: 22px; }
+body[data-area="admin"] :is(#app, dialog) :is(.adm-table, .admin-table) :is(th, td):last-child { padding-right: 22px; }
+.adm-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.adm-table-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+/* một bảng đứng riêng (không nằm trong thẻ) vẫn có khung thẻ */
+body[data-area="admin"] #app :is(.admin-table-scroll, .table-scroll):not(.adm-card *) {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-r-card);
+  box-shadow: var(--adm-shadow);
+}
+.adm-person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.adm-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--adm-navy);
+  color: #f0d48c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.adm-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.adm-person-text { display: flex; flex-direction: column; min-width: 0; }
+.adm-person-text strong { font-weight: 600; color: var(--adm-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-person-text small { font-size: 13px; color: var(--adm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-code { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-muted); }
+
+/* ---------- 10. Phân trang ---------- */
+
+.adm-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--adm-line-mid);
+  font-size: 13px;
+  color: var(--adm-muted);
+}
+.adm-pager strong { color: var(--adm-ink); }
+.adm-pager-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.adm-page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--adm-input-line);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.adm-page-btn[aria-current="page"] { background: var(--adm-navy); border-color: var(--adm-navy); color: var(--adm-on-navy); }
+.adm-page-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- 11. Trạng thái trống / đang tải / lỗi, thông báo ---------- */
+
+body[data-area="admin"] :is(#app, dialog) .empty-state,
+.adm-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 22px;
+  border-radius: var(--adm-r-card);
+  background: var(--adm-card);
+  border: 1px dashed var(--adm-btn-line);
+  color: var(--adm-muted);
+  text-align: center;
+  font-family: var(--adm-font);
+  font-size: 14px;
+  box-shadow: none;
+}
+body[data-area="admin"] :is(#app, dialog) .empty-state.small { padding: 16px; }
+/* trạng thái trống nằm thẳng trong thẻ liền mép: không viền riêng, chỉ một đường kẻ trên */
+.adm-card--flush > :is(.adm-state, .empty-state) { border: 0; border-top: 1px solid var(--adm-line-soft); border-radius: 0; }
+.adm-card--flush > .adm-state--error { margin: 0 22px 22px; border: 1px solid var(--adm-bad-line); border-radius: var(--adm-r-ctl); }
+.adm-state strong { color: var(--adm-ink); font-weight: 600; font-size: 15px; }
+body[data-area="admin"] :is(#app, dialog) .empty-state[role="alert"],
+.adm-state--error { border-style: solid; border-color: var(--adm-bad-line); background: #fdf3ee; color: var(--adm-bad); }
+.adm-loading::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid var(--adm-line);
+  border-top-color: var(--adm-gold);
+  animation: adm-spin .8s linear infinite;
+}
+@keyframes adm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .adm-loading::before { animation: none; } }
+body[data-area="admin"] :is(#app, dialog) .notice {
+  padding: 12px 16px;
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-tile);
+  border: 1px solid var(--adm-line);
+  color: var(--adm-text-2);
+  font-size: 14px;
+}
+body[data-area="admin"] :is(#app, dialog) .notice-ok { background: var(--adm-ok-bg); border-color: var(--adm-ok-line); color: var(--adm-ok); }
+body[data-area="admin"] :is(#app, dialog) .notice-bad { background: var(--adm-bad-bg); border-color: var(--adm-bad-line); color: var(--adm-bad); }
+body[data-area="admin"] :is(#app, dialog) .notice-warn { background: var(--adm-warn-bg); border-color: var(--adm-warn); color: var(--adm-warn); }
+body[data-area="admin"] #app .acs-import-warnings { margin-top: 10px; }
+body[data-area="admin"] #app .acs-import-warnings ul { margin: 6px 0 0; padding-left: 18px; overflow-wrap: anywhere; }
+
+/* ---------- 12. Hộp thoại, toast ---------- */
+
+body[data-area="admin"] > dialog {
+  border-radius: 20px;
+  border: 1px solid var(--adm-line);
+  background: var(--adm-card);
+  color: var(--adm-ink);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--adm-font);
+}
+body[data-area="admin"] > dialog::backdrop { background: rgba(16, 32, 58, .45); }
+body[data-area="admin"] > dialog :is(h2, h3) { font-family: var(--adm-display); color: var(--adm-navy); }
+body[data-area="admin"] > .acf-modal { background: rgba(16, 32, 58, .45); }
+body[data-area="admin"] > #toast-root .toast {
+  border-radius: var(--adm-r-ctl);
+  background: var(--adm-navy);
+  color: var(--adm-on-navy);
+  border: 0;
+  box-shadow: var(--adm-shadow-hover);
+  font-family: var(--adm-font);
+  font-size: 14px;
+}
+body[data-area="admin"] > #toast-root .toast-success { background: var(--adm-ok); }
+body[data-area="admin"] > #toast-root .toast-error { background: var(--adm-bad); }
+
+/* ---------- 13. Trang đăng nhập admin (/admin/login, ngoài vùng admin nên dùng lớp .adm-login) ---------- */
+
+#app > .adm-login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  background: var(--adm-paper);
+  font-family: var(--adm-font);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.adm-login-side {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 48px;
+  background: var(--adm-navy);
+  color: var(--adm-on-navy-2);
+}
+.adm-login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: .08em;
+  color: var(--adm-on-navy);
+}
+.adm-login-brand svg { color: var(--adm-gold-bright); stroke-width: 1.4; flex: none; }
+.adm-login-pitch { margin: auto 0; display: flex; flex-direction: column; gap: 16px; max-width: 460px; }
+.adm-login-eyebrow { font-family: var(--adm-mono); font-size: 12px; font-weight: 600; letter-spacing: .2em; color: var(--adm-gold-bright); text-transform: uppercase; }
+.adm-login-big { margin: 0; font-family: var(--adm-display); font-weight: 700; font-size: 46px; line-height: 1.1; color: var(--adm-on-navy); }
+.adm-login-lede { margin: 0; font-size: 17px; color: var(--adm-on-navy-2); }
+.adm-login-foot { font-size: 13px; color: var(--adm-on-navy-3); }
+.adm-login-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+.adm-login-lang { position: absolute; top: 24px; right: 32px; }
+.adm-login .ui-language-switch { display: flex; padding: 3px; border-radius: 12px; background: var(--adm-card); border: 1px solid var(--adm-input-line); box-shadow: none; }
+.adm-login .ui-language-option {
+  min-width: 44px; height: 36px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--adm-muted); font-family: var(--adm-font); font-size: 13px; font-weight: 600; letter-spacing: 0; cursor: pointer;
+}
+.adm-login .ui-language-option.is-active { background: var(--adm-navy); color: var(--adm-on-navy); font-weight: 700; }
+.adm-login-card {
+  width: 100%;
+  max-width: 464px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 32px;
+  border-radius: 24px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  box-shadow: 0 1px 2px rgba(29, 39, 56, .05), 0 24px 56px rgba(29, 39, 56, .10);
+  color: var(--adm-ink);
+}
+.adm-login-card h1 { margin: 0; font-family: var(--adm-display); font-weight: 700; font-size: 30px; line-height: 1.2; color: var(--adm-navy); letter-spacing: 0; }
+.adm-login-sub { margin: 4px 0 0; font-size: 14px; color: var(--adm-muted); }
+.adm-login-form { display: flex; flex-direction: column; gap: 16px; }
+.adm-login-field { display: flex; flex-direction: column; gap: 8px; }
+.adm-login-field > span:first-child,
+.adm-login-field > label { font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.adm-login-field input,
+.adm-login-pass input {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--adm-input-line);
+  background: #f8f4ec;
+  color: var(--adm-ink);
+  font: inherit;
+  font-size: 15px;
+}
+.adm-login-field input::placeholder { color: var(--adm-muted-2); }
+.adm-login-field input:focus { border-color: var(--adm-gold); box-shadow: 0 0 0 3px rgba(183, 138, 44, .18); outline: none; }
+.adm-login-pass { position: relative; display: block; }
+.adm-login-pass input { padding-right: 52px; }
+.adm-login-reveal {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--adm-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.adm-login-reveal[aria-pressed="true"] { color: var(--adm-navy); }
+.adm-login-submit {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--adm-navy);
+  color: var(--adm-on-navy);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.adm-login-submit:hover:not(:disabled) { background: #1b3156; }
+.adm-login-submit:disabled { opacity: .65; cursor: progress; }
+.adm-login-back { align-self: center; font-size: 14px; font-weight: 600; color: var(--adm-gold-text); text-decoration: none; }
+.adm-login-back:hover { color: #5f450b; text-decoration: underline; }
+.adm-login-alert,
+.adm-login-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  border: 0;
+  box-shadow: none;
+  transform: none;
+}
+.adm-login-alert { background: var(--adm-bad-bg); color: var(--adm-bad); font-weight: 600; }
+.adm-login-note { background: var(--adm-warn-bg); color: var(--adm-warn); font-family: var(--adm-font); }
+.adm-login-note p { margin: 0; }
+.adm-login :is(a, button, input):focus-visible { outline: 2px solid var(--adm-gold); outline-offset: 2px; }
+@media (max-width: 860px) {
+  #app > .adm-login { grid-template-columns: 1fr; }
+  .adm-login-side { gap: 24px; padding: 40px 48px 48px; }
+  .adm-login-pitch { margin: 0; }
+  .adm-login-big { font-size: 38px; }
+  .adm-login-main { padding: 72px 24px 48px; align-items: flex-start; }
+  .adm-login-lang { top: 16px; right: 16px; }
+  .adm-login-card { padding: 28px 24px; }
+}
+
+/* ---------- 14. Điện thoại: vùng chạm 44 px ----------
+   Để cuối file để thắng các quy tắc cơ sở cùng độ ưu tiên ở trên. */
+@media (max-width: 900px) {
+  body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn-sm { min-height: 44px; }
+  .adm-seg > :is(a, button),
+  .adm-seg-tab { min-height: 44px; }
+  .adm-page-btn { min-width: 44px; height: 44px; }
+  body[data-area="admin"] :is(#app, dialog) .adm-pager select { min-height: 44px; }
+}

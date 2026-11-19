@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.DTOs.Case;
@@ -123,7 +124,6 @@ public partial class AiCaseService
 
     public async Task<AiDraftResponse> ApproveTruthAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -149,7 +149,6 @@ public partial class AiCaseService
 
     public async Task<AiDraftResponse> RepairTruthAsync(CurrentUser user, string draftId, RepairCaseTruthRequest request)
     {
-        EnsureOpenAiConfigured();
         var draft = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -503,6 +502,7 @@ public partial class AiCaseService
         var gameplayContract = AiGenerationContract.For(draft.Settings);
         var plannedTargetKind = CaseTargetAllocationPolicy.Resolve(draft);
         var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(
+            draft.Settings,
             gameplayContract,
             plannedTargetKind);
         var truth = checkpoint is null
@@ -554,7 +554,7 @@ public partial class AiCaseService
                 artifact =>
                 {
                     truth.TrueTimeline = artifact.TrueTimeline;
-                    return _truthService.ValidateTimelineReferences(truth, budget);
+                    return _stageRules.Timeline(truth, budget);
                 },
                 StageCorrection(2));
             truth.TrueTimeline = timelineResult.Artifact.TrueTimeline;
@@ -603,9 +603,7 @@ public partial class AiCaseService
                 artifact =>
                 {
                     truth.TraceLedger = artifact.TraceLedger;
-                    var validation = ValidateGeneratedTraceSet(truth.TraceLedger, plannedTraceIds);
-                    validation.Errors.AddRange(_truthService.ValidateTraceArtifact(truth).Errors);
-                    return validation;
+                    return _stageRules.Evidence(truth, plannedTraceIds);
                 },
                 CaseTruthArtifacts.Evidence,
                 StageCorrection(4));
@@ -649,9 +647,7 @@ public partial class AiCaseService
                 artifact =>
                 {
                     truth.StatementLedger = artifact.StatementLedger;
-                    return _truthService.ValidateStatementArtifact(
-                        truth,
-                        draft.Settings);
+                    return _stageRules.Statements(truth, draft.Settings);
                 },
                 CaseTruthArtifacts.Statements,
                 StageCorrection(5));
@@ -691,10 +687,7 @@ public partial class AiCaseService
                 {
                     truth.ProofGraph = artifact.ProofGraph;
                     truth.RedHerringLedger = artifact.RedHerringLedger;
-                    var validation = _truthService.Validate(truth, budget);
-                    validation.Errors.AddRange(_projectionPlanner.ValidateProjectability(draft, truth).Errors);
-                    validation.Deduplicate();
-                    return validation;
+                    return _stageRules.ProofGraph(draft, truth, budget);
                 },
                 CaseTruthArtifacts.ProofGraph,
                 StageCorrection(6));
@@ -878,7 +871,7 @@ public partial class AiCaseService
     {
         var maxOutputTokens = TruthStageMaxOutputTokens(schemaVersion);
         async Task<string> GenerateAsync(string activeStep, string activePrompt, int activeMaxOutputTokens) =>
-            await GenerateJsonWithOpenAiAsync(
+            await GenerateJsonAsync(
                 draft.Id, activeStep, activePrompt, activeMaxOutputTokens, schemaVersion, schema,
                 await NextGenerationAttemptNumberAsync(draft.Id, schemaVersion),
                 mockResponseFactory: () => AiCaseMockFactory.BuildMockTruthStageJson(draft, schemaVersion),
@@ -993,7 +986,10 @@ public partial class AiCaseService
             : string.Empty;
         var proofScopeContract = artifact switch
         {
-            CaseTruthArtifacts.CoreTruth => "Choose a motive whose full personal stake can be demonstrated by concrete facts: what this culprit stands to gain or lose, how the target affects that stake, and why the culprit knows it. A theft target alone does not establish a motive. Keep distinct core actions compact enough to leave timeline slots for witnesses and necessary causal antecedents.",
+            CaseTruthArtifacts.CoreTruth => "Choose a motive whose full personal stake can be demonstrated by concrete facts: what this culprit stands to gain or lose, how the target affects that stake, and why the culprit knows it. A theft target alone does not establish a motive. Keep distinct core actions compact enough to leave timeline slots for witnesses and necessary causal antecedents."
+                + (draft.Settings.Language == CaseLanguages.Vietnamese
+                    ? " LANGUAGE: players read coreTruth.motive and coreTruth.method word for word as the accusation's answers, so write both in natural Vietnamese with full diacritics (keep IDs in English)."
+                    : string.Empty),
             CaseTruthArtifacts.Timeline => $"MOTIVE PROOF PLAN: plan an observable source for the culprit's personal stake and its connection to the target in the locked motive ({truth.CoreTruth.Motive}); a trace of removal alone is insufficient. Any document or record used for that link needs a physically consistent origin and observable content. Include the mechanism and triggering conditions for delayed effects; preparation alone cannot silently stand in for a later collapse or interruption. Timeline timestamps describe hidden truth; an exact minute becomes provable only through an explicit clock observation, contemporaneous record, or equally precise source.",
             CaseTruthArtifacts.Opportunity => "A verified alibi excludes the crime chain only if its observed interval prevents a required crime action at another location; an alibi before or after the crime, boundary-only contact, or presence at the crime location is not exculpatory. When no complete-chain opportunity exists, use the empty interval availableFromMinute = availableToMinute = 0 and explain the physical exclusion. Do not copy the global crime window into every suspect's availability.",
             CaseTruthArtifacts.Evidence => "PROOF SCOPE: MOTIVE evidence must expose the culprit's personal gain or loss and the target's effect on it, not merely identify what was stolen. State the observable contents of a relevant document or trace without inventing facts absent from the locked timeline. Respect doesNotProve: a source that does not explain why the culprit wanted the target cannot by itself establish that reason. createdAtMinute and event start/end values are hidden truth metadata, not observations proving exact times. Only claim exact minutes supported by an observable timing source; otherwise prove ordering or a bounded interval.",
@@ -1025,7 +1021,7 @@ public partial class AiCaseService
             : string.Empty;
         var instruction = artifact switch
         {
-            CaseTruthArtifacts.CaseSeed => $"Lock crime type, era, technology constraints, difficulty, duration, exactly {CaseTargetAllocationPolicy.RequiredSuspects(gameplayContract, CaseTargetAllocationPolicy.Resolve(draft))} stable suspect IDs, location IDs, and a complete travel-time graph. The server has locked target kind {CaseTargetAllocationPolicy.Resolve(draft)}; do not add the target to suspectIds. Do not choose a culprit yet.",
+            CaseTruthArtifacts.CaseSeed => $"Lock crime type, era, technology constraints, difficulty, duration, exactly {CaseTargetAllocationPolicy.RequiredSuspects(draft.Settings, gameplayContract, CaseTargetAllocationPolicy.Resolve(draft))} stable suspect IDs, location IDs, and a complete travel-time graph. The server has locked target kind {CaseTargetAllocationPolicy.Resolve(draft)}; do not add the target to suspectIds. Do not choose a culprit yet.",
             CaseTruthArtifacts.CoreTruth => $"Using only the locked seed, choose one culprit and lock target, motive, method, and IDs for preparation, crime, concealment, and culprit-mistake actions. targetKind is server-owned and must be copied exactly as {CaseTargetAllocationPolicy.Resolve(draft)}. targetId must be stable and distinct from every suspectId. Every generated action ID becomes a canonical timeline eventId in the next stage. Each core action ID must describe a physical action performed by the culprit, never a victim response or a third-party action. Do not write evidence or gameplay.",
             CaseTruthArtifacts.Timeline => $"Build the true minute-based timeline for every core action plus necessary alibi/witness events. Every distinct core action ID must be copied verbatim exactly once into eventId; auxiliary alibi and witness eventIds are allowed. actorId is the sole physical actor performing that event's action. Split interactions into separate overlapping events when another character performs a physical act. Every witnessId must also have its own actor event overlapping the witnessed event at the same location; boundary-only contact is not overlap. The action field is prose and prose must never define, embed, normalize, or alias a second causal ID. Include actor, location, duration, travel, required access/tools/knowledge, witnesses, SIGHT/HEARING observation conditions, and planned trace IDs. No actor can overlap or teleport. A covert crime action must not overlap another actor at the same location unless visibility or lack of visibility is physically explained. Resetting a control must not erase a delayed effect that the later timeline still requires; explicitly retain the mechanism or perform the reset after the effect. Every altered physical record needs an earlier event that created the original record. Declare between {ProofConclusionIds.ByCategory.Count} and {budget.MaxTraces} distinct trace IDs total and no more than two per event; assign each planned trace to the event whose actor physically creates it, and give every trace a distinct investigative purpose. HARD IDENTITY INVARIANT: at least one locked crime action ({lockedCrimeActionList}) performed by culprit {truth.CoreTruth.CulpritId} must plan a physical trace whose purpose is to identify that actor, not merely a shared tool, place, access right, or suspicious circumstance.",
             CaseTruthArtifacts.Opportunity => "Build one opportunity row per suspect from the locked timeline: motive, access, tools, knowledge, crime-opportunity window, verified alibi, identity linkage, and a causal elimination reason for every non-culprit. availableFromMinute/availableToMinute means the interval in which that suspect could execute the complete locked crime-action chain; it is not the character's full presence schedule. Every alibiEventIds item must copy an exact timeline eventId, case-sensitively. Set alibiVerified true only when another observable actor or a causal trace objectively corroborates each alibi event; self-report alone is never verified.",
@@ -1033,6 +1029,17 @@ public partial class AiCaseService
             CaseTruthArtifacts.Statements => $"Create statements only from locked events and knowledge sources. eventIds must copy exact timeline eventIds, case-sensitively, and should identify directly discussed events. For every eventId, the speakerId must be that event's actorId or one of its witnessIds so the speaker is physically present at the projected scene. Every statement must contain at least one knowledgeSourceIds entry naming the exact event or trace that gives the speaker that knowledge. Each contradictedByTraceIds array contains at most one exact trace-ledger ID, and the complete ledger may use at most {ProjectionCapacityPolicy.For(draft.Settings).MaxChallengeSlots} distinct contradiction trace IDs. Mark TRUE/FALSE/MISLEADING, provide a reason for every lie, independent source group, and one or two IDs from the locked proof-ID contract below. Across upstream traces plus these statements, every one of the five locked conclusion IDs must have at least two distinct independent source groups; generate compact corroborating statements for any missing category. GAMEPLAY DIALOGUE BUDGET: the projection allows {gameplayContract.MinDialogues}-{gameplayContract.MaxDialogues} dialogue slots. Statements that carry contradictions must either stay within that limit or share the same speaker and at least one referenced event location so the backend can group them without changing truth.",
             _ => $"Build exactly five proof conclusions using the locked ID/category pairs below, plus at most {budget.MaxRedHerrings} red-herring ledger entries. supportingTraceIds and clearingTraceIds must copy exact locked trace-ledger IDs; supportingStatementIds and clearingStatementIds must copy exact locked statement-ledger IDs; excluded and red-herring suspect IDs must copy exact locked suspect IDs. Every conclusion must contain at least one supportingTraceId. Each red herring may use at most one clearingTraceId and must reuse an existing proof-linked trace whenever possible. Aggregate all relevant support under those five conclusions; cover each category with at least two independent source groups; eliminate every other suspect; every red herring needs clearing evidence. HARD IDENTITY INVARIANT: the {ProofConclusionIds.Identity} conclusion must include at least one of these eligible culprit crime-action traces in supportingTraceIds: {eligibleIdentityTraceList}."
         };
+        if (AiPipelineVersions.IsOpenCoop(draft.Settings) && AiDifficultyProfiles.For(draft.Settings.Difficulty) is var levelProfile)
+        {
+            if (artifact == CaseTruthArtifacts.Timeline && levelProfile.TimelineEvents.Min > 0)
+                instruction += $" This {levelProfile.Difficulty} case needs at least {levelProfile.TimelineEvents.Min} true timeline events.";
+            if (artifact == CaseTruthArtifacts.ProofGraph && levelProfile.RedHerrings.Min > 0)
+                instruction += $" This {levelProfile.Difficulty} case needs at least {levelProfile.RedHerrings.Min} red herrings, each cleared by a trace.";
+        }
+        if (artifact == CaseTruthArtifacts.Evidence && AiPipelineVersions.IsOpenCoop(draft.Settings))
+            instruction += $" This case has {AiDifficultyProfiles.PuzzleCount(AiDifficultyProfiles.For(draft.Settings.Difficulty), draft.Settings.Leaning)} optional puzzles: "
+                           + "also create that many extra traces that independently corroborate facts already proved, placed in the case's locations; "
+                           + "they must not contradict any statement, must not be the only proof of a conclusion and must not clear a red herring.";
         var lockedProofSources = artifact == CaseTruthArtifacts.ProofGraph
             ? "EXACT REVERSE-LINK MAP: copy these complete arrays for each conclusion without adding or omitting a source. "
               + "The sources are already locked; write propositions within their actual proof limits. "
@@ -1196,7 +1203,7 @@ public partial class AiCaseService
         CaseTruthPackage truth)
     {
         var canonical = _truthService.Canonicalize(truth);
-        var raw = await GenerateJsonWithOpenAiAsync(
+        var raw = await GenerateJsonAsync(
             draft.Id, "ReviewCaseTruthFeasibility", $"""
                 Independently audit this locked detective-case truth. Do not repair or embellish it.
                 Check time/travel feasibility, physical trace causality, witness observability, access/tools/knowledge,
@@ -1246,11 +1253,18 @@ public partial class AiCaseService
         return review;
     }
 
+    /// <summary>
+    /// The AI blind detective always runs for an autopilot order: it stands in for the person who read the logic at the
+    /// LOGIC gate, and the autopilot does not pass a logic it could not solve. Other orders follow the setting.
+    /// </summary>
+    internal static bool BlindReviewEnabled(AiGenerationSettings settings, AiCaseDraft draft) =>
+        settings.EnableBlindSolvabilityReview || draft.Order?.ReviewMode == AiCaseReviewModes.Auto;
+
     private async Task<BlindSolvabilityReview> ReviewBlindSolvabilityAsync(
         AiCaseDraft draft,
         GameCase gameCase)
     {
-        if (!_settings.EnableBlindSolvabilityReview)
+        if (!BlindReviewEnabled(_settings, draft))
         {
             _logger.LogInformation(
                 "Blind-solvability review is disabled by configuration for draft {DraftId}.",
@@ -1277,7 +1291,7 @@ public partial class AiCaseService
     {
         if (draft.CaseTruth is null) throw ApiException.Conflict("Approved truth is missing.");
         var playerKnowledge = _truthService.BuildBlindPlayerKnowledge(gameCase).ToJsonString(PrettyJson);
-        var raw = await GenerateJsonWithOpenAiAsync(
+        var raw = await GenerateJsonAsync(
             draft.Id, "ReviewBlindSolvability", $"""
                 Act as a blind detective-game solver. Use only the player-visible information below.
                 Infer culpritId, the exact motive and method strings, and a concrete crime timeline.
@@ -1388,7 +1402,7 @@ public partial class AiCaseService
         AiTruthGenerationBudget budget) =>
         AiTruthRepairCandidatePolicy.ValidateForGameplay(draft, truth, budget, _truthService, _projectionPlanner);
 
-    private static AiTruthGenerationBudget TruthBudgetForDraft(AiCaseDraft draft) =>
+    internal static AiTruthGenerationBudget TruthBudgetForDraft(AiCaseDraft draft) =>
         CaseTargetKinds.All.Contains(draft.PlannedTargetKind)
             ? AiTruthGenerationBudget.ForProjection(draft.Settings)
             : AiTruthGenerationBudget.For(draft.Settings);
@@ -1695,11 +1709,12 @@ public partial class AiCaseService
     }
 
     private CaseValidationResult ValidateGeneratedBlindReview(
+        AiCaseDraft draft,
         CaseTruthPackage truth,
         GameCase gameCase,
         BlindSolvabilityReview review)
     {
-        if (!_settings.EnableBlindSolvabilityReview)
+        if (!BlindReviewEnabled(_settings, draft))
             return new CaseValidationResult();
 
         var result = _truthService.ValidateBlindReview(truth, gameCase, review);
@@ -1723,7 +1738,7 @@ public partial class AiCaseService
             ValidatorVersion = "blind-review-validator-v1"
         };
 
-        if (!_settings.EnableBlindSolvabilityReview)
+        if (!BlindReviewEnabled(_settings, draft))
         {
             assessment.Status = BlindReviewAssessmentStatuses.Disabled;
             return assessment;
@@ -1738,7 +1753,7 @@ public partial class AiCaseService
             return assessment;
         }
 
-        var validation = ValidateGeneratedBlindReview(draft.CaseTruth!, gameCase, review);
+        var validation = ValidateGeneratedBlindReview(draft, draft.CaseTruth!, gameCase, review);
         assessment.ValidationErrors = validation.Errors.Select(error => new BlindReviewValidationError
         {
             Code = error.Code,

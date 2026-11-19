@@ -17,9 +17,12 @@ public static class MarketCategories
     public const string Frame = "FRAME";
     public const string Title = "TITLE";
     public const string Entrance = "ENTRANCE";
+    /// <summary>Outfits of the two detectives. One slot each, so a detective can wear a Sherlock and a Watson outfit at once.</summary>
+    public const string SkinSherlock = "SKIN_SHERLOCK";
+    public const string SkinWatson = "SKIN_WATSON";
 
     /// <summary>Display order of the "DANH MỤC" list.</summary>
-    public static readonly IReadOnlyList<string> All = new[] { Magnifier, Stamp, Pins, Folder, Badge, Board, Watch, Chest, Key, Curio, Frame, Title, Entrance };
+    public static readonly IReadOnlyList<string> All = new[] { Magnifier, Stamp, Pins, Folder, Badge, Board, Watch, Chest, Key, Curio, Frame, Title, Entrance, SkinSherlock, SkinWatson };
 
     public static bool IsValid(string? category) => category is not null && All.Contains(category);
 
@@ -145,7 +148,7 @@ public static class MarketCatalog
             "Đồng hồ quả quýt", "Hunter-case pocket watch",
             "Hiện đồng hồ đếm giờ vụ án theo kiểu mặt đồng hồ cổ.",
             "Shows the case timer as an antique watch face.", 450),
-    }.Concat(ChestCatalog.ItemDefs).Concat(CosmeticCatalog.ItemDefs).ToList();
+    }.Concat(ChestCatalog.ItemDefs).Concat(CosmeticCatalog.ItemDefs).Concat(SkinCatalog.ItemDefs).ToList();
 
     private static readonly Dictionary<string, MarketItemDef> ById = All.ToDictionary(def => def.Id, StringComparer.Ordinal);
 

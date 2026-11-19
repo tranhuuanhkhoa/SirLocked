@@ -1,4 +1,5 @@
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.PuzzleKinds;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Services.Interfaces;
@@ -62,10 +63,33 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         var result = new CaseValidationResult();
         var capacity = _readinessAnalyzer.AnalyzeCapacity(draft.Settings);
         var locations = OrderedLocations(truth);
-        if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
+        if (AiPipelineVersions.IsOpenCoop(draft.Settings))
+        {
+            if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
+                result.Add("TruthLocationCountForLevel", "caseSeed.locationIds",
+                    $"{AiDifficultyProfiles.For(draft.Settings.Difficulty).Difficulty} needs {contract.MinScenes}-{contract.MaxScenes} locations; truth uses {locations.Count}.");
+            // The level's red herrings and timeline come from the truth: refuse a thin truth here, not after LOGIC.
+            var profile = AiDifficultyProfiles.For(draft.Settings.Difficulty);
+            var traceIds = truth.TraceLedger.Select(trace => trace.TraceId).ToHashSet(StringComparer.Ordinal);
+            var clearedRedHerrings = truth.RedHerringLedger.Count(item => item.ClearingTraceIds.Any(traceIds.Contains));
+            if (clearedRedHerrings < profile.RedHerrings.Min)
+                result.Add("TruthRedHerringCountForLevel", "redHerringLedger",
+                    $"{profile.Difficulty} needs at least {profile.RedHerrings.Min} red herrings, each cleared by a trace; truth has {clearedRedHerrings}.");
+            if (truth.TrueTimeline.Count < profile.TimelineEvents.Min)
+                result.Add("TruthTimelineForLevel", "trueTimeline",
+                    $"{profile.Difficulty} needs at least {profile.TimelineEvents.Min} true timeline events; truth has {truth.TrueTimeline.Count}.");
+            // The method and motive become the accusation's answers word for word: write them in the case language
+            // here, or the logic step fails on them later and no logic retry can fix it.
+            if (draft.Settings.Language == CaseLanguages.Vietnamese)
+                foreach (var (path, text) in new[] { ("coreTruth.method", truth.CoreTruth.Method), ("coreTruth.motive", truth.CoreTruth.Motive) })
+                    if (!AiGenerationContract.LooksVietnamese(text))
+                        result.Add("TruthLanguageMismatch", path,
+                            "Players read this as an accusation answer: write it in natural Vietnamese with diacritics.");
+        }
+        else if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
             result.Add("ProjectionLocationCount", "caseSeed.locationIds",
                 $"Gameplay preset requires {contract.MinScenes}-{contract.MaxScenes} used truth locations; truth provides {locations.Count}.");
-        if (locations.Count < draft.Settings.StageCount)
+        if (!AiPipelineVersions.IsOpenCoop(draft.Settings) && locations.Count < draft.Settings.StageCount)
             result.Add("ProjectionStageCoverage", "caseSeed.locationIds",
                 $"{draft.Settings.StageCount} stages cannot be populated by {locations.Count} used truth locations.");
 
@@ -201,7 +225,11 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             TruthSchemaVersion = truth.SchemaVersion,
             TruthHash = draft.TruthHash,
             BlindReviewStatus = CaseTruthReviewStatuses.NotRun,
-            EstimatedMinutes = truth.CaseSeed.EstimatedMinutes,
+            // An OPEN_COOP_1 draft opens every place from the start and plays for its level's time.
+            RuleSet = AiPipelineVersions.IsOpenCoop(draft.Settings) ? CaseRuleSets.OpenCoop : CaseRuleSets.Classic,
+            EstimatedMinutes = AiPipelineVersions.IsOpenCoop(draft.Settings)
+                ? AiDifficultyProfiles.For(draft.Settings.Difficulty).EstimatedMinutes
+                : truth.CaseSeed.EstimatedMinutes,
             ProjectionSchemaVersion = GameplayProjectionVersions.Plan,
             ProjectionCompilerVersion = GameplayProjectionVersions.Compiler,
             ProjectionBuildMode = ProjectionBuildModes.AiCompiled,
@@ -268,7 +296,11 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
 
         CreateV3EvidenceSources(skeleton, truth, clueByTrace, contract);
         CreateDialogues(skeleton, dialogueAllocation);
-        CreateInvestigativeMechanics(skeleton, truth, contract, clueByTrace);
+        var openCoop = AiPipelineVersions.IsOpenCoop(draft.Settings);
+        // OPEN_COOP_1: optional interactive puzzles instead of the dossier exercises. They come before the
+        // confrontations so a puzzle-acquired clue can serve as a distractor (never as the correct evidence).
+        if (openCoop) CreateOptionalPuzzles(skeleton, truth, AiDifficultyProfiles.For(draft.Settings.Difficulty), draft.Settings.Leaning);
+        else CreateInvestigativeMechanics(skeleton, truth, contract, clueByTrace);
         CreateChallenges(skeleton, truth, clueByTrace, contract, challengeStatementIds);
         CreateConversationTrees(skeleton, truth, contract);
         FillClueBudget(skeleton, truth, contract.MinClues);
@@ -276,6 +308,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         CreateHints(skeleton);
         CreateFinalLogic(skeleton, truth);
         ApplyRedHerrings(skeleton, truth, clueByTrace);
+        if (openCoop) CreateTimeline(skeleton, truth, AiDifficultyProfiles.For(draft.Settings.Difficulty));
         AddSceneCompletionRequirements(skeleton);
         return skeleton;
     }
@@ -404,7 +437,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         {
             var desiredItemCount = Math.Max(
                 1,
-                CrackGenerationBudgets.For(skeleton.GenerationPreset).TargetEvidence - 1);
+                CrackGenerationBudgets.For(skeleton).TargetEvidence - 1);
             foreach (var traceId in clueByTrace.Keys.Where(traceId =>
                          !itemTraceIds.Contains(traceId) && !allContradictionTraceIds.Contains(traceId)))
             {
@@ -537,7 +570,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
                 item => item.Key,
                 StringComparer.Ordinal);
             var targetEvidenceCount = skeleton.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                ? CrackGenerationBudgets.For(skeleton.GenerationPreset).TargetEvidence
+                ? CrackGenerationBudgets.For(skeleton).TargetEvidence
                 : 3;
             var requiresCamera = skeleton.MechanicsVersion < CaseMechanicsVersions.InvestigationV3PairedConfrontation
                                  || index < maximumCameraChallenges;
@@ -589,7 +622,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             var challengeId = $"challenge-{index + 1:00}";
             challengeStatementIds[challengeId] = pair.Statement.StatementId;
             var targetTestimonyCount = skeleton.MechanicsVersion >= CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                ? CrackGenerationBudgets.For(skeleton.GenerationPreset).TargetTestimonies
+                ? CrackGenerationBudgets.For(skeleton).TargetTestimonies
                 : 3;
             var fragmentIds = Enumerable.Range(1, targetTestimonyCount)
                 .Select(number => $"fragment-{challengeId}-{number:00}")
@@ -651,8 +684,12 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         for (var index = 0; index < contract.Deductions; index++)
         {
             var conclusion = conclusions[index % conclusions.Count];
-            var clue = skeleton.Clues.First(item =>
-                item.SupportsConclusionIds.Contains(conclusion.ConclusionId, StringComparer.Ordinal));
+            var supporting = skeleton.Clues.Where(item =>
+                item.SupportsConclusionIds.Contains(conclusion.ConclusionId, StringComparer.Ordinal)).ToList();
+            // An OPEN_COOP deduction never rests on a clue only an optional puzzle gives.
+            var clue = CaseRuleSets.IsOpenCoop(skeleton)
+                ? supporting.FirstOrDefault(item => item.SourceType != "puzzle") ?? supporting.First()
+                : supporting.First();
             var deduction = new DeductionChallenge
             {
                 DeductionId = $"deduction-{conclusion.ConclusionId}",
@@ -688,32 +725,66 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
         }
     }
 
+    /// <summary>
+    /// Three escalating hint slots (order 1, 2, 3) per scene, challenge and deduction: the hint rule of
+    /// <see cref="CaseHintRules"/>. Level 1 keeps the historical ID so the first hint of a target is stable.
+    /// </summary>
     private static void CreateHints(GameCase skeleton)
     {
+        void Add(string contextType, string targetId, string baseId)
+        {
+            foreach (var level in CaseHintRules.Levels)
+                skeleton.Hints.Add(new CaseHint
+                {
+                    HintId = level == 1 ? baseId : $"{baseId}-level-{level}",
+                    ContextType = contextType,
+                    TargetId = targetId,
+                    Order = level
+                });
+        }
+
         foreach (var scene in skeleton.Stages.SelectMany(stage => stage.Scenes))
-            skeleton.Hints.Add(new CaseHint
-            {
-                HintId = $"hint-scene-{scene.SceneId}",
-                ContextType = HintContextTypes.Scene,
-                TargetId = scene.SceneId,
-                Order = 1
-            });
+            Add(HintContextTypes.Scene, scene.SceneId, $"hint-scene-{scene.SceneId}");
         foreach (var challenge in skeleton.EvidenceChallenges)
-            skeleton.Hints.Add(new CaseHint
-            {
-                HintId = $"hint-{challenge.ChallengeId}",
-                ContextType = HintContextTypes.Confrontation,
-                TargetId = challenge.ChallengeId,
-                Order = 1
-            });
+            Add(HintContextTypes.Confrontation, challenge.ChallengeId, $"hint-{challenge.ChallengeId}");
         foreach (var deduction in skeleton.Deductions)
-            skeleton.Hints.Add(new CaseHint
+            Add(HintContextTypes.Deduction, deduction.DeductionId, $"hint-{deduction.DeductionId}");
+    }
+
+    /// <summary>
+    /// OPEN_COOP_1, Medium and Hard: up to the level's most timeline events, taken in true order from the truth.
+    /// About half are fixed (always the first and the last); the team places the others. A fixed event needs the
+    /// clues of its own traces, never a clue only an optional puzzle gives. The AI writes the words.
+    /// </summary>
+    private static void CreateTimeline(GameCase skeleton, CaseTruthPackage truth, AiDifficultyProfile profile)
+    {
+        if (profile.TimelineEvents.Max == 0) return;
+        var ordered = truth.TrueTimeline.OrderBy(item => item.StartMinute).ThenBy(item => item.EndMinute)
+            .ThenBy(item => item.EventId, StringComparer.Ordinal).ToList();
+        if (ordered.Count == 0) return;
+        var take = Math.Min(profile.TimelineEvents.Max, ordered.Count);
+        // Spread the picks over the whole night rather than the first few minutes.
+        var picked = Enumerable.Range(0, take)
+            .Select(index => ordered[take == 1 ? 0 : (int)Math.Round(index * (ordered.Count - 1) / (double)(take - 1))])
+            .Distinct().ToList();
+        var clueIds = skeleton.Clues.Where(clue => clue.SourceType != "puzzle")
+            .Select(clue => clue.ClueId).ToHashSet(StringComparer.Ordinal);
+        var timeline = new CaseTimeline();
+        for (var index = 0; index < picked.Count; index++)
+        {
+            var source = picked[index];
+            var isFixed = index == 0 || index == picked.Count - 1 || index % 2 == 0;
+            timeline.Events.Add(new CaseTimelineEvent
             {
-                HintId = $"hint-{deduction.DeductionId}",
-                ContextType = HintContextTypes.Deduction,
-                TargetId = deduction.DeductionId,
-                Order = 1
+                EventId = $"timeline-{source.EventId}",
+                SortKey = (index + 1) * 10,
+                IsFixed = isFixed,
+                RequiredClueIds = isFixed
+                    ? source.TraceIds.Select(traceId => $"clue-{traceId}").Where(clueIds.Contains).ToList()
+                    : []
             });
+        }
+        skeleton.Timeline = timeline;
     }
 
     private static void CreateFinalLogic(GameCase skeleton, CaseTruthPackage truth)
@@ -884,7 +955,17 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             {
                 PuzzleId = puzzle.PuzzleId,
                 BasedOnTruthIds = puzzle.BasedOnTruthIds.ToList(),
-                RevealsConclusionIds = puzzle.RevealsConclusionIds.ToList()
+                RevealsConclusionIds = puzzle.RevealsConclusionIds.ToList(),
+                OfferedKinds = PuzzleKindRegistry.IsInteractive(puzzle)
+                    ? PuzzleKindAuthoring.OfferedKinds(truth, puzzle.BasedOnTruthIds.FirstOrDefault()).ToList()
+                    : null,
+                PrintOwnerId = PuzzleKindRegistry.IsInteractive(puzzle)
+                    ? TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault())
+                    : null,
+                PrintCardIds = PuzzleKindRegistry.IsInteractive(puzzle)
+                               && TruthBoundPuzzleAnswers.PrintOwner(truth, puzzle.BasedOnTruthIds.FirstOrDefault()) is { } printOwner
+                    ? TruthBoundPuzzleAnswers.PrintCards(truth, printOwner)
+                    : null
             };
 
         foreach (var deduction in plan.Skeleton.Deductions)

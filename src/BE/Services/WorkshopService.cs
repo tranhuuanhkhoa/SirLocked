@@ -32,8 +32,13 @@ public class WorkshopService : IWorkshopService
     private static readonly IReadOnlyCollection<GameResult> EmptyResults = Array.Empty<GameResult>();
 
     private readonly MongoDbContext _db;
+    private readonly CaseCatalogPolicy _catalog;
 
-    public WorkshopService(MongoDbContext db) => _db = db;
+    public WorkshopService(MongoDbContext db, CaseCatalogPolicy? catalog = null)
+    {
+        _db = db;
+        _catalog = catalog ?? CaseCatalogPolicy.Open;
+    }
 
     public async Task<WorkshopCaseListDto> GetWorkshopCasesAsync(
         string? search, string? sort, int page, int pageSize, CancellationToken ct = default)
@@ -42,9 +47,11 @@ public class WorkshopService : IWorkshopService
         var safePage = page < 1 ? 1 : page;
         var safeSize = pageSize <= 0 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
 
-        var cases = await _db.Cases
+        var cases = (await _db.Cases
             .Find(c => c.Status == CaseStatus.Published)
-            .ToListAsync(ct);
+            .ToListAsync(ct))
+            .Where(_catalog.IsPlayable)
+            .ToList();
 
         // The published set is demo-scale, so search/sort run in memory for consistent,
         // case-insensitive matching with the UI.
@@ -93,7 +100,7 @@ public class WorkshopService : IWorkshopService
     public async Task<CaseStatsDto> GetCaseStatsAsync(string caseId, CancellationToken ct = default)
     {
         var gameCase = await _db.Cases.Find(c => c.CaseId == caseId).FirstOrDefaultAsync(ct);
-        if (gameCase is null || gameCase.Status != CaseStatus.Published)
+        if (gameCase is null || !_catalog.IsPlayable(gameCase))
         {
             throw ApiException.NotFound("Case not found.");
         }

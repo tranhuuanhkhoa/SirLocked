@@ -8,8 +8,7 @@ namespace SirLocked.Api.Services;
 /// <summary>Persistent, single-provider-job orchestration. Never retries an ambiguous POST.</summary>
 public sealed class PresentationVideoProcessor(
     IPresentationStore store, IPresentationVideoProvider provider, IPresentationMediaStorage media,
-    IAiUsageAccounting accounting, IOptions<PresentationVideoSettings> options,
-    IOptions<AiQuotaSettings> quota, IOptions<AiUsageSettings> usage)
+    IOptions<PresentationVideoSettings> options)
 {
     public async Task ProcessNextAsync(string owner, CancellationToken ct)
     {
@@ -53,11 +52,6 @@ public sealed class PresentationVideoProcessor(
                     job.Status = "SUBMISSION_UNKNOWN";
                     job.ErrorCode = "PROVIDER_SUBMISSION_UNKNOWN";
                     await store.SaveJobAsync(job, ct);
-                    if (job.UsageLease is not null)
-                    {
-                        try { await accounting.RecordAsync(job.UsageLease, null, null, ct); }
-                        catch (Exception) when (!ct.IsCancellationRequested) { /* The reservation remains held for recovery. */ }
-                    }
                 }
                 else if (job.Status is "PENDING" or "DOWNLOADING" or "SETTLING")
                 {
@@ -117,13 +111,12 @@ public sealed class PresentationVideoProcessor(
             job.Status = "SUBMISSION_UNKNOWN";
             job.ErrorCode = "PROVIDER_SUBMISSION_UNKNOWN";
             await store.SaveJobAsync(job, ct);
-            if (job.UsageLease is not null) await accounting.RecordAsync(job.UsageLease, null, null, ct);
             return;
         }
         if (job.Status == "QUEUED")
         {
-            if (clip.GenerateVideo && (!options.Value.Enabled || !options.Value.HasPricing
-                || !quota.Value.Enabled || quota.Value.GlobalBudgetUsd <= 0 || usage.Value.MaxDraftUsd <= 0))
+            // Spend stays bounded by the per-clip quote, the admin-approved package budget and MaximumPackageUsd.
+            if (clip.GenerateVideo && (!options.Value.Enabled || !options.Value.HasPricing))
             {
                 job.Status = "FAILED";
                 job.ErrorCode = "VIDEO_BUDGET_CONFIGURATION_REQUIRED";
@@ -152,9 +145,6 @@ public sealed class PresentationVideoProcessor(
                 await store.SaveJobAsync(job, ct);
                 return;
             }
-            // The accounting lease is separate from the flat case reservation and survives polling.
-            job.UsageLease ??= await accounting.BeforeCallAsync(job.DraftId, $"presentation:{job.ClipId}", "video", job.Model,
-                ct, job.ReservedUsd, priceVersion: job.PricingVersion);
             job.Status = "SUBMITTING";
             if (!await store.TryTransitionJobAsync(job, "PREPARING", job.SubmissionClaim, ct)) return;
             var response = await provider.SubmitAsync(clip, $"data:{source.ContentType};base64,{Convert.ToBase64String(source.Bytes)}", job.Model, ct);
@@ -163,7 +153,6 @@ public sealed class PresentationVideoProcessor(
                 job.Status = "SUBMISSION_UNKNOWN";
                 job.ErrorCode = "PROVIDER_SUBMISSION_UNKNOWN";
                 await store.SaveJobAsync(job, ct);
-                await accounting.RecordAsync(job.UsageLease, null, response.StatusCode, ct);
                 return;
             }
             if (response.Status == "rejected")
@@ -190,7 +179,6 @@ public sealed class PresentationVideoProcessor(
                 job.Status = "SUBMISSION_UNKNOWN";
                 job.ErrorCode = "PROVIDER_POLL_TIMEOUT";
                 await store.SaveJobAsync(job, ct);
-                if (job.UsageLease is not null) await accounting.RecordAsync(job.UsageLease, null, null, ct);
                 return;
             }
             var response = await provider.PollAsync(job.ProviderRequestId!, ct);
@@ -227,7 +215,6 @@ public sealed class PresentationVideoProcessor(
             }
             if (await store.GetAssetAsync($"{job.Id}-video", ct) is null)
                 await store.SaveAssetAsync(await media.UploadVideoAsync(job, job.ProviderVideoUrl!, ct), ct);
-            if (job.UsageLease is not null) await accounting.RecordAsync(job.UsageLease, job.ProviderTerminalBody, 200, ct);
             job.Status = "READY";
             job.ErrorCode = null;
             job.ProviderVideoUrl = null;
@@ -239,7 +226,6 @@ public sealed class PresentationVideoProcessor(
 
     private async Task FinishFailureAsync(PresentationVideoJob job, CancellationToken ct)
     {
-        if (job.UsageLease is not null) await accounting.RecordAsync(job.UsageLease, job.ProviderTerminalBody, job.ProviderTerminalStatusCode, ct);
         job.Status = "FAILED";
         job.ProviderTerminalBody = null;
         job.ProviderVideoUrl = null;
@@ -267,7 +253,7 @@ public sealed class PresentationVideoProcessor(
 }
 
 public sealed class PresentationVideoWorker(IServiceScopeFactory scopes, IOptions<PresentationVideoSettings> settings,
-    IOptions<OpenAiSettings> safety, ILogger<PresentationVideoWorker> logger) : BackgroundService
+    IOptions<AiGenerationSettings> safety, ILogger<PresentationVideoWorker> logger) : BackgroundService
 {
     private readonly string _owner = Guid.NewGuid().ToString("N");
     private bool _indexesReady;

@@ -10,7 +10,23 @@ internal static class AiCaseMockFactory
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     internal static string MockJsonResponse(string step, string schemaVersion)
     {
-        if (step.Equals("CreateStoryPreview", StringComparison.OrdinalIgnoreCase))
+        if (step.StartsWith("CreateStoryPreview:RetryDuplicate", StringComparison.OrdinalIgnoreCase))
+        {
+            // A distinct premise, so the duplicate check accepts the retry of a second mock draft.
+            return JsonSerializer.Serialize(new AiStoryPreview
+            {
+                Title = "Mock Lighthouse Ledger",
+                Summary = "A second safe mock premise about a lighthouse keeper's vanished logbook.",
+                Setting = "A wind-battered harbor lighthouse.",
+                OpeningIncident = "The lamp goes dark for nine minutes and the keeper's logbook is gone by dawn.",
+                Tone = "Brisk, salty, and test-friendly.",
+                PlayerPromise = "Players will reconstruct the lamp's dark minutes from harbor witnesses.",
+                EstimatedScenes = 3,
+                KeyLocations = { "Lamp Room", "Keeper's Cottage", "Harbor Steps" },
+                SuspectTeasers = { "The relief keeper", "The ferryman", "The harbor clerk" }
+            }, PrettyJson);
+        }
+        if (step.StartsWith("CreateStoryPreview", StringComparison.OrdinalIgnoreCase))
         {
             return JsonSerializer.Serialize(new AiStoryPreview
             {
@@ -103,8 +119,16 @@ internal static class AiCaseMockFactory
         var mock = MockCaseFactory.Create("A safe mock AI case for dry-run validation", 4, "medium");
         ConvertMockCaseToCameraEmbedded(mock);
         var traceCount = Math.Min(budget.MaxTraces, mock.Clues.Count);
+        // An OPEN_COOP_1 case: one contradicting statement per crack, the level's fewest red herrings, and a
+        // corroborating trace of its own for each optional puzzle.
+        var openCoopProfile = AiPipelineVersions.IsOpenCoop(settings) ? AiDifficultyProfiles.For(settings.Difficulty) : null;
+        var contradictions = openCoopProfile?.Cracks ?? 1;
+        var redHerrings = Math.Max(1, openCoopProfile?.RedHerrings.Min ?? 1);
+        if (AiPipelineVersions.IsOpenCoop(settings))
+            traceCount = Math.Min(budget.MaxTraces,
+                mock.Clues.Count + AiDifficultyProfiles.PuzzleCount(AiDifficultyProfiles.For(settings.Difficulty), settings.Leaning));
         var culpritId = mock.FinalLogic.CulpritId;
-        var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(contract, targetKind);
+        var requiredSuspects = CaseTargetAllocationPolicy.RequiredSuspects(settings, contract, targetKind);
         var suspects = mock.Characters
             .Select(item => item.CharacterId)
             .OrderBy(id => id == culpritId ? 0 : 1)
@@ -275,8 +299,8 @@ internal static class AiCaseMockFactory
         truth.StatementLedger = statementSpeakers.Select((speakerId, index) => new StatementLedgerEntry
         {
             StatementId = $"statement-{index + 1}", SpeakerId = speakerId,
-            TruthStatus = index == 0 ? StatementTruthStatuses.Misleading : StatementTruthStatuses.True,
-            Content = index == 0
+            TruthStatus = index < contradictions ? StatementTruthStatuses.Misleading : StatementTruthStatuses.True,
+            Content = index < contradictions
                 ? (CaseLanguages.Normalize(settings.Language) == CaseLanguages.Vietnamese
                     ? "Tôi đã nhìn thấy căn phòng từ hành lang nhưng không bước vào bên trong."
                     : "The speaker gives a misleading account of the archive visit.")
@@ -284,20 +308,21 @@ internal static class AiCaseMockFactory
                     ? "Tôi có mặt ở hành lang sau đó và xác nhận một phần diễn biến đã xảy ra."
                     : "The speaker truthfully corroborates one part of the causal sequence."),
             EventIds = { statementEventBySpeaker[speakerId] }, KnowledgeSourceIds = { crimeActionId },
-            ReasonForLie = index == 0 ? "The speaker hides an embarrassing but non-culpable private action." : string.Empty,
-            ContradictedByTraceIds = index == 0 ? new List<string> { "trace-1" } : new List<string>(),
+            ReasonForLie = index < contradictions ? "The speaker hides an embarrassing but non-culpable private action." : string.Empty,
+            ContradictedByTraceIds = index < contradictions ? new List<string> { $"trace-{index + 1}" } : new List<string>(),
             IndependentSourceGroup = $"statement-source-{index + 1}",
             SupportsConclusionIds = { ProofConclusionIds.ForCategory(categories[index % categories.Count]) }
         }).ToList();
 
-        var innocent = suspects.First(id => id != culpritId);
-        truth.RedHerringLedger.Add(new RedHerringLedgerEntry
-        {
-            RedHerringId = "red-herring-1", SuspectId = innocent,
-            SuspiciousReason = "The suspect concealed a private visit near the archive.",
-            InnocentExplanation = "The visit concerned a personal debt and did not enter the crime scene.",
-            ClearingTraceIds = { $"trace-{traceCount}" }
-        });
+        var innocents = suspects.Where(id => id != culpritId).ToList();
+        for (var index = 0; index < redHerrings; index++)
+            truth.RedHerringLedger.Add(new RedHerringLedgerEntry
+            {
+                RedHerringId = $"red-herring-{index + 1}", SuspectId = innocents[index % innocents.Count],
+                SuspiciousReason = "The suspect concealed a private visit near the archive.",
+                InnocentExplanation = "The visit concerned a personal debt and did not enter the crime scene.",
+                ClearingTraceIds = { $"trace-{traceCount - index}" }
+            });
         return JsonSerializer.Serialize(truth, PrettyJson);
     }
 
@@ -1005,6 +1030,7 @@ internal static class AiCaseMockFactory
 
     private static string SerializeGeneratedLogicForProvider(GeneratedCaseLogic logic)
     {
+        MockCaseFactory.CompleteHintLevels(logic.Stages, logic.EvidenceChallenges, logic.Deductions, logic.Hints);
         var root = JsonSerializer.SerializeToNode(logic, PrettyJson)!.AsObject();
         foreach (var stage in root["stages"]!.AsArray())
         foreach (var scene in stage!["scenes"]!.AsArray())

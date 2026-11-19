@@ -128,7 +128,8 @@ public static class PairedConfrontationRules
         int expectedRevision,
         bool isCorrect,
         IReadOnlyCollection<string> unlockClueIds,
-        DateTime now)
+        DateTime now,
+        int requiredConfirmations = 2)
     {
         RequirePlayerRole(role);
         var terminal = FindTerminal(state, attemptId);
@@ -169,7 +170,8 @@ public static class PairedConfrontationRules
         currentConfirmations = active.Confirmations
             .Where(confirmation => confirmation.Revision == active.Revision)
             .ToList();
-        if (currentConfirmations.Count < 2)
+        // Two detectives confirm a confrontation; the solo newcomer tutorial room needs only its one player.
+        if (currentConfirmations.Count < Math.Max(1, requiredConfirmations))
         {
             active.Status = PairedConfrontationStatus.AwaitingSecondConfirmation;
             return PairedConfrontationTransition.ChangedTo(active.Status, active: active);

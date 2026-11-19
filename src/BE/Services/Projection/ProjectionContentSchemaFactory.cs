@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.PuzzleKinds;
 
 namespace SirLocked.Api.Services.Projection;
 
@@ -12,6 +13,39 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
     /// the content is canonicalized or compiled.
     /// </summary>
     public JsonObject Build(GameplayProjectionPlan plan)
+    {
+        var skeleton = plan.Skeleton;
+        var schema = BuildSlots(plan);
+        if (!CaseRuleSets.IsOpenCoop(skeleton)) return schema;
+        // OPEN_COOP_1: the case wall, and the timeline words when the plan has a timeline.
+        var pinnable = skeleton.Clues.Where(clue => clue.IsEvidence).Select(clue => clue.ClueId)
+            .Concat(skeleton.TestimonyFragments.Select(fragment => fragment.Id)).ToList();
+        var link = Object(("fromId", Enum(pinnable)), ("toId", Enum(pinnable)), ("label", Text(40)));
+        AddRequired(schema, "board", Object(
+            ("centerKicker", Text(40)),
+            ("centerTitle", Text(80)),
+            ("centerSubtitle", Text(160)),
+            ("summary", Text(600)),
+            ("links", new JsonObject { ["type"] = "array", ["minItems"] = 0, ["maxItems"] = 3, ["items"] = link })));
+        if (skeleton.Timeline is { } timeline)
+            AddRequired(schema, "timeline", Object(
+                ("title", Text(80)),
+                ("prompt", Text(300)),
+                ("events", SlotMap(timeline.Events.Select(item => (item.EventId, Object(
+                    ("label", Text(80)),
+                    ("detail", Text(240)),
+                    ("dayLabel", Text(40)),
+                    ("timeLabel", Text(20)))))))));
+        return schema;
+    }
+
+    private static void AddRequired(JsonObject schema, string name, JsonObject value)
+    {
+        schema["properties"]!.AsObject()[name] = value;
+        schema["required"]!.AsArray().Add(name);
+    }
+
+    private JsonObject BuildSlots(GameplayProjectionPlan plan)
     {
         var skeleton = plan.Skeleton;
         return Object(
@@ -27,20 +61,22 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
             ("scenes", SlotMap(skeleton.Stages.SelectMany(stage => stage.Scenes).Select(scene =>
             {
                 var slot = plan.Scenes[scene.SceneId];
-                return (scene.SceneId, Object(
+                return (scene.SceneId, WithOptional(Object(
                     ("sceneId", Const(scene.SceneId)),
                     ("truthLocationId", Const(slot.TruthLocationId)),
                     ("title", Text(160)),
                     ("description", Text(1000)),
-                    ("visualDescription", AsciiText(1200))));
+                    ("visualDescription", AsciiText(1200))),
+                    ("atmosphere", CaseAtmosphereSchemas.SceneAtmosphere())));
             }))),
             ("characters", SlotMap(skeleton.Characters.Select(character =>
-                (character.CharacterId, Object(
+                (character.CharacterId, WithOptional(Object(
                     ("characterId", Const(character.CharacterId)),
                     ("name", Text(120)),
                     ("role", Text(160)),
                     ("description", Text(800)),
-                    ("visualDescription", AsciiText(1000))))))),
+                    ("visualDescription", AsciiText(1000))),
+                    ("voice", CaseAtmosphereSchemas.Voice())))))),
             ("items", SlotMap(skeleton.Items.Select(item =>
                 (item.ItemId, Object(
                     ("itemId", Const(item.ItemId)),
@@ -89,7 +125,17 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
                     ("lines", FixedStringArray(node.Lines.Count, 600)),
                     ("choiceLabels", ExactStringMap(node.Choices.Select(choice => choice.ChoiceId), 300))))))),
             ("puzzles", SlotMap(skeleton.Puzzles.Select(puzzle =>
-                (puzzle.PuzzleId, Object(
+                (puzzle.PuzzleId, plan.Puzzles.TryGetValue(puzzle.PuzzleId, out var puzzleSlot) && puzzleSlot.OfferedKinds is { } offered
+                ? Object(
+                    ("puzzleId", Const(puzzle.PuzzleId)),
+                    ("kind", Enum(offered)),
+                    ("authored", AuthoredWords(offered)),
+                    ("prompt", Text(600)),
+                    ("correctCode", Const(puzzle.CorrectCode)),
+                    ("investigationPurpose", Text(500)),
+                    ("successMessage", Text(140)),
+                    ("failureMessage", Text(140)))
+                : Object(
                     ("puzzleId", Const(puzzle.PuzzleId)),
                     ("prompt", Text(600)),
                     ("correctCode", Const(puzzle.CorrectCode)),
@@ -144,6 +190,14 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
         };
     }
 
+    /// <summary>Adds properties the writer may leave out (the voice and atmosphere of docs/case-audio-weather.md).</summary>
+    private static JsonObject WithOptional(JsonObject schema, params (string Name, JsonNode Schema)[] optional)
+    {
+        var properties = schema["properties"]!.AsObject();
+        foreach (var (name, value) in optional) properties[name] = value;
+        return schema;
+    }
+
     private static JsonObject Object(params (string Name, JsonNode Schema)[] properties)
     {
         var propertyNode = new JsonObject();
@@ -180,6 +234,21 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
         schema["pattern"] = "^[ -~]+$";
         return schema;
     }
+
+    private static JsonObject Enum(IEnumerable<string> values) => new()
+    {
+        ["type"] = "string",
+        ["enum"] = new JsonArray(values.Select(value => (JsonNode)JsonValue.Create(value)!).ToArray())
+    };
+
+    /// <summary>The words of an interactive puzzle: an object whose keys depend on the chosen kind.</summary>
+    private static JsonObject AuthoredWords(IEnumerable<string> offered) => new()
+    {
+        ["type"] = "object",
+        ["description"] = "Text params the player reads, by kind: " + string.Join("; ", offered.Select(kind =>
+            $"{kind}: {(PuzzleKindAuthoring.AllowedAuthoredKeys(kind) is { Count: > 0 } keys ? string.Join(", ", keys) : "none, use {}")}"))
+            + ". Never write the answer or the puzzle's mechanics."
+    };
 
     private static JsonObject Const(string value) => new()
     {

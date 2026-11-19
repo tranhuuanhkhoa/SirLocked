@@ -24,10 +24,18 @@
   <ItemGroup>
     <Content Update="SeedData\sample-case.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Update="SeedData\V3\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="SeedData\Cutscenes\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- One source for the PixelLab wording: the JS plan builder and the server read the same file (VUAN-6B). -->
+    <EmbeddedResource Include="..\..\ai-game-docs\visual-style-templates\pixellab\templates.json" LogicalName="SirLocked.PixelLab.templates.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Anthropic" Version="13.10.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="JsonSchema.Net" Version="7.3.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.13" />
     <PackageReference Include="MongoDB.Driver" Version="3.9.0" />

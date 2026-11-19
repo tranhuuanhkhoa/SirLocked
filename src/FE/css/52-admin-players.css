@@ -1,0 +1,507 @@
+/* Players, economy and audit admin pages (ADMIN-3), in the "Hồ sơ giấy" design. Tokens --adm-* come from 60-admin-theme.css. */
+
+/* ---- page frame ---- */
+
+.adp-page { display: flex; flex-direction: column; gap: 22px; }
+.adp-page > .adm-head { margin-bottom: 0; }
+.adp-page > .adm-head + .adp-page-tabs { margin-top: -6px; }
+.adp-page .adm-back-link { margin-bottom: -4px; width: fit-content; }
+.adp-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.adp-link { color: var(--adm-gold-text); text-decoration: underline; text-underline-offset: 2px; }
+.adp-link:hover { color: #5f450b; }
+.adp-break { overflow-wrap: anywhere; }
+.adp-code { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+.adp-muted { font-size: 13px; color: var(--adm-muted); }
+.adp-strong { font-weight: 600; color: var(--adm-ink); }
+.adp-date { font-size: 13px; color: var(--adm-text-2); white-space: nowrap; }
+.adp-pills { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+
+/* a person in a table: the name is the link to their page */
+.adp-person .adm-avatar { width: 36px; height: 36px; font-size: 12px; }
+.adp-person-name {
+  font-weight: 600;
+  color: var(--adm-navy) !important;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adp-person-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.adp-person .adm-person-text { max-width: 320px; }
+
+/* ---- cards ---- */
+
+.adp-card-heading { flex: 1 1 280px; min-width: 0; }
+.adp-card .adm-card-sub { font-size: 14px; }
+.adp-rows { min-width: 0; }
+
+/* ---- filters: labels above the fields, a row that wraps ---- */
+
+.adp-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; }
+.adp-filters--bar { padding: 18px 22px; }
+.adm-card--flush > .adm-card-head + .adp-filters { padding: 0 22px 18px; }
+.adp-filter { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.adp-filter .field-label { margin: 0; }
+.adp-filter--grow { flex: 1 1 260px; }
+.adp-filter select { padding-right: 34px; }
+.adp-search-row { display: flex; gap: 8px; }
+.adp-search-row input { flex: 1; min-width: 0; }
+.adp-input-soft { background: var(--adm-paper-2) !important; }
+.adp-filter-go { flex: none; }
+
+.adp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+
+/* ---- tables: they scroll inside their own frame, the page never does ---- */
+
+.adp-table-wrap { border-top: 1px solid var(--adm-line-mid); }
+.adm-card:not(.adm-card--flush) .adp-table-wrap { border: 1px solid var(--adm-line); border-radius: var(--adm-r-tile); }
+.adp-table td { overflow-wrap: break-word; }
+.adp-table .adp-col-rank { width: 70px; }
+.adp-table td.adm-num,
+.adp-table th.adm-num { white-space: nowrap; }
+body[data-area="admin"] #app .adp-table :is(th, td).adp-actions { text-align: right; white-space: nowrap; }
+.adp-table .adp-actions .adm-table-actions { flex-wrap: nowrap; }
+.adp-item { display: inline-flex; align-items: center; gap: 10px; }
+
+/* states inside a flush card: no box of their own */
+.adm-card--flush > .adm-state:not(.adm-state--error),
+.adm-card--flush .adp-rows > .adm-state:not(.adm-state--error),
+.adm-card--flush [data-adp-panel] > .adm-state:not(.adm-state--error) {
+  border: 0;
+  border-top: 1px solid var(--adm-line-soft);
+  border-radius: 0;
+  background: transparent;
+}
+.adm-card--flush [data-adp-panel] > .adm-state:not(.adm-state--error) { border-top: 0; }
+.adm-card--flush .adp-rows > .adm-state--error,
+.adm-card--flush [data-adp-panel] > .adm-state--error { margin: 0 22px 22px; }
+.adp-per-page { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; }
+.adp-per-page select { min-height: 36px !important; height: 36px; padding: 0 28px 0 10px !important; border-radius: 10px !important; font-size: 13px !important; }
+
+.adp-ok-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 22px 22px;
+  padding: 28px 16px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  color: var(--adm-text-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+.adp-ok-empty svg { flex: none; color: var(--adm-ok); }
+
+/* ---- players list ---- */
+
+.adp-list-card .adp-table tbody tr { height: 74px; }
+
+/* ---- pictures waiting for review ---- */
+
+.adp-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0 22px 22px;
+  list-style: none;
+}
+.adp-avatar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-tile);
+  min-width: 0;
+}
+.adp-avatar-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--adm-tile-2);
+  border-radius: 10px;
+}
+.adp-avatar-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.adp-avatar-who .adm-avatar { width: 32px; height: 32px; font-size: 11px; }
+.adp-avatar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.adp-avatar-actions .btn { flex: 1 1 auto; }
+.adp-avatars-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px 56px;
+  border-top: 1px solid var(--adm-line-soft);
+  text-align: center;
+  color: var(--adm-muted);
+  font-size: 14px;
+}
+.adp-avatars-empty strong { font-size: 16px; color: var(--adm-ink); }
+.adp-avatars-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- the dialog every dangerous action goes through ---- */
+
+.adp-dialog {
+  box-sizing: border-box;
+  /* The shared reset removes the margin a modal dialog centres itself with. */
+  margin: auto;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  overflow-y: auto;
+  color: var(--adm-ink);
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(16, 32, 58, .25);
+}
+.adp-dialog::backdrop { background: rgba(16, 32, 58, .45); }
+.adp-dialog-form { position: relative; display: flex; flex-direction: column; gap: 14px; }
+.adp-dialog-title {
+  margin: 0;
+  padding-right: 44px;
+  font-family: var(--adm-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.adp-dialog-close {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--adm-text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.adp-dialog-close:hover { background: var(--adm-tile); color: var(--adm-navy); }
+.adp-dialog-message { margin: 0; font-size: 14px; color: var(--adm-text-2); }
+.adp-dialog-notice {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--adm-warn-bg);
+  color: #5f450b;
+  font-size: 14px;
+}
+.adp-dialog .field { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.adp-dialog .field-label { margin: 0; }
+.adp-dialog-error { margin: 0; font-size: 13px; font-weight: 600; }
+/* an empty alert stays in the page (so it is announced when filled) but takes no room */
+.adp-dialog-error:empty { margin-top: -14px; }
+.adp-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.adp-dialog-actions .btn { min-width: 96px; }
+/* The theme's solid-red rule for dialogs loses to its own #app rule (the :is() lists share one specificity), so it is restated here. */
+.adp-dialog .adp-btn-danger { background: var(--adm-bad) !important; border-color: var(--adm-bad) !important; color: #fffdf9 !important; }
+.adp-dialog .adp-btn-danger:hover:not(:disabled) { background: #7f3820 !important; border-color: #7f3820 !important; }
+.adp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.adp-reason { resize: vertical; }
+
+/* ---- one player ---- */
+
+/* the account card: what they wear on the left, who they are in the middle, account actions on the right */
+.adm-card.adp-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(210px, auto);
+  grid-template-areas: "pic info acts" "pic worn acts";
+  align-items: center;
+  gap: 8px 22px;
+  border-radius: 20px;
+}
+/* The look box keeps its own element (tests and the painter find it) but lays its two parts into the card's grid. */
+.adp-look { display: contents; }
+.adp-look-pic { grid-area: pic; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.adp-look-pic canvas { display: block; width: 136px; height: 136px; }
+.adp-look-title { display: flex; justify-content: center; max-width: 200px; }
+.adp-look-text { grid-area: worn; align-self: start; margin: 0; font-size: 13px; color: var(--adm-text-2); }
+.adp-look-text strong { font-weight: 600; color: var(--adm-ink); }
+.adp-head { grid-area: info; align-self: end; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.adp-name {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.adp-email { color: var(--adm-text-2); }
+.adp-created { font-size: 13px; color: var(--adm-muted); }
+.adp-profile-actions { grid-area: acts; display: flex; flex-direction: column; gap: 8px; }
+body[data-area="admin"] #app .adp-profile-actions [hidden] { display: none; }
+
+/* the four numbers, each with the action that changes it */
+.adp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
+.adp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+}
+.adp-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; font-size: 13px; color: var(--adm-muted); }
+/* a text link in look, a 44 px target in fact (the negative margin keeps the row 20 px tall) */
+.adp-stat-act {
+  min-height: 44px;
+  margin: -12px -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-gold-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adp-stat-act:hover { text-decoration: underline; text-underline-offset: 2px; }
+.adp-stat-value { font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--adm-navy); }
+.adp-stat--gold .adp-stat-value { color: var(--adm-warn); }
+.adp-stat small { font-size: 12px; color: var(--adm-muted); }
+
+/* the tabs and what they hold */
+.adp-panel > .adp-table-wrap { border-top: 0; }
+[data-adp-panel="kho"] .adp-table tbody tr { height: 70px; }
+.adp-item-text { display: flex; flex-direction: column; min-width: 0; }
+.adp-item-text strong { font-weight: 600; color: var(--adm-ink); }
+.adp-free { color: var(--adm-ok); font-weight: 600; }
+
+/* ---- economy ---- */
+
+.adp-eco-kpis { gap: 14px; }
+.adp-eco-kpis .adm-kpi { gap: 6px; }
+.adp-eco-kpis .adm-kpi-top { font-size: 14px; }
+.adp-eco-kpis .adm-kpi-value { font-size: 40px; line-height: 1.1; }
+.adp-eco-kpis .adm-tile-note { font-size: 13px; }
+.adp-eco-kpis .adm-kpi:not(.adm-kpi--dark) .adm-kpi-top { color: var(--adm-muted); }
+.adp-eco-kpis .adm-kpi--dark .adm-kpi-value { color: #f0d48c; }
+.adp-eco-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.adm-card.adp-flow-card { flex: 2 1 560px; gap: 14px; }
+.adm-card.adp-items-card { flex: 1 1 300px; gap: 14px; }
+.adp-flow-card .adm-card-title,
+.adp-items-card .adm-card-title { font-size: 20px; }
+.adp-flow-total { margin: 0; font-size: 14px; color: var(--adm-text-2); }
+.adp-flow-total strong { color: var(--adm-ink); }
+
+/* the small 7 / 30 days switch */
+.adp-page .adm-seg.adp-seg-sm { width: auto; flex-wrap: nowrap; padding: 3px; border-radius: 12px; }
+.adp-page .adm-seg.adp-seg-sm > button { min-height: 34px; padding: 0 12px; border-radius: 9px; font-size: 13px; }
+
+/* daily net change: one column per day, bars up from the axis for a rise, down for a fall */
+.adp-chart {
+  --adp-up: #008f86;
+  --adp-down: #b45a35;
+  display: grid;
+  grid-template-columns: repeat(var(--adp-cols), minmax(0, 1fr));
+  gap: 6px;
+}
+.adp-chart--dense { gap: 3px; }
+.adp-bar-col { display: flex; flex-direction: column; min-width: 0; border-radius: 10px; padding: 0 2px; }
+.adp-bar-col:hover { background: var(--adm-tile); }
+.adp-bar-up,
+.adp-bar-down { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.adp-bar-up { height: var(--adp-up-h); justify-content: flex-end; }
+.adp-bar-down { height: var(--adp-down-h); justify-content: flex-start; }
+.adp-bar-axis { height: 2px; background: #cbbda4; }
+.adp-bar { display: block; width: 60%; max-width: 40px; min-width: 4px; }
+.adp-bar--up { background: var(--adp-up); border-radius: 4px 4px 0 0; }
+.adp-bar--down { background: var(--adp-down); border-radius: 0 0 4px 4px; }
+.adp-bar-val { font-size: 12px; font-weight: 600; color: var(--adm-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.adp-chart--dense .adp-bar-val { display: none; }
+.adp-chart--dense .adp-bar { width: 80%; }
+.adp-bar-day { padding: 6px 0 4px; text-align: center; font-size: 12px; color: var(--adm-muted); white-space: nowrap; }
+.adp-chart--dense .adp-bar-day { overflow: visible; }
+.adp-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--adm-text-2); }
+.adp-legend > span { display: inline-flex; align-items: center; gap: 8px; }
+.adp-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.adp-swatch--up { background: #008f86; }
+.adp-swatch--down { background: #b45a35; }
+
+/* items held, as horizontal bars */
+.adp-mini-label {
+  margin: 0;
+  font-family: var(--adm-font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--adm-eyebrow);
+}
+.adp-hbars { display: flex; flex-direction: column; gap: 10px; margin: -4px 0 0; padding: 0; list-style: none; }
+.adp-hbars li { display: grid; grid-template-columns: minmax(80px, 38%) minmax(40px, 1fr) auto; align-items: center; gap: 10px; font-size: 14px; }
+.adp-hbar-label { overflow-wrap: anywhere; }
+.adp-hbar { display: block; height: 10px; border-radius: 999px; background: var(--adm-seg); overflow: hidden; }
+.adp-hbar > span { display: block; height: 100%; border-radius: 999px; background: var(--adm-navy); }
+.adp-hbars strong { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* richest players */
+.adp-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--adm-tile-2);
+  color: var(--adm-text-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+.adp-rank--top { background: var(--adm-warn-bg); color: var(--adm-warn); }
+
+/* the other tabs */
+.adp-intro { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--adm-warn-bg); color: #5f450b; font-size: 14px; }
+.adp-pad { margin: 0; padding: 0 22px 22px; }
+.adp-pad-notice { margin: 0 22px 16px; }
+.adp-filter--num { width: 130px; }
+.adp-code--strong { font-size: 14px; font-weight: 600; color: var(--adm-navy); }
+.adp-room-player { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 6px; }
+.adp-times { display: inline-block; line-height: 1.55; }
+.adp-review-text { display: block; max-width: 44ch; white-space: pre-wrap; }
+.adp-review-hidden { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.adp-stars { color: var(--adm-gold); letter-spacing: 1px; white-space: nowrap; }
+.adp-stars-off { color: var(--adm-btn-line); }
+
+/* ---- audit log ---- */
+
+.adm-card.adp-audit-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  align-items: end;
+  gap: 12px;
+  padding: 18px 20px;
+}
+.adp-audit-filters .field-input { width: 100%; }
+.adp-filter-buttons { display: flex; gap: 8px; }
+.adp-filter-buttons .adp-filter-go { flex: 1; }
+
+/* each action is a card; the cards are the rows of a one-column table */
+.adp-log { width: 100%; border-collapse: separate; border-spacing: 0 10px; margin: -10px 0; }
+.adp-log > tbody > tr > td {
+  padding: 0;
+  border: 1px solid var(--adm-line);
+  border-radius: 16px;
+  background: var(--adm-card);
+  vertical-align: top;
+}
+.adp-log > tbody > tr > td:hover { border-color: #d9c9a8; }
+.adp-log-host > .adm-pager {
+  margin-top: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--adm-line);
+  border-radius: 16px;
+  background: var(--adm-card);
+}
+.adp-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 18px; }
+.adp-entry-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--adm-tile-2);
+  color: var(--adm-text-2);
+}
+.adp-tone--bad { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.adp-tone--ok { background: var(--adm-ok-bg); color: var(--adm-ok); }
+.adp-tone--gold { background: var(--adm-warn-bg); color: var(--adm-warn); }
+.adp-tone--violet { background: var(--adm-r-epic-bg); color: var(--adm-r-epic); }
+.adp-tone--blue { background: var(--adm-r-rare-bg); color: var(--adm-r-rare); }
+.adp-entry-text { flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.adp-entry-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.adp-entry-title strong { font-size: 15px; font-weight: 700; color: var(--adm-ink); }
+.adp-entry-title .adm-pill { min-height: 22px; padding: 0 8px; }
+.adp-entry-target { font-family: var(--adm-mono); font-size: 13px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+.adp-entry-meta { font-size: 13px; color: var(--adm-muted); overflow-wrap: anywhere; }
+.adp-entry-code { font-family: var(--adm-mono); font-size: 12px; color: var(--adm-muted); }
+.adp-entry-toggle { flex: none; }
+.adp-entry-diff { padding: 0 18px 16px 72px; }
+
+/* inside a player's tab the log sits in the card: rows, not cards */
+.adp-panel .adp-log { border-spacing: 0; margin: 0; }
+.adp-panel .adp-log > tbody > tr > td { border: 0; border-top: 1px solid var(--adm-line-soft); border-radius: 0; }
+.adp-panel .adp-log > tbody > tr:first-child > td { border-top: 0; }
+
+/* before and after */
+.adp-diff-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--adm-line-mid); border-radius: 12px; }
+.adp-diff { width: 100%; border-collapse: collapse; font-size: 14px; }
+.adp-diff th,
+.adp-diff td { padding: 9px 12px; text-align: left; vertical-align: top; border-top: 1px solid var(--adm-line-soft); overflow-wrap: anywhere; }
+.adp-diff thead th {
+  border-top: 0;
+  background: var(--adm-tile);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+  white-space: nowrap;
+}
+.adp-diff tbody th { width: 30%; font-weight: 400; color: var(--adm-muted); font-family: var(--adm-mono); font-size: 13px; }
+.adp-diff tbody td { color: var(--adm-muted); }
+.adp-diff tr.is-changed th { font-weight: 600; color: var(--adm-ink); }
+.adp-diff-val { padding: 2px 8px; border-radius: 6px; }
+.adp-diff tr.is-changed td:nth-child(2) .adp-diff-val { background: var(--adm-bad-bg); color: #8a3b20; }
+.adp-diff tr.is-changed td:nth-child(3) .adp-diff-val { background: var(--adm-ok-bg); color: #1f5d55; font-weight: 600; }
+.adp-diff-none { margin: 0; }
+
+/* ---- phones ---- */
+
+@media (max-width: 720px) {
+  .adp-filters--bar { padding: 16px; }
+  .adm-card--flush > .adm-card-head + .adp-filters { padding: 0 16px 16px; }
+  .adp-filter--grow { flex-basis: 100%; }
+  .adp-avatar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 16px 16px; gap: 10px; }
+  .adp-avatar-actions .btn { flex: 1 1 100%; }
+  .adm-card.adp-profile { grid-template-columns: minmax(0, 1fr); grid-template-areas: "pic" "info" "worn" "acts"; align-items: start; justify-items: start; gap: 12px; }
+  .adp-name { font-size: 28px; }
+  .adp-profile-actions { width: 100%; }
+  .adp-review-text { max-width: none; }
+  .adp-entry { padding: 14px 16px; }
+  .adp-entry-diff { padding: 0 16px 16px; }
+  /* fingers need 44 px */
+  .adp-page .adm-seg > :is(a, button),
+  .adp-page .adm-seg.adp-seg-sm > button,
+  .adp-page .adm-tabs > button { min-height: 44px; }
+  body[data-area="admin"] #app .adp-page .btn-sm,
+  body[data-area="admin"] #app .adp-page .adm-page-btn { min-height: 44px; min-width: 44px; }
+  .adp-per-page select { min-height: 44px !important; height: 44px; }
+  body[data-area="admin"] .adp-dialog .btn-sm { min-height: 44px; }
+}

@@ -11,7 +11,11 @@ namespace SirLocked.Api.Services.Interfaces;
 /// </summary>
 public interface IAccusationResolver
 {
-    Task<GameResultResponse> ResolveAccusationAsync(
+    /// <summary>
+    /// Returns null when an open-coop accusation was judged "not convincing" and the team still has
+    /// an attempt left (the case continues); otherwise the final result.
+    /// </summary>
+    Task<GameResultResponse?> ResolveAccusationAsync(
         GameRoom room,
         GameCase gameCase,
         CurrentUser actor,

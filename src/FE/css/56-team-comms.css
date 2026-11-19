@@ -1,0 +1,350 @@
+/* ==========================================================================
+   Sir Locked: "Đàm thoại & điện tín", voice and chat between the two detectives (game/teamComms.ts).
+   A brass field-telephone dock under the objective card, and a telegram drawer: the partner's lines come on
+   parchment slips, the player's own on dark glass. Every class carries the tc- prefix.
+   ========================================================================== */
+
+.point-game-phaser #game-comms-slot { position: static; }
+
+.tc {
+  --tc-red: #c8372b;
+  --tc-red-glow: rgba(224, 72, 60, .7);
+  --tc-paper: #efe3c7;
+  --tc-paper-ink: #2a2118;
+  --tc-line: rgba(239, 212, 134, .22);
+  position: absolute;
+  /* over the tool tray (210): on a phone the drawer covers it while open */
+  z-index: 212;
+  left: var(--bpa-g-gutter, 20px);
+  top: var(--tc-top, 228px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 268px;
+  pointer-events: none;
+  color: var(--bpa-on-dark);
+  font-family: var(--bpa-font-body);
+}
+.tc[hidden] { display: none; }
+.tc > * { pointer-events: auto; }
+.tc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tc-ic { width: 20px; height: 20px; flex: none; }
+.tc-kick {
+  font-family: var(--bpa-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--bpa-gold);
+}
+
+/* ---- the dock ------------------------------------------------------------ */
+.tc-dock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 10px 8px;
+  background: var(--bpa-g-glass, rgba(10, 12, 15, .9));
+  box-shadow: inset 0 1px 0 rgba(239, 212, 134, .35), inset 0 0 0 1px var(--tc-line), 0 14px 30px rgba(0, 0, 0, .55);
+}
+.tc-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 2px 8px;
+  border-bottom: 1px dashed rgba(239, 212, 134, .2);
+}
+.tc-status-txt { display: flex; flex: 1; flex-direction: column; min-width: 0; line-height: 1.2; }
+.tc-line {
+  overflow: hidden;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--bpa-on-dark-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tc-status[data-link="connected"] .tc-line { font-style: normal; color: var(--bpa-white); }
+.tc-status[data-link="failed"] .tc-line { color: #f0a58f; }
+
+/* the partner's portrait: their sprite's first frame, head and shoulders, at 1:1 so the pixels stay crisp */
+.tc-face {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background-color: var(--bpa-navy, #1a2c42);
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px var(--bpa-brass, #c7a24b), 0 0 0 3px rgba(10, 12, 15, .9);
+  image-rendering: pixelated;
+  transition: box-shadow .2s;
+}
+.tc-face.is-sherlock { background-image: url('/assets/pixel/players/holmes96-normal.png'); background-position: -44px -14px; }
+.tc-face.is-watson { background-image: url('/assets/pixel/players/watson96.png'); background-position: -42px -20px; }
+.tc-status[data-link="off"] .tc-face { filter: grayscale(.7) brightness(.8); }
+.tc-status[data-speaking="true"] .tc-face { box-shadow: inset 0 0 0 1px var(--bpa-gold), 0 0 0 3px rgba(239, 212, 134, .55), 0 0 18px rgba(239, 212, 134, .5); }
+
+.tc-pmic { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; color: var(--bpa-on-dark-3); }
+.tc-pmic .tc-ic { width: 16px; height: 16px; }
+.tc-pmic.is-on { color: var(--bpa-gold); box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .5); }
+.tc-retry {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(239, 212, 134, .12);
+  color: var(--bpa-gold);
+  cursor: pointer;
+}
+.tc-retry:hover { background: rgba(239, 212, 134, .22); }
+
+/* the partner speaking: four little bars of a sound wave */
+.tc-wave { display: inline-flex; align-items: center; gap: 2px; height: 18px; }
+.tc-wave i { width: 3px; height: 30%; background: var(--bpa-gold); animation: tc-wave .9s ease-in-out infinite; }
+.tc-wave i:nth-child(2) { animation-delay: -.3s; }
+.tc-wave i:nth-child(3) { animation-delay: -.6s; }
+.tc-wave i:nth-child(4) { animation-delay: -.15s; }
+
+.tc-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding-top: 8px; }
+.tc-tool {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 58px;
+  padding: 8px 4px 6px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--bpa-on-dark-2);
+  font-family: var(--bpa-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background-color .15s, color .15s, box-shadow .15s;
+}
+.tc-tool:hover { background: rgba(239, 212, 134, .1); color: var(--bpa-gold); }
+.tc-tool:focus-visible { outline: 2px solid var(--bpa-gold); outline-offset: -2px; }
+.tc-tool[aria-pressed="true"],
+.tc-tool[aria-expanded="true"] { background: rgba(239, 212, 134, .14); color: var(--bpa-gold); box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .45), inset 0 -2px 0 var(--bpa-gold); }
+.tc-lbl { line-height: 1; white-space: nowrap; }
+
+/* the partner is talking and this player's speaker is off: the speaker calls for attention */
+.tc-tool[data-state="calling"] { color: var(--bpa-gold); animation: tc-calling 1.2s ease-in-out infinite; }
+.tc-tool[data-state="problem"] { color: #f0a58f; box-shadow: inset 0 0 0 1px rgba(201, 138, 99, .6); }
+.tc-tool[data-state="problem"]::after {
+  content: "!";
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #a3442b;
+  color: var(--bpa-white);
+  font: 700 10px/1 var(--bpa-font-label);
+}
+
+/* the player's own level while the mic is on */
+.tc-level { position: absolute; top: 8px; right: 10px; display: flex; align-items: flex-end; gap: 1.5px; height: 12px; }
+.tc-level i { width: 2.5px; height: 25%; background: currentColor; opacity: .55; }
+.tc-tool[data-state="speaking"] .tc-level i { opacity: 1; animation: tc-wave .7s ease-in-out infinite; }
+.tc-tool[data-state="speaking"] .tc-level i:nth-child(2) { animation-delay: -.25s; }
+.tc-tool[data-state="speaking"] .tc-level i:nth-child(3) { animation-delay: -.5s; }
+
+/* unread telegrams: a blinking red wax seal on the button, and the button's own red alarm */
+.tc-badge {
+  position: absolute;
+  top: 3px;
+  right: calc(50% - 26px);
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #ea6a5b, var(--tc-red) 55%, #741711);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 210, 190, .35), 0 0 0 2px rgba(10, 12, 15, .9);
+  color: #fff7ee;
+  font: 700 11px/1 var(--bpa-font-label);
+  animation: tc-seal 1s ease-in-out infinite;
+}
+.tc-badge[hidden] { display: none; }
+.tc-tool[data-unread="true"] { color: #ffb4a6; animation: tc-alarm 1s steps(1, end) infinite; }
+
+/* a partner's line while the drawer is closed */
+.tc-preview {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-left: 3px solid var(--tc-red);
+  background: var(--tc-paper);
+  color: var(--tc-paper-ink);
+  font: 15px/1.3 var(--bpa-font-body);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .45);
+  animation: tc-drop .25s var(--bpa-g-ease, ease-out) both;
+}
+.tc-preview[hidden] { display: none; }
+.tc-preview b { font-family: var(--bpa-font-display); }
+
+/* ---- the telegram drawer ---------------------------------------------- */
+.tc-panel {
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  height: min(440px, calc(100vh - var(--tc-top, 228px) - 260px));
+  min-height: 260px;
+  box-sizing: border-box;
+  background: rgba(10, 12, 15, .94);
+  box-shadow: inset 0 2px 0 var(--bpa-brass, #c7a24b), inset 0 0 0 1px rgba(239, 212, 134, .3), 0 18px 40px rgba(0, 0, 0, .6);
+  animation: tc-drop .22s var(--bpa-g-ease, ease-out) both;
+}
+.tc-panel[hidden] { display: none; }
+.tc-panel-hd { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px 14px; border-bottom: 1px solid rgba(239, 212, 134, .18); }
+.tc-seal { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 999px; background: var(--bpa-navy, #1a2c42); box-shadow: inset 0 0 0 1px var(--bpa-brass); color: var(--bpa-gold); }
+.tc-seal .tc-ic { width: 18px; height: 18px; }
+.tc-panel-tt { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.tc-panel-tt h2 { margin: 0; overflow: hidden; font: 700 19px/1.2 var(--bpa-font-display); color: var(--bpa-white); text-overflow: ellipsis; white-space: nowrap; }
+.tc-x { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: var(--bpa-on-dark-2); cursor: pointer; }
+.tc-x:hover { background: rgba(239, 212, 134, .1); color: var(--bpa-gold); }
+.tc-x:focus-visible, .tc-send:focus-visible, .tc-preview:focus-visible, .tc-retry:focus-visible { outline: 2px solid var(--bpa-gold); outline-offset: 2px; }
+
+.tc-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 14px 10px;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(239, 212, 134, .3) transparent;
+  scrollbar-width: thin;
+}
+.tc-empty { margin: auto 0; color: var(--bpa-on-dark-3); font-style: italic; font-size: 16px; text-align: center; }
+.tc-msg { display: flex; flex-direction: column; gap: 3px; max-width: 86%; }
+.tc-who { font-family: var(--bpa-font-label); font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--bpa-on-dark-3); }
+.tc-text { margin: 0; padding: 8px 11px 9px; font-size: 16px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the partner's lines: a telegram slip */
+.tc-msg.is-theirs { align-self: flex-start; }
+.tc-msg.is-theirs .tc-text {
+  background: linear-gradient(180deg, #f3e8cf, var(--tc-paper));
+  color: var(--tc-paper-ink);
+  box-shadow: inset 0 -1px 0 rgba(42, 33, 24, .15), 0 3px 8px rgba(0, 0, 0, .4);
+}
+.tc-msg.is-theirs.is-sherlock .tc-text { border-left: 3px solid #8a5a2b; }
+.tc-msg.is-theirs.is-watson .tc-text { border-left: 3px solid #2f6363; }
+/* the player's own lines */
+.tc-msg.is-mine { align-self: flex-end; align-items: flex-end; }
+.tc-msg.is-mine .tc-text { background: rgba(239, 212, 134, .08); color: var(--bpa-white); box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .3), inset -3px 0 0 var(--bpa-gold); }
+
+.tc-form { position: relative; display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px 22px; border-top: 1px solid rgba(239, 212, 134, .18); }
+.tc-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  max-height: 120px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(251, 246, 237, .06);
+  box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .3);
+  color: var(--bpa-white);
+  font: 16px/1.3 var(--bpa-font-body);
+  resize: none;
+}
+.tc-input::placeholder { color: var(--bpa-on-dark-3); font-style: italic; }
+.tc-input:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--bpa-gold); }
+/* send: a red wax seal */
+.tc-send {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #d9594a, #a52a20 58%, #6a1610);
+  box-shadow: inset 0 0 0 2px rgba(255, 210, 190, .25), 0 3px 8px rgba(0, 0, 0, .45);
+  color: #fff3e8;
+  cursor: pointer;
+}
+.tc-send:hover:not(:disabled) { filter: brightness(1.12); }
+.tc-send:disabled { filter: grayscale(.6) brightness(.7); cursor: progress; }
+.tc-form-msg { position: absolute; left: 14px; right: 66px; bottom: 4px; margin: 0; overflow: hidden; color: #f0a58f; font: 600 11px/1.4 var(--bpa-font-label); text-overflow: ellipsis; white-space: nowrap; }
+.tc-form-msg[data-over="false"] { color: var(--bpa-on-dark-3); }
+
+/* ---- motion -------------------------------------------------------------- */
+@keyframes tc-wave { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+@keyframes tc-seal {
+  0%, 100% { transform: scale(1); box-shadow: inset 0 0 0 1.5px rgba(255, 210, 190, .35), 0 0 0 2px rgba(10, 12, 15, .9), 0 0 0 0 var(--tc-red-glow); }
+  50% { transform: scale(1.14); box-shadow: inset 0 0 0 1.5px rgba(255, 210, 190, .35), 0 0 0 2px rgba(10, 12, 15, .9), 0 0 0 8px rgba(224, 72, 60, 0); }
+}
+@keyframes tc-alarm {
+  0% { background: rgba(200, 55, 43, .22); box-shadow: inset 0 0 0 1px rgba(224, 72, 60, .9), 0 0 14px rgba(224, 72, 60, .45); }
+  50% { background: transparent; box-shadow: inset 0 0 0 1px rgba(224, 72, 60, .3); }
+}
+@keyframes tc-calling {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .2); }
+  50% { box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .8), 0 0 12px rgba(239, 212, 134, .35); }
+}
+@keyframes tc-drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-wave i, .tc-tool[data-state="speaking"] .tc-level i { animation: none; height: 70%; }
+  .tc-badge { animation: none; }
+  /* still unmistakably red, just not blinking */
+  .tc-tool[data-unread="true"] { animation: none; background: rgba(200, 55, 43, .22); box-shadow: inset 0 0 0 1px rgba(224, 72, 60, .9); }
+  .tc-tool[data-state="calling"] { animation: none; box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .8); }
+  .tc-preview, .tc-panel { animation: none; }
+}
+
+/* ---- phones and narrow windows: three round buttons on the right edge, the drawer as a bottom sheet ---- */
+@media (max-width: 900px) {
+  .tc { left: auto; right: 8px; width: auto; align-items: flex-end; }
+  .tc-dock { width: auto; padding: 4px; }
+  .tc-status { display: none; }
+  .tc-tools { grid-template-columns: 1fr; gap: 4px; padding-top: 0; }
+  .tc-tool { width: 48px; min-height: 48px; padding: 0; }
+  .tc-tool .tc-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tc-badge { top: -4px; right: -4px; }
+  .tc-level { top: 4px; right: 4px; }
+  .tc-tool[data-state="problem"]::after { top: 3px; right: 3px; }
+  .tc[data-partner-speaking="true"] [data-tc-speaker] { color: var(--bpa-gold); box-shadow: inset 0 0 0 1px var(--bpa-gold), 0 0 14px rgba(239, 212, 134, .45); }
+  .tc-preview { position: fixed; left: 8px; right: 64px; top: var(--tc-top, 168px); width: auto; margin: 0; }
+  .tc-panel {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-width: none;
+    height: min(62vh, 520px);
+    height: min(62dvh, 520px);
+    min-height: 240px;
+    /* opaque on a phone: the sheet lies over the tool tray and the detective */
+    background: #0b0d11;
+  }
+}

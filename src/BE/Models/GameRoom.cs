@@ -21,14 +21,48 @@ public class GameRoom
     [JsonIgnore]
     public string? PendingRemovedPlayerId { get; set; }
     public string Status { get; set; } = RoomStatus.Waiting;
+    /// <summary>PUBLIC rooms are listed for everyone; PRIVATE (the default, also for legacy rooms) only by code.</summary>
+    public string Visibility { get; set; } = RoomVisibility.Private;
+    /// <summary>Set only for rooms created by matchmaking; a unique index keeps one room per match.</summary>
+    [BsonIgnoreIfNull]
+    public string? MatchId { get; set; }
+    /// <summary>Null for a normal two-player room; "TUTORIAL" for the solo newcomer tutorial (see TutorialRules).</summary>
+    [BsonIgnoreIfNull]
+    public string? Mode { get; set; }
     /// <summary>Optimistic-concurrency version for lobby mutations before gameplay starts.</summary>
     public long LobbyVersion { get; set; } = 1;
+    /// <summary>
+    /// Set only for a playtest of an imported, unpublished AI draft (see <c>PlaytestRoomRules</c>): only an admin, the
+    /// draft's author and the one player who claimed the invite link can join, and the finished game writes no result.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    public RoomPlaytest? Playtest { get; set; }
 
     /// <summary>Embedded authoritative runtime state; null until the game starts.</summary>
     public GameplayState? GameplayState { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class RoomPlaytest
+{
+    public string DraftId { get; set; } = string.Empty;
+    /// <summary>The user who ordered the draft (<c>AiCaseDraft.CreatedByUserId</c>); may join without the invite.</summary>
+    public string AuthorUserId { get; set; } = string.Empty;
+    public string CreatedByUserId { get; set; } = string.Empty;
+    /// <summary>Secret of the invite link. The first other player who joins with it becomes <see cref="InvitedUserId"/>.</summary>
+    public string InviteToken { get; set; } = string.Empty;
+    /// <summary>Null until the invite link is used; after that the link lets no one else in.</summary>
+    [BsonIgnoreIfNull]
+    public string? InvitedUserId { get; set; }
+    /// <summary>
+    /// Case Studio "Chơi thử cảnh này": the scene both detectives start in instead of the first one. Null starts at the
+    /// first scene. Ignored when the scene no longer exists in the case.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    public string? StartSceneId { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -42,6 +76,8 @@ public class RoomPlayer
     public bool IsConnected { get; set; }
     public DateTime? LastConnectedAt { get; set; }
     public DateTime? DisconnectedAt { get; set; }
+    /// <summary>Set once by the first connection of this seat; see LobbyEntranceService.</summary>
+    public bool EntranceAnnounced { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -71,6 +107,8 @@ public class GameplayState
     public int CameraMissCount { get; set; }
     public int WrongPuzzleCount { get; set; }
     public List<string> UsedHintIds { get; set; } = new();
+    /// <summary>VUAN-7: every hint level opened in this game, how it was paid and the score share it takes.</summary>
+    public List<HintUsageRecord> HintUsages { get; set; } = new();
     public List<SolvedDeductionRecord> SolvedDeductionRecords { get; set; } = new();
     public List<string> DeductionAttemptKeys { get; set; } = new();
     public int WrongDeductionCount { get; set; }
@@ -87,6 +125,18 @@ public class GameplayState
     /// <summary>Terminal accusation proposals retained for history, retries and exactly-once outcomes.</summary>
     public List<AccusationProposalState> AccusationAttempts { get; set; } = new();
     public string GameStatus { get; set; } = Enums.GameStatus.InProgress;
+    /// <summary>Open-coop timeline events the team has placed correctly.</summary>
+    public List<string> PlacedTimelineEventIds { get; set; } = new();
+    public int WrongTimelineCount { get; set; }
+    /// <summary>Open-coop accusations judged "not convincing" (the second wrong one ends the case).</summary>
+    public int WrongAccusationCount { get; set; }
+    /// <summary>Open-coop lead hints revealed (each costs score).</summary>
+    public int LeadHintCount { get; set; }
+    /// <summary>Open-coop case wall: item id (clue or testimony fragment) → pinned target id.</summary>
+    public Dictionary<string, string> BoardPins { get; set; } = new();
+    public int WrongBoardPinCount { get; set; }
+    /// <summary>Per-puzzle run state for interactive puzzles (attempts, probe tokens, re-rolled secrets).</summary>
+    public Dictionary<string, PuzzleRunState> PuzzleRuns { get; set; } = new();
     /// <summary>
     /// Authoritative completion data used to recreate the denormalized game result when its write fails.
     /// Null for games that have not completed and for legacy room documents.
@@ -242,4 +292,5 @@ public static class ClueDiscoverySources
     public const string Deduction = "deduction";
     public const string Interaction = "interaction";
     public const string Puzzle = "puzzle";
+    public const string Timeline = "timeline";
 }

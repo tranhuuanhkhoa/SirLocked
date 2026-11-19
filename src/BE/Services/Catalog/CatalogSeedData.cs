@@ -1,4 +1,5 @@
 using MongoDB.Bson;
+using MongoDB.Driver;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.Models.Catalog;
 using SirLocked.Api.Services.Market;
@@ -11,7 +12,8 @@ public sealed record CatalogSeedBatch(
     IReadOnlyList<CatalogChest> Chests,
     IReadOnlyList<CatalogLevelReward> LevelRewards,
     IReadOnlyList<CatalogAchievement> Achievements,
-    ProgressSettingsDocument? Progress);
+    ProgressSettingsDocument? Progress,
+    Func<CatalogStore, CancellationToken, Task<int>>? Upgrade = null);
 
 /// <summary>
 /// Turns the static catalogs (MarketCatalog, ChestCatalog, CosmeticCatalog, AchievementRules, ProgressRules) into
@@ -20,7 +22,7 @@ public sealed record CatalogSeedBatch(
 /// </summary>
 public static class CatalogSeedData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 4;
 
     // Same colours as CHEST_LOOKS in src/FE/Client/js/pages/chest/chestSprites.js.
     private static CatalogChestLook LookOf(string iconKey) => iconKey switch
@@ -34,6 +36,9 @@ public static class CatalogSeedData
     public static CatalogSeedBatch ForVersion(int version, ChestSettings prices, DateTime now) => version switch
     {
         1 => Version1(prices, now),
+        2 => Version2(now),
+        3 => Version3(now),
+        4 => Version4(),
         _ => throw new ArgumentOutOfRangeException(nameof(version), version, "No such catalog seed version."),
     };
 
@@ -45,7 +50,13 @@ public static class CatalogSeedData
             .Select(def => def.Id)
             .ToHashSet(StringComparer.Ordinal);
 
-        var items = MarketCatalog.All.Select((def, index) => new CatalogItem
+        // The outfits and their chest came later (versions 2 and 3); SortOrder still follows MarketCatalog.All.
+        var items = MarketCatalog.All
+            .Select((def, index) => ToItem(def, index))
+            .Where(item => !Later.Contains(item.Id))
+            .ToList();
+
+        CatalogItem ToItem(MarketItemDef def, int index) => new()
         {
             Id = def.Id,
             Category = def.Category,
@@ -69,7 +80,7 @@ public static class CatalogSeedData
                 BuiltinId = CosmeticCatalog.IsCosmetic(def.Category) ? BuiltinIdOf(def.Id) : null,
                 Params = new BsonDocument(),
             },
-        }).ToList();
+        };
 
         var chests = ChestCatalog.Chests.Select((chest, index) =>
         {
@@ -116,6 +127,112 @@ public static class CatalogSeedData
         var progress = new ProgressSettingsDocument { RareXp = ProgressRules.RareXp, EpicXp = ProgressRules.EpicXp };
         return new CatalogSeedBatch(items, chests, levelRewards, achievements, progress);
     }
+
+    /// <summary>Version 2: the detectives' outfits (<see cref="SkinCatalog"/>). Items only; version 3 adds the chest they drop from.</summary>
+    private static CatalogSeedBatch Version2(DateTime now)
+    {
+        var items = SkinCatalog.Outfits.Select(def => new CatalogItem
+        {
+            Id = def.Id,
+            Category = def.Category,
+            Rarity = def.Rarity,
+            Name = def.Name,
+            NameEn = def.NameEn,
+            Description = def.Description,
+            DescriptionEn = def.DescriptionEn,
+            ReferencePrice = def.ReferencePrice,
+            Tradable = def.Tradable,
+            Retired = false,
+            SortOrder = OrderOf(def.Id),
+            CreatedAt = now,
+            UpdatedAt = now,
+            UpdatedBy = null,
+            Version = 1,
+            Visual = new CatalogVisual { ImageUrl = def.Visual?.ImageUrl, Params = new BsonDocument() },
+        }).ToList();
+        return new CatalogSeedBatch(items, Array.Empty<CatalogChest>(), Array.Empty<CatalogLevelReward>(), Array.Empty<CatalogAchievement>(), null);
+    }
+
+    /// <summary>
+    /// Version 3: the Whitechapel chest and its key, the one chest the outfits drop from. A new chest only: the chests
+    /// that already exist, and whatever an admin changed in them, stay exactly as they are.
+    /// </summary>
+    private static CatalogSeedBatch Version3(DateTime now)
+    {
+        var items = SkinCatalog.ChestAndKey.Select(def => new CatalogItem
+        {
+            Id = def.Id,
+            Category = def.Category,
+            Rarity = def.Rarity,
+            Name = def.Name,
+            NameEn = def.NameEn,
+            Description = def.Description,
+            DescriptionEn = def.DescriptionEn,
+            ReferencePrice = def.ReferencePrice,
+            Tradable = def.Tradable,
+            Retired = false,
+            SortOrder = OrderOf(def.Id),
+            CreatedAt = now,
+            UpdatedAt = now,
+            UpdatedBy = null,
+            Version = 1,
+            Visual = new CatalogVisual { IconKey = def.IconKey, Params = new BsonDocument() },
+        }).ToList();
+
+        var chests = SkinCatalog.Chests.Select((chest, index) => new CatalogChest
+        {
+            Id = chest.Id,
+            KeyDefId = chest.KeyDefId,
+            Name = chest.Name,
+            NameEn = chest.NameEn,
+            Subtitle = chest.Subtitle,
+            SubtitleEn = chest.SubtitleEn,
+            KeyName = chest.KeyName,
+            KeyNameEn = chest.KeyNameEn,
+            IconKey = chest.IconKey,
+            KeyIconKey = chest.KeyIconKey,
+            Look = SkinCatalog.WhitechapelLook(),
+            Prices = new CatalogChestPrices { Chest = chest.Prices.Chest, Key = chest.Prices.Key },
+            DropWeights = chest.DropRates.ToDictionary(rate => rate.Rarity, rate => rate.Weight, StringComparer.Ordinal),
+            Pool = chest.Items.Select(def => def.Id).ToList(),
+            Active = true,
+            SortOrder = ChestCatalog.Chests.Count + index,
+            Version = 1,
+            UpdatedBy = null,
+            CreatedAt = now,
+            UpdatedAt = now,
+        }).ToList();
+        return new CatalogSeedBatch(items, chests, Array.Empty<CatalogLevelReward>(), Array.Empty<CatalogAchievement>(), null);
+    }
+
+    /// <summary>
+    /// Version 4: the Whitechapel chest gets its own drawing. Version 3 gave it the Sealed Case's; a database that still
+    /// has that one is moved to the new drawing, chest and chest item alike. An admin who picked another drawing keeps it.
+    /// </summary>
+    private static CatalogSeedBatch Version4() => new(
+        Array.Empty<CatalogItem>(), Array.Empty<CatalogChest>(), Array.Empty<CatalogLevelReward>(), Array.Empty<CatalogAchievement>(), null,
+        UpgradeWhitechapelDrawingAsync);
+
+    private static async Task<int> UpgradeWhitechapelDrawingAsync(CatalogStore store, CancellationToken ct)
+    {
+        const string oldTemplate = "seal", oldIcon = "chest_seal";
+        var chest = await store.Chests.UpdateOneAsync(
+            c => c.Id == SkinCatalog.WhitechapelChestId && c.Look.Template == oldTemplate && c.IconKey == oldIcon,
+            Builders<CatalogChest>.Update
+                .Set(c => c.Look.Template, SkinCatalog.WhitechapelTemplate)
+                .Set(c => c.IconKey, SkinCatalog.WhitechapelIcon),
+            cancellationToken: ct);
+        var item = await store.Items.UpdateOneAsync(
+            i => i.Id == SkinCatalog.WhitechapelChestId && i.Visual.IconKey == oldIcon,
+            Builders<CatalogItem>.Update.Set(i => i.Visual.IconKey, SkinCatalog.WhitechapelIcon),
+            cancellationToken: ct);
+        return (int)(chest.ModifiedCount + item.ModifiedCount);
+    }
+
+    /// <summary>What versions 2 and 3 add, kept out of version 1.</summary>
+    private static readonly HashSet<string> Later = SkinCatalog.ItemDefs.Select(def => def.Id).ToHashSet(StringComparer.Ordinal);
+
+    private static int OrderOf(string defId) => MarketCatalog.All.Select(def => def.Id).ToList().IndexOf(defId);
 
     /// <summary>"frame_kimlong" becomes "kimlong": the id of the drawing code once the category prefix is gone.</summary>
     private static string BuiltinIdOf(string defId)

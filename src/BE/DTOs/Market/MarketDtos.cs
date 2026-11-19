@@ -23,7 +23,9 @@ public sealed record WalletDto(
     int SlotCap,
     int ItemCount,
     int ReservedSlots,
-    int FeePercent);
+    int FeePercent,
+    long BonusBalance = 0,
+    long BonusHeld = 0);
 
 public sealed record MarketRowDto(
     ItemDefDto Def,
@@ -162,7 +164,9 @@ public sealed record TradeOfferDto(
 public sealed record TradesDto(
     IReadOnlyList<TradeOfferDto> Incoming,
     IReadOnlyList<TradeOfferDto> Outgoing,
-    IReadOnlyList<TradeOfferDto> History);
+    IReadOnlyList<TradeOfferDto> History,
+    // False: trades carry items only (Market:TradeCoins); the page hides the coin fields.
+    bool CoinsAllowed = true);
 
 public sealed record RewardDto(string RoomId, long Amount, bool Won, bool Applied);
 

@@ -14,7 +14,13 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Admin;
+using SirLocked.Api.Services.Bridge;
+using SirLocked.Api.Services.Catalog;
+using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.Payments;
 using SirLocked.Api.Services.Projection;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
@@ -64,47 +70,65 @@ builder.Services.AddOptions<JwtSettings>()
         settings => JwtSettings.IsSecretValid(settings.Secret),
         "Jwt__Secret must be configured and at least 32 characters long.")
     .ValidateOnStart();
-builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
+builder.Services.Configure<AiGenerationSettings>(builder.Configuration.GetSection("AiGeneration"));
+builder.Services.Configure<BridgeSettings>(builder.Configuration.GetSection("Bridge"));
+builder.Services.Configure<AnthropicSettings>(builder.Configuration.GetSection("Anthropic"));
+builder.Services.PostConfigure<AnthropicSettings>(settings => settings.ApiKey = settings.ApiKey?.Trim() ?? string.Empty);
+builder.Services.Configure<AdsSettings>(builder.Configuration.GetSection("Ads"));
 builder.Services.Configure<CaseCacheSettings>(builder.Configuration.GetSection("CaseCache"));
 builder.Services.Configure<GameplayV3Settings>(builder.Configuration.GetSection("GameplayV3"));
+builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection("CaseCatalog"));
+builder.Services.AddSingleton<CaseCatalogPolicy>();
+builder.Services.Configure<WeeklyChallengeSettings>(builder.Configuration.GetSection("WeeklyChallenge"));
+builder.Services.Configure<CutsceneSettings>(builder.Configuration.GetSection("Cutscene"));
+builder.Services.AddScoped<ICutsceneStore, MongoCutsceneStore>();
+builder.Services.AddScoped<CutsceneScriptGenerator>();
+builder.Services.AddScoped<CutsceneService>();
+builder.Services.AddScoped<IAiIntroCutsceneStarter>(services => new AiIntroCutsceneStarter((caseId, ct) =>
+    services.GetRequiredService<CutsceneService>().GenerateAsync(caseId, regenerate: false, actor: "ai-pipeline", ct)));
+builder.Services.AddHostedService<CutsceneSeedWorker>();
+builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
 builder.Services.Configure<AccusationSettings>(builder.Configuration.GetSection("Accusation"));
+builder.Services.Configure<MarketSettings>(builder.Configuration.GetSection("Market"));
+builder.Services.Configure<SirLocked.Api.Services.TeamComms.VoiceSettings>(builder.Configuration.GetSection("Voice"));
+builder.Services.AddOptions<ChestSettings>()
+    .Bind(builder.Configuration.GetSection("Chests"))
+    .Validate(ChestSettings.IsValid, "Chests:Prices must price every chest and keep its expected value below the cost of opening.")
+    .ValidateOnStart();
 // Resolved here rather than bound from configuration so the Development-only guard sits next to the
 // admin-seed guard below, where anyone auditing startup can see both bypasses in one place.
 builder.Services.Configure<AuthSettings>(settings =>
     settings.AutoVerifyRegistrations =
         AuthSettings.ResolveAutoVerifyRegistrations(builder.Configuration, builder.Environment));
 builder.Services.Configure<AiCaseV3PresetSettings>(builder.Configuration.GetSection("AiCaseV3Preset"));
-builder.Services.PostConfigure<OpenAiSettings>(settings =>
+builder.Services.PostConfigure<AiGenerationSettings>(settings =>
 {
-    static bool EnvFlag(IConfiguration configuration, string key) =>
+    static bool Flag(IConfiguration configuration, string key) =>
         bool.TryParse(configuration[key], out var enabled) && enabled;
 
-    if (string.IsNullOrWhiteSpace(settings.ApiKey))
+    // Process-wide switches, and the pre-bridge OpenAI:* spellings so an operator's existing safety flag is never
+    // silently dropped by the move to the AiGeneration section.
+    settings.AiDryRun |= Flag(builder.Configuration, "AI_DRY_RUN") || Flag(builder.Configuration, "OpenAI:AiDryRun");
+    settings.MockAiResponses |= Flag(builder.Configuration, "MOCK_AI_RESPONSES") || Flag(builder.Configuration, "OpenAI:MockAiResponses");
+    settings.SkipAssetGeneration |= Flag(builder.Configuration, "SKIP_ASSET_GENERATION") || Flag(builder.Configuration, "OpenAI:SkipAssetGeneration");
+    settings.DisableAutoPublish |= Flag(builder.Configuration, "DISABLE_AUTO_PUBLISH") || Flag(builder.Configuration, "OpenAI:DisableAutoPublish");
+    settings.GenerateJsonOnly |= Flag(builder.Configuration, "GENERATE_JSON_ONLY") || Flag(builder.Configuration, "OpenAI:GenerateJsonOnly");
+    settings.ValidateOnly |= Flag(builder.Configuration, "VALIDATE_ONLY") || Flag(builder.Configuration, "OpenAI:ValidateOnly");
+    settings.EnableBlindSolvabilityReview |= Flag(builder.Configuration, "OpenAI:EnableBlindSolvabilityReview");
+});
+builder.Services.PostConfigure<BridgeSettings>(settings =>
+{
+    settings.Key = settings.Key?.Trim() ?? string.Empty;
+    // Mock answers and local image storage are development conveniences; Production never offers them.
+    if (builder.Environment.IsProduction())
     {
-        var fallbackKeys = new[]
-        {
-            builder.Configuration["OpenAI:ApiKey"],
-            builder.Configuration["OPENAI_API_KEY"],
-            builder.Configuration["AI:ChatGptApiKey"]
-        };
-        settings.ApiKey = fallbackKeys.FirstOrDefault(key => !string.IsNullOrWhiteSpace(key)) ?? string.Empty;
+        settings.ExposeMockResponses = false;
+        settings.AllowLocalAssetStorage = false;
     }
-
-    settings.AiDryRun |= EnvFlag(builder.Configuration, "AI_DRY_RUN");
-    settings.MockAiResponses |= EnvFlag(builder.Configuration, "MOCK_AI_RESPONSES");
-    settings.SkipAssetGeneration |= EnvFlag(builder.Configuration, "SKIP_ASSET_GENERATION");
-    settings.DisableAutoPublish |= EnvFlag(builder.Configuration, "DISABLE_AUTO_PUBLISH");
-    settings.GenerateJsonOnly |= EnvFlag(builder.Configuration, "GENERATE_JSON_ONLY");
-    settings.ValidateOnly |= EnvFlag(builder.Configuration, "VALIDATE_ONLY");
 });
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.Configure<AiQuotaSettings>(builder.Configuration.GetSection("AiQuota"));
-builder.Services.Configure<AiUsageSettings>(builder.Configuration.GetSection("AiUsage"));
-builder.Services.AddScoped<AiUsageAccounting>();
-builder.Services.AddScoped<IAiUsageAccounting>(services => services.GetRequiredService<AiUsageAccounting>());
-builder.Services.AddScoped<IAiRecordedUsageReconciler>(services => services.GetRequiredService<AiUsageAccounting>());
-builder.Services.AddHostedService<AiUsageReconciliationWorker>();
 builder.Services.Configure<PresentationVideoSettings>(builder.Configuration.GetSection("PresentationVideo"));
 builder.Services.AddSingleton<IPresentationStore, MongoPresentationStore>();
 builder.Services.AddScoped<PresentationService>();
@@ -112,6 +136,7 @@ builder.Services.AddScoped<PresentationVideoProcessor>();
 builder.Services.AddHostedService<PresentationVideoWorker>();
 builder.Services.AddHttpClient<IPresentationVideoProvider, XaiPresentationVideoProvider>(client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
+builder.Services.AddHttpClient<IAvatarStorage, CloudinaryAvatarStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddHttpClient<IPresentationMediaStorage, CloudinaryPresentationMediaStorage>(client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
 
@@ -130,14 +155,46 @@ builder.Services.AddScoped<IGameplayProjectionPlanner, GameplayProjectionPlanner
 builder.Services.AddScoped<IProjectionContentSchemaFactory, ProjectionContentSchemaFactory>();
 builder.Services.AddScoped<IGameCaseProjectionCompiler, GameCaseProjectionCompiler>();
 builder.Services.AddScoped<IProjectionGraphValidator, ProjectionGraphValidator>();
-builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<CaseService>();
+builder.Services.AddScoped<ICaseService>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddScoped<IPixelCaseSeeder>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddScoped<ITutorialCaseSeeder>(services => services.GetRequiredService<CaseService>());
+builder.Services.AddScoped<ITutorialService, TutorialService>();
+builder.Services.AddScoped<SirLocked.Api.Services.CaseEditor.CaseEditorService>();
+builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
-builder.Services.AddScoped<IAiOpenAiClient, AiOpenAiClient>();
+builder.Services.AddScoped<IAiDraftAutopilot, AiDraftAutopilot>();
+builder.Services.AddScoped<TruthStageRules>();
+builder.Services.AddSingleton<IBridgeNotifier, BridgeHubNotifier>();
+builder.Services.AddScoped<AiBridgeRequestStore>();
+// VUAN-7: paid VIP orders are written through the Claude API, everything else by the ADMIN bot through the bridge.
+builder.Services.AddScoped<ClaudeBridgeTextProvider>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.ClaudeApiTextProvider>();
+builder.Services.AddScoped<IAiTextProvider, SirLocked.Api.Services.Vip.AiTextProviderRouter>();
+builder.Services.AddSingleton<SirLocked.Api.Services.Vip.IClaudeApiClient, SirLocked.Api.Services.Vip.AnthropicSdkClient>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipLaneStore>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipAnswerProcessor>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipBillingService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.HintPaymentService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorRewardService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.AuthorBadgeReader>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipReportService>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Vip.AuthorRewardWorker>();
+builder.Services.AddHostedService<SirLocked.Api.Services.Vip.VipLaneWorker>();
+builder.Services.AddScoped<AiBridgeService>();
+builder.Services.AddScoped<AiDecisionService>();
+builder.Services.AddScoped<AiCaseSettingsStore>();
+builder.Services.AddScoped<SirLocked.Api.Services.Vip.VipSettingsStore>();
+builder.Services.AddScoped<AssetLibraryService>();
+builder.Services.AddScoped<IBridgeAssetStorage, BridgeAssetStorage>();
 builder.Services.AddScoped<IAiCaseExportService, AiCaseExportService>();
 builder.Services.AddScoped<IAiArtifactCleanupService, AiArtifactCleanupService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<RoomDisconnectTimeoutService>();
 builder.Services.AddHostedService<RoomDisconnectTimeoutWorker>();
+builder.Services.AddScoped<IMatchmakingNotifier, MatchmakingNotifier>();
+builder.Services.AddScoped<MatchmakingService>();
+builder.Services.AddHostedService<MatchmakingWorker>();
 builder.Services.AddScoped<IGameStateBuilder, GameStateBuilder>();
 builder.Services.AddScoped<IGameplayContextLoader, GameplayContextLoader>();
 builder.Services.AddScoped<IGameplayStatePersistence, GameplayStatePersistence>();
@@ -184,6 +241,10 @@ builder.Services.AddScoped<IAiAssetPipeline>(services => services.GetRequiredSer
 builder.Services.AddHostedService<AiGenerationWorker>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IGameNotifier, GameNotifier>();
+// Chat and voice between the two detectives of a match.
+builder.Services.AddSingleton<SirLocked.Api.Services.TeamComms.TeamChatLimiter>();
+builder.Services.AddScoped<SirLocked.Api.Services.TeamComms.TeamChatService>();
+builder.Services.AddHttpClient<SirLocked.Api.Services.TeamComms.IceServerProvider>(client => client.Timeout = TimeSpan.FromSeconds(4));
 builder.Services.AddScoped<IEvidencePhotoService, EvidencePhotoService>();
 builder.Services.AddScoped<IGameResultStore, MongoGameResultStore>();
 builder.Services.AddScoped<IWorkshopService, WorkshopService>();
@@ -192,7 +253,15 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IWeeklyService, WeeklyService>();
-builder.Services.AddHttpClient(AiCaseService.OpenAiHttpClientName);
+builder.Services.AddHostedService<SirLocked.Api.Services.Weekly.WeeklyChallengeWorker>(); // tự bốc vụ Thử thách tuần mỗi 5 phút
+builder.Services.AddCatalog(); // Danh mục vật phẩm, hòm, phần thưởng trong MongoDB (ICatalogProvider)
+builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
+builder.Services.AddAdminFoundation(); // Nhật ký admin, tải ảnh admin
+builder.Services.AddAdminChests();
+builder.Services.AddAdminCosmetics();
+builder.Services.AddAdminPlayers();
+builder.Services.AddPayments(builder.Configuration);
+builder.Services.AddHttpClient(AiCaseService.AssetHttpClientName);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -229,6 +298,16 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0
         }));
 
+    options.AddPolicy("auth-token", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
+
     // Telemetry là ghi thật vào Mongo; UI chỉ phát vài sự kiện mỗi phút nên cửa sổ theo từng người
     // dùng đủ rộng cho luồng hợp lệ mà không cho một client lặp vô hạn thổi phồng collection.
     options.AddPolicy("playtest-events", context => RateLimitPartition.GetFixedWindowLimiter(
@@ -242,6 +321,38 @@ builder.Services.AddRateLimiter(options =>
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         }));
+
+    // Mở hòm và mua hòm/chìa là ghi thật vào Mongo; một lượt mở tốn vài giây hoạt ảnh nên 60 lần/phút
+    // theo từng người dùng vẫn dư cho cả việc gửi lại khi mạng chập chờn.
+    options.AddPolicy("chests", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
+
+    // Bridge calls carry no user identity, so the window is per client address. The bot polls and uploads in
+    // bursts; the default leaves room for a whole case while stopping a runaway loop.
+    var bridgePerMinute = Math.Clamp(
+        builder.Configuration.GetSection("Bridge").GetValue<int?>("RateLimitPerMinute") ?? 240, 10, 5000);
+    options.AddPolicy("bridge", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = bridgePerMinute,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
+
+    options.AddPolicy("payments", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 
     // Trả về 429 với message rõ ràng
     options.OnRejected = async (context, token) =>
@@ -369,14 +480,18 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger
 }
 
 app.UseCors();
+app.UseBridgeHubKeyGate();
 app.UseAuthentication();
 // User-partitioned policies need the authenticated identity; login policies still use the IP.
 app.UseRateLimiter();
 app.UseAuthorization();
+// VUAN-7: hashed network fingerprints of signed-in players, for the author-reward anti-fraud rules.
+app.UseMiddleware<SirLocked.Api.Services.Vip.NetworkKeyMiddleware>();
 app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();
 app.MapHub<GameHub>("/hubs/game");
+app.MapHub<BridgeHub>(BridgeHub.Path);
 app.MapHealthChecks("/health");
 app.MapGet("/live", () => Results.Ok(new { status = "ok" }));
 
@@ -397,6 +512,8 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         await db.PingAsync();
         await db.EnsureIndexesAsync();
+        await scope.ServiceProvider.GetRequiredService<CatalogSeeder>().SeedAsync();
+        await scope.ServiceProvider.GetRequiredService<ICatalogProvider>().RefreshAsync();
         var seedOptions = ResolveAdminSeedOptions(app.Configuration, app.Environment);
         if (seedOptions is not null)
         {

@@ -94,7 +94,7 @@ public static class AiCaseBlueprintPolicy
 
     public static string BuildPrompt(AiCaseDraft draft, string? correction = null, string? previousJson = null)
     {
-        var budget = CrackGenerationBudgets.For(draft.Settings.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(draft.Settings);
         var preview = JsonSerializer.Serialize(draft.StoryPreview, JsonOptions);
         var language = CaseLanguages.Normalize(draft.Settings.Language) == CaseLanguages.Vietnamese
             ? "Write all player-facing text in natural Vietnamese with full diacritics; keep IDs, enums, acquisition methods, source types, and semantic annotations in English/ASCII."
@@ -143,7 +143,7 @@ public static class AiCaseBlueprintPolicy
     public static CaseValidationResult Validate(AiCaseBlueprint blueprint, AiDraftSettings settings)
     {
         var result = new CaseValidationResult();
-        var budget = CrackGenerationBudgets.For(settings.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(settings);
         if (string.IsNullOrWhiteSpace(blueprint.CaseId) || string.IsNullOrWhiteSpace(blueprint.Title)
             || string.IsNullOrWhiteSpace(blueprint.CulpritId) || blueprint.Scenes.Count == 0
             || blueprint.Characters.Count == 0)

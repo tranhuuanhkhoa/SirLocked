@@ -4,8 +4,32 @@ namespace SirLocked.Api.DTOs.Market;
 
 public sealed record ChestOddsDto(string Rarity, decimal Percent);
 
-/// <summary>Which chest drawing to use and the three colours of its light, as "r,g,b".</summary>
-public sealed record ChestLookDto(string Template, string Light, string Hi, string Core);
+/// <summary>
+/// Which chest drawing to use and the three colours of its light, as "r,g,b". ImageUrl and KeyImageUrl are the chest's
+/// and its key's own pictures when an admin gave them some; without one, the template's drawing is used.
+/// </summary>
+public sealed record ChestLookDto(
+    string Template, string Light, string Hi, string Core, string? ImageUrl = null, string? KeyImageUrl = null, ChestSceneDto? Scene = null)
+{
+    public static ChestLookDto Of(SirLocked.Api.Models.Catalog.CatalogChestLook look) =>
+        new(look.Template, look.Light, look.Hi, look.Core, NullIfEmpty(look.ImageUrl), NullIfEmpty(look.KeyImageUrl),
+            look.Scene is { } scene ? ChestSceneDto.Of(scene) : null);
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
+}
+
+/// <summary>
+/// An opening scene an admin made ("kiểu hòm"), sent with the look of every chest that uses it: the room, what drifts,
+/// the colours, the stamp, and the pictures a chest of this style shows unless it has its own.
+/// </summary>
+public sealed record ChestSceneDto(
+    string Id, string Name, string NameEn, string BackdropUrl, string Particles, string? ParticleUrl,
+    string Accent, string Accent2, string StampText, string StampTextEn, string StampColor, string ChestImageUrl, string KeyImageUrl)
+{
+    public static ChestSceneDto Of(SirLocked.Api.Models.Catalog.CatalogChestStyle style) => new(
+        style.Id, style.Name, style.NameEn, style.BackdropUrl, style.Particles, string.IsNullOrEmpty(style.ParticleUrl) ? null : style.ParticleUrl,
+        style.Accent, style.Accent2, style.StampText, style.StampTextEn, style.StampColor, style.ChestImageUrl, style.KeyImageUrl);
+}
 
 public sealed record ChestDto(
     string Id,
@@ -36,7 +60,9 @@ public sealed record ChestListDto(
     IReadOnlyList<ChestOddsDto> Odds,
     // Chests switched off that this detective still holds a chest or key of, so they can still be opened.
     IReadOnlyList<ChestDto> OffSale,
-    WalletDto Wallet);
+    WalletDto Wallet,
+    // False: the shop sells keys only (Chests:SellChests); chests come from rewards such as the weekly challenge.
+    bool ChestsForSale = true);
 
 public sealed record ChestOpenResultDto(
     string ChestId,

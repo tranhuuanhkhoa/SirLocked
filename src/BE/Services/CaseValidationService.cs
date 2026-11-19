@@ -25,6 +25,11 @@ public class CaseValidationService : ICaseValidationService
         ValidateCameraEmbeddedItems(gameCase, result);
         ValidateClues(gameCase, result, stage);
         ValidateFinalLogic(gameCase, result);
+        ValidateRuleSet(gameCase, result);
+        CaseAtmosphere.Validate(gameCase, result);
+        ValidateAcceptedEvidence(gameCase, result);
+        // Warnings here; new cases and AI drafts promote them with RequireHints().
+        CaseHintRules.Check(gameCase, result);
         if (gameCase.MechanicsVersion == CaseMechanicsVersions.InvestigationV2)
         {
             ValidateInvestigationV2(gameCase, result);
@@ -511,8 +516,11 @@ public class CaseValidationService : ICaseValidationService
             var path = $"puzzles[{i}]";
             if (string.IsNullOrWhiteSpace(puzzle.PuzzleId))
                 result.Add("MissingField", $"{path}.puzzleId", "puzzleId is required.");
-            if (!CasePuzzleTypes.All.Contains(puzzle.Type))
+            var interactive = PuzzleKinds.PuzzleKindRegistry.IsInteractive(puzzle);
+            if (!CasePuzzleTypes.All.Contains(puzzle.Type) && !interactive)
                 result.Add("InvalidValue", $"{path}.type", "Puzzle type is not supported by the gameplay engine.", puzzle.Type);
+            if (interactive)
+                PuzzleKinds.PuzzleKindRegistry.Validate(puzzle, path, (field, message, value) => result.Add("InvalidPuzzleKind", field, message, value));
             if (string.IsNullOrWhiteSpace(puzzle.TargetId))
                 result.Add("MissingField", $"{path}.targetId", "targetId is required.", puzzle.PuzzleId);
             else if (!visibleTargets.Contains(puzzle.TargetId))
@@ -768,6 +776,80 @@ public class CaseValidationService : ICaseValidationService
             }
             ValidateRuntimeBox(transition.Hotspot, $"{path}.hotspot", runtime.Width, runtime.Height, result, transition.TransitionId);
         }
+
+        if (runtime.Render is { } render)
+        {
+            ValidateRenderSettings(scene, runtime, render, $"{scenePath}.runtime.render", result);
+        }
+    }
+
+    private static void ValidateRenderSettings(CaseScene scene, SceneRuntime runtime, SceneRenderSettings render, string path, CaseValidationResult result)
+    {
+        void Invalid(string field, string message) => result.Add("InvalidRenderSettings", $"{path}.{field}", message, scene.SceneId);
+        static bool InRange(double value, double min, double max) => double.IsFinite(value) && value > min && value <= max;
+
+        if (render.Mode != SceneRenderModes.Pixel) Invalid("mode", "render.mode must be 'pixel'.");
+        if (!SceneRenderModes.Projections.Contains(render.Projection)) Invalid("projection", "render.projection must be 'topdown' or 'isometric'.");
+        if (render.NativeWidth is <= 0 or > 4096 || render.NativeHeight is <= 0 or > 4096)
+            Invalid("nativeWidth", "Native background size must be between 1 and 4096 pixels.");
+        if (!InRange(render.PixelScale, 0, 16)) Invalid("pixelScale", "pixelScale must be greater than 0 and at most 16.");
+        else if (Math.Abs(render.NativeWidth * render.PixelScale - runtime.Width) > 1
+            || Math.Abs(render.NativeHeight * render.PixelScale - runtime.Height) > 1)
+            Invalid("pixelScale", "nativeWidth/nativeHeight x pixelScale must equal runtime.width/runtime.height.");
+        if (!InRange(render.CameraZoom, 0, 8)) Invalid("cameraZoom", "cameraZoom must be greater than 0 and at most 8.");
+        if (!InRange(render.ActorScale, 0, 16)) Invalid("actorScale", "actorScale must be greater than 0 and at most 16.");
+        if (!InRange(render.WalkSpeed, 0, 5000)) Invalid("walkSpeed", "walkSpeed must be greater than 0 and at most 5000.");
+        if (!InRange(render.InteractRadius, 0, 2000)) Invalid("interactRadius", "interactRadius must be greater than 0 and at most 2000.");
+        if (!string.IsNullOrEmpty(render.BackdropColor)
+            && !System.Text.RegularExpressions.Regex.IsMatch(render.BackdropColor, "^#[0-9a-fA-F]{6}$"))
+            Invalid("backdropColor", "backdropColor must be empty or a #RRGGBB colour.");
+
+        if (render.WalkGrid is { } grid)
+        {
+            var gridValid = true;
+            if (grid.CellSize <= 0 || grid.Cols is <= 0 or > 512 || grid.Rows is <= 0 or > 512)
+            {
+                Invalid("walkGrid", "walkGrid needs a positive cellSize and 1-512 cols/rows.");
+                gridValid = false;
+            }
+            else if (grid.Cols * grid.CellSize != runtime.Width || grid.Rows * grid.CellSize != runtime.Height)
+            {
+                Invalid("walkGrid", "walkGrid cols/rows x cellSize must cover exactly runtime.width/runtime.height.");
+                gridValid = false;
+            }
+            if (grid.Data is null || grid.Data.Count != grid.Rows
+                || grid.Data.Any(row => row is null || row.Length != grid.Cols || row.Any(cell => cell is not ('0' or '1'))))
+            {
+                Invalid("walkGrid.data", "walkGrid.data needs one '0'/'1' string of length cols per row.");
+                gridValid = false;
+            }
+            if (gridValid)
+            {
+                if (!grid.Data.Any(row => row.Contains('1')))
+                    Invalid("walkGrid.data", "walkGrid has no walkable cell.");
+                foreach (var (name, spawn) in runtime.SpawnPoints)
+                    if (!grid.IsWalkable(spawn.X, spawn.Y))
+                        result.Add("BlockedNavigation", $"{path}.walkGrid", $"Spawn point '{name}' is not on a walkable cell.", scene.SceneId);
+            }
+        }
+
+        if (render.Foreground is null)
+        {
+            Invalid("foreground", "foreground cannot be null.");
+            return;
+        }
+        if (render.Foreground.Count > 64) Invalid("foreground", "A pixel scene supports at most 64 foreground layers.");
+        for (var i = 0; i < render.Foreground.Count; i++)
+        {
+            var layer = render.Foreground[i];
+            if (layer is null) { Invalid($"foreground[{i}]", "Foreground layers cannot be null."); continue; }
+            if (string.IsNullOrWhiteSpace(layer.Url) || !IsSceneAudioUrl(layer.Url))
+                Invalid($"foreground[{i}].url", "Foreground layers need a safe /assets path or an HTTP(S) URL.");
+            ValidateRuntimeBox(new RuntimeBox { X = layer.X, Y = layer.Y, Width = layer.Width, Height = layer.Height },
+                $"{path}.foreground[{i}]", runtime.Width, runtime.Height, result, scene.SceneId);
+            if (!double.IsFinite(layer.BaseY) || layer.BaseY < 0 || layer.BaseY > runtime.Height)
+                Invalid($"foreground[{i}].baseY", "baseY must fit within runtime.height.");
+        }
     }
 
     private static void ValidateRuntimePoint(RuntimePoint point, string path, int width, int height, CaseValidationResult result, string id)
@@ -1000,6 +1082,101 @@ public class CaseValidationService : ICaseValidationService
             or CaseItemInteractionPurposes.OperateMechanism;
     }
 
+    private static void ValidateBoard(GameCase c, CaseValidationResult result)
+    {
+        if (c.Board is not { } board) return;
+        if (!CaseRuleSets.IsOpenCoop(c))
+            result.Add("InvalidValue", "board", "The case wall is only played in OPEN_COOP cases.");
+        var characterIds = c.Characters.Select(character => character.CharacterId).ToHashSet(StringComparer.Ordinal);
+        for (var i = 0; i < c.Clues.Count; i++)
+            foreach (var characterId in c.Clues[i].RelatedCharacterIds.Where(id => !characterIds.Contains(id)))
+                result.Add("MissingReference", $"clues[{i}].relatedCharacterIds", "Clue points to an unknown character.", characterId);
+        // A string between a lie and the evidence that breaks it would give the crack away.
+        var crackPairs = c.EvidenceChallenges
+            .Select(challenge => (challenge.TestimonyFragmentId, challenge.CorrectEvidenceId))
+            .ToHashSet();
+        for (var i = 0; i < board.Links.Count; i++)
+        {
+            var link = board.Links[i];
+            var path = $"board.links[{i}]";
+            foreach (var end in new[] { link.FromId, link.ToId })
+                if (CaseBoardRules.KindOf(c, end) is null)
+                    result.Add("MissingReference", path, "Board strings join two pinned cards (evidence clues or testimony fragments).", end);
+            if (link.FromId == link.ToId)
+                result.Add("InvalidValue", path, "A board string needs two different ends.", link.FromId);
+            if (string.IsNullOrWhiteSpace(link.Label))
+                result.Add("MissingField", $"{path}.label", "Board strings need a short label.", link.FromId);
+            if (crackPairs.Contains((link.FromId, link.ToId)) || crackPairs.Contains((link.ToId, link.FromId)))
+                result.Add("InvalidValue", path, "This string would reveal a crack answer (statement + the evidence that breaks it).", link.FromId);
+        }
+    }
+
+    private static void ValidateRuleSet(GameCase c, CaseValidationResult result)
+    {
+        if (!CaseRuleSets.IsKnown(c.RuleSet))
+            result.Add("InvalidValue", "ruleSet", "Unknown rule set. Use \"\" (classic) or \"OPEN_COOP\".", c.RuleSet);
+        ValidateBoard(c, result);
+        if (c.Timeline is not { } timeline) return;
+        if (!CaseRuleSets.IsOpenCoop(c))
+            result.Add("InvalidValue", "timeline", "The timeline is only played in OPEN_COOP cases.");
+        var clueIds = c.Clues.Select(clue => clue.ClueId).ToHashSet(StringComparer.Ordinal);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var seenKeys = new HashSet<int>();
+        for (var i = 0; i < timeline.Events.Count; i++)
+        {
+            var item = timeline.Events[i];
+            var path = $"timeline.events[{i}]";
+            if (string.IsNullOrWhiteSpace(item.EventId) || !seenIds.Add(item.EventId))
+                result.Add("InvalidValue", $"{path}.eventId", "Timeline event ids must be present and unique.", item.EventId);
+            if (!seenKeys.Add(item.SortKey))
+                result.Add("InvalidValue", $"{path}.sortKey", "Timeline sort keys must be unique (they define the true order).", item.EventId);
+            if (string.IsNullOrWhiteSpace(item.Label))
+                result.Add("MissingField", $"{path}.label", "Timeline events need a label.", item.EventId);
+            if (string.IsNullOrWhiteSpace(item.TimeLabel))
+                result.Add("MissingField", $"{path}.timeLabel", "Timeline events need a time label.", item.EventId);
+            foreach (var clueId in item.RequiredClueIds.Concat(item.RevealClueIds).Where(id => !clueIds.Contains(id)))
+                result.Add("MissingReference", $"{path}", "Timeline event references an unknown clue.", clueId);
+        }
+        if (timeline.Events.Count > 0 && !timeline.Events.Any(item => item.IsFixed))
+            result.Add("MissingField", "timeline.events", "A timeline needs at least one fixed event to anchor the others.");
+    }
+
+    /// <summary>
+    /// Optional <c>acceptedEvidenceIds</c> of a final evidence link (VUAN-6): other evidence that proves the same
+    /// claim. Each must be a real isEvidence clue, differ from the link's own evidence, appear once, and not be
+    /// the evidence of another claim (the accusation needs different evidence per claim, so it would block that claim).
+    /// </summary>
+    private static void ValidateAcceptedEvidence(GameCase c, CaseValidationResult result)
+    {
+        var links = c.FinalLogic.RequiredEvidenceLinks;
+        var clueById = c.Clues.GroupBy(clue => clue.ClueId).ToDictionary(group => group.Key, group => group.First());
+        for (var i = 0; i < links.Count; i++)
+        {
+            var link = links[i];
+            if (link.AcceptedEvidenceIds is not { } accepted) continue;
+            var path = $"finalLogic.requiredEvidenceLinks[{i}].acceptedEvidenceIds";
+            if (accepted.Count > 8)
+                result.Add("InvalidValue", path, "A claim accepts at most 8 alternative evidence clues.", link.ClaimType);
+            if (accepted.Distinct(StringComparer.Ordinal).Count() != accepted.Count)
+                result.Add("InvalidValue", path, "Accepted alternative evidence must not repeat.", link.ClaimType);
+            for (var j = 0; j < accepted.Count; j++)
+            {
+                var alternativeId = accepted[j];
+                if (string.IsNullOrWhiteSpace(alternativeId))
+                    result.Add("InvalidValue", $"{path}[{j}]", "Accepted alternative evidence must be a clue ID.", link.ClaimType);
+                else if (!clueById.TryGetValue(alternativeId, out var clue))
+                    result.Add("MissingReference", $"{path}[{j}]", "Accepted alternative evidence clue does not exist.", alternativeId);
+                else if (!clue.IsEvidence)
+                    result.Add("InvalidEvidenceFlag", $"{path}[{j}]", "Accepted alternative evidence must set isEvidence: true.", alternativeId);
+                if (alternativeId == link.EvidenceId)
+                    result.Add("InvalidValue", $"{path}[{j}]", "An accepted alternative repeats the claim's own evidence.", alternativeId);
+                else if (links.Where((_, other) => other != i).Any(other => other.EvidenceId == alternativeId))
+                    result.Add("InvalidValue", $"{path}[{j}]",
+                        "An accepted alternative cannot be the evidence of another claim: each claim needs different evidence.", alternativeId);
+            }
+        }
+    }
+
     private static void ValidateFinalLogic(GameCase c, CaseValidationResult result)
     {
         var final = c.FinalLogic;
@@ -1201,6 +1378,13 @@ public class CaseValidationService : ICaseValidationService
                     globalProgressed = true;
                 }
             }
+            // Open co-op timeline: every known card can be placed, revealing its conclusions.
+            if (CaseRuleSets.IsOpenCoop(c) && c.Timeline is { } timeline)
+            {
+                foreach (var timelineEvent in timeline.Events.Where(item => item.RequiredClueIds.All(unlockedClues.Contains)))
+                    foreach (var clueId in timelineEvent.RevealClueIds)
+                        if (unlockedClues.Add(clueId)) globalProgressed = true;
+            }
         } while (globalProgressed);
 
         foreach (var scene in orderedScenes)
@@ -1255,7 +1439,8 @@ public class CaseValidationService : ICaseValidationService
             var unlockedByChallenge = c.EvidenceChallenges.Any(challenge => challenge.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByDeduction = c.Deductions.Any(deduction => deduction.UnlockClueIds.Contains(clue.ClueId));
             var unlockedByInteraction = c.Interactions.Any(interaction => interaction.UnlockClueIds.Contains(clue.ClueId));
-            var unlockedByPuzzle = c.Puzzles.Any(puzzle => puzzle.UnlockClueIds.Contains(clue.ClueId));
+            var unlockedByPuzzle = c.Puzzles.Any(puzzle => puzzle.UnlockClueIds.Contains(clue.ClueId))
+                || (CaseRuleSets.IsOpenCoop(c) && c.Timeline?.Events.Any(item => item.RevealClueIds.Contains(clue.ClueId)) == true);
             var unlockedByCamera = DiscoverMethod(clue) == "camera"
                 && (!hasCameraLayout || c.Stages.SelectMany(s => s.Scenes).Any(scene =>
                     scene.Runtime?.ClueZones.Any(zone => zone.ClueId == clue.ClueId) == true));
@@ -1270,6 +1455,14 @@ public class CaseValidationService : ICaseValidationService
         {
             result.Add("UndiscoverableEvidence", "finalLogic.requiredEvidenceLinks",
                 $"Final evidence clue '{evidenceId}' is never unlocked by any reachable action.", evidenceId);
+        }
+        foreach (var evidenceId in c.FinalLogic.RequiredEvidenceLinks
+                     .SelectMany(link => link.AcceptedEvidenceIds ?? new List<string>())
+                     .Distinct()
+                     .Where(id => !unlockedClues.Contains(id)))
+        {
+            result.Add("UndiscoverableEvidence", "finalLogic.requiredEvidenceLinks.acceptedEvidenceIds",
+                $"Accepted alternative evidence clue '{evidenceId}' is never unlocked by any reachable action.", evidenceId);
         }
     }
 
@@ -1389,6 +1582,11 @@ public class CaseValidationService : ICaseValidationService
         || scene.Hotspots.Any(hotspot => hotspot.TargetId == targetId)
         || (scene.Runtime?.Transitions.Any(transition => transition.TransitionId == targetId || transition.TargetSceneId == targetId) == true);
 
+    private static (bool Deductions, bool Chains) RequiredDeductionsAndChains(GameCase c) =>
+        CaseRuleSets.IsOpenCoop(c)
+            ? (AiDifficultyProfiles.All.Min(profile => profile.Deductions) > 0, AiDifficultyProfiles.All.Min(profile => profile.TeamworkChains) > 0)
+            : (true, true);
+
     private static void ValidateInvestigationV2(GameCase c, CaseValidationResult result)
     {
         if (c.MechanicsVersion < CaseMechanicsVersions.InvestigationV2) return;
@@ -1400,15 +1598,18 @@ public class CaseValidationService : ICaseValidationService
         var deductionIds = c.Deductions.Select(deduction => deduction.DeductionId).ToHashSet();
 
         var minimumChallenges = c.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
-            ? CrackGenerationBudgets.For(c.GenerationPreset).MinCracks
+            ? CrackGenerationBudgets.For(c).MinCracks
             : AiGenerationPresets.Normalize(c.GenerationPreset) == AiGenerationPresets.ShortDemo
               && c.ShortDemoProfileVersion >= AiGenerationContract.CurrentShortDemoProfileVersion
                 ? 1 : 2;
         if (c.EvidenceChallenges.Count < minimumChallenges)
             result.Add("MissingField", "evidenceChallenges", $"This V2-compatible case requires at least {minimumChallenges} evidence challenge(s).");
-        if (c.Deductions.Count == 0)
+        // An OPEN_COOP case is sized by its level (AiDifficultyConformance checks the exact counts): Easy has no
+        // deduction and no teamwork chain, so only the smallest level's numbers are required here.
+        var (deductionsRequired, chainsRequired) = RequiredDeductionsAndChains(c);
+        if (deductionsRequired && c.Deductions.Count == 0)
             result.Add("MissingField", "deductions", "Full V2 cases require at least one deduction.");
-        if (c.RequiredTeamworkChains.Count == 0)
+        if (chainsRequired && c.RequiredTeamworkChains.Count == 0)
             result.Add("MissingField", "requiredTeamworkChains", "Full V2 cases require at least one cross-role teamwork chain.");
 
         for (var i = 0; i < c.EvidenceChallenges.Count; i++)
@@ -1481,9 +1682,10 @@ public class CaseValidationService : ICaseValidationService
             result.Add("MissingReference", "finalLogic.requiredDeductionIds", "Required deduction does not exist.", deductionId);
         foreach (var chainId in c.FinalLogic.RequiredTeamworkChainIds.Where(id => c.RequiredTeamworkChains.All(chain => chain.ChainId != id)))
             result.Add("MissingReference", "finalLogic.requiredTeamworkChainIds", "Required teamwork chain does not exist.", chainId);
-        if (c.FinalLogic.RequiredDeductionIds.Count == 0)
+        var (finalDeductionsRequired, finalChainsRequired) = RequiredDeductionsAndChains(c);
+        if (finalDeductionsRequired && c.FinalLogic.RequiredDeductionIds.Count == 0)
             result.Add("MissingField", "finalLogic.requiredDeductionIds", "Full V2 final logic requires at least one deduction.");
-        if (c.FinalLogic.RequiredTeamworkChainIds.Count == 0)
+        if (finalChainsRequired && c.FinalLogic.RequiredTeamworkChainIds.Count == 0)
             result.Add("MissingField", "finalLogic.requiredTeamworkChainIds", "Full V2 final logic requires at least one teamwork chain.");
 
         if (c.ConversationNodes.Count > 0)
@@ -1549,6 +1751,16 @@ public class CaseValidationService : ICaseValidationService
                      string.IsNullOrWhiteSpace(link.ConclusionId)))
             result.Add("MissingProofLink", "finalLogic.requiredEvidenceLinks.conclusionId",
                 "Contract-v2 final evidence must identify its exact proof conclusion.", link.EvidenceId);
+        foreach (var link in c.FinalLogic.RequiredEvidenceLinks.Where(link => !string.IsNullOrWhiteSpace(link.ConclusionId)))
+        {
+            foreach (var alternativeId in link.AcceptedEvidenceIds ?? new List<string>())
+            {
+                var alternative = c.Clues.FirstOrDefault(clue => clue.ClueId == alternativeId);
+                if (alternative is not null && !alternative.SupportsConclusionIds.Contains(link.ConclusionId))
+                    result.Add("ClaimOverreach", "finalLogic.requiredEvidenceLinks.acceptedEvidenceIds",
+                        $"Accepted alternative '{alternativeId}' does not support conclusion '{link.ConclusionId}' of its claim.", alternativeId);
+            }
+        }
 
         for (var i = 0; i < c.Clues.Count; i++)
         {
