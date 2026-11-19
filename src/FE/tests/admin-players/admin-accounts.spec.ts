@@ -145,14 +145,62 @@ test('trang người chơi: sửa thông tin, đặt mật khẩu mới, xóa r�
   expect(last(calls, 'POST', `/api/admin/players/${USER_ID}/restore`)!.body).toEqual({ reason: 'Xóa nhầm' });
 });
 
-test('tài khoản quản trị không có nút sửa, mật khẩu hay xóa', async ({ page }) => {
-  await fakeApi(page, { [`GET /api/admin/players/${USER_ID}`]: () => detail({ role: 'ADMIN' }) });
+test('tài khoản quản trị: sửa và đặt mật khẩu được, không có nút khóa; không tự xóa chính mình', async ({ page }) => {
+  await fakeApi(page, {
+    [`GET /api/admin/players/${USER_ID}`]: () => detail({ role: 'ADMIN' }),
+    'GET /api/admin/players/u1': () => detail({ userId: 'u1', fullName: 'Yến', role: 'ADMIN' }),
+  });
   await page.goto(`/admin/players/${USER_ID}`);
   const actions = page.locator('[data-adp-actions]');
-  await expect(actions.getByRole('button', { name: 'Ép đăng xuất' })).toBeVisible();
-  await expect(actions.getByRole('button', { name: 'Sửa thông tin' })).toHaveCount(0);
-  await expect(actions.getByRole('button', { name: 'Đặt mật khẩu mới' })).toHaveCount(0);
+  await expect(actions.getByRole('button', { name: 'Sửa thông tin' })).toBeVisible();
+  await expect(actions.getByRole('button', { name: 'Đặt mật khẩu mới' })).toBeVisible();
+  await expect(actions.getByRole('button', { name: 'Xóa tài khoản' })).toBeVisible();
+  await expect(actions.getByRole('button', { name: /Khóa tài khoản/ })).toHaveCount(0);
+
+  // The signed-in admin (u1) on their own page.
+  await page.goto('/admin/players/u1');
+  await expect(actions.getByRole('button', { name: 'Sửa thông tin' })).toBeVisible();
   await expect(actions.getByRole('button', { name: 'Xóa tài khoản' })).toHaveCount(0);
+});
+
+test('hai tab: "Người chơi" chỉ hỏi người chơi và VIP, "Quản trị" chỉ hỏi admin và tạo được tài khoản quản trị', async ({ page }) => {
+  const admin = {
+    userId: NEW_ID, fullName: 'Quản trị Hai', email: 'admin2@tests.invalid', role: 'ADMIN', status: 'ACTIVE', isEmailVerified: true,
+    createdAt: '2026-10-01T03:00:00Z', level: 1, balance: 0, held: 0, avatar: 'kiem', avatarUrl: null,
+  };
+  const calls = await fakeApi(page, {
+    'GET /api/admin/players': (call) => ({ items: call.search.get('scope') === 'ADMINS' ? [admin] : [], page: 1, pageSize: 25, total: call.search.get('scope') === 'ADMINS' ? 1 : 0 }),
+    'POST /api/admin/players': (call) => answer(call, { userId: NEW_ID, fullName: call.body.fullName, email: call.body.email, role: call.body.role }),
+    [`GET /api/admin/players/${NEW_ID}`]: () => detail({ userId: NEW_ID, fullName: 'Quản trị Ba', email: 'admin3@tests.invalid', role: 'ADMIN' }),
+  });
+  await page.goto('/admin/players');
+  await expect.poll(() => last(calls, 'GET', '/api/admin/players')?.search.get('scope')).toBe('PLAYERS');
+  await expect(page.getByLabel('Vai trò')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tạo tài khoản', exact: true })).toBeVisible();
+
+  await page.locator('[data-adm-tab="quantri"]').click();
+  await expect(page.getByText('Quản trị Hai')).toBeVisible();
+  expect(last(calls, 'GET', '/api/admin/players')!.search.get('scope')).toBe('ADMINS');
+  await expect(page).toHaveURL(/tab=quantri/);
+  await expect(page.getByLabel('Vai trò')).toHaveCount(0);
+  await expect(page.locator('table')).not.toContainText('Số xu');
+
+  await page.getByRole('button', { name: 'Tạo tài khoản quản trị' }).click();
+  await expect(dialog(page)).toContainText('toàn quyền');
+  await expect(dialog(page).getByLabel('Vai trò')).toHaveCount(0);
+  await dialog(page).getByLabel('Họ và tên').fill('Quản trị Ba');
+  await dialog(page).getByLabel('Email').fill('admin3@tests.invalid');
+  await dialog(page).getByLabel('Lý do').fill('Thêm người quản lý');
+  await confirm(page).click();
+  await expect(page).toHaveURL(new RegExp(`/admin/players/${NEW_ID}$`));
+  expect(last(calls, 'POST', '/api/admin/players')!.body.role).toBe('ADMIN');
+
+  // The tab is in the address, so a reload opens it again.
+  await page.goto('/admin/players?tab=quantri');
+  await expect.poll(() => last(calls, 'GET', '/api/admin/players')?.search.get('scope')).toBe('ADMINS');
+  // The picture grid creates nothing.
+  await page.locator('[data-adm-tab="anh"]').click();
+  await expect(page.getByRole('button', { name: /Tạo tài khoản/ })).toBeHidden();
 });
 
 test('danh sách: lọc "Đã xóa" hỏi máy chủ, và dòng đã xóa chỉ có nút Khôi phục', async ({ page }) => {

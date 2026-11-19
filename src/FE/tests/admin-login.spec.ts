@@ -143,7 +143,9 @@ test.describe('signing in on the admin page', () => {
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
     expect(sent).toEqual({ email: 'admin@example.com', password: 'Fixture-password1' });
     expect(calls).not.toContain('/api/auth/login');
-    expect(await stored(page, 'sirlocked.token')).toBe('real-admin-token');
+    // The admin side has its own session; the game side is not signed in by this.
+    expect(await stored(page, 'sirlocked.admin.token')).toBe('real-admin-token');
+    expect(await stored(page, 'sirlocked.token')).toBeNull();
   });
 
   test('a refused account stays on the page, is told why, and nothing is stored', async ({ page }) => {
@@ -156,6 +158,8 @@ test.describe('signing in on the admin page', () => {
     await expectAddress(page, '/admin/login');
     expect(await stored(page, 'sirlocked.token')).toBeNull();
     expect(await stored(page, 'sirlocked.user')).toBeNull();
+    expect(await stored(page, 'sirlocked.admin.token')).toBeNull();
+    expect(await stored(page, 'sirlocked.admin.user')).toBeNull();
   });
 
   test('a wrong password says so', async ({ page }) => {
@@ -219,23 +223,25 @@ test.describe('arriving already signed in', () => {
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
   });
 
-  test('a player sees the form instead of being sent away', async ({ page }) => {
+  test('a player sees the form, with no warning: the game session is not touched', async ({ page }) => {
     await signInAs(page, 'PLAYER');
     await page.goto('/admin/login');
     await expect(page.locator('#form-admin-login')).toBeVisible();
-    await expect(page.locator('.bpa-auth-note')).toContainText('Yến');
+    await expect(page.locator('.bpa-auth-note')).toHaveCount(0);
     await expectAddress(page, '/admin/login');
   });
 
-  test('a player who signs in as an admin swaps to that session', async ({ page }) => {
+  test('a player who signs in as an admin keeps the game session beside the admin one', async ({ page }) => {
     await signInAs(page, 'PLAYER');
     await answer(page, '/api/auth/admin/login', 200, { success: true, data: adminAuth });
     await page.goto('/admin/login');
     await submitAdminForm(page);
     await expectAddress(page, '/admin');
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
-    expect(await stored(page, 'sirlocked.token')).toBe('real-admin-token');
-    expect(await stored(page, 'sirlocked.refreshToken')).toBe('real-admin-refresh');
+    expect(await stored(page, 'sirlocked.admin.token')).toBe('real-admin-token');
+    expect(await stored(page, 'sirlocked.admin.refreshToken')).toBe('real-admin-refresh');
+    expect(await stored(page, 'sirlocked.token')).toBe('admin-test-token');
+    expect(JSON.parse(await stored(page, 'sirlocked.user') ?? '{}').role).toBe('PLAYER');
   });
 
   test('a wrong password does not end the session the player already has', async ({ page }) => {
@@ -260,10 +266,10 @@ test.describe('arriving already signed in', () => {
     expect(await stored(page, 'sirlocked.token')).toBe('admin-test-token');
   });
 
-  test('a player opening an admin page is still sent to the cases', async ({ page }) => {
+  test('a player opening an admin page is asked for the admin sign-in', async ({ page }) => {
     await signInAs(page, 'PLAYER');
     await page.goto('/admin');
-    await expectAddress(page, '/cases');
+    await expectAddress(page, '/admin/login');
   });
 });
 
@@ -276,7 +282,9 @@ test.describe('signing in on the player page', () => {
     await expectAddress(page, '/menu');
   });
 
-  test('an admin also lands on the menu, and the admin pages still open for them', async ({ page }) => {
+  // The game and the admin pages are separate sessions: an admin account signed in here plays, and still signs in on
+  // /admin/login for the admin pages.
+  test('an admin also lands on the menu, and the admin pages still ask for the admin sign-in', async ({ page }) => {
     await vietnamese(page);
     await fakeApi(page);
     await answer(page, '/api/auth/login', 200, { success: true, data: adminAuth });
@@ -284,17 +292,18 @@ test.describe('signing in on the player page', () => {
     await submitUserForm(page, 'admin@example.com');
     await expectAddress(page, '/menu');
     await page.goto('/admin');
-    await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
+    await expectAddress(page, '/admin/login');
+    expect(await stored(page, 'sirlocked.token')).toBe('real-admin-token');
   });
 
-  test('an admin arriving from Google lands on the menu, and the admin pages still open for them', async ({ page }) => {
+  test('an admin arriving from Google lands on the menu, and the admin pages still ask for the admin sign-in', async ({ page }) => {
     await vietnamese(page);
     await fakeApi(page);
     await answer(page, '/api/auth/me', 200, { success: true, data: adminAuth.user });
     await page.goto('/oauth-callback#token=google-token&refreshToken=google-refresh');
     await expectAddress(page, '/menu');
     await page.goto('/admin');
-    await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
+    await expectAddress(page, '/admin/login');
   });
 });
 
@@ -304,7 +313,7 @@ test.describe('leaving', () => {
     await page.goto('/admin');
     await page.locator('#nav-logout').click();
     await expectAddress(page, '/admin/login');
-    expect(await stored(page, 'sirlocked.token')).toBeNull();
+    expect(await stored(page, 'sirlocked.admin.token')).toBeNull();
   });
 
   test('a player signing out from the site menu returns to the player page', async ({ page }) => {
@@ -314,11 +323,11 @@ test.describe('leaving', () => {
     await expectAddress(page, '/login');
   });
 
-  test('an admin signing out from the title menu returns to the admin page', async ({ page }) => {
+  test('an admin signed in on the admin side only is not signed in on the game: the title menu asks for the player sign-in', async ({ page }) => {
     await signInAs(page, 'ADMIN');
     await page.goto('/menu');
-    await page.locator('#title-menu-logout').click();
-    await expectAddress(page, '/admin/login');
+    await expectAddress(page, '/login');
+    expect(await stored(page, 'sirlocked.admin.token')).toBe('admin-test-token');
   });
 
   test('a player signing out from the title menu returns to the player page', async ({ page }) => {
@@ -335,7 +344,7 @@ test.describe('leaving', () => {
     }));
     await page.goto('/admin');
     await expectAddress(page, '/admin/login');
-    expect(await stored(page, 'sirlocked.token')).toBeNull();
+    expect(await stored(page, 'sirlocked.admin.token')).toBeNull();
   });
 
   test('a player whose session ran out returns to the player page', async ({ page }) => {

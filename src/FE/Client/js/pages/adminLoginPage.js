@@ -1,6 +1,6 @@
 import { authApi } from '../api/authApi.js';
 import { icon } from '../components/admin/icons.js';
-import { session } from '../services/session.js';
+import { sessionFor } from '../services/session.js';
 import { navigate } from '../services/navigation.js';
 import { languageSwitchMarkup, tr } from '../services/i18n.js';
 import { escapeHtml, qs, render } from '../utils/dom.js';
@@ -15,16 +15,16 @@ function refusal(error) {
 }
 
 /**
- * The admins' own sign-in page; /login is the players'. Someone signed in with a player account still gets the form, since this
- * is how they reach the admin account, and the session they have is only replaced once the server accepts the admin one.
+ * The admins' own sign-in page; /login is the players'. It signs in the admin side only (sirlocked.admin.*): whoever is
+ * signed in on the game side in this browser stays signed in there.
  * Drawn in the admin "paper file" look (css/60-admin-theme.css, .adm-login): navy panel on the left, the form on the right.
  */
 export async function renderAdminLoginPage(app) {
-  if (session.isAdmin()) {
+  const adminSide = sessionFor('admin');
+  if (adminSide.isAdmin()) {
     navigate('/admin', { replace: true });
     return;
   }
-  const current = session.user();
 
   render(app, `
     <div class="adm-login">
@@ -47,13 +47,6 @@ export async function renderAdminLoginPage(app) {
             <h1 id="admin-login-title">${tr('Admin sign-in', 'Đăng nhập quản trị')}</h1>
             <p class="adm-login-sub">${tr('For admin accounts only.', 'Chỉ dành cho tài khoản admin.')}</p>
           </div>
-          ${current ? `
-            <div class="bpa-auth-note adm-login-note">
-              <p>${tr(
-    `You are signed in as <b>${escapeHtml(current.fullName)}</b>. Signing in here replaces that session.`,
-    `Bạn đang đăng nhập với tên <b>${escapeHtml(current.fullName)}</b>. Đăng nhập ở đây sẽ thay thế phiên đó.`,
-  )}</p>
-            </div>` : ''}
           <div id="admin-login-error"></div>
           <form id="form-admin-login" class="adm-login-form">
             <label class="adm-login-field" for="admin-login-email">
@@ -99,7 +92,7 @@ export async function renderAdminLoginPage(app) {
       const data = new FormData(form);
       const auth = await authApi.adminLogin(data.get('email'), data.get('password'));
       if (!app.isConnected) return;
-      session.save(auth);
+      adminSide.save(auth);
       toast(tr(`Welcome, ${auth.user.fullName}.`, `Chào mừng, ${auth.user.fullName}.`), 'success');
       navigate('/admin');
     } catch (error) {

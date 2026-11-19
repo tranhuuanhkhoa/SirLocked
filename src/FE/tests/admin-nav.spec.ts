@@ -86,6 +86,11 @@ for (const [address, tab] of WITH_QUERY) {
 
 test('the bar disappears when an admin leaves the admin pages', async ({ page }) => {
   await signInAs(page, 'ADMIN');
+  // The game pages have their own session: someone is signed in there too.
+  await page.addInitScript(() => {
+    localStorage.setItem('sirlocked.token', 'player-test-token');
+    localStorage.setItem('sirlocked.user', JSON.stringify({ userId: 'p1', fullName: 'Thám tử', role: 'PLAYER', isEmailVerified: true }));
+  });
   await page.goto('/admin/chests');
   await expect(tabs(page)).toHaveCount(10);
   await page.evaluate(() => { history.pushState(null, '', '/cases'); dispatchEvent(new PopStateEvent('popstate')); });
@@ -103,10 +108,10 @@ test('someone with AI access only gets their page and no bar', async ({ page }) 
 });
 
 for (const address of ['/admin/chests', '/admin/cosmetics/frame_kimlong', '/admin/players', '/admin/economy', '/admin/audit', '/admin/items']) {
-  test(`a player is sent away from ${address}`, async ({ page }) => {
+  test(`a player opening ${address} is asked for the admin sign-in`, async ({ page }) => {
     await signInAs(page, 'PLAYER');
     await page.goto(address);
-    await expect(page).toHaveURL(/\/cases$/);
+    await expect(page).toHaveURL(/\/admin\/login$/);
     await expect(page.locator('#admin-nav-root')).toBeHidden();
     await expect(tabs(page)).toHaveCount(0);
   });

@@ -184,7 +184,7 @@ On backend startup in `Development`, if no admin exists, the app seeds:
 
 Outside `Development`, default admin seeding is disabled unless `Auth__SeedDefaultAdmin=true` is explicitly configured. When enabling it outside development, also configure `Auth__SeedAdminPassword`; do not use the demo password in deployed environments.
 
-Admins sign in at `/admin/login`, players at `/login`. An admin who signs in at `/login` lands on the menu like anyone else and can still open `/admin`; that is also the way in for an admin whose account only has Google sign-in. No page can make someone an `ADMIN`.
+Admins sign in at `/admin/login`, players at `/login`. The two are separate sessions in one browser (`src/FE/Client/js/services/session.js`): pages under `/admin` use the admin session (`sirlocked.admin.*` in localStorage), every other page the game session (`sirlocked.*`), so signing in, out or running out on one side leaves the other alone. An admin account signed in at `/login` plays like anyone else but still signs in at `/admin/login` for the admin pages; `/admin/login` takes a password only, so an admin account with only Google sign-in cannot open them. `/admin/ai` uses the admin session when there is one and otherwise a VIP's game session. "Chơi thử" from `/admin/ai` or Case Studio plays that room as the admin in that tab only. No page can make someone an `ADMIN`.
 
 Public registration creates `PLAYER` accounts. Admins can promote a non-admin user to `VIP` from the dashboard. `VIP` and `ADMIN` accounts can create AI cases.
 

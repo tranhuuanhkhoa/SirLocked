@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr';
-import { session } from './session.js';
+import { sessionFor, sessionScope } from './session.js';
 
 /**
  * A hub connection that joins no room: it only receives events the server sends to this user
@@ -12,8 +12,10 @@ export function createUserHubConnection(handlers = {}) {
     return { async start() {}, async stop() { stopped = true; }, get connected() { return false; } };
   }
 
+  // The side (game or admin) of the page that opened it, also for reconnects.
+  const side = sessionFor(sessionScope());
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl('/hubs/game', { accessTokenFactory: () => session.token() })
+    .withUrl('/hubs/game', { accessTokenFactory: () => side.token() })
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
     .configureLogging(signalR.LogLevel.Warning)
     .build();

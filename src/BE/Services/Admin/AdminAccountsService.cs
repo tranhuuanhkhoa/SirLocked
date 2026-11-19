@@ -10,9 +10,10 @@ using SirLocked.Api.Models.Enums;
 namespace SirLocked.Api.Services.Admin;
 
 /// <summary>
-/// Creating, editing, deleting and restoring player accounts from /admin/players, by the same rules as signing up.
-/// Admin accounts are never touched here. Deleting is soft: the account is marked DELETED, signed out everywhere and
-/// left out of the player list unless asked for; its coins, items and history stay, so it can be restored.
+/// Creating, editing, deleting and restoring accounts from /admin/players, by the same rules as signing up: players and
+/// VIPs on the "Người chơi" tab, admins on the "Quản trị" tab. Deleting is soft: the account is marked DELETED, signed
+/// out everywhere and left out of the lists unless asked for; its coins, items and history stay, so it can be restored.
+/// An admin cannot delete their own account, nor the last active admin, so the admin pages always keep someone.
 /// Every change needs a reason and goes to the audit log (never with a password or a hash).
 /// </summary>
 public sealed class AdminAccountsService
@@ -34,8 +35,8 @@ public sealed class AdminAccountsService
     {
         var reason = AdminPlayersRules.NormalizeReason(request.Reason);
         var role = string.IsNullOrWhiteSpace(request.Role) ? UserRole.Player : request.Role.Trim().ToUpperInvariant();
-        if (role is not (UserRole.Player or UserRole.Vip))
-            throw AdminPlayersRules.Error(400, AdminPlayerErrors.AccountInvalid, "Vai trò chỉ được là Người chơi hoặc VIP.");
+        if (role is not (UserRole.Player or UserRole.Vip or UserRole.Admin))
+            throw AdminPlayersRules.Error(400, AdminPlayerErrors.AccountInvalid, "Vai trò chỉ được là Người chơi, VIP hoặc Quản trị.");
         ThrowIfInvalid(AuthValidator.AccountErrors(request.FullName, request.Email, request.NewPassword));
         var email = NormalizeEmail(request.Email!);
         if (await EmailTakenAsync(email, null, ct)) throw EmailTaken();
@@ -130,8 +131,17 @@ public sealed class AdminAccountsService
     {
         var note = AdminPlayersRules.NormalizeReason(reason);
         var user = await RequireEditableAsync(userId, ct);
+        if (user.Role == UserRole.Admin)
+        {
+            if (user.Id == admin.Id)
+                throw AdminPlayersRules.Error(409, AdminPlayerErrors.SelfAction, "Không tự xóa tài khoản quản trị của chính mình được.");
+            var otherAdmins = await _db.Users.CountDocumentsAsync(
+                u => u.Role == UserRole.Admin && u.Status == UserStatus.Active && u.Id != user.Id, cancellationToken: ct);
+            if (otherAdmins == 0)
+                throw AdminPlayersRules.Error(409, AdminPlayerErrors.LastAdmin, "Đây là tài khoản quản trị cuối cùng còn hoạt động, không xóa được.");
+        }
         var result = await _db.Users.UpdateOneAsync(
-            u => u.Id == user.Id && u.Status != UserStatus.Deleted && u.Role != UserRole.Admin,
+            u => u.Id == user.Id && u.Status != UserStatus.Deleted,
             SignOut(Builders<User>.Update.Set(u => u.Status, UserStatus.Deleted)),
             cancellationToken: ct);
         if (result.ModifiedCount == 0) throw Changed();
@@ -169,22 +179,20 @@ public sealed class AdminAccountsService
             ? _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct)!
             : Task.FromResult<User?>(null);
 
-    /// <summary>A live player or VIP account: a deleted one must be restored first, an admin one is not edited here.</summary>
+    /// <summary>A live account: a deleted one must be restored first.</summary>
     private async Task<User> RequireEditableAsync(string userId, CancellationToken ct)
     {
         var user = await FindAsync(userId, ct);
         if (user is null || user.Status == UserStatus.Deleted)
-            throw AdminPlayersRules.Error(404, AdminPlayerErrors.PlayerNotFound, "Không tìm thấy người chơi này (hoặc tài khoản đã bị xóa).");
-        if (user.Role == UserRole.Admin)
-            throw AdminPlayersRules.Error(409, AdminPlayerErrors.AdminAccount, "Không sửa hay xóa tài khoản quản trị ở đây.");
+            throw AdminPlayersRules.Error(404, AdminPlayerErrors.PlayerNotFound, "Không tìm thấy tài khoản này (hoặc tài khoản đã bị xóa).");
         return user;
     }
 
-    /// <summary>Writes only if the account is still a live non-admin one, as it was when read.</summary>
+    /// <summary>Writes only if the account is still live and has the role it had when read.</summary>
     private async Task ApplyAsync(User user, UpdateDefinition<User> update, CancellationToken ct)
     {
         var result = await _db.Users.UpdateOneAsync(
-            u => u.Id == user.Id && u.Status != UserStatus.Deleted && u.Role != UserRole.Admin,
+            u => u.Id == user.Id && u.Status != UserStatus.Deleted && u.Role == user.Role,
             update, cancellationToken: ct);
         if (result.MatchedCount == 0) throw Changed();
     }

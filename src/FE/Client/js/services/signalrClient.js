@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr';
-import { session } from './session.js';
+import { sessionFor, sessionScope } from './session.js';
 import { createRoomConnectionLifecycle } from './roomConnectionLifecycle.js';
 
 /**
@@ -35,8 +35,10 @@ export function createRoomConnection(roomId, handlers = {}, { onReconnected, onC
     };
   }
 
+  // The room's page fixes the side (game or admin playtest); reconnects keep it even if the address changes meanwhile.
+  const side = sessionFor(sessionScope());
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl('/hubs/game', { accessTokenFactory: () => session.token() })
+    .withUrl('/hubs/game', { accessTokenFactory: () => side.token() })
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
     .configureLogging(signalR.LogLevel.Warning)
     .build();

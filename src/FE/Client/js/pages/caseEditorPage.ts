@@ -7,6 +7,7 @@
 import { caseEditorApi } from '../api/caseEditorApi.js';
 import { aiCaseApi } from '../api/aiCaseApi.js';
 import { navigate } from '../services/navigation.js';
+import { rememberAdminRoom } from '../services/session.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { icon } from '../components/admin/icons.js';
@@ -813,6 +814,7 @@ export async function renderCaseEditorPage(app: HTMLElement, caseId: string, { s
       const room = await caseEditorApi.playtest(caseId, current.sceneId);
       if (disposed) return;
       toast(`Phòng chơi thử bắt đầu ở "${current.title || current.sceneId}". Mời người thứ hai bằng liên kết trong sảnh.`, 'success');
+      rememberAdminRoom(room.roomId);
       navigate(`/lobby/${encodeURIComponent(room.roomId)}`);
     } catch (error) {
       toast(error?.message || 'Không mở được phòng chơi thử.', 'error');

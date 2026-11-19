@@ -21,7 +21,8 @@ public sealed record AdminPlayerQuery(
     string? Sort = null,
     bool Ascending = false,
     int Page = 1,
-    int PageSize = AdminPlayersRules.DefaultPageSize);
+    int PageSize = AdminPlayersRules.DefaultPageSize,
+    string? Scope = null);
 
 /// <summary>Reads shared by the admin services. Only the fields a page shows ever leave the user document.</summary>
 internal static class AdminPlayersLookups
@@ -110,6 +111,20 @@ public sealed class AdminPlayersService
             var pattern = new BsonRegularExpression(Regex.Escape(search), "i");
             var matches = filter.Regex(u => u.FullName, pattern) | filter.Regex(u => u.Email, pattern);
             conditions.Add(ObjectId.TryParse(search, out _) ? matches | filter.Eq(u => u.Id, search) : matches);
+        }
+
+        switch ((query.Scope ?? string.Empty).Trim().ToUpperInvariant())
+        {
+            case "":
+                break;
+            case AdminPlayerScopes.Players:
+                conditions.Add(filter.In(u => u.Role, new[] { UserRole.Player, UserRole.Vip }));
+                break;
+            case AdminPlayerScopes.Admins:
+                conditions.Add(filter.Eq(u => u.Role, UserRole.Admin));
+                break;
+            default:
+                throw AdminPlayersRules.Error(400, AdminPlayerErrors.BadQuery, "Nhóm tài khoản không hợp lệ.");
         }
 
         var role = (query.Role ?? string.Empty).Trim().ToUpperInvariant();

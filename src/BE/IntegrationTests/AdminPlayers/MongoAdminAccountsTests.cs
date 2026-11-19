@@ -53,7 +53,7 @@ public sealed class MongoAdminAccountsTests
     }
 
     [Fact]
-    public async Task Create_RefusesATakenEmail_AWeakPassword_AnAdminRole_AndAMissingReason()
+    public async Task Create_RefusesATakenEmail_AWeakPassword_AnUnknownRole_AndAMissingReason()
     {
         if (!Enabled) return;
         await using var env = await AdminPlayersEnv.CreateAsync();
@@ -63,7 +63,7 @@ public sealed class MongoAdminAccountsTests
         var weak = await Assert.ThrowsAsync<ApiException>(() => env.Accounts.CreateAsync(Admin, NewAccount(password: "abcdef")));
         Assert.Equal(AdminPlayerErrors.AccountInvalid, Code(weak));
         Assert.Contains("chữ số", weak.Message);
-        Assert.Equal(AdminPlayerErrors.AccountInvalid, Code(await Assert.ThrowsAsync<ApiException>(() => env.Accounts.CreateAsync(Admin, NewAccount(role: UserRole.Admin)))));
+        Assert.Equal(AdminPlayerErrors.AccountInvalid, Code(await Assert.ThrowsAsync<ApiException>(() => env.Accounts.CreateAsync(Admin, NewAccount(role: "SUPERUSER")))));
         Assert.Equal(AdminPlayerErrors.AccountInvalid, Code(await Assert.ThrowsAsync<ApiException>(() => env.Accounts.CreateAsync(Admin, NewAccount("not-an-email")))));
         var noReason = NewAccount();
         noReason.Reason = " ";
@@ -156,17 +156,51 @@ public sealed class MongoAdminAccountsTests
     }
 
     [Fact]
-    public async Task AnAdminAccount_IsNeitherEditedNorDeletedHere()
+    public async Task TheAdminsTab_CreatesAndEditsAdminAccounts_AndListsThemApartFromPlayers()
     {
         if (!Enabled) return;
         await using var env = await AdminPlayersEnv.CreateAsync();
-        var other = await env.AddUserAsync("Quản trị khác", role: UserRole.Admin);
+        var player = await env.AddUserAsync("Người chơi", email: "player@example.com");
 
-        Assert.Equal(AdminPlayerErrors.AdminAccount, Code(await Assert.ThrowsAsync<ApiException>(() => env.Accounts.DeleteAsync(Admin, other.Id, Reason))));
-        Assert.Equal(AdminPlayerErrors.AdminAccount, Code(await Assert.ThrowsAsync<ApiException>(() =>
-            env.Accounts.SetPasswordAsync(Admin, other.Id, new AdminSetPasswordRequest { NewPassword = "abc12345", Reason = Reason }))));
-        Assert.Equal(AdminPlayerErrors.AdminAccount, Code(await Assert.ThrowsAsync<ApiException>(() =>
-            env.Accounts.UpdateAsync(Admin, other.Id, new AdminUpdateAccountRequest { FullName = "Đổi", Email = "x@example.com", Reason = Reason }))));
+        var created = await env.Accounts.CreateAsync(Admin, NewAccount("boss@example.com", role: "admin"));
+
+        Assert.Equal(UserRole.Admin, created.Role);
+        Assert.True(BCrypt.Net.BCrypt.Verify("matkhau123", (await UserAsync(env, created.UserId)).PasswordHash));
+        var admins = await env.Players.ListAsync(new AdminPlayerQuery(Scope: AdminPlayerScopes.Admins));
+        Assert.Equal(created.UserId, Assert.Single(admins.Items).UserId);
+        var players = await env.Players.ListAsync(new AdminPlayerQuery(Scope: AdminPlayerScopes.Players));
+        Assert.Equal(player.Id, Assert.Single(players.Items).UserId);
+        Assert.Equal(2, (await env.Players.ListAsync(new AdminPlayerQuery())).Total);
+        Assert.Equal(AdminPlayerErrors.BadQuery, Code(await Assert.ThrowsAsync<ApiException>(() => env.Players.ListAsync(new AdminPlayerQuery(Scope: "everyone")))));
+
+        await env.Accounts.UpdateAsync(Admin, created.UserId, new AdminUpdateAccountRequest { FullName = "Sếp Mới", Email = "boss2@example.com", Reason = Reason });
+        await env.Accounts.SetPasswordAsync(Admin, created.UserId, new AdminSetPasswordRequest { NewPassword = "sep2026ok", Reason = Reason });
+        var user = await UserAsync(env, created.UserId);
+        Assert.Equal("boss2@example.com", user.Email);
+        Assert.True(BCrypt.Net.BCrypt.Verify("sep2026ok", user.PasswordHash));
+        Assert.Equal(UserRole.Admin, user.Role);
+    }
+
+    [Fact]
+    public async Task AnAdmin_CannotDeleteThemselves_NorTheLastActiveAdmin_ButCanDeleteAnother()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminPlayersEnv.CreateAsync();
+        var me = await env.AddUserAsync("Tôi", role: UserRole.Admin);
+        var self = new CurrentUser(me.Id, "Tôi", UserRole.Admin);
+
+        Assert.Equal(AdminPlayerErrors.SelfAction, Code(await Assert.ThrowsAsync<ApiException>(() => env.Accounts.DeleteAsync(self, me.Id, Reason))));
+        // Seen from another admin that is not in the database, "me" is the only active admin left.
+        Assert.Equal(AdminPlayerErrors.LastAdmin, Code(await Assert.ThrowsAsync<ApiException>(() => env.Accounts.DeleteAsync(Admin, me.Id, Reason))));
+        Assert.Equal(UserStatus.Active, (await UserAsync(env, me.Id)).Status);
+
+        var other = await env.AddUserAsync("Quản trị khác", role: UserRole.Admin);
+        var deleted = await env.Accounts.DeleteAsync(self, other.Id, Reason);
+
+        Assert.Equal(UserStatus.Deleted, deleted.Status);
+        Assert.Empty((await env.Players.ListAsync(new AdminPlayerQuery(Scope: AdminPlayerScopes.Admins, Search: "Quản trị khác"))).Items);
+        Assert.Single((await env.Players.ListAsync(new AdminPlayerQuery(Scope: AdminPlayerScopes.Admins, Status: AdminPlayerStatusFilter.Deleted))).Items);
+        await env.Accounts.RestoreAsync(self, other.Id, Reason);
         Assert.Equal(UserStatus.Active, (await UserAsync(env, other.Id)).Status);
     }
 }
