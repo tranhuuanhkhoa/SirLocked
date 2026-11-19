@@ -369,6 +369,8 @@ test('with the Claude API lane open a VIP never sees the PixelLab cap, confirms 
   await expect(page.locator('#ai-pixellab-cap')).toHaveCount(0);
   await expect(page.locator('#ai-vip-quota')).toContainText('Đơn sẽ chờ admin duyệt');
   await expect(page.locator('#ai-vip-order [data-vip-price]')).toHaveText('8.000 xu');
+  // The bar says what the server will do with a paid order: 30 generations and every gate reviewed.
+  await expect(page.locator('[data-aai-sum="facts"]')).toContainText('tối đa 30 lượt PixelLab · duyệt từng cổng');
 
   await page.locator('[data-location="h-map-ben-cang"]').click();
   await page.locator('#quick-create-btn').click();

@@ -1159,15 +1159,18 @@ export async function renderAdminAiPage(app) {
     };
     const item = level();
     set('headline', [levelName(), worldLabel(form.world), caseTypeShortLabel(form.caseType)].join(' · '));
-    const pictures = form.pixelLabCap === 0
+    // VUAN-7: a paid VIP order gets 30 generations (+ bought packs) and every gate reviewed, whatever the form says.
+    const paid = vipPaidLane();
+    const cap = paid ? 30 + Number(form.vipExtraPixelLab || 0) : form.pixelLabCap;
+    const pictures = cap === 0
       ? tr('library pictures only', 'chỉ dùng hình thư viện')
-      : form.pixelLabCap > 0
-        ? tr(`up to ${form.pixelLabCap} PixelLab generations`, `tối đa ${form.pixelLabCap} lượt PixelLab`)
+      : cap > 0
+        ? tr(`up to ${cap} PixelLab generations`, `tối đa ${cap} lượt PixelLab`)
         : tr(`about ${span(pixelLabEstimate())} PixelLab generations`, `ước ${span(pixelLabEstimate())} lượt PixelLab`);
     set('facts', [
       tr(`~${span(item.playMinutes)} min of play`, `~${span(item.playMinutes)} phút chơi`),
       pictures,
-      pairLabel(REVIEW_MODES, 'AUTO').toLowerCase(),
+      pairLabel(REVIEW_MODES, paid ? 'FULL' : 'AUTO').toLowerCase(),
     ].join(' · '));
   }
 
