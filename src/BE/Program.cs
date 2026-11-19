@@ -157,6 +157,7 @@ builder.Services.AddScoped<ITutorialService, TutorialService>();
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
 builder.Services.AddScoped<IAiDraftAutopilot, AiDraftAutopilot>();
+builder.Services.AddScoped<TruthStageRules>();
 builder.Services.AddSingleton<IBridgeNotifier, BridgeHubNotifier>();
 builder.Services.AddScoped<AiBridgeRequestStore>();
 builder.Services.AddScoped<IAiTextProvider, ClaudeBridgeTextProvider>();

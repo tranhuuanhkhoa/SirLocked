@@ -83,6 +83,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private readonly ICaseValidationService _validator;
     private readonly ICaseTruthService _truthService;
     private readonly IGameplayProjectionPlanner _projectionPlanner;
+    private readonly TruthStageRules _stageRules;
     private readonly IProjectionContentSchemaFactory _projectionSchemaFactory;
     private readonly IGameCaseProjectionCompiler _projectionCompiler;
     private readonly IProjectionGraphValidator _projectionGraphValidator;
@@ -134,6 +135,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         _validator = validator;
         _truthService = truthService;
         _projectionPlanner = projectionPlanner;
+        _stageRules = new TruthStageRules(truthService, projectionPlanner);
         _projectionSchemaFactory = projectionSchemaFactory;
         _projectionCompiler = projectionCompiler;
         _projectionGraphValidator = projectionGraphValidator;

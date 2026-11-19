@@ -28,6 +28,7 @@ public sealed class AiBridgeService(
     IAiDraftWorkflowCoordinator workflow,
     IAiCaseService cases,
     ICaseService caseService,
+    TruthStageRules stageRules,
     CutsceneService cutscenes,
     IBridgeAssetStorage assetStorage,
     IOptions<BridgeSettings> bridge,
@@ -173,6 +174,8 @@ public sealed class AiBridgeService(
                 "BRIDGE_REQUEST_CLOSED", "ai.bridge.closed");
 
         var errors = AiBridgeSchemaValidator.Validate(request.SchemaJson, json);
+        if (errors.Count == 0)
+            errors = await TruthStageErrorsAsync(request, json, ct);
         if (errors.Count > 0)
         {
             await store.RejectAsync(request.Id, errors, ct);
@@ -181,6 +184,19 @@ public sealed class AiBridgeService(
         var submitted = await store.SubmitAsync(request.Id, json, ct)
             ?? throw ApiException.Conflict("The request changed before the answer could be stored.", "BRIDGE_REQUEST_CLOSED", "ai.bridge.closed");
         return new BridgeSubmitResult(true, [], await ContinueAsync(submitted, ct));
+    }
+
+    /// <summary>
+    /// A truth-stage answer must also pass that stage's own rules (witnesses present, statements tied to an event, the
+    /// proof graph, the level's counts). Refusing it here keeps the request open for a fix while the bot still has its
+    /// context; accepting it and failing later would turn one wrong answer into an invalid draft.
+    /// </summary>
+    private async Task<List<string>> TruthStageErrorsAsync(AiBridgeRequest request, string json, CancellationToken ct)
+    {
+        if (request.OwnerType != AiBridgeOwnerTypes.CaseDraft) return [];
+        var draft = await db.AiCaseDrafts.Find(item => item.Id == request.OwnerId).FirstOrDefaultAsync(ct);
+        var validation = draft is null ? null : stageRules.CheckAnswer(draft, request, json);
+        return validation is null || validation.IsValid ? [] : TruthStageRules.Describe(validation);
     }
 
     private async Task<object?> ContinueAsync(AiBridgeRequest request, CancellationToken ct)

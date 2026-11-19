@@ -553,7 +553,7 @@ public partial class AiCaseService
                 artifact =>
                 {
                     truth.TrueTimeline = artifact.TrueTimeline;
-                    return _truthService.ValidateTimelineReferences(truth, budget);
+                    return _stageRules.Timeline(truth, budget);
                 },
                 StageCorrection(2));
             truth.TrueTimeline = timelineResult.Artifact.TrueTimeline;
@@ -602,9 +602,7 @@ public partial class AiCaseService
                 artifact =>
                 {
                     truth.TraceLedger = artifact.TraceLedger;
-                    var validation = ValidateGeneratedTraceSet(truth.TraceLedger, plannedTraceIds);
-                    validation.Errors.AddRange(_truthService.ValidateTraceArtifact(truth).Errors);
-                    return validation;
+                    return _stageRules.Evidence(truth, plannedTraceIds);
                 },
                 CaseTruthArtifacts.Evidence,
                 StageCorrection(4));
@@ -648,9 +646,7 @@ public partial class AiCaseService
                 artifact =>
                 {
                     truth.StatementLedger = artifact.StatementLedger;
-                    return _truthService.ValidateStatementArtifact(
-                        truth,
-                        draft.Settings);
+                    return _stageRules.Statements(truth, draft.Settings);
                 },
                 CaseTruthArtifacts.Statements,
                 StageCorrection(5));
@@ -690,10 +686,7 @@ public partial class AiCaseService
                 {
                     truth.ProofGraph = artifact.ProofGraph;
                     truth.RedHerringLedger = artifact.RedHerringLedger;
-                    var validation = _truthService.Validate(truth, budget);
-                    validation.Errors.AddRange(_projectionPlanner.ValidateProjectability(draft, truth).Errors);
-                    validation.Deduplicate();
-                    return validation;
+                    return _stageRules.ProofGraph(draft, truth, budget);
                 },
                 CaseTruthArtifacts.ProofGraph,
                 StageCorrection(6));
@@ -1401,7 +1394,7 @@ public partial class AiCaseService
         AiTruthGenerationBudget budget) =>
         AiTruthRepairCandidatePolicy.ValidateForGameplay(draft, truth, budget, _truthService, _projectionPlanner);
 
-    private static AiTruthGenerationBudget TruthBudgetForDraft(AiCaseDraft draft) =>
+    internal static AiTruthGenerationBudget TruthBudgetForDraft(AiCaseDraft draft) =>
         CaseTargetKinds.All.Contains(draft.PlannedTargetKind)
             ? AiTruthGenerationBudget.ForProjection(draft.Settings)
             : AiTruthGenerationBudget.For(draft.Settings);
