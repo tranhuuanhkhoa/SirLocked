@@ -30,13 +30,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Hàng Đường, đêm thứ Sáu. Tuyết rơi trắng quảng trường ga.",
-       "style": ""
+       "style": "",
+       "textEn": "Hàng Đường, Friday night. Snow whitens the station square."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Chuyến tàu đêm trễ hơn một tiếng.",
-       "style": ""
+       "style": "",
+       "textEn": "The night train is more than an hour late."
       }
      ],
      "audio": [
@@ -61,7 +63,8 @@
        "type": "speech",
        "speakerId": "char-dt-ferrand",
        "text": "Ông Đạt đánh điện mời tôi tới gấp. Ông ấy đâu rồi?",
-       "style": ""
+       "style": "",
+       "textEn": "Mr. Đạt wired me to come at once. Where is he?"
       }
      ],
      "audio": []
@@ -84,13 +87,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Dưới hầm rượu khách sạn Ga, ông chủ nằm bất động.",
-       "style": ""
+       "style": "",
+       "textEn": "In the wine cellar of the Station Hotel, the owner lies still."
       },
       {
        "type": "sfx",
        "speakerId": "",
        "text": "XOẢNG!",
-       "style": "glass"
+       "style": "glass",
+       "textEn": "SMASH!"
       }
      ],
      "audio": [
@@ -120,13 +125,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Trong sảnh, đồng hồ quả lắc vẫn gõ từng tiếng đều đặn.",
-       "style": ""
+       "style": "",
+       "textEn": "In the lobby, the grandfather clock keeps ticking, steady as ever."
       },
       {
        "type": "sfx",
        "speakerId": "",
        "text": "BOONG!",
-       "style": "soft"
+       "style": "soft",
+       "textEn": "BONG!"
       }
      ],
      "audio": [
@@ -151,7 +158,8 @@
        "type": "speech",
        "speakerId": "char-dt-ba-nhan",
        "text": "Ai cũng bảo ông chủ say rượu rồi trượt chân…",
-       "style": ""
+       "style": "",
+       "textEn": "Everyone says the master was drunk and slipped…"
       }
      ],
      "audio": []
@@ -174,7 +182,8 @@
        "type": "caption",
        "speakerId": "",
        "text": "Trên lầu, sổ sách của ông Đạt vẫn mở trên bàn làm việc.",
-       "style": ""
+       "style": "",
+       "textEn": "Upstairs, Mr. Đạt's ledgers still lie open on his desk."
       }
      ],
      "audio": []
@@ -202,13 +211,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Một khách sạn, năm con người và một đêm tuyết dài.",
-       "style": ""
+       "style": "",
+       "textEn": "One hotel, five people and one long snowy night."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Hai thám tử. Đừng tin chiếc đồng hồ đầu tiên bạn thấy.",
-       "style": ""
+       "style": "",
+       "textEn": "Two detectives. Don't trust the first clock you see."
       }
      ],
      "audio": [
@@ -233,12 +244,18 @@
        "type": "caption",
        "speakerId": "",
        "text": "Bên kia phố chợ, quán Ngựa Sắt và rạp Hồng Liên vẫn sáng đèn.",
-       "style": ""
+       "style": "",
+       "textEn": "Across the market, the Iron Horse tavern and the Hồng Liên theatre are still lit."
       }
      ],
      "audio": []
     }
    ]
   }
- ]
+ ],
+ "titleEn": {
+  "eyebrow": "Sample file · Hard",
+  "title": "Snow Night at the Station Hotel",
+  "subtitle": "Hàng Đường, Friday night. Everyone says the owner slipped. The clock says otherwise."
+ }
 }

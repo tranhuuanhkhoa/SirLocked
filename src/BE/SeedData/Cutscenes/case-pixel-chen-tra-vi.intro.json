@@ -30,13 +30,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Tokyo, năm Taishō thứ 12. Mưa chiều trên phố đèn lồng bên kênh.",
-       "style": ""
+       "style": "",
+       "textEn": "Tokyo, Taishō 12. Afternoon rain on the lantern street by the canal."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Rạp Kagetsu-za sắp kéo màn đêm diễn lớn nhất mùa.",
-       "style": ""
+       "style": "",
+       "textEn": "The Kagetsu-za is about to raise the curtain on its biggest night."
       }
      ],
      "audio": []
@@ -59,13 +61,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Sáu giờ bốn mươi. Trong hậu trường, danh kép Ōtori ngã gục.",
-       "style": ""
+       "style": "",
+       "textEn": "6:40 p.m. Backstage, the star actor Ōtori collapses."
       },
       {
        "type": "sfx",
        "speakerId": "",
        "text": "CHOANG!",
-       "style": "glass"
+       "style": "glass",
+       "textEn": "CRASH!"
       }
      ],
      "audio": []
@@ -88,7 +92,8 @@
        "type": "speech",
        "speakerId": "char-ct-whitmore",
        "text": "Tôi vượt nửa vòng trái đất để xem đêm nay. Ai sẽ đứng trên sân khấu?",
-       "style": ""
+       "style": "",
+       "textEn": "I crossed half the world to see tonight. Who will take the stage?"
       }
      ],
      "audio": []
@@ -116,13 +121,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Ở nhà trà Kikuya, ấm trà của ông vẫn được pha như mọi tối.",
-       "style": ""
+       "style": "",
+       "textEn": "At the Kikuya tea house, his tea is brewed as it is every evening."
       },
       {
        "type": "speech",
        "speakerId": "char-ct-sawa",
        "text": "Ba mươi năm nay, chưa tối nào tôi pha sai một ấm.",
-       "style": ""
+       "style": "",
+       "textEn": "Thirty years, and I have never once brewed a pot wrong."
       }
      ],
      "audio": []
@@ -145,7 +152,8 @@
        "type": "caption",
        "speakerId": "",
        "text": "Tiệm thuốc Mori, nơi từng gói thuốc độc bảng A đều phải ghi sổ.",
-       "style": ""
+       "style": "",
+       "textEn": "Mori Pharmacy, where every packet of scheduled poison goes in the book."
       }
      ],
      "audio": []
@@ -168,7 +176,8 @@
        "type": "caption",
        "speakerId": "",
        "text": "Nhà trọ Matsu, nơi người của rạp thuê phòng theo tháng.",
-       "style": ""
+       "style": "",
+       "textEn": "The Matsu lodging house, where theatre folk rent rooms by the month."
       }
      ],
      "audio": []
@@ -196,13 +205,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Màn vẫn kéo lên. Người đóng thay bước ra dưới ánh đèn.",
-       "style": ""
+       "style": "",
+       "textEn": "The curtain still rises. The understudy steps into the light."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Hai thám tử. Hãy lần theo ấm trà, từ lúc pha tới lúc rót.",
-       "style": ""
+       "style": "",
+       "textEn": "Two detectives. Follow the teapot, from the kettle to the cup."
       }
      ],
      "audio": []
@@ -225,12 +236,18 @@
        "type": "speech",
        "speakerId": "char-ct-ueno",
        "text": "Thầy ngã bệnh rồi… đêm nay tôi phải diễn cho trọn.",
-       "style": ""
+       "style": "",
+       "textEn": "My master has fallen ill… tonight I must play the role to the end."
       }
      ],
      "audio": []
     }
    ]
   }
- ]
+ ],
+ "titleEn": {
+  "eyebrow": "Sample file · Medium",
+  "title": "A Cup of Tea Before Curtain",
+  "subtitle": "Tokyo, Taishō 12. A familiar cup of tea, and a show that cannot wait."
+ }
 }

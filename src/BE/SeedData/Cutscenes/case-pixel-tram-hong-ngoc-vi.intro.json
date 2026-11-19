@@ -30,13 +30,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Phố Hàng Đường. Sáng thứ Bảy.",
-              "style": ""
+              "style": "",
+              "textEn": "Hàng Đường Street. Saturday morning."
             },
             {
               "type": "caption",
               "speakerId": "",
               "text": "Quảng trường đồng hồ còn ngái ngủ, vậy mà tiếng ồn đã nổi lên.",
-              "style": ""
+              "style": "",
+              "textEn": "The clock square is still drowsy, yet the shouting has already begun."
             }
           ],
           "audio": [
@@ -61,13 +63,15 @@
               "type": "speech",
               "speakerId": "char-tn-dang-buu",
               "text": "Mất rồi! Chiếc trâm hồng ngọc bà Lâm cầm ở tiệm mất rồi!",
-              "style": ""
+              "style": "",
+              "textEn": "It's gone! The ruby hairpin Mrs. Lâm pawned at my shop is gone!"
             },
             {
               "type": "sfx",
               "speakerId": "",
               "text": "KÉT!",
-              "style": "impact"
+              "style": "impact",
+              "textEn": "CREAK!"
             }
           ],
           "audio": []
@@ -90,13 +94,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Ông Bửu chỉ thẳng vào người tài xế.",
-              "style": ""
+              "style": "",
+              "textEn": "Mr. Bửu points straight at the chauffeur."
             },
             {
               "type": "speech",
               "speakerId": "char-tn-trinh-luc",
               "text": "Tối thứ Sáu tôi sửa xe ngựa tới khuya, ông ơi.",
-              "style": ""
+              "style": "",
+              "textEn": "On Friday night I was mending the carriage until late, sir."
             }
           ],
           "audio": []
@@ -124,7 +130,8 @@
               "type": "caption",
               "speakerId": "",
               "text": "Nhà số 7 là nhà của bà Lâm, người đã cầm chiếc trâm ở tiệm ông Bửu.",
-              "style": ""
+              "style": "",
+              "textEn": "House No. 7 belongs to Mrs. Lâm, who pawned the hairpin at Mr. Bửu's shop."
             }
           ],
           "audio": []
@@ -147,13 +154,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Hiệu thuốc Hưng Long. Quầy cân, sổ gửi đồ và những lọ bột xếp hàng.",
-              "style": ""
+              "style": "",
+              "textEn": "Hưng Long Pharmacy. A weighing counter, a deposit book and rows of powder jars."
             },
             {
               "type": "sfx",
               "speakerId": "",
               "text": "TÍCH TẮC.",
-              "style": "soft"
+              "style": "soft",
+              "textEn": "TICK TOCK."
             }
           ],
           "audio": [
@@ -178,7 +187,8 @@
               "type": "caption",
               "speakerId": "",
               "text": "Bánh xe ngựa sửa dở. Rương đồ nằm dưới chân giường.",
-              "style": ""
+              "style": "",
+              "textEn": "A half-mended carriage wheel. A trunk at the foot of the bed."
             }
           ],
           "audio": []
@@ -206,13 +216,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Két sắt mở toang. Ngăn đựng trâm hồng ngọc trống trơn.",
-              "style": ""
+              "style": "",
+              "textEn": "The safe stands wide open. The ruby hairpin's tray is empty."
             },
             {
               "type": "sfx",
               "speakerId": "",
               "text": "ẦM!!",
-              "style": "thunder"
+              "style": "thunder",
+              "textEn": "BOOM!!"
             }
           ],
           "audio": [
@@ -237,18 +249,25 @@
               "type": "caption",
               "speakerId": "",
               "text": "Mười bí mật khóa kín quanh phố Hàng Đường.",
-              "style": ""
+              "style": "",
+              "textEn": "Ten secrets locked away around Hàng Đường Street."
             },
             {
               "type": "caption",
               "speakerId": "",
               "text": "Hai thám tử. Bắt đầu thôi.",
-              "style": ""
+              "style": "",
+              "textEn": "Two detectives. Let's begin."
             }
           ],
           "audio": []
         }
       ]
     }
-  ]
+  ],
+  "titleEn": {
+    "eyebrow": "Case file 01",
+    "title": "The Missing Ruby Hairpin",
+    "subtitle": "Two detectives, one morning, and a Friday night nobody has fully told."
+  }
 }

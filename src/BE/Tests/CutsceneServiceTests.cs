@@ -290,6 +290,73 @@ public sealed class CutsceneServiceTests
         finally { File.Delete(path); }
     }
 
+    /// <summary>The bundled Trâm script (it has an English version) as if it belonged to the seed-test case.</summary>
+    private static MotionComicScript EnglishSeed(Rig rig)
+    {
+        var script = JsonSerializer.Deserialize<MotionComicScript>(File.ReadAllText(CutsceneService.SeedFilePath("case-pixel-tram-hong-ngoc-vi")))!;
+        script.CaseId = rig.Case.CaseId;
+        Assert.True(MotionComicRules.HasEnglish(script));
+        return script;
+    }
+
+    private static void Approve(Rig rig, MotionComicScript script, string source = "CLAUDE")
+    {
+        var id = CaseCutscene.MakeId(rig.Case.CaseId, CutsceneTriggers.Intro, 1);
+        rig.Store.Rows[id] = new CaseCutscene
+        {
+            Id = id, CaseId = rig.Case.CaseId, Trigger = CutsceneTriggers.Intro, Version = 1, Status = CutsceneStatus.Approved,
+            Source = source, ScriptJson = JsonSerializer.Serialize(script, CutsceneScriptGenerator.JsonOptions)
+        };
+    }
+
+    [Fact]
+    public async Task Seed_AddsTheEnglishVersion_ToAnApprovedScriptThatIsTheSeedsVietnamese()
+    {
+        var rig = new Rig(caseId: SeedTestCaseId);
+        var seed = EnglishSeed(rig);
+        Approve(rig, MotionComicRules.WithoutEnglish(seed));
+        var path = WriteSeed(rig.Case.CaseId, JsonSerializer.Serialize(seed, CutsceneScriptGenerator.JsonOptions));
+        try
+        {
+            // Nothing new is seeded, but the approved script gains its English text as a new approved version.
+            Assert.Empty(await rig.Service.SeedMissingAsync(new[] { rig.Case }));
+            var rows = rig.Store.Rows.Values.OrderBy(row => row.Version).ToList();
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(CutsceneStatus.Superseded, rows[0].Status);
+            Assert.Equal(CutsceneStatus.Approved, rows[1].Status);
+            Assert.Equal("SEED", rows[1].Source);
+            var played = (await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId))!.Script;
+            Assert.Equal(seed.TitleEn!.Title, played.TitleEn!.Title);
+            Assert.All(played.Pages.SelectMany(page => page.Panels).SelectMany(panel => panel.Beats),
+                beat => Assert.False(string.IsNullOrWhiteSpace(beat.TextEn)));
+
+            // Another start changes nothing.
+            Assert.Empty(await rig.Service.SeedMissingAsync(new[] { rig.Case }));
+            Assert.Equal(2, rig.Store.Rows.Count);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task Seed_KeepsAnApprovedScriptAnAdminChanged_AndAddsNoEnglish()
+    {
+        var rig = new Rig(caseId: SeedTestCaseId);
+        var seed = EnglishSeed(rig);
+        var edited = MotionComicRules.WithoutEnglish(seed);
+        edited.Pages[0].Panels[0].Beats[0].Text = "Phố Hàng Đường. Sáng thứ Bảy, trời còn mù sương.";
+        Approve(rig, edited, "MANUAL");
+        var path = WriteSeed(rig.Case.CaseId, JsonSerializer.Serialize(seed, CutsceneScriptGenerator.JsonOptions));
+        try
+        {
+            Assert.Empty(await rig.Service.SeedMissingAsync(new[] { rig.Case }));
+            var row = Assert.Single(rig.Store.Rows.Values);
+            Assert.Equal(CutsceneStatus.Approved, row.Status);
+            Assert.Equal("MANUAL", row.Source);
+            Assert.False(MotionComicRules.HasEnglish((await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId))!.Script));
+        }
+        finally { File.Delete(path); }
+    }
+
     [Fact]
     public async Task Seed_SkipsAnInvalidFile_WithoutThrowing()
     {

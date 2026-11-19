@@ -30,13 +30,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Thượng Hải, 1930. Ngõ Thạch Khố Môn, chiều mưa phùn.",
-       "style": ""
+       "style": "",
+       "textEn": "Shanghai, 1930. Shikumen Lane, an afternoon of drizzle."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Hai thám tử mới vào nghề nhận vụ án đầu tiên.",
-       "style": ""
+       "style": "",
+       "textEn": "Two new detectives take on their first case."
       }
      ],
      "audio": []
@@ -59,13 +61,15 @@
        "type": "speech",
        "speakerId": "char-tt-ong-luu",
        "text": "Ấm men lam đời Minh của tôi mất rồi!",
-       "style": ""
+       "style": "",
+       "textEn": "My Ming blue-glaze teapot is gone!"
       },
       {
        "type": "sfx",
        "speakerId": "",
        "text": "CHOANG!",
-       "style": "impact"
+       "style": "impact",
+       "textEn": "CRASH!"
       }
      ],
      "audio": []
@@ -88,7 +92,8 @@
        "type": "caption",
        "speakerId": "",
        "text": "Ngoài ngõ, một quý ông người Anh đang chờ xe kéo.",
-       "style": ""
+       "style": "",
+       "textEn": "Out in the lane, an English gentleman waits for a rickshaw."
       }
      ],
      "audio": []
@@ -116,13 +121,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Hỏi chuyện, tìm chứng cứ, vạch lời nói dối và gọi tên thủ phạm.",
-       "style": ""
+       "style": "",
+       "textEn": "Ask questions, find evidence, expose the lie and name the culprit."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Đừng lo: mũi tên vàng sẽ chỉ từng bước.",
-       "style": ""
+       "style": "",
+       "textEn": "Don't worry: the golden arrow will guide you step by step."
       }
      ],
      "audio": []
@@ -145,12 +152,18 @@
        "type": "speech",
        "speakerId": "char-tt-co-lan",
        "text": "Hai vị thám tử tới rồi! Mời vào trà lâu.",
-       "style": ""
+       "style": "",
+       "textEn": "The detectives are here! Please, come into the teahouse."
       }
      ],
      "audio": []
     }
    ]
   }
- ]
+ ],
+ "titleEn": {
+  "eyebrow": "Training file",
+  "title": "The Blue-Glaze Teapot",
+  "subtitle": "Shanghai, 1930. Your very first case."
+ }
 }

@@ -186,7 +186,7 @@ public sealed class SampleCaseTests
         Assert.Contains(art, picture => picture.Kind == "character");
     }
 
-    /// <summary>Every case the game ships (the pixel demos and the tutorial) opens with an approved intro cutscene.</summary>
+    /// <summary>Every case the game ships (the pixel demos and the tutorial) opens with an intro cutscene, in Vietnamese and English.</summary>
     [Fact]
     public void EveryBundledPixelCase_ShipsAnIntroCutscene()
     {
@@ -197,7 +197,10 @@ public sealed class SampleCaseTests
             var gameCase = Load(file);
             var path = CutsceneService.SeedFilePath(gameCase.CaseId);
             Assert.True(File.Exists(path), $"{gameCase.CaseId} has no intro cutscene seed.");
-            Assert.Empty(CutsceneScriptValidator.Validate(JsonSerializer.Deserialize<MotionComicScript>(File.ReadAllText(path)), gameCase));
+            var script = JsonSerializer.Deserialize<MotionComicScript>(File.ReadAllText(path))!;
+            Assert.Empty(CutsceneScriptValidator.Validate(script, gameCase));
+            // The game has an English and a Vietnamese interface: every bundled opening plays in both.
+            Assert.True(MotionComicRules.HasEnglish(script), $"{gameCase.CaseId}: the intro cutscene has no English version.");
         }
     }
 

@@ -179,8 +179,10 @@ public sealed class CutsceneService(
     public static string SeedFilePath(string caseId) => Path.Combine(AppContext.BaseDirectory, "SeedData", "Cutscenes", caseId + ".intro.json");
 
     /// <summary>
-    /// Inserts approved cutscenes from the repo files for cases that have none, and (optionally) writes one draft for
-    /// pixel cases still without any. It never overwrites an existing version.
+    /// Inserts approved cutscenes from the repo files for cases that have none. It never overwrites an existing version;
+    /// the one exception adds a translation: when the seed file brings an English version and the approved script is
+    /// exactly that file's Vietnamese text without English, the file becomes a new approved version (the old one is kept
+    /// as SUPERSEDED). An approved script an admin or Claude changed is left alone.
     /// </summary>
     public async Task<IReadOnlyList<string>> SeedMissingAsync(IEnumerable<GameCase> publishedCases, CancellationToken ct = default)
     {
@@ -188,7 +190,12 @@ public sealed class CutsceneService(
         foreach (var gameCase in publishedCases)
         {
             ct.ThrowIfCancellationRequested();
-            if ((await store.ListAsync(gameCase.CaseId, Trigger, ct)).Count > 0) continue;
+            var versions = await store.ListAsync(gameCase.CaseId, Trigger, ct);
+            if (versions.Count > 0)
+            {
+                await AddEnglishFromSeedAsync(gameCase, versions, ct);
+                continue;
+            }
             try
             {
                 var file = SeedFilePath(gameCase.CaseId);
@@ -216,6 +223,46 @@ public sealed class CutsceneService(
             }
         }
         return seeded;
+    }
+
+    /// <summary>See <see cref="SeedMissingAsync"/>: brings the seed file's English text to an untouched approved script.</summary>
+    private async Task AddEnglishFromSeedAsync(GameCase gameCase, List<CaseCutscene> versions, CancellationToken ct)
+    {
+        try
+        {
+            var approved = versions.FirstOrDefault(version => version.Status == CutsceneStatus.Approved);
+            var current = approved is null ? null : TryParse(approved.ScriptJson);
+            var file = SeedFilePath(gameCase.CaseId);
+            if (approved is null || current is null || MotionComicRules.HasEnglish(current) || !File.Exists(file)) return;
+            var seed = TryParse(await File.ReadAllTextAsync(file, ct));
+            if (seed is null || !MotionComicRules.HasEnglish(seed)) return;
+            string Vietnamese(MotionComicScript script) =>
+                JsonSerializer.Serialize(MotionComicRules.WithoutEnglish(script), CutsceneScriptGenerator.JsonOptions);
+            if (Vietnamese(seed) != Vietnamese(current))
+            {
+                logger.LogInformation("Cutscene {CaseId}: the approved v{Version} differs from the seed file, so its English text is not added.",
+                    gameCase.CaseId, approved.Version);
+                return;
+            }
+            var issues = CutsceneScriptValidator.Validate(seed, gameCase);
+            if (issues.Count > 0)
+            {
+                logger.LogWarning("Cutscene {CaseId}: the English seed is not valid: {Issue}", gameCase.CaseId, issues[0].Message);
+                return;
+            }
+            var saved = await InsertNextVersionAsync(gameCase.CaseId, versions, JsonSerializer.Serialize(seed, CutsceneScriptGenerator.JsonOptions),
+                seed, "SEED", "seed-file", "system", ct);
+            approved.Status = CutsceneStatus.Superseded; approved.UpdatedAt = DateTime.UtcNow;
+            await store.ReplaceAsync(approved, ct);
+            saved.Status = CutsceneStatus.Approved; saved.ApprovedAt = DateTime.UtcNow; saved.ApprovedBy = "system";
+            await store.ReplaceAsync(saved, ct);
+            logger.LogInformation("Cutscene {CaseId}: English text added as approved v{Version}.", gameCase.CaseId, saved.Version);
+        }
+        catch (ApiException error) when (error.StatusCode == 409) { /* another instance got there first */ }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            logger.LogError(error, "Adding the English cutscene text failed for {CaseId}; the API keeps running.", gameCase.CaseId);
+        }
     }
 
     // ---------------------------------------------------------------- helpers

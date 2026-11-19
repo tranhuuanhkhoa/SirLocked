@@ -4,7 +4,7 @@
  * duration estimate (`MotionComicRules.EstimateSeconds` in the API).
  */
 
-export type ComicBeat = { type: 'caption' | 'speech' | 'sfx'; speakerId?: string; text: string; style?: string };
+export type ComicBeat = { type: 'caption' | 'speech' | 'sfx'; speakerId?: string; text: string; style?: string; textEn?: string };
 export type ComicArt = { kind: 'scene' | 'character' | 'item' | 'cover'; id: string; focus: number[] };
 export type ComicPanelScript = { art: ComicArt; weather: string; enter: string; beats: ComicBeat[]; audio: string[] };
 export type ComicPageScript = { layout: string; panels: ComicPanelScript[] };
@@ -15,7 +15,33 @@ export type MotionComicScript = {
   title: { eyebrow: string; title: string; subtitle: string };
   mood: string;
   pages: ComicPageScript[];
+  /** Optional English version: with `textEn` on every beat it is what the English interface plays. */
+  titleEn?: { eyebrow: string; title: string; subtitle: string };
 };
+
+/** True when the script carries a complete English version (title and every beat). */
+export function hasEnglish(script: MotionComicScript): boolean {
+  const t = script.titleEn;
+  return Boolean(t?.title?.trim() && t.eyebrow?.trim() && t.subtitle?.trim())
+    && script.pages.every((page) => page.panels.every((panel) => panel.beats.every((beat) => Boolean(beat.textEn?.trim()))));
+}
+
+/**
+ * The script in the player's interface language: English titles and beats when the UI is English and the
+ * translation is complete, otherwise the Vietnamese original (never a mix of the two).
+ */
+export function localizeScript(script: MotionComicScript, language: string): MotionComicScript {
+  if (language !== 'en' || !hasEnglish(script)) return script;
+  return {
+    ...script,
+    language: 'en',
+    title: { ...script.titleEn! },
+    pages: script.pages.map((page) => ({
+      ...page,
+      panels: page.panels.map((panel) => ({ ...panel, beats: panel.beats.map((beat) => ({ ...beat, text: beat.textEn! })) })),
+    })),
+  };
+}
 export type ComicAssetRef = { title: string; url: string };
 export type ComicAssets = {
   scenes: Record<string, ComicAssetRef>;

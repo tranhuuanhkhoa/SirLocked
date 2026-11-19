@@ -42,12 +42,19 @@ export function mountCutscenePanel(host, caseId) {
       const label = beat.type === 'sfx' ? tr('Sound effect', 'Chữ hiệu ứng') : beat.type === 'speech' ? `${tr('Speech', 'Thoại')} · ${esc(speakerName(beat))}` : tr('Narration', 'Lời dẫn');
       rows.push(`<label class="cs-row"><span class="cs-label">${tr('Page', 'Trang')} ${pi + 1} · ${tr('Panel', 'Khung')} ${qi + 1} · ${label}</span>
         <input class="field-input" data-beat="${pi}.${qi}.${bi}" maxlength="400" value="${esc(beat.text)}" aria-describedby="cs-count-${pi}-${qi}-${bi}">
-        <span class="cs-count" id="cs-count-${pi}-${qi}-${bi}" data-count-for="${pi}.${qi}.${bi}" data-max="${max}"></span></label>`);
+        <span class="cs-count" id="cs-count-${pi}-${qi}-${bi}" data-count-for="${pi}.${qi}.${bi}" data-max="${max}"></span>
+        <input class="field-input cs-en" data-beat-en="${pi}.${qi}.${bi}" maxlength="400" value="${esc(beat.textEn ?? '')}" lang="en"
+          placeholder="${tr('English (shown with the English interface)', 'Tiếng Anh (hiện khi người chơi dùng giao diện tiếng Anh)')}" aria-describedby="cs-count-en-${pi}-${qi}-${bi}">
+        <span class="cs-count" id="cs-count-en-${pi}-${qi}-${bi}" data-count-for="en:${pi}.${qi}.${bi}" data-max="${max}"></span></label>`);
     })));
     return `<div class="cs-editor">
       <label class="cs-row"><span class="cs-label">${tr('Eyebrow', 'Dòng nhãn')}</span><input class="field-input" data-title-field="eyebrow" maxlength="${MAX_TITLE}" value="${esc(script.title.eyebrow)}"></label>
       <label class="cs-row"><span class="cs-label">${tr('Title', 'Tên vụ án')}</span><input class="field-input" data-title-field="title" maxlength="${MAX_TITLE}" value="${esc(script.title.title)}"></label>
       <label class="cs-row"><span class="cs-label">${tr('Subtitle', 'Câu mời vào cuộc')}</span><input class="field-input" data-title-field="subtitle" maxlength="${MAX_SUBTITLE}" value="${esc(script.title.subtitle)}"></label>
+      <label class="cs-row"><span class="cs-label">${tr('Eyebrow · English', 'Dòng nhãn · tiếng Anh')}</span><input class="field-input cs-en" lang="en" data-title-en-field="eyebrow" maxlength="${MAX_TITLE}" value="${esc(script.titleEn?.eyebrow ?? '')}"></label>
+      <label class="cs-row"><span class="cs-label">${tr('Title · English', 'Tên vụ án · tiếng Anh')}</span><input class="field-input cs-en" lang="en" data-title-en-field="title" maxlength="${MAX_TITLE}" value="${esc(script.titleEn?.title ?? '')}"></label>
+      <label class="cs-row"><span class="cs-label">${tr('Subtitle · English', 'Câu mời vào cuộc · tiếng Anh')}</span><input class="field-input cs-en" lang="en" data-title-en-field="subtitle" maxlength="${MAX_SUBTITLE}" value="${esc(script.titleEn?.subtitle ?? '')}"></label>
+      <p class="cs-note">${tr('English is optional: fill every English line, or leave them all empty (players with the English interface then see the Vietnamese text).', 'Tiếng Anh không bắt buộc: điền đủ mọi dòng tiếng Anh, hoặc để trống hết (khi đó người chơi giao diện tiếng Anh xem chữ tiếng Việt).')}</p>
       ${rows.join('')}
       <div class="cs-actions cs-editor-actions"><button class="btn btn-primary" type="button" data-cs-save>${tr('Save text', 'Lưu chữ')}</button>
         <button class="btn btn-ghost" type="button" data-cs-cancel>${tr('Cancel', 'Hủy')}</button></div></div>`;
@@ -85,13 +92,14 @@ export function mountCutscenePanel(host, caseId) {
   }
 
   function refreshCounts() {
-    host.querySelectorAll('[data-beat]').forEach((input) => {
-      const span = host.querySelector(`[data-count-for="${input.dataset.beat}"]`);
+    host.querySelectorAll('[data-beat], [data-beat-en]').forEach((input) => {
+      const english = input.hasAttribute('data-beat-en');
+      const span = host.querySelector(`[data-count-for="${english ? `en:${input.dataset.beatEn}` : input.dataset.beat}"]`);
       const max = Number(span.dataset.max);
       const length = Array.from(input.value.trim()).length;
       span.textContent = `${length}/${max}`;
       span.classList.toggle('cs-over', length > max);
-      input.setAttribute('aria-invalid', String(length > max || length === 0));
+      input.setAttribute('aria-invalid', String(length > max || (length === 0 && !english)));
     });
   }
 
@@ -122,6 +130,25 @@ export function mountCutscenePanel(host, caseId) {
       if (!length) problems.push(tr(`Page ${pi + 1}, panel ${qi + 1}: text is required.`, `Trang ${pi + 1}, khung ${qi + 1}: không được để trống.`));
       else if (length > max) problems.push(tr(`Page ${pi + 1}, panel ${qi + 1}: ${length} characters, the limit is ${max}.`, `Trang ${pi + 1}, khung ${qi + 1}: ${length} ký tự, tối đa ${max}.`));
     });
+    // English: all or nothing (the server refuses half a translation).
+    const english = [...host.querySelectorAll('[data-title-en-field], [data-beat-en]')].map((input) => input.value.trim());
+    if (english.every((text) => !text)) {
+      delete script.titleEn;
+      script.pages.forEach((page) => page.panels.forEach((panel) => panel.beats.forEach((beat) => { delete beat.textEn; })));
+    } else if (english.some((text) => !text)) {
+      problems.push(tr('English: fill every English line, or leave them all empty.', 'Tiếng Anh: điền đủ mọi dòng tiếng Anh, hoặc để trống hết.'));
+    } else {
+      script.titleEn = { eyebrow: '', title: '', subtitle: '' };
+      host.querySelectorAll('[data-title-en-field]').forEach((input) => { script.titleEn[input.dataset.titleEnField] = input.value.trim(); });
+      host.querySelectorAll('[data-beat-en]').forEach((input) => {
+        const [pi, qi, bi] = input.dataset.beatEn.split('.').map(Number);
+        const beat = script.pages[pi].panels[qi].beats[bi];
+        beat.textEn = input.value.trim();
+        const max = beat.type === 'sfx' ? MAX_SFX : MAX_LINE;
+        const length = Array.from(beat.textEn).length;
+        if (length > max) problems.push(tr(`Page ${pi + 1}, panel ${qi + 1} (English): ${length} characters, the limit is ${max}.`, `Trang ${pi + 1}, khung ${qi + 1} (tiếng Anh): ${length} ký tự, tối đa ${max}.`));
+      });
+    }
     return { script, problems };
   }
 
@@ -164,7 +191,7 @@ export function mountCutscenePanel(host, caseId) {
       run(() => adminApi.disableCutscene(caseId), tr('Hidden. Players go straight to the investigation.', 'Đã tắt. Người chơi vào thẳng phần điều tra.'));
     }
   });
-  host.addEventListener('input', (event) => { if (event.target.matches('[data-beat]')) refreshCounts(); });
+  host.addEventListener('input', (event) => { if (event.target.matches('[data-beat], [data-beat-en]')) refreshCounts(); });
 
   busy = true; draw();
   adminApi.cutscene(caseId).then((result) => { data = result; })

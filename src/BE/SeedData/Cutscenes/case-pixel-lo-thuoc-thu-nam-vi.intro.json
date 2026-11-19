@@ -30,13 +30,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Phố Hàng Đường. 06 giờ 40 phút sáng thứ Sáu.",
-              "style": ""
+              "style": "",
+              "textEn": "Hàng Đường Street. 6:40 on a Friday morning."
             },
             {
               "type": "caption",
               "speakerId": "",
               "text": "Quảng trường đồng hồ ngái ngủ, mặt kính còn đọng sương.",
-              "style": ""
+              "style": "",
+              "textEn": "The clock square is still half asleep, dew on its glass face."
             }
           ],
           "audio": [
@@ -61,13 +63,15 @@
               "type": "speech",
               "speakerId": "char-px-ly-hanh",
               "text": "Ông Vinh ngồi yên trên ghế bành. Tôi gọi mãi mà ông không thưa.",
-              "style": ""
+              "style": "",
+              "textEn": "Mr. Vinh sits still in his armchair. I keep calling, but he won't answer."
             },
             {
               "type": "sfx",
               "speakerId": "",
               "text": "CẠCH.",
-              "style": "soft"
+              "style": "soft",
+              "textEn": "CLACK."
             }
           ],
           "audio": []
@@ -90,13 +94,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Một lọ thuốc nhỏ nằm cạnh ghế bành.",
-              "style": ""
+              "style": "",
+              "textEn": "A small medicine vial lies beside the armchair."
             },
             {
               "type": "caption",
               "speakerId": "",
               "text": "Nhãn dán chỉ ghi hai chữ: Thứ Năm.",
-              "style": ""
+              "style": "",
+              "textEn": "Its label says just one word: Thursday."
             }
           ],
           "audio": []
@@ -124,13 +130,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Hộp nữ trang mở toang, nắp để hở.",
-              "style": ""
+              "style": "",
+              "textEn": "The jewellery box gapes open, its lid left up."
             },
             {
               "type": "sfx",
               "speakerId": "",
               "text": "CẠCH.",
-              "style": "soft"
+              "style": "soft",
+              "textEn": "CLACK."
             }
           ],
           "audio": []
@@ -153,13 +161,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Chiếc kính lúp nằm giữa xấp giấy.",
-              "style": ""
+              "style": "",
+              "textEn": "A magnifying glass lies in the middle of a stack of papers."
             },
             {
               "type": "caption",
               "speakerId": "",
               "text": "Tờ di chúc có dấu bị sửa.",
-              "style": ""
+              "style": "",
+              "textEn": "The will shows signs of being altered."
             }
           ],
           "audio": []
@@ -182,7 +192,8 @@
               "type": "caption",
               "speakerId": "",
               "text": "Sáu gương mặt quanh quảng trường, và không ai chịu nói hết.",
-              "style": ""
+              "style": "",
+              "textEn": "Six faces around the square, and none of them will tell the whole story."
             }
           ],
           "audio": []
@@ -210,13 +221,15 @@
               "type": "caption",
               "speakerId": "",
               "text": "Hai thám tử có một buổi sáng.",
-              "style": ""
+              "style": "",
+              "textEn": "Two detectives have one morning."
             },
             {
               "type": "sfx",
               "speakerId": "",
               "text": "ẦM!!",
-              "style": "thunder"
+              "style": "thunder",
+              "textEn": "BOOM!!"
             }
           ],
           "audio": [
@@ -241,18 +254,25 @@
               "type": "caption",
               "speakerId": "",
               "text": "Hộp thuốc tuần lần lượt đi qua năm căn nhà.",
-              "style": ""
+              "style": "",
+              "textEn": "The weekly pillbox passed through five houses, one after another."
             },
             {
               "type": "caption",
               "speakerId": "",
               "text": "Bắt đầu thôi.",
-              "style": ""
+              "style": "",
+              "textEn": "Let's begin."
             }
           ],
           "audio": []
         }
       ]
     }
-  ]
+  ],
+  "titleEn": {
+    "eyebrow": "Case file 02",
+    "title": "The Thursday Vial",
+    "subtitle": "One morning to follow a pillbox through five houses."
+  }
 }

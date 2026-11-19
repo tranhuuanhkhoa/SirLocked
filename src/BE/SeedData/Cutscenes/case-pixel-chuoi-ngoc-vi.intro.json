@@ -30,13 +30,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Thượng Hải, 1930. Phố tô giới lộng gió chiều.",
-       "style": ""
+       "style": "",
+       "textEn": "Shanghai, 1930. A windy afternoon on the Concession street."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Xe kéo đỗ dọc vỉa hè, tiếng chuông tàu điện vọng lại từ xa.",
-       "style": ""
+       "style": "",
+       "textEn": "Rickshaws wait along the pavement; a tram bell rings in the distance."
       }
      ],
      "audio": []
@@ -59,13 +61,15 @@
        "type": "speech",
        "speakerId": "char-cn-kim-thinh",
        "text": "Chuỗi ngọc trai Nam Hải của tôi! Khay nhung trống trơn rồi!",
-       "style": ""
+       "style": "",
+       "textEn": "My South Sea pearls! The velvet tray is empty!"
       },
       {
        "type": "sfx",
        "speakerId": "",
        "text": "XOẢNG!",
-       "style": "glass"
+       "style": "glass",
+       "textEn": "SMASH!"
       }
      ],
      "audio": []
@@ -88,7 +92,8 @@
        "type": "caption",
        "speakerId": "",
        "text": "Bên bàn thợ, ông thợ kim hoàn già vẫn cặm cụi với chiếc kính lúp.",
-       "style": ""
+       "style": "",
+       "textEn": "At his workbench, the old goldsmith still bends over his loupe."
       }
      ],
      "audio": []
@@ -116,13 +121,15 @@
        "type": "caption",
        "speakerId": "",
        "text": "Bên kia phố, phòng trà Hoa Lan dạo nhạc cho đêm diễn.",
-       "style": ""
+       "style": "",
+       "textEn": "Across the street, the Orchid tea room plays for tonight's show."
       },
       {
        "type": "speech",
        "speakerId": "char-cn-bach-linh",
        "text": "Chuỗi ngọc ấy đẹp lắm. Tối nay hát xong tôi định mua nó.",
-       "style": ""
+       "style": "",
+       "textEn": "Those pearls are lovely. I meant to buy them after singing tonight."
       }
      ],
      "audio": []
@@ -145,7 +152,8 @@
        "type": "speech",
        "speakerId": "char-cn-tieu-ho",
        "text": "Tôi chầu ở đây từ trưa, ai ra vào tôi thấy hết.",
-       "style": ""
+       "style": "",
+       "textEn": "I've been parked here since noon. I see everyone who goes in."
       }
      ],
      "audio": []
@@ -168,18 +176,25 @@
        "type": "caption",
        "speakerId": "",
        "text": "Ông chủ chỉ ra ngân hàng có nửa giờ.",
-       "style": ""
+       "style": "",
+       "textEn": "The owner went to the bank for just half an hour."
       },
       {
        "type": "caption",
        "speakerId": "",
        "text": "Hai thám tử. Hỏi chuyện, soi từng dấu vết, rồi gọi tên người lấy.",
-       "style": ""
+       "style": "",
+       "textEn": "Two detectives. Ask, check every trace, then name the one who took them."
       }
      ],
      "audio": []
     }
    ]
   }
- ]
+ ],
+ "titleEn": {
+  "eyebrow": "Sample file · Easy",
+  "title": "The South Sea Pearls",
+  "subtitle": "Shanghai, 1930. Half an hour without the owner, and a display case nobody forced."
+ }
 }

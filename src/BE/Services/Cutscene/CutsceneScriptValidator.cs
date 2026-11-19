@@ -67,6 +67,7 @@ public static class CutsceneScriptValidator
         var languageTexts = texts.Select(entry => entry.Text).Append(script.Title?.Title ?? "").Append(script.Title?.Subtitle ?? "").ToList();
         CheckVietnamese(languageTexts, Add);
         CheckSpoilers(script, gameCase, texts, Add);
+        CheckEnglish(script, gameCase, Add);
         return issues;
     }
 
@@ -135,6 +136,74 @@ public static class CutsceneScriptValidator
         var englishHits = lines.Sum(text => Regex.Matches(text.ToLowerInvariant(), @"\b[a-z']+\b")
             .Count(word => EnglishStopwords.Contains(word.Value)));
         if (withDiacritics * 2 < lines.Count || englishHits >= 3) add("language", "Text must be Vietnamese with proper diacritics.");
+    }
+
+    // ---------------------------------------------------------------- English version (optional)
+
+    private static readonly HashSet<string> EnglishWords = new(StringComparer.Ordinal)
+    {
+        "the", "a", "an", "and", "of", "to", "in", "on", "at", "is", "are", "was", "were", "it", "its", "his", "her", "their",
+        "he", "she", "they", "you", "your", "i", "my", "we", "our", "for", "from", "with", "that", "this", "into", "had", "has",
+        "be", "not", "no", "but", "who", "what", "one", "two", "all", "still", "every", "tonight", "night", "let", "start"
+    };
+
+    /// <summary>
+    /// The English version is optional, but when it is there it is complete: an English title and an English text for
+    /// every beat, within the same limits, actually English, playing 40-75 seconds, and never accusing the culprit.
+    /// </summary>
+    private static void CheckEnglish(MotionComicScript script, GameCase gameCase, Action<string, string> add)
+    {
+        if (!MotionComicRules.HasEnglish(script)) return;
+        var before = 0;
+        var issues = new List<(string, string)>();
+        void Add(string path, string message) { issues.Add((path, message)); add(path, message); }
+        if (script.TitleEn is null) Add("titleEn", "The English version needs an English title (titleEn).");
+        else
+        {
+            CheckText(script.TitleEn.Title, "titleEn.title", MotionComicRules.MaxTitleLength, Add);
+            CheckText(script.TitleEn.Eyebrow, "titleEn.eyebrow", MotionComicRules.MaxTitleLength, Add);
+            CheckText(script.TitleEn.Subtitle, "titleEn.subtitle", MotionComicRules.MaxSubtitleLength, Add);
+        }
+        var lines = new List<(string Path, string Text)>();
+        var pages = script.Pages ?? new();
+        for (var p = 0; p < pages.Count; p++)
+        {
+            var panels = pages[p]?.Panels ?? new();
+            for (var q = 0; q < panels.Count; q++)
+            {
+                var beats = panels[q]?.Beats ?? new();
+                for (var b = 0; b < beats.Count; b++)
+                {
+                    var beat = beats[b];
+                    if (beat is null) continue;
+                    var path = $"pages[{p}].panels[{q}].beats[{b}].textEn";
+                    if (string.IsNullOrWhiteSpace(beat.TextEn)) { Add(path, "Translate every beat into English, or none."); continue; }
+                    CheckText(beat.TextEn, path, beat.Type == "sfx" ? MotionComicRules.MaxSfxLength : MotionComicRules.MaxLineLength, Add);
+                    if (beat.Type != "sfx") lines.Add((path, beat.TextEn));
+                }
+            }
+        }
+        if (script.TitleEn is not null) lines.Add(("titleEn.subtitle", script.TitleEn.Subtitle ?? ""));
+
+        var long_ = lines.Where(line => line.Text.Trim().Length >= 15).ToList();
+        var english = long_.Count(line => Regex.Matches(line.Text.ToLowerInvariant(), @"\b[a-z']+\b").Any(word => EnglishWords.Contains(word.Value)));
+        if (long_.Count > 0 && english * 2 < long_.Count) Add("titleEn", "The English text must be written in English.");
+
+        var culprit = gameCase.Characters.FirstOrDefault(character => character.CharacterId == gameCase.FinalLogic?.CulpritId);
+        var name = culprit is null ? "" : Normalize(culprit.Name);
+        foreach (var (path, text) in lines)
+        {
+            var norm = Normalize(text);
+            if (name.Length > 0 && norm.Contains(name) && (AccusationWords.IsMatch(norm) || Regex.IsMatch(norm, @"\b(thief|guilty|did it)\b")))
+                Add(path, "Text accuses a named character.");
+        }
+
+        if (issues.Count == before)
+        {
+            var seconds = MotionComicRules.EstimateSeconds(MotionComicRules.English(script));
+            if (seconds < MotionComicRules.MinSeconds || seconds > MotionComicRules.MaxSeconds)
+                Add("durationEn", $"The English version plays {seconds:0.#}s; it must be {MotionComicRules.MinSeconds:0}-{MotionComicRules.MaxSeconds:0}s.");
+        }
     }
 
     private static bool IsVietnameseLetter(char c) =>

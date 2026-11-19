@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { roomId, smokeState } from './helpers/smokeState';
-import { caseId, playable } from './helpers/cutsceneFixture';
+import { caseId, makeScript, playable } from './helpers/cutsceneFixture';
 
 // The opening comic inside the real game page, the cases list and the admin page, with a mocked API (no AI is called).
 
@@ -56,6 +56,36 @@ test('first visit: opening comic, then role briefing, then the investigation; sa
   // "Watch the opening again" is in the game's tools.
   await expect(page.locator('#game-replay-intro')).toBeVisible();
 });
+
+/** The fixture script with an English version: titleEn and a textEn on every beat. */
+function bilingualScript(complete = true) {
+  const script: any = makeScript();
+  script.titleEn = { eyebrow: 'Case file 02', title: 'The Thursday Vial', subtitle: 'One morning to follow a pillbox through five houses.' };
+  let n = 0;
+  for (const page of script.pages) for (const panel of page.panels) for (const beat of panel.beats) beat.textEn = `English line ${++n}.`;
+  if (!complete) delete script.pages[0].panels[0].beats[0].textEn;
+  return script;
+}
+
+for (const [language, complete, title] of [
+  ['en', true, 'The Thursday Vial'],
+  ['vi', true, 'Lọ thuốc thứ Năm'],
+  ['en', false, 'Lọ thuốc thứ Năm'],
+] as const) {
+  test(`opening in the ${language === 'en' ? 'English' : 'Vietnamese'} interface${complete ? '' : ', half-translated script'} shows "${title}"`, async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript((lang) => localStorage.setItem('sirlocked.uiLanguage', lang), language);
+    await mockGame(page, playable(bilingualScript(complete)));
+    await page.goto(`/game/${roomId}`);
+    await expect(page.locator('.mc-root')).toBeVisible();
+    await expect(page.locator('#mc-start-title')).toHaveText(title);
+    // The narration follows the same language: English lines only when the whole script is translated.
+    await expect.poll(() => page.evaluate(() => (window as any).__motionComic?.timeline?.beats?.length ?? 0)).toBeGreaterThan(0);
+    const live = await page.evaluate(() => JSON.stringify((window as any).__motionComic.timeline.beats.map((b: any) => b.text)));
+    if (language === 'en' && complete) expect(live).toContain('English line 1.');
+    else expect(live).not.toContain('English line');
+  });
+}
 
 test('reload does not play it again; "Xem lại mở đầu" does, and ends back in the game', async ({ page }) => {
   await signIn(page);

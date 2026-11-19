@@ -2,11 +2,11 @@
    Loaded lazily (dynamic import) the first time a cutscene plays. */
 import '../../../../css/45-motion-comic.css';
 import { escapeHtml } from '../../utils/dom.js';
-import { tr } from '../../services/i18n.js';
+import { tr, uiLanguage } from '../../services/i18n.js';
 import { ComicAudio, type AudioSettingsAccess } from './motionComicAudio.js';
 import { artTitle, artUrl, drawPanelArt, loadImages, mulberry } from './motionComicArt.js';
 import {
-  PAGE_H, PAGE_PLACEMENT, PAGE_RECT, PAGE_W, TIMING, buildTimeline, flashAt, shakeAt, shotAt,
+  PAGE_H, PAGE_PLACEMENT, PAGE_RECT, PAGE_W, TIMING, buildTimeline, flashAt, localizeScript, shakeAt, shotAt,
   type BeatPlan, type PanelPlan, type PlayableCutscene, type Rect, type Shot, type Timeline,
 } from './motionComicModel.js';
 
@@ -79,7 +79,7 @@ type Letter = {
 
 export async function playMotionComic(opts: MotionComicOptions): Promise<MotionComicHandle> {
   const { cutscene, audio: settings } = opts;
-  const script = cutscene.script, assets = cutscene.assets;
+  const script = localizeScript(cutscene.script, uiLanguage()), assets = cutscene.assets;
   const mount = opts.mount ?? document.body;
   const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');

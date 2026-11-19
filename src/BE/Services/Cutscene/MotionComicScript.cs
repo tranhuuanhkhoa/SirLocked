@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SirLocked.Api.Services.Cutscene;
@@ -16,6 +17,14 @@ public sealed class MotionComicScript
     [JsonPropertyName("title")] public ComicTitle Title { get; set; } = new();
     [JsonPropertyName("mood")] public string Mood { get; set; } = string.Empty;
     [JsonPropertyName("pages")] public List<ComicPage> Pages { get; set; } = new();
+
+    /// <summary>
+    /// Optional English title. With <see cref="ComicBeat.TextEn"/> on every beat it makes the English version that
+    /// players with the English interface see; without it everyone sees the Vietnamese text.
+    /// </summary>
+    [JsonPropertyName("titleEn")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ComicTitle? TitleEn { get; set; }
 }
 
 public sealed class ComicTitle
@@ -54,6 +63,10 @@ public sealed class ComicBeat
     [JsonPropertyName("speakerId")] public string SpeakerId { get; set; } = string.Empty;
     [JsonPropertyName("text")] public string Text { get; set; } = string.Empty;
     [JsonPropertyName("style")] public string Style { get; set; } = string.Empty;
+    /// <summary>The English text of this beat (see <see cref="MotionComicScript.TitleEn"/>).</summary>
+    [JsonPropertyName("textEn")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TextEn { get; set; }
 }
 
 public static class MotionComicRules
@@ -84,6 +97,32 @@ public static class MotionComicRules
     // The engine uses the same constants, so the estimate here matches playback.
     private const double TitleSeconds = 4.5, PanelSeconds = 0.9, PageFlipSeconds = 1.1, SfxSeconds = 1.2,
         LineBaseSeconds = 1.7, LinePerCharSeconds = 0.05;
+
+    /// <summary>True when the script carries any English text (it must then carry all of it).</summary>
+    public static bool HasEnglish(MotionComicScript script) =>
+        script.TitleEn is not null || script.Pages.Any(page => page.Panels.Any(panel => panel.Beats.Any(beat => beat.TextEn is not null)));
+
+    /// <summary>The script as the English interface plays it: English title and beat texts, everything else unchanged.</summary>
+    public static MotionComicScript English(MotionComicScript script)
+    {
+        var copy = Copy(script);
+        copy.Title = copy.TitleEn ?? copy.Title;
+        foreach (var beat in copy.Pages.SelectMany(page => page.Panels).SelectMany(panel => panel.Beats))
+            beat.Text = beat.TextEn ?? beat.Text;
+        return copy;
+    }
+
+    /// <summary>The script without its English text (to compare two versions of the Vietnamese one).</summary>
+    public static MotionComicScript WithoutEnglish(MotionComicScript script)
+    {
+        var copy = Copy(script);
+        copy.TitleEn = null;
+        foreach (var beat in copy.Pages.SelectMany(page => page.Panels).SelectMany(panel => panel.Beats)) beat.TextEn = null;
+        return copy;
+    }
+
+    private static MotionComicScript Copy(MotionComicScript script) =>
+        JsonSerializer.Deserialize<MotionComicScript>(JsonSerializer.Serialize(script))!;
 
     public static double EstimateSeconds(MotionComicScript script)
     {
