@@ -188,7 +188,7 @@ public sealed class MongoAiDraftQuotaTests
             // VUAN-7: the order is paid in coins and written through the Claude API lane.
             Assert.Equal(AiDraftLanes.VipApi, draft.Lane);
             Assert.Equal(AiVipBillingStates.Held, draft.VipOrder!.State);
-            Assert.Equal(5_000, draft.VipOrder.PriceXu); // Short Demo, "Nhanh": 5.000 xu
+            Assert.Equal(8_000, draft.VipOrder.PriceXu); // every new order is Normal Random, "Nhanh": 8.000 xu
             Assert.Equal(AiCaseReviewModes.Full, draft.Order!.ReviewMode); // paid VIP orders never get fast review
             Assert.Equal(AiCaseOrder.VipPixelLabCap, draft.Order.PixelLabCap); // nor more than 30 generations
             Assert.Equal(AiCaseWorlds.TaishoJapan, draft.Order.World);

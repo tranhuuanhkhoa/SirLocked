@@ -183,7 +183,7 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
 
         // Import for the playtest: stored as a draft case, invisible to players, never published.
         var imported = await bot.PostAsync($"/api/bridge/drafts/{draft.DraftId}/import", null);
-        Assert.Equal(HttpStatusCode.OK, imported.StatusCode);
+        Assert.True(imported.StatusCode == HttpStatusCode.OK, await imported.Content.ReadAsStringAsync());
         var caseId = (await imported.Content.ReadFromJsonAsync<ApiResponse<JsonObject>>(Web))!.Data!["caseId"]!.GetValue<string>();
         using (var scope = factory.Services.CreateScope())
         {
@@ -202,7 +202,8 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal("IMPORTED", caseJson["source"]!.GetValue<string>());
         Assert.Equal(caseId, caseJson["caseId"]!.GetValue<string>());
         Assert.False(string.IsNullOrWhiteSpace(caseJson["caseJson"]!["finalLogic"]!["culpritId"]!.GetValue<string>()));
-        Assert.Equal(AiGenerationPresets.ShortDemo, caseJson["caseJson"]!["generationPreset"]!.GetValue<string>());
+        // Every new order runs on the Normal Random preset, whatever preset the client sent.
+        Assert.Equal(AiGenerationPresets.NormalRandom, caseJson["caseJson"]!["generationPreset"]!.GetValue<string>());
         // The key alone opens it; a player token does not.
         Assert.Equal(HttpStatusCode.Unauthorized, (await player.GetAsync($"/api/bridge/drafts/{draft.DraftId}/case-json")).StatusCode);
     }
@@ -216,12 +217,12 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
 
-        var full = await CreateAsync(admin, AiCaseReviewModes.Full);
+        var full = await CreateAsync(factory, admin, AiCaseReviewModes.Full);
         await WaitForAsync(admin, bot, full, AiDraftStatus.StoryAwaitingApproval);
         var refused = await bot.PostAsJsonAsync($"/api/bridge/drafts/{full}/approve-gate", new { gate = "STORY" });
         Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode); // full review: every gate is a person's
 
-        var fast = await CreateAsync(admin, AiCaseReviewModes.Fast);
+        var fast = await CreateAsync(factory, admin, AiCaseReviewModes.Fast);
         var ready = await RunBotAsync(factory, admin, bot, fast, GateApprover.BotWhereAllowed);
         Assert.Equal(AiDraftStatus.ReadyToPublish, ready.Status);
     }
@@ -230,10 +231,10 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
 
     /// <summary>
     /// The VIP API lane is closed (no Anthropic key, as on production today): a VIP order is free and goes straight to
-    /// the bridge bot with the review mode and the cap the VIP chose.
+    /// the bridge bot with the cap the VIP chose. Like every new order it runs on autopilot, whatever review mode it asked.
     /// </summary>
     [Fact]
-    public async Task VipOrder_GoesStraightToTheBot_WithItsOwnReviewModeAndCap_WhileTheApiLaneIsClosed()
+    public async Task VipOrder_GoesStraightToTheBot_OnAutopilotWithItsOwnCap_WhileTheApiLaneIsClosed()
     {
         if (!Enabled) return;
         await using var factory = new BridgeFactory(vipLaneOpen: false);
@@ -249,7 +250,7 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(HttpStatusCode.Accepted, order.StatusCode);
         var draft = (await order.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
         Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
-        Assert.Equal((AiCaseReviewModes.Fast, 100), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
+        Assert.Equal((AiCaseReviewModes.Auto, 100), (draft.Order!.ReviewMode, draft.Order.PixelLabCap));
         Assert.Equal(AiDraftLanes.Bridge, draft.Lane);
         Assert.Null(draft.VipOrder);
         Assert.Equal(VipCoins, await BalanceAsync(factory, VipId)); // nothing held
@@ -290,10 +291,11 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(HttpStatusCode.Forbidden, (await bot.GetAsync($"/api/bridge/drafts/{draft.DraftId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await vip.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null)).StatusCode);
 
-        // VUAN-7: the price is held when the order is placed (Short Demo, "Nhanh": 5.000 xu).
+        // VUAN-7: the price is held when the order is placed. Every new order runs on the Normal Random preset
+        // ("Nhanh": 8.000 xu), whatever preset the client sent.
         Assert.Equal(AiDraftLanes.VipApi, draft.Lane);
-        Assert.Equal((AiVipBillingStates.Held, 5_000L), (draft.VipOrder!.State, draft.VipOrder.PriceXu));
-        Assert.Equal(VipCoins - 5_000, await BalanceAsync(factory, VipId));
+        Assert.Equal((AiVipBillingStates.Held, 8_000L), (draft.VipOrder!.State, draft.VipOrder.PriceXu));
+        Assert.Equal(VipCoins - 8_000, await BalanceAsync(factory, VipId));
 
         var approved = await admin.PostAsync($"/api/admin/ai-cases/{draft.DraftId}/approve-order", null);
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
@@ -322,14 +324,14 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         {
             GenerationPreset = AiGenerationPresets.ShortDemo
         })).Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
-        Assert.Equal(VipCoins - 10_000, await BalanceAsync(factory, VipId));
+        Assert.Equal(VipCoins - 16_000, await BalanceAsync(factory, VipId)); // two orders held, 8.000 xu each
         var rejected = await admin.PostAsJsonAsync($"/api/admin/ai-cases/{second.DraftId}/reject-order", new { reason = "Trùng ý tưởng." });
         Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
         var rejectedDraft = await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{second.DraftId}");
         Assert.Equal((AiOrderStatuses.Rejected, "Trùng ý tưởng."), (rejectedDraft.OrderStatus, rejectedDraft.OrderRejectReason));
         // Rejected by Yen: every held coin goes back at once.
-        Assert.Equal((AiVipBillingStates.Refunded, 5_000L), (rejectedDraft.VipOrder!.State, rejectedDraft.VipOrder.RefundedXu));
-        Assert.Equal(VipCoins - 5_000, await BalanceAsync(factory, VipId));
+        Assert.Equal((AiVipBillingStates.Refunded, 8_000L), (rejectedDraft.VipOrder!.State, rejectedDraft.VipOrder.RefundedXu));
+        Assert.Equal(VipCoins - 8_000, await BalanceAsync(factory, VipId));
 
         using var scope = factory.Services.CreateScope();
         var audit = scope.ServiceProvider.GetRequiredService<IAdminAudit>();
@@ -398,7 +400,7 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         await SeedUsersAsync(factory);
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
-        var draftId = await CreateAsync(admin, AiCaseReviewModes.Full);
+        var draftId = await CreateAsync(factory, admin, AiCaseReviewModes.Full);
 
         var request = await WaitForRequestAsync(bot, draftId);
         var taken = await TakeAsync(bot, request);
@@ -847,7 +849,12 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         }
     }
 
-    private static async Task<string> CreateAsync(HttpClient admin, string reviewMode)
+    /// <summary>
+    /// Places an order and gives the draft <paramref name="reviewMode"/>. Every new order runs on autopilot (AUTO); the
+    /// gates, fast review and questions to the creator are for drafts that are not on autopilot (a paid VIP order, an
+    /// order placed before autopilot), so a FULL or FAST draft is set here, before the bot answers anything.
+    /// </summary>
+    private static async Task<string> CreateAsync(BridgeFactory factory, HttpClient admin, string reviewMode)
     {
         var created = await admin.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
         {
@@ -856,7 +863,15 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             Order = new AiCaseOrder { ReviewMode = reviewMode, PixelLabCap = 60 }
         });
         Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
-        return (await created.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!.DraftId;
+        var draft = (await created.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!;
+        Assert.Equal(AiCaseReviewModes.Auto, draft.Order!.ReviewMode);
+        if (reviewMode != AiCaseReviewModes.Auto)
+        {
+            using var scope = factory.Services.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<MongoDbContext>().AiCaseDrafts.UpdateOneAsync(
+                item => item.Id == draft.DraftId, Builders<AiCaseDraft>.Update.Set(item => item.Order!.ReviewMode, reviewMode));
+        }
+        return draft.DraftId;
     }
 
     private static async Task WaitForAsync(HttpClient admin, HttpClient bot, string draftId, string status)

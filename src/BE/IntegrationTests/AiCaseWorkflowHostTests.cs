@@ -183,70 +183,26 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(HttpStatusCode.Accepted, create.StatusCode);
         var queued = (await create.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>())!.Data!;
         Assert.Equal(AiQueueStates.Pending, queued.QueueState);
-        Assert.Equal(1, queued.Settings.ShortDemoProfileVersion);
+        // A new order (OPEN_COOP_1) takes its size from the level and runs on autopilot: no gate waits for a person.
+        Assert.Equal(SirLocked.Api.Services.AiPipelineVersions.OpenCoop1, queued.Settings.PipelineVersion);
+        Assert.Equal(AiCaseReviewModes.Auto, queued.Order!.ReviewMode);
 
-        var story = await PollAsync(client, queued.DraftId, AiDraftStatus.StoryAwaitingApproval);
-        Assert.NotNull(story.StoryPreview);
-        Assert.Equal(AiQueueStates.None, story.QueueState);
-
-        var approveStory = await client.PostAsync($"/api/admin/ai-cases/{queued.DraftId}/approve", null);
-        Assert.Equal(HttpStatusCode.Accepted, approveStory.StatusCode);
-        var truth = await PollAsync(
-            client,
-            queued.DraftId,
-            AiDraftStatus.CaseTruthAwaitingApproval,
-            AiDraftStatus.CaseTruthInvalid);
-        Assert.True(
-            truth.Status == AiDraftStatus.CaseTruthAwaitingApproval,
-            $"Truth status {truth.Status}: {string.Join(" | ", truth.TruthValidationReport)}");
-        Assert.NotNull(truth.CaseTruth);
-        Assert.True(truth.CaseTruth!.TraceLedger.Count <= 10);
-
-        var approveTruth = await client.PostAsync($"/api/admin/ai-cases/{queued.DraftId}/approve-truth", null);
-        Assert.Equal(HttpStatusCode.Accepted, approveTruth.StatusCode);
-        var fullLogic = await PollAsync(
-            client,
-            queued.DraftId,
-            AiDraftStatus.FullLogicAwaitingApproval,
-            AiDraftStatus.GeneratedInvalid);
-        Assert.True(
-            fullLogic.Status == AiDraftStatus.FullLogicAwaitingApproval,
-            $"Full logic status {fullLogic.Status}, phase {fullLogic.FailurePhase}, "
-            + $"last error {fullLogic.LastGenerationErrorCode}: "
-            + string.Join(" | ", fullLogic.ValidationErrors.Concat(
-                fullLogic.GenerationAttempts.SelectMany(attempt => attempt.ValidationErrors))));
-        var sampler = System.Text.Json.JsonSerializer.Deserialize<GameCase>(
-            fullLogic.GeneratedJson, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
-        Assert.Equal(1, sampler.ShortDemoProfileVersion);
-        Assert.Single(sampler.Puzzles);
-        Assert.Single(sampler.Interactions.Where(item => item.Type == CaseInteractionTypes.CombineItems));
-        Assert.Single(sampler.Interactions.Where(item => item.Type == CaseInteractionTypes.UseItemOnTarget));
-        Assert.Single(sampler.EvidenceChallenges);
-        Assert.Single(sampler.Deductions);
-        Assert.Single(sampler.RequiredTeamworkChains);
-        Assert.Contains(sampler.ConversationNodes, node => node.IsRoot && node.Choices.Count >= 2);
-
-        var approveFullLogic = await client.PostAsync(
-            $"/api/admin/ai-cases/{queued.DraftId}/approve-full-logic",
-            null);
-        Assert.Equal(HttpStatusCode.Accepted, approveFullLogic.StatusCode);
-        var layout = await PollAsync(
-            client,
-            queued.DraftId,
-            AiDraftStatus.SceneLayoutAwaitingApproval,
-            AiDraftStatus.GeneratedInvalid);
-        Assert.Equal(AiDraftStatus.SceneLayoutAwaitingApproval, layout.Status);
-
-        var approveLayout = await client.PostAsync(
-            $"/api/admin/ai-cases/{queued.DraftId}/approve-scene-layout",
-            null);
-        Assert.Equal(HttpStatusCode.Accepted, approveLayout.StatusCode);
         var ready = await PollAsync(
             client,
             queued.DraftId,
             AiDraftStatus.ReadyToPublish,
-            AiDraftStatus.GeneratedInvalid);
-        Assert.Equal(AiDraftStatus.ReadyToPublish, ready.Status);
+            AiDraftStatus.GeneratedInvalid,
+            AiDraftStatus.CaseTruthInvalid);
+        Assert.True(
+            ready.Status == AiDraftStatus.ReadyToPublish,
+            $"Status {ready.Status}, phase {ready.FailurePhase}, last error {ready.LastGenerationErrorCode}: "
+            + string.Join(" | ", ready.TruthValidationReport.Concat(ready.ValidationErrors)));
+        Assert.NotNull(ready.StoryPreview);
+        Assert.NotNull(ready.CaseTruth);
+        var played = System.Text.Json.JsonSerializer.Deserialize<GameCase>(
+            ready.GeneratedJson, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.Single(played.Stages); // one-stage OPEN_COOP case
+        Assert.Contains(played.ConversationNodes, node => node.IsRoot && node.Choices.Count >= 2);
 
         var publish = await client.PostAsync(
             $"/api/admin/ai-cases/{queued.DraftId}/publish?overwrite=true",
@@ -265,7 +221,7 @@ public sealed partial class AiCaseWorkflowHostTests
         string draftId,
         params string[] terminalStatuses)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
+        var deadline = DateTime.UtcNow.AddSeconds(90);
         while (DateTime.UtcNow < deadline)
         {
             var envelope = await client.GetFromJsonAsync<ApiResponse<AiDraftResponse>>(

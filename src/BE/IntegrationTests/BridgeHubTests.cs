@@ -69,7 +69,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         await SeedUsersAsync(factory);
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
-        var draftId = await CreateAsync(admin, AiCaseReviewModes.Full);
+        var draftId = await CreateAsync(factory, admin, AiCaseReviewModes.Full);
         var requestId = await WaitForRequestAsync(bot, draftId);
         await TakeAsync(bot, requestId);
 

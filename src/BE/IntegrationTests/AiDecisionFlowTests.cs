@@ -27,7 +27,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var bot = Bot(factory);
-        var (draftId, requestId, decisionId) = await AskAsync(vip, bot);
+        var (draftId, requestId, decisionId) = await AskAsync(factory, vip, bot);
 
         Assert.DoesNotContain(await PendingAsync(bot), item => item["requestId"]?.GetValue<string>() == requestId);
         var waiting = await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{draftId}");
@@ -53,7 +53,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         await SeedUsersAsync(factory);
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
-        var draftId = await CreateAsync(admin, AiCaseReviewModes.Full);
+        var draftId = await CreateAsync(factory, admin, AiCaseReviewModes.Full);
         var requestId = await WaitForRequestAsync(bot, draftId);
 
         var response = await bot.PostAsJsonAsync($"/api/bridge/requests/{requestId}/ask", Question());
@@ -70,7 +70,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         using var vip = User(factory, VipId, UserRole.Vip);
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
-        var (draftId, requestId, decisionId) = await AskAsync(vip, bot);
+        var (draftId, requestId, decisionId) = await AskAsync(factory, vip, bot);
 
         var both = await Task.WhenAll(Answer(vip, draftId, decisionId, "draw"), Answer(admin, draftId, decisionId, "library"));
         Assert.Single(both, response => response.StatusCode == HttpStatusCode.OK);
@@ -93,7 +93,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         using var otherVip = User(factory, OtherVipId, UserRole.Vip);
         using var admin = User(factory, AdminId, UserRole.Admin);
         using var bot = Bot(factory);
-        var (draftId, _, decisionId) = await AskAsync(vip, bot);
+        var (draftId, _, decisionId) = await AskAsync(factory, vip, bot);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await Answer(otherVip, draftId, decisionId, "draw")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await Answer(admin, draftId, decisionId, "draw")).StatusCode);
@@ -107,7 +107,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var bot = Bot(factory);
-        var (draftId, _, decisionId) = await AskAsync(vip, bot);
+        var (draftId, _, decisionId) = await AskAsync(factory, vip, bot);
         Assert.Equal(HttpStatusCode.BadRequest, (await Answer(vip, draftId, decisionId, "nope")).StatusCode);
     }
 
@@ -119,7 +119,7 @@ public sealed partial class AiBridgeWorkflowHostTests
         await SeedUsersAsync(factory);
         using var vip = User(factory, VipId, UserRole.Vip);
         using var bot = Bot(factory);
-        var (draftId, requestId, decisionId) = await AskAsync(vip, bot);
+        var (draftId, requestId, decisionId) = await AskAsync(factory, vip, bot);
 
         Assert.Equal(HttpStatusCode.OK, (await vip.PostAsync($"/api/admin/ai-cases/{draftId}/cancel", null)).StatusCode);
         var draft = await GetData<AiDraftResponse>(vip, $"/api/admin/ai-cases/{draftId}");
@@ -144,9 +144,10 @@ public sealed partial class AiBridgeWorkflowHostTests
     };
 
     /// <summary>A VIP orders, the bot takes the first request and asks the question. Returns the ids.</summary>
-    private static async Task<(string DraftId, string RequestId, string DecisionId)> AskAsync(HttpClient owner, HttpClient bot)
+    private static async Task<(string DraftId, string RequestId, string DecisionId)> AskAsync(BridgeFactory factory, HttpClient owner, HttpClient bot)
     {
-        var draftId = await CreateAsync(owner, AiCaseReviewModes.Full);
+        // An autopilot (AUTO) order never asks: the bot picks itself. Questions are for a draft under FULL review.
+        var draftId = await CreateAsync(factory, owner, AiCaseReviewModes.Full);
         var requestId = await WaitForRequestAsync(bot, draftId);
         await TakeAsync(bot, requestId);
         var asked = await bot.PostAsJsonAsync($"/api/bridge/requests/{requestId}/ask", Question());

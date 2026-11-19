@@ -144,7 +144,7 @@ test('a VIP short of coins is sent to "Nạp xu" and cannot send the order', asy
   expect(mock.errors).toEqual([]);
 });
 
-test('without the Claude API key a VIP order is free: no price, no hold, the VIP chooses the cap and review mode', async ({ page }) => {
+test('without the Claude API key a VIP order is free: no price, no hold, the VIP chooses the cap and the order runs on autopilot', async ({ page }) => {
   const mock = await setUp(page, 'VIP', { laneConfigured: false });
   await page.goto('/admin/ai');
   await expect(page.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ Claude ngay');
@@ -154,7 +154,9 @@ test('without the Claude API key a VIP order is free: no price, no hold, the VIP
   await page.locator('#quick-create-btn').click();
   await expect.poll(() => mock.posts.length).toBe(1);
   await expect(page.locator('.aai-vip-confirm')).toHaveCount(0);
-  expect(mock.posts[0].order).toMatchObject({ pixelLabCap: -1, reviewMode: 'FULL' });
+  expect(mock.posts[0].order).toMatchObject({ pixelLabCap: -1 });
+  // Every new order runs on autopilot: the form sends no review mode (the server sets AUTO).
+  expect(mock.posts[0].order.reviewMode).toBeUndefined();
   expect(mock.posts[0].order.speed).toBeUndefined();
   expect(mock.errors).toEqual([]);
 });
