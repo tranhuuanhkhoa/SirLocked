@@ -120,9 +120,15 @@ public sealed class AdminPlayersService
             conditions.Add(filter.Eq(u => u.Role, role));
         }
 
-        switch ((query.Status ?? string.Empty).Trim().ToUpperInvariant())
+        var status = (query.Status ?? string.Empty).Trim().ToUpperInvariant();
+        // A deleted account is out of every view but its own.
+        if (status != AdminPlayerStatusFilter.Deleted) conditions.Add(filter.Ne(u => u.Status, UserStatus.Deleted));
+        switch (status)
         {
             case "":
+                break;
+            case AdminPlayerStatusFilter.Deleted:
+                conditions.Add(filter.Eq(u => u.Status, UserStatus.Deleted));
                 break;
             case AdminPlayerStatusFilter.Active:
                 conditions.Add(filter.Eq(u => u.Status, UserStatus.Active));

@@ -1,11 +1,12 @@
 /**
- * SirLocked studio runner: keeps one connection to /hubs/bridge and runs `claude -p "/tao-vu-an"` when the server says
+ * SirLocked studio runner: keeps one connection to /hubs/bridge and runs Codex when the server says
  * there is work. Nothing is asked on a timer: the server pushes WorkAvailable (on connect, on every new or released
  * request, and when a creator answers a bot question). Start: node tools/studio-runner/src/index.mjs (from the repo).
  */
 import { spawn } from 'node:child_process';
-import { appendFileSync, createWriteStream, mkdirSync } from 'node:fs';
+import { appendFileSync, copyFileSync, createWriteStream, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { buildBotCommand, checkPrerequisites, listMcpIn } from './bot.mjs';
@@ -14,6 +15,11 @@ import { createScheduler } from './scheduler.mjs';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const logDir = path.join(repoRoot, 'tmp', 'studio-runner');
 mkdirSync(logDir, { recursive: true });
+const executable = process.env.SIRLOCKED_CODEX_BIN || 'codex';
+const model = process.env.SIRLOCKED_CODEX_MODEL || 'gpt-6.2-sol';
+const checkOnly = process.argv.includes('--check');
+const library = path.join(logDir, 'library.json');
+if (!existsSync(library)) copyFileSync(path.join(repoRoot, 'tools', 'studio-mcp', 'library', 'index.json'), library);
 
 function log(line) {
   const text = `${new Date().toISOString()} ${line}`;
@@ -29,33 +35,63 @@ if (key.length < 32) {
 }
 
 const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
-const quote = (arg) => `"${String(arg).replace(/"/g, '""')}"`;
+const hideSecrets = (message) => String(message).replaceAll(key, '[redacted]')
+  .replace(/https:\/\/api\.pixellab\.ai\/v2\/uploads\S*/g, '[PixelLab upload URL]');
 
 /** One headless bot run; its output goes to tmp/studio-runner/<time>.log. Resolves with the exit code. */
 async function runBot() {
-  const ready = await checkPrerequisites(listMcpIn(repoRoot));
+  const ready = await checkPrerequisites(listMcpIn(repoRoot, executable));
   if (!ready.ok) {
     log(ready.reason);
     return 3;
   }
-  const command = buildBotCommand({ repoRoot });
-  const file = path.join(logDir, `${stamp()}.log`);
-  log(`Chạy bot: ${command.file} ${command.args.slice(0, 2).join(' ')} (log: ${path.relative(repoRoot, file)})`);
+  const command = buildBotCommand({ repoRoot, executable, model, servers: ready.servers, check: checkOnly });
+  const file = path.join(logDir, `${stamp()}${checkOnly ? '-check' : ''}.log`);
+  log(`${checkOnly ? 'Kiểm tra' : 'Chạy bot'} Codex (${model}) — ${path.relative(repoRoot, file)}`);
   const out = createWriteStream(file);
   return new Promise((resolve) => {
-    // A .cmd file runs through cmd.exe; every argument is quoted so "(", ")" and "*" reach claude untouched.
-    const child = spawn('cmd.exe', ['/d', '/s', '/c', `"${[command.file, ...command.args].map(quote).join(' ')}"`], {
+    const child = spawn(command.file, command.args, {
       cwd: command.cwd,
-      env: { MCP_TOOL_TIMEOUT: '1800000', ...process.env },
+      env: { ...process.env, SIRLOCKED_API: api, SIRLOCKED_BRIDGE_KEY: key,
+        SIRLOCKED_STUDIO_UNATTENDED: '1', SIRLOCKED_LIBRARY_INDEX: library },
+      stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
-      windowsVerbatimArguments: true,
     });
-    child.stdout.pipe(out, { end: false });
-    child.stderr.pipe(out, { end: false });
-    child.on('error', (error) => { out.end(); log(`Không chạy được claude.cmd: ${error.message}`); resolve(1); });
-    child.on('close', (code) => { out.end(); resolve(code ?? 1); });
+    const passed = new Set();
+    let stderr = '';
+    const maxRunMs = (checkOnly ? 3 : 100) * 60_000;
+    const timer = setTimeout(() => {
+      out.write('Codex quá thời gian của một lượt.\n');
+      child.kill();
+    }, maxRunMs);
+    createInterface({ input: child.stdout }).on('line', (line) => {
+      let event;
+      try { event = JSON.parse(line); } catch { return; }
+      if (event.type === 'item.completed' && event.item?.type === 'mcp_tool_call') {
+        const item = event.item;
+        const ok = item.status === 'completed' && !item.error && !item.result?.is_error && !item.result?.isError;
+        const name = `${item.server}.${item.tool}`;
+        if (ok) passed.add(name);
+        out.write(`${new Date().toISOString()} ${name}: ${ok ? 'OK' : 'FAILED'}${item.error?.message ? ' — ' + hideSecrets(item.error.message).slice(0, 400) : ''}\n`);
+      } else if (event.type === 'turn.failed' || event.type === 'error') {
+        out.write(`${event.type}: ${hideSecrets(event.error?.message ?? event.message ?? '').slice(0, 600)}\n`);
+      }
+    });
+    child.stderr.on('data', (data) => { stderr = (stderr + data).slice(-2000); });
+    child.on('error', (error) => log(`Không chạy được Codex: ${error.message}`));
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code && stderr) out.write(hideSecrets(stderr));
+      const checkTools = ['sirlocked-studio.bridge_list', 'pixellab.get_balance', 'sirlocked-studio.studio_read', 'sirlocked-studio.studio_write'];
+      const failed = checkOnly ? checkTools.filter((tool) => !passed.has(tool)) : [];
+      if (failed.length) log(`Kiểm tra Codex chưa đạt: ${failed.join(', ')}.`);
+      else if (checkOnly && code === 0) log('Codex, bridge, PixelLab và file local OK.');
+      out.end(() => resolve((code ?? 1) || (failed.length ? 4 : 0)));
+    });
   });
 }
+
+if (checkOnly) process.exit(await runBot());
 
 const connection = new HubConnectionBuilder()
   .withUrl(`${api}/hubs/bridge`, { headers: { 'X-Bridge-Key': key } })
@@ -63,7 +99,26 @@ const connection = new HubConnectionBuilder()
   .configureLogging(LogLevel.Warning)
   .build();
 
-const scheduler = createScheduler({ pendingCount: () => connection.invoke('PendingCount'), runBot, log });
+async function pendingSnapshot() {
+  try {
+    const response = await fetch(`${api}/api/bridge/requests?status=PENDING&limit=100`, {
+      headers: { 'X-Bridge-Key': key, Accept: 'application/json' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (response.ok) {
+      const payload = await response.json();
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const ids = rows.map((row) => String(row?.requestId ?? '')).filter(Boolean).sort();
+      return { count: rows.length, signature: ids.join(',') };
+    }
+  } catch {
+    // Fall back to SignalR PendingCount below.
+  }
+  const count = await connection.invoke('PendingCount');
+  return { count, signature: null };
+}
+
+const scheduler = createScheduler({ pendingSnapshot, runBot, log });
 connection.on('WorkAvailable', () => scheduler.onWorkAvailable());
 connection.onreconnecting(() => log('Mất kết nối tới server, đang nối lại...'));
 connection.onreconnected(() => { log('Đã nối lại.'); scheduler.onWorkAvailable(); });

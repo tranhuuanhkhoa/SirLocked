@@ -747,6 +747,72 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(AiBridgeStatuses.Cancelled, (await db.AiBridgeRequests.Find(item => item.Id == changed.RequestId).SingleAsync()).Status);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SemanticReview_ResumesEveryBatchAndItsRetry(bool retrySecondBatch)
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
+        using var client = factory.CreateClient();
+        using var control = factory.Services.CreateScope();
+        var db = control.ServiceProvider.GetRequiredService<MongoDbContext>();
+        var store = control.ServiceProvider.GetRequiredService<AiBridgeRequestStore>();
+        var draftId = ObjectId.GenerateNewId().ToString();
+        var settings = new AiDraftSettings
+        {
+            StageCount = 1, Difficulty = "easy", Language = "vi",
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            GenerationPreset = AiGenerationPresets.NormalRandom, IncludeCrackTheLie = true
+        };
+        await db.AiCaseDrafts.InsertOneAsync(new AiCaseDraft
+        {
+            Id = draftId, GenerationRunId = "semantic-review-run", Settings = settings
+        });
+        var gameCase = AiCaseMockFactory.CreateMockAdditiveV3GeneratedLogic(settings).ToGameCase(settings);
+        var original = gameCase.EvidenceChallenges[0];
+        var pairCount = original.CandidateEvidenceIds.Count * original.CandidateTestimonyFragmentIds.Count;
+        Assert.InRange(pairCount, 1, 24);
+        gameCase.EvidenceChallenges.Clear();
+        for (var i = 0; i <= 24 / pairCount; i++)
+        {
+            var challenge = JsonSerializer.Deserialize<EvidenceChallenge>(JsonSerializer.Serialize(original, Web), Web)!;
+            challenge.ChallengeId = $"challenge-{i}";
+            challenge.Order = i;
+            gameCase.EvidenceChallenges.Add(challenge);
+        }
+        var batches = AiCaseService.BuildSemanticReviewBatches(gameCase);
+        Assert.Equal(2, batches.Count);
+        string Answer(int batch) => AiV3SemanticReviewPolicy.BuildMockResponse(
+            gameCase, batches[batch].Select(challenge => challenge.ChallengeId).ToArray());
+
+        async Task<AiV3SemanticReview> ResumeAsync()
+        {
+            using var run = factory.Services.CreateScope();
+            var draft = await db.AiCaseDrafts.Find(item => item.Id == draftId).SingleAsync();
+            return await run.ServiceProvider.GetRequiredService<AiCaseService>().ReviewV3LogicAsync(draft, gameCase);
+        }
+
+        var first = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+        Assert.NotNull(await store.SubmitAsync(first.RequestId, Answer(0)));
+        var second = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+        Assert.Equal("ReviewV3PairMatrix", second.Step);
+        var secondAnswer = retrySecondBatch ? """{"cracks":[],"pairEvaluations":[]}""" : Answer(1);
+        Assert.NotNull(await store.SubmitAsync(second.RequestId, secondAnswer));
+        if (retrySecondBatch)
+        {
+            var retry = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+            Assert.Equal("RetryIncompleteV3PairBatch", retry.Step);
+            Assert.NotNull(await store.SubmitAsync(retry.RequestId, Answer(1)));
+        }
+        var result = await ResumeAsync();
+        Assert.All(result.BatchCheckpoints, checkpoint => Assert.Equal("COMPLETED", checkpoint.Status));
+        Assert.Equal(2, result.BatchCheckpoints.Count);
+        var requests = await store.ListForOwnerAsync(AiBridgeOwnerTypes.CaseDraft, draftId);
+        Assert.Equal(retrySecondBatch ? 3 : 2, requests.Count);
+        Assert.All(requests, request => Assert.Equal(AiBridgeStatuses.Accepted, request.Status));
+    }
+
     // ---------------------------------------------------------------- the test bot
 
     private enum GateApprover { Admin, BotWhereAllowed }

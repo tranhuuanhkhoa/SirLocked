@@ -14,7 +14,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StudioError } from '../bridge-client.js';
-import { display, readJsonFile, requireFile, resolveInput, safeId, tmpDir } from '../files.js';
+import { display, readJsonFile, requireFile, resolveOutput, safeId, tmpDir } from '../files.js';
 import { fold } from '../library/index-store.js';
 import { loadPlaywright } from '../playtest/browser.js';
 import { urlAnswers, waitFor } from '../playtest/http.js';
@@ -47,7 +47,7 @@ async function loadCase(ctx: ToolContext, args: { casePath?: string; draftId?: s
 /** Output folder: under tmp/ by default, or a folder inside the repository the caller names (e.g. Claude outputs/...). */
 function outputDir(ctx: ToolContext, requested: string | undefined, ...fallback: string[]): string {
   if (!requested) return tmpDir(ctx.config, ...fallback);
-  const dir = resolveInput(ctx.config, requested);
+  const dir = resolveOutput(ctx.config, requested);
   const relative = path.relative(ctx.config.repoRoot, dir);
   if (relative.startsWith('..') || path.isAbsolute(relative)) throw new StudioError('BAD_PATH', 'outDir phải nằm trong repo.');
   mkdirSync(dir, { recursive: true });
@@ -208,6 +208,9 @@ function stopChild(child: ChildProcess | null) {
 }
 
 export async function weatherPreview(ctx: ToolContext, args: WeatherPreviewArgs) {
+  if (ctx.config.unattended && (args.webUrl || args.backgroundUrl)) {
+    throw new StudioError('BAD_ARGS', 'Runner dùng cảnh của draft và stack local để xem thử thời tiết.');
+  }
   const { caseJson, source } = await loadCase(ctx, args);
   const preview = await importFrontend(ctx, 'scripts', 'scene-preview-state.mjs');
   const scenes: Json[] = preview.scenesOf(caseJson);

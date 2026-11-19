@@ -75,6 +75,12 @@ public class AdminService : IAdminService
             throw ApiException.BadRequest("Admin accounts cannot be locked.");
         }
 
+        // A deleted account comes back only through "restore", which says so in the audit log.
+        if (user.Status == UserStatus.Deleted)
+        {
+            throw ApiException.Conflict("Tài khoản này đã bị xóa. Hãy khôi phục tài khoản trước.");
+        }
+
         var update = Builders<Models.User>.Update
             .Set(u => u.Status, status)
             .Inc(u => u.AuthorizationVersion, 1)

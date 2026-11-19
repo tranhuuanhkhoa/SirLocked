@@ -23,6 +23,7 @@ export interface StudioConfig {
   httpTimeoutMs: number;
   /** Where PixelLab character zips are downloaded from; https://api.pixellab.ai when unset (tests point it at a fake). */
   pixellabBase?: string;
+  unattended?: boolean;
 }
 
 /** tools/studio-mcp/dist/src/config.js -> repo root. Falls back to CLAUDE_PROJECT_DIR or SIRLOCKED_REPO_ROOT. */
@@ -73,6 +74,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StudioConfig {
     apiBase: normalizeApiBase(env.SIRLOCKED_API),
     bridgeKey: (env.SIRLOCKED_BRIDGE_KEY ?? '').trim(),
     tmpRoot: path.join(repoRoot, 'tmp'),
+    unattended: env.SIRLOCKED_STUDIO_UNATTENDED === '1',
     // SIRLOCKED_LIBRARY_INDEX: another index file (the e2e run works on a copy so local URLs never reach git).
     libraryIndexPath: env.SIRLOCKED_LIBRARY_INDEX
       ? path.resolve(repoRoot, env.SIRLOCKED_LIBRARY_INDEX)

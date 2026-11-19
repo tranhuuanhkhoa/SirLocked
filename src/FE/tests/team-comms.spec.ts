@@ -190,6 +190,58 @@ test('the solo tutorial has no dock and no T shortcut', async ({ page }) => {
   await expect(page.locator('[data-tc-panel]')).toBeHidden();
 });
 
+// ------------------------------------------------------------------ folding the dock
+
+test('the dock folds into a small bar that keeps the content clear, still shows news, and is remembered', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const dock = page.locator('[data-tc-dock]');
+  const fold = page.locator('[data-tc-fold]');
+  const wide = (await dock.boundingBox())!;
+  await expect(fold).toHaveAttribute('aria-expanded', 'true');
+  await expect(fold).toHaveAttribute('aria-label', 'Thu gọn đàm thoại');
+
+  await fold.click();
+  await expect(page.locator('[data-tc]')).toHaveAttribute('data-folded', 'true');
+  await expect(fold).toHaveAttribute('aria-expanded', 'false');
+  await expect(fold).toHaveAttribute('aria-label', 'Mở đàm thoại');
+  await expect(page.locator('[data-tc-speaker]')).toBeHidden();
+  await expect(page.locator('[data-tc-chat]')).toBeHidden();
+  await expect(page.locator('[data-tc-status]')).toContainText('Đàm thoại');
+  const small = (await dock.boundingBox())!;
+  expect(small.height).toBeLessThan(wide.height / 2);
+  expect(small.width).toBeLessThan(wide.width);
+  expect(await page.evaluate(() => localStorage.getItem('sirlocked.comms.folded'))).toBe('1');
+
+  // A partner's telegram still shows: a count on the open button, which turns red.
+  await emit(page, 'TeamChatMessage', line('p1', PARTNER.userId, 'Lên lầu đi!', new Date().toISOString()));
+  await expect(fold.locator('.tc-fold-badge')).toHaveText('1');
+  await expect(fold).toHaveAttribute('data-attention', 'message');
+  await expect(fold).toHaveAttribute('aria-label', 'Mở đàm thoại, 1 điện tín chưa đọc');
+  // T still opens the telegrams while folded.
+  await page.keyboard.press('t');
+  await expect(page.locator('[data-tc-panel]')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(fold.locator('.tc-fold-badge')).toHaveCount(0);
+
+  // Remembered for the next match.
+  await page.reload();
+  await expect(page.locator('[data-tc]')).toHaveAttribute('data-folded', 'true');
+  await expect(page.locator('[data-tc-speaker]')).toBeHidden();
+  await page.locator('[data-tc-fold]').click();
+  await expect(page.locator('[data-tc-speaker]')).toBeVisible();
+  await expect(page.locator('[data-tc-chat]')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('sirlocked.comms.folded'))).toBeNull();
+});
+
+test('a partner calling while the dock is folded makes the open button ask for attention', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await page.locator('[data-tc-fold]').click();
+  await emit(page, 'VoiceState', { roomId, userId: PARTNER.userId, inVoice: true, micOn: true, fresh: true });
+  await expect(page.locator('[data-tc-fold]')).toHaveAttribute('data-attention', 'calling');
+});
+
 // ------------------------------------------------------------------ voice controls (hub mocked)
 
 test('speaker and mic open the voice channel through the hub; speaker off closes both and frees the mic', async ({ page }) => {
@@ -433,4 +485,19 @@ test('on a phone the dock is three round buttons and the drawer a sheet above th
   expect(onTop).toBe(true);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('on a phone the folded dock is one round button on the edge', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  const fold = page.locator('[data-tc-fold]');
+  await fold.click();
+  await expect(page.locator('.tc-tool').first()).toBeHidden();
+  const box = (await fold.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await fold.click();
+  await expect(page.locator('.tc-tool')).toHaveCount(3);
+  await expect(page.locator('.tc-tool').first()).toBeVisible();
 });

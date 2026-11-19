@@ -25,6 +25,12 @@ public static class AdminPlayerErrors
     public const string RoomNotFound = "ADMIN_ROOM_NOT_FOUND";
     public const string ReviewNotFound = "ADMIN_REVIEW_NOT_FOUND";
     public const string ReviewUnchanged = "ADMIN_REVIEW_UNCHANGED";
+    public const string AccountInvalid = "ADMIN_ACCOUNT_INVALID";
+    public const string AccountUnchanged = "ADMIN_ACCOUNT_UNCHANGED";
+    public const string AccountChanged = "ADMIN_ACCOUNT_CHANGED";
+    public const string AccountNotDeleted = "ADMIN_ACCOUNT_NOT_DELETED";
+    public const string AdminAccount = "ADMIN_ACCOUNT_IS_ADMIN";
+    public const string EmailTaken = "ADMIN_EMAIL_TAKEN";
 }
 
 public static class AdminPlayerStatusFilter
@@ -32,6 +38,8 @@ public static class AdminPlayerStatusFilter
     public const string Active = "ACTIVE";
     public const string Locked = "LOCKED";
     public const string Unverified = "UNVERIFIED";
+    /// <summary>Deleted accounts are listed only under this filter.</summary>
+    public const string Deleted = "DELETED";
 }
 
 public static class AdminPlayerSorts
