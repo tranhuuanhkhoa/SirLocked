@@ -1,6 +1,9 @@
 import { adminPlayersApi } from '../api/adminPlayersApi.js';
 import { pageHead, segTabs } from '../components/admin/ui.js';
 import { render } from '../utils/dom.js';
+import { navigate } from '../services/navigation.js';
+import { toast } from '../utils/toast.js';
+import { createAccountDialog } from './admin/players/accountDialogs.js';
 import { mountAvatarGrid } from './admin/players/avatarGrid.js';
 import { mountPlayerDetail } from './admin/players/playerDetail.js';
 import { mountPlayerList } from './admin/players/playerList.js';
@@ -20,7 +23,7 @@ export async function renderAdminPlayersPage(app, id, { signal } = {}) {
   let pending = null;
   render(app, `
     <div class="page adp-page">
-      ${pageHead({ title: 'Người chơi' })}
+      ${pageHead({ title: 'Người chơi', actionsHtml: '<button class="btn btn-primary" type="button" data-adp-create>Tạo tài khoản</button>' })}
       <div class="adp-page-tabs" data-adp-tabs></div>
       <div class="adp-body" data-adp-body></div>
     </div>`);
@@ -54,6 +57,12 @@ export async function renderAdminPlayersPage(app, id, { signal } = {}) {
     if (active === 'anh') mountAvatarGrid(body, { signal: views.signal, onChange: countPending });
     else mountPlayerList(body, { signal: views.signal });
   };
+  app.querySelector('[data-adp-create]').addEventListener('click', async () => {
+    const account = await createAccountDialog({ signal });
+    if (!account) return;
+    toast(`Đã tạo tài khoản ${account.email}.`, 'success');
+    navigate(`/admin/players/${encodeURIComponent(account.userId)}`);
+  }, signal ? { signal } : undefined);
   tabsHost.addEventListener('click', (event) => {
     const tab = event.target.closest('[data-adm-tab]');
     if (!tab || tab.dataset.admTab === active) return;

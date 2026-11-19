@@ -150,6 +150,8 @@ public class AdminPlayersRulesTests
             .Select(property => $"{type.Name}.{property.Name}"))
             // Whether a password exists is not the password.
             .Where(name => !name.EndsWith(".HasPassword", StringComparison.Ordinal))
+            // Requests only: the new password an admin types for a player, hashed on arrival and never answered back.
+            .Where(name => name is not ("AdminCreateAccountRequest.NewPassword" or "AdminSetPasswordRequest.NewPassword"))
             .ToList();
         Assert.Empty(leaks);
     }

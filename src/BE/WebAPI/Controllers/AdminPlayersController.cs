@@ -15,13 +15,37 @@ public class AdminPlayersController : BaseApiController
     private readonly AdminPlayersService _players;
     private readonly AdminPlayerOperations _operations;
     private readonly AdminAvatarModeration _avatars;
+    private readonly AdminAccountsService _accounts;
 
-    public AdminPlayersController(AdminPlayersService players, AdminPlayerOperations operations, AdminAvatarModeration avatars)
+    public AdminPlayersController(AdminPlayersService players, AdminPlayerOperations operations, AdminAvatarModeration avatars, AdminAccountsService accounts)
     {
         _players = players;
         _operations = operations;
         _avatars = avatars;
+        _accounts = accounts;
     }
+
+    // ---- the account itself: create, edit, new password, delete (soft) and restore ----
+
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<AdminAccountDto>>> Create([FromBody] AdminCreateAccountRequest request, CancellationToken ct) =>
+        Ok(await _accounts.CreateAsync(Caller, request, ct), "Đã tạo tài khoản.");
+
+    [HttpPut("{userId}/account")]
+    public async Task<ActionResult<ApiResponse<AdminAccountDto>>> UpdateAccount(string userId, [FromBody] AdminUpdateAccountRequest request, CancellationToken ct) =>
+        Ok(await _accounts.UpdateAsync(Caller, userId, request, ct), "Đã cập nhật tài khoản.");
+
+    [HttpPost("{userId}/password")]
+    public async Task<ActionResult<ApiResponse<AdminAccountDto>>> SetPassword(string userId, [FromBody] AdminSetPasswordRequest request, CancellationToken ct) =>
+        Ok(await _accounts.SetPasswordAsync(Caller, userId, request, ct), "Đã đặt mật khẩu mới.");
+
+    [HttpDelete("{userId}")]
+    public async Task<ActionResult<ApiResponse<AdminAccountDto>>> Delete(string userId, [FromQuery] string? reason, CancellationToken ct) =>
+        Ok(await _accounts.DeleteAsync(Caller, userId, reason, ct), "Đã xóa tài khoản.");
+
+    [HttpPost("{userId}/restore")]
+    public async Task<ActionResult<ApiResponse<AdminAccountDto>>> Restore(string userId, [FromBody] AdminReasonRequest request, CancellationToken ct) =>
+        Ok(await _accounts.RestoreAsync(Caller, userId, request.Reason, ct), "Đã khôi phục tài khoản.");
 
     [HttpGet]
     public async Task<ActionResult<ApiResponse<AdminPageDto<AdminPlayerRowDto>>>> List(

@@ -2,12 +2,13 @@ import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
 import { pill } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
+import { restoreAccountDialog } from './accountDialogs.js';
 import {
   actionDialog, dateTime, num, pageParam, pagedList, personLink, roleChip, routeParams, sizeParam, statusChip, tableHtml, writeRouteParams,
 } from './shared.js';
 
 const ROLES = [['', 'Mọi vai trò'], ['PLAYER', 'Người chơi'], ['VIP', 'VIP'], ['ADMIN', 'Quản trị']];
-const STATUSES = [['', 'Mọi trạng thái'], ['ACTIVE', 'Đang hoạt động'], ['LOCKED', 'Bị khóa'], ['UNVERIFIED', 'Chưa xác minh email']];
+const STATUSES = [['', 'Mọi trạng thái'], ['ACTIVE', 'Đang hoạt động'], ['LOCKED', 'Bị khóa'], ['UNVERIFIED', 'Chưa xác minh email'], ['DELETED', 'Đã xóa']];
 const SORTS = [['created', 'Ngày tạo'], ['level', 'Cấp'], ['coins', 'Số xu']];
 const SIZES = [10, 25, 50, 100];
 
@@ -72,6 +73,9 @@ export function mountPlayerList(host, { signal }) {
       cell: (player) => {
         if (player.role === 'ADMIN') return '<span class="adp-muted">Không áp dụng</span>';
         const name = escapeHtml(player.fullName);
+        if (player.status === 'DELETED') {
+          return `<span class="adm-table-actions"><button class="btn btn-ghost btn-sm adm-btn-ok" type="button" data-act="restore" aria-label="Khôi phục ${name}">Khôi phục</button></span>`;
+        }
         return `
           <span class="adm-table-actions">
             <button class="btn btn-ghost btn-sm" type="button" data-act="role" aria-label="${player.role === 'VIP' ? 'Đổi thành người chơi' : 'Nâng lên VIP'}: ${name}">${player.role === 'VIP' ? 'Về người chơi' : 'Lên VIP'}</button>
@@ -103,6 +107,11 @@ export function mountPlayerList(host, { signal }) {
     onPage: (page) => writeRouteParams({ page }),
     onSize: (size) => writeRouteParams({ size, page: 1 }),
     actions: {
+      restore: async (player) => {
+        if (!(await restoreAccountDialog(player, { signal }))) return;
+        toast('Đã khôi phục tài khoản.', 'success');
+        list.refresh();
+      },
       lock: (player) => change(player,
         { title: `Khóa ${player.fullName}`, message: 'Người chơi bị đăng xuất ngay và không vào được game cho tới khi mở khóa.', confirmLabel: 'Khóa tài khoản' },
         (reason) => adminPlayersApi.lock(player.userId, reason), 'Đã khóa tài khoản.'),

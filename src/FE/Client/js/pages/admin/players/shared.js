@@ -180,7 +180,7 @@ function fieldHtml(field) {
   }
   return `<div class="field">${label}
     <input class="field-input" id="${id}" name="${field.name}" type="${field.type ?? 'text'}" inputmode="${field.type === 'number' ? 'numeric' : 'text'}"
-      value="${escapeHtml(field.value ?? '')}"${field.min !== undefined ? ` min="${field.min}"` : ''}${field.max !== undefined ? ` max="${field.max}"` : ''}>${hint}</div>`;
+      value="${escapeHtml(field.value ?? '')}"${field.min !== undefined ? ` min="${field.min}"` : ''}${field.max !== undefined ? ` max="${field.max}"` : ''}${field.autocomplete ? ` autocomplete="${escapeHtml(field.autocomplete)}"` : ''}>${hint}</div>`;
 }
 
 /**
@@ -281,7 +281,7 @@ export function actionDialog({ title, message, notice, fields = [], askReason = 
 
 export const STATUS_LABELS = { ACTIVE: 'Đang hoạt động', LOCKED: 'Bị khóa', DELETED: 'Đã xóa' };
 export const ROLE_LABELS = { PLAYER: 'Người chơi', VIP: 'VIP', ADMIN: 'Quản trị' };
-const STATUS_TONES = { ACTIVE: 'ok', LOCKED: 'bad' };
+const STATUS_TONES = { ACTIVE: 'ok', LOCKED: 'bad', DELETED: 'bad' };
 const ROLE_TONES = { ADMIN: 'gold', VIP: 'violet' };
 
 export function statusChip(status) {

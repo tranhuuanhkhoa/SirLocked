@@ -11,6 +11,7 @@ public static class AdminPlayersRegistration
         services.AddHttpClient<IAvatarFileRemover, CloudinaryAvatarFileRemover>(client => client.Timeout = TimeSpan.FromSeconds(20));
         services.AddScoped<AdminPlayerOperations>();
         services.AddScoped<AdminPlayersService>();
+        services.AddScoped<AdminAccountsService>();
         services.AddScoped<AdminAvatarModeration>();
         services.AddScoped<AdminEconomyService>();
         services.AddScoped<AdminRoomsService>();

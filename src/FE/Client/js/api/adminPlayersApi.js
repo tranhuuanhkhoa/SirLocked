@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchBlob, get, patch, post } from './http.js';
+import { apiFetch, apiFetchBlob, get, patch, post, put } from './http.js';
 
 /** Blank filters are left out, so the address stays readable and the server applies its own defaults. */
 function query(filters = {}) {
@@ -33,6 +33,12 @@ export const adminPlayersApi = {
   removeAvatar: (userId, reason) => post(`${player(userId)}/avatar/remove`, { reason }),
   approveAvatar: (userId) => post(`${player(userId)}/avatar/approve`),
   forceLogout: (userId, reason) => post(`${player(userId)}/force-logout`, { reason }),
+  // The account itself: create, edit, new password, delete (soft) and restore.
+  createAccount: (body) => post('/api/admin/players', body),
+  updateAccount: (userId, body) => put(`${player(userId)}/account`, body),
+  setPassword: (userId, body) => post(`${player(userId)}/password`, body),
+  deleteAccount: (userId, reason) => apiFetch('DELETE', `${player(userId)}${reasonQuery(reason)}`),
+  restoreAccount: (userId, reason) => post(`${player(userId)}/restore`, { reason }),
 
   avatars: (filters) => get(`/api/admin/players/avatars${query(filters)}`),
   catalog: () => get('/api/market/catalog'),
