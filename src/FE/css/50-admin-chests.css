@@ -26,6 +26,8 @@ body[data-area="admin"] .ac-area-title h1 {
 }
 
 .ac-lead { margin: 0; color: var(--adm-muted); font-size: 15px; }
+.ac-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.ac-list-head .btn { display: inline-flex; align-items: center; gap: 6px; }
 .ac-card-note { margin: 4px 0 0; color: var(--adm-muted); font-size: 13px; line-height: 1.5; }
 .ac-pad { padding: 0 22px 22px; }
 .ac-thumb { display: block; }

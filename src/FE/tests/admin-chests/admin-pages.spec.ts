@@ -99,6 +99,18 @@ function checkOf(s: State, draft: Json) {
   };
 }
 
+/** What the server says of a chest that does not exist yet: measured against nothing, so a name is needed too. */
+function newCheckOf(draft: Json) {
+  const total = Object.values(draft.dropWeights as Record<string, number>).reduce((sum, weight) => sum + weight, 0);
+  const violations: Json[] = [];
+  if (!String(draft.name ?? '').trim()) violations.push({ code: 'ADMIN_TEXT_INVALID', message: 'Tên hòm không được để trống.' });
+  if (total !== 10000) violations.push({ code: 'CHEST_WEIGHTS_TOTAL', message: `Tổng trọng số phải bằng 10.000, hiện là ${total.toLocaleString('vi-VN')}.` });
+  return {
+    violations, expectedValue: 90, cost: draft.chestPrice + draft.keyPrice, totalWeight: total, rates: {},
+    diff: { added: draft.pool, removed: [], weights: [], fields: draft.name ? [{ field: 'name', before: '', after: draft.name }] : [], reordered: false, isEmpty: false },
+  };
+}
+
 const ok = (route: Route, data: unknown) => route.fulfill({ json: { success: true, data } });
 const refuse = (route: Route, status: number, code: string, message: string, violations: Json[] = []) =>
   route.fulfill({ status, json: { success: false, message, errors: { code, violations } } });
@@ -150,6 +162,10 @@ async function prepare(page: Page, s: State, role = 'ADMIN') {
     }
     if (path === '/api/admin/chests/players') return ok(route, [{ id: 'u9', fullName: 'Thám tử An', email: 'an@example.test' }]);
     if (path === '/api/admin/chests/grant') return ok(route, { balance: 0, held: 0, slotsUsed: 5, slotCap: 12, itemCount: 5, reservedSlots: 0, feePercent: 5 });
+    if (method === 'POST' && path === '/api/admin/chests/check') return ok(route, newCheckOf(body));
+    if (method === 'POST' && path === '/api/admin/chests') {
+      return ok(route, { ...detail(s), id: 'chest_001', keyDefId: 'key_001', name: body.name, active: body.active, version: 1 });
+    }
     if (method === 'GET' && path === '/api/admin/chests/chest_np') return ok(route, detail(s));
     if (method === 'PUT' && path === '/api/admin/chests/chest_np') {
       Object.assign(s.chest, {
@@ -523,6 +539,58 @@ test.describe('/admin/chests', () => {
 
     await expect(page).toHaveURL(/\/admin\/chests\/chest_001/);
     expect(sent(s, 'POST', '/clone')[0].body).toMatchObject({ name: 'Két Mùa Đông', nameEn: 'Winter Safe' });
+  });
+
+  test('a new chest is made from scratch: an empty form checked by the server, then created with a reason', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    await page.goto('/admin/chests');
+
+    await page.locator('[data-ac-new]').click();
+    await expect(page).toHaveURL(/\/admin\/chests\/moi$/);
+    await expect(page.locator('[data-ac-heading]')).toHaveText('Hòm mới');
+    // Nothing to look back on or try out before the chest exists.
+    await expect(page.locator('[data-ac-tab="lich-su"]')).toHaveCount(0);
+    await expect(page.locator('[data-ac-tab="thong-ke"]')).toHaveCount(0);
+    await expect(page.locator('[data-ac-preview]')).toHaveCount(0);
+    await expect(page.locator('[data-ac-save]')).toHaveText('Tạo hòm');
+    await expect(page.locator('[data-ac-save]')).toBeDisabled();
+
+    await page.locator('input[name="name"]').fill('Hòm Gió Mùa');
+    await expect(page.locator('[data-ac-violations]')).toContainText('Tổng trọng số phải bằng 10.000');
+    await expect(page.locator('[data-ac-violations]')).not.toContainText('Tên hòm');
+    await page.locator('input[name="nameEn"]').fill('Monsoon Chest');
+    await page.locator('input[name="keyName"]').fill('chìa gió');
+    await page.locator('input[name="keyNameEn"]').fill('wind key');
+    await page.locator('input[name="chestPrice"]').fill('150');
+    await page.locator('input[name="keyPrice"]').fill('200');
+
+    await page.locator('[data-ac-tab="bang-roi"]').click();
+    await page.locator('[data-ac-add-item]').click();
+    const picker = page.locator('dialog.ac-dialog[open]');
+    await picker.locator('[data-pick-item="VC-0388"]').click();
+    await page.locator('dialog.ac-dialog[open] [data-ac-dialog-close]').click();
+    await page.locator('input[data-weight="COMMON"]').fill('100');
+    await expect(page.locator('[data-ac-save]')).toBeEnabled();
+
+    await page.locator('[data-ac-save]').click();
+    const dialog = page.locator('dialog.ac-dialog[open]');
+    await expect(dialog).toContainText('Tạo Hòm Gió Mùa');
+    await expect(dialog).toContainText('Sổ tay da bò');
+    await dialog.locator('[data-ac-confirm]').click();
+    await expect(dialog.locator('.ac-errors')).toContainText('lý do');
+    expect(sent(s, 'POST', '/api/admin/chests').filter((r) => r.path === '/api/admin/chests')).toHaveLength(0);
+    await dialog.locator('[name="reason"]').fill('Sự kiện mùa mưa');
+    await dialog.locator('[data-ac-confirm]').click();
+
+    await expect(page).toHaveURL(/\/admin\/chests\/chest_001/);
+    const body = sent(s, 'POST', '/api/admin/chests').find((r) => r.path === '/api/admin/chests')!.body!;
+    expect(body).toMatchObject({
+      name: 'Hòm Gió Mùa', nameEn: 'Monsoon Chest', keyName: 'chìa gió', keyNameEn: 'wind key', chestPrice: 150, keyPrice: 200,
+      active: false, pool: ['VC-0388'], reason: 'Sự kiện mùa mưa',
+    });
+    expect(body.dropWeights).toMatchObject({ COMMON: 10000 });
+    expect(sent(s, 'POST', '/api/admin/chests/check').length).toBeGreaterThan(0);
   });
 
   test('percentages become weights out of 10,000, and a wrong total blocks saving with the server\'s message', async ({ page }) => {

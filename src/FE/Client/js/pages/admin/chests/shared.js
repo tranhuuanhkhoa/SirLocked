@@ -7,6 +7,9 @@ import { replaceAddress } from '../../../services/navigation.js';
 
 /* What the chests and items admin pages share: words, numbers, dialogs and item thumbnails. Admin pages are in Vietnamese only. */
 
+/** /admin/chests/moi: the edit page of a chest that does not exist yet. No chest id is ever "moi" (they are chest_…). */
+export const NEW_CHEST = 'moi';
+
 export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
 export const RARITY_TEXT = { COMMON: 'Thường', RARE: 'Hiếm', EPIC: 'Quý', LEGENDARY: 'Huyền thoại', MYSTERY: 'Bí ẩn' };
 /** The text colour of each rarity's label in the admin design: bars and meters use it too, so they read as the same rarity. */

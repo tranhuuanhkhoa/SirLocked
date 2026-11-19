@@ -3,6 +3,7 @@ import { adminChestsApi } from '../../../api/adminChestsApi.js';
 import { icon, pill, stateBox } from '../../../components/admin/ui.js';
 import { EN, FR, T, applyCosmetic, avatarImg, frameKey, isKnownCosmetic, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey } from '../../../cosmetics/index.js';
 import { createPainter } from '../../../cosmetics/painter.js';
+import { navigate } from '../../../services/navigation.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { chestIconUrl, chestPictureUrl, keyPictureUrl, pixelIconUrl } from '../../chest/chestSprites.js';
@@ -11,7 +12,7 @@ import { draftOf, fromHex, toHex, weightOf } from './chestDraft.js';
 import { renderChestStats } from './chestStats.js';
 import { showcaseFigure, showcaseOf, showcaseRibbon, showcaseSky } from './chestShowcase.js';
 import {
-  CATEGORY_TEXT, RARITIES, RARITY_COLOR, RARITY_TEXT, acIcon, confirmDialog, dateTime, errorMessages, errorsHtml, routeParam, itemThumb, mountThumbs,
+  CATEGORY_TEXT, NEW_CHEST, RARITIES, RARITY_COLOR, RARITY_TEXT, acIcon, confirmDialog, dateTime, errorMessages, errorsHtml, routeParam, itemThumb, mountThumbs,
   number, openDialog, percent, rarityBadge, setRouteParam, xu,
 } from './shared.js';
 
@@ -49,6 +50,15 @@ const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_
 
 const barWidth = (value) => Math.min(100, Math.max(0, Number(value) || 0));
 
+/** The form of a chest that does not exist yet: nothing chosen, switched off, the sealed case in its own light. */
+const blankChest = () => ({
+  id: '', keyDefId: '', name: '', nameEn: '', subtitle: '', subtitleEn: '', keyName: '', keyNameEn: '',
+  iconKey: 'chest_seal', keyIconKey: 'key_loupe',
+  look: { template: 'seal', light: '240,164,58', hi: '255,222,150', core: '255,236,190', imageUrl: null, keyImageUrl: null },
+  chestPrice: 0, keyPrice: 0, active: false, sortOrder: 0, version: 0, challengeWeight: 0, challengePercent: 0,
+  dropWeights: {}, pool: [], expectedValue: 0,
+});
+
 /** What changed, in words. `names` turns ids into names; an item since deleted keeps its id. */
 function diffHtml(diff, names) {
   const line = (label, value) => `<li><span class="muted">${escapeHtml(label)}:</span> ${value}</li>`;
@@ -66,14 +76,20 @@ function diffHtml(diff, names) {
 
 const backLink = `<a class="adm-back-link" href="/admin/chests">${icon('arrowLeft', 16)}Về danh sách hòm</a>`;
 
-/** /admin/chests/:id. Everything is edited as one draft, checked by the server as it changes and saved in one piece. */
+/**
+ * /admin/chests/:id. Everything is edited as one draft, checked by the server as it changes and saved in one piece.
+ * /admin/chests/moi is the same form for a chest that does not exist yet: no history, statistics or try-out until it is created.
+ */
 export async function renderChestDetail(app, id, { signal } = {}) {
   render(app, `<div class="page ac-page">${backLink}${stateBox('loading', 'Đang tải hòm…')}</div>`);
 
+  const isNew = id === NEW_CHEST;
+  const tabs = isNew ? TABS.filter((tab) => tab.id === 'thiet-lap' || tab.id === 'bang-roi') : TABS;
+  const saveLabel = isNew ? 'Tạo hòm' : 'Lưu &amp; áp dụng';
   let chest;
   let catalog;
   try {
-    [chest, catalog] = await Promise.all([adminChestsApi.chest(id), adminChestsApi.items()]);
+    [chest, catalog] = await Promise.all([isNew ? Promise.resolve(blankChest()) : adminChestsApi.chest(id), adminChestsApi.items()]);
   } catch (error) {
     if (!signal?.aborted) {
       render(app, `<div class="page ac-page">${backLink}${stateBox('error', 'Không mở được hòm này', errorMessages(error)[0])}</div>`);
@@ -99,7 +115,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     pending: false,
     ticket: 0,
     timer: 0,
-    tab: TABS.some((tab) => tab.id === routeParam('tab')) ? routeParam('tab') : 'thiet-lap',
+    tab: tabs.some((tab) => tab.id === routeParam('tab')) ? routeParam('tab') : 'thiet-lap',
     previewOpen: null,
     // The pictures still on their way (imageUrl, keyImageUrl): both can be uploading at once.
     uploading: new Set(),
@@ -117,24 +133,26 @@ export async function renderChestDetail(app, id, { signal } = {}) {
           <span class="ac-head-ribbon" data-ac-head-ribbon></span>
           <div class="ac-detail-name"><h1 data-ac-heading></h1><span data-ac-status></span></div>
           <p class="ac-detail-sub">
-            <span class="adm-mono">${escapeHtml(chest.id)}</span> · chìa <span class="adm-mono">${escapeHtml(chest.keyDefId)}</span>
+            ${isNew ? 'Mã hòm và mã chìa được cấp khi tạo' : `<span class="adm-mono">${escapeHtml(chest.id)}</span> · chìa <span class="adm-mono">${escapeHtml(chest.keyDefId)}</span>`}
             · Giá trị kỳ vọng <strong data-ac-ev></strong> · Chi phí mở <strong data-ac-cost></strong> · <span data-ac-version></span>
           </p>
         </div>
         <div class="adm-actions">
-          <button type="button" class="btn btn-ghost" data-ac-preview>${acIcon('eye', 18)}Xem thử như người chơi</button>
-          <button type="button" class="btn btn-primary" data-ac-save-head disabled>Lưu &amp; áp dụng</button>
+          ${isNew ? '' : `<button type="button" class="btn btn-ghost" data-ac-preview>${acIcon('eye', 18)}Xem thử như người chơi</button>`}
+          <button type="button" class="btn btn-primary" data-ac-save-head disabled>${saveLabel}</button>
         </div>
       </div>
       <div class="adm-seg ac-detail-tabs" role="tablist" aria-label="Mục của hòm">
-        ${TABS.map((tab) => `<button type="button" class="ac-tab" role="tab" id="ac-tab-${tab.id}" aria-controls="ac-panel-${tab.id}" data-ac-tab="${tab.id}">${escapeHtml(tab.label)}</button>`).join('')}
+        ${tabs.map((tab) => `<button type="button" class="ac-tab" role="tab" id="ac-tab-${tab.id}" aria-controls="ac-panel-${tab.id}" data-ac-tab="${tab.id}">${escapeHtml(tab.label)}</button>`).join('')}
       </div>
-      ${TABS.map((tab) => `<section class="ac-tab-panel" role="tabpanel" id="ac-panel-${tab.id}" aria-labelledby="ac-tab-${tab.id}" data-ac-panel="${tab.id}"></section>`).join('')}
+      ${tabs.map((tab) => `<section class="ac-tab-panel" role="tabpanel" id="ac-panel-${tab.id}" aria-labelledby="ac-tab-${tab.id}" data-ac-panel="${tab.id}"></section>`).join('')}
       <footer class="ac-savebar" data-ac-savebar>
         <div data-ac-violations></div>
         <div class="ac-savebar-row">
-          <span class="ac-savebar-text">Thay đổi có hiệu lực ngay với người chơi. Lượt mở đang chạy giữ nguyên phần thưởng đã quay.</span>
-          <button type="button" class="btn adm-btn-accent" data-ac-save disabled>Lưu &amp; áp dụng</button>
+          <span class="ac-savebar-text">${isNew
+    ? 'Hòm được tạo kèm loại hòm và chìa riêng. Bật “Đang bán” thì người chơi thấy hòm ngay khi tạo.'
+    : 'Thay đổi có hiệu lực ngay với người chơi. Lượt mở đang chạy giữ nguyên phần thưởng đã quay.'}</span>
+          <button type="button" class="btn adm-btn-accent" data-ac-save disabled>${saveLabel}</button>
         </div>
       </footer>
     </div>`);
@@ -161,11 +179,11 @@ export async function renderChestDetail(app, id, { signal } = {}) {
             ${text('keyNameEn', 'Tên chìa (tiếng Anh)', draft.keyNameEn, 'maxlength="80"')}
             ${text('chestPrice', 'Giá hòm (xu)', draft.chestPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
             ${text('keyPrice', 'Giá chìa (xu)', draft.keyPrice, 'type="number" min="2" max="1000000" step="1" inputmode="numeric"')}
-            ${text('sortOrder', 'Thứ tự hiển thị', draft.sortOrder, 'type="number" min="0" step="1" inputmode="numeric"')}
+            ${isNew ? '' : text('sortOrder', 'Thứ tự hiển thị', draft.sortOrder, 'type="number" min="0" step="1" inputmode="numeric"')}
             <div class="ac-field">
               <label for="ac-challenge-weight">Trọng số rớt ở Thử thách tuần</label>
               <input class="field-input" id="ac-challenge-weight" name="challengeWeight" value="${escapeHtml(draft.challengeWeight)}" type="number" min="0" max="10000" step="1" inputmode="numeric" aria-describedby="ac-challenge-hint">
-              <span class="ac-field-hint" id="ac-challenge-hint" data-ac-challenge-hint>Hiện chiếm ${percent(state.chest.challengePercent)} số hòm rớt ở Thử thách tuần. 0 = không rớt.</span>
+              <span class="ac-field-hint" id="ac-challenge-hint" data-ac-challenge-hint>${isNew ? 'Hòm mới chỉ rớt ở Thử thách tuần khi có trọng số.' : `Hiện chiếm ${percent(state.chest.challengePercent)} số hòm rớt ở Thử thách tuần.`} 0 = không rớt.</span>
             </div>
           </div>
           <label class="ac-switch-row">
@@ -458,7 +476,7 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   async function runCheck() {
     const ticket = ++state.ticket;
     try {
-      const check = await adminChestsApi.check(id, state.draft);
+      const check = isNew ? await adminChestsApi.checkNew(state.draft) : await adminChestsApi.check(id, state.draft);
       if (signal?.aborted || ticket !== state.ticket) return;
       state.check = check;
       state.checkFailed = null;
@@ -489,9 +507,10 @@ export async function renderChestDetail(app, id, { signal } = {}) {
 
   function paintHead() {
     const { chest: current } = state;
-    $('[data-ac-heading]').textContent = current.name;
-    $('[data-ac-status]').innerHTML = current.active ? pill('Đang bán', 'ok', { dot: true }) : pill('Đang tắt', '', { dot: true });
-    $('[data-ac-version]').textContent = `phiên bản ${current.version}`;
+    $('[data-ac-heading]').textContent = isNew ? 'Hòm mới' : current.name;
+    $('[data-ac-status]').innerHTML = isNew ? pill('Chưa tạo', '', { dot: true })
+      : current.active ? pill('Đang bán', 'ok', { dot: true }) : pill('Đang tắt', '', { dot: true });
+    $('[data-ac-version]').textContent = isNew ? 'chưa có phiên bản' : `phiên bản ${current.version}`;
     const art = $('[data-ac-head-art]');
     art.querySelector('img').src = chestIconUrl(current);
     art.querySelector('img').classList.toggle('is-picture', Boolean(chestPictureUrl(current)));
@@ -519,6 +538,10 @@ export async function renderChestDetail(app, id, { signal } = {}) {
 
   function save() {
     if ($('[data-ac-save]').disabled) return;
+    if (isNew) {
+      create();
+      return;
+    }
     confirmDialog({
       title: `Lưu & áp dụng ${state.chest.name}?`,
       body: `<p>Thay đổi có hiệu lực ngay với người chơi. Lượt mở đang chạy giữ nguyên phần thưởng đã quay.</p>${diffHtml(state.check?.diff ?? {}, nameOf)}`,
@@ -528,6 +551,24 @@ export async function renderChestDetail(app, id, { signal } = {}) {
         const next = await adminChestsApi.save(id, { ...state.draft, reason });
         applyServerChest(next);
         toast('Đã lưu và áp dụng.', 'success');
+      },
+    });
+  }
+
+  /** The chest is made from the form, then its own edit page takes over. */
+  function create() {
+    const name = state.draft.name.trim();
+    confirmDialog({
+      title: `Tạo ${name}?`,
+      body: `<p>Hòm mới có loại hòm và chìa riêng. ${state.draft.active
+        ? 'Hòm bán ngay khi tạo.'
+        : 'Hòm đang tắt: bật “Đang bán” khi đã sẵn sàng.'}</p>${diffHtml(state.check?.diff ?? {}, nameOf)}`,
+      confirmLabel: 'Tạo hòm',
+      signal,
+      action: async (reason) => {
+        const created = await adminChestsApi.create({ ...state.draft, reason });
+        toast(`Đã tạo ${created.name}.`, 'success');
+        navigate(`/admin/chests/${encodeURIComponent(created.id)}`);
       },
     });
   }

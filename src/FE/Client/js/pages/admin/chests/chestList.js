@@ -1,11 +1,11 @@
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
-import { pill, stateBox } from '../../../components/admin/ui.js';
+import { icon, pill, stateBox } from '../../../components/admin/ui.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { chestIconUrl, chestPictureUrl } from '../../chest/chestSprites.js';
 import { draftOf } from './chestDraft.js';
 import { showcaseFigures, showcaseOf, showcaseRibbon, showcaseSky } from './chestShowcase.js';
-import { confirmDialog, errorMessages, number, percent, xu } from './shared.js';
+import { NEW_CHEST, confirmDialog, errorMessages, number, percent, xu } from './shared.js';
 import { navigate } from '../../../services/navigation.js';
 
 /** The chest's own picture, or its sprite, on the navy tile of the design, lit by the chest's light colour. */
@@ -96,7 +96,10 @@ export async function renderChestList(container, { signal } = {}) {
     const problems = data?.problems ?? [];
     render(container, `
       ${problems.length ? `<details class="ac-problems"><summary>Danh mục có ${problems.length} chỗ chưa khớp</summary><ul>${problems.map((problem) => `<li>${escapeHtml(problem)}</li>`).join('')}</ul></details>` : ''}
-      <p class="ac-lead">Hòm mới được tạo bằng cách nhân bản một hòm có sẵn.</p>
+      <div class="ac-list-head">
+        <p class="ac-lead">Tạo hòm mới từ đầu, hoặc nhân bản một hòm có sẵn rồi sửa tiếp.</p>
+        <a class="btn btn-primary" href="/admin/chests/${NEW_CHEST}" data-ac-new>${icon('plus', 16)}Tạo hòm mới</a>
+      </div>
       ${chests.length
     ? `<div class="ac-chest-grid">${chests.map(cardHtml).join('')}</div>`
     : stateBox('empty', 'Chưa có hòm nào.')}`);

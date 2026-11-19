@@ -816,6 +816,109 @@ public sealed class MongoAdminChestsTests
         Assert.Contains(source.Pool, item => item.Def.Id == opened.Item.Id);
     }
 
+    /// <summary>A chest made from scratch on /admin/chests/moi: the form's content under the names it was given.</summary>
+    private static async Task<AdminChestDraftRequest> NewChestAsync(AdminEnv env)
+    {
+        var draft = await env.DraftOfAsync(Bank);
+        draft.Name = "Hòm Gió Mùa";
+        draft.NameEn = "Monsoon Chest";
+        draft.Subtitle = "Rương mới";
+        draft.SubtitleEn = "A new chest";
+        draft.KeyName = "chìa gió";
+        draft.KeyNameEn = "wind key";
+        draft.Look = new AdminChestLookRequest { Template = "seal", Light = "200,160,90", Hi = "250,220,150", Core = "255,240,200" };
+        draft.Active = true;
+        draft.ChallengeWeight = null;
+        draft.ExpectedVersion = 0;
+        draft.Reason = "Sự kiện mùa mưa";
+        return draft;
+    }
+
+    [Fact]
+    public async Task ANewChestFromTheFormGetsItsOwnItemTypes_AndPlayersCanBuyAndOpenIt()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        var draft = await NewChestAsync(env);
+
+        var created = await env.Admin.CreateAsync(Yen, draft);
+
+        Assert.Equal(("chest_001", "key_001"), (created.Id, created.KeyDefId));
+        Assert.Equal(("Hòm Gió Mùa", "Monsoon Chest", "chìa gió"), (created.Name, created.NameEn, created.KeyName));
+        Assert.True(created.Active);
+        Assert.Equal(1, created.Version);
+        Assert.Equal(draft.Pool, created.Pool.Select(item => item.Def.Id));
+        Assert.Equal(draft.DropWeights, created.DropWeights);
+        // A new chest joins the weekly drop only with the weight an admin gave it.
+        Assert.Equal(0, created.ChallengeWeight);
+        var chests = await env.Admin.ListAsync();
+        Assert.Equal(chests.Chests.Where(chest => chest.Id != created.Id).Max(chest => chest.SortOrder) + 1, created.SortOrder);
+
+        var chestDef = env.Provider.Current.Find(created.Id)!;
+        var keyDef = env.Provider.Current.Find(created.KeyDefId)!;
+        Assert.Equal((MarketCategories.Chest, "Hòm Gió Mùa", "chest_seal"), (chestDef.Category, chestDef.Name, chestDef.IconKey));
+        Assert.Equal((MarketCategories.Key, "Chìa gió", "key_loupe"), (keyDef.Category, keyDef.Name, keyDef.IconKey));
+
+        Assert.Contains((await env.Chests.ListAsync(player.Id)).Chests, chest => chest.Id == created.Id);
+        await env.Chests.BuyKeyAsync(player, created.Id, NewKey());
+        await env.Chests.BuyChestAsync(player, created.Id, NewKey());
+        var opened = await env.Chests.OpenAsync(player, created.Id, NewKey());
+        Assert.Contains(draft.Pool, id => id == opened.Item.Id);
+
+        var history = await env.Admin.VersionsAsync(created.Id);
+        Assert.Equal(("create", 1), (Assert.Single(history).Action, history[0].Version));
+        Assert.Equal(1, await env.Catalog.Audit.CountDocumentsAsync(a => a.Action == "chest.create" && a.TargetId == created.Id));
+    }
+
+    [Fact]
+    public async Task ANewChestThatBreaksARuleIsRefusedAndNothingIsStored()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var draft = await NewChestAsync(env);
+        draft.DropWeights[MarketRarities.Common] -= 1;
+
+        var error = await Throws(() => env.Admin.CreateAsync(Yen, draft));
+
+        Assert.Equal(400, error.StatusCode);
+        Assert.Contains(CatalogRuleCodes.WeightsTotal, ViolationCodes(error));
+        Assert.Equal(0, await env.Catalog.Chests.CountDocumentsAsync(c => c.Id == "chest_001"));
+        Assert.Equal(0, await env.Catalog.Items.CountDocumentsAsync(i => i.Id == "chest_001" || i.Id == "key_001"));
+    }
+
+    [Fact]
+    public async Task ANewChestNeedsAReason()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var draft = await NewChestAsync(env);
+        draft.Reason = " ";
+
+        Assert.Equal(AdminChestsErrors.ReasonRequired, Code(await Throws(() => env.Admin.CreateAsync(Yen, draft))));
+        Assert.Equal(0, await env.Catalog.Chests.CountDocumentsAsync(c => c.Id == "chest_001"));
+    }
+
+    [Fact]
+    public async Task ACheckOfANewChestReportsTheRulesWithoutStoringAnything()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+
+        var empty = await env.Admin.CheckNewAsync(new AdminChestDraftRequest
+        {
+            Look = new AdminChestLookRequest { Template = "seal", Light = "1,2,3", Hi = "1,2,3", Core = "1,2,3" },
+        });
+        Assert.Contains(empty.Violations, violation => violation.Code == CatalogRuleCodes.WeightsTotal);
+        Assert.Contains(empty.Violations, violation => violation.Code == AdminChestsRules.TextInvalid);
+
+        var draft = await NewChestAsync(env);
+        var check = await env.Admin.CheckNewAsync(draft);
+        Assert.Empty(check.Violations);
+        Assert.Equal(draft.Pool.Order(), check.Diff.Added.Order());
+        Assert.Equal(0, await env.Catalog.Chests.CountDocumentsAsync(c => c.Id == "chest_001"));
+    }
+
     [Fact]
     public async Task ClonesNeverShareAnId()
     {

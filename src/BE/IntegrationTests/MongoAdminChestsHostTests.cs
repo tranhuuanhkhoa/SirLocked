@@ -59,6 +59,8 @@ public sealed class MongoAdminChestsHostTests
         ("POST", "/api/admin/items/VC-0388/retire"),
         ("POST", "/api/admin/items/VC-0388/delete"),
         ("GET", "/api/admin/chests"),
+        ("POST", "/api/admin/chests"),
+        ("POST", "/api/admin/chests/check"),
         ("GET", "/api/admin/chests/chest_np"),
         ("PUT", "/api/admin/chests/chest_np"),
         ("POST", "/api/admin/chests/chest_np/check"),
@@ -127,6 +129,40 @@ public sealed class MongoAdminChestsHostTests
         Assert.Equal("ADMIN_VALIDATION", errors.GetProperty("code").GetString());
         var violation = errors.GetProperty("violations").EnumerateArray().Single(v => v.GetProperty("code").GetString() == "CHEST_WEIGHTS_TOTAL");
         Assert.StartsWith("Tổng trọng số", violation.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task AnAdminChecksAndCreatesANewChestOverHttp()
+    {
+        if (!Enabled) return;
+        await using var factory = new HostFactory();
+        using var client = factory.CreateClient();
+        await AddUsersAsync(factory);
+        using var sourceResponse = await client.GetAsync("/api/admin/chests/chest_np");
+        var source = JsonDocument.Parse(await sourceResponse.Content.ReadAsStringAsync()).RootElement.GetProperty("data");
+        var draft = new
+        {
+            name = "Hòm Gió Mùa", nameEn = "Monsoon Chest", subtitle = "", subtitleEn = "", keyName = "chìa gió", keyNameEn = "wind key",
+            chestPrice = source.GetProperty("chestPrice").GetInt64(), keyPrice = source.GetProperty("keyPrice").GetInt64(),
+            active = false, sortOrder = 0,
+            look = new { template = "bank", light = "1,2,3", hi = "4,5,6", core = "7,8,9" },
+            dropWeights = source.GetProperty("dropWeights").Deserialize<Dictionary<string, int>>(),
+            pool = source.GetProperty("pool").EnumerateArray().Select(item => item.GetProperty("def").GetProperty("id").GetString()).ToArray(),
+            expectedVersion = 0,
+            reason = "Sự kiện",
+        };
+
+        using var check = await client.PostAsJsonAsync("/api/admin/chests/check", draft);
+        var checkBody = await check.Content.ReadAsStringAsync();
+        Assert.True(check.StatusCode == HttpStatusCode.OK, checkBody);
+        Assert.Empty(JsonDocument.Parse(checkBody).RootElement.GetProperty("data").GetProperty("violations").EnumerateArray());
+
+        using var created = await client.PostAsJsonAsync("/api/admin/chests", draft);
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.OK, createdBody);
+        var id = JsonDocument.Parse(createdBody).RootElement.GetProperty("data").GetProperty("id").GetString();
+        using var read = await client.GetAsync($"/api/admin/chests/{id}");
+        Assert.Equal(HttpStatusCode.OK, read.StatusCode);
     }
 
     [Fact]

@@ -18,6 +18,9 @@ export const adminChestsApi = {
   deleteItem: (id, reason) => post(`/api/admin/items/${enc(id)}/delete`, { reason }),
 
   chests: () => get('/api/admin/chests'),
+  /** A chest from scratch (/admin/chests/moi): the whole form, checked like a save, with a reason. */
+  create: (draft) => post('/api/admin/chests', draft),
+  checkNew: (draft) => post('/api/admin/chests/check', draft),
   chest: (id) => get(`/api/admin/chests/${enc(id)}`),
   check: (id, draft) => post(`/api/admin/chests/${enc(id)}/check`, draft),
   save: (id, draft) => put(`/api/admin/chests/${enc(id)}`, draft),

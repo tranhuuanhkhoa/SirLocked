@@ -82,6 +82,21 @@ public sealed class AdminChestsChestService
             AdminChestsRules.Diff(before, after));
     }
 
+    /// <summary>What <see cref="CreateAsync"/> would make of the form, measured against nothing. Writes nothing.</summary>
+    public async Task<AdminChestCheckDto> CheckNewAsync(AdminChestDraftRequest draft, CancellationToken ct = default)
+    {
+        var items = await ItemsAsync(ct);
+        var blank = new CatalogChest();
+        var after = NewChestOf(blank, draft, await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct));
+        return new AdminChestCheckDto(
+            AdminChestsRules.Validate(blank, after, items),
+            CatalogRules.ExpectedValue(after, items),
+            after.Prices.Chest + after.Prices.Key,
+            after.DropWeights.Values.Sum(weight => (long)weight),
+            AdminChestsRules.ItemRates(after, items),
+            AdminChestsRules.Diff(blank, after));
+    }
+
     public async Task<IReadOnlyList<AdminChestVersionDto>> VersionsAsync(string id, CancellationToken ct = default)
     {
         var current = await RequireAsync(id, ct);
@@ -142,12 +157,42 @@ public sealed class AdminChestsChestService
         return await DetailAsync(after, ct);
     }
 
+    /// <summary>
+    /// A new chest from the form (/admin/chests/moi): the same rules as a save, measured against nothing (so every item in
+    /// it must still be on sale), its own chest and key types, and version 1 in its history. It is on sale only if the form
+    /// says so, and it joins the weekly drop only with the weight the admin gave it.
+    /// </summary>
+    public async Task<AdminChestDetailDto> CreateAsync(CurrentUser admin, AdminChestDraftRequest draft, CancellationToken ct = default)
+    {
+        var items = await ItemsAsync(ct);
+        var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
+        var blank = new CatalogChest();
+        var chest = NewChestOf(blank, draft, chests);
+
+        var violations = AdminChestsRules.Validate(blank, chest, items);
+        if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
+        AdminChestsErrors.RequireReason(draft.Reason, "tạo hòm");
+
+        var (chestDef, keyDef) = await InsertNewAsync(admin, chest, items, chests, ct);
+        await _store.Versions.InsertOneAsync(VersionOf(chest, "create", admin, draft.Reason), cancellationToken: CancellationToken.None);
+        await _audit.LogAsync(admin, "chest.create", "chest", chest.Id, null, new { chest, chestDef, keyDef }, draft.Reason, CancellationToken.None);
+        return await DetailAsync(chest, ct);
+    }
+
+    /// <summary>What the form makes of a chest that does not exist yet: placed after every other chest, no weekly drop unless given one.</summary>
+    private static CatalogChest NewChestOf(CatalogChest blank, AdminChestDraftRequest draft, IReadOnlyCollection<CatalogChest> chests)
+    {
+        var chest = Apply(blank, draft);
+        chest.ChallengeWeight = draft.ChallengeWeight ?? 0;
+        chest.SortOrder = chests.Count == 0 ? 0 : chests.Max(other => other.SortOrder) + 1;
+        return chest;
+    }
+
     public async Task<AdminChestDetailDto> CloneAsync(CurrentUser admin, string sourceId, AdminChestCloneRequest request, CancellationToken ct = default)
     {
         var source = await RequireAsync(sourceId, ct);
         var items = await ItemsAsync(ct);
         var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
-        var now = _market.Now;
 
         var chest = AdminChestsRules.Clone(source);
         chest.Name = string.IsNullOrWhiteSpace(request.Name) ? $"{source.Name} (bản sao)" : request.Name.Trim();
@@ -156,13 +201,28 @@ public sealed class AdminChestsChestService
         // A copy never joins the weekly drop by itself: an admin gives it a weight when it is ready.
         chest.ChallengeWeight = 0;
         chest.SortOrder = chests.Max(other => other.SortOrder) + 1;
+
+        var violations = AdminChestsRules.Validate(source, chest, items);
+        if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
+
+        var (chestDef, keyDef) = await InsertNewAsync(admin, chest, items, chests, ct);
+        await _store.Versions.InsertOneAsync(VersionOf(chest, "clone", admin, request.Reason), cancellationToken: CancellationToken.None);
+        await _audit.LogAsync(admin, "chest.clone", "chest", chest.Id, new { sourceId }, new { chest, chestDef, keyDef }, request.Reason, CancellationToken.None);
+        return await DetailAsync(chest, ct);
+    }
+
+    /// <summary>
+    /// Stores a chest that did not exist: the first free ids for it and its key, its own chest and key types (on sale only
+    /// with the chest), then the chest itself as version 1.
+    /// </summary>
+    private async Task<(CatalogItem ChestDef, CatalogItem KeyDef)> InsertNewAsync(
+        CurrentUser admin, CatalogChest chest, IReadOnlyDictionary<string, CatalogItem> items, IReadOnlyCollection<CatalogChest> chests, CancellationToken ct)
+    {
+        var now = _market.Now;
         chest.Version = 1;
         chest.UpdatedBy = admin.Id;
         chest.CreatedAt = now;
         chest.UpdatedAt = now;
-
-        var violations = AdminChestsRules.Validate(source, chest, items);
-        if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
 
         var taken = items.Keys.Concat(chests.Select(other => other.Id)).Concat(chests.Select(other => other.KeyDefId)).ToList();
         var sortOrder = items.Values.Max(item => item.SortOrder) + 1;
@@ -172,10 +232,10 @@ public sealed class AdminChestsChestService
             (chest.Id, chest.KeyDefId) = AdminChestsRules.NextChestIds(taken);
             chestDef = NewDef(admin, chest.Id, MarketCategories.Chest, chest.Name, chest.NameEn,
                 $"Hòm vật chứng. Cần {chest.KeyName} để mở.", $"An evidence chest. Opens with a {chest.KeyNameEn}.",
-                chest.Prices.Chest, chest.IconKey, chest.Look.ImageUrl, sortOrder, now);
+                chest.Prices.Chest, chest.IconKey, chest.Look.ImageUrl, sortOrder, now, retired: !chest.Active);
             keyDef = NewDef(admin, chest.KeyDefId, MarketCategories.Key, Capitalized(chest.KeyName), Capitalized(chest.KeyNameEn),
                 $"Chỉ mở được {chest.Name}.", $"Opens only the {chest.NameEn}.",
-                chest.Prices.Key, chest.KeyIconKey, chest.Look.KeyImageUrl, sortOrder + 1, now);
+                chest.Prices.Key, chest.KeyIconKey, chest.Look.KeyImageUrl, sortOrder + 1, now, retired: !chest.Active);
             try
             {
                 await _catalog.Items.InsertManyAsync(new[] { chestDef, keyDef }, cancellationToken: ct);
@@ -196,9 +256,7 @@ public sealed class AdminChestsChestService
         }
 
         _provider.Invalidate();
-        await _store.Versions.InsertOneAsync(VersionOf(chest, "clone", admin, request.Reason), cancellationToken: CancellationToken.None);
-        await _audit.LogAsync(admin, "chest.clone", "chest", chest.Id, new { sourceId }, new { chest, chestDef, keyDef }, request.Reason, CancellationToken.None);
-        return await DetailAsync(chest, ct);
+        return (chestDef, keyDef);
     }
 
     private static bool IsDuplicate(Exception exception) => exception switch
@@ -218,7 +276,7 @@ public sealed class AdminChestsChestService
     /// <summary>Off, a chest and its key behave like retired items on the market: gone unless someone is still trading them.</summary>
     private static CatalogItem NewDef(
         CurrentUser admin, string id, string category, string name, string nameEn, string description, string descriptionEn,
-        long price, string iconKey, string? imageUrl, int sortOrder, DateTime now) => new()
+        long price, string iconKey, string? imageUrl, int sortOrder, DateTime now, bool retired) => new()
     {
         Id = id,
         Category = category,
@@ -229,7 +287,7 @@ public sealed class AdminChestsChestService
         DescriptionEn = descriptionEn,
         ReferencePrice = price,
         Tradable = true,
-        Retired = true,
+        Retired = retired,
         SortOrder = sortOrder,
         CreatedAt = now,
         UpdatedAt = now,

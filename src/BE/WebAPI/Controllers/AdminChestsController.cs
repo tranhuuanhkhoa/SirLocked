@@ -55,6 +55,16 @@ public class AdminChestsController : BaseApiController
     public async Task<ActionResult<ApiResponse<AdminChestListDto>>> ListChests(CancellationToken ct) =>
         Ok(await _chests.ListAsync(ct));
 
+    /// <summary>A new chest from the form (/admin/chests/moi), under the same rules as a save, with its own chest and key types.</summary>
+    [HttpPost("chests")]
+    public async Task<ActionResult<ApiResponse<AdminChestDetailDto>>> CreateChest([FromBody] AdminChestDraftRequest request, CancellationToken ct) =>
+        Ok(await _chests.CreateAsync(Caller, request, ct));
+
+    /// <summary>What creating this chest would do: broken rules, expected value and each item's rate. Writes nothing.</summary>
+    [HttpPost("chests/check")]
+    public async Task<ActionResult<ApiResponse<AdminChestCheckDto>>> CheckNewChest([FromBody] AdminChestDraftRequest request, CancellationToken ct) =>
+        Ok(await _chests.CheckNewAsync(request, ct));
+
     [HttpGet("chests/{id}")]
     public async Task<ActionResult<ApiResponse<AdminChestDetailDto>>> GetChest(string id, CancellationToken ct) =>
         Ok(await _chests.GetAsync(id, ct));
