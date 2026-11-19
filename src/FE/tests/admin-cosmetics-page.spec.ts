@@ -486,6 +486,83 @@ test('a new title: the style grid shows the name being typed, in all 18 styles',
   expect(body.visual.params.parts).toEqual([['rise', 6, '255,214,120'], ['tw', 3, '255,248,220']]);
 });
 
+test('a new title painted from a picture: upload, draw the text box, save; the name is written on the picture', async ({ page }) => {
+  const state = await prepare(page);
+  await page.goto('/admin/cosmetics/new?type=TITLE');
+  await expect(page.locator('[data-painted-block]')).toBeHidden();
+
+  await page.locator('[name="acf-title-kind"][value="painted"]').check();
+  await expect(page.locator('[data-painted-block]')).toBeVisible();
+  await expect(page.locator('[data-styles-block]')).toBeHidden();
+  await page.locator('#acf-name').fill('Cú Đêm Phố Cổ');
+  await page.locator('[data-title-input]').setInputFiles(await picture(page));
+
+  // Dragging on the picture draws the box the name is written in.
+  const area = page.locator('[data-tbox-area]');
+  await expect(area).toBeVisible();
+  await area.scrollIntoViewIfNeeded();
+  const bounds = (await area.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width * 0.1, bounds.y + bounds.height * 0.2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.9, bounds.y + bounds.height * 0.7, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.locator('[data-tbox="x"]')).not.toHaveValue('15');
+
+  const full = page.locator('[data-title-full] .hs-tl');
+  await expect(full).toHaveAttribute('aria-label', 'Danh hiệu Cú Đêm Phố Cổ');
+  await expect(full.locator('image')).toHaveAttribute('href', PICTURE);
+  await expect(full.locator('text').last()).toHaveText('Cú Đêm Phố Cổ');
+
+  await page.locator('[data-save]').click();
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/title_moi');
+  const visual = state.sent.find((call) => call.method === 'POST')!.body.visual;
+  expect(visual).toMatchObject({ template: 'painted', imageUrl: PICTURE, params: { size: { w: 247, h: 259 }, color: '255,240,200', scale: 1 } });
+  expect(visual.params.textBaked).toBeUndefined();
+  expect(visual.params.box.x).toBeCloseTo(0.1, 1);
+  expect(visual.params.box.y).toBeCloseTo(0.2, 1);
+  expect(visual.params.box.w).toBeCloseTo(0.8, 1);
+  expect(visual.params.box.h).toBeCloseTo(0.5, 1);
+});
+
+test('a title whose picture already carries the words writes no name on it', async ({ page }) => {
+  const state = await prepare(page);
+  await page.goto('/admin/cosmetics/new?type=TITLE');
+  await page.locator('[name="acf-title-kind"][value="painted"]').check();
+  await page.locator('#acf-name').fill('Thám Tử Sương Mù');
+  await page.locator('[data-title-input]').setInputFiles(await picture(page));
+  await page.locator('[data-title-baked]').check();
+
+  await expect(page.locator('[data-tbox="w"]')).toBeDisabled();
+  await expect(page.locator('[data-tbox-mark]')).toBeHidden();
+  const full = page.locator('[data-title-full] .hs-tl');
+  await expect(full).toHaveAttribute('aria-label', 'Danh hiệu Thám Tử Sương Mù');
+  await expect(full.locator('image')).toHaveCount(1);
+  await expect(full.locator('text')).toHaveCount(0);
+
+  await page.locator('[data-save]').click();
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/title_moi');
+  const visual = state.sent.find((call) => call.method === 'POST')!.body.visual;
+  expect(visual.params).toMatchObject({ textBaked: true, size: { w: 247, h: 259 } });
+  expect(visual.params.box).toBeUndefined();
+});
+
+test('a saved painted title opens with its picture and box, and switching back to a style saves a style', async ({ page }) => {
+  const state = await prepare(page);
+  state.page.items.push(item('title_cu-dem', 'TITLE', 'Cú Đêm', {
+    visual: { iconKey: 'title_cu-dem', imageUrl: PICTURE, builtinId: null, template: 'painted', params: { size: { w: 247, h: 259 }, box: { x: 0.2, y: 0.3, w: 0.6, h: 0.4 }, color: '250,230,180' } },
+  }));
+  await page.goto('/admin/cosmetics/title_cu-dem');
+  await expect(page.locator('[name="acf-title-kind"][value="painted"]')).toBeChecked();
+  await expect(page.locator('[data-tbox="w"]')).toHaveValue('60');
+  await expect(page.locator('[data-title-full] .hs-tl image')).toHaveAttribute('href', PICTURE);
+
+  await page.locator('[name="acf-title-kind"][value="style"]').check();
+  await expect(page.locator('[data-title-full] .hs-tl image')).toHaveCount(0);
+  await page.locator('[data-save]').click();
+  await expect.poll(() => state.sent.filter((call) => call.method === 'PUT').length).toBe(1);
+  expect(state.sent.find((call) => call.method === 'PUT')!.body.visual.template).toBe('style');
+});
+
 test('a name with markup stays text in the plaque', async ({ page }) => {
   await prepare(page);
   await page.goto('/admin/cosmetics/new?type=TITLE');
@@ -520,6 +597,49 @@ test('a new entrance: the template decides which picture it can change', async (
   const body = state.sent.find((call) => call.method === 'POST')!.body;
   expect(body.description).toBe('Rồng đen lượn qua mây.');
   expect(body.visual).toEqual({ template: 'kim-long', imageUrl: null, params: { tint: '120,200,255', imageUrl: PICTURE } });
+});
+
+test('a new entrance from a sprite sheet: its grid, place and blend are saved, and it plays full screen', async ({ page }) => {
+  const state = await prepare(page, { reduced: false });
+  const failures: string[] = [];
+  page.on('pageerror', (error) => failures.push(error.message));
+  page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()); });
+  await page.goto('/admin/cosmetics/new?type=ENTRANCE');
+  await expect(page.locator('[data-flipbook]')).toBeHidden();
+
+  await page.locator('[data-template]').selectOption('flipbook');
+  await expect(page.locator('[data-flipbook]')).toBeVisible();
+  await expect(page.locator('[data-creature]')).toBeHidden();
+  await page.locator('#acf-name').fill('Cú Đêm Bay Về');
+  await page.locator('[data-sheet-input]').setInputFiles(await picture(page));
+  await expect(page.locator('[data-sheet-status]')).toHaveText('Đang dùng sprite sheet đã tải.');
+  await page.locator('[data-flip="cols"]').fill('2');
+  await page.locator('[data-flip="rows"]').fill('2');
+  await page.locator('[data-flip="frames"]').fill('3');
+  await page.locator('[data-flip="fps"]').fill('8');
+  await expect(page.locator('.acf-sheet-col')).toHaveCount(1);
+  await expect(page.locator('.acf-sheet-row')).toHaveCount(1);
+  await expect(page.locator('[data-sheet] .acf-hint')).toContainText('chạy 3 khung');
+  await page.locator('[data-flip-place]').selectOption('drop');
+  await page.locator('[data-flip-blend]').selectOption('add');
+  await page.locator('[data-flip-loop]').uncheck();
+  await expect.poll(() => canvasHasPaint(page, '[data-thumb]')).toBe(true);
+
+  await page.locator('[data-play]').click();
+  const stage = page.locator('.hs-stage');
+  await expect(stage).toBeVisible();
+  await expect(stage.locator('.hs-show')).toBeVisible({ timeout: 8000 });
+  await stage.locator('.hs-skip').click();
+  await expect(stage).toHaveCount(0);
+
+  await page.locator('[data-save]').click();
+  await expect.poll(() => hashOf(page)).toBe('/admin/cosmetics/entrance_moi');
+  const body = state.sent.find((call) => call.method === 'POST')!.body;
+  expect(body.visual).toEqual({
+    template: 'flipbook', imageUrl: null,
+    params: { sheetUrl: PICTURE, cols: 2, rows: 2, frames: 3, fps: 8, loop: false, place: 'drop', size: 1, blend: 'add' },
+  });
+  expect(failures).toEqual([]);
 });
 
 test('previewing an entrance runs the full-screen stage without a console error', async ({ page }) => {
@@ -902,6 +1022,41 @@ test('the market shows a painted frame with its own picture, and other cosmetics
   expect(html.clone).toContain('<svg');
   expect(html.shipped).toContain('<svg');
   expect(html.title).toContain('<svg');
+});
+
+test('a painted title and a sprite-sheet entrance from the server are drawn wherever players see them', async ({ page }) => {
+  await page.goto('/admin');
+  const drawn = await page.evaluate(async () => {
+    const catalog = await import('/Client/js/cosmetics/catalog.js' as string);
+    const titles = await import('/Client/js/cosmetics/titles.js' as string);
+    const fx = await import('/Client/js/cosmetics/fx.js' as string);
+    catalog.applyCosmetic({
+      id: 'title_cu-dem', category: 'TITLE', rarity: 'EPIC', name: 'Cú Đêm <b>Phố</b>',
+      visual: { template: 'painted', imageUrl: '/assets/cosmetics/vien-dong.webp', params: { size: { w: 600, h: 150 }, box: { x: 0.2, y: 0.3, w: 0.6, h: 0.4 }, color: '250,230,180' } },
+    });
+    catalog.applyCosmetic({
+      id: 'title_lan-sau', category: 'TITLE', rarity: 'RARE', name: 'Lần Sau',
+      visual: { template: 'painted', imageUrl: 'javascript:alert(1)', params: { size: { w: 600, h: 150 }, textBaked: true } },
+    });
+    catalog.applyCosmetic({
+      id: 'entrance_cu-bay', category: 'ENTRANCE', rarity: 'LEGENDARY', name: 'Cú Bay Về',
+      visual: { template: 'flipbook', params: { sheetUrl: '/assets/cosmetics/vien-dong.webp', cols: 4, rows: 2, frames: 99, place: 'moon', blend: 'add' } },
+    });
+    const html = titles.titleHTML(titles.T['cu-dem']);
+    return {
+      html,
+      unsafe: titles.titleHTML(titles.T['lan-sau']),
+      entrance: { tpl: fx.EN['cu-bay'].tpl, frames: fx.EN['cu-bay'].flip.frames, place: fx.EN['cu-bay'].flip.place, blend: fx.EN['cu-bay'].flip.blend, fps: fx.EN['cu-bay'].flip.fps },
+    };
+  });
+  expect(drawn.html).toContain('href="/assets/cosmetics/vien-dong.webp"');
+  expect(drawn.html).toContain('Cú Đêm &lt;b&gt;Phố&lt;/b&gt;');
+  expect(drawn.html).not.toContain('<b>');
+  // A picture address the server would never send is not drawn: the title falls back to a plate.
+  expect(drawn.unsafe).not.toContain('javascript:');
+  expect(drawn.unsafe).not.toContain('<image');
+  // What does not fit the sheet is brought back to what can be played.
+  expect(drawn.entrance).toEqual({ tpl: 'flipbook', frames: 8, place: 'hero', blend: 'add', fps: 12 });
 });
 
 test('the chest reel draws a frame it has never heard of from the definition it is given', async ({ page }) => {

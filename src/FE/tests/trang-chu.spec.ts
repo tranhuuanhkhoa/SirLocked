@@ -289,6 +289,42 @@ for (const [width, height] of [[1440, 900], [1920, 1080], [1262, 903], [1100, 82
   });
 }
 
+/**
+ * The detectives are pixel art (stored 3x: Sherlock is drawn 223 x 332). Smoothed scaling made them soft; now they are
+ * scaled nearest-neighbour, and wherever a whole number of screen pixels per drawn pixel is near, the scale snaps to it.
+ */
+for (const [width, height, dpr, whole] of [[1440, 900, 1, 2], [1440, 900, 2, 4], [1366, 768, 1, 2], [390, 844, 3, 2], [1920, 1080, 1, null]] as const) {
+  test(`Sherlock and Watson are drawn crisp at ${width}×${height} @${dpr}x`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dpr });
+    const page = await context.newPage();
+    try {
+      await openRoot(page);
+      await page.waitForTimeout(2600); // the entrance animation
+      const figures = await page.$$eval('.fig img', (images) => images.map((img) => {
+        const image = img as HTMLImageElement, box = image.getBoundingClientRect();
+        return {
+          rendering: getComputedStyle(image).imageRendering,
+          screenPixelsPerDrawnPixel: (box.height * devicePixelRatio) / (image.naturalHeight / 3),
+          left: box.left * devicePixelRatio,
+        };
+      }));
+      expect(figures).toHaveLength(2);
+      for (const figure of figures) {
+        expect(figure.rendering).toBe('pixelated');
+        if (whole !== null) {
+          expect(figure.screenPixelsPerDrawnPixel).toBeCloseTo(whole, 3);
+          // Placed on whole screen pixels too.
+          expect(Math.abs(figure.left - Math.round(figure.left))).toBeLessThan(0.01);
+        }
+      }
+      // Both at one scale.
+      expect(figures[0].screenPixelsPerDrawnPixel).toBeCloseTo(figures[1].screenPixelsPerDrawnPixel, 3);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 test('the two role avatars show the new detectives', async ({ page }) => {
   await openRoot(page);
   const avatars = page.locator('.role .avatar img');

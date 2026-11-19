@@ -535,7 +535,7 @@ public class WeeklyService : IWeeklyService
                 odds.Chest.Name,
                 odds.Chest.NameEn,
                 odds.Chest.IconKey,
-                odds.Chest.Look is { } look ? new ChestLookDto(look.Template, look.Light, look.Hi, look.Core) : null,
+                odds.Chest.Look is { } look ? ChestLookDto.Of(look) : null,
                 odds.Percent))
             .ToList();
         return dto;

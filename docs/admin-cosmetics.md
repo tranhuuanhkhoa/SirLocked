@@ -56,6 +56,37 @@ Chữ hiển thị là tên def.
 | `glow` | | Màu phát sáng thay cho màu của kiểu |
 | `parts` | | Hạt bay thay cho hạt của kiểu. Tối đa 4 dòng `[loại, số, rgb]`. Loại: `tw`, `rise`, `leaf`, `snow`, `petal`, `smoke`, `ember`, `feather`, `wfeather`. Số 1 đến 12 |
 
+### Danh hiệu, `template = "painted"`
+
+Bảng tên do họa sĩ vẽ, tải lên như ảnh viền (`imageUrl`, https hoặc `/assets/`). Tên def (tiếng Việt hoặc tiếng Anh) được viết vào khung chữ, nên đổi tên không cần vẽ lại ảnh. Tên dài hơn khung thì được ép vừa khung.
+
+| Tham số | Bắt buộc | Giá trị |
+|---|---|---|
+| `size` | có | `{ w, h }` cỡ ảnh gốc, số nguyên 8 đến 4096 px. Trang dàn bảng tên theo cỡ này trước khi ảnh tải xong |
+| `box` | có, trừ khi `textBaked` | `{ x, y, w, h }` khung chữ, tính theo phần của ảnh (0 đến 1). `w`, `h` từ 0,02; không vượt mép ảnh |
+| `textBaked` | | `true`: ảnh đã có chữ, không viết tên lên. Khi đó không lưu `box` |
+| `color` | | Màu chữ `"r,g,b"`, mặc định `255,240,200` |
+| `scale` | | Cỡ bảng tên 0,5 đến 2 |
+| `glow`, `parts` | | Như danh hiệu `style` |
+
+### Hiệu ứng vào sảnh, `template = "flipbook"`
+
+Hiệu ứng do họa sĩ vẽ thành sprite sheet: các khung cùng cỡ xếp lưới `cols` × `rows`, đọc từ trái sang phải, từ trên xuống. Chạy trên sân khấu toàn màn hình như các hiệu ứng khác.
+
+| Tham số | Bắt buộc | Giá trị |
+|---|---|---|
+| `sheetUrl` | có | Ảnh sprite sheet, https hoặc `/assets/` |
+| `cols`, `rows` | có | 1 đến 16 |
+| `frames` | | Số khung chạy, 1 đến `cols × rows`. Mặc định mọi ô |
+| `fps` | | 1 đến 60, mặc định 12 |
+| `loop` | | Mặc định `true`. `false`: chạy một lần rồi giữ khung cuối |
+| `place` | | `hero` (quanh người chơi, sau ảnh đại diện, mặc định), `screen` (phủ màn), `across` (bay ngang), `drop` (sà xuống) |
+| `size` | | 0,3 đến 3, mặc định 1 |
+| `blend` | | `normal` (ảnh nền trong suốt, mặc định) hoặc `add` (cộng sáng, cho ảnh vẽ trên nền đen) |
+| `tint`, `duration` | | Như các mẫu khác. Mặc định 6 giây |
+
+Không nhận `imageUrl` hay `swordUrl`.
+
 ### Hiệu ứng vào sảnh, `template` là một trong 10 hiệu ứng
 
 `lang-le`, `anh-trang`, `mac-vu`, `truc-lam`, `van-kiem`, `huyet-nguyet`, `hac-duc`, `than-tham`, `kim-long`, `phuong-hoang`. Hiệu ứng mới mượn sân khấu của mẫu trong `stage.js`.

@@ -7,10 +7,11 @@ import { tr, uiLanguage } from '../services/i18n.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { AU } from './chest/chestAudio.js';
-import { defSprite, itemSprite, paintSprite } from './chest/chestSprites.js';
+import { chestPictureUrl, defSprite, keyArtSprite, paintSprite } from './chest/chestSprites.js';
 import { createVaultParticles } from './chest/vaultParticles.js';
 import { createVaultStage } from './chest/vaultStage.js';
-import { categoryLabel, errorText, fmt, rarityLabel } from './market/marketKit.js';
+import { isCosmeticDef } from '../cosmetics/icons.js';
+import { categoryLabel, errorText, fmt, itemIcon, rarityLabel } from './market/marketKit.js';
 
 const FONTS_ID = 'qh-fonts';
 // index.html already loads these families; the design also needs the heavier and italic cuts.
@@ -289,9 +290,12 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
 
   function itemFor(def) {
     const rarity = RARITY_LOOK[def.rarity] ? def.rarity : 'COMMON';
+    // Case-file gear of the market (Hòm Đêm Whitechapel) has no pixel icon or picture: it keeps the drawing of its type
+    // that the market and the admin show, instead of the magnifier every unknown icon falls back to.
+    const gear = def.category !== 'TITLE' && !def.iconKey && !def.visual?.imageUrl && !isCosmeticDef(def);
     return {
-      id: def.id, name: tr(def.nameEn || def.name, def.name), rarity, r: RARITY_LOOK[rarity].r,
-      category: def.category, type: typeLabel(def.category), sp: def.category === 'TITLE' ? null : defSprite(def), def,
+      id: def.id, name: tr(def.nameEn || def.name, def.name), rarity, r: RARITY_LOOK[rarity].r, gear,
+      category: def.category, type: typeLabel(def.category), sp: def.category === 'TITLE' || gear ? null : defSprite(def), def,
     };
   }
 
@@ -307,6 +311,13 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
 
   /** The picture of an item: a nameplate for a title, else its sprite on a canvas sized for where it goes. */
   function visualOf(item, place) {
+    if (item.gear) {
+      const holder = document.createElement('template');
+      holder.innerHTML = itemIcon(item.def, { tile: 52, card: 72, big: 150 }[place]);
+      const svg = holder.content.firstElementChild;
+      svg.classList.add('qh-svg');
+      return svg;
+    }
     if (item.category === 'TITLE' || !item.sp) {
       const plate = document.createElement('span');
       plate.className = 'qh-plate';
@@ -352,7 +363,8 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
         theme,
         accent: accentOf(chest, theme),
         slip: slipLabels(tr(chest.subtitleEn || chest.subtitle, chest.subtitle), index),
-        keySprite: itemSprite(chest.keyIconKey),
+        keySprite: keyArtSprite(chest),
+        picture: chestPictureUrl(chest),
         onSale: chest.active !== false,
         odds: (chest.odds ?? data.odds ?? []).filter((odd) => Number(odd.percent) > 0),
         displayName: tr(chest.nameEn || chest.name, chest.name),
@@ -443,12 +455,16 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
 
   function paintChest() {
     const image = $('chestImg');
-    const { image: src, id, size } = cur().theme;
+    const { image: drawing, id, size } = cur().theme;
+    // An admin's own picture of the chest takes the drawing's place, in the same box; the room around it stays the template's.
+    const src = cur().picture || drawing;
     if (image.getAttribute('src') !== src) {
       image.src = src;
       image.width = size[0];
       image.height = size[1];
     }
+    image.classList.toggle('qh-px', !cur().picture);
+    image.classList.toggle('qh-custom', Boolean(cur().picture));
     image.dataset.id = id;
   }
 
@@ -526,6 +542,10 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
     $('sKeyPrice').textContent = fmt(chest.keyPrice);
     $('sCount').textContent = chest.items.length;
     for (const id of ['chipKey', 'btnKey', 'lnkKey']) paintSprite($(id), chest.keySprite);
+    // A key's own picture is still on its way the first time: paint it again when it lands, if this chest is still shown.
+    chest.keySprite.ready?.then(() => {
+      if (cur() === chest) for (const id of ['chipKey', 'btnKey', 'lnkKey']) paintSprite($(id), chest.keySprite);
+    });
     $('chest').setAttribute('aria-label', tr(`${chest.displayName}: open or buy`, `${chest.displayName}: mở hoặc mua hòm`));
     [...$('dots').children].forEach((dot, index) => dot.setAttribute('aria-pressed', String(index === page.index)));
     renderOdds(chest);
@@ -615,7 +635,8 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
         ? tr('Off sale', 'Ngừng bán')
         : page.chestsForSale ? `${fmt(chest.chestPrice)} xu` : tr(`Key ${fmt(chest.keyPrice)} xu`, `Chìa ${fmt(chest.keyPrice)} xu`);
       const place = chest.slip.place ? `<span class="qh-pl"> · ${escapeHtml(chest.slip.place)}</span>` : '';
-      card.innerHTML = `<img class="qh-px" src="${chest.theme.image}" alt="" width="64" height="57" draggable="false"><b>${escapeHtml(chest.displayName)}</b><span>${price}${place}</span><em data-qh-count></em>`;
+      const art = chest.picture ? `class="qh-custom" src="${escapeHtml(chest.picture)}"` : `class="qh-px" src="${chest.theme.image}"`;
+      card.innerHTML = `<img ${art} alt="" width="64" height="57" draggable="false"><b>${escapeHtml(chest.displayName)}</b><span>${price}${place}</span><em data-qh-count></em>`;
       on(card, 'click', () => selectCase(index));
       dots.append(card);
     });

@@ -827,6 +827,84 @@ test.describe('/admin/chests', () => {
     expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body!.look).toMatchObject({ template: 'bank', light: '17,34,51' });
   });
 
+  test('the chest and its key get their own uploaded pictures, saved with the chest and shown when trying it out', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    // A tiny PNG for every picture the browser fetches, so nothing leaves the machine.
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({ contentType: 'image/png', body: png }));
+    const uploads = ['https://res.cloudinary.com/demo/image/upload/sirlocked/admin/hom-wc.png', 'https://res.cloudinary.com/demo/image/upload/sirlocked/admin/chia-wc.png'];
+    await page.route((url) => url.pathname === '/api/admin/assets', (route) => route.fulfill({ json: { success: true, data: { url: uploads.shift(), width: 256, height: 256 } } }));
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
+
+    const rows = page.locator('[data-ac-pictures]');
+    await expect(rows.locator('[data-ac-picture-row="imageUrl"]')).toContainText('Tải ảnh lên');
+    await expect(rows.locator('[data-ac-picture-remove]')).toHaveCount(0);
+
+    // A JPEG is refused before it is sent: a chest needs a transparent background.
+    await page.locator('[data-ac-picture-input="imageUrl"]').setInputFiles({ name: 'hom.jpg', mimeType: 'image/jpeg', buffer: png });
+    await expect(page.locator('#toast-root')).toContainText('PNG hoặc WebP');
+    await expect(page.locator('[data-ac-look-preview] img')).not.toHaveClass(/is-picture/);
+
+    await page.locator('[data-ac-picture-input="imageUrl"]').setInputFiles({ name: 'hom.png', mimeType: 'image/png', buffer: png });
+    await expect(page.locator('[data-ac-look-preview] img')).toHaveAttribute('src', /hom-wc\.png$/);
+    await expect(page.locator('[data-ac-look-preview] img')).toHaveClass(/is-picture/);
+    await page.locator('[data-ac-picture-input="keyImageUrl"]').setInputFiles({ name: 'chia.webp', mimeType: 'image/webp', buffer: png });
+    await expect(rows.locator('[data-ac-picture-row="keyImageUrl"] img')).toHaveAttribute('src', /chia-wc\.png$/);
+    // The check the server makes on every change already carries both pictures.
+    await expect.poll(() => sent(s, 'POST', '/api/admin/chests/chest_np/check').at(-1)?.body?.look?.keyImageUrl).toBe('https://res.cloudinary.com/demo/image/upload/sirlocked/admin/chia-wc.png');
+
+    // The key's picture goes again: the template's key comes back.
+    await rows.locator('[data-ac-picture-remove="keyImageUrl"]').click();
+    await expect(rows.locator('[data-ac-picture-row="keyImageUrl"] img')).toHaveCount(0);
+
+    await expect(page.locator('[data-ac-save]')).toBeEnabled();
+    await page.locator('[data-ac-save]').click();
+    const dialog = page.locator('dialog.ac-dialog[open]');
+    await dialog.locator('[name="reason"]').fill('Ảnh riêng cho hòm');
+    await dialog.locator('[data-ac-confirm]').click();
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
+    expect(sent(s, 'PUT', '/api/admin/chests/chest_np')[0].body!.look).toMatchObject({
+      template: 'seal', imageUrl: 'https://res.cloudinary.com/demo/image/upload/sirlocked/admin/hom-wc.png', keyImageUrl: null,
+    });
+    await expect(page.locator('[data-ac-head-art] img')).toHaveAttribute('src', /hom-wc\.png$/);
+
+    // Players see the picture in the chest's place, in the template's room.
+    await page.locator('[data-ac-preview]').click();
+    const overlay = page.locator('.ac-preview');
+    await expect(overlay.locator('#qh-chestImg')).toHaveAttribute('src', /hom-wc\.png$/);
+    await expect(overlay.locator('#qh-chestImg')).toHaveClass(/qh-custom/);
+    await expect(overlay.locator('#qh-chestImg')).not.toHaveClass(/qh-px/);
+  });
+
+  test('saving stays closed while any picture is still uploading, even when the other one has landed', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({ contentType: 'image/png', body: png }));
+    let release = () => {};
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    let calls = 0;
+    await page.route((url) => url.pathname === '/api/admin/assets', async (route) => {
+      const call = ++calls;
+      if (call === 1) await held; // The chest's picture is slow; the key's lands at once.
+      return route.fulfill({ json: { success: true, data: { url: `https://res.cloudinary.com/demo/image/upload/sirlocked/admin/p${call}.png`, width: 64, height: 64 } } });
+    });
+    await page.goto('/admin/chests/chest_np?tab=thiet-lap');
+
+    await page.locator('[data-ac-picture-input="imageUrl"]').setInputFiles({ name: 'hom.png', mimeType: 'image/png', buffer: png });
+    await expect(page.locator('[data-ac-picture-row="imageUrl"]')).toContainText('Đang tải ảnh');
+    await page.locator('[data-ac-picture-input="keyImageUrl"]').setInputFiles({ name: 'chia.png', mimeType: 'image/png', buffer: png });
+    await expect(page.locator('[data-ac-picture-row="keyImageUrl"] img')).toHaveAttribute('src', /p2\.png$/);
+    await expect.poll(() => sent(s, 'POST', '/api/admin/chests/chest_np/check').length).toBeGreaterThan(0);
+    await expect(page.locator('[data-ac-save]')).toBeDisabled();
+    await expect(page.locator('[data-ac-picture-row="imageUrl"]')).toContainText('Đang tải ảnh');
+
+    release();
+    await expect(page.locator('[data-ac-picture-row="imageUrl"] img')).toHaveAttribute('src', /p1\.png$/);
+    await expect(page.locator('[data-ac-save]')).toBeEnabled();
+  });
+
   test('a check still on its way when the draft changes again cannot open saving', async ({ page }) => {
     const s = state();
     await prepare(page, s);

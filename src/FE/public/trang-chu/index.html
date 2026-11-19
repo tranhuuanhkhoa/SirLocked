@@ -197,7 +197,7 @@ html.calm .music-btn[aria-pressed="true"] .eq i { height: 10px; }
 .tape-run span { font: 700 13px var(--data); letter-spacing: .34em; padding-right: .34em; }
 .cast { position: absolute; inset: 0; pointer-events: none; }
 .fig { position: absolute; left: 0; top: 0; width: 0; height: 0; }
-.fig img { display: block; width: 100%; height: 100%; max-width: none; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 24px 30px rgba(0, 0, 0, .6)); -webkit-mask-image: linear-gradient(0deg, transparent 0%, #000 10%); mask-image: linear-gradient(0deg, transparent 0%, #000 10%); }
+.fig img { display: block; width: 100%; height: 100%; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 24px 30px rgba(0, 0, 0, .6)); -webkit-mask-image: linear-gradient(0deg, transparent 0%, #000 10%); mask-image: linear-gradient(0deg, transparent 0%, #000 10%); }
 .smoke { position: absolute; left: 78.9%; top: 17.5%; width: 18%; height: 0; transform: translateX(-50%); pointer-events: none; }
 .smoke .ember { position: absolute; left: 50%; top: 0; width: 22%; aspect-ratio: 1; transform: translate(-50%, -40%); border-radius: 50%; background: radial-gradient(circle, rgba(255, 196, 120, .95) 0%, rgba(255, 110, 40, .65) 35%, rgba(255, 90, 30, 0) 72%); mix-blend-mode: screen; animation: ember 2.4s ease-in-out infinite; }
 .smoke i { position: absolute; left: 36%; top: -14%; width: 28%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(226, 222, 214, .42) 0%, rgba(226, 222, 214, .16) 45%, rgba(226, 222, 214, 0) 70%); filter: blur(3px); opacity: 0; animation: puff 5.25s cubic-bezier(.3, .55, .45, 1) var(--d, 0s) infinite; }
@@ -303,7 +303,6 @@ html:not(.js) .iris, .no-iris .iris { display: none; }
 .verdict.bad { border-color: var(--rust); color: #f0c2ae; }
 .verdict.good { border-color: var(--gold); color: var(--paper); }
 .lie-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin-top: 8px; }
-.lie-note { margin: 0; font-size: 16px; color: var(--fg-3); }
 .lie-string { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
 .lie-string path { fill: none; stroke: var(--string); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .6s var(--ease-lens); }
 .lie-string path.draw { stroke-dashoffset: 0; }
@@ -645,7 +644,6 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
           <p class="verdict" id="verdict" aria-live="polite"></p>
           <div class="lie-foot">
             <button class="btn btn-ghost sm" type="button" id="replay" hidden>Chơi lại</button>
-            <p class="lie-note">Lượt chơi mẫu trích từ vụ «Con Dấu Bị Phá».</p>
           </div>
         </div>
         <svg class="lie-string" id="lie-string" aria-hidden="true"><path pathLength="1" d=""/><circle r="6"/><circle r="6"/></svg>
@@ -949,7 +947,6 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
     'Cặp này chưa tạo ra mâu thuẫn trực tiếp. Hãy kiểm tra lại dấu vết thực sự chứng minh được điều gì.': 'That pair does not establish a direct contradiction. Recheck what the trace can actually prove.',
     'Hai lớp sáp chồng lên nhau chứng minh gói tài liệu đã bị mở rồi niêm phong lại sau khi con dấu gốc bị phá.': 'The overlapping wax layers prove the packet was opened and resealed after the original seal was broken.',
     'Chơi lại': 'Play again',
-    'Lượt chơi mẫu trích từ vụ «Con Dấu Bị Phá».': 'A sample round from the case “The Broken Seal”.',
     'Hồ sơ đang mở': 'Open cases',
     'Mỗi vụ là một khu phố vẽ bằng pixel, với nhiều hiện trường, nhân chứng và hàng chục manh mối giấu trong đồ vật.': 'Each case is a pixel-art neighbourhood with several scenes, witnesses and dozens of clues hidden in everyday objects.',
     'Lọ thuốc thứ Năm': 'The Thursday Vial',
@@ -1755,7 +1752,19 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
   /* ---- Hero flashlight + clue hunt ---- */
   var hero = $('#top'), stage = $('#stage'), clues = $$('.clue'), huntCount = $('#hunt-count');
   var shFig = $('#fig-sherlock'), waFig = $('#fig-watson'), textEl = $('.hero-text'), deduce = $('#deduce'), SH_W = 669, SH_H = 996, WA_W = 489, WA_H = 909;
-  function box(el, x, y, w, h) { el.style.width = w.toFixed(1) + 'px'; el.style.height = h.toFixed(1) + 'px'; el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'; return { x: x, y: y, w: w, h: h }; }
+  // The detectives are pixel art stored at 3x (Sherlock is drawn 223 x 332 pixels). Each drawn pixel must cover a whole number
+  // of screen pixels, or the picture goes soft or uneven. crisp() moves the scale to the nearest whole number when that costs
+  // at most 12% of the size (or shrinks it by at most 20%); between two whole sizes it keeps the scale, and pixelated
+  // rendering still keeps the edges sharp.
+  var ART_SCALE = 3;
+  function crisp(k) {
+    var dpr = window.devicePixelRatio || 1, px = k * ART_SCALE * dpr, up = Math.round(px), down = Math.floor(px);
+    if (up >= 1 && up <= px * 1.12) return up / (ART_SCALE * dpr);
+    if (down >= 1 && down >= px * .8) return down / (ART_SCALE * dpr);
+    return k;
+  }
+  function onPixel(v) { var dpr = window.devicePixelRatio || 1; return Math.round(v * dpr) / dpr; }
+  function box(el, x, y, w, h) { x = onPixel(x); y = onPixel(y); el.style.width = w.toFixed(3) + 'px'; el.style.height = h.toFixed(3) + 'px'; el.style.transform = 'translate(' + x.toFixed(3) + 'px,' + y.toFixed(3) + 'px)'; return { x: x, y: y, w: w, h: h }; }
   var quote = $('#quote');
   function drawDeduce() {
     if (!hero.classList.contains('solved') || !S.sh) { deduce.innerHTML = ''; return; }
@@ -1783,7 +1792,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
     var stacked = window.innerWidth < 1200, sh, wa, zL, zR, slots;
     if (!stacked) {
       // One scale for both detectives, cut from the same painting: Sherlock stays a head taller than Watson.
-      var k = Math.min(S.h * .86 / SH_H, S.w * .3 / SH_W, S.w * .25 / WA_W);
+      var k = crisp(Math.min(S.h * .86 / SH_H, S.w * .3 / SH_W, S.w * .25 / WA_W));
       sh = box(shFig, -SH_W * k * .08, S.h - SH_H * k + 10, SH_W * k, SH_H * k);
       wa = box(waFig, S.w - WA_W * k * .94, S.h - WA_H * k + 10, WA_W * k, WA_H * k);
       textEl.style.marginLeft = '0px'; textEl.style.maxWidth = '';
@@ -1798,7 +1807,7 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
       else slots = [[tr.left - sr.left + tr.width * .82, tr.top - sr.top - 18], [zL + zw * .5, S.h * .42], [zL + zw * .5, S.h * .7]];
     } else {
       textEl.style.marginLeft = ''; textEl.style.maxWidth = '';
-      var k2 = Math.min(S.h * .8 / SH_H, S.w * .42 / SH_W, S.w * .34 / WA_W);
+      var k2 = crisp(Math.min(S.h * .8 / SH_H, S.w * .42 / SH_W, S.w * .34 / WA_W));
       sh = box(shFig, -SH_W * k2 * .1, S.h - SH_H * k2 + 8, SH_W * k2, SH_H * k2);
       wa = box(waFig, S.w - WA_W * k2 * .94, S.h - WA_H * k2 + 8, WA_W * k2, WA_H * k2);
       zL = sh.x + sh.w * .95 + 8; zR = wa.x - 8;

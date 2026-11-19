@@ -606,6 +606,60 @@ public sealed class MongoAdminChestsTests
     }
 
     [Fact]
+    public async Task AChestAndKeyPictureReachPlayersAndTheirItems_AndRemovingThemBringsBackTheDrawing()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+        const string chestUrl = "https://res.cloudinary.com/demo/image/upload/sirlocked/admin/hom-wc.png";
+        const string keyUrl = "https://res.cloudinary.com/demo/image/upload/sirlocked/admin/chia-wc.png";
+        var draft = await env.DraftOfAsync(Seal);
+        draft.Look!.ImageUrl = chestUrl;
+        draft.Look.KeyImageUrl = keyUrl;
+        draft.Reason = "Ảnh riêng cho hòm";
+
+        var saved = await env.Admin.UpdateAsync(Yen, Seal, draft);
+
+        Assert.Equal(chestUrl, saved.Look.ImageUrl);
+        var dto = (await env.Chests.ListAsync(player.Id)).Chests.Single(c => c.Id == Seal);
+        Assert.Equal(chestUrl, dto.Look?.ImageUrl);
+        Assert.Equal(keyUrl, dto.Look?.KeyImageUrl);
+        Assert.Equal("chest_seal", dto.IconKey); // The drawing stays as the fallback.
+        Assert.Equal(chestUrl, env.Provider.Current.Find(Seal)!.Visual?.ImageUrl);
+        Assert.Equal(keyUrl, env.Provider.Current.Find(SealKey)!.Visual?.ImageUrl);
+        var versions = await env.Admin.VersionsAsync(Seal);
+        Assert.Contains(versions[0].Diff.Fields, field => field.Field == "look.imageUrl" && field.After == chestUrl);
+
+        var removal = await env.DraftOfAsync(Seal);
+        removal.Look!.ImageUrl = "";
+        removal.Look.KeyImageUrl = null;
+        removal.Reason = "Bỏ ảnh";
+        await env.Admin.UpdateAsync(Yen, Seal, removal);
+
+        var after = (await env.Chests.ListAsync(player.Id)).Chests.Single(c => c.Id == Seal);
+        Assert.Null(after.Look?.ImageUrl);
+        Assert.Null(after.Look?.KeyImageUrl);
+        Assert.Null(env.Provider.Current.Find(Seal)!.Visual?.ImageUrl);
+        Assert.Null(env.Provider.Current.Find(SealKey)!.Visual?.ImageUrl);
+    }
+
+    [Fact]
+    public async Task AChestPictureThatIsNotAnUploadIsRefused()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var draft = await env.DraftOfAsync(Seal);
+        draft.Look!.ImageUrl = "http://example.com/hom.png";
+        draft.Reason = "Ảnh lạ";
+
+        var error = await Throws(() => env.Admin.UpdateAsync(Yen, Seal, draft));
+
+        Assert.Equal(400, error.StatusCode);
+        Assert.Contains(AdminChestsRules.ChestImageInvalid, ViolationCodes(error));
+        Assert.Null(env.Provider.Current.Find(Seal)!.Visual?.ImageUrl);
+    }
+
+    [Fact]
     public async Task RenamingAChestAndRepricingItAlsoUpdatesItsItemTypes()
     {
         if (!Enabled) return;
@@ -1379,7 +1433,11 @@ public sealed class MongoAdminChestsTests
                 KeyPrice = chest.KeyPrice,
                 Active = chest.Active,
                 SortOrder = chest.SortOrder,
-                Look = new AdminChestLookRequest { Template = chest.Look.Template, Light = chest.Look.Light, Hi = chest.Look.Hi, Core = chest.Look.Core },
+                Look = new AdminChestLookRequest
+                {
+                    Template = chest.Look.Template, Light = chest.Look.Light, Hi = chest.Look.Hi, Core = chest.Look.Core,
+                    ImageUrl = chest.Look.ImageUrl, KeyImageUrl = chest.Look.KeyImageUrl,
+                },
                 DropWeights = new Dictionary<string, int>(chest.DropWeights),
                 Pool = chest.Pool.Select(item => item.Def.Id).ToList(),
                 ExpectedVersion = chest.Version,

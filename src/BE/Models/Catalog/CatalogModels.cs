@@ -52,6 +52,13 @@ public class CatalogChestLook
     public string Light { get; set; } = string.Empty;
     public string Hi { get; set; } = string.Empty;
     public string Core { get; set; } = string.Empty;
+    /// <summary>
+    /// The chest's own picture (closed), uploaded by an admin or shipped under /assets/. Null: the template's drawing.
+    /// It replaces the chest everywhere a player sees it; the template still picks the room, the stamp and the particles.
+    /// </summary>
+    public string? ImageUrl { get; set; }
+    /// <summary>The key's own picture, as <see cref="ImageUrl"/>. Null: the template's key.</summary>
+    public string? KeyImageUrl { get; set; }
 }
 
 [BsonIgnoreExtraElements]

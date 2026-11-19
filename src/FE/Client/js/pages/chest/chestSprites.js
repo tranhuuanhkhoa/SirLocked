@@ -442,6 +442,27 @@ export function defSprite(def) {
   return def?.visual?.imageUrl ? imageSprite(def.visual.imageUrl) : itemSprite(def?.iconKey);
 }
 
+/** Only an upload (https) or a picture shipped under /assets/; anything else is no picture. The server checks the same. */
+const PICTURE_URL = /^(https:\/\/|\/assets\/)[^\s"'<>]+$/;
+const pictureOf = (url) => (typeof url === 'string' && PICTURE_URL.test(url) ? url : '');
+
+/** A chest's own picture, when an admin gave it one (look.imageUrl). '' means: draw its template. */
+export const chestPictureUrl = (chest) => pictureOf(chest?.look?.imageUrl);
+
+/** The key's own picture (look.keyImageUrl), or ''. */
+export const keyPictureUrl = (chest) => pictureOf(chest?.look?.keyImageUrl);
+
+/** A chest for an <img>: its own picture, else its pixel drawing. `chest` needs iconKey and look. */
+export function chestIconUrl(chest) {
+  return chestPictureUrl(chest) || pixelIconUrl(chest?.iconKey);
+}
+
+/** The key as a sprite: its own picture, else its pixel drawing. A picture lands later; see `ready`. */
+export function keyArtSprite(chest) {
+  const url = keyPictureUrl(chest);
+  return url ? imageSprite(url) : itemSprite(chest?.keyIconKey);
+}
+
 /** Copies a sprite onto a canvas of any size, centred. */
 export function paintSprite(canvas, sprite) {
   const x = canvas.getContext('2d');

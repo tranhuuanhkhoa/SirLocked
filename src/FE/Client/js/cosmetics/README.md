@@ -28,9 +28,9 @@ Phần viết mới cho game:
 Thêm vào mã vẽ để vẽ theo dữ liệu, đồ có sẵn không đổi một điểm ảnh (`tests/admin-cosmetics-look.spec.ts`):
 
 - `frames.js`: `defineFrame`, `refreshFrame`, `fitPicture`, `uploadedPic`, `picFailed`; `layer` đọc `layerOf` để biến thể dùng chung lớp hình với viền gốc.
-- `titles.js`: `defineTitle`, `titleFrom`; `titleHTML` đọc `t.ov` để ghi đè `glow` và `parts`.
-- `fx.js`: `defineEntrance`, `drawWarpSoft`; `drawSword` nhận ảnh kiếm riêng.
-- `stage.js`: `stageOf`, `timingOf`, `artOf`, `paintStageThumb`; mọi màu của sân khấu đi qua `retint`.
+- `titles.js`: `defineTitle`, `titleFrom`; `titleHTML` đọc `t.ov` để ghi đè `glow` và `parts`; `paintedTitleHTML` vẽ bảng tên từ ảnh (`t.pic`).
+- `fx.js`: `defineEntrance`, `drawWarpSoft`; `drawSword` nhận ảnh kiếm riêng; `defineEntrance` nhận `flip` (sprite sheet).
+- `stage.js`: `stageOf`, `timingOf`, `artOf`, `paintStageThumb`, `drawFlipbook`; mọi màu của sân khấu đi qua `retint`.
 - `lib.js`: `retint`. Không có màu chủ đạo thì trả về nguyên màu cũ.
 - `painter.js`: ô đã vẽ xong sẽ vẽ lại khi `frameRevision` đổi.
 
@@ -43,7 +43,9 @@ Mỗi def có `visual`. `builtinId` có giá trị thì dùng mã vẽ có sẵn
 | Viền | `painted` (ảnh ở `imageUrl`) | `hole: { x, y, r }` theo pixel ảnh gốc, `scale`, `live`, `sheen`, `glowUrl` |
 | Viền | `builtin-clone` | `base` là builtinId, `live`, `sheen` |
 | Danh hiệu | `style` | `style` là khóa trong `STY`, `glow`, `parts` |
+| Danh hiệu | `painted` (ảnh ở `imageUrl`) | `size: { w, h }` px, `box: { x, y, w, h }` phần của ảnh, `color`, `textBaked`, `scale`, `glow`, `parts` |
 | Hiệu ứng | một trong 10 hiệu ứng | `tint`, `duration`; `imageUrl` cho `kim-long`, `phuong-hoang`; `swordUrl` cho `van-kiem` |
+| Hiệu ứng | `flipbook` | `sheetUrl`, `cols`, `rows`, `frames`, `fps`, `loop`, `place`, `size`, `blend`, `tint`, `duration` |
 
 `live` cùng dạng bảng `LIVE` trong `frames.js`: `aura: [rgb, mạnh]`, `rays: [rgb, mạnh]`, `comet: [rgb, tốc độ, số vệt]`, `spark: [rgb, số]`, `fall: ["snow"|"petal"|"rose"|"feather", số]`, `embers: [rgb, số]`, `flame: 1`, `breathe: độ`.
 

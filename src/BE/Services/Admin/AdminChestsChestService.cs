@@ -172,10 +172,10 @@ public sealed class AdminChestsChestService
             (chest.Id, chest.KeyDefId) = AdminChestsRules.NextChestIds(taken);
             chestDef = NewDef(admin, chest.Id, MarketCategories.Chest, chest.Name, chest.NameEn,
                 $"Hòm vật chứng. Cần {chest.KeyName} để mở.", $"An evidence chest. Opens with a {chest.KeyNameEn}.",
-                chest.Prices.Chest, chest.IconKey, sortOrder, now);
+                chest.Prices.Chest, chest.IconKey, chest.Look.ImageUrl, sortOrder, now);
             keyDef = NewDef(admin, chest.KeyDefId, MarketCategories.Key, Capitalized(chest.KeyName), Capitalized(chest.KeyNameEn),
                 $"Chỉ mở được {chest.Name}.", $"Opens only the {chest.NameEn}.",
-                chest.Prices.Key, chest.KeyIconKey, sortOrder + 1, now);
+                chest.Prices.Key, chest.KeyIconKey, chest.Look.KeyImageUrl, sortOrder + 1, now);
             try
             {
                 await _catalog.Items.InsertManyAsync(new[] { chestDef, keyDef }, cancellationToken: ct);
@@ -218,7 +218,7 @@ public sealed class AdminChestsChestService
     /// <summary>Off, a chest and its key behave like retired items on the market: gone unless someone is still trading them.</summary>
     private static CatalogItem NewDef(
         CurrentUser admin, string id, string category, string name, string nameEn, string description, string descriptionEn,
-        long price, string iconKey, int sortOrder, DateTime now) => new()
+        long price, string iconKey, string? imageUrl, int sortOrder, DateTime now) => new()
     {
         Id = id,
         Category = category,
@@ -235,7 +235,7 @@ public sealed class AdminChestsChestService
         UpdatedAt = now,
         UpdatedBy = admin.Id,
         Version = 1,
-        Visual = new CatalogVisual { IconKey = iconKey, Params = new BsonDocument() },
+        Visual = new CatalogVisual { IconKey = iconKey, ImageUrl = imageUrl, Params = new BsonDocument() },
     };
 
     /// <summary>Compare-and-set on the version, so two admins cannot silently overwrite each other. Then the history, then the item types.</summary>
@@ -316,13 +316,13 @@ public sealed class AdminChestsChestService
 
     private async Task FollowAsync(CurrentUser admin, CatalogChest before, CatalogChest after, IReadOnlyDictionary<string, CatalogItem> items, CancellationToken ct)
     {
-        async Task Sync(string defId, string name, string nameEn, long price, string iconKey)
+        async Task Sync(string defId, string name, string nameEn, long price, string iconKey, string? imageUrl)
         {
             if (!items.TryGetValue(defId, out var def)) return;
             var description = Renamed(Renamed(def.Description, before.Name, after.Name), before.KeyName, after.KeyName);
             var descriptionEn = Renamed(Renamed(def.DescriptionEn, before.NameEn, after.NameEn), before.KeyNameEn, after.KeyNameEn);
             if (def.Name == name && def.NameEn == nameEn && def.ReferencePrice == price && def.Visual?.IconKey == iconKey
-                && def.Retired == !after.Active && def.Description == description && def.DescriptionEn == descriptionEn) return;
+                && def.Visual?.ImageUrl == imageUrl && def.Retired == !after.Active && def.Description == description && def.DescriptionEn == descriptionEn) return;
 
             await _catalog.Items.UpdateOneAsync(i => i.Id == defId, Builders<CatalogItem>.Update
                 .Set(i => i.Name, name)
@@ -331,6 +331,7 @@ public sealed class AdminChestsChestService
                 .Set(i => i.DescriptionEn, descriptionEn)
                 .Set(i => i.ReferencePrice, price)
                 .Set(i => i.Visual.IconKey, iconKey)
+                .Set(i => i.Visual.ImageUrl, imageUrl)
                 .Set(i => i.Retired, !after.Active)
                 .Set(i => i.UpdatedAt, after.UpdatedAt)
                 .Set(i => i.UpdatedBy, admin.Id)
@@ -340,8 +341,8 @@ public sealed class AdminChestsChestService
         // Defs were written with a capital and chests with a lower-case key name. Keep what each one used unless it was renamed.
         var keyName = after.KeyName == before.KeyName && items.TryGetValue(after.KeyDefId, out var key) ? key.Name : Capitalized(after.KeyName);
         var keyNameEn = after.KeyNameEn == before.KeyNameEn && items.TryGetValue(after.KeyDefId, out var keyEn) ? keyEn.NameEn : Capitalized(after.KeyNameEn);
-        await Sync(after.Id, after.Name, after.NameEn, after.Prices.Chest, after.IconKey);
-        await Sync(after.KeyDefId, keyName, keyNameEn, after.Prices.Key, after.KeyIconKey);
+        await Sync(after.Id, after.Name, after.NameEn, after.Prices.Chest, after.IconKey, after.Look.ImageUrl);
+        await Sync(after.KeyDefId, keyName, keyNameEn, after.Prices.Key, after.KeyIconKey, after.Look.KeyImageUrl);
     }
 
     // ------------------------------------------------------------------ trying a chest out
@@ -404,6 +405,8 @@ public sealed class AdminChestsChestService
                 Light = look.Light ?? string.Empty,
                 Hi = look.Hi ?? string.Empty,
                 Core = look.Core ?? string.Empty,
+                ImageUrl = Picture(look.ImageUrl),
+                KeyImageUrl = Picture(look.KeyImageUrl),
             };
         }
         // The inventory and the market draw a chest and its key from these, so they follow the drawing.
@@ -412,8 +415,10 @@ public sealed class AdminChestsChestService
         return after;
     }
 
-    private static ChestLookDto LookOf(CatalogChest chest) =>
-        new(chest.Look.Template, chest.Look.Light, chest.Look.Hi, chest.Look.Core);
+    /// <summary>An empty picture is no picture: the template's drawing.</summary>
+    private static string? Picture(string? url) => string.IsNullOrWhiteSpace(url) ? null : url.Trim();
+
+    private static ChestLookDto LookOf(CatalogChest chest) => ChestLookDto.Of(chest.Look);
 
     /// <summary>The detail of a chest that is already stored. Its share of the weekly drops is read against every chest as stored.</summary>
     private async Task<AdminChestDetailDto> DetailAsync(CatalogChest chest, CancellationToken ct)
