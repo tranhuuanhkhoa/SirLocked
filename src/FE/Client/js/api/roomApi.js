@@ -1,4 +1,4 @@
-import { get, post } from './http.js';
+import { get, post, put } from './http.js';
 
 export const roomApi = {
   mine: () => get('/api/rooms/mine'),
@@ -19,6 +19,8 @@ export const roomApi = {
   leave: (roomId) => post(`/api/rooms/${roomId}/leave`),
   selectRole: (roomId, role) => post(`/api/rooms/${roomId}/select-role`, { role }),
   ready: (roomId, isReady) => post(`/api/rooms/${roomId}/ready`, { isReady }),
+  /** Puts on one of the caller's outfits (itemId) or takes the detective's outfit off (null); answers the redrawn room. */
+  wearOutfit: (roomId, category, itemId) => put(`/api/rooms/${roomId}/outfit`, { category, itemId: itemId ?? null }),
   start: (roomId) => post(`/api/rooms/${roomId}/start`),
   abandon: (roomId) => post(`/api/rooms/${roomId}/abandon`),
 };

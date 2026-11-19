@@ -62,6 +62,7 @@ public partial class RoomService : IRoomService
                 player.FrameDefId = look.FrameDefId;
                 player.TitleDefId = look.TitleDefId;
                 player.EntranceDefId = look.EntranceDefId;
+                player.SkinDefIds = look.SkinDefIds?.ToList() ?? new List<string>();
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -542,7 +543,8 @@ public partial class RoomService : IRoomService
         }
     }
 
-    private static ApiException NotLobbyConflict(string status) =>
+    /// <summary>The refusal of a lobby action on a room past its lobby: ROOM_ENDED once it has ended, so the lobby shows its closed page.</summary>
+    internal static ApiException NotLobbyConflict(string status) =>
         RoomLifecycle.IsTerminal(status)
             ? ApiException.Conflict(RoomEndedMessage, RoomEndedCode, RoomEndedMessageKey)
             : ApiException.Conflict(GameAlreadyStartedMessage);

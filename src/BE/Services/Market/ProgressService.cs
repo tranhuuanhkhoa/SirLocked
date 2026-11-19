@@ -138,7 +138,7 @@ public sealed class ProgressService : IPlayerCosmeticsReader
     // ------------------------------------------------------------------ what a detective wears
 
     /// <summary>An equipped entry only counts while it still points at a free item of the right category, owned by this account.</summary>
-    private (string? Frame, string Title, string Entrance) Wear(MarketAccount? account, IReadOnlyCollection<MarketItem> items, CosmeticDefaults defaults)
+    private (string? Frame, string Title, string Entrance, IReadOnlyList<string> Skins) Wear(MarketAccount? account, IReadOnlyCollection<MarketItem> items, CosmeticDefaults defaults)
     {
         string? Slot(string category)
         {
@@ -149,7 +149,8 @@ public sealed class ProgressService : IPlayerCosmeticsReader
         return (
             Slot(MarketCategories.Frame) ?? defaults.Frame,
             Slot(MarketCategories.Title) ?? defaults.Title,
-            Slot(MarketCategories.Entrance) ?? defaults.Entrance);
+            Slot(MarketCategories.Entrance) ?? defaults.Entrance,
+            new[] { MarketCategories.SkinSherlock, MarketCategories.SkinWatson }.Select(Slot).OfType<string>().ToList());
     }
 
     public async Task<IReadOnlyDictionary<string, PlayerCosmeticsDto>> GetCosmeticsAsync(IReadOnlyCollection<string> userIds, CancellationToken ct = default)
@@ -170,7 +171,7 @@ public sealed class ProgressService : IPlayerCosmeticsReader
             var mine = progress.GetValueOrDefault(id);
             result[id] = new PlayerCosmeticsDto(
                 mine?.Level ?? 1, mine?.Avatar ?? CosmeticCatalog.DefaultAvatar, mine?.AvatarUrl,
-                worn.Frame, worn.Title, worn.Entrance);
+                worn.Frame, worn.Title, worn.Entrance, worn.Skins);
         }
         return result;
     }

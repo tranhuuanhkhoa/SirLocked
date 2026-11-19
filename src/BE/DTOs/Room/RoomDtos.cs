@@ -47,6 +47,18 @@ public class SelectRoleRequest
     public string Role { get; set; } = string.Empty;
 }
 
+public class WearOutfitRequest
+{
+    /// <summary>SKIN_SHERLOCK or SKIN_WATSON.</summary>
+    [Required]
+    [MaxLength(32)]
+    public string Category { get; set; } = string.Empty;
+
+    /// <summary>The caller's own outfit of that detective; null takes it off.</summary>
+    [MaxLength(64)]
+    public string? ItemId { get; set; }
+}
+
 public class ReadyRequest
 {
     public bool IsReady { get; set; } = true;
@@ -69,6 +81,8 @@ public class RoomPlayerDto
     public string? FrameDefId { get; set; }
     public string TitleDefId { get; set; } = CosmeticCatalog.DefaultTitleDefId;
     public string EntranceDefId { get; set; } = CosmeticCatalog.DefaultEntranceDefId;
+    /// <summary>Outfit def ids this player wears (SKIN_SHERLOCK first, then SKIN_WATSON); empty for the normal look.</summary>
+    public List<string> SkinDefIds { get; set; } = new();
 
     public static RoomPlayerDto From(RoomPlayer p) => From(p, null);
 

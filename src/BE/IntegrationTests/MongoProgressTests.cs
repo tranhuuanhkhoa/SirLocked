@@ -1036,6 +1036,201 @@ public sealed class MongoProgressTests
         Assert.Empty(env.Notifier.Entrances);
     }
 
+    // ------------------------------------------------------------------ lobby outfits
+
+    private const string SherlockOutfit = SkinCatalog.SherlockWhitechapel;
+    private const string WatsonOutfit = SkinCatalog.WatsonWhitechapel;
+
+    [Fact]
+    public async Task TheLobbyDto_CarriesTheOutfitsEachPlayerWears()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        await env.Market.EquipAsync(guest.Id, await env.GiveAsync(guest.Id, WatsonOutfit));
+        await env.Market.EquipAsync(guest.Id, await env.GiveAsync(guest.Id, SherlockOutfit));
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var response = await env.Rooms.GetAsync(host.Id, room.Id);
+
+        Assert.Equal(new[] { SherlockOutfit, WatsonOutfit }, response.Players.Single(p => p.UserId == guest.Id).SkinDefIds);
+        Assert.Empty(response.Players.Single(p => p.UserId == host.Id).SkinDefIds);
+    }
+
+    [Fact]
+    public async Task TheLobbyDto_LeavesOutAnOutfitThatIsForSale()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(guest.Id, SherlockOutfit);
+        await env.Market.EquipAsync(guest.Id, outfit);
+        await env.Store.Items.UpdateOneAsync(i => i.Id == outfit, Builders<MarketItem>.Update.Set(i => i.LockedBy, "listing:x"));
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var response = await env.Rooms.GetAsync(host.Id, room.Id);
+
+        Assert.Empty(response.Players.Single(p => p.UserId == guest.Id).SkinDefIds);
+    }
+
+    [Fact]
+    public async Task WearingAnOutfitInTheLobby_PutsItOnAndTellsTheRoom()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(guest.Id, SherlockOutfit);
+        var room = await env.AddLobbyAsync(host, guest);
+        await env.Rooms.SelectRoleAsync(guest, room.Id, PlayerRole.Interrogator);
+        await env.Rooms.SetReadyAsync(guest, room.Id, true);
+
+        var response = await env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, outfit);
+
+        var seen = response.Players.Single(p => p.UserId == guest.Id);
+        Assert.Equal(new[] { SherlockOutfit }, seen.SkinDefIds);
+        Assert.True(seen.IsReady); // a change of clothes keeps the player ready
+        var equipped = await env.Market.GetEquippedAsync(guest.Id);
+        Assert.Contains(equipped, e => e.Category == MarketCategories.SkinSherlock && e.ItemId == outfit);
+        var told = env.Notifier.RoleUpdates.Last();
+        Assert.Equal(room.Id, told.RoomId);
+        Assert.Equal(guest.Id, told.UserId);
+        Assert.Equal(new[] { SherlockOutfit }, told.Room.Players.Single(p => p.UserId == guest.Id).SkinDefIds);
+    }
+
+    [Fact]
+    public async Task WearingNothing_GoesBackToTheNormalLook()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        await env.Market.EquipAsync(guest.Id, await env.GiveAsync(guest.Id, SherlockOutfit));
+        await env.Market.EquipAsync(guest.Id, await env.GiveAsync(guest.Id, WatsonOutfit));
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var response = await env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, null);
+
+        Assert.Equal(new[] { WatsonOutfit }, response.Players.Single(p => p.UserId == guest.Id).SkinDefIds);
+        Assert.DoesNotContain(await env.Market.GetEquippedAsync(guest.Id), e => e.Category == MarketCategories.SkinSherlock);
+        Assert.Single(env.Notifier.RoleUpdates);
+    }
+
+    [Fact]
+    public async Task AnItemThatIsNotThisDetectivesOutfit_IsRefused()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var watson = await env.GiveAsync(guest.Id, WatsonOutfit);
+        var frame = await env.GiveAsync(guest.Id, "frame_thach");
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var wrongDetective = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, watson));
+        var notAnOutfit = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, frame));
+        var notAnOutfitSlot = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.Frame, frame));
+
+        Assert.Equal(409, wrongDetective.StatusCode);
+        Assert.Equal(LobbyOutfitService.WrongOutfitCode, Code(wrongDetective));
+        Assert.Equal(409, notAnOutfit.StatusCode);
+        Assert.Equal(400, notAnOutfitSlot.StatusCode);
+        Assert.Empty(await env.Market.GetEquippedAsync(guest.Id));
+        Assert.Empty(env.Notifier.RoleUpdates);
+    }
+
+    [Fact]
+    public async Task SomeoneElsesOutfit_IsRefused()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var hostsOutfit = await env.GiveAsync(host.Id, SherlockOutfit);
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var error = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, hostsOutfit));
+
+        Assert.Equal(404, error.StatusCode);
+        Assert.Empty(await env.Market.GetEquippedAsync(guest.Id));
+        Assert.Empty(await env.Market.GetEquippedAsync(host.Id));
+    }
+
+    [Fact]
+    public async Task AnOutfitForSale_CannotBeWorn()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(guest.Id, SherlockOutfit);
+        await env.Store.Items.UpdateOneAsync(i => i.Id == outfit, Builders<MarketItem>.Update.Set(i => i.LockedBy, "listing:x"));
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var error = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, outfit));
+
+        Assert.Equal(409, error.StatusCode);
+        Assert.Equal(MarketErrors.ItemLocked, Code(error));
+        Assert.Empty(env.Notifier.RoleUpdates);
+    }
+
+    [Fact]
+    public async Task SomeoneOutsideTheRoom_CannotChangeOutfitThere()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var stranger = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(stranger.Id, SherlockOutfit);
+        var room = await env.AddLobbyAsync(host, guest);
+
+        var error = await Throws(() => env.Outfits.WearAsync(stranger, room.Id, MarketCategories.SkinSherlock, outfit));
+
+        Assert.Equal(403, error.StatusCode);
+        Assert.Empty(await env.Market.GetEquippedAsync(stranger.Id));
+        Assert.Empty(env.Notifier.RoleUpdates);
+    }
+
+    [Theory]
+    [InlineData(RoomStatus.InProgress, null)]
+    [InlineData(RoomStatus.Completed, RoomService.RoomEndedCode)]
+    [InlineData(RoomStatus.Abandoned, RoomService.RoomEndedCode)]
+    public async Task OnceTheGameHasStarted_TheOutfitStaysAsItWas(string status, string? code)
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(guest.Id, SherlockOutfit);
+        var room = await env.AddLobbyAsync(host, guest, status);
+
+        var error = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, outfit));
+
+        Assert.Equal(409, error.StatusCode);
+        Assert.Equal(code, Code(error)); // ROOM_ENDED lets the lobby show its closed-room page, as every other lobby action does
+        Assert.Empty(await env.Market.GetEquippedAsync(guest.Id));
+        Assert.Empty(env.Notifier.RoleUpdates);
+    }
+
+    [Fact]
+    public async Task ARoomWhereBothAreReady_StillTakesAChangeOfClothes()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(guest.Id, WatsonOutfit);
+        var room = await env.AddLobbyAsync(host, guest, RoomStatus.Ready);
+
+        var response = await env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinWatson, outfit);
+
+        Assert.Equal(new[] { WatsonOutfit }, response.Players.Single(p => p.UserId == guest.Id).SkinDefIds);
+        Assert.Equal(RoomStatus.Ready, response.Status);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static string? Code(ApiException exception) => (exception.Errors as ApiErrorDetails)?.Code;
@@ -1092,6 +1287,8 @@ public sealed class MongoProgressTests
     {
         private readonly System.Collections.Concurrent.ConcurrentQueue<PlayerEntranceDto> _entrances = new();
         public IReadOnlyList<PlayerEntranceDto> Entrances => _entrances.ToList();
+        private readonly System.Collections.Concurrent.ConcurrentQueue<(string RoomId, string UserId, RoomResponse Room)> _roles = new();
+        public IReadOnlyList<(string RoomId, string UserId, RoomResponse Room)> RoleUpdates => _roles.ToList();
 
         public Task PlayerEntrance(string roomId, PlayerEntranceDto entrance)
         {
@@ -1101,7 +1298,11 @@ public sealed class MongoProgressTests
 
         public Task PlayerJoined(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
         public Task PlayerLeft(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
-        public Task RolesUpdated(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
+        public Task RolesUpdated(string roomId, string userId, RoomResponse room)
+        {
+            _roles.Enqueue((roomId, userId, room));
+            return Task.CompletedTask;
+        }
         public Task ReadyUpdated(string roomId, string userId, RoomResponse room) => Task.CompletedTask;
         public Task GameStarted(string roomId, RoomResponse room) => Task.CompletedTask;
         public Task GameStateUpdated(string roomId, long version) => Task.CompletedTask;
@@ -1133,6 +1334,7 @@ public sealed class MongoProgressTests
             Notifier = new RecordingNotifier();
             Rooms = new RoomService(Db, new StubCases(), Notifier, cosmetics: Progress);
             Entrances = new LobbyEntranceService(Db, Progress, Notifier);
+            Outfits = new LobbyOutfitService(Store, Market, Rooms, Notifier);
         }
 
         public MongoDbContext Db { get; }
@@ -1143,6 +1345,7 @@ public sealed class MongoProgressTests
         public RecordingNotifier Notifier { get; }
         public RoomService Rooms { get; }
         public LobbyEntranceService Entrances { get; }
+        public LobbyOutfitService Outfits { get; }
 
         public static async Task<Env> CreateAsync(IChestRandom? random = null, IAvatarStorage? avatars = null)
         {

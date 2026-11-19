@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
@@ -42,6 +43,12 @@ public class RoomsController : BaseApiController
     [HttpPost("{roomId}/select-role")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> SelectRole(string roomId, [FromBody] SelectRoleRequest request) =>
         Ok(await _roomService.SelectRoleAsync(Caller, roomId, request.Role), "Role selected.");
+
+    /// <summary>Puts on (itemId) or takes off (null) the caller's Sherlock or Watson outfit and redraws the lobby for both players.</summary>
+    [HttpPut("{roomId}/outfit")]
+    public async Task<ActionResult<ApiResponse<RoomResponse>>> Outfit(string roomId, [FromBody] WearOutfitRequest request,
+        [FromServices] LobbyOutfitService outfits, CancellationToken cancellationToken) =>
+        Ok(await outfits.WearAsync(Caller, roomId, request.Category, request.ItemId, cancellationToken), "Outfit updated.");
 
     [HttpPost("{roomId}/ready")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Ready(string roomId, [FromBody] ReadyRequest request) =>
