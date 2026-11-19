@@ -42,7 +42,8 @@ public sealed class TeamChatService
         await RequireTeamRoomAsync(userId, roomId, ct);
         var latest = await _db.TeamChatMessages
             .Find(message => message.RoomId == roomId)
-            .SortByDescending(message => message.SentAt)
+            // Two lines sent in the same millisecond keep the order they were written in: ids grow with each insert.
+            .SortByDescending(message => message.SentAt).ThenByDescending(message => message.Id)
             .Limit(TeamCommsRules.HistoryLimit)
             .ToListAsync(ct);
         latest.Reverse();
