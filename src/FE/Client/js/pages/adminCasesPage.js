@@ -104,6 +104,11 @@ function caseCard(c, capabilities) {
       <div class="acs-case-status">${caseStatusPill(c.status)}</div>
       <div class="acs-case-actions">
         <a class="btn btn-sm" href="${href}" aria-label="${escapeHtml(tr(`Open ${c.title}`, `Mở ${c.title}`))}">${tr('Open', 'Mở')}</a>
+        <a class="btn btn-sm" href="/admin/editor/${encodeURIComponent(c.caseId)}" data-editor-link
+          aria-label="${escapeHtml(tr(`Edit ${c.title} in Case Studio`, `Sửa ${c.title} trong Case Studio`))}"
+          title="${escapeHtml(c.status === 'PUBLISHED'
+    ? tr('Published: Case Studio shows it read-only. Unpublish it to edit.', 'Đã xuất bản: Case Studio chỉ cho xem. Gỡ xuất bản để sửa.')
+    : tr('Edit in Case Studio', 'Sửa trong Case Studio'))}">${tr('Edit', 'Sửa')}</a>
         ${publishControl}
       </div>
       ${blocked ? `<p class="acs-case-reason v3-gate-reason">${escapeHtml(reason)}</p>` : ''}
