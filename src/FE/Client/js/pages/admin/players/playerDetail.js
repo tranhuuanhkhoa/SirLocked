@@ -2,6 +2,7 @@ import { adminPlayersApi } from '../../../api/adminPlayersApi.js';
 import { EN, FR, T, avatarFor, entranceKey, frameKey, loadCosmeticCatalog, prepareCosmetics, titleHTML, titleKey } from '../../../cosmetics/index.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { pill, rarityPill, stateBox } from '../../../components/admin/ui.js';
+import { session } from '../../../services/session.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { categoryLabel, defName, itemTile, rarityLabel } from '../../market/marketKit.js';
@@ -234,18 +235,20 @@ export function mountPlayerDetail(host, userId, { signal }) {
       </span>
       <span class="adp-created">Tạo lúc ${escapeHtml(dateTime(account.createdAt))} · <span class="adp-break">Mã: <code class="adp-code">${escapeHtml(account.userId)}</code></span></span>`;
     const deleted = account.status === 'DELETED';
-    const canEdit = account.role !== 'ADMIN' && !deleted;
+    const isAdmin = account.role === 'ADMIN';
+    const isMe = account.userId === session.user()?.userId;
     const locked = account.status === 'LOCKED';
-    // A deleted account offers only its way back; an admin account is not edited from here.
+    // A deleted account offers only its way back. Admin accounts are edited too but never locked here, and nobody
+    // deletes their own account (the server refuses that and the last active admin as well).
     host.querySelector('[data-adp-actions]').innerHTML = deleted
-      ? `${account.role !== 'ADMIN' ? '<button class="btn btn-ghost adm-btn-ok" type="button" data-adp-restore>Khôi phục tài khoản</button>' : ''}`
+      ? '<button class="btn btn-ghost adm-btn-ok" type="button" data-adp-restore>Khôi phục tài khoản</button>'
       : `
-      ${canEdit ? '<button class="btn btn-ghost" type="button" data-adp-edit>Sửa thông tin</button>' : ''}
-      ${canEdit ? '<button class="btn btn-ghost" type="button" data-adp-password>Đặt mật khẩu mới</button>' : ''}
-      ${canEdit ? `<button class="btn btn-ghost ${locked ? 'adm-btn-ok' : 'adm-btn-danger'}" type="button" data-adp-lock>${locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button>` : ''}
+      <button class="btn btn-ghost" type="button" data-adp-edit>Sửa thông tin</button>
+      <button class="btn btn-ghost" type="button" data-adp-password>Đặt mật khẩu mới</button>
+      ${isAdmin ? '' : `<button class="btn btn-ghost ${locked ? 'adm-btn-ok' : 'adm-btn-danger'}" type="button" data-adp-lock>${locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button>`}
       <button class="btn btn-ghost" type="button" data-adp-logout>Ép đăng xuất</button>
       <button class="btn btn-ghost" type="button" data-adp-avatar-remove${progress.avatarUrl ? '' : ' hidden'}>Xóa ảnh đại diện</button>
-      ${canEdit ? '<button class="btn btn-ghost adm-btn-danger" type="button" data-adp-delete>Xóa tài khoản</button>' : ''}`;
+      ${isMe ? '' : '<button class="btn btn-ghost adm-btn-danger" type="button" data-adp-delete>Xóa tài khoản</button>'}`;
   };
 
   // ---- actions ----

@@ -7,38 +7,42 @@ import {
   actionDialog, dateTime, num, pageParam, pagedList, personLink, roleChip, routeParams, sizeParam, statusChip, tableHtml, writeRouteParams,
 } from './shared.js';
 
-const ROLES = [['', 'Mọi vai trò'], ['PLAYER', 'Người chơi'], ['VIP', 'VIP'], ['ADMIN', 'Quản trị']];
+const ROLES = [['', 'Mọi vai trò'], ['PLAYER', 'Người chơi'], ['VIP', 'VIP']];
 const STATUSES = [['', 'Mọi trạng thái'], ['ACTIVE', 'Đang hoạt động'], ['LOCKED', 'Bị khóa'], ['UNVERIFIED', 'Chưa xác minh email'], ['DELETED', 'Đã xóa']];
 const SORTS = [['created', 'Ngày tạo'], ['level', 'Cấp'], ['coins', 'Số xu']];
 const SIZES = [10, 25, 50, 100];
 
 const options = (list, value) => list.map(([id, label]) => `<option value="${id}"${id === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('');
 
-/** The list: every filter and every page is a question for the server, and the address remembers them. */
-export function mountPlayerList(host, { signal }) {
+/**
+ * The list: every filter and every page is a question for the server, and the address remembers them.
+ * `scope`: 'players' (players and VIPs, the "Người chơi" tab) or 'admins' (the "Quản trị" tab).
+ */
+export function mountPlayerList(host, { signal, scope = 'players' }) {
+  const admins = scope === 'admins';
   const params = routeParams();
   const filters = {
     q: params.get('q') ?? '',
-    role: params.get('role') ?? '',
+    role: admins ? '' : (params.get('role') ?? ''),
     status: params.get('status') ?? '',
     sort: params.get('sort') ?? 'created',
     asc: params.get('asc') === 'true',
   };
 
   host.innerHTML = `
-    <section class="adm-card adm-card--flush adp-list-card" aria-label="Danh sách người chơi">
+    <section class="adm-card adm-card--flush adp-list-card" aria-label="${admins ? 'Danh sách tài khoản quản trị' : 'Danh sách người chơi'}">
       <form class="adp-filters adp-filters--bar" data-adp-player-filter role="search">
         <div class="adp-filter adp-filter--grow">
-          <label class="field-label" for="adp-q">Tìm người chơi</label>
+          <label class="field-label" for="adp-q">${admins ? 'Tìm quản trị viên' : 'Tìm người chơi'}</label>
           <div class="adp-search-row">
-            <input class="field-input adp-input-soft" id="adp-q" type="search" aria-label="Tìm người chơi" placeholder="Tìm theo tên hoặc email" value="${escapeHtml(filters.q)}" maxlength="100">
+            <input class="field-input adp-input-soft" id="adp-q" type="search" aria-label="${admins ? 'Tìm quản trị viên' : 'Tìm người chơi'}" placeholder="Tìm theo tên hoặc email" value="${escapeHtml(filters.q)}" maxlength="100">
             <button class="btn btn-primary" type="submit">Tìm</button>
           </div>
         </div>
-        <div class="adp-filter">
+        ${admins ? '' : `<div class="adp-filter">
           <label class="field-label" for="adp-role">Vai trò</label>
           <select class="field-input" id="adp-role">${options(ROLES, filters.role)}</select>
-        </div>
+        </div>`}
         <div class="adp-filter">
           <label class="field-label" for="adp-status">Trạng thái</label>
           <select class="field-input" id="adp-status">${options(STATUSES, filters.status)}</select>
@@ -57,25 +61,26 @@ export function mountPlayerList(host, { signal }) {
 
   const rows = host.querySelector('[data-adp-player-rows]');
 
-  const columns = [
-    { label: 'Người chơi', cell: (player) => personLink(player.userId, player.fullName, player.email) },
+  const allColumns = [
+    { label: admins ? 'Quản trị viên' : 'Người chơi', cell: (player) => personLink(player.userId, player.fullName, player.email) },
     { label: 'Vai trò', cell: (player) => roleChip(player.role) },
     {
       label: 'Trạng thái',
       cell: (player) => `<span class="adp-pills">${statusChip(player.status)}${player.isEmailVerified ? '' : pill('Chưa xác minh', '', { small: true })}</span>`,
     },
-    { label: 'Cấp', num: true, cell: (player) => num(player.level) },
-    { label: 'Số xu', num: true, cell: (player) => `<strong class="adp-strong">${num(player.balance)} xu</strong>` },
+    { label: 'Cấp', num: true, playersOnly: true, cell: (player) => num(player.level) },
+    { label: 'Số xu', num: true, playersOnly: true, cell: (player) => `<strong class="adp-strong">${num(player.balance)} xu</strong>` },
     { label: 'Ngày tạo', cell: (player) => `<span class="adp-date">${escapeHtml(dateTime(player.createdAt))}</span>` },
     {
       label: 'Thao tác',
       className: 'adp-actions',
       cell: (player) => {
-        if (player.role === 'ADMIN') return '<span class="adp-muted">Không áp dụng</span>';
         const name = escapeHtml(player.fullName);
         if (player.status === 'DELETED') {
           return `<span class="adm-table-actions"><button class="btn btn-ghost btn-sm adm-btn-ok" type="button" data-act="restore" aria-label="Khôi phục ${name}">Khôi phục</button></span>`;
         }
+        // Admin accounts are edited on their own page (name, email, password, delete); they have no role or lock here.
+        if (player.role === 'ADMIN') return '<span class="adp-muted">Mở trang để sửa</span>';
         return `
           <span class="adm-table-actions">
             <button class="btn btn-ghost btn-sm" type="button" data-act="role" aria-label="${player.role === 'VIP' ? 'Đổi thành người chơi' : 'Nâng lên VIP'}: ${name}">${player.role === 'VIP' ? 'Về người chơi' : 'Lên VIP'}</button>
@@ -86,6 +91,7 @@ export function mountPlayerList(host, { signal }) {
       },
     },
   ];
+  const columns = allColumns.filter((column) => !(admins && column.playersOnly));
 
   const change = async (player, dialog, call, done) => {
     const answer = await actionDialog({ signal, danger: true, ...dialog, submit: ({ reason }) => call(reason.trim()) });
@@ -99,10 +105,12 @@ export function mountPlayerList(host, { signal }) {
     startPage: pageParam(),
     sizes: SIZES,
     startSize: sizeParam(SIZES),
-    noun: 'người chơi',
-    empty: 'Không có người chơi nào khớp bộ lọc này.',
+    noun: admins ? 'tài khoản quản trị' : 'người chơi',
+    empty: admins ? 'Không có tài khoản quản trị nào khớp bộ lọc này.' : 'Không có người chơi nào khớp bộ lọc này.',
     emptyNote: 'Thử từ khóa khác hoặc bỏ bớt bộ lọc.',
-    load: (page, pageSize) => adminPlayersApi.list({ ...filters, asc: filters.asc ? 'true' : '', sort: filters.sort === 'created' ? '' : filters.sort, page, pageSize }),
+    load: (page, pageSize) => adminPlayersApi.list({
+      ...filters, scope: admins ? 'ADMINS' : 'PLAYERS', asc: filters.asc ? 'true' : '', sort: filters.sort === 'created' ? '' : filters.sort, page, pageSize,
+    }),
     draw: (items) => tableHtml(columns, items, { minWidth: 1000 }),
     onPage: (page) => writeRouteParams({ page }),
     onSize: (size) => writeRouteParams({ size, page: 1 }),
@@ -131,7 +139,7 @@ export function mountPlayerList(host, { signal }) {
     writeRouteParams({ q: filters.q, role: filters.role, status: filters.status, sort: filters.sort === 'created' ? '' : filters.sort, asc: filters.asc ? 'true' : '', page: 1 });
     list.refresh(1);
   };
-  const bind = (id, read) => host.querySelector(id).addEventListener('change', (event) => {
+  const bind = (id, read) => host.querySelector(id)?.addEventListener('change', (event) => {
     read(event.target.value);
     apply();
   }, { signal });

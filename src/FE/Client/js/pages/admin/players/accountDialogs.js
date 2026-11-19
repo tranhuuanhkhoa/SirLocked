@@ -41,26 +41,33 @@ const passwordField = () => ({
   validate: passwordError,
 });
 
-export function createAccountDialog({ signal } = {}) {
+/** `admin`: from the "Quản trị" tab, the new account is an admin; otherwise a player or a VIP. */
+export function createAccountDialog({ signal, admin = false } = {}) {
+  const fields = [
+    { name: 'fullName', label: 'Họ và tên', autocomplete: 'off', validate: nameError },
+    { name: 'email', label: 'Email', type: 'email', autocomplete: 'off', validate: emailError },
+    passwordField(),
+  ];
+  if (!admin) {
+    fields.push({
+      name: 'role',
+      label: 'Vai trò',
+      type: 'select',
+      value: 'PLAYER',
+      options: [{ value: 'PLAYER', label: 'Người chơi' }, { value: 'VIP', label: 'VIP' }],
+    });
+  }
   return actionDialog({
     signal,
-    title: 'Tạo tài khoản',
-    message: 'Tài khoản dùng được ngay: email coi như đã xác minh, người chơi đăng nhập bằng email và mật khẩu này.',
-    fields: [
-      { name: 'fullName', label: 'Họ và tên', autocomplete: 'off', validate: nameError },
-      { name: 'email', label: 'Email', type: 'email', autocomplete: 'off', validate: emailError },
-      passwordField(),
-      {
-        name: 'role',
-        label: 'Vai trò',
-        type: 'select',
-        value: 'PLAYER',
-        options: [{ value: 'PLAYER', label: 'Người chơi' }, { value: 'VIP', label: 'VIP' }],
-      },
-    ],
-    confirmLabel: 'Tạo tài khoản',
+    danger: admin,
+    title: admin ? 'Tạo tài khoản quản trị' : 'Tạo tài khoản',
+    message: admin
+      ? 'Tài khoản quản trị có toàn quyền trên trang admin (kể cả tạo và xóa admin khác). Đăng nhập ở /admin/login bằng email và mật khẩu này.'
+      : 'Tài khoản dùng được ngay: email coi như đã xác minh, người chơi đăng nhập bằng email và mật khẩu này.',
+    fields,
+    confirmLabel: admin ? 'Tạo tài khoản quản trị' : 'Tạo tài khoản',
     submit: ({ fullName, email, newPassword, role, reason }) => adminPlayersApi.createAccount({
-      fullName: fullName.trim(), email: email.trim(), newPassword, role, reason: reason.trim(),
+      fullName: fullName.trim(), email: email.trim(), newPassword, role: admin ? 'ADMIN' : role, reason: reason.trim(),
     }),
   });
 }

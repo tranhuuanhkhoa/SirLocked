@@ -56,8 +56,9 @@ public class AdminPlayersController : BaseApiController
         [FromQuery] bool asc = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = AdminPlayersRules.DefaultPageSize,
+        [FromQuery] string? scope = null,
         CancellationToken ct = default) =>
-        Ok(await _players.ListAsync(new AdminPlayerQuery(q, role, status, sort, asc, page, pageSize), ct));
+        Ok(await _players.ListAsync(new AdminPlayerQuery(q, role, status, sort, asc, page, pageSize, scope), ct));
 
     [HttpGet("avatars")]
     public async Task<ActionResult<ApiResponse<AdminPageDto<AdminAvatarRowDto>>>> Avatars(

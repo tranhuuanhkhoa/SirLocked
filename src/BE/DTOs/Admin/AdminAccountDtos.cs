@@ -18,7 +18,7 @@ public sealed class AdminCreateAccountRequest
     public string? Email { get; set; }
     /// <summary>The password the admin gives the player; only its hash is stored.</summary>
     public string? NewPassword { get; set; }
-    /// <summary>PLAYER (default) or VIP. An admin account cannot be made here.</summary>
+    /// <summary>PLAYER (default), VIP, or ADMIN (the "Quản trị" tab).</summary>
     public string? Role { get; set; }
     public string? Reason { get; set; }
 }

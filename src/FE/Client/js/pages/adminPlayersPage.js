@@ -10,15 +10,17 @@ import { mountPlayerList } from './admin/players/playerList.js';
 import { routeParams, writeRouteParams } from './admin/players/shared.js';
 
 const TABS = [
-  { id: 'danhsach', label: 'Danh sách' },
+  { id: 'danhsach', label: 'Người chơi' },
+  { id: 'quantri', label: 'Quản trị' },
   { id: 'anh', label: 'Duyệt ảnh đại diện' },
 ];
 
-/** /admin/players (the list, ?tab=anh for the picture grid) and /admin/players/:id. */
+/** /admin/players: players and VIPs, ?tab=quantri for the admin accounts, ?tab=anh for the picture grid; /admin/players/:id. */
 export async function renderAdminPlayersPage(app, id, { signal } = {}) {
   if (id) return mountPlayerDetail(app, decodeURIComponent(id), { signal });
 
-  let active = routeParams().get('tab') === 'anh' ? 'anh' : 'danhsach';
+  const asked = routeParams().get('tab');
+  let active = TABS.some((tab) => tab.id === asked) ? asked : 'danhsach';
   // How many pictures wait for a decision, shown on their tab. Unknown until the server says.
   let pending = null;
   render(app, `
@@ -54,11 +56,15 @@ export async function renderAdminPlayersPage(app, id, { signal } = {}) {
     const old = app.querySelector('[data-adp-body]');
     const body = old.cloneNode(false);
     old.replaceWith(body);
+    // The create button makes what the tab lists: a player or VIP, or an admin; the picture grid creates nothing.
+    const create = app.querySelector('[data-adp-create]');
+    create.style.display = active === 'anh' ? 'none' : '';
+    create.textContent = active === 'quantri' ? 'Tạo tài khoản quản trị' : 'Tạo tài khoản';
     if (active === 'anh') mountAvatarGrid(body, { signal: views.signal, onChange: countPending });
-    else mountPlayerList(body, { signal: views.signal });
+    else mountPlayerList(body, { signal: views.signal, scope: active === 'quantri' ? 'admins' : 'players' });
   };
   app.querySelector('[data-adp-create]').addEventListener('click', async () => {
-    const account = await createAccountDialog({ signal });
+    const account = await createAccountDialog({ signal, admin: active === 'quantri' });
     if (!account) return;
     toast(`Đã tạo tài khoản ${account.email}.`, 'success');
     navigate(`/admin/players/${encodeURIComponent(account.userId)}`);
@@ -67,7 +73,7 @@ export async function renderAdminPlayersPage(app, id, { signal } = {}) {
     const tab = event.target.closest('[data-adm-tab]');
     if (!tab || tab.dataset.admTab === active) return;
     active = tab.dataset.admTab;
-    writeRouteParams({ tab: active === 'anh' ? 'anh' : '', page: 1, q: '', role: '', status: '', sort: '', asc: '', all: '', size: '' });
+    writeRouteParams({ tab: active === 'danhsach' ? '' : active, page: 1, q: '', role: '', status: '', sort: '', asc: '', all: '', size: '' });
     show();
   }, signal ? { signal } : undefined);
   show();

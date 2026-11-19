@@ -29,8 +29,15 @@ public static class AdminPlayerErrors
     public const string AccountUnchanged = "ADMIN_ACCOUNT_UNCHANGED";
     public const string AccountChanged = "ADMIN_ACCOUNT_CHANGED";
     public const string AccountNotDeleted = "ADMIN_ACCOUNT_NOT_DELETED";
-    public const string AdminAccount = "ADMIN_ACCOUNT_IS_ADMIN";
+    public const string LastAdmin = "ADMIN_LAST_ADMIN";
     public const string EmailTaken = "ADMIN_EMAIL_TAKEN";
+}
+
+/// <summary>The two tabs of /admin/players: players and VIPs, or admins. No scope lists everyone.</summary>
+public static class AdminPlayerScopes
+{
+    public const string Players = "PLAYERS";
+    public const string Admins = "ADMINS";
 }
 
 public static class AdminPlayerStatusFilter
