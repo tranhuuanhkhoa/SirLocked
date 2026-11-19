@@ -138,7 +138,7 @@ const itemOverlays = gameCase.items.map((item) => {
   const slot = itemSlotIndex.get(item.itemId);
   return {
     itemId: item.itemId,
-    generator: 'gpt-image-transparent',
+    generator: 'transparent-cutout',
     target: item.imageUrl,
     sceneId: slot?.sceneId ?? null,
     targetSlotPx: slot ? { x: slot.x, y: slot.y, width: slot.width, height: slot.height } : null,
@@ -199,7 +199,7 @@ const playerSprites = [
   },
 ].map((p) => ({
   ...p,
-  generator: 'gpt-image-transparent',
+  generator: 'transparent-cutout',
   target: `/assets/players/${p.name.split(' ').pop().toLowerCase()}.png`,
   sizePx: { width: 256, height: 448 },
   facing: 'right (the engine mirrors the sprite horizontally for left movement)',

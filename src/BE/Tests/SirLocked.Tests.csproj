@@ -18,8 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\appsettings.json" Link="ApiConfig\appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\SeedData\sample-case.json" Link="SeedData\sample-case.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\SeedData\V3\*.json" Link="SeedData\V3\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\SeedData\Cutscenes\*.json" Link="SeedData\Cutscenes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The sample case the Claude bot made on 16/11 (Claude outputs/vu-an-mau): reference for the new optional fields. -->
+    <Content Include="Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

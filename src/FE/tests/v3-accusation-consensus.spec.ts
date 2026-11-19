@@ -201,7 +201,7 @@ async function contextFor(browser: Browser, flow: SharedAccusationFlow, role: Ro
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.route(`**/api/game/rooms/${flow.roomId}/**`, (route) => flow.route(role, route));
-  await page.goto(`/#/game/${flow.roomId}`);
+  await page.goto(`/game/${flow.roomId}`);
   return { context, page, errors };
 }
 
@@ -229,6 +229,8 @@ async function buildAccusation(page: Page, culpritId: string) {
 }
 
 test('one detective cannot end the case; both must confirm the same revision', async ({ browser }) => {
+  // Two browser contexts, each tracing every Vite module it loads: closing them can outlast the default timeout.
+  test.slow();
   const flow = new SharedAccusationFlow(1);
   const investigator = await contextFor(browser, flow, 'INVESTIGATOR');
   const interrogator = await contextFor(browser, flow, 'INTERROGATOR');
@@ -265,10 +267,10 @@ test('one detective cannot end the case; both must confirm the same revision', a
 
   // A confirms revision 2, which is the second agreement and closes the case for both.
   await investigator.page.locator('#accusation-confirm').click();
-  await expect(investigator.page).toHaveURL(new RegExp(`#/result/${flow.roomId}$`));
+  await expect(investigator.page).toHaveURL(new RegExp(`/result/${flow.roomId}$`));
 
   await emitState(interrogator.page, flow.version);
-  await expect(interrogator.page).toHaveURL(new RegExp(`#/result/${flow.roomId}$`));
+  await expect(interrogator.page).toHaveURL(new RegExp(`/result/${flow.roomId}$`));
 
   expect(investigator.errors).toEqual([]);
   expect(interrogator.errors).toEqual([]);
@@ -277,6 +279,7 @@ test('one detective cannot end the case; both must confirm the same revision', a
 });
 
 test('withdrawing a proposal reopens the accusation for either detective', async ({ browser }) => {
+  test.slow();
   const flow = new SharedAccusationFlow(2);
   const investigator = await contextFor(browser, flow, 'INVESTIGATOR');
   const interrogator = await contextFor(browser, flow, 'INTERROGATOR');

@@ -227,10 +227,12 @@ async function prepare(page: Page, initialState: ReturnType<typeof v3State>) {
 }
 
 test('role-private notebooks never render partner sentinels before Joint Review', async ({ browser }) => {
+  // Two browser contexts, each tracing every Vite module it loads: closing them can outlast the default timeout.
+  test.slow();
   const investigatorContext = await browser.newContext();
   const investigatorPage = await investigatorContext.newPage();
   await prepare(investigatorPage, v3State('INVESTIGATOR'));
-  await investigatorPage.goto(`/#/game/${roomId}`);
+  await investigatorPage.goto(`/game/${roomId}`);
   await investigatorPage.locator('#case-file-btn').click();
   await expect(investigatorPage.locator('[data-private-evidence-card]')).toContainText(investigatorSecret);
   await expect(investigatorPage.locator('.v3-private-photo')).toHaveAttribute('src', /^blob:/);
@@ -240,7 +242,7 @@ test('role-private notebooks never render partner sentinels before Joint Review'
   const interrogatorContext = await browser.newContext();
   const interrogatorPage = await interrogatorContext.newPage();
   await prepare(interrogatorPage, v3State('INTERROGATOR'));
-  await interrogatorPage.goto(`/#/game/${roomId}`);
+  await interrogatorPage.goto(`/game/${roomId}`);
   await interrogatorPage.locator('#case-file-btn').click();
   await expect(interrogatorPage.locator('body')).not.toContainText(investigatorSecret);
   await expect(interrogatorPage.locator('.v3-private-photo')).toHaveCount(0);
@@ -252,10 +254,11 @@ test('role-private notebooks never render partner sentinels before Joint Review'
 });
 
 test('all disclosed wrong options remain reusable from each owner notebook', async ({ browser }) => {
+  test.slow();
   const interrogatorContext = await browser.newContext();
   const interrogatorPage = await interrogatorContext.newPage();
   await prepare(interrogatorPage, exhaustedRetryState('INTERROGATOR'));
-  await interrogatorPage.goto(`/#/game/${roomId}`);
+  await interrogatorPage.goto(`/game/${roomId}`);
   await interrogatorPage.locator('#case-file-btn').click();
   await interrogatorPage.locator('[data-case-tab="testimony"]').click();
   await expect(interrogatorPage.locator('[data-private-testimony-card]')).toHaveCount(3);
@@ -267,7 +270,7 @@ test('all disclosed wrong options remain reusable from each owner notebook', asy
   const investigatorContext = await browser.newContext();
   const investigatorPage = await investigatorContext.newPage();
   await prepare(investigatorPage, exhaustedRetryState('INVESTIGATOR'));
-  await investigatorPage.goto(`/#/game/${roomId}`);
+  await investigatorPage.goto(`/game/${roomId}`);
   await investigatorPage.locator('#case-file-btn').click();
   await expect(investigatorPage.locator('[data-private-evidence-card]')).toHaveCount(3);
   await expect(investigatorPage.locator('.v3-private-list')).toContainText('Waiting for a testimony proposal');
@@ -301,7 +304,7 @@ test('Joint Review discloses exactly the pair and correct confirmation presents 
   });
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await page.locator('#case-file-btn').click();
   await page.locator('[data-case-tab="contradictions"]').click();
   await expect(page.locator('.v3-joint-review')).toContainText(interrogatorSecret);
@@ -338,7 +341,7 @@ test('reduced motion keeps the payoff accessible without animation', async ({ pa
       body: JSON.stringify({ success: true, data: { state: correctTerminalState('INVESTIGATOR'), changed: true } }),
     });
   });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await page.locator('#case-file-btn').click();
   await page.locator('[data-case-tab="contradictions"]').click();
   await page.locator('[data-v3-confirm]').click();

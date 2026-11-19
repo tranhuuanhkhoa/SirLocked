@@ -7,6 +7,7 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Investigation;
+using SirLocked.Api.DTOs.Leaderboard;
 using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
@@ -128,6 +129,88 @@ public sealed class MongoAccusationConsensusTests
     }
 
     [Fact]
+    public async Task PlaytestRoom_EndsTheCase_WithoutAGameResultRewardOrRanking()
+    {
+        if (!ShouldRun()) return;
+
+        var settings = NewSettings();
+        TestMongoSafetyGuard.EnsureSafe(settings);
+        var db = new MongoDbContext(Options.Create(settings));
+        var client = new MongoClient(settings.ConnectionString);
+
+        try
+        {
+            await db.PingAsync();
+            await db.EnsureIndexesAsync();
+            var room = await InsertProposedRoomAsync(db, playtest: true);
+            var rewards = new RecordingRewardHook();
+            var partner = new CurrentUser(Interrogator, "Partner", UserRole.Player);
+
+            var outcome = await TryConfirmAsync(db, await db.Rooms.Find(candidate => candidate.Id == room.Id).FirstAsync(),
+                partner, new AccusationRevisionRequest { ExpectedRevision = 1 }, rewards);
+
+            // The case ends exactly as an ordinary one would, and says it was a playtest.
+            Assert.NotNull(outcome.Response?.Result);
+            Assert.True(outcome.Response!.Result!.Success);
+            Assert.True(outcome.Response.Result.IsPlaytest);
+            var authoritative = await db.Rooms.Find(candidate => candidate.Id == room.Id).FirstAsync();
+            Assert.Equal(RoomStatus.Completed, authoritative.Status);
+            Assert.NotNull(authoritative.GameplayState!.FinalAccusationSnapshot);
+            Assert.NotNull(authoritative.Playtest);
+
+            // ...but nothing counts it: no GameResult (leaderboards, profile, achievements, reviews and the market's
+            // recovery sweep all read that collection) and no reward hook call.
+            Assert.Empty(await db.GameResults.Find(FilterDefinition<GameResult>.Empty).ToListAsync());
+            Assert.Equal(0, rewards.Calls);
+            Assert.Equal(0, (await new LeaderboardService(db).GetCaseLeaderboardAsync(CaseId, LeaderboardMetrics.TopScore)).TotalRanked);
+
+            // The result page still reads it back, from the room's own snapshot.
+            var reader = BuildGameplay(db, authoritative, new RecordingRewardHook());
+            var read = await reader.GetResultAsync(Investigator, room.Id);
+            Assert.True(read.IsPlaytest);
+            Assert.True(read.Success);
+            Assert.Equal(CaseId, read.CaseId);
+            Assert.Empty(await db.GameResults.Find(FilterDefinition<GameResult>.Empty).ToListAsync());
+        }
+        finally
+        {
+            TestMongoSafetyGuard.EnsureSafe(settings);
+            await client.DropDatabaseAsync(settings.DatabaseName);
+        }
+    }
+
+    [Fact]
+    public async Task OrdinaryRoom_StillWritesItsResultAndPaysTheRewardHook()
+    {
+        if (!ShouldRun()) return;
+
+        var settings = NewSettings();
+        TestMongoSafetyGuard.EnsureSafe(settings);
+        var db = new MongoDbContext(Options.Create(settings));
+        var client = new MongoClient(settings.ConnectionString);
+
+        try
+        {
+            await db.PingAsync();
+            await db.EnsureIndexesAsync();
+            var room = await InsertProposedRoomAsync(db);
+            var rewards = new RecordingRewardHook();
+            var outcome = await TryConfirmAsync(db, await db.Rooms.Find(candidate => candidate.Id == room.Id).FirstAsync(),
+                new CurrentUser(Interrogator, "Partner", UserRole.Player), new AccusationRevisionRequest { ExpectedRevision = 1 }, rewards);
+
+            Assert.False(outcome.Response!.Result!.IsPlaytest);
+            Assert.Single(await db.GameResults.Find(FilterDefinition<GameResult>.Empty).ToListAsync());
+            Assert.Equal(1, rewards.Calls);
+            Assert.Equal(1, (await new LeaderboardService(db).GetCaseLeaderboardAsync(CaseId, LeaderboardMetrics.TopScore)).TotalRanked);
+        }
+        finally
+        {
+            TestMongoSafetyGuard.EnsureSafe(settings);
+            await client.DropDatabaseAsync(settings.DatabaseName);
+        }
+    }
+
+    [Fact]
     public async Task LegacyRoomWithoutAccusationFields_StillLoads()
     {
         if (!ShouldRun()) return;
@@ -181,7 +264,7 @@ public sealed class MongoAccusationConsensusTests
         }
     }
 
-    private static async Task<GameRoom> InsertProposedRoomAsync(MongoDbContext db)
+    private static async Task<GameRoom> InsertProposedRoomAsync(MongoDbContext db, bool playtest = false)
     {
         var gameCase = BuildCase();
         var state = new GameplayState
@@ -218,6 +301,13 @@ public sealed class MongoAccusationConsensusTests
             CaseId = CaseId,
             HostUserId = Investigator,
             Status = RoomStatus.InProgress,
+            Playtest = playtest
+                ? new RoomPlaytest
+                {
+                    DraftId = ObjectId.GenerateNewId().ToString(), AuthorUserId = Investigator, CreatedByUserId = Investigator,
+                    InviteToken = PlaytestRoomRules.NewInviteToken(), InvitedUserId = Interrogator
+                }
+                : null,
             GameplayState = state,
             Players = new List<RoomPlayer>
             {
@@ -233,9 +323,10 @@ public sealed class MongoAccusationConsensusTests
         MongoDbContext db,
         GameRoom snapshot,
         CurrentUser user,
-        AccusationRevisionRequest request)
+        AccusationRevisionRequest request,
+        IGameResultRewardHook? rewards = null)
     {
-        var coordinator = BuildCoordinator(db, snapshot);
+        var coordinator = BuildCoordinator(db, snapshot, rewards);
         try
         {
             return new ConfirmOutcome(
@@ -252,24 +343,14 @@ public sealed class MongoAccusationConsensusTests
     /// The production wiring, except that the context loader hands back an already-loaded snapshot so
     /// the two callers deterministically collide on the same revision.
     /// </summary>
-    private static AccusationConsensusCoordinator BuildCoordinator(MongoDbContext db, GameRoom snapshot)
+    private static AccusationConsensusCoordinator BuildCoordinator(MongoDbContext db, GameRoom snapshot, IGameResultRewardHook? rewards = null)
     {
         var gameCase = BuildCase();
         var persistence = new GameplayStatePersistence(db, TimeProvider.System);
         var stateBuilder = new GameStateBuilder(db);
         var notifier = new SilentGameNotifier();
         var playtestEvents = new NoOpPlaytestEventSink();
-        var resolver = new GameplayService(
-            db,
-            new SnapshotContextLoader(snapshot, gameCase),
-            persistence,
-            notifier,
-            stateBuilder,
-            new UnusedEvidencePhotoService(),
-            new MongoGameResultStore(db),
-            playtestEvents,
-            Options.Create(new AccusationSettings()),
-            NullLogger<GameplayService>.Instance);
+        var resolver = BuildGameplay(db, snapshot, rewards);
 
         return new AccusationConsensusCoordinator(
             new SnapshotContextLoader(snapshot, gameCase),
@@ -280,6 +361,29 @@ public sealed class MongoAccusationConsensusTests
             resolver,
             TimeProvider.System,
             Options.Create(new AccusationSettings()));
+    }
+
+    private static GameplayService BuildGameplay(MongoDbContext db, GameRoom snapshot, IGameResultRewardHook? rewards) => new(
+        db,
+        new SnapshotContextLoader(snapshot, BuildCase()),
+        new GameplayStatePersistence(db, TimeProvider.System),
+        new SilentGameNotifier(),
+        new GameStateBuilder(db),
+        new UnusedEvidencePhotoService(),
+        new MongoGameResultStore(db, rewards),
+        new NoOpPlaytestEventSink(),
+        Options.Create(new AccusationSettings()),
+        NullLogger<GameplayService>.Instance);
+
+    private sealed class RecordingRewardHook : IGameResultRewardHook
+    {
+        public int Calls { get; private set; }
+
+        public Task OnGameResultPersistedAsync(GameResult result, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return Task.CompletedTask;
+        }
     }
 
     private static List<SelectedEvidenceLink> CorrectLinks() => new()
@@ -399,5 +503,6 @@ public sealed class MongoAccusationConsensusTests
         public Task StageChanged(string roomId, string previousStageId, string currentStageId, string previousSceneId, string currentSceneId, bool isFinalStageCompleted, string userId, long version) => Task.CompletedTask;
         public Task GameCompleted(string roomId, GameResultResponse result) => Task.CompletedTask;
         public Task SystemMessage(string roomId, string message) => Task.CompletedTask;
+        public Task PlayerEntrance(string roomId, SirLocked.Api.DTOs.Market.PlayerEntranceDto entrance) => Task.CompletedTask;
     }
 }

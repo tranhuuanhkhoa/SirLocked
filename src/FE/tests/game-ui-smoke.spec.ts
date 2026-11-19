@@ -234,7 +234,7 @@ test('witness reading progress and Phaser entities survive unrelated partner act
     await route.fulfill({ json: { success: true, data: { changed: true, unlockedClueIds: [], state } } });
   });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
   // Canvas visibility precedes Phaser's first input frame. Wait for the witness's
@@ -310,7 +310,7 @@ test('comic skip is local, survives reload, and reduced motion keeps the poster'
   await page.route('**/should-not-load*.mp4', async (route) => { videoRequests++; await route.abort(); });
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: state } }));
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.comic-overlay')).toBeVisible();
   await expect(page.locator('.comic-caption')).toContainText('The witness has a secret.');
   await expect(page.locator('.comic-media img')).toBeVisible();
@@ -351,7 +351,7 @@ test('comic preloads only the next permitted panel and reuses protected media un
     // The intentionally unsupported clip also verifies the poster remains usable.
     await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="navy"/></svg>' });
   });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.comic-caption')).toHaveText('First panel');
   await expect.poll(() => counts).toEqual({ one: 1, two: 1, 'two-video': 1 });
   await expect.poll(() => page.locator('.comic-media img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(40);
@@ -390,7 +390,7 @@ test('closing a comic aborts its pending next-panel preload', async ({ page }) =
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: state } }));
   let requested = false;
   await page.route(`**${nextPoster}`, () => { requested = true; });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.comic-caption')).toHaveText('Start investigating');
   await expect.poll(() => requested).toBe(true);
   await page.locator('[data-comic-skip]').click();
@@ -399,7 +399,7 @@ test('closing a comic aborts its pending next-panel preload', async ({ page }) =
 });
 
 test('team pings ignore the same user across tabs and disappear at server expiry', async ({ page }) => {
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('canvas').first()).toBeVisible();
   await page.evaluate(() => {
     (window as any).__sirlockedEmitSignalR('TeamPing', {
@@ -430,7 +430,7 @@ for (const anchor of [
   const state = { ...interrogatorState, visibleScene: { ...interrogatorState.visibleScene,
     characters: interrogatorState.visibleScene.characters.map((character) => ({ ...character, presentation: { spriteSheet: { url: '/assets/players/holmes-sheet.png', frameWidth: 128, frameHeight: 192, frameCount: 6, fps: 6, idleFrames: [0, 1, 2, 3, 4, 5], ...anchor.input } } })) } };
   await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: state } }));
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const frame = () => page.evaluate(() => {
     const animation = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene')?.npcAnimations?.[0];
     if (!animation) return null;
@@ -470,7 +470,7 @@ test('visual novel portrait media falls back safely and fits desktop and mobile'
     await route.fulfill({ status: 404, body: '' });
   });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').npcBreathing.length)).toBeGreaterThan(0);
@@ -585,12 +585,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function openInitialBriefing(page: Page) {
-  await page.goto('/#/menu');
+  await page.goto('/menu');
   await expect(page.locator('.title-menu-screen')).toBeVisible();
   // Change only the hash so the shared session init script does not skip this intro.
   await page.evaluate((id) => {
     sessionStorage.removeItem(`sirlocked.intro.${id}`);
-    window.location.hash = `#/game/${id}`;
+    history.pushState(null, '', `/game/${id}`); dispatchEvent(new PopStateEvent('popstate'));
   }, roomId);
   await expect(page.locator('#intro-dismiss')).toBeVisible();
 }
@@ -685,7 +685,7 @@ async function installDeferredEvidencePhoto(page: Page) {
 
 test('evidence photos share one inflight request across images and redraws and revoke their cached URL on exit', async ({ page }) => {
   await installDeferredEvidencePhoto(page);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await page.locator('#case-file-btn').click();
   await expect(page.locator('img[data-auth-image]')).toHaveCount(2);
   await expect.poll(() => page.evaluate(() => (window as any).__photoRequests)).toBe(1);
@@ -698,7 +698,7 @@ test('evidence photos share one inflight request across images and redraws and r
   await page.locator('[data-case-tab="testimony"]').click();
   await page.locator('[data-case-tab="evidence"]').click();
   expect(await page.evaluate(() => ({ requests: (window as any).__photoRequests, urls: (window as any).__photoCreated.length }))).toEqual({ requests: 1, urls: 1 });
-  await page.evaluate(() => { window.location.hash = '#/menu'; });
+  await page.evaluate(() => { history.pushState(null, '', '/menu'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('.title-menu-screen')).toBeVisible();
   expect(await page.evaluate(() => {
     const w = window as any;
@@ -708,10 +708,10 @@ test('evidence photos share one inflight request across images and redraws and r
 
 test('evidence photos abort on navigation and a late body creates no object URL or stale UI', async ({ page }) => {
   await installDeferredEvidencePhoto(page);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await page.locator('#case-file-btn').click();
   await expect.poll(() => page.evaluate(() => (window as any).__photoRequests)).toBe(1);
-  await page.evaluate(() => { window.location.hash = '#/menu'; });
+  await page.evaluate(() => { history.pushState(null, '', '/menu'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('.title-menu-screen')).toBeVisible();
   expect(await page.evaluate(() => (window as any).__photoAborted)).toBe(true);
   await page.evaluate(() => (window as any).__resolvePhoto());
@@ -854,7 +854,7 @@ test('scene audio switches authored loops, ducks dialogue, persists settings and
       released: w.__media.every((media: any) => media.paused && media.src === ''), closes: w.__context.closes };
   });
   expect(result).toEqual({ beforeGesture: 0, ducked: .06, unducked: .2, muted: true, oldStopped: true, hiddenStopped: true, resumed: true,
-    volume: .4, settings: { music: .4, effects: .6, muted: false }, released: true, closes: 1 });
+    volume: .4, settings: { music: .4, effects: .6, muted: false, blips: .5, weatherEffects: true }, released: true, closes: 1 });
 });
 
 test('scene audio recovers a blocked gesture and uses generated fallback for missing media or unsafe URLs', async ({ page }) => {
@@ -925,7 +925,7 @@ test('authored sound pack decodes in the browser as quiet nonempty loops and fee
 });
 
 test('game drawers trap keyboard focus, permit Escape and restore the opening control', async ({ page }) => {
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
   await page.locator('#map-btn').focus();
@@ -964,7 +964,7 @@ test('game drawers trap keyboard focus, permit Escape and restore the opening co
 
 test('Investigator shell keeps the scene primary and reports discoveries without a modal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
 
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
@@ -1009,6 +1009,55 @@ test('Investigator shell keeps the scene primary and reports discoveries without
   await expect(page.locator('#case-file-btn')).toBeFocused();
 });
 
+test('the Leave tool asks first: Stay or Escape keeps the case, Leave goes to the home page', async ({ page }) => {
+  await page.goto(`/game/${roomId}`);
+  const leave = page.locator('#game-leave-btn');
+  await expect(leave).toBeVisible();
+  await expect(leave).toHaveAccessibleName('Leave the case');
+
+  await leave.click();
+  const dialog = page.getByRole('dialog', { name: 'Leave the case?' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('5 minutes');
+  await expect(dialog).toContainText('partner');
+  await expect(dialog.getByRole('button', { name: 'Stay' })).toBeFocused();
+
+  // Keys typed in the dialog stay there: B would otherwise open the bag behind it.
+  await page.keyboard.press('b');
+  await expect(page.locator('.inventory-drawer')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/game/${roomId}$`));
+  await expect(leave).toBeFocused();
+
+  await leave.click();
+  await dialog.getByRole('button', { name: 'Stay' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/game/${roomId}$`));
+  // Back in the game, the same key opens the bag.
+  await page.keyboard.press('b');
+  await expect(page.locator('.inventory-drawer')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.inventory-drawer')).toHaveCount(0);
+
+  await leave.click();
+  await dialog.getByRole('button', { name: 'Leave', exact: true }).click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('the Leave tool fits the phone tray', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 760 });
+  await page.goto(`/game/${roomId}`);
+  const leave = page.locator('#game-leave-btn');
+  await expect(leave).toBeVisible();
+  const box = await leave.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+  expect(box!.width).toBeGreaterThanOrEqual(40);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
 test('Interrogator receives a large witness portrait and bottom speech panel', async ({ page }) => {
   await page.unroute(`**/api/game/rooms/${roomId}/state`);
   await page.route(`**/api/game/rooms/${roomId}/state`, async (route) => {
@@ -1016,7 +1065,7 @@ test('Interrogator receives a large witness portrait and bottom speech panel', a
   });
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('canvas').first()).toBeVisible();
   await expect(page.locator('#floating-camera-btn')).toHaveCount(0);
   await expect(page.locator('#floating-bag-btn')).toHaveCount(0);
@@ -1066,7 +1115,7 @@ test('final accusation appears as a ready event instead of a permanently disable
   });
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.final-confrontation-callout')).toContainText('Final confrontation ready');
   await expect(page.locator('.investigation-tool-dock #accuse-btn')).toHaveCount(0);
   await page.locator('.final-confrontation-callout').click();
@@ -1100,7 +1149,7 @@ test('causal contract renders and requires all five accusation claims', async ({
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: causalAccusationReadyState }) });
   });
 
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await page.locator('.final-confrontation-callout').click();
   await page.locator('[data-suspect]').click();
   await page.locator('#accuse-next').click();
@@ -1125,7 +1174,7 @@ test('case file shows square evidence in two columns and opens a large detail vi
   });
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await page.locator('#case-file-btn').click();
   await expect(page.locator('.case-file-clue-card')).toHaveCount(4);
   const cards = page.locator('.case-file-clue-card');
@@ -1160,7 +1209,7 @@ test('locked authored scenes stay hidden until Continue applies server movement'
   });
 
   await page.setViewportSize({ width: 1100, height: 760 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
 
@@ -1192,7 +1241,7 @@ test('interface language switch changes English and Vietnamese and persists', as
   });
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto('/#/cases');
+  await page.goto('/cases');
   await expect(page.locator('.page-head h2')).toHaveText('Published Cases');
   await expect(page.locator('[data-ui-language="en"]')).toHaveAttribute('aria-pressed', 'true');
 
@@ -1211,7 +1260,7 @@ test('interface language switch changes English and Vietnamese and persists', as
 test('Vietnamese language applies inside gameplay overlays', async ({ page }) => {
   await page.addInitScript(() => window.localStorage.setItem('sirlocked.uiLanguage', 'vi'));
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('canvas').first()).toBeVisible();
   await expect(page.locator('.scene-progress')).toContainText('Đã mở lối điều tra tiếp theo');
 
@@ -1221,6 +1270,36 @@ test('Vietnamese language applies inside gameplay overlays', async ({ page }) =>
   await expect(page.locator('.case-file-modal')).toContainText('Chưa thu thập được chứng cứ nào.');
   await expect(page.getByRole('button', { name: 'Đóng' })).toBeVisible();
 });
+
+for (const language of ['vi', 'en'] as const) {
+  test(`partner and connection notices follow the interface language (${language})`, async ({ page }) => {
+    await page.addInitScript((value) => window.localStorage.setItem('sirlocked.uiLanguage', value), language);
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto(`/game/${roomId}`);
+    await expect(page.locator('canvas').first()).toBeVisible();
+    await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
+    const vi = language === 'vi';
+    // The game page keeps one toast at a time, so each notice is read right after its event.
+    const notices: Array<[string, unknown, string]> = [
+      ['PlayerPresenceChanged', { userId: 'player-2', isConnected: false }, vi ? 'Đồng đội bị mất kết nối. Đang chờ kết nối lại...' : 'Your partner disconnected. Waiting for reconnect...'],
+      ['PlayerPresenceChanged', { userId: 'player-2', isConnected: true }, vi ? 'Đồng đội đã kết nối lại.' : 'Your partner reconnected.'],
+      ['ItemFound', { userId: 'player-2' }, vi ? 'Đồng đội vừa tìm thấy một thứ.' : 'Your partner found something.'],
+      ['DialogueAnswered', { userId: 'player-2' }, vi ? 'Đồng đội vừa mở được lời khai mới.' : 'Your partner unlocked new testimony.'],
+      ['ClueUnlocked', { clueId: 'clue-unknown', userId: 'player-2' }, vi ? 'Đã thêm chứng cứ vào hồ sơ.' : 'Evidence added to the case file.'],
+      ['SceneChanged', { userId: 'player-2' }, vi ? 'Đồng đội đã sang địa điểm khác.' : 'Your partner moved to another location.'],
+      ['StageChanged', { isFinalStageCompleted: false, userId: 'player-2' }, vi ? 'Đồng đội vừa mở một manh mối mới.' : 'Your partner opened a new lead.'],
+      ['StageChanged', { isFinalStageCompleted: true, userId: 'player-2' }, vi ? 'Màn đối chất cuối cùng đã sẵn sàng.' : 'The final confrontation is ready.'],
+      ['InvestigationUpdate', { type: 'DIALOGUE_UNLOCKED', targetId: 'dlg-new', characterId: 'char-witness', actorUserId: 'player-2' }, vi ? 'Có lời khai mới từ Witness.' : 'New testimony available from Witness.'],
+      ['InvestigationUpdate', { type: 'ACTIVITY', actorUserId: 'player-2' }, vi ? 'Cuộc điều tra có manh mối mới.' : 'The investigation has a new lead.'],
+    ];
+    for (const [event, payload, text] of notices) {
+      await page.evaluate(([name, data]) => {
+        (window as unknown as { __sirlockedEmitSignalR: (event: string, payload: unknown) => void }).__sirlockedEmitSignalR(name as string, data);
+      }, [event, payload] as const);
+      await expect(page.locator('#toast-root .toast').last(), `${event} → ${text}`).toHaveText(text);
+    }
+  });
+}
 
 test('two-player presence recovers and version events coalesce to one state refetch', async ({ page }) => {
   let stateRequests = 0;
@@ -1235,7 +1314,7 @@ test('two-player presence recovers and version events coalesce to one state refe
   });
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
   await expect(page.locator('#game-hud-slot .game-players')).toContainText('INT');
 
@@ -1310,7 +1389,7 @@ test('offline countdown survives reload and waits for server confirmation at the
   await page.clock.install({ time: now });
   await page.clock.pauseAt(now);
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#game-reconnect-countdown')).toHaveText('03:00');
   await expect(page.locator('#game-reconnect-wait')).toContainText('ends automatically after 5 minutes');
   await expect(page.locator('#abandon-game-btn')).toHaveCount(0);
@@ -1345,7 +1424,7 @@ test('offline countdown survives reload and waits for server confirmation at the
   await expect(page.getByRole('heading', { name: 'Room ended' })).toBeVisible();
   await expect(page.locator('canvas')).toHaveCount(0);
   await expect(page.locator('#game-reconnect-wait')).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Back to cases' })).toHaveAttribute('href', '#/cases');
+  await expect(page.getByRole('link', { name: 'Back to cases' })).toHaveAttribute('href', '/cases');
   await page.clock.fastForward(600_000);
   expect(requests).toBe(4); // Ending the room disposes its countdown and state subscription.
 });
@@ -1359,7 +1438,7 @@ test('reconnecting before the offline deadline cancels it and a later disconnect
   });
   await page.clock.install({ time: now });
   await page.clock.pauseAt(now);
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
   await page.evaluate(() => (window as any).__sirlockedEmitSignalR('PlayerPresenceChanged', {
     userId: 'player-2', isConnected: false, changedAt: new Date(Date.now()).toISOString(),
@@ -1398,7 +1477,7 @@ test('both offline players returning to an ended room see the terminal screen fo
     },
   } }));
   for (mechanicsVersion of [1, 2, 3]) {
-    await page.goto(`/#/game/${roomId}`);
+    await page.goto(`/game/${roomId}`);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Phòng đã kết thúc' })).toBeVisible();
     await expect(page.locator('.empty-state')).toContainText('mất kết nối liên tục 5 phút');
@@ -1418,8 +1497,8 @@ test('a completed room keeps its result when returning players have old offline 
     success: true,
     data: { success: true, ending: 'The case was already solved.', selectedEvidenceIds: [] },
   } }));
-  await page.goto(`/#/game/${roomId}`);
-  await expect(page).toHaveURL(new RegExp(`#/result/${roomId}$`));
+  await page.goto(`/game/${roomId}`);
+  await expect(page).toHaveURL(new RegExp(`/result/${roomId}$`));
   await expect(page.locator('.result-banner')).toHaveText('CASE CLOSED');
   await expect(page.locator('#game-reconnect-wait')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Room ended' })).toHaveCount(0);
@@ -1440,10 +1519,11 @@ test('failed room sync stops retrying and offers a working keyboard recovery act
         : { success: false, message: 'Temporarily unavailable.' }),
     });
   });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('#game-hud-slot .game-players')).toContainText('Partner');
   await page.clock.install();
-  await page.clock.pauseAt(new Date());
+  // On a loaded page the installed clock keeps running, so "now" may be past by the time it pauses: pause just ahead.
+  await page.clock.pauseAt(Date.now() + 1_000);
   await page.evaluate(() => (window as any).__sirlockedEmitSignalR('GameStateUpdated', { version: 2 }));
   await expect(page.locator('.game-recovery')).toContainText('Restoring the latest room state');
   for (const [index, delay] of [500, 1000, 2000, 4000, 8000].entries()) {
@@ -1478,7 +1558,7 @@ test('failed room sync stops retrying and offers a working keyboard recovery act
 
 test('role guide tracks local actions, survives partner updates and reload, and can be dismissed or reopened', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   const summary = page.locator('.role-guide-controls summary');
   await expect(summary).toContainText('0/3');
   await expect(page.locator('.role-guide-panel')).toBeHidden();
@@ -1521,7 +1601,7 @@ test('Interrogator guide checks questioning only after a successful local answer
     status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { state: interrogatorState, changed: true, unlockedClueIds: [], message: 'Answered.' } }),
   }));
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   await expect(page.locator('.role-guide-controls summary')).toContainText('0/3');
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
@@ -1533,6 +1613,127 @@ test('Interrogator guide checks questioning only after a successful local answer
   await expect(page.locator('[data-guide-progress]')).toHaveText('1/3');
 });
 
+test('phone dock and tool tray presses never reach the Phaser scene', async ({ page }) => {
+  let inspections = 0;
+  let captures = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/inspect-item')) inspections++;
+    if (request.url().endsWith('/capture-clue')) captures++;
+  });
+  const sceneReady = async () => {
+    await expect(page.locator('.context-action')).toContainText('Folded Note');
+    await expect.poll(() => page.evaluate(() => {
+      const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+      return Boolean(scene?.sceneInteractionEnabled && scene.input.enabled);
+    })).toBe(true);
+  };
+  // Checked once rather than retried: the card and the toast of a leaked press go away on their own.
+  const expectSceneUntouched = async () => {
+    await page.waitForTimeout(800); // room for an approach walk and its request
+    expect({ inspections, captures }).toEqual({ inspections: 0, captures: 0 });
+    expect(await page.locator('.discovery-card, .conversation-box').count()).toBe(0);
+    expect(await page.locator('.toast', { hasText: 'Interrogator partner' }).count()).toBe(0);
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/game/${roomId}`);
+  await sceneReady();
+  // The dock rides over the note's hotspot (and the witness), so a press reaching the scene would act on them.
+  const overNote = (selector: string) => page.evaluate((sel) => {
+    const scene = (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene');
+    const zone = scene.children.list.find((child: any) => child.type === 'Zone' && child.getData('label') === 'Folded Note');
+    const canvas = scene.game.canvas.getBoundingClientRect();
+    const button = document.querySelector(sel)!.getBoundingClientRect();
+    return zone.getBounds().contains((button.x + button.width / 2 - canvas.x) * scene.scale.width / canvas.width,
+      (button.y + button.height / 2 - canvas.y) * scene.scale.height / canvas.height);
+  }, selector);
+  expect(await overNote('#mobile-camera-btn')).toBe(true);
+  expect(await overNote('#mobile-inventory-btn')).toBe(true);
+
+  const camera = page.locator('#mobile-camera-btn');
+  await camera.click();
+  await expect(camera).toHaveAttribute('aria-pressed', 'true');
+  await expectSceneUntouched();
+  // In camera mode a press anywhere on the scene shoots; presses on the tray (its camera bar and a tool) must not.
+  await page.locator('.bpa-g-mb-count').click();
+  await page.locator('.role-guide-controls summary').click();
+  await expect(page.locator('.role-guide-panel')).toBeVisible();
+  await expectSceneUntouched();
+  await camera.click();
+  await expect(camera).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#mobile-inventory-btn').click();
+  await expect(page.locator('.inventory-drawer')).toBeVisible();
+  await expectSceneUntouched();
+
+  // A finger reaches Phaser through touchstart: tap the dock again on an emulated touch screen.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  await page.reload();
+  await sceneReady();
+  expect(await page.evaluate(() => (window as any).__sirlockedGame.input.touch.enabled)).toBe(true);
+  const box = (await camera.boundingBox())!;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(camera).toHaveAttribute('aria-pressed', 'true');
+  await expectSceneUntouched();
+});
+
+test('discovery card and confrontation call-out presses never reach the Phaser scene', async ({ page }) => {
+  let current: object = smokeState;
+  let inspections = 0;
+  await page.unroute(`**/api/game/rooms/${roomId}/state`);
+  await page.route(`**/api/game/rooms/${roomId}/state`, (route) => route.fulfill({ json: { success: true, data: current } }));
+  page.on('request', (request) => { if (request.url().endsWith('/inspect-item')) inspections++; });
+  const sceneReady = () => expect.poll(() => page.evaluate(() => {
+    const scene = (window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene');
+    return Boolean(scene?.sceneInteractionEnabled && scene.input.enabled);
+  })).toBe(true);
+  // A point of the control (on top there, and not one of its inner buttons) that lies over the note's hotspot zone.
+  const pointOverNote = (selector: string) => page.evaluate((sel) => {
+    const scene = (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene');
+    const zone = scene.children.list.find((child: any) => child.type === 'Zone' && child.getData('label') === 'Folded Note').getBounds();
+    const canvas = scene.game.canvas.getBoundingClientRect();
+    const view = scene.cameras.main.worldView, ratio = canvas.width / scene.scale.width * scene.cameras.main.zoom;
+    const left = canvas.x + (zone.x - view.x) * ratio, top = canvas.y + (zone.y - view.y) * ratio;
+    const control = document.querySelector(sel)!.getBoundingClientRect();
+    for (let y = Math.ceil(Math.max(top, control.top)) + 2; y < Math.min(top + zone.height * ratio, control.bottom) - 2; y += 4) {
+      for (let x = Math.ceil(Math.max(left, control.left)) + 2; x < Math.min(left + zone.width * ratio, control.right) - 2; x += 4) {
+        const hit = document.elementFromPoint(x, y);
+        if (hit?.closest(sel) && hit.closest(`${sel}, button`)?.matches(sel)) return { x, y };
+      }
+    }
+    return null;
+  }, selector);
+  // Checked once rather than retried: a leaked press inspects the note right away (the player starts in reach).
+  const expectSceneUntouched = async (expected: number) => {
+    await page.waitForTimeout(800);
+    expect(inspections).toBe(expected);
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto(`/game/${roomId}`);
+  await expect(page.locator('.context-action')).toContainText('Folded Note');
+  await sceneReady();
+  await page.locator('#mobile-interact-btn').click();
+  await expect(page.locator('.discovery-card')).toContainText('Folded Note');
+  await expect.poll(() => inspections).toBe(1);
+  await sceneReady();
+  const onCard = await pointOverNote('.discovery-card');
+  expect(onCard).not.toBeNull();
+  await page.mouse.click(onCard!.x, onCard!.y);
+  await expectSceneUntouched(1);
+  await expect(page.locator('.discovery-card')).toBeVisible();
+
+  current = accusationReadyState;
+  await page.reload();
+  await expect(page.locator('.final-confrontation-callout')).toBeVisible();
+  await sceneReady();
+  const onCallout = await pointOverNote('.final-confrontation-callout');
+  expect(onCallout).not.toBeNull();
+  await page.mouse.click(onCallout!.x, onCallout!.y);
+  await expect(page.locator('.overlay .modal h2')).toHaveText('Final Accusation');
+  await expectSceneUntouched(1);
+});
+
 test('PC game shell fits supported desktop resolutions', async ({ page }) => {
   for (const viewport of [
     { width: 1366, height: 768 },
@@ -1540,7 +1741,7 @@ test('PC game shell fits supported desktop resolutions', async ({ page }) => {
     { width: 1920, height: 1080 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto(`/#/game/${roomId}`);
+    await page.goto(`/game/${roomId}`);
     await expect(page.locator('canvas').first()).toBeVisible();
     const hasHorizontalOverflow = await page.evaluate(() =>
       document.documentElement.scrollWidth > window.innerWidth + 1);
@@ -1596,7 +1797,7 @@ test('result screen plays only the eligible ending then shows verdict without ov
   });
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/#/result/${resultRoomId}`);
+  await page.goto(`/result/${resultRoomId}`);
   await expect(page.locator('.comic-caption')).toHaveText('The city can sleep again.');
   await expect(page.locator('.comic-overlay')).not.toContainText('Do not replay');
   await page.locator('[data-comic-next]').click();
@@ -1646,3 +1847,72 @@ async function canvasHasNonBlankPixels(canvas: Locator) {
     return sample[0] !== 0 || sample[1] !== 0 || sample[2] !== 0 || sample[3] !== 0;
   });
 }
+
+test('a paid hint level asks in the page, pays coins on request, and tells the score share (VUAN-7)', async ({ page }) => {
+  const bodies: any[] = [];
+  const dialogs: string[] = [];
+  page.on('dialog', (dialog) => { dialogs.push(dialog.type()); void dialog.dismiss(); });
+  await page.route(`**/api/game/rooms/${roomId}/hint`, (route) => {
+    const body = route.request().postDataJSON();
+    bodies.push(body);
+    if (!body.payWith) {
+      return route.fulfill({ status: 402, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Hint level 2 is paid.',
+        errors: { code: 'HINT_PAYMENT_REQUIRED', tier: 2, priceXu: 20, adAvailable: false, penaltyPercent: 5 } }) });
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {
+      state: smokeState, hintId: 'h2', contextType: 'SCENE', targetId: body.targetId, message: 'Nhìn xuống sàn quanh bàn thợ.',
+      isNew: true, tier: 2, paidWith: 'XU', priceXu: 20, penaltyPercent: 5 } }) });
+  });
+  await page.addInitScript(() => window.localStorage.setItem('sirlocked.uiLanguage', 'vi'));
+  await page.goto(`/game/${roomId}`);
+  await expect(page.locator('#hint-btn')).toBeVisible();
+
+  await page.locator('#hint-btn').click();
+  const dialog = page.locator('.hint-pay-dialog');
+  await expect(dialog).toContainText('Gợi ý mức 2');
+  await expect(dialog).toContainText('Mức này trừ 5% điểm vụ.');
+  await expect(dialog.locator('[data-pay="AD"]')).toHaveCount(0); // ads off: coins only
+  await dialog.locator('[data-pay=""]').click();
+  await expect(dialog).toHaveCount(0);
+  expect(bodies.map((body) => body.payWith ?? null)).toEqual([null]);
+
+  await page.locator('#hint-btn').click();
+  await page.locator('.hint-pay-dialog [data-pay="XU"]').click();
+  await expect(page.locator('#toast-root')).toContainText('Nhìn xuống sàn quanh bàn thợ. (−5% điểm vụ)');
+  expect(bodies.map((body) => body.payWith ?? null)).toEqual([null, null, 'XU']);
+  expect(dialogs).toEqual([]);
+});
+
+test('Vietnamese camera misses keep the zone label of the server hint', async ({ page }) => {
+  // Authored zone labels can hold Vietnamese text and double quotes; the hint must keep them verbatim.
+  const label = 'Ngăn kéo "bí mật" của bà Hằng';
+  let captures = 0;
+  await page.route(`**/api/game/rooms/${roomId}/capture-clue`, (route) => {
+    captures++;
+    // The server adds the hint only after repeated misses; the page itself does not count them.
+    const message = captures === 1
+      ? 'No important detail was detected.'
+      : `No important detail was detected. Perhaps "${label}" deserves a closer look.`;
+    return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { state: smokeState, changed: false, captureResult: 'MISS', message } }) });
+  });
+  await page.addInitScript(() => window.localStorage.setItem('sirlocked.uiLanguage', 'vi'));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto(`/game/${roomId}`);
+  const canvas = page.locator('canvas').first();
+  await expect(canvas).toBeVisible();
+  await expect.poll(() => page.evaluate(() =>
+    Boolean((window as any).__sirlockedGame?.scene.getScene('SirLockedPhaserScene')?.sceneInteractionEnabled))).toBe(true);
+  await page.keyboard.press('z');
+  await expect(page.locator('#bpa-g-shutter')).toBeVisible();
+  const box = (await canvas.boundingBox())!;
+  for (const [shot, text] of [
+    'Không phát hiện chi tiết quan trọng nào.',
+    'Không phát hiện chi tiết quan trọng nào. Có lẽ nên xem kỹ "Ngăn kéo "bí mật" của bà Hằng".',
+  ].entries()) {
+    // A camera click shoots; the toast lasts about three seconds, so it is read right away.
+    await canvas.click({ position: { x: box.width * 0.5, y: box.height * 0.45 } });
+    await expect(page.locator('#toast-root .toast')).toHaveText(text);
+    expect(captures).toBe(shot + 1);
+  }
+});
