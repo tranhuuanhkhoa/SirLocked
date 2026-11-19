@@ -27,11 +27,9 @@ public static class AiCaseOrderPolicy
         WorldDescriptions.TryGetValue(world ?? string.Empty, out var description) ? description : string.Empty;
 
     /// <summary>
-    /// Server-normalized order. VIP orders always get the FULL review mode and a 30-generation PixelLab cap.
-    /// </summary>
-    /// <summary>
     /// A new (OPEN_COOP_1) order: suspects and play time come from the difficulty level, whatever the client sent;
-    /// the NPC limit follows the level's suspects.
+    /// the NPC limit follows the level's suspects. It always runs on autopilot (<see cref="AiCaseReviewModes.Auto"/>):
+    /// no gate waits for a person, whatever review mode the client sent.
     /// </summary>
     public static AiCaseOrder Normalize(AiCaseOrder? requested, string role, AiDifficultyProfile profile)
     {
@@ -41,10 +39,11 @@ public static class AiCaseOrderPolicy
             World = requested.World, LocationIds = requested.LocationIds, NpcIds = requested.NpcIds,
             SuspectCount = profile.Suspects, CharacterNotes = requested.CharacterNotes, Weather = requested.Weather,
             TimeOfDay = requested.TimeOfDay, PlayMinutes = 30, ContentLevel = requested.ContentLevel,
-            PixelLabCap = requested.PixelLabCap, ReviewMode = requested.ReviewMode
+            PixelLabCap = requested.PixelLabCap, ReviewMode = AiCaseReviewModes.Full
         };
         var order = Normalize(levelled, role);
         order.PlayMinutes = profile.EstimatedMinutes;
+        order.ReviewMode = AiCaseReviewModes.Auto;
         return order;
     }
 

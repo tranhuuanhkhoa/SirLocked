@@ -123,7 +123,8 @@ function pixelLabCapLabel(cap) {
   if (cap < 0) return tr('Unlimited', 'Không giới hạn');
   return cap === 0 ? tr('Library only', 'Chỉ thư viện') : tr(`Up to ${cap}`, `Tối đa ${cap}`);
 }
-const REVIEW_MODES = { FULL: ['Every gate', 'Duyệt từng cổng'], FAST: ['Fast review', 'Duyệt nhanh'] };
+// AUTO is every new order (the bot runs to the end, nobody approves in between); FULL and FAST are older drafts.
+const REVIEW_MODES = { AUTO: ['Runs to the end', 'Tự chạy đến hết'], FULL: ['Every gate', 'Duyệt từng cổng'], FAST: ['Fast review', 'Duyệt nhanh'] };
 /** Chips that start a line of the idea, so a creator remembers what a good brief covers. */
 const IDEA_HINTS = {
   victim: ['Victim', 'Nạn nhân'],
@@ -393,7 +394,7 @@ export async function renderAdminAiPage(app) {
   const readStored = (key) => { try { return window.localStorage.getItem(key); } catch { return null; } };
   const storedCaseType = readStored('sirlocked.aiCaseType');
   // The order being written: Medium, Hang Duong, the bot picks weather and time, light content, no fixed PixelLab cap,
-  // every review gate. Only the case language and type are remembered.
+  // and the bot runs to the end. Only the case language and type are remembered.
   const form = {
     difficulty: 'medium',
     leaning: 'BALANCED',
@@ -409,7 +410,6 @@ export async function renderAdminAiPage(app) {
     timeOfDay: 'AUTO',
     idea: '',
     pixelLabCap: -1,
-    reviewMode: 'FULL',
   };
   // "Tùy chọn thêm" stays open or closed for the rest of the visit.
   let moreOpen = (() => { try { return window.sessionStorage.getItem('sirlocked.aiOrderMore') === '1'; } catch { return false; } })();
@@ -1061,12 +1061,6 @@ export async function renderAdminAiPage(app) {
                 <select class="field-input" id="ai-pixellab-cap">${PIXELLAB_CAPS.map((cap) => `<option value="${cap}" ${form.pixelLabCap === cap ? 'selected' : ''}>${escapeHtml(pixelLabCapLabel(cap))}</option>`).join('')}</select>
                 ${fieldErrorHtml('pixelLabCap')}
               </div>
-              <div class="aai-field" data-field="reviewMode">
-                <span class="aai-label" id="aai-review-title">${tr('Review', 'Cách duyệt')}</span>
-                ${radioSeg('aai-review', 'aai-review-title', Object.entries(REVIEW_MODES).map(([value, labels]) => [value, tr(labels[0], labels[1])]), form.reviewMode, 'ai-review-note')}
-                <p class="aai-help" id="ai-review-note">${tr('Fast: the bot passes the premise, logic and layout gates itself when every check passes. The truth is always reviewed by a person.', 'Nhanh: bot tự qua cổng tiền đề, logic và bố cục khi mọi kiểm tra đều đạt. Sự thật luôn do người duyệt.')}</p>
-                ${fieldErrorHtml('reviewMode')}
-              </div>
             </div>
           </div>
         </details>
@@ -1117,7 +1111,7 @@ export async function renderAdminAiPage(app) {
     set('facts', [
       tr(`~${span(item.playMinutes)} min of play`, `~${span(item.playMinutes)} phút chơi`),
       pictures,
-      pairLabel(REVIEW_MODES, form.reviewMode).toLowerCase(),
+      pairLabel(REVIEW_MODES, 'AUTO').toLowerCase(),
     ].join(' · '));
   }
 
@@ -1267,7 +1261,6 @@ export async function renderAdminAiPage(app) {
       contentLevel: form.contentLevel,
     };
     order.pixelLabCap = form.pixelLabCap;
-    order.reviewMode = form.reviewMode;
     return order;
   }
 
@@ -1915,7 +1908,6 @@ export async function renderAdminAiPage(app) {
       'aai-content': ['contentLevel', String],
       'aai-weather': ['weather', String],
       'aai-time': ['timeOfDay', String],
-      'aai-review': ['reviewMode', String],
     };
     layout?.addEventListener('change', (event) => {
       const control = event.target;

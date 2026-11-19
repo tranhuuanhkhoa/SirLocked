@@ -49,6 +49,11 @@ public static class AiCaseReviewModes
     public const string Full = "FULL";
     /// <summary>ADMIN only: the bot may pass the story, logic and layout gates itself. Never the truth gate.</summary>
     public const string Fast = "FAST";
+    /// <summary>
+    /// Every new (OPEN_COOP_1) order: the server passes all four gates itself, truth included, and the bot never asks
+    /// the creator; people edit the finished case in the editor. Set by the server only, never chosen by a client.
+    /// </summary>
+    public const string Auto = "AUTO";
     public static readonly IReadOnlyList<string> All = [Full, Fast];
 }
 

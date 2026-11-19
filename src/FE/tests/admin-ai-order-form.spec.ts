@@ -184,7 +184,7 @@ test('an ADMIN order picks a level and a setting with the keyboard and mouse, se
   const mock = await setUp(page, 'ADMIN');
   await open(page);
 
-  // Defaults: Medium, the first world, the bot picks weather and time, balanced, every gate, no fixed PixelLab cap.
+  // Defaults: Medium, the first world, the bot picks weather and time, balanced, no fixed PixelLab cap; the bot runs to the end.
   await expect(page.locator('.aai-order-title')).toHaveText('Đặt vụ án mới');
   await expect(page.getByRole('radio', { name: /Trung bình/ })).toBeChecked();
   await expect(pressed(page, '[data-world="HANG_DUONG_VICTORIAN"]')).toHaveAttribute('aria-pressed', 'true');
@@ -233,10 +233,9 @@ test('an ADMIN order picks a level and a setting with the keyboard and mouse, se
   await expect(page.locator('#ai-content-help')).toContainText('Trinh thám cổ điển');
   await page.locator('label', { hasText: 'Tiếng Việt' }).click();
   await page.locator('#ai-pixellab-cap').selectOption('60');
-  await page.locator('[data-field="reviewMode"] label', { hasText: 'Duyệt nhanh' }).click();
 
   await expect(bar(page).locator('[data-aai-sum="headline"]')).toHaveText('Khó · Nhật Bản Taishō · Án mạng');
-  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~40–60 phút chơi · tối đa 60 lượt PixelLab · duyệt nhanh');
+  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~40–60 phút chơi · tối đa 60 lượt PixelLab · tự chạy đến hết');
 
   await page.locator('#quick-create-btn').click();
   await expect.poll(() => mock.posts.length).toBe(1);
@@ -255,7 +254,6 @@ test('an ADMIN order picks a level and a setting with the keyboard and mouse, se
       timeOfDay: 'NIGHT',
       contentLevel: 'STANDARD',
       pixelLabCap: 60,
-      reviewMode: 'FAST',
     },
   });
   expect(mock.postHeaders[0]['idempotency-key']).toBeTruthy();
@@ -281,12 +279,12 @@ test('three level cards show the server numbers and drive the bar under the form
   await expect(page.locator('[data-level="easy"]')).toContainText('2–3 cảnh · 3 nghi phạm · 1 đối chất · 1–2 câu đố');
   await expect(page.locator('[data-level="hard"]')).toContainText('45–70 phút');
   await expect(page.locator('[data-level="hard"]')).toContainText('6–8 cảnh · 5 nghi phạm · 3 đối chất · 4–6 câu đố');
-  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~20–30 phút chơi · ước 30–80 lượt PixelLab · duyệt từng cổng');
+  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~20–30 phút chơi · ước 30–80 lượt PixelLab · tự chạy đến hết');
 
   await page.locator('[data-level="hard"]').click();
   await page.locator('[data-world="NEW_WORLD"]').click();
   await expect(bar(page).locator('[data-aai-sum="headline"]')).toHaveText('Khó · Thế giới mới · Ngẫu nhiên');
-  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~45–70 phút chơi · ước 300–450 lượt PixelLab · duyệt từng cổng');
+  await expect(bar(page).locator('[data-aai-sum="facts"]')).toHaveText('~45–70 phút chơi · ước 300–450 lượt PixelLab · tự chạy đến hết');
   expect(mock.errors).toEqual([]);
 });
 
@@ -305,24 +303,23 @@ test('changing the level changes no other choice', async ({ page }) => {
   expect(mock.errors).toEqual([]);
 });
 
-test('the old controls are gone: no V3 switch, presets, stages, suspects or play time', async ({ page }) => {
+test('the old controls are gone: no V3 switch, presets, stages, suspects, play time or review mode', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
   await open(page);
   await openMore(page);
   await expect(page.getByText(/V3 · Crack|Phá Vỡ Lời Dối|Số chặng|Số nghi phạm|Thời lượng chơi|Cấu hình tạo|Mở rộng gameplay/)).toHaveCount(0);
-  await expect(page.locator('#ai-include-crack, #ai-preset-select, input[name="aai-stages"], input[name="aai-suspects"], input[name="aai-minutes"]')).toHaveCount(0);
+  await expect(page.locator('#ai-include-crack, #ai-preset-select, input[name="aai-stages"], input[name="aai-suspects"], input[name="aai-minutes"], input[name="aai-review"]')).toHaveCount(0);
+  await expect(page.getByText(/Cách duyệt|Duyệt từng cổng|Duyệt nhanh/)).toHaveCount(0);
   await expect(page.locator('.aai-order .adm-card')).toHaveCount(0); // no card inside the form card
   expect(mock.errors).toEqual([]);
 });
 
-test('a VIP chooses the PixelLab cap and review mode like an admin, the order goes straight to Claude, and the last weekly order locks the button with a reason', async ({ page }) => {
+test('a VIP chooses the PixelLab cap like an admin, the order goes straight to Claude, and the last weekly order locks the button with a reason', async ({ page }) => {
   const mock = await setUp(page, 'VIP', 'vi', { quota: { unlimited: false, weeklyLimit: 2, usedThisWeek: 1, remaining: 1, weekStart: '2026-11-16' } });
   await open(page);
   await openMore(page);
   await expect(page.locator('#ai-pixellab-cap')).toHaveValue('-1');
   await expect(page.locator('#ai-pixellab-cap option:checked')).toHaveText('Không giới hạn');
-  await expect(page.locator('input[name="aai-review"][value="FULL"]')).toBeChecked();
-  await expect(page.locator('input[name="aai-review"][value="FAST"]')).toHaveCount(1);
   await expect(page.locator('.aai-settings')).toHaveCount(0);
   await expect(page.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ Claude ngay');
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 1/2 đơn trong tuần này.');
@@ -334,7 +331,7 @@ test('a VIP chooses the PixelLab cap and review mode like an admin, the order go
     prompt: '', difficulty: 'medium', leaning: 'BALANCED', language: 'en', caseType: 'RANDOM',
     order: {
       world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], characterNotes: '',
-      weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', pixelLabCap: -1, reviewMode: 'FULL',
+      weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', pixelLabCap: -1,
     },
   });
   await expect(page.locator('.aai-drafts-table [data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ Claude');

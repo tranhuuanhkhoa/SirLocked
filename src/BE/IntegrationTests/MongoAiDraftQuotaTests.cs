@@ -126,7 +126,7 @@ public sealed class MongoAiDraftQuotaTests
 
             Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
             Assert.Equal(AiQueueStates.Pending, draft.QueueState);
-            Assert.Equal(AiCaseReviewModes.Fast, draft.Order!.ReviewMode); // a VIP chooses like an admin
+            Assert.Equal(AiCaseReviewModes.Auto, draft.Order!.ReviewMode); // every new order runs on autopilot, whatever was sent
             Assert.Equal(100, draft.Order.PixelLabCap);
             Assert.Equal(AiCaseWorlds.TaishoJapan, draft.Order.World);
             Assert.Equal("RAIN", draft.Order.Weather);

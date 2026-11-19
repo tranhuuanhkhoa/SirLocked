@@ -627,6 +627,8 @@ public sealed class AiBridgeService(
             return $"Answer request {draft.ClaudeWait?.RequestId} ({draft.ClaudeWait?.Step}).";
         if (draft.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled)
             return "The server is working; poll again in a few seconds.";
+        if (AiDraftAutopilot.GateToPass(draft) is { } gate)
+            return $"Autopilot order: the server passes the {gate} gate by itself within a few seconds; never wait for a person, poll again.";
         return draft.Status switch
         {
             AiDraftStatus.StoryAwaitingApproval => draft.Order?.ReviewMode == AiCaseReviewModes.Fast
