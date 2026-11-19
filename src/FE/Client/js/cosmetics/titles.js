@@ -137,6 +137,7 @@ function askForWings() {
 }
 /* the plaque */
 function titleHTML(t, o = {}) {
+  if (t.pic) return paintedTitleHTML(t, o);
   const st = t.ov ? { ...STY[t.sty], ...t.ov } : STY[t.sty], L = LVL[t.r], id = 'tt' + (++TID); let sc = o.scale || 1; const bare = !!o.bare, still = reduce.matches;
   const fs = L === 1 ? 19 : 22, ls = 2.6, H = L === 1 ? 34 : 42, tw = measureTitle(t.n, fs, ls), pad = L === 1 ? 20 : 30, W = Math.ceil(tw + pad * 2);
   const [ml, mr, mt, mb] = bare ? [10, 10, 6, 6] : st.ext, VW = W + ml + mr, VH = H + mt + mb;
@@ -214,8 +215,42 @@ function titleHTML(t, o = {}) {
   return `<span class="hs-tl hs-r-${t.r}${bare ? ' hs-bare' : ''}" style="width:${(VW * sc).toFixed(1)}px;height:${(VH * sc).toFixed(1)}px" role="img" aria-label="Danh hiệu ${esc}">${plate}</span>`;
 }
 
-/* a title described by data: { n, r, src, made, sty, glow, parts }. The words come from the server, the plaque from STY */
-function titleFrom(o) { const ov = {}; if (o.glow) ov.glow = o.glow; if (o.parts) ov.parts = o.parts; return { n: o.n, r: o.r, src: o.src, made: !!o.made, sty: STY[o.sty] ? o.sty : 'thuong', ov: Object.keys(ov).length ? ov : undefined }; }
+/*
+ * A nameplate painted by an artist (template "painted"): the uploaded picture, with the name written in its box unless the
+ * art already carries the words. It is laid out from the picture size stored with it, so nothing moves when it arrives.
+ * pic: { url, w, h, box: { x, y, w, h } in fractions of the picture, baked, color, scale }.
+ */
+function paintedTitleHTML(t, o) {
+  const p = t.pic, L = LVL[t.r] || 1, id = 'tt' + (++TID), bare = !!o.bare, still = reduce.matches;
+  let sc = o.scale || 1;
+  const H = Math.round((L === 1 ? 34 : 42) * 1.3 * (p.scale || 1)), W = Math.max(1, Math.round(H * p.w / p.h));
+  const glowRgb = t.ov?.glow || p.color || '255,226,160';
+  const [ml, mr, mt, mb] = bare ? [6, 6, 4, 4] : [18, 18, 14, 14], VW = W + ml + mr, VH = H + mt + mb;
+  if (o.maxW && VW * sc > o.maxW) sc = o.maxW / VW;
+  const escape = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+  const esc = escape(t.n);
+  let words = '';
+  if (!p.baked && p.box) {
+    const bx = p.box.x * W, by = p.box.y * H, bw = p.box.w * W, bh = p.box.h * H;
+    const fs = Math.max(9, Math.min(bh * .7, 30)), ls = fs * .08, room = bw * .94;
+    // A name longer than its box is pressed into it rather than spilling over the art.
+    const fit = measureTitle(t.n, fs, ls) > room ? ` textLength="${room.toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
+    const at = `x="${(bx + bw / 2).toFixed(1)}" y="${(by + bh / 2 + fs * .34).toFixed(1)}" text-anchor="middle" font-family="'Cormorant SC',Georgia,serif" font-weight="700" font-size="${fs.toFixed(1)}" letter-spacing="${ls.toFixed(2)}"${fit}`;
+    words = `<text ${at} fill="rgb(${glowRgb})" opacity="${L >= 3 ? .55 : .35}" filter="url(#tl-tglow)">${esc}</text>`
+      + `<text ${at} fill="rgb(${p.color || '255,240,200'})" stroke="#000" stroke-opacity=".7" stroke-width="${(fs * .11).toFixed(2)}" paint-order="stroke">${esc}</text>`;
+  }
+  const svg = `<svg class="hs-plq" width="${VW}" height="${VH}" viewBox="${-ml} ${-mt} ${VW} ${VH}" aria-hidden="true" data-painted-title="${id}"><image href="${escape(p.url)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/>${words}</svg>`;
+  let fx = '';
+  const cx = ml + W / 2, cy = mt + H / 2;
+  if (L >= 2 || t.ov?.glow) fx += `<i class="hs-au" style="left:${cx - W * .58}px;top:${cy - H * .9}px;width:${W * 1.16}px;height:${H * 1.8}px;--g:${glowRgb.replace(/,/g, ' ')};opacity:${[0, .3, .35, .5, .62, .75][L]}"></i>`;
+  const orn = !bare && t.ov?.parts && !still ? particles(t.ov.parts, VW, VH, ml, mt, W, H, t.n.length * 7 + L) : '';
+  const plate = `<span class="hs-tl-in" style="width:${VW}px;height:${VH}px;transform:scale(${sc})">${fx}${svg}${orn}</span>`;
+  return `<span class="hs-tl hs-r-${t.r} hs-painted${bare ? ' hs-bare' : ''}" style="width:${(VW * sc).toFixed(1)}px;height:${(VH * sc).toFixed(1)}px" role="img" aria-label="Danh hiệu ${esc}">${plate}</span>`;
+}
+
+/* a title described by data: { n, r, src, made, sty, glow, parts, pic }. The words come from the server, the plaque from STY,
+   or from an uploaded picture when `pic` is given (see paintedTitleHTML) */
+function titleFrom(o) { const ov = {}; if (o.glow) ov.glow = o.glow; if (o.parts) ov.parts = o.parts; return { n: o.n, r: o.r, src: o.src, made: !!o.made, sty: STY[o.sty] ? o.sty : 'thuong', ov: Object.keys(ov).length ? ov : undefined, pic: o.pic || undefined }; }
 function defineTitle(id, o) { const known = T[id]; if (known) { Object.assign(known, titleFrom(o)); return; } const t = Object.assign({ id }, titleFrom(o)); T[id] = t; TITLES.push(t); }
 const STYLE_KEYS = Object.keys(STY);
 

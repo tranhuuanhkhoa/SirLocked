@@ -2,15 +2,16 @@ import { adminChestsApi } from '../../../api/adminChestsApi.js';
 import { pill, stateBox } from '../../../components/admin/ui.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { pixelIconUrl } from '../../chest/chestSprites.js';
+import { chestIconUrl, chestPictureUrl } from '../../chest/chestSprites.js';
 import { draftOf } from './chestDraft.js';
 import { confirmDialog, errorMessages, number, percent, xu } from './shared.js';
 import { navigate } from '../../../services/navigation.js';
 
-/** The chest's own sprite on the navy tile of the design, lit by the chest's light colour. */
+/** The chest's own picture, or its sprite, on the navy tile of the design, lit by the chest's light colour. */
 export const chestArt = (chest, href = '') => {
   const glow = chest.look?.light ? ` style="--ac-glow:rgb(${escapeHtml(chest.look.light)})"` : '';
-  const img = `<img src="${pixelIconUrl(chest.iconKey)}" alt="" draggable="false">`;
+  const picture = chestPictureUrl(chest) ? ' class="is-picture"' : '';
+  const img = `<img${picture} src="${escapeHtml(chestIconUrl(chest))}" alt="" draggable="false">`;
   return href
     ? `<a class="ac-chest-art"${glow} href="${href}" aria-label="Sửa ${escapeHtml(chest.name)}" tabindex="-1">${img}</a>`
     : `<span class="ac-chest-art"${glow} aria-hidden="true">${img}</span>`;

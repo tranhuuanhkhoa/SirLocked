@@ -8,7 +8,7 @@ import { SPR, TAU, clamp, drawWing, easeInOut, easeOut, glow, lerp, motes, retin
 import { T, setPlaqueMotion, titleHTML } from './titles.js';
 import { chime, warmChime } from './chime.js';
 
-const STG = { 'lang-le': [4.2, .6], 'anh-trang': [6.6, 1.5], 'mac-vu': [7, 2.3], 'truc-lam': [6.8, 1.8], 'van-kiem': [7.4, 2.1], 'huyet-nguyet': [7.2, 2.0], 'hac-duc': [7.2, 1.3], 'than-tham': [7.8, 3.3], 'kim-long': [8.2, 3.0], 'phuong-hoang': [8, 2.5] }; // [duration, hero reveal]
+const STG = { 'lang-le': [4.2, .6], 'anh-trang': [6.6, 1.5], 'mac-vu': [7, 2.3], 'truc-lam': [6.8, 1.8], 'van-kiem': [7.4, 2.1], 'huyet-nguyet': [7.2, 2.0], 'hac-duc': [7.2, 1.3], 'than-tham': [7.8, 3.3], 'kim-long': [8.2, 3.0], 'phuong-hoang': [8, 2.5], flipbook: [6, 1.4] }; // [duration, hero reveal]
 /* which stage an entrance plays and for how long; an entrance made from a template borrows its stage */
 const stageOf = id => EN[id]?.tpl || id;
 const timingOf = id => { const [D, rv] = STG[stageOf(id)]; return [EN[id]?.duration || D, rv]; };
@@ -27,7 +27,7 @@ const stageOpen = () => !!stage;
 function openStage(id, player, { onClose, skipLabel = 'Bỏ qua', arrivedLabel = 'đã vào sảnh' } = {}) {
   closeStage(true);
   warmChime();
-  const e = EN[id]; if (e.creature) picImg(e.creature); if (e.sword) picImg(e.sword);
+  const e = EN[id]; if (e.creature) picImg(e.creature); if (e.sword) picImg(e.sword); if (e.flip) picImg(e.flip.sheet);
   const el = document.createElement('div'); el.className = 'hs-stage'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Hiệu ứng vào sảnh ' + e.n);
   el.innerHTML = `<canvas class="hs-stc" aria-hidden="true"></canvas><div class="hs-hero hs-r-${e.r}"><canvas class="hs-hav" width="190" height="190" aria-hidden="true"></canvas><b class="hs-hn"></b><div class="hs-ht">${titleHTML(T[player.titleId] || T['tan-binh'], { maxW: Math.min(window.innerWidth - 32, 620) })}</div><small></small></div><i class="hs-lb hs-lb-t"></i><i class="hs-lb hs-lb-b"></i><button class="hs-skip" type="button"></button>`;
   el.querySelector('.hs-hn').textContent = player.name; el.querySelector('.hs-hero small').textContent = `${arrivedLabel} · ${e.n}`; el.querySelector('.hs-skip').textContent = skipLabel;
@@ -113,10 +113,36 @@ function softImg(key) { if (SOFT[key]) return SOFT[key]; const im = picImg(key);
   const gx = x.createLinearGradient(0, 0, w, 0); gx.addColorStop(0, 'rgba(0,0,0,0)'); gx.addColorStop(f / w, '#000'); gx.addColorStop(1 - f / w, '#000'); gx.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gx; x.fillRect(0, 0, w, h);
   const gy = x.createLinearGradient(0, 0, 0, h); gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(f / h, '#000'); gy.addColorStop(1 - f / h, '#000'); gy.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gy; x.fillRect(0, 0, w, h);
   cv.naturalWidth = w; cv.naturalHeight = h; return (SOFT[key] = cv); }
+/*
+ * An entrance drawn by an artist as a sprite sheet: cols x rows cells read left to right, top to bottom, the first `frames`
+ * of them played at `fps`, looping or holding the last one. `place` puts it around the arriving player (behind the portrait),
+ * over the whole screen, flying across it, or dropping in from above. "add" lays it as light, for art drawn on black.
+ */
+function drawFlipbook(c, own, t, G, fin, dim) {
+  const { W, H, cx, cy, m, D } = G, f = own.flip; if (!f) return;
+  const col = own.tint || { common: '220,226,240', rare: '170,200,255', myth: '200,160,255', leg: '255,150,110', gold: '255,214,140' }[own.r] || '255,214,140';
+  dim('6,8,12', .55);
+  glow(c, cx, cy, m * .42, col, .2 * fin);
+  const im = picImg(f.sheet); if (!im) return;
+  const cols = f.cols || 1, rows = f.rows || 1, cells = cols * rows, frames = Math.max(1, Math.min(f.frames || cells, cells)), fps = f.fps || 12;
+  const n = Math.floor(t * fps), k = f.loop === false ? Math.min(frames - 1, n) : n % frames;
+  const fw = im.naturalWidth / cols, fh = im.naturalHeight / rows, sx = (k % cols) * fw, sy = Math.floor(k / cols) * fh, size = f.size || 1;
+  let w, h, x, y;
+  if (f.place === 'screen') { const s = Math.max(W / fw, H / fh) * size; w = fw * s; h = fh * s; x = (W - w) / 2; y = (H - h) / 2; }
+  else {
+    h = m * .55 * size; w = h * fw / fh;
+    if (f.place === 'across') { const k2 = easeInOut(clamp(t / Math.max(1, D - .4))); x = lerp(W + 20, -w - 20, k2); y = cy - h / 2; }
+    else if (f.place === 'drop') { const k2 = backOut(clamp(t / 1.5)); x = cx - w / 2; y = lerp(-h - 20, cy - h / 2, k2); }
+    else { x = cx - w / 2; y = cy - h / 2; }
+  }
+  c.save(); c.globalAlpha = fin; if (f.blend === 'add') c.globalCompositeOperation = 'lighter';
+  c.drawImage(im, sx, sy, fw, fh, x, y, w, h); c.restore();
+}
 /* ---- the effects ---- */
 function drawStage(c, S, id, t, G) {
   const { W, H, cx, cy, m, D, rv } = G, fin = env(t, 0, .35, D - .7, D), R0 = rng(77), own = EN[S.id] || {}, P = col => retint(col, own.tint);
   const dim = (rgb, a) => { const g = c.createRadialGradient(cx, cy, m * .12, cx, cy, Math.hypot(W, H) * .7); g.addColorStop(0, `rgba(${rgb},${a * .5 * fin})`); g.addColorStop(1, `rgba(${rgb},${Math.min(1, a * 1.15) * fin})`); c.fillStyle = g; c.fillRect(-W * .2, -H * .2, W * 1.4, H * 1.4); };
+  if (id === 'flipbook') { drawFlipbook(c, own, t, G, fin, dim); return; }
   if (id === 'lang-le') { dim(P('6,8,12'), .7); smoke(c, 10, 3, t * .5, [cx - m * .4, cy - m * .2, m * .8, m * .4], P('210,218,232'), m * .14 + t * 30, .5 * fin, 20); glow(c, cx, cy, m * .35, P('200,210,230'), .18 * fin); }
 
   if (id === 'anh-trang') { dim(P('4,8,20'), .8);

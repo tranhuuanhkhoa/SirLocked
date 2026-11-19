@@ -129,6 +129,39 @@ public sealed class MongoAdminCosmeticsTests
     }
 
     [Fact]
+    public async Task ATitlePaintedFromAPictureAndAFlipbookEntranceReachPlayers()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var paintedTitle = new AdminCosmeticCreateRequest(
+            MarketCategories.Title, "Cú Đêm Phố Cổ", "Old Town Night Owl", null, null, MarketRarities.Epic, true, null,
+            new AdminCosmeticVisualRequest(Picture, "painted", Json("""
+                { "size": { "w": 640, "h": 160 }, "box": { "x": 0.18, "y": 0.3, "w": 0.64, "h": 0.42 }, "color": "255,236,190", "glow": "255,200,90" }
+                """)),
+            null);
+        var flipbook = new AdminCosmeticCreateRequest(
+            MarketCategories.Entrance, "Cú Đêm Bay Về", null, "Một bầy cú sà xuống quanh bạn.", null, MarketRarities.Legendary, true, null,
+            new AdminCosmeticVisualRequest(null, "flipbook", Json($$"""
+                { "sheetUrl": "{{Picture}}", "cols": 4, "rows": 2, "frames": 8, "fps": 12, "place": "drop", "blend": "add", "duration": 6 }
+                """)),
+            null);
+
+        var title = await env.Admin.CreateAsync(Admin, paintedTitle);
+        var entrance = await env.Admin.CreateAsync(Admin, flipbook);
+
+        var catalog = await env.Admin.PublicCatalogAsync();
+        var titleVisual = JsonSerializer.SerializeToElement(catalog.Items.Single(item => item.Id == title.Id).Visual, Web);
+        Assert.Equal("painted", titleVisual.GetProperty("template").GetString());
+        Assert.Equal(Picture, titleVisual.GetProperty("imageUrl").GetString());
+        Assert.Equal(0.64, titleVisual.GetProperty("params").GetProperty("box").GetProperty("w").GetDouble());
+        Assert.Equal(640, titleVisual.GetProperty("params").GetProperty("size").GetProperty("w").GetDouble());
+        var entranceVisual = JsonSerializer.SerializeToElement(catalog.Items.Single(item => item.Id == entrance.Id).Visual, Web);
+        Assert.Equal("flipbook", entranceVisual.GetProperty("template").GetString());
+        Assert.Equal(Picture, entranceVisual.GetProperty("params").GetProperty("sheetUrl").GetString());
+        Assert.Equal("drop", entranceVisual.GetProperty("params").GetProperty("place").GetString());
+    }
+
+    [Fact]
     public async Task AdminsCannotCreateAnythingElseHere()
     {
         if (!Enabled) return;

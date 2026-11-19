@@ -110,7 +110,7 @@ public sealed class ChestService
         chest.Items
             .Where(item => chest.DropRates.Any(rate => rate.Rarity == item.Rarity && rate.Weight > 0))
             .Select(MarketService.ToDefDto).ToList(),
-        chest.Look is { } look ? new ChestLookDto(look.Template, look.Light, look.Hi, look.Core) : null,
+        chest.Look is { } look ? ChestLookDto.Of(look) : null,
         chest.DropRates.Select(rate => new ChestOddsDto(rate.Rarity, rate.Percent)).ToList(),
         chest.Active);
 

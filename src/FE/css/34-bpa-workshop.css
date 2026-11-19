@@ -1669,6 +1669,7 @@
 .bpa-ch-rw-chest + .bpa-ch-rw-chest,
 .bpa-ch-rw-wait + .bpa-ch-rw-wait { border-top: 1px dashed rgba(239, 212, 134, .22); }
 .bpa-ch-rw-icon { grid-row: 1 / span 2; width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+.bpa-ch-rw-icon.is-picture { image-rendering: auto; }
 .bpa-ch-rw-name { min-width: 0; overflow-wrap: anywhere; font-size: 19px; line-height: 1.2; color: var(--bpa-on-dark); }
 .bpa-ch-rw-name small { display: block; font-family: var(--bpa-font-label); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--bpa-on-dark-3); }
 .bpa-ch-rw-pct { font-family: var(--bpa-font-label); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--bpa-gold); }

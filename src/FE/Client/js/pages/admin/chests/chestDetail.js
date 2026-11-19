@@ -1,10 +1,11 @@
+import { adminAssetsApi } from '../../../api/adminAssetsApi.js';
 import { adminChestsApi } from '../../../api/adminChestsApi.js';
 import { icon, pill, stateBox } from '../../../components/admin/ui.js';
 import { EN, FR, T, applyCosmetic, avatarImg, frameKey, isKnownCosmetic, prepareCosmetics, setPlaqueMotion, titleHTML, titleKey } from '../../../cosmetics/index.js';
 import { createPainter } from '../../../cosmetics/painter.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { pixelIconUrl } from '../../chest/chestSprites.js';
+import { chestIconUrl, chestPictureUrl, keyPictureUrl, pixelIconUrl } from '../../chest/chestSprites.js';
 import { renderChestPage } from '../../chestPage.js';
 import { draftOf, fromHex, toHex, weightOf } from './chestDraft.js';
 import { renderChestStats } from './chestStats.js';
@@ -26,7 +27,18 @@ const FIELD_TEXT = {
   name: 'Tên', nameEn: 'Tên (Anh)', subtitle: 'Phụ đề', subtitleEn: 'Phụ đề (Anh)', keyName: 'Tên chìa', keyNameEn: 'Tên chìa (Anh)',
   'prices.chest': 'Giá hòm', 'prices.key': 'Giá chìa', active: 'Đang bán', sortOrder: 'Thứ tự', challengeWeight: 'Trọng số Thử thách tuần',
   'look.template': 'Kiểu hòm', 'look.light': 'Màu ánh sáng', 'look.hi': 'Màu ánh sáng phụ', 'look.core': 'Màu lõi sáng',
+  'look.imageUrl': 'Ảnh hòm', 'look.keyImageUrl': 'Ảnh chìa',
 };
+/** A picture field reads as "own picture" or "the template's", not as two long addresses. */
+const PICTURE_FIELDS = new Set(['look.imageUrl', 'look.keyImageUrl']);
+const pictureText = (url) => (url ? 'ảnh riêng' : 'hình của mẫu');
+
+const MAX_PICTURE_BYTES = 5 * 1024 * 1024;
+/** The two pictures an admin can give a chest, in the draft's look. */
+const PICTURES = [
+  { field: 'imageUrl', label: 'Ảnh hòm', note: 'Hòm đóng, nền trong suốt. Thay hình hòm ở trang Mở hòm, Kho rương, chợ và thông báo rớt hòm.' },
+  { field: 'keyImageUrl', label: 'Ảnh chìa', note: 'Chìa, nền trong suốt. Thay hình chìa ở nút mua chìa, kho và chợ.' },
+];
 
 const LOOKS = [{ id: 'seal', label: 'Hòm gỗ niêm phong' }, { id: 'bank', label: 'Két sắt nhà băng' }, { id: 'lacquer', label: 'Tráp sơn mài' }];
 const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer' };
@@ -40,7 +52,9 @@ function diffHtml(diff, names) {
     ...(diff.added ?? []).map((id) => line('Thêm món', escapeHtml(names(id)))),
     ...(diff.removed ?? []).map((id) => line('Gỡ món', escapeHtml(names(id)))),
     ...(diff.weights ?? []).map((change) => line(`Tỉ lệ ${RARITY_TEXT[change.rarity] ?? change.rarity}`, `${percent(change.before)} → ${percent(change.after)}`)),
-    ...(diff.fields ?? []).map((change) => line(FIELD_TEXT[change.field] ?? change.field, `${escapeHtml(change.before)} → ${escapeHtml(change.after)}`)),
+    ...(diff.fields ?? []).map((change) => line(FIELD_TEXT[change.field] ?? change.field, PICTURE_FIELDS.has(change.field)
+      ? `${pictureText(change.before)} → ${pictureText(change.after)}`
+      : `${escapeHtml(change.before)} → ${escapeHtml(change.after)}`)),
   ];
   if (diff.reordered) rows.push(line('Nội dung', 'đổi thứ tự hiển thị'));
   return rows.length ? `<ul class="ac-diff">${rows.join('')}</ul>` : '<p class="muted">Không có thay đổi.</p>';
@@ -83,6 +97,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     timer: 0,
     tab: TABS.some((tab) => tab.id === routeParam('tab')) ? routeParam('tab') : 'thiet-lap',
     previewOpen: null,
+    // The pictures still on their way (imageUrl, keyImageUrl): both can be uploading at once.
+    uploading: new Set(),
   };
 
   const dirty = () => JSON.stringify(state.draft) !== state.baseline;
@@ -164,6 +180,11 @@ export async function renderChestDetail(app, id, { signal } = {}) {
             ${colour('hi', 'Ánh sáng phụ', draft.look.hi)}
             ${colour('core', 'Lõi sáng', draft.look.core)}
           </div>
+          <div class="ac-pictures" data-ac-pictures>
+            <h3 class="ac-pictures-title">Ảnh riêng</h3>
+            <p class="ac-field-hint">PNG hoặc WebP, nền trong suốt, tối đa 5 MB. Không có ảnh riêng thì dùng hình của kiểu hòm. Kiểu hòm vẫn quyết định phòng, con dấu và hạt bay ở trang Mở hòm.</p>
+            ${PICTURES.map((picture) => `<div class="ac-picture-row" data-ac-picture-row="${picture.field}"></div>`).join('')}
+          </div>
         </section>
       </div>`);
     paintLook();
@@ -173,8 +194,60 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     const preview = $('[data-ac-look-preview]');
     if (!preview) return;
     const { template, light, hi } = state.draft.look;
-    preview.querySelector('img').src = pixelIconUrl(TEMPLATE_ICON[template] ?? state.chest.iconKey);
+    const picture = chestPictureUrl(state.draft);
+    const image = preview.querySelector('img');
+    image.src = picture || pixelIconUrl(TEMPLATE_ICON[template] ?? state.chest.iconKey);
+    image.classList.toggle('is-picture', Boolean(picture));
     preview.setAttribute('style', `--ac-glow:rgb(${light});--ac-glow-hi:rgb(${hi})`);
+    paintPictures();
+  }
+
+  /** One row per picture: what is used now, and the buttons to upload or drop it. */
+  function paintPictures() {
+    for (const picture of PICTURES) {
+      const row = $(`[data-ac-picture-row="${picture.field}"]`);
+      if (!row) continue;
+      const url = picture.field === 'imageUrl' ? chestPictureUrl(state.draft) : keyPictureUrl(state.draft);
+      const busy = state.uploading.has(picture.field);
+      const inputId = `ac-picture-${picture.field}`;
+      render(row, `
+        <span class="ac-picture-thumb">${url ? `<img class="is-picture" src="${escapeHtml(url)}" alt="${escapeHtml(picture.label)} đang dùng" draggable="false">` : `<span class="muted">Mẫu</span>`}</span>
+        <span class="ac-picture-text"><strong>${escapeHtml(picture.label)}</strong><span>${busy ? 'Đang tải ảnh…' : escapeHtml(picture.note)}</span></span>
+        <span class="ac-picture-actions">
+          <label class="btn btn-ghost btn-sm ac-upload-btn" for="${inputId}">${acIcon('upload', 16)}${url ? 'Đổi ảnh' : 'Tải ảnh lên'}</label>
+          <input id="${inputId}" type="file" accept="image/png,image/webp" hidden data-ac-picture-input="${picture.field}"${busy ? ' disabled' : ''}>
+          ${url ? `<button type="button" class="btn btn-ghost btn-sm adm-btn-danger" data-ac-picture-remove="${picture.field}">Bỏ ảnh</button>` : ''}
+        </span>`);
+    }
+  }
+
+  async function uploadPicture(field, file) {
+    if (!file) return;
+    if (!/^image\/(png|webp)$/.test(file.type)) {
+      toast('Ảnh hòm và chìa phải là PNG hoặc WebP (nền trong suốt).', 'error');
+      return;
+    }
+    if (file.size > MAX_PICTURE_BYTES) {
+      toast('Ảnh phải từ 5 MB trở xuống.', 'error');
+      return;
+    }
+    state.uploading.add(field);
+    paintPictures();
+    paintSaveBar();
+    try {
+      const asset = await adminAssetsApi.upload(file);
+      if (signal?.aborted) return;
+      state.draft.look[field] = asset.url;
+      changed();
+    } catch (error) {
+      if (!signal?.aborted) toast(errorMessages(error)[0] ?? 'Không tải được ảnh.', 'error');
+    } finally {
+      state.uploading.delete(field);
+      if (!signal?.aborted) {
+        paintLook();
+        paintSaveBar();
+      }
+    }
   }
 
   // ---------------------------------------------------------------- the table and the pool
@@ -359,7 +432,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     $('[data-ac-cost]').textContent = xu(check?.cost ?? (Number(draft.chestPrice) + Number(draft.keyPrice)));
     const messages = checkFailed ? [checkFailed] : (check?.violations ?? []).map((violation) => violation.message);
     $('[data-ac-violations]').innerHTML = errorsHtml(messages);
-    const blocked = !dirty() || state.pending || messages.length > 0;
+    // While a picture is on its way, saving would store the draft without it.
+    const blocked = !dirty() || state.pending || state.uploading.size > 0 || messages.length > 0;
     $('[data-ac-save]').disabled = blocked;
     $('[data-ac-save-head]').disabled = blocked;
   }
@@ -413,7 +487,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     $('[data-ac-status]').innerHTML = current.active ? pill('Đang bán', 'ok', { dot: true }) : pill('Đang tắt', '', { dot: true });
     $('[data-ac-version]').textContent = `phiên bản ${current.version}`;
     const art = $('[data-ac-head-art]');
-    art.querySelector('img').src = pixelIconUrl(current.iconKey);
+    art.querySelector('img').src = chestIconUrl(current);
+    art.querySelector('img').classList.toggle('is-picture', Boolean(chestPictureUrl(current)));
     if (current.look?.light) art.style.setProperty('--ac-glow', `rgb(${current.look.light})`);
   }
 
@@ -539,6 +614,20 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   }
 
   const page = app.querySelector('.ac-detail');
+  page.addEventListener('change', (event) => {
+    const input = event.target.closest?.('[data-ac-picture-input]');
+    if (!input) return;
+    const file = input.files?.[0];
+    input.value = '';
+    uploadPicture(input.dataset.acPictureInput, file);
+  });
+  page.addEventListener('click', (event) => {
+    const remove = event.target.closest?.('[data-ac-picture-remove]');
+    if (!remove) return;
+    state.draft.look[remove.dataset.acPictureRemove] = null;
+    paintLook();
+    changed();
+  });
   page.addEventListener('input', (event) => {
     const input = event.target;
     if (input.dataset.weight) {

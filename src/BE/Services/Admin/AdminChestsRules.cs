@@ -31,6 +31,7 @@ public static class AdminChestsRules
 {
     public const string TextInvalid = "ADMIN_TEXT_INVALID";
     public const string LookInvalid = "CHEST_LOOK_INVALID";
+    public const string ChestImageInvalid = "CHEST_IMAGE_INVALID";
     public const string PoolDuplicate = "CHEST_POOL_DUPLICATE";
     public const string PoolRetiredItem = "CHEST_POOL_RETIRED_ITEM";
     public const string ItemIconRequired = "ITEM_ICON_REQUIRED";
@@ -77,7 +78,11 @@ public static class AdminChestsRules
         KeyNameEn = chest.KeyNameEn,
         IconKey = chest.IconKey,
         KeyIconKey = chest.KeyIconKey,
-        Look = new CatalogChestLook { Template = chest.Look.Template, Light = chest.Look.Light, Hi = chest.Look.Hi, Core = chest.Look.Core },
+        Look = new CatalogChestLook
+        {
+            Template = chest.Look.Template, Light = chest.Look.Light, Hi = chest.Look.Hi, Core = chest.Look.Core,
+            ImageUrl = chest.Look.ImageUrl, KeyImageUrl = chest.Look.KeyImageUrl,
+        },
         Prices = new CatalogChestPrices { Chest = chest.Prices.Chest, Key = chest.Prices.Key },
         DropWeights = new Dictionary<string, int>(chest.DropWeights, StringComparer.Ordinal),
         Pool = new List<string>(chest.Pool),
@@ -110,6 +115,11 @@ public static class AdminChestsRules
         foreach (var (label, value) in new[] { ("ánh sáng", draft.Look.Light), ("ánh sáng phụ", draft.Look.Hi), ("lõi sáng", draft.Look.Core) })
         {
             if (!IsColour(value)) violations.Add(new CatalogRuleViolation(LookInvalid, $"Màu {label} \"{value}\" không hợp lệ."));
+        }
+        foreach (var (label, url) in new[] { ("Ảnh hòm", draft.Look.ImageUrl), ("Ảnh chìa", draft.Look.KeyImageUrl) })
+        {
+            if (!string.IsNullOrEmpty(url) && !IsPicture(url))
+                violations.Add(new CatalogRuleViolation(ChestImageInvalid, $"{label} phải là địa chỉ https do trang tải ảnh trả về."));
         }
 
         foreach (var duplicate in draft.Pool.GroupBy(id => id, StringComparer.Ordinal).Where(group => group.Count() > 1))
@@ -163,11 +173,18 @@ public static class AdminChestsRules
     private static bool IsHttpsUrl(string value) =>
         Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
 
+    /// <summary>
+    /// A chest or key picture: an upload (https) or one shipped with the site under /assets/. Read as the page reads it
+    /// (chestSprites.js PICTURE_URL), so a picture that is saved is also one players are shown.
+    /// </summary>
+    private static bool IsPicture(string value) =>
+        AdminCosmeticRules.SafeUrl.IsMatch(value) && (value.StartsWith("https://", StringComparison.Ordinal) || IsSiteAsset(value));
+
     /// <summary>A picture shipped with the site under /assets/ (an outfit's icon), never one that climbs out of it.</summary>
     public static bool IsSiteAsset(string value) =>
         SiteAsset.IsMatch(value) && !value.Contains("..", StringComparison.Ordinal);
 
-    private static readonly Regex SiteAsset = new(@"^/assets/[A-Za-z0-9_./-]+\.(png|webp)$", RegexOptions.Compiled);
+    private static readonly Regex SiteAsset = new(@"^/assets/[A-Za-z0-9_./-]+\.(png|webp)\z", RegexOptions.Compiled);
 
     private static bool IsColour(string? value)
     {
@@ -239,6 +256,8 @@ public static class AdminChestsRules
         Compare("look.light", before.Look.Light, after.Look.Light);
         Compare("look.hi", before.Look.Hi, after.Look.Hi);
         Compare("look.core", before.Look.Core, after.Look.Core);
+        Compare("look.imageUrl", before.Look.ImageUrl, after.Look.ImageUrl);
+        Compare("look.keyImageUrl", before.Look.KeyImageUrl, after.Look.KeyImageUrl);
 
         return new AdminChestDiff(added, removed, weights, fields, reordered);
     }

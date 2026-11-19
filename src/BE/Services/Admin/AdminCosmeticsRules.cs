@@ -54,6 +54,18 @@ public static class AdminCosmeticRules
     public const string TemplatePainted = "painted";
     public const string TemplateClone = "builtin-clone";
     public const string TemplateStyle = "style";
+    /// <summary>An entrance played from an uploaded sprite sheet (frames in a grid), as studios ship effects.</summary>
+    public const string TemplateFlipbook = "flipbook";
+
+    /// <summary>Where a flipbook entrance plays: around the arriving player, over the whole screen, flying across, or dropping in.</summary>
+    public static readonly IReadOnlyList<string> FlipbookPlaces = new[] { "hero", "screen", "across", "drop" };
+
+    /// <summary>How a flipbook is laid on the screen: as it is (transparent art), or added as light (art drawn on black).</summary>
+    public static readonly IReadOnlyList<string> FlipbookBlends = new[] { "normal", "add" };
+
+    public const int MaxSheetCells = 16;
+    /// <summary>As large as an upload may be (AdminAssetProcessor), so any picture the page accepted can be saved.</summary>
+    public const int MaxPictureSide = AdminAssetProcessor.MaxPixelSide;
 
     public const string ModeLevel = "level";
     public const string ModeAchievement = "achievement";
@@ -98,7 +110,8 @@ public static class AdminCosmeticRules
     private const int MaxUrlLength = 1000;
 
     private static readonly Regex RgbPattern = new(@"^(\d{1,3}),(\d{1,3}),(\d{1,3})$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex SafeUrl = new(@"^(https://[^\s""'<>()\\]+|/assets/[^\s""'<>()\\]+)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    /// <summary>The page's URL_OK (cosmetics/catalog.js). \z, not $: .NET's $ also matches before a final newline.</summary>
+    public static readonly Regex SafeUrl = new(@"^(https://[^\s""'<>()\\]+|/assets/[^\s""'<>()\\]+)\z", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     // ------------------------------------------------------------------ names and small fields
 
@@ -175,7 +188,7 @@ public static class AdminCosmeticRules
         BsonDocument? written = category switch
         {
             MarketCategories.Frame => FrameParams(template, imageUrl, given, Problem),
-            MarketCategories.Title => TitleParams(template, given, Problem),
+            MarketCategories.Title => TitleParams(template, imageUrl, given, Problem),
             MarketCategories.Entrance => EntranceParams(template, given, Problem),
             _ => null,
         };
@@ -185,7 +198,7 @@ public static class AdminCosmeticRules
         return new CosmeticVisualCheck(problems, new CatalogVisual
         {
             IconKey = defId,
-            // Only a painted frame keeps its picture at the top; an entrance names its pictures in its parameters.
+            // Only a painted frame or title keeps its picture at the top; an entrance names its pictures in its parameters.
             ImageUrl = template == TemplatePainted ? imageUrl : null,
             BuiltinId = null,
             Template = template,
@@ -261,22 +274,29 @@ public static class AdminCosmeticRules
         return written;
     }
 
-    private static BsonDocument? TitleParams(string? template, JsonElement? given, Action<string, string> problem)
+    private static BsonDocument? TitleParams(string? template, string? imageUrl, JsonElement? given, Action<string, string> problem)
     {
-        if (template != TemplateStyle)
-        {
-            problem(AdminCosmeticCodes.TemplateUnknown, "Mẫu danh hiệu không hợp lệ: chỉ có style.");
-            return null;
-        }
         var written = new BsonDocument();
-        if (given is { } values && values.TryGetProperty("style", out var style) && style.ValueKind == JsonValueKind.String
-            && TitleStyles.Contains(style.GetString()!, StringComparer.Ordinal))
+        if (template == TemplateStyle)
         {
-            written["style"] = style.GetString();
+            if (given is { } values && values.TryGetProperty("style", out var style) && style.ValueKind == JsonValueKind.String
+                && TitleStyles.Contains(style.GetString()!, StringComparer.Ordinal))
+            {
+                written["style"] = style.GetString();
+            }
+            else
+            {
+                problem(AdminCosmeticCodes.StyleUnknown, "Kiểu danh hiệu không có trong bảng 18 kiểu.");
+            }
+        }
+        else if (template == TemplatePainted)
+        {
+            PaintedTitle(imageUrl, given, written, problem);
         }
         else
         {
-            problem(AdminCosmeticCodes.StyleUnknown, "Kiểu danh hiệu không có trong bảng 18 kiểu.");
+            problem(AdminCosmeticCodes.TemplateUnknown, "Mẫu danh hiệu không hợp lệ: chỉ có style và painted.");
+            return null;
         }
         if (given is not { } all) return written;
         if (all.TryGetProperty("glow", out var glow))
@@ -292,25 +312,91 @@ public static class AdminCosmeticRules
         return written;
     }
 
+    /// <summary>
+    /// A nameplate painted by an artist: the picture, its size in pixels (the page lays it out before it has loaded), and the
+    /// box the name is written in, as fractions of the picture. Art that already carries the words says so and has no box.
+    /// </summary>
+    private static void PaintedTitle(string? imageUrl, JsonElement? given, BsonDocument written, Action<string, string> problem)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl)) problem(AdminCosmeticCodes.ImageRequired, "Danh hiệu từ ảnh cần một ảnh bảng tên.");
+        else if (!IsSafeUrl(imageUrl)) problem(AdminCosmeticCodes.ImageInvalid, "Địa chỉ ảnh bảng tên không hợp lệ.");
+
+        if (given is not { } values)
+        {
+            problem(AdminCosmeticCodes.ParamInvalid, "Danh hiệu từ ảnh cần kích thước ảnh và khung chữ.");
+            return;
+        }
+        if (values.TryGetProperty("size", out var size) && ReadSize(size) is { } cleanSize) written["size"] = cleanSize;
+        else problem(AdminCosmeticCodes.ParamInvalid, $"Kích thước ảnh phải là hai số nguyên từ 8 đến {MaxPictureSide} px. Hãy tải lại ảnh.");
+
+        var baked = false;
+        if (values.TryGetProperty("textBaked", out var bakedValue))
+        {
+            if (bakedValue.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                baked = bakedValue.GetBoolean();
+            }
+            else
+            {
+                // Whether a box is needed is unknown, so the box is not judged as well.
+                problem(AdminCosmeticCodes.ParamInvalid, "\"Ảnh đã có chữ\" phải là có hoặc không.");
+                baked = true;
+            }
+        }
+        if (baked)
+        {
+            if (bakedValue.ValueKind == JsonValueKind.True) written["textBaked"] = true;
+        }
+        else if (!values.TryGetProperty("box", out var box) || ReadBox(box) is not { } cleanBox)
+        {
+            problem(AdminCosmeticCodes.ParamInvalid, "Hãy kéo khung chữ nằm gọn trong ảnh.");
+        }
+        else
+        {
+            written["box"] = cleanBox;
+        }
+        if (values.TryGetProperty("color", out var color))
+        {
+            if (Rgb(color) is { } rgb) written["color"] = rgb;
+            else problem(AdminCosmeticCodes.ParamInvalid, "Màu chữ phải có dạng \"r,g,b\".");
+        }
+        if (values.TryGetProperty("scale", out var scale))
+        {
+            if (Number(scale, 0.5, 2) is { } value) written["scale"] = value;
+            else problem(AdminCosmeticCodes.ParamInvalid, "Cỡ bảng tên phải từ 0,5 đến 2.");
+        }
+    }
+
+    private static BsonDocument? ReadSize(JsonElement size)
+    {
+        if (size.ValueKind != JsonValueKind.Object) return null;
+        if (!size.TryGetProperty("w", out var w) || !size.TryGetProperty("h", out var h)) return null;
+        if (Number(w, 8, MaxPictureSide, whole: true) is not { } width || Number(h, 8, MaxPictureSide, whole: true) is not { } height) return null;
+        return new BsonDocument { ["w"] = width, ["h"] = height };
+    }
+
+    /// <summary>A box inside the picture, in fractions of it: x and y from 0, width and height from 2 %, never past the edge.</summary>
+    private static BsonDocument? ReadBox(JsonElement box)
+    {
+        if (box.ValueKind != JsonValueKind.Object) return null;
+        double? Part(string name, double min) => box.TryGetProperty(name, out var value) ? Number(value, min, 1) : null;
+        if (Part("x", 0) is not { } x || Part("y", 0) is not { } y || Part("w", 0.02) is not { } w || Part("h", 0.02) is not { } h) return null;
+        const double Slack = 1e-4;
+        if (x + w > 1 + Slack || y + h > 1 + Slack) return null;
+        return new BsonDocument { ["x"] = x, ["y"] = y, ["w"] = w, ["h"] = h };
+    }
+
     private static BsonDocument? EntranceParams(string? template, JsonElement? given, Action<string, string> problem)
     {
+        if (template == TemplateFlipbook) return FlipbookParams(given, problem);
         if (template is null || !EntranceTemplates.Contains(template, StringComparer.Ordinal))
         {
-            problem(AdminCosmeticCodes.TemplateUnknown, "Mẫu hiệu ứng không có trong danh sách 10 mẫu.");
+            problem(AdminCosmeticCodes.TemplateUnknown, "Mẫu hiệu ứng không có trong danh sách 10 mẫu và ảnh động riêng.");
             return null;
         }
         var written = new BsonDocument();
         if (given is not { } all) return written;
-        if (all.TryGetProperty("tint", out var tint))
-        {
-            if (Rgb(tint) is { } rgb) written["tint"] = rgb;
-            else problem(AdminCosmeticCodes.ParamInvalid, "Màu chủ đạo phải có dạng \"r,g,b\".");
-        }
-        if (all.TryGetProperty("duration", out var duration))
-        {
-            if (Number(duration, 4, 12) is { } seconds) written["duration"] = seconds;
-            else problem(AdminCosmeticCodes.ParamInvalid, "Thời lượng phải từ 4 đến 12 giây.");
-        }
+        TintAndDuration(all, written, problem);
         if (all.TryGetProperty("imageUrl", out var image))
         {
             if (!CreatureTemplates.Contains(template)) problem(AdminCosmeticCodes.ParamInvalid, "Chỉ mẫu kim-long và phuong-hoang đổi được ảnh sinh vật.");
@@ -323,6 +409,85 @@ public static class AdminCosmeticRules
             else if (sword.ValueKind == JsonValueKind.String && IsSafeUrl(sword.GetString())) written["swordUrl"] = sword.GetString();
             else problem(AdminCosmeticCodes.ImageInvalid, "Địa chỉ ảnh kiếm không hợp lệ.");
         }
+        return written;
+    }
+
+    private static void TintAndDuration(JsonElement all, BsonDocument written, Action<string, string> problem)
+    {
+        if (all.TryGetProperty("tint", out var tint))
+        {
+            if (Rgb(tint) is { } rgb) written["tint"] = rgb;
+            else problem(AdminCosmeticCodes.ParamInvalid, "Màu chủ đạo phải có dạng \"r,g,b\".");
+        }
+        if (all.TryGetProperty("duration", out var duration))
+        {
+            if (Number(duration, 4, 12) is { } seconds) written["duration"] = seconds;
+            else problem(AdminCosmeticCodes.ParamInvalid, "Thời lượng phải từ 4 đến 12 giây.");
+        }
+    }
+
+    /// <summary>
+    /// A sprite sheet: cols x rows frames read left to right, top to bottom, of which the first `frames` play at `fps`.
+    /// Only what is given is stored; the page fills in the rest (every cell, 12 fps, looping, around the player, size 1, as is).
+    /// </summary>
+    private static BsonDocument? FlipbookParams(JsonElement? given, Action<string, string> problem)
+    {
+        var written = new BsonDocument();
+        if (given is not { } all)
+        {
+            problem(AdminCosmeticCodes.ImageRequired, "Ảnh động riêng cần một sprite sheet.");
+            return written;
+        }
+        if (!all.TryGetProperty("sheetUrl", out var sheet) || sheet.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(sheet.GetString()))
+            problem(AdminCosmeticCodes.ImageRequired, "Ảnh động riêng cần một sprite sheet.");
+        else if (!IsSafeUrl(sheet.GetString())) problem(AdminCosmeticCodes.ImageInvalid, "Địa chỉ sprite sheet không hợp lệ.");
+        else written["sheetUrl"] = sheet.GetString();
+
+        double? Cells(string name) => all.TryGetProperty(name, out var value) ? Number(value, 1, MaxSheetCells, whole: true) : null;
+        var cols = Cells("cols");
+        var rows = Cells("rows");
+        if (cols is null || rows is null)
+        {
+            problem(AdminCosmeticCodes.ParamInvalid, $"Số cột và số hàng của sprite sheet phải từ 1 đến {MaxSheetCells}.");
+        }
+        else
+        {
+            written["cols"] = cols.Value;
+            written["rows"] = rows.Value;
+            if (all.TryGetProperty("frames", out var frames))
+            {
+                if (Number(frames, 1, cols.Value * rows.Value, whole: true) is { } count) written["frames"] = count;
+                else problem(AdminCosmeticCodes.ParamInvalid, $"Số khung phải từ 1 đến {cols.Value * rows.Value} (số ô của sheet).");
+            }
+        }
+        if (all.TryGetProperty("fps", out var fps))
+        {
+            if (Number(fps, 1, 60) is { } rate) written["fps"] = rate;
+            else problem(AdminCosmeticCodes.ParamInvalid, "Tốc độ phải từ 1 đến 60 khung mỗi giây.");
+        }
+        if (all.TryGetProperty("loop", out var loop))
+        {
+            if (loop.ValueKind is JsonValueKind.True or JsonValueKind.False) written["loop"] = loop.GetBoolean();
+            else problem(AdminCosmeticCodes.ParamInvalid, "\"Lặp lại\" phải là có hoặc không.");
+        }
+        if (all.TryGetProperty("place", out var place))
+        {
+            if (place.ValueKind == JsonValueKind.String && FlipbookPlaces.Contains(place.GetString()!, StringComparer.Ordinal)) written["place"] = place.GetString();
+            else problem(AdminCosmeticCodes.ParamInvalid, "Vị trí phải là quanh người chơi, phủ màn hình, bay ngang hoặc sà xuống.");
+        }
+        if (all.TryGetProperty("blend", out var blend))
+        {
+            if (blend.ValueKind == JsonValueKind.String && FlipbookBlends.Contains(blend.GetString()!, StringComparer.Ordinal)) written["blend"] = blend.GetString();
+            else problem(AdminCosmeticCodes.ParamInvalid, "Cách hòa ảnh phải là giữ nguyên hoặc cộng sáng.");
+        }
+        if (all.TryGetProperty("size", out var size))
+        {
+            if (Number(size, 0.3, 3) is { } value) written["size"] = value;
+            else problem(AdminCosmeticCodes.ParamInvalid, "Cỡ hiệu ứng phải từ 0,3 đến 3.");
+        }
+        if (all.TryGetProperty("imageUrl", out _) || all.TryGetProperty("swordUrl", out _))
+            problem(AdminCosmeticCodes.ParamInvalid, "Ảnh động riêng chỉ dùng sprite sheet, không có ảnh sinh vật hay ảnh kiếm.");
+        TintAndDuration(all, written, problem);
         return written;
     }
 

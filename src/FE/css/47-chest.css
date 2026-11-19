@@ -56,6 +56,10 @@
 .qh-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .qh-ico { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .qh-app .qh-px { image-rendering: pixelated; }
+/* A chest an admin gave its own picture: drawn smooth, fitted into the box the pixel drawing would take. */
+.qh-app img.qh-custom { image-rendering: auto; object-fit: contain; }
+.qh-chest img.qh-custom { aspect-ratio: 336 / 301; height: auto; }
+.qh-dot img.qh-custom { aspect-ratio: 64 / 57; }
 .qh-coin { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1c2, #e2b34a 50%, #8a6420); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); flex-shrink: 0; }
 
 /* ---------- backdrop ---------- */

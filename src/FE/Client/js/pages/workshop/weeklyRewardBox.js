@@ -2,7 +2,7 @@ import { weeklyApi } from '../../api/weeklyApi.js';
 import { session } from '../../services/session.js';
 import { tr } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
-import { pixelIconUrl } from '../chest/chestSprites.js';
+import { chestIconUrl, chestPictureUrl } from '../chest/chestSprites.js';
 import { fmt } from '../market/marketKit.js';
 
 /**
@@ -22,10 +22,12 @@ function percentText(value) {
   return Number.isFinite(n) ? `${fmt(n)}%` : '';
 }
 
-function iconHtml(iconKey) {
-  const src = pixelIconUrl(iconKey);
+/** `drop` names the chest by iconKey and look: its own picture when an admin gave it one, else its pixel drawing. */
+function iconHtml(drop) {
+  const src = chestIconUrl(drop);
+  const picture = chestPictureUrl(drop) ? ' is-picture' : '';
   return src
-    ? `<img class="bpa-ch-rw-icon" src="${src}" width="40" height="40" alt="" draggable="false">`
+    ? `<img class="bpa-ch-rw-icon${picture}" src="${escapeHtml(src)}" width="40" height="40" alt="" draggable="false">`
     : '<span class="bpa-ch-rw-icon" aria-hidden="true"></span>';
 }
 
@@ -34,7 +36,7 @@ function chestRowHtml(drop) {
   const bar = Number.isFinite(percent) ? Math.min(100, Math.max(0, percent)) : 0;
   return `
     <li class="bpa-ch-rw-chest" data-weekly-chest="${escapeHtml(drop.chestId)}">
-      ${iconHtml(drop.iconKey)}
+      ${iconHtml(drop)}
       <span class="bpa-ch-rw-name">${escapeHtml(chestName(drop.name, drop.nameEn))}</span>
       <b class="bpa-ch-rw-pct">${escapeHtml(percentText(drop.percent))}</b>
       <span class="bpa-ch-rw-bar" aria-hidden="true"><i style="width:${bar}%"></i></span>
@@ -144,7 +146,7 @@ export async function mountWeeklyRewardBox(container, { signal, waitingOnly = fa
     const name = chestName(drop.chestName, drop.chestNameEn);
     const older = drop.weekKey && drop.weekKey !== reward?.weekKey;
     return `<li class="bpa-ch-rw-wait" data-weekly-drop="${escapeHtml(drop.id)}">
-        ${iconHtml(drop.iconKey)}
+        ${iconHtml(drop)}
         <span class="bpa-ch-rw-name">${escapeHtml(name)}${older ? ` <small>${escapeHtml(tr(`week of ${drop.weekKey}`, `tuần ${drop.weekKey}`))}</small>` : ''}</span>
         ${claimed.has(drop.id)
           ? `<span class="bpa-ch-rw-done">${tr('Claimed', 'Đã nhận')}</span>`
