@@ -264,6 +264,14 @@ public class AiCaseDraft
     public string TruthRepairBaseHash { get; set; } = string.Empty;
     /// <summary>The stage whose deterministic validation stopped the latest candidate generation.</summary>
     public string TruthRepairFailedArtifact { get; set; } = string.Empty;
+    /// <summary>
+    /// The stages a truth repair already has, saved after each one: a repair parked for Claude resumes after them, as the
+    /// first truth run resumes after its checkpoint. Replaying them asked Claude again, because the attempt numbers in the
+    /// bridge keys had moved on. Only for the run that saved them (<see cref="TruthRepairProgressRunId"/>); cleared when the repair ends.
+    /// </summary>
+    public CaseTruthPackage? TruthRepairProgress { get; set; }
+    public string TruthRepairProgressArtifact { get; set; } = string.Empty;
+    public string TruthRepairProgressRunId { get; set; } = string.Empty;
     public BlindSolvabilityReview BlindSolvabilityReview { get; set; } = new();
     public BlindReviewAssessment BlindReviewAssessment { get; set; } = new();
     public List<AiArtifactProvenance> ArtifactProvenance { get; set; } = new();

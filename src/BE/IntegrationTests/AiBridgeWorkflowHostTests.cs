@@ -227,6 +227,65 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(AiDraftStatus.ReadyToPublish, ready.Status);
     }
 
+    /// <summary>
+    /// A truth repair asked through the bridge resumes from its last answered stage, like the first truth run, so each
+    /// stage of the repair is asked once. It used to replay from its first stage after every answer; the attempt number
+    /// of that stage, counted from the answers already used, had moved on, so Claude was asked the timeline again and
+    /// again ("Tiếng chuông lễ đèn tuyết", 2026-11-19: timeline, opportunity, timeline, evidence, timeline…).
+    /// </summary>
+    [Fact]
+    public async Task ATruthRepairThroughTheBridge_AsksEachOfItsStagesOnce()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory();
+        await SeedUsersAsync(factory);
+        using var admin = User(factory, AdminId, UserRole.Admin);
+        using var bot = Bot(factory);
+        var draftId = await CreateAsync(factory, admin, AiCaseReviewModes.Full);
+        await WaitForAsync(admin, bot, draftId, AiDraftStatus.StoryAwaitingApproval);
+        var story = await admin.PostAsync($"/api/admin/ai-cases/{draftId}/approve", null);
+        Assert.True(story.IsSuccessStatusCode, await story.Content.ReadAsStringAsync());
+        await WaitForAsync(admin, bot, draftId, AiDraftStatus.CaseTruthAwaitingApproval);
+
+        HashSet<string> before;
+        using (var scope = factory.Services.CreateScope())
+            before = (await scope.ServiceProvider.GetRequiredService<MongoDbContext>().AiBridgeRequests
+                .Find(item => item.OwnerId == draftId).Project(item => item.Id).ToListAsync()).ToHashSet();
+        var repair = await admin.PostAsJsonAsync($"/api/admin/ai-cases/{draftId}/repair-truth",
+            new { repairInstructions = "Cho ngoại phạm một dấu vết người khác thấy được." });
+        Assert.True(repair.IsSuccessStatusCode, await repair.Content.ReadAsStringAsync());
+
+        // The bot answers whatever the repair asks, up to twice as many answers as the repair has stages.
+        var deadline = DateTime.UtcNow.AddSeconds(90);
+        var answers = 0;
+        while (DateTime.UtcNow < deadline && answers < 16)
+        {
+            var draft = await GetData<AiDraftResponse>(admin, $"/api/admin/ai-cases/{draftId}");
+            if (draft.QueueState is AiQueueStates.None or "" && draft.TruthRepairStatus is AiRepairStatus.CandidateReady or AiRepairStatus.CandidateInvalid)
+                break;
+            foreach (var request in (await PendingAsync(bot)).Where(item => item["draftId"]?.GetValue<string>() == draftId
+                         && item["kind"]!.GetValue<string>() == AiBridgeKinds.Json))
+            {
+                var requestId = request["requestId"]!.GetValue<string>();
+                var taken = await TakeAsync(bot, requestId);
+                await Submit(bot, requestId, JsonNode.Parse(taken["devMockResponse"]!.GetValue<string>())!);
+                answers++;
+            }
+            await Task.Delay(100);
+        }
+
+        using var check = factory.Services.CreateScope();
+        var db = check.ServiceProvider.GetRequiredService<MongoDbContext>();
+        var asked = (await db.AiBridgeRequests.Find(item => item.OwnerId == draftId).ToListAsync())
+            .Where(item => !before.Contains(item.Id)).ToList();
+        var perStep = asked.GroupBy(item => item.Step).ToDictionary(group => group.Key, group => group.Count());
+        output.WriteLine(string.Join(", ", perStep.Select(pair => $"{pair.Key} x{pair.Value}")));
+        Assert.Equal(1, perStep.GetValueOrDefault("BuildTrueTimeline"));
+        Assert.All(perStep, pair => Assert.True(pair.Value == 1, $"{pair.Key} was asked {pair.Value} times."));
+        var done = await db.AiCaseDrafts.Find(item => item.Id == draftId).SingleAsync();
+        Assert.Equal(AiRepairStatus.CandidateReady, done.TruthRepairStatus);
+    }
+
     // ---------------------------------------------------------------- VIP orders and the audit log
 
     /// <summary>

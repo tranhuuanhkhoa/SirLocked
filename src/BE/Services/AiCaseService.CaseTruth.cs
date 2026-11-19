@@ -273,7 +273,19 @@ public partial class AiCaseService
             : FormatValidation(currentValidation);
         CaseValidationResult? failedStageValidation = null;
         var failedArtifact = string.Empty;
-        var candidate = await GenerateTruthStagesAsync(draft, repairInput, fromArtifact, $"""
+        // A repair parked for Claude resumes after the stages it already has (saved below), like the first truth run.
+        var saved = draft.TruthRepairProgress is not null
+            && !string.IsNullOrEmpty(draft.GenerationRunId)
+            && draft.TruthRepairProgressRunId == draft.GenerationRunId
+            && CaseTruthRepairPolicy.IsAtOrBefore(fromArtifact, draft.TruthRepairProgressArtifact)
+                ? draft.TruthRepairProgress
+                : null;
+        var resumeFrom = saved is null
+            ? fromArtifact
+            : draft.TruthRepairProgressArtifact == CaseTruthArtifacts.ProofGraph
+                ? "__TRUTH_CHECKPOINT_COMPLETE__"
+                : NextTruthArtifact(draft.TruthRepairProgressArtifact)!;
+        var candidate = await GenerateTruthStagesAsync(draft, saved ?? repairInput, resumeFrom, $"""
             Create one scoped repair candidate starting at artifact {fromArtifact}.
             Preserve every valid upstream field exactly. Never relax a validator and never change unrelated truth.
             Admin direction: {instructions}
@@ -283,7 +295,10 @@ public partial class AiCaseService
             {
                 failedArtifact = artifact;
                 failedStageValidation = result;
-            });
+            }, onStageDone: (stage, artifact) => UpdateActiveRunAsync(draft, Builders<AiCaseDraft>.Update
+                .Set(item => item.TruthRepairProgress, stage)
+                .Set(item => item.TruthRepairProgressArtifact, artifact)
+                .Set(item => item.TruthRepairProgressRunId, draft.GenerationRunId)));
         var validation = failedStageValidation ?? ValidateTruthForGameplay(draft, candidate, budget);
         var review = validation.IsValid
             ? await ReviewTruthFeasibilityAsync(draft, candidate)
@@ -312,6 +327,9 @@ public partial class AiCaseService
                 .Set(item => item.TruthRepairFromArtifact, fromArtifact)
                 .Set(item => item.TruthRepairReasonCodes, recommendedPlan.ReasonCodes)
                 .Set(item => item.TruthRepairInstructions, instructions)
+                .Set(item => item.TruthRepairProgress, null)
+                .Set(item => item.TruthRepairProgressArtifact, string.Empty)
+                .Set(item => item.TruthRepairProgressRunId, string.Empty)
                 .Set(item => item.UpdatedAt, DateTime.UtcNow));
         return AiDraftResponse.From(await _db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync());
     }
@@ -496,7 +514,8 @@ public partial class AiCaseService
         string? regenerateFromArtifact = null,
         string? correction = null,
         bool persistCheckpoints = false,
-        Action<string, CaseValidationResult>? reportValidationFailure = null)
+        Action<string, CaseValidationResult>? reportValidationFailure = null,
+        Func<CaseTruthPackage, string, Task>? onStageDone = null)
     {
         var budget = TruthBudgetForDraft(draft);
         var gameplayContract = AiGenerationContract.For(draft.Settings);
@@ -521,6 +540,14 @@ public partial class AiCaseService
         ClearInvalidatedTruthArtifacts(truth, start);
 
         string StageCorrection(int index) => index >= start ? correction ?? string.Empty : string.Empty;
+
+        // A stage that passed is saved: the first run as the draft's checkpoint, a repair through onStageDone. A run parked
+        // for Claude then resumes after it and never asks Claude for that stage again.
+        async Task CheckpointAsync(string completedArtifact, int progress, bool passed)
+        {
+            if (persistCheckpoints) await SaveTruthCheckpointAsync(draft, truth, completedArtifact, progress);
+            if (passed && onStageDone is not null) await onStageDone(truth, completedArtifact);
+        }
         if (start <= 0)
         {
             var artifact = await GenerateTruthStageAsync<GeneratedCaseSeedArtifact>(
@@ -532,7 +559,7 @@ public partial class AiCaseService
                     exactSuspects: requiredSuspects),
                 BuildTruthStagePrompt(draft, CaseTruthArtifacts.CaseSeed, truth, StageCorrection(0)));
             truth.CaseSeed = artifact.CaseSeed;
-            if (persistCheckpoints) await SaveTruthCheckpointAsync(draft, truth, CaseTruthArtifacts.CaseSeed, 12);
+            await CheckpointAsync(CaseTruthArtifacts.CaseSeed, 12, passed: true);
         }
         if (start <= 1)
         {
@@ -542,7 +569,7 @@ public partial class AiCaseService
                 AiStrictSchemaProvider.CoreTruthSchema(budget, suspectIds, plannedTargetKind),
                 BuildTruthStagePrompt(draft, CaseTruthArtifacts.CoreTruth, truth, StageCorrection(1)));
             truth.CoreTruth = artifact.CoreTruth;
-            if (persistCheckpoints) await SaveTruthCheckpointAsync(draft, truth, CaseTruthArtifacts.CoreTruth, 24);
+            await CheckpointAsync(CaseTruthArtifacts.CoreTruth, 24, passed: true);
         }
         if (start <= 2)
         {
@@ -562,12 +589,7 @@ public partial class AiCaseService
                 CaseTruthArtifacts.CoreTruth,
                 CaseTruthArtifacts.Timeline,
                 timelineResult.Validation);
-            if (persistCheckpoints)
-                await SaveTruthCheckpointAsync(
-                    draft,
-                    truth,
-                    completedArtifact,
-                    timelineResult.Validation.IsValid ? 36 : 24);
+            await CheckpointAsync(completedArtifact, timelineResult.Validation.IsValid ? 36 : 24, timelineResult.Validation.IsValid);
             if (!timelineResult.Validation.IsValid)
             {
                 reportValidationFailure?.Invoke(CaseTruthArtifacts.Timeline, timelineResult.Validation);
@@ -587,7 +609,7 @@ public partial class AiCaseService
                 draft, "BuildOpportunityMatrix", AiGenerationSchemaVersions.OpportunityMatrix,
                 AiStrictSchemaProvider.OpportunityMatrixSchema(budget, suspectIds, eventIds), BuildTruthStagePrompt(draft, CaseTruthArtifacts.Opportunity, truth, StageCorrection(3)));
             truth.OpportunityMatrix = artifact.OpportunityMatrix;
-            if (persistCheckpoints) await SaveTruthCheckpointAsync(draft, truth, CaseTruthArtifacts.Opportunity, 48);
+            await CheckpointAsync(CaseTruthArtifacts.Opportunity, 48, passed: true);
         }
         if (start <= 4)
         {
@@ -613,12 +635,7 @@ public partial class AiCaseService
                 CaseTruthArtifacts.Opportunity,
                 CaseTruthArtifacts.Evidence,
                 traceValidation);
-            if (persistCheckpoints)
-                await SaveTruthCheckpointAsync(
-                    draft,
-                    truth,
-                    completedArtifact,
-                    traceValidation.IsValid ? 60 : 48);
+            await CheckpointAsync(completedArtifact, traceValidation.IsValid ? 60 : 48, traceValidation.IsValid);
             if (!traceValidation.IsValid)
             {
                 reportValidationFailure?.Invoke(CaseTruthArtifacts.Evidence, traceValidation);
@@ -656,12 +673,7 @@ public partial class AiCaseService
                 CaseTruthArtifacts.Evidence,
                 CaseTruthArtifacts.Statements,
                 statementResult.Validation);
-            if (persistCheckpoints)
-                await SaveTruthCheckpointAsync(
-                    draft,
-                    truth,
-                    completedArtifact,
-                    statementResult.Validation.IsValid ? 72 : 60);
+            await CheckpointAsync(completedArtifact, statementResult.Validation.IsValid ? 72 : 60, statementResult.Validation.IsValid);
             if (!statementResult.Validation.IsValid)
             {
                 reportValidationFailure?.Invoke(CaseTruthArtifacts.Statements, statementResult.Validation);
@@ -697,12 +709,7 @@ public partial class AiCaseService
                 CaseTruthArtifacts.Statements,
                 CaseTruthArtifacts.ProofGraph,
                 proofResult.Validation);
-            if (persistCheckpoints)
-                await SaveTruthCheckpointAsync(
-                    draft,
-                    truth,
-                    completedArtifact,
-                    proofResult.Validation.IsValid ? 84 : 72);
+            await CheckpointAsync(completedArtifact, proofResult.Validation.IsValid ? 84 : 72, proofResult.Validation.IsValid);
             if (!proofResult.Validation.IsValid)
             {
                 reportValidationFailure?.Invoke(CaseTruthArtifacts.ProofGraph, proofResult.Validation);
