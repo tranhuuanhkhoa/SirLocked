@@ -171,10 +171,10 @@ public sealed partial class MarketService
     }
 
     /// <summary>Cheap pre-check so a buyer who cannot pay never claims (and briefly blocks) a listing.</summary>
-    private static void RequireCanBuy(MarketAccount account, long price)
+    private void RequireCanBuy(MarketAccount account, long price)
     {
         if (account.Balance < price) throw ErrorFor(MarketErrors.InsufficientFunds);
-        if (!MarketRules.HasRoom(account.Slots, 1)) throw ErrorFor(MarketErrors.InventoryFull);
+        if (!MarketRules.HasRoom(account.Slots, 1, _store.SlotCap)) throw ErrorFor(MarketErrors.InventoryFull);
     }
 
     // ------------------------------------------------------------------ buy orders
@@ -486,7 +486,7 @@ public sealed partial class MarketService
     {
         var account = await _store.FindAccountAsync(userId, ct);
         if (account is null || account.Balance < amount) return MarketErrors.InsufficientFunds;
-        if (!MarketRules.HasRoom(account.Slots, 1)) return MarketErrors.InventoryFull;
+        if (!MarketRules.HasRoom(account.Slots, 1, _store.SlotCap)) return MarketErrors.InventoryFull;
         return MarketErrors.Busy;
     }
 

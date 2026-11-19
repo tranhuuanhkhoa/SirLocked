@@ -721,6 +721,34 @@ public sealed class MongoChestTests
         Assert.Equal(400, (await Throws(() => env.Chests.AdminGrantAsync(user.Id, Seal, 0, 0))).StatusCode);
     }
 
+    [Fact]
+    public async Task GrowingBag_TakesChestsAndKeysPastTwelve_AndStillBuysAndOpens()
+    {
+        if (!Enabled) return;
+        await using var env = await ChestEnv.CreateAsync(marketSettings: new MarketSettings { BagGrows = true });
+        var user = await env.AddUserAsync("Thám tử");
+
+        await env.Chests.AdminGrantAsync(user.Id, Seal, 12, 0);
+        var wallet = await env.Chests.AdminGrantAsync(user.Id, Seal, 5, 4);
+
+        Assert.Equal(MarketRules.GrowingBagSlots, wallet.SlotCap);
+        Assert.True(wallet.SlotsUsed > MarketRules.InventorySlots);
+        await env.Chests.BuyKeyAsync(user, Seal, NewKey());
+        var opened = await env.Chests.OpenAsync(user, Seal, NewKey());
+        Assert.Equal(wallet.SlotsUsed, opened.Wallet.SlotsUsed); // +1 key bought, -chest -key +reward
+        await env.AssertSlotsMatchItemsAsync();
+    }
+
+    [Fact]
+    public async Task FixedBag_ReportsTwelveSlots()
+    {
+        if (!Enabled) return;
+        await using var env = await ChestEnv.CreateAsync();
+        var user = await env.AddUserAsync("Thám tử");
+
+        Assert.Equal(MarketRules.InventorySlots, (await env.Market.GetWalletAsync(user.Id)).SlotCap);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static string? Code(ApiException exception) => (exception.Errors as ApiErrorDetails)?.Code;
@@ -750,12 +778,12 @@ public sealed class MongoChestTests
         private readonly MongoClient _client;
         private readonly string _database;
 
-        private ChestEnv(MongoDbSettings settings, IChestRandom random, ChestSettings chestSettings)
+        private ChestEnv(MongoDbSettings settings, IChestRandom random, ChestSettings chestSettings, MarketSettings? marketSettings)
         {
             _database = settings.DatabaseName;
             _client = new MongoClient(settings.ConnectionString);
             Db = new MongoDbContext(Options.Create(settings));
-            Store = new MarketStore(Db);
+            Store = new MarketStore(Db, settings: marketSettings is null ? null : Options.Create(marketSettings));
             Market = new MarketService(Store, NullLogger<MarketService>.Instance);
             Chests = new ChestService(Store, Market, random, Options.Create(chestSettings), NullLogger<ChestService>.Instance);
         }
@@ -765,7 +793,7 @@ public sealed class MongoChestTests
         public MarketService Market { get; }
         public ChestService Chests { get; }
 
-        public static async Task<ChestEnv> CreateAsync(IChestRandom? random = null, ChestSettings? chestSettings = null)
+        public static async Task<ChestEnv> CreateAsync(IChestRandom? random = null, ChestSettings? chestSettings = null, MarketSettings? marketSettings = null)
         {
             var settings = new MongoDbSettings
             {
@@ -776,7 +804,7 @@ public sealed class MongoChestTests
                 || !new MongoUrl(settings.ConnectionString).Servers.All(server =>
                     server.Host is "127.0.0.1" or "localhost" or "::1" or "[::1]"))
                 throw new InvalidOperationException("Chest integration tests need a loopback MongoDB and a temporary database.");
-            var env = new ChestEnv(settings, random ?? new ScriptedRandom(), chestSettings ?? new ChestSettings());
+            var env = new ChestEnv(settings, random ?? new ScriptedRandom(), chestSettings ?? new ChestSettings(), marketSettings);
             await env.Db.PingAsync();
             await env.Store.EnsureIndexesAsync();
             return env;
@@ -839,7 +867,7 @@ public sealed class MongoChestTests
             foreach (var account in await Store.Accounts.Find(FilterDefinition<MarketAccount>.Empty).ToListAsync())
             {
                 Assert.Equal(items.Count(i => i.OwnerId == account.Id), account.Slots);
-                Assert.True(account.Slots <= MarketRules.InventorySlots, $"slot cap exceeded for {account.Id}");
+                Assert.True(account.Slots <= Store.SlotCap, $"slot cap exceeded for {account.Id}");
                 Assert.True(account.Balance >= 0, $"negative balance for {account.Id}");
             }
         }

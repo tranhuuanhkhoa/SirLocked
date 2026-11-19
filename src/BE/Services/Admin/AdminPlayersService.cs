@@ -237,7 +237,7 @@ public sealed class AdminPlayersService
                 level, progress?.Xp ?? 0, level >= ProgressRules.MaxLevel ? 0 : ProgressRules.XpToNext(level), ProgressRules.MaxLevel,
                 progress?.Avatar ?? CosmeticCatalog.DefaultAvatar, progress?.AvatarUrl, progress?.AvatarUploadedAt),
             wallet is null
-                ? new AdminPlayerWalletDto(false, 0, 0, 0, MarketRules.InventorySlots, 0, 0)
+                ? new AdminPlayerWalletDto(false, 0, 0, 0, _market.SlotCap, 0, 0)
                 : new AdminPlayerWalletDto(true, wallet.Balance, wallet.Held, wallet.SlotsUsed, wallet.SlotCap, wallet.ItemCount, wallet.ReservedSlots),
             new AdminPlayerLookDto(look.FrameDefId, look.TitleDefId, look.EntranceDefId),
             inventory.Select(item => new AdminPlayerItemDto(

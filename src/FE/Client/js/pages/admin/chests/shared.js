@@ -79,7 +79,7 @@ const CODE_TEXT = {
   ASSET_STORAGE_UNAVAILABLE: 'Máy chủ chưa cấu hình Cloudinary nên chưa tải ảnh lên được.',
   ASSET_TOO_LARGE: 'Ảnh phải từ 5 MB trở xuống.',
   ASSET_BAD_IMAGE: 'Hãy dùng ảnh PNG, WebP hoặc JPG không quá 8000 px mỗi cạnh.',
-  SLOTS_FULL: 'Túi đồ của người chơi không đủ chỗ (tối đa 12 ô).',
+  SLOTS_FULL: 'Túi đồ của người chơi không đủ chỗ.',
   MARKET_USER_NOT_FOUND: 'Không tìm thấy người chơi này.',
 };
 

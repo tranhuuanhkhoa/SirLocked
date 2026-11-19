@@ -9,4 +9,11 @@ public sealed class MarketSettings
     /// Override with Market__TradeCoins.
     /// </summary>
     public bool TradeCoins { get; set; } = true;
+
+    /// <summary>
+    /// True: the bag has no fixed size. It shows <see cref="Services.Market.MarketRules.InventorySlots"/> cells and grows
+    /// as items come in, up to <see cref="Services.Market.MarketRules.GrowingBagSlots"/> (a safety ceiling only).
+    /// False: the bag holds <see cref="Services.Market.MarketRules.InventorySlots"/> items. Override with Market__BagGrows.
+    /// </summary>
+    public bool BagGrows { get; set; }
 }

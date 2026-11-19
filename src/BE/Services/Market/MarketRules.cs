@@ -74,7 +74,10 @@ public sealed record TradeDraft(
 /// <summary>Pure economy rules: no I/O, so fees, matching and validation are unit-testable.</summary>
 public static class MarketRules
 {
+    /// <summary>The bag's size, or with Market:BagGrows the cells it shows before it starts to grow.</summary>
     public const int InventorySlots = 12;
+    /// <summary>With Market:BagGrows the bag grows with its items; this ceiling only keeps one inventory from growing without end.</summary>
+    public const int GrowingBagSlots = 500;
     public const long StarterCoins = 500;
     public const long WinReward = 120;
     public const long LossReward = 30;
@@ -137,6 +140,9 @@ public static class MarketRules
     public static int ReservePart(int slotDelta) => Math.Max(0, slotDelta);
 
     public static int ReleasePart(int slotDelta) => Math.Min(0, slotDelta);
+
+    /// <summary>How many slots a bag holds: fixed, or growing up to the safety ceiling (Market:BagGrows).</summary>
+    public static int SlotCapFor(bool bagGrows) => bagGrows ? GrowingBagSlots : InventorySlots;
 
     public static bool HasRoom(int slotsUsed, int incoming, int cap = InventorySlots) =>
         incoming <= 0 || slotsUsed + incoming <= cap;

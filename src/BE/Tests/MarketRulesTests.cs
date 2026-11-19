@@ -117,6 +117,17 @@ public class MarketRulesTests
         Assert.False(MarketRules.HasRoom(10, 3));
     }
 
+    [Fact]
+    public void GrowingBag_TakesItemsPastTwelve_UpToItsSafetyCeiling()
+    {
+        Assert.Equal(MarketRules.InventorySlots, MarketRules.SlotCapFor(bagGrows: false));
+        Assert.Equal(MarketRules.GrowingBagSlots, MarketRules.SlotCapFor(bagGrows: true));
+        var cap = MarketRules.SlotCapFor(bagGrows: true);
+        Assert.True(MarketRules.HasRoom(MarketRules.InventorySlots, 20, cap));
+        Assert.True(MarketRules.HasRoom(MarketRules.GrowingBagSlots - 1, 1, cap));
+        Assert.False(MarketRules.HasRoom(MarketRules.GrowingBagSlots, 1, cap));
+    }
+
     // ----- trade validation
 
     [Fact]

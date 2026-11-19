@@ -432,8 +432,8 @@ public sealed class AdminChestsChestService
         _provider.Current.FindChest(id)
         ?? throw AdminChestsErrors.Error(404, AdminChestsErrors.ChestNotFound, $"Không có hòm {id}.");
 
-    private static WalletDto PreviewWallet() =>
-        new(0, 0, 0, MarketRules.InventorySlots, 0, 0, MarketRules.FeePercent);
+    private WalletDto PreviewWallet() =>
+        new(0, 0, 0, _market.SlotCap, 0, 0, MarketRules.FeePercent);
 
     // ------------------------------------------------------------------ helpers
 

@@ -28,7 +28,7 @@ export async function renderChestGrant(host, { signal } = {}) {
     <section class="adm-card ac-grant" aria-labelledby="ac-grant-title">
       <div>
         <h2 class="adm-card-title" id="ac-grant-title">Cấp hòm &amp; chìa</h2>
-        <p class="ac-card-note">Món được cấp vào túi của người chơi và chiếm ô như đồ mua (tối đa 12 ô). Hòm đang tắt vẫn cấp được.</p>
+        <p class="ac-card-note">Món được cấp vào túi của người chơi và chiếm ô như đồ mua. Hòm đang tắt vẫn cấp được.</p>
       </div>
       <label class="ac-field"><span>Người nhận</span>
         <input class="field-input ac-input-soft" type="search" autocomplete="off" placeholder="Tìm người chơi theo tên hoặc email" data-ac-player-search>

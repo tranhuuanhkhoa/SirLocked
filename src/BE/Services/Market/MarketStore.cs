@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.Models.Market;
 
@@ -27,11 +29,15 @@ public sealed class MarketStore
     private readonly MongoDbContext _db;
     private readonly TimeProvider _time;
 
-    public MarketStore(MongoDbContext db, TimeProvider? time = null)
+    public MarketStore(MongoDbContext db, TimeProvider? time = null, IOptions<MarketSettings>? settings = null)
     {
         _db = db;
         _time = time ?? TimeProvider.System;
+        SlotCap = MarketRules.SlotCapFor(settings?.Value.BagGrows ?? false);
     }
+
+    /// <summary>How many slots a bag holds here: <see cref="MarketRules.InventorySlots"/>, or the growing bag's ceiling (Market:BagGrows).</summary>
+    public int SlotCap { get; }
 
     public MongoDbContext Context => _db;
     public IMongoCollection<MarketAccount> Accounts => _db.Database.GetCollection<MarketAccount>("marketAccounts");
@@ -158,7 +164,7 @@ public sealed class MarketStore
     /// <summary>
     /// The only way coins and slots change. One atomic update: applies the deltas when the operation key
     /// was not applied before AND the guards hold (balance/held never go negative, slots never exceed
-    /// <paramref name="slotCap"/> when increasing).
+    /// <paramref name="slotCap"/>, by default <see cref="SlotCap"/>, when increasing).
     /// </summary>
     public async Task<WalletWrite> ApplyWalletAsync(
         string userId,
@@ -166,7 +172,7 @@ public sealed class MarketStore
         long balanceDelta,
         long heldDelta = 0,
         int slotDelta = 0,
-        int slotCap = MarketRules.InventorySlots,
+        int? slotCap = null,
         CancellationToken ct = default,
         long bonusDelta = 0,
         long bonusHeldDelta = 0)
@@ -181,7 +187,7 @@ public sealed class MarketStore
         if (heldDelta < 0) conditions.Add(filter.Gte(a => a.Held, -heldDelta));
         if (bonusDelta < 0) conditions.Add(filter.Gte(a => a.BonusBalance, -bonusDelta));
         if (bonusHeldDelta < 0) conditions.Add(filter.Gte(a => a.BonusHeld, -bonusHeldDelta));
-        if (slotDelta > 0) conditions.Add(filter.Lte(a => a.Slots, slotCap - slotDelta));
+        if (slotDelta > 0) conditions.Add(filter.Lte(a => a.Slots, (slotCap ?? SlotCap) - slotDelta));
 
         var update = Builders<MarketAccount>.Update
             .Inc(a => a.Balance, balanceDelta)
@@ -210,7 +216,7 @@ public sealed class MarketStore
         string opKey,
         long amount,
         int slotDelta = 0,
-        int slotCap = MarketRules.InventorySlots,
+        int? slotCap = null,
         CancellationToken ct = default)
     {
         if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "A spend cannot be negative.");
@@ -222,7 +228,7 @@ public sealed class MarketStore
             { "ops", new BsonDocument("$ne", opKey) },
             { "$expr", new BsonDocument("$gte", new BsonArray { new BsonDocument("$add", new BsonArray { "$balance", bonus }), amount }) }
         };
-        if (slotDelta > 0) filter.Add("slots", new BsonDocument("$lte", slotCap - slotDelta));
+        if (slotDelta > 0) filter.Add("slots", new BsonDocument("$lte", (slotCap ?? SlotCap) - slotDelta));
         var set = new BsonDocument
         {
             { "bonusBalance", new BsonDocument("$subtract", new BsonArray { bonus, fromBonus }) },

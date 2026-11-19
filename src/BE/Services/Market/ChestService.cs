@@ -340,7 +340,7 @@ public sealed class ChestService
             // A price lost to a bad edit must not become a free chest.
             if (MarketRules.ValidatePrice(price) is not null) throw ErrorFor(null);
             if (account.Balance + account.BonusBalance < price) throw ErrorFor(ChestErrors.Funds);
-            if (!MarketRules.HasRoom(account.Slots, 1)) throw ErrorFor(ChestErrors.SlotsFull);
+            if (!MarketRules.HasRoom(account.Slots, 1, _store.SlotCap)) throw ErrorFor(ChestErrors.SlotsFull);
 
             var now = Now;
             var fresh = new ChestPurchase
@@ -432,7 +432,7 @@ public sealed class ChestService
     {
         var account = await _store.FindAccountAsync(userId, ct);
         if (account is null || account.Balance + account.BonusBalance < amount) return ChestErrors.Funds;
-        if (!MarketRules.HasRoom(account.Slots, 1)) return ChestErrors.SlotsFull;
+        if (!MarketRules.HasRoom(account.Slots, 1, _store.SlotCap)) return ChestErrors.SlotsFull;
         return MarketErrors.Busy;
     }
 
@@ -445,7 +445,7 @@ public sealed class ChestService
         if (chests < 0 || keys < 0 || chests + keys < 1)
             throw MarketService.Error(400, MarketErrors.InvalidPrice, "Grant at least one chest or key.");
         var wallet = await _market.GetWalletForGrantAsync(userId, ct);
-        if (!MarketRules.HasRoom(wallet.SlotsUsed, chests + keys)) throw ErrorFor(ChestErrors.SlotsFull);
+        if (!MarketRules.HasRoom(wallet.SlotsUsed, chests + keys, wallet.SlotCap)) throw ErrorFor(ChestErrors.SlotsFull);
         for (var i = 0; i < chests; i++) wallet = await _market.AdminGrantAsync(userId, chest.Id, 0, ct);
         for (var i = 0; i < keys; i++) wallet = await _market.AdminGrantAsync(userId, chest.KeyDefId, 0, ct);
         return wallet;

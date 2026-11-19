@@ -3,7 +3,7 @@ import { tr } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
 import { toast } from '../../utils/toast.js';
 import {
-  MAX_PRICE, MIN_PRICE, SLOT_CAP, categoryLabel, defName, errorText, feeFor, fmt, isEquippable, itemIcon, itemTile, rarityLabel, rarityOf, xu,
+  MAX_PRICE, MIN_PRICE, SLOT_CAP, bagGrows, categoryLabel, defName, errorText, feeFor, fmt, isEquippable, itemIcon, itemTile, rarityLabel, rarityOf, xu,
 } from './marketKit.js';
 
 /** BÁN: the 12-slot bag, equip one item per category ("ĐANG DÙNG"), list an item with the 5% fee shown live. */
@@ -34,8 +34,15 @@ export function mountSellTab(ctx) {
     const inventory = state.inventory;
     const wallet = inventory.wallet;
     const reserved = wallet.reservedSlots || 0;
-    countEl.innerHTML = `${tr('Pick an item to equip or sell', 'Chọn một vật phẩm để dùng hoặc rao bán trên chợ')} · <strong>${fmt(wallet.slotsUsed)}/${SLOT_CAP}</strong> ${tr('slots used', 'ô đã dùng')}${reserved
-      ? tr(` (${reserved} held for buy orders)`, ` (${reserved} ô giữ cho lệnh mua)`) : ''}.`;
+    const grows = bagGrows(wallet);
+    // A growing bag shows at least SLOT_CAP cells and one more for every item past it.
+    const cells = grows ? Math.max(SLOT_CAP, inventory.items.length + reserved) : SLOT_CAP;
+    const used = grows
+      ? `<strong>${fmt(wallet.slotsUsed)}</strong> ${tr('slots used', 'ô đã dùng')}`
+      : `<strong>${fmt(wallet.slotsUsed)}/${SLOT_CAP}</strong> ${tr('slots used', 'ô đã dùng')}`;
+    countEl.innerHTML = `${tr('Pick an item to equip or sell', 'Chọn một vật phẩm để dùng hoặc rao bán trên chợ')} · ${used}${reserved
+      ? tr(` (${reserved} held for buy orders)`, ` (${reserved} ô giữ cho lệnh mua)`) : ''}${grows
+      ? tr(' · the bag grows as items come in', ' · túi tự nới thêm khi có đồ mới') : ''}.`;
     const tiles = inventory.items.map((item) => {
       const rarity = rarityOf(item.def.rarity);
       const flag = item.equipped
@@ -52,9 +59,9 @@ export function mountSellTab(ctx) {
           <span class="bpa-mk-invbar" aria-hidden="true" style="background:${rarity.bar}"></span>
         </button>`;
     });
-    const held = Array.from({ length: Math.min(reserved, Math.max(0, SLOT_CAP - inventory.items.length)) }, () =>
+    const held = Array.from({ length: Math.min(reserved, Math.max(0, cells - inventory.items.length)) }, () =>
       `<span class="bpa-mk-slot is-held" aria-hidden="true">${tr('held', 'giữ chỗ')}</span>`);
-    const empty = Array.from({ length: Math.max(0, SLOT_CAP - inventory.items.length - held.length) }, () =>
+    const empty = Array.from({ length: Math.max(0, cells - inventory.items.length - held.length) }, () =>
       '<span class="bpa-mk-slot" aria-hidden="true"></span>');
     gridEl.innerHTML = tiles.concat(held, empty).join('');
   }

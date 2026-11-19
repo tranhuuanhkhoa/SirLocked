@@ -6,8 +6,14 @@ import { pixelIconUrl } from '../chest/chestSprites.js';
 
 export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO', 'FRAME', 'TITLE', 'ENTRANCE', 'SKIN_SHERLOCK', 'SKIN_WATSON'];
 export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
+/** Cells the bag shows; with the server's growing bag (Market:BagGrows) it is only the starting size. */
 export const SLOT_CAP = 12;
 export const FEE_PERCENT = 5;
+
+/** True when the server lets the bag grow past SLOT_CAP: its wallet then reports the growing bag's ceiling. */
+export function bagGrows(wallet) {
+  return Number(wallet?.slotCap ?? SLOT_CAP) > SLOT_CAP;
+}
 export const MIN_PRICE = 2;
 export const MAX_PRICE = 1_000_000;
 
@@ -106,7 +112,7 @@ const ERRORS = {
   MARKET_LISTING_UNAVAILABLE: ['Someone else got there first — this listing is gone.', 'Đã có người nhanh tay hơn — tin rao bán này không còn.'],
   MARKET_CANNOT_BUY_OWN: ['You cannot buy your own listing.', 'Bạn không thể mua món đồ của chính mình.'],
   MARKET_INSUFFICIENT_FUNDS: ['You do not have enough coins.', 'Bạn không đủ xu.'],
-  MARKET_INVENTORY_FULL: ['Your inventory is full (12 slots).', 'Túi đồ đã đầy (12 ô).'],
+  MARKET_INVENTORY_FULL: ['Your inventory is full.', 'Túi đồ đã đầy.'],
   MARKET_NO_LISTING_AT_PRICE: ['Nothing is for sale at this price any more.', 'Không còn ai bán ở mức giá này.'],
   MARKET_ORDER_NOT_FOUND: ['This buy order was not found.', 'Không tìm thấy lệnh mua này.'],
   MARKET_ORDER_UNAVAILABLE: ['This buy order is already closed.', 'Lệnh mua này đã đóng.'],
@@ -147,7 +153,7 @@ const ERRORS = {
   AVATAR_UNAVAILABLE: ['Uploading a picture is not available right now.', 'Hiện chưa thể tải ảnh lên.'],
   KEY_NONE: ['You have no key for this chest left.', 'Bạn không còn chìa cho loại hòm này.'],
   FUNDS: ['You do not have enough coins.', 'Bạn không đủ xu.'],
-  SLOTS_FULL: ['Your inventory is full (12 slots) — free a slot first.', 'Túi đồ đã đầy (12 ô) — hãy bán bớt một món trước.'],
+  SLOTS_FULL: ['Your inventory is full — free a slot first.', 'Túi đồ đã đầy — hãy bán bớt một món trước.'],
   IN_PROGRESS: ['Still working on your last request…', 'Yêu cầu trước vẫn đang được xử lý…'],
 };
 
