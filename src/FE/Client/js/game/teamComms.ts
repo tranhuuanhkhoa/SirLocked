@@ -44,6 +44,8 @@ export type TeamCommsOptions = {
 
 export const MAX_CHAT_LENGTH = 300;
 const SPEAKER_PREF = 'sirlocked.comms.speaker';
+/** '1': the player folded the dock into a small bar, so it stays out of the way in later matches too. */
+const FOLD_PREF = 'sirlocked.comms.folded';
 const SEEN_PREFIX = 'sirlocked.comms.seen.';
 const SPEAKING_LEVEL = 0.035;
 /** Speech has gaps between words: "speaking" holds this long after the last loud moment, so the light does not flicker. */
@@ -59,6 +61,8 @@ const ICONS: Record<string, string> = {
   send: '<path d="M4.5 11.6 19.5 4.5 15 19.5l-3.6-5.9z"/><path d="M11.4 13.6 19.5 4.5"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   retry: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/>',
+  fold: '<path d="M6 15l6-6 6 6"/>',
+  unfold: '<path d="M6 9l6 6 6-6"/>',
 };
 
 const icon = (name: string, className = 'tc-ic') =>
@@ -111,6 +115,7 @@ export function createTeamComms(options: TeamCommsOptions) {
   const lines: TeamChatLine[] = [];
   const lineIds = new Set<string>();
   let chatOpen = false;
+  let folded = readStorage('local', FOLD_PREF) === '1';
   let unread = 0;
   let historyRequested = false;
   let sending = false;
@@ -154,8 +159,11 @@ export function createTeamComms(options: TeamCommsOptions) {
     return `
       <aside class="tc" data-tc aria-label="${escape(tr('Voice and telegrams with your partner', 'Đàm thoại và điện tín với đồng đội'))}">
         <div class="tc-dock" data-tc-dock>
-          <div class="tc-status" data-tc-status role="status" aria-live="polite"></div>
-          <div class="tc-tools" role="group" aria-label="${escape(tr('Voice and telegrams', 'Đàm thoại và điện tín'))}">
+          <div class="tc-head">
+            <div class="tc-status" data-tc-status role="status" aria-live="polite"></div>
+            <button type="button" class="tc-fold" data-tc-fold aria-expanded="true" aria-controls="tc-tools"></button>
+          </div>
+          <div class="tc-tools" id="tc-tools" data-tc-tools role="group" aria-label="${escape(tr('Voice and telegrams', 'Đàm thoại và điện tín'))}">
             <button type="button" class="tc-tool" data-tc-speaker aria-pressed="false"></button>
             <button type="button" class="tc-tool" data-tc-mic aria-pressed="false"></button>
             <button type="button" class="tc-tool" data-tc-chat aria-expanded="false" aria-controls="tc-panel" aria-keyshortcuts="T">
@@ -234,6 +242,20 @@ export function createTeamComms(options: TeamCommsOptions) {
       ? `<span class="tc-pmic ${partnerVoice.micOn ? 'is-on' : ''}" title="${escape(partnerVoice.micOn ? tr('Partner mic on', 'Đồng đội đang bật mic') : tr('Partner mic off', 'Đồng đội đang tắt mic'))}">${icon(partnerVoice.micOn ? 'mic' : 'micOff')}</span>`
       : '';
     status.innerHTML = `${face}<span class="tc-status-txt"><span class="tc-kick">${escape(tr('Field line', 'Đàm thoại'))}</span><span class="tc-line">${escape(statusText(name))}</span></span>${partnerMic}${speakerOn && link === 'failed' ? `<button type="button" class="tc-retry" data-tc-retry title="${escape(tr('Try again', 'Thử lại'))}" aria-label="${escape(tr('Try connecting again', 'Thử nối lại'))}">${icon('retry')}</button>` : ''}${partnerSpeaking ? '<span class="tc-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : ''}`;
+
+    // Folded: only the partner's face, the label and this button stay; what needs the player still shows on the button.
+    root.dataset.folded = String(folded);
+    $<HTMLElement>('[data-tc-tools]')!.hidden = folded;
+    const fold = $<HTMLButtonElement>('[data-tc-fold]')!;
+    const foldLabel = folded ? tr('Open the field line', 'Mở đàm thoại') : tr('Fold the field line away', 'Thu gọn đàm thoại');
+    fold.setAttribute('aria-expanded', String(!folded));
+    fold.title = foldLabel;
+    fold.setAttribute('aria-label', folded && unread > 0
+      ? tr(`${foldLabel}, ${unread} unread telegrams`, `${foldLabel}, ${unread} điện tín chưa đọc`)
+      : foldLabel);
+    fold.dataset.attention = unread > 0 ? 'message' : !joined && partnerVoice.micOn ? 'calling' : 'none';
+    fold.innerHTML = `${icon(folded ? 'unfold' : 'fold')}${folded && unread > 0
+      ? `<span class="tc-badge tc-fold-badge" aria-hidden="true">${unread > 9 ? '9+' : unread}</span>` : ''}`;
 
     const title = $<HTMLElement>('[data-tc-title]');
     if (title) title.textContent = tr(`To ${name}`, `Gửi ${name}`);
@@ -773,6 +795,12 @@ export function createTeamComms(options: TeamCommsOptions) {
     if (audioBlocked) void playRemote();
   }
 
+  function setFolded(next: boolean) {
+    folded = next;
+    writeStorage('local', FOLD_PREF, next ? '1' : null);
+    paint();
+  }
+
   // ------------------------------------------------------------------ events
 
   function bind() {
@@ -784,6 +812,7 @@ export function createTeamComms(options: TeamCommsOptions) {
       if (target.closest('[data-tc-speaker]')) void setSpeaker(!speakerOn);
       else if (target.closest('[data-tc-mic]')) void setMic(!micOn);
       else if (target.closest('[data-tc-chat]')) setChatOpen(!chatOpen);
+      else if (target.closest('[data-tc-fold]')) setFolded(!folded);
       else if (target.closest('[data-tc-close]')) { setChatOpen(false); $<HTMLButtonElement>('[data-tc-chat]')?.focus(); }
       else if (target.closest('[data-tc-preview]')) setChatOpen(true);
       else if (target.closest('[data-tc-retry]')) {
