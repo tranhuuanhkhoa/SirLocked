@@ -48,12 +48,12 @@ test('server readiness blockers stay visible in Vietnamese and retry preserves t
   await expect(page.locator('#ai-readiness-error')).toContainText('scripts/set-bridge-key.sh');
   await page.screenshot({ path: testInfo.outputPath('ai-readiness-blockers-vi-desktop.png'), fullPage: true });
   await page.locator('#ai-creator-direction').fill('Giữ lại hướng điều tra ở nhà hát.');
-  await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
+  await page.locator('[data-level="easy"]').click();
   await page.locator('#ai-check-readiness').click();
   await expect(page.locator('#quick-create-btn')).toBeEnabled();
   await expect(page.locator('#ai-readiness-error')).toHaveCount(0);
   await expect(page.locator('#ai-creator-direction')).toHaveValue('Giữ lại hướng điều tra ở nhà hát.');
-  await expect(page.locator('#ai-preset-select')).toHaveValue('SHORT_DEMO');
+  await expect(page.locator('input[name="aai-level"][value="easy"]')).toBeChecked();
   expect(creations).toBe(0);
 });
 
@@ -88,34 +88,28 @@ test('creation errors remain visible and every entered field survives a successf
       : { json: envelope(draft) });
   });
   await page.goto('/admin/ai');
-  await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
-  await page.locator('#ai-language-select').selectOption('vi');
-  await page.locator('#ai-case-type-select').selectOption('THEFT');
-  await page.locator('#ai-include-crack').check();
+  await page.locator('[data-level="easy"]').click();
+  await page.locator('label.aai-chip', { hasText: 'Trộm cắp' }).click();
+  await page.locator('label.aai-chip', { hasText: 'Hội thoại nhiều hơn' }).click();
   await page.locator('#ai-creator-direction').fill('The <clock> vanishes from the theatre.');
-  // The old setting lock is gone (VUAN-3): the world, weather and suspects of the order must survive instead.
+  // The world, weather and language of the order must survive the refusal.
   await page.locator('[data-world="TAISHO_JAPAN"]').click();
   await page.locator('[data-field="weather"] label', { hasText: 'Mưa' }).click();
-  await page.locator('[data-field="suspectCount"] label', { hasText: '5' }).click();
-  await page.locator('#ai-tone-lock').selectOption('tense');
-  await page.locator('#ai-mechanic-lock').selectOption('timeline');
+  await page.locator('#ai-more > summary').click();
+  await page.locator('label', { hasText: 'Tiếng Việt' }).click();
   await page.locator('#quick-create-btn').click();
   await expect(page.locator('#ai-request-error')).toContainText('Hãy hoàn tất hoặc hủy');
   await expect(page.locator('#ai-request-error')).toContainText('AI_ACTIVE_DRAFT_LIMIT');
   await page.clock.install();
   await page.clock.fastForward(10_000);
   await expect(page.locator('#ai-request-error')).toBeVisible();
-  await expect(page.locator('#ai-preset-select')).toHaveValue('SHORT_DEMO');
-  await expect(page.locator('#ai-language-select')).toHaveValue('vi');
-  await expect(page.locator('#ai-case-type-select')).toHaveValue('THEFT');
-  await expect(page.locator('#ai-include-crack')).toBeChecked();
+  await expect(page.locator('input[name="aai-level"][value="easy"]')).toBeChecked();
+  await expect(page.locator('input[name="aai-language"][value="vi"]')).toBeChecked();
+  await expect(page.locator('input[name="aai-case-type"][value="THEFT"]')).toBeChecked();
+  await expect(page.locator('input[name="aai-leaning"][value="DIALOGUE"]')).toBeChecked();
   await expect(page.locator('#ai-creator-direction')).toHaveValue('The <clock> vanishes from the theatre.');
-  await expect(page.locator('#ai-setting-lock')).toHaveCount(0);
   await expect(page.locator('[data-world="TAISHO_JAPAN"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('input[name="aai-weather"][value="RAIN"]')).toBeChecked();
-  await expect(page.locator('input[name="aai-suspects"][value="5"]')).toBeChecked();
-  await expect(page.locator('#ai-tone-lock')).toHaveValue('tense');
-  await expect(page.locator('#ai-mechanic-lock')).toHaveValue('timeline');
   await page.locator('#quick-create-btn').click();
   await expect(page.locator('#ai-request-error')).toHaveCount(0);
   await expect(page.locator('#ai-output')).toContainText(draft.storyPreview.title);
@@ -123,19 +117,15 @@ test('creation errors remain visible and every entered field survives a successf
   expect(requests[1]).toEqual(requests[0]);
 });
 
-test('Crack-specific readiness blocks only the selected extension', async ({ page }) => {
+test('Crack readiness blocks every new order, since every new case has Crack the Lie', async ({ page }) => {
   await page.route('**/api/admin/ai-cases/capabilities', (route) => route.fulfill({ json: envelope({
     ...capabilities, canCreateV3Draft: false,
     v3CreationBlockers: [{ code: 'AI_V3_PRESET_DISABLED', message: 'Crack generation is off.' }],
   }) }));
   await page.goto('/admin/ai');
-  await expect(page.locator('#quick-create-btn')).toBeEnabled();
-  await page.locator('#ai-include-crack').check();
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-readiness-error')).toContainText('Crack the Lie generation is disabled');
-  await page.locator('#ai-include-crack').uncheck();
-  await expect(page.locator('#quick-create-btn')).toBeEnabled();
-  await expect(page.locator('#ai-readiness-error')).toHaveCount(0);
+  await expect(page.locator('#ai-include-crack')).toHaveCount(0);
 });
 
 test('cancellable drafts require confirmation in the page and cancelled drafts offer no cancellation or continuation', async ({ page }) => {

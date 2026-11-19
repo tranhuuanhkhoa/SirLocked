@@ -119,16 +119,18 @@ public sealed class MongoAiDraftQuotaTests
             var draft = await service.CreatePreviewAsync(vip, new GenerateAiCaseRequest
             {
                 GenerationPreset = AiGenerationPresets.ShortDemo,
+                // New orders take their suspects from the level (hard = 5), whatever suspectCount the client sends.
+                Difficulty = "hard",
                 Order = new AiCaseOrder
                 {
                     World = "taisho_japan", ReviewMode = AiCaseReviewModes.Fast, PixelLabCap = 100,
-                    SuspectCount = 5, Weather = "rain", TimeOfDay = "night"
+                    SuspectCount = 3, Weather = "rain", TimeOfDay = "night"
                 }
             }, "vip-order-1");
 
             Assert.Equal(AiOrderStatuses.QueuedForClaude, draft.OrderStatus);
             Assert.Equal(AiQueueStates.Pending, draft.QueueState);
-            Assert.Equal(AiCaseReviewModes.Fast, draft.Order!.ReviewMode); // a VIP chooses like an admin
+            Assert.Equal(AiCaseReviewModes.Auto, draft.Order!.ReviewMode); // every new order runs on autopilot, whatever was sent
             Assert.Equal(100, draft.Order.PixelLabCap);
             // The VIP API lane is closed (no Anthropic key): the order is free and runs on the bridge bot.
             Assert.Equal(AiDraftLanes.Bridge, draft.Lane);

@@ -83,10 +83,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     private readonly ICaseValidationService _validator;
     private readonly ICaseTruthService _truthService;
     private readonly IGameplayProjectionPlanner _projectionPlanner;
+    private readonly TruthStageRules _stageRules;
     private readonly IProjectionContentSchemaFactory _projectionSchemaFactory;
     private readonly IGameCaseProjectionCompiler _projectionCompiler;
     private readonly IProjectionGraphValidator _projectionGraphValidator;
     private readonly IAiTextProvider _textProvider;
+    private readonly Services.Cutscene.IAiIntroCutsceneStarter? _introCutsceneStarter;
     private readonly PresentationService? _presentationService;
     private readonly IAiCaseExportService _exportService;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -124,15 +126,18 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         PresentationService? presentationService = null,
         IOptions<BridgeSettings>? bridgeSettings = null,
         IBridgeNotifier? bridgeNotifier = null,
-        SirLocked.Api.Services.Vip.VipBillingService? vipBilling = null)
+        SirLocked.Api.Services.Vip.VipBillingService? vipBilling = null,
+        Services.Cutscene.IAiIntroCutsceneStarter? introCutsceneStarter = null)
     {
         _vipBilling = vipBilling;
+        _introCutsceneStarter = introCutsceneStarter;
         _db = db;
         _workflow = workflow;
         _caseService = caseService;
         _validator = validator;
         _truthService = truthService;
         _projectionPlanner = projectionPlanner;
+        _stageRules = new TruthStageRules(truthService, projectionPlanner);
         _projectionSchemaFactory = projectionSchemaFactory;
         _projectionCompiler = projectionCompiler;
         _projectionGraphValidator = projectionGraphValidator;
@@ -156,6 +161,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public AiCaseCapabilitiesResponse GetCapabilities() => new()
     {
+        DifficultyProfiles = AiDifficultyProfiles.All.Select(AiDifficultyProfileResponse.From).ToList(),
         CreationBlockers = GetCreationBlockers(),
         V3CreationBlockers = GetCreationBlockers(includeSemanticReview: true),
         AiCaseV3PresetEnabled = _v3PresetSettings.Enabled,
@@ -205,7 +211,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request, string? idempotencyKey = null)
     {
         var draftSettings = CreateNewDraftSettings(request);
-        if (request.IncludeCrackTheLie)
+        if (draftSettings.IncludeCrackTheLie)
         {
             if (!_v3PresetSettings.Enabled)
                 throw ApiException.Conflict(
@@ -227,13 +233,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var existingByKey = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
         if (existingByKey is not null) return AiDraftResponse.From(existingByKey, includeJson: false);
 
-        EnsureCreationReady(request.IncludeCrackTheLie);
+        EnsureCreationReady(draftSettings.IncludeCrackTheLie);
         var isVipOrder = !string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase);
         // VUAN-7: with the VIP API lane open (Anthropic__ApiKey set) a VIP order is paid in coins and written through the
         // Claude API. With the lane closed a VIP order runs free on the bridge bot, like an ADMIN order.
         var paidVipOrder = isVipOrder && _vipBilling is { LaneConfigured: true };
         var vipPricing = paidVipOrder ? await new SirLocked.Api.Services.Vip.VipSettingsStore(_db).GetPricingAsync() : null;
-        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role, vipPricing?.VipMaxPixelLabCap);
+        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role,
+            AiDifficultyProfiles.For(draftSettings.Difficulty), vipPricing?.VipMaxPixelLabCap);
         if (!string.IsNullOrWhiteSpace(request.CreativeConstraints.SettingId)
             && order.World != AiCaseWorlds.HangDuongVictorian)
             throw ApiException.BadRequest(
@@ -337,10 +344,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             GenerationInputHash = Sha256(JsonSerializer.Serialize(new
             {
                 creatorPrompt,
-                request.StageCount,
-                request.Difficulty,
-                request.GenerationPreset,
-                draftSettings.ShortDemoProfileVersion,
+                draftSettings.PipelineVersion,
+                draftSettings.Difficulty,
+                draftSettings.Leaning,
                 request.Language,
                 request.CaseType,
                 request.CreativeConstraints,
@@ -599,60 +605,35 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
     }
 
+    /// <summary>
+    /// Every new order is an OPEN_COOP_1 draft whose size comes from its difficulty level. The old client fields
+    /// (stage count, preset, Crack toggle) are ignored, so no field can change another.
+    /// </summary>
     internal static AiDraftSettings CreateNewDraftSettings(GenerateAiCaseRequest request)
     {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
-        if (AiV3GenerationProfile.IsV3Preset(request.GenerationPreset))
-        {
-            // Retired client requests become new sampler drafts. Existing
-            // persisted drafts never enter this creation-only path.
-            request.GenerationPreset = AiGenerationPresets.ShortDemo;
-            request.IncludeCrackTheLie = true;
-        }
-        ApplyPresetDefaults(request);
-        return new AiDraftSettings
-        {
-            StageCount = request.StageCount,
-            Difficulty = request.Difficulty,
-            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
-            GenerationMode = CaseGenerationModes.CameraEmbedded,
-            GenerationPreset = request.GenerationPreset,
-            ShortDemoProfileVersion = request.GenerationPreset == AiGenerationPresets.ShortDemo
-                ? AiGenerationContract.CurrentShortDemoProfileVersion : 0,
-            Language = request.Language,
-            MechanicsVersion = request.IncludeCrackTheLie
-                ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                : CaseMechanicsVersions.InvestigationV2,
-            IncludeCrackTheLie = request.IncludeCrackTheLie,
-            CaseType = request.CaseType,
-            CreativeConstraints = request.CreativeConstraints
-        };
-    }
-
-    private static void ApplyPresetDefaults(GenerateAiCaseRequest request)
-    {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
+        var profile = AiDifficultyProfiles.For(request.Difficulty);
+        var leaning = AiCaseLeanings.Normalize(request.Leaning);
+        request.Difficulty = profile.Difficulty;
+        request.Leaning = leaning;
         request.Language = CaseLanguages.Normalize(request.Language);
         request.CaseType = AiCaseTypes.Normalize(request.CaseType);
-        request.Difficulty = string.IsNullOrWhiteSpace(request.Difficulty) ? "medium" : request.Difficulty.Trim().ToLowerInvariant();
-
-        request.StageCount = request.GenerationPreset switch
+        request.StageCount = 1;
+        request.GenerationPreset = AiGenerationPresets.NormalRandom;
+        request.IncludeCrackTheLie = true;
+        return new AiDraftSettings
         {
-            AiGenerationPresets.FullFeature => 6,
-            AiGenerationPresets.ShortDemo => 2,
-            AiGenerationPresets.PuzzleHeavy => Math.Max(request.StageCount, 5),
-            AiGenerationPresets.DialogueHeavy => Math.Max(request.StageCount, 5),
-            _ => Math.Clamp(request.StageCount, 2, 6)
-        };
-
-        request.Difficulty = request.GenerationPreset switch
-        {
-            AiGenerationPresets.CrackTheLieV3 => "medium",
-            AiGenerationPresets.FullFeature => "hard",
-            AiGenerationPresets.ShortDemo => "easy",
-            AiGenerationPresets.PuzzleHeavy => "hard",
-            AiGenerationPresets.DialogueHeavy when request.Difficulty == "easy" => "medium",
-            _ => request.Difficulty
+            PipelineVersion = AiPipelineVersions.OpenCoop1,
+            Difficulty = profile.Difficulty,
+            Leaning = leaning,
+            StageCount = 1,
+            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            GenerationPreset = AiGenerationPresets.NormalRandom,
+            Language = request.Language,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            IncludeCrackTheLie = true,
+            CaseType = request.CaseType,
+            CreativeConstraints = request.CreativeConstraints
         };
     }
 
@@ -2580,6 +2561,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
             if (completed.MatchedCount == 0)
                 throw ApiException.Conflict("The draft changed before import completion could be committed.");
+            await QueueIntroCutsceneAsync(draft, summary.CaseId);
             return summary;
         }
         catch
@@ -2598,6 +2580,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Inc(d => d.WorkflowVersion, 1)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
             throw;
+        }
+    }
+
+    /// <summary>
+    /// OPEN_COOP_1: queue the imported case's intro cutscene and record the outcome on the draft. Never fails the
+    /// import: a failure is recorded and the admin can still generate the cutscene by hand.
+    /// </summary>
+    private async Task QueueIntroCutsceneAsync(AiCaseDraft draft, string caseId)
+    {
+        if (_introCutsceneStarter is null || !AiPipelineVersions.IsOpenCoop(draft.Settings)) return;
+        var status = await _introCutsceneStarter.StartAsync(draft.Settings, caseId, _operationCancellationToken);
+        try
+        {
+            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id,
+                Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status), cancellationToken: _operationCancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(exception, "Could not record the intro cutscene status of draft {DraftId}.", draft.Id);
         }
     }
 
@@ -2653,6 +2654,20 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion, draft.CaseTruth)
             : AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion);
 
+    /// <summary>OPEN_COOP_1 drafts: how to fill the optional interactive puzzle slots.</summary>
+    internal static string OpenCoopProjectionRequirements(AiDraftSettings settings) =>
+        AiPipelineVersions.IsOpenCoop(settings)
+            ? """
+              OPEN_COOP case (every place is open from the start; both detectives share one notebook):
+              - Every puzzle slot is an OPTIONAL interactive puzzle: solving it gives one corroborating clue; the case can be solved without it.
+              - For each puzzle pick a kind from its slot's offeredKinds that fits the story and the place. Never use the same kind twice in this case.
+              - Write only the player's words for it: prompt (what the detectives see and try), investigationPurpose, successMessage, failureMessage, and the kind's text fields in "authored" (see the schema description; use {} when the kind takes none).
+              - Never write a puzzle's answer, code, solution, sequence or mechanics: the server generates them.
+              - board is the case wall: centerKicker (short caps line such as the victim or the missing object), centerTitle, centerSubtitle, summary (what the team knows at the start), and at most 3 links between pinned evidence clues or testimony fragments. Never link a statement to the evidence that breaks it.
+              - timeline (when present): a title, a one-line prompt, and for each event a short label, a detail, a dayLabel and a timeLabel drawn from the truth's time of that event. Never reveal hidden causes in a label.
+              """
+            : string.Empty;
+
     internal static string BuildFullLogicRequestPrompt(
         AiCaseDraft draft,
         string? correction = null,
@@ -2680,6 +2695,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
             .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
             .AppendLine(ShortDemoSamplerRequirements(draft.Settings))
+            .AppendLine(OpenCoopProjectionRequirements(draft.Settings))
             .AppendLine("Narrative facts and slots:")
             .AppendLine(ProjectionPromptContext.Build(draft, repairScope));
         if (repairScope is not null)
@@ -3729,7 +3745,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     private static string BuildAdditiveCrackRequirements(AiCaseDraft draft)
     {
-        var budget = CrackGenerationBudgets.For(draft.Settings.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(draft.Settings);
         var (minimumCracks, maximumCracks) = (budget.MinCracks, budget.MaxCracks);
         var minimumCameraCracks = maximumCracks >= 4 ? 2 : 1;
         return $"""

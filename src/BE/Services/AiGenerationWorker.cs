@@ -40,6 +40,7 @@ public sealed class AiGenerationWorker : BackgroundService
                     // Safety net for an answer that arrived while its resume was lost (for example a restart).
                     _nextResumeSweep = now + ResumeSweepInterval;
                     await workflow.ResumeAnsweredAsync(stoppingToken);
+                    await scope.ServiceProvider.GetRequiredService<IAiDraftAutopilot>().SweepAsync(stoppingToken);
                 }
                 var draft = await workflow.ClaimNextQueuedAsync(stoppingToken);
                 if (draft is null)
@@ -93,6 +94,8 @@ public sealed class AiGenerationWorker : BackgroundService
                     if (!await workflow.CompleteQueuedAsync(draft, cancellationToken: stoppingToken))
                         _logger.LogWarning("AI run {RunId} completed after its lease became stale.", draft.GenerationRunId);
                     await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
+                    // An autopilot order does not wait at the gate this step may have reached.
+                    await scope.ServiceProvider.GetRequiredService<IAiDraftAutopilot>().AdvanceAsync(draft.Id, stoppingToken);
                     continue;
                 }
 
@@ -124,6 +127,8 @@ public sealed class AiGenerationWorker : BackgroundService
                         : "AI_GENERATION_FAILED";
                 await workflow.CompleteQueuedAsync(draft, errorCode, stoppingToken);
                 await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
+                // An autopilot order sends the failed step back for a bounded repair instead of waiting for a person.
+                await scope.ServiceProvider.GetRequiredService<IAiDraftAutopilot>().AdvanceAsync(draft.Id, stoppingToken);
                 _logger.LogError(failure,
                     "AI operation {Operation} for draft {DraftId} ended without retry.",
                     draft.QueuedOperation, draft.Id);

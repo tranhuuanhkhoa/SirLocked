@@ -1582,6 +1582,11 @@ public class CaseValidationService : ICaseValidationService
         || scene.Hotspots.Any(hotspot => hotspot.TargetId == targetId)
         || (scene.Runtime?.Transitions.Any(transition => transition.TransitionId == targetId || transition.TargetSceneId == targetId) == true);
 
+    private static (bool Deductions, bool Chains) RequiredDeductionsAndChains(GameCase c) =>
+        CaseRuleSets.IsOpenCoop(c)
+            ? (AiDifficultyProfiles.All.Min(profile => profile.Deductions) > 0, AiDifficultyProfiles.All.Min(profile => profile.TeamworkChains) > 0)
+            : (true, true);
+
     private static void ValidateInvestigationV2(GameCase c, CaseValidationResult result)
     {
         if (c.MechanicsVersion < CaseMechanicsVersions.InvestigationV2) return;
@@ -1593,15 +1598,18 @@ public class CaseValidationService : ICaseValidationService
         var deductionIds = c.Deductions.Select(deduction => deduction.DeductionId).ToHashSet();
 
         var minimumChallenges = c.MechanicsVersion == CaseMechanicsVersions.InvestigationV3PairedConfrontation
-            ? CrackGenerationBudgets.For(c.GenerationPreset).MinCracks
+            ? CrackGenerationBudgets.For(c).MinCracks
             : AiGenerationPresets.Normalize(c.GenerationPreset) == AiGenerationPresets.ShortDemo
               && c.ShortDemoProfileVersion >= AiGenerationContract.CurrentShortDemoProfileVersion
                 ? 1 : 2;
         if (c.EvidenceChallenges.Count < minimumChallenges)
             result.Add("MissingField", "evidenceChallenges", $"This V2-compatible case requires at least {minimumChallenges} evidence challenge(s).");
-        if (c.Deductions.Count == 0)
+        // An OPEN_COOP case is sized by its level (AiDifficultyConformance checks the exact counts): Easy has no
+        // deduction and no teamwork chain, so only the smallest level's numbers are required here.
+        var (deductionsRequired, chainsRequired) = RequiredDeductionsAndChains(c);
+        if (deductionsRequired && c.Deductions.Count == 0)
             result.Add("MissingField", "deductions", "Full V2 cases require at least one deduction.");
-        if (c.RequiredTeamworkChains.Count == 0)
+        if (chainsRequired && c.RequiredTeamworkChains.Count == 0)
             result.Add("MissingField", "requiredTeamworkChains", "Full V2 cases require at least one cross-role teamwork chain.");
 
         for (var i = 0; i < c.EvidenceChallenges.Count; i++)
@@ -1674,9 +1682,10 @@ public class CaseValidationService : ICaseValidationService
             result.Add("MissingReference", "finalLogic.requiredDeductionIds", "Required deduction does not exist.", deductionId);
         foreach (var chainId in c.FinalLogic.RequiredTeamworkChainIds.Where(id => c.RequiredTeamworkChains.All(chain => chain.ChainId != id)))
             result.Add("MissingReference", "finalLogic.requiredTeamworkChainIds", "Required teamwork chain does not exist.", chainId);
-        if (c.FinalLogic.RequiredDeductionIds.Count == 0)
+        var (finalDeductionsRequired, finalChainsRequired) = RequiredDeductionsAndChains(c);
+        if (finalDeductionsRequired && c.FinalLogic.RequiredDeductionIds.Count == 0)
             result.Add("MissingField", "finalLogic.requiredDeductionIds", "Full V2 final logic requires at least one deduction.");
-        if (c.FinalLogic.RequiredTeamworkChainIds.Count == 0)
+        if (finalChainsRequired && c.FinalLogic.RequiredTeamworkChainIds.Count == 0)
             result.Add("MissingField", "finalLogic.requiredTeamworkChainIds", "Full V2 final logic requires at least one teamwork chain.");
 
         if (c.ConversationNodes.Count > 0)

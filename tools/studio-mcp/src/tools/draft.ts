@@ -1,5 +1,5 @@
 /** draft_get, draft_approve_gate, draft_import, draft_report, player_view, assets_needed, asset_upload, assets_complete. */
-import { readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { StudioError } from '../bridge-client.js';
 import { bridgeDir, display, requireFile, safeId, writeJsonFile } from '../files.js';
@@ -166,6 +166,38 @@ export async function assetUpload(ctx: ToolContext, args: { draftId: string; slo
   form.append('file', new Blob([new Uint8Array(bytes)], { type: info.format === 'webp' ? 'image/webp' : 'image/png' }), path.basename(file));
   const { data } = await ctx.client.call<any>('POST', `/api/bridge/drafts/${draftId}/assets`, { form });
   return { draftId, slotId: args.slotId, url: data?.url, width: data?.width, height: data?.height, hasAlpha: data?.hasAlpha, bytes: data?.bytes, warnings };
+}
+
+/**
+ * Saves the picture a slot of this draft already has (its currentUrl from assets-needed) under
+ * tmp/bridge/<draftId>/assets/, so a later step (scene layout) can measure it. Only URLs the server gives
+ * for this draft's own slots are fetched, over https or from the bridge host itself.
+ */
+export async function assetDownload(ctx: ToolContext, args: { draftId: string; slotId: string }) {
+  const draftId = safeId(args.draftId, 'draftId');
+  if (!args.slotId) throw new StudioError('BAD_ARGS', 'Thiếu slotId (xem assets_needed).');
+  const { data } = await ctx.client.call<any>('GET', `/api/bridge/drafts/${draftId}/assets-needed`);
+  const slot = (data?.slots ?? []).find((item: any) => item?.slotId === args.slotId);
+  if (!slot) throw new StudioError('SLOT_NOT_FOUND', `Draft không có ô "${args.slotId}" (xem assets_needed).`);
+  if (!slot.currentUrl) throw new StudioError('NO_PICTURE', `Ô "${args.slotId}" chưa có hình trên server.`);
+  const api = new URL(ctx.config.apiBase);
+  let url: URL;
+  try { url = new URL(String(slot.currentUrl), api); } catch { throw new StudioError('URL_NOT_ALLOWED', 'Link hình của ô không hợp lệ.'); }
+  const sameHost = url.hostname === api.hostname && (url.protocol === 'https:' || url.protocol === 'http:');
+  if (url.protocol !== 'https:' && !sameHost) throw new StudioError('URL_NOT_ALLOWED', `Chỉ tải hình qua https: ${url.protocol}//${url.hostname}`);
+  const response = await fetch(url, { signal: AbortSignal.timeout(ctx.config.httpTimeoutMs), redirect: 'error' });
+  if (!response.ok) throw new StudioError('DOWNLOAD_FAILED', `Tải hình lỗi ${response.status}.`, response.status);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length > 10 * 1024 * 1024) throw new StudioError('ASSET_TOO_LARGE', 'Hình lớn hơn 10 MB.');
+  let info: Awaited<ReturnType<typeof inspect>>;
+  try { info = await inspect(bytes); } catch { throw new StudioError('ASSET_FORMAT', 'File tải về không phải hình.'); }
+  if (!['png', 'webp', 'jpeg'].includes(info.format)) throw new StudioError('ASSET_FORMAT', `File tải về không phải PNG/WebP/JPEG (${info.format}).`);
+  const name = `${String(args.slotId).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 96)}.${info.format === 'jpeg' ? 'jpg' : info.format}`;
+  const dir = path.join(bridgeDir(ctx.config, draftId), 'assets');
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, name);
+  writeFileSync(file, bytes);
+  return { draftId, slotId: args.slotId, targetId: slot.targetId, kind: slot.kind, file: display(ctx.config, file), width: info.width, height: info.height, hasAlpha: info.hasAlpha };
 }
 
 export async function assetsComplete(ctx: ToolContext, args: { draftId: string }) {

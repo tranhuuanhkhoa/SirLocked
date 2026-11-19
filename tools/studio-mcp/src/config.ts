@@ -21,6 +21,8 @@ export interface StudioConfig {
   libraryIndexPath: string;
   /** Timeout of one HTTP call to the API, in ms. */
   httpTimeoutMs: number;
+  /** Where PixelLab character zips are downloaded from; https://api.pixellab.ai when unset (tests point it at a fake). */
+  pixellabBase?: string;
 }
 
 /** tools/studio-mcp/dist/src/config.js -> repo root. Falls back to CLAUDE_PROJECT_DIR or SIRLOCKED_REPO_ROOT. */

@@ -319,6 +319,9 @@ public class AiCaseDraft
     public DateTime? GenerationClaimedAt { get; set; }
     /// <summary>Set when the draft has been imported into gameCases.</summary>
     public string? ImportedCaseId { get; set; }
+    /// <summary>OPEN_COOP_1: what happened when the intro cutscene was queued after import (QUEUED, EXISTS, FAILED: …).</summary>
+    [BsonIgnoreIfNull]
+    public string? IntroCutsceneStatus { get; set; }
     [BsonIgnoreIfNull]
     public string? IdempotencyKey { get; set; }
     public string QuotaDay { get; set; } = string.Empty;
@@ -334,6 +337,12 @@ public class AiCaseDraft
     public string QuotaWeek { get; set; } = string.Empty;
     /// <summary>The creator's order. Null on drafts created before orders existed.</summary>
     public AiCaseOrder? Order { get; set; }
+    /// <summary>How many failed steps the autopilot has sent back for repair (AUTO orders only; bounded).</summary>
+    [BsonIgnoreIfDefault]
+    public int AutopilotRepairs { get; set; }
+    /// <summary>How many of those repairs were logic retries (they rebuild from the same inputs, so only one is tried).</summary>
+    [BsonIgnoreIfDefault]
+    public int AutopilotJsonRetries { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
     /// <summary>Questions the bot asked the creator (draft_ask), open and answered.</summary>
@@ -401,6 +410,18 @@ public class AiDraftSettings
     /// <summary>Requested crime archetype. RANDOM lets the server select a concrete type per draft.</summary>
     public string CaseType { get; set; } = AiCaseTypes.Random;
     public AiCreativeConstraints CreativeConstraints { get; set; } = new();
+    /// <summary>
+    /// "OPEN_COOP_1" for drafts whose size comes from <c>AiDifficultyProfiles</c>; null for every draft created
+    /// before it, which keep the preset-and-stages pipeline they started with. Null is never written, so an old
+    /// draft's settings hash (and its saved projection plan) stays exactly as it was.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? PipelineVersion { get; set; }
+    /// <summary>BALANCED, PUZZLE or DIALOGUE (OPEN_COOP_1 drafts only): leans the level's puzzle and dialogue counts.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? Leaning { get; set; }
 }
 
 [BsonIgnoreExtraElements]

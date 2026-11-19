@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.PuzzleKinds;
 
 namespace SirLocked.Api.Services.Projection;
 
@@ -33,6 +34,20 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
 
         foreach (var stage in gameCase.Stages)
             stage.Title = content.Stages[stage.StageId].Title;
+        if (CaseRuleSets.IsOpenCoop(gameCase)) gameCase.Board = content.Board;
+        if (gameCase.Timeline is { } timeline && content.Timeline is { } words)
+        {
+            timeline.Title = words.Title;
+            timeline.Prompt = words.Prompt;
+            foreach (var item in timeline.Events)
+            {
+                var text = words.Events[item.EventId];
+                item.Label = text.Label;
+                item.Detail = text.Detail;
+                item.DayLabel = text.DayLabel;
+                item.TimeLabel = text.TimeLabel;
+            }
+        }
         foreach (var scene in gameCase.Stages.SelectMany(stage => stage.Scenes))
         {
             var value = content.Scenes[scene.SceneId];
@@ -121,10 +136,31 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
         foreach (var puzzle in gameCase.Puzzles)
         {
             var value = content.Puzzles[puzzle.PuzzleId];
+            if (PuzzleKindRegistry.IsInteractive(puzzle))
+            {
+                puzzle.Kind = value.Kind;
+                puzzle.ParamsJson = PuzzleKindAuthoring.Parse(value.Authored).ToJsonString();
+            }
             if (string.IsNullOrWhiteSpace(puzzle.Prompt)) puzzle.Prompt = value.Prompt;
             if (string.IsNullOrWhiteSpace(puzzle.InvestigationPurpose)) puzzle.InvestigationPurpose = value.InvestigationPurpose;
             if (string.IsNullOrWhiteSpace(puzzle.SuccessMessage)) puzzle.SuccessMessage = value.SuccessMessage;
             if (string.IsNullOrWhiteSpace(puzzle.FailureMessage)) puzzle.FailureMessage = value.FailureMessage;
+        }
+        if (gameCase.Puzzles.Any(PuzzleKindRegistry.IsInteractive))
+        {
+            // Truth-bound answers first (the suspects and the truth's print owner), then the kind fills the rest.
+            foreach (var puzzle in gameCase.Puzzles.Where(item => item.Kind == TruthBoundPuzzleAnswers.Fingerprint))
+                if (plan.Puzzles.TryGetValue(puzzle.PuzzleId, out var slot) && slot is { PrintOwnerId: { } owner, PrintCardIds: { } cards })
+                    TruthBoundPuzzleAnswers.ApplyFingerprint(puzzle, owner, gameCase, cards);
+            // The kind generates everything the AI did not write (geometry, the answer, the reveal), then checks it.
+            PuzzleKindRegistry.FillMissing(gameCase);
+            foreach (var puzzle in gameCase.Puzzles.Where(PuzzleKindRegistry.IsInteractive))
+                OptionalPuzzleHints.TopUp(puzzle, gameCase.Language);
+            var puzzleErrors = new List<string>();
+            foreach (var puzzle in gameCase.Puzzles.Where(PuzzleKindRegistry.IsInteractive))
+                PuzzleKindRegistry.Validate(puzzle, $"puzzles.{puzzle.PuzzleId}",
+                    (field, message, _) => puzzleErrors.Add($"PROJECTION_PUZZLE {field}: {message}"));
+            if (puzzleErrors.Count > 0) throw new ProjectionCompilationException(puzzleErrors);
         }
         foreach (var interaction in gameCase.Interactions)
         {
@@ -244,6 +280,23 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
                 || value.CorrectCode != puzzle.CorrectCode
                 || !Same(value.CorrectSequence, puzzle.CorrectSequence))
                 errors.Add($"PROJECTION_LOCKED_FIELD puzzles.{id} changed truth basis.");
+        }
+        if (CaseRuleSets.IsOpenCoop(plan.Skeleton) && content.Board is null)
+            errors.Add("PROJECTION_BOARD board: an OPEN_COOP case needs its case wall (board).");
+        if (plan.Skeleton.Timeline is { } plannedTimeline)
+        {
+            if (content.Timeline is null) errors.Add("PROJECTION_TIMELINE timeline: this case needs the timeline words.");
+            else Exact(errors, "timeline.events", plannedTimeline.Events.Select(item => item.EventId), content.Timeline.Events.Keys);
+        }
+        var pickedKinds = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (id, value) in content.Puzzles)
+        {
+            if (!plan.Puzzles.TryGetValue(id, out var slot) || slot.OfferedKinds is not { } offered) continue;
+            PuzzleKindAuthoring.Check(id, value.Kind, value.Authored, offered, errors);
+            if (string.IsNullOrWhiteSpace(value.Kind)) continue;
+            if (pickedKinds.TryGetValue(value.Kind, out var first))
+                errors.Add($"PuzzleKindRepeated puzzles.{id}.kind: {value.Kind} is already used by {first}; pick a different kind.");
+            else pickedKinds[value.Kind] = id;
         }
         foreach (var (id, value) in content.Interactions)
             if (value.InteractionId != id)
@@ -466,12 +519,36 @@ public static class ProjectionContentMockFactory
                     _ => T("Continue questioning", "Tiếp tục thẩm vấn"),
                     StringComparer.Ordinal)
             };
+        if (CaseRuleSets.IsOpenCoop(plan.Skeleton))
+            content.Board = new CaseBoard
+            {
+                CenterKicker = T("CASE", "VỤ VIỆC"),
+                CenterTitle = T("The missing ledger", "Cuốn sổ bị mất"),
+                CenterSubtitle = T("taken during the stopped-clock window", "bị lấy trong lúc đồng hồ ngừng chạy"),
+                Summary = T("Who took the ledger while the clock stood still?", "Ai đã lấy cuốn sổ khi đồng hồ đứng yên?")
+            };
+        if (plan.Skeleton.Timeline is { } mockTimeline)
+            content.Timeline = new TimelineProjectionContent
+            {
+                Title = T("That night", "Đêm hôm ấy"),
+                Prompt = T("Put the events in their true order.", "Xếp các sự việc theo đúng thứ tự."),
+                Events = mockTimeline.Events.ToDictionary(item => item.EventId, item => new TimelineEventProjectionContent
+                {
+                    Label = T($"Event {item.SortKey / 10}", $"Sự việc {item.SortKey / 10}"),
+                    Detail = T("Something happened here.", "Có chuyện xảy ra ở đây."),
+                    DayLabel = T("Night", "Đêm"),
+                    TimeLabel = $"{20 + item.SortKey / 10}:00"
+                }, StringComparer.Ordinal)
+            };
+        var mockKinds = new Queue<string>(PuzzleKindAuthoring.FreeKinds);
         foreach (var (id, slot) in plan.Puzzles)
         {
             var puzzle = plan.Skeleton.Puzzles.First(item => item.PuzzleId == id);
             content.Puzzles[id] = new PuzzleProjectionContent
             {
                 PuzzleId = id,
+                Kind = slot.OfferedKinds is null ? string.Empty : mockKinds.Dequeue(),
+                Authored = slot.OfferedKinds is null ? string.Empty : "{}",
                 BasedOnTruthIds = slot.BasedOnTruthIds.ToList(),
                 RevealsConclusionIds = slot.RevealsConclusionIds.ToList(),
                 Prompt = T("Resolve the bounded mechanism using the established pattern.", "Giải cơ chế hữu hạn bằng mẫu quy luật đã được xác lập."),

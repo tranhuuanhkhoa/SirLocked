@@ -112,63 +112,19 @@ test('language switch translates the admin dashboard content, not only navigatio
   await expect(page.locator('.admin-table thead')).toContainText('Vai trò');
 });
 
-test('Vietnamese admin AI creator localizes presets and causal workflow guidance', async ({ page }) => {
+test('Vietnamese admin AI creator localizes the level cards and causal workflow guidance', async ({ page }) => {
   await page.goto('/admin/ai');
   await page.locator('[data-ui-language="vi"]').click();
 
   await expect(page.getByRole('heading', { name: 'Tạo vụ án bằng AI' })).toBeVisible();
-  await expect(page.locator('#ai-preset-select')).toContainText('Ngẫu nhiên cân bằng');
-  await expect(page.locator('#ai-preset-select')).toContainText('Bản thử ngắn');
-  await expect(page.locator('#ai-preset-help')).toContainText('Cấu hình cân bằng');
-  await expect(page.locator('#ai-case-type-select')).toContainText('Loại vụ án ngẫu nhiên');
-  await expect(page.locator('#ai-case-type-select')).toContainText('Mất tích');
+  await expect(page.locator('[data-level="easy"]')).toContainText('Dễ');
+  await expect(page.locator('[data-level="easy"]')).toContainText('10–15 phút');
+  await expect(page.locator('[data-level="medium"]')).toContainText('Trung bình');
+  await expect(page.locator('[data-level="hard"]')).toContainText('6–8 cảnh · 5 nghi phạm · 3 đối chất · 4–6 câu đố');
+  await expect(page.locator('[data-field="caseType"]')).toContainText('Ngẫu nhiên');
+  await expect(page.locator('[data-field="caseType"]')).toContainText('Mất tích');
+  await expect(page.locator('[data-field="leaning"]')).toContainText('Giải đố nhiều hơn');
   await expect(page.getByText('nguồn sự thật nhân quả bất biến')).toBeVisible();
-
-  await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
-  await expect(page.locator('#ai-preset-help')).toContainText('Vụ án gọn');
-  await expect(page.locator('#ai-preset-help')).toContainText('1 hội thoại phân nhánh');
-  await expect(page.locator('#ai-preset-help')).toContainText('1 chuỗi phối hợp hai vai');
-});
-
-for (const language of ['en', 'vi']) test(`Short Demo exposes the full sampler and preserves optional Crack creation (${language})`, async ({ page }) => {
-  await page.addInitScript((language) => localStorage.setItem('sirlocked.uiLanguage', language), language);
-  await page.route('**/api/admin/ai-cases/capabilities', route => route.fulfill({ json: { success: true, data: {
-    aiCaseV3PresetEnabled: true, gameplayV3Enabled: true, canCreateDraft: true, canCreateV3Draft: true,
-    creationBlockers: [], v3CreationBlockers: [],
-  } } }));
-  await page.route('**/api/admin/ai-cases', route => route.fulfill({ json: { success: true, data:
-    route.request().method() === 'GET' ? [] : {
-      draftId: 'short-sampler', provider: 'OpenAI', status: 'STORY_AWAITING_APPROVAL', queueState: 'NONE',
-      settings: { ...route.request().postDataJSON(), shortDemoProfileVersion: 1 },
-      storyPreview: { title: 'Short sampler preview', summary: 'Mocked creation; no provider call.' },
-    },
-  } }));
-  await page.goto('/admin/ai');
-  await page.locator('#ai-preset-select').selectOption('SHORT_DEMO');
-  await page.locator('#ai-language-select').selectOption(language);
-  await expect(page.locator('#ai-include-crack')).not.toBeChecked();
-  const help = page.locator('#ai-preset-help');
-  const required = language === 'vi'
-    ? ['2 chặng', '2–3 cảnh', '4 nhân vật', '1 công thức ghép vật phẩm', '1 lần dùng vật phẩm', '1 câu đố',
-      '1 hội thoại phân nhánh', '1 đối chất', '1 suy luận', '1 chuỗi phối hợp hai vai']
-    : ['2 stages', '2–3 scenes', '4 characters', '1 combine recipe', '1 item use', '1 puzzle',
-      '1 branching dialogue', '1 confrontation', '1 deduction', '1 teamwork chain'];
-  for (const requirement of required) await expect(help).toContainText(requirement);
-  for (const includeCrackTheLie of [false, true]) {
-    await page.locator('#ai-include-crack').setChecked(includeCrackTheLie);
-    await expect(help).toContainText(language === 'vi'
-      ? includeCrackTheLie ? 'cặp lời khai và chứng cứ' : 'luồng thông thường'
-      : includeCrackTheLie ? 'paired testimony and evidence' : 'standard flow');
-    const requestPromise = page.waitForRequest(request => request.url().endsWith('/api/admin/ai-cases')
-      && request.method() === 'POST');
-    await page.locator('#quick-create-btn').click();
-    const payload = (await requestPromise).postDataJSON();
-    expect(payload).toMatchObject({ generationPreset: 'SHORT_DEMO', stageCount: 2, difficulty: 'easy', language, includeCrackTheLie });
-    expect(payload).not.toHaveProperty('shortDemoProfileVersion');
-    await expect(page.locator('#ai-output')).toContainText('Short sampler preview');
-    await expect(page.locator('#ai-preset-select')).toHaveValue('SHORT_DEMO');
-    for (const requirement of required) await expect(help).toContainText(requirement);
-  }
 });
 
 test('queued premise appears as soon as polling reaches story approval without reloading', async ({ page }) => {
@@ -385,7 +341,7 @@ test('causal truth review renders structured gates and forwards scoped repair in
   await expect(page.locator('[data-blind-review]')).toContainText('clue-5');
 });
 
-test('V3 capability adds Crack to the selected V2 preset without exposing a second preset', async ({ page }) => {
+test('every new order carries Crack the Lie: no switch, and the order sends its level instead of a preset', async ({ page }) => {
   await page.unroute('**/api/admin/ai-cases/capabilities');
   await page.route('**/api/admin/ai-cases/capabilities', async (route) => {
     await route.fulfill({
@@ -404,32 +360,25 @@ test('V3 capability adds Crack to the selected V2 preset without exposing a seco
   });
 
   await page.goto('/admin/ai');
-  await expect(page.locator('#ai-preset-select')).not.toContainText('Crack the Lie V3');
-  await expect(page.locator('#ai-include-crack')).toBeVisible();
-  await expect(page.getByText('V3 gameplay is disabled.')).toBeVisible();
-  await page.locator('#ai-preset-select').selectOption('FULL_FEATURE');
-  await page.locator('#ai-case-type-select').selectOption('FRAUD');
-  await page.locator('#ai-include-crack').check();
-  await expect(page.locator('#ai-preset-help')).toContainText('added on top of this preset');
-  await expect(page.locator('#ai-crack-badge')).toContainText('V3 · Crack');
-  await expect(page.locator('#ai-crack-budget')).toContainText('2–3 Cracks');
-  await expect(page.locator('#ai-crack-budget')).toContainText('target 3T × 5E');
-  await expect(page.locator('#ai-crack-budget')).toContainText('60/case');
+  await expect(page.locator('#ai-include-crack, #ai-preset-select')).toHaveCount(0);
+  // Without difficultyProfiles in the capabilities the form falls back to the same built-in numbers.
+  await expect(page.locator('[data-level="hard"]')).toContainText('40–60 min');
+  await page.locator('[data-level="hard"]').click();
+  await page.locator('label.aai-chip', { hasText: 'Fraud' }).click();
   await page.locator('#ai-creator-direction').fill('A rain-soaked station mystery with an object-state contradiction.');
 
   const requestPromise = page.waitForRequest((request) =>
     request.url().endsWith('/api/admin/ai-cases') && request.method() === 'POST');
   await page.locator('#quick-create-btn').click();
-  const request = await requestPromise;
+  const body = (await requestPromise).postDataJSON();
 
-  expect(request.postDataJSON()).toMatchObject({
-    generationPreset: 'FULL_FEATURE',
-    stageCount: 6,
+  expect(body).toMatchObject({
     difficulty: 'hard',
-    includeCrackTheLie: true,
+    leaning: 'BALANCED',
     caseType: 'FRAUD',
     prompt: 'A rain-soaked station mystery with an object-state contradiction.',
   });
+  for (const retired of ['generationPreset', 'stageCount', 'includeCrackTheLie']) expect(body).not.toHaveProperty(retired);
 });
 
 test('V3 full-logic review shows one camera and two item evidence choices without logic-changing repair', async ({ page }) => {
@@ -595,9 +544,10 @@ test('V3 ready draft cannot publish from AI Creator while gameplay flag is disab
 
 test('Vietnamese selector sends language and renders Vietnamese preview', async ({ page }) => {
   await page.goto('/admin/ai');
-  await expect(page.locator('#ai-language-select')).toContainText('Tiếng Việt');
-  await page.locator('#ai-language-select').selectOption('vi');
-  await page.locator('#ai-case-type-select').selectOption('MISSING_PERSON');
+  await page.locator('#ai-more > summary').click();
+  await expect(page.locator('[data-field="caseType"]')).toContainText('Missing person');
+  await page.locator('label', { hasText: 'Tiếng Việt' }).click();
+  await page.locator('label.aai-chip', { hasText: 'Missing person' }).click();
 
   const generationRequest = page.waitForRequest((request) =>
     request.url().endsWith('/api/admin/ai-cases') && request.method() === 'POST');
@@ -605,8 +555,8 @@ test('Vietnamese selector sends language and renders Vietnamese preview', async 
   const request = await generationRequest;
 
   expect(request.postDataJSON()).toMatchObject({ language: 'vi', caseType: 'MISSING_PERSON' });
-  await expect(page.locator('#ai-language-select')).toHaveValue('vi');
-  await expect(page.locator('#ai-case-type-select')).toHaveValue('MISSING_PERSON');
+  await expect(page.locator('input[name="aai-language"][value="vi"]')).toBeChecked();
+  await expect(page.locator('input[name="aai-case-type"][value="MISSING_PERSON"]')).toBeChecked();
   await expect(page.locator('#ai-output')).toContainText('Tiếng Chuông Dưới Blackglass');
   await expect(page.locator('#ai-output')).toContainText('Language: Tiếng Việt');
 });

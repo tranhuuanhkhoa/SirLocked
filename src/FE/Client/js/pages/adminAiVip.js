@@ -43,9 +43,11 @@ const formatTime = (value) => {
 /** Quotes for both speeds, so the radio buttons show both prices. */
 export async function loadVipQuotes(form) {
   const cap = 30 + Number(form.vipExtraPixelLab || 0);
+  // Every new (OPEN_COOP_1) order runs on the Normal Random preset whatever its level: the server prices it so.
+  const preset = form.preset || 'NORMAL_RANDOM';
   const [fast, saver] = await Promise.all([
-    aiCaseApi.vipQuote(form.preset, 'FAST', cap),
-    aiCaseApi.vipQuote(form.preset, 'SAVER', cap),
+    aiCaseApi.vipQuote(preset, 'FAST', cap),
+    aiCaseApi.vipQuote(preset, 'SAVER', cap),
   ]);
   return { FAST: fast, SAVER: saver };
 }

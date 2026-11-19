@@ -14,39 +14,36 @@ public sealed class ShortDemoSamplerContractTests
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    [Theory]
-    [InlineData(false, CaseMechanicsVersions.InvestigationV2)]
-    [InlineData(true, CaseMechanicsVersions.InvestigationV3PairedConfrontation)]
-    public void NewShortCreation_NormalizesScopeAndAssignsServerProfile(bool includeCrack, int mechanicsVersion)
+    // New orders no longer pick a preset (spec 2026-11-19): a retired SHORT_DEMO or CRACK_THE_LIE_V3 request becomes an
+    // OPEN_COOP_1 draft of the requested level, and only persisted drafts keep the short-sampler profile.
+    [Fact]
+    public void RetiredShortDemoRequest_BecomesALevelledOrder()
     {
-        // Client JSON cannot select the persisted profile or force V3 through it.
+        // Client JSON cannot select the persisted profile or force a preset.
         var request = JsonSerializer.Deserialize<GenerateAiCaseRequest>(
             """{"generationPreset":"short_demo","stageCount":6,"difficulty":"hard","language":"VI","shortDemoProfileVersion":0}""",
             JsonOptions)!;
-        request.IncludeCrackTheLie = includeCrack;
 
         var settings = AiCaseService.CreateNewDraftSettings(request);
 
-        Assert.Equal(AiGenerationPresets.ShortDemo, request.GenerationPreset);
-        Assert.Equal(2, settings.StageCount);
-        Assert.Equal("easy", settings.Difficulty);
+        Assert.Equal(AiPipelineVersions.OpenCoop1, settings.PipelineVersion);
+        Assert.Equal(AiGenerationPresets.NormalRandom, settings.GenerationPreset);
+        Assert.Equal(1, settings.StageCount);
+        Assert.Equal("hard", settings.Difficulty);
         Assert.Equal(CaseLanguages.Vietnamese, settings.Language);
-        Assert.Equal(AiGenerationContract.CurrentShortDemoProfileVersion, settings.ShortDemoProfileVersion);
-        Assert.Equal(mechanicsVersion, settings.MechanicsVersion);
-        Assert.Equal(includeCrack, settings.IncludeCrackTheLie);
-        Assert.Equal(1, AiGenerationContract.For(settings).EvidenceChallenges);
+        Assert.Equal(0, settings.ShortDemoProfileVersion);
     }
 
     [Fact]
-    public void RetiredV3Request_BecomesNewShortSamplerWithoutChangingPersistedLegacyDrafts()
+    public void RetiredV3Request_BecomesALevelledOrderWithoutChangingPersistedLegacyDrafts()
     {
         var settings = AiCaseService.CreateNewDraftSettings(new GenerateAiCaseRequest
         {
             GenerationPreset = AiGenerationPresets.CrackTheLieV3
         });
 
-        Assert.Equal(AiGenerationPresets.ShortDemo, settings.GenerationPreset);
-        Assert.Equal(1, settings.ShortDemoProfileVersion);
+        Assert.Equal(AiPipelineVersions.OpenCoop1, settings.PipelineVersion);
+        Assert.Equal(0, settings.ShortDemoProfileVersion);
         Assert.True(settings.IncludeCrackTheLie);
         Assert.Equal(CaseMechanicsVersions.InvestigationV3PairedConfrontation, settings.MechanicsVersion);
         Assert.Equal(0, new AiDraftSettings { GenerationPreset = AiGenerationPresets.CrackTheLieV3 }.ShortDemoProfileVersion);
@@ -61,7 +58,7 @@ public sealed class ShortDemoSamplerContractTests
         });
 
         Assert.Equal(0, settings.ShortDemoProfileVersion);
-        Assert.Equal(4, settings.StageCount);
+        Assert.Equal(1, settings.StageCount);
     }
 
     [Fact]
@@ -89,10 +86,13 @@ public sealed class ShortDemoSamplerContractTests
     [Fact]
     public void NewProfile_RoundTripsAndIsInjectedOnlyFromServerSettings()
     {
-        var settings = AiCaseService.CreateNewDraftSettings(new GenerateAiCaseRequest
+        // A persisted short-sampler draft (created before levels existed) keeps its server-owned profile.
+        var settings = new AiDraftSettings
         {
-            GenerationPreset = AiGenerationPresets.ShortDemo
-        });
+            GenerationPreset = AiGenerationPresets.ShortDemo,
+            StageCount = 2,
+            ShortDemoProfileVersion = AiGenerationContract.CurrentShortDemoProfileVersion
+        };
         var loaded = BsonSerializer.Deserialize<AiDraftSettings>(settings.ToBson());
         var generated = new GeneratedCaseLogic();
         var gameCase = generated.ToGameCase(loaded);

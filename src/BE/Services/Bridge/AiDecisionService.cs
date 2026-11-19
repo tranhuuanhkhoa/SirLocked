@@ -25,6 +25,15 @@ public sealed partial class AiDecisionService(MongoDbContext db, AiBridgeRequest
     [GeneratedRegex("^[a-z0-9-]{1,40}$")]
     private static partial Regex OptionIdPattern();
 
+    /// <summary>An autopilot order never waits for its creator: the bot decides, follows the order, and notes the choice in report.md.</summary>
+    public static void EnsureMayAsk(AiCaseDraft draft)
+    {
+        if (draft.Order?.ReviewMode == AiCaseReviewModes.Auto)
+            throw ApiException.Conflict(
+                "This order runs without questions: pick the option that best follows the order yourself and note the choice in report.md.",
+                "AI_DECISION_AUTOPILOT", "ai.decision.autopilot");
+    }
+
     public static void ValidateAsk(AiDecisionAskRequest? body)
     {
         if (body is null) throw Invalid("A question body is required.");
@@ -54,6 +63,7 @@ public sealed partial class AiDecisionService(MongoDbContext db, AiBridgeRequest
                 "BRIDGE_REQUEST_NOT_TAKEN", "ai.bridge.notTaken");
         var draft = await db.AiCaseDrafts.Find(item => item.Id == request.OwnerId).FirstOrDefaultAsync(ct)
             ?? throw ApiException.NotFound("AI draft not found.");
+        EnsureMayAsk(draft);
         if (draft.Decisions.Any(item => item.Key == body.Key && item.Status == AiDecisionStatuses.Open))
             throw ApiException.Conflict($"A question '{body.Key}' is already waiting for the creator.",
                 "AI_DECISION_DUPLICATE", "ai.decision.duplicate");

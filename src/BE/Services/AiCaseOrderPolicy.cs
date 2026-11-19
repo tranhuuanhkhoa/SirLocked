@@ -27,6 +27,32 @@ public static class AiCaseOrderPolicy
         WorldDescriptions.TryGetValue(world ?? string.Empty, out var description) ? description : string.Empty;
 
     /// <summary>
+    /// A new (OPEN_COOP_1) order: suspects and play time come from the difficulty level, whatever the client sent;
+    /// the NPC limit follows the level's suspects. It runs on autopilot (<see cref="AiCaseReviewModes.Auto"/>):
+    /// no gate waits for a person, whatever review mode the client sent. The one exception is a paid VIP order
+    /// (VUAN-7, <paramref name="paidVipMaxPixelLabCap"/> set): it keeps the FULL review mode and its PixelLab packs.
+    /// </summary>
+    public static AiCaseOrder Normalize(AiCaseOrder? requested, string role, AiDifficultyProfile profile,
+        int? paidVipMaxPixelLabCap = null)
+    {
+        requested ??= new AiCaseOrder();
+        var levelled = new AiCaseOrder
+        {
+            World = requested.World, LocationIds = requested.LocationIds, NpcIds = requested.NpcIds,
+            SuspectCount = profile.Suspects, CharacterNotes = requested.CharacterNotes, Weather = requested.Weather,
+            TimeOfDay = requested.TimeOfDay, PlayMinutes = 30, ContentLevel = requested.ContentLevel,
+            PixelLabCap = requested.PixelLabCap, ReviewMode = AiCaseReviewModes.Full,
+            Speed = requested.Speed, VipExtraPixelLab = requested.VipExtraPixelLab
+        };
+        var order = Normalize(levelled, role, paidVipMaxPixelLabCap);
+        order.PlayMinutes = profile.EstimatedMinutes;
+        var paidVipOrder = paidVipMaxPixelLabCap is not null
+            && !string.Equals(role, UserRole.Admin, StringComparison.OrdinalIgnoreCase);
+        if (!paidVipOrder) order.ReviewMode = AiCaseReviewModes.Auto;
+        return order;
+    }
+
+    /// <summary>
     /// Server-normalized order. An ADMIN order, and a VIP order on the free bridge lane (the VIP API lane is closed),
     /// keeps the review mode and the PixelLab cap the creator chose; -1 means no fixed cap.
     /// A paid VIP order (VUAN-7, <paramref name="paidVipMaxPixelLabCap"/> set) always gets the FULL review mode and a
@@ -111,7 +137,10 @@ public static class AiCaseOrderPolicy
     /// The order as an explicit block appended to every step's prompt. Drafts created before orders existed have no
     /// order and keep their original prompts.
     /// </summary>
-    public static string BuildPromptBlock(AiCaseOrder? order)
+    public static string BuildPromptBlock(AiCaseOrder? order) => BuildPromptBlock(order, null);
+
+    /// <summary>With a difficulty profile (OPEN_COOP_1 drafts) the play time line states the level's range.</summary>
+    public static string BuildPromptBlock(AiCaseOrder? order, AiDifficultyProfile? profile)
     {
         if (order is null) return string.Empty;
         var builder = new StringBuilder();
@@ -132,7 +161,10 @@ public static class AiCaseOrderPolicy
         builder.AppendLine(order.TimeOfDay == AiCaseTimesOfDay.Auto
             ? "- time of day: AUTO (choose one that fits)"
             : $"- time of day: {order.TimeOfDay}");
-        builder.AppendLine($"- target play time: about {order.PlayMinutes.ToString(CultureInfo.InvariantCulture)} minutes");
+        builder.AppendLine(profile is null
+            ? $"- target play time: about {order.PlayMinutes.ToString(CultureInfo.InvariantCulture)} minutes"
+            : $"- target play time: about {profile.PlayMinutes.Min.ToString(CultureInfo.InvariantCulture)}-"
+              + $"{profile.PlayMinutes.Max.ToString(CultureInfo.InvariantCulture)} minutes ({profile.Difficulty})");
         builder.AppendLine(order.ContentLevel == AiCaseContentLevels.Light
             ? "- content level: LIGHT (no blood or gore, suitable for every age)"
             : "- content level: STANDARD");

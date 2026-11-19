@@ -122,9 +122,10 @@ public partial class AiCaseService
         if (!_orderBlocks.TryGetValue(draftId, out var block))
         {
             var stored = await _db.AiCaseDrafts.Find(item => item.Id == draftId)
-                .Project(item => new { item.Order, item.VipBrief })
+                .Project(item => new { item.Order, item.Settings, item.VipBrief })
                 .FirstOrDefaultAsync(_operationCancellationToken);
-            block = AiCaseOrderPolicy.BuildPromptBlock(stored?.Order);
+            block = AiCaseOrderPolicy.BuildPromptBlock(stored?.Order,
+                AiPipelineVersions.IsOpenCoop(stored?.Settings) ? AiDifficultyProfiles.For(stored!.Settings.Difficulty) : null);
             // VUAN-7: a VIP order's brief follows its order block in every later step.
             var brief = BuildVipBriefBlock(stored?.VipBrief);
             if (brief.Length > 0) block = string.IsNullOrEmpty(block) ? brief : $"{block}\n\n{brief}";

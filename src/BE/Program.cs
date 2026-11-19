@@ -84,6 +84,8 @@ builder.Services.Configure<CutsceneSettings>(builder.Configuration.GetSection("C
 builder.Services.AddScoped<ICutsceneStore, MongoCutsceneStore>();
 builder.Services.AddScoped<CutsceneScriptGenerator>();
 builder.Services.AddScoped<CutsceneService>();
+builder.Services.AddScoped<IAiIntroCutsceneStarter>(services => new AiIntroCutsceneStarter((caseId, ct) =>
+    services.GetRequiredService<CutsceneService>().GenerateAsync(caseId, regenerate: false, actor: "ai-pipeline", ct)));
 builder.Services.AddHostedService<CutsceneSeedWorker>();
 builder.Services.AddScoped<LegacyCaseCatalog>();
 builder.Services.Configure<PlaytestSettings>(builder.Configuration.GetSection("Playtest"));
@@ -161,6 +163,8 @@ builder.Services.AddScoped<ITutorialService, TutorialService>();
 builder.Services.AddScoped<SirLocked.Api.Services.CaseEditor.CaseEditorService>();
 builder.Services.AddHostedService<PixelCaseSeedWorker>();
 builder.Services.AddScoped<IAiDraftWorkflowCoordinator, AiDraftWorkflowCoordinator>();
+builder.Services.AddScoped<IAiDraftAutopilot, AiDraftAutopilot>();
+builder.Services.AddScoped<TruthStageRules>();
 builder.Services.AddSingleton<IBridgeNotifier, BridgeHubNotifier>();
 builder.Services.AddScoped<AiBridgeRequestStore>();
 // VUAN-7: paid VIP orders are written through the Claude API, everything else by the ADMIN bot through the bridge.

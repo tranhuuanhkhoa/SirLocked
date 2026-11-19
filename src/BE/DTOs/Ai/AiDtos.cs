@@ -28,6 +28,10 @@ public class GenerateAiCaseRequest
     /// <summary>Adds the paired Crack-the-Lie loop on top of the selected V2 preset.</summary>
     public bool IncludeCrackTheLie { get; set; }
 
+    /// <summary>BALANCED, PUZZLE or DIALOGUE: leans the level's puzzle and dialogue counts (new orders).</summary>
+    [MaxLength(20)]
+    public string? Leaning { get; set; }
+
     [MaxLength(5)]
     [RegularExpression("^(?i:en|vi)$", ErrorMessage = "language must be 'en' or 'vi'.")]
     public string Language { get; set; } = CaseLanguages.English;
@@ -410,8 +414,57 @@ public sealed class AiBlueprintSummaryResponse
     public List<string> ValidationErrors { get; set; } = new();
 }
 
+public sealed class AiRangeResponse
+{
+    public int Min { get; set; }
+    public int Max { get; set; }
+
+    public static AiRangeResponse From(IntRange range) => new() { Min = range.Min, Max = range.Max };
+}
+
+public sealed class AiPixelLabEstimateResponse
+{
+    public AiRangeResponse NewWorld { get; set; } = new();
+    public AiRangeResponse LibraryWorld { get; set; } = new();
+}
+
+/// <summary>One difficulty level as the order form shows it (numbers from <c>AiDifficultyProfiles</c>).</summary>
+public sealed class AiDifficultyProfileResponse
+{
+    public string Difficulty { get; set; } = string.Empty;
+    public AiRangeResponse PlayMinutes { get; set; } = new();
+    public int EstimatedMinutes { get; set; }
+    public AiRangeResponse Scenes { get; set; } = new();
+    public int Suspects { get; set; }
+    public int Cracks { get; set; }
+    public AiRangeResponse Puzzles { get; set; } = new();
+    public AiRangeResponse RedHerrings { get; set; } = new();
+    public int RequiredEvidence { get; set; }
+    public AiPixelLabEstimateResponse PixelLab { get; set; } = new();
+
+    public static AiDifficultyProfileResponse From(AiDifficultyProfile profile) => new()
+    {
+        Difficulty = profile.Difficulty,
+        PlayMinutes = AiRangeResponse.From(profile.PlayMinutes),
+        EstimatedMinutes = profile.EstimatedMinutes,
+        Scenes = AiRangeResponse.From(profile.Scenes),
+        Suspects = profile.Suspects,
+        Cracks = profile.Cracks,
+        Puzzles = AiRangeResponse.From(profile.Puzzles),
+        RedHerrings = AiRangeResponse.From(profile.RedHerrings),
+        RequiredEvidence = profile.RequiredEvidence,
+        PixelLab = new AiPixelLabEstimateResponse
+        {
+            NewWorld = AiRangeResponse.From(profile.PixelLabNewWorld),
+            LibraryWorld = AiRangeResponse.From(profile.PixelLabLibraryWorld)
+        }
+    };
+}
+
 public sealed class AiCaseCapabilitiesResponse
 {
+    /// <summary>The three difficulty levels of a new order, in form order (easy, medium, hard).</summary>
+    public List<AiDifficultyProfileResponse> DifficultyProfiles { get; set; } = new();
     public List<AiCreationBlockerResponse> CreationBlockers { get; set; } = new();
     public List<AiCreationBlockerResponse> V3CreationBlockers { get; set; } = new();
     public bool CanCreateDraft => CreationBlockers.Count == 0;
